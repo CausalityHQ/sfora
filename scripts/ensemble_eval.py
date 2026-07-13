@@ -91,7 +91,8 @@ def main() -> None:
         dims = [d for d in (256, 512, 1024, 1536, 2048) if d < full_dim]
         for dim in dims:
             r = _recall(_pca_compress(concatenated, dim), labels_reference)
-            print(f"  {full_dim:>5d} -> {dim:<5d}  R@1={r:.4f}  (retains {r / ensemble_recall:.1%})")
+            kept = r / ensemble_recall
+            print(f"  {full_dim:>5d} -> {dim:<5d}  R@1={r:.4f}  (retains {kept:.1%})")
     elif args.compress_dim is not None and args.compress_dim < full_dim:
         r = _recall(_pca_compress(concatenated, args.compress_dim), labels_reference)
         print(

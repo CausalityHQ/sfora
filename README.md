@@ -51,11 +51,14 @@ page. See [CHANGELOG.md](CHANGELOG.md) and [docs/results.md](docs/results.md).
 
 ## Why
 
-Point-triplet training often moves local neighborhoods without improving the
-downstream decision boundary. Group learning adds context: same-label examples
-should stay compact as a group, class centroids should separate, hard members
-should be handled explicitly, and the final space should be judged by held-out
-metrics rather than by incomparable objective losses.
+Deep metric learning on fine-grained retrieval has sat on a ~0.71 same-arch
+plateau, and the strongest *reported* numbers do not reproduce. SFORA takes a
+different lever: instead of another loss-geometry tweak, **HERD** changes the
+*information per training step* with an EMA-teacher that distills relational
+neighborhood structure — the part that transfers to unseen classes — and a model
+ensemble (compressible back to a single-model footprint) pushes past the best
+reported number. Every result is measured best-over-training and reported
+honestly, including what did not reproduce.
 
 ## Reproduce the SOTA result (HERD + SFORA ensemble)
 
@@ -98,7 +101,8 @@ for the full benchmark table, reproducibility notes, and the honest negatives
 - `sfora.evaluation`: linear-probe, retrieval, and geometry metrics.
 - `sfora.image_benchmark`: CUB, Cars196, and SOP retrieval benchmark.
 - `sfora.image_end_to_end`: ResNet-50/512 paper-protocol training for
-  Proxy Anchor, PFML, GSI, and BGSI objectives.
+  Proxy Anchor, HIST, PFML, and the HERD add-ons (LayerNorm `is_norm` head,
+  EMA-teacher relational self-distillation) plus the ensemble tooling.
 - `sfora.report`: Markdown, HTML, and Hugging Face card generation.
 
 See [docs/architecture.md](docs/architecture.md) for the full pipeline and
@@ -109,7 +113,7 @@ evaluation protocol.
 ```python
 import numpy as np
 
-from sfora import GroupLearningProjector
+from sfora import SforaProjector
 
 embeddings = np.array(
     [
@@ -126,7 +130,7 @@ embeddings = np.array(
 )
 labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
-projector = GroupLearningProjector(
+projector = SforaProjector(
     objective="group_supcon_xbm_radius",
     group_size=2,
     steps=80,

@@ -21,7 +21,7 @@ uv sync --group dev --extra research
 ```python
 import numpy as np
 
-from sfora import GroupLearningProjector
+from sfora import SforaProjector
 
 embeddings = np.array(
     [
@@ -38,7 +38,7 @@ embeddings = np.array(
 )
 labels = np.array([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
-projector = GroupLearningProjector(
+projector = SforaProjector(
     objective="group_supcon_xbm_radius",
     group_size=2,
     steps=80,
@@ -60,7 +60,7 @@ quality stops improving. Use a held-out validation split when fitting so the
 projector keeps the step with the best validation MAP@R:
 
 ```python
-projector = GroupLearningProjector(
+projector = SforaProjector(
     objective="group_supcon_xbm_radius",
     group_size=4,
     steps=80,

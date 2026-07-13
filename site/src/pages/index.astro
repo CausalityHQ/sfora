@@ -31,7 +31,6 @@ const maxR = Math.max(...ensembleScaling.map((d) => d.r));
 const minR = 0.72;
 
 // Base-aware internal links (site is served under /sfora/).
-const reportUrl = `${import.meta.env.BASE_URL}/report`.replace(/\/{2,}/g, "/");
 const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, "/");
 ---
 
@@ -63,10 +62,10 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       </a>
       <nav>
         <a href="#result">Result</a>
+        <a href="#eli5">Plain English</a>
         <a href="#herd">Method</a>
         <a href="#reproduce">Reproduce</a>
         <a href="#science">Honest science</a>
-        <a class="ghost" href={reportUrl}>Full report ↗</a>
         <a class="cta" href="https://github.com/CausalityHQ/sfora">GitHub</a>
       </nav>
     </header>
@@ -171,8 +170,68 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         </div>
       </section>
 
+      <!-- ─────────────────────────  ELI5  ───────────────────────── -->
+      <section id="eli5" class="band alt">
+        <div class="section-head">
+          <p class="eyebrow">In plain English</p>
+          <h2>The whole idea, explained like you're five.</h2>
+          <p class="sub">No jargon. (The jargon has its own glossary further down.)</p>
+        </div>
+
+        <div class="eli5-flow">
+          <div class="eli5-step">
+            <span class="step-n">01</span>
+            <h3>The task</h3>
+            <p>Show the model a photo of a bird. It should turn that photo into a
+            list of numbers (an <em>embedding</em>) such that two photos of the
+            <b>same species</b> get <b>nearby</b> numbers, and different species get
+            <b>far-apart</b> numbers. Then "find similar images" is just "find the
+            nearest numbers." The catch: it's tested on <b>species it never saw in
+            training</b> — so it must learn <em>general</em> bird-ness, not memorize.</p>
+          </div>
+          <div class="eli5-step">
+            <span class="step-n">02</span>
+            <h3>What everyone did before</h3>
+            <p>Prior methods (<b>Proxy Anchor</b>, <b>HIST</b>, <b>PFML</b>) are all
+            clever ways of <em>tugging</em> the numbers around: pull same-species
+            together, push others apart, using one learnable "anchor" per species, or
+            a graph of relationships. For years, none of these tugging tricks could
+            push past ~71% accuracy on this benchmark — and the best <em>reported</em>
+            numbers turned out not to reproduce.</p>
+          </div>
+          <div class="eli5-step key">
+            <span class="step-n">03</span>
+            <h3>What HERD adds <span class="tag">our idea</span></h3>
+            <p>Keep a <b>slow-motion copy of the model</b> — the <em>EMA teacher</em>.
+            It changes only a tiny bit each step, so it's calmer and more consistent
+            than the fast-learning student. Each step, the teacher looks at a batch and
+            says "for this photo, here's <b>which other photos are its neighbours, and
+            how strongly</b>." The student is trained to <b>agree with the teacher's
+            neighbourhood map</b>. Copying <em>relationships</em> (who's near whom) —
+            not just labels — is what teaches the model something that transfers to
+            unseen species. That single change broke the plateau.</p>
+          </div>
+          <div class="eli5-step">
+            <span class="step-n">04</span>
+            <h3>The pack</h3>
+            <p>Train several of these models from different random starts — a
+            <b>pack</b> (that's what <em>sfora</em> means). Glue their number-lists
+            together and you get a stronger combined judgement than any single model,
+            because they make different mistakes. And you can <b>squeeze that combined
+            list back down</b> to the size of one model while keeping ~98% of the gain.</p>
+          </div>
+        </div>
+
+        <p class="eli5-punch">
+          Net: previous methods rearranged <em>one</em> model's view of <em>one</em>
+          crop. HERD changes <em>what information the model gets each step</em> (a
+          teacher's neighbourhood hints), and a pack of them — compressed — beats the
+          best number anyone has reported.
+        </p>
+      </section>
+
       <!-- ─────────────────────────  HERD METHOD  ───────────────────────── -->
-      <section id="herd" class="band alt">
+      <section id="herd" class="band">
         <div class="section-head">
           <p class="eyebrow">The method</p>
           <h2><span class="mono-tag">HERD</span> Hypergraph · EMA-teacher · Relational · Distillation</h2>
@@ -352,8 +411,30 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
         </div>
       </section>
 
+      <!-- ─────────────────────────  GLOSSARY  ───────────────────────── -->
+      <section id="glossary" class="band">
+        <div class="section-head">
+          <p class="eyebrow">Nomenclature</p>
+          <h2>Every term on this page, defined.</h2>
+        </div>
+        <dl class="glossary">
+          <div><dt>Embedding</dt><dd>The list of numbers (a vector) a model turns an image into. Similar images should get nearby vectors.</dd></div>
+          <div><dt>Recall@1 (R@1)</dt><dd>The headline score: the % of test images whose single nearest neighbour is the same class. Higher is better.</dd></div>
+          <div><dt>Zero-shot split</dt><dd>Train on one set of classes, test on a completely <em>different</em> set. Measures generalization, not memorization.</dd></div>
+          <div><dt>Same-arch</dt><dd>Same backbone (ResNet-50) and embedding size (512-dim) for every method, so the comparison is fair.</dd></div>
+          <div><dt>Best-over-training</dt><dd>Report the peak test score seen during training — the protocol every paper here uses.</dd></div>
+          <div><dt>EMA teacher</dt><dd>Exponential Moving Average: a slow copy of the model updated as θ<sub>t</sub> ← m·θ<sub>t</sub> + (1−m)·θ<sub>s</sub>. Calmer, more consistent targets.</dd></div>
+          <div><dt>Distillation</dt><dd>Training one model (the student) to match another's (the teacher's) outputs.</dd></div>
+          <div><dt>Relational distillation</dt><dd>Matching <em>who-is-near-whom</em> in a batch (a neighbourhood distribution) rather than hard class labels.</dd></div>
+          <div><dt>Hypergraph loss (HIST)</dt><dd>The base loss HERD builds on: per-class Gaussian prototypes plus a graph over the batch. CVPR 2022.</dd></div>
+          <div><dt>Proxy Anchor / PFML</dt><dd>Prior metric-learning losses (a per-class anchor; a physics-style potential field). The baselines we compare against.</dd></div>
+          <div><dt>Ensemble</dt><dd>Combining several independently-trained models — here by concatenating their (L2-normalized) embeddings.</dd></div>
+          <div><dt>Hypersphere</dt><dd>Because embeddings are L2-normalized to length 1, they live on the surface of a sphere — that's what the hero visual shows.</dd></div>
+        </dl>
+      </section>
+
       <!-- ─────────────────────────  REFERENCES  ───────────────────────── -->
-      <section id="refs" class="band">
+      <section id="refs" class="band alt">
         <div class="section-head"><p class="eyebrow">References</p><h2>Standing on the pack's shoulders.</h2></div>
         <ol class="refs">
           {refs.map((r, i) => (
@@ -381,7 +462,6 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
         </div>
         <div class="links">
           <a href="https://github.com/CausalityHQ/sfora">GitHub ↗</a>
-          <a href={reportUrl}>Full data report ↗</a>
           <a href="https://github.com/CausalityHQ/sfora/blob/main/docs/results.md">Results &amp; reproducibility ↗</a>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from sfora import GroupLearningProjector, fit_sfora_projection
+from sfora import SforaProjector, fit_sfora_projection
 
 
 def _toy_embeddings() -> tuple[np.ndarray, np.ndarray]:
@@ -25,7 +25,7 @@ def _toy_embeddings() -> tuple[np.ndarray, np.ndarray]:
 def test_sfora_projector_fits_and_transforms_embeddings() -> None:
     embeddings, labels = _toy_embeddings()
 
-    projector = GroupLearningProjector(
+    projector = SforaProjector(
         objective="group_supcon_xbm_radius",
         group_size=2,
         steps=4,
@@ -48,7 +48,7 @@ def test_sfora_projector_can_select_checkpoint_with_validation_split() -> None:
         dtype=np.float64,
     )
 
-    projector = GroupLearningProjector(
+    projector = SforaProjector(
         objective="triplet",
         group_size=2,
         steps=3,
@@ -68,7 +68,7 @@ def test_sfora_projector_can_select_checkpoint_with_validation_split() -> None:
 
 
 def test_sfora_projector_exposes_memory_and_group_shuffle_knobs() -> None:
-    projector = GroupLearningProjector(
+    projector = SforaProjector(
         xbm_memory_size=64,
         shuffle_groups_each_step=True,
     )
@@ -79,7 +79,7 @@ def test_sfora_projector_exposes_memory_and_group_shuffle_knobs() -> None:
 
 def test_sfora_projector_requires_complete_validation_split() -> None:
     embeddings, labels = _toy_embeddings()
-    projector = GroupLearningProjector()
+    projector = SforaProjector()
 
     with pytest.raises(ValueError, match="validation_embeddings and validation_labels"):
         projector.fit(embeddings, labels, validation_embeddings=embeddings)
@@ -97,12 +97,12 @@ def test_fit_sfora_projection_returns_fitted_projector() -> None:
         learning_rate=0.01,
     )
 
-    assert isinstance(projector, GroupLearningProjector)
+    assert isinstance(projector, SforaProjector)
     assert projector.training_result is not None
 
 
 def test_sfora_projector_requires_fit_before_transform() -> None:
-    projector = GroupLearningProjector()
+    projector = SforaProjector()
 
     with pytest.raises(ValueError, match="fit"):
         projector.transform(np.zeros((2, 2), dtype=np.float64))

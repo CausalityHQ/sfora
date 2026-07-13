@@ -7,7 +7,7 @@ from sfora.ablation import (
     run_synthetic_ablation,
     write_ablation_report,
 )
-from sfora.api import GroupLearningProjector, fit_sfora_projection
+from sfora.api import SforaProjector, fit_sfora_projection
 from sfora.data import (
     ImageExample,
     TextExample,
@@ -118,7 +118,7 @@ __all__ = [
     "EncoderAblationResult",
     "EncoderAblationTrial",
     "EmbeddingSpaceDiagnostics",
-    "GroupLearningProjector",
+    "SforaProjector",
     "HfPublishBundle",
     "HfPublishConfig",
     "HfPublishResult",

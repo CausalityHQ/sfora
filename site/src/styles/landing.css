@@ -266,3 +266,25 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .compress b { color: var(--moss-deep); font-family: var(--mono); font-weight: 600; }
 .compress .lead { color: var(--ink); font-weight: 600; font-family: var(--serif); font-size: 1rem; display: block; margin-bottom: 0.3rem; }
 .compress code { font-family: var(--mono); font-size: 0.84em; color: var(--ink); background: var(--paper-2); padding: 0.1em 0.35em; border-radius: 4px; }
+
+/* ── ELI5 ── */
+.eli5-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; }
+@media (max-width: 980px) { .eli5-flow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .eli5-flow { grid-template-columns: 1fr; } }
+.eli5-step { padding: 1.5rem; background: var(--card); border: 1px solid var(--line); border-radius: 14px; position: relative; }
+.eli5-step.key { border-color: var(--ember); background: color-mix(in oklch, var(--ember) 6%, var(--card)); }
+.eli5-step .step-n { font-family: var(--mono); font-size: 0.78rem; color: var(--ember-deep); font-weight: 600; }
+.eli5-step h3 { font-size: 1.12rem; margin: 0.5rem 0 0.7rem; }
+.eli5-step p { color: var(--ink-soft); font-size: 0.92rem; margin: 0; }
+.eli5-step p b { color: var(--ink); font-weight: 700; }
+.eli5-step .tag { font-family: var(--mono); font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--paper); background: var(--ember-deep); padding: 0.2em 0.5em; border-radius: 5px; vertical-align: middle; margin-left: 0.4rem; }
+.eli5-punch { max-width: 60ch; margin: 2rem auto 0; text-align: center; font-family: var(--serif); font-size: clamp(1.1rem, 1rem + 0.6vw, 1.4rem); line-height: 1.45; color: var(--ink); }
+.eli5-punch em { color: var(--ember-deep); }
+
+/* ── glossary ── */
+.glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 0 3rem; margin: 0; }
+@media (max-width: 720px) { .glossary { grid-template-columns: 1fr; } }
+.glossary > div { display: grid; grid-template-columns: minmax(9rem, 0.5fr) 1fr; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line); align-items: baseline; }
+.glossary dt { font-weight: 700; font-size: 0.92rem; color: var(--ink); }
+.glossary dd { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
+.glossary dd em { font-style: italic; color: var(--ink); }

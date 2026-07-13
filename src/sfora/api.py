@@ -14,7 +14,7 @@ from sfora.training import (
 )
 
 
-class GroupLearningProjector:
+class SforaProjector:
     """Reusable projection-head API for group-aware metric learning.
 
     The class wraps :func:`train_projection_head` with a small fit/transform
@@ -93,7 +93,7 @@ class GroupLearningProjector:
         validation_labels: NDArray[np.integer] | None = None,
         validation_query_limit: int | None = None,
         random_state: int = 0,
-    ) -> GroupLearningProjector:
+    ) -> SforaProjector:
         """Fit the projection head on labeled embeddings.
 
         When a validation split is supplied, the best projection is selected by
@@ -184,9 +184,9 @@ def fit_sfora_projection(
     validation_labels: NDArray[np.integer] | None = None,
     validation_query_limit: int | None = None,
     random_state: int = 0,
-) -> GroupLearningProjector:
-    """Fit and return a :class:`GroupLearningProjector`."""
-    return GroupLearningProjector(
+) -> SforaProjector:
+    """Fit and return a :class:`SforaProjector`."""
+    return SforaProjector(
         objective=objective,
         group_size=group_size,
         steps=steps,
