@@ -1,0 +1,73 @@
+{
+  "best_trial": {
+    "accuracy": 1.0,
+    "group_loss": 1.574926160654688,
+    "group_size": 2,
+    "hard_weight": 0.0,
+    "macro_f1": 1.0,
+    "rank": 1,
+    "spread_weight": 0.2,
+    "triplet_loss": 0.6254559096648766
+  },
+  "config": {
+    "dimensions": 4,
+    "group_sizes": [
+      2,
+      4
+    ],
+    "hard_weights": [
+      0.0
+    ],
+    "learning_rate": 0.03,
+    "samples_per_class": 8,
+    "seed": 0,
+    "spread_weights": [
+      0.0,
+      0.2
+    ],
+    "train_steps": 10
+  },
+  "name": "synthetic-ablation",
+  "trials": [
+    {
+      "accuracy": 1.0,
+      "group_loss": 1.574926160654688,
+      "group_size": 2,
+      "hard_weight": 0.0,
+      "macro_f1": 1.0,
+      "rank": 1,
+      "spread_weight": 0.2,
+      "triplet_loss": 0.6254559096648766
+    },
+    {
+      "accuracy": 1.0,
+      "group_loss": 1.5820449112891506,
+      "group_size": 2,
+      "hard_weight": 0.0,
+      "macro_f1": 1.0,
+      "rank": 2,
+      "spread_weight": 0.0,
+      "triplet_loss": 0.6322372869574647
+    },
+    {
+      "accuracy": 1.0,
+      "group_loss": 1.7415758452195496,
+      "group_size": 4,
+      "hard_weight": 0.0,
+      "macro_f1": 1.0,
+      "rank": 3,
+      "spread_weight": 0.2,
+      "triplet_loss": 0.6365123860150221
+    },
+    {
+      "accuracy": 1.0,
+      "group_loss": 1.7500432527079832,
+      "group_size": 4,
+      "hard_weight": 0.0,
+      "macro_f1": 1.0,
+      "rank": 4,
+      "spread_weight": 0.0,
+      "triplet_loss": 0.6433176202222252
+    }
+  ]
+}

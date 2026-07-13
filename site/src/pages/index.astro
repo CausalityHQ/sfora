@@ -1,0 +1,361 @@
+---
+import embedding from "../data/embedding3d.json";
+import "../styles/landing.css";
+
+const ensembleScaling = [
+  { n: 2, r: 0.7335 },
+  { n: 3, r: 0.7394 },
+  { n: 4, r: 0.7426 },
+  { n: 5, r: 0.7468 },
+  { n: 7, r: 0.7522 },
+];
+
+const benchmarks = [
+  { method: "Proxy Anchor", r: 69.7, kind: "reported", note: "common baseline" },
+  { method: "HIST", r: 71.4, kind: "reported", note: "prior strong same-arch method" },
+  { method: "PFML", r: 73.4, kind: "sota", note: "best reported same-arch number" },
+  { method: "HERD — single model", r: 71.6, kind: "ours-single", note: "HIST + is_norm head + EMA-teacher distillation" },
+  { method: "SFORA — 5-model ensemble", r: 74.68, kind: "ours", note: "beats the best reported number by +1.3" },
+];
+
+const refs = [
+  { authors: "Kim et al.", title: "Proxy Anchor Loss for Deep Metric Learning", venue: "CVPR 2020", url: "https://arxiv.org/abs/2003.13911" },
+  { authors: "Lim et al.", title: "Hypergraph-Induced Semantic Tuplet Loss (HIST)", venue: "CVPR 2022", url: "https://openaccess.thecvf.com/content/CVPR2022/html/Lim_Hypergraph-Induced_Semantic_Tuplet_Loss_for_Deep_Metric_Learning_CVPR_2022_paper.html" },
+  { authors: "Bhalla et al.", title: "Potential Field-based Metric Learning (PFML)", venue: "2024", url: "https://arxiv.org/abs/2405.18560" },
+  { authors: "Caron et al.", title: "Emerging Properties in Self-Supervised ViTs (DINO)", venue: "ICCV 2021", url: "https://arxiv.org/abs/2104.14294" },
+  { authors: "Wang & Isola", title: "Understanding Contrastive Learning through Alignment and Uniformity", venue: "ICML 2020", url: "https://arxiv.org/abs/2005.10242" },
+  { authors: "Opitz et al.", title: "BIER — Boosting Independent Embeddings Robustly", venue: "ICCV 2017", url: "https://arxiv.org/abs/1801.04815" },
+];
+
+const maxR = Math.max(...ensembleScaling.map((d) => d.r));
+const minR = 0.72;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SFORA — deep metric learning that beats reported SOTA</title>
+    <meta
+      name="description"
+      content="SFORA is a deep-metric-learning library whose HERD method and multi-model ensemble beat the reported same-arch SOTA on CUB-200 by more than 1%."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,460;9..144,600;9..144,860&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script type="application/json" id="embedding-data" set:html={JSON.stringify(embedding)} />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="wordmark" href="#top">
+        <span class="paw" aria-hidden="true">🐾</span> sfora
+      </a>
+      <nav>
+        <a href="#result">Result</a>
+        <a href="#herd">Method</a>
+        <a href="#reproduce">Reproduce</a>
+        <a href="#science">Honest science</a>
+        <a class="ghost" href="/report">Full report ↗</a>
+        <a class="cta" href="https://github.com/CausalityHQ/sfora">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- ─────────────────────────  HERO  ───────────────────────── -->
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker">
+            <span class="pl">sfora</span> · <em>Polish</em>, a hound pack
+          </p>
+          <h1>
+            A <span class="ink">pack</span> of small models
+            <br />that <span class="hunt">out-hunts</span> the state of the art.
+          </h1>
+          <p class="lede">
+            SFORA is a deep-metric-learning library. Its method, <b>HERD</b> —
+            Hypergraph&nbsp;EMA-teacher Relational&nbsp;Distillation — plus a
+            multi-model ensemble beat the <em>reported</em> same-architecture SOTA
+            on CUB-200 by more than one point.
+          </p>
+
+          <div class="scoreline">
+            <div class="score big">
+              <span class="num" data-count="74.68">74.68</span>
+              <span class="lab">SFORA · CUB-200 R@1</span>
+            </div>
+            <div class="vs">vs</div>
+            <div class="score">
+              <span class="num muted">73.4</span>
+              <span class="lab">best reported (PFML)</span>
+            </div>
+            <div class="delta">+1.3</div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="btn primary" href="#reproduce">Reproduce it →</a>
+            <a class="btn" href="#herd">How HERD works</a>
+          </div>
+        </div>
+
+        <figure class="viz">
+          <canvas id="sphere" aria-label="Interactive 3D projection of a HERD model's learned embedding space"></canvas>
+          <figcaption>
+            <span class="live">● live</span> the <em>real</em> embedding space of a
+            trained HERD model — {embedding.points.length} held-out test images from
+            {embedding.classes} bird species, PCA-projected onto the sphere. Drag to rotate.
+          </figcaption>
+        </figure>
+      </section>
+
+      <!-- ─────────────────────────  RESULT  ───────────────────────── -->
+      <section id="result" class="band">
+        <div class="section-head">
+          <p class="eyebrow">The result</p>
+          <h2>Beating the best <em>reported</em> number — honestly.</h2>
+          <p class="sub">
+            CUB-200, ResNet-50 / 512-dim, zero-shot split, cosine Recall@1,
+            best-over-training (the same protocol the papers use).
+          </p>
+        </div>
+
+        <div class="result-grid">
+          <table class="bench">
+            <thead>
+              <tr><th>Method</th><th class="r">R@1</th><th>What it is</th></tr>
+            </thead>
+            <tbody>
+              {benchmarks.map((b) => (
+                <tr class={b.kind}>
+                  <td class="m">{b.method}</td>
+                  <td class="r"><span class="bar" style={`--w:${((b.r - 68) / (75 - 68)) * 100}%`}></span>{b.r.toFixed(b.kind.startsWith("ours") && b.r > 74 ? 2 : 1)}</td>
+                  <td class="note">{b.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <figure class="scaling">
+            <figcaption>Ensemble scaling — every added model helps</figcaption>
+            <div class="chart">
+              {ensembleScaling.map((d) => (
+                <div class="col">
+                  <span class="val">{d.r.toFixed(4)}</span>
+                  <div class="stem" style={`--h:${((d.r - minR) / (maxR - minR)) * 100}%`}></div>
+                  <span class="x">{d.n}</span>
+                </div>
+              ))}
+              <div class="sota-line"><span>reported SOTA · PFML 0.734</span></div>
+            </div>
+            <p class="axis">models in the SFORA pack →</p>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────  HERD METHOD  ───────────────────────── -->
+      <section id="herd" class="band alt">
+        <div class="section-head">
+          <p class="eyebrow">The method</p>
+          <h2><span class="mono-tag">HERD</span> Hypergraph · EMA-teacher · Relational · Distillation</h2>
+          <p class="sub">
+            One novel idea broke a plateau that ~16 loss-geometry tweaks could not:
+            change the <em>information per training step</em>, not the loss surface.
+          </p>
+        </div>
+
+        <div class="diagram" role="img" aria-label="HERD architecture: a student and an EMA teacher share a ResNet-50 backbone; the teacher produces soft neighborhood targets the student distills, on top of the HIST hypergraph loss; N such models form the SFORA ensemble.">
+          <svg viewBox="0 0 920 360" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arrowhead" />
+              </marker>
+              <marker id="arrow-em" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" class="arrowhead-em" />
+              </marker>
+            </defs>
+
+            <!-- image + augmentations -->
+            <g class="node img">
+              <rect x="16" y="150" width="118" height="70" rx="10" />
+              <text x="75" y="180" class="t">image xᵢ</text>
+              <text x="75" y="200" class="s">two views</text>
+            </g>
+
+            <!-- student -->
+            <g class="node student">
+              <rect x="196" y="60" width="150" height="86" rx="12" />
+              <text x="271" y="90" class="t">student</text>
+              <text x="271" y="110" class="s">ResNet-50 · 512-d</text>
+              <text x="271" y="130" class="s">+ is_norm head</text>
+            </g>
+
+            <!-- teacher -->
+            <g class="node teacher">
+              <rect x="196" y="224" width="150" height="86" rx="12" />
+              <text x="271" y="254" class="t">EMA teacher</text>
+              <text x="271" y="274" class="s">momentum copy</text>
+              <text x="271" y="294" class="s">θₜ ← m·θₜ + (1−m)·θₛ</text>
+            </g>
+
+            <!-- HIST loss -->
+            <g class="node loss">
+              <rect x="410" y="60" width="168" height="86" rx="12" />
+              <text x="494" y="90" class="t">HIST loss</text>
+              <text x="494" y="110" class="s">hypergraph +</text>
+              <text x="494" y="130" class="s">Gaussian prototypes</text>
+            </g>
+
+            <!-- relational distillation -->
+            <g class="node distill">
+              <rect x="410" y="224" width="168" height="86" rx="12" />
+              <text x="494" y="252" class="t">relational KD</text>
+              <text x="494" y="272" class="s">match neighborhood</text>
+              <text x="494" y="292" class="s">softmax of ZZᵀ</text>
+            </g>
+
+            <!-- one HERD model -->
+            <g class="node herd">
+              <rect x="642" y="132" width="120" height="106" rx="14" />
+              <text x="702" y="172" class="t">HERD</text>
+              <text x="702" y="192" class="s">one trained</text>
+              <text x="702" y="208" class="s">model</text>
+            </g>
+
+            <!-- pack -->
+            <g class="node pack">
+              <rect x="812" y="120" width="92" height="42" rx="10" />
+              <rect x="806" y="132" width="92" height="42" rx="10" />
+              <rect x="800" y="144" width="92" height="42" rx="10" class="front" />
+              <text x="846" y="170" class="t">SFORA</text>
+            </g>
+
+            <!-- edges -->
+            <path class="edge" d="M134 178 C 165 150, 170 110, 194 103" marker-end="url(#arrow)" />
+            <path class="edge" d="M134 192 C 165 220, 170 260, 194 267" marker-end="url(#arrow)" />
+            <path class="edge" d="M346 103 L 408 103" marker-end="url(#arrow)" />
+            <path class="edge" d="M346 267 L 408 267" marker-end="url(#arrow)" />
+            <path class="edge-em" d="M271 224 L 271 148" marker-end="url(#arrow-em)" />
+            <text x="288" y="190" class="edge-label">soft targets</text>
+            <path class="edge" d="M578 103 C 615 103, 615 160, 640 168" marker-end="url(#arrow)" />
+            <path class="edge" d="M578 267 C 615 267, 615 205, 640 202" marker-end="url(#arrow)" />
+            <path class="edge dash" d="M762 185 L 798 165" marker-end="url(#arrow)" />
+            <text x="770" y="205" class="edge-label">× N</text>
+          </svg>
+        </div>
+
+        <div class="pillars">
+          <article>
+            <h3>1 · Hypergraph base</h3>
+            <p>HIST learns per-class Gaussian prototypes and a hypergraph neural network over each batch — a genuinely relational loss, not just anchor–positive–negative triplets.</p>
+          </article>
+          <article class="key">
+            <h3>2 · EMA-teacher distillation <span class="tag">the new idea</span></h3>
+            <p>A slow momentum copy of the model produces a soft distribution over each anchor's batch neighbors. The student matches it. Distilling <em>relational structure</em> — not labels — is what transfers to unseen classes.</p>
+          </article>
+          <article>
+            <h3>3 · A pack, not a hero</h3>
+            <p>Independently-seeded HERD models are ensembled by concatenating their L2-normalized embeddings. Diversity buys several points — an established DML paradigm (BIER, ABE, Divide-and-Conquer).</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────  REPRODUCE  ───────────────────────── -->
+      <section id="reproduce" class="band">
+        <div class="section-head">
+          <p class="eyebrow">Reproduce</p>
+          <h2>Two commands from install to SOTA.</h2>
+        </div>
+        <div class="code-wrap">
+          <div class="code-head"><span></span><span></span><span></span> train the pack &amp; ensemble it</div>
+          <pre><code><span class="c"># 1 · train N independently-seeded HERD models (each saves its best embeddings)</span>
+<span class="k">for</span> S <span class="k">in</span> 0 1 2 3 4; <span class="k">do</span>
+  uv run --extra research <span class="fn">sfora</span> image-end-to-end \
+    --protocol proxy-anchor-resnet50-512 --dataset-name cub \
+    --objectives hist --embedding-layer-norm \
+    <span class="hl">--ema-distill-weight 1.0</span> --ema-momentum 0.999 \
+    --samples-per-class 8 --hist-lr-ds 0.03 --train-epochs 60 \
+    --eval-test-interval-epochs 5 --seed <span class="v">$S</span> \
+    --save-test-embeddings <span class="s2">reports/emb/ema_seed$S.npz</span>
+<span class="k">done</span>
+
+<span class="c"># 2 · feature-concatenation ensemble → SOTA-beating Recall@1</span>
+uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
+<span class="o">#=> ENSEMBLE of 5 models: R@1=0.7468</span></code></pre>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────  HONEST SCIENCE  ───────────────────────── -->
+      <section id="science" class="band alt">
+        <div class="section-head">
+          <p class="eyebrow">Honest science</p>
+          <h2>What reproduced, what didn't, and what failed.</h2>
+          <p class="sub">The reported SOTA numbers on this benchmark are optimistic. We say so plainly.</p>
+        </div>
+
+        <div class="honest">
+          <div class="col repro">
+            <h3>Numbers we could <u>not</u> reproduce</h3>
+            <ul>
+              <li><b>PFML 73.4</b> — faithful reproductions of the electrostatic potential-field loss <em>collapse</em> during training. We treat 73.4 as the best <em>reported</em> figure and compare against it.</li>
+              <li><b>HIST 71.4</b> — with HIST's exact config we reach ~<b>70.1</b>, matching the independent ML-Reproducibility-Challenge 2023 result. The paper's 71.4 does not reproduce.</li>
+              <li><b>Proxy Anchor 69.7</b> — this one <em>does</em> reproduce (0.6946, 3 seeds). The harness is faithful; it is not the bottleneck.</li>
+            </ul>
+          </div>
+          <div class="col neg">
+            <h3>Approaches that did not work</h3>
+            <ul>
+              <li><b>Sub-center proxies</b> — fragmenting a class into modes hurts zero-shot transfer (0.675).</li>
+              <li><b>Un-normalized physics potentials</b> — electrostatic / long-range potentials collapse without a partition-function softmax.</li>
+              <li><b>DINO multi-crop</b> — incompatible with frozen-BatchNorm metric learning: small crops hit ImageNet-224 BN stats, go out-of-distribution, and collapse training.</li>
+              <li>Bigger ImageNet-V2 weights, 100-epoch schedules, and HIST re-tuning all under-performed plain HERD.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────  REFERENCES  ───────────────────────── -->
+      <section id="refs" class="band">
+        <div class="section-head"><p class="eyebrow">References</p><h2>Standing on the pack's shoulders.</h2></div>
+        <ol class="refs">
+          {refs.map((r, i) => (
+            <li>
+              <span class="n">{String(i + 1).padStart(2, "0")}</span>
+              <a href={r.url}>
+                <span class="title">{r.title}</span>
+                <span class="meta">{r.authors} · {r.venue}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <div class="foot-grid">
+        <div>
+          <p class="wordmark big"><span class="paw">🐾</span> sfora</p>
+          <p class="tag">Deep metric learning that hunts in a pack.</p>
+        </div>
+        <div class="cite">
+          <p class="eyebrow">Cite</p>
+          <code>SFORA / HERD — Hypergraph EMA-teacher Relational Distillation, CUB-200 R@1 74.68 (5-model ensemble).</code>
+        </div>
+        <div class="links">
+          <a href="https://github.com/CausalityHQ/sfora">GitHub ↗</a>
+          <a href="/report">Full data report ↗</a>
+          <a href="https://github.com/CausalityHQ/sfora/blob/main/docs/results.md">Results &amp; reproducibility ↗</a>
+        </div>
+      </div>
+      <p class="copyright">MIT licensed · built for people who read the fine print.</p>
+    </footer>
+
+    <script>
+      import "../scripts/sphere.js";
+    </script>
+  </body>
+</html>

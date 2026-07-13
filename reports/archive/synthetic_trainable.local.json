@@ -1,0 +1,73 @@
+{
+  "config": {
+    "class_gap": 1.2,
+    "dimensions": 4,
+    "group_size": 2,
+    "hard_weight": 0.5,
+    "learning_rate": 0.03,
+    "margin": 0.5,
+    "noise": 1.1,
+    "samples_per_class": 8,
+    "seed": 0,
+    "spread_weight": 0.1,
+    "test_size": 0.3,
+    "train_steps": 20
+  },
+  "methods": {
+    "group_trained": {
+      "group_loss": 1.4210630674996816,
+      "probe": {
+        "accuracy": 1.0,
+        "confusion_matrix": [
+          [
+            3,
+            0
+          ],
+          [
+            0,
+            2
+          ]
+        ],
+        "macro_f1": 1.0
+      },
+      "triplet_loss": 0.5686326995935613
+    },
+    "raw": {
+      "group_loss": 1.646310966946584,
+      "probe": {
+        "accuracy": 1.0,
+        "confusion_matrix": [
+          [
+            3,
+            0
+          ],
+          [
+            0,
+            2
+          ]
+        ],
+        "macro_f1": 1.0
+      },
+      "triplet_loss": 0.6517149726614634
+    },
+    "triplet_trained": {
+      "group_loss": 1.5682404272509887,
+      "probe": {
+        "accuracy": 1.0,
+        "confusion_matrix": [
+          [
+            3,
+            0
+          ],
+          [
+            0,
+            2
+          ]
+        ],
+        "macro_f1": 1.0
+      },
+      "triplet_loss": 0.5707065690479255
+    }
+  },
+  "name": "synthetic-trainable"
+}

@@ -1,0 +1,51 @@
+{
+  "config": {
+    "batch_size": 32,
+    "group_size": 4,
+    "margin": 0.5,
+    "model_name": "sentence-transformers/paraphrase-MiniLM-L3-v2",
+    "normalize_embeddings": true,
+    "seed": 0,
+    "test_size": 0.25
+  },
+  "examples": 256,
+  "group_triplets": 64,
+  "methods": {
+    "sentence_transformer:sentence-transformers/paraphrase-MiniLM-L3-v2": {
+      "dimensions": 384,
+      "group_loss": 1.0156807214244676,
+      "probe": {
+        "accuracy": 0.78125,
+        "confusion_matrix": [
+          [
+            25,
+            7
+          ],
+          [
+            7,
+            25
+          ]
+        ],
+        "macro_f1": 0.78125,
+        "train_accuracy": 0.875,
+        "train_macro_f1": 0.8749864351600651
+      },
+      "retrieval": {
+        "map_at_r": 0.30303404557635916,
+        "mean_relevant_items": 96.0,
+        "precision_at_1": 0.546875
+      },
+      "space": {
+        "drift_to_gap_ratio": 0.837125212693542,
+        "signal_to_noise_ratio": 0.11641856857046612,
+        "test_within_class_radius": 0.8372645325001753,
+        "train_centroid_gap": 0.19390105222162995,
+        "train_test_centroid_drift": 0.16231945958253358,
+        "train_within_class_radius": 0.8282863723304837
+      },
+      "triplet_loss": 0.49765695431095913
+    }
+  },
+  "name": "sentence-transformer-baseline",
+  "triplets": 256
+}
