@@ -3,8 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
-REMOTE="riomus@192.168.1.35"
-REMOTE_DIR="/home/riomus/group-learning"
+REMOTE="researcher@gpu.example.com"
+REMOTE_DIR="/home/researcher/group-learning"
 DATASETS="${DATASETS:-cub cars sop}"
 MODELS="${MODELS:-facebook/dinov2-small,openai/clip-vit-base-patch32,google/siglip-base-patch16-224}"
 OBJECTIVES="${OBJECTIVES:-triplet,batch_hard_triplet,group,hard_group,supcon,group_supcon,proxy_nca,proxy_anchor,cosface,arcface,hybrid,hybrid_xbm,hybrid_radius,hybrid_xbm_radius,group_supcon_xbm_radius}"

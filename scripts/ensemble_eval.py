@@ -116,6 +116,11 @@ def main() -> None:
     concatenated = np.concatenate(embeddings_list, axis=1)
     full_dim = concatenated.shape[1]
     ensemble_recall = _recall(concatenated, labels_reference)
+
+    def retained(recall: float) -> str:
+        # Guard a degenerate 0.0 baseline instead of dividing by zero.
+        return f"{recall / ensemble_recall:.1%}" if ensemble_recall > 0 else "n/a"
+
     mean_single = float(np.mean(per_model_recall))
     best_single = max(per_model_recall)
     print(
@@ -128,13 +133,12 @@ def main() -> None:
         dims = [d for d in (256, 512, 1024, 1536, 2048) if d < full_dim]
         for dim in dims:
             r = _recall(_pca_compress(concatenated, dim), labels_reference)
-            kept = r / ensemble_recall
-            print(f"  {full_dim:>5d} -> {dim:<5d}  R@1={r:.4f}  (retains {kept:.1%})")
+            print(f"  {full_dim:>5d} -> {dim:<5d}  R@1={r:.4f}  (retains {retained(r)})")
     elif args.compress_dim is not None and args.compress_dim < full_dim:
         r = _recall(_pca_compress(concatenated, args.compress_dim), labels_reference)
         print(
             f"\n=== COMPRESSED {full_dim} -> {args.compress_dim}: R@1={r:.4f} "
-            f"(retains {r / ensemble_recall:.1%} of the ensemble) ==="
+            f"(retains {retained(r)} of the ensemble) ==="
         )
 
     if args.compare_methods is not None:
@@ -152,7 +156,7 @@ def main() -> None:
         for name, feats in rows:
             footprint = "" if feats.shape[1] == dim else f" [{feats.shape[1]}-dim footprint]"
             r = _recall(feats, labels_reference)
-            print(f"  {name:<28} R@1={r:.4f}  (retains {r / ensemble_recall:.1%}){footprint}")
+            print(f"  {name:<28} R@1={r:.4f}  (retains {retained(r)}){footprint}")
         print(
             f"  {'(reference) single model':<28} R@1={mean_single:.4f}   "
             f"{model_dim}-dim, mean of seeds"

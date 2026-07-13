@@ -7,8 +7,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
-REMOTE="${REMOTE:-riomus@192.168.1.35}"
-REMOTE_DIR="${REMOTE_DIR:-/home/riomus/group-learning}"
+REMOTE="${REMOTE:-researcher@gpu.example.com}"
+REMOTE_DIR="${REMOTE_DIR:-/home/researcher/group-learning}"
 DATASET="${DATASET:-cub}"
 PROTOCOL="${PROTOCOL:-proxy-anchor-resnet50-512}"
 OBJECTIVES="${OBJECTIVES:-frozen_pretrained,proxy_anchor}"

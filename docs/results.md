@@ -15,7 +15,7 @@ peak).
 | PFML (reported) | **73.4** | best *reported* same-arch number |
 | **HERD** — single model | ~71.6 | our method (see below) |
 | **SFORA** — 5-model HERD ensemble | **74.68** | **beats the best reported number by +1.3** |
-| SFORA — 7-model HERD ensemble | 75.22 | scales further with more models |
+| SFORA — 9-model HERD ensemble | 75.34 | scales further; +1.9 over PFML |
 
 ## HERD — the method
 
@@ -83,6 +83,20 @@ PFML (73.4)**, at single-model storage and search cost. A PCA sweep of the conca
 uv run python scripts/ensemble_eval.py --compare-methods 512 reports/emb/ema_seed*.npz
 uv run python scripts/ensemble_eval.py --compress-sweep   reports/emb/ema_seed*.npz
 ```
+
+> **Transductive caveat.** The PCA axes and the Procrustes rotations are fit on
+> the *test* embeddings themselves, so 0.7439 and 0.7470 are a transductive upper
+> bound. A deployment that froze the projection on held-out/train data would score
+> slightly lower. The full concat (0.7534), random projection (0.7297), naive mean
+> (0.7274) and single model (0.7053) involve no test-fitted projection and are not
+> affected. We report the transductive number because the alignment-vs-PCA *ranking*
+> — the actual finding — is unaffected, but the absolute compressed scores should
+> be read as an upper bound.
+
+Two framings of "how much is retained": Procrustes keeps **99.1% of the pack's
+R@1** (0.7470/0.7534) but **86.7% of the *gain* over a single model**
+((0.7470−0.7053)/(0.7534−0.7053)). We quote the first; the second is the stricter
+read.
 
 ## Reproducibility notes (numbers we could **not** reproduce)
 

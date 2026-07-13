@@ -90,13 +90,17 @@ if (section) {
       const c = +chip.dataset.c;
       const already = isolated === c;
       grid.classList.remove(...Array.from({ length: 8 }, (_, i) => `iso-${i}`));
-      for (const b of section.querySelectorAll(".leg-chip")) b.classList.remove("on");
+      for (const b of section.querySelectorAll(".leg-chip")) {
+        b.classList.remove("on");
+        b.setAttribute("aria-pressed", "false");
+      }
       if (already) {
         isolated = null;
       } else {
         isolated = c;
         grid.classList.add(`iso-${c}`);
         chip.classList.add("on");
+        chip.setAttribute("aria-pressed", "true");
       }
     });
   }
@@ -107,8 +111,16 @@ if (section) {
       const card = btn.closest(".proj-card");
       const wasOpen = card.classList.contains("enlarged");
       for (const c of grid.querySelectorAll(".proj-card")) c.classList.remove("enlarged");
+      for (const b of section.querySelectorAll(".proj-expand")) {
+        b.setAttribute("aria-expanded", "false");
+        b.setAttribute("aria-label", b.getAttribute("aria-label").replace(/^Collapse/, "Enlarge"));
+      }
       grid.classList.toggle("has-enlarged", !wasOpen);
-      if (!wasOpen) card.classList.add("enlarged");
+      if (!wasOpen) {
+        card.classList.add("enlarged");
+        btn.setAttribute("aria-expanded", "true");
+        btn.setAttribute("aria-label", btn.getAttribute("aria-label").replace(/^Enlarge/, "Collapse"));
+      }
       hideTip();
     });
   }

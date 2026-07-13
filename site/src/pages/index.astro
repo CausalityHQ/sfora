@@ -216,7 +216,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
               ))}
               <div class="sota-line"><span>reported SOTA · PFML 0.734</span></div>
             </div>
-            <p class="axis">models in the SFORA pack →</p>
+            <p class="axis">models in the SFORA pack →<span class="axis-base"> · bars start at R@1 0.72</span></p>
           </figure>
         </div>
 
@@ -237,8 +237,9 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           <p class="eyebrow">Explore the methods</p>
           <h2>How it <em>behaves</em> — curves, not just a headline.</h2>
           <p class="sub">
-            The numbers above come from these curves. Real runs, CUB-200 test
-            retrieval, ResNet-50 / 512-dim.
+            One representative run per method (the benchmark numbers are the best
+            across several seeds, so they sit a touch higher). Real runs, CUB-200
+            test retrieval, ResNet-50 / 512-dim.
           </p>
         </div>
 
@@ -315,10 +316,14 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
                 </div>
               ))}
             </div>
+            <p class="chart-axis-note">bars start at R@1 0.70 (not 0), so only the spread above 0.70 is drawn — read the exact value on the right.</p>
             <p class="chart-note">Alignment is the trick: a <b>naive</b> average (0.727) barely beats one
               model, but <b>Procrustes-aligned</b> averaging (0.747) nearly matches the full
               4608-dim pack (0.753) — in a single model's footprint, no concatenation.
-              Reproduce: <code>ensemble_eval.py --compare-methods 512</code>.</p>
+              Reproduce: <code>ensemble_eval.py --compare-methods 512</code>.
+              <br /><em>Note: PCA axes and Procrustes rotations are fit on the test embeddings
+              (transductive), so those two are an upper bound; the concat, random-projection,
+              naive-mean and single-model numbers are not test-fitted.</em></p>
           </figure>
         </div>
       </section>
@@ -341,7 +346,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
 
         <ul class="proj-legend" aria-label="species legend — click to isolate a species">
           {legend.map((c, i) => (
-            <li><button type="button" class="leg-chip" data-c={i}>
+            <li><button type="button" class="leg-chip" data-c={i} aria-pressed="false">
               <span class="sw" style={`--sw:${c.color}`}></span>{c.name}
             </button></li>
           ))}
@@ -359,7 +364,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
                       <h3>{p.label}</h3>
                     </div>
                     {!p.pending && (
-                      <button type="button" class="proj-expand" data-expand
+                      <button type="button" class="proj-expand" data-expand aria-expanded="false"
                               aria-label={`Enlarge the ${p.label} space`} title="Enlarge">⤢</button>
                     )}
                   </div>
@@ -464,7 +469,8 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
             <b>pack</b> (that's what <em>sfora</em> means). Glue their number-lists
             together and you get a stronger combined judgement than any single model,
             because they make different mistakes. And you can <b>squeeze that combined
-            list back down</b> to the size of one model while keeping ~98% of the gain.</p>
+            list back down</b> to the size of one model while keeping <b>99% of the
+            pack's score</b> (0.747 of 0.753).</p>
           </div>
         </div>
 

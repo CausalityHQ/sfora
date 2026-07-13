@@ -33,6 +33,11 @@ def _silhouette(x: np.ndarray, labels: np.ndarray) -> float:
         return float("nan")
 
 
+def _round_or_none(value: float, digits: int) -> float | None:
+    """Round, but emit JSON null for non-finite values (never a bare NaN)."""
+    return round(value, digits) if np.isfinite(value) else None
+
+
 def _recall_at_1(x: np.ndarray, labels: np.ndarray) -> float:
     """Leave-one-out cosine Recall@1 over the FULL embedding set — the honest
     'how good is retrieval' number, not tied to the sampled projection subset."""
@@ -79,11 +84,12 @@ def main() -> None:
     remap = {int(c): i for i, c in enumerate(top)}
     colors = np.array([remap[int(v)] for v in y])
 
-    # 3D via PCA (fast, deterministic).
+    # 3D via PCA (fast, deterministic). Floor the denominator so a degenerate
+    # (all-identical) sample can't produce inf/NaN coordinates.
     xc = x - x.mean(0, keepdims=True)
     _, _, vt = np.linalg.svd(xc, full_matrices=False)
     p3 = xc @ vt[:3].T
-    p3 = p3 / np.abs(p3).max()
+    p3 = p3 / max(float(np.abs(p3).max()), 1e-9)
 
     # 2D via t-SNE (falls back to PCA if scikit-learn is unavailable).
     try:
@@ -108,7 +114,7 @@ def main() -> None:
         "totalClasses": total_classes,
         "recall1": recall1,
         "method2d": method2d,
-        "silhouette": round(_silhouette(x, y), 3),
+        "silhouette": _round_or_none(_silhouette(x, y), 3),
         # Original test-set row indices in point order — the thumbnail extractor
         # consumes these directly so images align with points without re-sampling.
         "indices": [int(i) for i in idx_arr],
@@ -129,7 +135,7 @@ def main() -> None:
         ],
     }
     with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(out, fh)
+        json.dump(out, fh, allow_nan=False)
     print(
         f"{args.label}: {len(x)} points, {len(top)} classes, 2d={method2d}, "
         f"silhouette={out['silhouette']}, full-set R@1={recall1} "

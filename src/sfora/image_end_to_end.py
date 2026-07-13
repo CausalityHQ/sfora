@@ -481,6 +481,15 @@ def run_image_end_to_end_benchmark(
         num_workers=config.num_workers,
         pin_memory=torch.cuda.is_available(),
     )
+    # `save_test_embeddings` is a single path; with several objectives each would
+    # overwrite the previous one's embeddings. Require a single objective so the
+    # saved artifact is unambiguous (ensemble runs already use one objective).
+    if config.save_test_embeddings and len(config.objectives) > 1:
+        raise ValueError(
+            "save_test_embeddings expects a single objective, but "
+            f"{len(config.objectives)} were given ({', '.join(config.objectives)}); "
+            "run one objective per invocation or drop --save-test-embeddings."
+        )
     methods: dict[str, EndToEndMethodMetrics] = {}
     for objective in config.objectives:
         if _uses_pretrained_feature_model(objective, config.backbone_name, model_factory):

@@ -52,7 +52,11 @@ def main() -> None:
     ap.add_argument("--meta-out", required=True)
     ap.add_argument("--dataset", default="cub")
     ap.add_argument("--size", type=int, default=140)
-    ap.add_argument("--check-npz", help="embedding npz whose labels must match example order")
+    ap.add_argument(
+        "--check-npz",
+        required=True,
+        help="embedding npz whose labels must match example order (alignment guard)",
+    )
     args = ap.parse_args()
 
     try:
@@ -63,26 +67,37 @@ def main() -> None:
             load_image_retrieval_examples,
         )
 
+    import numpy as np
+
     proj = json.loads(Path(args.proj).read_text())
     indices: list[int] = proj["indices"]
     class_ids: list[int] = proj["classIds"]
+
+    # The point count must match the geometry we will map images onto.
+    n_points = len(proj.get("points2d") or [])
+    if n_points and n_points != len(indices):
+        raise SystemExit(
+            f"projection is inconsistent: {len(indices)} indices vs {n_points} points2d."
+        )
 
     # Same deterministic order the embeddings were exported in (shuffle=False loader).
     examples = load_image_retrieval_examples(dataset_name=args.dataset, split="test")
 
     # Safety: the export ran in a possibly different environment. Prove the example
     # order matches the embedding rows before we trust `indices` to map to images.
-    if args.check_npz:
-        import numpy as np
-
-        ref = np.load(args.check_npz)["labels"]
-        got = np.array([e.label for e in examples])
-        if got.shape != ref.shape or not np.array_equal(got, ref):
-            raise SystemExit(
-                f"ALIGNMENT MISMATCH: examples ({got.shape}) vs npz labels ({ref.shape}). "
-                "Thumbnails would not correspond to points — aborting."
-            )
-        print(f"alignment OK: {len(got)} examples match {args.check_npz} labels")
+    ref = np.load(args.check_npz)["labels"]
+    got = np.array([e.label for e in examples])
+    if got.shape != ref.shape or not np.array_equal(got, ref):
+        raise SystemExit(
+            f"ALIGNMENT MISMATCH: examples ({got.shape}) vs npz labels ({ref.shape}). "
+            "Thumbnails would not correspond to points — aborting."
+        )
+    if indices and (min(indices) < 0 or max(indices) >= len(examples)):
+        raise SystemExit(
+            f"index out of range: indices span [{min(indices)}, {max(indices)}] "
+            f"but only {len(examples)} examples exist."
+        )
+    print(f"alignment OK: {len(got)} examples match {args.check_npz} labels")
 
     spec = _IMAGE_DATASET_SPECS[args.dataset]
     raw_names = _species_names(spec.dataset_id)

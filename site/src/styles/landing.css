@@ -185,9 +185,11 @@ main, .topbar, footer { position: relative; z-index: 1; }
 .chart .col:last-of-type .stem { background: linear-gradient(var(--moss), var(--moss-deep)); }
 .chart .val { font-family: var(--mono); font-size: 0.68rem; color: var(--ink-soft); margin-bottom: 0.4rem; }
 .chart .x { font-family: var(--mono); font-size: 0.8rem; color: var(--ink-faint); margin-top: 0.5rem; }
-.sota-line { position: absolute; left: 0; right: 0; bottom: calc(1.6rem + ((0.734 - 0.72) / (0.7546 - 0.72)) * (210px - 1.6rem - 2rem)); border-top: 1.5px dashed var(--ember-deep); opacity: 0.55; pointer-events: none; }
+.sota-line { position: absolute; left: 0; right: 0; bottom: calc(1.6rem + ((0.734 - 0.72) / (0.7534 - 0.72)) * (210px - 1.6rem - 2rem)); border-top: 1.5px dashed var(--ember-deep); opacity: 0.55; pointer-events: none; }
 .sota-line span { position: absolute; left: 0; top: -0.65rem; font-size: 0.64rem; font-family: var(--mono); color: var(--ember-deep); background: var(--card); padding: 0 0.35rem; border-radius: 3px; white-space: nowrap; }
 .axis { text-align: center; font-size: 0.78rem; color: var(--ink-faint); margin: 1rem 0 0; }
+.axis-base { color: var(--ink-faint); opacity: 0.75; }
+.chart-axis-note { margin: 0.5rem 0 0; font-size: 0.72rem; color: var(--ink-faint); font-style: italic; }
 
 /* ── diagram ── */
 .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: clamp(1rem, 3vw, 2rem); }
