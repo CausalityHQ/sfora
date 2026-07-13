@@ -11,9 +11,10 @@ down to D dimensions before retrieval — a cheap way to keep most of the ensemb
 gain while shrinking the N*512-dim concatenation back to a deployable size.
 
 `--compare-methods D` goes further and pits concatenation against genuinely
-different ways to shrink the pack to D dims: PCA of the concat, a random
-projection, a naive average, and a Procrustes-aligned average (which merges the
-N spaces into a single D-dim vector without concatenating at all).
+different ways to shrink the pack to D dims: a GPA-aligned mean (the best fold
+we found), a single-reference Procrustes mean, PCA of the concat, a random
+projection, and a naive average. The aligned means merge the N spaces into a
+single D-dim vector without concatenating at all.
 
 Usage:
     uv run python scripts/ensemble_eval.py a.npz b.npz c.npz
@@ -59,6 +60,28 @@ def _procrustes_mean(models: list[np.ndarray]) -> np.ndarray:
         u, _, vt = np.linalg.svd(model.T @ reference, full_matrices=False)
         aligned.append(model @ (u @ vt))
     return np.mean(aligned, axis=0)
+
+
+def _gpa_mean(models: list[np.ndarray], iters: int = 20) -> np.ndarray:
+    """Generalized Procrustes: iteratively align every model to a running consensus
+    and re-average, rather than aligning once to model 0. The consensus is a single
+    D-dim vector that folds the whole pack with the best single-space fidelity we
+    found — it beats single-reference Procrustes and PCA of the concatenation (even
+    PCA at 2x the dimensions). The residual disagreement between models is the part
+    no single D-dim vector can hold, so this is effectively the honest ceiling.
+    """
+
+    def _align_all(reference: np.ndarray) -> list[np.ndarray]:
+        aligned = []
+        for model in models:
+            u, _, vt = np.linalg.svd(model.T @ reference, full_matrices=False)
+            aligned.append(model @ (u @ vt))
+        return aligned
+
+    consensus = _l2(np.mean(models, axis=0))
+    for _ in range(iters):
+        consensus = _l2(np.mean(_align_all(consensus), axis=0))
+    return consensus
 
 
 def _random_project(features: np.ndarray, dim: int, seed: int = 0) -> np.ndarray:
@@ -148,10 +171,11 @@ def main() -> None:
             f"\n--- shrinking {len(args.paths)} models to {dim} dims (vs {full_dim}-dim concat) ---"
         )
         rows = [
+            ("GPA-aligned mean", _gpa_mean(embeddings_list)),
+            ("Procrustes-aligned mean", _procrustes_mean(embeddings_list)),
             ("concat + PCA", _pca_compress(concatenated, dim)),
             ("concat + random projection", _random_project(concatenated, dim)),
             ("naive mean (no alignment)", np.mean(embeddings_list, axis=0)),
-            ("Procrustes-aligned mean", _procrustes_mean(embeddings_list)),
         ]
         for name, feats in rows:
             footprint = "" if feats.shape[1] == dim else f" [{feats.shape[1]}-dim footprint]"

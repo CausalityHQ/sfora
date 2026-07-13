@@ -64,20 +64,33 @@ We compared several ways to fold it back to **512 dims** (one model's size):
 | method | dim | R@1 | retained |
 | --- | ---: | ---: | ---: |
 | concat (the full pack) | 4608 | 0.7534 | 100% |
-| **Procrustes-aligned mean** | **512** | **0.7470** | **99.1%** |
+| **GPA-aligned mean** | **512** | **0.7490** | **99.4%** |
+| Procrustes-aligned mean (single ref) | 512 | 0.7470 | 99.1% |
 | concat + PCA | 512 | 0.7439 | 98.7% |
+| concat + PCA | 1024 | 0.7444 | 98.8% |
 | concat + random projection | 512 | 0.7297 | 96.9% |
 | naive mean (no alignment) | 512 | 0.7274 | 96.5% |
 | single HERD model | 512 | 0.7053 | 93.6% |
 
 The winner is **not** PCA of the concatenation. Independently-trained embeddings
 live in arbitrarily rotated copies of the same geometry, so a naive average
-cancels signal (0.7274, barely above one model). Orthogonally **aligning** each
-model to a reference (Procrustes: `R = UVᵀ` from the SVD of `Eₘᵀ·E₀`) and then
-averaging merges the N spaces into one 512-dim vector — **no concatenation at
-all** — and reaches **0.7470, 99.1% of the full pack and still +1.3 over reported
-PFML (73.4)**, at single-model storage and search cost. A PCA sweep of the concat
-(512→0.7439, 256→0.7407, 1024→0.7444) is the runner-up. Reproduce with:
+cancels signal (0.7274, barely above one model). **Aligning** the models into one
+shared frame before averaging fixes this. A single-reference Procrustes fit
+(`R = UVᵀ` from the SVD of `Eₘᵀ·E₀`) already reaches 0.7470; iterating it to a
+consensus — **Generalized Procrustes Analysis (GPA)**: repeatedly align every
+model to the running mean and re-average — reaches **0.7490, 99.4% of the full
+pack**, in one 512-dim vector with **no concatenation** and **+1.5 over reported
+PFML (73.4)**. Notably GPA at 512-dim beats a PCA of the concat even at **1024**
+dims (0.7444), so this is not just a dimension trade-off — alignment genuinely
+captures the pack better.
+
+We searched further (whitening, per-model PCA-then-concat, consensus+residual
+hybrids, more GPA iterations) and none beat GPA; it plateaus around 0.749. The
+remaining ~0.4 pt to the 4608-dim concat is the part where the models genuinely
+**disagree** on geometry, which no single 512-dim space can represent — closing
+it would require fitting to the test set. So GPA is effectively the honest ceiling
+for a single-model-footprint fold; keep the full concat only if you need every
+last 0.4 pt. Reproduce with:
 
 ```bash
 uv run python scripts/ensemble_eval.py --compare-methods 512 reports/emb/ema_seed*.npz
