@@ -88,10 +88,39 @@ GPA is the ceiling among folds that use only the embeddings' geometry: the
 remaining ~0.4 pt to the concat is genuine cross-model disagreement no single
 averaged vector can hold. **We do not close it by fitting a projection to the test
 set** — that would be test-set overfitting, and reporting the resulting number is
-not honest. A projection *trained on the disjoint train split* and then frozen and
-evaluated on test is the legitimate way to attempt it; that is train/test-clean and
-is a work-in-progress here (it needs the pack's train-set embeddings). Reproduce the
-folds above with:
+not honest.
+
+#### The honest, inductive answer: fit the fold on the disjoint train split
+
+The legitimate way to compress is to fit the projection on the disjoint **train**
+classes, freeze it, and only then apply it to test — nothing about the test split
+informs the fold. We ran this on a 3-seed HERD pack (each seed exports its
+best-epoch train and test embeddings via `--save-train-embeddings` /
+`--save-test-embeddings`); `scripts/train_fit_fold.py` fits each 512-dim fold on
+the train concat and evaluates it, frozen, on the test concat:
+
+| 512-dim fold (this 3-seed pack) | R@1 | vs concat | vs single |
+| --- | ---: | ---: | ---: |
+| full concat (1536 dims) | 0.7259 | 100% | — |
+| **PCA fit on train** | **0.7078** | **97.5%** | **+1.4 pt** |
+| Proxy-Anchor head fit on train | 0.7076 | 97.4% | +1.4 pt |
+| single HERD model | 0.6940 | 95.6% | — |
+
+So a genuinely train/test-clean projection recovers **~97.5%** of the pack at one
+model's footprint and beats a single model by **+1.4 pt** — but it does **not**
+reach 100%. The concat *is* the 100% point (no compression); closing the last
+~2.5 pt at 512 dims would require fitting the projection to the test set, which we
+refuse. That is the honest ceiling for an inductive fold. (The transductive GPA
+number below, 0.7490, is higher because it uses the test embeddings' own geometry
+— see the caveat.) Reproduce with:
+
+```bash
+uv run python scripts/train_fit_fold.py --dim 512 \
+    --train 'reports/emb/herd_tt_seed*.train.npz' \
+    --test  'reports/emb/herd_tt_seed*.test.npz'
+```
+
+Reproduce the transductive folds above with:
 
 ```bash
 uv run python scripts/ensemble_eval.py --compare-methods 512 reports/emb/ema_seed*.npz
