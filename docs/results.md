@@ -104,9 +104,13 @@ the train concat and evaluates it, frozen, on the test concat:
 | full concat (1536 dims) | 0.7259 | 100% | — |
 | **PCA fit on train** | **0.7078** | **97.5%** | **+1.4 pt** |
 | Proxy-Anchor head fit on train | 0.7076 | 97.4% | +1.4 pt |
+| group-SupCon-XBM head fit on train | 0.7039 | 96.9% | +1.0 pt |
 | single HERD model | 0.6940 | 95.6% | — |
 
-So a genuinely train/test-clean projection recovers **~97.5%** of the pack at one
+Notably the **unsupervised PCA edges both supervised metric-learning heads** — for
+folding an already-trained pack the discriminative geometry is already present, so
+re-optimising it on train labels only risks overfitting the train classes. So a
+genuinely train/test-clean projection recovers **~97.5%** of the pack at one
 model's footprint and beats a single model by **+1.4 pt** — but it does **not**
 reach 100%. The concat *is* the 100% point (no compression); closing the last
 ~2.5 pt at 512 dims would require fitting the projection to the test set, which we
