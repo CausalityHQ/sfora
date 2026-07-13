@@ -23,7 +23,15 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: uv sync --group dev
+        # Include the `research` extra (torch, transformers, huggingface_hub)
+        # so type-checking and tests run against the same environment as the
+        # local pre-commit gate — without the ML deps installed, mypy can't find
+        # their stubs and fails on modules that are only imported at runtime.
+        # UV_TORCH_BACKEND=cpu selects the CPU torch wheels (the tests are
+        # CPU-only) instead of the multi-GB default CUDA build.
+        env:
+          UV_TORCH_BACKEND: cpu
+        run: uv sync --group dev --extra research
 
       - name: Check formatting
         run: uv run ruff format --check .
