@@ -158,6 +158,9 @@ def run_encoder_training_on_split(
     methods: dict[str, EncoderTrainingMethodMetrics] = {}
 
     for objective in resolved_config.objectives:
+        # Re-seed before each encoder so init/dropout are reproducible and objective
+        # comparisons do not depend on run order.
+        _seed_everything(resolved_config.seed)
         encoder = factory(resolved_config.model_name)
         initial_embeddings = encoder.encode(
             [example.text for example in train_examples],
@@ -351,6 +354,28 @@ def _group_array(
     return np.stack([embeddings[row_by_id[example.example_id]] for example in group])
 
 
+def _seed_everything(seed: int) -> None:
+    """Seed Python/NumPy/Torch/Transformers so encoder init + dropout are reproducible."""
+    import random
+
+    random.seed(seed)
+    np.random.seed(seed)
+    try:
+        import torch
+
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+    except ImportError:
+        pass
+    try:
+        from transformers import set_seed
+
+        set_seed(seed)
+    except ImportError:
+        pass
+
+
 def _load_trainable_sentence_transformer(model_name: str) -> TrainableTextEncoder:
     return _SentenceTransformerFineTuner(model_name)
 
@@ -532,8 +557,13 @@ class _SentenceTransformerFineTuner:
             has_negative = different_label.any(dim=1)
             valid = has_positive & has_negative
             if bool(valid.any()):
+                # Hardest-positive / hardest-negative mining (XBM's intent). Using the
+                # MAX same-label distance also sidesteps the cyclic-memory self-match
+                # collapse: an example's own repeated copy is the *smallest* same-label
+                # distance, so taking the max ignores it (the previous min picked it,
+                # driving the positive term to ~0 and killing the signal).
                 positive_distances = (
-                    distances.masked_fill(~same_label, float("inf")).min(dim=1).values
+                    distances.masked_fill(~same_label, float("-inf")).max(dim=1).values
                 )
                 negative_distances = (
                     distances.masked_fill(~different_label, float("inf")).min(dim=1).values
