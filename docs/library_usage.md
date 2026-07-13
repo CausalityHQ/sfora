@@ -53,6 +53,46 @@ print(projected.shape)
 print(projector.selected_step)
 ```
 
+## Composable bricks — build, join, and compare methods
+
+For trying many methods and combining them, `sfora.compose` exposes small,
+type-safe **bricks**. Everything is a `Projection` you `fit(train)` /
+`transform(any)`; bricks compose into pipelines and *join* into ensembles, and
+`compare` ranks candidates so you can pick the best approach for your data.
+Every candidate is fit on the **train** split and scored on the **test** split
+(disjoint classes in the zero-shot protocol — nothing is fit on test).
+
+```python
+from sfora.compose import Head, Join, Pca, Pipeline, compare, grid
+
+candidates = {
+    # single trainable heads (any objective + params)
+    "proxy_anchor": Head(objective="proxy_anchor", steps=80),
+    "group_xbm":    Head(objective="group_supcon_xbm_radius", params={"group_size": 4}),
+
+    # a pipeline: train a head, then reduce with PCA
+    "group+pca128": Pipeline([Head(objective="group_supcon"), Pca(dim=128)]),
+
+    # ensembles: join several bricks (of any kind) by concatenation or aligned mean
+    "ensemble3":    Join("concat", [Head(seed=s) for s in range(3)]),
+    "aligned3":     Join("aligned_mean", [Head(seed=s) for s in range(3)]),
+
+    # a parameter grid, expanded to one candidate per combination
+    **grid("head", Head, {"objective": ["triplet", "group_supcon"], "steps": [40, 80]}),
+}
+
+ranking = compare(candidates, train=(X_train, y_train), test=(X_test, y_test),
+                  rank_by="recall_at_1")
+for report in ranking:
+    print(f"{report.name:<28} R@1={report.recall_at_1:.4f} "
+          f"MAP@R={report.map_at_r:.4f} dim={report.output_dim}")
+```
+
+The join kinds are `"concat"` (feature-concatenation ensemble — branches may
+differ in kind and dimension), `"mean"`, and `"aligned_mean"` (Procrustes-align
+each branch's train output, freeze the rotations, then average). `compare` /
+`evaluate` return a `RetrievalReport` with `recall_at_1/2/4/8` and `map_at_r`.
+
 ## Validation Selection
 
 Metric-learning objectives can keep reducing their own loss after retrieval

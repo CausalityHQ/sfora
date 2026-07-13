@@ -8,6 +8,19 @@ from sfora.ablation import (
     write_ablation_report,
 )
 from sfora.api import SforaProjector, fit_sfora_projection
+from sfora.compose import (
+    Head,
+    Identity,
+    Join,
+    L2Normalize,
+    Pca,
+    Pipeline,
+    Projection,
+    RetrievalReport,
+    compare,
+    evaluate,
+    grid,
+)
 from sfora.data import (
     ImageExample,
     TextExample,
@@ -119,6 +132,17 @@ __all__ = [
     "EncoderAblationTrial",
     "EmbeddingSpaceDiagnostics",
     "SforaProjector",
+    "Projection",
+    "Identity",
+    "L2Normalize",
+    "Pca",
+    "Head",
+    "Pipeline",
+    "Join",
+    "RetrievalReport",
+    "compare",
+    "evaluate",
+    "grid",
     "HfPublishBundle",
     "HfPublishConfig",
     "HfPublishResult",
