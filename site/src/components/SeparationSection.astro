@@ -1,0 +1,100 @@
+---
+// A self-contained "how it separates" section: legend + N t-SNE panels + an
+// image inspector. Points align by index across panels (make_projection emits
+// `indices`), and the client script (separation.js) wires each
+// `.separation-section` independently, so this can be used once per dataset.
+interface Panel {
+  proj: any;
+  tag: string;
+}
+interface Props {
+  id: string;
+  eyebrow: string;
+  heading: string; // may contain <em>
+  sub: string; // HTML
+  note: string; // HTML
+  subject: string; // e.g. "bird" / "car" — used in the empty-state hint
+  panels: Panel[];
+  legend: { name: string; color: string }[];
+  meta: { thumbs: string[]; thumbBase: string; classNames: string[] };
+}
+const { id, eyebrow, heading, sub, note, subject, panels, legend, meta } = Astro.props;
+
+const classColors = [
+  "#c0562f", "#3f7d5a", "#c99a2e", "#7d5ba6",
+  "#2f7d8f", "#0f7d8f", "#8a6d2f", "#a6417d",
+];
+const vx = (v: number) => (v * 0.5 + 0.5) * 90 + 5;
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<section id={id} class="band separation-section" data-base={baseUrl}
+         data-thumbs={JSON.stringify(meta.thumbs)}
+         data-thumbbase={meta.thumbBase}
+         data-names={JSON.stringify(meta.classNames)}>
+  <div class="section-head">
+    <p class="eyebrow">{eyebrow}</p>
+    <h2 set:html={heading}></h2>
+    <p class="sub" set:html={sub}></p>
+  </div>
+
+  <ul class="proj-legend" aria-label="class legend — click to isolate a class">
+    {legend.map((c, i) => (
+      <li><button type="button" class="leg-chip" data-c={i} aria-pressed="false">
+        <span class="sw" style={`--sw:${c.color}`}></span>{c.name}
+      </button></li>
+    ))}
+  </ul>
+
+  <div class="proj-layout">
+    <div class="proj-grid">
+      {panels.map((panel) => {
+        const p = panel.proj as any;
+        return (
+          <figure class={`proj-card${p.pending ? " pending" : ""}`}>
+            <div class="proj-head">
+              <div class="proj-head-txt">
+                <span class="proj-tag">{panel.tag}</span>
+                <h3>{p.label}</h3>
+              </div>
+              {!p.pending && (
+                <button type="button" class="proj-expand" data-expand aria-expanded="false"
+                        aria-label={`Enlarge the ${p.label} space`} title="Enlarge">⤢</button>
+              )}
+            </div>
+            {p.pending ? (
+              <div class="proj-svg proj-pending" role="img" aria-label={`${p.label} space — training on the GPU`}>
+                <span class="spin"></span>
+                <span>training on<br />the GPU…</span>
+              </div>
+            ) : (
+              <svg viewBox="0 0 100 100" class="proj-svg" role="img"
+                   aria-label={`t-SNE projection of ${p.label}: full-set Recall@1 ${(p.recall1 * 100).toFixed(1)} percent`}>
+                {p.points2d.map((pt: any, k: number) => (
+                  <circle cx={vx(pt.x)} cy={vx(pt.y)} r="1.25"
+                          data-k={k} data-c={pt.c}
+                          fill={classColors[pt.c % classColors.length]} />
+                ))}
+              </svg>
+            )}
+            <figcaption class="proj-stats">
+              <span class="stat"><b>{p.pending ? "…" : (p.recall1 * 100).toFixed(1)}</b><small>R@1 · all {p.totalClasses} classes</small></span>
+              <span class="stat sil"><b>{p.pending ? "…" : p.silhouette.toFixed(3)}</b><small>8-class silhouette</small></span>
+            </figcaption>
+          </figure>
+        );
+      })}
+    </div>
+
+    <aside class="proj-inspector" aria-live="polite">
+      <div class="insp-frame">
+        <img class="insp-img" alt="" width="140" height="140" />
+        <div class="insp-empty">Hover a dot →<br />see the {subject}.</div>
+      </div>
+      <p class="insp-cap"><b class="insp-name">The same photo</b>
+        <span class="insp-sub">point moves; identity doesn't.</span></p>
+    </aside>
+  </div>
+
+  <p class="proj-note" set:html={note}></p>
+</section>

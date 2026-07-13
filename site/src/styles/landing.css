@@ -163,6 +163,8 @@ main, .topbar, footer { position: relative; z-index: 1; }
 .bench td.repro.no { color: var(--ember-deep); }
 .bench td.repro.yes { color: var(--moss-deep); }
 .dagger { color: var(--ember-deep); font-weight: 700; font-size: 0.7em; margin-left: 0.1em; }
+.bench.multi { max-width: 40rem; }
+.bench.multi th.r, .bench.multi td.r { width: 8rem; font-family: var(--mono); }
 .bench-foot { margin: 0.9rem 0 0; font-size: 0.8rem; line-height: 1.55; color: var(--ink-faint); max-width: 62ch; }
 .bench-foot b { color: var(--ink-soft); font-weight: 700; }
 .bench td.r { font-family: var(--mono); font-weight: 500; position: relative; }
@@ -417,10 +419,10 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 
 .proj-inspector { position: sticky; top: 1.5rem; display: flex; flex-direction: column; gap: 0.7rem; }
 .insp-frame { position: relative; width: 100%; aspect-ratio: 1; background: var(--paper-2); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
-#insp-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.15s; }
-#insp-img.shown { opacity: 1; }
+.insp-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.15s; }
+.insp-img.shown { opacity: 1; }
 .insp-empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-size: 0.82rem; color: var(--ink-faint); line-height: 1.4; pointer-events: none; }
-#insp-img.shown + .insp-empty { display: none; }
+.insp-img.shown + .insp-empty { display: none; }
 .insp-cap { margin: 0; font-size: 0.82rem; line-height: 1.4; }
 .insp-cap b { display: block; font-family: var(--serif); font-weight: 500; font-size: 1.02rem; color: var(--ink); }
 .insp-cap span { color: var(--ink-faint); font-size: 0.76rem; }

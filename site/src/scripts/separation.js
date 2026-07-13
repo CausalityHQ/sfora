@@ -1,13 +1,30 @@
-// Interactivity for the "How it separates" panels:
-//  • hover / tap a dot -> floating image tooltip at the cursor + the side
-//    inspector, and the *same* dot (same image index) lights up in every panel;
-//  • click a legend species -> isolate it in every panel;
+// Interactivity for every "how it separates" section (one per dataset):
+//  • hover / tap a dot -> floating image tooltip at the cursor + the section's
+//    inspector, and the same dot (same image index) lights up in every panel;
+//  • click a legend class -> isolate it in every panel;
 //  • ⤢ button -> enlarge one space to explore its dots up close.
-// Points align by index k across panels because make_projection samples the
-// same rows for every model (see scripts/make_projection.py `indices`).
+// Points align by index k across a section's panels because make_projection
+// samples the same rows for every model (see scripts/make_projection.py).
 
-const section = document.getElementById("separates");
-if (section) {
+// One floating tooltip shared by all sections (it just trails the cursor).
+const tip = document.getElementById("proj-tip");
+const tipImg = document.getElementById("tip-img");
+const tipName = document.getElementById("tip-name");
+
+function placeTip(e) {
+  if (!tip) return;
+  const pad = 16;
+  const w = tip.offsetWidth || 150;
+  const h = tip.offsetHeight || 170;
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+  if (x + w > window.innerWidth) x = e.clientX - w - pad;
+  if (y + h > window.innerHeight) y = e.clientY - h - pad;
+  tip.style.transform = `translate(${x}px, ${y}px)`;
+}
+const hideTip = () => tip && tip.classList.remove("on");
+
+function wireSection(section) {
   const base = section.dataset.base || "";
   const thumbs = JSON.parse(section.dataset.thumbs || "[]");
   const thumbBase = section.dataset.thumbbase || "";
@@ -16,28 +33,15 @@ if (section) {
 
   const layout = section.querySelector(".proj-layout");
   const grid = section.querySelector(".proj-grid");
-  const img = document.getElementById("insp-img");
-  const nameEl = document.getElementById("insp-name");
-  const subEl = document.getElementById("insp-sub");
-  const tip = document.getElementById("proj-tip");
-  const tipImg = document.getElementById("tip-img");
-  const tipName = document.getElementById("tip-name");
+  const img = section.querySelector(".insp-img");
+  const nameEl = section.querySelector(".insp-name");
+  const subEl = section.querySelector(".insp-sub");
+  if (!grid || !layout) return;
 
   let active = [];
   const clearHi = () => {
     for (const c of active) c.classList.remove("hi");
     active = [];
-  };
-
-  const placeTip = (e) => {
-    const pad = 16;
-    const w = tip.offsetWidth || 150;
-    const h = tip.offsetHeight || 170;
-    let x = e.clientX + pad;
-    let y = e.clientY + pad;
-    if (x + w > window.innerWidth) x = e.clientX - w - pad;
-    if (y + h > window.innerHeight) y = e.clientY - h - pad;
-    tip.style.transform = `translate(${x}px, ${y}px)`;
   };
 
   const show = (k, c, e) => {
@@ -47,19 +51,18 @@ if (section) {
     layout.classList.add("inspecting");
     if (img) {
       img.src = src(k);
-      img.alt = names[c] || "bird";
+      img.alt = names[c] || "";
       img.classList.add("shown");
     }
     if (nameEl) nameEl.textContent = names[c] || "";
-    if (subEl) subEl.textContent = "the same photo, lit up in all five spaces";
-    // floating tooltip
-    tipImg.src = src(k);
-    tipName.textContent = names[c] || "";
-    tip.classList.add("on");
-    if (e) placeTip(e);
+    if (subEl) subEl.textContent = "the same photo, lit up in every space";
+    if (tip) {
+      tipImg.src = src(k);
+      tipName.textContent = names[c] || "";
+      tip.classList.add("on");
+      if (e) placeTip(e);
+    }
   };
-
-  const hideTip = () => tip.classList.remove("on");
 
   const dotFrom = (e) => {
     const t = e.target;
@@ -71,7 +74,7 @@ if (section) {
     if (d) show(+d.dataset.k, +d.dataset.c, e);
   });
   grid.addEventListener("pointermove", (e) => {
-    if (tip.classList.contains("on")) placeTip(e);
+    if (tip && tip.classList.contains("on")) placeTip(e);
   });
   grid.addEventListener("click", (e) => {
     const d = dotFrom(e);
@@ -83,7 +86,7 @@ if (section) {
     hideTip();
   });
 
-  // Legend: click a species to isolate it in every panel (toggle).
+  // Legend: click a class to isolate it in every panel (toggle).
   let isolated = null;
   for (const chip of section.querySelectorAll(".leg-chip")) {
     chip.addEventListener("click", () => {
@@ -125,3 +128,5 @@ if (section) {
     });
   }
 }
+
+for (const section of document.querySelectorAll(".separation-section")) wireSection(section);

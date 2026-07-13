@@ -6,7 +6,12 @@ import projHist from "../data/proj_hist.json";
 import projHerd from "../data/proj_herd.json";
 import projSfora from "../data/proj_sfora.json";
 import projMeta from "../data/proj_meta.json";
+import projCarsProxy from "../data/proj_cars_proxyanchor.json";
+import projCarsHerd from "../data/proj_cars_herd.json";
+import projCarsSfora from "../data/proj_cars_sfora.json";
+import projCarsMeta from "../data/proj_cars_meta.json";
 import exploration from "../data/exploration.json";
+import SeparationSection from "../components/SeparationSection.astro";
 import "../styles/landing.css";
 
 // ── Chart helpers (inline SVG, no client JS) ─────────────────────────────────
@@ -47,6 +52,15 @@ const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
 // t-SNE coords are ~[-1,1]; map into a padded 0..100 SVG box.
 const vx = (v: number) => (v * 0.5 + 0.5) * 90 + 5;
 
+// Cars196 — the same viz on a second dataset. Here single HERD does NOT beat
+// Proxy Anchor (the recipe was tuned on CUB); only the ensemble wins.
+const carsPanels = [
+  { proj: projCarsProxy, tag: "prior baseline" },
+  { proj: projCarsHerd, tag: "ours — single" },
+  { proj: projCarsSfora, tag: "ours — 3-model pack" },
+];
+const carsLegend = projCarsMeta.classNames.map((name, i) => ({ name, color: classColors[i] }));
+
 const ensembleScaling = [
   { n: 2, r: 0.7335 },
   { n: 3, r: 0.7394 },
@@ -63,6 +77,16 @@ const benchmarks = [
   { method: "HERD — single model", r: 71.6, kind: "ours-single", repro: "our run · best/mean 71.6/70.6", note: "HIST + is_norm head + EMA-teacher distillation" },
   { method: "SFORA — 5-model ensemble", r: 74.68, kind: "ours", repro: "our run", note: "beats the best reported number by +1.3" },
   { method: "SFORA — 9-model ensemble", r: 75.34, kind: "ours", repro: "our run", note: "scales further; +1.9 over PFML" },
+];
+
+// Two datasets side by side. CUB: HERD's recipe was tuned here and the single
+// model already beats the baselines. Cars196: the single model does NOT beat
+// Proxy Anchor — the recipe doesn't transfer as-is — but the ensemble still wins.
+const multiDataset = [
+  { method: "Proxy Anchor", kind: "reported", cub: "69.7", cars: "87.7" },
+  { method: "HIST", kind: "reported", cub: "71.4", cars: "89.6" },
+  { method: "HERD — single (ours)", kind: "ours-single", cub: "71.6", cars: "87.1" },
+  { method: "SFORA — ensemble (ours)", kind: "ours", cub: "74.68", cars: "89.8" },
 ];
 
 const refs = [
@@ -109,6 +133,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       </a>
       <nav>
         <a href="#result">Result</a>
+        <a href="#datasets">Datasets</a>
         <a href="#explore">Explore</a>
         <a href="#separates">Separation</a>
         <a href="#eli5">Plain English</a>
@@ -232,6 +257,42 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         </div>
       </section>
 
+      <!-- ─────────────────────  TWO DATASETS  ───────────────────── -->
+      <section id="datasets" class="band">
+        <div class="section-head">
+          <p class="eyebrow">Two datasets</p>
+          <h2>Does it <em>transfer?</em> Partly — and we say so.</h2>
+          <p class="sub">
+            The HERD recipe was tuned on CUB-200 (birds). On Cars196 (a different
+            domain) a single HERD model does <b>not</b> beat Proxy Anchor — but the
+            <b>ensemble still wins on both</b>. R@1, ResNet-50 / 512-dim, zero-shot split.
+          </p>
+        </div>
+        <table class="bench multi">
+          <thead>
+            <tr><th>Method</th><th class="r">CUB-200</th><th class="r">Cars196</th></tr>
+          </thead>
+          <tbody>
+            {multiDataset.map((m) => (
+              <tr class={m.kind}>
+                <td class="m">{m.method}</td>
+                <td class="r">{m.cub}</td>
+                <td class="r">{m.cars}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="bench-foot">
+          Reported baselines (Proxy Anchor, HIST) in the top rows; our runs below.
+          On CUB the single HERD model already clears the baselines; on Cars it lands
+          <b>between</b> them (0.871, under Proxy Anchor 0.885) — the is_norm+EMA recipe
+          doesn't transfer as-is. The <b>SFORA ensemble</b> is best on both: 74.68 on CUB
+          (5-model) and <b>89.8 on Cars</b> (3-model), above reported Proxy Anchor (87.7)
+          and level with reported HIST (89.6). See it cluster-by-cluster in
+          <a href="#separates-cars">the Cars separation viz →</a>.
+        </p>
+      </section>
+
       <!-- ─────────────────────────  EXPLORE  ───────────────────────── -->
       <section id="explore" class="band alt">
         <div class="section-head">
@@ -332,98 +393,37 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         </div>
       </section>
 
-      <!-- ─────────────────────  HOW IT SEPARATES  ───────────────────── -->
-      <section id="separates" class="band" data-base={baseUrl}
-               data-thumbs={JSON.stringify(projMeta.thumbs)}
-               data-thumbbase={projMeta.thumbBase}
-               data-names={JSON.stringify(projMeta.classNames)}>
-        <div class="section-head">
-          <p class="eyebrow">How it separates</p>
-          <h2>The same birds, five <em>different</em> spaces.</h2>
-          <p class="sub">
-            Eight held-out CUB-200 test classes — species the model never saw in
-            training — the <em>same 360 photos</em> in every panel, projected to 2D
-            with t-SNE. Each dot is one bird. <b>Hover or tap a dot</b> to see the
-            photo; the same bird lights up across all five spaces.
-          </p>
-        </div>
+      <!-- ─────────────────────  HOW IT SEPARATES (CUB) ───────────────────── -->
+      <SeparationSection
+        id="separates"
+        eyebrow="How it separates"
+        heading="The same birds, five <em>different</em> spaces."
+        subject="bird"
+        sub="Eight held-out CUB-200 test classes — species the model never saw in training — the <em>same 360 photos</em> in every panel, projected to 2D with t-SNE. Each dot is one bird. <b>Hover or tap a dot</b> to see the photo; the same bird lights up across all five spaces."
+        note={"Frozen ImageNet features already know <em>something</em> about birds, but the species smear together. Every trained objective — Proxy Anchor, HIST, HERD — pulls them into tight clusters, and on eight <em>easy</em> classes they look much alike: the 8-class silhouette is noisy and doesn't even rank them (it can put Proxy Anchor above HERD). The honest signal is <em>retrieval over all 100 classes</em>, bottom-left of each panel: <b>0.568 &rarr; 0.680 &rarr; 0.709 &rarr; 0.753</b> as you move frozen &rarr; Proxy Anchor &rarr; HERD &rarr; the 9-model <a href='#result'>SFORA pack</a>. We show the silhouette tie on purpose — no cherry-picked angle."}
+        panels={panels}
+        legend={legend}
+        meta={projMeta}
+      />
 
-        <ul class="proj-legend" aria-label="species legend — click to isolate a species">
-          {legend.map((c, i) => (
-            <li><button type="button" class="leg-chip" data-c={i} aria-pressed="false">
-              <span class="sw" style={`--sw:${c.color}`}></span>{c.name}
-            </button></li>
-          ))}
-        </ul>
+      <!-- ─────────────────────  SAME, FOR CARS196 ───────────────────── -->
+      <SeparationSection
+        id="separates-cars"
+        eyebrow="Same viz, another dataset"
+        heading="The same cars, three <em>different</em> spaces."
+        subject="car"
+        sub="Cars196, eight held-out test classes — car models the network never saw in training. The <em>same 360 photos</em> in every panel. On Cars, a single HERD model does <em>not</em> beat Proxy Anchor — only the pack does."
+        note={"An honest contrast with CUB: the HERD recipe was tuned on birds, and on Cars a single HERD model (0.871) sits just <em>below</em> Proxy Anchor (0.885). But the ensemble still wins — the 3-model <b>SFORA</b> pack reaches <b>0.898</b>, above reported Proxy Anchor (0.877) and level with reported HIST (0.896). Here the whole gain comes from the pack, not the single model."}
+        panels={carsPanels}
+        legend={carsLegend}
+        meta={projCarsMeta}
+      />
 
-        <div class="proj-layout">
-          <div class="proj-grid">
-            {panels.map((panel) => {
-              const p = panel.proj as any;
-              return (
-                <figure class={`proj-card${p.pending ? " pending" : ""}`}>
-                  <div class="proj-head">
-                    <div class="proj-head-txt">
-                      <span class="proj-tag">{panel.tag}</span>
-                      <h3>{p.label}</h3>
-                    </div>
-                    {!p.pending && (
-                      <button type="button" class="proj-expand" data-expand aria-expanded="false"
-                              aria-label={`Enlarge the ${p.label} space`} title="Enlarge">⤢</button>
-                    )}
-                  </div>
-                  {p.pending ? (
-                    <div class="proj-svg proj-pending" role="img" aria-label={`${p.label} space — training on the GPU`}>
-                      <span class="spin"></span>
-                      <span>training on<br />the GPU…</span>
-                    </div>
-                  ) : (
-                    <svg viewBox="0 0 100 100" class="proj-svg" role="img"
-                         aria-label={`t-SNE projection of ${p.label}: full-set Recall@1 ${(p.recall1 * 100).toFixed(1)} percent`}>
-                      {p.points2d.map((pt: any, k: number) => (
-                        <circle cx={vx(pt.x)} cy={vx(pt.y)} r="1.25"
-                                data-k={k} data-c={pt.c}
-                                fill={classColors[pt.c % classColors.length]} />
-                      ))}
-                    </svg>
-                  )}
-                  <figcaption class="proj-stats">
-                    <span class="stat"><b>{p.pending ? "…" : (p.recall1 * 100).toFixed(1)}</b><small>R@1 · all {p.totalClasses} classes</small></span>
-                    <span class="stat sil"><b>{p.pending ? "…" : p.silhouette.toFixed(3)}</b><small>8-class silhouette</small></span>
-                  </figcaption>
-                </figure>
-              );
-            })}
-          </div>
-
-          <aside class="proj-inspector" id="proj-inspector" aria-live="polite">
-            <div class="insp-frame">
-              <img id="insp-img" alt="" width="140" height="140" />
-              <div class="insp-empty">Hover a dot →<br />see the bird.</div>
-            </div>
-            <p class="insp-cap"><b id="insp-name">The same photo, five spaces</b>
-              <span id="insp-sub">point moves; identity doesn't.</span></p>
-          </aside>
-        </div>
-
-        <!-- floating image tooltip that follows the cursor over a dot -->
-        <div class="proj-tip" id="proj-tip" aria-hidden="true">
-          <img id="tip-img" alt="" />
-          <span id="tip-name"></span>
-        </div>
-
-        <p class="proj-note">
-          Frozen ImageNet features already know <em>something</em> about birds, but the
-          species smear together. Every trained objective — Proxy Anchor, HIST, HERD —
-          pulls them into tight clusters, and on eight <em>easy</em> classes they look
-          much alike: the 8-class silhouette is noisy and doesn't even rank them
-          (it can put Proxy Anchor above HERD). The honest signal is
-          <em>retrieval over all 100 classes</em>, bottom-left of each panel:
-          <b>0.568 → 0.680 → 0.709 → 0.753</b> as you move frozen → Proxy Anchor →
-          HERD → the 9-model <a href="#result">SFORA pack</a>. We show the silhouette
-          tie on purpose — no cherry-picked angle.
-        </p>
-      </section>
+      <!-- one floating image tooltip, shared across separation sections -->
+      <div class="proj-tip" id="proj-tip" aria-hidden="true">
+        <img id="tip-img" alt="" />
+        <span id="tip-name"></span>
+      </div>
 
       <!-- ─────────────────────────  ELI5  ───────────────────────── -->
       <section id="eli5" class="band alt">
