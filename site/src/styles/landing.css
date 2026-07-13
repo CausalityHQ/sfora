@@ -329,6 +329,8 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .linechart .xtick { text-anchor: middle; }
 .linechart .axlbl { fill: var(--ink-faint); font-size: 8px; text-anchor: middle; font-family: var(--sans); }
 .linechart .ln { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.linechart .whisker { stroke: var(--c, var(--ink-soft)); stroke-width: 1.4; opacity: 0.7; }
+.linechart .band { fill: var(--c); opacity: 0.13; stroke: none; }
 .linechart .dot, .linechart .best { fill: var(--c); stroke: var(--card); stroke-width: 1.2; }
 .linechart .best { stroke-width: 1.5; }
 .linechart .pfml { stroke: var(--ink-faint); stroke-width: 1; stroke-dasharray: 3 3; }
@@ -346,8 +348,11 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .compbar { display: grid; grid-template-columns: 13rem 1fr 3.4rem; align-items: center; gap: 0.8rem; }
 .compbar .cb-name { font-size: 0.85rem; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 0.4rem; padding-right: 0.3rem; }
 .compbar .cb-name small { color: var(--ink-faint); font-family: var(--mono); font-size: 0.72rem; }
-.cb-track { height: 0.85rem; background: var(--paper-2); border-radius: 5px; overflow: hidden; }
+.cb-track { position: relative; height: 0.85rem; background: var(--paper-2); border-radius: 5px; }
 .cb-fill { height: 100%; width: var(--w); background: var(--line-strong); border-radius: 5px; }
+.cb-err { position: absolute; top: 50%; left: var(--l); width: calc(var(--r) - var(--l)); height: 0; border-top: 1.5px solid var(--ink); opacity: 0.45; }
+.cb-err::before, .cb-err::after { content: ""; position: absolute; top: -3px; height: 6px; border-left: 1.5px solid var(--ink); opacity: 0.7; }
+.cb-err::before { left: 0; } .cb-err::after { right: 0; }
 .compbar.pack .cb-fill { background: var(--ink-soft); }
 .compbar.pack .cb-name, .compbar.pack .cb-val { color: var(--ink); font-weight: 700; }
 .compbar.best .cb-fill { background: var(--ember); }

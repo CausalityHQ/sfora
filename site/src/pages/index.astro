@@ -11,6 +11,7 @@ import projCarsHerd from "../data/proj_cars_herd.json";
 import projCarsSfora from "../data/proj_cars_sfora.json";
 import projCarsMeta from "../data/proj_cars_meta.json";
 import exploration from "../data/exploration.json";
+import stats from "../data/stats.json";
 import SeparationSection from "../components/SeparationSection.astro";
 import "../styles/landing.css";
 
@@ -310,7 +311,10 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           <figure class="chartcard">
             <figcaption>Test Recall@1 over training — HERD pulls ahead and stays ahead</figcaption>
             <svg viewBox={`0 0 ${CHART.w} ${CHART.h}`} class="linechart" role="img"
-                 aria-label="Test Recall at 1 versus epoch for HERD, HIST and Proxy Anchor">
+                 aria-label="Test Recall at 1 versus epoch for HERD, HIST and Proxy Anchor; HERD has a standard-deviation band">
+              <polygon class="band" style="--c:#c0562f"
+                points={[...stats.curveHerdStd.map((p: any) => `${px(p.epoch, 5, 60)},${py(p.mean + p.std, curveYlo, curveYhi)}`),
+                         ...stats.curveHerdStd.slice().reverse().map((p: any) => `${px(p.epoch, 5, 60)},${py(p.mean - p.std, curveYlo, curveYhi)}`)].join(" ")} />
               {[curveYlo, (curveYlo + curveYhi) / 2, curveYhi].map((gy) => (
                 <g>
                   <line class="grid" x1={CHART.ml} x2={CHART.w - CHART.mr} y1={py(gy, curveYlo, curveYhi)} y2={py(gy, curveYlo, curveYhi)} />
@@ -353,32 +357,45 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
                 y1={py(0.734, scaleYlo, scaleYhi)} y2={py(0.734, scaleYlo, scaleYhi)} />
               <text class="pfml-lbl" x={CHART.w - CHART.mr} y={py(0.734, scaleYlo, scaleYhi) - 4}>reported PFML 0.734</text>
               <polyline class="ln" style="--c:#c0562f"
-                points={scaleN.map((d: any) => `${px(d.n, 1, 9)},${py(d.r, scaleYlo, scaleYhi)}`).join(" ")} />
-              {scaleN.map((d: any) => (
-                <circle class="dot" style="--c:#c0562f" cx={px(d.n, 1, 9)} cy={py(d.r, scaleYlo, scaleYhi)} r="2.6" />
+                points={stats.scaling.map((d: any) => `${px(d.n, 1, 9)},${py(d.mean, scaleYlo, scaleYhi)}`).join(" ")} />
+              {stats.scaling.map((d: any) => (
+                <g>
+                  <line class="whisker" x1={px(d.n, 1, 9)} x2={px(d.n, 1, 9)} y1={py(d.mean - d.std, scaleYlo, scaleYhi)} y2={py(d.mean + d.std, scaleYlo, scaleYhi)} />
+                  <line class="whisker" x1={px(d.n, 1, 9) - 3} x2={px(d.n, 1, 9) + 3} y1={py(d.mean + d.std, scaleYlo, scaleYhi)} y2={py(d.mean + d.std, scaleYlo, scaleYhi)} />
+                  <line class="whisker" x1={px(d.n, 1, 9) - 3} x2={px(d.n, 1, 9) + 3} y1={py(d.mean - d.std, scaleYlo, scaleYhi)} y2={py(d.mean - d.std, scaleYlo, scaleYhi)} />
+                  <circle class="dot" style="--c:#c0562f" cx={px(d.n, 1, 9)} cy={py(d.mean, scaleYlo, scaleYhi)} r="2.6" />
+                </g>
               ))}
               {[1, 3, 5, 7, 9].map((gx) => (
                 <text class="xtick" x={px(gx, 1, 9)} y={CHART.h - 10}>{gx}</text>
               ))}
               <text class="axlbl" x={(CHART.w + CHART.ml) / 2} y={CHART.h - 1}>models in the pack →</text>
             </svg>
-            <p class="chart-note">1 model 0.709 → 5 models <b>0.747</b> → 9 models <b>0.753</b>. The
-              curve bends: the first few seeds buy the most.</p>
+            <p class="chart-note">Mean R@1 over random N-model packs; error bars are ±1 std
+              (±{(stats.scaling[0].std * 100).toFixed(2)} at 1 model → ±{(stats.scaling[5].std * 100).toFixed(2)} at 7).
+              The curve bends — the first few seeds buy the most, and get steadier.</p>
           </figure>
 
           <!-- Chart 3: compression comparison -->
           <figure class="chartcard wide">
             <figcaption>Folding the 9-model pack back to 512 dims — alignment beats PCA</figcaption>
             <div class="compbars">
-              {exploration.compression.map((c: any) => (
-                <div class={`compbar ${c.kind}`}>
-                  <span class="cb-name">{c.name}<small>{c.dim}d</small></span>
-                  <div class="cb-track"><div class="cb-fill" style={`--w:${((c.r - 0.70) / (0.754 - 0.70)) * 100}%`}></div></div>
-                  <span class="cb-val">{c.r.toFixed(4)}</span>
-                </div>
-              ))}
+              {stats.compression.map((c: any) => {
+                const kind = c.name.startsWith("concat (") ? "pack" : c.name.startsWith("GPA") ? "best" : c.name.startsWith("single") ? "single" : "";
+                const lo = 0.70, hi = 0.754, span = hi - lo;
+                return (
+                  <div class={`compbar ${kind}`}>
+                    <span class="cb-name">{c.name}<small>{c.dim}d</small></span>
+                    <div class="cb-track">
+                      <div class="cb-fill" style={`--w:${((c.r - lo) / span) * 100}%`}></div>
+                      <span class="cb-err" style={`--l:${((c.r - c.se - lo) / span) * 100}%;--r:${((c.r + c.se - lo) / span) * 100}%`}></span>
+                    </div>
+                    <span class="cb-val">{c.r.toFixed(4)}</span>
+                  </div>
+                );
+              })}
             </div>
-            <p class="chart-axis-note">bars start at R@1 0.70 (not 0), so only the spread above 0.70 is drawn — read the exact value on the right.</p>
+            <p class="chart-axis-note">bars start at R@1 0.70 (not 0); whiskers are the test-set standard error ±√(p(1−p)/N). Read the exact value on the right.</p>
             <p class="chart-note">Alignment is the trick: a <b>naive</b> average (0.727) barely beats one
               model, but <b>generalized-Procrustes alignment</b> (iteratively rotate every model
               to a shared consensus, then average) reaches <b>0.749 — 99.4% of the full
