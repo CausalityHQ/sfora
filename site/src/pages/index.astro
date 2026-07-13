@@ -1,6 +1,20 @@
 ---
 import embedding from "../data/embedding3d.json";
+import projFrozen from "../data/proj_frozen.json";
+import projProxy from "../data/proj_proxyanchor.json";
+import projHerd from "../data/proj_herd.json";
 import "../styles/landing.css";
+
+// Three real CUB-200 embedding spaces, projected to 2D (t-SNE) on the same
+// 8 held-out test classes. Ordered worst -> best so the story reads left to right.
+const projections = [projFrozen, projProxy, projHerd];
+// Class colours — warm, distinct, colour-blind-tolerant; index = class id 0..7.
+const classColors = [
+  "#c0562f", "#3f7d5a", "#c99a2e", "#7d5ba6",
+  "#2f7d8f", "#b0472f", "#5a7d2f", "#a6417d",
+];
+// t-SNE coords are ~[-1,1]; map into a padded 0..100 SVG box.
+const vx = (v: number) => (v * 0.5 + 0.5) * 90 + 5;
 
 const ensembleScaling = [
   { n: 2, r: 0.7335 },
@@ -63,6 +77,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       </a>
       <nav>
         <a href="#result">Result</a>
+        <a href="#separates">Separation</a>
         <a href="#eli5">Plain English</a>
         <a href="#herd">Method</a>
         <a href="#reproduce">Reproduce</a>
@@ -169,6 +184,53 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           Even <b>256-dim</b> holds <b>0.741</b>. So the pack's edge survives an
           18× compression: run <code>ensemble_eval.py --compress-sweep</code>.
         </div>
+      </section>
+
+      <!-- ─────────────────────  HOW IT SEPARATES  ───────────────────── -->
+      <section id="separates" class="band">
+        <div class="section-head">
+          <p class="eyebrow">How it separates</p>
+          <h2>The same birds, three <em>different</em> spaces.</h2>
+          <p class="sub">
+            Eight held-out CUB-200 test classes — species the model never saw in
+            training — projected to 2D with t-SNE. Each dot is one bird photo;
+            colour is its species. Watch the clusters tighten left&nbsp;to&nbsp;right.
+          </p>
+        </div>
+
+        <div class="proj-grid">
+          {projections.map((p, i) => (
+            <figure class="proj-card">
+              <div class="proj-head">
+                <span class={`proj-tag t${i}`}>{["before training", "previous approach", "ours"][i]}</span>
+                <h3>{p.label}</h3>
+              </div>
+              <svg viewBox="0 0 100 100" class="proj-svg" role="img"
+                   aria-label={`t-SNE projection of ${p.label}: full-set Recall@1 ${(p.recall1 * 100).toFixed(1)} percent`}>
+                {p.points2d.map((pt) => (
+                  <circle cx={vx(pt.x)} cy={vx(pt.y)} r="1.15"
+                          fill={classColors[pt.c % classColors.length]} fill-opacity="0.82" />
+                ))}
+              </svg>
+              <figcaption class="proj-stats">
+                <span class="stat"><b>{(p.recall1 * 100).toFixed(1)}</b><small>R@1 · all {p.totalClasses} classes</small></span>
+                <span class="stat"><b>{p.silhouette.toFixed(3)}</b><small>cluster silhouette</small></span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        <p class="proj-note">
+          Frozen ImageNet features already know <em>something</em> about birds, but the
+          species smear together. Proxy Anchor — the established metric-learning
+          baseline — pulls them into tight clusters. On these eight easy classes
+          <b>HERD looks almost identical</b> to Proxy Anchor (silhouette 0.201 vs 0.205):
+          the honest edge isn't visible here, it's in <em>retrieval over all 100
+          classes</em>, where HERD's harder-class organisation lifts Recall@1 from
+          <b>68.0 → 70.9</b> — and compounds further when several HERD models are
+          <a href="#result">ensembled into a SFORA pack</a>. We show the tie on purpose:
+          no cherry-picked angle.
+        </p>
       </section>
 
       <!-- ─────────────────────────  ELI5  ───────────────────────── -->

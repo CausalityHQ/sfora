@@ -10,6 +10,9 @@ build/
 *.egg-info/
 .ipynb_checkpoints/
 data/
+# ...but the site's small projection/embedding JSON is source the build needs.
+!site/src/data/
+!site/src/data/*.json
 artifacts/
 reports/generated/
 node_modules/

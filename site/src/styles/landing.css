@@ -306,3 +306,24 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .glossary dt { font-weight: 700; font-size: 0.92rem; color: var(--ink); }
 .glossary dd { margin: 0; font-size: 0.88rem; color: var(--ink-soft); }
 .glossary dd em { font-style: italic; color: var(--ink); }
+
+/* ─────────────────────────  Projection comparison  ───────────────────────── */
+.proj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1rem, 2.4vw, 2rem); margin-top: 2.5rem; }
+@media (max-width: 760px) { .proj-grid { grid-template-columns: 1fr; max-width: 24rem; margin-inline: auto; } }
+.proj-card { margin: 0; display: flex; flex-direction: column; }
+.proj-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.6rem; }
+.proj-head h3 { font-family: var(--sans); font-weight: 700; font-size: 0.98rem; letter-spacing: -0.01em; }
+.proj-tag { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; padding: 0.18rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+.proj-tag.t0 { color: var(--ink-faint); background: color-mix(in oklch, var(--ink-faint) 16%, transparent); }
+.proj-tag.t1 { color: var(--moss-deep); background: color-mix(in oklch, var(--moss) 20%, transparent); }
+.proj-tag.t2 { color: var(--ember-deep); background: color-mix(in oklch, var(--ember) 22%, transparent); }
+.proj-svg { width: 100%; aspect-ratio: 1; display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.proj-card:nth-child(3) .proj-svg { border-color: color-mix(in oklch, var(--ember) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in oklch, var(--ember) 30%, transparent); }
+.proj-stats { display: flex; gap: 1.5rem; margin-top: 0.8rem; }
+.proj-stats .stat { display: flex; flex-direction: column; line-height: 1.15; }
+.proj-stats .stat b { font-family: var(--serif); font-size: 1.35rem; font-weight: 500; color: var(--ink); }
+.proj-stats .stat small { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.01em; }
+.proj-card:nth-child(3) .proj-stats .stat:first-child b { color: var(--ember-deep); }
+.proj-note { max-width: 60ch; margin: 2.4rem auto 0; text-align: center; font-size: 0.96rem; color: var(--ink-soft); line-height: 1.65; }
+.proj-note b { color: var(--ink); font-weight: 700; }
+.proj-note a { color: var(--ember-deep); text-decoration: underline; text-underline-offset: 2px; }

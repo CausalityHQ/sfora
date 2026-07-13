@@ -33,6 +33,16 @@ def _silhouette(x: np.ndarray, labels: np.ndarray) -> float:
         return float("nan")
 
 
+def _recall_at_1(x: np.ndarray, labels: np.ndarray) -> float:
+    """Leave-one-out cosine Recall@1 over the FULL embedding set — the honest
+    'how good is retrieval' number, not tied to the sampled projection subset."""
+    xn = _l2(x)
+    sim = xn @ xn.T
+    np.fill_diagonal(sim, -1e9)
+    nn = labels[sim.argmax(1)]
+    return float((nn == labels).mean())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("npz")
@@ -46,6 +56,10 @@ def main() -> None:
     data = np.load(args.npz)
     emb = _l2(np.asarray(data["embeddings"], dtype=np.float64))
     lab = np.asarray(data["labels"], dtype=np.int64)
+
+    # Full-test-set Recall@1 (all classes) — the grounded quality number.
+    recall1 = round(_recall_at_1(emb, lab), 4)
+    total_classes = int(len(np.unique(lab)))
 
     # Pick the most-populous classes, then a fixed sample per class (deterministic).
     uniq, counts = np.unique(lab, return_counts=True)
@@ -88,6 +102,8 @@ def main() -> None:
     out = {
         "label": args.label,
         "classes": int(len(top)),
+        "totalClasses": total_classes,
+        "recall1": recall1,
         "method2d": method2d,
         "silhouette": round(_silhouette(x, y), 3),
         "points2d": [
@@ -108,7 +124,8 @@ def main() -> None:
         json.dump(out, fh)
     print(
         f"{args.label}: {len(x)} points, {len(top)} classes, 2d={method2d}, "
-        f"silhouette={out['silhouette']} -> {args.out}"
+        f"silhouette={out['silhouette']}, full-set R@1={recall1} "
+        f"({total_classes} classes) -> {args.out}"
     )
 
 
