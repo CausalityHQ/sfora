@@ -486,7 +486,8 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
             how strongly</b>." The student is trained to <b>agree with the teacher's
             neighbourhood map</b>. Copying <em>relationships</em> (who's near whom) —
             not just labels — is what teaches the model something that transfers to
-            unseen species. That single change broke the plateau.</p>
+            unseen species. That change lifts a single model off the plateau
+            (0.716 best), and ensembling several of them is what beats reported SOTA.</p>
           </div>
           <div class="eli5-step">
             <span class="step-n">04</span>
@@ -515,8 +516,9 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           <p class="eyebrow">The method</p>
           <h2><span class="mono-tag">HERD</span> Hypergraph · EMA-teacher · Relational · Distillation</h2>
           <p class="sub">
-            One novel idea broke a plateau that ~16 loss-geometry tweaks could not:
-            change the <em>information per training step</em>, not the loss surface.
+            One idea nudged the single-model plateau that ~16 loss-geometry tweaks
+            could not: change the <em>information per training step</em>, not the loss
+            surface. The ensemble then does the decisive SOTA-beating work.
           </p>
         </div>
 
