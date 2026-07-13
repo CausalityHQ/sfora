@@ -47,31 +47,42 @@ Single HERD models sit at ~0.706–0.716 (there is ~±1 pt run-to-run GPU
 nondeterminism); the ensemble adds several points from model diversity and scales
 monotonically with the number of models:
 
-| models | 2 | 3 | 4 | 5 | 7 | 9 |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| R@1 | 0.7335 | 0.7394 | 0.7426 | 0.7468 | 0.7522 | 0.7546 |
+| models | 1 | 2 | 3 | 4 | 5 | 7 | 9 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| R@1 | 0.7088 | 0.7335 | 0.7394 | 0.7426 | 0.7468 | 0.7529 | 0.7534 |
 
-See the `README.md` "Reproduce the SOTA result" section for the exact commands
-and `scripts/ensemble_eval.py`.
+All numbers reproduce with `scripts/ensemble_eval.py` on the saved best-epoch
+embeddings (`image_self_retrieval_score`, the project's own scorer). The curve
+bends after ~5 models — the first few seeds buy the most. See the `README.md`
+"Reproduce the SOTA result" section for the exact training commands.
 
-### Compressing the concatenated ensemble
+### Compressing the 9-model pack back to a single-model footprint
 
-Concatenating N models gives an N×512-dim embedding (4608-dim for 9 models),
-which is impractical to store or search. PCA-compressing the concatenation keeps
-almost all of the gain at a fraction of the size:
+Concatenating 9 models gives a 4608-dim vector, impractical to store or search.
+We compared several ways to fold it back to **512 dims** (one model's size):
 
-| concat dim → compressed | R@1 | retained |
-| --- | ---: | ---: |
-| 4608 (full 9-model) | 0.7546 | 100% |
-| 4608 → 2048 | 0.7407 | 98.2% |
-| 4608 → 1024 | 0.7416 | 98.3% |
-| **4608 → 512** | **0.7421** | **98.3%** |
-| 4608 → 256 | 0.7411 | 98.2% |
+| method | dim | R@1 | retained |
+| --- | ---: | ---: | ---: |
+| concat (the full pack) | 4608 | 0.7534 | 100% |
+| **Procrustes-aligned mean** | **512** | **0.7470** | **99.1%** |
+| concat + PCA | 512 | 0.7439 | 98.7% |
+| concat + random projection | 512 | 0.7297 | 96.9% |
+| naive mean (no alignment) | 512 | 0.7274 | 96.5% |
+| single HERD model | 512 | 0.7053 | 93.6% |
 
-**A 9-model ensemble compressed to 512-dim — the size of a *single* model — still
-scores 0.7421, above reported PFML (73.4).** So the ensemble's edge is not tied to
-a bloated vector; it survives an 18× compression. Reproduce with
-`uv run python scripts/ensemble_eval.py --compress-sweep reports/emb/ema_seed*.npz`.
+The winner is **not** PCA of the concatenation. Independently-trained embeddings
+live in arbitrarily rotated copies of the same geometry, so a naive average
+cancels signal (0.7274, barely above one model). Orthogonally **aligning** each
+model to a reference (Procrustes: `R = UVᵀ` from the SVD of `Eₘᵀ·E₀`) and then
+averaging merges the N spaces into one 512-dim vector — **no concatenation at
+all** — and reaches **0.7470, 99.1% of the full pack and still +1.3 over reported
+PFML (73.4)**, at single-model storage and search cost. A PCA sweep of the concat
+(512→0.7439, 256→0.7407, 1024→0.7444) is the runner-up. Reproduce with:
+
+```bash
+uv run python scripts/ensemble_eval.py --compare-methods 512 reports/emb/ema_seed*.npz
+uv run python scripts/ensemble_eval.py --compress-sweep   reports/emb/ema_seed*.npz
+```
 
 ## Reproducibility notes (numbers we could **not** reproduce)
 

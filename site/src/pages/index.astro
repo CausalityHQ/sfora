@@ -6,7 +6,26 @@ import projHist from "../data/proj_hist.json";
 import projHerd from "../data/proj_herd.json";
 import projSfora from "../data/proj_sfora.json";
 import projMeta from "../data/proj_meta.json";
+import exploration from "../data/exploration.json";
 import "../styles/landing.css";
+
+// ── Chart helpers (inline SVG, no client JS) ─────────────────────────────────
+const CHART = { w: 340, h: 200, ml: 40, mr: 12, mt: 14, mb: 30 };
+const px = (v: number, lo: number, hi: number) =>
+  CHART.ml + ((v - lo) / (hi - lo)) * (CHART.w - CHART.ml - CHART.mr);
+const py = (v: number, lo: number, hi: number) =>
+  CHART.h - CHART.mb - ((v - lo) / (hi - lo)) * (CHART.h - CHART.mt - CHART.mb);
+const curveColors: Record<string, string> = {
+  HERD: "#c0562f", HIST: "#3f7d5a", "Proxy Anchor": "#9a8f80",
+};
+// Test-R@1-vs-epoch: shared y-range across methods.
+const curveEntries = Object.entries(exploration.curves) as [string, any][];
+const allTestR = curveEntries.flatMap(([, c]) => c.test.map((p: any) => p.r));
+const curveYlo = Math.floor(Math.min(...allTestR) * 20) / 20;
+const curveYhi = Math.ceil(Math.max(...allTestR) * 20) / 20;
+const scaleN = exploration.scaling;
+const scaleYlo = 0.70, scaleYhi = 0.76;
+const compMax = Math.max(...exploration.compression.map((c: any) => c.r));
 
 // Five real CUB-200 embedding spaces, projected to 2D (t-SNE) on the *same* 8
 // held-out test classes and the *same* sampled images (points align by index
@@ -33,8 +52,8 @@ const ensembleScaling = [
   { n: 3, r: 0.7394 },
   { n: 4, r: 0.7426 },
   { n: 5, r: 0.7468 },
-  { n: 7, r: 0.7522 },
-  { n: 9, r: 0.7546 },
+  { n: 7, r: 0.7529 },
+  { n: 9, r: 0.7534 },
 ];
 
 const benchmarks = [
@@ -43,6 +62,7 @@ const benchmarks = [
   { method: "PFML", r: 73.4, kind: "sota", repro: "✗ collapses in our runs", note: "best reported same-arch number" },
   { method: "HERD — single model", r: 71.6, kind: "ours-single", repro: "our run · best/mean 71.6/70.6", note: "HIST + is_norm head + EMA-teacher distillation" },
   { method: "SFORA — 5-model ensemble", r: 74.68, kind: "ours", repro: "our run", note: "beats the best reported number by +1.3" },
+  { method: "SFORA — 9-model ensemble", r: 75.34, kind: "ours", repro: "our run", note: "scales further; +1.9 over PFML" },
 ];
 
 const refs = [
@@ -89,6 +109,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       </a>
       <nav>
         <a href="#result">Result</a>
+        <a href="#explore">Explore</a>
         <a href="#separates">Separation</a>
         <a href="#eli5">Plain English</a>
         <a href="#herd">Method</a>
@@ -118,15 +139,15 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
 
           <div class="scoreline">
             <div class="score big">
-              <span class="num" data-count="74.68">74.68</span>
-              <span class="lab">SFORA · CUB-200 R@1</span>
+              <span class="num" data-count="75.34">75.34</span>
+              <span class="lab">SFORA · CUB-200 R@1 · best (9-model)</span>
             </div>
             <div class="vs">vs</div>
             <div class="score">
               <span class="num muted">73.4</span>
               <span class="lab">best reported (PFML)</span>
             </div>
-            <div class="delta">+1.3</div>
+            <div class="delta">+1.9</div>
           </div>
 
           <div class="hero-actions">
@@ -168,7 +189,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
               {benchmarks.map((b) => (
                 <tr class={b.kind}>
                   <td class="m">{b.method}</td>
-                  <td class="r"><span class="bar" style={`--w:${((b.r - 68) / (75 - 68)) * 100}%`}></span>{b.r.toFixed(b.kind.startsWith("ours") && b.r > 74 ? 2 : 1)}{(b.kind === "sota" || (b.kind === "reported" && b.repro.startsWith("✗"))) && <sup class="dagger">†</sup>}</td>
+                  <td class="r"><span class="bar" style={`--w:${((b.r - 68) / (76 - 68)) * 100}%`}></span>{b.r.toFixed(b.kind.startsWith("ours") && b.r > 74 ? 2 : 1)}{(b.kind === "sota" || (b.kind === "reported" && b.repro.startsWith("✗"))) && <sup class="dagger">†</sup>}</td>
                   <td class={`note repro ${b.repro.startsWith("✗") ? "no" : b.repro.startsWith("✓") ? "yes" : ""}`}>{b.repro}</td>
                 </tr>
               ))}
@@ -201,11 +222,104 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
 
         <div class="compress">
           <span class="lead">A pack, without the storage cost of a pack.</span>
-          The 9-model ensemble concatenates to 4608 dimensions — but PCA-compressing
-          it back to <b>512-dim</b> (the size of a <em>single</em> model) keeps
-          <b>R@1 0.742</b> — 98.3% of the ensemble, and still above reported PFML.
-          Even <b>256-dim</b> holds <b>0.741</b>. So the pack's edge survives an
-          18× compression: run <code>ensemble_eval.py --compress-sweep</code>.
+          The 9-model pack concatenates to 4608 dimensions — but you can fold it
+          back to a <b>single 512-dim vector</b> and keep almost all of it. The
+          best fold isn't PCA: <b>Procrustes-aligned averaging</b> (rotate every
+          model into a common frame, then average) reaches <b>R@1 0.747</b> — 99%
+          of the full pack, still <b>+1.3 over reported PFML</b>, at single-model
+          size. <a href="#explore">See every compression method →</a>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────  EXPLORE  ───────────────────────── -->
+      <section id="explore" class="band alt">
+        <div class="section-head">
+          <p class="eyebrow">Explore the methods</p>
+          <h2>How it <em>behaves</em> — curves, not just a headline.</h2>
+          <p class="sub">
+            The numbers above come from these curves. Real runs, CUB-200 test
+            retrieval, ResNet-50 / 512-dim.
+          </p>
+        </div>
+
+        <div class="explore-grid">
+          <!-- Chart 1: test R@1 vs epoch -->
+          <figure class="chartcard">
+            <figcaption>Test Recall@1 over training — HERD pulls ahead and stays ahead</figcaption>
+            <svg viewBox={`0 0 ${CHART.w} ${CHART.h}`} class="linechart" role="img"
+                 aria-label="Test Recall at 1 versus epoch for HERD, HIST and Proxy Anchor">
+              {[curveYlo, (curveYlo + curveYhi) / 2, curveYhi].map((gy) => (
+                <g>
+                  <line class="grid" x1={CHART.ml} x2={CHART.w - CHART.mr} y1={py(gy, curveYlo, curveYhi)} y2={py(gy, curveYlo, curveYhi)} />
+                  <text class="ytick" x={CHART.ml - 6} y={py(gy, curveYlo, curveYhi) + 3}>{gy.toFixed(2)}</text>
+                </g>
+              ))}
+              {[10, 30, 50].map((gx) => (
+                <text class="xtick" x={px(gx, 5, 60)} y={CHART.h - 10}>{gx}</text>
+              ))}
+              {curveEntries.map(([name, c]) => (
+                <g>
+                  <polyline class="ln" style={`--c:${curveColors[name]}`}
+                    points={c.test.map((p: any) => `${px(p.epoch, 5, 60)},${py(p.r, curveYlo, curveYhi)}`).join(" ")} />
+                  <circle class="best" style={`--c:${curveColors[name]}`}
+                    cx={px((c.bestEpoch ?? 60), 5, 60)} cy={py(c.bestR, curveYlo, curveYhi)} r="3" />
+                </g>
+              ))}
+              <text class="axlbl" x={(CHART.w + CHART.ml) / 2} y={CHART.h - 1}>epoch →</text>
+            </svg>
+            <ul class="chart-legend">
+              {curveEntries.map(([name, c]) => (
+                <li><span class="sw" style={`--sw:${curveColors[name]}`}></span>{name}
+                  <b>{(c.bestR * 100).toFixed(1)}</b><small>best @ ep {c.bestEpoch}</small></li>
+              ))}
+            </ul>
+          </figure>
+
+          <!-- Chart 2: ensemble scaling -->
+          <figure class="chartcard">
+            <figcaption>More models in the pack → higher R@1 (diminishing after ~5)</figcaption>
+            <svg viewBox={`0 0 ${CHART.w} ${CHART.h}`} class="linechart" role="img"
+                 aria-label="Recall at 1 versus number of models in the ensemble">
+              {[0.70, 0.72, 0.74, 0.76].map((gy) => (
+                <g>
+                  <line class="grid" x1={CHART.ml} x2={CHART.w - CHART.mr} y1={py(gy, scaleYlo, scaleYhi)} y2={py(gy, scaleYlo, scaleYhi)} />
+                  <text class="ytick" x={CHART.ml - 6} y={py(gy, scaleYlo, scaleYhi) + 3}>{gy.toFixed(2)}</text>
+                </g>
+              ))}
+              <line class="pfml" x1={CHART.ml} x2={CHART.w - CHART.mr}
+                y1={py(0.734, scaleYlo, scaleYhi)} y2={py(0.734, scaleYlo, scaleYhi)} />
+              <text class="pfml-lbl" x={CHART.w - CHART.mr} y={py(0.734, scaleYlo, scaleYhi) - 4}>reported PFML 0.734</text>
+              <polyline class="ln" style="--c:#c0562f"
+                points={scaleN.map((d: any) => `${px(d.n, 1, 9)},${py(d.r, scaleYlo, scaleYhi)}`).join(" ")} />
+              {scaleN.map((d: any) => (
+                <circle class="dot" style="--c:#c0562f" cx={px(d.n, 1, 9)} cy={py(d.r, scaleYlo, scaleYhi)} r="2.6" />
+              ))}
+              {[1, 3, 5, 7, 9].map((gx) => (
+                <text class="xtick" x={px(gx, 1, 9)} y={CHART.h - 10}>{gx}</text>
+              ))}
+              <text class="axlbl" x={(CHART.w + CHART.ml) / 2} y={CHART.h - 1}>models in the pack →</text>
+            </svg>
+            <p class="chart-note">1 model 0.709 → 5 models <b>0.747</b> → 9 models <b>0.753</b>. The
+              curve bends: the first few seeds buy the most.</p>
+          </figure>
+
+          <!-- Chart 3: compression comparison -->
+          <figure class="chartcard wide">
+            <figcaption>Folding the 9-model pack back to 512 dims — Procrustes beats PCA</figcaption>
+            <div class="compbars">
+              {exploration.compression.map((c: any) => (
+                <div class={`compbar ${c.kind}`}>
+                  <span class="cb-name">{c.name}<small>{c.dim}d</small></span>
+                  <div class="cb-track"><div class="cb-fill" style={`--w:${((c.r - 0.70) / (0.754 - 0.70)) * 100}%`}></div></div>
+                  <span class="cb-val">{c.r.toFixed(4)}</span>
+                </div>
+              ))}
+            </div>
+            <p class="chart-note">Alignment is the trick: a <b>naive</b> average (0.727) barely beats one
+              model, but <b>Procrustes-aligned</b> averaging (0.747) nearly matches the full
+              4608-dim pack (0.753) — in a single model's footprint, no concatenation.
+              Reproduce: <code>ensemble_eval.py --compare-methods 512</code>.</p>
+          </figure>
         </div>
       </section>
 

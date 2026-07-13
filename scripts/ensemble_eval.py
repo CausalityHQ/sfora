@@ -10,10 +10,16 @@ Optionally, `--compress-dim D` PCA-compresses the concatenated ensemble embeddin
 down to D dimensions before retrieval — a cheap way to keep most of the ensemble
 gain while shrinking the N*512-dim concatenation back to a deployable size.
 
+`--compare-methods D` goes further and pits concatenation against genuinely
+different ways to shrink the pack to D dims: PCA of the concat, a random
+projection, a naive average, and a Procrustes-aligned average (which merges the
+N spaces into a single D-dim vector without concatenating at all).
+
 Usage:
     uv run python scripts/ensemble_eval.py a.npz b.npz c.npz
     uv run python scripts/ensemble_eval.py --compress-dim 512 reports/emb/*.npz
     uv run python scripts/ensemble_eval.py --compress-sweep reports/emb/*.npz
+    uv run python scripts/ensemble_eval.py --compare-methods 512 reports/emb/ema_seed*.npz
 """
 
 from __future__ import annotations
@@ -39,6 +45,29 @@ def _pca_compress(features: np.ndarray, dim: int) -> np.ndarray:
     return centred @ components.T
 
 
+def _procrustes_mean(models: list[np.ndarray]) -> np.ndarray:
+    """Merge N per-model D-dim spaces into ONE D-dim vector (not concatenation).
+
+    Independently-trained embeddings live in arbitrarily rotated/reflected copies
+    of the same geometry, so a naive average cancels signal. We orthogonally align
+    every model to the first (Procrustes: R = U Vᵀ from SVD of Eₘᵀ·E₀) and then
+    average — a single-model footprint with most of the pack's gain.
+    """
+    reference = models[0]
+    aligned = [reference]
+    for model in models[1:]:
+        u, _, vt = np.linalg.svd(model.T @ reference, full_matrices=False)
+        aligned.append(model @ (u @ vt))
+    return np.mean(aligned, axis=0)
+
+
+def _random_project(features: np.ndarray, dim: int, seed: int = 0) -> np.ndarray:
+    """Data-independent Gaussian random projection of the concatenation to `dim`."""
+    rng = np.random.default_rng(seed)
+    projection = rng.standard_normal((features.shape[1], dim)) / np.sqrt(dim)
+    return features @ projection
+
+
 def _recall(features: np.ndarray, labels: np.ndarray) -> float:
     return image_self_retrieval_score(_l2(features), labels, random_state=0).recall_at_1
 
@@ -56,6 +85,14 @@ def main() -> None:
         "--compress-sweep",
         action="store_true",
         help="report R@1 for the full concat and a sweep of PCA-compressed dimensions",
+    )
+    parser.add_argument(
+        "--compare-methods",
+        type=int,
+        default=None,
+        metavar="DIM",
+        help="compare ways to shrink the pack to DIM dims: concat+PCA, concat+random "
+        "projection, naive mean, and Procrustes-aligned mean (alternatives to concatenation)",
     )
     args = parser.parse_args()
 
@@ -98,6 +135,27 @@ def main() -> None:
         print(
             f"\n=== COMPRESSED {full_dim} -> {args.compress_dim}: R@1={r:.4f} "
             f"(retains {r / ensemble_recall:.1%} of the ensemble) ==="
+        )
+
+    if args.compare_methods is not None:
+        dim = args.compare_methods
+        model_dim = embeddings_list[0].shape[1]
+        print(
+            f"\n--- shrinking {len(args.paths)} models to {dim} dims (vs {full_dim}-dim concat) ---"
+        )
+        rows = [
+            ("concat + PCA", _pca_compress(concatenated, dim)),
+            ("concat + random projection", _random_project(concatenated, dim)),
+            ("naive mean (no alignment)", np.mean(embeddings_list, axis=0)),
+            ("Procrustes-aligned mean", _procrustes_mean(embeddings_list)),
+        ]
+        for name, feats in rows:
+            footprint = "" if feats.shape[1] == dim else f" [{feats.shape[1]}-dim footprint]"
+            r = _recall(feats, labels_reference)
+            print(f"  {name:<28} R@1={r:.4f}  (retains {r / ensemble_recall:.1%}){footprint}")
+        print(
+            f"  {'(reference) single model':<28} R@1={mean_single:.4f}   "
+            f"{model_dim}-dim, mean of seeds"
         )
 
 

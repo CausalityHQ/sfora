@@ -34,7 +34,8 @@ same-arch SOTA on CUB-200 by more than 1%.
 | **PFML (reported SOTA)** | **73.4** | best reported same-arch |
 | **HERD** (single model) | ~71.6 best / ~70.6 mean | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
-| SFORA (HERD ensemble, 7 models) | 75.22 | scales further with more models |
+| SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
+| SFORA (9 models → 512-dim, Procrustes-aligned) | 74.70 | single-model footprint, 99% of the pack |
 
 HERD's novel ingredient is a *training-procedure* change: a slow EMA momentum
 teacher supplies soft batch-neighborhood targets (relational knowledge
