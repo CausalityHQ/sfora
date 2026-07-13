@@ -29,6 +29,9 @@ const refs = [
 
 const maxR = Math.max(...ensembleScaling.map((d) => d.r));
 const minR = 0.72;
+
+// Base-aware internal links (site is served under /sfora/).
+const reportUrl = `${import.meta.env.BASE_URL}/report`.replace(/\/{2,}/g, "/");
 ---
 
 <!doctype html>
@@ -61,7 +64,7 @@ const minR = 0.72;
         <a href="#herd">Method</a>
         <a href="#reproduce">Reproduce</a>
         <a href="#science">Honest science</a>
-        <a class="ghost" href="/report">Full report ↗</a>
+        <a class="ghost" href={reportUrl}>Full report ↗</a>
         <a class="cta" href="https://github.com/CausalityHQ/sfora">GitHub</a>
       </nav>
     </header>
@@ -347,7 +350,7 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
         </div>
         <div class="links">
           <a href="https://github.com/CausalityHQ/sfora">GitHub ↗</a>
-          <a href="/report">Full data report ↗</a>
+          <a href={reportUrl}>Full data report ↗</a>
           <a href="https://github.com/CausalityHQ/sfora/blob/main/docs/results.md">Results &amp; reproducibility ↗</a>
         </div>
       </div>
