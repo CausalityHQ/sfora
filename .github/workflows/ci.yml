@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Format, lint, type-check, and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Check formatting
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type-check
+        run: uv run mypy src tests
+
+      - name: Test
+        run: uv run pytest -q
+
+      - name: Build reports
+        run: |
+          uv run --group dev sfora report-build \
+            --output /tmp/sfora-report.md \
+            --hf-card-output /tmp/sfora-hf.md
+          uv run --group dev sfora report-site \
+            --output /tmp/sfora-site/index.html
+          test -s /tmp/sfora-report.md
+          test -s /tmp/sfora-hf.md
+          test -s /tmp/sfora-site/index.html
