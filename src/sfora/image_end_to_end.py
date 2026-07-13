@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import gc
 import json
 import math
@@ -987,6 +988,15 @@ def run_image_end_to_end_benchmark(
                     methods=dict(methods),
                 )
             )
+        # Drop every local that still references the model's parameters/state before
+        # freeing it — the optimizer, scheduler and the EMA teacher (a full second
+        # network) otherwise pin CUDA memory that empty_cache() cannot reclaim, so a
+        # later objective would build its model alongside the old one. Some objectives
+        # (e.g. frozen_pretrained) skip training and never create an optimizer.
+        with contextlib.suppress(NameError, UnboundLocalError):
+            del optimizer, scheduler
+        with contextlib.suppress(NameError, UnboundLocalError):
+            del ema_teacher
         del model
         gc.collect()
         if torch.cuda.is_available():
