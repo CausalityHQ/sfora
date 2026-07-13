@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 140" width="460" height="140" role="img" aria-label="SFORA">
+  <rect width="460" height="140" rx="18" fill="#f7f3ea"/>
+  <!-- paw mark -->
+  <g fill="#b04a26" transform="translate(34 30) scale(0.8)">
+    <ellipse cx="30" cy="42" rx="8.5" ry="12" transform="rotate(-20 30 42)"/>
+    <ellipse cx="43" cy="31" rx="8.5" ry="13"/>
+    <ellipse cx="57" cy="31" rx="8.5" ry="13"/>
+    <ellipse cx="70" cy="42" rx="8.5" ry="12" transform="rotate(20 70 42)"/>
+    <path d="M50 52c9 0 16 6 18 13 2 7-1 14-8 16-3 1-6 0-10 0s-7 1-10 0c-7-2-10-9-8-16 2-7 9-13 18-13z"/>
+  </g>
+  <!-- wordmark -->
+  <text x="132" y="82" font-family="'Fraunces','Playfair Display',Georgia,serif" font-size="62" font-weight="600" letter-spacing="-1" fill="#26201a">sfora</text>
+  <!-- tagline -->
+  <text x="134" y="108" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="12.5" letter-spacing="1.5" fill="#8a7f6d">DEEP METRIC LEARNING · A HOUND PACK</text>
+</svg>

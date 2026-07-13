@@ -6,13 +6,19 @@ align row-for-row). We L2-normalise each model's embeddings, concatenate them
 per sample (feature-concatenation ensemble), L2-normalise the concatenation, and
 compute cosine Recall@1 with the project's own retrieval scorer.
 
+Optionally, `--compress-dim D` PCA-compresses the concatenated ensemble embedding
+down to D dimensions before retrieval — a cheap way to keep most of the ensemble
+gain while shrinking the N*512-dim concatenation back to a deployable size.
+
 Usage:
     uv run python scripts/ensemble_eval.py a.npz b.npz c.npz
+    uv run python scripts/ensemble_eval.py --compress-dim 512 reports/emb/*.npz
+    uv run python scripts/ensemble_eval.py --compress-sweep reports/emb/*.npz
 """
 
 from __future__ import annotations
 
-import sys
+import argparse
 
 import numpy as np
 
@@ -24,13 +30,39 @@ def _l2(matrix: np.ndarray) -> np.ndarray:
     return matrix / np.maximum(norms, 1.0e-12)
 
 
-def main(paths: list[str]) -> None:
-    if not paths:
-        raise SystemExit("provide one or more .npz embedding files")
+def _pca_compress(features: np.ndarray, dim: int) -> np.ndarray:
+    """Project mean-centred features onto their top-`dim` principal directions."""
+    centred = features - features.mean(axis=0, keepdims=True)
+    # Economy SVD: right singular vectors are the principal axes.
+    _, _, vt = np.linalg.svd(centred, full_matrices=False)
+    components = vt[:dim]
+    return centred @ components.T
+
+
+def _recall(features: np.ndarray, labels: np.ndarray) -> float:
+    return image_self_retrieval_score(_l2(features), labels, random_state=0).recall_at_1
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("paths", nargs="+", help="one or more .npz embedding files")
+    parser.add_argument(
+        "--compress-dim",
+        type=int,
+        default=None,
+        help="PCA-compress the concatenated ensemble to this many dimensions before retrieval",
+    )
+    parser.add_argument(
+        "--compress-sweep",
+        action="store_true",
+        help="report R@1 for the full concat and a sweep of PCA-compressed dimensions",
+    )
+    args = parser.parse_args()
+
     embeddings_list: list[np.ndarray] = []
     labels_reference: np.ndarray | None = None
     per_model_recall: list[float] = []
-    for path in paths:
+    for path in args.paths:
         data = np.load(path)
         embeddings = _l2(np.asarray(data["embeddings"], dtype=np.float64))
         labels = np.asarray(data["labels"], dtype=np.int64)
@@ -44,15 +76,29 @@ def main(paths: list[str]) -> None:
         print(f"{path}: R@1={single.recall_at_1:.4f}")
 
     assert labels_reference is not None
-    concatenated = _l2(np.concatenate(embeddings_list, axis=1))
-    ensemble = image_self_retrieval_score(concatenated, labels_reference, random_state=0)
+    concatenated = np.concatenate(embeddings_list, axis=1)
+    full_dim = concatenated.shape[1]
+    ensemble_recall = _recall(concatenated, labels_reference)
     mean_single = float(np.mean(per_model_recall))
     best_single = max(per_model_recall)
     print(
-        f"\n=== ENSEMBLE of {len(paths)} models: R@1={ensemble.recall_at_1:.4f} "
-        f"(mean single {mean_single:.4f}, best single {best_single:.4f}) ==="
+        f"\n=== ENSEMBLE of {len(args.paths)} models: R@1={ensemble_recall:.4f} "
+        f"(dim {full_dim}, mean single {mean_single:.4f}, best single {best_single:.4f}) ==="
     )
+
+    if args.compress_sweep:
+        print("\n--- PCA compression of the concatenated ensemble ---")
+        dims = [d for d in (256, 512, 1024, 1536, 2048) if d < full_dim]
+        for dim in dims:
+            r = _recall(_pca_compress(concatenated, dim), labels_reference)
+            print(f"  {full_dim:>5d} -> {dim:<5d}  R@1={r:.4f}  (retains {r / ensemble_recall:.1%})")
+    elif args.compress_dim is not None and args.compress_dim < full_dim:
+        r = _recall(_pca_compress(concatenated, args.compress_dim), labels_reference)
+        print(
+            f"\n=== COMPRESSED {full_dim} -> {args.compress_dim}: R@1={r:.4f} "
+            f"(retains {r / ensemble_recall:.1%} of the ensemble) ==="
+        )
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

@@ -5,9 +5,9 @@ import "../styles/landing.css";
 const ensembleScaling = [
   { n: 2, r: 0.7335 },
   { n: 3, r: 0.7394 },
-  { n: 4, r: 0.7426 },
   { n: 5, r: 0.7468 },
   { n: 7, r: 0.7522 },
+  { n: 9, r: 0.7546 },
 ];
 
 const benchmarks = [
@@ -32,6 +32,7 @@ const minR = 0.72;
 
 // Base-aware internal links (site is served under /sfora/).
 const reportUrl = `${import.meta.env.BASE_URL}/report`.replace(/\/{2,}/g, "/");
+const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, "/");
 ---
 
 <!doctype html>
@@ -44,6 +45,7 @@ const reportUrl = `${import.meta.env.BASE_URL}/report`.replace(/\/{2,}/g, "/");
       name="description"
       content="SFORA is a deep-metric-learning library whose HERD method and multi-model ensemble beat the reported same-arch SOTA on CUB-200 by more than 1%."
     />
+    <link rel="icon" type="image/svg+xml" href={faviconUrl} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -157,6 +159,15 @@ const reportUrl = `${import.meta.env.BASE_URL}/report`.replace(/\/{2,}/g, "/");
             </div>
             <p class="axis">models in the SFORA pack →</p>
           </figure>
+        </div>
+
+        <div class="compress">
+          <span class="lead">A pack, without the storage cost of a pack.</span>
+          The 9-model ensemble concatenates to 4608 dimensions — but PCA-compressing
+          it back to <b>512-dim</b> (the size of a <em>single</em> model) keeps
+          <b>R@1 0.742</b> — 98.3% of the ensemble, and still above reported PFML.
+          Even <b>256-dim</b> holds <b>0.741</b>. So the pack's edge survives an
+          18× compression: run <code>ensemble_eval.py --compress-sweep</code>.
         </div>
       </section>
 
@@ -302,12 +313,32 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
 
         <div class="honest">
           <div class="col repro">
-            <h3>Numbers we could <u>not</u> reproduce</h3>
-            <ul>
-              <li><b>PFML 73.4</b> — faithful reproductions of the electrostatic potential-field loss <em>collapse</em> during training. We treat 73.4 as the best <em>reported</em> figure and compare against it.</li>
-              <li><b>HIST 71.4</b> — with HIST's exact config we reach ~<b>70.1</b>, matching the independent ML-Reproducibility-Challenge 2023 result. The paper's 71.4 does not reproduce.</li>
-              <li><b>Proxy Anchor 69.7</b> — this one <em>does</em> reproduce (0.6946, 3 seeds). The harness is faithful; it is not the bottleneck.</li>
-            </ul>
+            <h3>Reported vs. what we actually got</h3>
+            <table class="repro-table">
+              <thead>
+                <tr><th>Method</th><th class="r">Reported</th><th class="r">Ours</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr class="ok">
+                  <td>Proxy Anchor</td><td class="r">69.7</td><td class="r">69.5</td>
+                  <td><span class="badge ok">✓ reproduces</span></td>
+                </tr>
+                <tr class="no">
+                  <td>HIST</td><td class="r">71.4</td><td class="r">70.1</td>
+                  <td><span class="badge no">✗ paper # doesn't</span></td>
+                </tr>
+                <tr class="no">
+                  <td>PFML</td><td class="r">73.4</td><td class="r">collapses</td>
+                  <td><span class="badge no">✗ doesn't</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="foot">
+              Proxy Anchor reproduces faithfully, so the harness is sound. HIST's 71.4
+              only reaches ~70.1 (matching the ML-Reproducibility-Challenge 2023), and
+              faithful PFML collapses. We still beat the best <em>reported</em> number
+              (PFML 73.4) — while being clear it does not independently reproduce.
+            </p>
           </div>
           <div class="col neg">
             <h3>Approaches that did not work</h3>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="SFORA">
+  <rect width="100" height="100" rx="24" fill="#f4efe4"/>
+  <g fill="#b04a26">
+    <ellipse cx="30" cy="42" rx="8.5" ry="12" transform="rotate(-20 30 42)"/>
+    <ellipse cx="43" cy="31" rx="8.5" ry="13"/>
+    <ellipse cx="57" cy="31" rx="8.5" ry="13"/>
+    <ellipse cx="70" cy="42" rx="8.5" ry="12" transform="rotate(20 70 42)"/>
+    <path d="M50 52c9 0 16 6 18 13 2 7-1 14-8 16-3 1-6 0-10 0s-7 1-10 0c-7-2-10-9-8-16 2-7 9-13 18-13z"/>
+  </g>
+</svg>

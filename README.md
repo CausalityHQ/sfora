@@ -1,10 +1,24 @@
-# SFORA
+<p align="center">
+  <img src="assets/sfora-logo.svg" alt="SFORA" width="400" />
+</p>
 
+<h1 align="center">SFORA</h1>
+
+<p align="center">
+<a href="https://github.com/CausalityHQ/sfora/actions/workflows/ci.yml"><img src="https://github.com/CausalityHQ/sfora/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+<a href="https://github.com/CausalityHQ/sfora/actions/workflows/pages.yml"><img src="https://github.com/CausalityHQ/sfora/actions/workflows/pages.yml/badge.svg" alt="Pages" /></a>
+<a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.12%2B-2f5f9f.svg" alt="Python 3.12+" /></a>
+<a href="https://docs.astral.sh/uv/"><img src="https://img.shields.io/badge/package-uv-654ff0.svg" alt="uv" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3d7c47.svg" alt="MIT" /></a>
+</p>
+
+<!--
 [![CI](https://github.com/CausalityHQ/sfora/actions/workflows/ci.yml/badge.svg)](https://github.com/CausalityHQ/sfora/actions/workflows/ci.yml)
 [![Pages](https://github.com/CausalityHQ/sfora/actions/workflows/pages.yml/badge.svg)](https://github.com/CausalityHQ/sfora/actions/workflows/pages.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-2f5f9f.svg)](https://www.python.org/)
 [![Package manager: uv](https://img.shields.io/badge/package-uv-654ff0.svg)](https://docs.astral.sh/uv/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-3d7c47.svg)](LICENSE)
+-->
 
 **SFORA** (Polish: *a hound pack* 🐕) is a production deep-metric-learning
 library whose headline method **HERD** — **H**ypergraph **E**MA-teacher
