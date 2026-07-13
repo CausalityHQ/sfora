@@ -57,7 +57,8 @@ const references = [
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,340;9..144,460;9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   </head>
   <body>
-    <div class="grain"></div>
+    <a class="skip-link" href="#report-main">Skip to main content</a>
+    <div class="grain" aria-hidden="true"></div>
     <header class="topbar">
       <a class="wordmark" href={homeUrl}>
         <svg class="paw" viewBox="20 14 60 72" aria-hidden="true"><g fill="currentColor"><ellipse cx="30" cy="42" rx="8.5" ry="12" transform="rotate(-20 30 42)"/><ellipse cx="43" cy="31" rx="8.5" ry="13"/><ellipse cx="57" cy="31" rx="8.5" ry="13"/><ellipse cx="70" cy="42" rx="8.5" ry="12" transform="rotate(20 70 42)"/><path d="M50 52c9 0 16 6 18 13 2 7-1 14-8 16-3 1-6 0-10 0s-7 1-10 0c-7-2-10-9-8-16 2-7 9-13 18-13z"/></g></svg> sfora
@@ -68,7 +69,7 @@ const references = [
       </nav>
     </header>
 
-    <main class="report">
+    <main class="report" id="report-main">
       <article>
         <p class="rpt-eyebrow">Method report</p>
         <h1>HERD &amp; SFORA: breaking the same-architecture retrieval plateau with a training-procedure change and a pack</h1>
@@ -80,8 +81,9 @@ const references = [
           <em>relational</em> neighbourhood structure of the batch — lifts the HIST
           baseline over that plateau (<b>HERD</b>), and that an ensemble of such models
           (<b>SFORA</b>) cleanly beats the best reported same-architecture number, on
-          two datasets. Every number is best-over-training with error bars, and we are
-          explicit about what did not reproduce and where the method fails to transfer.
+          two datasets. Every number is best-over-training on the standard split, our charts
+          carry error bars, and we are explicit about what did not reproduce, what is a
+          transductive upper bound, and where the method fails to transfer.
         </p>
 
         <div class="rpt-meta">
@@ -192,8 +194,9 @@ const references = [
             <text class="axlbl" x={(C.w + C.ml) / 2} y={C.h - 6}>models in the pack →</text>
           </svg>
           <p class="rpt-cap">
-            Error bars are the standard deviation of R@1 over {sc[4].k} random N-model subsets
-            of our 9 seeds; it shrinks from ±{(sc[0].std * 100).toFixed(2)} (single model) to
+            Error bars are the standard deviation of R@1 over random N-model subsets of our 9 seeds
+            (all 9 at n=1, 18 capped subsets for 2–7, the single existing pack at n=9); it shrinks
+            from ±{(sc[0].std * 100).toFixed(2)} (single model) to
             ±{(sc[5].std * 100).toFixed(2)} at 7 models — more models means not just higher but
             <em>steadier</em> retrieval. The specific first-5 and first-9 packs we report
             (0.7468, 0.7534) sit inside this distribution.
@@ -244,8 +247,9 @@ const references = [
           <b>plain HIST</b> models (no <code>is_norm</code> head, no EMA teacher) the same way.
           The ensemble trick is <b>not</b> specific to HERD: a pack of raw HIST models already
           reaches <b>0.7443</b> at 5 models — itself above reported PFML (0.734) and HIST (0.714).
-          HERD's EMA-teacher distillation then adds a <em>consistent</em> margin at every pack
-          size, single and ensembled:
+          The <b>full HERD recipe</b> (both the <code>is_norm</code> head and the EMA teacher — this
+          ablation isolates HERD vs plain HIST, not the EMA term alone) then adds a
+          <em>consistent</em> margin at every pack size, single and ensembled:
         </p>
         <div class="rpt-fig">
           <h3>SFORA on HERD vs on plain HIST — the ensemble drives it, HERD adds a steady margin</h3>
@@ -274,11 +278,12 @@ const references = [
             <li><span class="sw" style="--sw:#3f7d5a"></span>SFORA-HIST <b>0.7443</b></li>
           </ul>
           <p class="rpt-cap">
-            Both packs clear reported SOTA by 3+ models — so the <b>ensemble is the main driver</b>.
-            HERD's distillation adds a steady <b>~0.3 pt at single-model (0.705 vs 0.698) and ~0.25 pt
-            at 5 models (0.7468 vs 0.7443)</b>: a real, honest contribution on top of the ensemble,
-            not the whole story. (HIST seeds re-trained from scratch; 5th seed still finishing —
-            refreshed on completion.)
+            The HERD pack clears reported PFML (0.734) at <b>3</b> models, the plain-HIST pack at
+            <b>4</b> — so the <b>ensemble is the main driver</b> (even raw HIST ensembled beats
+            reported SOTA). The full HERD recipe (<code>is_norm</code> head + EMA teacher) then adds
+            a steady margin: <b>~0.7 pt at single-model (0.705 vs 0.698) and ~0.25 pt at 5 models
+            (0.7468 vs 0.7443)</b> — a real contribution on top of the ensemble, not the whole story.
+            This isolates HERD-vs-HIST, not EMA alone. (Five HIST seeds, re-trained from scratch.)
           </p>
         </div>
 

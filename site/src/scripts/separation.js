@@ -56,7 +56,7 @@ function wireSection(section) {
     }
     if (nameEl) nameEl.textContent = names[c] || "";
     if (subEl) subEl.textContent = "the same photo, lit up in every space";
-    if (tip) {
+    if (tip && tipImg && tipName) {
       tipImg.src = src(k);
       tipName.textContent = names[c] || "";
       tip.classList.add("on");

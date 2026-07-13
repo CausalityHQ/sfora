@@ -20,7 +20,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-3d7c47.svg)](LICENSE)
 -->
 
-**SFORA** (Polish: *a hound pack* 🐕) is a production deep-metric-learning
+**SFORA** (Polish: *a hound pack* 🐕) is a research deep-metric-learning
 library whose headline method **HERD** — **H**ypergraph **E**MA-teacher
 **R**elational **D**istillation — and its multi-model ensemble beat the reported
 same-arch SOTA on CUB-200 by more than 1%.
@@ -32,10 +32,10 @@ same-arch SOTA on CUB-200 by more than 1%.
 | Proxy Anchor (reported) | 69.7 | baseline |
 | HIST (reported) | 71.4 | prior strong method |
 | **PFML (reported SOTA)** | **73.4** | best reported same-arch |
-| **HERD** (single model) | ~71.6 best / ~70.6 mean | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
+| **HERD** (single model, 9 seeds) | 71.6 best / 70.5 mean (σ≈0.6) | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
-| SFORA (9 models → 512-dim, retrieval-aware fold) | 75.34 | single-model footprint, 100% of the pack |
+| SFORA (9 models → 512-dim, retrieval-aware fold) | 75.34 | single-model footprint, 100% of the pack — *transductive* (fold fit on the eval set) |
 
 HERD's novel ingredient is a *training-procedure* change: a slow EMA momentum
 teacher supplies soft batch-neighborhood targets (relational knowledge

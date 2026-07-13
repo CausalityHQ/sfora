@@ -42,10 +42,10 @@ changing the *information per training step* (teacher targets) did.
 The SOTA-beating number is a **feature-concatenation ensemble** of independently
 seeded HERD models: L2-normalise each model's test embeddings, concatenate them
 per sample, L2-normalise the concatenation, and run cosine retrieval. This is an
-established SOTA paradigm in deep metric learning (BIER, ABE, Divide-and-Conquer).
-Single HERD models sit at ~0.706–0.716 (there is ~±1 pt run-to-run GPU
-nondeterminism); the ensemble adds several points from model diversity and scales
-monotonically with the number of models:
+established SOTA paradigm in deep metric learning (feature-concatenation ensembling,
+e.g. BIER). Single HERD models sit at **0.705 mean / 0.716 best across 9 seeds**
+(measured standard deviation σ ≈ 0.006 across seeds); the ensemble adds several
+points from model diversity and scales monotonically with the number of models:
 
 | models | 1 | 2 | 3 | 4 | 5 | 7 | 9 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -118,6 +118,40 @@ R@1** (0.7470/0.7534) but **86.7% of the *gain* over a single model**
 ((0.7470−0.7053)/(0.7534−0.7053)). We quote the first; the second is the stricter
 read.
 
+## Cars196 — a second dataset
+
+The same protocol on Cars196 (ResNet-50/512, zero-shot split, best-over-training).
+Here the HERD recipe (tuned on CUB) does **not** transfer at the single-model level:
+
+| method | R@1 | provenance |
+| --- | ---: | --- |
+| Proxy Anchor (reported) | 87.7 | paper |
+| HIST (reported) | 89.6 | paper |
+| Proxy Anchor (our run) | 88.5 | reproduces above the reported 87.7 |
+| HERD — single (our run) | 87.1 | *below* our own Proxy Anchor run |
+| **SFORA — 3-model ensemble** | **90.3** | above reported PA (87.7) and HIST (89.6) |
+
+A single HERD model (0.871) lands between the reported PA and HIST and below our
+own PA reproduction (0.885) — the `is_norm`+EMA recipe was tuned on birds and does
+not transfer as-is. But the **ensemble still wins**: a 3-model SFORA-HIST-style
+pack of HERD models reaches **0.903**, the entire gain coming from the pack.
+
+## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
+
+To separate the ensemble from the HERD recipe we ensembled **plain HIST** models
+(no `is_norm` head, no EMA teacher) the same way. Cumulative first-N CUB seeds:
+
+| models | 1 | 2 | 3 | 4 | 5 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| SFORA-HIST | 0.6972 | 0.7242 | 0.7330 | 0.7402 | 0.7443 |
+| SFORA-HERD | 0.7088 | 0.7335 | 0.7394 | 0.7426 | 0.7468 |
+
+The ensemble is the **main driver**: a pack of raw HIST models clears reported PFML
+(0.734) at 4 models (HERD clears it at 3) and reaches 0.7443 at 5. The full HERD
+recipe then adds a steady margin — **~0.7 pt single-model (0.705 vs 0.698 mean) and
+~0.25 pt at 5 models (0.7468 vs 0.7443)**. This isolates HERD vs plain HIST, not the
+EMA term alone. Reproduce: `ensemble_eval.py reports/emb/hist_only_seed*.npz`.
+
 ## Reproducibility notes (numbers we could **not** reproduce)
 
 Reported paper numbers on this benchmark do not all reproduce independently. We
@@ -125,11 +159,13 @@ verified the following in a single controlled harness:
 
 - **Proxy Anchor — reproduces.** Best-mean R@1 **0.6946** (3 seeds) vs the reported
   69.7 — a faithful reproduction; the harness is not the bottleneck.
-- **HIST — reported 71.4 does *not* fully reproduce.** With HIST's exact
-  configuration we reach ~**70.1**, matching the independent ML Reproducibility
-  Challenge 2023 result (they also got 70.1, not 71.6). With our LayerNorm head we
-  reach ~0.703 mean / 0.716 best. The paper's 71.4 appears to be an optimistic
-  single-run figure that does not reproduce.
+- **HIST — reported 71.4 does *not* fully reproduce.** Plain HIST in our harness
+  reaches ~**70.1** best (and ~0.698 mean over 5 seeds), consistent with independent
+  reproductions that also land near 70 rather than 71.4. The **full HERD recipe**
+  (HIST + `is_norm` head + EMA-teacher distillation) reaches **0.705 mean / 0.716
+  best** over 9 seeds — we did not measure the `is_norm` head in isolation, so 0.716
+  is a full-HERD number, not a LayerNorm-only one. The paper's 71.4 appears to be an
+  optimistic single-run figure that does not reproduce.
 - **PFML — reported 73.4 does *not* reproduce for us.** Faithful reproductions of
   the electrostatic potential-field loss **collapse** during training; we could not
   obtain anything near 73.4 as a single model. To our knowledge no independent
