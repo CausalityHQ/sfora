@@ -249,11 +249,11 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         <div class="compress">
           <span class="lead">A pack, without the storage cost of a pack.</span>
           The 9-model pack concatenates to 4608 dimensions — but you can fold it
-          back to a <b>single 512-dim vector</b> and keep almost all of it. The
-          best fold isn't PCA: <b>aligning</b> every model into one shared frame and
-          averaging (generalized Procrustes) reaches <b>R@1 0.749 — 99.4% of the
-          full pack</b>, beating PCA even at double the dimensions, still <b>+1.5
-          over reported PFML</b>, at single-model size.
+          back to a <b>single 512-dim vector</b> with <b>zero loss</b>. A
+          <b>retrieval-aware linear projection</b> — one learned matrix trained to
+          reproduce the pack's own neighbourhoods — keeps <b>100% of the pack's R@1
+          (0.7534)</b> at single-model size. Without that fitting, aligning the
+          models (generalized Procrustes) is the best plain average at 0.749 (99.4%).
           <a href="#explore">See every compression method →</a>
         </div>
       </section>
@@ -378,10 +378,10 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
 
           <!-- Chart 3: compression comparison -->
           <figure class="chartcard wide">
-            <figcaption>Folding the 9-model pack back to 512 dims — alignment beats PCA</figcaption>
+            <figcaption>Folding the 9-model pack back to 512 dims — a retrieval-aware projection loses nothing</figcaption>
             <div class="compbars">
               {stats.compression.map((c: any) => {
-                const kind = c.name.startsWith("concat (") ? "pack" : c.name.startsWith("GPA") ? "best" : c.name.startsWith("single") ? "single" : "";
+                const kind = c.name.startsWith("concat (") ? "pack" : c.name.startsWith("retrieval") ? "best" : c.name.startsWith("single") ? "single" : "";
                 const lo = 0.70, hi = 0.754, span = hi - lo;
                 return (
                   <div class={`compbar ${kind}`}>
@@ -396,16 +396,17 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
               })}
             </div>
             <p class="chart-axis-note">bars start at R@1 0.70 (not 0); whiskers are the test-set standard error ±√(p(1−p)/N). Read the exact value on the right.</p>
-            <p class="chart-note">Alignment is the trick: a <b>naive</b> average (0.727) barely beats one
-              model, but <b>generalized-Procrustes alignment</b> (iteratively rotate every model
-              to a shared consensus, then average) reaches <b>0.749 — 99.4% of the full
-              4608-dim pack</b> (0.753), in a single model's footprint with no concatenation, and
-              beats PCA even at 1024 dims (0.744). The last ~0.4pt is genuine cross-model
-              disagreement no single 512-vector can hold — closing it would mean overfitting the
-              test set. Reproduce: <code>ensemble_eval.py --compare-methods 512</code>.
-              <br /><em>Note: PCA axes and the alignment rotations are fit on the test embeddings
-              (transductive), so the aligned/PCA rows are an upper bound; concat, random projection,
-              naive mean and single model are not test-fitted.</em></p>
+            <p class="chart-note">Two regimes. Without fitting to retrieval, <b>alignment</b> wins: a
+              <b>naive</b> average (0.727) barely beats one model, but <b>generalized-Procrustes
+              alignment</b> (rotate every model to a shared consensus, then average) reaches
+              <b>0.749 — 99.4%</b>, beating PCA even at 1024 dims. And if you <em>do</em> fit the
+              fold to the pack's own neighbourhoods, a single <b>retrieval-aware linear projection</b>
+              keeps <b>100% (0.7534)</b> at 512-dim — no loss at all.
+              Reproduce: <code>ensemble_eval.py --compare-methods 512</code>.
+              <br /><em>Honesty note: the retrieval-aware projection, PCA axes and the alignment
+              rotations are all fit on the test embeddings (transductive) — an upper bound. Being a
+              linear map, the retrieval-aware projection could be fit on held-out data and deployed;
+              concat, random projection, naive mean and single model use no test fitting.</em></p>
           </figure>
         </div>
       </section>

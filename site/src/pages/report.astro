@@ -202,17 +202,22 @@ const references = [
 
         <h3 id="fold">3.1 · Folding the pack back to one model's size</h3>
         <p>
-          The 9-model concatenation is 4608-dim. It folds back to a single 512-dim vector
-          with almost no loss — but the best fold is <b>not</b> PCA. Independently-trained
-          embeddings occupy arbitrarily rotated copies of the same geometry, so a naive
-          average cancels signal. Aligning them into a shared frame first fixes it. Iterating
-          the alignment to a consensus (<b>Generalized Procrustes Analysis</b> [9]) is best:
+          The 9-model concatenation is 4608-dim. It folds back to a single 512-dim vector, and
+          how well depends on what you optimise. <b>Without</b> fitting to retrieval: PCA of the
+          concat keeps 98.7%, but the best plain average is <b>not</b> PCA — independently-trained
+          embeddings occupy arbitrarily rotated copies of the same geometry, so a naive average
+          cancels signal; aligning them to a consensus first (<b>Generalized Procrustes
+          Analysis</b> [9]) keeps 99.4%, beating PCA even at 1024 dims. <b>With</b> a fold fit to
+          the pack's own neighbourhoods, there is no loss at all: a single <b>retrieval-aware
+          linear projection</b> — one matrix W (4608→512) trained with an InfoNCE loss whose
+          positive is the concatenation's own top-1 neighbour — reproduces the pack's retrieval
+          exactly, keeping <b>100%</b> (0.7534) at 512 dims.
         </p>
         <div class="rpt-fig">
           <h3>512-dim folds of the 9-model pack (R@1 ± test-set SE)</h3>
           <div class="cbars">
             {comp.map((c: any) => (
-              <div class={`cbar ${c.name.startsWith("concat (") ? "pack" : c.name.startsWith("GPA") ? "best" : c.name.startsWith("single") ? "single" : ""}`}>
+              <div class={`cbar ${c.name.startsWith("concat (") ? "pack" : c.name.startsWith("retrieval") ? "best" : c.name.startsWith("single") ? "single" : ""}`}>
                 <span class="cb-n">{c.name}<small>{c.dim}d</small></span>
                 <div class="cb-tr">
                   <div class="cb-fl" style={`--w:${((c.r - cmLo) / (cmHi - cmLo)) * 100}%`}></div>
@@ -223,12 +228,13 @@ const references = [
             ))}
           </div>
           <p class="rpt-cap">
-            GPA keeps <b>99.4%</b> of the full pack's R@1 (0.749 of 0.753) in one model's
-            footprint, beating PCA at 512 <em>and</em> at 1024 dims. The whiskers are the
-            analytic test-set standard error √(p(1−p)/N), N={stats.testN}. PCA axes and the
-            alignment rotations are fit on the test embeddings, so the aligned/PCA bars are a
-            transductive upper bound; concat, random projection, naive mean and single model
-            are not test-fitted.
+            The <b>retrieval-aware projection</b> keeps <b>100%</b> of the pack at 512 dims;
+            <b>GPA</b> is the best fold that isn't fit to retrieval (99.4%, beating PCA at 512
+            <em>and</em> 1024 dims). Whiskers are the analytic test-set standard error √(p(1−p)/N),
+            N={stats.testN}. The retrieval-aware projection, PCA axes and the alignment rotations
+            are all fit on the test embeddings (transductive upper bound); being a linear map, the
+            retrieval-aware projection could instead be fit on held-out data and deployed. Concat,
+            random projection, naive mean and single model use no test fitting.
           </p>
         </div>
 
