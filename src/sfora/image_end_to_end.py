@@ -4,6 +4,7 @@ import contextlib
 import gc
 import json
 import math
+import os
 import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict, dataclass, replace
@@ -864,10 +865,8 @@ def run_image_end_to_end_benchmark(
                             # ensembling — the standard DML protocol (same as the
                             # Proxy Anchor / HIST / PFML papers), so this selection
                             # peeks at the test split by design. Reported as such.
-                            best_path = Path(config.save_test_embeddings)
-                            best_path.parent.mkdir(parents=True, exist_ok=True)
-                            np.savez(
-                                best_path,
+                            _atomic_savez(
+                                Path(config.save_test_embeddings),
                                 embeddings=np.asarray(epoch_embeddings, dtype=np.float32),
                                 labels=np.asarray(epoch_labels, dtype=np.int64),
                                 example_ids=test_example_ids,
@@ -879,10 +878,8 @@ def run_image_end_to_end_benchmark(
                             train_embeddings, train_label_array = _encode_model(
                                 model, train_eval_loader, device, torch
                             )
-                            train_path = Path(config.save_train_embeddings)
-                            train_path.parent.mkdir(parents=True, exist_ok=True)
-                            np.savez(
-                                train_path,
+                            _atomic_savez(
+                                Path(config.save_train_embeddings),
                                 embeddings=np.asarray(train_embeddings, dtype=np.float32),
                                 labels=np.asarray(train_label_array, dtype=np.int64),
                                 example_ids=train_example_ids,
@@ -926,10 +923,8 @@ def run_image_end_to_end_benchmark(
         # When no per-epoch eval ran (the periodic best block never fired), save the
         # final-epoch embeddings as a fallback — for BOTH splits from the same model.
         if config.save_test_embeddings and best_test_recall_at_1 is None:
-            save_path = Path(config.save_test_embeddings)
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            np.savez(
-                save_path,
+            _atomic_savez(
+                Path(config.save_test_embeddings),
                 embeddings=np.asarray(test_embeddings, dtype=np.float32),
                 labels=np.asarray(test_label_array, dtype=np.int64),
                 example_ids=test_example_ids,
@@ -938,10 +933,8 @@ def run_image_end_to_end_benchmark(
             train_embeddings, train_label_array = _encode_model(
                 model, train_eval_loader, device, torch
             )
-            train_save_path = Path(config.save_train_embeddings)
-            train_save_path.parent.mkdir(parents=True, exist_ok=True)
-            np.savez(
-                train_save_path,
+            _atomic_savez(
+                Path(config.save_train_embeddings),
                 embeddings=np.asarray(train_embeddings, dtype=np.float32),
                 labels=np.asarray(train_label_array, dtype=np.int64),
                 example_ids=train_example_ids,
@@ -1657,6 +1650,8 @@ def _group_potential_loss(
         field_embeddings = torch_module.cat([field_embeddings, normalized_proxies], dim=0)
         field_labels = torch_module.cat([field_labels, proxy_labels], dim=0)
         if proxy_weight > 0.0:
+            # field_embeddings begins with the anchors themselves, so exclude the
+            # diagonal self-match (proxies are appended past the diagonal and stay).
             loss = loss + proxy_weight * _supervised_contrastive_loss(
                 embeddings,
                 labels,
@@ -1664,12 +1659,14 @@ def _group_potential_loss(
                 contrast_labels=field_labels,
                 temperature=temperature,
                 torch_module=torch_module,
-                exclude_self=False,
+                exclude_self=True,
             )
 
     if memory_embeddings is not None and memory_labels is not None and xbm_weight > 0.0:
         contrast_embeddings = torch_module.cat([field_embeddings, memory_embeddings], dim=0)
         contrast_labels = torch_module.cat([field_labels, memory_labels], dim=0)
+        # The contrast set opens with the anchors (field_embeddings), so exclude the
+        # diagonal self-match; the memory bank is appended past it and still counts.
         loss = loss + xbm_weight * _supervised_contrastive_loss(
             embeddings,
             labels,
@@ -1677,7 +1674,7 @@ def _group_potential_loss(
             contrast_labels=contrast_labels,
             temperature=temperature,
             torch_module=torch_module,
-            exclude_self=False,
+            exclude_self=True,
         )
 
     if potential_weight > 0.0:
@@ -3764,6 +3761,25 @@ def _pairwise_similarity_preservation_loss(
     student_similarities = student_embeddings @ student_embeddings.T
     teacher_similarities = teacher_embeddings @ teacher_embeddings.T
     return torch_module.nn.functional.mse_loss(student_similarities, teacher_similarities)
+
+
+def _atomic_savez(path: Path, **arrays: NDArray[Any]) -> None:
+    """Write an .npz atomically: save to a temp sibling, then os.replace into place.
+
+    The best-epoch block rewrites the embeddings file every time retrieval improves,
+    so an interruption mid-write must not leave a truncated/corrupt .npz behind.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # np.savez appends ".npz" if missing; write the temp file with that suffix so the
+    # final os.replace target matches what the caller expects.
+    tmp_path = path.with_name(f"{path.name}.tmp-{os.getpid()}.npz")
+    try:
+        # numpy's savez stub can't distinguish **arrays from its allow_pickle kwarg.
+        np.savez(tmp_path, **arrays)  # type: ignore[arg-type]
+        os.replace(tmp_path, path if path.suffix == ".npz" else path.with_suffix(".npz"))
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
 
 
 def _encode_model(

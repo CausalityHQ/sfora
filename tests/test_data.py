@@ -72,20 +72,38 @@ def test_mine_group_triplets_uses_groups_instead_of_single_points() -> None:
 
 
 def test_mine_group_triplets_drops_label_remainder_deterministically() -> None:
+    # Two labels with five examples each: chunks of two yield two full groups per
+    # label and drop the fifth (remainder) example deterministically.
     examples = [
-        TextExample(example_id=str(index), text=str(index), label=index % 2) for index in range(6)
+        TextExample(example_id=str(index), text=str(index), label=index % 2) for index in range(10)
     ]
 
     groups = mine_group_triplets(examples, group_size=2)
 
-    assert len(groups) == 2
+    # Two groups per label give two anchor triplets each, never a self-positive.
+    assert len(groups) == 4
+    for triplet in groups:
+        anchor_ids = {example.example_id for example in triplet.anchor}
+        positive_ids = {example.example_id for example in triplet.positive}
+        assert anchor_ids.isdisjoint(positive_ids)
     used_ids = {
         example.example_id
         for triplet in groups
         for group in [triplet.anchor, triplet.positive, triplet.negative]
         for example in group
     }
-    assert used_ids == {"0", "1", "2", "3"}
+    # The fifth example of each label (ids "8" and "9") is dropped as a remainder.
+    assert used_ids == {"0", "1", "2", "3", "4", "5", "6", "7"}
+
+
+def test_mine_group_triplets_skips_labels_without_a_second_group() -> None:
+    # One full group per label means the only possible positive would be the anchor
+    # itself, so no valid group triplet can be mined.
+    examples = [
+        TextExample(example_id=str(index), text=str(index), label=index % 2) for index in range(6)
+    ]
+
+    assert mine_group_triplets(examples, group_size=2) == []
 
 
 def test_load_imdb_examples_accepts_injected_dataset_loader() -> None:

@@ -316,6 +316,11 @@ def mine_group_triplets(
     for label in sorted(grouped_chunks):
         same_label_groups = grouped_chunks[label]
         other_label_groups = _groups_from_other_labels(grouped_chunks, label)
+        # Need at least two same-label groups (otherwise the positive wraps back to
+        # the anchor group — a degenerate self-positive) and at least one other-label
+        # group to draw a negative from.
+        if len(same_label_groups) < 2 or not other_label_groups:
+            continue
         count = len(same_label_groups)
         if max_triplets_per_label is not None:
             count = min(count, max_triplets_per_label)
