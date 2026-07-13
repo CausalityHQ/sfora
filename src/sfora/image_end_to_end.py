@@ -412,6 +412,11 @@ def run_image_end_to_end_benchmark(
     test_dataset = _TorchImageDataset(test_examples, test_transform)
     checkpoint_dataset = _TorchImageDataset(checkpoint_examples, test_transform)
     train_labels = [example.label for example in optimization_examples]
+    # The test loader is shuffle=False, so encoded rows follow test_examples order.
+    # Persisting the example ids lets the ensemble/thumbnail tooling prove row
+    # alignment across independently-seeded runs (labels alone can't — a within-class
+    # reordering would pass a label check while mixing different images).
+    test_example_ids = np.asarray([example.example_id for example in test_examples])
     class_similarity: dict[int, list[int]] | None = None
     if config.hard_class_fraction > 0.0:
         class_similarity = _frozen_class_similarity(
@@ -473,6 +478,16 @@ def run_image_end_to_end_benchmark(
         if checkpoint_examples
         else test_loader
     )
+    # Never select checkpoints on the test split. When selection is enabled the
+    # validation split must be non-empty; the `else test_loader` above is only a
+    # placeholder for the disabled path (where checkpoint_loader is never used).
+    if config.checkpoint_selection_interval > 0 and not checkpoint_examples:
+        raise ValueError(
+            "checkpoint selection is enabled but no validation split could be built "
+            "(too few examples per class). Increase "
+            "--checkpoint-selection-validation-fraction or disable "
+            "--checkpoint-selection-interval; refusing to select on the test set."
+        )
     train_eval_dataset = _TorchImageDataset(optimization_examples, test_transform)
     train_eval_loader: Any = DataLoader(
         cast(Any, train_eval_dataset),
@@ -834,13 +849,17 @@ def run_image_end_to_end_benchmark(
                         best_test_recall_at_1 = float(epoch_recall)
                         best_test_epoch = int(epoch_index)
                         if config.save_test_embeddings:
-                            # Persist the BEST-epoch test embeddings for ensembling.
+                            # Persist the best-over-training test embeddings for
+                            # ensembling — the standard DML protocol (same as the
+                            # Proxy Anchor / HIST / PFML papers), so this selection
+                            # peeks at the test split by design. Reported as such.
                             best_path = Path(config.save_test_embeddings)
                             best_path.parent.mkdir(parents=True, exist_ok=True)
                             np.savez(
                                 best_path,
                                 embeddings=np.asarray(epoch_embeddings, dtype=np.float32),
                                 labels=np.asarray(epoch_labels, dtype=np.int64),
+                                example_ids=test_example_ids,
                             )
                     print(
                         f"{config.dataset_name} {objective} epoch {epoch_index} "
@@ -886,6 +905,7 @@ def run_image_end_to_end_benchmark(
                 save_path,
                 embeddings=np.asarray(test_embeddings, dtype=np.float32),
                 labels=np.asarray(test_label_array, dtype=np.int64),
+                example_ids=test_example_ids,
             )
         retrieval = image_self_retrieval_score(
             test_embeddings,
@@ -2487,13 +2507,11 @@ def _hist_loss(
     distance = (diff.pow(2) / covariances).sum(dim=-1)  # (N, C) squared Mahalanobis
 
     one_hot = functional.one_hot(target, nb_classes).to(features.dtype)  # (N, C)
-    # Distribution loss: softmax over -tau * distance, cross-entropy to the true class.
-    mat = functional.softmax(-float(tau) * distance, dim=1)
-    positive = (mat * one_hot).sum(dim=1)
-    keep = positive > 0
-    # Clamp before log so an underflowing softmax probability cannot produce a NaN /
-    # exploding gradient (the reference filters exact zeros; this also bounds tiny ones).
-    dist_loss = -torch_module.log(positive[keep].clamp_min(1.0e-12)).mean()
+    # Distribution loss: cross-entropy between softmax(-tau * distance) and the true
+    # class. Use `cross_entropy` (log-softmax internally) rather than log of a gathered
+    # softmax probability, so an underflowing probability cannot make the masked mean
+    # empty and produce a NaN — numerically identical when nothing underflows.
+    dist_loss = functional.cross_entropy(-float(tau) * distance, target)
 
     # Soft hypergraph incidence H over the classes present in the batch.
     class_within = torch_module.nonzero(one_hot.sum(dim=0) != 0, as_tuple=False).squeeze(dim=1)

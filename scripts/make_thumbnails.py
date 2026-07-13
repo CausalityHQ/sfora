@@ -85,19 +85,31 @@ def main() -> None:
 
     # Safety: the export ran in a possibly different environment. Prove the example
     # order matches the embedding rows before we trust `indices` to map to images.
-    ref = np.load(args.check_npz)["labels"]
+    with np.load(args.check_npz, allow_pickle=False) as ck:
+        ref = np.asarray(ck["labels"])
+        ref_ids = np.asarray(ck["example_ids"]) if "example_ids" in ck.files else None
     got = np.array([e.label for e in examples])
     if got.shape != ref.shape or not np.array_equal(got, ref):
         raise SystemExit(
             f"ALIGNMENT MISMATCH: examples ({got.shape}) vs npz labels ({ref.shape}). "
             "Thumbnails would not correspond to points — aborting."
         )
+    # Exact per-image identity check when the export saved ids — labels alone can't
+    # catch a within-class reordering that would attach the wrong photo to a point.
+    if ref_ids is not None:
+        got_ids = np.array([e.example_id for e in examples])
+        if got_ids.shape != ref_ids.shape or not np.array_equal(got_ids, ref_ids):
+            raise SystemExit(
+                "ALIGNMENT MISMATCH: example ids differ between the dataset and the npz; "
+                "the wrong image would be attached to each point — aborting."
+            )
     if indices and (min(indices) < 0 or max(indices) >= len(examples)):
         raise SystemExit(
             f"index out of range: indices span [{min(indices)}, {max(indices)}] "
             f"but only {len(examples)} examples exist."
         )
-    print(f"alignment OK: {len(got)} examples match {args.check_npz} labels")
+    id_note = "labels+ids" if ref_ids is not None else "labels only (no ids in npz)"
+    print(f"alignment OK: {len(got)} examples match {args.check_npz} ({id_note})")
 
     spec = _IMAGE_DATASET_SPECS[args.dataset]
     raw_names = _species_names(spec.dataset_id)

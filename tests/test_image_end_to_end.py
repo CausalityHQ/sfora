@@ -5475,11 +5475,15 @@ def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
 
         return transform
 
+    # Eight per class + a 0.5 validation fraction so the checkpoint train/validation
+    # split has >=2 per class (retrieval needs it) — selection now refuses to fall
+    # back to the test split when no validation split exists.
     examples = [
-        ImageExample(example_id="0-a", image=[1.0, 0.0], label=0),
-        ImageExample(example_id="0-b", image=[0.9, 0.1], label=0),
-        ImageExample(example_id="1-a", image=[0.0, 1.0], label=1),
-        ImageExample(example_id="1-b", image=[0.1, 0.9], label=1),
+        ImageExample(example_id=f"0-{i}", image=[1.0 - 0.05 * i, 0.0 + 0.05 * i], label=0)
+        for i in range(8)
+    ] + [
+        ImageExample(example_id=f"1-{i}", image=[0.0 + 0.05 * i, 1.0 - 0.05 * i], label=1)
+        for i in range(8)
     ]
 
     result = run_image_end_to_end_benchmark(
@@ -5496,6 +5500,7 @@ def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
             train_steps=2,
             group_size=1,
             checkpoint_selection_interval=1,
+            checkpoint_selection_validation_fraction=0.5,
             checkpoint_selection_query_limit=4,
             checkpoint_selection_metric="map_at_r",
             progress_every=0,

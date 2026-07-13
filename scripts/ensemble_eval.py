@@ -78,7 +78,9 @@ def _gpa_mean(models: list[np.ndarray], iters: int = 20) -> np.ndarray:
             aligned.append(model @ (u @ vt))
         return aligned
 
-    consensus = _l2(np.mean(models, axis=0))
+    # Initialise from a real model, not the raw mean: reflected copies (X and -X)
+    # would cancel to a zero vector that the SVD alignment cannot recover from.
+    consensus = _l2(models[0].copy())
     for _ in range(iters):
         consensus = _l2(np.mean(_align_all(consensus), axis=0))
     return consensus
@@ -121,15 +123,24 @@ def main() -> None:
 
     embeddings_list: list[np.ndarray] = []
     labels_reference: np.ndarray | None = None
+    ids_reference: np.ndarray | None = None
     per_model_recall: list[float] = []
     for path in args.paths:
-        data = np.load(path)
-        embeddings = _l2(np.asarray(data["embeddings"], dtype=np.float64))
-        labels = np.asarray(data["labels"], dtype=np.int64)
+        with np.load(path, allow_pickle=False) as data:
+            embeddings = _l2(np.asarray(data["embeddings"], dtype=np.float64))
+            labels = np.asarray(data["labels"], dtype=np.int64)
+            # Prefer per-example IDs — a within-class reordering passes a label check
+            # but would concatenate embeddings from *different* images row-wise.
+            ids = np.asarray(data["example_ids"]) if "example_ids" in data.files else None
         if labels_reference is None:
             labels_reference = labels
-        elif not np.array_equal(labels_reference, labels):
-            raise SystemExit(f"label order mismatch in {path}; cannot ensemble")
+            ids_reference = ids
+        else:
+            if not np.array_equal(labels_reference, labels):
+                raise SystemExit(f"label order mismatch in {path}; cannot ensemble")
+            have_ids = ids is not None and ids_reference is not None
+            if have_ids and not np.array_equal(ids_reference, ids):
+                raise SystemExit(f"example-id order mismatch in {path}; cannot ensemble")
         embeddings_list.append(embeddings)
         single = image_self_retrieval_score(embeddings, labels, random_state=0)
         per_model_recall.append(single.recall_at_1)

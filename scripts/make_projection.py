@@ -58,9 +58,14 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
 
-    data = np.load(args.npz)
-    emb = _l2(np.asarray(data["embeddings"], dtype=np.float64))
-    lab = np.asarray(data["labels"], dtype=np.int64)
+    with np.load(args.npz, allow_pickle=False) as data:
+        raw = np.asarray(data["embeddings"], dtype=np.float64)
+        lab = np.asarray(data["labels"], dtype=np.int64)
+    if raw.ndim != 2 or raw.shape[0] != lab.shape[0]:
+        raise SystemExit(f"bad npz shapes: embeddings {raw.shape} vs labels {lab.shape}")
+    if not np.isfinite(raw).all():
+        raise SystemExit("embeddings contain non-finite values (NaN/inf); aborting")
+    emb = _l2(raw)
 
     # Full-test-set Recall@1 (all classes) — the grounded quality number.
     recall1 = round(_recall_at_1(emb, lab), 4)
