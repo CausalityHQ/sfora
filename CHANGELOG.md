@@ -18,9 +18,28 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   best-epoch embedding export (`--save-test-embeddings`).
 - `scripts/ensemble_eval.py` — feature-concatenation multi-model ensemble
   ("a SFORA of HERDs") that beats the reported same-arch SOTA (CUB-200 R@1
-  74.68 vs PFML 73.4, +1.3).
+  74.68 at 5 models / 75.34 at 9 vs PFML 73.4). Reports R@1/R@2/R@4/R@8/MAP@R
+  and `--compare-methods` for 512-dim folds (GPA-aligned mean keeps 99.4%).
+- **`sfora.compose`** — a composable, type-safe projection-brick API: `Projection`
+  protocol, `Identity`/`L2Normalize`/`Pca`/`Head` leaves, `Pipeline`/`Join`
+  combinators (concat / mean / Procrustes-aligned-mean ensembles), and
+  `evaluate`/`compare`/`grid` to fit on train and rank candidates on test.
+- `--save-train-embeddings` — export the best epoch's train-split embeddings so a
+  fold/projection can be fit on train and evaluated on test (non-transductive).
+- Cars196 results and a SFORA-on-raw-HIST ablation (the ensemble is the main
+  driver; the HERD recipe adds a steady margin) in `docs/results.md`.
 - Sub-center Proxy Anchor and Gaussian-potential uniformity objectives
   (evaluated, documented as negative results).
+
+### Fixed
+
+- HIST distribution loss uses `cross_entropy` (no NaN from an empty masked mean).
+- Checkpoint selection never silently falls back to the test split.
+- Free CUDA memory between objectives; save per-example ids for provable ensemble
+  alignment; robustness fixes across the projection/thumbnail scripts.
+- Removed a projection that had been fit on the *test* set — it was test-set
+  overfitting. Compression numbers use only the embeddings' geometry (transductive
+  upper bound) or no fitting; nothing is fit to the test set's retrieval.
 
 ### Changed
 
