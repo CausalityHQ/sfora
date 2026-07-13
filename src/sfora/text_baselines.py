@@ -25,7 +25,11 @@ from sfora.evaluation import (
     retrieval_score_on_split,
 )
 from sfora.losses import group_triplet_margin_loss, triplet_margin_loss
-from sfora.training import ProjectionHeadTrainingConfig, train_projection_head
+from sfora.training import (
+    ProjectionHeadTrainingConfig,
+    _project_embeddings,
+    train_projection_head,
+)
 
 
 class TextBaselineConfig(BaseModel):
@@ -125,7 +129,16 @@ def run_text_baseline(
     group_triplets = mine_group_triplets(examples, group_size=resolved_config.group_size)
     labels = np.array([example.label for example in examples], dtype=np.int64)
 
-    tfidf_embeddings = _tfidf_embeddings(examples, max_features=resolved_config.max_features)
+    # Fit every representation (TF-IDF vocabulary/IDF, projection heads) on the TRAIN
+    # rows only, using the same split _score_text_representation re-derives, so the
+    # held-out test rows are never seen while building the representation.
+    fit_indices, _ = _stratified_indices(
+        labels, test_size=resolved_config.test_size, seed=resolved_config.seed
+    )
+
+    tfidf_embeddings = _tfidf_embeddings(
+        examples, max_features=resolved_config.max_features, fit_indices=fit_indices
+    )
     methods = {
         "tfidf_word": _score_text_representation(
             tfidf_embeddings,
@@ -146,6 +159,7 @@ def run_text_baseline(
                 triplets,
                 group_triplets,
                 resolved_config,
+                fit_indices=fit_indices,
             )
         )
 
@@ -253,6 +267,7 @@ def _tfidf_embeddings(
     examples: list[TextExample],
     *,
     max_features: int,
+    fit_indices: NDArray[np.int64],
 ) -> NDArray[np.float64]:
     vectorizer = TfidfVectorizer(
         lowercase=True,
@@ -260,7 +275,11 @@ def _tfidf_embeddings(
         ngram_range=(1, 2),
         norm="l2",
     )
-    matrix = vectorizer.fit_transform([example.text for example in examples])
+    # Learn the vocabulary and IDF weights from the train rows only, then transform
+    # every row with the frozen vectorizer — the test rows never inform the vocabulary.
+    fit_texts = [examples[int(index)].text for index in fit_indices]
+    vectorizer.fit(fit_texts)
+    matrix = vectorizer.transform([example.text for example in examples])
     return np.asarray(matrix.toarray(), dtype=np.float64)
 
 
@@ -288,6 +307,8 @@ def _train_tfidf_projection_heads(
     triplets: list[TextTriplet],
     group_triplets: list[TextGroupTriplet],
     config: TextBaselineConfig,
+    *,
+    fit_indices: NDArray[np.int64],
 ) -> dict[str, TextMethodMetrics]:
     projection_config = ProjectionHeadTrainingConfig(
         group_size=config.group_size,
@@ -297,20 +318,19 @@ def _train_tfidf_projection_heads(
         output_dimensions=config.projection_output_dimensions,
         seed=config.seed,
     )
-    triplet_projection = train_projection_head(
-        embeddings,
-        labels,
-        projection_config.model_copy(update={"objective": "triplet"}),
-    )
-    group_projection = train_projection_head(
-        embeddings,
-        labels,
-        projection_config.model_copy(update={"objective": "group"}),
-    )
+    # Train each head on the train rows only, then apply the frozen projection matrix
+    # to every row so the test rows are transformed by — never fitted into — the head.
+    train_embeddings = embeddings[fit_indices]
+    train_labels = labels[fit_indices]
+
+    def _projected(objective: str) -> NDArray[np.float64]:
+        head_config = projection_config.model_copy(update={"objective": objective})
+        head = train_projection_head(train_embeddings, train_labels, head_config)
+        return _project_embeddings(embeddings, head.projection_matrix, head_config)
 
     return {
         "tfidf_triplet_projection": _score_text_representation(
-            triplet_projection.transformed_embeddings,
+            _projected("triplet"),
             labels,
             examples,
             triplets,
@@ -318,7 +338,7 @@ def _train_tfidf_projection_heads(
             config,
         ),
         "tfidf_group_projection": _score_text_representation(
-            group_projection.transformed_embeddings,
+            _projected("group"),
             labels,
             examples,
             triplets,

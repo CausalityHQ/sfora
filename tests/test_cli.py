@@ -374,7 +374,7 @@ def test_imdb_baseline_command_writes_text_baseline_report(
 
     def fake_loader(*, split: str, limit_per_class: int, seed: int) -> list[TextExample]:
         assert split == "train"
-        assert limit_per_class == 6
+        assert limit_per_class == 9
         assert seed == 9
         negatives = [
             "bad dull awful film",
@@ -383,6 +383,9 @@ def test_imdb_baseline_command_writes_text_baseline_report(
             "awful dull weak acting",
             "slow boring bad scenes",
             "flat poor tedious film",
+            "grim bleak drab plot",
+            "weak grim slow cast",
+            "dull bleak poor script",
         ]
         positives = [
             "great vivid excellent film",
@@ -391,6 +394,9 @@ def test_imdb_baseline_command_writes_text_baseline_report(
             "excellent vivid sharp acting",
             "joyful moving great scenes",
             "bright strong wonderful film",
+            "superb lively radiant plot",
+            "sharp superb joyful cast",
+            "vivid lively strong script",
         ]
         return [
             TextExample(example_id=f"neg-{index}", text=text, label=0)
@@ -409,7 +415,7 @@ def test_imdb_baseline_command_writes_text_baseline_report(
             "--output",
             str(output_path),
             "--limit-per-class",
-            "6",
+            "9",
             "--group-size",
             "3",
             "--seed",

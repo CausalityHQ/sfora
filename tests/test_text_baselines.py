@@ -60,9 +60,43 @@ def test_run_text_baseline_scores_tfidf_representation() -> None:
     assert result.methods["tfidf_word"].group_loss >= 0.0
 
 
+def _examples_for_heads() -> list[TextExample]:
+    # Nine rows per class so that after the honest train/test split the train side
+    # still holds at least two groups per label for group-head training.
+    negatives = [
+        "bad dull awful film",
+        "boring weak slow movie",
+        "poor flat tedious story",
+        "awful dull weak acting",
+        "slow boring bad scenes",
+        "flat poor tedious film",
+        "grim bleak drab plot",
+        "weak grim slow cast",
+        "dull bleak poor script",
+    ]
+    positives = [
+        "great vivid excellent film",
+        "moving sharp joyful movie",
+        "strong bright wonderful story",
+        "excellent vivid sharp acting",
+        "joyful moving great scenes",
+        "bright strong wonderful film",
+        "superb lively radiant plot",
+        "sharp superb joyful cast",
+        "vivid lively strong script",
+    ]
+    return [
+        TextExample(example_id=f"neg-{index}", text=text, label=0)
+        for index, text in enumerate(negatives)
+    ] + [
+        TextExample(example_id=f"pos-{index}", text=text, label=1)
+        for index, text in enumerate(positives)
+    ]
+
+
 def test_run_text_baseline_can_train_projection_heads() -> None:
     result = run_text_baseline(
-        _examples(),
+        _examples_for_heads(),
         TextBaselineConfig(
             group_size=3,
             test_size=0.33,
