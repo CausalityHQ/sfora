@@ -32,7 +32,7 @@ same-arch SOTA on CUB-200 by more than 1%.
 | Proxy Anchor (reported) | 69.7 | baseline |
 | HIST (reported) | 71.4 | prior strong method |
 | **PFML (reported SOTA)** | **73.4** | best reported same-arch |
-| **HERD** (single model) | ~71.6 | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
+| **HERD** (single model) | ~71.6 best / ~70.6 mean | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
 | SFORA (HERD ensemble, 7 models) | 75.22 | scales further with more models |
 
@@ -361,7 +361,7 @@ OBJECTIVES=frozen,supcon,group_supcon,group_supcon_xbm_radius \
   ./scripts/run_remote_image_end_to_end.sh
 ```
 
-Generate a remote run script for `riomus@192.168.1.35`:
+Generate a remote run script for `user@your-gpu-server`:
 
 ```bash
 uv run --group dev sfora remote-plan --output scripts/run_remote.sh
@@ -510,7 +510,7 @@ remote iteration. Trials are ranked by held-out macro F1 first, then the
 train/test F1 gap and MAP@R movement.
 
 The current `remote-plan` command writes an SSH/rsync script that syncs this
-repo to `riomus@192.168.1.35`, runs `uv sync --group dev --extra research`,
+repo to `user@your-gpu-server`, runs `uv sync --group dev --extra research`,
 executes an experiment command, and fetches generated reports back. The generated
 script derives `LOCAL_DIR` from its own location by default and also falls back
 to the existing remote `.venv/bin/sfora` entrypoint when the host
@@ -534,7 +534,7 @@ package, research plan, report, and archived JSON artifacts. With
 and uploads the bundle.
 
 The archived remote run at `reports/archive/imdb_encoder_baseline.remote.json`
-was produced on `riomus@192.168.1.35` with
+was produced on `user@your-gpu-server` with
 `sentence-transformers/paraphrase-MiniLM-L3-v2` over a 256-example balanced IMDb
 sample.
 

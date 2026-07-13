@@ -138,7 +138,14 @@ uv run --group dev --extra research sfora image-end-to-end \
   --output reports/generated/image_end_to_end_cub.pfml.json
 ```
 
-Adding the proposed GSI arm (presets declare their own objectives;
+> **Note.** GSI/BGSI were exploratory boundary-scatter regularizers evaluated
+> early in this project; they did not bind meaningfully and are **superseded by
+> HERD** (HIST + `is_norm` head + EMA-teacher distillation), the headline
+> SOTA-beating method. The `--gsi-*` / `--bgsi-*` families are kept for
+> reproducibility of those experiments. For the headline recipe see the
+> [reproduce section in the README](../README.md#reproduce-the-sota-result-herd--sfora-ensemble).
+
+Adding the experimental GSI arm (presets declare their own objectives;
 `--objectives` overrides them):
 
 ```bash

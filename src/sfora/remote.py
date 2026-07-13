@@ -8,8 +8,8 @@ from pydantic import BaseModel
 class RemoteRunConfig(BaseModel):
     """Configuration for a reproducible remote experiment run."""
 
-    host: str = "192.168.1.35"
-    user: str = "riomus"
+    host: str = "gpu.example.com"
+    user: str = "researcher"
     remote_dir: str = "/home/CausalityHQ/sfora"
     local_dir: Path | None = None
     reports_dir: str = "reports/generated"

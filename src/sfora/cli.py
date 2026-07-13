@@ -156,8 +156,8 @@ def remote_plan(
         Path,
         typer.Option(help="Path for the generated shell script."),
     ] = Path("scripts/run_remote.sh"),
-    host: Annotated[str, typer.Option(help="Remote SSH host.")] = "192.168.1.35",
-    user: Annotated[str, typer.Option(help="Remote SSH user.")] = "riomus",
+    host: Annotated[str, typer.Option(help="Remote SSH host.")] = "gpu.example.com",
+    user: Annotated[str, typer.Option(help="Remote SSH user.")] = "researcher",
     remote_dir: Annotated[
         str,
         typer.Option(help="Remote project directory."),

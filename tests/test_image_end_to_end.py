@@ -1522,14 +1522,18 @@ def test_relational_distillation_matches_teacher_neighborhoods() -> None:
     # Gradient descent moves a student's neighborhood distribution toward the teacher's.
     student = torch.randn(10, 4, requires_grad=True)
     optimizer = torch.optim.Adam([student], lr=0.05)
-    start = float(_relational_distillation_loss(student, teacher, tau=0.1, torch_module=torch))
+    start = float(
+        _relational_distillation_loss(student, teacher, tau=0.1, torch_module=torch).detach()
+    )
     for _ in range(50):
         optimizer.zero_grad()
         loss = _relational_distillation_loss(student, teacher, tau=0.1, torch_module=torch)
         loss.backward()
         assert torch.isfinite(student.grad).all()
         optimizer.step()
-    end = float(_relational_distillation_loss(student, teacher, tau=0.1, torch_module=torch))
+    end = float(
+        _relational_distillation_loss(student, teacher, tau=0.1, torch_module=torch).detach()
+    )
     assert end < start
 
 

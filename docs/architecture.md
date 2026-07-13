@@ -29,7 +29,9 @@ benchmark/reporting layers.
   retrieval benchmarks.
 - `sfora.image_end_to_end`: end-to-end ResNet-50/512 training for
   paper-protocol reproduction, including the repaired protocol presets, the
-  Proxy Anchor and PFML baselines, and the proposed GSI objective.
+  Proxy Anchor, HIST, and PFML baselines, the HERD add-ons (EMA-teacher
+  relational self-distillation, `--embedding-layer-norm`), and the experimental
+  GSI/BGSI objectives (evaluated, superseded by HERD).
 - `sfora.report`: Markdown, HTML, and Hugging Face card generation.
 - `sfora.publication`: local Hugging Face publication bundle builder.
 

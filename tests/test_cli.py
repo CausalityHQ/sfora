@@ -1833,7 +1833,7 @@ def test_remote_plan_command_writes_shell_script(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert output_path.exists()
     text = output_path.read_text()
-    assert "ssh riomus@192.168.1.35" in text
+    assert "ssh researcher@gpu.example.com" in text
     assert "synthetic-train" in text
     assert "remote-run-plan" in result.output
 

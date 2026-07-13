@@ -36,7 +36,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Protocol-repair release track for end-to-end ResNet-50/512 metric-learning
   experiments, including scheduler, warm-up, sampler, augmentation, optimizer,
   pretrained-weight, and embedding-head updates.
-- Proxy Anchor, PFML, and GSI objective entries for the 0.2.0 research line.
+- Proxy Anchor, PFML, and GSI objective entries for the 0.2.0 research line (GSI/BGSI were evaluated and superseded by HERD — see the Unreleased section).
 - Interference diagnostic reporting scope for GSI falsifier artifacts.
 - Contributor documentation covering local setup, verification gates, pull
   request expectations, and CPU-only test conventions.

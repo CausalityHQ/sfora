@@ -6,8 +6,8 @@ from sfora.remote import RemoteRunConfig, build_remote_run_plan, write_remote_ru
 def test_build_remote_run_plan_contains_sync_setup_run_and_fetch_steps() -> None:
     plan = build_remote_run_plan(
         RemoteRunConfig(
-            host="192.168.1.35",
-            user="riomus",
+            host="gpu.example.com",
+            user="researcher",
             remote_dir="/home/CausalityHQ/sfora",
             command=(
                 "uv run --group dev sfora synthetic-train "
@@ -16,7 +16,7 @@ def test_build_remote_run_plan_contains_sync_setup_run_and_fetch_steps() -> None
         )
     )
 
-    assert plan.target == "riomus@192.168.1.35"
+    assert plan.target == "researcher@gpu.example.com"
     assert [step.name for step in plan.steps] == ["sync", "setup", "run", "fetch-reports"]
     assert plan.steps[0].command[0] == "rsync"
     assert "uv sync --group dev --extra research" in " ".join(plan.steps[1].command)
@@ -98,8 +98,8 @@ def test_image_remote_script_can_omit_debug_caps_for_full_runs() -> None:
 def test_write_remote_run_plan_persists_shell_script(tmp_path: Path) -> None:
     plan = build_remote_run_plan(
         RemoteRunConfig(
-            host="192.168.1.35",
-            user="riomus",
+            host="gpu.example.com",
+            user="researcher",
             remote_dir="/home/CausalityHQ/sfora",
             command=(
                 "uv run --group dev sfora synthetic --output reports/generated/synthetic_smoke.json"
@@ -113,7 +113,7 @@ def test_write_remote_run_plan_persists_shell_script(tmp_path: Path) -> None:
     text = written_path.read_text()
     assert text.startswith("#!/usr/bin/env bash\nset -euo pipefail\n")
     assert "rsync" in text
-    assert "ssh riomus@192.168.1.35" in text
+    assert "ssh researcher@gpu.example.com" in text
     assert "synthetic_smoke.json" in text
     assert ".venv/bin/sfora synthetic" in text
 
