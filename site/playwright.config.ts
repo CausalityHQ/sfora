@@ -7,14 +7,17 @@ export default defineConfig({
     timeout: 5_000,
   },
   use: {
-    baseURL: "http://127.0.0.1:8790",
+    // The built site uses the "/sfora" base path, so serve it under that prefix
+    // (via a symlink) or its JS/asset URLs 404 and interactivity never loads.
+    baseURL: "http://127.0.0.1:8790/sfora/",
     trace: "on-first-retry",
   },
   webServer: {
-    command: "python3 -m http.server 8790 --bind 127.0.0.1 --directory ../reports/site",
-    url: "http://127.0.0.1:8790/index.html",
+    command:
+      "rm -rf .e2e-root && mkdir -p .e2e-root && ln -sfn \"$(cd ../reports/site && pwd)\" .e2e-root/sfora && python3 -m http.server 8790 --bind 127.0.0.1 --directory .e2e-root",
+    url: "http://127.0.0.1:8790/sfora/index.html",
     reuseExistingServer: !process.env.CI,
-    timeout: 10_000,
+    timeout: 15_000,
   },
   projects: [
     {

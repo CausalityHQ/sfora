@@ -20,3 +20,8 @@ node_modules/
 *.pt
 *.safetensors
 reports/emb/
+site/.e2e-root/
+test-results/
+site/test-results/
+playwright-report/
+site/playwright-report/
