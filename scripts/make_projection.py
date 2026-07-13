@@ -92,11 +92,16 @@ def main() -> None:
         "silhouette": round(_silhouette(x, y), 3),
         "points2d": [
             {"x": round(float(a), 4), "y": round(float(b), 4), "c": int(c)}
-            for (a, b), c in zip(p2, colors)
+            for (a, b), c in zip(p2, colors, strict=True)
         ],
         "points3d": [
-            {"x": round(float(a), 4), "y": round(float(b), 4), "z": round(float(cc), 4), "c": int(c)}
-            for (a, b, cc), c in zip(p3, colors)
+            {
+                "x": round(float(a), 4),
+                "y": round(float(b), 4),
+                "z": round(float(cc), 4),
+                "c": int(c),
+            }
+            for (a, b, cc), c in zip(p3, colors, strict=True)
         ],
     }
     with open(args.out, "w", encoding="utf-8") as fh:
