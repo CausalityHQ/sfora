@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="SFORA">
-  <rect width="100" height="100" rx="24" fill="#f4efe4"/>
+  <rect width="100" height="100" rx="24" fill="#f7f3ea"/>
   <g fill="#b04a26">
     <ellipse cx="30" cy="42" rx="8.5" ry="12" transform="rotate(-20 30 42)"/>
     <ellipse cx="43" cy="31" rx="8.5" ry="13"/>
