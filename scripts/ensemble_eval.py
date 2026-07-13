@@ -98,6 +98,15 @@ def _recall(features: np.ndarray, labels: np.ndarray) -> float:
     return image_self_retrieval_score(_l2(features), labels, random_state=0).recall_at_1
 
 
+def _metric_line(features: np.ndarray, labels: np.ndarray) -> str:
+    """Full retrieval-metric line (the same set the DML papers report)."""
+    m = image_self_retrieval_score(_l2(features), labels, random_state=0)
+    return (
+        f"R@1={m.recall_at_1:.4f} R@2={m.recall_at_2:.4f} R@4={m.recall_at_4:.4f} "
+        f"R@8={m.recall_at_8:.4f} MAP@R={m.map_at_r:.4f}"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("paths", nargs="+", help="one or more .npz embedding files")
@@ -159,9 +168,10 @@ def main() -> None:
     mean_single = float(np.mean(per_model_recall))
     best_single = max(per_model_recall)
     print(
-        f"\n=== ENSEMBLE of {len(args.paths)} models: R@1={ensemble_recall:.4f} "
-        f"(dim {full_dim}, mean single {mean_single:.4f}, best single {best_single:.4f}) ==="
+        f"\n=== ENSEMBLE of {len(args.paths)} models (dim {full_dim}, "
+        f"mean single R@1 {mean_single:.4f}, best {best_single:.4f}) ==="
     )
+    print(f"  {_metric_line(concatenated, labels_reference)}")
 
     if args.compress_sweep:
         print("\n--- PCA compression of the concatenated ensemble ---")

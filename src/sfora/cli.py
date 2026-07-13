@@ -1177,6 +1177,13 @@ def image_end_to_end(
         str | None,
         typer.Option(help="Save final test embeddings + labels to this .npz (for ensembling)."),
     ] = None,
+    save_train_embeddings: Annotated[
+        str | None,
+        typer.Option(
+            help="Save the best epoch's TRAIN embeddings to this .npz "
+            "(to fit a projection on train, evaluate on test)."
+        ),
+    ] = None,
     pretrained_weights: Annotated[
         str | None,
         typer.Option(help="Override torchvision pretrained weights: v1 or v2."),
@@ -1693,6 +1700,11 @@ def image_end_to_end(
                     save_test_embeddings
                     if save_test_embeddings is not None
                     else base_config.save_test_embeddings
+                ),
+                "save_train_embeddings": (
+                    save_train_embeddings
+                    if save_train_embeddings is not None
+                    else base_config.save_train_embeddings
                 ),
                 "pretrained_weights": (
                     pretrained_weights

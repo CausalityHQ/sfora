@@ -118,6 +118,10 @@ class ImageEndToEndConfig(BaseModel):
     uniformity_t: float = Field(default=2.0, gt=0.0)
     # Optional path to save final test embeddings + labels (.npz) for ensembling.
     save_test_embeddings: str | None = None
+    # Optional path to save the TRAIN-split embeddings from the same best epoch, so a
+    # fold/projection can be fit on train (disjoint zero-shot classes) and evaluated on
+    # test — the honest, non-transductive way to compress the pack.
+    save_train_embeddings: str | None = None
     # EMA-teacher relational self-distillation (any base objective). Weight 0 = off.
     ema_distill_weight: float = Field(default=0.0, ge=0.0)
     ema_momentum: float = Field(default=0.999, ge=0.0, le=1.0)
@@ -418,6 +422,7 @@ def run_image_end_to_end_benchmark(
     # alignment across independently-seeded runs (labels alone can't — a within-class
     # reordering would pass a label check while mixing different images).
     test_example_ids = np.asarray([example.example_id for example in test_examples])
+    train_example_ids = np.asarray([example.example_id for example in optimization_examples])
     class_similarity: dict[int, list[int]] | None = None
     if config.hard_class_fraction > 0.0:
         class_similarity = _frozen_class_similarity(
@@ -861,6 +866,21 @@ def run_image_end_to_end_benchmark(
                                 embeddings=np.asarray(epoch_embeddings, dtype=np.float32),
                                 labels=np.asarray(epoch_labels, dtype=np.int64),
                                 example_ids=test_example_ids,
+                            )
+                        if config.save_train_embeddings:
+                            # Same (best) epoch's TRAIN-split embeddings, so a fold can
+                            # be fit on train and evaluated on test without touching the
+                            # test split. Train classes are disjoint from test (zero-shot).
+                            train_embeddings, train_label_array = _encode_model(
+                                model, train_eval_loader, device, torch
+                            )
+                            train_path = Path(config.save_train_embeddings)
+                            train_path.parent.mkdir(parents=True, exist_ok=True)
+                            np.savez(
+                                train_path,
+                                embeddings=np.asarray(train_embeddings, dtype=np.float32),
+                                labels=np.asarray(train_label_array, dtype=np.int64),
+                                example_ids=train_example_ids,
                             )
                     print(
                         f"{config.dataset_name} {objective} epoch {epoch_index} "
