@@ -27,10 +27,9 @@ def _silhouette(x: np.ndarray, labels: np.ndarray) -> float:
     """Mean cosine silhouette — a single number for 'how separated are the classes'."""
     try:
         from sklearn.metrics import silhouette_score
-
-        return float(silhouette_score(x, labels, metric="cosine"))
-    except Exception:
+    except ImportError:
         return float("nan")
+    return float(silhouette_score(x, labels, metric="cosine"))
 
 
 def _round_or_none(value: float, digits: int) -> float | None:
@@ -108,7 +107,9 @@ def main() -> None:
             random_state=args.seed,
         ).fit_transform(x)
         method2d = "t-SNE"
-    except Exception:
+    except ImportError:
+        # scikit-learn not installed — fall back to a 2D PCA. Any other error
+        # (bad perplexity, numerical failure) should surface, not be hidden.
         p2 = xc @ vt[:2].T
         method2d = "PCA"
     p2 = (p2 - p2.mean(0)) / (np.abs(p2 - p2.mean(0)).max() + 1e-9)

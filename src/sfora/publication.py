@@ -92,8 +92,18 @@ def build_hf_publish_bundle(config: HfPublishConfig) -> HfPublishBundle:
     project_root = config.project_root.resolve()
     output_dir = _resolve_output_dir(config.output_dir, project_root)
     if output_dir.exists():
+        # Only ever delete a directory we created (carries our marker) or an empty
+        # one — never clobber a pre-existing directory full of unrelated files.
+        marker = output_dir / _BUNDLE_MARKER
+        if not marker.exists() and any(output_dir.iterdir()):
+            raise ValueError(
+                f"{output_dir} exists and is not a sfora HF bundle (no {_BUNDLE_MARKER} "
+                "marker) and is not empty; refusing to delete it. Remove it manually or "
+                "choose another --output-dir."
+            )
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / _BUNDLE_MARKER).write_text("sfora hugging-face bundle output\n")
 
     copied_files: list[str] = []
     for source in _DEFAULT_FILE_PATHS:
@@ -170,10 +180,21 @@ def publish_hf_bundle(
     return HfPublishResult(bundle=bundle, uploaded=True, repo_url=repo_url, commit_url=commit_url)
 
 
+_BUNDLE_MARKER = ".sfora-hf-bundle"
+
+
 def _resolve_output_dir(output_dir: Path, project_root: Path) -> Path:
-    if output_dir.is_absolute():
-        return output_dir
-    return project_root / output_dir
+    resolved = (output_dir if output_dir.is_absolute() else project_root / output_dir).resolve()
+    # Never operate on the project root, one of its ancestors, or a filesystem root:
+    # the bundle build recursively deletes this directory, so an unsafe path (e.g.
+    # `--output-dir .`) would wipe the repository.
+    if resolved == project_root or resolved in project_root.parents or resolved == resolved.parent:
+        raise ValueError(
+            f"refusing to use {resolved} as the Hugging Face bundle output directory: "
+            "it is the project root, an ancestor, or a filesystem root. Choose a "
+            "dedicated subdirectory (e.g. reports/hf-bundle)."
+        )
+    return resolved
 
 
 def _destination_path(source: Path, output_dir: Path) -> Path:

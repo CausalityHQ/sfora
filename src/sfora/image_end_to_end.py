@@ -505,14 +505,19 @@ def run_image_end_to_end_benchmark(
     # `save_test_embeddings` is a single path; with several objectives each would
     # overwrite the previous one's embeddings. Require a single objective so the
     # saved artifact is unambiguous (ensemble runs already use one objective).
-    if config.save_test_embeddings and len(config.objectives) > 1:
+    if (config.save_test_embeddings or config.save_train_embeddings) and len(config.objectives) > 1:
         raise ValueError(
-            "save_test_embeddings expects a single objective, but "
+            "save_test_embeddings / save_train_embeddings expect a single objective, but "
             f"{len(config.objectives)} were given ({', '.join(config.objectives)}); "
-            "run one objective per invocation or drop --save-test-embeddings."
+            "run one objective per invocation or drop the --save-*-embeddings flags."
         )
     methods: dict[str, EndToEndMethodMetrics] = {}
     for objective in config.objectives:
+        # Re-seed before each objective so its model init and batch order do not
+        # depend on which objectives ran before it (order-independent comparisons).
+        torch.manual_seed(config.seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(config.seed)
         if _uses_pretrained_feature_model(objective, config.backbone_name, model_factory):
             model = _torchvision_model_factory(config, use_embedding_head=False).to(device)
         else:
@@ -918,8 +923,9 @@ def run_image_end_to_end_benchmark(
             del teacher_model
 
         test_embeddings, test_label_array = _encode_model(model, test_loader, device, torch)
+        # When no per-epoch eval ran (the periodic best block never fired), save the
+        # final-epoch embeddings as a fallback — for BOTH splits from the same model.
         if config.save_test_embeddings and best_test_recall_at_1 is None:
-            # No per-epoch eval ran, so save the final-epoch embeddings as a fallback.
             save_path = Path(config.save_test_embeddings)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             np.savez(
@@ -927,6 +933,18 @@ def run_image_end_to_end_benchmark(
                 embeddings=np.asarray(test_embeddings, dtype=np.float32),
                 labels=np.asarray(test_label_array, dtype=np.int64),
                 example_ids=test_example_ids,
+            )
+        if config.save_train_embeddings and best_test_recall_at_1 is None:
+            train_embeddings, train_label_array = _encode_model(
+                model, train_eval_loader, device, torch
+            )
+            train_save_path = Path(config.save_train_embeddings)
+            train_save_path.parent.mkdir(parents=True, exist_ok=True)
+            np.savez(
+                train_save_path,
+                embeddings=np.asarray(train_embeddings, dtype=np.float32),
+                labels=np.asarray(train_label_array, dtype=np.int64),
+                example_ids=train_example_ids,
             )
         retrieval = image_self_retrieval_score(
             test_embeddings,

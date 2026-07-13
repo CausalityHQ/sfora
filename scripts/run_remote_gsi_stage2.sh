@@ -102,7 +102,7 @@ PY"
 if [[ "${FORCE_RERUN}" != "1" ]] && artifact_complete; then
   echo "Skipping; ${OUTPUT_FILE} already contains all objectives."
 else
-  ssh "${REMOTE}" "cd ${REMOTE_DIR} && (uv run --group dev --extra research group-learning image-end-to-end \
+  ssh "${REMOTE}" "cd ${REMOTE_DIR} && (uv run --group dev --extra research sfora image-end-to-end \
     --dataset-name ${DATASET} \
     --protocol ${PROTOCOL} \
     --objectives ${OBJECTIVES} \
@@ -113,7 +113,7 @@ else
     --seed ${SEED} \
     --num-workers ${NUM_WORKERS} \
     --output ${OUTPUT_FILE}) || \
-    ([ -x .venv/bin/group-learning ] && .venv/bin/group-learning image-end-to-end \
+    ([ -x .venv/bin/sfora ] && .venv/bin/sfora image-end-to-end \
     --dataset-name ${DATASET} \
     --protocol ${PROTOCOL} \
     --objectives ${OBJECTIVES} \

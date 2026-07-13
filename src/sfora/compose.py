@@ -105,16 +105,29 @@ class Pca:
     _components: Floats | None = field(default=None, init=False, repr=False)
     _scale: Floats | None = field(default=None, init=False, repr=False)
 
+    def __post_init__(self) -> None:
+        if self.dim < 1:
+            raise ValueError(f"Pca dim must be >= 1, got {self.dim}")
+
     def fit(
         self, embeddings: Embeddings, labels: Labels, *, validation: Data | None = None
     ) -> Self:
         del labels, validation
         features = np.asarray(embeddings, dtype=np.float64)
+        n_samples = features.shape[0]
+        if self.whiten and n_samples < 2:
+            raise ValueError("Pca(whiten=True) needs at least 2 samples")
         self._mean = features.mean(axis=0, keepdims=True)
         _, singular, vt = np.linalg.svd(features - self._mean, full_matrices=False)
         keep = min(self.dim, vt.shape[0])
         self._components = vt[:keep]
-        self._scale = singular[:keep] if self.whiten else None
+        if self.whiten:
+            # A centred PCA coordinate has variance singular^2/(n-1); dividing by the
+            # per-component standard deviation gives unit-variance whitened features.
+            std = singular[:keep] / np.sqrt(n_samples - 1)
+            self._scale = np.where(std > 1.0e-12, std, np.inf)
+        else:
+            self._scale = None
         return self
 
     def transform(self, embeddings: Embeddings) -> Floats:
@@ -122,7 +135,8 @@ class Pca:
             raise ValueError("Pca.fit must be called before transform")
         projected = (np.asarray(embeddings, dtype=np.float64) - self._mean) @ self._components.T
         if self._scale is not None:
-            projected = projected / (self._scale + 1.0e-8)
+            # Zero-variance components map to 0 (their scale is +inf).
+            projected = projected / self._scale
         return projected
 
 
@@ -173,6 +187,11 @@ class Pipeline:
     """Run bricks in sequence: each is fit on the previous brick's train output."""
 
     steps: Sequence[Projection]
+    _fitted: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.steps:
+            raise ValueError("Pipeline needs at least one step")
 
     def fit(
         self, embeddings: Embeddings, labels: Labels, *, validation: Data | None = None
@@ -184,9 +203,12 @@ class Pipeline:
             current = step.transform(current)
             if val is not None:
                 val = (step.transform(val[0]), val[1])
+        self._fitted = True
         return self
 
     def transform(self, embeddings: Embeddings) -> Floats:
+        if not self._fitted:
+            raise ValueError("Pipeline.fit must be called before transform")
         current = np.asarray(embeddings, dtype=np.float64)
         for step in self.steps:
             current = step.transform(current)
@@ -210,6 +232,13 @@ class Join:
     kind: JoinKind
     branches: Sequence[Projection]
     _rotations: list[Floats] = field(default_factory=list, init=False, repr=False)
+    _fitted: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.branches:
+            raise ValueError("Join needs at least one branch")
+        if self.kind not in ("concat", "mean", "aligned_mean"):
+            raise ValueError(f"unknown Join kind {self.kind!r}")
 
     def fit(
         self, embeddings: Embeddings, labels: Labels, *, validation: Data | None = None
@@ -222,17 +251,22 @@ class Join:
             self._rotations = [np.eye(reference.shape[1])]
             for output in outputs[1:]:
                 u, _, vt = np.linalg.svd(output.T @ reference, full_matrices=False)
-                self._rotations.append(u @ vt)
+                # Constrain to a proper rotation (det +1): a reflection would flip an
+                # axis and corrupt the aligned average.
+                correction = np.eye(vt.shape[0])
+                correction[-1, -1] = np.sign(np.linalg.det(u @ vt))
+                self._rotations.append(u @ correction @ vt)
+        self._fitted = True
         return self
 
     def transform(self, embeddings: Embeddings) -> Floats:
+        if not self._fitted:
+            raise ValueError("Join.fit must be called before transform")
         outputs = [branch.transform(embeddings) for branch in self.branches]
         if self.kind == "concat":
             return _l2(np.concatenate([_l2(o) for o in outputs], axis=1))
         if self.kind == "mean":
             return _l2(np.mean([_l2(o) for o in outputs], axis=0))
-        if not self._rotations:
-            raise ValueError("Join(aligned_mean).fit must be called before transform")
         aligned = [_l2(o) @ r for o, r in zip(outputs, self._rotations, strict=True)]
         return _l2(np.mean(aligned, axis=0))
 

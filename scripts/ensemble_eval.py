@@ -130,6 +130,12 @@ def main() -> None:
         "projection, naive mean, and Procrustes-aligned mean (alternatives to concatenation)",
     )
     args = parser.parse_args()
+    for name, value in (
+        ("--compress-dim", args.compress_dim),
+        ("--compare-methods", args.compare_methods),
+    ):
+        if value is not None and value < 1:
+            raise SystemExit(f"{name} must be >= 1, got {value}")
 
     embeddings_list: list[np.ndarray] = []
     labels_reference: np.ndarray | None = None
@@ -148,8 +154,12 @@ def main() -> None:
         else:
             if not np.array_equal(labels_reference, labels):
                 raise SystemExit(f"label order mismatch in {path}; cannot ensemble")
-            have_ids = ids is not None and ids_reference is not None
-            if have_ids and not np.array_equal(ids_reference, ids):
+            # All-or-none: if any file carries example ids, every file must, and they
+            # must match exactly — otherwise a within-class permutation could slip
+            # through the labels-only check and concatenate different images.
+            if (ids is None) != (ids_reference is None):
+                raise SystemExit(f"{path} disagrees on example_ids presence; cannot ensemble")
+            if ids is not None and not np.array_equal(ids_reference, ids):
                 raise SystemExit(f"example-id order mismatch in {path}; cannot ensemble")
         embeddings_list.append(embeddings)
         single = image_self_retrieval_score(embeddings, labels, random_state=0)

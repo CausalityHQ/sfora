@@ -68,7 +68,7 @@ for DATASET in ${DATASETS}; do
     echo "Skipping ${DATASET}; ${OUTPUT_FILE} already exists."
     continue
   fi
-  ssh "${REMOTE}" "cd ${REMOTE_DIR} && (uv run --group dev --extra research group-learning image-end-to-end \
+  ssh "${REMOTE}" "cd ${REMOTE_DIR} && (uv run --group dev --extra research sfora image-end-to-end \
     --dataset-name ${DATASET} \
     --protocol ${PROTOCOL} \
     --objectives ${OBJECTIVES} \
@@ -86,7 +86,7 @@ for DATASET in ${DATASETS}; do
     ${RETRIEVAL_ARGS} \
     --num-workers ${NUM_WORKERS} \
     --output ${OUTPUT_FILE}) || \
-    ([ -x .venv/bin/group-learning ] && .venv/bin/group-learning image-end-to-end \
+    ([ -x .venv/bin/sfora ] && .venv/bin/sfora image-end-to-end \
     --dataset-name ${DATASET} \
     --protocol ${PROTOCOL} \
     --objectives ${OBJECTIVES} \

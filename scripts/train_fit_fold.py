@@ -48,7 +48,11 @@ def _load_pack(pattern: str) -> tuple[np.ndarray, np.ndarray, list[str]]:
         else:
             if not np.array_equal(labels, lab):
                 raise SystemExit(f"label mismatch in {path}")
-            if ids is not None and eid is not None and not np.array_equal(ids, eid):
+            # All-or-none example-id agreement (a labels-only match can hide a
+            # within-class row permutation that mixes different images).
+            if (eid is None) != (ids is None):
+                raise SystemExit(f"{path} disagrees on example_ids presence")
+            if eid is not None and not np.array_equal(ids, eid):
                 raise SystemExit(f"example-id mismatch in {path}")
     concat = _l2(np.concatenate(blocks, axis=1))
     return concat, labels, paths  # type: ignore[return-value]
@@ -71,6 +75,15 @@ def main() -> None:
 
     train_concat, y_train, train_paths = _load_pack(args.train)
     test_concat, y_test, test_paths = _load_pack(args.test)
+    # Pair train/test blocks by their per-seed stem (e.g. herd_tt_seed3.train.npz
+    # <-> herd_tt_seed3.test.npz) so mismatched or misordered runs can't be joined.
+    train_stems = [p.rsplit("/", 1)[-1].replace(".train.npz", "") for p in train_paths]
+    test_stems = [p.rsplit("/", 1)[-1].replace(".test.npz", "") for p in test_paths]
+    if train_stems != test_stems:
+        raise SystemExit(
+            "train/test packs do not correspond by seed:\n"
+            f"  train {train_stems}\n  test  {test_stems}"
+        )
     full_dim = train_concat.shape[1]
     n_models = len(train_paths)
     print(f"{n_models} models | train {train_concat.shape} | test {test_concat.shape}\n")
