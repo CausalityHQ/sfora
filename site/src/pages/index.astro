@@ -2,17 +2,29 @@
 import embedding from "../data/embedding3d.json";
 import projFrozen from "../data/proj_frozen.json";
 import projProxy from "../data/proj_proxyanchor.json";
+import projHist from "../data/proj_hist.json";
 import projHerd from "../data/proj_herd.json";
+import projSfora from "../data/proj_sfora.json";
+import projMeta from "../data/proj_meta.json";
 import "../styles/landing.css";
 
-// Three real CUB-200 embedding spaces, projected to 2D (t-SNE) on the same
-// 8 held-out test classes. Ordered worst -> best so the story reads left to right.
-const projections = [projFrozen, projProxy, projHerd];
-// Class colours — warm, distinct, colour-blind-tolerant; index = class id 0..7.
+// Five real CUB-200 embedding spaces, projected to 2D (t-SNE) on the *same* 8
+// held-out test classes and the *same* sampled images (points align by index
+// across panels). Ordered worst -> best so the story reads left to right.
+const panels = [
+  { proj: projFrozen, tag: "before training" },
+  { proj: projProxy, tag: "prior baseline" },
+  { proj: projHist, tag: "HERD's base loss" },
+  { proj: projHerd, tag: "ours — single" },
+  { proj: projSfora, tag: "ours — 9-model pack" },
+];
+// Class colours — warm, distinct, colour-blind-tolerant; index = colour id 0..7.
 const classColors = [
   "#c0562f", "#3f7d5a", "#c99a2e", "#7d5ba6",
-  "#2f7d8f", "#b0472f", "#5a7d2f", "#a6417d",
+  "#2f7d8f", "#0f7d8f", "#8a6d2f", "#a6417d",
 ];
+const legend = projMeta.classNames.map((name, i) => ({ name, color: classColors[i] }));
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
 // t-SNE coords are ~[-1,1]; map into a padded 0..100 SVG box.
 const vx = (v: number) => (v * 0.5 + 0.5) * 90 + 5;
 
@@ -26,11 +38,11 @@ const ensembleScaling = [
 ];
 
 const benchmarks = [
-  { method: "Proxy Anchor", r: 69.7, kind: "reported", note: "common baseline" },
-  { method: "HIST", r: 71.4, kind: "reported", note: "prior strong same-arch method" },
-  { method: "PFML", r: 73.4, kind: "sota", note: "best reported same-arch number" },
-  { method: "HERD — single model", r: 71.6, kind: "ours-single", note: "best of the seeds; mean ~70.6 — HIST + is_norm head + EMA-teacher distillation" },
-  { method: "SFORA — 5-model ensemble", r: 74.68, kind: "ours", note: "beats the best reported number by +1.3" },
+  { method: "Proxy Anchor", r: 69.7, kind: "reported", repro: "✓ reproduces (we get 0.695)", note: "common baseline" },
+  { method: "HIST", r: 71.4, kind: "reported", repro: "✗ we get ~70.1", note: "prior strong same-arch method" },
+  { method: "PFML", r: 73.4, kind: "sota", repro: "✗ collapses in our runs", note: "best reported same-arch number" },
+  { method: "HERD — single model", r: 71.6, kind: "ours-single", repro: "our run · best/mean 71.6/70.6", note: "HIST + is_norm head + EMA-teacher distillation" },
+  { method: "SFORA — 5-model ensemble", r: 74.68, kind: "ours", repro: "our run", note: "beats the best reported number by +1.3" },
 ];
 
 const refs = [
@@ -140,25 +152,36 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           <h2>Beating the best <em>reported</em> number — honestly.</h2>
           <p class="sub">
             CUB-200, ResNet-50 / 512-dim, zero-shot split, cosine Recall@1,
-            best-over-training (the same protocol the papers use).
+            best-over-training (the same protocol the papers use). The three
+            baseline rows are the papers' <em>reported</em> figures — including
+            ones we <b>could not reproduce</b>. We still clear the highest
+            <em>reported</em> bar, so nobody can wave us off with "but the paper said…".
           </p>
         </div>
 
         <div class="result-grid">
           <table class="bench">
             <thead>
-              <tr><th>Method</th><th class="r">R@1</th><th>What it is</th></tr>
+              <tr><th>Method</th><th class="r">R@1</th><th>In our hands</th></tr>
             </thead>
             <tbody>
               {benchmarks.map((b) => (
                 <tr class={b.kind}>
                   <td class="m">{b.method}</td>
-                  <td class="r"><span class="bar" style={`--w:${((b.r - 68) / (75 - 68)) * 100}%`}></span>{b.r.toFixed(b.kind.startsWith("ours") && b.r > 74 ? 2 : 1)}</td>
-                  <td class="note">{b.note}</td>
+                  <td class="r"><span class="bar" style={`--w:${((b.r - 68) / (75 - 68)) * 100}%`}></span>{b.r.toFixed(b.kind.startsWith("ours") && b.r > 74 ? 2 : 1)}{(b.kind === "sota" || (b.kind === "reported" && b.repro.startsWith("✗"))) && <sup class="dagger">†</sup>}</td>
+                  <td class={`note repro ${b.repro.startsWith("✗") ? "no" : b.repro.startsWith("✓") ? "yes" : ""}`}>{b.repro}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p class="bench-foot">
+            <sup class="dagger">†</sup> Reported number we could <b>not</b> reproduce
+            with the same ResNet-50/512 backbone: our faithful <b>PFML</b> runs
+            collapse during training, and <b>HIST</b> tops out near 70.1 rather than
+            the reported 71.4. Proxy Anchor, by contrast, reproduces cleanly (0.695).
+            We deliberately still compare against the papers' <em>published</em>
+            figures — the harder bar — not our lower reproductions.
+          </p>
 
           <figure class="scaling">
             <figcaption>Ensemble scaling — every added model helps</figcaption>
@@ -187,49 +210,83 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       </section>
 
       <!-- ─────────────────────  HOW IT SEPARATES  ───────────────────── -->
-      <section id="separates" class="band">
+      <section id="separates" class="band" data-base={baseUrl}
+               data-thumbs={JSON.stringify(projMeta.thumbs)}
+               data-thumbbase={projMeta.thumbBase}
+               data-names={JSON.stringify(projMeta.classNames)}>
         <div class="section-head">
           <p class="eyebrow">How it separates</p>
-          <h2>The same birds, three <em>different</em> spaces.</h2>
+          <h2>The same birds, five <em>different</em> spaces.</h2>
           <p class="sub">
             Eight held-out CUB-200 test classes — species the model never saw in
-            training — projected to 2D with t-SNE. Each dot is one bird photo;
-            colour is its species. Watch the clusters tighten left&nbsp;to&nbsp;right.
+            training — the <em>same 360 photos</em> in every panel, projected to 2D
+            with t-SNE. Each dot is one bird. <b>Hover or tap a dot</b> to see the
+            photo; the same bird lights up across all five spaces.
           </p>
         </div>
 
-        <div class="proj-grid">
-          {projections.map((p, i) => (
-            <figure class="proj-card">
-              <div class="proj-head">
-                <span class={`proj-tag t${i}`}>{["before training", "previous approach", "ours"][i]}</span>
-                <h3>{p.label}</h3>
-              </div>
-              <svg viewBox="0 0 100 100" class="proj-svg" role="img"
-                   aria-label={`t-SNE projection of ${p.label}: full-set Recall@1 ${(p.recall1 * 100).toFixed(1)} percent`}>
-                {p.points2d.map((pt) => (
-                  <circle cx={vx(pt.x)} cy={vx(pt.y)} r="1.15"
-                          fill={classColors[pt.c % classColors.length]} fill-opacity="0.82" />
-                ))}
-              </svg>
-              <figcaption class="proj-stats">
-                <span class="stat"><b>{(p.recall1 * 100).toFixed(1)}</b><small>R@1 · all {p.totalClasses} classes</small></span>
-                <span class="stat"><b>{p.silhouette.toFixed(3)}</b><small>cluster silhouette</small></span>
-              </figcaption>
-            </figure>
+        <ul class="proj-legend" aria-label="species legend — click to isolate a species">
+          {legend.map((c, i) => (
+            <li><button type="button" class="leg-chip" data-c={i}>
+              <span class="sw" style={`--sw:${c.color}`}></span>{c.name}
+            </button></li>
           ))}
+        </ul>
+
+        <div class="proj-layout">
+          <div class="proj-grid">
+            {panels.map((panel) => {
+              const p = panel.proj as any;
+              return (
+                <figure class={`proj-card${p.pending ? " pending" : ""}`}>
+                  <div class="proj-head">
+                    <span class="proj-tag">{panel.tag}</span>
+                    <h3>{p.label}</h3>
+                  </div>
+                  {p.pending ? (
+                    <div class="proj-svg proj-pending" role="img" aria-label={`${p.label} space — training on the GPU`}>
+                      <span class="spin"></span>
+                      <span>training on<br />the GPU…</span>
+                    </div>
+                  ) : (
+                    <svg viewBox="0 0 100 100" class="proj-svg" role="img"
+                         aria-label={`t-SNE projection of ${p.label}: full-set Recall@1 ${(p.recall1 * 100).toFixed(1)} percent`}>
+                      {p.points2d.map((pt: any, k: number) => (
+                        <circle cx={vx(pt.x)} cy={vx(pt.y)} r="1.25"
+                                data-k={k} data-c={pt.c}
+                                fill={classColors[pt.c % classColors.length]} />
+                      ))}
+                    </svg>
+                  )}
+                  <figcaption class="proj-stats">
+                    <span class="stat"><b>{p.pending ? "…" : (p.recall1 * 100).toFixed(1)}</b><small>R@1 · all {p.totalClasses} classes</small></span>
+                    <span class="stat sil"><b>{p.pending ? "…" : p.silhouette.toFixed(3)}</b><small>8-class silhouette</small></span>
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+
+          <aside class="proj-inspector" id="proj-inspector" aria-live="polite">
+            <div class="insp-frame">
+              <img id="insp-img" alt="" width="140" height="140" />
+              <div class="insp-empty">Hover a dot →<br />see the bird.</div>
+            </div>
+            <p class="insp-cap"><b id="insp-name">The same photo, five spaces</b>
+              <span id="insp-sub">point moves; identity doesn't.</span></p>
+          </aside>
         </div>
 
         <p class="proj-note">
           Frozen ImageNet features already know <em>something</em> about birds, but the
-          species smear together. Proxy Anchor — the established metric-learning
-          baseline — pulls them into tight clusters. On these eight easy classes
-          <b>HERD looks almost identical</b> to Proxy Anchor (silhouette 0.201 vs 0.205):
-          the honest edge isn't visible here, it's in <em>retrieval over all 100
-          classes</em>, where HERD's harder-class organisation lifts Recall@1 from
-          <b>68.0 → 70.9</b> — and compounds further when several HERD models are
-          <a href="#result">ensembled into a SFORA pack</a>. We show the tie on purpose:
-          no cherry-picked angle.
+          species smear together. Every trained objective — Proxy Anchor, HIST, HERD —
+          pulls them into tight clusters, and on eight <em>easy</em> classes they look
+          much alike: the 8-class silhouette is noisy and doesn't even rank them
+          (it can put Proxy Anchor above HERD). The honest signal is
+          <em>retrieval over all 100 classes</em>, bottom-left of each panel:
+          <b>0.568 → 0.680 → 0.709 → 0.753</b> as you move frozen → Proxy Anchor →
+          HERD → the 9-model <a href="#result">SFORA pack</a>. We show the silhouette
+          tie on purpose — no cherry-picked angle.
         </p>
       </section>
 
@@ -533,6 +590,7 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
 
     <script>
       import "../scripts/sphere.js";
+      import "../scripts/separation.js";
     </script>
   </body>
 </html>

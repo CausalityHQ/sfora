@@ -62,8 +62,11 @@ def main() -> None:
     total_classes = int(len(np.unique(lab)))
 
     # Pick the most-populous classes, then a fixed sample per class (deterministic).
+    # Stable sort so ties break by class id — identical across every model's npz
+    # (they all share `lab`), which keeps point k aligned across panels and lets
+    # the thumbnail extractor reuse `indices` verbatim.
     uniq, counts = np.unique(lab, return_counts=True)
-    top = uniq[np.argsort(-counts)[: args.classes]]
+    top = uniq[np.argsort(-counts, kind="stable")[: args.classes]]
     rng = np.random.default_rng(args.seed)
     idx: list[int] = []
     for c in top:
@@ -106,6 +109,11 @@ def main() -> None:
         "recall1": recall1,
         "method2d": method2d,
         "silhouette": round(_silhouette(x, y), 3),
+        # Original test-set row indices in point order — the thumbnail extractor
+        # consumes these directly so images align with points without re-sampling.
+        "indices": [int(i) for i in idx_arr],
+        # Class id (dataset label) for each colour index 0..classes-1.
+        "classIds": [int(c) for c in top],
         "points2d": [
             {"x": round(float(a), 4), "y": round(float(b), 4), "c": int(c)}
             for (a, b), c in zip(p2, colors, strict=True)
