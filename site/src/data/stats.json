@@ -119,12 +119,6 @@
 "se": 0.0056
 },
 {
-"name": "retrieval-aware projection",
-"dim": 512,
-"r": 0.7534,
-"se": 0.0056
-},
-{
 "name": "GPA-aligned mean",
 "dim": 512,
 "r": 0.749,

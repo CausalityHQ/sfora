@@ -35,7 +35,7 @@ same-arch SOTA on CUB-200 by more than 1%.
 | **HERD** (single model, 9 seeds) | 71.6 best / 70.5 mean (σ≈0.6) | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
-| SFORA (9 models → 512-dim, retrieval-aware fold) | 75.34 | single-model footprint, 100% of the pack — *transductive* (fold fit on the eval set) |
+| SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint, 99.4% of the pack (alignment beats PCA) |
 
 HERD's novel ingredient is a *training-procedure* change: a slow EMA momentum
 teacher supplies soft batch-neighborhood targets (relational knowledge
