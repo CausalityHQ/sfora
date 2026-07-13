@@ -86,7 +86,7 @@ const multiDataset = [
   { method: "Proxy Anchor", kind: "reported", cub: "69.7", cars: "87.7" },
   { method: "HIST", kind: "reported", cub: "71.4", cars: "89.6" },
   { method: "HERD — single (ours)", kind: "ours-single", cub: "71.6", cars: "87.1" },
-  { method: "SFORA — ensemble (ours)", kind: "ours", cub: "74.68", cars: "89.8" },
+  { method: "SFORA — ensemble (ours)", kind: "ours", cub: "74.68", cars: "90.3" },
 ];
 
 const refs = [
@@ -287,8 +287,8 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           On CUB the single HERD model already clears the baselines; on Cars it lands
           <b>between</b> them (0.871, under Proxy Anchor 0.885) — the is_norm+EMA recipe
           doesn't transfer as-is. The <b>SFORA ensemble</b> is best on both: 74.68 on CUB
-          (5-model) and <b>89.8 on Cars</b> (3-model), above reported Proxy Anchor (87.7)
-          and level with reported HIST (89.6). See it cluster-by-cluster in
+          (5-model) and <b>90.3 on Cars</b> (3-model), above both reported Proxy Anchor
+          (87.7) and reported HIST (89.6). See it cluster-by-cluster in
           <a href="#separates-cars">the Cars separation viz →</a>.
         </p>
       </section>
@@ -413,7 +413,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         heading="The same cars, three <em>different</em> spaces."
         subject="car"
         sub="Cars196, eight held-out test classes — car models the network never saw in training. The <em>same 360 photos</em> in every panel. On Cars, a single HERD model does <em>not</em> beat Proxy Anchor — only the pack does."
-        note={"An honest contrast with CUB: the HERD recipe was tuned on birds, and on Cars a single HERD model (0.871) sits just <em>below</em> Proxy Anchor (0.885). But the ensemble still wins — the 3-model <b>SFORA</b> pack reaches <b>0.898</b>, above reported Proxy Anchor (0.877) and level with reported HIST (0.896). Here the whole gain comes from the pack, not the single model."}
+        note={"An honest contrast with CUB: the HERD recipe was tuned on birds, and on Cars a single HERD model (0.871) sits just <em>below</em> Proxy Anchor (0.885). But the ensemble still wins — the 3-model <b>SFORA</b> pack reaches <b>0.903</b>, above reported Proxy Anchor (0.877) <em>and</em> reported HIST (0.896). Here the whole gain comes from the pack, not the single model."}
         panels={carsPanels}
         legend={carsLegend}
         meta={projCarsMeta}
