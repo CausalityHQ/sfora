@@ -366,8 +366,24 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .proj-layout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: clamp(1rem, 2.2vw, 1.8rem); align-items: start; }
 .proj-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: clamp(0.5rem, 1.2vw, 1rem); }
 .proj-card { margin: 0; display: flex; flex-direction: column; }
-.proj-head { display: flex; flex-direction: column; gap: 0.1rem; margin-bottom: 0.5rem; min-height: 2.5rem; }
+.proj-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.5rem; min-height: 2.5rem; }
+.proj-head-txt { display: flex; flex-direction: column; gap: 0.1rem; }
 .proj-head h3 { font-family: var(--sans); font-weight: 700; font-size: 0.92rem; letter-spacing: -0.01em; }
+.proj-expand { flex: none; width: 1.5rem; height: 1.5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink-faint); font-size: 0.9rem; line-height: 1; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+.proj-expand:hover { color: var(--ember-deep); border-color: var(--ember-deep); }
+
+/* Floating image tooltip that trails the cursor over a dot. */
+.proj-tip { position: fixed; top: 0; left: 0; z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.1s; background: var(--card); border: 1px solid var(--line-strong); border-radius: 10px; padding: 0.3rem; box-shadow: 0 8px 24px oklch(0 0 0 / 0.22); display: flex; flex-direction: column; gap: 0.25rem; width: 132px; }
+.proj-tip.on { opacity: 1; }
+.proj-tip img { width: 126px; height: 126px; object-fit: cover; border-radius: 7px; display: block; }
+.proj-tip span { font-size: 0.76rem; font-weight: 700; color: var(--ink); text-align: center; }
+
+/* Enlarge one space to explore its dots up close. */
+.proj-grid.has-enlarged .proj-card:not(.enlarged) { display: none; }
+.proj-card.enlarged { grid-column: 1 / -1; }
+.proj-card.enlarged .proj-svg { max-width: min(620px, 82vw); margin-inline: auto; }
+.proj-card.enlarged .proj-head { max-width: min(620px, 82vw); margin-inline: auto; width: 100%; }
+.proj-card.enlarged .proj-stats { max-width: min(620px, 82vw); margin-inline: auto; width: 100%; }
 .proj-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; color: var(--ink-faint); }
 .proj-card:last-child .proj-tag { color: var(--ember-deep); }
 .proj-svg { width: 100%; aspect-ratio: 1; display: block; background: var(--card); border: 1px solid var(--line); border-radius: 9px; touch-action: manipulation; }

@@ -354,8 +354,14 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
               return (
                 <figure class={`proj-card${p.pending ? " pending" : ""}`}>
                   <div class="proj-head">
-                    <span class="proj-tag">{panel.tag}</span>
-                    <h3>{p.label}</h3>
+                    <div class="proj-head-txt">
+                      <span class="proj-tag">{panel.tag}</span>
+                      <h3>{p.label}</h3>
+                    </div>
+                    {!p.pending && (
+                      <button type="button" class="proj-expand" data-expand
+                              aria-label={`Enlarge the ${p.label} space`} title="Enlarge">⤢</button>
+                    )}
                   </div>
                   {p.pending ? (
                     <div class="proj-svg proj-pending" role="img" aria-label={`${p.label} space — training on the GPU`}>
@@ -389,6 +395,12 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
             <p class="insp-cap"><b id="insp-name">The same photo, five spaces</b>
               <span id="insp-sub">point moves; identity doesn't.</span></p>
           </aside>
+        </div>
+
+        <!-- floating image tooltip that follows the cursor over a dot -->
+        <div class="proj-tip" id="proj-tip" aria-hidden="true">
+          <img id="tip-img" alt="" />
+          <span id="tip-name"></span>
         </div>
 
         <p class="proj-note">
