@@ -15,10 +15,43 @@ from sfora.image_benchmark import (
     _best_method_name,
     _projection_min_per_class,
     _stratified_query_indices,
+    image_query_gallery_retrieval_score,
     image_self_retrieval_score,
     run_image_benchmark,
     write_image_benchmark_report,
 )
+
+
+def test_query_gallery_retrieval_scores_cross_set() -> None:
+    # Gallery has two items per identity; queries are near their own identity's
+    # gallery vectors, so top-1 is always the same identity -> R@1 == 1.
+    rng = np.random.default_rng(0)
+    centers = {0: np.array([1.0, 0.0]), 1: np.array([0.0, 1.0]), 2: np.array([-1.0, 0.0])}
+    gallery_emb, gallery_lab, query_emb, query_lab = [], [], [], []
+    for label, center in centers.items():
+        for _ in range(2):
+            gallery_emb.append(center + 0.01 * rng.standard_normal(2))
+            gallery_lab.append(label)
+        query_emb.append(center + 0.01 * rng.standard_normal(2))
+        query_lab.append(label)
+    metrics = image_query_gallery_retrieval_score(
+        np.array(query_emb), np.array(query_lab), np.array(gallery_emb), np.array(gallery_lab)
+    )
+    assert metrics.recall_at_1 == 1.0
+    assert metrics.evaluated_queries == 3
+    assert 0.0 < metrics.map_at_r <= 1.0
+
+
+def test_query_gallery_retrieval_skips_queries_absent_from_gallery() -> None:
+    # Query label 9 has no gallery match -> skipped; the one matchable query scores.
+    gallery_emb = np.array([[1.0, 0.0], [1.0, 0.0]])
+    gallery_lab = np.array([0, 0])
+    query_emb = np.array([[1.0, 0.0], [0.0, 1.0]])
+    query_lab = np.array([0, 9])
+    metrics = image_query_gallery_retrieval_score(query_emb, query_lab, gallery_emb, gallery_lab)
+    assert metrics.evaluated_queries == 1
+    assert metrics.total_queries == 2
+    assert metrics.recall_at_1 == 1.0
 
 
 def _image_examples(prefix: str, labels: tuple[int, ...]) -> list[ImageExample]:

@@ -408,6 +408,104 @@ def image_self_retrieval_score(
     )
 
 
+def image_query_gallery_retrieval_score(
+    query_embeddings: NDArray[np.floating],
+    query_labels: NDArray[np.integer],
+    gallery_embeddings: NDArray[np.floating],
+    gallery_labels: NDArray[np.integer],
+    *,
+    query_limit: int | None = None,
+    random_state: int = 0,
+) -> ImageRetrievalMetrics:
+    """Retrieve each query against a disjoint gallery (the In-Shop / consumer-to-shop
+    protocol). Unlike self-retrieval there is no leave-one-out: the query set and the
+    gallery set are separate, so nothing is excluded from the ranking. A query counts
+    as relevant to a gallery item when they share the identity label."""
+    q_emb = np.asarray(query_embeddings, dtype=np.float64)
+    g_emb = np.asarray(gallery_embeddings, dtype=np.float64)
+    q_lab = np.asarray(query_labels, dtype=np.int64)
+    g_lab = np.asarray(gallery_labels, dtype=np.int64)
+    if q_emb.ndim != 2 or g_emb.ndim != 2:
+        raise ValueError("embeddings must be 2D arrays")
+    if q_emb.shape[1] != g_emb.shape[1]:
+        raise ValueError("query and gallery embeddings must share the feature dimension")
+    if q_emb.shape[0] != q_lab.shape[0] or g_emb.shape[0] != g_lab.shape[0]:
+        raise ValueError("embeddings and labels must contain the same number of examples")
+    if q_emb.shape[0] < 1 or g_emb.shape[0] < 1:
+        raise ValueError("query and gallery must each contain at least one example")
+    if query_limit is not None and query_limit < 1:
+        raise ValueError("query_limit must be at least 1")
+
+    query_indices = np.arange(q_emb.shape[0], dtype=np.int64)
+    if query_limit is not None and query_limit < query_indices.shape[0]:
+        query_indices = _stratified_query_indices(
+            q_lab, query_limit=query_limit, random_state=random_state
+        )
+
+    gallery_label_counts = {
+        int(label): int(count)
+        for label, count in zip(*np.unique(g_lab, return_counts=True), strict=True)
+    }
+    query_relevant_counts = np.asarray(
+        [gallery_label_counts.get(int(q_lab[index]), 0) for index in query_indices],
+        dtype=np.int64,
+    )
+    max_relevant_count = int(query_relevant_counts.max(initial=0))
+    top_k = min(g_emb.shape[0], max(8, max_relevant_count))
+
+    precision_at_1_values: list[float] = []
+    recall_at_k_values: dict[int, list[float]] = {1: [], 2: [], 4: [], 8: []}
+    average_precisions: list[float] = []
+    relevant_counts: list[int] = []
+    gallery_norms = np.sum(g_emb * g_emb, axis=1)
+    chunk_size = 1024
+    for start in range(0, query_indices.shape[0], chunk_size):
+        chunk_indices = query_indices[start : start + chunk_size]
+        chunk = q_emb[chunk_indices]
+        distances = (
+            np.sum(chunk * chunk, axis=1, keepdims=True)
+            + gallery_norms[np.newaxis, :]
+            - (2.0 * chunk @ g_emb.T)
+        )
+        distances = np.maximum(distances, 0.0)
+        if top_k < g_emb.shape[0]:
+            top_indices = np.argpartition(distances, kth=top_k - 1, axis=1)[:, :top_k]
+            top_distances = np.take_along_axis(distances, top_indices, axis=1)
+            top_order = np.argsort(top_distances, axis=1, kind="stable")
+            orders = np.take_along_axis(top_indices, top_order, axis=1)
+        else:
+            orders = np.argsort(distances, axis=1, kind="stable")
+        for row_position, query_index in enumerate(chunk_indices):
+            matches = g_lab == q_lab[query_index]
+            relevant_count = int(matches.sum())
+            if relevant_count == 0:
+                continue
+            ordered_matches = matches[orders[row_position]]
+            precision_at_1_values.append(float(ordered_matches[0]))
+            for k in recall_at_k_values:
+                recall_at_k_values[k].append(float(bool(ordered_matches[:k].any())))
+            top_r_matches = ordered_matches[:relevant_count]
+            relevant_ranks = np.flatnonzero(top_r_matches) + 1
+            precisions = [float(top_r_matches[:rank].sum() / rank) for rank in relevant_ranks]
+            average_precisions.append(float(sum(precisions) / relevant_count))
+            relevant_counts.append(relevant_count)
+
+    if not average_precisions:
+        raise ValueError("no query shares an identity label with any gallery item")
+
+    return ImageRetrievalMetrics(
+        precision_at_1=float(np.mean(precision_at_1_values)),
+        recall_at_1=float(np.mean(recall_at_k_values[1])),
+        recall_at_2=float(np.mean(recall_at_k_values[2])),
+        recall_at_4=float(np.mean(recall_at_k_values[4])),
+        recall_at_8=float(np.mean(recall_at_k_values[8])),
+        map_at_r=float(np.mean(average_precisions)),
+        mean_relevant_items=float(np.mean(relevant_counts)),
+        evaluated_queries=len(average_precisions),
+        total_queries=int(q_emb.shape[0]),
+    )
+
+
 def objective_display_name(objective: str) -> str:
     """Return the human-readable objective name used in reports."""
     names = {
