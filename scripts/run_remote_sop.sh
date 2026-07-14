@@ -5,7 +5,8 @@
 # ONE HERD run to prove the pipeline scales to 60k images / 11.3k classes and to
 # get a first honest R@1 before committing the full HERD+PA+HIST multi-seed headline.
 #
-# SOP has ~5 images/class, so samples-per-class 4 (vs 8 on CUB) and min-per-class 2.
+# SOP has ~5 images/class, so samples-per-class 4 (vs 8 on CUB). image-end-to-end
+# has no min-per-class filter; the sampler tolerates small classes (takes fewer).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 SFORA=.venv/bin/sfora
@@ -16,7 +17,7 @@ echo "=== [$(date +%H:%M:%S)] SOP HERD validation (seed 0) ==="
   --protocol proxy-anchor-resnet50-512 --dataset-name sop \
   --objectives hist --proxy-count-per-class 0 --embedding-layer-norm \
   --ema-distill-weight 1.0 --ema-momentum 0.999 --ema-distill-tau 0.1 \
-  --samples-per-class 4 --min-per-class 2 --hist-lr-ds 0.03 \
+  --samples-per-class 4 --hist-lr-ds 0.03 \
   --warmup-epochs 1 --lr-step-epochs 15 --train-epochs 40 \
   --eval-test-interval-epochs 5 --seed 0 \
   --save-test-embeddings reports/emb/sop_herd_seed0.npz \

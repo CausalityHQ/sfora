@@ -37,7 +37,7 @@ esac
 echo "=== [$(date +%H:%M:%S)] SOP Proxy Anchor (seed 0) ==="
 "$SFORA" image-end-to-end \
   --protocol proxy-anchor-resnet50-512 --dataset-name sop --objectives proxy_anchor \
-  --proxy-count-per-class 1 --samples-per-class 4 --min-per-class 2 --hist-lr-ds 0.1 \
+  --proxy-count-per-class 1 --samples-per-class 4 --hist-lr-ds 0.1 \
   --warmup-epochs 1 --lr-step-epochs 15 --train-epochs 40 \
   --eval-test-interval-epochs 5 --seed 0 \
   --output reports/generated/sop_pa_seed0.json 2>&1 | tee logs/sop_pa_seed0.log
@@ -46,7 +46,7 @@ echo "=== [$(date +%H:%M:%S)] SOP Proxy Anchor (seed 0) ==="
 echo "=== [$(date +%H:%M:%S)] SOP plain HIST (seed 0) ==="
 "$SFORA" image-end-to-end \
   --protocol proxy-anchor-resnet50-512 --dataset-name sop --objectives hist \
-  --proxy-count-per-class 0 --samples-per-class 4 --min-per-class 2 --hist-lr-ds 0.03 \
+  --proxy-count-per-class 0 --samples-per-class 4 --hist-lr-ds 0.03 \
   --warmup-epochs 1 --lr-step-epochs 15 --train-epochs 40 \
   --eval-test-interval-epochs 5 --seed 0 \
   --output reports/generated/sop_hist_seed0.json 2>&1 | tee logs/sop_hist_seed0.log
