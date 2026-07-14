@@ -85,7 +85,27 @@ main, .topbar, footer { position: relative; z-index: 1; }
   transition: background 0.2s, transform 0.2s;
 }
 .topbar nav a.cta:hover { background: var(--ember-deep); transform: translateY(-1px); }
-@media (max-width: 720px) { .topbar nav a:not(.cta):not(.ghost) { display: none; } }
+.nav-links { display: flex; align-items: center; gap: clamp(0.7rem, 2vw, 1.7rem); }
+.mobnav { display: none; }
+@media (max-width: 720px) {
+  /* Collapse the in-page anchors into a native <details> dropdown instead of
+     hiding them outright — mobile keeps the section jump-list. */
+  .nav-links { display: none; }
+  .mobnav { display: block; position: relative; }
+  .mobnav > summary { list-style: none; cursor: pointer; color: var(--ink-soft); font-weight: 500; }
+  .mobnav > summary::-webkit-details-marker { display: none; }
+  .mobnav > summary::after { content: " ▾"; color: var(--ink-faint); }
+  .mobnav[open] > summary { color: var(--ink); }
+  .mobnav-panel {
+    position: absolute; right: 0; top: calc(100% + 0.7rem);
+    display: flex; flex-direction: column; min-width: 12rem;
+    background: var(--card); border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 0.3rem 0.8rem; box-shadow: 0 12px 30px oklch(0 0 0 / 0.2); z-index: 40;
+  }
+  .mobnav-panel a { padding: 0.6rem 0; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+  .mobnav-panel a:last-child { border-bottom: none; }
+  .mobnav-panel a:hover { color: var(--ink); }
+}
 
 /* ── hero ── */
 .hero {
@@ -331,6 +351,13 @@ footer .links a:hover { color: oklch(0.75 0.13 45); }
 .linechart .xtick { text-anchor: middle; }
 .linechart .axlbl { fill: var(--ink-faint); font-size: 8px; text-anchor: middle; font-family: var(--sans); }
 .linechart .ln { fill: none; stroke: var(--c); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+/* Dash a series so it reads apart from its neighbour without relying on hue
+   (HERD/HIST are a red/green pair otherwise ambiguous for colour-blind readers). */
+.linechart .ln.dashed { stroke-dasharray: 6 4; }
+.chart-legend .sw.dashed, .rpt-legend .sw.dashed {
+  background: repeating-linear-gradient(90deg, var(--sw) 0 3px, transparent 3px 5px);
+  border-radius: 0;
+}
 .linechart .whisker { stroke: var(--c, var(--ink-soft)); stroke-width: 1.4; opacity: 0.7; }
 .linechart .band { fill: var(--c); opacity: 0.13; stroke: none; }
 .linechart .dot, .linechart .best { fill: var(--c); stroke: var(--card); stroke-width: 1.2; }

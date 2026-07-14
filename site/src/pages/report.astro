@@ -108,8 +108,8 @@ const references = [
           prototypes define a Mahalanobis softmax, and a hypergraph neural network
           propagates class structure across the batch — a <em>relational</em> signal.
           <b>PFML</b> [3] instead borrows an electrostatic potential field. In our hands
-          (a single controlled harness) Proxy Anchor reproduces (0.695), HIST lands near
-          0.70 rather than the reported 0.714, and faithful PFML <em>collapses</em> during
+          (a single controlled harness) Proxy Anchor reproduces (0.695), HIST tops out near
+          0.701 (best) rather than the reported 0.714, and faithful PFML <em>collapses</em> during
           training — consistent with the community's broader reproducibility concerns [7].
         </p>
         <p>
@@ -155,7 +155,7 @@ const references = [
           unseen classes. It is the first lever (of ~16 loss-geometry tweaks we tried) that
           moved CUB single-model R@1 off the ~0.71 plateau: HERD reaches
           <b>{(stats.single.mean * 100).toFixed(1)} ± {(stats.single.std * 100).toFixed(1)}</b>
-          mean over {stats.single.n_seeds} seeds (best 0.716), versus HIST's ~0.70.
+          mean over {stats.single.n_seeds} seeds (best 0.716), versus HIST's ~0.701 (best).
         </p>
 
         <!-- ─────────────────────────  3. SFORA  ───────────────────────── -->
@@ -259,7 +259,7 @@ const references = [
             <text class="pfml-lbl" x={C.w - C.mr} y={gy(0.734, 0.695, 0.75) - 5}>reported PFML 0.734</text>
             {[["herd", "#c0562f"], ["hist", "#3f7d5a"]].map(([k, col]) => (
               <g>
-                <polyline class="ln" style={`--c:${col}`}
+                <polyline class={`ln ${k === "hist" ? "dashed" : ""}`} style={`--c:${col}`}
                   points={(stats.histVsHerd as any)[k].map((d: any) => `${gx(d.n, 1, 5)},${gy(d.r, 0.695, 0.75)}`).join(" ")} />
                 {(stats.histVsHerd as any)[k].map((d: any) => (
                   <circle class="dot" style={`--c:${col}`} cx={gx(d.n, 1, 5)} cy={gy(d.r, 0.695, 0.75)} r="3" />
@@ -271,7 +271,7 @@ const references = [
           </svg>
           <ul class="rpt-legend">
             <li><span class="sw" style="--sw:#c0562f"></span>SFORA-HERD <b>0.7468</b></li>
-            <li><span class="sw" style="--sw:#3f7d5a"></span>SFORA-HIST <b>0.7443</b></li>
+            <li><span class="sw dashed" style="--sw:#3f7d5a"></span>SFORA-HIST <b>0.7443</b></li>
           </ul>
           <p class="rpt-cap">
             The HERD pack clears reported PFML (0.734) at <b>3</b> models, the plain-HIST pack at
@@ -297,7 +297,7 @@ const references = [
               points={[...herdBand.map((p: any) => `${gx(p.epoch, 5, 60)},${gy(p.mean + p.std, cvYlo, cvYhi)}`),
                        ...herdBand.slice().reverse().map((p: any) => `${gx(p.epoch, 5, 60)},${gy(p.mean - p.std, cvYlo, cvYhi)}`)].join(" ")} />
             {curveEntries.map(([name, c]) => (
-              <polyline class="ln" style={`--c:${curveColors[name]}`}
+              <polyline class={`ln ${name === "HIST" ? "dashed" : ""}`} style={`--c:${curveColors[name]}`}
                 points={c.test.map((p: any) => `${gx(p.epoch, 5, 60)},${gy(p.r, cvYlo, cvYhi)}`).join(" ")} />
             ))}
             {[10, 20, 30, 40, 50, 60].map((e) => (<text class="xtick" x={gx(e, 5, 60)} y={C.h - 24}>{e}</text>))}
@@ -305,7 +305,7 @@ const references = [
           </svg>
           <ul class="rpt-legend">
             {curveEntries.map(([name, c]) => (
-              <li><span class="sw" style={`--sw:${curveColors[name]}`}></span>{name} <b>{(c.bestR * 100).toFixed(1)}</b></li>
+              <li><span class={`sw ${name === "HIST" ? "dashed" : ""}`} style={`--sw:${curveColors[name]}`}></span>{name} <b>{(c.bestR * 100).toFixed(1)}</b></li>
             ))}
           </ul>
         </div>
@@ -329,13 +329,13 @@ const references = [
           baselines; on Cars196 it does <b>not</b> — it lands between Proxy Anchor (0.885) and
           HIST — because the <code>is_norm</code>+EMA recipe was tuned on birds. The
           <b>ensemble wins on both</b>: CUB 0.7534, Cars 0.903 (above reported Proxy Anchor
-          87.7 and HIST 89.6). <sup>†</sup> did not reproduce for us: HIST → ~0.70, PFML collapses.
+          87.7 and HIST 89.6). <sup>†</sup> did not reproduce for us: HIST → ~0.701 best, PFML collapses.
         </p>
 
         <!-- ─────────────────────────  5. Honest science  ───────────────────────── -->
         <h2 id="honesty">5 · Honest science — what didn't work, what doesn't transfer</h2>
         <ul class="rpt-list">
-          <li><b>Reproducibility.</b> Proxy Anchor reproduces cleanly (0.695). HIST tops out ~0.697 vs the reported 0.714. Faithful PFML collapses during training. We still compare against the papers' <em>published</em> figures — the harder bar.</li>
+          <li><b>Reproducibility.</b> Proxy Anchor reproduces cleanly (0.695). HIST tops out ~0.701 best (0.698 mean over 5 seeds) vs the reported 0.714. Faithful PFML collapses during training. We still compare against the papers' <em>published</em> figures — the harder bar.</li>
           <li><b>Transfer.</b> HERD's single-model gain does not transfer to Cars196; only the ensemble does. We report this rather than hide it.</li>
           <li><b>Transductive folds.</b> The PCA and Procrustes/GPA compression numbers are fit on the test embeddings and are an upper bound; the concat and single-model numbers are not.</li>
           <li><b>Negative results.</b> ~16 loss-geometry tweaks (sub-centre proxies, Gaussian-potential uniformity, un-normalised physics potentials, multi-crop/DINO with frozen BatchNorm) did not bind or collapsed; only the EMA-teacher relational signal moved the plateau.</li>

@@ -80,6 +80,16 @@ const benchmarks = [
   { method: "SFORA — 9-model ensemble", r: 75.34, kind: "ours", repro: "our run", note: "scales further; +1.9 over PFML" },
 ];
 
+// Single source of truth for the reproduced-vs-reported numbers, so the headline
+// table's repro column and the Honest-Science table cannot drift apart (they did:
+// HIST once read 70.1 here and 0.697 in the report). HIST "ours" is best-over-
+// training (0.701 → 70.1), matching the protocol used for every other row.
+const reproTable = [
+  { method: "Proxy Anchor", reported: "69.7", ours: "69.5", ok: true, status: "✓ reproduces" },
+  { method: "HIST", reported: "71.4", ours: "70.1", ok: false, status: "✗ not reproduced" },
+  { method: "PFML", reported: "73.4", ours: "collapses", ok: false, status: "✗ not reproduced" },
+];
+
 // Two datasets side by side. CUB: HERD's recipe was tuned here and the single
 // model already beats the baselines. Cars196: the single model does NOT beat
 // Proxy Anchor — the recipe doesn't transfer as-is — but the ensemble still wins.
@@ -134,13 +144,27 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         <svg class="paw" viewBox="20 14 60 72" aria-hidden="true"><g fill="currentColor"><ellipse cx="30" cy="42" rx="8.5" ry="12" transform="rotate(-20 30 42)"/><ellipse cx="43" cy="31" rx="8.5" ry="13"/><ellipse cx="57" cy="31" rx="8.5" ry="13"/><ellipse cx="70" cy="42" rx="8.5" ry="12" transform="rotate(20 70 42)"/><path d="M50 52c9 0 16 6 18 13 2 7-1 14-8 16-3 1-6 0-10 0s-7 1-10 0c-7-2-10-9-8-16 2-7 9-13 18-13z"/></g></svg> sfora
       </a>
       <nav>
-        <a href="#result">Result</a>
-        <a href="#datasets">Datasets</a>
-        <a href="#explore">Explore</a>
-        <a href="#separates">Separation</a>
-        <a href="#eli5">Plain English</a>
-        <a href="#herd">Method</a>
-        <a href="#science">Honest science</a>
+        <div class="nav-links">
+          <a href="#result">Result</a>
+          <a href="#datasets">Datasets</a>
+          <a href="#explore">Explore</a>
+          <a href="#separates">Separation</a>
+          <a href="#eli5">Plain English</a>
+          <a href="#herd">Method</a>
+          <a href="#science">Honest science</a>
+        </div>
+        <details class="mobnav">
+          <summary aria-label="Jump to a section">Sections</summary>
+          <div class="mobnav-panel">
+            <a href="#result">Result</a>
+            <a href="#datasets">Datasets</a>
+            <a href="#explore">Explore</a>
+            <a href="#separates">Separation</a>
+            <a href="#eli5">Plain English</a>
+            <a href="#herd">Method</a>
+            <a href="#science">Honest science</a>
+          </div>
+        </details>
         <a class="ghost" href={`${baseUrl}/report`.replace(/\/{2,}/g, "/")}>Read the report →</a>
         <a class="cta" href="https://github.com/CausalityHQ/sfora">GitHub</a>
       </nav>
@@ -329,7 +353,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
               ))}
               {curveEntries.map(([name, c]) => (
                 <g>
-                  <polyline class="ln" style={`--c:${curveColors[name]}`}
+                  <polyline class={`ln ${name === "HIST" ? "dashed" : ""}`} style={`--c:${curveColors[name]}`}
                     points={c.test.map((p: any) => `${px(p.epoch, 5, 60)},${py(p.r, curveYlo, curveYhi)}`).join(" ")} />
                   <circle class="best" style={`--c:${curveColors[name]}`}
                     cx={px((c.bestEpoch ?? 60), 5, 60)} cy={py(c.bestR, curveYlo, curveYhi)} r="3" />
@@ -339,7 +363,7 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
             </svg>
             <ul class="chart-legend">
               {curveEntries.map(([name, c]) => (
-                <li><span class="sw" style={`--sw:${curveColors[name]}`}></span>{name}
+                <li><span class={`sw ${name === "HIST" ? "dashed" : ""}`} style={`--sw:${curveColors[name]}`}></span>{name}
                   <b>{(c.bestR * 100).toFixed(1)}</b><small>best @ ep {c.bestEpoch}</small></li>
               ))}
             </ul>
@@ -625,8 +649,8 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         </div>
         <div class="code-wrap">
           <div class="code-head"><span></span><span></span><span></span> train the pack &amp; ensemble it</div>
-          <pre><code><span class="c"># 1 · train N independently-seeded HERD models (each saves its best embeddings)</span>
-<span class="k">for</span> S <span class="k">in</span> 0 1 2 3 4; <span class="k">do</span>
+          <pre><code><span class="c"># 1 · train the 9-model pack (each seed saves its best embeddings)</span>
+<span class="k">for</span> S <span class="k">in</span> 0 1 2 3 4 5 6 7 8; <span class="k">do</span>
   uv run --extra research <span class="fn">sfora</span> image-end-to-end \
     --protocol proxy-anchor-resnet50-512 --dataset-name cub \
     --objectives hist --embedding-layer-norm \
@@ -636,9 +660,9 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
     --save-test-embeddings <span class="s2">reports/emb/ema_seed$S.npz</span>
 <span class="k">done</span>
 
-<span class="c"># 2 · feature-concatenation ensemble → SOTA-beating Recall@1</span>
+<span class="c"># 2 · feature-concatenation ensemble → the headline Recall@1</span>
 uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
-<span class="o">#=> ENSEMBLE of 5 models: R@1=0.7468</span></code></pre>
+<span class="o">#=> ENSEMBLE of 9 models: R@1=0.7534  (just 5 already clears SOTA at 0.7468)</span></code></pre>
         </div>
       </section>
 
@@ -658,18 +682,12 @@ uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
                 <tr><th>Method</th><th class="r">Reported</th><th class="r">Ours</th><th>Status</th></tr>
               </thead>
               <tbody>
-                <tr class="ok">
-                  <td>Proxy Anchor</td><td class="r">69.7</td><td class="r">69.5</td>
-                  <td><span class="badge ok">✓ reproduces</span></td>
-                </tr>
-                <tr class="no">
-                  <td>HIST</td><td class="r">71.4</td><td class="r">70.1</td>
-                  <td><span class="badge no">✗ not reproduced</span></td>
-                </tr>
-                <tr class="no">
-                  <td>PFML</td><td class="r">73.4</td><td class="r">collapses</td>
-                  <td><span class="badge no">✗ not reproduced</span></td>
-                </tr>
+                {reproTable.map((row) => (
+                  <tr class={row.ok ? "ok" : "no"}>
+                    <td>{row.method}</td><td class="r">{row.reported}</td><td class="r">{row.ours}</td>
+                    <td><span class={`badge ${row.ok ? "ok" : "no"}`}>{row.status}</span></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
             <p class="foot">

@@ -37,6 +37,8 @@
 .rpt-chart .xtick { text-anchor: middle; }
 .rpt-chart .axlbl { fill: var(--ink-faint); font-size: 11px; text-anchor: middle; font-family: var(--sans); }
 .rpt-chart .ln { fill: none; stroke: var(--c); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+/* Dash the HIST series so it reads apart from HERD without relying on red-vs-green. */
+.rpt-chart .ln.dashed { stroke-dasharray: 7 5; }
 .rpt-chart .dot { fill: var(--c); stroke: var(--card); stroke-width: 1.5; }
 .rpt-chart .whisker { stroke: var(--c, var(--ink-soft)); stroke-width: 1.6; opacity: 0.75; }
 .rpt-chart .cap { stroke: var(--c, var(--ink-soft)); stroke-width: 1.6; opacity: 0.75; }
