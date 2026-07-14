@@ -1428,6 +1428,13 @@ def image_end_to_end(
         float | None,
         typer.Option(help="HIST hypergraph incidence scale (alpha)."),
     ] = None,
+    hist_var_floor: Annotated[
+        float | None,
+        typer.Option(
+            help="Lower clamp on HIST class log-variances (0.0 = faithful relu6 / "
+            "variance>=1; negative lets classes cluster tighter)."
+        ),
+    ] = None,
     hist_hidden: Annotated[
         int | None,
         typer.Option(help="HIST HGNN hidden dimension."),
@@ -1893,6 +1900,9 @@ def image_end_to_end(
                 ),
                 "hist_tau": hist_tau if hist_tau is not None else base_config.hist_tau,
                 "hist_alpha": hist_alpha if hist_alpha is not None else base_config.hist_alpha,
+                "hist_var_floor": (
+                    hist_var_floor if hist_var_floor is not None else base_config.hist_var_floor
+                ),
                 "hist_hidden": hist_hidden if hist_hidden is not None else base_config.hist_hidden,
                 "hist_lr_ds": hist_lr_ds if hist_lr_ds is not None else base_config.hist_lr_ds,
                 "hist_lr_hgnn_factor": (

@@ -159,6 +159,11 @@ class ImageEndToEndConfig(BaseModel):
     hist_alpha: float = Field(default=0.9, gt=0.0)
     hist_hidden: int = Field(default=512, ge=2)
     hist_lambda_s: float = Field(default=1.0, ge=0.0)
+    # Lower clamp on the class log-variances. The faithful HIST port uses relu6,
+    # i.e. a floor of 0.0 (variance >= 1); lowering it lets a class cluster tighter
+    # than unit variance, an ablation lever for fine-grained retrieval. Upper clamp
+    # stays at 6.0 (relu6's ceiling) for stability.
+    hist_var_floor: float = Field(default=0.0, le=6.0)
     hist_lr_ds: float = Field(default=1.0e-1, gt=0.0)
     hist_lr_hgnn_factor: float = Field(default=10.0, gt=0.0)
     gsi_weight: float = Field(default=0.3, ge=0.0)
@@ -1719,6 +1724,7 @@ def _loss_for_objective(
             tau=config.hist_tau,
             alpha=config.hist_alpha,
             lambda_s=config.hist_lambda_s,
+            var_floor=config.hist_var_floor,
             torch_module=torch_module,
         )
         if config.uniformity_weight > 0.0:
@@ -2533,9 +2539,14 @@ def _hist_loss(
     tau: float,
     alpha: float,
     lambda_s: float,
+    var_floor: float,
     torch_module: Any,
 ) -> Any:
-    """HIST total loss = distribution loss + lambda_s * hypergraph-CE (faithful port)."""
+    """HIST total loss = distribution loss + lambda_s * hypergraph-CE (faithful port).
+
+    ``var_floor`` is the lower clamp on log-variances; 0.0 reproduces the original
+    ``relu6`` (variance >= 1), a negative value lets classes tighten below it.
+    """
     functional = torch_module.nn.functional
     device = embeddings.device
     target = torch_module.tensor(
@@ -2546,7 +2557,8 @@ def _hist_loss(
     nb_classes = int(hist_module.means.shape[0])
     features = functional.normalize(embeddings, p=2, dim=-1)
     means = functional.normalize(hist_module.means, p=2, dim=-1)
-    log_vars = functional.relu6(hist_module.log_vars)
+    # relu6 == clamp(0, 6); var_floor generalises the lower bound (0.0 = faithful).
+    log_vars = hist_module.log_vars.clamp(float(var_floor), 6.0)
     covariances = torch_module.exp(log_vars).unsqueeze(0)  # (1, C, F)
     diff = features.unsqueeze(1) - means.unsqueeze(0)  # (N, C, F)
     distance = (diff.pow(2) / covariances).sum(dim=-1)  # (N, C) squared Mahalanobis

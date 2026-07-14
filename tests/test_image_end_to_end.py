@@ -655,6 +655,7 @@ def test_hist_loss_trains_and_flows_gradients_to_embeddings_and_modules() -> Non
             tau=8.0,
             alpha=0.9,
             lambda_s=1.0,
+            var_floor=0.0,
             torch_module=torch,
         )
         loss.backward()
@@ -666,6 +667,54 @@ def test_hist_loss_trains_and_flows_gradients_to_embeddings_and_modules() -> Non
         optimizer.step()
         losses.append(float(loss.detach()))
     assert losses[-1] < losses[0]
+
+
+def test_hist_var_floor_default_matches_relu6_and_knob_changes_it() -> None:
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _build_hist_module, _hist_loss
+
+    torch.manual_seed(0)
+    raw = torch.randn(12, 8, requires_grad=False)
+    labels = torch.tensor([0, 1, 2] * 4)
+    label_to_index = {0: 0, 1: 1, 2: 2}
+    module = _build_hist_module(nb_classes=3, sz_embed=8, hidden=8, torch_module=torch)
+    # Force some negative log-variances so the floor actually bites.
+    with torch.no_grad():
+        module.log_vars.copy_(torch.full_like(module.log_vars, -2.0))
+
+    def loss_with(floor: float) -> float:
+        return float(
+            _hist_loss(
+                raw,
+                labels,
+                hist_module=module,
+                label_to_index=label_to_index,
+                tau=8.0,
+                alpha=0.9,
+                lambda_s=1.0,
+                var_floor=floor,
+                torch_module=torch,
+            ).detach()
+        )
+
+    faithful = loss_with(0.0)
+    relu6_ref = float(
+        _hist_loss(
+            raw,
+            labels,
+            hist_module=module,
+            label_to_index=label_to_index,
+            tau=8.0,
+            alpha=0.9,
+            lambda_s=1.0,
+            var_floor=0.0,
+            torch_module=torch,
+        ).detach()
+    )
+    # Default floor 0.0 clamps the -2.0 log-vars up to 0.0 exactly like relu6.
+    assert faithful == relu6_ref
+    # A negative floor lets the -2.0 log-vars through, changing the loss.
+    assert loss_with(-3.0) != faithful
 
 
 def test_hist_objective_end_to_end_runs() -> None:
