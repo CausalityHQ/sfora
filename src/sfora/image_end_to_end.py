@@ -1698,6 +1698,679 @@ def _group_potential_loss(
     return loss
 
 
+def _apply_teacher_similarity_regularization(loss: Any, kwargs: dict[str, Any]) -> Any:
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    embeddings = kwargs["embeddings"]
+    teacher_embeddings = kwargs["teacher_embeddings"]
+    torch_module = kwargs["torch_module"]
+    if config.teacher_similarity_weight > 0.0 and teacher_embeddings is not None:
+        loss = loss + config.teacher_similarity_weight * _pairwise_similarity_preservation_loss(
+            embeddings,
+            teacher_embeddings,
+            torch_module=torch_module,
+        )
+    return loss
+
+
+def _hist_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    hist_module = kwargs["hist_module"]
+    hist_label_to_index = kwargs["hist_label_to_index"]
+    if hist_module is None or hist_label_to_index is None:
+        raise ValueError("the hist objective requires an attached hist_module")
+    hist_loss = _hist_loss(
+        embeddings,
+        labels,
+        hist_module=hist_module,
+        label_to_index=hist_label_to_index,
+        tau=config.hist_tau,
+        alpha=config.hist_alpha,
+        lambda_s=config.hist_lambda_s,
+        var_floor=config.hist_var_floor,
+        torch_module=torch_module,
+    )
+    if config.uniformity_weight > 0.0:
+        # Novel: add a thermodynamic Gaussian-potential uniformity term on the
+        # backbone embedding on top of HIST's hypergraph structure -- explicit
+        # zero-shot spread that HIST's relational loss does not directly enforce.
+        hist_loss = hist_loss + config.uniformity_weight * _gaussian_potential_uniformity_loss(
+            embeddings,
+            t=config.uniformity_t,
+            torch_module=torch_module,
+        )
+    return hist_loss
+
+
+def _hist_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    hist_module = kwargs["hist_module"]
+    hist_label_to_index = kwargs["hist_label_to_index"]
+    # Fused single-model loss: HIST hypergraph + Proxy Anchor, so one model gets
+    # both HIST's per-class prototypes and PA's proxy margins. The EMA-teacher
+    # relational distillation is added on top by the caller (ungated), giving a
+    # single method that should be strong on every dataset.
+    if hist_module is None or hist_label_to_index is None:
+        raise ValueError("the hist_proxy_anchor objective requires an attached hist_module")
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            "the hist_proxy_anchor objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    hist_term = _hist_loss(
+        embeddings,
+        labels,
+        hist_module=hist_module,
+        label_to_index=hist_label_to_index,
+        tau=config.hist_tau,
+        alpha=config.hist_alpha,
+        lambda_s=config.hist_lambda_s,
+        var_floor=config.hist_var_floor,
+        torch_module=torch_module,
+    )
+    proxy_term = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    return hist_term + config.proxy_fusion_weight * proxy_term
+
+
+def _triplet_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _semi_hard_triplet_loss(
+        embeddings,
+        labels,
+        margin=config.triplet_margin,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _batch_hard_triplet_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _batch_hard_triplet_loss(
+        embeddings,
+        labels,
+        margin=config.triplet_margin,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _supcon_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _supervised_contrastive_loss(
+        embeddings,
+        labels,
+        contrast_embeddings=embeddings,
+        contrast_labels=labels,
+        temperature=config.temperature,
+        torch_module=torch_module,
+        exclude_self=True,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _group_supcon_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _group_supcon_xbm_radius_loss(
+        embeddings,
+        labels,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=None,
+        proxy_labels=None,
+        point_weight=config.point_weight,
+        group_weight=config.group_weight,
+        xbm_weight=0.0,
+        radius_weight=0.0,
+        radius_target=config.radius_target,
+        proxy_weight=0.0,
+        potential_weight=0.0,
+        potential_delta=config.potential_delta,
+        potential_alpha=config.potential_alpha,
+        group_size=config.group_size,
+        temperature=config.temperature,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _group_supcon_xbm_radius_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    memory_embeddings = kwargs["memory_embeddings"]
+    memory_labels = kwargs["memory_labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _group_supcon_xbm_radius_loss(
+        embeddings,
+        labels,
+        memory_embeddings=memory_embeddings,
+        memory_labels=memory_labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        point_weight=config.point_weight,
+        group_weight=config.group_weight,
+        xbm_weight=config.xbm_weight,
+        radius_weight=config.radius_weight,
+        radius_target=config.radius_target,
+        proxy_weight=config.proxy_weight,
+        potential_weight=config.potential_weight,
+        potential_delta=config.potential_delta,
+        potential_alpha=config.potential_alpha,
+        group_size=config.group_size,
+        temperature=config.temperature,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _pfml_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _pfml_potential_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        delta=config.potential_delta,
+        alpha=config.potential_alpha,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_group_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    loss = _proxy_anchor_group_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        tau_assign=config.proxy_anchor_group_tau_assign,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_synthesis_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    generator = kwargs["generator"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    loss = _proxy_synthesis_proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        ratio=config.synthesis_ratio,
+        beta_alpha=config.synthesis_beta_alpha,
+        generator=generator,
+        group_mix=config.synthesis_group_mix,
+        pair_selection=config.synthesis_pair_selection,
+        pair_temperature=config.synthesis_pair_temperature,
+        torch_module=torch_module,
+    )
+    if config.synthesis_compactness_weight > 0.0:
+        # Novel complement: Proxy Synthesis densifies boundaries (helps R@1) but
+        # fragments class neighbourhoods (measured -MAP@R). A per-class compactness
+        # term pulls members toward their centroid, targeting exactly that cost so
+        # the combination can beat vanilla PS on both metrics.
+        loss = loss + config.synthesis_compactness_weight * _radius_penalty(
+            _normalize(embeddings, torch_module),
+            labels,
+            target=config.synthesis_compactness_target,
+            torch_module=torch_module,
+        )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_bgsi_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    step = cast(int, kwargs["step"])
+    steps_per_epoch = cast(int, kwargs["steps_per_epoch"])
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    generator = kwargs["generator"]
+    bgsi_state = cast(BGSIClassMeanState | None, kwargs["bgsi_state"])
+    gsi_step_diagnostics = cast(list[dict[str, float]] | None, kwargs["gsi_step_diagnostics"])
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    loss = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    if config.bgsi_weight > 0.0 and step > config.bgsi_start_epoch * steps_per_epoch:
+        axes_by_class = _bgsi_axes_for_mode(
+            embeddings,
+            labels,
+            axis_mode=config.bgsi_axis_mode,
+            top_k=config.bgsi_top_k,
+            temperature=config.bgsi_temperature,
+            generator=generator,
+            ema_state=bgsi_state,
+            min_axis_observations=config.bgsi_min_axis_observations,
+            use_axis_agreement_gate=config.bgsi_use_axis_agreement_gate,
+            axis_agreement=config.bgsi_axis_agreement,
+            torch_module=torch_module,
+        )
+        bgsi_loss, diagnostics = _gsi_interference_loss_with_diagnostics(
+            embeddings,
+            labels,
+            axes_by_class=axes_by_class,
+            floor=config.bgsi_floor,
+            variance_floor=config.bgsi_variance_floor,
+            min_group_size=config.bgsi_min_group_size,
+            torch_module=torch_module,
+        )
+        if diagnostics is not None and gsi_step_diagnostics is not None:
+            diagnostics.update(
+                _bgsi_axis_step_diagnostics(
+                    labels,
+                    axes_by_class=axes_by_class,
+                    axis_mode=config.bgsi_axis_mode,
+                    bgsi_state=bgsi_state,
+                    min_axis_observations=config.bgsi_min_axis_observations,
+                    use_axis_agreement_gate=config.bgsi_use_axis_agreement_gate,
+                    torch_module=torch_module,
+                )
+            )
+            gsi_step_diagnostics.append(diagnostics)
+        loss = loss + config.bgsi_weight * bgsi_loss
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _bio_physical_bond_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _bio_physical_bond_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        sigma=config.lj_sigma,
+        power=config.lj_power,
+        niche_weight=config.bond_niche_weight,
+        antico_eps=config.antico_eps,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_antico_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    loss = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    if config.antico_weight > 0.0:
+        # Anti-collapse: MAXIMISE the coding rate (log-volume) of the batch
+        # features and/or proxies -> subtract weight * R from the loss.
+        rate = embeddings.sum() * 0.0
+        if config.antico_target in {"feature", "both"}:
+            rate = rate + _coding_rate(
+                _normalize(embeddings, torch_module),
+                eps=config.antico_eps,
+                torch_module=torch_module,
+            )
+        if config.antico_target in {"proxy", "both"}:
+            rate = rate + _coding_rate(
+                _normalize(proxy_embeddings, torch_module),
+                eps=config.antico_eps,
+                torch_module=torch_module,
+            )
+        loss = loss - config.antico_weight * rate
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_subcenter_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _subcenter_proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        gamma=config.subcenter_gamma,
+        torch_module=torch_module,
+    )
+    if config.antico_weight > 0.0:
+        # Optional MCR2 anti-collapse on the batch features (keeps the embedding
+        # high-rank while sub-centers carve up each class into modes).
+        rate = _coding_rate(
+            _normalize(embeddings, torch_module),
+            eps=config.antico_eps,
+            torch_module=torch_module,
+        )
+        loss = loss - config.antico_weight * rate
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_uniformity_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    if config.uniformity_weight > 0.0:
+        loss = loss + config.uniformity_weight * _gaussian_potential_uniformity_loss(
+            embeddings,
+            t=config.uniformity_t,
+            torch_module=torch_module,
+        )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _symmetric_potential_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _symmetric_potential_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        delta=config.potential_delta,
+        alpha=config.potential_alpha,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_lj_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    loss = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    if config.lj_intra_weight > 0.0:
+        loss = loss + config.lj_intra_weight * _lennard_jones_intra_term(
+            embeddings,
+            labels,
+            sigma=config.lj_sigma,
+            power=config.lj_power,
+            torch_module=torch_module,
+        )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _lennard_jones_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _lennard_jones_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        sigma=config.lj_sigma,
+        power=config.lj_power,
+        repulsion_weight=config.lj_repulsion_weight,
+        sigma_neg=config.lj_sigma_neg,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _gsi_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    step = cast(int, kwargs["step"])
+    steps_per_epoch = cast(int, kwargs["steps_per_epoch"])
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    generator = kwargs["generator"]
+    gsi_step_diagnostics = cast(list[dict[str, float]] | None, kwargs["gsi_step_diagnostics"])
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    if objective == "proxy_anchor_gsi":
+        loss = _proxy_anchor_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            torch_module=torch_module,
+        )
+    else:
+        loss = _pfml_potential_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            delta=config.potential_delta,
+            alpha=config.potential_alpha,
+            torch_module=torch_module,
+        )
+    if config.gsi_weight > 0.0 and step > config.gsi_start_epoch * steps_per_epoch:
+        axes_by_class = _gsi_axes_for_mode(
+            proxy_embeddings,
+            proxy_labels,
+            axis_mode=config.gsi_axis_mode,
+            top_k=config.gsi_top_k,
+            generator=generator,
+            torch_module=torch_module,
+        )
+        gsi_loss, diagnostics = _gsi_interference_loss_with_diagnostics(
+            embeddings,
+            labels,
+            axes_by_class=axes_by_class,
+            floor=config.gsi_floor,
+            variance_floor=config.gsi_variance_floor,
+            min_group_size=config.gsi_min_group_size,
+            torch_module=torch_module,
+        )
+        if diagnostics is not None and gsi_step_diagnostics is not None:
+            gsi_step_diagnostics.append(diagnostics)
+        loss = loss + config.gsi_weight * gsi_loss
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _group_potential_objective_loss(**kwargs: Any) -> Any:
+    objective = kwargs["objective"]
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    memory_embeddings = kwargs["memory_embeddings"]
+    memory_labels = kwargs["memory_labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _group_potential_loss(
+        embeddings,
+        labels,
+        memory_embeddings=memory_embeddings if objective == "group_potential_xbm" else None,
+        memory_labels=memory_labels if objective == "group_potential_xbm" else None,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        point_weight=config.point_weight,
+        group_weight=config.group_weight,
+        xbm_weight=config.xbm_weight,
+        proxy_weight=config.proxy_weight,
+        potential_weight=config.potential_weight,
+        potential_delta=config.potential_delta,
+        potential_alpha=config.potential_alpha,
+        group_size=config.group_size,
+        temperature=config.temperature,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+_OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
+    "hist": _hist_objective_loss,
+    "hist_proxy_anchor": _hist_proxy_anchor_objective_loss,
+    "triplet": _triplet_objective_loss,
+    "triplet_pretrained": _triplet_objective_loss,
+    "batch_hard_triplet": _batch_hard_triplet_objective_loss,
+    "supcon": _supcon_objective_loss,
+    "group_supcon": _group_supcon_objective_loss,
+    "group_supcon_xbm_radius": _group_supcon_xbm_radius_objective_loss,
+    "pfml": _pfml_objective_loss,
+    "proxy_anchor": _proxy_anchor_objective_loss,
+    "proxy_anchor_group": _proxy_anchor_group_objective_loss,
+    "proxy_anchor_synthesis": _proxy_anchor_synthesis_objective_loss,
+    "proxy_anchor_bgsi": _proxy_anchor_bgsi_objective_loss,
+    "bio_physical_bond": _bio_physical_bond_objective_loss,
+    "proxy_anchor_antico": _proxy_anchor_antico_objective_loss,
+    "proxy_anchor_subcenter": _proxy_anchor_subcenter_objective_loss,
+    "proxy_anchor_uniformity": _proxy_anchor_uniformity_objective_loss,
+    "symmetric_potential": _symmetric_potential_objective_loss,
+    "proxy_anchor_lj": _proxy_anchor_lj_objective_loss,
+    "lennard_jones": _lennard_jones_objective_loss,
+    "proxy_anchor_gsi": _gsi_objective_loss,
+    "pfml_gsi": _gsi_objective_loss,
+    "group_potential": _group_potential_objective_loss,
+    "group_potential_xbm": _group_potential_objective_loss,
+}
+
+
 def _loss_for_objective(
     objective: EndToEndObjective,
     embeddings: Any,
@@ -1718,444 +2391,28 @@ def _loss_for_objective(
     hist_module: Any | None = None,
     hist_label_to_index: dict[int, int] | None = None,
 ) -> Any:
-    if objective == "hist":
-        if hist_module is None or hist_label_to_index is None:
-            raise ValueError("the hist objective requires an attached hist_module")
-        hist_loss = _hist_loss(
-            embeddings,
-            labels,
-            hist_module=hist_module,
-            label_to_index=hist_label_to_index,
-            tau=config.hist_tau,
-            alpha=config.hist_alpha,
-            lambda_s=config.hist_lambda_s,
-            var_floor=config.hist_var_floor,
-            torch_module=torch_module,
-        )
-        if config.uniformity_weight > 0.0:
-            # Novel: add a thermodynamic Gaussian-potential uniformity term on the
-            # backbone embedding on top of HIST's hypergraph structure -- explicit
-            # zero-shot spread that HIST's relational loss does not directly enforce.
-            hist_loss = hist_loss + config.uniformity_weight * _gaussian_potential_uniformity_loss(
-                embeddings,
-                t=config.uniformity_t,
-                torch_module=torch_module,
-            )
-        return hist_loss
-    if objective == "hist_proxy_anchor":
-        # Fused single-model loss: HIST hypergraph + Proxy Anchor, so one model gets
-        # both HIST's per-class prototypes and PA's proxy margins. The EMA-teacher
-        # relational distillation is added on top by the caller (ungated), giving a
-        # single method that should be strong on every dataset.
-        if hist_module is None or hist_label_to_index is None:
-            raise ValueError("the hist_proxy_anchor objective requires an attached hist_module")
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                "the hist_proxy_anchor objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        hist_term = _hist_loss(
-            embeddings,
-            labels,
-            hist_module=hist_module,
-            label_to_index=hist_label_to_index,
-            tau=config.hist_tau,
-            alpha=config.hist_alpha,
-            lambda_s=config.hist_lambda_s,
-            var_floor=config.hist_var_floor,
-            torch_module=torch_module,
-        )
-        proxy_term = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-        return hist_term + config.proxy_fusion_weight * proxy_term
-    if objective in {"triplet", "triplet_pretrained"}:
-        loss = _semi_hard_triplet_loss(
-            embeddings,
-            labels,
-            margin=config.triplet_margin,
-            torch_module=torch_module,
-        )
-    elif objective == "batch_hard_triplet":
-        loss = _batch_hard_triplet_loss(
-            embeddings,
-            labels,
-            margin=config.triplet_margin,
-            torch_module=torch_module,
-        )
-    elif objective == "supcon":
-        loss = _supervised_contrastive_loss(
-            embeddings,
-            labels,
-            contrast_embeddings=embeddings,
-            contrast_labels=labels,
-            temperature=config.temperature,
-            torch_module=torch_module,
-            exclude_self=True,
-        )
-    elif objective == "group_supcon":
-        loss = _group_supcon_xbm_radius_loss(
-            embeddings,
-            labels,
-            memory_embeddings=None,
-            memory_labels=None,
-            proxy_embeddings=None,
-            proxy_labels=None,
-            point_weight=config.point_weight,
-            group_weight=config.group_weight,
-            xbm_weight=0.0,
-            radius_weight=0.0,
-            radius_target=config.radius_target,
-            proxy_weight=0.0,
-            potential_weight=0.0,
-            potential_delta=config.potential_delta,
-            potential_alpha=config.potential_alpha,
-            group_size=config.group_size,
-            temperature=config.temperature,
-            torch_module=torch_module,
-        )
-    elif objective == "group_supcon_xbm_radius":
-        loss = _group_supcon_xbm_radius_loss(
-            embeddings,
-            labels,
-            memory_embeddings=memory_embeddings,
-            memory_labels=memory_labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            point_weight=config.point_weight,
-            group_weight=config.group_weight,
-            xbm_weight=config.xbm_weight,
-            radius_weight=config.radius_weight,
-            radius_target=config.radius_target,
-            proxy_weight=config.proxy_weight,
-            potential_weight=config.potential_weight,
-            potential_delta=config.potential_delta,
-            potential_alpha=config.potential_alpha,
-            group_size=config.group_size,
-            temperature=config.temperature,
-            torch_module=torch_module,
-        )
-    elif objective == "pfml":
-        loss = _pfml_potential_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            delta=config.potential_delta,
-            alpha=config.potential_alpha,
-            torch_module=torch_module,
-        )
-    elif objective == "proxy_anchor":
-        loss = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-    elif objective == "proxy_anchor_group":
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        loss = _proxy_anchor_group_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            tau_assign=config.proxy_anchor_group_tau_assign,
-            torch_module=torch_module,
-        )
-    elif objective == "proxy_anchor_synthesis":
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        loss = _proxy_synthesis_proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            ratio=config.synthesis_ratio,
-            beta_alpha=config.synthesis_beta_alpha,
-            generator=generator,
-            group_mix=config.synthesis_group_mix,
-            pair_selection=config.synthesis_pair_selection,
-            pair_temperature=config.synthesis_pair_temperature,
-            torch_module=torch_module,
-        )
-        if config.synthesis_compactness_weight > 0.0:
-            # Novel complement: Proxy Synthesis densifies boundaries (helps R@1) but
-            # fragments class neighbourhoods (measured -MAP@R). A per-class compactness
-            # term pulls members toward their centroid, targeting exactly that cost so
-            # the combination can beat vanilla PS on both metrics.
-            loss = loss + config.synthesis_compactness_weight * _radius_penalty(
-                _normalize(embeddings, torch_module),
-                labels,
-                target=config.synthesis_compactness_target,
-                torch_module=torch_module,
-            )
-    elif objective == "proxy_anchor_bgsi":
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        loss = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-        if config.bgsi_weight > 0.0 and step > config.bgsi_start_epoch * steps_per_epoch:
-            axes_by_class = _bgsi_axes_for_mode(
-                embeddings,
-                labels,
-                axis_mode=config.bgsi_axis_mode,
-                top_k=config.bgsi_top_k,
-                temperature=config.bgsi_temperature,
-                generator=generator,
-                ema_state=bgsi_state,
-                min_axis_observations=config.bgsi_min_axis_observations,
-                use_axis_agreement_gate=config.bgsi_use_axis_agreement_gate,
-                axis_agreement=config.bgsi_axis_agreement,
-                torch_module=torch_module,
-            )
-            bgsi_loss, diagnostics = _gsi_interference_loss_with_diagnostics(
-                embeddings,
-                labels,
-                axes_by_class=axes_by_class,
-                floor=config.bgsi_floor,
-                variance_floor=config.bgsi_variance_floor,
-                min_group_size=config.bgsi_min_group_size,
-                torch_module=torch_module,
-            )
-            if diagnostics is not None and gsi_step_diagnostics is not None:
-                diagnostics.update(
-                    _bgsi_axis_step_diagnostics(
-                        labels,
-                        axes_by_class=axes_by_class,
-                        axis_mode=config.bgsi_axis_mode,
-                        bgsi_state=bgsi_state,
-                        min_axis_observations=config.bgsi_min_axis_observations,
-                        use_axis_agreement_gate=config.bgsi_use_axis_agreement_gate,
-                        torch_module=torch_module,
-                    )
-                )
-                gsi_step_diagnostics.append(diagnostics)
-            loss = loss + config.bgsi_weight * bgsi_loss
-    elif objective == "bio_physical_bond":
-        loss = _bio_physical_bond_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            sigma=config.lj_sigma,
-            power=config.lj_power,
-            niche_weight=config.bond_niche_weight,
-            antico_eps=config.antico_eps,
-            torch_module=torch_module,
-        )
-    elif objective == "proxy_anchor_antico":
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        loss = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-        if config.antico_weight > 0.0:
-            # Anti-collapse: MAXIMISE the coding rate (log-volume) of the batch
-            # features and/or proxies -> subtract weight * R from the loss.
-            rate = embeddings.sum() * 0.0
-            if config.antico_target in {"feature", "both"}:
-                rate = rate + _coding_rate(
-                    _normalize(embeddings, torch_module),
-                    eps=config.antico_eps,
-                    torch_module=torch_module,
-                )
-            if config.antico_target in {"proxy", "both"}:
-                rate = rate + _coding_rate(
-                    _normalize(proxy_embeddings, torch_module),
-                    eps=config.antico_eps,
-                    torch_module=torch_module,
-                )
-            loss = loss - config.antico_weight * rate
-    elif objective == "proxy_anchor_subcenter":
-        loss = _subcenter_proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            gamma=config.subcenter_gamma,
-            torch_module=torch_module,
-        )
-        if config.antico_weight > 0.0:
-            # Optional MCR2 anti-collapse on the batch features (keeps the embedding
-            # high-rank while sub-centers carve up each class into modes).
-            rate = _coding_rate(
-                _normalize(embeddings, torch_module),
-                eps=config.antico_eps,
-                torch_module=torch_module,
-            )
-            loss = loss - config.antico_weight * rate
-    elif objective == "proxy_anchor_uniformity":
-        loss = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-        if config.uniformity_weight > 0.0:
-            loss = loss + config.uniformity_weight * _gaussian_potential_uniformity_loss(
-                embeddings,
-                t=config.uniformity_t,
-                torch_module=torch_module,
-            )
-    elif objective == "symmetric_potential":
-        loss = _symmetric_potential_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            delta=config.potential_delta,
-            alpha=config.potential_alpha,
-            torch_module=torch_module,
-        )
-    elif objective == "proxy_anchor_lj":
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        loss = _proxy_anchor_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            alpha=config.proxy_anchor_alpha,
-            delta=config.proxy_anchor_delta,
-            torch_module=torch_module,
-        )
-        if config.lj_intra_weight > 0.0:
-            loss = loss + config.lj_intra_weight * _lennard_jones_intra_term(
-                embeddings,
-                labels,
-                sigma=config.lj_sigma,
-                power=config.lj_power,
-                torch_module=torch_module,
-            )
-    elif objective == "lennard_jones":
-        loss = _lennard_jones_loss(
-            embeddings,
-            labels,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            sigma=config.lj_sigma,
-            power=config.lj_power,
-            repulsion_weight=config.lj_repulsion_weight,
-            sigma_neg=config.lj_sigma_neg,
-            torch_module=torch_module,
-        )
-    elif objective in {"proxy_anchor_gsi", "pfml_gsi"}:
-        if proxy_embeddings is None or proxy_labels is None:
-            raise ValueError(
-                f"the {objective} objective requires class proxies (proxy_count_per_class > 0)"
-            )
-        if objective == "proxy_anchor_gsi":
-            loss = _proxy_anchor_loss(
-                embeddings,
-                labels,
-                proxy_embeddings=proxy_embeddings,
-                proxy_labels=proxy_labels,
-                alpha=config.proxy_anchor_alpha,
-                delta=config.proxy_anchor_delta,
-                torch_module=torch_module,
-            )
-        else:
-            loss = _pfml_potential_loss(
-                embeddings,
-                labels,
-                proxy_embeddings=proxy_embeddings,
-                proxy_labels=proxy_labels,
-                delta=config.potential_delta,
-                alpha=config.potential_alpha,
-                torch_module=torch_module,
-            )
-        if config.gsi_weight > 0.0 and step > config.gsi_start_epoch * steps_per_epoch:
-            axes_by_class = _gsi_axes_for_mode(
-                proxy_embeddings,
-                proxy_labels,
-                axis_mode=config.gsi_axis_mode,
-                top_k=config.gsi_top_k,
-                generator=generator,
-                torch_module=torch_module,
-            )
-            gsi_loss, diagnostics = _gsi_interference_loss_with_diagnostics(
-                embeddings,
-                labels,
-                axes_by_class=axes_by_class,
-                floor=config.gsi_floor,
-                variance_floor=config.gsi_variance_floor,
-                min_group_size=config.gsi_min_group_size,
-                torch_module=torch_module,
-            )
-            if diagnostics is not None and gsi_step_diagnostics is not None:
-                gsi_step_diagnostics.append(diagnostics)
-            loss = loss + config.gsi_weight * gsi_loss
-    elif objective in {"group_potential", "group_potential_xbm"}:
-        loss = _group_potential_loss(
-            embeddings,
-            labels,
-            memory_embeddings=memory_embeddings if objective == "group_potential_xbm" else None,
-            memory_labels=memory_labels if objective == "group_potential_xbm" else None,
-            proxy_embeddings=proxy_embeddings,
-            proxy_labels=proxy_labels,
-            point_weight=config.point_weight,
-            group_weight=config.group_weight,
-            xbm_weight=config.xbm_weight,
-            proxy_weight=config.proxy_weight,
-            potential_weight=config.potential_weight,
-            potential_delta=config.potential_delta,
-            potential_alpha=config.potential_alpha,
-            group_size=config.group_size,
-            temperature=config.temperature,
-            torch_module=torch_module,
-        )
-    else:
+    objective_loss = _OBJECTIVE_LOSSES.get(objective)
+    if objective_loss is None:
         raise ValueError(f"unsupported end-to-end objective: {objective}")
-    if config.teacher_similarity_weight > 0.0 and teacher_embeddings is not None:
-        loss = loss + config.teacher_similarity_weight * _pairwise_similarity_preservation_loss(
-            embeddings,
-            teacher_embeddings,
-            torch_module=torch_module,
-        )
-    return loss
+    return objective_loss(
+        objective=objective,
+        embeddings=embeddings,
+        labels=labels,
+        step=step,
+        steps_per_epoch=steps_per_epoch,
+        memory_embeddings=memory_embeddings,
+        memory_labels=memory_labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch_module,
+        teacher_embeddings=teacher_embeddings,
+        generator=generator,
+        bgsi_state=bgsi_state,
+        gsi_step_diagnostics=gsi_step_diagnostics,
+        hist_module=hist_module,
+        hist_label_to_index=hist_label_to_index,
+    )
 
 
 def _objective_display_name(objective: str) -> str:
