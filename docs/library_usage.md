@@ -16,6 +16,55 @@ For dataset loaders, image/text encoders, and remote benchmark commands:
 uv sync --group dev --extra research
 ```
 
+## Method bricks — compose a training method from type-safe building blocks
+
+A **method is a base loss + composable modifiers** (`sfora.method`). This mirrors
+the core research finding: our EMA-teacher relational distillation is a training
+*procedure* that improves any base loss, so the best method per dataset is that
+base with the distillation stacked on it.
+
+```python
+from sfora.method import HIST, ProxyAnchor, Distill, IsNorm, herd, pa_distill
+
+# base-loss bricks
+HIST()                         # hypergraph semantic-tuplet loss
+ProxyAnchor(alpha=32, delta=0.1)
+
+# modifiers wrap any base and return an Objective (type-checked composition)
+Distill(base, weight=1.0, momentum=0.999, tau=0.1)   # the universal EMA-teacher distillation
+IsNorm(base)                                          # the reference LayerNorm head
+
+# the two headline methods ARE bricks:
+HERD       = IsNorm(Distill(HIST()))     # == herd();      best on CUB
+PADistill  = Distill(ProxyAnchor())      # == pa_distill(); best on Cars
+```
+
+Every brick is immutable and `configure(config)` returns a new
+`ImageEndToEndConfig` with its fields set — so composing bricks cannot mutate
+state or regress the benchmarked numbers; they compile down to the same verified
+trainer.
+
+## Benchmarking methods over seeds
+
+`sfora.benchmark` runs a method on a dataset over several seeds and returns typed,
+aggregated metrics (`R@1/2/4/8`, `MAP@R`, mean ± std, best-over-training):
+
+```python
+from sfora.method import herd, pa_distill, ProxyAnchor
+from sfora.benchmark import benchmark, grid
+
+result = benchmark(herd(), dataset="cub", seeds=[0, 1, 2])
+print(result.summary())        # "IsNorm(Distill(HIST)) · cub: R@1 0.7160 ± 0.006 ..."
+
+# compare a whole matrix of methods x datasets
+grid({"HERD": herd(), "PA+distill": pa_distill(), "PA": ProxyAnchor()},
+     datasets=["cub", "cars"], seeds=[0, 1, 2])
+```
+
+Training is delegated to an **injectable `runner`** (default: the verified
+`run_image_end_to_end_benchmark`), so the aggregation logic is unit-tested without
+a GPU and you can plug in your own trainer or a cached-results stub.
+
 ## Minimal Example
 
 ```python
