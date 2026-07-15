@@ -1435,6 +1435,13 @@ def image_end_to_end(
             "variance>=1; negative lets classes cluster tighter)."
         ),
     ] = None,
+    proxy_fusion_weight: Annotated[
+        float | None,
+        typer.Option(
+            help="Weight of the Proxy Anchor term in the fused hist_proxy_anchor "
+            "objective (L = L_HIST + w * L_ProxyAnchor)."
+        ),
+    ] = None,
     hist_hidden: Annotated[
         int | None,
         typer.Option(help="HIST HGNN hidden dimension."),
@@ -1903,6 +1910,11 @@ def image_end_to_end(
                 "hist_var_floor": (
                     hist_var_floor if hist_var_floor is not None else base_config.hist_var_floor
                 ),
+                "proxy_fusion_weight": (
+                    proxy_fusion_weight
+                    if proxy_fusion_weight is not None
+                    else base_config.proxy_fusion_weight
+                ),
                 "hist_hidden": hist_hidden if hist_hidden is not None else base_config.hist_hidden,
                 "hist_lr_ds": hist_lr_ds if hist_lr_ds is not None else base_config.hist_lr_ds,
                 "hist_lr_hgnn_factor": (
@@ -2046,6 +2058,7 @@ def _parse_end_to_end_objectives(raw: str) -> tuple[EndToEndObjective, ...]:
         "proxy_anchor_antico",
         "bio_physical_bond",
         "hist",
+        "hist_proxy_anchor",
         "proxy_anchor_gsi",
         "proxy_anchor_bgsi",
         "pfml_gsi",

@@ -50,6 +50,7 @@ EndToEndObjective = Literal[
     "proxy_anchor_antico",
     "bio_physical_bond",
     "hist",
+    "hist_proxy_anchor",
     "proxy_anchor_gsi",
     "proxy_anchor_bgsi",
     "pfml_gsi",
@@ -164,6 +165,9 @@ class ImageEndToEndConfig(BaseModel):
     # than unit variance, an ablation lever for fine-grained retrieval. Upper clamp
     # stays at 6.0 (relu6's ceiling) for stability.
     hist_var_floor: float = Field(default=0.0, le=6.0)
+    # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
+    # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
+    proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
     hist_lr_ds: float = Field(default=1.0e-1, gt=0.0)
     hist_lr_hgnn_factor: float = Field(default=10.0, gt=0.0)
     gsi_weight: float = Field(default=0.3, ge=0.0)
@@ -535,7 +539,7 @@ def run_image_end_to_end_benchmark(
                     config=config,
                     torch_module=torch,
                 )
-            if objective == "hist":
+            if objective in {"hist", "hist_proxy_anchor"}:
                 _attach_hist_module(
                     model,
                     train_labels=train_labels,
@@ -653,7 +657,7 @@ def run_image_end_to_end_benchmark(
                 loss_kwargs: dict[str, Any] = {}
                 if bgsi_state is not None:
                     loss_kwargs["bgsi_state"] = bgsi_state
-                if objective == "hist":
+                if objective in {"hist", "hist_proxy_anchor"}:
                     loss_kwargs["hist_module"] = getattr(model, "hist_module", None)
                     loss_kwargs["hist_label_to_index"] = getattr(model, "hist_label_to_index", None)
 
@@ -1433,6 +1437,7 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
         "proxy_anchor_gsi",
         "proxy_anchor_bgsi",
         "pfml_gsi",
+        "hist_proxy_anchor",
     }:
         if config.proxy_count_per_class <= 0:
             raise ValueError(
@@ -1737,6 +1742,38 @@ def _loss_for_objective(
                 torch_module=torch_module,
             )
         return hist_loss
+    if objective == "hist_proxy_anchor":
+        # Fused single-model loss: HIST hypergraph + Proxy Anchor, so one model gets
+        # both HIST's per-class prototypes and PA's proxy margins. The EMA-teacher
+        # relational distillation is added on top by the caller (ungated), giving a
+        # single method that should be strong on every dataset.
+        if hist_module is None or hist_label_to_index is None:
+            raise ValueError("the hist_proxy_anchor objective requires an attached hist_module")
+        if proxy_embeddings is None or proxy_labels is None:
+            raise ValueError(
+                "the hist_proxy_anchor objective requires class proxies (proxy_count_per_class > 0)"
+            )
+        hist_term = _hist_loss(
+            embeddings,
+            labels,
+            hist_module=hist_module,
+            label_to_index=hist_label_to_index,
+            tau=config.hist_tau,
+            alpha=config.hist_alpha,
+            lambda_s=config.hist_lambda_s,
+            var_floor=config.hist_var_floor,
+            torch_module=torch_module,
+        )
+        proxy_term = _proxy_anchor_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            torch_module=torch_module,
+        )
+        return hist_term + config.proxy_fusion_weight * proxy_term
     if objective in {"triplet", "triplet_pretrained"}:
         loss = _semi_hard_triplet_loss(
             embeddings,
@@ -2145,6 +2182,7 @@ def _objective_display_name(objective: str) -> str:
         "proxy_anchor_antico": "Proxy Anchor + Anti-Collapse (Coding Rate)",
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
+        "hist_proxy_anchor": "HIST + Proxy Anchor (fused)",
         "proxy_anchor_gsi": "Proxy Anchor + GSI",
         "proxy_anchor_bgsi": "Proxy Anchor + BGSI",
         "pfml_gsi": "PFML + GSI",

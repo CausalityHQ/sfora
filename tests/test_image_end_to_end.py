@@ -717,6 +717,63 @@ def test_hist_var_floor_default_matches_relu6_and_knob_changes_it() -> None:
     assert loss_with(-3.0) != faithful
 
 
+def test_fused_hist_proxy_anchor_loss_sums_both_terms() -> None:
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import (
+        ImageEndToEndConfig,
+        _build_hist_module,
+        _hist_loss,
+        _loss_for_objective,
+        _proxy_anchor_loss,
+    )
+
+    torch.manual_seed(0)
+    emb = torch.randn(12, 8)
+    labels = torch.tensor([0, 1, 2] * 4)
+    hist = _build_hist_module(nb_classes=3, sz_embed=8, hidden=8, torch_module=torch)
+    proxies = torch.randn(3, 8)
+    plabels = torch.tensor([0, 1, 2])
+    l2i = {0: 0, 1: 1, 2: 2}
+    cfg = ImageEndToEndConfig(proxy_fusion_weight=0.5)
+
+    fused = _loss_for_objective(
+        "hist_proxy_anchor",
+        emb,
+        labels,
+        step=0,
+        steps_per_epoch=1,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=proxies,
+        proxy_labels=plabels,
+        config=cfg,
+        torch_module=torch,
+        hist_module=hist,
+        hist_label_to_index=l2i,
+    )
+    hist_term = _hist_loss(
+        emb,
+        labels,
+        hist_module=hist,
+        label_to_index=l2i,
+        tau=cfg.hist_tau,
+        alpha=cfg.hist_alpha,
+        lambda_s=cfg.hist_lambda_s,
+        var_floor=cfg.hist_var_floor,
+        torch_module=torch,
+    )
+    proxy_term = _proxy_anchor_loss(
+        emb,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=plabels,
+        alpha=cfg.proxy_anchor_alpha,
+        delta=cfg.proxy_anchor_delta,
+        torch_module=torch,
+    )
+    assert torch.allclose(fused, hist_term + 0.5 * proxy_term)
+
+
 def test_hist_objective_end_to_end_runs() -> None:
     torch: Any = pytest.importorskip("torch")
 
