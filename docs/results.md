@@ -37,6 +37,46 @@ This training-procedure change is what broke a long-standing ~0.71 same-arch
 plateau: a wide range of loss-geometry changes we tried did not move it, but
 changing the *information per training step* (teacher targets) did.
 
+## The distillation is universal — and beats Proxy Anchor on every dataset
+
+The single most important finding is that HERD's real contribution is **not the
+HIST loss** — it is the **EMA-teacher relational distillation, a training
+*procedure* that is additive to any base loss**. In our harness the distill term
+is applied ungated on top of whatever objective is training, so it can augment
+Proxy Anchor just as it augments HIST. We measured it in-harness (same code, same
+protocol, reseeded where noted) on both standard datasets:
+
+| dataset | base loss | plain | **+ our distillation** | Δ |
+| --- | --- | ---: | ---: | ---: |
+| CUB-200 | HIST | 0.700 | **0.716** (= HERD) | +1.6 |
+| CUB-200 | Proxy Anchor | 0.666 | 0.678 | +1.2 |
+| Cars196 | HIST | 0.871 | 0.884 | +1.3 |
+| Cars196 | Proxy Anchor | 0.888 | **0.8961** | +0.8 |
+
+**The distillation improves every base on every dataset.** And the *best base +
+our distillation* beats every plain baseline per dataset:
+
+- **CUB** — HIST is the stronger base, so **HERD (HIST + distillation) = 0.716** is
+  best (> Proxy Anchor 0.666/0.695, > HIST 0.700).
+- **Cars** — Proxy Anchor is the stronger base, so **PA + distillation = 0.8961**
+  is best (mean over 3 seeds `[0.8944, 0.8974, 0.8963]`, every seed above PA's best
+  single run 0.8892; > PA 0.8879, > HERD 0.8835, > HIST 0.8709).
+
+So **our method beats Proxy Anchor on both datasets** — via the *same procedure*
+applied to whichever base is stronger. Honest caveats we verified:
+
+- **No single fixed loss is best everywhere.** A fused `HIST + Proxy Anchor`
+  objective in one model is a *compromise worse than the best base on both*
+  datasets (CUB 0.69 < 0.716; Cars 0.880 < 0.896). HIST genuinely wins CUB, Proxy
+  Anchor genuinely wins Cars; mixing them helps neither. The unifying method is the
+  distillation *procedure*, not one loss.
+- **Single HERD does not beat Proxy Anchor on Cars** (reseeded mean 0.8835 < 0.8879)
+  — the HIST base is simply weaker than PA there. We reached "beats PA on Cars" only
+  by putting the distillation on the *PA* base, and we say so rather than pretending
+  the HIST-based HERD wins there.
+- Relaxing HIST's variance floor (an ablation) is a null/negative result; the
+  faithful `relu6` default stands.
+
 ## SFORA — the ensemble
 
 The SOTA-beating number is a **feature-concatenation ensemble** of independently

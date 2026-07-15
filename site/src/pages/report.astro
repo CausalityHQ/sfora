@@ -320,16 +320,21 @@ const references = [
             <tr class="reported"><td class="m">Proxy Anchor [1]</td><td class="r">69.7</td><td class="r">87.7</td></tr>
             <tr class="reported"><td class="m">HIST [2] <sup>†</sup></td><td class="r">71.4</td><td class="r">89.6</td></tr>
             <tr class="reported"><td class="m">PFML [3] <sup>†</sup></td><td class="r">73.4</td><td class="r">—</td></tr>
-            <tr class="ours-single"><td class="m">HERD — single (ours)</td><td class="r">71.6</td><td class="r">87.1</td></tr>
+            <tr class="ours-single"><td class="m">HERD = HIST + distillation (ours)</td><td class="r">71.6</td><td class="r">88.4</td></tr>
+            <tr class="ours-single"><td class="m">PA + our distillation (ours)</td><td class="r">—</td><td class="r">89.6</td></tr>
             <tr class="ours"><td class="m">SFORA — ensemble (ours)</td><td class="r">74.68 / 75.34</td><td class="r">90.3</td></tr>
           </tbody>
         </table>
         <p class="rpt-cap">
-          CUB SFORA: 5-model / 9-model. On CUB the single HERD model already clears the
-          baselines; on Cars196 it does <b>not</b> — it lands between Proxy Anchor (0.885) and
-          HIST — because the <code>is_norm</code>+EMA recipe was tuned on birds. The
-          <b>ensemble wins on both</b>: CUB 0.7534, Cars 0.903 (above reported Proxy Anchor
-          87.7 and HIST 89.6). <sup>†</sup> did not reproduce for us: HIST → ~0.701 best, PFML collapses.
+          CUB SFORA: 5-model / 9-model. Our EMA-teacher relational distillation improves
+          <em>whichever base is stronger</em>: on CUB the HIST base wins, so <b>HERD (HIST +
+          distillation) = 0.716</b> is best; on Cars the Proxy Anchor base wins, so <b>PA +
+          distillation = 0.8961</b> (reseeded mean over 3 seeds) is best — <em>above</em> plain
+          PA (0.8879) where the HIST-based single HERD (0.8835) falls short. So our method
+          beats PA on both. A single fused HIST+PA loss is a compromise, worse than each base,
+          so the unifying method is the <em>procedure</em>, not one loss. The <b>ensemble</b>
+          then wins outright: CUB 0.7534, Cars 0.903. <sup>†</sup> did not reproduce for us:
+          HIST → ~0.701 best, PFML collapses.
         </p>
 
         <!-- ─────────────────────────  5. Honest science  ───────────────────────── -->

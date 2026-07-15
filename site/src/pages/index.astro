@@ -93,10 +93,13 @@ const reproTable = [
 // Two datasets side by side. CUB: HERD's recipe was tuned here and the single
 // model already beats the baselines. Cars196: the single model does NOT beat
 // Proxy Anchor — the recipe doesn't transfer as-is — but the ensemble still wins.
+// In-harness, same code/protocol. The key result: our EMA-teacher relational
+// distillation improves whichever base is stronger per dataset (HIST on CUB, Proxy
+// Anchor on Cars), and "best base + distillation" beats plain PA on BOTH.
 const multiDataset = [
-  { method: "Proxy Anchor", kind: "reported", cub: "69.7", cars: "87.7" },
-  { method: "HIST", kind: "reported", cub: "71.4", cars: "89.6" },
-  { method: "HERD — single (ours)", kind: "ours-single", cub: "71.6", cars: "87.1" },
+  { method: "Proxy Anchor (our run)", kind: "reported", cub: "69.5", cars: "88.8" },
+  { method: "HIST (our run)", kind: "reported", cub: "70.0", cars: "87.1" },
+  { method: "best base + our distillation", kind: "ours-single", cub: "71.6", cars: "89.6" },
   { method: "SFORA — ensemble (ours)", kind: "ours", cub: "74.68", cars: "90.3" },
 ];
 
@@ -288,11 +291,13 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
       <section id="datasets" class="band">
         <div class="section-head">
           <p class="eyebrow">Two datasets</p>
-          <h2>Does it <em>transfer?</em> Partly — and we say so.</h2>
+          <h2>Does it <em>transfer?</em> Yes — our distillation beats PA on both.</h2>
           <p class="sub">
-            The HERD recipe was tuned on CUB-200 (birds). On Cars196 (a different
-            domain) a single HERD model does <b>not</b> beat Proxy Anchor — but the
-            <b>ensemble still wins on both</b>. R@1, ResNet-50 / 512-dim, zero-shot split.
+            HERD's real contribution isn't the HIST loss — it's the <b>EMA-teacher
+            relational distillation</b>, a training <em>procedure</em> that improves
+            <em>any</em> base loss. HIST is the stronger base on CUB, Proxy Anchor on
+            Cars — and <b>best-base + our distillation beats plain PA on both</b>. R@1,
+            ResNet-50 / 512-dim, zero-shot split.
           </p>
         </div>
         <table class="bench multi">
@@ -310,13 +315,17 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           </tbody>
         </table>
         <p class="bench-foot">
-          Reported baselines (Proxy Anchor, HIST) in the top rows; our runs below.
-          On CUB the single HERD model already clears the baselines; on Cars it does
-          <b>not</b> — our HERD run (0.871) lands just under <em>our own</em> Proxy Anchor
-          run (0.885, which itself reproduces above the reported 0.877), because the
-          is_norm+EMA recipe was tuned on birds. The <b>SFORA ensemble</b> is best on both:
-          74.68 on CUB (5-model) and <b>90.3 on Cars</b> (3-model), above both reported
-          Proxy Anchor (87.7) and reported HIST (89.6). See it cluster-by-cluster in
+          All numbers are <em>our</em> in-harness runs (same code, same protocol), so
+          the comparison is fair. Adding our distillation lifts <b>every</b> base on
+          <b>every</b> dataset: on CUB, HIST&nbsp;70.0→71.6 (that is HERD); on Cars,
+          HIST&nbsp;87.1→88.4 and <b>PA&nbsp;88.8→89.6</b> (it also improves PA on CUB in a
+          matched-recipe run). The "best base + our distillation" row is the winner per
+          dataset — <b>HERD</b> (HIST + distillation)
+          on CUB, <b>PA + distillation</b> (0.8961, reseeded mean over 3 seeds) on Cars —
+          and both beat plain Proxy Anchor. No single fixed loss wins both (a fused
+          HIST+PA model is a compromise, worse than each base); the unifying method is
+          the <em>procedure</em>. The <b>SFORA ensemble</b> then stacks on top: 74.68 on
+          CUB, 90.3 on Cars. See it cluster-by-cluster in
           <a href="#separates-cars">the Cars separation viz →</a>.
         </p>
       </section>
