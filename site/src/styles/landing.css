@@ -123,6 +123,8 @@ main, .topbar, footer { position: relative; z-index: 1; }
   background: color-mix(in oklch, var(--ember) 22%, transparent); z-index: -1; transform: skewX(-6deg);
 }
 .lede { font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem); color: var(--ink-soft); max-width: 34ch; margin: 1.6rem 0 0; }
+.hero-more { font-size: 0.92rem; color: var(--ink-faint); max-width: 40ch; margin: 1.1rem 0 0; line-height: 1.5; }
+.hero-more a { color: var(--ember-deep); text-decoration: underline; text-underline-offset: 2px; }
 .lede b { color: var(--ink); font-weight: 700; }
 
 .scoreline { display: flex; align-items: flex-end; gap: 1.4rem; margin: 2.2rem 0 0; flex-wrap: wrap; }

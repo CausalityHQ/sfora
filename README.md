@@ -132,7 +132,14 @@ for the full benchmark table, reproducibility notes, and the honest negatives
 See [docs/architecture.md](docs/architecture.md) for the full pipeline and
 evaluation protocol.
 
-## Short Library Example
+## Library — two entry points
+
+`sfora` has two complementary APIs: (1) a **frozen-embedding projection** API
+(`SforaProjector` / `sfora.compose`) for when you already have vectors, shown just
+below; and (2) an **end-to-end method** API (`sfora.method` / `sfora.benchmark`) that
+trains a backbone from composable, type-safe bricks, shown further down.
+
+### Frozen-embedding projection (you already have vectors)
 
 ```python
 import numpy as np
@@ -170,7 +177,7 @@ training step.
 See [docs/library_usage.md](docs/library_usage.md) for retrieval scoring and
 recommended settings.
 
-## Compose a method from type-safe bricks
+### End-to-end method API — compose a method from type-safe bricks
 
 The core finding *is* the API: a **method = base loss + composable modifiers**, and
 our EMA-teacher relational distillation is a modifier that improves any base. Bricks
