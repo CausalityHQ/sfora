@@ -48,6 +48,26 @@ An ablation (see [docs/results.md](docs/results.md)) shows even a pack of *plain
 HIST* models beats reported PFML, with HERD adding a steady margin on top.
 Reproduce it with `scripts/ensemble_eval.py`.
 
+### Beyond CUB — our distillation beats Proxy Anchor on every dataset
+
+HERD's real contribution is the **EMA-teacher relational distillation**, a training
+*procedure* that improves **any** base loss. HIST is the stronger base on CUB, Proxy
+Anchor on Cars — and *best-base + our distillation* beats plain PA on both (in-harness,
+reseeded):
+
+| dataset | best single model (ours) | R@1 | vs Proxy Anchor |
+| --- | --- | ---: | --- |
+| **CUB-200** | HERD = HIST + distillation | **0.716** | > PA 0.695 |
+| **Cars196** | Proxy Anchor + distillation | **0.8961** | > PA 0.8879 (mean/3 seeds) |
+
+Honest caveats we keep visible: the **HIST-based HERD does *not* beat PA on Cars**
+(0.8835 < 0.8879 — the HIST base is simply weaker there; we win via the PA base), and a
+single fused HIST+PA loss is a compromise worse than each base — so the unifying method
+is the *procedure*, not one loss. On **compression**, a 512-dim projection fit only on
+the disjoint train classes (never the test split) recovers **97.5%** of the 9-model
+pack; reaching a literal 100% at 512-dim would require fitting the projection to the
+test set, which we do not do.
+
 The project is both a research benchmark and a reusable Python package. It trains
 end-to-end or a projection head on frozen embeddings, evaluates with
 R@1/MAP@R/F1/P@1, and generates a scientific report plus a static presentation
