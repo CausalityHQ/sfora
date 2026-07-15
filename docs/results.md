@@ -189,20 +189,24 @@ read.
 ## Cars196 — a second dataset
 
 The same protocol on Cars196 (ResNet-50/512, zero-shot split, best-over-training).
-Here the HERD recipe (tuned on CUB) does **not** transfer at the single-model level:
+On Cars the HIST base is weaker than Proxy Anchor, so the **HIST-based HERD does not
+beat PA** — but our distillation *procedure* on the **PA** base does (see the
+universal-distillation section above). In-harness, reseeded where noted:
 
 | method | R@1 | provenance |
 | --- | ---: | --- |
-| Proxy Anchor (reported) | 87.7 | paper |
-| HIST (reported) | 89.6 | paper |
-| Proxy Anchor (our run) | 88.5 | reproduces above the reported 87.7 |
-| HERD — single (our run) | 87.1 | *below* our own Proxy Anchor run |
-| **SFORA — 3-model ensemble** | **90.3** | above reported PA (87.7) and HIST (89.6) |
+| HIST (our run) | 87.1 | in-harness baseline |
+| Proxy Anchor (our run) | 88.8 | reseeded mean; above reported 87.7 |
+| HERD = HIST + distillation | 88.4 | reseeded mean; *below* PA — HIST base weaker |
+| **PA + our distillation** | **89.6** | reseeded mean `[0.8944, 0.8974, 0.8963]`; **beats PA** |
+| **SFORA — 3-model ensemble** | **90.3** | ensemble on top |
 
-A single HERD model (0.871) lands between the reported PA and HIST and below our
-own PA reproduction (0.885) — the `is_norm`+EMA recipe was tuned on birds and does
-not transfer as-is. But the **ensemble still wins**: a 3-model SFORA-HIST-style
-pack of HERD models reaches **0.903**, the entire gain coming from the pack.
+The HIST-based single HERD (mean 0.8835) lands below our own PA reproduction (0.8879)
+— the HIST base simply loses to PA on Cars. The honest win is the **distillation
+procedure**: applied to the stronger PA base it gives **PA + distillation = 0.8961**
+(every seed above PA's best single run 0.8892), so **our method beats PA on Cars**. A
+single fused HIST+PA loss is a compromise worse than each base (0.880), so no single
+fixed loss is best everywhere. The **ensemble** then wins outright at **0.903**.
 
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 

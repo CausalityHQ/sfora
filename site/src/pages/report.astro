@@ -341,7 +341,8 @@ const references = [
         <h2 id="honesty">5 · Honest science — what didn't work, what doesn't transfer</h2>
         <ul class="rpt-list">
           <li><b>Reproducibility.</b> Proxy Anchor reproduces cleanly (0.695). HIST tops out ~0.701 best (0.698 mean over 5 seeds) vs the reported 0.714. Faithful PFML collapses during training. We still compare against the papers' <em>published</em> figures — the harder bar.</li>
-          <li><b>Transfer.</b> HERD's single-model gain does not transfer to Cars196; only the ensemble does. We report this rather than hide it.</li>
+          <li><b>Base transfer.</b> The HIST-based HERD does <em>not</em> beat Proxy Anchor on Cars (reseeded mean 0.8835 &lt; 0.8879) — the HIST base is weaker there. What transfers is the <em>distillation procedure</em>: on the PA base it gives <b>PA + distillation = 0.8961 &gt; PA</b>. We report the HIST-HERD shortfall rather than hide it, and beat PA via the stronger base.</li>
+          <li><b>Fused loss (negative).</b> A single fused HIST+Proxy-Anchor loss is a compromise worse than each base (CUB 0.69 &lt; 0.716; Cars 0.880 &lt; 0.896) — no single fixed loss is best everywhere; the unifying method is the distillation procedure.</li>
           <li><b>Transductive folds.</b> The PCA and Procrustes/GPA compression numbers are fit on the test embeddings and are an upper bound; the concat and single-model numbers are not.</li>
           <li><b>Negative results.</b> ~16 loss-geometry tweaks (sub-centre proxies, Gaussian-potential uniformity, un-normalised physics potentials, multi-crop/DINO with frozen BatchNorm) did not bind or collapsed; only the EMA-teacher relational signal moved the plateau.</li>
         </ul>

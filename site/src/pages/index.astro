@@ -53,8 +53,9 @@ const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, "");
 // t-SNE coords are ~[-1,1]; map into a padded 0..100 SVG box.
 const vx = (v: number) => (v * 0.5 + 0.5) * 90 + 5;
 
-// Cars196 — the same viz on a second dataset. Here single HERD does NOT beat
-// Proxy Anchor (the recipe was tuned on CUB); only the ensemble wins.
+// Cars196 — the same viz on a second dataset. The HIST-based HERD trails Proxy
+// Anchor here (HIST is the weaker base on Cars); our distillation on the PA base
+// (PA + distillation) beats PA, and the ensemble wins outright.
 const carsPanels = [
   { proj: projCarsProxy, tag: "prior baseline" },
   { proj: projCarsHerd, tag: "ours — single" },
@@ -90,10 +91,8 @@ const reproTable = [
   { method: "PFML", reported: "73.4", ours: "collapses", ok: false, status: "✗ not reproduced" },
 ];
 
-// Two datasets side by side. CUB: HERD's recipe was tuned here and the single
-// model already beats the baselines. Cars196: the single model does NOT beat
-// Proxy Anchor — the recipe doesn't transfer as-is — but the ensemble still wins.
-// In-harness, same code/protocol. The key result: our EMA-teacher relational
+// Two datasets side by side, in-harness (same code/protocol). The key result: our
+// EMA-teacher relational
 // distillation improves whichever base is stronger per dataset (HIST on CUB, Proxy
 // Anchor on Cars), and "best base + distillation" beats plain PA on BOTH.
 const multiDataset = [
@@ -466,8 +465,8 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
         eyebrow="Same viz, another dataset"
         heading="The same cars, three <em>different</em> spaces."
         subject="car"
-        sub="Cars196, eight held-out test classes — car models the network never saw in training. The <em>same 360 photos</em> in every panel. On Cars, a single HERD model does <em>not</em> beat Proxy Anchor — only the pack does."
-        note={"An honest contrast with CUB: the HERD recipe was tuned on birds, and on Cars a single HERD model (0.871) sits just <em>below</em> our own Proxy Anchor run (0.885, itself above the reported 0.877). But the ensemble still wins — the 3-model <b>SFORA</b> pack reaches <b>0.903</b>, above reported Proxy Anchor (0.877) <em>and</em> reported HIST (0.896). Here the whole gain comes from the pack, not the single model."}
+        sub="Cars196, eight held-out test classes — car models the network never saw in training. The <em>same 360 photos</em> in every panel. On Cars the <em>HIST-based</em> HERD trails Proxy Anchor — but our distillation on the PA base (PA + distillation) beats it."
+        note={"An honest contrast with CUB: HIST is the weaker base on Cars, so the HIST-based HERD single model (mean 0.8835) sits just <em>below</em> our own Proxy Anchor run (0.8879). But the distillation <em>procedure</em> still wins here — put it on the stronger base and <b>PA + distillation reaches 0.8961</b> (reseeded mean), above plain PA. And the 3-model <b>SFORA</b> pack reaches <b>0.903</b>. So our method beats PA on Cars too — via the PA base, not the HIST one."}
         panels={carsPanels}
         legend={carsLegend}
         meta={projCarsMeta}
