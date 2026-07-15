@@ -1,12 +1,14 @@
 from sfora.image_end_to_end import ImageEndToEndConfig
 from sfora.method import (
     HIST,
+    CustomObjective,
     Distill,
     FusedHistProxyAnchor,
     IsNorm,
     Objective,
     ProxyAnchor,
     build_config,
+    custom_losses_of,
     herd,
     pa_distill,
 )
@@ -80,6 +82,21 @@ def test_configure_is_pure_no_mutation() -> None:
     # base unchanged
     assert base.objectives == ImageEndToEndConfig().objectives
     assert base.embedding_layer_norm is False
+
+
+def test_custom_objective_uses_the_custom_slot_and_is_collectable() -> None:
+    from typing import Any
+
+    def my_loss(emb: Any, lab: Any, config: Any, torch: Any) -> Any:
+        return emb.sum()
+
+    brick = CustomObjective(my_loss, label="my")
+    assert brick.name == "Custom(my)"
+    assert build_config(brick, _base()).objectives == ("custom",)
+    assert custom_losses_of(brick) == {"custom": my_loss}
+    # modifiers wrap it and the loss is still collected through the wrapper
+    assert custom_losses_of(Distill(brick)) == {"custom": my_loss}
+    assert custom_losses_of(herd()) == {}  # no custom loss on standard methods
 
 
 def test_build_config_revalidates_out_of_range_brick_values() -> None:

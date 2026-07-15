@@ -28,7 +28,7 @@ from numpy.typing import NDArray
 from sfora.catalog import Dataset, Protocol
 from sfora.data import ImageDatasetName
 from sfora.image_end_to_end import EndToEndProtocol, ImageEndToEndConfig, config_for_protocol
-from sfora.method import Objective, build_config
+from sfora.method import LossFn, Objective, build_config, custom_losses_of
 
 __all__ = ["BenchmarkResult", "Dataset", "Protocol", "SeedRun", "TrainRunner", "benchmark", "grid"]
 
@@ -122,8 +122,12 @@ def benchmark(
         unknown = sorted(set(overrides) - set(ImageEndToEndConfig.model_fields))
         if unknown:
             raise ValueError(f"unknown override field(s): {unknown}")
-    # The default runner computes custom metrics; a custom runner owns its own metrics.
-    run: TrainRunner = runner or (lambda cfg: _default_runner(cfg, extra_metrics=metrics or {}))
+    # The default runner computes custom metrics + dispatches any CustomObjective loss;
+    # a custom runner owns its own metrics/losses.
+    losses = custom_losses_of(method)
+    run: TrainRunner = runner or (
+        lambda cfg: _default_runner(cfg, extra_metrics=metrics or {}, custom_losses=losses)
+    )
     base = config_for_protocol(protocol, dataset_name=dataset)
 
     runs: list[SeedRun] = []
@@ -198,7 +202,10 @@ def grid(
 
 
 def _default_runner(
-    config: ImageEndToEndConfig, *, extra_metrics: Mapping[str, MetricFn] | None = None
+    config: ImageEndToEndConfig,
+    *,
+    extra_metrics: Mapping[str, MetricFn] | None = None,
+    custom_losses: Mapping[str, LossFn] | None = None,
 ) -> SeedRun:
     """Load the dataset, train one config, and extract scalar metrics + training curves."""
     from sfora.data import load_image_retrieval_examples
@@ -225,6 +232,7 @@ def _default_runner(
         test_examples=test_examples,
         config=config,
         extra_eval_metrics=dict(extra_metrics) if extra_metrics else None,
+        custom_losses=dict(custom_losses) if custom_losses else None,
     )
     trained = [m for m in result.methods.values() if m.objective == config.objectives[0]]
     if not trained:

@@ -20,10 +20,14 @@ fields — not a re-implementation that could drift from the benchmarked numbers
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from sfora.image_end_to_end import ImageEndToEndConfig
+
+# A user-supplied loss: (embeddings, labels, config, torch_module) -> loss tensor.
+LossFn = Callable[[Any, Any, ImageEndToEndConfig, Any], Any]
 
 
 @runtime_checkable
@@ -125,6 +129,39 @@ class FusedHistProxyAnchor:
                 **_MODIFIER_RESET,
             }
         )
+
+
+@dataclass(frozen=True)
+class CustomObjective:
+    """A user-supplied loss, plugged into the trainer as the reserved ``custom`` slot.
+
+    ``loss_fn(embeddings, labels, config, torch_module)`` returns the loss tensor. The
+    benchmark passes it to the trainer via ``custom_losses`` — no trainer edits needed.
+    Compose with modifiers just like any base, e.g. ``Distill(CustomObjective(my_loss))``.
+    """
+
+    loss_fn: LossFn
+    label: str = "custom"
+
+    @property
+    def name(self) -> str:
+        return f"Custom({self.label})"
+
+    def configure(self, config: ImageEndToEndConfig) -> ImageEndToEndConfig:
+        return config.model_copy(
+            update={"objectives": ("custom",), "proxy_count_per_class": 0, **_MODIFIER_RESET}
+        )
+
+
+def custom_losses_of(method: Objective) -> dict[str, LossFn]:
+    """Collect the ``custom`` loss from a method (traversing modifier wrappers)."""
+    losses: dict[str, LossFn] = {}
+    if isinstance(method, CustomObjective):
+        losses["custom"] = method.loss_fn
+    base = getattr(method, "base", None)
+    if base is not None:
+        losses.update(custom_losses_of(base))
+    return losses
 
 
 # ──────────────────────────────  modifier bricks  ─────────────────────────────

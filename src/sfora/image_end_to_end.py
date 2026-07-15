@@ -54,6 +54,8 @@ EndToEndObjective = Literal[
     "proxy_anchor_gsi",
     "proxy_anchor_bgsi",
     "pfml_gsi",
+    # Reserved slot for a user-supplied loss (see CustomObjective / custom_losses).
+    "custom",
 ]
 
 
@@ -398,6 +400,7 @@ def run_image_end_to_end_benchmark(
     transform_factory: Callable[[ImageEndToEndConfig, bool], Callable[[object], Any]] | None = None,
     progress_callback: Callable[[ImageEndToEndResult], None] | None = None,
     extra_eval_metrics: Mapping[str, Callable[[Any, Any], float]] | None = None,
+    custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
 ) -> ImageEndToEndResult:
     """Train Group SupCon + XBM + Radius with a trainable image model and evaluate retrieval."""
     try:
@@ -670,6 +673,8 @@ def run_image_end_to_end_benchmark(
                     images = images.to(device, non_blocking=True)
                 optimizer.zero_grad(set_to_none=True)
                 loss_kwargs: dict[str, Any] = {}
+                if custom_losses:
+                    loss_kwargs["custom_losses"] = custom_losses
                 if bgsi_state is not None:
                     loss_kwargs["bgsi_state"] = bgsi_state
                 if objective in {"hist", "hist_proxy_anchor"}:
@@ -2394,12 +2399,13 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_potential_xbm": _group_potential_objective_loss,
 }
 
-# The frozen backbones are evaluated, not trained, so they have no loss handler.
-_UNTRAINED_OBJECTIVES: frozenset[str] = frozenset({"frozen", "frozen_pretrained"})
-# Exhaustiveness guard: every trainable objective must be registered, so adding a new
+# Objectives with no static handler: the frozen backbones are evaluated not trained,
+# and "custom" is dispatched to a runtime-supplied loss (custom_losses).
+_UNHANDLED_OBJECTIVES: frozenset[str] = frozenset({"frozen", "frozen_pretrained", "custom"})
+# Exhaustiveness guard: every remaining objective must be registered, so adding a new
 # EndToEndObjective without a handler fails at import, not with a runtime KeyError.
 _missing_handlers = (
-    set(get_args(EndToEndObjective)) - _UNTRAINED_OBJECTIVES - set(_OBJECTIVE_LOSSES)
+    set(get_args(EndToEndObjective)) - _UNHANDLED_OBJECTIVES - set(_OBJECTIVE_LOSSES)
 )
 assert not _missing_handlers, f"objectives missing a loss handler: {sorted(_missing_handlers)}"
 
@@ -2423,7 +2429,12 @@ def _loss_for_objective(
     gsi_step_diagnostics: list[dict[str, float]] | None = None,
     hist_module: Any | None = None,
     hist_label_to_index: dict[int, int] | None = None,
+    custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
 ) -> Any:
+    # Caller-supplied objectives (e.g. the "custom" slot) take a clean signature and
+    # override the built-in registry, so a user loss plugs in without editing the trainer.
+    if custom_losses and objective in custom_losses:
+        return custom_losses[objective](embeddings, labels, config, torch_module)
     objective_loss = _OBJECTIVE_LOSSES.get(objective)
     if objective_loss is None:
         raise ValueError(f"unsupported end-to-end objective: {objective}")
