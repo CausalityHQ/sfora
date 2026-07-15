@@ -70,6 +70,46 @@ Training is delegated to an **injectable `runner`** (default: the verified
 `run_image_end_to_end_benchmark`), so the aggregation logic is unit-tested without
 a GPU and you can plug in your own trainer or a cached-results stub.
 
+## Everything is pluggable
+
+The benchmark exposes the four extension points a DML experiment needs — no trainer
+edits required:
+
+```python
+from sfora.method import CustomObjective, Distill
+from sfora.benchmark import benchmark
+from sfora.catalog import Dataset
+
+def my_loss(embeddings, labels, config, torch):        # a custom METHOD (loss)
+    return torch.nn.functional.cross_entropy(embeddings @ embeddings.t(), labels)
+
+def silhouette(embeddings, labels):                    # a custom eval METRIC
+    from sklearn.metrics import silhouette_score
+    return float(silhouette_score(embeddings, labels, metric="cosine"))
+
+def pk_sampler(labels, config):                        # a custom batch MINING strategy
+    ...  # -> an iterable of index lists, one per batch
+    return batches
+
+result = benchmark(
+    Distill(CustomObjective(my_loss)),                 # custom loss, still composable with Distill/IsNorm
+    dataset=Dataset.CUB,
+    metrics={"silhouette": silhouette},                # tracked as a curve + final scalar
+    sampler=pk_sampler,                                # overrides the built-in balanced sampler
+    seeds=[0, 1, 2],
+)
+
+# training CURVES are exposed per seed and averaged
+result.mean_curve("loss")          # per-step loss
+result.mean_curve("recall_at_1")   # per-epoch test R@1 (best-over-training protocol)
+result.mean_curve("silhouette")    # your custom metric over training
+```
+
+So the four knobs are: **method** (`CustomObjective` or the built-in bricks),
+**metric** (`metrics=`), **batch mining/preprocessing** (`sampler=`), and the
+**trainer** itself (`runner=`). Curves (`loss`, `recall_at_1`, and each custom
+metric) come back on `BenchmarkResult.curves_per_seed` / `mean_curve(name)`.
+
 ## Minimal Example
 
 ```python
