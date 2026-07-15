@@ -149,14 +149,23 @@ the train concat and evaluates it, frozen, on the test concat:
 
 Notably the **unsupervised PCA edges both supervised metric-learning heads** — for
 folding an already-trained pack the discriminative geometry is already present, so
-re-optimising it on train labels only risks overfitting the train classes. So a
-genuinely train/test-clean projection recovers **~97.5%** of the pack at one
-model's footprint and beats a single model by **+1.4 pt** — but it does **not**
-reach 100%. The concat *is* the 100% point (no compression); closing the last
-~2.5 pt at 512 dims would require fitting the projection to the test set, which we
-refuse. That is the honest ceiling for an inductive fold. (The transductive GPA
-number below, 0.7490, is higher because it uses the test embeddings' own geometry
-— see the caveat.) Reproduce with:
+re-optimising it on train labels only risks overfitting the train classes.
+
+**The best inductive fold is train-fit GPA alignment.** The transductive GPA fold
+below (0.7490) is the best fold overall, but it computes the Procrustes rotations on
+the *test* embeddings. Since those rotations only align each model's *coordinate
+frame* to a shared consensus — a property of the model, not of any class — we can fit
+them on the disjoint **train** split and freeze them. On a 5-seed pack
+(`scripts/train_fit_gpa.py`) this **inductive GPA recovers 98.0%** (0.7205 of the
+0.7350 concat), beating train-fit PCA — the best genuinely train/test-clean 512-dim
+fold we have.
+
+So a train/test-clean projection recovers **~98%** of the pack at one model's
+footprint and beats a single model by **+1.4 pt** — but it does **not** reach 100%.
+The concat *is* the 100% point (no compression); the last ~2% is real information the
+2560-d concat holds that no 512-d train-fit projection can recover, and closing it
+would require fitting the projection to the test set, which we refuse. That is the
+honest ceiling for an inductive fold. Reproduce with:
 
 ```bash
 uv run python scripts/train_fit_fold.py --dim 512 \
