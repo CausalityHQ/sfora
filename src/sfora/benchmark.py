@@ -30,7 +30,17 @@ from sfora.data import ImageDatasetName
 from sfora.image_end_to_end import EndToEndProtocol, ImageEndToEndConfig, config_for_protocol
 from sfora.method import LossFn, Objective, build_config, custom_losses_of
 
-__all__ = ["BenchmarkResult", "Dataset", "Protocol", "SeedRun", "TrainRunner", "benchmark", "grid"]
+__all__ = [
+    "BenchmarkResult",
+    "Dataset",
+    "MetricFn",
+    "Protocol",
+    "SamplerFn",
+    "SeedRun",
+    "TrainRunner",
+    "benchmark",
+    "grid",
+]
 
 _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_r")
 
@@ -38,6 +48,10 @@ _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_
 # A custom eval metric: (test_embeddings, test_labels) -> scalar, computed at each
 # eval interval and tracked as a training curve alongside loss and recall_at_1.
 MetricFn = Callable[[NDArray[np.floating], NDArray[np.integer]], float]
+
+# A custom batch-mining strategy: (train_labels, config) -> a batch sampler (an
+# iterable of index lists, one per batch). Overrides the built-in balanced sampler.
+SamplerFn = Callable[[NDArray[np.integer], ImageEndToEndConfig], object]
 
 
 @dataclass(frozen=True)
@@ -105,6 +119,7 @@ def benchmark(
     protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
     metrics: Mapping[str, MetricFn] | None = None,
+    sampler: SamplerFn | None = None,
     runner: TrainRunner | None = None,
     label: str | None = None,
 ) -> BenchmarkResult:
@@ -114,7 +129,9 @@ def benchmark(
     brick's fields** (applied after the method compiles). Unknown or out-of-range
     override values raise, rather than being silently dropped. ``metrics`` are custom
     ``(embeddings, labels) -> float`` eval metrics computed each eval interval and
-    exposed as curves (default runner only). ``label`` sets the result's method label.
+    exposed as curves. ``sampler`` is a custom batch-mining strategy
+    ``(labels, config) -> batch sampler``. ``label`` sets the result's method label.
+    (``metrics``/``sampler`` apply to the default runner only.)
     """
     if not seeds:
         raise ValueError("benchmark requires at least one seed")
@@ -126,7 +143,9 @@ def benchmark(
     # a custom runner owns its own metrics/losses.
     losses = custom_losses_of(method)
     run: TrainRunner = runner or (
-        lambda cfg: _default_runner(cfg, extra_metrics=metrics or {}, custom_losses=losses)
+        lambda cfg: _default_runner(
+            cfg, extra_metrics=metrics or {}, custom_losses=losses, sampler_factory=sampler
+        )
     )
     base = config_for_protocol(protocol, dataset_name=dataset)
 
@@ -170,6 +189,7 @@ def grid(
     protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
     metrics: Mapping[str, MetricFn] | None = None,
+    sampler: SamplerFn | None = None,
     runner: TrainRunner | None = None,
 ) -> list[BenchmarkResult]:
     """Benchmark every method on every dataset; returns a flat list of results.
@@ -194,6 +214,7 @@ def grid(
                     protocol=protocol,
                     overrides=overrides,
                     metrics=metrics,
+                    sampler=sampler,
                     runner=runner,
                     label=label,
                 )
@@ -206,6 +227,7 @@ def _default_runner(
     *,
     extra_metrics: Mapping[str, MetricFn] | None = None,
     custom_losses: Mapping[str, LossFn] | None = None,
+    sampler_factory: SamplerFn | None = None,
 ) -> SeedRun:
     """Load the dataset, train one config, and extract scalar metrics + training curves."""
     from sfora.data import load_image_retrieval_examples
@@ -233,6 +255,7 @@ def _default_runner(
         config=config,
         extra_eval_metrics=dict(extra_metrics) if extra_metrics else None,
         custom_losses=dict(custom_losses) if custom_losses else None,
+        sampler_factory=sampler_factory,
     )
     trained = [m for m in result.methods.values() if m.objective == config.objectives[0]]
     if not trained:

@@ -401,6 +401,7 @@ def run_image_end_to_end_benchmark(
     progress_callback: Callable[[ImageEndToEndResult], None] | None = None,
     extra_eval_metrics: Mapping[str, Callable[[Any, Any], float]] | None = None,
     custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
+    sampler_factory: Callable[[Any, ImageEndToEndConfig], Any] | None = None,
 ) -> ImageEndToEndResult:
     """Train Group SupCon + XBM + Radius with a trainable image model and evaluate retrieval."""
     try:
@@ -460,17 +461,27 @@ def run_image_end_to_end_benchmark(
     train_loader_kwargs: dict[str, Any] = {}
     if config.mead_weight > 0.0:
         train_loader_kwargs["collate_fn"] = _mead_multicrop_collate
-    if config.samples_per_class > 0 or config.hard_class_fraction > 0.0:
-        batch_sampler = _balanced_batch_indices(
-            train_labels,
-            batch_size=config.batch_size,
-            group_size=config.group_size,
-            samples_per_class=config.samples_per_class,
-            steps=train_steps,
-            seed=config.seed,
-            class_similarity=class_similarity,
-            hard_fraction=config.hard_class_fraction,
-        )
+    _use_batch_sampler = (
+        sampler_factory is not None
+        or config.samples_per_class > 0
+        or config.hard_class_fraction > 0.0
+    )
+    if _use_batch_sampler:
+        # A caller-supplied sampler_factory defines a custom batch-mining strategy
+        # (P-K composition, hard mining, …); otherwise use the built-in balanced sampler.
+        if sampler_factory is not None:
+            batch_sampler = sampler_factory(train_labels, config)
+        else:
+            batch_sampler = _balanced_batch_indices(
+                train_labels,
+                batch_size=config.batch_size,
+                group_size=config.group_size,
+                samples_per_class=config.samples_per_class,
+                steps=train_steps,
+                seed=config.seed,
+                class_similarity=class_similarity,
+                hard_fraction=config.hard_class_fraction,
+            )
         train_loader: Any = DataLoader(
             cast(Any, train_dataset),
             batch_sampler=batch_sampler,

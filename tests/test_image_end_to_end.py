@@ -822,6 +822,64 @@ def test_hist_objective_end_to_end_runs() -> None:
     assert "hist_end_to_end:tiny" in result.methods
 
 
+def test_custom_sampler_and_custom_loss_plugins_are_invoked() -> None:
+    torch: Any = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Embedding(8, 4)
+
+        def forward(self, images: object) -> object:
+            return self.embedding(torch.as_tensor(images, dtype=torch.long))
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: int(cast(int, image))
+
+    examples = [
+        ImageExample(example_id=f"{label}-{index}", image=label * 4 + index, label=label)
+        for label in range(2)
+        for index in range(4)
+    ]
+    calls = {"sampler": 0, "loss": 0}
+
+    def sampler_factory(labels: object, config: ImageEndToEndConfig) -> list[list[int]]:
+        calls["sampler"] += 1
+        return [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
+
+    def custom_loss(embeddings: Any, labels: Any, config: Any, torch_module: Any) -> Any:
+        calls["loss"] += 1
+        return (embeddings * embeddings).sum()
+
+    result = run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="proxy-anchor-resnet50-512",
+            objectives=("custom",),
+            backbone_name="tiny",
+            embedding_dimensions=4,
+            batch_size=8,
+            samples_per_class=0,
+            eval_batch_size=8,
+            train_steps=2,
+            train_epochs=None,
+            warmup_epochs=0,
+            retrieval_query_limit=8,
+            progress_every=0,
+            num_workers=0,
+        ),
+        model_factory=lambda config: TinyModel(),
+        transform_factory=transform_factory,
+        sampler_factory=sampler_factory,
+        custom_losses={"custom": custom_loss},
+    )
+    assert calls["sampler"] == 1  # the custom batch-mining strategy was used
+    assert calls["loss"] > 0  # the custom loss was dispatched each step
+    assert any("custom" in name for name in result.methods)
+
+
 def test_mead_assignment_distillation_loss_lower_when_matched() -> None:
     torch = pytest.importorskip("torch")
 
