@@ -3837,8 +3837,14 @@ def _interference_diagnostics(
         [embeddings[labels == label].mean(axis=0) for label in unique_labels],
         axis=0,
     )
-    mean_differences = class_means[None, :, :] - class_means[:, None, :]
-    distances = np.linalg.norm(mean_differences, axis=2)
+    # Pairwise class-mean distances via ||a-b||^2 = ||a||^2 + ||b||^2 - 2 a.b, so we
+    # never materialise the (C, C, D) difference tensor — that is 489 GiB at SOP's
+    # ~11.3k classes. The (C, C) distance matrix is ~1 GiB and the per-class loop
+    # below recomputes the axis differences it actually needs on the fly.
+    sq_norms = np.sum(class_means * class_means, axis=1)
+    distances = np.sqrt(
+        np.maximum(sq_norms[:, None] + sq_norms[None, :] - 2.0 * (class_means @ class_means.T), 0.0)
+    )
     np.fill_diagonal(distances, np.inf)
     neighbor_count = min(top_k, unique_labels.shape[0] - 1)
 
