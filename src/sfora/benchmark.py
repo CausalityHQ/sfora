@@ -40,10 +40,10 @@ _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_
 class BenchmarkResult:
     """Aggregated metrics for one method on one dataset over seeds.
 
-    Metrics are the trainer's reported retrieval on the test split (its primary
-    ``recall_at_1`` is the **final-epoch** model). The project's headline numbers use
-    the *best-over-training* protocol (peak test R@1), which the trainer tracks only
-    as a diagnostic — reproduce those via the remote scripts, not this runner.
+    The default runner reports **best-over-training** metrics (the full retrieval set
+    at the peak test-R@1 epoch — the standard DML protocol the papers report), by
+    enabling per-epoch test evaluation. A custom ``runner`` may report whatever it
+    likes; the fields are R@1/2/4/8 and MAP@R, mean ± std over seeds.
     """
 
     method: str
@@ -175,6 +175,10 @@ def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
         raise ValueError(
             f"the benchmark runner expects a single-objective config, got {config.objectives}"
         )
+    # Track best-over-training (peak test R@1) — the project's headline protocol — unless
+    # the caller already set an eval cadence.
+    if config.eval_test_interval_epochs <= 0:
+        config = config.model_copy(update={"eval_test_interval_epochs": 5})
     result = run_image_end_to_end_benchmark(
         train_examples=train_examples, test_examples=test_examples, config=config
     )
@@ -182,4 +186,6 @@ def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
     if not trained:
         raise RuntimeError(f"trainer returned no metrics for objective {config.objectives[0]}")
     metrics = trained[-1]
-    return {name: float(getattr(metrics, name)) for name in _METRICS}
+    # Prefer the full best-over-training metric set; fall back to final-epoch metrics.
+    source: object = metrics.best_test_retrieval if metrics.best_test_retrieval else metrics
+    return {name: float(getattr(source, name)) for name in _METRICS}

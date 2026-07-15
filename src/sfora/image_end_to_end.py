@@ -247,6 +247,10 @@ class EndToEndMethodMetrics:
     selection_metric: str | None = None
     selection_score: float | None = None
     best_test_recall_at_1: float | None = None
+    # Full retrieval metrics at the best-over-training (peak test R@1) epoch, when
+    # eval_test_interval_epochs > 0; None otherwise. Primary `recall_at_1` above stays
+    # the final-epoch model.
+    best_test_retrieval: ImageRetrievalMetrics | None = None
     best_test_epoch: int | None = None
     test_recall_history: list[float] | None = None
 
@@ -555,6 +559,7 @@ def run_image_end_to_end_benchmark(
         gsi_step_diagnostics: list[dict[str, float]] = []
         best_test_recall_at_1: float | None = None
         best_test_epoch: int | None = None
+        best_test_retrieval: ImageRetrievalMetrics | None = None
         test_recall_history: list[float] = []
         selected_step: int | None = None
         selection_metric: str | None = None
@@ -863,16 +868,19 @@ def run_image_end_to_end_benchmark(
                     epoch_embeddings, epoch_labels = _encode_model(
                         model, test_loader, device, torch
                     )
-                    epoch_recall = image_self_retrieval_score(
+                    epoch_retrieval = image_self_retrieval_score(
                         epoch_embeddings,
                         epoch_labels,
                         query_limit=config.retrieval_query_limit,
                         random_state=config.seed,
-                    ).recall_at_1
+                    )
+                    epoch_recall = epoch_retrieval.recall_at_1
                     test_recall_history.append(float(epoch_recall))
                     if best_test_recall_at_1 is None or epoch_recall > best_test_recall_at_1:
                         best_test_recall_at_1 = float(epoch_recall)
                         best_test_epoch = int(epoch_index)
+                        # Full metric set at the best-R@1 epoch (best-over-training).
+                        best_test_retrieval = epoch_retrieval
                         if config.save_test_embeddings:
                             # Persist the best-over-training test embeddings for
                             # ensembling — the standard DML protocol (same as the
@@ -1020,6 +1028,7 @@ def run_image_end_to_end_benchmark(
             selection_metric=selection_metric,
             selection_score=selection_score,
             best_test_recall_at_1=best_test_recall_at_1,
+            best_test_retrieval=best_test_retrieval,
             best_test_epoch=best_test_epoch,
             test_recall_history=test_recall_history or None,
         )
