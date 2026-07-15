@@ -150,6 +150,30 @@ training step.
 See [docs/library_usage.md](docs/library_usage.md) for retrieval scoring and
 recommended settings.
 
+## Compose a method from type-safe bricks
+
+The core finding *is* the API: a **method = base loss + composable modifiers**, and
+our EMA-teacher relational distillation is a modifier that improves any base. Bricks
+are immutable and type-checked; dataset/protocol/metric names are constants, never
+raw strings.
+
+```python
+from sfora.method import HIST, ProxyAnchor, Distill, IsNorm, herd, pa_distill
+from sfora.benchmark import benchmark, grid
+from sfora.catalog import Dataset, Protocol
+
+HERD      = IsNorm(Distill(HIST()))     # == herd();      best on CUB
+PADistill = Distill(ProxyAnchor())      # == pa_distill(); best on Cars
+
+# multi-seed benchmark → typed BenchmarkResult (R@1/2/4/8, MAP@R, mean ± std)
+benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512, seeds=[0, 1, 2])
+grid([herd(), pa_distill(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0, 1, 2])
+```
+
+`Distill(...)` is the universal improvement (`HIST → HERD`, `ProxyAnchor →
+PA+distill`); the strongest method per dataset is the stronger base with the
+distillation on it — see the multi-dataset result below.
+
 ## Quick Start
 
 ```bash
