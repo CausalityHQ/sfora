@@ -420,7 +420,12 @@ def image_query_gallery_retrieval_score(
     """Retrieve each query against a disjoint gallery (the In-Shop / consumer-to-shop
     protocol). Unlike self-retrieval there is no leave-one-out: the query set and the
     gallery set are separate, so nothing is excluded from the ranking. A query counts
-    as relevant to a gallery item when they share the identity label."""
+    as relevant to a gallery item when they share the identity label.
+
+    This is a standalone scoring **primitive** (no dataset loader wires it yet). It
+    returns the project's uniform ``ImageRetrievalMetrics`` — recall at **1/2/4/8** and
+    MAP@R — so ``recall_at_1`` is directly comparable; note the In-Shop *paper* headline
+    is R@1/10/20/30, which this fixed-cutoff metric does not report."""
     q_emb = np.asarray(query_embeddings, dtype=np.float64)
     g_emb = np.asarray(gallery_embeddings, dtype=np.float64)
     q_lab = np.asarray(query_labels, dtype=np.int64)

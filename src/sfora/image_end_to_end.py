@@ -9,11 +9,11 @@ import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Any, Literal, Protocol, cast, get_args
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from sfora.data import ImageDatasetName, ImageExample
 from sfora.image_benchmark import ImageRetrievalMetrics, image_self_retrieval_score
@@ -73,6 +73,10 @@ class TorchImageModel(Protocol):
 
 class ImageEndToEndConfig(BaseModel):
     """Configuration for end-to-end image metric-learning benchmarks."""
+
+    # Reject unknown fields so a typo'd construction kwarg fails loudly instead of
+    # being silently dropped (the method bricks re-validate on top of this).
+    model_config = ConfigDict(extra="forbid")
 
     dataset_name: ImageDatasetName = "cub"
     protocol: EndToEndProtocol = "hpl-resnet50-512"
@@ -225,7 +229,7 @@ class ImageEndToEndConfig(BaseModel):
 @dataclass(frozen=True)
 class EndToEndMethodMetrics:
     model_name: str
-    objective: str
+    objective: EndToEndObjective
     display_name: str
     dimensions: int
     retrieval: ImageRetrievalMetrics
@@ -251,7 +255,7 @@ class EndToEndMethodMetrics:
 class ImageEndToEndResult:
     name: str
     dataset_name: ImageDatasetName
-    protocol: str
+    protocol: EndToEndProtocol
     config: ImageEndToEndConfig
     train_examples: int
     test_examples: int
@@ -2369,6 +2373,15 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_potential": _group_potential_objective_loss,
     "group_potential_xbm": _group_potential_objective_loss,
 }
+
+# The frozen backbones are evaluated, not trained, so they have no loss handler.
+_UNTRAINED_OBJECTIVES: frozenset[str] = frozenset({"frozen", "frozen_pretrained"})
+# Exhaustiveness guard: every trainable objective must be registered, so adding a new
+# EndToEndObjective without a handler fails at import, not with a runtime KeyError.
+_missing_handlers = (
+    set(get_args(EndToEndObjective)) - _UNTRAINED_OBJECTIVES - set(_OBJECTIVE_LOSSES)
+)
+assert not _missing_handlers, f"objectives missing a loss handler: {sorted(_missing_handlers)}"
 
 
 def _loss_for_objective(

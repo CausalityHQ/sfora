@@ -80,3 +80,23 @@ def test_configure_is_pure_no_mutation() -> None:
     # base unchanged
     assert base.objectives == ImageEndToEndConfig().objectives
     assert base.embedding_layer_norm is False
+
+
+def test_build_config_revalidates_out_of_range_brick_values() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        build_config(HIST(tau=-1.0), _base())  # hist_tau must be > 0
+
+
+def test_base_brick_resets_inherited_modifier_fields() -> None:
+    # A base loss must be self-contained: it resets a Distill/IsNorm left on the base.
+    dirty = ImageEndToEndConfig(ema_distill_weight=1.0, embedding_layer_norm=True)
+    cfg = build_config(HIST(), dirty)
+    assert cfg.ema_distill_weight == 0.0
+    assert cfg.embedding_layer_norm is False
+    # but HERD (which re-adds them) keeps them on
+    herd_cfg = build_config(herd(), dirty)
+    assert herd_cfg.ema_distill_weight == 1.0
+    assert herd_cfg.embedding_layer_norm is True

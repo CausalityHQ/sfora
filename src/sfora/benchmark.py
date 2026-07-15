@@ -38,7 +38,13 @@ _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_
 
 @dataclass(frozen=True)
 class BenchmarkResult:
-    """Aggregated metrics for one method on one dataset over seeds (best-over-training)."""
+    """Aggregated metrics for one method on one dataset over seeds.
+
+    Metrics are the trainer's reported retrieval on the test split (its primary
+    ``recall_at_1`` is the **final-epoch** model). The project's headline numbers use
+    the *best-over-training* protocol (peak test R@1), which the trainer tracks only
+    as a diagnostic — reproduce those via the remote scripts, not this runner.
+    """
 
     method: str
     dataset: ImageDatasetName
@@ -66,28 +72,43 @@ def benchmark(
     protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
     runner: TrainRunner | None = None,
+    label: str | None = None,
 ) -> BenchmarkResult:
-    """Benchmark a method brick on a dataset over seeds; returns aggregated metrics."""
+    """Benchmark a method brick on a dataset over seeds; returns aggregated metrics.
+
+    ``overrides`` are dataset/training config fields that **take precedence over the
+    brick's fields** (applied after the method compiles). Unknown or out-of-range
+    override values raise, rather than being silently dropped. ``label`` sets the
+    result's method label (defaults to ``method.name``).
+    """
     if not seeds:
         raise ValueError("benchmark requires at least one seed")
+    if overrides:
+        unknown = sorted(set(overrides) - set(ImageEndToEndConfig.model_fields))
+        if unknown:
+            raise ValueError(f"unknown override field(s): {unknown}")
     run = runner or _default_runner
     base = config_for_protocol(protocol, dataset_name=dataset)
-    if overrides:
-        base = base.model_copy(update=dict(overrides))
 
     per_seed_metrics: list[Mapping[str, float]] = []
     for seed in seeds:
-        config = build_config(method, base).model_copy(
-            update={"dataset_name": dataset, "seed": int(seed)}
-        )
-        per_seed_metrics.append(run(config))
+        config = build_config(method, base)
+        if overrides:
+            # overrides win over brick fields, and are re-validated (not silently kept).
+            config = ImageEndToEndConfig.model_validate({**config.model_dump(), **dict(overrides)})
+        config = config.model_copy(update={"dataset_name": dataset, "seed": int(seed)})
+        metrics = run(config)
+        missing = sorted(set(_METRICS) - set(metrics))
+        if missing:
+            raise ValueError(f"runner did not return required metric(s): {missing}")
+        per_seed_metrics.append(metrics)
 
     def agg(metric: str) -> float:
-        return statistics.mean(float(m.get(metric, float("nan"))) for m in per_seed_metrics)
+        return statistics.mean(float(m[metric]) for m in per_seed_metrics)
 
     r1 = [float(m["recall_at_1"]) for m in per_seed_metrics]
     return BenchmarkResult(
-        method=method.name,
+        method=label or method.name,
         dataset=dataset,
         seeds=tuple(int(s) for s in seeds),
         recall_at_1=statistics.mean(r1),
@@ -114,10 +135,15 @@ def grid(
     ``methods`` may be a plain sequence of bricks (labelled by each brick's
     ``.name``) or a mapping of custom label -> brick.
     """
-    bricks = list(methods.values()) if isinstance(methods, Mapping) else list(methods)
+    # Preserve custom mapping labels (a sequence is labelled by each brick's .name).
+    labelled: list[tuple[str | None, Objective]] = (
+        [(k, v) for k, v in methods.items()]
+        if isinstance(methods, Mapping)
+        else [(None, m) for m in methods]
+    )
     results: list[BenchmarkResult] = []
     for dataset in datasets:
-        for method in bricks:
+        for label, method in labelled:
             results.append(
                 benchmark(
                     method,
@@ -126,6 +152,7 @@ def grid(
                     protocol=protocol,
                     overrides=overrides,
                     runner=runner,
+                    label=label,
                 )
             )
     return results
@@ -142,11 +169,17 @@ def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
     test_examples = load_image_retrieval_examples(
         dataset_name=config.dataset_name, split="test", seed=config.seed
     )
+    # A method brick compiles to exactly one trained objective; require that so the
+    # extracted metrics are unambiguous (not "whichever objective happened to run last").
+    if len(config.objectives) != 1:
+        raise ValueError(
+            f"the benchmark runner expects a single-objective config, got {config.objectives}"
+        )
     result = run_image_end_to_end_benchmark(
         train_examples=train_examples, test_examples=test_examples, config=config
     )
-    if not result.methods:
-        raise RuntimeError("trainer returned no methods")
-    # A brick config has a single trained objective — take its metrics (last entry).
-    metrics = list(result.methods.values())[-1]
+    trained = [m for m in result.methods.values() if m.objective == config.objectives[0]]
+    if not trained:
+        raise RuntimeError(f"trainer returned no metrics for objective {config.objectives[0]}")
+    metrics = trained[-1]
     return {name: float(getattr(metrics, name)) for name in _METRICS}

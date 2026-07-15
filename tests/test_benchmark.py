@@ -60,19 +60,50 @@ def test_benchmark_requires_a_seed() -> None:
         raise AssertionError("expected ValueError for empty seeds")
 
 
-def test_grid_runs_every_method_on_every_dataset() -> None:
+def test_grid_mapping_preserves_custom_labels() -> None:
     run, seen = _fake_runner({0: 0.5})
     methods = {"HERD": herd(), "PA": ProxyAnchor()}
     results = grid(methods, datasets=["cub", "cars"], seeds=[0], runner=run)
     assert len(results) == 4  # 2 methods x 2 datasets
+    # mapping keys become the result labels (not the brick .name)
     assert {(r.method, r.dataset) for r in results} == {
-        ("IsNorm(Distill(HIST))", "cub"),
-        ("IsNorm(Distill(HIST))", "cars"),
-        ("ProxyAnchor", "cub"),
-        ("ProxyAnchor", "cars"),
+        ("HERD", "cub"),
+        ("HERD", "cars"),
+        ("PA", "cub"),
+        ("PA", "cars"),
     }
     # ProxyAnchor bricks carry a proxy per class; HERD bricks do not.
     assert any(c.proxy_count_per_class == 1 and c.objectives == ("proxy_anchor",) for c in seen)
+
+
+def test_benchmark_rejects_unknown_override_key() -> None:
+    import pytest
+
+    run, _ = _fake_runner({0: 0.7})
+    with pytest.raises(ValueError, match="unknown override"):
+        benchmark(herd(), dataset="cub", seeds=[0], overrides={"hist_taau": 7.0}, runner=run)
+
+
+def test_overrides_take_precedence_over_brick_fields() -> None:
+    run, seen = _fake_runner({0: 0.7})
+    benchmark(HIST(tau=99.0), dataset="cub", seeds=[0], overrides={"hist_tau": 16.0}, runner=run)
+    assert seen[0].hist_tau == 16.0  # explicit override wins over the brick's tau
+
+
+def test_benchmark_requires_all_metrics_from_runner() -> None:
+    import pytest
+
+    def bad_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
+        return {"recall_at_1": 0.7}  # missing recall_at_2/4/8, map_at_r
+
+    with pytest.raises(ValueError, match="required metric"):
+        benchmark(herd(), dataset="cub", seeds=[0], runner=bad_runner)
+
+
+def test_grid_sequence_labels_by_brick_name() -> None:
+    run, _ = _fake_runner({0: 0.5})
+    results = grid([herd(), ProxyAnchor()], datasets=["cub"], seeds=[0], runner=run)
+    assert {r.method for r in results} == {"IsNorm(Distill(HIST))", "ProxyAnchor"}
 
 
 def test_type_safe_constants_are_the_underlying_literals() -> None:

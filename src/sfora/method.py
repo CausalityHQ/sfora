@@ -13,8 +13,9 @@ Every brick is an immutable ``Objective``: it takes an ``ImageEndToEndConfig`` a
 returns a new one with its fields set (``configure``). Modifiers (``Distill``,
 ``IsNorm``) wrap another ``Objective`` and layer their own fields on top, so the
 composition is type-checked and order-independent where it should be. Bricks train
-through the existing, verified trainer via :func:`build_config`, so composing them
-cannot regress the benchmarked numbers.
+through the existing, verified trainer via :func:`build_config` (which re-validates
+the compiled config), so a composed method runs the same trainer with validated
+fields — not a re-implementation that could drift from the benchmarked numbers.
 """
 
 from __future__ import annotations
@@ -27,7 +28,11 @@ from sfora.image_end_to_end import ImageEndToEndConfig
 
 @runtime_checkable
 class Objective(Protocol):
-    """A composable training objective: a base loss or a modifier wrapping one."""
+    """A composable training objective: a base loss or a modifier wrapping one.
+
+    ``runtime_checkable`` here only checks attribute presence, not signatures — it is
+    a sanity guard, not full contract validation.
+    """
 
     @property
     def name(self) -> str:
@@ -35,6 +40,12 @@ class Objective(Protocol):
 
     def configure(self, config: ImageEndToEndConfig) -> ImageEndToEndConfig:
         """Return ``config`` updated with this brick's fields (pure, no mutation)."""
+
+
+# A base-loss brick resets the modifier fields so it is self-contained: a bare base
+# never inherits a Distill/IsNorm left on the incoming config, and the modifiers
+# re-enable them explicitly. Keeps composition identity == config identity.
+_MODIFIER_RESET: dict[str, object] = {"ema_distill_weight": 0.0, "embedding_layer_norm": False}
 
 
 # ─────────────────────────────  base-loss bricks  ─────────────────────────────
@@ -58,6 +69,7 @@ class HIST:
                 "hist_tau": self.tau,
                 "hist_alpha": self.alpha,
                 "hist_lambda_s": self.lambda_s,
+                **_MODIFIER_RESET,
             }
         )
 
@@ -81,6 +93,7 @@ class ProxyAnchor:
                 "proxy_count_per_class": self.proxies_per_class,
                 "proxy_anchor_alpha": self.alpha,
                 "proxy_anchor_delta": self.delta,
+                **_MODIFIER_RESET,
             }
         )
 
@@ -94,6 +107,8 @@ class FusedHistProxyAnchor:
     """
 
     fusion_weight: float = 1.0
+    proxy_alpha: float = 32.0
+    proxy_delta: float = 0.1
 
     @property
     def name(self) -> str:
@@ -105,6 +120,9 @@ class FusedHistProxyAnchor:
                 "objectives": ("hist_proxy_anchor",),
                 "proxy_count_per_class": 1,
                 "proxy_fusion_weight": self.fusion_weight,
+                "proxy_anchor_alpha": self.proxy_alpha,
+                "proxy_anchor_delta": self.proxy_delta,
+                **_MODIFIER_RESET,
             }
         )
 
@@ -166,5 +184,11 @@ def pa_distill(
 
 
 def build_config(method: Objective, base: ImageEndToEndConfig) -> ImageEndToEndConfig:
-    """Compile a method brick into a runnable ``ImageEndToEndConfig`` from a base."""
-    return method.configure(base)
+    """Compile a method brick into a runnable ``ImageEndToEndConfig`` from a base.
+
+    Bricks compose via ``model_copy`` (which does not validate), so re-validate the
+    result: an out-of-range brick value (e.g. ``HIST(tau=-1)``) fails loudly here
+    rather than silently mid-training.
+    """
+    updated = method.configure(base)
+    return type(updated).model_validate(updated.model_dump())
