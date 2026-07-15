@@ -39,8 +39,24 @@ import numpy as np
 from numpy.typing import NDArray
 
 from sfora.api import SforaProjector
+from sfora.catalog import Combine, RankBy
 from sfora.image_benchmark import image_self_retrieval_score
 from sfora.training import Objective
+
+__all__ = [
+    "Combine",
+    "Head",
+    "Identity",
+    "Join",
+    "L2Normalize",
+    "Pca",
+    "Pipeline",
+    "RankBy",
+    "RetrievalReport",
+    "compare",
+    "evaluate",
+    "grid",
+]
 
 Embeddings = NDArray[np.floating]
 Labels = NDArray[np.integer]
@@ -320,7 +336,7 @@ def compare(
     train: Data,
     test: Data,
     rank_by: Literal["recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_r"] = (
-        "recall_at_1"
+        RankBy.RECALL_AT_1
     ),
     random_state: int = 0,
 ) -> list[RetrievalReport]:

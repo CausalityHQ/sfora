@@ -33,3 +33,21 @@ class Protocol:
     PFML_R50_512: Final = "pfml-resnet50-512"
     PROXY_ANCHOR_R50_512: Final = "proxy-anchor-resnet50-512"
     SOTA_R50_512: Final = "sota-resnet50-512"
+
+
+class Combine:
+    """How ``sfora.compose.Join`` merges branch embeddings (each is its ``JoinKind``)."""
+
+    CONCAT: Final = "concat"
+    MEAN: Final = "mean"
+    ALIGNED_MEAN: Final = "aligned_mean"
+
+
+class RankBy:
+    """Retrieval metric to rank/select by (each is the metric's field name literal)."""
+
+    RECALL_AT_1: Final = "recall_at_1"
+    RECALL_AT_2: Final = "recall_at_2"
+    RECALL_AT_4: Final = "recall_at_4"
+    RECALL_AT_8: Final = "recall_at_8"
+    MAP_AT_R: Final = "map_at_r"

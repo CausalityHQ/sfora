@@ -117,7 +117,7 @@ Every candidate is fit on the **train** split and scored on the **test** split
 (disjoint classes in the zero-shot protocol — nothing is fit on test).
 
 ```python
-from sfora.compose import Head, Join, Pca, Pipeline, compare, grid
+from sfora.compose import Combine, Head, Join, Pca, Pipeline, RankBy, compare, grid
 
 candidates = {
     # single trainable heads (any objective + params)
@@ -127,16 +127,16 @@ candidates = {
     # a pipeline: train a head, then reduce with PCA
     "group+pca128": Pipeline([Head(objective="group_supcon"), Pca(dim=128)]),
 
-    # ensembles: join several bricks (of any kind) by concatenation or aligned mean
-    "ensemble3":    Join("concat", [Head(seed=s) for s in range(3)]),
-    "aligned3":     Join("aligned_mean", [Head(seed=s) for s in range(3)]),
+    # ensembles: join several bricks (of any kind); Combine is type-safe (no raw strings)
+    "ensemble3":    Join(Combine.CONCAT, [Head(seed=s) for s in range(3)]),
+    "aligned3":     Join(Combine.ALIGNED_MEAN, [Head(seed=s) for s in range(3)]),
 
     # a parameter grid, expanded to one candidate per combination
     **grid("head", Head, {"objective": ["triplet", "group_supcon"], "steps": [40, 80]}),
 }
 
 ranking = compare(candidates, train=(X_train, y_train), test=(X_test, y_test),
-                  rank_by="recall_at_1")
+                  rank_by=RankBy.RECALL_AT_1)
 for report in ranking:
     print(f"{report.name:<28} R@1={report.recall_at_1:.4f} "
           f"MAP@R={report.map_at_r:.4f} dim={report.output_dim}")
