@@ -1,10 +1,10 @@
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 
-from sfora.benchmark import benchmark, grid
+from sfora.benchmark import SeedRun, benchmark, grid
 from sfora.image_end_to_end import ImageEndToEndConfig
 from sfora.method import HIST, ProxyAnchor, herd, pa_distill
 
-_Runner = Callable[[ImageEndToEndConfig], Mapping[str, float]]
+_Runner = Callable[[ImageEndToEndConfig], SeedRun]
 
 
 def _fake_runner(
@@ -12,16 +12,19 @@ def _fake_runner(
 ) -> tuple[_Runner, list[ImageEndToEndConfig]]:
     seen: list[ImageEndToEndConfig] = []
 
-    def run(config: ImageEndToEndConfig) -> Mapping[str, float]:
+    def run(config: ImageEndToEndConfig) -> SeedRun:
         seen.append(config)
         r = recall_by_seed[config.seed]
-        return {
-            "recall_at_1": r,
-            "recall_at_2": r + 0.05,
-            "recall_at_4": r + 0.10,
-            "recall_at_8": r + 0.15,
-            "map_at_r": r - 0.30,
-        }
+        return SeedRun(
+            metrics={
+                "recall_at_1": r,
+                "recall_at_2": r + 0.05,
+                "recall_at_4": r + 0.10,
+                "recall_at_8": r + 0.15,
+                "map_at_r": r - 0.30,
+            },
+            curves={"loss": (2.0, 1.0, 0.5), "recall_at_1": (r - 0.1, r)},
+        )
 
     return run, seen
 
@@ -93,11 +96,23 @@ def test_overrides_take_precedence_over_brick_fields() -> None:
 def test_benchmark_requires_all_metrics_from_runner() -> None:
     import pytest
 
-    def bad_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
-        return {"recall_at_1": 0.7}  # missing recall_at_2/4/8, map_at_r
+    def bad_runner(config: ImageEndToEndConfig) -> SeedRun:
+        return SeedRun(metrics={"recall_at_1": 0.7})  # missing recall_at_2/4/8, map_at_r
 
     with pytest.raises(ValueError, match="required metric"):
         benchmark(herd(), dataset="cub", seeds=[0], runner=bad_runner)
+
+
+def test_benchmark_exposes_per_seed_curves_and_mean_curve() -> None:
+    run, _ = _fake_runner({0: 0.70, 1: 0.72})
+    result = benchmark(herd(), dataset="cub", seeds=[0, 1], runner=run)
+    # each seed's named curves are exposed
+    assert result.curves_per_seed[0]["loss"] == (2.0, 1.0, 0.5)
+    assert set(result.curves_per_seed[0]) == {"loss", "recall_at_1"}
+    # mean_curve averages across seeds (recall_at_1 curve = (r-0.1, r))
+    assert result.mean_curve("recall_at_1") == (0.61, 0.71)
+    assert result.mean_curve("loss") == (2.0, 1.0, 0.5)
+    assert result.mean_curve("absent") == ()
 
 
 def test_grid_sequence_labels_by_brick_name() -> None:

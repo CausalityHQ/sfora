@@ -20,20 +20,43 @@ from __future__ import annotations
 
 import statistics
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+import numpy as np
+from numpy.typing import NDArray
 
 from sfora.catalog import Dataset, Protocol
 from sfora.data import ImageDatasetName
 from sfora.image_end_to_end import EndToEndProtocol, ImageEndToEndConfig, config_for_protocol
 from sfora.method import Objective, build_config
 
-__all__ = ["BenchmarkResult", "Dataset", "Protocol", "TrainRunner", "benchmark", "grid"]
-
-# A runner trains one config and returns its metrics as a name -> value mapping
-# (at least "recall_at_1"). Injectable so the aggregation is testable without torch.
-TrainRunner = Callable[[ImageEndToEndConfig], Mapping[str, float]]
+__all__ = ["BenchmarkResult", "Dataset", "Protocol", "SeedRun", "TrainRunner", "benchmark", "grid"]
 
 _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_r")
+
+
+# A custom eval metric: (test_embeddings, test_labels) -> scalar, computed at each
+# eval interval and tracked as a training curve alongside loss and recall_at_1.
+MetricFn = Callable[[NDArray[np.floating], NDArray[np.integer]], float]
+
+
+@dataclass(frozen=True)
+class SeedRun:
+    """One seed's result: final/best scalar metrics + named training curves.
+
+    ``metrics`` must contain ``recall_at_1/2/4/8`` and ``map_at_r`` (plus any custom
+    metric's final value). ``curves`` maps a name -> per-eval-interval values; the
+    default runner provides ``"loss"``, ``"recall_at_1"``, and one entry per custom
+    metric. Empty if the runner does not track curves.
+    """
+
+    metrics: Mapping[str, float]
+    curves: Mapping[str, tuple[float, ...]] = field(default_factory=dict)
+
+
+# A runner trains one config and returns a SeedRun. Injectable so aggregation is
+# testable without torch.
+TrainRunner = Callable[[ImageEndToEndConfig], SeedRun]
 
 
 @dataclass(frozen=True)
@@ -56,12 +79,22 @@ class BenchmarkResult:
     recall_at_4: float
     recall_at_8: float
     map_at_r: float
+    # Per-seed named training curves (e.g. "loss", "recall_at_1", custom metrics).
+    curves_per_seed: tuple[Mapping[str, tuple[float, ...]], ...] = ()
 
     def summary(self) -> str:
         return (
             f"{self.method} · {self.dataset}: R@1 {self.recall_at_1:.4f} "
             f"± {self.recall_at_1_std:.4f} (seeds {list(self.seeds)})"
         )
+
+    def mean_curve(self, name: str) -> tuple[float, ...]:
+        """Mean of the named curve across seeds, truncated to the shortest seed."""
+        series = [c[name] for c in self.curves_per_seed if name in c and c[name]]
+        if not series:
+            return ()
+        length = min(len(s) for s in series)
+        return tuple(statistics.mean(s[i] for s in series) for i in range(length))
 
 
 def benchmark(
@@ -71,6 +104,7 @@ def benchmark(
     seeds: Sequence[int] = (0,),
     protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
+    metrics: Mapping[str, MetricFn] | None = None,
     runner: TrainRunner | None = None,
     label: str | None = None,
 ) -> BenchmarkResult:
@@ -78,8 +112,9 @@ def benchmark(
 
     ``overrides`` are dataset/training config fields that **take precedence over the
     brick's fields** (applied after the method compiles). Unknown or out-of-range
-    override values raise, rather than being silently dropped. ``label`` sets the
-    result's method label (defaults to ``method.name``).
+    override values raise, rather than being silently dropped. ``metrics`` are custom
+    ``(embeddings, labels) -> float`` eval metrics computed each eval interval and
+    exposed as curves (default runner only). ``label`` sets the result's method label.
     """
     if not seeds:
         raise ValueError("benchmark requires at least one seed")
@@ -87,26 +122,27 @@ def benchmark(
         unknown = sorted(set(overrides) - set(ImageEndToEndConfig.model_fields))
         if unknown:
             raise ValueError(f"unknown override field(s): {unknown}")
-    run = runner or _default_runner
+    # The default runner computes custom metrics; a custom runner owns its own metrics.
+    run: TrainRunner = runner or (lambda cfg: _default_runner(cfg, extra_metrics=metrics or {}))
     base = config_for_protocol(protocol, dataset_name=dataset)
 
-    per_seed_metrics: list[Mapping[str, float]] = []
+    runs: list[SeedRun] = []
     for seed in seeds:
         config = build_config(method, base)
         if overrides:
             # overrides win over brick fields, and are re-validated (not silently kept).
             config = ImageEndToEndConfig.model_validate({**config.model_dump(), **dict(overrides)})
         config = config.model_copy(update={"dataset_name": dataset, "seed": int(seed)})
-        metrics = run(config)
-        missing = sorted(set(_METRICS) - set(metrics))
+        seed_run = run(config)
+        missing = sorted(set(_METRICS) - set(seed_run.metrics))
         if missing:
             raise ValueError(f"runner did not return required metric(s): {missing}")
-        per_seed_metrics.append(metrics)
+        runs.append(seed_run)
 
     def agg(metric: str) -> float:
-        return statistics.mean(float(m[metric]) for m in per_seed_metrics)
+        return statistics.mean(float(r.metrics[metric]) for r in runs)
 
-    r1 = [float(m["recall_at_1"]) for m in per_seed_metrics]
+    r1 = [float(r.metrics["recall_at_1"]) for r in runs]
     return BenchmarkResult(
         method=label or method.name,
         dataset=dataset,
@@ -118,6 +154,7 @@ def benchmark(
         recall_at_4=agg("recall_at_4"),
         recall_at_8=agg("recall_at_8"),
         map_at_r=agg("map_at_r"),
+        curves_per_seed=tuple(dict(r.curves) for r in runs),
     )
 
 
@@ -128,6 +165,7 @@ def grid(
     seeds: Sequence[int] = (0,),
     protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
+    metrics: Mapping[str, MetricFn] | None = None,
     runner: TrainRunner | None = None,
 ) -> list[BenchmarkResult]:
     """Benchmark every method on every dataset; returns a flat list of results.
@@ -151,6 +189,7 @@ def grid(
                     seeds=seeds,
                     protocol=protocol,
                     overrides=overrides,
+                    metrics=metrics,
                     runner=runner,
                     label=label,
                 )
@@ -158,8 +197,10 @@ def grid(
     return results
 
 
-def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
-    """Load the dataset, train one config with the verified trainer, extract metrics."""
+def _default_runner(
+    config: ImageEndToEndConfig, *, extra_metrics: Mapping[str, MetricFn] | None = None
+) -> SeedRun:
+    """Load the dataset, train one config, and extract scalar metrics + training curves."""
     from sfora.data import load_image_retrieval_examples
     from sfora.image_end_to_end import run_image_end_to_end_benchmark
 
@@ -180,7 +221,10 @@ def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
     if config.eval_test_interval_epochs <= 0:
         config = config.model_copy(update={"eval_test_interval_epochs": 5})
     result = run_image_end_to_end_benchmark(
-        train_examples=train_examples, test_examples=test_examples, config=config
+        train_examples=train_examples,
+        test_examples=test_examples,
+        config=config,
+        extra_eval_metrics=dict(extra_metrics) if extra_metrics else None,
     )
     trained = [m for m in result.methods.values() if m.objective == config.objectives[0]]
     if not trained:
@@ -188,4 +232,15 @@ def _default_runner(config: ImageEndToEndConfig) -> Mapping[str, float]:
     metrics = trained[-1]
     # Prefer the full best-over-training metric set; fall back to final-epoch metrics.
     source: object = metrics.best_test_retrieval if metrics.best_test_retrieval else metrics
-    return {name: float(getattr(source, name)) for name in _METRICS}
+    scalars = {name: float(getattr(source, name)) for name in _METRICS}
+
+    curves: dict[str, tuple[float, ...]] = {}
+    if metrics.loss_history:
+        curves["loss"] = tuple(float(x) for x in metrics.loss_history)
+    if metrics.test_recall_history:
+        curves["recall_at_1"] = tuple(float(x) for x in metrics.test_recall_history)
+    for name, series in (metrics.extra_metric_curves or {}).items():
+        values = tuple(float(x) for x in series)
+        curves[name] = values
+        scalars[name] = values[-1] if values else float("nan")  # final custom-metric value
+    return SeedRun(metrics=scalars, curves=curves)

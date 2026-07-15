@@ -6,7 +6,7 @@ import json
 import math
 import os
 import types
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Protocol, cast, get_args
@@ -251,6 +251,8 @@ class EndToEndMethodMetrics:
     # eval_test_interval_epochs > 0; None otherwise. Primary `recall_at_1` above stays
     # the final-epoch model.
     best_test_retrieval: ImageRetrievalMetrics | None = None
+    # Per-eval-interval values for each caller-supplied custom metric (name -> curve).
+    extra_metric_curves: dict[str, list[float]] | None = None
     best_test_epoch: int | None = None
     test_recall_history: list[float] | None = None
 
@@ -395,6 +397,7 @@ def run_image_end_to_end_benchmark(
     model_factory: Callable[[ImageEndToEndConfig], TorchImageModel] | None = None,
     transform_factory: Callable[[ImageEndToEndConfig, bool], Callable[[object], Any]] | None = None,
     progress_callback: Callable[[ImageEndToEndResult], None] | None = None,
+    extra_eval_metrics: Mapping[str, Callable[[Any, Any], float]] | None = None,
 ) -> ImageEndToEndResult:
     """Train Group SupCon + XBM + Radius with a trainable image model and evaluate retrieval."""
     try:
@@ -561,6 +564,9 @@ def run_image_end_to_end_benchmark(
         best_test_epoch: int | None = None
         best_test_retrieval: ImageRetrievalMetrics | None = None
         test_recall_history: list[float] = []
+        extra_metric_history: dict[str, list[float]] = {
+            name: [] for name in (extra_eval_metrics or {})
+        }
         selected_step: int | None = None
         selection_metric: str | None = None
         selection_score: float | None = None
@@ -876,6 +882,10 @@ def run_image_end_to_end_benchmark(
                     )
                     epoch_recall = epoch_retrieval.recall_at_1
                     test_recall_history.append(float(epoch_recall))
+                    for _metric_name, _metric_fn in (extra_eval_metrics or {}).items():
+                        extra_metric_history[_metric_name].append(
+                            float(_metric_fn(epoch_embeddings, epoch_labels))
+                        )
                     if best_test_recall_at_1 is None or epoch_recall > best_test_recall_at_1:
                         best_test_recall_at_1 = float(epoch_recall)
                         best_test_epoch = int(epoch_index)
@@ -1029,6 +1039,7 @@ def run_image_end_to_end_benchmark(
             selection_score=selection_score,
             best_test_recall_at_1=best_test_recall_at_1,
             best_test_retrieval=best_test_retrieval,
+            extra_metric_curves=extra_metric_history or None,
             best_test_epoch=best_test_epoch,
             test_recall_history=test_recall_history or None,
         )
