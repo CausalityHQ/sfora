@@ -49,16 +49,21 @@ trainer.
 `sfora.benchmark` runs a method on a dataset over several seeds and returns typed,
 aggregated metrics (`R@1/2/4/8`, `MAP@R`, mean ± std, best-over-training):
 
+Dataset and protocol names are **type-safe constants** (`sfora.catalog`) — each is
+its `Literal`, so you get autocomplete and typos are rejected at type-check time,
+never passed as raw strings:
+
 ```python
 from sfora.method import herd, pa_distill, ProxyAnchor
 from sfora.benchmark import benchmark, grid
+from sfora.catalog import Dataset, Protocol
 
-result = benchmark(herd(), dataset="cub", seeds=[0, 1, 2])
+result = benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512,
+                   seeds=[0, 1, 2])
 print(result.summary())        # "IsNorm(Distill(HIST)) · cub: R@1 0.7160 ± 0.006 ..."
 
-# compare a whole matrix of methods x datasets
-grid({"HERD": herd(), "PA+distill": pa_distill(), "PA": ProxyAnchor()},
-     datasets=["cub", "cars"], seeds=[0, 1, 2])
+# compare a whole matrix — pass bricks directly (labelled by each brick's .name)
+grid([herd(), pa_distill(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0, 1, 2])
 ```
 
 Training is delegated to an **injectable `runner`** (default: the verified

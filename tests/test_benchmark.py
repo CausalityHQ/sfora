@@ -73,3 +73,26 @@ def test_grid_runs_every_method_on_every_dataset() -> None:
     }
     # ProxyAnchor bricks carry a proxy per class; HERD bricks do not.
     assert any(c.proxy_count_per_class == 1 and c.objectives == ("proxy_anchor",) for c in seen)
+
+
+def test_type_safe_constants_are_the_underlying_literals() -> None:
+    from sfora.catalog import Dataset, Protocol
+
+    assert Dataset.CUB == "cub"
+    assert Dataset.ALL == ("cub", "cars", "sop")
+    assert Protocol.PROXY_ANCHOR_R50_512 == "proxy-anchor-resnet50-512"
+
+    run, seen = _fake_runner({0: 0.7})
+    result = benchmark(herd(), dataset=Dataset.CUB, seeds=[0], runner=run)
+    assert result.dataset == "cub"
+    assert seen[0].protocol == Protocol.PROXY_ANCHOR_R50_512
+
+
+def test_grid_accepts_a_plain_sequence_of_methods() -> None:
+    run, _ = _fake_runner({0: 0.5})
+    from sfora.catalog import Dataset
+
+    results = grid([herd(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0], runner=run)
+    assert len(results) == 6  # 2 methods x 3 datasets
+    # labelled by each brick's .name, no manual string keys needed
+    assert {r.method for r in results} == {"IsNorm(Distill(HIST))", "ProxyAnchor"}

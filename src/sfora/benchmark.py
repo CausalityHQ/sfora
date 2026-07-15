@@ -22,9 +22,12 @@ import statistics
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
+from sfora.catalog import Dataset, Protocol
 from sfora.data import ImageDatasetName
 from sfora.image_end_to_end import EndToEndProtocol, ImageEndToEndConfig, config_for_protocol
 from sfora.method import Objective, build_config
+
+__all__ = ["BenchmarkResult", "Dataset", "Protocol", "TrainRunner", "benchmark", "grid"]
 
 # A runner trains one config and returns its metrics as a name -> value mapping
 # (at least "recall_at_1"). Injectable so the aggregation is testable without torch.
@@ -60,7 +63,7 @@ def benchmark(
     *,
     dataset: ImageDatasetName,
     seeds: Sequence[int] = (0,),
-    protocol: EndToEndProtocol = "proxy-anchor-resnet50-512",
+    protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
     runner: TrainRunner | None = None,
 ) -> BenchmarkResult:
@@ -98,18 +101,23 @@ def benchmark(
 
 
 def grid(
-    methods: Mapping[str, Objective],
+    methods: Mapping[str, Objective] | Sequence[Objective],
     *,
     datasets: Sequence[ImageDatasetName],
     seeds: Sequence[int] = (0,),
-    protocol: EndToEndProtocol = "proxy-anchor-resnet50-512",
+    protocol: EndToEndProtocol = Protocol.PROXY_ANCHOR_R50_512,
     overrides: Mapping[str, object] | None = None,
     runner: TrainRunner | None = None,
 ) -> list[BenchmarkResult]:
-    """Benchmark every method on every dataset; returns a flat list of results."""
+    """Benchmark every method on every dataset; returns a flat list of results.
+
+    ``methods`` may be a plain sequence of bricks (labelled by each brick's
+    ``.name``) or a mapping of custom label -> brick.
+    """
+    bricks = list(methods.values()) if isinstance(methods, Mapping) else list(methods)
     results: list[BenchmarkResult] = []
     for dataset in datasets:
-        for method in methods.values():
+        for method in bricks:
             results.append(
                 benchmark(
                     method,
