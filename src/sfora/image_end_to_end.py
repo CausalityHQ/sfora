@@ -130,6 +130,8 @@ class ImageEndToEndConfig(BaseModel):
     # fold/projection can be fit on train (disjoint zero-shot classes) and evaluated on
     # test — the honest, non-transductive way to compress the pack.
     save_train_embeddings: str | None = None
+    teacher_checkpoint: str | None = None
+    save_model_path: str | None = None
     # EMA-teacher relational self-distillation (any base objective). Weight 0 = off.
     ema_distill_weight: float = Field(default=0.0, ge=0.0)
     ema_momentum: float = Field(default=0.999, ge=0.0, le=1.0)
@@ -1074,6 +1076,19 @@ def run_image_end_to_end_benchmark(
                     test_examples=len(test_examples),
                     methods=dict(methods),
                 )
+            )
+        if config.save_model_path:
+            arch_meta = {
+                "backbone_name": config.backbone_name,
+                "pretrained_weights": config.pretrained_weights,
+                "head_pooling": config.head_pooling,
+                "embedding_dimensions": config.embedding_dimensions,
+                "embedding_head_init": config.embedding_head_init,
+                "embedding_layer_norm": config.embedding_layer_norm,
+            }
+            torch.save(
+                {"state_dict": cast(Any, model).state_dict(), "arch": arch_meta},
+                config.save_model_path,
             )
         # Drop every local that still references the model's parameters/state before
         # freeing it — the optimizer, scheduler and the EMA teacher (a full second
@@ -2527,6 +2542,26 @@ def _teacher_model_for_config(
     model_factory: Callable[[ImageEndToEndConfig], TorchImageModel] | None,
     device: Any,
 ) -> TorchImageModel | None:
+    if config.teacher_checkpoint is not None:
+        if config.teacher_similarity_weight == 0:
+            raise ValueError(
+                "teacher_checkpoint is set but teacher_similarity_weight is 0; "
+                "set teacher_similarity_weight > 0 or remove teacher_checkpoint"
+            )
+        import torch
+
+        checkpoint = cast(
+            dict[str, Any],
+            torch.load(config.teacher_checkpoint, map_location=device),
+        )
+        arch = cast(dict[str, Any], checkpoint["arch"])
+        teacher_config = config.model_copy(update=arch)
+        teacher = (model_factory or _torchvision_model_factory)(teacher_config).to(device)
+        cast(Any, teacher).load_state_dict(checkpoint["state_dict"], strict=False)
+        for parameter in teacher.parameters():
+            parameter.requires_grad_(False)
+        teacher.eval()
+        return cast(TorchImageModel, teacher)
     if config.teacher_similarity_weight <= 0.0:
         return None
     if model_factory is not None:

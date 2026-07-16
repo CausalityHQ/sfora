@@ -1191,6 +1191,14 @@ def image_end_to_end(
             "(to fit a projection on train, evaluate on test)."
         ),
     ] = None,
+    save_model_path: Annotated[
+        str | None,
+        typer.Option(help="Save the trained model checkpoint to this path."),
+    ] = None,
+    teacher_checkpoint: Annotated[
+        str | None,
+        typer.Option(help="Load a saved model checkpoint as the similarity teacher."),
+    ] = None,
     pretrained_weights: Annotated[
         str | None,
         typer.Option(help="Override torchvision pretrained weights: v1 or v2."),
@@ -1731,6 +1739,8 @@ def image_end_to_end(
                     if save_train_embeddings is not None
                     else base_config.save_train_embeddings
                 ),
+                "save_model_path": save_model_path,
+                "teacher_checkpoint": teacher_checkpoint,
                 "pretrained_weights": (
                     pretrained_weights
                     if pretrained_weights is not None

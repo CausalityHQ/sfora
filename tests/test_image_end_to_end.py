@@ -4630,6 +4630,60 @@ def test_torchvision_model_factory_selects_v1_weights(
     assert captured["weights"] is models.ResNet50_Weights.IMAGENET1K_V1
 
 
+def test_teacher_checkpoint_round_trip_loads_frozen_model(tmp_path: Path) -> None:
+    torch = pytest.importorskip("torch")
+
+    from sfora.image_end_to_end import _teacher_model_for_config
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc, name-defined]
+        def __init__(self, dimensions: int) -> None:
+            super().__init__()
+            self.fc = torch.nn.Linear(3, dimensions)
+
+        def forward(self, images: object) -> object:
+            return self.fc(images)
+
+    def model_factory(config: ImageEndToEndConfig) -> TinyModel:
+        return TinyModel(config.embedding_dimensions)
+
+    source_config = ImageEndToEndConfig(embedding_dimensions=2)
+    source_model = model_factory(source_config)
+    checkpoint_path = tmp_path / "teacher.pt"
+    torch.save(
+        {
+            "state_dict": source_model.state_dict(),
+            "arch": {
+                "backbone_name": source_config.backbone_name,
+                "pretrained_weights": source_config.pretrained_weights,
+                "head_pooling": source_config.head_pooling,
+                "embedding_dimensions": source_config.embedding_dimensions,
+                "embedding_head_init": source_config.embedding_head_init,
+                "embedding_layer_norm": source_config.embedding_layer_norm,
+            },
+        },
+        checkpoint_path,
+    )
+
+    teacher = _teacher_model_for_config(
+        ImageEndToEndConfig(
+            embedding_dimensions=7,
+            teacher_checkpoint=str(checkpoint_path),
+            teacher_similarity_weight=1.0,
+        ),
+        model_factory=model_factory,
+        device=torch.device("cpu"),
+    )
+
+    assert teacher is not None
+    teacher_module = cast(Any, teacher)
+    assert teacher_module.training is False
+    assert all(not parameter.requires_grad for parameter in teacher_module.parameters())
+    assert all(
+        torch.equal(teacher_module.state_dict()[name], value)
+        for name, value in source_model.state_dict().items()
+    )
+
+
 def test_set_resnet_output_layer_can_sum_gap_and_gmp() -> None:
     torch = pytest.importorskip("torch")
 
