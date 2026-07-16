@@ -285,8 +285,10 @@ const faviconUrl = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/{2,}/g, 
           fold isn't PCA: <b>generalized-Procrustes alignment</b> (rotate every model
           into a shared frame, then average) keeps <b>0.749 — 99.4% of the pack</b>,
           beating PCA even at double the dimensions, still <b>+1.5 over reported
-          PFML</b>, at single-model size. The last ~0.4pt is genuine cross-model
-          disagreement; we do not close it by fitting to the eval set.
+          PFML</b>, at single-model size. That 99.4% is a <em>transductive</em> upper
+          bound (the alignment uses the test geometry); a deployable fold fit only on
+          the disjoint <b>train</b> classes still recovers <b>98.0%</b>. The last ~0.4pt
+          is genuine cross-model disagreement; we do not close it by fitting to the eval set.
           <a href="#explore">See every compression method →</a>
         </div>
       </section>

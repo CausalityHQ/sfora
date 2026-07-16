@@ -35,7 +35,7 @@ same-arch SOTA on CUB-200 by more than 1%.
 | **HERD** (single model, 9 seeds) | 71.6 best / 70.5 mean (σ≈0.6) | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
-| SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint, 99.4% of the pack (alignment beats PCA) |
+| SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint; 99.4% of the pack *transductively* (fold fit on test geometry), 98.0% with a train-only fold — alignment beats PCA |
 
 HERD's novel ingredient is a *training-procedure* change: a slow EMA momentum
 teacher supplies soft batch-neighborhood targets (relational knowledge
@@ -64,9 +64,10 @@ Honest caveats we keep visible: the **HIST-based HERD does *not* beat PA on Cars
 (0.8835 < 0.8879 — the HIST base is simply weaker there; we win via the PA base), and a
 single fused HIST+PA loss is a compromise worse than each base — so the unifying method
 is the *procedure*, not one loss. On **compression**, a 512-dim projection fit only on
-the disjoint train classes (never the test split) recovers **97.5%** of the 9-model
-pack; reaching a literal 100% at 512-dim would require fitting the projection to the
-test set, which we do not do.
+the disjoint train classes (never the test split) recovers **98.0%** of a HERD pack
+(inductive GPA, the best train-clean fold; a train-fit PCA gives 97.5%); reaching a
+literal 100% at 512-dim would require fitting the projection to the test set, which we
+do not do.
 
 The project is both a research benchmark and a reusable Python package. It trains
 end-to-end or a projection head on frozen embeddings, evaluates with
