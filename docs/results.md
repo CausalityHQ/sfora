@@ -60,6 +60,24 @@ Proxy Anchor rows add the distillation to the plain base with **no** head, so th
 *is* distillation-only — and it is positive there too, which is the point: the
 distillation improves a base it shares no head with.
 
+**It is not specific to HIST or Proxy Anchor.** To check that the distillation is a
+*general* training-procedure improvement rather than a two-loss coincidence, we ran
+it on three more bases (CUB, seed 0, same protocol). It lifts every one:
+
+| additional base (CUB, seed 0) | plain | + our distillation | Δ |
+| --- | ---: | ---: | ---: |
+| SupCon | 0.580 | 0.611 | +3.2 |
+| triplet (semi-hard) | 0.492 | 0.511 | +1.9 |
+| batch-hard triplet | 0.244 | 0.617 | +37.3 |
+
+So across **five** bases — HIST, Proxy Anchor, SupCon, triplet, batch-hard triplet —
+the EMA-teacher relational distillation improves retrieval every time. The batch-hard
+row is a special case worth naming honestly: our plain batch-hard baseline collapses
+(0.244, a known hard-mining failure mode), and the distillation *stabilises* it back to
+a competitive 0.617 — so that +37 is "rescued a collapse", not a uniform-quality gain.
+The SupCon and triplet rows are ordinary healthy baselines lifted by a few points. (These
+three are single-seed spot checks, not reseeded means like the HIST/PA rows above.)
+
 **The distillation improves every base on every dataset.** And the *best base +
 our distillation* beats every plain baseline per dataset:
 
