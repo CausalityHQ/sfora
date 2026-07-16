@@ -89,7 +89,7 @@ const references = [
         <div class="rpt-meta">
           <span><b>Task</b> zero-shot image retrieval (CUB-200, Cars196)</span>
           <span><b>Backbone</b> ResNet-50, 512-dim embedding</span>
-          <span><b>Headline</b> CUB R@1 0.7534 (9-model), Cars 0.903 (3-model)</span>
+          <span><b>Headline</b> CUB R@1 0.7534 (9-model), Cars 0.917 (3-model, PA base)</span>
         </div>
 
         <!-- ─────────────────────────  1. Background  ───────────────────────── -->
@@ -322,7 +322,7 @@ const references = [
             <tr class="reported"><td class="m">PFML [3] <sup>†</sup></td><td class="r">73.4</td><td class="r">—</td></tr>
             <tr class="ours-single"><td class="m">HERD = HIST + distillation (ours)</td><td class="r">71.6</td><td class="r">88.4</td></tr>
             <tr class="ours-single"><td class="m">PA + our distillation (ours)</td><td class="r">—</td><td class="r">89.6</td></tr>
-            <tr class="ours"><td class="m">SFORA — ensemble (ours)</td><td class="r">74.68 / 75.34</td><td class="r">90.3</td></tr>
+            <tr class="ours"><td class="m">SFORA — ensemble (ours)</td><td class="r">74.68 / 75.34</td><td class="r">91.7</td></tr>
           </tbody>
         </table>
         <p class="rpt-cap">
@@ -333,7 +333,8 @@ const references = [
           PA (0.8879) where the HIST-based single HERD (0.8835) falls short. So our method
           beats PA on both. A single fused HIST+PA loss is a compromise, worse than each base,
           so the unifying method is the <em>procedure</em>, not one loss. The <b>ensemble</b>
-          then wins outright: CUB 0.7534, Cars 0.903. <sup>†</sup> did not reproduce for us:
+          then wins outright on the winning base per dataset: CUB 0.7534, Cars 0.917
+          (PA+distill ensemble; the HIST-based HERD ensemble reaches 0.903). <sup>†</sup> did not reproduce for us:
           HIST → ~0.701 best, PFML collapses.
         </p>
 

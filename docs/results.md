@@ -239,14 +239,18 @@ universal-distillation section above). In-harness, reseeded where noted:
 | Proxy Anchor (our run) | 88.8 | reseeded mean; above reported 87.7 |
 | HERD = HIST + distillation | 88.4 | reseeded mean; *below* PA — HIST base weaker |
 | **PA + our distillation** | **89.6** | reseeded mean `[0.8944, 0.8974, 0.8963]`; **beats PA** |
-| **SFORA — 3-model ensemble** | **90.3** | ensemble on top |
+| SFORA — HERD (HIST) ensemble, 3 models | 90.3 | HIST-based ensemble; still below the PA-based one |
+| **SFORA — PA+distill ensemble, 3 models** | **91.7** | best Cars ensemble (PA is the stronger Cars base) |
 
 The HIST-based single HERD (mean 0.8835) lands below our own PA reproduction (0.8879)
 — the HIST base simply loses to PA on Cars. The honest win is the **distillation
 procedure**: applied to the stronger PA base it gives **PA + distillation = 0.8961**
 (every seed above PA's best single run 0.8892), so **our method beats PA on Cars**. A
 single fused HIST+PA loss is a compromise worse than each base (0.880), so no single
-fixed loss is best everywhere. The **ensemble** then wins outright at **0.903**.
+fixed loss is best everywhere. The **ensemble** confirms the base-adaptive story at a
+higher level: the PA+distill ensemble (**0.9172**) beats the HIST-based HERD ensemble
+(**0.9026**) — HIST is the weaker Cars base at *both* single-model and ensemble scale,
+so on Cars we ensemble the PA base.
 
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 
