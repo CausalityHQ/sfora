@@ -63,11 +63,14 @@ reseeded):
 Honest caveats we keep visible: the **HIST-based HERD does *not* beat PA on Cars**
 (0.8835 < 0.8879 — the HIST base is simply weaker there; we win via the PA base), and a
 single fused HIST+PA loss is a compromise worse than each base — so the unifying method
-is the *procedure*, not one loss. On **compression**, a 512-dim projection fit only on
-the disjoint train classes (never the test split) recovers **98.0%** of a HERD pack
-(inductive GPA, the best train-clean fold; a train-fit PCA gives 97.5%); reaching a
-literal 100% at 512-dim would require fitting the projection to the test set, which we
-do not do.
+is the *procedure*, not one loss. On **compression**, an *uncentered* projection fit
+only on the disjoint train classes (never the test split) reduces the 2560-dim HERD
+pack to **2048 dims with zero retrieval loss (100.00%)** — a genuine train-clean
+dimensionality cut. At the aggressive single-model **512-dim** footprint the same
+train-clean fold keeps **98.9%** (beating inductive GPA's 98.0% and PCA's 97.4%);
+reaching a literal 100% at 512-dim would require fitting the projection to the test
+set, which we do not do. (Retrieval is cosine, so an un-mean-centered orthonormal
+basis is cosine-preserving; centering shifts test cosines and caps folds at ~98%.)
 
 The project is both a research benchmark and a reusable Python package. It trains
 end-to-end or a projection head on frozen embeddings, evaluates with

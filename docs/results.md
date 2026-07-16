@@ -164,24 +164,42 @@ Notably the **unsupervised PCA edges both supervised metric-learning heads** —
 folding an already-trained pack the discriminative geometry is already present, so
 re-optimising it on train labels only risks overfitting the train classes.
 
-**The best inductive fold is train-fit GPA alignment.** The transductive GPA fold
-below (0.7490) is the best fold overall, but it computes the Procrustes rotations on
-the *test* embeddings. Since those rotations only align each model's *coordinate
-frame* to a shared consensus — a property of the model, not of any class — we can fit
-them on the disjoint **train** split and freeze them. On a 5-seed pack
-(`scripts/train_fit_gpa.py`) this **inductive GPA recovers 98.0%** (0.7205 of the
-0.7350 concat), beating train-fit PCA — the best genuinely train/test-clean 512-dim
-fold we have.
+**At the aggressive 512-dim footprint, the best inductive fold is an *uncentered*
+train-fit projection.** Retrieval is cosine similarity, so a projection onto an
+orthonormal train-fit basis (the top-k right singular vectors of the raw, **un-mean-
+centered** train concat) is cosine-preserving — whereas subtracting the train mean
+shifts test cosines (the train mean is not the test mean) and caps every *centered*
+fold (PCA, whitening) at ~98%. On the 5-seed pack this uncentered fold recovers
+**98.9%** at 512-dim (0.7272 of the 0.7350 concat), beating both train-fit GPA
+alignment (**98.0%**, 0.7205 — align each model to a train consensus, then average)
+and centered PCA (97.4%).
 
-So a train/test-clean projection recovers **~98%** of the pack at one model's
-footprint and beats a single model by **+1.4 pt** — but it does **not** reach 100%.
-The concat *is* the 100% point (no compression); the last ~2% is real information the
-2560-d concat holds that no 512-d train-fit projection can recover, and closing it
-would require fitting the projection to the test set, which we refuse. That is the
-honest ceiling for an inductive fold. Reproduce with:
+**And "decrease dims to 100%" is achievable honestly — just not at 512-dim.** The five
+models are highly correlated (they encode the same classes), so the concat's effective
+retrieval rank is well below 2560. Sweeping the uncentered train-fit projection's
+target dimension (nothing fit on test) shows it stays **lossless** as it discards the
+lowest-energy directions:
+
+| train-clean uncentered fold | R@1 | retained |
+| --- | ---: | ---: |
+| 512 dims | 0.7272 | 98.94% |
+| 1024 dims | 0.7318 | 99.56% |
+| 1536 dims | 0.7331 | 99.75% |
+| 1792 dims | 0.7343 | 99.91% |
+| **2048 dims** | **0.7350** | **100.00%** |
+| full concat (2560) | 0.7350 | 100% |
+
+So a **train/test-clean projection reduces the pack 2560 → 2048 dims (a 20% cut) with
+zero retrieval loss** — the honest reading of "decrease vectors dims to get 100%,
+trained on train." What is *not* achievable without fitting on test is 100% at the
+single-model **512-dim** footprint (a 5× cut): the bottom ~500 directions still carry
+~1% of retrieval signal, so an honest 512-dim fold tops out at 98.9%, and only a fold
+that peeks at the test geometry (transductive GPA, 99.4% below) closes more. Reproduce
+both with:
 
 ```bash
-uv run python scripts/train_fit_fold.py --dim 512 \
+# 512-dim folds (GPA, PCA, uncentered) + the dimension-vs-retention sweep
+uv run python scripts/explore_trainclean_projection.py \
     --train 'reports/emb/herd_tt_seed*.train.npz' \
     --test  'reports/emb/herd_tt_seed*.test.npz'
 ```
