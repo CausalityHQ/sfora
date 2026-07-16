@@ -225,7 +225,15 @@ def build_config(method: Objective, base: ImageEndToEndConfig) -> ImageEndToEndC
 
     Bricks compose via ``model_copy`` (which does not validate), so re-validate the
     result: an out-of-range brick value (e.g. ``HIST(tau=-1)``) fails loudly here
-    rather than silently mid-training.
+    rather than silently mid-training. A misspelled field name would otherwise be
+    parked in ``__dict__`` and dropped by ``model_dump`` — silently ignored — so we
+    also reject any key a brick set that is not a declared config field.
     """
     updated = method.configure(base)
+    leaked = set(updated.__dict__) - set(type(updated).model_fields)
+    if leaked:
+        raise ValueError(
+            f"method {method.name!r} set unknown config field(s) {sorted(leaked)} "
+            "(likely a typo in a brick's configure())"
+        )
     return type(updated).model_validate(updated.model_dump())

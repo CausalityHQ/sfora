@@ -31,8 +31,8 @@ HIST()                         # hypergraph semantic-tuplet loss
 ProxyAnchor(alpha=32, delta=0.1)
 
 # modifiers wrap any base and return an Objective (type-checked composition)
-Distill(base, weight=1.0, momentum=0.999, tau=0.1)   # the universal EMA-teacher distillation
-IsNorm(base)                                          # the reference LayerNorm head
+Distill(HIST(), weight=1.0, momentum=0.999, tau=0.1)  # the universal EMA-teacher distillation, on any base
+IsNorm(HIST())                                        # the reference LayerNorm head, on any base
 
 # the two headline methods ARE bricks:
 HERD       = IsNorm(Distill(HIST()))     # == herd();      best on CUB
@@ -47,7 +47,9 @@ trainer.
 ## Benchmarking methods over seeds
 
 `sfora.benchmark` runs a method on a dataset over several seeds and returns typed,
-aggregated metrics (`R@1/2/4/8`, `MAP@R`, mean ± std, best-over-training):
+aggregated metrics (`R@1/2/4/8` and `MAP@R` as the mean over seeds, with the
+standard deviation for R@1; all best-over-training). Custom metrics are surfaced as
+per-seed curves (`mean_curve` / `curves_per_seed`), not as extra scalar fields:
 
 Dataset and protocol names are **type-safe constants** (`sfora.catalog`) — each is
 its `Literal`, so you get autocomplete and typos are rejected at type-check time,
@@ -60,7 +62,15 @@ from sfora.catalog import Dataset, Protocol
 
 result = benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512,
                    seeds=[0, 1, 2])
-print(result.summary())        # "IsNorm(Distill(HIST)) · cub: R@1 0.7160 ± 0.006 ..."
+print(result.summary())        # format: "IsNorm(Distill(HIST)) · cub: R@1 0.71 ± 0.01 (seeds [0, 1, 2])"
+
+# The bare call above uses the protocol's defaults. To reproduce the *headline*
+# CUB HERD number (0.716 best-over-training), pass the full recipe as overrides —
+# these are the flags from the README "Reproduce" section that differ from the preset:
+result = benchmark(
+    herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512, seeds=[0, 1, 2],
+    overrides={"samples_per_class": 8, "hist_lr_ds": 0.03, "warmup_epochs": 1, "lr_step_epochs": 10},
+)
 
 # compare a whole matrix — pass bricks directly (labelled by each brick's .name)
 grid([herd(), pa_distill(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0, 1, 2])
@@ -94,7 +104,7 @@ def pk_sampler(labels, config):                        # a custom batch MINING s
 result = benchmark(
     Distill(CustomObjective(my_loss)),                 # custom loss, still composable with Distill/IsNorm
     dataset=Dataset.CUB,
-    metrics={"silhouette": silhouette},                # tracked as a curve + final scalar
+    metrics={"silhouette": silhouette},                # tracked as a per-seed curve
     sampler=pk_sampler,                                # overrides the built-in balanced sampler
     seeds=[0, 1, 2],
 )
@@ -299,11 +309,13 @@ Protocol knobs are all overridable: `--optimizer`, `--warmup-epochs`,
 
 ### Hyperparameter Guidance
 
-- **Sampler (`--samples-per-class`, K):** with the repaired presets each
-  batch is exactly P×K (batch 120 with K=4 gives 30 classes) with no
-  duplicate draws; classes with fewer than K examples are excluded. Leave it
-  at `0` only when reproducing legacy runs, where K falls back to
-  `2 * group_size` with replacement. `--group-size` still controls the group
+- **Sampler (`--samples-per-class`, K):** with K>0 (the repaired presets use
+  K=4) each batch is exactly P×K (batch 120 with K=4 gives 30 classes) with no
+  duplicate draws; classes with fewer than K examples are excluded. **K=0 (the
+  field default) disables class-balanced sampling entirely — the trainer uses a
+  plain shuffled `DataLoader`.** Class-balanced sampling still activates if you set
+  `--hard-class-fraction > 0` or supply a custom sampler, and only then does a K of
+  0 fall back to `2 * group_size` per class. `--group-size` still controls the group
   SupCon grouping and is independent of K.
 - **Warm-up (`--warmup-epochs`):** the backbone is frozen for the first N
   epochs while the embedding head and proxies train; 5 epochs is the preset

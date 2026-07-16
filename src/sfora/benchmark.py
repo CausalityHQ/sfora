@@ -18,6 +18,7 @@ without a GPU.
 
 from __future__ import annotations
 
+import math
 import statistics
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -44,6 +45,15 @@ __all__ = [
 
 _METRICS = ("recall_at_1", "recall_at_2", "recall_at_4", "recall_at_8", "map_at_r")
 
+# Curve/metric names the runner owns — a custom metric may not reuse them, or it would
+# silently overwrite a genuine retrieval/loss result.
+_RESERVED_METRIC_NAMES = frozenset(_METRICS) | {"loss"}
+
+# Config fields the harness itself controls (objectives come from the compiled method,
+# seed/dataset_name are set per run). Overriding them would desync loss dispatch or be
+# silently clobbered, so they are rejected as overrides rather than half-applied.
+_RESERVED_OVERRIDES = ("objectives", "seed", "dataset_name")
+
 
 # A custom eval metric: (test_embeddings, test_labels) -> scalar, computed at each
 # eval interval and tracked as a training curve alongside loss and recall_at_1.
@@ -66,6 +76,12 @@ class SeedRun:
 
     metrics: Mapping[str, float]
     curves: Mapping[str, tuple[float, ...]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # Snapshot caller-owned mappings so a runner that reuses/mutates a dict across
+        # seeds cannot corrupt an already-recorded result; coerce curves to tuples.
+        object.__setattr__(self, "metrics", dict(self.metrics))
+        object.__setattr__(self, "curves", {k: tuple(v) for k, v in self.curves.items()})
 
 
 # A runner trains one config and returns a SeedRun. Injectable so aggregation is
@@ -103,12 +119,23 @@ class BenchmarkResult:
         )
 
     def mean_curve(self, name: str) -> tuple[float, ...]:
-        """Mean of the named curve across seeds, truncated to the shortest seed."""
-        series = [c[name] for c in self.curves_per_seed if name in c and c[name]]
-        if not series:
+        """Mean of the named curve across all seeds, truncated to the shortest seed.
+
+        Returns ``()`` if no seed recorded the curve. Raises if only *some* seeds
+        recorded it (partial coverage), rather than silently averaging a subset.
+        """
+        if not self.curves_per_seed:
             return ()
-        length = min(len(s) for s in series)
-        return tuple(statistics.mean(s[i] for s in series) for i in range(length))
+        present = [c[name] for c in self.curves_per_seed if name in c and c[name]]
+        if not present:
+            return ()
+        if len(present) != len(self.curves_per_seed):
+            raise ValueError(
+                f"curve {name!r} present in {len(present)}/{len(self.curves_per_seed)} "
+                "seeds; cannot average across an inconsistent subset"
+            )
+        length = min(len(s) for s in present)
+        return tuple(statistics.mean(s[i] for s in present) for i in range(length))
 
 
 def benchmark(
@@ -129,16 +156,31 @@ def benchmark(
     brick's fields** (applied after the method compiles). Unknown or out-of-range
     override values raise, rather than being silently dropped. ``metrics`` are custom
     ``(embeddings, labels) -> float`` eval metrics computed each eval interval and
-    exposed as curves. ``sampler`` is a custom batch-mining strategy
+    exposed **as curves** (via :meth:`BenchmarkResult.mean_curve` /
+    ``curves_per_seed``), not as top-level aggregated scalar fields. ``sampler`` is a
+    custom batch-mining strategy
     ``(labels, config) -> batch sampler``. ``label`` sets the result's method label.
     (``metrics``/``sampler`` apply to the default runner only.)
     """
     if not seeds:
         raise ValueError("benchmark requires at least one seed")
+    if metrics:
+        clashes = sorted(_RESERVED_METRIC_NAMES.intersection(metrics))
+        if clashes:
+            raise ValueError(
+                f"custom metric name(s) {clashes} are reserved (retrieval metrics + 'loss'); "
+                "rename them"
+            )
     if overrides:
         unknown = sorted(set(overrides) - set(ImageEndToEndConfig.model_fields))
         if unknown:
             raise ValueError(f"unknown override field(s): {unknown}")
+        reserved = sorted(set(overrides).intersection(_RESERVED_OVERRIDES))
+        if reserved:
+            raise ValueError(
+                f"override field(s) {reserved} are harness-controlled "
+                "(objectives come from the method; seed/dataset_name are set per run)"
+            )
     # The default runner computes custom metrics + dispatches any CustomObjective loss;
     # a custom runner owns its own metrics/losses.
     losses = custom_losses_of(method)
@@ -153,13 +195,23 @@ def benchmark(
     for seed in seeds:
         config = build_config(method, base)
         if overrides:
+            merged = {**config.model_dump(), **dict(overrides)}
+            # An explicit train_steps override must actually take effect: train_epochs
+            # otherwise wins in the trainer, so clear it unless the caller set both.
+            if "train_steps" in overrides and "train_epochs" not in overrides:
+                merged["train_epochs"] = None
             # overrides win over brick fields, and are re-validated (not silently kept).
-            config = ImageEndToEndConfig.model_validate({**config.model_dump(), **dict(overrides)})
+            config = ImageEndToEndConfig.model_validate(merged)
         config = config.model_copy(update={"dataset_name": dataset, "seed": int(seed)})
         seed_run = run(config)
         missing = sorted(set(_METRICS) - set(seed_run.metrics))
         if missing:
             raise ValueError(f"runner did not return required metric(s): {missing}")
+        nonfinite = sorted(m for m in _METRICS if not math.isfinite(float(seed_run.metrics[m])))
+        if nonfinite:
+            raise ValueError(
+                f"runner returned non-finite metric(s) {nonfinite} for seed {int(seed)}"
+            )
         runs.append(seed_run)
 
     def agg(metric: str) -> float:

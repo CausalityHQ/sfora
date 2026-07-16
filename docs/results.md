@@ -48,10 +48,17 @@ protocol, reseeded where noted) on both standard datasets:
 
 | dataset | base loss | plain | **+ our distillation** | Δ |
 | --- | --- | ---: | ---: | ---: |
-| CUB-200 | HIST | 0.700 | **0.716** (= HERD) | +1.6 |
+| CUB-200 | HIST | 0.700 | **0.716** (= HERD)† | +1.6† |
 | CUB-200 | Proxy Anchor | 0.666 | 0.678 | +1.2 |
-| Cars196 | HIST | 0.871 | 0.884 | +1.3 |
+| Cars196 | HIST | 0.871 | 0.884 (= HERD)† | +1.3† |
 | Cars196 | Proxy Anchor | 0.888 | **0.8961** | +0.8 |
+
+† The HIST → HERD rows add the reference `is_norm` LayerNorm head **and** the
+distillation (that is what `herd()` is); we did not ablate the head in isolation, so
+this Δ is the *combined* head-plus-distillation effect, not distillation alone. The
+Proxy Anchor rows add the distillation to the plain base with **no** head, so their Δ
+*is* distillation-only — and it is positive there too, which is the point: the
+distillation improves a base it shares no head with.
 
 **The distillation improves every base on every dataset.** And the *best base +
 our distillation* beats every plain baseline per dataset:

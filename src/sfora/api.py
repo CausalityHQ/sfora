@@ -112,7 +112,13 @@ class SforaProjector:
             query_limit=validation_query_limit,
             random_state=random_state,
         )
-        training_config = self.config.model_copy(
+        # ``config`` is a public attribute a caller may mutate after construction, and
+        # ProjectionHeadTrainingConfig does not validate on assignment — so revalidate
+        # here before training, catching e.g. negative steps or an unknown objective.
+        validated = ProjectionHeadTrainingConfig.model_validate(
+            self.config.model_dump(exclude={"selection_score_callback"})
+        )
+        training_config = validated.model_copy(
             update={"selection_score_callback": selection_callback}
         )
         self.training_result = train_projection_head(input_embeddings, label_array, training_config)

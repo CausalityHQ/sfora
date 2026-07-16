@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, cast, get_args
 
 import numpy as np
 import typer
@@ -81,6 +81,10 @@ console = Console()
 _LEGACY_END_TO_END_OBJECTIVES: tuple[EndToEndObjective, ...] = (
     "frozen_pretrained",
     "group_supcon_xbm_radius",
+)
+_CLI_END_TO_END_OBJECTIVES = cast(
+    tuple[EndToEndObjective, ...],
+    tuple(objective for objective in get_args(EndToEndObjective) if objective != "custom"),
 )
 
 
@@ -1102,10 +1106,8 @@ def image_end_to_end(
         str | None,
         typer.Option(
             help=(
-                "Comma-separated objectives: frozen_pretrained, frozen, triplet, "
-                "triplet_pretrained, batch_hard_triplet, supcon, group_supcon, "
-                "group_supcon_xbm_radius, group_potential, group_potential_xbm, "
-                "proxy_anchor, pfml, proxy_anchor_gsi, proxy_anchor_bgsi, pfml_gsi. "
+                "Comma-separated objectives: "
+                f"{', '.join(_CLI_END_TO_END_OBJECTIVES)}. "
                 "Omit to use the protocol preset."
             )
         ),
@@ -1175,7 +1177,12 @@ def image_end_to_end(
     ] = None,
     save_test_embeddings: Annotated[
         str | None,
-        typer.Option(help="Save final test embeddings + labels to this .npz (for ensembling)."),
+        typer.Option(
+            help=(
+                "Save the best-R@1 epoch's test embeddings + labels to this .npz; "
+                "use the final-model fallback when no periodic evaluation runs."
+            )
+        ),
     ] = None,
     save_train_embeddings: Annotated[
         str | None,
@@ -1668,10 +1675,12 @@ def image_end_to_end(
             max_classes=max_classes,
             seed=seed,
         )
-        resolved_batch_size = batch_size or base_config.batch_size
-        resolved_train_epochs = train_epochs or base_config.train_epochs
+        resolved_batch_size = batch_size if batch_size is not None else base_config.batch_size
+        resolved_train_epochs = (
+            train_epochs if train_epochs is not None else base_config.train_epochs
+        )
         resolved_train_steps = base_config.train_steps
-        if train_steps is None and resolved_train_epochs is not None:
+        if train_steps is None and resolved_train_epochs is not None and resolved_batch_size > 0:
             resolved_train_steps = _steps_for_epochs(
                 examples=len(train_examples),
                 batch_size=resolved_batch_size,
@@ -1684,7 +1693,9 @@ def image_end_to_end(
                 "batch_size": resolved_batch_size,
                 "train_steps": resolved_train_steps,
                 "train_epochs": resolved_train_epochs,
-                "learning_rate": learning_rate or base_config.learning_rate,
+                "learning_rate": (
+                    learning_rate if learning_rate is not None else base_config.learning_rate
+                ),
                 "backbone_learning_rate": (
                     backbone_learning_rate
                     if backbone_learning_rate is not None
@@ -2035,39 +2046,11 @@ def image_end_to_end(
 
 
 def _parse_end_to_end_objectives(raw: str) -> tuple[EndToEndObjective, ...]:
-    allowed = {
-        "frozen_pretrained",
-        "frozen",
-        "triplet",
-        "triplet_pretrained",
-        "batch_hard_triplet",
-        "supcon",
-        "group_supcon",
-        "group_supcon_xbm_radius",
-        "group_potential",
-        "group_potential_xbm",
-        "proxy_anchor",
-        "proxy_anchor_group",
-        "proxy_anchor_synthesis",
-        "proxy_anchor_subcenter",
-        "proxy_anchor_uniformity",
-        "pfml",
-        "symmetric_potential",
-        "lennard_jones",
-        "proxy_anchor_lj",
-        "proxy_anchor_antico",
-        "bio_physical_bond",
-        "hist",
-        "hist_proxy_anchor",
-        "proxy_anchor_gsi",
-        "proxy_anchor_bgsi",
-        "pfml_gsi",
-    }
     values = tuple(item.strip() for item in raw.split(",") if item.strip())
     if not values:
         console.print("Error: at least one end-to-end objective is required")
         raise typer.Exit(1)
-    invalid = sorted(set(values) - allowed)
+    invalid = sorted(set(values) - set(_CLI_END_TO_END_OBJECTIVES))
     if invalid:
         console.print(f"Error: invalid end-to-end objective(s): {', '.join(invalid)}")
         raise typer.Exit(1)

@@ -289,7 +289,7 @@ def config_for_protocol(
             learning_rate=1e-4,
             backbone_learning_rate=1e-4,
             weight_decay=1e-4,
-            train_steps=train_steps or 2000,
+            train_steps=train_steps if train_steps is not None else 2000,
             train_epochs=None if train_steps is not None else 60,
             warmup_epochs=5,
             lr_schedule="step",
@@ -317,7 +317,7 @@ def config_for_protocol(
             learning_rate=5e-4,
             backbone_learning_rate=5e-4,
             weight_decay=1e-4,
-            train_steps=train_steps or 2000,
+            train_steps=train_steps if train_steps is not None else 2000,
             train_epochs=None if train_steps is not None else 100,
             warmup_epochs=5,
             lr_schedule="cosine",
@@ -344,7 +344,7 @@ def config_for_protocol(
             learning_rate=5e-4,
             backbone_learning_rate=1e-5,
             weight_decay=1e-4,
-            train_steps=train_steps or 2000,
+            train_steps=train_steps if train_steps is not None else 2000,
             train_epochs=None if train_steps is not None else 80,
         )
     return ImageEndToEndConfig(
@@ -357,7 +357,7 @@ def config_for_protocol(
         learning_rate=1e-6,
         backbone_learning_rate=1e-6,
         weight_decay=1e-4,
-        train_steps=train_steps or 2000,
+        train_steps=train_steps if train_steps is not None else 2000,
     )
 
 
@@ -470,7 +470,7 @@ def run_image_end_to_end_benchmark(
         # A caller-supplied sampler_factory defines a custom batch-mining strategy
         # (P-K composition, hard mining, …); otherwise use the built-in balanced sampler.
         if sampler_factory is not None:
-            batch_sampler = sampler_factory(train_labels, config)
+            batch_sampler = sampler_factory(np.asarray(train_labels, dtype=np.int64), config)
         else:
             batch_sampler = _balanced_batch_indices(
                 train_labels,
@@ -881,12 +881,14 @@ def run_image_end_to_end_benchmark(
                 history.append(float(loss.detach().cpu()))
                 if scheduler is not None and step % steps_per_epoch == 0:
                     scheduler.step()
-                if (
-                    config.eval_test_interval_epochs > 0
-                    and step % steps_per_epoch == 0
-                    and (step // steps_per_epoch) % config.eval_test_interval_epochs == 0
+                if config.eval_test_interval_epochs > 0 and (
+                    step == train_steps
+                    or (
+                        step % steps_per_epoch == 0
+                        and (step // steps_per_epoch) % config.eval_test_interval_epochs == 0
+                    )
                 ):
-                    epoch_index = step // steps_per_epoch
+                    epoch_index = math.ceil(step / steps_per_epoch)
                     epoch_embeddings, epoch_labels = _encode_model(
                         model, test_loader, device, torch
                     )
@@ -960,6 +962,11 @@ def run_image_end_to_end_benchmark(
                     model.train()
                     if config.freeze_batch_norm:
                         _freeze_batch_norm_layers(model)
+            if sampler_factory is not None and len(history) < train_steps:
+                raise RuntimeError(
+                    f"custom sampler exhausted after {len(history)} steps < train_steps; "
+                    "return a re-iterable sampler"
+                )
             if checkpoint is not None and checkpoint.restore(model):
                 selected_step = checkpoint.best_step
                 selection_metric = checkpoint.metric_name
@@ -4809,6 +4816,12 @@ def _to_payload(result: ImageEndToEndResult) -> dict[str, Any]:
                 "selection_metric": metrics.selection_metric,
                 "selection_score": metrics.selection_score,
                 "best_test_recall_at_1": metrics.best_test_recall_at_1,
+                "best_test_retrieval": (
+                    asdict(metrics.best_test_retrieval)
+                    if metrics.best_test_retrieval is not None
+                    else None
+                ),
+                "extra_metric_curves": metrics.extra_metric_curves,
                 "best_test_epoch": metrics.best_test_epoch,
                 "test_recall_history": metrics.test_recall_history,
             }
