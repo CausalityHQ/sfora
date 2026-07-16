@@ -73,7 +73,13 @@ applied to whichever base is stronger. Honest caveats we verified:
 - **Single HERD does not beat Proxy Anchor on Cars** (reseeded mean 0.8835 < 0.8879)
   — the HIST base is simply weaker than PA there. We reached "beats PA on Cars" only
   by putting the distillation on the *PA* base, and we say so rather than pretending
-  the HIST-based HERD wins there.
+  the HIST-based HERD wins there. This is not for lack of tuning: an exhaustive sweep
+  of every HIST-internal lever (samples-per-class, LR schedule, distillation
+  temperature/weight/momentum, variance floor, hypergraph cross-entropy weight
+  `λ_s ∈ {0.5, 2.0}`, incidence sharpness `α`, and HGNN width) leaves the HIST base
+  plateaued at ~0.884 seed-0 — every variant landed *at or below* the baseline, none
+  reached PA's 0.8857. HIST is genuinely the weaker Cars base; the distillation
+  procedure is what transfers, so we apply it to PA there.
 - Relaxing HIST's variance floor (an ablation) is a null/negative result; the
   faithful `relu6` default stands.
 
