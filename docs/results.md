@@ -104,7 +104,13 @@ applied to whichever base is stronger. Honest caveats we verified:
   `λ_s ∈ {0.5, 2.0}`, incidence sharpness `α`, and HGNN width) leaves the HIST base
   plateaued at ~0.884 seed-0 — every variant landed *at or below* the baseline, none
   reached PA's 0.8857. HIST is genuinely the weaker Cars base; the distillation
-  procedure is what transfers, so we apply it to PA there.
+  procedure is what transfers, so we apply it to PA there. The dead-end holds at **three
+  independent levels**: (1) HIST-internal tuning above; (2) the ensemble — the HIST-based
+  HERD ensemble (0.9026) trails the PA+distill ensemble (0.9172); and (3) **cross-teacher
+  distillation** — distilling a frozen *trained PA* teacher's relational geometry into a
+  HERD/HIST student (`teacher_checkpoint` + `teacher_similarity_weight`) scored 0.8737/0.8743
+  (teacher weight 0.5/1.0), *below* HERD's 0.884, because the PA teacher's geometry conflicts
+  with HIST's hypergraph rather than complementing it.
 - Relaxing HIST's variance floor (an ablation) is a null/negative result; the
   faithful `relu6` default stands.
 
