@@ -276,6 +276,24 @@ higher level: the PA+distill ensemble (**0.9172**) beats the HIST-based HERD ens
 (**0.9026**) — HIST is the weaker Cars base at *both* single-model and ensemble scale,
 so on Cars we ensemble the PA base.
 
+## SOP — a third dataset (undertuned, honest gap)
+
+Stanford Online Products (11,318 train classes, ResNet-50/512, best-over-training). At
+this scale the **base-adaptive story holds and extends**: Proxy Anchor is again the
+stronger base, and our distillation on it wins.
+
+| method (SOP, seed 0) | R@1 | note |
+| --- | ---: | --- |
+| **PA + our distillation** | **0.7119** | stronger base at scale; beats our prior 0.698 |
+| HIST-HERD | 0.6782 | HIST is weaker at 11k-class scale, as on Cars |
+
+So across all three datasets the pattern is consistent — **HIST wins CUB, Proxy Anchor
+wins Cars and SOP**, and "best base + our distillation" is the method each time. We are
+explicit that **SOP is undertuned**: 0.7119 clears our earlier 0.698 but sits below the
+reported ~0.796. Closing that needs SOP-specific tuning (larger batch, longer schedule,
+class-balanced sampling at scale) we have not done — so SOP is honest supporting
+evidence for the base-adaptive finding, **not** a SOTA claim.
+
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 
 To separate the ensemble from the HERD recipe we ensembled **plain HIST** models
