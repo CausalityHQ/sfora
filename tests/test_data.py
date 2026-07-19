@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -5,6 +7,7 @@ import pytest
 from sfora.data import (
     ImageExample,
     TextExample,
+    load_image_retrieval_bundle,
     load_image_retrieval_examples,
     load_imdb_examples,
     mine_group_triplets,
@@ -12,6 +15,114 @@ from sfora.data import (
     select_balanced_examples,
     select_labeled_image_examples,
 )
+
+
+def _touch(root: Path, relative_path: str) -> Path:
+    path = root / relative_path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch()
+    return path
+
+
+def test_load_inshop_bundle_uses_official_train_query_gallery_partition(
+    tmp_path: Path,
+) -> None:
+    rows = [
+        ("img/MEN/Denim/id_00000001/01_1_front.jpg", "id_00000001", "train"),
+        ("img/MEN/Denim/id_00000002/01_1_front.jpg", "id_00000002", "train"),
+        ("img/WOMEN/Tees/id_00000003/01_1_front.jpg", "id_00000003", "query"),
+        ("img/WOMEN/Tees/id_00000003/01_2_side.jpg", "id_00000003", "gallery"),
+        ("img/WOMEN/Tees/id_00000004/01_1_front.jpg", "id_00000004", "query"),
+        ("img/WOMEN/Tees/id_00000004/01_2_side.jpg", "id_00000004", "gallery"),
+    ]
+    partition = tmp_path / "Eval/list_eval_partition.txt"
+    partition.parent.mkdir(parents=True)
+    partition.write_text(
+        "6\nimage_name item_id evaluation_status\n"
+        + "".join(f"{name} {item_id} {status}\n" for name, item_id, status in rows),
+        encoding="utf-8",
+    )
+    for image_name, _, _ in rows:
+        _touch(tmp_path / "Img", image_name)
+
+    bundle = load_image_retrieval_bundle(dataset_name="inshop", dataset_root=tmp_path)
+
+    assert bundle.protocol == "query_gallery"
+    assert bundle.protocol_name == "deepfashion-inshop-official"
+    assert [cast(Path, example.image).name for example in bundle.query] == [
+        "01_1_front.jpg",
+        "01_1_front.jpg",
+    ]
+    assert bundle.gallery is not None
+    assert [cast(Path, example.image).name for example in bundle.gallery] == [
+        "01_2_side.jpg",
+        "01_2_side.jpg",
+    ]
+    train_labels = {example.label for example in bundle.train}
+    query_labels = {example.label for example in bundle.query}
+    gallery_labels = {example.label for example in bundle.gallery}
+    assert train_labels.isdisjoint(query_labels)
+    assert query_labels == gallery_labels
+
+
+def test_load_inat2018_bundle_builds_disjoint_zero_shot_species_protocol(
+    tmp_path: Path,
+) -> None:
+    categories = [{"id": category_id, "name": str(category_id)} for category_id in range(4)]
+    train_images = []
+    train_annotations = []
+    validation_images = []
+    validation_annotations = []
+    for category_id in range(4):
+        train_name = f"train/{category_id}.jpg"
+        validation_name = f"val/{category_id}.jpg"
+        _touch(tmp_path, train_name)
+        _touch(tmp_path, validation_name)
+        train_images.append({"id": category_id + 1, "file_name": train_name})
+        train_annotations.append(
+            {"id": category_id + 1, "image_id": category_id + 1, "category_id": category_id}
+        )
+        validation_images.append({"id": category_id + 101, "file_name": validation_name})
+        validation_annotations.append(
+            {
+                "id": category_id + 101,
+                "image_id": category_id + 101,
+                "category_id": category_id,
+            }
+        )
+    (tmp_path / "train2018.json").write_text(
+        json.dumps(
+            {
+                "categories": categories,
+                "images": train_images,
+                "annotations": train_annotations,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tmp_path / "val2018.json").write_text(
+        json.dumps(
+            {
+                "categories": categories,
+                "images": validation_images,
+                "annotations": validation_annotations,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    bundle = load_image_retrieval_bundle(dataset_name="inat2018", dataset_root=tmp_path)
+
+    assert bundle.protocol == "query_gallery"
+    assert bundle.protocol_name == "inat2018-zero-shot-species-v1"
+    assert bundle.gallery is not None
+    train_labels = {example.label for example in bundle.train}
+    query_labels = {example.label for example in bundle.query}
+    gallery_labels = {example.label for example in bundle.gallery}
+    assert train_labels == {0, 1}
+    assert query_labels == {2, 3}
+    assert gallery_labels == query_labels
+    assert train_labels.isdisjoint(query_labels)
 
 
 def _records() -> list[dict[str, object]]:

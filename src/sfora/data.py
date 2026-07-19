@@ -1,6 +1,8 @@
+import json
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from random import Random
 from typing import Any, Literal
 
@@ -42,9 +44,22 @@ class ImageExample:
 
 
 DatasetLoader = Callable[[str, str], Iterable[dict[str, object]]]
-ImageDatasetName = Literal["cub", "cars", "sop"]
+ImageDatasetName = Literal["cub", "cars", "sop", "inshop", "inat2018"]
+ImageDatasetSplit = Literal["train", "test", "query", "gallery"]
+ImageRetrievalProtocol = Literal["self", "query_gallery"]
 ClassPartition = Literal["first_half", "second_half"]
 IMDB_DATASET_ID = "stanfordnlp/imdb"
+
+
+@dataclass(frozen=True)
+class ImageRetrievalBundle:
+    """Training and evaluation splits for one image-retrieval protocol."""
+
+    train: list[ImageExample]
+    query: list[ImageExample]
+    gallery: list[ImageExample] | None
+    protocol: ImageRetrievalProtocol
+    protocol_name: str
 
 
 @dataclass(frozen=True)
@@ -106,14 +121,34 @@ def load_imdb_examples(
 def load_image_retrieval_examples(
     *,
     dataset_name: ImageDatasetName,
-    split: Literal["train", "test"],
+    split: ImageDatasetSplit,
     limit_per_class: int | None = None,
     min_per_class: int | None = None,
     max_classes: int | None = None,
     seed: int = 0,
     dataset_loader: DatasetLoader | None = None,
+    dataset_root: Path | None = None,
 ) -> list[ImageExample]:
     """Load a standard image metric-learning split through Hugging Face datasets."""
+    if dataset_name in {"inshop", "inat2018"}:
+        bundle = load_image_retrieval_bundle(
+            dataset_name=dataset_name,
+            dataset_root=dataset_root,
+            limit_per_class=limit_per_class,
+            train_min_per_class=min_per_class if split == "train" else None,
+            evaluation_min_per_class=min_per_class if split != "train" else None,
+            max_classes=max_classes,
+            seed=seed,
+        )
+        if split == "train":
+            return bundle.train
+        if split in {"test", "query"}:
+            return bundle.query
+        if bundle.gallery is None:
+            raise ValueError(f"dataset {dataset_name!r} has no gallery split")
+        return bundle.gallery
+    if split not in {"train", "test"}:
+        raise ValueError(f"dataset {dataset_name!r} supports only train/test splits")
     loader = dataset_loader or _load_huggingface_dataset
     spec = _IMAGE_DATASET_SPECS[dataset_name]
     class_ids = spec.train_class_ids if split == "train" else spec.test_class_ids
@@ -152,6 +187,348 @@ def load_image_retrieval_examples(
         id_prefix=f"{dataset_name}-{split}",
         crop_bbox=spec.crop_bbox,
     )
+
+
+def load_image_retrieval_bundle(
+    *,
+    dataset_name: ImageDatasetName,
+    dataset_root: Path | None = None,
+    limit_per_class: int | None = None,
+    train_min_per_class: int | None = None,
+    evaluation_min_per_class: int | None = None,
+    max_classes: int | None = None,
+    seed: int = 0,
+    dataset_loader: DatasetLoader | None = None,
+) -> ImageRetrievalBundle:
+    """Load all splits needed to train and evaluate an image retrieval dataset."""
+    if dataset_name == "inshop":
+        root = _required_dataset_root(dataset_name, dataset_root)
+        return _load_inshop_bundle(
+            root,
+            limit_per_class=limit_per_class,
+            train_min_per_class=train_min_per_class,
+            evaluation_min_per_class=evaluation_min_per_class,
+            max_classes=max_classes,
+            seed=seed,
+        )
+    if dataset_name == "inat2018":
+        root = _required_dataset_root(dataset_name, dataset_root)
+        return _load_inat2018_bundle(
+            root,
+            limit_per_class=limit_per_class,
+            train_min_per_class=train_min_per_class,
+            evaluation_min_per_class=evaluation_min_per_class,
+            max_classes=max_classes,
+            seed=seed,
+        )
+    train = load_image_retrieval_examples(
+        dataset_name=dataset_name,
+        split="train",
+        limit_per_class=limit_per_class,
+        min_per_class=train_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+        dataset_loader=dataset_loader,
+    )
+    test = load_image_retrieval_examples(
+        dataset_name=dataset_name,
+        split="test",
+        limit_per_class=limit_per_class,
+        min_per_class=evaluation_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+        dataset_loader=dataset_loader,
+    )
+    return ImageRetrievalBundle(
+        train=train,
+        query=test,
+        gallery=None,
+        protocol="self",
+        protocol_name=f"{dataset_name}-standard-zero-shot",
+    )
+
+
+def materialize_image(image: object) -> object:
+    """Open a filesystem-backed image lazily; pass already-decoded images through."""
+    if not isinstance(image, Path):
+        return image
+    try:
+        from PIL import Image
+    except ImportError as error:
+        raise RuntimeError("Install Pillow to load filesystem-backed image datasets") from error
+    with Image.open(image) as opened:
+        return opened.convert("RGB").copy()
+
+
+def _required_dataset_root(dataset_name: str, dataset_root: Path | None) -> Path:
+    if dataset_root is None:
+        raise ValueError(f"dataset {dataset_name!r} requires dataset_root")
+    root = Path(dataset_root).expanduser().resolve()
+    if not root.is_dir():
+        raise ValueError(f"dataset root does not exist or is not a directory: {root}")
+    return root
+
+
+def _load_inshop_bundle(
+    root: Path,
+    *,
+    limit_per_class: int | None,
+    train_min_per_class: int | None,
+    evaluation_min_per_class: int | None,
+    max_classes: int | None,
+    seed: int,
+) -> ImageRetrievalBundle:
+    partition_path = root / "Eval" / "list_eval_partition.txt"
+    if not partition_path.is_file():
+        raise ValueError(f"missing In-Shop partition file: {partition_path}")
+    lines = [line.strip() for line in partition_path.read_text(encoding="utf-8").splitlines()]
+    if len(lines) < 3:
+        raise ValueError(f"invalid In-Shop partition file: {partition_path}")
+    try:
+        declared_count = int(lines[0])
+    except ValueError as error:
+        raise ValueError("In-Shop partition first line must be an image count") from error
+    rows: list[tuple[str, str, str]] = []
+    for line_number, line in enumerate(lines[2:], start=3):
+        if not line:
+            continue
+        fields = line.split()
+        if len(fields) != 3:
+            raise ValueError(f"invalid In-Shop partition row {line_number}: {line!r}")
+        image_name, item_id, status = fields
+        if status not in {"train", "query", "gallery"}:
+            raise ValueError(f"unknown In-Shop evaluation status {status!r} on row {line_number}")
+        rows.append((image_name, item_id, status))
+    if len(rows) != declared_count:
+        raise ValueError(
+            f"In-Shop partition declares {declared_count} images but contains {len(rows)} rows"
+        )
+    label_by_item = {item_id: index for index, item_id in enumerate(sorted({r[1] for r in rows}))}
+    by_status: dict[str, list[ImageExample]] = {"train": [], "query": [], "gallery": []}
+    items_by_status: dict[str, set[str]] = {"train": set(), "query": set(), "gallery": set()}
+    for image_name, item_id, status in rows:
+        image_path = root / "Img" / image_name
+        if not image_path.is_file():
+            raise ValueError(f"In-Shop partition references missing image: {image_path}")
+        items_by_status[status].add(item_id)
+        by_status[status].append(
+            ImageExample(
+                example_id=f"inshop-{status}-{image_name}",
+                image=image_path,
+                label=label_by_item[item_id],
+            )
+        )
+    evaluation_items = items_by_status["query"] | items_by_status["gallery"]
+    overlap = items_by_status["train"] & evaluation_items
+    if overlap:
+        raise ValueError(f"In-Shop train/evaluation identities overlap: {sorted(overlap)[:3]}")
+    train = _select_prebuilt_image_examples(
+        by_status["train"],
+        limit_per_class=limit_per_class,
+        min_per_class=train_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+    )
+    query, gallery = _select_paired_query_gallery_examples(
+        by_status["query"],
+        by_status["gallery"],
+        limit_per_class=limit_per_class,
+        min_per_class=evaluation_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+    )
+    return ImageRetrievalBundle(
+        train=train,
+        query=query,
+        gallery=gallery,
+        protocol="query_gallery",
+        protocol_name="deepfashion-inshop-official",
+    )
+
+
+def _load_inat2018_bundle(
+    root: Path,
+    *,
+    limit_per_class: int | None,
+    train_min_per_class: int | None,
+    evaluation_min_per_class: int | None,
+    max_classes: int | None,
+    seed: int,
+) -> ImageRetrievalBundle:
+    train_all = _load_coco_image_examples(root, root / "train2018.json", split="train")
+    validation_all = _load_coco_image_examples(root, root / "val2018.json", split="validation")
+    train_labels = {example.label for example in train_all}
+    validation_labels = {example.label for example in validation_all}
+    eligible = sorted(train_labels & validation_labels)
+    if len(eligible) < 4:
+        raise ValueError(
+            "inat2018-zero-shot-species-v1 requires at least four species present "
+            "in both train and validation annotations"
+        )
+    midpoint = len(eligible) // 2
+    optimization_labels = eligible[:midpoint]
+    evaluation_labels = eligible[midpoint:]
+    if max_classes is not None:
+        if max_classes < 2:
+            raise ValueError("max_classes must be at least 2")
+        optimization_labels = optimization_labels[:max_classes]
+        evaluation_labels = evaluation_labels[:max_classes]
+    train = _select_prebuilt_image_examples(
+        [example for example in train_all if example.label in set(optimization_labels)],
+        limit_per_class=limit_per_class,
+        min_per_class=train_min_per_class,
+        max_classes=None,
+        seed=seed,
+    )
+    query, gallery = _select_paired_query_gallery_examples(
+        [example for example in validation_all if example.label in set(evaluation_labels)],
+        [example for example in train_all if example.label in set(evaluation_labels)],
+        limit_per_class=limit_per_class,
+        min_per_class=evaluation_min_per_class,
+        max_classes=None,
+        seed=seed,
+    )
+    if {example.label for example in train} & {example.label for example in query}:
+        raise ValueError("iNaturalist optimization and evaluation species overlap")
+    return ImageRetrievalBundle(
+        train=train,
+        query=query,
+        gallery=gallery,
+        protocol="query_gallery",
+        protocol_name="inat2018-zero-shot-species-v1",
+    )
+
+
+def _load_coco_image_examples(
+    root: Path,
+    annotation_path: Path,
+    *,
+    split: str,
+) -> list[ImageExample]:
+    if not annotation_path.is_file():
+        raise ValueError(f"missing iNaturalist annotation file: {annotation_path}")
+    try:
+        payload = json.loads(annotation_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as error:
+        raise ValueError(f"invalid iNaturalist annotation file: {annotation_path}") from error
+    if not isinstance(payload, dict):
+        raise ValueError(f"invalid iNaturalist annotation object: {annotation_path}")
+    images = payload.get("images")
+    annotations = payload.get("annotations")
+    if not isinstance(images, list) or not isinstance(annotations, list):
+        raise ValueError(
+            f"iNaturalist annotations need images and annotations lists: {annotation_path}"
+        )
+    paths_by_id: dict[int, Path] = {}
+    for raw_image in images:
+        if not isinstance(raw_image, dict):
+            raise ValueError(f"invalid image record in {annotation_path}")
+        image_id = int(raw_image["id"])
+        image_path = root / str(raw_image["file_name"])
+        if not image_path.is_file():
+            raise ValueError(f"iNaturalist annotation references missing image: {image_path}")
+        paths_by_id[image_id] = image_path
+    examples: list[ImageExample] = []
+    seen_images: set[int] = set()
+    for raw_annotation in annotations:
+        if not isinstance(raw_annotation, dict):
+            raise ValueError(f"invalid annotation record in {annotation_path}")
+        image_id = int(raw_annotation["image_id"])
+        if image_id in seen_images:
+            raise ValueError(f"iNaturalist image {image_id} has multiple category annotations")
+        if image_id not in paths_by_id:
+            raise ValueError(f"iNaturalist annotation references unknown image id {image_id}")
+        seen_images.add(image_id)
+        examples.append(
+            ImageExample(
+                example_id=f"inat2018-{split}-{image_id}",
+                image=paths_by_id[image_id],
+                label=int(raw_annotation["category_id"]),
+            )
+        )
+    return sorted(examples, key=_image_example_sort_key)
+
+
+def _select_prebuilt_image_examples(
+    examples: Sequence[ImageExample],
+    *,
+    limit_per_class: int | None,
+    min_per_class: int | None,
+    max_classes: int | None,
+    seed: int,
+) -> list[ImageExample]:
+    grouped: dict[int, list[ImageExample]] = defaultdict(list)
+    for example in examples:
+        grouped[int(example.label)].append(example)
+    labels = sorted(grouped)
+    if min_per_class is not None:
+        if min_per_class < 1:
+            raise ValueError("min_per_class must be at least 1")
+        labels = [label for label in labels if len(grouped[label]) >= min_per_class]
+    if max_classes is not None:
+        if max_classes < 2:
+            raise ValueError("max_classes must be at least 2")
+        labels = labels[:max_classes]
+    if len(labels) < 2:
+        raise ValueError("image retrieval selection requires at least two labels after filtering")
+    selected: list[ImageExample] = []
+    for label in labels:
+        candidates = grouped[label].copy()
+        Random(seed).shuffle(candidates)
+        if limit_per_class is not None:
+            if limit_per_class < 1:
+                raise ValueError("limit_per_class must be at least 1")
+            candidates = candidates[:limit_per_class]
+        selected.extend(sorted(candidates, key=_image_example_sort_key))
+    return selected
+
+
+def _select_paired_query_gallery_examples(
+    query_examples: Sequence[ImageExample],
+    gallery_examples: Sequence[ImageExample],
+    *,
+    limit_per_class: int | None,
+    min_per_class: int | None,
+    max_classes: int | None,
+    seed: int,
+) -> tuple[list[ImageExample], list[ImageExample]]:
+    query_by_label: dict[int, list[ImageExample]] = defaultdict(list)
+    gallery_by_label: dict[int, list[ImageExample]] = defaultdict(list)
+    for example in query_examples:
+        query_by_label[int(example.label)].append(example)
+    for example in gallery_examples:
+        gallery_by_label[int(example.label)].append(example)
+    labels = sorted(set(query_by_label) & set(gallery_by_label))
+    if min_per_class is not None:
+        if min_per_class < 1:
+            raise ValueError("evaluation_min_per_class must be at least 1")
+        labels = [
+            label
+            for label in labels
+            if len(query_by_label[label]) >= min_per_class
+            and len(gallery_by_label[label]) >= min_per_class
+        ]
+    if max_classes is not None:
+        if max_classes < 2:
+            raise ValueError("max_classes must be at least 2")
+        labels = labels[:max_classes]
+    if len(labels) < 2:
+        raise ValueError("query/gallery selection requires at least two shared labels")
+    selected_query: list[ImageExample] = []
+    selected_gallery: list[ImageExample] = []
+    for label in labels:
+        query_candidates = query_by_label[label].copy()
+        gallery_candidates = gallery_by_label[label].copy()
+        Random(seed).shuffle(query_candidates)
+        Random(seed).shuffle(gallery_candidates)
+        if limit_per_class is not None:
+            if limit_per_class < 1:
+                raise ValueError("limit_per_class must be at least 1")
+            query_candidates = query_candidates[:limit_per_class]
+            gallery_candidates = gallery_candidates[:limit_per_class]
+        selected_query.extend(sorted(query_candidates, key=_image_example_sort_key))
+        selected_gallery.extend(sorted(gallery_candidates, key=_image_example_sort_key))
+    return selected_query, selected_gallery
 
 
 def select_balanced_examples(
