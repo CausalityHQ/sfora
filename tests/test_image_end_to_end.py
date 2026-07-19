@@ -822,6 +822,62 @@ def test_hist_objective_end_to_end_runs() -> None:
     assert "hist_end_to_end:tiny" in result.methods
 
 
+def test_end_to_end_run_scores_queries_against_separate_gallery() -> None:
+    torch: Any = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Embedding(8, 4)
+
+        def forward(self, images: object) -> object:
+            return self.embedding(torch.as_tensor(images, dtype=torch.long))
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: int(cast(int, image))
+
+    train_examples = [
+        ImageExample(example_id=f"train-{label}-{index}", image=label * 4 + index, label=label)
+        for label in range(2)
+        for index in range(4)
+    ]
+    query_examples = [
+        ImageExample(example_id="query-10", image=0, label=10),
+        ImageExample(example_id="query-11", image=4, label=11),
+    ]
+    gallery_examples = [
+        ImageExample(example_id="gallery-10-0", image=1, label=10),
+        ImageExample(example_id="gallery-10-1", image=2, label=10),
+        ImageExample(example_id="gallery-11-0", image=5, label=11),
+        ImageExample(example_id="gallery-11-1", image=6, label=11),
+    ]
+
+    result = run_image_end_to_end_benchmark(
+        train_examples=train_examples,
+        test_examples=query_examples,
+        gallery_examples=gallery_examples,
+        config=ImageEndToEndConfig(
+            dataset_name="inshop",
+            protocol="proxy-anchor-resnet50-512",
+            objectives=("frozen",),
+            backbone_name="tiny",
+            embedding_dimensions=4,
+            batch_size=8,
+            eval_batch_size=8,
+            train_steps=1,
+            train_epochs=None,
+            progress_every=0,
+            num_workers=0,
+        ),
+        model_factory=lambda config: TinyModel(),
+        transform_factory=transform_factory,
+    )
+
+    assert result.test_examples == 2
+    assert result.gallery_examples == 4
+    assert result.methods["frozen_end_to_end:tiny"].retrieval.evaluated_queries == 2
+
+
 def test_custom_sampler_and_custom_loss_plugins_are_invoked() -> None:
     torch: Any = pytest.importorskip("torch")
 

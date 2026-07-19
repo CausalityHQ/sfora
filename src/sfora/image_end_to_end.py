@@ -15,8 +15,12 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field
 
-from sfora.data import ImageDatasetName, ImageExample
-from sfora.image_benchmark import ImageRetrievalMetrics, image_self_retrieval_score
+from sfora.data import ImageDatasetName, ImageExample, materialize_image
+from sfora.image_benchmark import (
+    ImageRetrievalMetrics,
+    image_query_gallery_retrieval_score,
+    image_self_retrieval_score,
+)
 
 if TYPE_CHECKING:
     import torch
@@ -126,6 +130,8 @@ class ImageEndToEndConfig(BaseModel):
     uniformity_t: float = Field(default=2.0, gt=0.0)
     # Optional path to save final test embeddings + labels (.npz) for ensembling.
     save_test_embeddings: str | None = None
+    # Optional query/gallery counterpart for datasets such as DeepFashion In-Shop.
+    save_gallery_embeddings: str | None = None
     # Optional path to save the TRAIN-split embeddings from the same best epoch, so a
     # fold/projection can be fit on train (disjoint zero-shot classes) and evaluated on
     # test — the honest, non-transductive way to compress the pack.
@@ -270,6 +276,7 @@ class ImageEndToEndResult:
     train_examples: int
     test_examples: int
     methods: dict[str, EndToEndMethodMetrics]
+    gallery_examples: int = 0
 
 
 def config_for_protocol(
@@ -397,6 +404,7 @@ def run_image_end_to_end_benchmark(
     *,
     train_examples: list[ImageExample],
     test_examples: list[ImageExample],
+    gallery_examples: list[ImageExample] | None = None,
     config: ImageEndToEndConfig,
     model_factory: Callable[[ImageEndToEndConfig], TorchImageModel] | None = None,
     transform_factory: Callable[[ImageEndToEndConfig, bool], Callable[[object], Any]] | None = None,
@@ -442,6 +450,11 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = _TorchImageDataset(optimization_examples, train_transform)
     test_dataset = _TorchImageDataset(test_examples, test_transform)
+    gallery_dataset = (
+        _TorchImageDataset(gallery_examples, test_transform)
+        if gallery_examples is not None
+        else None
+    )
     checkpoint_dataset = _TorchImageDataset(checkpoint_examples, test_transform)
     train_labels = [example.label for example in optimization_examples]
     # The test loader is shuffle=False, so encoded rows follow test_examples order.
@@ -449,6 +462,11 @@ def run_image_end_to_end_benchmark(
     # alignment across independently-seeded runs (labels alone can't — a within-class
     # reordering would pass a label check while mixing different images).
     test_example_ids = np.asarray([example.example_id for example in test_examples])
+    gallery_example_ids = (
+        np.asarray([example.example_id for example in gallery_examples])
+        if gallery_examples is not None
+        else None
+    )
     train_example_ids = np.asarray([example.example_id for example in optimization_examples])
     class_similarity: dict[int, list[int]] | None = None
     if config.hard_class_fraction > 0.0:
@@ -510,6 +528,17 @@ def run_image_end_to_end_benchmark(
         num_workers=config.num_workers,
         pin_memory=torch.cuda.is_available(),
     )
+    gallery_loader: Any | None = (
+        DataLoader(
+            cast(Any, gallery_dataset),
+            batch_size=config.eval_batch_size,
+            shuffle=False,
+            num_workers=config.num_workers,
+            pin_memory=torch.cuda.is_available(),
+        )
+        if gallery_dataset is not None
+        else None
+    )
     checkpoint_loader: Any = (
         DataLoader(
             cast(Any, checkpoint_dataset),
@@ -542,12 +571,18 @@ def run_image_end_to_end_benchmark(
     # `save_test_embeddings` is a single path; with several objectives each would
     # overwrite the previous one's embeddings. Require a single objective so the
     # saved artifact is unambiguous (ensemble runs already use one objective).
-    if (config.save_test_embeddings or config.save_train_embeddings) and len(config.objectives) > 1:
+    if (
+        config.save_test_embeddings
+        or config.save_gallery_embeddings
+        or config.save_train_embeddings
+    ) and len(config.objectives) > 1:
         raise ValueError(
             "save_test_embeddings / save_train_embeddings expect a single objective, but "
             f"{len(config.objectives)} were given ({', '.join(config.objectives)}); "
             "run one objective per invocation or drop the --save-*-embeddings flags."
         )
+    if config.save_gallery_embeddings and gallery_loader is None:
+        raise ValueError("save_gallery_embeddings requires a separate gallery split")
     methods: dict[str, EndToEndMethodMetrics] = {}
     for objective in config.objectives:
         # Re-seed before each objective so its model init and batch order do not
@@ -894,9 +929,16 @@ def run_image_end_to_end_benchmark(
                     epoch_embeddings, epoch_labels = _encode_model(
                         model, test_loader, device, torch
                     )
-                    epoch_retrieval = image_self_retrieval_score(
-                        epoch_embeddings,
-                        epoch_labels,
+                    epoch_gallery_embeddings, epoch_gallery_labels = (
+                        _encode_model(model, gallery_loader, device, torch)
+                        if gallery_loader is not None
+                        else (None, None)
+                    )
+                    epoch_retrieval = _score_end_to_end_retrieval(
+                        query_embeddings=epoch_embeddings,
+                        query_labels=epoch_labels,
+                        gallery_embeddings=epoch_gallery_embeddings,
+                        gallery_labels=epoch_gallery_labels,
                         query_limit=config.retrieval_query_limit,
                         random_state=config.seed,
                     )
@@ -921,6 +963,16 @@ def run_image_end_to_end_benchmark(
                                 embeddings=np.asarray(epoch_embeddings, dtype=np.float32),
                                 labels=np.asarray(epoch_labels, dtype=np.int64),
                                 example_ids=test_example_ids,
+                            )
+                        if config.save_gallery_embeddings:
+                            assert epoch_gallery_embeddings is not None
+                            assert epoch_gallery_labels is not None
+                            assert gallery_example_ids is not None
+                            _atomic_savez(
+                                Path(config.save_gallery_embeddings),
+                                embeddings=np.asarray(epoch_gallery_embeddings, dtype=np.float32),
+                                labels=np.asarray(epoch_gallery_labels, dtype=np.int64),
+                                example_ids=gallery_example_ids,
                             )
                         if config.save_train_embeddings:
                             # Same (best) epoch's TRAIN-split embeddings, so a fold can
@@ -976,6 +1028,11 @@ def run_image_end_to_end_benchmark(
             del teacher_model
 
         test_embeddings, test_label_array = _encode_model(model, test_loader, device, torch)
+        gallery_embeddings, gallery_label_array = (
+            _encode_model(model, gallery_loader, device, torch)
+            if gallery_loader is not None
+            else (None, None)
+        )
         # When no per-epoch eval ran (the periodic best block never fired), save the
         # final-epoch embeddings as a fallback — for BOTH splits from the same model.
         if config.save_test_embeddings and best_test_recall_at_1 is None:
@@ -995,9 +1052,21 @@ def run_image_end_to_end_benchmark(
                 labels=np.asarray(train_label_array, dtype=np.int64),
                 example_ids=train_example_ids,
             )
-        retrieval = image_self_retrieval_score(
-            test_embeddings,
-            test_label_array,
+        if config.save_gallery_embeddings and best_test_recall_at_1 is None:
+            assert gallery_embeddings is not None
+            assert gallery_label_array is not None
+            assert gallery_example_ids is not None
+            _atomic_savez(
+                Path(config.save_gallery_embeddings),
+                embeddings=np.asarray(gallery_embeddings, dtype=np.float32),
+                labels=np.asarray(gallery_label_array, dtype=np.int64),
+                example_ids=gallery_example_ids,
+            )
+        retrieval = _score_end_to_end_retrieval(
+            query_embeddings=test_embeddings,
+            query_labels=test_label_array,
+            gallery_embeddings=gallery_embeddings,
+            gallery_labels=gallery_label_array,
             query_limit=config.retrieval_query_limit,
             random_state=config.seed,
         )
@@ -1074,6 +1143,7 @@ def run_image_end_to_end_benchmark(
                     config=config,
                     train_examples=len(train_examples),
                     test_examples=len(test_examples),
+                    gallery_examples=(len(gallery_examples) if gallery_examples is not None else 0),
                     methods=dict(methods),
                 )
             )
@@ -1107,6 +1177,7 @@ def run_image_end_to_end_benchmark(
         config=config,
         train_examples=len(train_examples),
         test_examples=len(test_examples),
+        gallery_examples=len(gallery_examples) if gallery_examples is not None else 0,
         methods=methods,
     )
 
@@ -1116,6 +1187,7 @@ def _result_with_methods(
     config: ImageEndToEndConfig,
     train_examples: int,
     test_examples: int,
+    gallery_examples: int,
     methods: dict[str, EndToEndMethodMetrics],
 ) -> ImageEndToEndResult:
     return ImageEndToEndResult(
@@ -1126,6 +1198,35 @@ def _result_with_methods(
         train_examples=train_examples,
         test_examples=test_examples,
         methods=methods,
+        gallery_examples=gallery_examples,
+    )
+
+
+def _score_end_to_end_retrieval(
+    *,
+    query_embeddings: NDArray[np.floating],
+    query_labels: NDArray[np.integer],
+    gallery_embeddings: NDArray[np.floating] | None,
+    gallery_labels: NDArray[np.integer] | None,
+    query_limit: int | None,
+    random_state: int,
+) -> ImageRetrievalMetrics:
+    if gallery_embeddings is None and gallery_labels is None:
+        return image_self_retrieval_score(
+            query_embeddings,
+            query_labels,
+            query_limit=query_limit,
+            random_state=random_state,
+        )
+    if gallery_embeddings is None or gallery_labels is None:
+        raise ValueError("gallery embeddings and labels must be supplied together")
+    return image_query_gallery_retrieval_score(
+        query_embeddings,
+        query_labels,
+        gallery_embeddings,
+        gallery_labels,
+        query_limit=query_limit,
+        random_state=random_state,
     )
 
 
@@ -1166,7 +1267,7 @@ class _TorchImageDataset:
 
     def __getitem__(self, index: int) -> tuple[Any, int]:
         example = self._examples[index]
-        return self._transform(example.image), int(example.label)
+        return self._transform(materialize_image(example.image)), int(example.label)
 
 
 def _mead_multicrop_collate(
