@@ -730,6 +730,9 @@ def test_image_dataset_preflight_reports_query_gallery_topology(
     assert result.exit_code == 0
     assert "inshop-official-partition" in result.output
     assert "gallery_examples" in result.output
+    assert "canonical" in result.output
+    assert "train_query_class_overlap" in result.output
+    assert "query_classes_without_gallery" in result.output
 
 
 def test_image_end_to_end_inshop_passes_root_and_gallery(

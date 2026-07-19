@@ -992,15 +992,26 @@ def image_dataset_preflight(
     except (RuntimeError, ValueError) as error:
         console.print(f"Error: {error}")
         raise typer.Exit(1) from error
+    train_labels = {example.label for example in bundle.train}
+    query_labels = {example.label for example in bundle.query}
+    gallery_labels = (
+        {example.label for example in bundle.gallery} if bundle.gallery is not None else set()
+    )
     console.print(
         {
             "dataset": dataset_name,
             "dataset_root": str(dataset_root.resolve()),
             "protocol": bundle.protocol,
             "protocol_name": bundle.protocol_name,
+            "protocol_status": "canonical" if dataset_name == "inshop" else "project-defined",
+            "selection_status": (
+                "full" if limit_per_class is None and max_classes is None else "development-capped"
+            ),
             "train_examples": len(bundle.train),
             "query_examples": len(bundle.query),
             "gallery_examples": len(bundle.gallery) if bundle.gallery is not None else 0,
+            "train_query_class_overlap": len(train_labels & query_labels),
+            "query_classes_without_gallery": len(query_labels - gallery_labels),
         }
     )
 
