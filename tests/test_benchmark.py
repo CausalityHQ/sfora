@@ -125,7 +125,9 @@ def test_type_safe_constants_are_the_underlying_literals() -> None:
     from sfora.catalog import Dataset, Protocol
 
     assert Dataset.CUB == "cub"
-    assert Dataset.ALL == ("cub", "cars", "sop")
+    assert Dataset.INSHOP == "inshop"
+    assert Dataset.INAT2018 == "inat2018"
+    assert Dataset.ALL == ("cub", "cars", "sop", "inshop", "inat2018")
     assert Protocol.PROXY_ANCHOR_R50_512 == "proxy-anchor-resnet50-512"
 
     run, seen = _fake_runner({0: 0.7})
@@ -139,6 +141,6 @@ def test_grid_accepts_a_plain_sequence_of_methods() -> None:
     from sfora.catalog import Dataset
 
     results = grid([herd(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0], runner=run)
-    assert len(results) == 6  # 2 methods x 3 datasets
+    assert len(results) == 10  # 2 methods x 5 datasets
     # labelled by each brick's .name, no manual string keys needed
     assert {r.method for r in results} == {"IsNorm(Distill(HIST))", "ProxyAnchor"}

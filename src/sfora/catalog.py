@@ -9,7 +9,7 @@ typos:
     from sfora.method import herd
 
     benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512)
-    grid(methods, datasets=Dataset.ALL)          # (Dataset.CUB, Dataset.CARS, Dataset.SOP)
+    grid(methods, datasets=Dataset.ALL)
 """
 
 from __future__ import annotations
@@ -23,7 +23,9 @@ class Dataset:
     CUB: Final = "cub"
     CARS: Final = "cars"
     SOP: Final = "sop"
-    ALL: Final = ("cub", "cars", "sop")
+    INSHOP: Final = "inshop"
+    INAT2018: Final = "inat2018"
+    ALL: Final = ("cub", "cars", "sop", "inshop", "inat2018")
 
 
 class Protocol:

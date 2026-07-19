@@ -13,8 +13,10 @@ from sfora.ablation import (
 )
 from sfora.data import (
     ImageDatasetName,
+    ImageRetrievalBundle,
     TextGroupTriplet,
     TextTriplet,
+    load_image_retrieval_bundle,
     load_image_retrieval_examples,
     load_imdb_examples,
     mine_group_triplets,
@@ -77,6 +79,8 @@ from sfora.text_baselines import (
 
 app = typer.Typer(help="Group learning research utilities.")
 console = Console()
+
+_IMAGE_DATASET_NAMES = {"cub", "cars", "sop", "inshop", "inat2018"}
 
 _LEGACY_END_TO_END_OBJECTIVES: tuple[EndToEndObjective, ...] = (
     "frozen_pretrained",
@@ -907,6 +911,100 @@ def imdb_encoder_ablation(
     )
 
 
+def _load_cli_image_retrieval_bundle(
+    *,
+    dataset_name: ImageDatasetName,
+    dataset_root: Path | None,
+    limit_per_class: int | None,
+    train_min_per_class: int | None,
+    evaluation_min_per_class: int | None,
+    max_classes: int | None,
+    seed: int,
+) -> ImageRetrievalBundle:
+    """Load a complete protocol while preserving mockable legacy dataset calls."""
+    if dataset_name in {"inshop", "inat2018"}:
+        return load_image_retrieval_bundle(
+            dataset_name=dataset_name,
+            dataset_root=dataset_root,
+            limit_per_class=limit_per_class,
+            train_min_per_class=train_min_per_class,
+            evaluation_min_per_class=evaluation_min_per_class,
+            max_classes=max_classes,
+            seed=seed,
+        )
+    train = load_image_retrieval_examples(
+        dataset_name=dataset_name,
+        split="train",
+        limit_per_class=limit_per_class,
+        min_per_class=train_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+    )
+    query = load_image_retrieval_examples(
+        dataset_name=dataset_name,
+        split="test",
+        limit_per_class=limit_per_class,
+        min_per_class=evaluation_min_per_class,
+        max_classes=max_classes,
+        seed=seed,
+    )
+    return ImageRetrievalBundle(
+        train=train,
+        query=query,
+        gallery=None,
+        protocol="self",
+        protocol_name=f"{dataset_name}-standard-zero-shot",
+    )
+
+
+@app.command()
+def image_dataset_preflight(
+    dataset_name: Annotated[
+        str,
+        typer.Option(help="Image retrieval dataset: inshop or inat2018."),
+    ],
+    dataset_root: Annotated[
+        Path,
+        typer.Option(help="Root containing the official dataset files and annotations."),
+    ],
+    limit_per_class: Annotated[
+        int | None,
+        typer.Option(help="Optional balanced per-class cap for a fast validation run."),
+    ] = None,
+    max_classes: Annotated[
+        int | None,
+        typer.Option(help="Optional class cap for a fast validation run."),
+    ] = None,
+    seed: Annotated[int, typer.Option(help="Deterministic sampling seed.")] = 0,
+) -> None:
+    """Validate local canonical annotations, files, and retrieval split topology."""
+    if dataset_name not in {"inshop", "inat2018"}:
+        console.print("Error: dataset_name must be inshop or inat2018")
+        raise typer.Exit(1)
+    try:
+        bundle = load_image_retrieval_bundle(
+            dataset_name=cast(ImageDatasetName, dataset_name),
+            dataset_root=dataset_root,
+            limit_per_class=limit_per_class,
+            max_classes=max_classes,
+            seed=seed,
+        )
+    except (RuntimeError, ValueError) as error:
+        console.print(f"Error: {error}")
+        raise typer.Exit(1) from error
+    console.print(
+        {
+            "dataset": dataset_name,
+            "dataset_root": str(dataset_root.resolve()),
+            "protocol": bundle.protocol,
+            "protocol_name": bundle.protocol_name,
+            "train_examples": len(bundle.train),
+            "query_examples": len(bundle.query),
+            "gallery_examples": len(bundle.gallery) if bundle.gallery is not None else 0,
+        }
+    )
+
+
 @app.command()
 def image_benchmark(
     output: Annotated[
@@ -915,8 +1013,12 @@ def image_benchmark(
     ] = Path("reports/generated/image_retrieval_benchmark.json"),
     dataset_name: Annotated[
         str,
-        typer.Option(help="Image retrieval dataset: cub, cars, or sop."),
+        typer.Option(help="Image retrieval dataset: cub, cars, sop, inshop, or inat2018."),
     ] = "cub",
+    dataset_root: Annotated[
+        Path | None,
+        typer.Option(help="Required root for inshop and inat2018 official local files."),
+    ] = None,
     model_names: Annotated[
         str,
         typer.Option(help="Comma-separated image backbone names."),
@@ -1004,8 +1106,8 @@ def image_benchmark(
     seed: Annotated[int, typer.Option(help="Sampling, projection, and query seed.")] = 0,
 ) -> None:
     """Run frozen image backbone and projection-head retrieval benchmarks."""
-    if dataset_name not in {"cub", "cars", "sop"}:
-        console.print("Error: dataset_name must be one of cub, cars, or sop")
+    if dataset_name not in _IMAGE_DATASET_NAMES:
+        console.print("Error: dataset_name must be one of cub, cars, sop, inshop, or inat2018")
         raise typer.Exit(1)
 
     try:
@@ -1019,25 +1121,19 @@ def image_benchmark(
             if limit_per_class is None and min_per_class is None
             else min_per_class
         )
-        train_examples = load_image_retrieval_examples(
+        bundle = _load_cli_image_retrieval_bundle(
             dataset_name=image_dataset,
-            split="train",
+            dataset_root=dataset_root,
             limit_per_class=limit_per_class,
-            min_per_class=effective_min_per_class,
-            max_classes=max_classes,
-            seed=seed,
-        )
-        test_examples = load_image_retrieval_examples(
-            dataset_name=image_dataset,
-            split="test",
-            limit_per_class=limit_per_class,
-            min_per_class=effective_min_per_class,
+            train_min_per_class=effective_min_per_class,
+            evaluation_min_per_class=effective_min_per_class,
             max_classes=max_classes,
             seed=seed,
         )
         result = run_image_benchmark(
-            train_examples=train_examples,
-            test_examples=test_examples,
+            train_examples=bundle.train,
+            test_examples=bundle.query,
+            gallery_examples=bundle.gallery,
             config=ImageBenchmarkConfig(
                 dataset_name=image_dataset,
                 model_names=_parse_str_tuple(model_names),
@@ -1066,7 +1162,7 @@ def image_benchmark(
                 seed=seed,
             ),
         )
-    except RuntimeError as error:
+    except (RuntimeError, ValueError) as error:
         console.print(f"Error: {error}")
         raise typer.Exit(1) from error
 
@@ -1079,6 +1175,7 @@ def image_benchmark(
             "models": list(result.config.model_names),
             "methods": len(result.methods),
             "best_method": result.best_method,
+            "gallery_examples": result.gallery_examples,
         }
     )
 
@@ -1091,8 +1188,12 @@ def image_end_to_end(
     ] = Path("reports/generated/image_end_to_end_benchmark.json"),
     dataset_name: Annotated[
         str,
-        typer.Option(help="Image retrieval dataset: cub, cars, or sop."),
+        typer.Option(help="Image retrieval dataset: cub, cars, sop, inshop, or inat2018."),
     ] = "cub",
+    dataset_root: Annotated[
+        Path | None,
+        typer.Option(help="Required root for inshop and inat2018 official local files."),
+    ] = None,
     protocol: Annotated[
         str,
         typer.Option(
@@ -1183,6 +1284,10 @@ def image_end_to_end(
                 "use the final-model fallback when no periodic evaluation runs."
             )
         ),
+    ] = None,
+    save_gallery_embeddings: Annotated[
+        str | None,
+        typer.Option(help="Save gallery embeddings for query/gallery datasets to this .npz."),
     ] = None,
     save_train_embeddings: Annotated[
         str | None,
@@ -1579,8 +1684,8 @@ def image_end_to_end(
     seed: Annotated[int, typer.Option(help="Sampling and training seed.")] = 0,
 ) -> None:
     """Train Group SupCon + XBM + Radius end-to-end under a paper-style protocol."""
-    if dataset_name not in {"cub", "cars", "sop"}:
-        console.print("Error: dataset_name must be one of cub, cars, or sop")
+    if dataset_name not in _IMAGE_DATASET_NAMES:
+        console.print("Error: dataset_name must be one of cub, cars, sop, inshop, or inat2018")
         raise typer.Exit(1)
     if protocol not in {
         "hpl-resnet50-512",
@@ -1667,19 +1772,12 @@ def image_end_to_end(
             if resolved_samples_per_class > 0
             else max(2, group_size * 2)
         )
-        train_examples = load_image_retrieval_examples(
+        bundle = _load_cli_image_retrieval_bundle(
             dataset_name=image_dataset,
-            split="train",
+            dataset_root=dataset_root,
             limit_per_class=limit_per_class,
-            min_per_class=train_min_per_class if limit_per_class is None else None,
-            max_classes=max_classes,
-            seed=seed,
-        )
-        test_examples = load_image_retrieval_examples(
-            dataset_name=image_dataset,
-            split="test",
-            limit_per_class=limit_per_class,
-            min_per_class=2 if limit_per_class is None else None,
+            train_min_per_class=train_min_per_class if limit_per_class is None else None,
+            evaluation_min_per_class=2 if limit_per_class is None else None,
             max_classes=max_classes,
             seed=seed,
         )
@@ -1690,13 +1788,14 @@ def image_end_to_end(
         resolved_train_steps = base_config.train_steps
         if train_steps is None and resolved_train_epochs is not None and resolved_batch_size > 0:
             resolved_train_steps = _steps_for_epochs(
-                examples=len(train_examples),
+                examples=len(bundle.train),
                 batch_size=resolved_batch_size,
                 epochs=resolved_train_epochs,
             )
         config = ImageEndToEndConfig(
             **{
                 **base_config.model_dump(),
+                "dataset_root": dataset_root,
                 "objectives": resolved_objectives,
                 "batch_size": resolved_batch_size,
                 "train_steps": resolved_train_steps,
@@ -1733,6 +1832,11 @@ def image_end_to_end(
                     save_test_embeddings
                     if save_test_embeddings is not None
                     else base_config.save_test_embeddings
+                ),
+                "save_gallery_embeddings": (
+                    save_gallery_embeddings
+                    if save_gallery_embeddings is not None
+                    else base_config.save_gallery_embeddings
                 ),
                 "save_train_embeddings": (
                     save_train_embeddings
@@ -2031,13 +2135,16 @@ def image_end_to_end(
         def write_partial_result(partial_result: ImageEndToEndResult) -> None:
             write_image_end_to_end_report(partial_result, output)
 
-        result = run_image_end_to_end_benchmark(
-            train_examples=train_examples,
-            test_examples=test_examples,
-            config=config,
-            progress_callback=write_partial_result,
-        )
-    except RuntimeError as error:
+        run_kwargs: dict[str, Any] = {
+            "train_examples": bundle.train,
+            "test_examples": bundle.query,
+            "config": config,
+            "progress_callback": write_partial_result,
+        }
+        if bundle.gallery is not None:
+            run_kwargs["gallery_examples"] = bundle.gallery
+        result = run_image_end_to_end_benchmark(**run_kwargs)
+    except (RuntimeError, ValueError) as error:
         console.print(f"Error: {error}")
         raise typer.Exit(1) from error
 
@@ -2050,6 +2157,7 @@ def image_end_to_end(
             "output": str(written_path),
             "train_examples": result.train_examples,
             "test_examples": result.test_examples,
+            "gallery_examples": getattr(result, "gallery_examples", 0),
             "methods": list(result.methods),
         }
     )

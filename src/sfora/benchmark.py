@@ -282,14 +282,13 @@ def _default_runner(
     sampler_factory: SamplerFn | None = None,
 ) -> SeedRun:
     """Load the dataset, train one config, and extract scalar metrics + training curves."""
-    from sfora.data import load_image_retrieval_examples
+    from sfora.data import load_image_retrieval_bundle
     from sfora.image_end_to_end import run_image_end_to_end_benchmark
 
-    train_examples = load_image_retrieval_examples(
-        dataset_name=config.dataset_name, split="train", seed=config.seed
-    )
-    test_examples = load_image_retrieval_examples(
-        dataset_name=config.dataset_name, split="test", seed=config.seed
+    bundle = load_image_retrieval_bundle(
+        dataset_name=config.dataset_name,
+        dataset_root=config.dataset_root,
+        seed=config.seed,
     )
     # A method brick compiles to exactly one trained objective; require that so the
     # extracted metrics are unambiguous (not "whichever objective happened to run last").
@@ -302,8 +301,9 @@ def _default_runner(
     if config.eval_test_interval_epochs <= 0:
         config = config.model_copy(update={"eval_test_interval_epochs": 5})
     result = run_image_end_to_end_benchmark(
-        train_examples=train_examples,
-        test_examples=test_examples,
+        train_examples=bundle.train,
+        test_examples=bundle.query,
+        gallery_examples=bundle.gallery,
         config=config,
         extra_eval_metrics=dict(extra_metrics) if extra_metrics else None,
         custom_losses=dict(custom_losses) if custom_losses else None,

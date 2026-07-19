@@ -85,6 +85,7 @@ class ImageEndToEndConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     dataset_name: ImageDatasetName = "cub"
+    dataset_root: Path | None = None
     protocol: EndToEndProtocol = "hpl-resnet50-512"
     objectives: tuple[EndToEndObjective, ...] = ("group_supcon_xbm_radius",)
     backbone_name: str = "resnet50"

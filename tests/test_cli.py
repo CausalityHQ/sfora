@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from typer.testing import CliRunner
 
 from sfora.cli import _default_report_artifacts, app
-from sfora.data import ImageExample, TextExample
+from sfora.data import ImageExample, ImageRetrievalBundle, TextExample
 from sfora.encoder_training import EncoderObjective, EncoderTrainingConfig
 from sfora.training import ProjectionHeadTrainingConfig, train_projection_head
 
@@ -696,6 +696,104 @@ def test_image_benchmark_defaults_to_two_groups_per_class_for_group_objectives(
     assert payload["config"]["min_per_class"] == 8
     assert payload["config"]["limit_per_class"] is None
     assert payload["config"]["max_classes"] is None
+
+
+def test_image_dataset_preflight_reports_query_gallery_topology(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    bundle = ImageRetrievalBundle(
+        train=[ImageExample("train-0", tmp_path / "train.jpg", 0)],
+        query=[ImageExample("query-1", tmp_path / "query.jpg", 1)],
+        gallery=[ImageExample("gallery-1", tmp_path / "gallery.jpg", 1)],
+        protocol="query_gallery",
+        protocol_name="inshop-official-partition",
+    )
+
+    def fake_bundle(**kwargs: Any) -> ImageRetrievalBundle:
+        assert kwargs["dataset_name"] == "inshop"
+        assert kwargs["dataset_root"] == tmp_path
+        return bundle
+
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", fake_bundle)
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-dataset-preflight",
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "inshop-official-partition" in result.output
+    assert "gallery_examples" in result.output
+
+
+def test_image_end_to_end_inshop_passes_root_and_gallery(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    output_path = tmp_path / "inshop.json"
+    gallery = [ImageExample("gallery-10", tmp_path / "gallery.jpg", 10)]
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{index}", tmp_path / f"train-{index}.jpg", 0) for index in range(4)
+        ],
+        query=[ImageExample("query-10", tmp_path / "query.jpg", 10)],
+        gallery=gallery,
+        protocol="query_gallery",
+        protocol_name="inshop-official-partition",
+    )
+    captured: dict[str, Any] = {}
+
+    def fake_bundle(**kwargs: Any) -> ImageRetrievalBundle:
+        assert kwargs["dataset_name"] == "inshop"
+        assert kwargs["dataset_root"] == tmp_path
+        return bundle
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured.update(kwargs)
+        config = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name=config.dataset_name,
+            protocol=config.protocol,
+            train_examples=len(kwargs["train_examples"]),
+            test_examples=len(kwargs["test_examples"]),
+            gallery_examples=len(kwargs["gallery_examples"]),
+            methods={},
+        )
+
+    def fake_write(result: Any, output: Path) -> Path:
+        output.write_text("{}", encoding="utf-8")
+        return output
+
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", fake_bundle)
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr("sfora.cli.write_image_end_to_end_report", fake_write)
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(output_path),
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "frozen_pretrained",
+            "--train-steps",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert captured["gallery_examples"] == gallery
+    assert captured["config"].dataset_root == tmp_path
 
 
 def test_image_end_to_end_command_passes_triplet_and_backbone_lr_knobs(
