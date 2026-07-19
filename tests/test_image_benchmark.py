@@ -42,6 +42,31 @@ def test_query_gallery_retrieval_scores_cross_set() -> None:
     assert 0.0 < metrics.map_at_r <= 1.0
 
 
+def test_query_gallery_retrieval_reports_canonical_inshop_cutoffs() -> None:
+    query_embeddings = np.asarray([[0.0], [100.0], [200.0]], dtype=np.float64)
+    query_labels = np.asarray([1000, 1001, 1002], dtype=np.int64)
+    gallery_embeddings: list[list[float]] = []
+    gallery_labels: list[int] = []
+    for query_index, relevant_rank in enumerate((10, 20, 30)):
+        center = float(query_index * 100)
+        for offset in range(1, relevant_rank):
+            gallery_embeddings.append([center + offset])
+            gallery_labels.append(-(query_index * 100 + offset))
+        gallery_embeddings.append([center + relevant_rank])
+        gallery_labels.append(int(query_labels[query_index]))
+
+    metrics = image_query_gallery_retrieval_score(
+        query_embeddings,
+        query_labels,
+        np.asarray(gallery_embeddings, dtype=np.float64),
+        np.asarray(gallery_labels, dtype=np.int64),
+    )
+
+    assert metrics.recall_at_10 == pytest.approx(1 / 3)
+    assert metrics.recall_at_20 == pytest.approx(2 / 3)
+    assert metrics.recall_at_30 == pytest.approx(1.0)
+
+
 def test_query_gallery_retrieval_skips_queries_absent_from_gallery() -> None:
     # Query label 9 has no gallery match -> skipped; the one matchable query scores.
     gallery_emb = np.array([[1.0, 0.0], [1.0, 0.0]])

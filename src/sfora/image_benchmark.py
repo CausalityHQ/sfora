@@ -121,6 +121,9 @@ class ImageRetrievalMetrics:
     mean_relevant_items: float
     evaluated_queries: int
     total_queries: int
+    recall_at_10: float = 0.0
+    recall_at_20: float = 0.0
+    recall_at_30: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -341,7 +344,7 @@ def image_self_retrieval_score(
         )
 
     precision_at_1_values: list[float] = []
-    recall_at_k_values: dict[int, list[float]] = {1: [], 2: [], 4: [], 8: []}
+    recall_at_k_values: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
     average_precisions: list[float] = []
     relevant_counts: list[int] = []
     label_counts = {
@@ -353,7 +356,7 @@ def image_self_retrieval_score(
         dtype=np.int64,
     )
     max_relevant_count = int(query_relevant_counts.max(initial=0))
-    top_k = min(embedding_array.shape[0] - 1, max(8, max_relevant_count))
+    top_k = min(embedding_array.shape[0] - 1, max(30, max_relevant_count))
     embedding_norms = np.sum(embedding_array * embedding_array, axis=1)
     chunk_size = 1024
     for start in range(0, query_indices.shape[0], chunk_size):
@@ -405,6 +408,9 @@ def image_self_retrieval_score(
         mean_relevant_items=float(np.mean(relevant_counts)),
         evaluated_queries=len(average_precisions),
         total_queries=int(embedding_array.shape[0]),
+        recall_at_10=float(np.mean(recall_at_k_values[10])),
+        recall_at_20=float(np.mean(recall_at_k_values[20])),
+        recall_at_30=float(np.mean(recall_at_k_values[30])),
     )
 
 
@@ -456,10 +462,10 @@ def image_query_gallery_retrieval_score(
         dtype=np.int64,
     )
     max_relevant_count = int(query_relevant_counts.max(initial=0))
-    top_k = min(g_emb.shape[0], max(8, max_relevant_count))
+    top_k = min(g_emb.shape[0], max(30, max_relevant_count))
 
     precision_at_1_values: list[float] = []
-    recall_at_k_values: dict[int, list[float]] = {1: [], 2: [], 4: [], 8: []}
+    recall_at_k_values: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
     average_precisions: list[float] = []
     relevant_counts: list[int] = []
     gallery_norms = np.sum(g_emb * g_emb, axis=1)
@@ -508,6 +514,9 @@ def image_query_gallery_retrieval_score(
         mean_relevant_items=float(np.mean(relevant_counts)),
         evaluated_queries=len(average_precisions),
         total_queries=int(q_emb.shape[0]),
+        recall_at_10=float(np.mean(recall_at_k_values[10])),
+        recall_at_20=float(np.mean(recall_at_k_values[20])),
+        recall_at_30=float(np.mean(recall_at_k_values[30])),
     )
 
 
