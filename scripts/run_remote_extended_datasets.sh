@@ -16,7 +16,8 @@ rsync -az --delete \
   --exclude .venv \
   --exclude .git \
   --exclude data \
-  --exclude reports/generated \
+  --exclude logs \
+  --exclude reports \
   "${LOCAL_DIR}/" "${REMOTE}:${REMOTE_DIR}/"
 
 ssh "${REMOTE}" "cd '${REMOTE_DIR}' && uv sync --group dev --extra research"

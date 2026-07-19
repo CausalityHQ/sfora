@@ -31,3 +31,10 @@ def test_extended_dataset_workflow_preflights_and_runs_full_seed_matrix() -> Non
     assert "--ema-distill-weight 1.0" in text
     assert "--embedding-layer-norm" in text
     assert "image_end_to_end_${DATASET}.${METHOD}_seed${SEED}.json" in text
+
+
+def test_extended_dataset_workflow_preserves_remote_research_artifacts() -> None:
+    text = Path("scripts/run_remote_extended_datasets.sh").read_text(encoding="utf-8")
+
+    assert "--exclude logs" in text
+    assert "--exclude reports" in text
