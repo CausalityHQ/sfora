@@ -11,7 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, Field
 
-from sfora.data import ImageDatasetName, ImageExample
+from sfora.data import ImageDatasetName, ImageExample, materialize_image
 from sfora.evaluation import (
     EmbeddingSpaceDiagnostics,
     embedding_space_diagnostics_on_split,
@@ -166,12 +166,14 @@ class ImageBenchmarkResult:
     test_examples: int
     best_method: str | None
     methods: dict[str, ImageBenchmarkMethodMetrics]
+    gallery_examples: int = 0
 
 
 def run_image_benchmark(
     *,
     train_examples: list[ImageExample],
     test_examples: list[ImageExample],
+    gallery_examples: list[ImageExample] | None = None,
     config: ImageBenchmarkConfig | None = None,
     encoder_factory: ImageEncoderFactory | None = None,
 ) -> ImageBenchmarkResult:
@@ -180,6 +182,11 @@ def run_image_benchmark(
     factory = encoder_factory or _load_transformers_image_encoder
     train_labels = np.asarray([example.label for example in train_examples], dtype=np.int64)
     test_labels = np.asarray([example.label for example in test_examples], dtype=np.int64)
+    gallery_labels = (
+        np.asarray([example.label for example in gallery_examples], dtype=np.int64)
+        if gallery_examples is not None
+        else None
+    )
     projection_min_per_class = _projection_min_per_class(resolved_config)
     projection_train_indices, projection_validation_indices = _projection_train_validation_indices(
         train_labels,
@@ -209,14 +216,26 @@ def run_image_benchmark(
             encoder=encoder,
             encoder_factory=factory,
         )
+        gallery_embeddings = None
+        if gallery_examples is not None:
+            gallery_embeddings, encoder = _encode_examples_with_cache(
+                model_name=model_name,
+                split_name="gallery",
+                examples=gallery_examples,
+                config=resolved_config,
+                encoder=encoder,
+                encoder_factory=factory,
+            )
         del encoder
         projection_train_embeddings = train_embeddings[projection_train_indices]
         projection_train_labels = train_labels[projection_train_indices]
         projection_validation_embeddings = train_embeddings[projection_validation_indices]
         projection_validation_labels = train_labels[projection_validation_indices]
-        frozen_retrieval = image_self_retrieval_score(
-            test_embeddings,
-            test_labels,
+        frozen_retrieval = _score_image_retrieval(
+            query_embeddings=test_embeddings,
+            query_labels=test_labels,
+            gallery_embeddings=gallery_embeddings,
+            gallery_labels=gallery_labels,
             query_limit=resolved_config.retrieval_query_limit,
             random_state=resolved_config.seed,
         )
@@ -273,11 +292,20 @@ def run_image_benchmark(
                 ),
             )
             projected_test = test_embeddings @ training.projection_matrix
+            projected_gallery = (
+                gallery_embeddings @ training.projection_matrix
+                if gallery_embeddings is not None
+                else None
+            )
             if resolved_config.normalize_embeddings:
                 projected_test = _normalize(projected_test)
-            retrieval = image_self_retrieval_score(
-                projected_test,
-                test_labels,
+                if projected_gallery is not None:
+                    projected_gallery = _normalize(projected_gallery)
+            retrieval = _score_image_retrieval(
+                query_embeddings=projected_test,
+                query_labels=test_labels,
+                gallery_embeddings=projected_gallery,
+                gallery_labels=gallery_labels,
                 query_limit=resolved_config.retrieval_query_limit,
                 random_state=resolved_config.seed,
             )
@@ -304,13 +332,44 @@ def run_image_benchmark(
         name="image-retrieval-benchmark",
         dataset_name=resolved_config.dataset_name,
         config=resolved_config,
-        examples=len(train_examples) + len(test_examples),
+        examples=len(train_examples)
+        + len(test_examples)
+        + (len(gallery_examples) if gallery_examples is not None else 0),
         train_examples=len(train_examples),
         projection_train_examples=int(projection_train_indices.shape[0]),
         projection_validation_examples=int(projection_validation_indices.shape[0]),
         test_examples=len(test_examples),
         best_method=best_method,
         methods=methods,
+        gallery_examples=len(gallery_examples) if gallery_examples is not None else 0,
+    )
+
+
+def _score_image_retrieval(
+    *,
+    query_embeddings: NDArray[np.floating],
+    query_labels: NDArray[np.integer],
+    gallery_embeddings: NDArray[np.floating] | None,
+    gallery_labels: NDArray[np.integer] | None,
+    query_limit: int | None,
+    random_state: int,
+) -> ImageRetrievalMetrics:
+    if gallery_embeddings is None and gallery_labels is None:
+        return image_self_retrieval_score(
+            query_embeddings,
+            query_labels,
+            query_limit=query_limit,
+            random_state=random_state,
+        )
+    if gallery_embeddings is None or gallery_labels is None:
+        raise ValueError("gallery embeddings and labels must be supplied together")
+    return image_query_gallery_retrieval_score(
+        query_embeddings,
+        query_labels,
+        gallery_embeddings,
+        gallery_labels,
+        query_limit=query_limit,
+        random_state=random_state,
     )
 
 
@@ -568,7 +627,7 @@ def _encode_examples_with_cache(
 
     resolved_encoder = encoder or encoder_factory(model_name)
     embeddings = resolved_encoder.encode(
-        [example.image for example in examples],
+        [materialize_image(example.image) for example in examples],
         batch_size=config.batch_size,
         normalize_embeddings=config.normalize_embeddings,
     )

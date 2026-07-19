@@ -278,6 +278,28 @@ def test_run_image_benchmark_compares_models_and_human_named_objectives() -> Non
     assert hybrid.map_at_r <= 1.0
 
 
+def test_run_image_benchmark_scores_queries_against_separate_gallery() -> None:
+    result = run_image_benchmark(
+        train_examples=_image_examples("train", (0, 1)),
+        test_examples=_image_examples_with_count("query", (10, 11), examples_per_label=1),
+        gallery_examples=_image_examples_with_count("gallery", (10, 11), examples_per_label=2),
+        config=ImageBenchmarkConfig(
+            dataset_name="inshop",
+            model_names=("fake-dino",),
+            objectives=(),
+            group_size=2,
+            batch_size=8,
+            train_steps=1,
+            seed=5,
+        ),
+        encoder_factory=_factory,
+    )
+
+    assert result.test_examples == 2
+    assert result.gallery_examples == 4
+    assert result.methods["frozen:fake-dino"].retrieval.evaluated_queries == 2
+
+
 def test_run_image_benchmark_can_train_projection_on_stratified_subset() -> None:
     result = run_image_benchmark(
         train_examples=_image_examples("train", (0, 1, 2)),
