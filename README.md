@@ -77,6 +77,17 @@ end-to-end or a projection head on frozen embeddings, evaluates with
 R@1/MAP@R/F1/P@1, and generates a scientific report plus a static presentation
 page. See [CHANGELOG.md](CHANGELOG.md) and [docs/results.md](docs/results.md).
 
+### Extended retrieval datasets
+
+SFORA also supports the official **DeepFashion In-Shop** train/query/gallery
+partition and a clearly named, project-defined **iNaturalist 2018 zero-shot species
+v1** query/gallery protocol. Both use local official files through `--dataset-root`;
+the repository does not redistribute either dataset or invent a split for the
+partitionless In-Shop mirror. Run `sfora image-dataset-preflight` before training.
+Setup details and the full three-seed experiment matrix are in
+[docs/library_usage.md](docs/library_usage.md#deepfashion-in-shop-and-inaturalist-2018).
+Results remain pending until validated artifacts exist.
+
 ## Why
 
 Deep metric learning on fine-grained retrieval has sat on a ~0.71 same-arch
@@ -127,7 +138,8 @@ for the full benchmark table, reproducibility notes, and the honest negatives
 - `sfora.api`: stable fit/transform API for external embeddings.
 - `sfora.training`: projection-head and embedding-table objectives.
 - `sfora.evaluation`: linear-probe, retrieval, and geometry metrics.
-- `sfora.image_benchmark`: CUB, Cars196, and SOP retrieval benchmark.
+- `sfora.image_benchmark`: CUB, Cars196, SOP, DeepFashion In-Shop, and iNaturalist
+  retrieval benchmarks, including self-retrieval and query/gallery protocols.
 - `sfora.image_end_to_end`: ResNet-50/512 paper-protocol training for
   Proxy Anchor, HIST, PFML, and the HERD add-ons (LayerNorm `is_norm` head,
   EMA-teacher relational self-distillation) plus the ensemble tooling.
@@ -198,7 +210,11 @@ PADistill = Distill(ProxyAnchor())      # == pa_distill(); best on Cars
 
 # multi-seed benchmark → typed BenchmarkResult (R@1/2/4/8, MAP@R, mean ± std)
 benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512, seeds=[0, 1, 2])
-grid([herd(), pa_distill(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0, 1, 2])
+grid(
+    [herd(), pa_distill(), ProxyAnchor()],
+    datasets=(Dataset.CUB, Dataset.CARS, Dataset.SOP),
+    seeds=[0, 1, 2],
+)
 ```
 
 `Distill(...)` is the universal improvement (`HIST → HERD`, `ProxyAnchor →

@@ -309,6 +309,19 @@ So SOP behaves like HIST (our 0.701 vs reported 0.714) and PFML (collapses): **t
 reported number is hard to reproduce, not a knob we failed to turn.** We report our
 honest ~0.72 as supporting evidence for the base-adaptive finding, **not** a SOTA claim.
 
+## DeepFashion In-Shop and iNaturalist 2018 — results pending
+
+The harness now supports the official DeepFashion In-Shop train/query/gallery
+partition and the project-defined `inat2018-zero-shot-species-v1` protocol. No result
+number is claimed here yet: the three-seed Proxy Anchor, PA+distillation, HIST, and
+HERD artifacts must exist and pass dataset preflight before any table is published.
+
+In-Shop results will use query-to-gallery retrieval with R@1/10/20/30 as the canonical
+cutoffs (plus the harness's R@2/4/8 and MAP@R). iNaturalist results will be labeled as
+SFORA's project protocol, not as a canonical iNaturalist metric-learning benchmark or
+a SOTA comparison. The exact setup and sequential runner are documented in
+[`library_usage.md`](library_usage.md#deepfashion-in-shop-and-inaturalist-2018).
+
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 
 To separate the ensemble from the HERD recipe we ensembled **plain HIST** models

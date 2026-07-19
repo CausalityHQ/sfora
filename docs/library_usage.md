@@ -73,7 +73,11 @@ result = benchmark(
 )
 
 # compare a whole matrix — pass bricks directly (labelled by each brick's .name)
-grid([herd(), pa_distill(), ProxyAnchor()], datasets=Dataset.ALL, seeds=[0, 1, 2])
+grid(
+    [herd(), pa_distill(), ProxyAnchor()],
+    datasets=(Dataset.CUB, Dataset.CARS, Dataset.SOP),
+    seeds=[0, 1, 2],
+)
 ```
 
 Training is delegated to an **injectable `runner`** (default: the verified
@@ -306,6 +310,77 @@ Protocol knobs are all overridable: `--optimizer`, `--warmup-epochs`,
 `--xbm-start-step`, `--proxy-anchor-alpha`, `--proxy-anchor-delta`, and the
 `--gsi-*` / `--bgsi-*` families. Legacy protocols (`sota-resnet50-512`,
 `hpl-resnet50-512`) keep their historical behavior.
+
+### DeepFashion In-Shop and iNaturalist 2018
+
+The two filesystem-backed datasets require the research extra and an explicit local
+root. SFORA never substitutes the partitionless Hugging Face In-Shop mirror for the
+official benchmark.
+
+DeepFashion In-Shop must have this official layout:
+
+```text
+<root>/Eval/list_eval_partition.txt
+<root>/Img/img/...
+```
+
+Validate it before training:
+
+```bash
+uv run --group dev --extra research sfora image-dataset-preflight \
+  --dataset-name inshop --dataset-root /datasets/deepfashion_inshop
+```
+
+The loader preserves the official train/query/gallery identity partition. Evaluation
+is query-to-gallery and reports R@1/2/4/8, MAP@R, and the canonical In-Shop
+R@10/20/30 cutoffs.
+
+iNaturalist 2018 must contain `train2018.json`, `val2018.json`, and every image path
+named in those COCO-style annotations:
+
+```bash
+uv run --group dev --extra research sfora image-dataset-preflight \
+  --dataset-name inat2018 --dataset-root /datasets/inaturalist2018
+```
+
+`inat2018-zero-shot-species-v1` is a **project-defined** retrieval protocol, not an
+iNaturalist standard: species present in both official splits are sorted by category
+ID and divided in half. The first half's training images are optimized; validation
+images from the second half query training images from that same second half. The
+optimization and evaluation species are therefore disjoint.
+
+Run one end-to-end experiment with:
+
+```bash
+uv run --group dev --extra research sfora image-end-to-end \
+  --dataset-name inshop --dataset-root /datasets/deepfashion_inshop \
+  --protocol proxy-anchor-resnet50-512 --objectives proxy_anchor \
+  --train-epochs 60 --eval-test-interval-epochs 5 \
+  --output reports/generated/image_end_to_end_inshop.proxy_anchor_seed0.json
+```
+
+The Python benchmark API uses the same loader. Supply a root through validated config
+overrides:
+
+```python
+from pathlib import Path
+
+result = benchmark(
+    pa_distill(),
+    dataset=Dataset.INSHOP,
+    seeds=[0, 1, 2],
+    overrides={"dataset_root": Path("/datasets/deepfashion_inshop")},
+)
+```
+
+For the complete sequential two-dataset, four-method, three-seed matrix, set remote
+dataset paths and run `scripts/run_remote_extended_datasets.sh`:
+
+```bash
+INSHOP_ROOT=/datasets/deepfashion_inshop \
+INAT2018_ROOT=/datasets/inaturalist2018 \
+./scripts/run_remote_extended_datasets.sh
+```
 
 ### Hyperparameter Guidance
 
