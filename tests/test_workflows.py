@@ -23,6 +23,8 @@ def test_extended_dataset_workflow_preflights_and_runs_full_seed_matrix() -> Non
     assert "INSHOP_ROOT" in text
     assert "INAT2018_ROOT" in text
     assert "image-dataset-preflight" in text
+    assert 'DATASETS="${DATASETS:-inshop inat2018}"' in text
+    assert "for DATASET in ${DATASETS}" in text
     assert "for SEED in 0 1 2" in text
     assert 'run_method "proxy_anchor" "proxy_anchor"' in text
     assert 'run_method "pa_distill" "proxy_anchor"' in text

@@ -5,8 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 REMOTE="${REMOTE:-riomus@192.168.1.35}"
 REMOTE_DIR="${REMOTE_DIR:-/home/riomus/group-learning}"
-INSHOP_ROOT="${INSHOP_ROOT:?Set INSHOP_ROOT to the official DeepFashion In-Shop root on the remote host}"
-INAT2018_ROOT="${INAT2018_ROOT:?Set INAT2018_ROOT to the iNaturalist 2018 root on the remote host}"
+DATASETS="${DATASETS:-inshop inat2018}"
+INSHOP_ROOT="${INSHOP_ROOT:-}"
+INAT2018_ROOT="${INAT2018_ROOT:-}"
 TRAIN_EPOCHS="${TRAIN_EPOCHS:-60}"
 BATCH_SIZE="${BATCH_SIZE:-120}"
 NUM_WORKERS="${NUM_WORKERS:-8}"
@@ -49,11 +50,16 @@ run_method() {
     --output '${OUTPUT_FILE}'"
 }
 
-for DATASET in inshop inat2018; do
+for DATASET in ${DATASETS}; do
   if [[ "${DATASET}" == "inshop" ]]; then
+    : "${INSHOP_ROOT:?Set INSHOP_ROOT to the official DeepFashion In-Shop root on the remote host}"
     DATASET_ROOT="${INSHOP_ROOT}"
-  else
+  elif [[ "${DATASET}" == "inat2018" ]]; then
+    : "${INAT2018_ROOT:?Set INAT2018_ROOT to the iNaturalist 2018 root on the remote host}"
     DATASET_ROOT="${INAT2018_ROOT}"
+  else
+    echo "Unsupported extended dataset: ${DATASET}" >&2
+    exit 2
   fi
 
   ssh "${REMOTE}" "cd '${REMOTE_DIR}' && .venv/bin/sfora image-dataset-preflight \
