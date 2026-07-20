@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
+from sfora.data import ImageExample
 from sfora.image_recipes import (
+    RecipeCandidateScore,
     RecipeUnavailableError,
+    class_disjoint_recipe_selection_split,
     config_for_recipe,
     derive_recipe,
+    rank_recipe_candidates,
     recipe_digest,
     reference_recipe,
+    selected_extension_recipe,
+    write_selection_manifest,
 )
 
 
@@ -218,3 +227,106 @@ def test_herd_config_differs_from_hist_only_by_declared_delta() -> None:
     assert changed == {"ema_distill_weight"}
     assert hist.embedding_layer_norm is True
     assert herd.embedding_layer_norm is True
+
+
+def test_recipe_selection_split_is_deterministic_and_class_disjoint() -> None:
+    examples = [
+        ImageExample(
+            example_id=f"train-{label}-{index}",
+            image=[float(label), float(index)],
+            label=label,
+        )
+        for label in range(8)
+        for index in range(4)
+    ]
+
+    first = class_disjoint_recipe_selection_split(examples, fraction=0.25, seed=7)
+    second = class_disjoint_recipe_selection_split(examples, fraction=0.25, seed=7)
+
+    optimization_labels = {example.label for example in first.optimization}
+    query_labels = {example.label for example in first.query}
+    gallery_labels = {example.label for example in first.gallery}
+    assert optimization_labels.isdisjoint(query_labels)
+    assert query_labels == gallery_labels
+    assert len(query_labels) == 2
+    assert [example.example_id for example in first.query] == [
+        example.example_id for example in second.query
+    ]
+    assert [example.example_id for example in first.gallery] == [
+        example.example_id for example in second.gallery
+    ]
+
+
+def test_recipe_selection_split_never_includes_external_evaluation_examples() -> None:
+    training = [
+        ImageExample(example_id=f"train-{label}-{index}", image=[0.0], label=label)
+        for label in range(6)
+        for index in range(3)
+    ]
+    evaluation = [
+        ImageExample(example_id=f"eval-{label}-{index}", image=[0.0], label=label + 100)
+        for label in range(2)
+        for index in range(2)
+    ]
+
+    split = class_disjoint_recipe_selection_split(training, fraction=0.34, seed=0)
+
+    selected_ids = {
+        example.example_id for example in (*split.optimization, *split.query, *split.gallery)
+    }
+    assert selected_ids.isdisjoint({example.example_id for example in evaluation})
+
+
+def test_recipe_candidate_ranking_uses_map_then_recall_then_recipe_id() -> None:
+    scores = [
+        RecipeCandidateScore(recipe_id="z", map_at_r=0.7, recall_at_1=0.8),
+        RecipeCandidateScore(recipe_id="b", map_at_r=0.8, recall_at_1=0.7),
+        RecipeCandidateScore(recipe_id="a", map_at_r=0.8, recall_at_1=0.7),
+        RecipeCandidateScore(recipe_id="c", map_at_r=0.8, recall_at_1=0.9),
+    ]
+
+    ranked = rank_recipe_candidates(scores)
+
+    assert [score.recipe_id for score in ranked] == ["c", "a", "b", "z"]
+
+
+def test_selected_extension_retains_source_config_and_changes_target_metadata() -> None:
+    source = reference_recipe("hist", "sop")
+
+    selected = selected_extension_recipe(source, target_dataset="inshop")
+
+    assert selected.track == "selected_extension"
+    assert selected.dataset == "inshop"
+    assert selected.provenance.source_dataset == "sop"
+    assert selected.config == source.config
+    assert selected.recipe_id.startswith("hist.inshop.selected-from-sop-")
+
+
+def test_selection_manifest_persists_full_ranking(
+    tmp_path: Path,
+) -> None:
+    selected = selected_extension_recipe(
+        reference_recipe("hist", "sop"),
+        target_dataset="inshop",
+    )
+    scores = [
+        RecipeCandidateScore(recipe_id=selected.recipe_id, map_at_r=0.6, recall_at_1=0.7),
+        RecipeCandidateScore(recipe_id="hist.inshop.other", map_at_r=0.5, recall_at_1=0.8),
+    ]
+    output = tmp_path / "selection.json"
+
+    write_selection_manifest(
+        output,
+        selected_recipe=selected,
+        scores=scores,
+        selection_seed=0,
+        protocol_version="class-disjoint-train-v1",
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["winner"]["recipe_id"] == selected.recipe_id
+    assert payload["winner"]["digest"] == recipe_digest(selected)
+    assert [score["recipe_id"] for score in payload["scores"]] == [
+        selected.recipe_id,
+        "hist.inshop.other",
+    ]

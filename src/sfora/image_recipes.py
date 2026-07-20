@@ -10,11 +10,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from sfora.data import ImageDatasetName
+from sfora.data import ImageDatasetName, ImageExample
 
 if TYPE_CHECKING:
     from sfora.image_end_to_end import ImageEndToEndConfig
@@ -61,6 +65,25 @@ class ImageRecipe(BaseModel):
     config: dict[str, Any]
     derived_from_recipe_id: str | None = None
     delta: dict[str, Any] = {}
+
+
+class RecipeCandidateScore(BaseModel):
+    """Training-only retrieval score for one source recipe candidate."""
+
+    model_config = ConfigDict(frozen=True)
+
+    recipe_id: str
+    map_at_r: float
+    recall_at_1: float
+
+
+@dataclass(frozen=True)
+class RecipeSelectionSplit:
+    """Class-disjoint optimization and selection query/gallery collections."""
+
+    optimization: list[ImageExample]
+    query: list[ImageExample]
+    gallery: list[ImageExample]
 
 
 def _shared_reference_config() -> dict[str, Any]:
@@ -245,6 +268,19 @@ def reference_recipe(base_method: str, dataset: str) -> ImageRecipe:
     return recipe.model_copy(deep=True)
 
 
+def reference_recipes_for_method(base_method: BaseMethod) -> list[ImageRecipe]:
+    """Return every author recipe for a base method in stable dataset order."""
+
+    return [
+        recipe.model_copy(deep=True)
+        for (method, _), recipe in sorted(
+            _REFERENCE_RECIPES.items(),
+            key=lambda item: item[1].recipe_id,
+        )
+        if method == base_method
+    ]
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -277,6 +313,120 @@ def recipe_digest(recipe: ImageRecipe) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def class_disjoint_recipe_selection_split(
+    examples: Sequence[ImageExample],
+    *,
+    fraction: float,
+    seed: int,
+) -> RecipeSelectionSplit:
+    """Hold out training labels and build deterministic selection query/gallery sets."""
+
+    if not 0.0 < fraction < 1.0:
+        raise ValueError(f"selection fraction must be between 0 and 1; got {fraction}")
+    grouped: dict[int, list[ImageExample]] = {}
+    for example in examples:
+        grouped.setdefault(int(example.label), []).append(example)
+    eligible_labels = sorted(label for label, group in grouped.items() if len(group) >= 2)
+    if len(eligible_labels) < 4:
+        raise ValueError(
+            "recipe selection needs at least four training labels with two images each"
+        )
+
+    selection_count = min(
+        max(2, int(round(len(eligible_labels) * fraction))),
+        len(eligible_labels) - 2,
+    )
+    rng = np.random.default_rng(seed)
+    selected_labels = {
+        eligible_labels[int(index)]
+        for index in rng.permutation(len(eligible_labels))[:selection_count]
+    }
+    optimization = [example for example in examples if int(example.label) not in selected_labels]
+    query: list[ImageExample] = []
+    gallery: list[ImageExample] = []
+    for label in sorted(selected_labels):
+        group = sorted(grouped[label], key=lambda example: example.example_id)
+        order = rng.permutation(len(group))
+        query_count = max(1, len(group) // 2)
+        query.extend(group[int(index)] for index in order[:query_count])
+        gallery.extend(group[int(index)] for index in order[query_count:])
+    return RecipeSelectionSplit(
+        optimization=optimization,
+        query=query,
+        gallery=gallery,
+    )
+
+
+def rank_recipe_candidates(
+    scores: Sequence[RecipeCandidateScore],
+) -> list[RecipeCandidateScore]:
+    """Rank by MAP@R, Recall@1, then stable recipe ID."""
+
+    if not scores:
+        raise ValueError("recipe selection produced no candidate scores")
+    return sorted(
+        scores,
+        key=lambda score: (-score.map_at_r, -score.recall_at_1, score.recipe_id),
+    )
+
+
+def selected_extension_recipe(
+    source_recipe: ImageRecipe,
+    *,
+    target_dataset: ImageDatasetName,
+) -> ImageRecipe:
+    """Retarget a complete winning author recipe without hybridizing its settings."""
+
+    source_dataset = source_recipe.provenance.source_dataset
+    return source_recipe.model_copy(
+        deep=True,
+        update={
+            "recipe_id": (
+                f"{source_recipe.base_method}.{target_dataset}.selected-from-"
+                f"{source_dataset}-{source_recipe.provenance.revision[:7]}"
+            ),
+            "dataset": target_dataset,
+            "track": "selected_extension",
+        },
+    )
+
+
+def write_selection_manifest(
+    output_path: Path,
+    *,
+    selected_recipe: ImageRecipe,
+    scores: Sequence[RecipeCandidateScore],
+    selection_seed: int,
+    protocol_version: str,
+) -> Path:
+    """Persist the frozen winner and complete training-only candidate ranking."""
+
+    ranked = rank_recipe_candidates(scores)
+    if ranked[0].recipe_id != selected_recipe.recipe_id:
+        raise ValueError(
+            "selected recipe does not match the highest-ranked candidate: "
+            f"{selected_recipe.recipe_id} != {ranked[0].recipe_id}"
+        )
+    payload = {
+        "protocol_version": protocol_version,
+        "selection_seed": selection_seed,
+        "winner": {
+            "recipe_id": selected_recipe.recipe_id,
+            "digest": recipe_digest(selected_recipe),
+            "recipe": selected_recipe.model_dump(mode="json"),
+        },
+        "scores": [score.model_dump(mode="json") for score in ranked],
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = output_path.with_suffix(f"{output_path.suffix}.tmp")
+    temporary_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary_path.replace(output_path)
+    return output_path
 
 
 def config_for_recipe(recipe: ImageRecipe) -> ImageEndToEndConfig:
