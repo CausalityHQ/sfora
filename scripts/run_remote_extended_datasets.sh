@@ -12,6 +12,9 @@ NUM_WORKERS="${NUM_WORKERS:-8}"
 FORCE_RERUN="${FORCE_RERUN:-0}"
 CONTROLLER_LOG="${CONTROLLER_LOG:-logs/reference_recipes.controller.log}"
 CONTROLLER_PID_FILE="logs/reference_recipes.controller.pid"
+BN_INCEPTION_WEIGHT="${BN_INCEPTION_WEIGHT:-}"
+BN_INCEPTION_SHA256="52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
+REMOTE_WEIGHT_CACHE="${REMOTE_WEIGHT_CACHE:-/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth}"
 
 recipe_metadata() {
   local selector="$1"
@@ -230,6 +233,27 @@ if [[ "${1:-}" == "--collect" ]]; then
   exit 0
 fi
 
+install_bn_inception_weight() {
+  if ssh "${REMOTE}" "test -f '${REMOTE_WEIGHT_CACHE}' && \
+    echo '${BN_INCEPTION_SHA256}  ${REMOTE_WEIGHT_CACHE}' | sha256sum --check --status"; then
+    echo "Official BN-Inception checkpoint already present on ${REMOTE}."
+    return
+  fi
+  : "${BN_INCEPTION_WEIGHT:?Set BN_INCEPTION_WEIGHT to bn_inception-52deb4733.pth}"
+  local actual_hash
+  actual_hash="$(shasum -a 256 "${BN_INCEPTION_WEIGHT}" | awk '{print $1}')"
+  if [[ "${actual_hash}" != "${BN_INCEPTION_SHA256}" ]]; then
+    echo "Local BN-Inception checkpoint hash mismatch: ${actual_hash}" >&2
+    exit 2
+  fi
+  local upload_path="${REMOTE_DIR}/bn_inception-52deb4733.pth.verified-upload"
+  scp "${BN_INCEPTION_WEIGHT}" "${REMOTE}:${upload_path}"
+  ssh "${REMOTE}" "echo '${BN_INCEPTION_SHA256}  ${upload_path}' | \
+    sha256sum --check --status && mkdir -p '$(dirname -- "${REMOTE_WEIGHT_CACHE}")' && \
+    mv '${upload_path}' '${REMOTE_WEIGHT_CACHE}'"
+  echo "Installed hash-verified official BN-Inception checkpoint on ${REMOTE}."
+}
+
 : "${INSHOP_ROOT:?Set INSHOP_ROOT to the official DeepFashion In-Shop root on the remote host}"
 : "${INAT2018_ROOT:?Set INAT2018_ROOT to the iNaturalist 2018 root on the remote host}"
 for value in "${DATASETS}" "${INSHOP_ROOT}" "${INAT2018_ROOT}" "${NUM_WORKERS}" "${FORCE_RERUN}"; do
@@ -248,6 +272,7 @@ rsync -az --delete \
   "${LOCAL_DIR}/" "${REMOTE}:${REMOTE_DIR}/"
 
 ssh "${REMOTE}" "cd '${REMOTE_DIR}' && uv sync --group dev --extra research"
+install_bn_inception_weight
 ssh "${REMOTE}" "cd '${REMOTE_DIR}' && mkdir -p logs && \
   nohup env DATASETS='${DATASETS}' INSHOP_ROOT='${INSHOP_ROOT}' \
   INAT2018_ROOT='${INAT2018_ROOT}' NUM_WORKERS='${NUM_WORKERS}' \

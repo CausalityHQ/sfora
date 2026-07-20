@@ -7,7 +7,11 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
-from sfora.bn_inception import build_bn_inception
+from sfora.bn_inception import (
+    BN_INCEPTION_CHECKPOINT_SHA256,
+    build_bn_inception,
+    validate_bn_inception_checkpoint,
+)
 from sfora.data import ImageExample
 from sfora.image_end_to_end import (
     EndToEndProtocol,
@@ -175,6 +179,17 @@ def test_bn_inception_builds_official_512_head_without_download() -> None:
         output = model(torch.zeros(1, 3, 224, 224))
 
     assert output.shape == (1, 512)
+
+
+def test_bn_inception_checkpoint_uses_full_official_content_hash(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "bn_inception-52deb4733.pth"
+    checkpoint.write_bytes(b"substituted checkpoint")
+
+    assert BN_INCEPTION_CHECKPOINT_SHA256 == (
+        "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
+    )
+    with pytest.raises(ValueError, match="checkpoint SHA-256 mismatch"):
+        validate_bn_inception_checkpoint(checkpoint)
 
 
 def test_bn_inception_reference_transform_uses_caffe_bgr_values() -> None:

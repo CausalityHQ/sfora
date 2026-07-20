@@ -7,6 +7,9 @@ Adapted from sung-yeon-kim/Proxy-Anchor-CVPR2020 revision
 # mypy: ignore-errors
 # ruff: noqa
 
+import hashlib
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 import torch.nn.init as init
@@ -15,6 +18,34 @@ import torch.utils.model_zoo as model_zoo
 import random
 
 __all__ = ["BNInception", "bn_inception"]
+
+BN_INCEPTION_CHECKPOINT_FILENAME = "bn_inception-52deb4733.pth"
+BN_INCEPTION_CHECKPOINT_SHA256 = "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
+BN_INCEPTION_CHECKPOINT_URL = (
+    "http://data.lip6.fr/cadene/pretrainedmodels/bn_inception-52deb4733.pth"
+)
+
+
+def validate_bn_inception_checkpoint(path: Path) -> Path:
+    """Reject any cached/downloaded file that is not the official checkpoint."""
+
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual != BN_INCEPTION_CHECKPOINT_SHA256:
+        raise ValueError(
+            "BN-Inception checkpoint SHA-256 mismatch: "
+            f"{actual} != {BN_INCEPTION_CHECKPOINT_SHA256}"
+        )
+    return path
+
+
+def _load_official_bn_inception_checkpoint():
+    checkpoint = Path(torch.hub.get_dir()) / "checkpoints" / BN_INCEPTION_CHECKPOINT_FILENAME
+    if checkpoint.is_file():
+        validate_bn_inception_checkpoint(checkpoint)
+    weight = model_zoo.load_url(BN_INCEPTION_CHECKPOINT_URL, check_hash=True)
+    validate_bn_inception_checkpoint(checkpoint)
+    return weight
+
 
 """
 Inception v2 was ported from Caffee to pytorch 0.2, see
@@ -29,10 +60,7 @@ class bn_inception(nn.Module):
         super(bn_inception, self).__init__()
         self.model = BNInception(embedding_size, pretrained, is_norm)
         if pretrained:
-            #             weight = model_zoo.load_url('http://data.lip6.fr/cadene/pretrainedmodels/bn_inception-239d2248.pth')
-            weight = model_zoo.load_url(
-                "http://data.lip6.fr/cadene/pretrainedmodels/bn_inception-52deb4733.pth"
-            )
+            weight = _load_official_bn_inception_checkpoint()
             weight = {k: v.squeeze(0) if v.size(0) == 1 else v for k, v in weight.items()}
             self.model.load_state_dict(weight)
 
