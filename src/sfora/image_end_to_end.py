@@ -174,6 +174,13 @@ class ImageEndToEndConfig(BaseModel):
     # Both flags default to the historical behaviour so existing artifacts reproduce.
     ema_teacher_train_mode: bool = False
     ema_teacher_ema_buffers: bool = False
+    # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
+    # Distils a target that only exists because HIST builds a hypergraph, rather than
+    # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
+    hypergraph_distill_weight: float = Field(default=0.0, ge=0.0)
+    hypergraph_distill_target: Literal["hgnn_logits", "incidence"] = "hgnn_logits"
+    hypergraph_distill_tau_teacher: float = Field(default=0.5, gt=0.0)
+    hypergraph_distill_tau_student: float = Field(default=1.0, gt=0.0)
     # Multi-crop EMA assignment distillation. Weight 0 = off.
     mead_weight: float = Field(default=0.0, ge=0.0)
     mead_local_crops: int = Field(default=4, ge=0)
@@ -727,7 +734,11 @@ def run_image_end_to_end_benchmark(
                     label: index for index, label in enumerate(mead_train_labels)
                 }
             ema_teacher: Any | None = None
-            if config.ema_distill_weight > 0.0 or config.mead_weight > 0.0:
+            if (
+                config.ema_distill_weight > 0.0
+                or config.mead_weight > 0.0
+                or config.hypergraph_distill_weight > 0.0
+            ):
                 import copy as _copy
 
                 ema_teacher = _copy.deepcopy(model)
@@ -951,12 +962,40 @@ def run_image_end_to_end_benchmark(
                     if ema_teacher is not None:
                         with torch.no_grad():
                             ema_embeddings = _normalize(ema_teacher(images), torch).detach()
-                        loss = loss + config.ema_distill_weight * _relational_distillation_loss(
-                            embeddings,
-                            ema_embeddings,
-                            tau=config.ema_distill_tau,
-                            torch_module=torch,
-                        )
+                        if config.ema_distill_weight > 0.0:
+                            loss = loss + config.ema_distill_weight * _relational_distillation_loss(
+                                embeddings,
+                                ema_embeddings,
+                                tau=config.ema_distill_tau,
+                                torch_module=torch,
+                            )
+                        if config.hypergraph_distill_weight > 0.0:
+                            student_hist = loss_kwargs.get("hist_module")
+                            hist_index = loss_kwargs.get("hist_label_to_index")
+                            teacher_hist = getattr(ema_teacher, "hist_module", None)
+                            if student_hist is None or hist_index is None or teacher_hist is None:
+                                raise ValueError(
+                                    "hypergraph distillation requires a hist-based objective "
+                                    "with an attached hist_module"
+                                )
+                            loss = (
+                                loss
+                                + config.hypergraph_distill_weight
+                                * _hypergraph_distillation_loss(
+                                    embeddings,
+                                    ema_embeddings,
+                                    labels,
+                                    hist_module=student_hist,
+                                    teacher_hist_module=teacher_hist,
+                                    label_to_index=hist_index,
+                                    alpha=config.hist_alpha,
+                                    var_floor=config.hist_var_floor,
+                                    distill_target=config.hypergraph_distill_target,
+                                    tau_teacher=config.hypergraph_distill_tau_teacher,
+                                    tau_student=config.hypergraph_distill_tau_student,
+                                    torch_module=torch,
+                                )
+                            )
                     memory_embeddings_to_enqueue = embeddings
                 loss.backward()
                 _clip_gradients(
@@ -3199,6 +3238,147 @@ def _hist_loss(
     logits = propagate @ hist_module.theta2(hidden_state)  # (N, C)
     ce_loss = functional.cross_entropy(logits, target)
     return dist_loss + float(lambda_s) * ce_loss
+
+
+def _hist_hypergraph_targets(
+    embeddings: Any,
+    labels: Any,
+    *,
+    hist_module: Any,
+    label_to_index: dict[int, int],
+    alpha: float,
+    var_floor: float,
+    torch_module: Any,
+) -> tuple[Any, Any]:
+    """Recompute HIST's hyperedge incidence and propagated HGNN logits for one model.
+
+    Returns ``(incidence_logits, hgnn_logits)``:
+
+    * ``incidence_logits = log H``, where ``H`` is HIST's soft hyperedge incidence
+      restricted to the classes present in the batch. For the true class ``log H = 0``;
+      elsewhere ``log H = -alpha * d`` (squared Mahalanobis under the class Gaussian).
+    * ``hgnn_logits`` are the class logits after hypergraph propagation,
+      ``G @ theta2(lrelu(bn1(theta1(z))))``.
+
+    Deliberately a standalone recomputation rather than a refactor of ``_hist_loss``:
+    that function's arithmetic must stay byte-for-byte identical while the reference
+    matrix is running. ``test_hypergraph_targets_match_hist_loss_internals`` pins the
+    two implementations together.
+    """
+    functional = torch_module.nn.functional
+    device = embeddings.device
+    target = torch_module.tensor(
+        [label_to_index[int(label)] for label in labels.tolist()],
+        dtype=torch_module.long,
+        device=device,
+    )
+    nb_classes = int(hist_module.means.shape[0])
+    features = functional.normalize(embeddings, p=2, dim=-1)
+    means = functional.normalize(hist_module.means, p=2, dim=-1)
+    log_vars = hist_module.log_vars.clamp(float(var_floor), 6.0)
+    covariances = torch_module.exp(log_vars).unsqueeze(0)
+    diff = features.unsqueeze(1) - means.unsqueeze(0)
+    distance = (diff.pow(2) / covariances).sum(dim=-1)  # (N, C)
+
+    one_hot = functional.one_hot(target, nb_classes).to(features.dtype)
+    class_within = torch_module.nonzero(one_hot.sum(dim=0) != 0, as_tuple=False).squeeze(dim=1)
+    exp_term = torch_module.exp(-float(alpha) * distance[:, class_within])
+    incidence = one_hot[:, class_within] + exp_term * (1.0 - one_hot[:, class_within])  # (N, E)
+
+    edge_weight = torch_module.ones(incidence.shape[1], device=device, dtype=features.dtype)
+    node_degree = (incidence * edge_weight).sum(dim=1).clamp_min(1.0e-12)
+    edge_degree = incidence.sum(dim=0).clamp_min(1.0e-12)
+    inv_node = torch_module.diag(node_degree.pow(-0.5))
+    inv_edge = torch_module.diag(edge_degree.pow(-1.0))
+    weight = torch_module.diag(edge_weight)
+    propagate = inv_node @ incidence @ weight @ inv_edge @ incidence.T @ inv_node
+
+    hidden_state = propagate @ hist_module.theta1(features)
+    hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
+    hgnn_logits = propagate @ hist_module.theta2(hidden_state)  # (N, C)
+    return torch_module.log(incidence.clamp_min(1.0e-12)), hgnn_logits
+
+
+def _hypergraph_distillation_loss(
+    student_embeddings: Any,
+    teacher_embeddings: Any,
+    labels: Any,
+    *,
+    hist_module: Any,
+    teacher_hist_module: Any,
+    label_to_index: dict[int, int],
+    alpha: float,
+    var_floor: float,
+    distill_target: str,
+    tau_teacher: float,
+    tau_student: float,
+    torch_module: Any,
+) -> Any:
+    """Distil a HYPERGRAPH-NATIVE teacher target rather than a pairwise similarity.
+
+    Why this is not another relational-distillation variant. HIST's propagation
+    operator is
+
+        G_ij = sum_e H_ie * H_je / sqrt(d_v(i) d_v(j)) / d_e(e),
+        d_e(e) = sum_k H_ke
+
+    where ``d_e`` sums over *every sample currently in the batch* on hyperedge ``e``.
+    So ``G_ij`` is not a function of ``(z_i, z_j)`` alone -- its normalisation depends
+    on how many other samples share that hyperedge. Pairwise relational methods
+    (RKD, S2SD, STML) all compute targets of the form ``s(z_i, z_j)`` for a fixed
+    two-argument metric and provably cannot express such an n-ary quantity. That is
+    the novelty boundary the plain EMA relational loss lacks, since its target is
+    exactly S2SD's row-softmax over a batch cosine-similarity matrix.
+
+    ``distill_target``:
+
+    * ``"hgnn_logits"`` -- the teacher's propagated class logits (uses ``G^t``).
+      **This is the only target that carries the novelty claim**, because only it is
+      n-ary.
+    * ``"incidence"`` -- the teacher's soft hyperedge-membership row. This is an
+      ABLATION CONTROL, not a second novelty candidate: ``H_i`` is built solely from
+      sample ``i``'s own Mahalanobis distances to the class Gaussians, so it is a
+      per-sample prototype affinity, invariant to the rest of the batch, and fully
+      expressible without any hypergraph (it is ordinary dark-knowledge KD over
+      Mahalanobis-proxy logits). Its value is isolating whether any measured gain
+      comes from the propagation operator or merely from the Gaussian affinity.
+      ``test_only_the_propagated_target_is_a_genuine_n_ary_quantity`` pins both facts.
+
+    The teacher must be normalisation-consistent with the student (see H3 /
+    ``ema_teacher_train_mode``); an eval-mode teacher forwards ``bn1`` on running
+    statistics and reintroduces exactly the defect that invalidated the pairwise
+    result.
+    """
+    functional = torch_module.nn.functional
+    with torch_module.no_grad():
+        teacher_incidence, teacher_hgnn = _hist_hypergraph_targets(
+            teacher_embeddings,
+            labels,
+            hist_module=teacher_hist_module,
+            label_to_index=label_to_index,
+            alpha=alpha,
+            var_floor=var_floor,
+            torch_module=torch_module,
+        )
+    student_incidence, student_hgnn = _hist_hypergraph_targets(
+        student_embeddings,
+        labels,
+        hist_module=hist_module,
+        label_to_index=label_to_index,
+        alpha=alpha,
+        var_floor=var_floor,
+        torch_module=torch_module,
+    )
+    if distill_target == "incidence":
+        teacher_logits, student_logits = teacher_incidence, student_incidence
+    elif distill_target == "hgnn_logits":
+        teacher_logits, student_logits = teacher_hgnn, student_hgnn
+    else:  # pragma: no cover - guarded by the config Literal
+        raise ValueError(f"unknown hypergraph distillation target: {distill_target}")
+
+    teacher_probs = functional.softmax(teacher_logits.detach() / float(tau_teacher), dim=1)
+    student_log_probs = functional.log_softmax(student_logits / float(tau_student), dim=1)
+    return -(teacher_probs * student_log_probs).sum(dim=1).mean()
 
 
 def _coding_rate(features: Any, *, eps: float, torch_module: Any) -> Any:

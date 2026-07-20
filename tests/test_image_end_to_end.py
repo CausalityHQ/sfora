@@ -16,10 +16,14 @@ from sfora.data import ImageExample
 from sfora.image_end_to_end import (
     EndToEndProtocol,
     ImageEndToEndConfig,
+    _build_hist_module,
     _clip_gradients,
     _default_transform_factory,
     _freeze_batch_norm_affine_parameters,
     _freeze_batch_norm_layers,
+    _hist_hypergraph_targets,
+    _hist_loss,
+    _hypergraph_distillation_loss,
     _optimizer_parameter_groups,
     _resolve_training_schedule,
     _should_step_scheduler,
@@ -290,6 +294,143 @@ def test_train_mode_teacher_ignores_running_buffers_entirely() -> None:
     after = _teacher_output(torch, teacher, probe, train_mode=True, freeze=False)
 
     assert torch.allclose(baseline, after, atol=1e-6)
+
+
+def _hist_fixture(torch: Any, *, nb_classes: int = 4, dim: int = 6, batch: int = 12) -> Any:
+    torch.manual_seed(7)
+    module = _build_hist_module(nb_classes=nb_classes, sz_embed=dim, hidden=8, torch_module=torch)
+    module.train()
+    embeddings = torch.randn(batch, dim)
+    labels = torch.tensor([i % nb_classes for i in range(batch)])
+    label_to_index = {i: i for i in range(nb_classes)}
+    return module, embeddings, labels, label_to_index
+
+
+def test_hypergraph_targets_match_hist_loss_internals() -> None:
+    """`_hist_hypergraph_targets` recomputes HIST's incidence/propagation standalone,
+    so that `_hist_loss` itself stays byte-identical while the matrix runs. This pins
+    the two together: the HGNN logits it returns must reproduce the cross-entropy term
+    inside `_hist_loss` exactly."""
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    alpha, tau, var_floor = 1.1, 32.0, 0.0
+
+    _incidence_logits, hgnn_logits = _hist_hypergraph_targets(
+        embeddings,
+        labels,
+        hist_module=module,
+        label_to_index=label_to_index,
+        alpha=alpha,
+        var_floor=var_floor,
+        torch_module=torch,
+    )
+    # Reconstruct _hist_loss with lambda_s=1 and subtract its distribution term, which
+    # leaves exactly the hypergraph cross-entropy on the propagated logits.
+    total = _hist_loss(
+        embeddings,
+        labels,
+        hist_module=module,
+        label_to_index=label_to_index,
+        tau=tau,
+        alpha=alpha,
+        lambda_s=1.0,
+        var_floor=var_floor,
+        torch_module=torch,
+    )
+    dist_only = _hist_loss(
+        embeddings,
+        labels,
+        hist_module=module,
+        label_to_index=label_to_index,
+        tau=tau,
+        alpha=alpha,
+        lambda_s=0.0,
+        var_floor=var_floor,
+        torch_module=torch,
+    )
+    expected_ce = total - dist_only
+    actual_ce = torch.nn.functional.cross_entropy(hgnn_logits, labels)
+
+    assert torch.allclose(actual_ce, expected_ce, atol=1e-5)
+
+
+def test_hypergraph_distillation_is_zero_for_an_identical_teacher() -> None:
+    """A teacher identical to the student yields the target's own entropy as the
+    cross-entropy floor, so the KL part -- the only part carrying gradient -- is zero."""
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    import copy
+
+    teacher = copy.deepcopy(module)
+
+    loss = _hypergraph_distillation_loss(
+        embeddings,
+        embeddings,
+        labels,
+        hist_module=module,
+        teacher_hist_module=teacher,
+        label_to_index=label_to_index,
+        alpha=1.1,
+        var_floor=0.0,
+        distill_target="hgnn_logits",
+        tau_teacher=1.0,
+        tau_student=1.0,
+        torch_module=torch,
+    )
+    probs = torch.nn.functional.softmax(
+        _hist_hypergraph_targets(
+            embeddings,
+            labels,
+            hist_module=module,
+            label_to_index=label_to_index,
+            alpha=1.1,
+            var_floor=0.0,
+            torch_module=torch,
+        )[1],
+        dim=1,
+    )
+    entropy = -(probs * probs.clamp_min(1e-12).log()).sum(dim=1).mean()
+    assert torch.allclose(loss, entropy, atol=1e-5)
+
+
+def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
+    """Pins WHICH target actually carries the novelty claim, and which does not.
+
+    A pairwise target `s(z_i, z_j)` -- and equally a per-sample prototype affinity --
+    is invariant to which *other* samples happen to share the batch. HIST's
+    propagation normalises by `d_e(e) = sum_k H_ke`, a batch-population statistic, so
+    perturbing an unrelated sample must move the propagated target for a fixed row.
+
+    The incidence row does NOT have this property: `H_i` is built solely from sample
+    i's own Mahalanobis distances to the class Gaussians. So incidence distillation is
+    per-sample prototype/dark-knowledge KD, expressible without any hypergraph, and it
+    carries no novelty claim -- it is only useful as the ablation that isolates whether
+    the propagation operator is what matters. The claim rests on `hgnn_logits` alone.
+    """
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+
+    def targets_for(batch_embeddings: Any) -> tuple[Any, Any]:
+        incidence_logits, hgnn_logits = _hist_hypergraph_targets(
+            batch_embeddings,
+            labels,
+            hist_module=module,
+            label_to_index=label_to_index,
+            alpha=1.1,
+            var_floor=0.0,
+            torch_module=torch,
+        )
+        return incidence_logits[0].clone(), hgnn_logits[0].clone()
+
+    incidence_before, hgnn_before = targets_for(embeddings)
+    perturbed = embeddings.clone()
+    perturbed[-1] = perturbed[-1] + 5.0  # move only the LAST sample; row 0 is untouched
+    incidence_after, hgnn_after = targets_for(perturbed)
+
+    # The propagated target sees the rest of the batch...
+    assert not torch.allclose(hgnn_before, hgnn_after, atol=1e-6)
+    # ...the incidence target provably does not.
+    assert torch.allclose(incidence_before, incidence_after, atol=1e-9)
 
 
 def test_batch_norm_affine_freeze_disables_gradients() -> None:
@@ -1110,6 +1251,111 @@ def test_hist_objective_end_to_end_runs() -> None:
         transform_factory=transform_factory,
     )
     assert "hist_end_to_end:tiny" in result.methods
+
+
+@pytest.mark.parametrize("distill_target", ["hgnn_logits", "incidence"])
+def test_hypergraph_distillation_end_to_end_runs(distill_target: str) -> None:
+    """Drive the real training loop with the hypergraph term on, so the EMA-teacher
+    wiring (teacher creation, its attached hist_module, backward through the student
+    branch only) is exercised before any GPU time is committed to it."""
+    torch: Any = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Embedding(8, 4)
+
+        def forward(self, images: object) -> object:
+            return self.embedding(torch.as_tensor(images, dtype=torch.long))
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: int(cast(int, image))
+
+    examples = [
+        ImageExample(example_id=f"{label}-{index}", image=label * 4 + index, label=label)
+        for label in range(2)
+        for index in range(4)
+    ]
+    result = run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="proxy-anchor-resnet50-512",
+            objectives=("hist",),
+            backbone_name="tiny",
+            embedding_dimensions=4,
+            batch_size=8,
+            samples_per_class=4,
+            hist_hidden=8,
+            eval_batch_size=8,
+            train_steps=2,
+            train_epochs=None,
+            warmup_epochs=0,
+            retrieval_query_limit=8,
+            progress_every=0,
+            num_workers=0,
+            # The new mechanism, with the pairwise term OFF so only it is exercised.
+            ema_distill_weight=0.0,
+            hypergraph_distill_weight=1.0,
+            hypergraph_distill_target=distill_target,  # type: ignore[arg-type]
+            ema_teacher_train_mode=True,
+            ema_teacher_ema_buffers=True,
+        ),
+        model_factory=lambda config: TinyModel(),
+        transform_factory=transform_factory,
+    )
+    method = result.methods["hist_end_to_end:tiny"]
+    assert method.loss_history, "training produced no steps"
+    assert all(math.isfinite(value) for value in method.loss_history)
+
+
+def test_hypergraph_distillation_requires_a_hist_objective() -> None:
+    """A Proxy-Anchor base has no hist_module, so the term must fail loudly rather
+    than silently contributing nothing."""
+    torch: Any = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Embedding(8, 4)
+
+        def forward(self, images: object) -> object:
+            return self.embedding(torch.as_tensor(images, dtype=torch.long))
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: int(cast(int, image))
+
+    examples = [
+        ImageExample(example_id=f"{label}-{index}", image=label * 4 + index, label=label)
+        for label in range(2)
+        for index in range(4)
+    ]
+    with pytest.raises(ValueError, match="hypergraph distillation requires"):
+        run_image_end_to_end_benchmark(
+            train_examples=examples,
+            test_examples=examples,
+            config=ImageEndToEndConfig(
+                dataset_name="cub",
+                protocol="proxy-anchor-resnet50-512",
+                objectives=("proxy_anchor",),
+                backbone_name="tiny",
+                embedding_dimensions=4,
+                batch_size=8,
+                samples_per_class=4,
+                proxy_count_per_class=1,
+                eval_batch_size=8,
+                train_steps=2,
+                train_epochs=None,
+                warmup_epochs=0,
+                retrieval_query_limit=8,
+                progress_every=0,
+                num_workers=0,
+                hypergraph_distill_weight=1.0,
+            ),
+            model_factory=lambda config: TinyModel(),
+            transform_factory=transform_factory,
+        )
 
 
 def test_end_to_end_run_scores_queries_against_separate_gallery() -> None:

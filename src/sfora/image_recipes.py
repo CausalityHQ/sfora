@@ -26,7 +26,14 @@ if TYPE_CHECKING:
 BaseMethod = Literal["proxy_anchor", "hist"]
 RecipeTrack = Literal["reference", "selected_extension", "modified", "modified_legacy"]
 MethodStatus = Literal["reference_method", "sfora_derived"]
-DerivedMethod = Literal["pa_distill", "herd", "pa_distill_bnfix", "herd_bnfix"]
+DerivedMethod = Literal[
+    "pa_distill",
+    "herd",
+    "pa_distill_bnfix",
+    "herd_bnfix",
+    "herd_hg",
+    "herd_hg_incidence",
+]
 
 # Base loss each derived method attaches to.
 _DERIVED_BASE: dict[str, BaseMethod] = {
@@ -34,6 +41,8 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_distill_bnfix": "proxy_anchor",
     "herd": "hist",
     "herd_bnfix": "hist",
+    "herd_hg": "hist",
+    "herd_hg_incidence": "hist",
 }
 
 # Shared distillation delta.
@@ -53,6 +62,20 @@ _DISTILL_DELTA: dict[str, Any] = {
 _BN_FIX_DELTA: dict[str, Any] = {
     "ema_teacher_train_mode": True,
     "ema_teacher_ema_buffers": True,
+}
+
+# Hypergraph-native distillation: replaces the generic pairwise relational target
+# with one that only exists because HIST builds a hypergraph. The pairwise term is
+# switched OFF (`ema_distill_weight: 0.0`) so the arms measure the new mechanism
+# rather than a sum of two. The teacher is normalisation-consistent by construction
+# (`_BN_FIX_DELTA`), because an eval-mode teacher would forward `hist_module.bn1` on
+# running statistics and reintroduce the H3 defect inside the new loss.
+_HYPERGRAPH_DELTA: dict[str, Any] = {
+    **_BN_FIX_DELTA,
+    "ema_distill_weight": 0.0,
+    "hypergraph_distill_weight": 1.0,
+    "hypergraph_distill_tau_teacher": 0.5,
+    "hypergraph_distill_tau_student": 1.0,
 }
 
 _PROXY_ANCHOR_REVISION = "51db57031e38f75c03f69bbdfad1a3233afd9787"
@@ -318,6 +341,11 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method.startswith("herd_hg"):
+        delta.update(_HYPERGRAPH_DELTA)
+        delta["hypergraph_distill_target"] = (
+            "incidence" if method == "herd_hg_incidence" else "hgnn_logits"
+        )
     return recipe.model_copy(
         deep=True,
         update={
