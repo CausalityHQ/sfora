@@ -100,14 +100,19 @@ pinned and recorded.
 The official HIST values differ by dataset. The registry must preserve, at minimum,
 the published differences in epochs, backbone learning rate, distribution learning
 rate, HGNN multiplier, weight decay, scheduler interval, BatchNorm policy, `tau`, and
-`alpha`. HIST's official batch size is 32 unless a primary source for a specific recipe
-states otherwise.
+`alpha`. HIST's official batch size is 32 with random shuffled batches unless a primary
+source for a specific recipe states otherwise. The official implementation also uses
+Adam, enables the no-affine embedding LayerNorm by default, and runs its warm-up as an
+additional epoch before the main scheduled epochs. These are baseline recipe fields,
+not SFORA additions.
 
 ## Derived SFORA Methods
 
 `pa_distill` inherits the complete resolved Proxy Anchor recipe for the target dataset
 and changes only the registered distillation fields. `herd` inherits the complete
-resolved HIST recipe and changes only the registered LayerNorm and distillation fields.
+resolved HIST recipe and changes only the registered distillation fields. Because
+no-affine embedding LayerNorm is already enabled in the authors' official HIST recipe,
+it is part of both the HIST baseline and HERD and must not be claimed as a HERD novelty.
 
 The artifact must include both the base recipe ID and a machine-readable delta. This
 makes the comparison paired: the base and derived method use the same architecture,
@@ -205,6 +210,7 @@ Tests must prove that:
 - unpublished pairs cannot resolve as `reference`;
 - `auto` for an unpublished pair fails until a persisted training-only selection exists;
 - derived methods differ from their base only by declared method deltas;
+- official HIST and HERD both retain the reference no-affine LayerNorm;
 - recipe selection is class-disjoint and never receives official evaluation examples;
 - explicit overrides produce `modified` provenance and a field-level diff;
 - artifact reuse requires a matching recipe digest;
