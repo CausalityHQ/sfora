@@ -4,6 +4,7 @@ import pytest
 
 from sfora.image_recipes import (
     RecipeUnavailableError,
+    config_for_recipe,
     derive_recipe,
     recipe_digest,
     reference_recipe,
@@ -164,3 +165,56 @@ def test_pa_distill_derivation_changes_only_distillation_fields() -> None:
     }
     assert changed == {"ema_distill_weight"}
     assert changed <= set(distilled.delta)
+
+
+@pytest.mark.parametrize(
+    ("method", "dataset"),
+    [
+        ("proxy_anchor", "cub"),
+        ("proxy_anchor", "cars"),
+        ("proxy_anchor", "sop"),
+        ("proxy_anchor", "inshop"),
+        ("hist", "cub"),
+        ("hist", "cars"),
+        ("hist", "sop"),
+    ],
+)
+def test_reference_recipe_resolves_to_complete_valid_config(
+    method: str,
+    dataset: str,
+) -> None:
+    recipe = reference_recipe(method, dataset)
+
+    config = config_for_recipe(recipe)
+
+    assert config.dataset_name == dataset
+    assert config.recipe_id == recipe.recipe_id
+    assert config.recipe_digest == recipe_digest(recipe)
+    assert config.recipe_track == "reference"
+    assert config.recipe_base_method == method
+    assert config.recipe_source_revision == recipe.provenance.revision
+    assert config.recipe_modified_fields == {}
+
+
+def test_herd_config_differs_from_hist_only_by_declared_delta() -> None:
+    hist_recipe = reference_recipe("hist", "cars")
+    herd_recipe = derive_recipe(hist_recipe, "herd")
+
+    hist = config_for_recipe(hist_recipe)
+    herd = config_for_recipe(herd_recipe)
+
+    ignored_metadata = {
+        "recipe_id",
+        "recipe_digest",
+        "recipe_method_status",
+        "recipe_delta",
+        "recipe_derived_from_id",
+    }
+    changed = {
+        key
+        for key in type(hist).model_fields
+        if key not in ignored_metadata and getattr(hist, key) != getattr(herd, key)
+    }
+    assert changed == {"ema_distill_weight"}
+    assert hist.embedding_layer_norm is True
+    assert herd.embedding_layer_norm is True

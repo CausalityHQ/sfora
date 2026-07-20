@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from sfora.data import ImageDatasetName
+
+if TYPE_CHECKING:
+    from sfora.image_end_to_end import ImageEndToEndConfig
 
 BaseMethod = Literal["proxy_anchor", "hist"]
 RecipeTrack = Literal["reference", "selected_extension", "modified", "modified_legacy"]
@@ -274,3 +277,30 @@ def recipe_digest(recipe: ImageRecipe) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def config_for_recipe(recipe: ImageRecipe) -> ImageEndToEndConfig:
+    """Validate a complete recipe through the benchmark's runtime config model."""
+
+    from sfora.image_end_to_end import ImageEndToEndConfig
+
+    return ImageEndToEndConfig.model_validate(
+        {
+            **recipe.config,
+            "dataset_name": recipe.dataset,
+            # The legacy protocol field remains for result-schema compatibility; the
+            # recipe metadata is authoritative for reproduction claims.
+            "protocol": "proxy-anchor-resnet50-512",
+            "recipe_id": recipe.recipe_id,
+            "recipe_digest": recipe_digest(recipe),
+            "recipe_track": recipe.track,
+            "recipe_method_status": recipe.method_status,
+            "recipe_base_method": recipe.base_method,
+            "recipe_source_url": recipe.provenance.url,
+            "recipe_source_revision": recipe.provenance.revision,
+            "recipe_source_dataset": recipe.provenance.source_dataset,
+            "recipe_derived_from_id": recipe.derived_from_recipe_id,
+            "recipe_delta": recipe.delta,
+            "recipe_modified_fields": {},
+        }
+    )

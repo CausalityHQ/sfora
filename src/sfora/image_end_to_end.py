@@ -87,6 +87,19 @@ class ImageEndToEndConfig(BaseModel):
     dataset_name: ImageDatasetName = "cub"
     dataset_root: Path | None = None
     protocol: EndToEndProtocol = "hpl-resnet50-512"
+    recipe_id: str | None = None
+    recipe_digest: str | None = None
+    recipe_track: (
+        Literal["reference", "selected_extension", "modified", "modified_legacy"] | None
+    ) = None
+    recipe_method_status: Literal["reference_method", "sfora_derived"] | None = None
+    recipe_base_method: Literal["proxy_anchor", "hist"] | None = None
+    recipe_source_url: str | None = None
+    recipe_source_revision: str | None = None
+    recipe_source_dataset: ImageDatasetName | None = None
+    recipe_derived_from_id: str | None = None
+    recipe_delta: dict[str, Any] = Field(default_factory=dict)
+    recipe_modified_fields: dict[str, Any] = Field(default_factory=dict)
     objectives: tuple[EndToEndObjective, ...] = ("group_supcon_xbm_radius",)
     backbone_name: str = "resnet50"
     embedding_dimensions: int = Field(default=512, ge=2)
