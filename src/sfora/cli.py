@@ -1810,6 +1810,14 @@ def image_end_to_end(
             )
             base_config = config_for_recipe(resolved_recipe)
             resolved_protocol = base_config.protocol
+            console.print(
+                {
+                    "recipe_id": base_config.recipe_id,
+                    "recipe_digest": base_config.recipe_digest,
+                    "recipe_track": base_config.recipe_track,
+                    "recipe_source_revision": base_config.recipe_source_revision,
+                }
+            )
         else:
             resolved_protocol = cast(EndToEndProtocol, protocol)
             base_config = config_for_protocol(

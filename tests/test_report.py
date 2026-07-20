@@ -384,6 +384,46 @@ def test_build_site_data_includes_partial_end_to_end_artifacts_with_completed_ro
     assert complete_row["artifactComplete"] is True
 
 
+def test_build_site_data_excludes_modified_legacy_from_reference_end_to_end_rows(
+    tmp_path: Path,
+) -> None:
+    def artifact(path: Path, *, recipe_track: str, recall: float) -> Path:
+        return _write_json(
+            path,
+            {
+                "name": "image-end-to-end-benchmark",
+                "dataset_name": "inshop",
+                "config": {
+                    "objectives": ["proxy_anchor"],
+                    "recipe_track": recipe_track,
+                    "recipe_id": f"proxy-anchor.inshop.{recipe_track}",
+                },
+                "methods": {
+                    "proxy_anchor": {
+                        "model_name": "bn_inception",
+                        "objective": "proxy_anchor",
+                        "display_name": "Proxy Anchor",
+                        "recall_at_1": recall,
+                        "map_at_r": recall - 0.1,
+                    }
+                },
+            },
+        )
+
+    reference = artifact(tmp_path / "reference.json", recipe_track="reference", recall=0.8)
+    legacy = artifact(
+        tmp_path / "legacy.json",
+        recipe_track="modified_legacy",
+        recall=0.99,
+    )
+
+    data = build_site_data(
+        ReportConfig(title="Group Learning Report", artifact_paths=(reference, legacy))
+    )
+
+    assert {row["artifact"] for row in data["endToEndRows"]} == {"reference.json"}
+
+
 def test_build_site_data_labels_multiple_end_to_end_variants(tmp_path: Path) -> None:
     def artifact(
         path: Path,

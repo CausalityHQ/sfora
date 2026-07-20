@@ -739,12 +739,17 @@ def _image_end_to_end_results(artifacts: list[_Artifact]) -> list[_ImageResult]:
     for artifact in artifacts:
         if artifact.name != "image-end-to-end-benchmark":
             continue
+        config = artifact.payload.get("config")
+        if isinstance(config, dict) and config.get("recipe_track") in {
+            "modified",
+            "modified_legacy",
+        }:
+            continue
         completion = _image_end_to_end_completion(artifact)
         if not completion["complete"] and not _has_trainable_end_to_end_method(artifact):
             continue
         dataset = _image_dataset_display_name(artifact.payload.get("dataset_name"))
         methods = _image_methods(artifact)
-        config = artifact.payload.get("config")
         if not isinstance(config, dict):
             config = {}
         for method in methods:
