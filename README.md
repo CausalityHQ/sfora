@@ -32,7 +32,7 @@ same-arch SOTA on CUB-200 by more than 1%.
 | Proxy Anchor (reported) | 69.7 | baseline |
 | HIST (reported) | 71.4 | prior strong method |
 | **PFML (reported SOTA)** | **73.4** | best reported same-arch |
-| **HERD** (single model, 9 seeds) | 71.6 best / 70.5 mean (σ≈0.6) | HIST + LayerNorm `is_norm` head + EMA-teacher relational self-distillation |
+| **HERD** (single model, 9 seeds; legacy recipe) | 71.6 best / 70.5 mean (σ≈0.6) | Historical common-preset run; corrected official-recipe rerun pending |
 | **SFORA** (HERD ensemble, 5 models) | **74.68** | **+1.3 over PFML — clears reported-SOTA +1%** |
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
 | SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint; 99.4% of the pack *transductively* (fold fit on test geometry), 98.0% with a train-only fold — alignment beats PCA |
@@ -47,6 +47,14 @@ them) — an established DML paradigm (BIER and related boosted-embedding method
 An ablation (see [docs/results.md](docs/results.md)) shows even a pack of *plain
 HIST* models beats reported PFML, with HERD adding a steady margin on top.
 Reproduce it with `scripts/ensemble_eval.py`.
+
+> **Recipe correction (2026-07-20).** The published numbers above were produced
+> before the harness enforced method-by-dataset author recipes. They remain valid
+> measurements of those recorded configurations, but are classified
+> `modified_legacy`, not official reproductions. In particular, official HIST already
+> enables no-affine embedding LayerNorm; in a corrected paired comparison HERD adds
+> only EMA relational distillation. The corrected DGX matrix is running and no old
+> artifact will be promoted into the reference table.
 
 ### Beyond CUB — our distillation beats Proxy Anchor on every dataset
 
@@ -88,6 +96,20 @@ Setup details and the full three-seed experiment matrix are in
 [docs/library_usage.md](docs/library_usage.md#deepfashion-in-shop-and-inaturalist-2018).
 Results remain pending until validated artifacts exist.
 
+### Publication-backed recipe coverage
+
+| Dataset | Proxy Anchor / PA-distill base | HIST / HERD base | Track |
+| --- | --- | --- | --- |
+| CUB-200 | `proxy_anchor.cub.official-51db570` (ResNet-50; source R@1 69.9) | `hist.cub.official-e7d650c` (ResNet-50; paper R@1 71.4±0.2) | reference |
+| Cars196 | `proxy_anchor.cars.official-51db570` (ResNet-50; source R@1 87.7) | `hist.cars.official-e7d650c` (ResNet-50; paper R@1 89.6±0.2) | reference |
+| SOP | `proxy_anchor.sop.official-51db570` (BN-Inception; source R@1 79.2) | `hist.sop.official-e7d650c` (ResNet-50; paper R@1 81.4±0.2) | reference |
+| DeepFashion In-Shop | `proxy_anchor.inshop.official-51db570` (BN-Inception; source R@1 91.9) | frozen winner of the published HIST recipes | reference / selected extension |
+| iNaturalist 2018 v1 | frozen winner of the published Proxy Anchor recipes | frozen winner of the published HIST recipes | selected extension |
+
+“Selected extension” means the winner is chosen on class-disjoint target **training**
+identities only, persisted with all candidate scores and a digest, then frozen before
+official query/gallery evaluation. It is not presented as an author-published recipe.
+
 ## Why
 
 Deep metric learning on fine-grained retrieval has sat on a ~0.71 same-arch
@@ -99,37 +121,32 @@ ensemble (compressible back to a single-model footprint) pushes past the best
 reported number. Every result is measured best-over-training and reported
 honestly, including what did not reproduce.
 
-## Reproduce the SOTA result (HERD + SFORA ensemble)
+## Run the corrected publication-backed HERD recipe
 
-Train N independently-seeded **HERD** models (HIST + LayerNorm `is_norm` head +
-EMA-teacher relational self-distillation) on CUB-200, saving each model's
-best-over-training test embeddings, then ensemble them:
+Train N independently-seeded **HERD** models from the complete official HIST/CUB
+recipe, adding only EMA-teacher relational self-distillation. This launches the
+corrected experiment; it does not claim that the earlier legacy score is reproduced
+until the new artifacts finish:
 
 ```bash
 # 1. Train N seeds (each saves its best-epoch test embeddings)
 for S in 0 1 2 3 4; do
   uv run --group dev --extra research sfora image-end-to-end \
-    --protocol proxy-anchor-resnet50-512 --dataset-name cub \
-    --objectives hist --proxy-count-per-class 0 \
-    --embedding-layer-norm \
-    --ema-distill-weight 1.0 --ema-momentum 0.999 --ema-distill-tau 0.1 \
-    --samples-per-class 8 --hist-lr-ds 0.03 \
-    --warmup-epochs 1 --lr-step-epochs 10 --train-epochs 60 \
-    --eval-test-interval-epochs 5 --seed "$S" \
+    --dataset-name cub --objectives hist --recipe herd --seed "$S" \
     --save-test-embeddings "reports/emb/ema_seed${S}.npz" \
-    --output "reports/generated/cub.herd_seed${S}.json"
+    --output "reports/generated/cub.herd.official_recipe_seed${S}.json"
 done
 
 # 2. Feature-concatenation ensemble -> SOTA-beating Recall@1
 uv run python scripts/ensemble_eval.py reports/emb/ema_seed*.npz
-# => ENSEMBLE of 5 models: R@1=0.7468  (beats reported PFML 73.4)
+# Report only after all artifacts have matching recipe IDs and digests.
 ```
 
-**Key flags:** `--ema-distill-weight` turns on the EMA-teacher relational
-self-distillation (the HERD novelty); `--embedding-layer-norm` adds the reference
-`is_norm` head; `--eval-test-interval-epochs` records best-over-training R@1
-(the standard DML reporting protocol); `--save-test-embeddings` persists the
-best-epoch embeddings for ensembling. See [docs/results.md](docs/results.md)
+`--recipe herd` resolves the official HIST/CUB base and its declared EMA delta;
+LayerNorm, Adam, batch size 32, the additional warm-up epoch, and dataset-specific
+HIST parameters come from the source recipe rather than CLI overrides.
+`--save-test-embeddings` persists the best-epoch embeddings for ensembling. See
+[docs/results.md](docs/results.md)
 for the full benchmark table, reproducibility notes, and the honest negatives
 (sub-center, uniformity, and the multi-crop / frozen-BatchNorm incompatibility).
 

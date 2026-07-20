@@ -35,7 +35,7 @@ Distill(HIST(), weight=1.0, momentum=0.999, tau=0.1)  # the universal EMA-teache
 IsNorm(HIST())                                        # the reference LayerNorm head, on any base
 
 # the two headline methods ARE bricks:
-HERD       = IsNorm(Distill(HIST()))     # == herd();      best on CUB
+HERD       = IsNorm(Distill(HIST()))     # == herd(); official HIST already owns IsNorm
 PADistill  = Distill(ProxyAnchor())      # == pa_distill(); best on Cars
 ```
 
@@ -43,6 +43,10 @@ Every brick is immutable and `configure(config)` returns a new
 `ImageEndToEndConfig` with its fields set — so composing bricks cannot mutate
 state or regress the benchmarked numbers; they compile down to the same verified
 trainer.
+
+At recipe level, no-affine `IsNorm` is part of the official HIST baseline. Therefore
+the paired `HIST → HERD` method delta is `Distill(...)` only; the explicit `IsNorm`
+brick above describes the full compiled architecture, not an additional HERD novelty.
 
 ## Benchmarking methods over seeds
 
@@ -64,13 +68,8 @@ result = benchmark(herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R
                    seeds=[0, 1, 2])
 print(result.summary())        # format: "IsNorm(Distill(HIST)) · cub: R@1 0.71 ± 0.01 (seeds [0, 1, 2])"
 
-# The bare call above uses the protocol's defaults. To reproduce the *headline*
-# CUB HERD number (0.716 best-over-training), pass the full recipe as overrides —
-# these are the flags from the README "Reproduce" section that differ from the preset:
-result = benchmark(
-    herd(), dataset=Dataset.CUB, protocol=Protocol.PROXY_ANCHOR_R50_512, seeds=[0, 1, 2],
-    overrides={"samples_per_class": 8, "hist_lr_ds": 0.03, "warmup_epochs": 1, "lr_step_epochs": 10},
-)
+# The older protocol API remains for exploratory studies. Reference CLI runs use the
+# immutable method×dataset recipe registry shown below and record its digest.
 
 # compare a whole matrix — pass bricks directly (labelled by each brick's .name)
 grid(
@@ -263,19 +262,31 @@ loss is useful for checking training behavior but not for ranking methods.
 
 ## End-to-End Training Via The CLI
 
-Backbone fine-tuning is exposed through the `image-end-to-end` command
-(requires the research extra). Protocol presets bundle a full published-style
-training recipe; start from a preset and override only what the experiment
-needs.
+Backbone fine-tuning is exposed through the `image-end-to-end` command (requires the
+research extra). Use `--recipe` for a publication/reproduction claim. Legacy protocol
+presets remain available for exploratory and historical runs, but they are not exact
+method×dataset author recipes.
 
-Repaired conventional protocol with the Proxy Anchor baseline:
+Exact official Proxy Anchor/CUB recipe:
 
 ```bash
 uv run --group dev --extra research sfora image-end-to-end \
   --dataset-name cub \
-  --protocol proxy-anchor-resnet50-512 \
+  --objectives proxy_anchor --recipe auto \
   --output reports/generated/image_end_to_end_cub.proxy_anchor.json
 ```
+
+Exact official HIST/Cars recipe plus the paired HERD delta:
+
+```bash
+uv run --group dev --extra research sfora image-end-to-end \
+  --dataset-name cars --objectives hist --recipe herd \
+  --output reports/generated/image_end_to_end_cars.herd.json
+```
+
+An explicit behavior override is allowed, but changes the artifact track to
+`modified` and records a field-level before/after diff. It must not be aggregated as
+a reference result.
 
 PFML reproduction preset:
 
@@ -288,10 +299,11 @@ uv run --group dev --extra research sfora image-end-to-end \
 
 > **Note.** GSI/BGSI were exploratory boundary-scatter regularizers evaluated
 > early in this project; they did not bind meaningfully and are **superseded by
-> HERD** (HIST + `is_norm` head + EMA-teacher distillation), the headline
+> HERD** (official HIST, including its `is_norm` head, plus EMA-teacher
+> distillation), the headline
 > SOTA-beating method. The `--gsi-*` / `--bgsi-*` families are kept for
 > reproducibility of those experiments. For the headline recipe see the
-> [reproduce section in the README](../README.md#reproduce-the-sota-result-herd--sfora-ensemble).
+> [corrected run section in the README](../README.md#run-the-corrected-publication-backed-herd-recipe).
 
 Adding the experimental GSI arm (presets declare their own objectives;
 `--objectives` overrides them):
@@ -354,10 +366,15 @@ Run one end-to-end experiment with:
 ```bash
 uv run --group dev --extra research sfora image-end-to-end \
   --dataset-name inshop --dataset-root /datasets/deepfashion_inshop \
-  --protocol proxy-anchor-resnet50-512 --objectives proxy_anchor \
-  --train-epochs 60 --eval-test-interval-epochs 5 \
+  --objectives proxy_anchor --recipe auto \
   --output reports/generated/image_end_to_end_inshop.proxy_anchor_seed0.json
 ```
+
+The official In-Shop command resolves to BN-Inception, batch 180, learning rate
+`6e-4`, one warm-up epoch, updating BatchNorm, and the source step schedule. HIST has
+no published In-Shop recipe; run `scripts/select_extended_recipe.py` first and pass
+its frozen manifest through `--recipe-selection-manifest`. The remote controller does
+this automatically.
 
 The Python benchmark API uses the same loader. Supply a root through validated config
 overrides:
@@ -382,7 +399,16 @@ INAT2018_ROOT=/datasets/inaturalist2018 \
 ./scripts/run_remote_extended_datasets.sh
 ```
 
-### Hyperparameter Guidance
+The command deploys code and launches a detached controller. Inspect
+`logs/reference_recipes.controller.log`; later use the same script with `--collect`
+to copy result artifacts and logs back. Existing global-preset files are preserved and
+listed in `legacy_extended_recipe_manifest.json` as `modified_legacy`.
+
+### Hyperparameter Guidance for modified/ablation runs
+
+Do not pass these knobs to reference runs: the recipe registry supplies different
+values for each method and dataset. Any explicit override intentionally changes the
+provenance track to `modified`.
 
 - **Sampler (`--samples-per-class`, K):** with K>0 (the repaired presets use
   K=4) each batch is exactly P×K (batch 120 with K=4 gives 30 classes) with no

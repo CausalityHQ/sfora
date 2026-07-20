@@ -6,6 +6,13 @@ cosine **Recall@1**, reported as **best-over-training** (the protocol used by th
 papers below — evaluate the held-out test classes every few epochs and take the
 peak).
 
+> **Status correction (2026-07-20).** Results below predate strict
+> publication-backed method×dataset recipes and are retained as historical
+> `modified_legacy` evidence. They must not be called official Proxy Anchor or HIST
+> reproductions. Corrected reference/selected-extension experiments have been queued
+> on the DGX; this document will add a separate table only after recipe IDs and
+> digests validate. No legacy number is used to choose an unpublished recipe.
+
 ## Headline
 
 | Method | R@1 | Notes |
@@ -24,7 +31,8 @@ stacks three ingredients on a ResNet-50/512 backbone:
 
 1. **HIST** hypergraph semantic-tuplet loss (per-class Gaussian prototypes +
    hypergraph neural network over the batch).
-2. A reference **`LayerNorm(no-affine)` `is_norm` head** on the embedding.
+2. The official HIST **`LayerNorm(no-affine)` `is_norm` head** on the embedding
+   (baseline behavior, not a HERD addition).
 3. The novel piece — **EMA-teacher relational self-distillation**: a slow
    momentum copy of the model (`θ_teacher ← m·θ_teacher + (1−m)·θ_student`)
    produces a soft neighborhood distribution over the batch (row-wise softmax of
@@ -53,12 +61,12 @@ protocol, reseeded where noted) on both standard datasets:
 | Cars196 | HIST | 0.871 | 0.884 (= HERD)† | +1.3† |
 | Cars196 | Proxy Anchor | 0.888 | **0.8961** | +0.8 |
 
-† The HIST → HERD rows add the reference `is_norm` LayerNorm head **and** the
-distillation (that is what `herd()` is); we did not ablate the head in isolation, so
-this Δ is the *combined* head-plus-distillation effect, not distillation alone. The
-Proxy Anchor rows add the distillation to the plain base with **no** head, so their Δ
-*is* distillation-only — and it is positive there too, which is the point: the
-distillation improves a base it shares no head with.
+† These historical HIST → HERD rows used a legacy HIST control without the
+LayerNorm that official HIST enables. Their Δ is therefore a combined
+head-plus-distillation change and is **not** the corrected paired estimate. In the new
+recipe system both HIST and HERD retain official LayerNorm, and HERD changes only the
+declared EMA distillation fields. Proxy Anchor rows remain historical until rerun from
+their exact dataset recipe as well.
 
 **It is not specific to HIST or Proxy Anchor.** To check that the distillation is a
 *general* training-procedure improvement rather than a two-loss coincidence, we ran
@@ -128,10 +136,11 @@ points from model diversity and scales monotonically with the number of models:
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | R@1 | 0.7088 | 0.7335 | 0.7394 | 0.7426 | 0.7468 | 0.7529 | 0.7534 |
 
-All numbers reproduce with `scripts/ensemble_eval.py` on the saved best-epoch
+These historical numbers recompute with `scripts/ensemble_eval.py` on the saved best-epoch
 embeddings (`image_self_retrieval_score`, the project's own scorer). The curve
 bends after ~5 models — the first few seeds buy the most. See the `README.md`
-"Reproduce the SOTA result" section for the exact training commands.
+for the corrected publication-backed training command; it intentionally does not
+promise the legacy score before rerunning.
 
 ### Compressing the 9-model pack back to a single-model footprint
 
@@ -322,10 +331,31 @@ SFORA's project protocol, not as a canonical iNaturalist metric-learning benchma
 a SOTA comparison. The exact setup and sequential runner are documented in
 [`library_usage.md`](library_usage.md#deepfashion-in-shop-and-inaturalist-2018).
 
+### Recipe matrix used by the corrected queue
+
+| Dataset | Base method | Recipe | Backbone | Source / expected R@1 | Status |
+| --- | --- | --- | --- | --- | --- |
+| CUB | Proxy Anchor | `proxy_anchor.cub.official-51db570` | ResNet-50 | official repo 69.9 | registered |
+| CUB | HIST | `hist.cub.official-e7d650c` | ResNet-50 | paper 71.4±0.2 | registered |
+| Cars | Proxy Anchor | `proxy_anchor.cars.official-51db570` | ResNet-50 | official repo 87.7 | registered |
+| Cars | HIST | `hist.cars.official-e7d650c` | ResNet-50 | paper 89.6±0.2 | registered |
+| SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | official repo 79.2 | registered |
+| SOP | HIST | `hist.sop.official-e7d650c` | ResNet-50 | paper 81.4±0.2 | registered |
+| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | queued reference |
+| In-Shop | HIST | `hist.inshop.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
+| iNat2018 v1 | Proxy Anchor | `proxy_anchor.inat2018.selected-from-<winner>-51db570` | winner preserved | no published pair | train-only selection queued |
+| iNat2018 v1 | HIST | `hist.inat2018.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
+
+Primary sources are the pinned [Proxy Anchor official repository](https://github.com/sung-yeon-kim/Proxy-Anchor-CVPR2020/tree/51db57031e38f75c03f69bbdfad1a3233afd9787)
+and [HIST official repository](https://github.com/ljin0429/HIST/tree/e7d650c80460f464c55bcdc2262d785923c50dc4),
+with HIST expected scores from its CVPR 2022 Table 3. `pa_distill` and `herd`
+inherit the resolved base recipe unchanged and add only their recorded EMA delta.
+
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 
-To separate the ensemble from the HERD recipe we ensembled **plain HIST** models
-(no `is_norm` head, no EMA teacher) the same way. Cumulative first-N CUB seeds:
+The historical ablation ensembled a legacy control labeled **plain HIST** that omitted
+both `is_norm` and the EMA teacher. Because official HIST includes `is_norm`, this is
+not an official HIST baseline. Cumulative first-N CUB seeds:
 
 | models | 1 | 2 | 3 | 4 | 5 |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -335,33 +365,30 @@ To separate the ensemble from the HERD recipe we ensembled **plain HIST** models
 The ensemble is the **main driver**: a pack of raw HIST models clears reported PFML
 (0.734) at 4 models (HERD clears it at 3) and reaches 0.7443 at 5. The full HERD
 recipe then adds a steady margin — **~0.7 pt single-model (0.705 vs 0.698 mean) and
-~0.25 pt at 5 models (0.7468 vs 0.7443)**. This isolates HERD vs plain HIST, not the
-EMA term alone. Reproduce: `ensemble_eval.py reports/emb/hist_only_seed*.npz`.
+~0.25 pt at 5 models (0.7468 vs 0.7443)**. This isolates the old combined
+LayerNorm-plus-EMA change, not the corrected EMA-only HERD delta. Recompute:
+`ensemble_eval.py reports/emb/hist_only_seed*.npz`.
 
-## Reproducibility notes (numbers we could **not** reproduce)
+## Legacy reproducibility observations (official-recipe reruns pending)
 
-Reported paper numbers on this benchmark do not all reproduce independently. We
-verified the following in a single controlled harness:
+The old common-preset harness produced the observations below. The audit found enough
+recipe drift that none of them is evidence for or against the official recipes; the
+new digest-tracked runs must finish before drawing that conclusion.
 
-- **Proxy Anchor — reproduces.** Best-mean R@1 **0.6946** (3 seeds) vs the reported
-  69.7 — a faithful reproduction; the harness is not the bottleneck.
-- **HIST — reported 71.4 does *not* fully reproduce.** Plain HIST in our harness
-  reaches ~**70.1** best (and ~0.698 mean over 5 seeds), consistent with independent
-  reproductions that also land near 70 rather than 71.4. The **full HERD recipe**
-  (HIST + `is_norm` head + EMA-teacher distillation) reaches **0.705 mean / 0.716
-  best** over 9 seeds — we did not measure the `is_norm` head in isolation, so 0.716
-  is a full-HERD number, not a LayerNorm-only one. The paper's 71.4 appears to be an
-  optimistic single-run figure that does not reproduce.
-- **PFML — reported 73.4 does *not* reproduce for us.** Faithful reproductions of
-  the electrostatic potential-field loss **collapse** during training; we could not
-  obtain anything near 73.4 as a single model. To our knowledge no independent
-  reproduction of 73.4 exists. We treat it as the best *reported* number and
-  compare against it accordingly.
+- **Proxy Anchor:** the legacy run reached best-mean R@1 **0.6946** over three seeds,
+  close to the reported CUB value, but it did not carry an official recipe digest.
+- **HIST/HERD:** the legacy control reached about **0.698 mean**, while the combined
+  LayerNorm-plus-EMA variant reached **0.705 mean / 0.716 best** over nine seeds. Since
+  official HIST already includes LayerNorm and uses a different optimizer, sampler,
+  schedule, and dataset-specific parameters, this is not a valid official HIST
+  reproduction or a clean EMA ablation.
+- **PFML:** legacy attempts collapsed and did not approach the reported 73.4. This
+  recipe audit covers Proxy Anchor and HIST, so it does not upgrade those attempts to
+  an official PFML reproduction claim.
 
-**Interpretation.** Because the strongest reported same-arch numbers (HIST 71.4,
-PFML 73.4) are optimistic and hard to reproduce, we report our result two ways:
-the single **HERD** model matches/edges the reproducible HIST tier, and the
-**SFORA** ensemble beats the best *reported* number (PFML 73.4) by more than 1%.
+**Interpretation.** The strongest reported same-architecture numbers remain reference
+targets. Only corrected artifacts with a `reference` or frozen `selected_extension`
+track can update the comparison.
 
 ## Approaches that did **not** work (honest negatives)
 
