@@ -7,6 +7,7 @@ from typing import Any, cast
 import numpy as np
 import pytest
 
+from sfora.bn_inception import build_bn_inception
 from sfora.data import ImageExample
 from sfora.image_end_to_end import (
     EndToEndProtocol,
@@ -162,6 +163,33 @@ def test_reference_gradient_clip_uses_configured_value(
     _clip_gradients(model, clip_value=10.0, torch_module=torch)
 
     assert observed == [10.0]
+
+
+def test_bn_inception_builds_official_512_head_without_download() -> None:
+    torch: Any = pytest.importorskip("torch")
+    model = build_bn_inception(embedding_size=512, pretrained=False, add_gmp=True)
+    model.eval()
+
+    assert model.model.num_ftrs == 1024
+    with torch.no_grad():
+        output = model(torch.zeros(1, 3, 224, 224))
+
+    assert output.shape == (1, 512)
+
+
+def test_bn_inception_reference_transform_uses_caffe_bgr_values() -> None:
+    pytest.importorskip("torch")
+    pil_image = pytest.importorskip("PIL.Image")
+    config = ImageEndToEndConfig(
+        backbone_name="bn_inception",
+        train_augmentation="reference_random_resized_crop",
+    )
+
+    transformed = _default_transform_factory(config, False)(
+        pil_image.new("RGB", (256, 256), (128, 117, 104))
+    )
+
+    assert transformed[:, 0, 0].tolist() == pytest.approx([0.0, 0.0, 0.0])
 
 
 def test_pfml_protocol_uses_repaired_resnet50_512_defaults() -> None:

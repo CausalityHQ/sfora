@@ -107,7 +107,7 @@ class ImageEndToEndConfig(BaseModel):
     lr_step_epochs: int = Field(default=5, ge=1)
     lr_gamma: float = Field(default=0.5, gt=0.0, le=1.0)
     samples_per_class: int = Field(default=0, ge=0)
-    pretrained_weights: Literal["v1", "v2"] = "v2"
+    pretrained_weights: Literal["v1", "v2", "bn_inception_52deb4733"] = "v2"
     head_pooling: Literal["avg", "avg_max"] = "avg"
     embedding_head_init: Literal["default", "kaiming_normal"] = "default"
     # Apply LayerNorm(embedding_dim, elementwise_affine=False) to the embedding, as in
@@ -4690,8 +4690,22 @@ def _torchvision_model_factory(
             "Install the research extra to run end-to-end image benchmarks: "
             "uv sync --group dev --extra research"
         ) from error
+    if config.backbone_name == "bn_inception":
+        if not use_embedding_head:
+            raise ValueError("BN-Inception reference runs require their embedding head")
+        from sfora.bn_inception import build_bn_inception
+
+        return cast(
+            TorchImageModel,
+            build_bn_inception(
+                embedding_size=config.embedding_dimensions,
+                pretrained=config.pretrained_weights == "bn_inception_52deb4733",
+                add_gmp=config.head_pooling == "avg_max",
+                freeze_batch_norm_affine=config.freeze_batch_norm_affine,
+            ),
+        )
     if config.backbone_name != "resnet50":
-        raise ValueError("Only resnet50 is currently supported for end-to-end paper protocol runs")
+        raise ValueError("Only resnet50 and bn_inception are supported for paper protocol runs")
     weights = (
         models.ResNet50_Weights.IMAGENET1K_V1
         if config.pretrained_weights == "v1"
@@ -4878,6 +4892,45 @@ def _default_transform_factory(
             "Install the research extra to run end-to-end image benchmarks: "
             "uv sync --group dev --extra research"
         ) from error
+    if config.backbone_name == "bn_inception":
+
+        class RGBToBGR:
+            def __call__(self, image: object) -> object:
+                from PIL import Image as PILImage
+
+                if not hasattr(image, "getchannel"):
+                    raise TypeError("BN-Inception reference preprocessing expects a PIL image")
+                channels = [image.getchannel(index) for index in range(3)]
+                return PILImage.merge("RGB", list(reversed(channels)))
+
+        inception_steps: list[Any] = [RGBToBGR()]
+        if train:
+            inception_steps.extend(
+                [
+                    transforms.RandomResizedCrop(config.input_size),
+                    transforms.RandomHorizontalFlip(),
+                ]
+            )
+        else:
+            inception_steps.extend(
+                [transforms.Resize(256), transforms.CenterCrop(config.input_size)]
+            )
+        inception_steps.extend(
+            [
+                transforms.ToTensor(),
+                transforms.Lambda(lambda tensor: tensor * 255.0),
+                transforms.Normalize(mean=(104.0, 117.0, 128.0), std=(1.0, 1.0, 1.0)),
+            ]
+        )
+        inception_transform = transforms.Compose(inception_steps)
+
+        def apply_inception(image: object) -> Any:
+            if hasattr(image, "convert"):
+                image = image.convert("RGB")
+            return inception_transform(image)
+
+        return apply_inception
+
     if train and config.mead_weight > 0.0:
         normalize = transforms.Normalize(
             mean=(0.485, 0.456, 0.406),
