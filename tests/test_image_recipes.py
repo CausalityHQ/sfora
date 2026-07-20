@@ -15,6 +15,7 @@ from sfora.image_recipes import (
     rank_recipe_candidates,
     recipe_digest,
     reference_recipe,
+    resolve_recipe,
     selected_extension_recipe,
     write_selection_manifest,
 )
@@ -330,3 +331,51 @@ def test_selection_manifest_persists_full_ranking(
         selected.recipe_id,
         "hist.inshop.other",
     ]
+
+
+def test_auto_resolution_requires_manifest_for_unpublished_pair() -> None:
+    with pytest.raises(
+        RecipeUnavailableError,
+        match="selection manifest is required for unpublished hist/inshop",
+    ):
+        resolve_recipe("auto", base_method="hist", dataset="inshop")
+
+
+def test_auto_resolution_loads_and_verifies_selected_manifest(tmp_path: Path) -> None:
+    selected = selected_extension_recipe(
+        reference_recipe("hist", "sop"),
+        target_dataset="inshop",
+    )
+    score = RecipeCandidateScore(
+        recipe_id=selected.recipe_id,
+        map_at_r=0.6,
+        recall_at_1=0.7,
+    )
+    manifest = tmp_path / "selection.json"
+    write_selection_manifest(
+        manifest,
+        selected_recipe=selected,
+        scores=[score],
+        selection_seed=0,
+        protocol_version="class-disjoint-train-v1",
+    )
+
+    resolved = resolve_recipe(
+        "auto",
+        base_method="hist",
+        dataset="inshop",
+        selection_manifest=manifest,
+    )
+
+    assert resolved.model_dump(mode="json") == selected.model_dump(mode="json")
+
+
+def test_derived_selector_uses_resolved_base_recipe() -> None:
+    resolved = resolve_recipe(
+        "pa_distill",
+        base_method="proxy_anchor",
+        dataset="inshop",
+    )
+
+    assert resolved.method_status == "sfora_derived"
+    assert resolved.derived_from_recipe_id == "proxy_anchor.inshop.official-51db570"

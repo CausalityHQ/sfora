@@ -429,6 +429,64 @@ def write_selection_manifest(
     return output_path
 
 
+def load_selected_recipe_manifest(path: Path) -> ImageRecipe:
+    """Load a selection winner and verify its recorded digest."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        winner = payload["winner"]
+        recipe = ImageRecipe.model_validate(winner["recipe"])
+        recorded_digest = str(winner["digest"])
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError(f"invalid recipe selection manifest: {path}") from error
+    actual_digest = recipe_digest(recipe)
+    if actual_digest != recorded_digest:
+        raise ValueError(
+            f"recipe selection manifest digest mismatch: {recorded_digest} != {actual_digest}"
+        )
+    if recipe.track != "selected_extension":
+        raise ValueError(
+            f"selection manifest winner must be selected_extension; got {recipe.track}"
+        )
+    return recipe
+
+
+def resolve_recipe(
+    selector: str,
+    *,
+    base_method: BaseMethod,
+    dataset: ImageDatasetName,
+    selection_manifest: Path | None = None,
+) -> ImageRecipe:
+    """Resolve `auto`, a derived method, or an exact recipe ID."""
+
+    try:
+        base = reference_recipe(base_method, dataset)
+    except RecipeUnavailableError as error:
+        if selection_manifest is None:
+            raise RecipeUnavailableError(
+                f"selection manifest is required for unpublished {base_method}/{dataset}"
+            ) from error
+        base = load_selected_recipe_manifest(selection_manifest)
+        if base.base_method != base_method or base.dataset != dataset:
+            raise ValueError(
+                "selection manifest pair mismatch: expected "
+                f"{base_method}/{dataset}, got {base.base_method}/{base.dataset}"
+            ) from error
+
+    if selector == "auto":
+        return base
+    if selector == "pa_distill":
+        return derive_recipe(base, "pa_distill")
+    if selector == "herd":
+        return derive_recipe(base, "herd")
+    if selector != base.recipe_id:
+        raise RecipeUnavailableError(
+            f"recipe selector {selector!r} does not match resolved recipe {base.recipe_id!r}"
+        )
+    return base
+
+
 def config_for_recipe(recipe: ImageRecipe) -> ImageEndToEndConfig:
     """Validate a complete recipe through the benchmark's runtime config model."""
 
@@ -453,4 +511,43 @@ def config_for_recipe(recipe: ImageRecipe) -> ImageEndToEndConfig:
             "recipe_delta": recipe.delta,
             "recipe_modified_fields": {},
         }
+    )
+
+
+def mark_recipe_config_modified(
+    reference_config: ImageEndToEndConfig,
+    runtime_config: ImageEndToEndConfig,
+    *,
+    explicit_fields: Sequence[str],
+) -> ImageEndToEndConfig:
+    """Label explicit behavior overrides without treating runtime paths as recipe edits."""
+
+    changes = {
+        field: {
+            "before": getattr(reference_config, field),
+            "after": getattr(runtime_config, field),
+        }
+        for field in sorted(set(explicit_fields))
+        if getattr(reference_config, field) != getattr(runtime_config, field)
+    }
+    if not changes:
+        return runtime_config
+
+    payload = runtime_config.model_dump(mode="json", exclude={"recipe_digest"})
+    payload.update(
+        {
+            "recipe_track": "modified",
+            "recipe_modified_fields": changes,
+        }
+    )
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return runtime_config.model_copy(
+        deep=True,
+        update={
+            "recipe_track": "modified",
+            "recipe_digest": digest,
+            "recipe_modified_fields": changes,
+        },
     )

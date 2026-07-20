@@ -57,6 +57,13 @@ from sfora.image_end_to_end import (
     run_image_end_to_end_benchmark,
     write_image_end_to_end_report,
 )
+from sfora.image_recipes import (
+    BaseMethod,
+    RecipeUnavailableError,
+    config_for_recipe,
+    mark_recipe_config_modified,
+    resolve_recipe,
+)
 from sfora.losses import group_triplet_margin_loss, triplet_margin_loss
 from sfora.publication import HfPublishConfig, RepoType, publish_hf_bundle
 from sfora.remote import RemoteRunConfig, build_remote_run_plan, write_remote_run_plan
@@ -1224,6 +1231,21 @@ def image_end_to_end(
             )
         ),
     ] = None,
+    recipe: Annotated[
+        str | None,
+        typer.Option(
+            help=(
+                "Publication-backed recipe: auto, pa_distill, herd, or an exact recipe ID. "
+                "Requires one base objective (proxy_anchor or hist)."
+            )
+        ),
+    ] = None,
+    recipe_selection_manifest: Annotated[
+        Path | None,
+        typer.Option(
+            help="Training-only recipe-selection manifest for an unpublished method/dataset pair."
+        ),
+    ] = None,
     limit_per_class: Annotated[
         int | None,
         typer.Option(help="Optional balanced examples per class for development runs."),
@@ -1346,18 +1368,19 @@ def image_end_to_end(
         str | None,
         typer.Option(
             help=(
-                "Training transform policy: standard, center_crop, or full_res_crop. "
+                "Training transform policy: standard, center_crop, full_res_crop, or "
+                "reference_random_resized_crop. "
                 "Omit to keep the protocol preset's policy."
             )
         ),
     ] = None,
     freeze_batch_norm: Annotated[
-        bool,
+        bool | None,
         typer.Option(
             "--freeze-batch-norm/--update-batch-norm",
             help="Keep BatchNorm running statistics fixed during metric fine-tuning.",
         ),
-    ] = True,
+    ] = None,
     checkpoint_selection_interval: Annotated[
         int,
         typer.Option(
@@ -1715,8 +1738,12 @@ def image_end_to_end(
     if lr_schedule is not None and lr_schedule not in {"none", "step", "cosine"}:
         console.print("Error: lr_schedule must be none, step, or cosine")
         raise typer.Exit(1)
-    if pretrained_weights is not None and pretrained_weights not in {"v1", "v2"}:
-        console.print("Error: pretrained_weights must be v1 or v2")
+    if pretrained_weights is not None and pretrained_weights not in {
+        "v1",
+        "v2",
+        "bn_inception_52deb4733",
+    }:
+        console.print("Error: pretrained_weights must be v1, v2, or bn_inception_52deb4733")
         raise typer.Exit(1)
     if head_pooling is not None and head_pooling not in {"avg", "avg_max"}:
         console.print("Error: head_pooling must be avg or avg_max")
@@ -1752,8 +1779,12 @@ def image_end_to_end(
         "standard",
         "center_crop",
         "full_res_crop",
+        "reference_random_resized_crop",
     }:
-        console.print("Error: train_augmentation must be standard, center_crop, or full_res_crop")
+        console.print(
+            "Error: train_augmentation must be standard, center_crop, full_res_crop, "
+            "or reference_random_resized_crop"
+        )
         raise typer.Exit(1)
     if checkpoint_selection_metric not in {"map_at_r", "recall_at_1"}:
         console.print("Error: checkpoint_selection_metric must be map_at_r or recall_at_1")
@@ -1761,20 +1792,39 @@ def image_end_to_end(
 
     try:
         image_dataset = cast(ImageDatasetName, dataset_name)
-        resolved_protocol = cast(EndToEndProtocol, protocol)
-        base_config = config_for_protocol(
-            resolved_protocol,
-            dataset_name=image_dataset,
-            train_steps=train_steps,
-        )
-        if objectives is not None:
+        resolved_recipe = None
+        if recipe is not None:
+            if objectives is None:
+                raise ValueError("recipe mode requires --objectives proxy_anchor or hist")
             resolved_objectives = _parse_end_to_end_objectives(objectives)
-        elif resolved_protocol in {"proxy-anchor-resnet50-512", "pfml-resnet50-512"}:
-            resolved_objectives = base_config.objectives
+            if resolved_objectives not in {("proxy_anchor",), ("hist",)}:
+                raise ValueError(
+                    "recipe mode requires exactly one base objective: proxy_anchor or hist"
+                )
+            base_method = cast(BaseMethod, resolved_objectives[0])
+            resolved_recipe = resolve_recipe(
+                recipe,
+                base_method=base_method,
+                dataset=image_dataset,
+                selection_manifest=recipe_selection_manifest,
+            )
+            base_config = config_for_recipe(resolved_recipe)
+            resolved_protocol = base_config.protocol
         else:
-            # Legacy protocols predate preset-declared objectives; keep the
-            # historical CLI default instead of the bare config default.
-            resolved_objectives = _LEGACY_END_TO_END_OBJECTIVES
+            resolved_protocol = cast(EndToEndProtocol, protocol)
+            base_config = config_for_protocol(
+                resolved_protocol,
+                dataset_name=image_dataset,
+                train_steps=train_steps,
+            )
+            if objectives is not None:
+                resolved_objectives = _parse_end_to_end_objectives(objectives)
+            elif resolved_protocol in {"proxy-anchor-resnet50-512", "pfml-resnet50-512"}:
+                resolved_objectives = base_config.objectives
+            else:
+                # Legacy protocols predate preset-declared objectives; keep the
+                # historical CLI default instead of the bare config default.
+                resolved_objectives = _LEGACY_END_TO_END_OBJECTIVES
         resolved_samples_per_class = (
             samples_per_class if samples_per_class is not None else base_config.samples_per_class
         )
@@ -1885,7 +1935,11 @@ def image_end_to_end(
                     if train_augmentation is not None
                     else base_config.train_augmentation
                 ),
-                "freeze_batch_norm": freeze_batch_norm,
+                "freeze_batch_norm": (
+                    freeze_batch_norm
+                    if freeze_batch_norm is not None
+                    else base_config.freeze_batch_norm
+                ),
                 "checkpoint_selection_interval": checkpoint_selection_interval,
                 "checkpoint_selection_metric": checkpoint_selection_metric,
                 "checkpoint_selection_query_limit": checkpoint_selection_query_limit,
@@ -2142,6 +2196,52 @@ def image_end_to_end(
                 "seed": seed,
             }
         )
+        if resolved_recipe is not None:
+            explicit_recipe_fields = [
+                field
+                for field, value in {
+                    "train_steps": train_steps,
+                    "train_epochs": train_epochs,
+                    "batch_size": batch_size,
+                    "learning_rate": learning_rate,
+                    "backbone_learning_rate": backbone_learning_rate,
+                    "weight_decay": weight_decay,
+                    "optimizer": optimizer,
+                    "warmup_epochs": warmup_epochs,
+                    "lr_schedule": lr_schedule,
+                    "lr_step_epochs": lr_step_epochs,
+                    "lr_gamma": lr_gamma,
+                    "samples_per_class": samples_per_class,
+                    "eval_test_interval_epochs": eval_test_interval_epochs,
+                    "pretrained_weights": pretrained_weights,
+                    "head_pooling": head_pooling,
+                    "embedding_head_init": embedding_head_init,
+                    "embedding_layer_norm": embedding_layer_norm,
+                    "xbm_start_step": xbm_start_step,
+                    "triplet_margin": triplet_margin,
+                    "train_augmentation": train_augmentation,
+                    "freeze_batch_norm": freeze_batch_norm,
+                    "proxy_count_per_class": proxy_count_per_class,
+                    "proxy_anchor_alpha": proxy_anchor_alpha,
+                    "proxy_anchor_delta": proxy_anchor_delta,
+                    "ema_distill_weight": ema_distill_weight,
+                    "ema_momentum": ema_momentum,
+                    "ema_distill_tau": ema_distill_tau,
+                    "hist_lambda_s": hist_lambda_s,
+                    "hist_tau": hist_tau,
+                    "hist_alpha": hist_alpha,
+                    "hist_var_floor": hist_var_floor,
+                    "hist_hidden": hist_hidden,
+                    "hist_lr_ds": hist_lr_ds,
+                    "hist_lr_hgnn_factor": hist_lr_hgnn_factor,
+                }.items()
+                if value is not None
+            ]
+            config = mark_recipe_config_modified(
+                base_config,
+                config,
+                explicit_fields=explicit_recipe_fields,
+            )
 
         def write_partial_result(partial_result: ImageEndToEndResult) -> None:
             write_image_end_to_end_report(partial_result, output)
@@ -2155,7 +2255,7 @@ def image_end_to_end(
         if bundle.gallery is not None:
             run_kwargs["gallery_examples"] = bundle.gallery
         result = run_image_end_to_end_benchmark(**run_kwargs)
-    except (RuntimeError, ValueError) as error:
+    except (RecipeUnavailableError, RuntimeError, ValueError) as error:
         console.print(f"Error: {error}")
         raise typer.Exit(1) from error
 

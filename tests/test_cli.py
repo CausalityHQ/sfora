@@ -799,6 +799,158 @@ def test_image_end_to_end_inshop_passes_root_and_gallery(
     assert captured["config"].dataset_root == tmp_path
 
 
+def test_image_end_to_end_auto_recipe_uses_official_inshop_settings(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    output_path = tmp_path / "official-inshop.json"
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{label}-{index}", f"train-{label}-{index}", label)
+            for label in (0, 1)
+            for index in range(3)
+        ],
+        query=[ImageExample("query-10", "query-10", 10)],
+        gallery=[ImageExample("gallery-10", "gallery-10", 10)],
+        protocol="query_gallery",
+        protocol_name="deepfashion-inshop-official",
+    )
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured["config"] = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name="inshop",
+            protocol=kwargs["config"].protocol,
+            train_examples=len(kwargs["train_examples"]),
+            test_examples=len(kwargs["test_examples"]),
+            gallery_examples=len(kwargs["gallery_examples"]),
+            methods={},
+        )
+
+    def fake_write(result: Any, output: Path) -> Path:
+        output.write_text("{}", encoding="utf-8")
+        return output
+
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr("sfora.cli.write_image_end_to_end_report", fake_write)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(output_path),
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "proxy_anchor",
+            "--recipe",
+            "auto",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.recipe_track == "reference"
+    assert config.recipe_id == "proxy_anchor.inshop.official-51db570"
+    assert config.backbone_name == "bn_inception"
+    assert config.batch_size == 180
+    assert config.learning_rate == pytest.approx(6e-4)
+    assert config.freeze_batch_norm is False
+
+
+def test_image_end_to_end_recipe_override_is_marked_modified(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    output_path = tmp_path / "modified-inshop.json"
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{label}-{index}", f"train-{label}-{index}", label)
+            for label in (0, 1)
+            for index in range(3)
+        ],
+        query=[ImageExample("query-10", "query-10", 10)],
+        gallery=[ImageExample("gallery-10", "gallery-10", 10)],
+        protocol="query_gallery",
+        protocol_name="deepfashion-inshop-official",
+    )
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured["config"] = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name="inshop",
+            protocol=kwargs["config"].protocol,
+            train_examples=6,
+            test_examples=1,
+            gallery_examples=1,
+            methods={},
+        )
+
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr(
+        "sfora.cli.write_image_end_to_end_report",
+        lambda result, output: output,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(output_path),
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "proxy_anchor",
+            "--recipe",
+            "auto",
+            "--learning-rate",
+            "0.0007",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.recipe_track == "modified"
+    assert config.recipe_modified_fields == {"learning_rate": {"before": 6e-4, "after": 7e-4}}
+
+
+def test_image_end_to_end_unpublished_recipe_requires_selection_manifest(
+    tmp_path: Path,
+) -> None:
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(tmp_path / "hist-inshop.json"),
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "hist",
+            "--recipe",
+            "auto",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "selection manifest is required for unpublished hist/inshop" in result.output
+
+
 def test_image_end_to_end_command_passes_triplet_and_backbone_lr_knobs(
     tmp_path: Path,
     monkeypatch: Any,
