@@ -273,14 +273,25 @@ rsync -az --delete \
 
 ssh "${REMOTE}" "cd '${REMOTE_DIR}' && uv sync --group dev --extra research"
 install_bn_inception_weight
-ssh "${REMOTE}" "cd '${REMOTE_DIR}' && mkdir -p logs && \
+ssh "${REMOTE}" "
+  cd '${REMOTE_DIR}'
+  mkdir -p logs
+  existing_pid=\$(pgrep -f '^bash scripts/run_remote_extended_datasets.sh --controller\$' | head -n 1 || true)
+  if test -n \"\${existing_pid}\"; then
+    echo \${existing_pid} > '${CONTROLLER_PID_FILE}'
+    cat '${CONTROLLER_PID_FILE}'
+    exit 0
+  fi
   nohup env DATASETS='${DATASETS}' INSHOP_ROOT='${INSHOP_ROOT}' \
   INAT2018_ROOT='${INAT2018_ROOT}' NUM_WORKERS='${NUM_WORKERS}' \
   FORCE_RERUN='${FORCE_RERUN}' \
   bash scripts/run_remote_extended_datasets.sh --controller \
   > '${CONTROLLER_LOG}' 2>&1 < /dev/null & \
-  echo \$! > '${CONTROLLER_PID_FILE}' && cat '${CONTROLLER_PID_FILE}'"
+  controller_pid=\$!
+  echo \${controller_pid} > '${CONTROLLER_PID_FILE}'
+  cat '${CONTROLLER_PID_FILE}'
+"
 
-echo "Launched corrected recipe controller on ${REMOTE}."
+echo "Corrected recipe controller is active on ${REMOTE}."
 echo "PID file: ${REMOTE_DIR}/${CONTROLLER_PID_FILE}"
 echo "Log: ${REMOTE_DIR}/${CONTROLLER_LOG}"

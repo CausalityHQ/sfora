@@ -60,6 +60,7 @@ def test_extended_dataset_workflow_launches_a_detached_remote_controller() -> No
     assert "--controller" in text
     assert "nohup" in text
     assert "controller.pid" in text
+    assert "pgrep -f" in text
 
 
 def test_extended_dataset_workflow_preserves_remote_research_artifacts() -> None:

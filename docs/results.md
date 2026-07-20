@@ -351,6 +351,52 @@ and [HIST official repository](https://github.com/ljin0429/HIST/tree/e7d650c8046
 with HIST expected scores from its CVPR 2022 Table 3. `pa_distill` and `herd`
 inherit the resolved base recipe unchanged and add only their recorded EMA delta.
 
+### DGX handoff audit (2026-07-20)
+
+At `2026-07-20T10:53:15+02:00`, before changing remote state, the legacy controller
+was captured on `spark-2751`:
+
+- controller PID `1595927`, process group/session `1595925`, command
+  `/home/riomus/experiment-logs/run-inshop-matrix.sh`;
+- active trainer PID `1612789` plus eight DataLoader workers, running legacy
+  In-Shop PA-distill seed 1 at step 3700/12360;
+- GPU 0 (`NVIDIA GB10`) was 96% utilized;
+- completed legacy artifacts were In-Shop seed-0 PA, PA-distill, HIST, HERD and
+  seed-1 PA. Their JSON files and per-run logs were preserved in place;
+- the controller script checksum was
+  `1f7f5f000f85dfd832708b126a90a6d4d6a7c79b0261acece9aa2c43b01379e5`.
+
+A second legacy controller was then found waiting independently for iNaturalist:
+PID `1596894`, process group `1596892`, script
+`run-inat2018-matrix.sh` (SHA-256
+`77b2bff7475fc98f40ec4723233371a540ac9d28790f0c21a2d7c1e68b29d3a6`). It had
+started legacy PA/iNat seed 0 and reached step 1400/130380. Both captured legacy
+process groups were terminated with SIGTERM; their logs and partial state remain
+recoverable, and no unrelated process was signaled.
+
+The captured legacy R@1 values were PA seed 0 `0.8636`, PA-distill seed 0 `0.8633`,
+HIST seed 0 `0.7731`, HERD seed 0 `0.6831`, and PA seed 1 `0.8590`. These are the
+poor common-preset results that triggered the recipe audit; they are retained as
+`modified_legacy`, not reference evidence.
+
+Deployment then passed both dataset preflights and installed the official
+`bn_inception-52deb4733.pth` checkpoint after verifying its full SHA-256
+`52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353`. A one-step,
+two-class In-Shop smoke run loaded that checkpoint and emitted the official recipe
+identity plus BN-Inception, batch 180, LR `6e-4`, updating BatchNorm, step-20,
+γ=`0.25`, and shuffled batches. Its cap-related changes are correctly recorded as a
+`modified` smoke artifact.
+
+The corrected detached controller is PID `1619657` (log
+`logs/reference_recipes.controller.log`). Its first full command is Proxy Anchor /
+In-Shop seed 0 from recipe `proxy_anchor.inshop.official-51db570`, digest
+`50137fe7f9d84cb567ee092f68b3bee6be58716dfab4d9bfbe964de8bc78fe57`; trainer PID
+`1619742` was observed at 95% GPU utilization. The controller will run the paired
+PA-distill seeds, perform frozen training-only selection for unsupported pairs, and
+then execute their base/derived seed matrices. A duplicate controller created while
+repairing PID-file detachment was detected immediately and its isolated process group
+was stopped; PID `1619657` is the sole surviving corrected controller.
+
 ## SFORA on raw HIST — what does the ensemble alone buy? (ablation)
 
 The historical ablation ensembled a legacy control labeled **plain HIST** that omitted
