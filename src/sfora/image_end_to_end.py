@@ -99,6 +99,10 @@ class ImageEndToEndConfig(BaseModel):
     backbone_learning_rate: float | None = Field(default=None, gt=0.0)
     weight_decay: float = Field(default=1e-4, ge=0.0)
     warmup_epochs: int = Field(default=0, ge=0)
+    # HIST runs warm-up before its declared main epochs; Proxy Anchor counts it
+    # inside the declared epoch count.
+    warmup_is_additional: bool = False
+    schedule_during_warmup: bool = True
     lr_schedule: Literal["none", "step", "cosine"] = "none"
     lr_step_epochs: int = Field(default=5, ge=1)
     lr_gamma: float = Field(default=0.5, gt=0.0, le=1.0)
@@ -218,8 +222,16 @@ class ImageEndToEndConfig(BaseModel):
     triplet_margin: float = Field(default=0.2, ge=0.0)
     temperature: float = Field(default=0.07, gt=0.0)
     input_size: int = Field(default=224, ge=32)
-    train_augmentation: Literal["standard", "center_crop", "full_res_crop"] = "standard"
+    train_augmentation: Literal[
+        "standard",
+        "center_crop",
+        "full_res_crop",
+        "reference_random_resized_crop",
+    ] = "standard"
     freeze_batch_norm: bool = True
+    freeze_batch_norm_affine: bool = False
+    weight_decay_exclusions: Literal["none", "bias_bn_proxy"] = "bias_bn_proxy"
+    gradient_clip_value: float | None = Field(default=None, gt=0.0)
     checkpoint_selection_interval: int = Field(default=0, ge=0)
     checkpoint_selection_query_limit: int | None = Field(default=1024, ge=1)
     checkpoint_selection_metric: Literal["map_at_r", "recall_at_1"] = "map_at_r"
@@ -611,6 +623,8 @@ def run_image_end_to_end_benchmark(
                     torch_module=torch,
                 )
             model = model.to(device)
+            if config.freeze_batch_norm_affine:
+                _freeze_batch_norm_affine_parameters(model)
         history: list[float] = []
         gsi_step_diagnostics: list[dict[str, float]] = []
         best_test_recall_at_1: float | None = None
@@ -912,6 +926,11 @@ def run_image_end_to_end_benchmark(
                         )
                     memory_embeddings_to_enqueue = embeddings
                 loss.backward()
+                _clip_gradients(
+                    model,
+                    clip_value=config.gradient_clip_value,
+                    torch_module=torch,
+                )
                 optimizer.step()
                 if ema_teacher is not None:
                     _update_ema_teacher(ema_teacher, model, momentum=config.ema_momentum)
@@ -919,7 +938,9 @@ def run_image_end_to_end_benchmark(
                     memory.enqueue(memory_embeddings_to_enqueue.detach(), labels.detach())
                 history.append(float(loss.detach().cpu()))
                 if scheduler is not None and step % steps_per_epoch == 0:
-                    scheduler.step()
+                    completed_epoch = step // steps_per_epoch
+                    if _should_step_scheduler(config, completed_epoch=completed_epoch):
+                        scheduler.step()
                 if config.eval_test_interval_epochs > 0 and (
                     step == train_steps
                     or (
@@ -1244,9 +1265,24 @@ def _resolve_training_schedule(
     """
     steps_per_epoch = max(1, math.ceil(optimization_example_count / config.batch_size))
     if config.train_epochs is not None:
-        return steps_per_epoch * config.train_epochs, steps_per_epoch, config.train_epochs
+        total_epochs = config.train_epochs + (
+            config.warmup_epochs if config.warmup_is_additional else 0
+        )
+        return steps_per_epoch * total_epochs, steps_per_epoch, total_epochs
     total_epochs = max(1, math.ceil(config.train_steps / steps_per_epoch))
     return config.train_steps, steps_per_epoch, total_epochs
+
+
+def _should_step_scheduler(
+    config: ImageEndToEndConfig,
+    *,
+    completed_epoch: int,
+) -> bool:
+    """Match whether the reference implementation schedules a completed epoch."""
+
+    if config.schedule_during_warmup:
+        return True
+    return completed_epoch > config.warmup_epochs
 
 
 def write_image_end_to_end_report(result: ImageEndToEndResult, output_path: Path) -> Path:
@@ -2690,6 +2726,31 @@ def _freeze_batch_norm_layers(model: TorchImageModel) -> None:
             continue
         if module.__class__.__name__.startswith("BatchNorm"):
             module.eval()
+
+
+def _freeze_batch_norm_affine_parameters(model: TorchImageModel) -> None:
+    """Disable gradients for backbone BatchNorm affine values as author code does."""
+
+    for name, module in cast(Any, model).named_modules():
+        if name.startswith("hist_module") or not module.__class__.__name__.startswith("BatchNorm"):
+            continue
+        for parameter_name in ("weight", "bias"):
+            parameter = getattr(module, parameter_name, None)
+            if parameter is not None:
+                parameter.requires_grad_(False)
+
+
+def _clip_gradients(
+    model: TorchImageModel,
+    *,
+    clip_value: float | None,
+    torch_module: Any,
+) -> None:
+    """Apply the Proxy Anchor reference value-clipping policy when configured."""
+
+    if clip_value is None:
+        return
+    torch_module.nn.utils.clip_grad_value_(model.parameters(), clip_value)
 
 
 def _update_ema_teacher(teacher: Any, student: Any, *, momentum: float) -> None:
@@ -4762,7 +4823,7 @@ def _adamw_parameter_groups(
     groups: Sequence[dict[str, Any]],
     config: ImageEndToEndConfig,
 ) -> list[dict[str, Any]]:
-    if config.optimizer != "adamw":
+    if config.optimizer != "adamw" or config.weight_decay_exclusions == "none":
         return [dict(group) for group in groups]
 
     no_decay_parameter_ids = {
@@ -4886,7 +4947,16 @@ def _default_transform_factory(
 
         return apply_multicrop
 
-    if train and config.train_augmentation == "full_res_crop":
+    if train and config.train_augmentation == "reference_random_resized_crop":
+        transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(config.input_size),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ]
+        )
+    elif train and config.train_augmentation == "full_res_crop":
         transform = transforms.Compose(
             [
                 transforms.RandomResizedCrop(config.input_size, scale=(0.16, 1.0)),

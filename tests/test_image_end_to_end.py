@@ -11,6 +11,12 @@ from sfora.data import ImageExample
 from sfora.image_end_to_end import (
     EndToEndProtocol,
     ImageEndToEndConfig,
+    _clip_gradients,
+    _default_transform_factory,
+    _freeze_batch_norm_affine_parameters,
+    _optimizer_parameter_groups,
+    _resolve_training_schedule,
+    _should_step_scheduler,
     config_for_protocol,
     run_image_end_to_end_benchmark,
 )
@@ -68,6 +74,94 @@ def test_proxy_anchor_protocol_train_steps_override_disables_epoch_schedule() ->
 
     assert config.train_steps == 37
     assert config.train_epochs is None
+
+
+def test_additional_warmup_does_not_consume_hist_main_epochs() -> None:
+    config = ImageEndToEndConfig(
+        batch_size=32,
+        train_epochs=40,
+        warmup_epochs=1,
+        warmup_is_additional=True,
+    )
+
+    steps, per_epoch, total_epochs = _resolve_training_schedule(
+        config,
+        optimization_example_count=320,
+    )
+
+    assert per_epoch == 10
+    assert total_epochs == 41
+    assert steps == 410
+
+
+def test_hist_scheduler_does_not_step_during_additional_warmup() -> None:
+    config = ImageEndToEndConfig(
+        warmup_epochs=1,
+        warmup_is_additional=True,
+        schedule_during_warmup=False,
+    )
+
+    assert _should_step_scheduler(config, completed_epoch=1) is False
+    assert _should_step_scheduler(config, completed_epoch=2) is True
+
+
+def test_official_weight_decay_policy_keeps_optimizer_groups_unsplit() -> None:
+    torch: Any = pytest.importorskip("torch")
+    model = torch.nn.Sequential(torch.nn.BatchNorm1d(2), torch.nn.Linear(2, 2))
+    config = ImageEndToEndConfig(
+        optimizer="adamw",
+        backbone_learning_rate=None,
+        weight_decay_exclusions="none",
+    )
+
+    groups = _optimizer_parameter_groups(model, config)
+
+    assert len(groups) == 1
+    assert "weight_decay" not in groups[0]
+    assert len(groups[0]["params"]) == len(list(model.parameters()))
+
+
+def test_reference_transform_does_not_resize_before_random_crop() -> None:
+    import inspect
+
+    config = ImageEndToEndConfig(train_augmentation="reference_random_resized_crop")
+
+    transform = _default_transform_factory(config, True)
+    pipeline = inspect.getclosurevars(transform).nonlocals["transform"]
+    names = [type(step).__name__ for step in pipeline.transforms]
+
+    assert names[:2] == ["RandomResizedCrop", "RandomHorizontalFlip"]
+    assert "Resize" not in names
+
+
+def test_batch_norm_affine_freeze_disables_gradients() -> None:
+    torch: Any = pytest.importorskip("torch")
+    model = torch.nn.Sequential(torch.nn.BatchNorm2d(3), torch.nn.Conv2d(3, 4, 1))
+
+    _freeze_batch_norm_affine_parameters(model)
+
+    batch_norm = model[0]
+    assert batch_norm.weight.requires_grad is False
+    assert batch_norm.bias.requires_grad is False
+    assert model[1].weight.requires_grad is True
+
+
+def test_reference_gradient_clip_uses_configured_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    torch: Any = pytest.importorskip("torch")
+    model = torch.nn.Linear(2, 2)
+    observed: list[float] = []
+
+    def record_clip(parameters: Iterable[Any], clip_value: float) -> None:
+        list(parameters)  # consume the generator exactly as torch does
+        observed.append(float(clip_value))
+
+    monkeypatch.setattr(torch.nn.utils, "clip_grad_value_", record_clip)
+
+    _clip_gradients(model, clip_value=10.0, torch_module=torch)
+
+    assert observed == [10.0]
 
 
 def test_pfml_protocol_uses_repaired_resnet50_512_defaults() -> None:
