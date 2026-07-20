@@ -107,7 +107,6 @@ def main() -> None:
     bundle = load_image_retrieval_bundle(
         dataset_name=dataset,
         dataset_root=args.dataset_root,
-        train_min_per_class=2,
         seed=args.seed,
     )
     split = class_disjoint_recipe_selection_split(

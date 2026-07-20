@@ -204,6 +204,7 @@ def test_reference_recipe_resolves_to_complete_valid_config(
     assert config.recipe_base_method == method
     assert config.recipe_source_revision == recipe.provenance.revision
     assert config.recipe_modified_fields == {}
+    assert config.dataset_selection_policy == "full_official_partition"
 
 
 def test_herd_config_differs_from_hist_only_by_declared_delta() -> None:

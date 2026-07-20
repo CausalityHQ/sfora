@@ -54,6 +54,12 @@ def test_extended_dataset_workflow_has_no_global_training_recipe_overrides() -> 
     assert not any(option in text for option in forbidden)
 
 
+def test_extended_recipe_selection_uses_the_full_target_training_partition() -> None:
+    text = Path("scripts/select_extended_recipe.py").read_text(encoding="utf-8")
+
+    assert "train_min_per_class=" not in text
+
+
 def test_extended_dataset_workflow_launches_a_detached_remote_controller() -> None:
     text = Path("scripts/run_remote_extended_datasets.sh").read_text(encoding="utf-8")
 

@@ -817,7 +817,11 @@ def test_image_end_to_end_auto_recipe_uses_official_inshop_settings(
     )
     captured: dict[str, Any] = {}
 
-    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+    def fake_bundle(**kwargs: Any) -> ImageRetrievalBundle:
+        captured["loader_kwargs"] = kwargs
+        return bundle
+
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", fake_bundle)
 
     def fake_run(**kwargs: Any) -> Any:
         captured["config"] = kwargs["config"]
@@ -863,6 +867,8 @@ def test_image_end_to_end_auto_recipe_uses_official_inshop_settings(
     assert config.batch_size == 180
     assert config.learning_rate == pytest.approx(6e-4)
     assert config.freeze_batch_norm is False
+    assert captured["loader_kwargs"]["train_min_per_class"] is None
+    assert captured["loader_kwargs"]["evaluation_min_per_class"] is None
 
 
 def test_image_end_to_end_recipe_override_is_marked_modified(

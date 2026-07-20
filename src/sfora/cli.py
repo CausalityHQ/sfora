@@ -1839,17 +1839,24 @@ def image_end_to_end(
         resolved_samples_per_class = (
             samples_per_class if samples_per_class is not None else base_config.samples_per_class
         )
-        train_min_per_class = (
-            max(2, resolved_samples_per_class)
-            if resolved_samples_per_class > 0
-            else max(2, group_size * 2)
-        )
+        if base_config.dataset_selection_policy == "full_official_partition":
+            train_min_per_class = None
+            evaluation_min_per_class = None
+        else:
+            train_min_per_class = (
+                max(2, resolved_samples_per_class)
+                if resolved_samples_per_class > 0
+                else max(2, group_size * 2)
+            )
+            evaluation_min_per_class = 2
         bundle = _load_cli_image_retrieval_bundle(
             dataset_name=image_dataset,
             dataset_root=dataset_root,
             limit_per_class=limit_per_class,
             train_min_per_class=train_min_per_class if limit_per_class is None else None,
-            evaluation_min_per_class=2 if limit_per_class is None else None,
+            evaluation_min_per_class=(
+                evaluation_min_per_class if limit_per_class is None else None
+            ),
             max_classes=max_classes,
             seed=seed,
         )

@@ -100,6 +100,9 @@ class ImageEndToEndConfig(BaseModel):
     recipe_derived_from_id: str | None = None
     recipe_delta: dict[str, Any] = Field(default_factory=dict)
     recipe_modified_fields: dict[str, Any] = Field(default_factory=dict)
+    dataset_selection_policy: Literal["legacy_minimum_filter", "full_official_partition"] = (
+        "legacy_minimum_filter"
+    )
     objectives: tuple[EndToEndObjective, ...] = ("group_supcon_xbm_radius",)
     backbone_name: str = "resnet50"
     embedding_dimensions: int = Field(default=512, ge=2)

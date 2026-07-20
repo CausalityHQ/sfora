@@ -88,6 +88,7 @@ class RecipeSelectionSplit:
 
 def _shared_reference_config() -> dict[str, Any]:
     return {
+        "dataset_selection_policy": "full_official_partition",
         "embedding_dimensions": 512,
         "train_augmentation": "reference_random_resized_crop",
         "input_size": 224,
