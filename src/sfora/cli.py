@@ -1789,6 +1789,9 @@ def image_end_to_end(
     if checkpoint_selection_metric not in {"map_at_r", "recall_at_1"}:
         console.print("Error: checkpoint_selection_metric must be map_at_r or recall_at_1")
         raise typer.Exit(1)
+    if train_steps is not None and train_epochs is not None:
+        console.print("Error: train_steps and train_epochs are mutually exclusive")
+        raise typer.Exit(1)
 
     try:
         image_dataset = cast(ImageDatasetName, dataset_name)
@@ -1852,9 +1855,13 @@ def image_end_to_end(
         )
         resolved_batch_size = batch_size if batch_size is not None else base_config.batch_size
         resolved_train_epochs = (
-            train_epochs if train_epochs is not None else base_config.train_epochs
+            None
+            if train_steps is not None
+            else train_epochs
+            if train_epochs is not None
+            else base_config.train_epochs
         )
-        resolved_train_steps = base_config.train_steps
+        resolved_train_steps = train_steps if train_steps is not None else base_config.train_steps
         if train_steps is None and resolved_train_epochs is not None and resolved_batch_size > 0:
             resolved_train_steps = _steps_for_epochs(
                 examples=len(bundle.train),
@@ -2245,6 +2252,12 @@ def image_end_to_end(
                 }.items()
                 if value is not None
             ]
+            if train_steps is not None:
+                explicit_recipe_fields.append("train_epochs")
+            if limit_per_class is not None:
+                explicit_recipe_fields.append("limit_per_class")
+            if max_classes is not None:
+                explicit_recipe_fields.append("max_classes")
             config = mark_recipe_config_modified(
                 base_config,
                 config,

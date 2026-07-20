@@ -927,6 +927,64 @@ def test_image_end_to_end_recipe_override_is_marked_modified(
     assert config.recipe_modified_fields == {"learning_rate": {"before": 6e-4, "after": 7e-4}}
 
 
+def test_image_end_to_end_recipe_step_cap_disables_recipe_epoch_schedule(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{label}-{index}", [float(label)], label)
+            for label in (0, 1)
+            for index in range(2)
+        ],
+        query=[ImageExample("query-10", [1.0], 10)],
+        gallery=[ImageExample("gallery-10", [1.0], 10)],
+        protocol="query_gallery",
+        protocol_name="deepfashion-inshop-official",
+    )
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured["config"] = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name="inshop",
+            protocol=kwargs["config"].protocol,
+            train_examples=4,
+            test_examples=1,
+            gallery_examples=1,
+            methods={},
+        )
+
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr("sfora.cli.write_image_end_to_end_report", lambda result, output: output)
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "proxy_anchor",
+            "--recipe",
+            "auto",
+            "--train-steps",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.train_steps == 1
+    assert config.train_epochs is None
+    assert config.recipe_modified_fields["train_steps"] == {"before": 2000, "after": 1}
+    assert config.recipe_modified_fields["train_epochs"] == {"before": 60, "after": None}
+
+
 def test_image_end_to_end_unpublished_recipe_requires_selection_manifest(
     tmp_path: Path,
 ) -> None:
