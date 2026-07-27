@@ -32,9 +32,13 @@ the legacy confound cannot recur.
 | HIST | 0.9046 | 0.9037 | 0.9031 | **0.9038** | — |
 | HERD (HIST + distillation) | 0.8906 | 0.8892 | 0.8900 | **0.8899** | **−1.39 pt** |
 
-All six paired per-seed deltas are negative (PA: −0.25 / −0.54 / −0.42; HIST:
-−1.40 / −1.45 / −1.31) against a seed spread of σ ≈ 0.0012. HIST − PA is
-+0.03 pt — the two bases are indistinguishable on this dataset.
+All six paired per-seed deltas are negative (PA: −0.25 / −0.55 / −0.41; HIST:
+−1.40 / −1.45 / −1.31). With the correct paired test (df=2): HERD vs HIST
+t = −33.9, p ≈ 0.0009 — robust; PA+distill vs PA t = −4.75, p ≈ 0.042 — marginal,
+and only under a normality assumption that three points cannot evidence. The
+assumption-free exact sign test cannot go below 0.25 at n=3 for either leg, so
+both are screening evidence. HIST − PA is +0.03 pt — the two bases are
+indistinguishable on this dataset.
 
 **iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
 just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because

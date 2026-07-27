@@ -158,8 +158,25 @@ run_arm() {
 }
 
 # --- wait for any in-flight training to drain -------------------------------
-while pgrep -f "sfora image-end-to-end" > /dev/null 2>&1; do
-  log "waiting for in-flight run to finish..."
+# Ask the GPU what is running rather than pattern-matching command lines. An
+# earlier `pgrep -f "sfora image-end-to-end"` deadlocked this script for good:
+# the interactive shell that LAUNCHED it had that exact string in its own command
+# line (from a `ps | grep`), so pgrep matched the launcher and the queue waited
+# forever with the GPU idle. Process-name matching is unsafe when the name is a
+# substring anyone might type; GPU occupancy is the signal we actually mean.
+gpu_busy() {
+  local pids
+  pids="$(nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null)"
+  [[ -n "${pids//[[:space:]]/}" ]]
+}
+
+WAIT_DEADLINE=$(( SECONDS + 6 * 3600 ))
+while gpu_busy; do
+  if (( SECONDS > WAIT_DEADLINE )); then
+    log "WARNING: GPU still busy after 6h; starting anyway rather than idling."
+    break
+  fi
+  log "waiting for in-flight run to finish (GPU busy)..."
   sleep 120
 done
 

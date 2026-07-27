@@ -55,9 +55,30 @@ SOP using **training-split-only** scoring — no test leakage).
 | HIST | 0.9046 | 0.9037 | 0.9031 | **0.9038** | — |
 | HERD (HIST + distillation) | 0.8906 | 0.8892 | 0.8900 | **0.8899** | **−1.39 pt** |
 
-Seed σ ≈ 0.0012. Every paired per-seed difference is negative (PA: −0.25 / −0.54
-/ −0.42; HIST: −1.40 / −1.45 / −1.31). The effect is 3–12σ. **This is not noise —
-the distillation reliably hurts on In-Shop, on both bases.**
+Every paired per-seed difference is negative (PA: −0.25 / −0.55 / −0.41; HIST:
+−1.40 / −1.45 / −1.31).
+
+**Statistics, stated correctly.** An earlier draft said "seed σ ≈ 0.0012, so the
+effect is 3–12σ". That used the wrong denominator — the across-seed spread of a
+single arm, rather than the standard error of the *paired differences* — and
+implied a z-score where n=3 gives df=2. Corrected, from
+`scripts/analyze_reference_matrix.py`:
+
+| comparison | mean Δ | paired t (df=2) | p (t-test) | p (exact sign) |
+| --- | ---: | ---: | ---: | ---: |
+| PA + distill vs PA | −0.406 | −4.75 | **0.042** | 0.250 |
+| HERD vs HIST | −1.387 | −33.9 | **0.0009** | 0.250 |
+
+Read this honestly:
+
+* The **HIST/HERD leg is robust** — a 1.39 pt regression with a t of −34.
+* The **PA leg is marginal**, not overwhelming: p ≈ 0.04 *and only under a
+  normality assumption that three points cannot evidence*. The assumption-free
+  exact sign test cannot go below 0.25 at n=3 for either leg.
+
+So: "distillation hurts HIST on In-Shop" is well supported; "distillation hurts
+PA on In-Shop" is suggestive and consistent, but rests on 3 seeds and a
+distributional assumption. Do not oversell the PA leg.
 
 Also note HIST − PA = **+0.03 pt**. The two bases are indistinguishable here.
 
@@ -210,9 +231,35 @@ Note also that running a momentum teacher in `eval()` is the **nonstandard**
 choice: MoCo's key encoder, BYOL's target network and DINO's teacher all run in
 train mode. This looks like a plain implementation bug, not a design decision.
 
-**Prediction.** CUB has frozen BN, so the running CUB matrix should show a
-*positive* paired delta. If it does, "the method is worthless" is the wrong
-conclusion — "the method is broken whenever BN is trainable" is the right one.
+**Confounds, and why they do not explain the sign.** The four cells above differ
+in more than `freeze_batch_norm`, so each rival explanation was checked against
+the artifacts:
+
+| rival explanation | ruled out by |
+| --- | --- |
+| **Backbone** (In-Shop PA uses `bn_inception`, CUB/Cars use `resnet50`) | In-Shop **HIST** is `resnet50` and regresses *hardest* (−1.39). Backbone held constant, sign still flips. |
+| **Batch size** (HIST 32 vs PA 180 → 31 vs 179 negatives in the row-softmax) | CUB HIST and In-Shop HIST **both** use batch 32. Same batch size, opposite sign. |
+| **Learning rate / optimizer** | CUB HIST and In-Shop HIST both use Adam at 1e-4, batch 32, ResNet-50. |
+| **Dataset size / class count** | *Not* ruled out — this covaries perfectly with `freeze_batch_norm` across our cells, and is exactly hypothesis H1. |
+
+The clean contrast is **Cars HIST vs In-Shop HIST**: same backbone, same
+optimizer, same batch size, same learning rate, same loss — differing in
+`freeze_batch_norm` (True → False) and dataset. Distillation helps in the first
+and inflicts our largest regression in the second.
+
+That said, every cell here is cross-*dataset*: `freeze_batch_norm` never varies
+*within* a dataset in our data, so this remains a correlation over four cells,
+not an intervention. **H3 is not established by the table — it is established or
+killed by the direct test below.**
+
+**Two opposing predictions (this is what makes it a test, not a story).**
+
+* On **CUB**, backbone BN is frozen, so teacher and student already normalise
+  identically and the fix must be **inert**. `herd_bnfix` ≈ `herd`.
+* On **In-Shop**, BN is trainable, so the fix should **flip the sign**.
+
+A hypothesis that predicts *no effect* in one arm and a *sign reversal* in
+another is falsifiable in both directions. Both arms are queued.
 
 **Decisive test (~7 GPU-hours).** Fix the teacher's normalisation consistency
 (run it in train mode, and/or EMA the buffers), then rerun In-Shop PA+distill for
@@ -220,10 +267,79 @@ conclusion — "the method is broken whenever BN is trainable" is the right one.
 fix, not a hyperparameter change. If the sign flips, H3 is confirmed and the
 In-Shop "negative result" was never a scientific finding.
 
-### H1 and H2 — secondary
+### H4 — the teacher and student never see different views (structural gap)
 
-Both are cheaper to test and remain worth running, but H3 subsumes much of their
-explanatory power.
+Confirmed at every call site: the non-MEAD path calls `ema_teacher(images)` and
+`model(images)` on the **same tensor**; the MEAD path calls
+`ema_teacher(global_images)` on the same `global_images` the student embeds.
+
+So the relational term receives **zero cross-view supervision**. It is pure
+temporal EMA-lag self-consistency on a fixed input — not the augmentation-
+invariance objective that makes relational distillation informative in
+DINO/BYOL/STML, where the teacher sees a *different* crop. A same-view, same-τ
+EMA target can carry very little beyond smoothed noise, because no
+invariance pressure is being exploited at all.
+
+This is more fundamental than the temperature question (H2.1): it limits what the
+loss can express *in principle*, not merely how peaked its target is. It also
+independently supports the novelty verdict in §3.5 — without cross-view
+supervision this is a strictly weaker relative of STML, not an extension of it.
+
+### H5 — the distillation weight has never been calibrated (open, needs instrumentation)
+
+Measured from the logged `loss_history` of the completed In-Shop runs
+(digest-pinned, same step counts within each pair):
+
+| arms | base final loss | with distillation | implied distill term | ratio |
+| --- | ---: | ---: | ---: | ---: |
+| HIST → HERD | 0.226 | 3.121 | 2.895 | **12.8×** |
+| PA → PA+distill | 0.680 | 5.688 | 5.008 | **7.4×** |
+
+At `ema_distill_weight = 1.0` the distillation term is 7–13× the base objective
+*in value*, and the dominance ratio orders the same way as the damage (HIST 12.8×
+→ −1.39 pt; PA 7.4× → −0.41 pt).
+
+**This is a flag, not a finding, and must not be quoted as one.** Cross-entropy
+decomposes as `CE(q,p) = H(q) + KL(q‖p)`. Only the `KL` term carries gradient;
+`H(q)` is an additive constant w.r.t. the student. The logged total cannot
+separate them, so a large loss *value* is entirely compatible with a small
+gradient contribution — which is what one expects early on, since the teacher
+starts as an exact `deepcopy` of the student (`KL = 0` at step 0). The
+dominance-ratio correlation is also two points.
+
+**Resolve by instrumentation, not argument:** log teacher entropy `H(q)` and
+`KL(q‖p)` separately from the relational loss. Cheap, and it converts this from
+speculation into a measurement. Deliberately deferred rather than rushed into the
+training loop mid-matrix, so all arms run identical code.
+
+### H2.2 (no warmup gate) — demoted
+
+The EMA time constant is ~1/(1−m) = 1000 steps at m = 0.999. Against actual step
+counts: In-Shop PA runs 8,640 steps, so the catch-up window is ~12% of training;
+In-Shop HIST runs 49,349 steps, so it is ~2%. HIST therefore has *far less*
+relative exposure to a near-init teacher — yet HERD regresses 3× harder than
+PA+distill. If missing warmup were the dominant mechanism the ranking would run
+the other way.
+
+Still worth an ablation (it is nearly free), but it cannot explain the HIST/PA
+asymmetry and should not be presented as the leading explanation.
+
+### H2.1 (no teacher sharpening) — kept, but recalibrated
+
+Factually correct: `student_logits` and `teacher_logits` both use
+`config.ema_distill_tau`. But the framing was loose. Teacher sharpening in DINO
+works together with explicit **centering** (which this code has none of) to
+prevent entropy collapse; and an EMA teacher being correlated with its student is
+by design in MoCo/BYOL/DINO, not a defect. Expect a magnitude lever worth perhaps
+0.1–0.3 pt, not a sign flip. H4 is the better explanation of why the target is
+low-information.
+
+### H1 — small-data regularizer
+
+Unchanged, and *not* separable from H3 by the current data: dataset size covaries
+perfectly with `freeze_batch_norm` across our four cells. The In-Shop weight
+sweep separates them — if harm is monotone in `ema_distill_weight` *after* the H3
+fix, H1 survives on its own.
 
 **H1 — It is a small-data regularizer, not a universal improvement.**
 CUB has 5.9k train images / 100 classes; In-Shop has ~25k / 3997; iNat far more.
@@ -346,15 +462,97 @@ Outcomes:
   of a plausible-sounding distillation idea, and a documented list of ~16 loss-geometry
   changes that do not move the plateau. Do not undersell this outcome.
 
-### Phase 5 — The pivot, if Phase 4 passes or H1 holds
+### Phase 5 — The pivot: a hypergraph-native teacher target
 
-Codex's proposal, and it is the right one: the current teacher target is a
-*generic pairwise similarity matrix*, which is exactly what S2SD/STML already do.
-A genuinely HIST-native target would distil the teacher's **hyperedge incidence
-structure, semantic-tuplet distributions, and uncertainty-weighted higher-order
-relations** — quantities that only exist because of the hypergraph, and that no
-pairwise method can express. Test on CUB seed 0 first; expand only on the Phase 4
-gate.
+The current teacher target is a *generic pairwise similarity matrix* — precisely
+what S2SD/STML already do. A defensible target must be one that **only exists
+because HIST builds a hypergraph**.
+
+**The non-pairwise argument, made precisely.** In `_hist_loss`:
+
+```python
+incidence   = one_hot + exp(-alpha * distance) * (1 - one_hot)   # H, (N, E)
+edge_degree = incidence.sum(dim=0)                               # d_e, sums over the WHOLE BATCH
+propagate   = Dv^-1/2 @ H @ W @ De^-1 @ H.T @ Dv^-1/2            # G, (N, N)
+logits      = propagate @ theta2(lrelu(bn1(theta1(features))))   # (N, C)
+```
+
+`G_ij = Σ_e H_ie·H_je / (d_v(i)·d_v(j))^{1/2}·d_e(e)` is **not** a function of
+`(z_i, z_j)` alone: its normalisation `d_e(e) = Σ_k H_ke` runs over every sample
+currently in the batch. RKD/S2SD/STML all compute targets of the form `s(z_i,z_j)`
+for a fixed pairwise metric; none can reproduce a quantity whose normalisation
+depends on how many *other* samples share a hyperedge. That is a real, checkable
+novelty boundary — unlike the current loss, which has none.
+
+**The infrastructure already exists.** `_attach_hist_module` (line 646) runs
+*before* `ema_teacher = copy.deepcopy(model)` (line 733), and `_update_ema_teacher`
+iterates `.parameters()` — so **`ema_teacher.hist_module` is already a live,
+correctly EMA-updated copy** of the Gaussian prototypes and HGNN weights. It is
+simply never read: `_relational_distillation_loss` only consumes
+`ema_teacher(images)` backbone embeddings. Every candidate below is "write a loss
+that reads a module already being maintained", not "build EMA infrastructure".
+
+Candidates, ranked:
+
+1. **HGNN propagated-logit distillation** (strongest). Distil the teacher's
+   pre-CE `logits` tensor: `q_i = softmax(logits^t_i / τ_t)`, stop-grad;
+   `L = CE(softmax(logits^s_i / τ_s), q_i)`. Fully hypergraph-native via `G^t`.
+   Falsifier: CUB seed 0, HIST base, this term only.
+2. **Incidence-row distillation** (cheapest safe test). Distil `H^t_{i,:}`
+   restricted to `class_within`. Needs only `hist_module.means`/`log_vars` — it
+   never touches `bn1`, so it sidesteps the BatchNorm question entirely. Run this
+   **first**. It is informationally a subset of (1), making the pair a clean
+   decomposition: if (2) reproduces most of (1)'s effect, the gain is in the
+   affinity; if not, it is in the propagation.
+3. **Full-catalog Gaussian-prototype distillation.** Soft targets over *all* `C`
+   classes using the prototype bank. Honest caveat: this bypasses `H`/`G`
+   entirely and is prototype/proxy distillation — closer to classic dark-knowledge
+   KD than to anything hypergraph-native. Weaker novelty claim.
+4. **Edge-degree distillation** — control only, to test whether any gain in (1)
+   comes from fine structure or merely a coarse batch-composition prior.
+
+**A correction to note when implementing.** It has been suggested that the
+teacher's `hist_module.bn1` running statistics are "frozen at deepcopy time and
+never updated". That is **false** for the current code: `_update_ema_teacher`
+hard-copies *all* buffers from the student, `hist_module.bn1` included, so they
+track the student exactly. It *does* become true if `ema_teacher_ema_buffers=True`
+(the H3 fix) is enabled, which introduces deliberate lag. Inert today because the
+teacher's `hist_module` is unused — but any candidate above that forwards through
+`bn1` must revisit it, and should recall the earlier bug where miscalibrating that
+exact BatchNorm dropped training loss while collapsing zero-shot retrieval.
+
+**Budget.** Cap the pivot at ~4 days and a single-seed CUB smoke test per
+candidate, under the same preregistered +0.5 R@1 gate as everything else — no
+grading on a curve because a candidate is new. Honest prior: each of these is
+roughly a 20–30% shot, and they all still bet on the same family of mechanism
+("EMA-smooth a noisy relational statistic") that the In-Shop result just went
+1-for-1 against. The argument for a better prior is mechanistic rather than
+wishful: `G` has far fewer effective degrees of freedom than an `N×N` pairwise
+matrix (roughly the number of classes present in the batch), so its per-step
+estimate is noisier — and a noisier statistic is exactly where an EMA teacher has
+more variance to remove.
+
+### Phase 6 — The fallback, which should be prepared in parallel, not after
+
+If the loss-innovation track fails, the honest and still-valuable contribution is
+already 80% written:
+
+* **(a) The provenance system.** Digest-verified, publication-backed recipes
+  across 5 datasets, with track classification and manifest verification. Most DML
+  papers ship nothing like it, and it is precisely what caught the recipe drift
+  and the LayerNorm confound that invalidated the legacy headline.
+* **(b) The negative-results catalogue.** ~16 loss-geometry changes that do not
+  move the CUB plateau, plus this multi-seed refutation of a plausible
+  distillation idea — and, if the pivot fails, the hypergraph candidates too.
+  Failed experiments become evidence rather than waste.
+* **(d) Train-clean compression.** 2560→2048 dims at 100% retrieval retention,
+  fit only on disjoint train classes, with the correct explanation for *why*
+  un-centered projection is required under cosine retrieval. Small, clean, and
+  it would survive review.
+
+This is a real paper: *"what does not move a same-architecture DML plateau, and
+how to know your recipe is not lying to you"*. Do not treat it as a consolation
+prize — on current evidence it is the higher-expected-value deliverable.
 
 ---
 

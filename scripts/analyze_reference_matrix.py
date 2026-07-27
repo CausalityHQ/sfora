@@ -142,6 +142,64 @@ def exact_sign_test_p(deltas: list[float]) -> float:
     return float(extreme) / float(2**n)
 
 
+def paired_t(deltas: list[float]) -> tuple[float, float]:
+    """Paired t statistic and two-tailed p for the mean of `deltas` vs 0 (df = n-1).
+
+    Reported alongside -- not instead of -- the exact sign test. The two answer
+    different questions and can disagree sharply at n=3: the t-test can reach
+    p<0.05 but only by assuming the paired differences are normal, which three
+    points cannot evidence; the sign test assumes nothing but cannot go below
+    2^-(n-1). Quote both, and treat n=3 as screening either way.
+    """
+    n = len(deltas)
+    if n < 2:
+        return float("nan"), float("nan")
+    mean = sum(deltas) / n
+    var = sum((d - mean) ** 2 for d in deltas) / (n - 1)
+    sem = math.sqrt(var / n)
+    if sem == 0.0:
+        return float("inf"), 0.0
+    t = mean / sem
+    # Two-tailed p from the Student-t CDF via the regularised incomplete beta.
+    df = n - 1
+    x = df / (df + t * t)
+    p = _betainc_half(df / 2.0, x)
+    return t, min(1.0, max(0.0, p))
+
+
+def _betainc_half(a: float, x: float) -> float:
+    """Regularised incomplete beta I_x(a, 1/2), used for the Student-t tail."""
+    b = 0.5
+    if x <= 0.0:
+        return 0.0
+    if x >= 1.0:
+        return 1.0
+    log_front = (
+        math.lgamma(a + b) - math.lgamma(a) - math.lgamma(b) + a * math.log(x) + b * math.log1p(-x)
+    )
+    # Continued fraction (Lentz) for the standard incomplete-beta expansion.
+    tiny = 1e-30
+    c, d = 1.0, 1.0 - (a + b) * x / (a + 1.0)
+    d = 1.0 / (tiny if abs(d) < tiny else d)
+    h = d
+    for m in range(1, 300):
+        m2 = 2 * m
+        num = m * (b - m) * x / ((a + m2 - 1.0) * (a + m2))
+        d = 1.0 + num * d
+        c = 1.0 + num / (tiny if abs(c) < tiny else c)
+        d = 1.0 / (tiny if abs(d) < tiny else d)
+        h *= d * c
+        num = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1.0))
+        d = 1.0 + num * d
+        c = 1.0 + num / (tiny if abs(c) < tiny else c)
+        d = 1.0 / (tiny if abs(d) < tiny else d)
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) < 1e-12:
+            break
+    return math.exp(log_front) * h / a
+
+
 def summarize(values: list[float]) -> tuple[float, float]:
     mean = sum(values) / len(values)
     if len(values) < 2:
@@ -216,12 +274,17 @@ def main() -> int:
                 continue
             mean, sd = summarize(deltas)
             per_seed = ", ".join(f"{d:+.2f}" for d in deltas)
-            p = exact_sign_test_p(deltas)
+            p_sign = exact_sign_test_p(deltas)
+            t, p_t = paired_t(deltas)
             verdict = "PASS" if mean >= args.gate and all(d > 0 for d in deltas) else "FAIL"
             print(
                 f"    {derived:<12} vs {base:<13} n={len(deltas)}  "
-                f"per-seed [{per_seed}]  mean {mean:+.3f}  sd {sd:.3f}  "
-                f"exact p={p:.3f}  gate(>={args.gate:+.2f} & all-positive): {verdict}"
+                f"per-seed [{per_seed}]  mean {mean:+.3f}  sd {sd:.3f}"
+            )
+            print(
+                f"      paired t={t:+.2f} (df={len(deltas) - 1}) p_t={p_t:.4f}   "
+                f"exact sign p={p_sign:.3f}   "
+                f"gate(>={args.gate:+.2f} & all-positive): {verdict}"
             )
 
     print("\n" + "-" * 78)

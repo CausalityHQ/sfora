@@ -89,10 +89,15 @@ and distilled arms differ in `ema_distill_weight` and nothing else
 | HIST (`selected_extension`) | 0.9046 | 0.9037 | 0.9031 | **0.9038** | — |
 | HERD (HIST + distillation) | 0.8906 | 0.8892 | 0.8900 | **0.8899** | **−1.39 pt** |
 
-All six paired per-seed deltas are negative, against a seed spread of σ ≈ 0.0012.
-**On this dataset the distillation is a consistent regression on both bases.**
-This directly falsifies the earlier claim that the procedure improves *any* base
-loss; that claim has been withdrawn. Whether the effect is dataset-size-dependent
+All six paired per-seed deltas are negative. Stated with the right test (paired,
+df=2): the **HERD leg is robust** (t = −33.9, p ≈ 0.0009); the **PA leg is
+marginal** (t = −4.75, p ≈ 0.042, and only under a normality assumption three
+points cannot evidence — the assumption-free exact sign test floors at 0.25 for
+n=3). So "distillation regresses HIST on In-Shop" is well supported; the PA leg
+is consistent but should not be oversold.
+
+This falsifies the earlier claim that the procedure improves *any* base loss;
+that claim has been withdrawn. Whether the effect is dataset-size-dependent
 (CUB has 5.9k train images, In-Shop ~25k) or an implementation defect is exactly
 what the running CUB + Cars matrix and the diagnostic sweeps in
 [docs/research_reset_plan.md](docs/research_reset_plan.md) are designed to settle.
