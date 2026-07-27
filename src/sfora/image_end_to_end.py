@@ -44,6 +44,7 @@ EndToEndObjective = Literal[
     "group_potential",
     "group_potential_xbm",
     "proxy_anchor",
+    "region_proxy_anchor",
     "proxy_anchor_group",
     "proxy_anchor_synthesis",
     "proxy_anchor_subcenter",
@@ -251,6 +252,11 @@ class ImageEndToEndConfig(BaseModel):
     # makes a rerun return the same number, so paired comparisons become exact.
     # Default False so it cannot silently change artifacts produced before it existed.
     deterministic: bool = False
+    # Region (multi-vector) representation. 0 = off, i.e. the usual pooled embedding.
+    # >0 replaces avgpool with a grid x grid pool and embeds each region separately,
+    # so an image is a SET of descriptors scored by a soft max over regions.
+    region_grid: int = Field(default=0, ge=0)
+    region_tau: float = Field(default=0.1, gt=0.0)
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -2375,6 +2381,35 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
+def _region_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            "the region_proxy_anchor objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    if config.region_grid <= 0:
+        raise ValueError("the region_proxy_anchor objective requires region_grid > 0")
+    similarity = _region_proxy_similarity(
+        embeddings,
+        proxy_embeddings,
+        config=config,
+        torch_module=torch_module,
+    )
+    return _proxy_anchor_loss_from_similarity(
+        similarity,
+        labels,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+
+
 def _proxy_anchor_group_objective_loss(**kwargs: Any) -> Any:
     objective = kwargs["objective"]
     embeddings = kwargs["embeddings"]
@@ -2803,6 +2838,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_supcon_xbm_radius": _group_supcon_xbm_radius_objective_loss,
     "pfml": _pfml_objective_loss,
     "proxy_anchor": _proxy_anchor_objective_loss,
+    "region_proxy_anchor": _region_proxy_anchor_objective_loss,
     "proxy_anchor_group": _proxy_anchor_group_objective_loss,
     "proxy_anchor_synthesis": _proxy_anchor_synthesis_objective_loss,
     "proxy_anchor_bgsi": _proxy_anchor_bgsi_objective_loss,
@@ -2904,6 +2940,7 @@ def _objective_display_name(objective: str) -> str:
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
         "hist_sinkhorn": "HIST + Sinkhorn hyperedge coupling",
+        "region_proxy_anchor": "Region Proxy Anchor (multi-vector)",
         "local_nca": "Local NCA (non-collapsing)",
         "hist_memory": "HIST + persistent (stigmergic) hypergraph",
         "hist_proxy_anchor": "HIST + Proxy Anchor (fused)",
@@ -3937,9 +3974,35 @@ def _proxy_anchor_loss(
     proxies = _normalize(proxy_embeddings, torch_module)
     normalized_embeddings = _normalize(embeddings, torch_module)
     similarities = normalized_embeddings @ proxies.T
+    return _proxy_anchor_loss_from_similarity(
+        similarities,
+        labels,
+        proxy_labels=proxy_labels,
+        alpha=alpha,
+        delta=delta,
+        torch_module=torch_module,
+    )
+
+
+def _proxy_anchor_loss_from_similarity(
+    similarities: Any,
+    labels: Any,
+    *,
+    proxy_labels: Any,
+    alpha: float,
+    delta: float,
+    torch_module: Any,
+) -> Any:
+    """Proxy Anchor over a PRECOMPUTED sample-to-proxy similarity matrix.
+
+    Factored out so an alternative similarity -- e.g. the soft max over image regions
+    used by `region_proxy_anchor` -- can reuse the identical objective. The arithmetic
+    is unchanged from the original in-line version, so `_proxy_anchor_loss` still
+    produces bit-identical results.
+    """
     positive_mask = labels[:, None].eq(proxy_labels[None, :])
 
-    positive_term = embeddings.sum() * 0.0
+    positive_term = similarities.sum() * 0.0
     with_positive = positive_mask.any(dim=0)
     if bool(with_positive.any()):
         pos_logits = (-float(alpha) * (similarities - float(delta))).masked_fill(
@@ -3950,7 +4013,7 @@ def _proxy_anchor_loss(
             torch_module.logsumexp(pos_logits[:, with_positive], dim=0)
         ).mean()
 
-    negative_term = embeddings.sum() * 0.0
+    negative_term = similarities.sum() * 0.0
     negative_mask = ~positive_mask
     with_negative = negative_mask.any(dim=0)
     if bool(with_negative.any()):
@@ -5560,7 +5623,14 @@ def _set_resnet_output_layer(
 ) -> None:
     if config.head_pooling == "avg_max" and hasattr(model, "avgpool"):
         model.avgpool = _avg_max_pooling_layer(torch_module)
-    if use_embedding_head:
+    if use_embedding_head and config.region_grid > 0:
+        in_features = int(model.fc.in_features)
+        if hasattr(model, "avgpool"):
+            model.avgpool = torch_module.nn.AdaptiveAvgPool2d(
+                (config.region_grid, config.region_grid)
+            )
+        model.fc = _region_embedding_head(in_features, config, torch_module)
+    elif use_embedding_head:
         in_features = int(model.fc.in_features)
         head = torch_module.nn.Linear(in_features, config.embedding_dimensions)
         if config.embedding_head_init == "kaiming_normal":
@@ -5578,6 +5648,79 @@ def _set_resnet_output_layer(
             model.fc = head
     else:
         model.fc = torch_module.nn.Identity()
+
+
+def _region_embedding_head(
+    in_features: int,
+    config: ImageEndToEndConfig,
+    torch_module: Any,
+) -> Any:
+    """Embed each spatial region separately instead of pooling first.
+
+    A standard DML ResNet is `backbone -> avgpool -> fc`, which destroys spatial
+    structure before the embedding is ever formed. This replaces `avgpool` with a
+    g x g adaptive pool and applies the SAME `fc` at every location, returning the
+    regions concatenated as one flat vector.
+
+    Flattening matters for a boring but important reason: every downstream component
+    in this file -- the cross-batch memory, the checkpoint selector, the retrieval
+    scorer, the .npz writers -- assumes embeddings are a 2-D (batch, dim) tensor.
+    Emitting (batch, g*g*dim) keeps all of it working unchanged, and the loss and the
+    offline MaxSim evaluator reshape back to (batch, g*g, dim) when they need regions.
+    """
+    grid = int(config.region_grid)
+    embedding_dimensions = int(config.embedding_dimensions)
+
+    class RegionHead(torch_module.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.projection = torch_module.nn.Linear(in_features, embedding_dimensions)
+            if config.embedding_head_init == "kaiming_normal":
+                torch_module.nn.init.kaiming_normal_(self.projection.weight, mode="fan_out")
+                if self.projection.bias is not None:
+                    torch_module.nn.init.zeros_(self.projection.bias)
+
+        def forward(self, flat: Any) -> Any:
+            batch = flat.shape[0]
+            regions = flat.reshape(batch, in_features, grid * grid).transpose(1, 2)
+            return self.projection(regions).reshape(batch, grid * grid * embedding_dimensions)
+
+    return RegionHead()
+
+
+def _as_regions(embeddings: Any, config: ImageEndToEndConfig, torch_module: Any) -> Any:
+    """(batch, g*g*dim) -> (batch, g*g, dim), each region unit-normalised."""
+    grid = int(config.region_grid)
+    tokens = grid * grid
+    regions = embeddings.reshape(int(embeddings.shape[0]), tokens, -1)
+    return torch_module.nn.functional.normalize(regions, p=2, dim=-1)
+
+
+def _region_proxy_similarity(
+    embeddings: Any,
+    proxy_embeddings: Any,
+    *,
+    config: ImageEndToEndConfig,
+    torch_module: Any,
+) -> Any:
+    """Soft-max over regions of each region's similarity to each class proxy.
+
+    An image belongs to a fine-grained class because SOME region of it does -- a
+    wing-bar, a headlight shape -- not because its spatial average does. Global pooling
+    averages that evidence away, which is the mechanism this repo measured as antihubs:
+    5-8% of CUB test images sit in nobody's top-10 and fail their own retrieval by
+    21 points.
+
+    So the image-to-class score is a maximum over regions, smoothed by `logsumexp` at
+    temperature `region_tau` rather than a hard `max`, which keeps it differentiable
+    everywhere and partition-function normalised -- the property this repo found every
+    stable objective needs.  region_tau -> 0 recovers the hard max.
+    """
+    regions = _as_regions(embeddings, config, torch_module)  # (B, T, D)
+    proxies = _normalize(proxy_embeddings, torch_module)  # (C, D)
+    per_region = regions @ proxies.T  # (B, T, C)
+    tau = float(config.region_tau)
+    return tau * torch_module.logsumexp(per_region / tau, dim=1)  # (B, C)
 
 
 def _avg_max_pooling_layer(torch_module: Any) -> Any:

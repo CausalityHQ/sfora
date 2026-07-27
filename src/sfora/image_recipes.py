@@ -41,6 +41,7 @@ DerivedMethod = Literal[
     "herd_hg_prototype",
     "hist_mem",
     "local_nca",
+    "region_pa",
 ]
 
 # Base loss each derived method attaches to.
@@ -59,6 +60,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "herd_hg_prototype": "hist",
     "hist_mem": "hist",
     "local_nca": "hist",
+    "region_pa": "proxy_anchor",
 }
 
 # Shared distillation delta.
@@ -404,6 +406,20 @@ _LOCAL_NCA_DELTA: dict[str, Any] = {
 }
 
 
+# Region Proxy Anchor: represent an image as a SET of spatial descriptors and score
+# it against a class proxy by a soft maximum over regions, rather than pooling first.
+# Motivated by this repo's antihub measurement - 5-8% of CUB test images are in
+# nobody's top-10 and fail their own retrieval by 21 pt - on the hypothesis that
+# global pooling averages away the one locally-discriminative region that separates
+# two fine-grained classes. Everything else is the untouched official Proxy Anchor
+# recipe, so the comparison isolates the representation change.
+_REGION_PA_DELTA: dict[str, Any] = {
+    "objectives": ("region_proxy_anchor",),
+    "region_grid": 3,
+    "region_tau": 0.1,
+}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -413,6 +429,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method == "region_pa":
+        delta = dict(_REGION_PA_DELTA)
     elif method == "local_nca":
         delta = dict(_LOCAL_NCA_DELTA)
     elif method == "hist_mem":

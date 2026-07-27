@@ -897,6 +897,62 @@ def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
     assert torch.allclose(incidence_before, incidence_after, atol=1e-9)
 
 
+def test_region_similarity_is_driven_by_the_best_region_not_the_average() -> None:
+    """The whole point of the multi-vector representation.
+
+    An image belongs to a fine-grained class because SOME region of it does - a
+    wing-bar, a headlight - not because its spatial average does. Global pooling
+    averages that evidence away, which is the measured antihub mechanism here.
+
+    Construct an image where ONE region matches a class proxy and the rest are
+    orthogonal noise. The pooled representation dilutes the match by the number of
+    regions; the region score must not.
+    """
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _region_proxy_similarity
+
+    grid, dimensions = 3, 4
+    tokens = grid * grid
+    proxy = torch.zeros(1, dimensions)
+    proxy[0, 0] = 1.0
+
+    regions = torch.zeros(1, tokens, dimensions)
+    regions[0, 0, 0] = 1.0  # one region matches the proxy exactly
+    regions[0, 1:, 1] = 1.0  # the rest are orthogonal to it
+    config = ImageEndToEndConfig(region_grid=grid, region_tau=0.02, embedding_dimensions=dimensions)
+
+    region_score = _region_proxy_similarity(
+        regions.reshape(1, tokens * dimensions), proxy, config=config, torch_module=torch
+    )
+    pooled = torch.nn.functional.normalize(regions.mean(dim=1), dim=-1)
+    pooled_score = pooled @ torch.nn.functional.normalize(proxy, dim=-1).T
+
+    # The single matching region should carry the score; the average should not.
+    assert float(region_score[0, 0]) > 0.9
+    assert float(pooled_score[0, 0]) < 0.4
+    assert float(region_score[0, 0]) > 2 * float(pooled_score[0, 0])
+
+
+def test_region_head_emits_flat_embeddings_the_rest_of_the_pipeline_can_consume() -> None:
+    """Regions are returned concatenated because the memory queue, checkpoint selector,
+    retrieval scorer and .npz writers all assume a 2-D (batch, dim) tensor. The loss
+    and the offline MaxSim evaluator reshape back."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _as_regions, _region_embedding_head
+
+    grid, dimensions, in_features = 3, 8, 16
+    config = ImageEndToEndConfig(region_grid=grid, embedding_dimensions=dimensions)
+    head = _region_embedding_head(in_features, config, torch)
+
+    flat = head(torch.randn(5, in_features * grid * grid))
+    assert flat.shape == (5, grid * grid * dimensions)
+
+    regions = _as_regions(flat, config, torch)
+    assert regions.shape == (5, grid * grid, dimensions)
+    norms = regions.norm(dim=-1)
+    assert torch.allclose(norms, torch.ones_like(norms), atol=1e-5)
+
+
 def test_deterministic_flag_configures_the_backend() -> None:
     """The 1.08 pt fixed-seed spread this project measured is GPU nondeterminism, and
     it is eliminable. Verify the switch actually reaches the backend rather than being
