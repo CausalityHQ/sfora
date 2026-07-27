@@ -39,6 +39,7 @@ DerivedMethod = Literal[
     "hist_ipc4",
     "hist_shot_geo_ipc4",
     "herd_hg_prototype",
+    "hist_mem",
 ]
 
 # Base loss each derived method attaches to.
@@ -55,6 +56,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "hist_ipc4": "hist",
     "hist_shot_geo_ipc4": "hist",
     "herd_hg_prototype": "hist",
+    "hist_mem": "hist",
 }
 
 # Shared distillation delta.
@@ -369,6 +371,21 @@ _SHOT_DELTA: dict[str, Any] = {
 _IPC4_DELTA: dict[str, Any] = {"samples_per_class": 4}
 
 
+# Persistent ("stigmergic") hypergraph. A rolling memory of recent embeddings joins
+# the live batch as CONTEXT when building the incidence and propagation operator, so
+# hyperedges accumulate many members while the loss stays on the live rows only.
+# Measured motivation: a CUB batch of 32 holds ~27 classes with one or two samples
+# each, so almost every hyperedge has a single true member and HIST's higher-order
+# structure degenerates. Balanced sampling fixes that by spending class diversity and
+# fails badly (hist_ipc4, -2.74 pt); this spends staleness instead, the same trade
+# cross-batch memory already makes successfully here.
+_MEMORY_DELTA: dict[str, Any] = {
+    "objectives": ("hist_memory",),
+    "hist_memory_size": 1024,
+    "hist_memory_start_step": 200,
+}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -378,6 +395,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method == "hist_mem":
+        delta = dict(_MEMORY_DELTA)
     elif method == "hist_ipc4":
         delta = dict(_IPC4_DELTA)
     elif method == "hist_shot_geo_ipc4":

@@ -23,6 +23,7 @@ from sfora.image_end_to_end import (
     _freeze_batch_norm_layers,
     _hist_hypergraph_targets,
     _hist_loss,
+    _hist_memory_loss,
     _hist_sinkhorn_loss,
     _hypergraph_distillation_loss,
     _optimizer_parameter_groups,
@@ -306,6 +307,62 @@ def _hist_fixture(torch: Any, *, nb_classes: int = 4, dim: int = 6, batch: int =
     labels = torch.tensor([i % nb_classes for i in range(batch)])
     label_to_index = {i: i for i in range(nb_classes)}
     return module, embeddings, labels, label_to_index
+
+
+def test_persistent_hypergraph_reduces_to_hist_without_memory() -> None:
+    """With no memory the persistent hypergraph must equal plain HIST exactly, so any
+    measured difference is attributable to the accumulated context alone."""
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    module.eval()
+    shared = {
+        "hist_module": module,
+        "label_to_index": label_to_index,
+        "tau": 32.0,
+        "alpha": 1.1,
+        "lambda_s": 1.0,
+        "var_floor": 0.0,
+        "torch_module": torch,
+    }
+
+    baseline = _hist_loss(embeddings, labels, **shared)
+    no_memory = _hist_memory_loss(
+        embeddings, labels, memory_embeddings=None, memory_labels=None, **shared
+    )
+
+    assert torch.allclose(baseline, no_memory, atol=1e-6)
+
+
+def test_persistent_hypergraph_supervises_only_live_rows() -> None:
+    """Memory entries must shape the graph without being re-fitted or receiving
+    gradient: adding memory changes the loss, and gradient reaches only the live batch.
+    """
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    module.eval()
+    live = embeddings.clone().requires_grad_(True)
+    memory = torch.randn(40, embeddings.shape[1])
+    memory_labels = torch.tensor([i % 4 for i in range(40)])
+    shared = {
+        "hist_module": module,
+        "label_to_index": label_to_index,
+        "tau": 32.0,
+        "alpha": 1.1,
+        "lambda_s": 1.0,
+        "var_floor": 0.0,
+        "torch_module": torch,
+    }
+
+    without = _hist_memory_loss(live, labels, memory_embeddings=None, memory_labels=None, **shared)
+    with_memory = _hist_memory_loss(
+        live, labels, memory_embeddings=memory, memory_labels=memory_labels, **shared
+    )
+    assert not torch.allclose(without, with_memory, atol=1e-6)
+
+    with_memory.backward()
+    assert live.grad is not None
+    assert live.grad.abs().sum() > 0
+    assert memory.grad is None  # context only, never fitted
 
 
 def test_sinkhorn_coupling_attains_its_marginals() -> None:

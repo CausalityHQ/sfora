@@ -55,6 +55,7 @@ EndToEndObjective = Literal[
     "bio_physical_bond",
     "hist",
     "hist_sinkhorn",
+    "hist_memory",
     "hist_proxy_anchor",
     "proxy_anchor_gsi",
     "proxy_anchor_bgsi",
@@ -232,6 +233,11 @@ class ImageEndToEndConfig(BaseModel):
     # keeps the true-class cost, making the coupling a genuine geometry-driven soft
     # assignment whose only label information enters through the marginals.
     hist_sinkhorn_cost: Literal["hist_incidence", "geometric"] = "hist_incidence"
+    # Persistent-hypergraph memory for the `hist_memory` objective. 0 = off.
+    # Buys multi-member hyperedges without spending per-batch class diversity, which
+    # is the resource balanced sampling (hist_ipc4, -2.74 pt) spent by mistake.
+    hist_memory_size: int = Field(default=0, ge=0)
+    hist_memory_start_step: int = Field(default=0, ge=0)
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -738,7 +744,9 @@ def run_image_end_to_end_benchmark(
                     parameter.requires_grad_(False)
             loss_generator = torch.Generator(device=device)
             loss_generator.manual_seed(config.seed)
-            memory = _XbmMemory(config.xbm_memory_size)
+            # The persistent hypergraph reuses the cross-batch memory, so size it for
+            # whichever consumer asked for more.
+            memory = _XbmMemory(max(config.xbm_memory_size, config.hist_memory_size))
             mead_label_to_index: dict[int, int] | None = None
             mead_prototypes: Any | None = None
             mead_center: Any | None = None
@@ -1025,7 +1033,12 @@ def run_image_end_to_end_benchmark(
                         momentum=config.ema_momentum,
                         ema_buffers=config.ema_teacher_ema_buffers,
                     )
-                if step >= config.xbm_start_step:
+                enqueue_from = (
+                    min(config.xbm_start_step, config.hist_memory_start_step)
+                    if config.hist_memory_size > 0
+                    else config.xbm_start_step
+                )
+                if step >= enqueue_from:
                     memory.enqueue(memory_embeddings_to_enqueue.detach(), labels.detach())
                 history.append(float(loss.detach().cpu()))
                 if scheduler is not None and step % steps_per_epoch == 0:
@@ -2036,6 +2049,32 @@ def _hist_objective_loss(**kwargs: Any) -> Any:
     return hist_loss
 
 
+def _hist_memory_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    hist_module = kwargs["hist_module"]
+    hist_label_to_index = kwargs["hist_label_to_index"]
+    if hist_module is None or hist_label_to_index is None:
+        raise ValueError("the hist_memory objective requires an attached hist_module")
+    step = int(kwargs.get("step") or 0)
+    active = step > config.hist_memory_start_step
+    return _hist_memory_loss(
+        embeddings,
+        labels,
+        hist_module=hist_module,
+        label_to_index=hist_label_to_index,
+        tau=config.hist_tau,
+        alpha=config.hist_alpha,
+        lambda_s=config.hist_lambda_s,
+        var_floor=config.hist_var_floor,
+        memory_embeddings=kwargs.get("memory_embeddings") if active else None,
+        memory_labels=kwargs.get("memory_labels") if active else None,
+        torch_module=torch_module,
+    )
+
+
 def _hist_sinkhorn_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -2664,6 +2703,7 @@ def _group_potential_objective_loss(**kwargs: Any) -> Any:
 _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "hist": _hist_objective_loss,
     "hist_sinkhorn": _hist_sinkhorn_objective_loss,
+    "hist_memory": _hist_memory_objective_loss,
     "hist_proxy_anchor": _hist_proxy_anchor_objective_loss,
     "triplet": _triplet_objective_loss,
     "triplet_pretrained": _triplet_objective_loss,
@@ -2774,6 +2814,7 @@ def _objective_display_name(objective: str) -> str:
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
         "hist_sinkhorn": "HIST + Sinkhorn hyperedge coupling",
+        "hist_memory": "HIST + persistent (stigmergic) hypergraph",
         "hist_proxy_anchor": "HIST + Proxy Anchor (fused)",
         "proxy_anchor_gsi": "Proxy Anchor + GSI",
         "proxy_anchor_bgsi": "Proxy Anchor + BGSI",
@@ -3279,6 +3320,97 @@ def _hist_loss(
     hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
     logits = propagate @ hist_module.theta2(hidden_state)  # (N, C)
     ce_loss = functional.cross_entropy(logits, target)
+    return dist_loss + float(lambda_s) * ce_loss
+
+
+def _hist_memory_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    hist_module: Any,
+    label_to_index: dict[int, int],
+    tau: float,
+    alpha: float,
+    lambda_s: float,
+    var_floor: float,
+    memory_embeddings: Any | None,
+    memory_labels: Any | None,
+    torch_module: Any,
+) -> Any:
+    """HIST over a hypergraph that PERSISTS across batches.
+
+    Motivation, measured rather than assumed. CUB has 5,864 training images over 100
+    classes, so a random batch of 32 (HIST's official batch size, with `--IPC 0`)
+    contains roughly 27 distinct classes holding **one or two samples each**. Almost
+    every hyperedge therefore has a single true member, and HIST's "higher-order"
+    structure degenerates into per-sample soft label propagation. The hypergraph is
+    also rebuilt from scratch every step and immediately discarded, so no genuinely
+    multi-member structure ever forms.
+
+    The obvious fix -- balanced sampling -- was tried and **failed badly**
+    (`hist_ipc4`, 0.6909 vs 0.7183, −2.74 pt). That failure is informative: IPC=4 buys
+    members by *spending class diversity*, collapsing a batch from ~27 distinct
+    hyperedges to 8. It trades the wrong resource.
+
+    This buys members without spending diversity. A rolling memory of recent
+    embeddings is concatenated with the live batch purely as **context**: the
+    incidence, degrees and propagation operator are all computed over
+    `[batch; memory]`, so a hyperedge accumulates many members, while the loss is
+    still taken only on the live batch rows. Memory entries are detached, so they
+    shape the hypergraph without receiving gradient.
+
+    The biological reading is stigmergy: structure accumulated in the shared
+    environment, persisting beyond any individual interaction and steering later ones
+    — as opposed to structure carried inside a single agent. The cost is staleness,
+    the same trade cross-batch memory (XBM) already makes successfully in this
+    codebase, which is why a start-step warmup exists.
+    """
+    functional = torch_module.nn.functional
+    device = embeddings.device
+    live_count = int(embeddings.shape[0])
+
+    features = functional.normalize(embeddings, p=2, dim=-1)
+    all_labels = labels
+    if memory_embeddings is not None and memory_labels is not None and memory_labels.numel():
+        memory_features = functional.normalize(memory_embeddings, p=2, dim=-1).detach()
+        features = torch_module.cat([features, memory_features], dim=0)
+        all_labels = torch_module.cat([labels, memory_labels.to(labels.device)], dim=0)
+
+    target_all = torch_module.tensor(
+        [label_to_index[int(label)] for label in all_labels.tolist()],
+        dtype=torch_module.long,
+        device=device,
+    )
+    target = target_all[:live_count]
+
+    nb_classes = int(hist_module.means.shape[0])
+    means = functional.normalize(hist_module.means, p=2, dim=-1)
+    log_vars = hist_module.log_vars.clamp(float(var_floor), 6.0)
+    covariances = torch_module.exp(log_vars).unsqueeze(0)
+    diff = features.unsqueeze(1) - means.unsqueeze(0)
+    distance = (diff.pow(2) / covariances).sum(dim=-1)  # (N+M, C)
+
+    # Distribution loss stays on the LIVE batch only -- memory must not be re-fitted.
+    dist_loss = functional.cross_entropy(-float(tau) * distance[:live_count], target)
+
+    one_hot = functional.one_hot(target_all, nb_classes).to(features.dtype)
+    class_within = torch_module.nonzero(one_hot.sum(dim=0) != 0, as_tuple=False).squeeze(dim=1)
+    exp_term = torch_module.exp(-float(alpha) * distance[:, class_within])
+    incidence = one_hot[:, class_within] + exp_term * (1.0 - one_hot[:, class_within])
+
+    edge_weight = torch_module.ones(incidence.shape[1], device=device, dtype=features.dtype)
+    node_degree = (incidence * edge_weight).sum(dim=1).clamp_min(1.0e-12)
+    edge_degree = incidence.sum(dim=0).clamp_min(1.0e-12)
+    inv_node = torch_module.diag(node_degree.pow(-0.5))
+    inv_edge = torch_module.diag(edge_degree.pow(-1.0))
+    weight = torch_module.diag(edge_weight)
+    propagate = inv_node @ incidence @ weight @ inv_edge @ incidence.T @ inv_node
+
+    hidden_state = propagate @ hist_module.theta1(features)
+    hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
+    logits = propagate @ hist_module.theta2(hidden_state)
+    # Supervise only the live rows; memory rows were context for building the graph.
+    ce_loss = functional.cross_entropy(logits[:live_count], target)
     return dist_loss + float(lambda_s) * ce_loss
 
 
