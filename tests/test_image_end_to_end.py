@@ -452,7 +452,7 @@ def test_hypergraph_targets_match_hist_loss_internals() -> None:
     module, embeddings, labels, label_to_index = _hist_fixture(torch)
     alpha, tau, var_floor = 1.1, 32.0, 0.0
 
-    _incidence_logits, hgnn_logits = _hist_hypergraph_targets(
+    _incidence_logits, hgnn_logits, _prototype_logits = _hist_hypergraph_targets(
         embeddings,
         labels,
         hist_module=module,
@@ -530,6 +530,31 @@ def test_hypergraph_distillation_is_zero_for_an_identical_teacher() -> None:
     assert torch.allclose(loss, entropy, atol=1e-5)
 
 
+def test_full_catalogue_prototype_target_covers_every_class() -> None:
+    """`prototype_full` extends the target that actually beat HIST (`incidence`) from
+    the classes present in the batch to the whole prototype catalogue. The class
+    Gaussians exist for every class regardless of batch content, so this costs nothing
+    and carries strictly more dark knowledge."""
+    torch: Any = pytest.importorskip("torch")
+    nb_classes = 6
+    module, embeddings, labels, label_to_index = _hist_fixture(torch, nb_classes=nb_classes)
+    # Only 4 of the 6 classes appear in this batch.
+    labels = torch.tensor([i % 4 for i in range(embeddings.shape[0])])
+
+    incidence_logits, _hgnn, prototype_logits = _hist_hypergraph_targets(
+        embeddings,
+        labels,
+        hist_module=module,
+        label_to_index=label_to_index,
+        alpha=1.1,
+        var_floor=0.0,
+        torch_module=torch,
+    )
+
+    assert incidence_logits.shape[1] == 4  # only in-batch hyperedges
+    assert prototype_logits.shape[1] == nb_classes  # every class
+
+
 def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
     """Pins WHICH target actually carries the novelty claim, and which does not.
 
@@ -548,7 +573,7 @@ def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
     module, embeddings, labels, label_to_index = _hist_fixture(torch)
 
     def targets_for(batch_embeddings: Any) -> tuple[Any, Any]:
-        incidence_logits, hgnn_logits = _hist_hypergraph_targets(
+        incidence_logits, hgnn_logits, _prototype = _hist_hypergraph_targets(
             batch_embeddings,
             labels,
             hist_module=module,

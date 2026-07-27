@@ -179,7 +179,7 @@ class ImageEndToEndConfig(BaseModel):
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
     hypergraph_distill_weight: float = Field(default=0.0, ge=0.0)
-    hypergraph_distill_target: Literal["hgnn_logits", "incidence"] = "hgnn_logits"
+    hypergraph_distill_target: Literal["hgnn_logits", "incidence", "prototype_full"] = "hgnn_logits"
     hypergraph_distill_tau_teacher: float = Field(default=0.5, gt=0.0)
     hypergraph_distill_tau_student: float = Field(default=1.0, gt=0.0)
     # Multi-crop EMA assignment distillation. Weight 0 = off.
@@ -3435,8 +3435,8 @@ def _hist_hypergraph_targets(
     alpha: float,
     var_floor: float,
     torch_module: Any,
-) -> tuple[Any, Any]:
-    """Recompute HIST's hyperedge incidence and propagated HGNN logits for one model.
+) -> tuple[Any, Any, Any]:
+    """Recompute HIST's incidence, propagated HGNN logits and prototype affinities.
 
     Returns ``(incidence_logits, hgnn_logits)``:
 
@@ -3482,7 +3482,16 @@ def _hist_hypergraph_targets(
     hidden_state = propagate @ hist_module.theta1(features)
     hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
     hgnn_logits = propagate @ hist_module.theta2(hidden_state)  # (N, C)
-    return torch_module.log(incidence.clamp_min(1.0e-12)), hgnn_logits
+    # Full-catalogue prototype affinity: the same Mahalanobis dark knowledge as
+    # `incidence`, but over EVERY class rather than only those present in the batch.
+    # `hist_module.means`/`log_vars` cover all classes regardless of batch content, so
+    # this costs nothing extra and carries strictly more information.
+    prototype_logits = -float(alpha) * distance  # (N, C)
+    return (
+        torch_module.log(incidence.clamp_min(1.0e-12)),
+        hgnn_logits,
+        prototype_logits,
+    )
 
 
 def _hypergraph_distillation_loss(
@@ -3537,7 +3546,7 @@ def _hypergraph_distillation_loss(
     """
     functional = torch_module.nn.functional
     with torch_module.no_grad():
-        teacher_incidence, teacher_hgnn = _hist_hypergraph_targets(
+        teacher_incidence, teacher_hgnn, teacher_prototype = _hist_hypergraph_targets(
             teacher_embeddings,
             labels,
             hist_module=teacher_hist_module,
@@ -3546,7 +3555,7 @@ def _hypergraph_distillation_loss(
             var_floor=var_floor,
             torch_module=torch_module,
         )
-    student_incidence, student_hgnn = _hist_hypergraph_targets(
+    student_incidence, student_hgnn, student_prototype = _hist_hypergraph_targets(
         student_embeddings,
         labels,
         hist_module=hist_module,
@@ -3557,6 +3566,8 @@ def _hypergraph_distillation_loss(
     )
     if distill_target == "incidence":
         teacher_logits, student_logits = teacher_incidence, student_incidence
+    elif distill_target == "prototype_full":
+        teacher_logits, student_logits = teacher_prototype, student_prototype
     elif distill_target == "hgnn_logits":
         teacher_logits, student_logits = teacher_hgnn, student_hgnn
     else:  # pragma: no cover - guarded by the config Literal
