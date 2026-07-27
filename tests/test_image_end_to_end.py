@@ -26,10 +26,12 @@ from sfora.image_end_to_end import (
     _hist_memory_loss,
     _hist_sinkhorn_loss,
     _hypergraph_distillation_loss,
+    _local_nca_loss,
     _optimizer_parameter_groups,
     _resolve_training_schedule,
     _should_step_scheduler,
     _sinkhorn_log_coupling,
+    _supervised_contrastive_loss,
     _update_ema_teacher,
     config_for_protocol,
     run_image_end_to_end_benchmark,
@@ -307,6 +309,136 @@ def _hist_fixture(torch: Any, *, nb_classes: int = 4, dim: int = 6, batch: int =
     labels = torch.tensor([i % nb_classes for i in range(batch)])
     label_to_index = {i: i for i in range(nb_classes)}
     return module, embeddings, labels, label_to_index
+
+
+def _two_positive_batch(torch: Any) -> tuple[Any, Any]:
+    """Anchor with one NEAR and one FAR same-class positive, plus two negatives.
+
+    The far positive is the thing at stake: a collapsing objective drags it in, a
+    structure-preserving one leaves it alone once the near positive already wins.
+    """
+    anchor = torch.tensor([1.0, 0.0, 0.0])
+    near_positive = torch.tensor([0.98, 0.20, 0.0])
+    far_positive = torch.tensor([0.0, 0.0, 1.0])  # same class, very different pose
+    negative_a = torch.tensor([0.70, 0.71, 0.0])
+    negative_b = torch.tensor([0.60, 0.0, 0.80])
+    embeddings = torch.stack([anchor, near_positive, far_positive, negative_a, negative_b])
+    embeddings = embeddings / embeddings.norm(dim=1, keepdim=True)
+    labels = torch.tensor([0, 0, 0, 1, 2])
+    return embeddings.requires_grad_(True), labels
+
+
+def test_local_nca_does_not_drag_in_a_distant_same_class_sample() -> None:
+    """The core claim, made checkable.
+
+    SupCon's L_out puts the positive sum OUTSIDE the log, so it is minimised only when
+    EVERY positive is close -- it collapses the class. Local NCA's L_in puts the sum
+    INSIDE the log, so it is satisfied once *some* genuine positive outranks the
+    negatives, and a legitimately distant same-class sample is left where it is.
+
+    Both losses see identical inputs; only the objective differs.
+    """
+    torch: Any = pytest.importorskip("torch")
+
+    def far_positive_pull(loss_fn: Any) -> float:
+        embeddings, labels = _two_positive_batch(torch)
+        # Score ONLY the first row as anchor. If every row is also an anchor, row 2's
+        # gradient mixes its role as a distant positive with its own anchor term and
+        # the comparison measures nothing.
+        loss = loss_fn(embeddings[:1], labels[:1], embeddings, labels)
+        loss.backward()
+        assert embeddings.grad is not None
+        # Gradient magnitude on the FAR positive (row 2).
+        return float(embeddings.grad[2].norm())
+
+    collapsing = far_positive_pull(
+        lambda a, ay, c, cy: _supervised_contrastive_loss(
+            a,
+            ay,
+            contrast_embeddings=c,
+            contrast_labels=cy,
+            temperature=0.1,
+            torch_module=torch,
+            exclude_self=True,
+        )
+    )
+    preserving = far_positive_pull(
+        lambda a, ay, c, cy: _local_nca_loss(
+            a,
+            ay,
+            contrast_embeddings=c,
+            contrast_labels=cy,
+            temperature=0.1,
+            negatives_k=2,
+            torch_module=torch,
+        )
+    )
+
+    assert preserving < collapsing, (
+        f"local NCA should exert less pull on a distant positive than SupCon "
+        f"({preserving:.6f} vs {collapsing:.6f})"
+    )
+    # Not marginal: the distant positive should be left essentially untouched, while
+    # SupCon drags it in hard. Measured ~0.00004 vs ~5.0.
+    assert preserving < 0.01 * collapsing
+
+
+def test_local_nca_still_separates_a_rank_inversion() -> None:
+    """Non-collapsing must not mean permissive: when a cross-class instance actually
+    outranks every same-class one, the loss must be large and push back."""
+    torch: Any = pytest.importorskip("torch")
+    anchor = torch.tensor([1.0, 0.0, 0.0])
+    positive = torch.tensor([0.0, 1.0, 0.0])  # same class but far
+    intruder = torch.tensor([0.99, 0.14, 0.0])  # different class, nearer than positive
+    embeddings = torch.stack([anchor, positive, intruder])
+    embeddings = embeddings / embeddings.norm(dim=1, keepdim=True)
+    labels = torch.tensor([0, 0, 1])
+    inverted = _local_nca_loss(
+        embeddings,
+        labels,
+        contrast_embeddings=embeddings,
+        contrast_labels=labels,
+        temperature=0.1,
+        negatives_k=1,
+        torch_module=torch,
+    )
+
+    # Same geometry, but now the same-class sample is the nearest one.
+    fixed = torch.stack([anchor, intruder, positive])
+    fixed = fixed / fixed.norm(dim=1, keepdim=True)
+    ordered = _local_nca_loss(
+        fixed,
+        labels,
+        contrast_embeddings=fixed,
+        contrast_labels=labels,
+        temperature=0.1,
+        negatives_k=1,
+        torch_module=torch,
+    )
+
+    assert inverted > ordered
+    assert float(inverted) > 1.0  # a real inversion is expensive
+
+
+def test_local_nca_skips_anchors_with_no_positive() -> None:
+    """With unbalanced CUB batches ~74% of anchors have no same-class partner. Those
+    must be skipped rather than producing NaN or a spurious gradient."""
+    torch: Any = pytest.importorskip("torch")
+    embeddings = torch.eye(4)[:, :3].contiguous().requires_grad_(True)
+    labels = torch.tensor([0, 1, 2, 3])  # every sample a singleton class
+
+    loss = _local_nca_loss(
+        embeddings,
+        labels,
+        contrast_embeddings=embeddings,
+        contrast_labels=labels,
+        temperature=0.1,
+        negatives_k=2,
+        torch_module=torch,
+    )
+
+    assert torch.isfinite(loss)
+    assert float(loss.detach()) == 0.0
 
 
 def test_persistent_hypergraph_reduces_to_hist_without_memory() -> None:

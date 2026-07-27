@@ -38,6 +38,7 @@ EndToEndObjective = Literal[
     "triplet_pretrained",
     "batch_hard_triplet",
     "supcon",
+    "local_nca",
     "group_supcon",
     "group_supcon_xbm_radius",
     "group_potential",
@@ -238,6 +239,12 @@ class ImageEndToEndConfig(BaseModel):
     # is the resource balanced sampling (hist_ipc4, -2.74 pt) spent by mistake.
     hist_memory_size: int = Field(default=0, ge=0)
     hist_memory_start_step: int = Field(default=0, ge=0)
+    # Local NCA: k nearest cross-class instances kept in the denominator, and how
+    # much cross-batch memory to draw positives from (unbalanced CUB batches leave
+    # ~74% of anchors with no same-class partner).
+    local_nca_negatives_k: int = Field(default=16, ge=1)
+    local_nca_memory_size: int = Field(default=0, ge=0)
+    local_nca_start_step: int = Field(default=0, ge=0)
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -746,7 +753,13 @@ def run_image_end_to_end_benchmark(
             loss_generator.manual_seed(config.seed)
             # The persistent hypergraph reuses the cross-batch memory, so size it for
             # whichever consumer asked for more.
-            memory = _XbmMemory(max(config.xbm_memory_size, config.hist_memory_size))
+            memory = _XbmMemory(
+                max(
+                    config.xbm_memory_size,
+                    config.hist_memory_size,
+                    config.local_nca_memory_size,
+                )
+            )
             mead_label_to_index: dict[int, int] | None = None
             mead_prototypes: Any | None = None
             mead_center: Any | None = None
@@ -1033,11 +1046,11 @@ def run_image_end_to_end_benchmark(
                         momentum=config.ema_momentum,
                         ema_buffers=config.ema_teacher_ema_buffers,
                     )
-                enqueue_from = (
-                    min(config.xbm_start_step, config.hist_memory_start_step)
-                    if config.hist_memory_size > 0
-                    else config.xbm_start_step
-                )
+                enqueue_from = config.xbm_start_step
+                if config.hist_memory_size > 0:
+                    enqueue_from = min(enqueue_from, config.hist_memory_start_step)
+                if config.local_nca_memory_size > 0:
+                    enqueue_from = min(enqueue_from, config.local_nca_start_step)
                 if step >= enqueue_from:
                     memory.enqueue(memory_embeddings_to_enqueue.detach(), labels.detach())
                 history.append(float(loss.detach().cpu()))
@@ -2188,6 +2201,38 @@ def _supcon_objective_loss(**kwargs: Any) -> Any:
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
+def _local_nca_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    contrast_embeddings, contrast_labels = embeddings, labels
+    step = int(kwargs.get("step") or 0)
+    memory_embeddings = kwargs.get("memory_embeddings")
+    memory_labels = kwargs.get("memory_labels")
+    if (
+        config.local_nca_memory_size > 0
+        and step > config.local_nca_start_step
+        and memory_embeddings is not None
+        and memory_labels is not None
+        and int(memory_labels.numel()) > 0
+    ):
+        contrast_embeddings = torch_module.cat(
+            [embeddings, _normalize(memory_embeddings, torch_module).detach()], dim=0
+        )
+        contrast_labels = torch_module.cat([labels, memory_labels.to(labels.device)], dim=0)
+    loss = _local_nca_loss(
+        embeddings,
+        labels,
+        contrast_embeddings=contrast_embeddings,
+        contrast_labels=contrast_labels,
+        temperature=config.temperature,
+        negatives_k=config.local_nca_negatives_k,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
 def _group_supcon_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -2704,6 +2749,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "hist": _hist_objective_loss,
     "hist_sinkhorn": _hist_sinkhorn_objective_loss,
     "hist_memory": _hist_memory_objective_loss,
+    "local_nca": _local_nca_objective_loss,
     "hist_proxy_anchor": _hist_proxy_anchor_objective_loss,
     "triplet": _triplet_objective_loss,
     "triplet_pretrained": _triplet_objective_loss,
@@ -2814,6 +2860,7 @@ def _objective_display_name(objective: str) -> str:
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
         "hist_sinkhorn": "HIST + Sinkhorn hyperedge coupling",
+        "local_nca": "Local NCA (non-collapsing)",
         "hist_memory": "HIST + persistent (stigmergic) hypergraph",
         "hist_proxy_anchor": "HIST + Proxy Anchor (fused)",
         "proxy_anchor_gsi": "Proxy Anchor + GSI",
@@ -4809,6 +4856,93 @@ def _gsi_interference_loss_with_diagnostics(
         "active_fraction": float((ratio_tensor > floor).float().mean().detach().cpu()),
     }
     return loss, diagnostics
+
+
+def _local_nca_loss(
+    anchors: Any,
+    anchor_labels: Any,
+    *,
+    contrast_embeddings: Any,
+    contrast_labels: Any,
+    temperature: float,
+    negatives_k: int,
+    torch_module: Any,
+    exclude_self: bool = True,
+) -> Any:
+    """Local Neighbourhood Component Analysis: a NON-COLLAPSING supervised objective.
+
+    The distinction that matters is where the sum over positives sits relative to the
+    log. Supervised contrastive learning and the proxy family use the "L_out" form,
+
+        L_out = -(1/|P|) * sum_{p in P} log( e^{s_ip/T} / sum_a e^{s_ia/T} )
+
+    which is minimised only when EVERY positive is close to the anchor. That is
+    precisely a class-collapse objective: it drives all members of a class onto one
+    point and destroys intra-class structure. Khosla et al. (NeurIPS 2020) compared
+    both forms and chose L_out for classification, where collapsing to class identity
+    is exactly what you want.
+
+    For ZERO-SHOT retrieval the argument inverts: the test classes are unseen, so
+    class identity cannot transfer -- only local similarity structure can. This uses
+    the "L_in" form, which is the original NCA objective (Goldberger, Roweis, Hinton
+    & Salakhutdinov, NeurIPS 2004):
+
+        L_in = -log( sum_{p in P} e^{s_ip/T} / sum_{a in P u H} e^{s_ia/T} )
+
+    Because the positive sum is INSIDE the log, the loss is satisfied as soon as
+    *some* genuine same-class instance outranks the negatives. It never requires a
+    second positive to move, so a class may remain multi-modal, filamentary or
+    "spiky" at no cost. There is no prototype to collapse onto: the attractor is
+    always another real instance.
+
+    Two departures from 2004-era NCA, both load-bearing:
+
+    * ``negatives_k`` restricts the denominator to each anchor's k nearest
+      CROSS-CLASS instances. NCA's O(N^2) all-pairs softmax is what ProxyNCA
+      (Movshovitz-Attias et al., ICCV 2017) replaced with proxies for cost -- trading
+      away exactly the non-collapsing property. Restricting to the k hardest
+      negatives keeps the objective sparse and focuses it on the genuine rank
+      inversions, where a cross-class instance currently outranks a same-class one.
+    * ``contrast_embeddings`` may include the cross-batch memory. This matters more
+      than it sounds: with the reference recipe's unbalanced sampling, a CUB batch of
+      32 drawn from 100 classes leaves ~74% of anchors with NO same-class partner at
+      all, so a batch-only NCA would be undefined for most of them. Balanced sampling
+      would fix that but costs class diversity and measured -2.74 pt here (IPC=4).
+      Memory supplies positives without spending diversity.
+
+    Bounded in [0, log(1 + |H|)] and partition-function normalised, per this repo's
+    documented finding that unnormalised objectives collapse.
+    """
+    logits = anchors @ contrast_embeddings.T / float(temperature)
+    positive_mask = anchor_labels[:, None].eq(contrast_labels[None, :])
+    valid_mask = torch_module.ones_like(positive_mask, dtype=torch_module.bool)
+    if exclude_self:
+        diagonal_count = min(int(anchors.shape[0]), int(contrast_embeddings.shape[0]))
+        diagonal = torch_module.arange(diagonal_count, device=positive_mask.device)
+        valid_mask[diagonal, diagonal] = False
+        positive_mask[diagonal, diagonal] = False
+
+    positives_per_anchor = positive_mask.sum(dim=1)
+    keep = positives_per_anchor > 0
+    if not bool(keep.any()):
+        return anchors.sum() * 0.0
+
+    # Candidate negatives: the k nearest cross-class instances for each anchor.
+    negative_scores = logits.masked_fill(positive_mask | ~valid_mask, -1.0e9)
+    available = int(negative_scores.shape[1])
+    k = max(1, min(int(negatives_k), available))
+    _, hardest = torch_module.topk(negative_scores, k, dim=1)
+    negative_mask = torch_module.zeros_like(positive_mask)
+    negative_mask.scatter_(1, hardest, True)
+    negative_mask = negative_mask & valid_mask & ~positive_mask
+
+    positive_logits = logits.masked_fill(~positive_mask, -1.0e9)
+    candidate_logits = logits.masked_fill(~(positive_mask | negative_mask), -1.0e9)
+    # L_in: the positive sum lives INSIDE the log.
+    log_prob = torch_module.logsumexp(positive_logits, dim=1) - torch_module.logsumexp(
+        candidate_logits, dim=1
+    )
+    return -log_prob[keep].mean()
 
 
 def _supervised_contrastive_loss(

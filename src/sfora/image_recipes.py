@@ -40,6 +40,7 @@ DerivedMethod = Literal[
     "hist_shot_geo_ipc4",
     "herd_hg_prototype",
     "hist_mem",
+    "local_nca",
 ]
 
 # Base loss each derived method attaches to.
@@ -57,6 +58,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "hist_shot_geo_ipc4": "hist",
     "herd_hg_prototype": "hist",
     "hist_mem": "hist",
+    "local_nca": "hist",
 }
 
 # Shared distillation delta.
@@ -386,6 +388,22 @@ _MEMORY_DELTA: dict[str, Any] = {
 }
 
 
+# Local NCA. Replaces the collapsing objective entirely rather than adding a term:
+# the positive sum moves INSIDE the log (the original NCA form), so the loss is
+# satisfied once some genuine same-class instance outranks the k hardest cross-class
+# ones, and a legitimately distant same-class sample is never dragged in. Cross-batch
+# memory supplies positives, because unbalanced CUB batches leave ~74% of anchors
+# without a same-class partner and balanced sampling costs -2.74 pt (hist_ipc4).
+# It borrows only the HIST recipe's optimiser/schedule; the loss itself is unrelated.
+_LOCAL_NCA_DELTA: dict[str, Any] = {
+    "objectives": ("local_nca",),
+    "local_nca_negatives_k": 16,
+    "local_nca_memory_size": 2048,
+    "local_nca_start_step": 200,
+    "temperature": 0.1,
+}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -395,6 +413,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method == "local_nca":
+        delta = dict(_LOCAL_NCA_DELTA)
     elif method == "hist_mem":
         delta = dict(_MEMORY_DELTA)
     elif method == "hist_ipc4":
