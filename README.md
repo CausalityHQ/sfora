@@ -75,7 +75,27 @@ Reproduce it with `scripts/ensemble_eval.py`.
 > only EMA relational distillation. No legacy artifact will be promoted into the
 > reference table.
 
-### Corrected evidence — the distillation currently *hurts*
+### Corrected evidence — CUB under the official recipes
+
+The comparison the headline claim never had (seed 0; screening only):
+
+| arm | R@1 | vs published | vs its base |
+| --- | ---: | ---: | ---: |
+| Proxy Anchor | 0.6825 | reported 0.697 (−1.45) | — |
+| PA + distillation | **0.6916** | — | **+0.91** |
+| HIST | **0.7183** | reported 0.714 (**+0.43**) | — |
+| HERD (HIST + distillation) | 0.7156 | — | **−0.27** |
+
+**The legacy "HERD beats HIST" result was the LayerNorm, not the distillation.**
+The legacy pair was HIST 0.700 (a control run *without* embedding LayerNorm) →
+HERD 0.716, read as +1.6 for distillation. With LayerNorm held constant as
+official HIST specifies, the same comparison is 0.7183 → 0.7156, i.e. **−0.27**.
+The historical gain is fully accounted for by the confound.
+
+HIST reproduces above its published number; Proxy Anchor lands 1.45 points below
+its own. Our best corrected single model on CUB is therefore **plain HIST**.
+
+### Corrected evidence — the distillation also hurts on In-Shop
 
 The only clean, official-recipe, multi-seed, **paired** comparison we own is
 DeepFashion In-Shop. Best-over-training R@1, 3 seeds. Within each base, the plain

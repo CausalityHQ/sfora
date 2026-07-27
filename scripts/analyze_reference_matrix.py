@@ -276,7 +276,13 @@ def main() -> int:
             per_seed = ", ".join(f"{d:+.2f}" for d in deltas)
             p_sign = exact_sign_test_p(deltas)
             t, p_t = paired_t(deltas)
-            verdict = "PASS" if mean >= args.gate and all(d > 0 for d in deltas) else "FAIL"
+            # A single seed cannot pass a gate that is partly about consistency.
+            if len(deltas) < 3:
+                verdict = f"n/a (need >=3 seeds, have {len(deltas)})"
+            elif mean >= args.gate and all(d > 0 for d in deltas):
+                verdict = "PASS"
+            else:
+                verdict = "FAIL"
             print(
                 f"    {derived:<12} vs {base:<13} n={len(deltas)}  "
                 f"per-seed [{per_seed}]  mean {mean:+.3f}  sd {sd:.3f}"

@@ -17,6 +17,49 @@ peak).
 
 The first corrected results have landed, and they are **negative for the method**.
 
+### CUB-200 under the official recipes (seed 0 — single seed, screening only)
+
+The comparison the headline claim never had. Both HIST arms carry official
+LayerNorm; the arms differ only in the declared distillation delta.
+
+| arm | R@1 | vs published | vs its base |
+| --- | ---: | ---: | ---: |
+| Proxy Anchor | 0.6825 | reported 0.697 (**−1.45**) | — |
+| PA + distillation | **0.6916** | — | **+0.91** |
+| HIST | **0.7183** | reported 0.714 (**+0.43**) | — |
+| HERD (HIST + distillation) | 0.7156 | — | **−0.27** |
+
+Three things follow, and the first is the important one.
+
+**1. The legacy "HERD beats HIST" result was the LayerNorm, not the
+distillation.** The legacy pair was HIST 0.700 (control run *without* embedding
+LayerNorm) → HERD 0.716, read as +1.6 for distillation. Corrected, with LayerNorm
+held constant as official HIST specifies: HIST 0.7183 → HERD 0.7156, i.e.
+**−0.27**. The entire historical gain is accounted for by the confound. This is
+the single clearest outcome of the audit so far.
+
+**2. HIST reproduces; Proxy Anchor does not.** HIST lands *above* its published
+number (0.7183 vs 0.714). Proxy Anchor lands 1.45 points below (0.6825 vs 0.697)
+— a reproduction gap to investigate, not a result to quote as a baseline win.
+
+**3. Distillation helps the weaker base and not the stronger one.** On CUB it adds
++0.91 to Proxy Anchor (0.6825, underfitting) and subtracts 0.27 from HIST (0.7183).
+Combined with In-Shop, where it costs both bases, the picture is:
+
+| base | CUB (BatchNorm frozen) | In-Shop (BatchNorm trainable) |
+| --- | ---: | ---: |
+| Proxy Anchor | **+0.91** | −0.41 |
+| HIST | −0.27 | −1.39 |
+
+Two effects appear to be superimposed: a roughly −1.2 pt shift moving from CUB to
+In-Shop for *both* bases (consistent with the BatchNorm teacher/student mismatch,
+or simply with dataset size), and within each dataset a benefit that accrues only
+to the weaker, underfitting base (consistent with a variance-reducing regularizer).
+The queued `_bnfix` runs separate the first effect from the second.
+
+Single seed — CUB seed noise has historically been σ ≈ 0.6 pt, so −0.27 is well
+inside noise while +0.91 is roughly 1.5σ. Neither is a result yet.
+
 **DeepFashion In-Shop**, best-over-training R@1, 3 seeds. Proxy Anchor rows use
 the official `reference` recipe; HIST rows use a frozen `selected_extension`
 (HIST published no In-Shop recipe, so it was selected from SOP using
