@@ -33,10 +33,35 @@ from itertools import product
 from pathlib import Path
 from typing import Literal, cast
 
-BASE_OF: dict[str, str] = {"pa_distill": "proxy_anchor", "herd": "hist"}
-ARM_ORDER = ["proxy_anchor", "pa_distill", "hist", "herd"]
-
 BaseMethodName = Literal["proxy_anchor", "hist"]
+
+# Every arm we know how to score: arm -> (base method, recipe selector).
+# `auto` resolves to the untouched reference recipe, everything else to a derived one.
+ARMS: dict[str, tuple[BaseMethodName, str]] = {
+    "proxy_anchor": ("proxy_anchor", "auto"),
+    "pa_distill": ("proxy_anchor", "pa_distill"),
+    "pa_distill_bnfix": ("proxy_anchor", "pa_distill_bnfix"),
+    "hist": ("hist", "auto"),
+    "herd": ("hist", "herd"),
+    "herd_bnfix": ("hist", "herd_bnfix"),
+    "herd_hg": ("hist", "herd_hg"),
+    "herd_hg_incidence": ("hist", "herd_hg_incidence"),
+    "herd_hg_prototype": ("hist", "herd_hg_prototype"),
+    "hist_shot": ("hist", "hist_shot"),
+    "hist_shot_geometric": ("hist", "hist_shot_geometric"),
+    "hist_shot_uniform": ("hist", "hist_shot_uniform"),
+    "hist_ipc4": ("hist", "hist_ipc4"),
+    "hist_shot_geo_ipc4": ("hist", "hist_shot_geo_ipc4"),
+}
+
+# Which untouched baseline each derived arm is a paired comparison against.
+BASE_OF: dict[str, str] = {
+    arm: ("proxy_anchor" if base == "proxy_anchor" else "hist")
+    for arm, (base, selector) in ARMS.items()
+    if selector != "auto"
+}
+
+ARM_ORDER = list(ARMS)
 
 
 @dataclass(frozen=True)
@@ -60,15 +85,9 @@ def expected_digests() -> dict[tuple[str, str], str]:
     """
     from sfora.image_recipes import RecipeUnavailableError, recipe_digest, resolve_recipe
 
-    wanted: dict[str, tuple[BaseMethodName, str]] = {
-        "proxy_anchor": ("proxy_anchor", "auto"),
-        "pa_distill": ("proxy_anchor", "pa_distill"),
-        "hist": ("hist", "auto"),
-        "herd": ("hist", "herd"),
-    }
     digests: dict[tuple[str, str], str] = {}
     for dataset in ("cub", "cars", "sop", "inshop", "inat2018"):
-        for arm, (base, selector) in wanted.items():
+        for arm, (base, selector) in ARMS.items():
             try:
                 recipe = resolve_recipe(selector, base_method=base, dataset=dataset)
             except (RecipeUnavailableError, ValueError, KeyError):
@@ -80,6 +99,7 @@ def expected_digests() -> dict[tuple[str, str], str]:
 def collect(report_dir: Path) -> dict[tuple[str, str, int], Run]:
     """Map (dataset, method, seed) -> record for current-digest reference runs."""
     digests = expected_digests()
+    by_digest = {(dataset, digest): arm for (dataset, arm), digest in digests.items()}
     found: dict[tuple[str, str, int], Run] = {}
     superseded = 0
     for path in sorted(report_dir.glob("image_end_to_end_*.json")):
@@ -92,16 +112,12 @@ def collect(report_dir: Path) -> dict[tuple[str, str, int], Run]:
         if not recipe_id or config.get("recipe_track") != "reference":
             continue
         dataset, seed = config.get("dataset_name"), config.get("seed")
-        distill = float(config.get("ema_distill_weight") or 0.0)
-        base = config.get("recipe_base_method") or (
-            "hist" if "hist" in str(recipe_id) else "proxy_anchor"
-        )
-        if base == "hist":
-            method = "herd" if distill > 0 else "hist"
-        else:
-            method = "pa_distill" if distill > 0 else "proxy_anchor"
-        expected = digests.get((str(dataset), method))
-        if expected is None or config.get("recipe_digest") != expected:
+        # Identify the arm by REVERSE-LOOKING-UP the recipe digest rather than by
+        # inferring it from config fields. Inference cannot separate arms that share a
+        # base and a distillation weight (herd / herd_hg / herd_hg_incidence / ...),
+        # and it silently mislabels any arm added later. The digest is exact.
+        method = by_digest.get((str(dataset), str(config.get("recipe_digest"))))
+        if method is None:
             superseded += 1
             continue
         scores = [

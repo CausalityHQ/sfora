@@ -18,7 +18,35 @@ dead or downgraded, and the surviving lead is not the one it was written to purs
 | A hypergraph-native (n-ary) target is the novelty | **falsified** — the provably n-ary arm scored **−0.09**; the non-n-ary control scored **+0.52** |
 | H3: BatchNorm teacher/student mismatch | mechanism proved at unit level; In-Shop intervention queued |
 | SHOT (entropic-OT coupling) | untested; motivation weakened by batch composition (§Phase 5b) |
-| **Prototype-affinity KD from an EMA teacher** | **leading candidate — +0.52 on CUB seed 0, unconfirmed** |
+| Prototype-affinity KD from an EMA teacher | **retracted** — +0.52 was seed noise; 3-seed mean is 0.7112 (σ = 1.1 pt) |
+| Balanced sampling (IPC=4) activates the hypergraph | **dead** — 0.6909, −2.74 pt |
+
+**The measurement problem now dominates the method problem.** CUB seed noise in this
+harness is σ ≈ 1.1 pt (3 seeds of `herd_hg_incidence`; the legacy 9-seed HERD figure
+was σ ≈ 0.6). Required seeds per arm for 80% power at α = 0.05,
+`n = ((z_{α/2}+z_β)·σ/Δ)²`:
+
+| effect Δ | σ = 0.6 | σ = 1.1 |
+| ---: | ---: | ---: |
+| +0.5 pt | 12 | **37** |
+| +1.0 pt | 3 | 10 |
+| +2.0 pt | 1 | 3 |
+
+So **the preregistered +0.5 pt gate on CUB is unreachable in practice** — 12–37
+seeds per arm is 8–25 GPU-hours *per arm*, before any ablation. Screening variants
+at one seed, as this plan did, cannot work, and it produced a false positive within
+hours. (An earlier draft of this paragraph said "≈ 10 seeds"; that used a paired
+approximation and understated it. The one-sample figure above is the right one.)
+
+This is worth stating beyond this project, because it is a quantitative version of
+Musgrave et al.'s reality check: at σ ≈ 0.6–1.1 pt, **the ~1 pt improvements the CUB
+literature routinely reports from single runs are not resolvable.** A claimed +1.0 pt
+needs 3–10 seeds to distinguish from noise, and most papers report one.
+
+Practical consequence for this project: stop screening on CUB. Either commit to ≥ 12
+seeds per arm there, or move method search to In-Shop, where σ = 0.12 pt against a
+−1.39 pt effect — a signal-to-noise ratio roughly **80× better**, and enough that a
+single seed already resolves it.
 
 The honest shape of the work is no longer "we invented a hypergraph distillation
 method". It is: *a controlled study of when EMA distillation helps in deep metric

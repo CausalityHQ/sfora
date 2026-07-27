@@ -61,7 +61,51 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
-### The first arm to beat HIST — and it is the one predicted not to
+### ⚠️ Retraction: the "+0.52 win" was seed noise
+
+Recorded prominently because it invalidates the section below it, and because it is
+the most useful thing measured all day.
+
+`herd_hg_incidence` scored **0.7235** on CUB seed 0 — apparently +0.52 over HIST and
+the first arm to clear the screening gate. Seeds 1 and 2 came back **0.7031** and
+**0.7070**.
+
+| seed | 0 | 1 | 2 | mean | sd |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| herd_hg_incidence | 0.7235 | 0.7031 | 0.7070 | **0.7112** | **0.0108** |
+
+**CUB seed noise in this harness is σ ≈ 1.1 pt** — larger than the historical
+σ ≈ 0.6, and far larger than every effect measured in this document. Seed 0 was a
+lucky draw.
+
+Two consequences, both serious:
+
+1. **Every single-seed conclusion on CUB is uninterpretable**, including the
+   ordering that motivated the follow-up work (`herd_hg` −0.09 vs
+   `herd_hg_incidence` +0.52 vs `hist_ipc4` −2.74). Differences under ~2 pt at n=1
+   are noise.
+2. **Those comparisons were not even paired.** We hold only HIST *seed 0*, so
+   "+0.52" subtracted a single-seed baseline from what later became a three-seed
+   mean. That is not a valid comparison in either direction.
+
+The queue has been reprioritised accordingly: **HIST seeds 1 and 2 run first**, no
+further variants are screened at n=1, and the In-Shop arms are promoted because
+there the effect (−1.39 pt) genuinely exceeds that dataset's seed noise (σ = 0.0012)
+and is therefore measurable at all.
+
+Also landed before the reprioritisation, and subject to the same caveat:
+
+| arm (CUB seed 0) | R@1 | vs HIST seed 0 |
+| --- | ---: | ---: |
+| `herd_hg_prototype` (full-catalogue affinity) | 0.7183 | +0.00 |
+| `hist_ipc4` (balanced sampling, IPC=4) | 0.6909 | −2.74 |
+
+`hist_ipc4` is the one result here plausibly larger than noise: forcing 8 classes ×
+4 samples per batch appears to *hurt* substantially, presumably because it collapses
+the number of distinct classes — and therefore hyperedges — a batch can contain. The
+hypothesis that HIST's hypergraph is under-used with random batches is not supported.
+
+### The arm that appeared to beat HIST (superseded by the retraction above)
 
 | arm (CUB seed 0) | R@1 | vs HIST | peak epoch | decay |
 | --- | ---: | ---: | ---: | ---: |
