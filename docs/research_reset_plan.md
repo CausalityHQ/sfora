@@ -6,6 +6,27 @@ corrected DGX reference-recipe matrix. Written against live evidence from
 
 ---
 
+## 0. Where the thesis stands (2026-07-27, late)
+
+Updated as results landed. Three of the ideas this document was built on are now
+dead or downgraded, and the surviving lead is not the one it was written to pursue.
+
+| claim | status |
+| --- | --- |
+| HERD (pairwise EMA distillation) beats HIST | **dead** — the legacy +1.6 was a LayerNorm confound; corrected paired delta is **−0.27** |
+| The distillation is a universal improvement | **dead** — it is a *regulariser*; it helps overfitting bases and hurts well-regularised ones |
+| A hypergraph-native (n-ary) target is the novelty | **falsified** — the provably n-ary arm scored **−0.09**; the non-n-ary control scored **+0.52** |
+| H3: BatchNorm teacher/student mismatch | mechanism proved at unit level; In-Shop intervention queued |
+| SHOT (entropic-OT coupling) | untested; motivation weakened by batch composition (§Phase 5b) |
+| **Prototype-affinity KD from an EMA teacher** | **leading candidate — +0.52 on CUB seed 0, unconfirmed** |
+
+The honest shape of the work is no longer "we invented a hypergraph distillation
+method". It is: *a controlled study of when EMA distillation helps in deep metric
+learning, with a mechanism that explains the field's inconsistent results, plus the
+provenance machinery that made the study trustworthy.* The +0.52 arm, if it
+survives multi-seed, is a useful empirical finding inside that study — Hinton-style
+dark-knowledge KD over Mahalanobis-proxy logits — not a novel mechanism.
+
 ## 1. Where Codex stopped
 
 Last Codex session on this repo: `2026-07-25T16:21` (rollout
