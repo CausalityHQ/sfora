@@ -93,7 +93,10 @@ official HIST specifies, the same comparison is 0.7183 → 0.7156, i.e. **−0.2
 The historical gain is fully accounted for by the confound.
 
 HIST reproduces above its published number; Proxy Anchor lands 1.45 points below
-its own. Our best corrected single model on CUB is therefore **plain HIST**.
+its own — though at one seed, against σ ≈ 0.6 pt of CUB seed noise, that is ≈ 1.4σ
+and a fidelity audit against the official repository found no discrepancy to blame
+(see [docs/results.md](docs/results.md)). Our best corrected single model on CUB is
+**plain HIST**.
 
 ### Corrected evidence — the distillation also hurts on In-Shop
 

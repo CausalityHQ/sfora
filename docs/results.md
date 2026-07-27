@@ -38,9 +38,28 @@ held constant as official HIST specifies: HIST 0.7183 → HERD 0.7156, i.e.
 **−0.27**. The entire historical gain is accounted for by the confound. This is
 the single clearest outcome of the audit so far.
 
-**2. HIST reproduces; Proxy Anchor does not.** HIST lands *above* its published
-number (0.7183 vs 0.714). Proxy Anchor lands 1.45 points below (0.6825 vs 0.697)
-— a reproduction gap to investigate, not a result to quote as a baseline win.
+**2. HIST reproduces above its published number** (0.7183 vs 0.714). Proxy Anchor
+lands 1.45 points below its own (0.6825 vs 0.697).
+
+*Caveat on that second half, added after checking.* Calling this a "reproduction
+gap" was premature at **one seed**: CUB seed noise in this harness has historically
+been σ ≈ 0.6 pt, so 1.45 points is ≈ 1.4σ — unremarkable. A line-by-line fidelity
+audit against the official repository also found nothing to blame it on:
+
+| checked | official Proxy Anchor | ours |
+| --- | --- | --- |
+| CUB ResNet-50 command | `--batch-size 120 --lr 1e-4 --warm 5 --bn-freeze 1 --lr-decay-step 5` | identical |
+| warmup semantics | freeze backbone, train embedding + proxies only | identical (`backbone_warmup_parameters`) |
+| train transform | `RandomResizedCrop(224)`, torchvision default scale | identical |
+| eval transform | `Resize(256)` + `CenterCrop(224)` | identical |
+| proxy LR multiplier | `lr * 100` | identical |
+
+(The audit was prompted by a specific suspicion — that we used torchvision's
+default crop scale where the authors set `scale=(0.16, 1)`. The authors do **not**;
+they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
+
+So the honest statement is that PA's single-seed number sits low but within noise,
+with no identified fidelity defect. Seeds 1 and 2 settle it.
 
 **3. Distillation helps the weaker base and not the stronger one.** On CUB it adds
 +0.91 to Proxy Anchor (0.6825, underfitting) and subtracts 0.27 from HIST (0.7183).
