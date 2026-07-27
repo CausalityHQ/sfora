@@ -624,12 +624,31 @@ G = Dv^-1/2 · H · W · De^-1 · H^T · Dv^-1/2,
 H_ie = 1{y_i = e} + exp(-alpha·d_ie)·(1 - 1{y_i = e})
 ```
 
-`De^-1` normalises each hyperedge by its *soft* degree. So a class whose learned
-Gaussian happens to be broad accumulates membership mass from samples that are not
-its members, and dominates propagation for the entire batch. Nothing ties the mass
-a hyperedge receives to the number of samples that actually belong to it. With
-`samples_per_class: 0` in the reference config, batches are not class-balanced
-either, so this imbalance is real rather than hypothetical.
+**Correction to an earlier overstatement.** A first draft of this section called
+`De^-1` an ad-hoc defect that lets broad-Gaussian classes dominate propagation.
+That is not right, and the claim is withdrawn: `De^-1` divides each hyperedge by
+its total soft degree, so a broad class accumulating mass is *already*
+down-weighted, and `Dv^-1/2 ... Dv^-1/2` is the standard symmetric hypergraph
+Laplacian normalisation. HIST is not doing something naive here.
+
+The accurate framing is weaker but still worth testing: degree normalisation and a
+marginal-constrained transport coupling are **two different normalisations of the
+same incidence matrix**. Degree normalisation rescales; entropic OT additionally
+*constrains* the mass each sample distributes and each hyperedge receives, which
+ties propagation to the batch's true class composition. With `samples_per_class: 0`
+in the reference config, batches are not class-balanced, so the two normalisations
+genuinely differ. Whether that helps is an empirical question, not a bug fix.
+
+**A design weakness found by testing, and what it forced.** With the
+HIST-compatible cost the true class has zero cost, so once classes separate the
+incidence goes near-one-hot — and `one_hot / N` *already* satisfies the
+class-population marginals, leaving Sinkhorn almost nothing to do. The safe variant
+is therefore close to inert exactly where training spends most of its time. Hence a
+second cost mode, `geometric`, which keeps the true-class term so the coupling stays
+a live geometry-driven soft assignment with labels entering only through the
+marginal. `test_geometric_cost_stays_active_when_classes_are_well_separated` pins
+the difference. Expect `hist_shot` ≈ HIST and treat `hist_shot_geometric` as the
+real test of the idea.
 
 **The method.** Replace `H` with the coupling that minimises the free energy
 

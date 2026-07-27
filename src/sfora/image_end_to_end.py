@@ -225,6 +225,13 @@ class ImageEndToEndConfig(BaseModel):
     hist_sinkhorn_epsilon: float = Field(default=1.0, gt=0.0)
     hist_sinkhorn_iterations: int = Field(default=0, ge=0)
     hist_sinkhorn_marginal: Literal["class_population", "uniform"] = "class_population"
+    # "hist_incidence" zeroes the cost on the true class, so exp(-C) is exactly HIST's
+    # incidence and the loss reduces to HIST. That makes it safe but nearly INERT once
+    # classes separate: H becomes near-one-hot, and one-hot/N already satisfies the
+    # class-population marginals, so Sinkhorn has almost nothing to do. "geometric"
+    # keeps the true-class cost, making the coupling a genuine geometry-driven soft
+    # assignment whose only label information enters through the marginals.
+    hist_sinkhorn_cost: Literal["hist_incidence", "geometric"] = "hist_incidence"
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -2050,6 +2057,7 @@ def _hist_sinkhorn_objective_loss(**kwargs: Any) -> Any:
         sinkhorn_epsilon=config.hist_sinkhorn_epsilon,
         sinkhorn_iterations=config.hist_sinkhorn_iterations,
         sinkhorn_marginal=config.hist_sinkhorn_marginal,
+        sinkhorn_cost=config.hist_sinkhorn_cost,
         torch_module=torch_module,
     )
 
@@ -3320,6 +3328,7 @@ def _hist_sinkhorn_loss(
     sinkhorn_epsilon: float,
     sinkhorn_iterations: int,
     sinkhorn_marginal: str,
+    sinkhorn_cost: str = "hist_incidence",
     torch_module: Any,
 ) -> Any:
     """HIST with its hyperedge normalisation replaced by an entropic-OT coupling.
@@ -3373,8 +3382,13 @@ def _hist_sinkhorn_loss(
 
     class_within = torch_module.nonzero(one_hot.sum(dim=0) != 0, as_tuple=False).squeeze(dim=1)
     membership = one_hot[:, class_within]
-    # cost = alpha*d off the true class, 0 on it, so exp(-cost) == HIST's incidence.
-    cost = float(alpha) * distance[:, class_within] * (1.0 - membership)
+    if sinkhorn_cost == "geometric":
+        # Pure geometry: no label mask in the cost, so the coupling is a genuine soft
+        # assignment and the labels enter ONLY through the column marginal.
+        cost = float(alpha) * distance[:, class_within]
+    else:
+        # cost = alpha*d off the true class, 0 on it, so exp(-cost) == HIST's incidence.
+        cost = float(alpha) * distance[:, class_within] * (1.0 - membership)
 
     sample_count = int(features.shape[0])
     row_marginal = torch_module.full(

@@ -35,6 +35,7 @@ DerivedMethod = Literal[
     "herd_hg_incidence",
     "hist_shot",
     "hist_shot_uniform",
+    "hist_shot_geometric",
 ]
 
 # Base loss each derived method attaches to.
@@ -47,6 +48,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "herd_hg_incidence": "hist",
     "hist_shot": "hist",
     "hist_shot_uniform": "hist",
+    "hist_shot_geometric": "hist",
 }
 
 # Shared distillation delta.
@@ -363,6 +365,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
         delta["hist_sinkhorn_marginal"] = (
             "uniform" if method == "hist_shot_uniform" else "class_population"
         )
+        if method == "hist_shot_geometric":
+            delta["hist_sinkhorn_cost"] = "geometric"
     elif method.startswith("herd_hg"):
         delta.update(_HYPERGRAPH_DELTA)
         delta["hypergraph_distill_target"] = (

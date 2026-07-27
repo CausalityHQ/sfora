@@ -365,6 +365,49 @@ def test_sinkhorn_hist_reduces_to_hist_without_balancing() -> None:
     assert torch.allclose(baseline, degenerate, atol=1e-6)
 
 
+def test_geometric_cost_stays_active_when_classes_are_well_separated() -> None:
+    """Why the `geometric` cost variant exists.
+
+    With the HIST-compatible cost the true class has zero cost, so once classes
+    separate the incidence is near-one-hot -- and `one_hot / N` already satisfies the
+    class-population marginals, leaving Sinkhorn almost nothing to do. The geometric
+    cost keeps the true-class term, so the coupling remains a live soft assignment.
+    """
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    module.eval()
+    with torch.no_grad():  # drive the class Gaussians far apart -> near-one-hot incidence
+        module.means.mul_(0.0).add_(torch.eye(4, 6) * 50.0)
+    shared = {
+        "hist_module": module,
+        "label_to_index": label_to_index,
+        "tau": 32.0,
+        "alpha": 1.1,
+        "lambda_s": 1.0,
+        "var_floor": 0.0,
+        "sinkhorn_epsilon": 1.0,
+        "sinkhorn_marginal": "class_population",
+        "torch_module": torch,
+    }
+
+    hist_like_off = _hist_sinkhorn_loss(
+        embeddings, labels, sinkhorn_iterations=0, sinkhorn_cost="hist_incidence", **shared
+    )
+    hist_like_on = _hist_sinkhorn_loss(
+        embeddings, labels, sinkhorn_iterations=10, sinkhorn_cost="hist_incidence", **shared
+    )
+    geometric_off = _hist_sinkhorn_loss(
+        embeddings, labels, sinkhorn_iterations=0, sinkhorn_cost="geometric", **shared
+    )
+    geometric_on = _hist_sinkhorn_loss(
+        embeddings, labels, sinkhorn_iterations=10, sinkhorn_cost="geometric", **shared
+    )
+
+    hist_like_shift = (hist_like_on - hist_like_off).abs()
+    geometric_shift = (geometric_on - geometric_off).abs()
+    assert geometric_shift > hist_like_shift
+
+
 def test_sinkhorn_balancing_actually_changes_the_objective() -> None:
     """...and with balancing on, it must differ -- otherwise the knob is inert."""
     torch: Any = pytest.importorskip("torch")
