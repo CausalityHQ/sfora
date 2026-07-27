@@ -19,6 +19,7 @@ from sfora.image_end_to_end import (
     _clip_gradients,
     _default_transform_factory,
     _freeze_batch_norm_affine_parameters,
+    _freeze_batch_norm_layers,
     _optimizer_parameter_groups,
     _resolve_training_schedule,
     _should_step_scheduler,
@@ -183,6 +184,112 @@ def test_ema_teacher_can_blend_float_buffers_at_the_same_momentum() -> None:
     # Integer buffers cannot be blended and must still be copied verbatim.
     assert teacher[0].num_batches_tracked.dtype == torch.long
     assert torch.equal(teacher[0].num_batches_tracked, student[0].num_batches_tracked)
+
+
+def _teacher_student_pair(torch: Any, *, freeze_batch_norm: bool) -> tuple[Any, Any, Any]:
+    """Reproduce the training loop's teacher/student setup on a BatchNorm model.
+
+    The student's running statistics are driven away from the batch statistics of
+    the probe input, so eval-mode (running stats) and train-mode (batch stats)
+    forwards are distinguishable.
+    """
+    import copy
+
+    torch.manual_seed(0)
+    student = torch.nn.Sequential(torch.nn.BatchNorm1d(4), torch.nn.Linear(4, 3))
+    with torch.no_grad():
+        student.train()
+        for _ in range(20):
+            student(torch.randn(16, 4) * 4.0 + 6.0)  # move running_mean/var far from init
+    teacher = copy.deepcopy(student)
+    # Student side, exactly as the loop does it (image_end_to_end.py:748-750).
+    student.train()
+    if freeze_batch_norm:
+        _freeze_batch_norm_layers(student)
+    probe = torch.randn(16, 4)  # batch stats ~N(0,1), far from the running stats above
+    return teacher, student, probe
+
+
+def _teacher_output(torch: Any, teacher: Any, probe: Any, *, train_mode: bool, freeze: bool) -> Any:
+    """Teacher setup exactly as at image_end_to_end.py:736-742."""
+    if train_mode:
+        teacher.train()
+        if freeze:
+            _freeze_batch_norm_layers(teacher)
+    else:
+        teacher.eval()
+    with torch.no_grad():
+        return teacher(probe).clone()
+
+
+def test_eval_mode_teacher_diverges_from_student_when_batch_norm_is_trainable() -> None:
+    """H3, the mechanism itself. With trainable BatchNorm the historical eval-mode
+    teacher computes a DIFFERENT function of the same input than the student, so the
+    distillation target is not a lagged copy of the student but a different model."""
+    torch: Any = pytest.importorskip("torch")
+    teacher, student, probe = _teacher_student_pair(torch, freeze_batch_norm=False)
+
+    with torch.no_grad():
+        student_out = student(probe)
+    historical = _teacher_output(torch, teacher, probe, train_mode=False, freeze=False)
+    fixed = _teacher_output(torch, teacher, probe, train_mode=True, freeze=False)
+
+    # Teacher and student have IDENTICAL weights here (fresh deepcopy, no EMA drift),
+    # so any difference is purely the normalisation regime.
+    assert not torch.allclose(historical, student_out, atol=1e-4)
+    assert torch.allclose(fixed, student_out, atol=1e-6)
+
+
+def test_teacher_normalisation_fix_is_inert_when_batch_norm_is_frozen() -> None:
+    """H3's null prediction, proved rather than measured. With frozen BatchNorm both
+    teacher modes force BN to eval, so the fix cannot change anything -- which is why
+    the CUB arms of the matrix do not need to spend GPU time re-checking it."""
+    torch: Any = pytest.importorskip("torch")
+    teacher, _student, probe = _teacher_student_pair(torch, freeze_batch_norm=True)
+
+    historical = _teacher_output(torch, teacher, probe, train_mode=False, freeze=True)
+    fixed = _teacher_output(torch, teacher, probe, train_mode=True, freeze=True)
+
+    assert torch.equal(historical, fixed)
+
+
+def test_buffer_blending_is_a_no_op_while_batch_norm_stays_frozen() -> None:
+    """`ema_teacher_ema_buffers` is inert under `freeze_batch_norm=True`: eval-mode
+    BatchNorm never updates running statistics, so the student's buffers are constant,
+    and blending a teacher buffer toward a constant it already equals is the identity.
+
+    Note the identity holds in exact arithmetic but NOT bit-exactly in floating point:
+    `X*m + X*(1-m)` rounds to within an ulp of `X`, not to `X`. So the frozen-BatchNorm
+    arms are numerically inert, not bitwise reproducible.
+    """
+    torch: Any = pytest.importorskip("torch")
+    teacher, student, _probe = _teacher_student_pair(torch, freeze_batch_norm=True)
+    before = teacher[0].running_mean.clone()
+
+    with torch.no_grad():  # frozen BN: forwards must not move the student's buffers
+        for _ in range(5):
+            student(torch.randn(16, 4) * 9.0 - 3.0)
+    assert torch.equal(student[0].running_mean, before)
+
+    _update_ema_teacher(teacher, student, momentum=0.999, ema_buffers=True)
+    assert torch.allclose(teacher[0].running_mean, before, rtol=0.0, atol=1e-6)
+    assert not torch.equal(teacher[0].running_mean, before)  # ...but not bit-identical
+
+
+def test_train_mode_teacher_ignores_running_buffers_entirely() -> None:
+    """Under `ema_teacher_train_mode=True` the teacher normalises with BATCH statistics,
+    so its running buffers do not influence its output at all -- there is no
+    normalisation 'lag' to worry about, however stale those buffers are."""
+    torch: Any = pytest.importorskip("torch")
+    teacher, _student, probe = _teacher_student_pair(torch, freeze_batch_norm=False)
+
+    baseline = _teacher_output(torch, teacher, probe, train_mode=True, freeze=False)
+    with torch.no_grad():  # corrupt the running statistics beyond recognition
+        teacher[0].running_mean.fill_(1234.0)
+        teacher[0].running_var.fill_(4321.0)
+    after = _teacher_output(torch, teacher, probe, train_mode=True, freeze=False)
+
+    assert torch.allclose(baseline, after, atol=1e-6)
 
 
 def test_batch_norm_affine_freeze_disables_gradients() -> None:

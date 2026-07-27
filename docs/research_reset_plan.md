@@ -247,10 +247,44 @@ optimizer, same batch size, same learning rate, same loss — differing in
 `freeze_batch_norm` (True → False) and dataset. Distillation helps in the first
 and inflicts our largest regression in the second.
 
-That said, every cell here is cross-*dataset*: `freeze_batch_norm` never varies
-*within* a dataset in our data, so this remains a correlation over four cells,
-not an intervention. **H3 is not established by the table — it is established or
-killed by the direct test below.**
+That said, these are **not four independent draws**. `freeze_batch_norm` is never
+randomised — it is baked into each method's published protocol per dataset — so
+the table is really two correlated dataset-clusters, {CUB, Cars} vs {In-Shop}.
+For the PA arm specifically, backbone and `freeze_batch_norm` are perfectly
+collinear in this codebase. **H3 is not established by the table — it is
+established or killed by the direct test below.**
+
+**The mechanism's channel is verified, though.** Independently checked across both
+backbones: `torchvision` ResNet-50 is BatchNorm2d throughout; `bn_inception.py`
+has dozens of `BatchNorm2d` and **zero Dropout**; the embedding head adds only
+`Linear` + optional `LayerNorm(elementwise_affine=False)`, neither of which is
+mode-sensitive. So BatchNorm is not merely *a* source of teacher/student
+divergence — it is architecturally the **only possible** one. That matters for
+the intervention: since the fix flips exactly two booleans and nothing else, and
+BatchNorm is the only channel they can act through, a sign change cannot be
+attributed to anything else.
+
+### What is proved at unit level, and therefore not worth GPU time
+
+Four tests in `tests/test_image_end_to_end.py` discharge parts of this by proof
+rather than measurement:
+
+1. **The mechanism is real.** With trainable BatchNorm, an eval-mode teacher and a
+   train-mode student compute *different* outputs from identical weights and
+   identical input; setting `ema_teacher_train_mode` makes them agree exactly.
+2. **The fix is inert under frozen BatchNorm.** Both teacher modes force backbone
+   BN to eval, so outputs are bit-identical. H3's null prediction on CUB is
+   therefore a theorem, not an experiment — **the CUB `_bnfix` arms were dropped
+   from the queue**, reclaiming ~2.5 GPU-hours for the In-Shop tests that
+   actually discriminate.
+3. **`ema_teacher_ema_buffers` is inert under frozen BatchNorm** (to within one
+   ulp — the blend is the identity in exact arithmetic but rounds in float).
+4. **A train-mode teacher ignores its running buffers entirely**, since BatchNorm
+   in train mode normalises with *batch* statistics. This retires a plausible
+   worry that the fixed teacher's normalisation statistics might "lag" behind the
+   student at `momentum=0.999`: there is no lag, because those buffers never
+   reach the teacher's output. `ema_teacher_ema_buffers` is consequently inert in
+   *both* configurations of interest; `ema_teacher_train_mode` does all the work.
 
 **Two opposing predictions (this is what makes it a test, not a story).**
 
@@ -261,11 +295,37 @@ killed by the direct test below.**
 A hypothesis that predicts *no effect* in one arm and a *sign reversal* in
 another is falsifiable in both directions. Both arms are queued.
 
-**Decisive test (~7 GPU-hours).** Fix the teacher's normalisation consistency
-(run it in train mode, and/or EMA the buffers), then rerun In-Shop PA+distill for
-3 seeds against the PA baseline we already own. Recipe untouched — this is a bug
-fix, not a hyperparameter change. If the sign flips, H3 is confirmed and the
-In-Shop "negative result" was never a scientific finding.
+**Decisive test (~13 GPU-hours, queued).** Rerun In-Shop with the teacher's
+normalisation made consistent, against baselines we already own. Ordered by how
+much the result can carry:
+
+1. **`herd_bnfix`, 3 seeds** vs HERD's 0.8906 / 0.8892 / 0.8900. This is the
+   **robust** leg (−1.39 pt, t = −33.9). Run it first — testing the fix where the
+   effect is solid discriminates far better than where it is borderline.
+2. **`pa_distill_bnfix`, 3 seeds** vs PA's 0.9024 / 0.9048 / 0.9032 (the marginal
+   leg).
+
+Recipes are otherwise untouched: this flips two booleans, not a hyperparameter.
+
+### H3 is a contribution in its own right, whichever way the R@1 lands
+
+Worth stating separately from HERD's fate, because it survives either outcome:
+
+> Momentum-teacher recipes silently break under trainable BatchNorm unless the
+> teacher's normalisation mode is made consistent with the student's — and this
+> bug can flip the sign of a paired multi-seed result.
+
+That is mechanistic, generalisable, and falsifiable with a built-in decisive test.
+It applies to any MoCo/BYOL/DINO-style momentum teacher grafted onto a metric-
+learning backbone with updating BatchNorm — a common thing to try. It is an
+engineering/reproducibility finding rather than a modelling one, and it is
+better-shaped than most entries in the "did not work" catalogue.
+
+It does **not**, however, manufacture novelty for the loss: the fix does not touch
+`_relational_distillation_loss` at all, so the mechanism claim is unchanged from
+§3.5. If the fixed version works, the honest framing is "HIST base + STML-style
+EMA-relational distillation, validated where the original comparison was
+confounded" — not a new distillation mechanism.
 
 ### H4 — the teacher and student never see different views (structural gap)
 
