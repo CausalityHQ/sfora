@@ -22,6 +22,7 @@ from sfora.image_end_to_end import (
     _optimizer_parameter_groups,
     _resolve_training_schedule,
     _should_step_scheduler,
+    _update_ema_teacher,
     config_for_protocol,
     run_image_end_to_end_benchmark,
 )
@@ -137,6 +138,51 @@ def test_reference_transform_does_not_resize_before_random_crop() -> None:
 
     assert names[:2] == ["RandomResizedCrop", "RandomHorizontalFlip"]
     assert "Resize" not in names
+
+
+def _ema_teacher_pair(torch: Any) -> tuple[Any, Any]:
+    """A student whose BatchNorm running stats have moved away from the teacher's."""
+    import copy
+
+    student = torch.nn.Sequential(torch.nn.BatchNorm1d(3), torch.nn.Linear(3, 2))
+    teacher = copy.deepcopy(student)
+    with torch.no_grad():
+        for parameter in student.parameters():
+            parameter.add_(1.0)
+        student.train()
+        student(torch.randn(8, 3) * 5.0 + 3.0)  # move running_mean/var
+    return teacher, student
+
+
+def test_ema_teacher_hard_copies_buffers_by_default() -> None:
+    """Historical behaviour: normalisation statistics jump to the student instantly
+    while weights lag. Preserved as the default so old artifacts reproduce."""
+    torch: Any = pytest.importorskip("torch")
+    teacher, student = _ema_teacher_pair(torch)
+
+    _update_ema_teacher(teacher, student, momentum=0.9)
+
+    assert torch.allclose(teacher[0].running_mean, student[0].running_mean)
+    # Weights, by contrast, lag behind.
+    assert not torch.allclose(teacher[1].weight, student[1].weight)
+
+
+def test_ema_teacher_can_blend_float_buffers_at_the_same_momentum() -> None:
+    """H3 fix: buffers lag at the same rate as weights, keeping the teacher
+    internally consistent instead of pairing stale weights with fresh statistics."""
+    torch: Any = pytest.importorskip("torch")
+    teacher, student = _ema_teacher_pair(torch)
+    before_mean = teacher[0].running_mean.clone()
+    momentum = 0.9
+
+    _update_ema_teacher(teacher, student, momentum=momentum, ema_buffers=True)
+
+    expected = before_mean * momentum + student[0].running_mean * (1.0 - momentum)
+    assert torch.allclose(teacher[0].running_mean, expected)
+    assert not torch.allclose(teacher[0].running_mean, student[0].running_mean)
+    # Integer buffers cannot be blended and must still be copied verbatim.
+    assert teacher[0].num_batches_tracked.dtype == torch.long
+    assert torch.equal(teacher[0].num_batches_tracked, student[0].num_batches_tracked)
 
 
 def test_batch_norm_affine_freeze_disables_gradients() -> None:

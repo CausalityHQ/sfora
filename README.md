@@ -21,11 +21,27 @@
 -->
 
 **SFORA** (Polish: *a hound pack* 🐕) is a research deep-metric-learning
-library whose headline method **HERD** — **H**ypergraph **E**MA-teacher
-**R**elational **D**istillation — and its multi-model ensemble beat the reported
-same-arch SOTA on CUB-200 by more than 1%.
+library for zero-shot image retrieval, built around strictly provenance-tracked
+reproductions of published method×dataset recipes. It also develops an
+experimental method, **HERD** — **H**ypergraph **E**MA-teacher **R**elational
+**D**istillation.
 
-## 🏆 Headline result — beats reported SOTA (CUB-200, ResNet-50 / 512-dim, zero-shot R@1)
+> ## ⚠️ Status (2026-07-27) — the method claim is under active correction
+>
+> The historical CUB headline below was produced under a **non-official recipe**
+> and with a **confounded control** (the HIST baseline ran without embedding
+> LayerNorm while HERD ran with it, so HERD received LayerNorm *and*
+> distillation). The corrected, official-recipe, multi-seed evidence we now own
+> **contradicts** the method claim — on DeepFashion In-Shop the distillation
+> *hurts* both base losses (see [corrected evidence](#corrected-evidence--the-distillation-currently-hurts)).
+>
+> A corrected CUB + Cars reference-recipe matrix is running. Until it lands,
+> **treat every single-model HERD number in this README as unverified**. The
+> ensemble and compression results are unaffected by this correction.
+>
+> Full diagnosis and plan: [docs/research_reset_plan.md](docs/research_reset_plan.md).
+
+## Historical CUB result (legacy recipe — not an official reproduction)
 
 | method | R@1 | note |
 | --- | ---: | --- |
@@ -37,41 +53,52 @@ same-arch SOTA on CUB-200 by more than 1%.
 | SFORA (HERD ensemble, 9 models) | 75.34 | scales further; +1.9 over PFML |
 | SFORA (9 models → 512-dim, GPA-aligned fold) | 74.90 | single-model footprint; 99.4% of the pack *transductively* (fold fit on test geometry), 98.0% with a train-only fold — alignment beats PCA |
 
-HERD's novel ingredient is a *training-procedure* change: a slow EMA momentum
-teacher supplies soft batch-neighborhood targets (relational knowledge
-distillation) on top of the HIST hypergraph loss — the first lever to nudge the
-single-model plateau that ~16 loss-geometry tweaks could not (single HERD reaches
-0.716 best / 0.705 mean). The **decisive** SOTA-beating work is done by a
+HERD's distinguishing ingredient is a *training-procedure* change: a slow EMA
+momentum teacher supplies soft batch-neighborhood targets (relational knowledge
+distillation) on top of the HIST hypergraph loss. In this legacy run it was the
+only lever that moved the single-model plateau that ~16 loss-geometry tweaks
+could not (0.716 best / 0.705 mean) — but that comparison is the confounded one
+described above, and the mechanism is closely related to prior work (RKD, S2SD,
+STML); see [docs/research_reset_plan.md](docs/research_reset_plan.md) §3.5.
+The **decisive** SOTA-beating work is done by a
 feature-concatenation ensemble of independently-trained HERD models (a *sfora* of
 them) — an established DML paradigm (BIER and related boosted-embedding methods).
 An ablation (see [docs/results.md](docs/results.md)) shows even a pack of *plain
 HIST* models beats reported PFML, with HERD adding a steady margin on top.
 Reproduce it with `scripts/ensemble_eval.py`.
 
-> **Recipe correction (2026-07-20).** The published numbers above were produced
-> before the harness enforced method-by-dataset author recipes. They remain valid
+> **Recipe correction (2026-07-20).** The numbers above were produced before the
+> harness enforced method-by-dataset author recipes. They remain valid
 > measurements of those recorded configurations, but are classified
 > `modified_legacy`, not official reproductions. In particular, official HIST already
 > enables no-affine embedding LayerNorm; in a corrected paired comparison HERD adds
-> only EMA relational distillation. The corrected DGX matrix is running and no old
-> artifact will be promoted into the reference table.
+> only EMA relational distillation. No legacy artifact will be promoted into the
+> reference table.
 
-### Beyond CUB — our distillation beats Proxy Anchor on every dataset
+### Corrected evidence — the distillation currently *hurts*
 
-HERD's real contribution is the **EMA-teacher relational distillation**, a training
-*procedure* that improves **any** base loss. HIST is the stronger base on CUB, Proxy
-Anchor on Cars — and *best-base + our distillation* beats plain PA on both (in-harness,
-reseeded):
+The only clean, official-recipe, multi-seed, **paired** comparison we own is
+DeepFashion In-Shop. Best-over-training R@1, 3 seeds. Within each base, the plain
+and distilled arms differ in `ema_distill_weight` and nothing else
+(`derive_recipe`), so the legacy LayerNorm confound cannot recur here.
 
-| dataset | best single model (ours) | R@1 | vs Proxy Anchor |
-| --- | --- | ---: | --- |
-| **CUB-200** | HERD = HIST + distillation | **0.716** | > PA 0.695 |
-| **Cars196** | Proxy Anchor + distillation | **0.8961** | > PA 0.8879 (mean/3 seeds) |
+| arm | seed 0 | seed 1 | seed 2 | mean | Δ vs base |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Proxy Anchor (`reference`) | 0.9024 | 0.9048 | 0.9032 | **0.9035** | — |
+| PA + distillation | 0.8999 | 0.8994 | 0.8990 | **0.8994** | **−0.41 pt** |
+| HIST (`selected_extension`) | 0.9046 | 0.9037 | 0.9031 | **0.9038** | — |
+| HERD (HIST + distillation) | 0.8906 | 0.8892 | 0.8900 | **0.8899** | **−1.39 pt** |
 
-Honest caveats we keep visible: the **HIST-based HERD does *not* beat PA on Cars**
-(0.8835 < 0.8879 — the HIST base is simply weaker there; we win via the PA base), and a
-single fused HIST+PA loss is a compromise worse than each base — so the unifying method
-is the *procedure*, not one loss. On **compression**, an *uncentered* projection fit
+All six paired per-seed deltas are negative, against a seed spread of σ ≈ 0.0012.
+**On this dataset the distillation is a consistent regression on both bases.**
+This directly falsifies the earlier claim that the procedure improves *any* base
+loss; that claim has been withdrawn. Whether the effect is dataset-size-dependent
+(CUB has 5.9k train images, In-Shop ~25k) or an implementation defect is exactly
+what the running CUB + Cars matrix and the diagnostic sweeps in
+[docs/research_reset_plan.md](docs/research_reset_plan.md) are designed to settle.
+
+On **compression** — a result independent of the method dispute — an *uncentered*
+projection fit
 only on the disjoint train classes (never the test split) reduces the 2560-dim HERD
 pack to **2048 dims with zero retrieval loss (100.00%)** — a genuine train-clean
 dimensionality cut. At the aggressive single-model **512-dim** footprint the same

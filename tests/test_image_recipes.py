@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
-from sfora.data import ImageExample
+from sfora.data import ImageDatasetName, ImageExample
 from sfora.image_recipes import (
+    BaseMethod,
+    DerivedMethod,
     RecipeCandidateScore,
     RecipeUnavailableError,
     class_disjoint_recipe_selection_split,
@@ -175,6 +178,56 @@ def test_pa_distill_derivation_changes_only_distillation_fields() -> None:
     }
     assert changed == {"ema_distill_weight"}
     assert changed <= set(distilled.delta)
+
+
+@pytest.mark.parametrize(
+    ("derived", "base_method", "dataset"),
+    [
+        ("pa_distill_bnfix", "proxy_anchor", "cub"),
+        ("pa_distill_bnfix", "proxy_anchor", "inshop"),
+        ("herd_bnfix", "hist", "cub"),
+        ("herd_bnfix", "hist", "sop"),
+    ],
+)
+def test_bnfix_derivation_adds_only_teacher_normalisation_fields(
+    derived: str, base_method: str, dataset: str
+) -> None:
+    """The `_bnfix` arms differ from their plain counterparts ONLY in the two
+    EMA-teacher normalisation flags, so a paired comparison isolates H3."""
+    base = reference_recipe(base_method, dataset)
+    plain = derive_recipe(base, "pa_distill" if base_method == "proxy_anchor" else "herd")
+    fixed = derive_recipe(base, cast("DerivedMethod", derived))
+
+    changed = {
+        key
+        for key in set(plain.config) | set(fixed.config)
+        if plain.config.get(key) != fixed.config.get(key)
+    }
+    assert changed == {"ema_teacher_train_mode", "ema_teacher_ema_buffers"}
+    assert fixed.config["ema_teacher_train_mode"] is True
+    assert fixed.config["ema_teacher_ema_buffers"] is True
+    # The distillation itself is identical to the plain arm.
+    assert fixed.config["ema_distill_weight"] == plain.config["ema_distill_weight"]
+    assert fixed.config["ema_distill_tau"] == plain.config["ema_distill_tau"]
+    assert changed <= set(fixed.delta)
+
+
+def test_bnfix_variants_do_not_disturb_existing_derived_digests() -> None:
+    """Adding the `_bnfix` recipes must not change `pa_distill`/`herd` digests -- a
+    drift there would silently invalidate every in-flight and archived artifact."""
+    expected: dict[tuple[BaseMethod, ImageDatasetName, str], str] = {
+        ("proxy_anchor", "cub", "auto"): "534a94b64783",
+        ("proxy_anchor", "cub", "pa_distill"): "47a0dea213ed",
+        ("hist", "cub", "auto"): "4d6f712a59ac",
+        ("hist", "cub", "herd"): "9cdd73cfef24",
+        ("proxy_anchor", "cars", "auto"): "6fd195249c3a",
+        ("proxy_anchor", "cars", "pa_distill"): "0a096881e5cb",
+        ("hist", "cars", "auto"): "fa44e0ac30b4",
+        ("hist", "cars", "herd"): "65cc88758ed1",
+    }
+    for (base_method, dataset, selector), digest in expected.items():
+        recipe = resolve_recipe(selector, base_method=base_method, dataset=dataset)
+        assert recipe_digest(recipe)[:12] == digest, f"digest drift for {selector}/{dataset}"
 
 
 @pytest.mark.parametrize(

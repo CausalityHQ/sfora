@@ -13,7 +13,47 @@ peak).
 > on the DGX; this document will add a separate table only after recipe IDs and
 > digests validate. No legacy number is used to choose an unpublished recipe.
 
-## Headline
+## Corrected reference-recipe evidence
+
+The first corrected results have landed, and they are **negative for the method**.
+
+**DeepFashion In-Shop**, best-over-training R@1, 3 seeds. Proxy Anchor rows use
+the official `reference` recipe; HIST rows use a frozen `selected_extension`
+(HIST published no In-Shop recipe, so it was selected from SOP using
+**training-split-only** scoring — no test leakage). Within each base, the plain
+and distilled arms differ in `ema_distill_weight`/`ema_momentum`/`ema_distill_tau`
+and nothing else (`derive_recipe`); `embedding_layer_norm` is held constant, so
+the legacy confound cannot recur.
+
+| arm | seed 0 | seed 1 | seed 2 | mean | Δ vs base |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Proxy Anchor | 0.9024 | 0.9048 | 0.9032 | **0.9035** | — |
+| PA + distillation | 0.8999 | 0.8994 | 0.8990 | **0.8994** | **−0.41 pt** |
+| HIST | 0.9046 | 0.9037 | 0.9031 | **0.9038** | — |
+| HERD (HIST + distillation) | 0.8906 | 0.8892 | 0.8900 | **0.8899** | **−1.39 pt** |
+
+All six paired per-seed deltas are negative (PA: −0.25 / −0.54 / −0.42; HIST:
+−1.40 / −1.45 / −1.31) against a seed spread of σ ≈ 0.0012. HIST − PA is
++0.03 pt — the two bases are indistinguishable on this dataset.
+
+**iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
+just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because
+the `selected-from-cars` recipe transfers Cars196 hyperparameters (8k images, 98
+classes) to a ~450k-image / ~8k-class dataset:
+
+| arm | best R@1 | best epoch | final R@1 |
+| --- | ---: | ---: | ---: |
+| Proxy Anchor | 0.2099 | 5 / 60 | 0.1734 |
+| PA + distillation | 0.2094 | 5 / 60 | (run stopped at epoch 46; best already fixed at epoch 5) |
+
+These arms are 0.05 pt apart — statistically empty. iNat needs its own recipe work
+before it can support any conclusion.
+
+**CUB and Cars under official reference recipes have never been run.** That matrix
+is now running; it is the experiment that decides whether the headline claim
+survives. See [research_reset_plan.md](research_reset_plan.md).
+
+## Headline (legacy recipes — see status correction above)
 
 | Method | R@1 | Notes |
 | --- | ---: | --- |
@@ -45,14 +85,25 @@ This training-procedure change is what broke a long-standing ~0.71 same-arch
 plateau: a wide range of loss-geometry changes we tried did not move it, but
 changing the *information per training step* (teacher targets) did.
 
-## The distillation is universal — and beats Proxy Anchor on every dataset
+## The distillation on small datasets — broad gains (legacy recipes)
 
-The single most important finding is that HERD's real contribution is **not the
-HIST loss** — it is the **EMA-teacher relational distillation, a training
-*procedure* that is additive to any base loss**. In our harness the distill term
-is applied ungated on top of whatever objective is training, so it can augment
-Proxy Anchor just as it augments HIST. We measured it in-harness (same code, same
-protocol, reseeded where noted) on both standard datasets:
+> **Claim withdrawn (2026-07-27).** This section was previously titled "The
+> distillation is universal — and beats Proxy Anchor on every dataset". That
+> universality claim is **falsified** by the corrected In-Shop matrix, where the
+> same distillation *regresses* both bases across 3 seeds (PA −0.41 pt, HIST
+> −1.39 pt; see "Corrected reference-recipe evidence" below). Every number in
+> this section is CUB or Cars under **legacy** recipes.
+>
+> The surviving, weaker reading: the gains below are real measurements on the two
+> *smallest* benchmarks (CUB 5.9k train images, Cars 8.1k) and the regressions are
+> on a much larger one (In-Shop ~25k, 3997 classes). That pattern is what a
+> **variance-reducing regularizer** looks like — helpful when data is scarce,
+> pure capacity cost when it is not. Testing that hypothesis is the point of the
+> sweeps in [research_reset_plan.md](research_reset_plan.md) §5.
+
+In our harness the distill term is applied ungated on top of whatever objective is
+training, so it can augment Proxy Anchor just as it augments HIST. We measured it
+in-harness (same code, same protocol, reseeded where noted):
 
 | dataset | base loss | plain | **+ our distillation** | Δ |
 | --- | --- | ---: | ---: | ---: |
@@ -79,15 +130,16 @@ it on three more bases (CUB, seed 0, same protocol). It lifts every one:
 | batch-hard triplet | 0.244 | 0.617 | +37.3 |
 
 So across **five** bases — HIST, Proxy Anchor, SupCon, triplet, batch-hard triplet —
-the EMA-teacher relational distillation improves retrieval every time. The batch-hard
+the EMA-teacher relational distillation improves retrieval every time **on CUB**.
+(It does not on In-Shop; see the corrected table below.) The batch-hard
 row is a special case worth naming honestly: our plain batch-hard baseline collapses
 (0.244, a known hard-mining failure mode), and the distillation *stabilises* it back to
 a competitive 0.617 — so that +37 is "rescued a collapse", not a uniform-quality gain.
 The SupCon and triplet rows are ordinary healthy baselines lifted by a few points. (These
 three are single-seed spot checks, not reseeded means like the HIST/PA rows above.)
 
-**The distillation improves every base on every dataset.** And the *best base +
-our distillation* beats every plain baseline per dataset:
+**On CUB and Cars, the distillation improves every base tested.** And on those two
+datasets the *best base + our distillation* beats every plain baseline:
 
 - **CUB** — HIST is the stronger base, so **HERD (HIST + distillation) = 0.716** is
   best (> Proxy Anchor 0.666/0.695, > HIST 0.700).

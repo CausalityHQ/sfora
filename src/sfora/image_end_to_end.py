@@ -163,6 +163,17 @@ class ImageEndToEndConfig(BaseModel):
     ema_distill_weight: float = Field(default=0.0, ge=0.0)
     ema_momentum: float = Field(default=0.999, ge=0.0, le=1.0)
     ema_distill_tau: float = Field(default=0.1, gt=0.0)
+    # --- EMA-teacher normalisation consistency (see docs/research_reset_plan.md H3) ---
+    # The student trains in `.train()` mode and normalises with BATCH statistics.
+    # Historically the teacher ran in `.eval()` mode (RUNNING statistics) and had its
+    # buffers hard-copied rather than EMA-blended. When BatchNorm is frozen the two
+    # modes coincide and this is harmless, but when BatchNorm is trainable the teacher
+    # becomes a systematically different function of the same images -- stale weights
+    # wearing fresh normalisation statistics -- and distilling toward it fights the
+    # base loss. Momentum teachers in MoCo/BYOL/DINO all run in train mode.
+    # Both flags default to the historical behaviour so existing artifacts reproduce.
+    ema_teacher_train_mode: bool = False
+    ema_teacher_ema_buffers: bool = False
     # Multi-crop EMA assignment distillation. Weight 0 = off.
     mead_weight: float = Field(default=0.0, ge=0.0)
     mead_local_crops: int = Field(default=4, ge=0)
@@ -722,7 +733,13 @@ def run_image_end_to_end_benchmark(
                 ema_teacher = _copy.deepcopy(model)
                 for parameter in ema_teacher.parameters():
                     parameter.requires_grad_(False)
-                ema_teacher.eval()
+                if config.ema_teacher_train_mode:
+                    # Match the student's normalisation regime (batch statistics).
+                    ema_teacher.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(ema_teacher)
+                else:
+                    ema_teacher.eval()
             checkpoint = (
                 _BestCheckpoint(metric_name=config.checkpoint_selection_metric, mode="max")
                 if config.checkpoint_selection_interval > 0
@@ -949,7 +966,12 @@ def run_image_end_to_end_benchmark(
                 )
                 optimizer.step()
                 if ema_teacher is not None:
-                    _update_ema_teacher(ema_teacher, model, momentum=config.ema_momentum)
+                    _update_ema_teacher(
+                        ema_teacher,
+                        model,
+                        momentum=config.ema_momentum,
+                        ema_buffers=config.ema_teacher_ema_buffers,
+                    )
                 if step >= config.xbm_start_step:
                     memory.enqueue(memory_embeddings_to_enqueue.detach(), labels.detach())
                 history.append(float(loss.detach().cpu()))
@@ -2769,8 +2791,21 @@ def _clip_gradients(
     torch_module.nn.utils.clip_grad_value_(model.parameters(), clip_value)
 
 
-def _update_ema_teacher(teacher: Any, student: Any, *, momentum: float) -> None:
-    """In-place EMA update of the teacher: theta_t <- m*theta_t + (1-m)*theta_s."""
+def _update_ema_teacher(
+    teacher: Any,
+    student: Any,
+    *,
+    momentum: float,
+    ema_buffers: bool = False,
+) -> None:
+    """In-place EMA update of the teacher: theta_t <- m*theta_t + (1-m)*theta_s.
+
+    `ema_buffers` controls the normalisation statistics. The historical default
+    hard-copies them from the student, which pairs ~1/(1-m)-step-stale weights with
+    instantaneous BatchNorm statistics. Blending them at the same momentum keeps the
+    teacher internally consistent; see docs/research_reset_plan.md H3. Integer buffers
+    (e.g. `num_batches_tracked`) are always copied, since blending them is meaningless.
+    """
     for teacher_param, student_param in zip(
         teacher.parameters(), student.parameters(), strict=True
     ):
@@ -2778,7 +2813,10 @@ def _update_ema_teacher(teacher: Any, student: Any, *, momentum: float) -> None:
         # still carry requires_grad, and never touches the autograd graph.
         teacher_param.data.mul_(momentum).add_(student_param.data, alpha=1.0 - momentum)
     for teacher_buffer, student_buffer in zip(teacher.buffers(), student.buffers(), strict=True):
-        teacher_buffer.data.copy_(student_buffer.data)
+        if ema_buffers and teacher_buffer.data.is_floating_point():
+            teacher_buffer.data.mul_(momentum).add_(student_buffer.data, alpha=1.0 - momentum)
+        else:
+            teacher_buffer.data.copy_(student_buffer.data)
 
 
 def _batch_hard_triplet_loss(

@@ -13,7 +13,7 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict
@@ -26,7 +26,34 @@ if TYPE_CHECKING:
 BaseMethod = Literal["proxy_anchor", "hist"]
 RecipeTrack = Literal["reference", "selected_extension", "modified", "modified_legacy"]
 MethodStatus = Literal["reference_method", "sfora_derived"]
-DerivedMethod = Literal["pa_distill", "herd"]
+DerivedMethod = Literal["pa_distill", "herd", "pa_distill_bnfix", "herd_bnfix"]
+
+# Base loss each derived method attaches to.
+_DERIVED_BASE: dict[str, BaseMethod] = {
+    "pa_distill": "proxy_anchor",
+    "pa_distill_bnfix": "proxy_anchor",
+    "herd": "hist",
+    "herd_bnfix": "hist",
+}
+
+# Shared distillation delta.
+_DISTILL_DELTA: dict[str, Any] = {
+    "ema_distill_weight": 1.0,
+    "ema_momentum": 0.999,
+    "ema_distill_tau": 0.1,
+}
+
+# The `_bnfix` variants additionally make the EMA teacher normalisation-consistent
+# with the student. Historically the teacher ran in eval mode (BatchNorm running
+# statistics) while the student trained in train mode (batch statistics), and its
+# buffers were hard-copied rather than EMA-blended. With frozen BatchNorm the two
+# coincide; with trainable BatchNorm the teacher becomes a systematically different
+# function and distillation regresses the base loss. See docs/research_reset_plan.md H3.
+# These are SEPARATE recipe IDs so the digests of `pa_distill`/`herd` are unchanged.
+_BN_FIX_DELTA: dict[str, Any] = {
+    "ema_teacher_train_mode": True,
+    "ema_teacher_ema_buffers": True,
+}
 
 _PROXY_ANCHOR_REVISION = "51db57031e38f75c03f69bbdfad1a3233afd9787"
 _PROXY_ANCHOR_SOURCE = "https://github.com/sung-yeon-kim/Proxy-Anchor-CVPR2020"
@@ -285,14 +312,12 @@ def reference_recipes_for_method(base_method: BaseMethod) -> list[ImageRecipe]:
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
-    expected_base: BaseMethod = "proxy_anchor" if method == "pa_distill" else "hist"
+    expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
-    delta = {
-        "ema_distill_weight": 1.0,
-        "ema_momentum": 0.999,
-        "ema_distill_tau": 0.1,
-    }
+    delta = dict(_DISTILL_DELTA)
+    if method.endswith("_bnfix"):
+        delta.update(_BN_FIX_DELTA)
     return recipe.model_copy(
         deep=True,
         update={
@@ -477,10 +502,8 @@ def resolve_recipe(
 
     if selector == "auto":
         return base
-    if selector == "pa_distill":
-        return derive_recipe(base, "pa_distill")
-    if selector == "herd":
-        return derive_recipe(base, "herd")
+    if selector in _DERIVED_BASE:
+        return derive_recipe(base, cast("DerivedMethod", selector))
     if selector != base.recipe_id:
         raise RecipeUnavailableError(
             f"recipe selector {selector!r} does not match resolved recipe {base.recipe_id!r}"
