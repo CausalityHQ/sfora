@@ -758,6 +758,68 @@ earn a multi-seed run, and ≥ 6 seeds before any claim. The queue applies this
 automatically (`escalate_if_promising`), so a losing arm costs one run rather than
 three.
 
+### Phase 5c — Local NCA: a non-collapsing objective
+
+The most promising method direction to come out of this work, and the only one whose
+motivation survives contact with the measurement problem.
+
+**The observation.** Zero-shot retrieval evaluates whether a query's *nearest
+neighbour* shares its label, on classes never seen in training. So class identity
+cannot transfer — only local similarity structure can. Yet every dominant loss
+(Proxy Anchor, HIST, ProxyNCA, SoftTriple, SupCon) optimises **class collapse**:
+pull every sample of a class onto a prototype. That destroys the intra-class
+structure which is the only thing that *can* transfer, and it assumes each class is
+a unimodal blob — false in fine-grained retrieval, where a bird in a given pose
+genuinely resembles a different species in the same pose more than its own species
+in another pose. The literature calls the resulting geometry **hubness**; measured
+here, 35–42% of CUB top-10 neighbours cross a class boundary and 5–8% of images are
+in nobody's top-10.
+
+**The mechanism is one symbol.** Where the positive sum sits relative to the log:
+
+```
+L_out (SupCon, proxy family)   -(1/|P|) Σ_p log( e^{s_ip/T} / Σ_a e^{s_ia/T} )
+L_in  (NCA, Goldberger et al. 2004)   -log( Σ_p e^{s_ip/T} / Σ_{a∈P∪H} e^{s_ia/T} )
+```
+
+`L_out` is minimised only when **every** positive is close — literally a collapse
+objective. Khosla et al. (NeurIPS 2020) compared both and chose `L_out`, which is
+right for classification. For zero-shot retrieval the argument inverts.
+
+**Two justifications, the second stronger.**
+
+1. *Non-collapse.* `L_in` is satisfied once *some* genuine positive outranks the
+   negatives, so a distant same-class sample is never dragged in. Measured on a
+   constructed case, gradient on a far positive: **0.00004 (L_in) vs 4.99949
+   (L_out)** — five orders of magnitude.
+2. *It optimises what is actually measured.* `logsumexp` over positives is a soft
+   maximum, so as `T → 0` the loss tends to 0 when the nearest neighbour is a
+   positive and diverges otherwise — **exactly Recall@1**. `L_out` has no such limit;
+   it is a surrogate for class compactness, which no retrieval benchmark evaluates.
+   The field optimises how tightly classes cluster and then measures nearest-neighbour
+   correctness.
+
+**Two departures from 2004 NCA, both load-bearing.**
+
+* `negatives_k` restricts the denominator to each anchor's k nearest *cross-class*
+  instances. NCA's O(N²) softmax is exactly what ProxyNCA (ICCV 2017) replaced with
+  proxies for cost — trading away the non-collapsing property. Nobody revisited it
+  once memory banks made the cost tractable. That is the gap.
+* Positives come from the **cross-batch memory**. Not an optimisation: unbalanced
+  reference sampling leaves ~74% of CUB anchors with no same-class partner in a batch
+  of 32, so batch-only NCA is undefined for most of them. Balanced sampling would fix
+  it and costs −2.74 pt here (`hist_ipc4`).
+
+Bounded and partition-normalised, per this repo's finding that unnormalised
+objectives collapse. **No discrete K-centres-per-class** — that is precisely what
+failed as sub-center Proxy Anchor (0.675 vs PA 0.695), so any multi-modality here is
+data-driven, not parameterised.
+
+**Validation, given the measurement constraint.** The survey's estimate is +1–2 pt.
+At CUB's σ ≈ 0.9 that means +2 pt is visible at n=3 and +1 pt is not. Running three
+seeds on CUB to establish direction and magnitude; if positive but under ~2 pt, the
+decisive test is In-Shop (σ = 0.12 pt), not more CUB seeds.
+
 ### Phase 6 — The fallback, which should be prepared in parallel, not after
 
 If the loss-innovation track fails, the honest and still-valuable contribution is
