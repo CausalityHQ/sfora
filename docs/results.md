@@ -61,6 +61,45 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
+### The properly paired CUB picture (3 seeds each)
+
+With HIST finally run at seeds 1 and 2, the comparisons become valid — and almost
+nothing survives.
+
+| arm | seed 0 | seed 1 | seed 2 | mean | σ |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| HIST | 0.7183 | 0.7010 | 0.7127 | **0.7107** | 0.0088 |
+| HERD | 0.7156 | 0.7044 | — | 0.7100 | 0.0079 |
+| herd_hg_incidence | 0.7235 | 0.7031 | 0.7070 | **0.7112** | 0.0108 |
+
+Paired per-seed deltas against HIST:
+
+| comparison | per-seed Δ | mean | paired t | p |
+| --- | --- | ---: | ---: | ---: |
+| herd_hg_incidence − HIST | +0.52, +0.20, −0.57 | **+0.05** | +0.16 (df=2) | 0.89 |
+| HERD − HIST | −0.27, +0.34 | **+0.03** | +0.11 (df=1) | 0.93 |
+
+**Two more of my own claims die here.**
+
+1. **The "+0.52 win" evaporates completely.** Paired properly it is **+0.05 pt**,
+   p = 0.89. Seed 0 gave +0.52, seed 2 gave −0.57. Pure noise.
+2. **"Distillation hurts HIST (−0.27)" was also noise.** Paired over two seeds it is
+   **+0.03 pt**, p = 0.93. The corrected-matrix headline that the legacy HERD gain
+   was a LayerNorm confound still stands — the legacy +1.6 does not reproduce — but
+   the replacement claim that distillation actively *hurts* HIST is not supported
+   either. The honest statement is that on CUB, at this noise level, **HERD and HIST
+   are indistinguishable**.
+
+3. **HIST's reproduction number changes.** The 3-seed mean is **0.7107**, not the
+   0.7183 of seed 0 — so HIST reproduces essentially *exactly* on its published
+   0.714 (−0.33), rather than above it as this document previously claimed. Seed 0
+   was the high draw.
+
+Single-seed results below the noise floor, retained only to be explicit that they
+are uninterpretable: `herd_hg` −0.08, `herd_hg_prototype` +0.00,
+`hist_shot_geometric` −1.08, `hist_ipc4` −2.73. Only the last is plausibly outside
+noise.
+
 ### ⚠️ Retraction: the "+0.52 win" was seed noise
 
 Recorded prominently because it invalidates the section below it, and because it is
