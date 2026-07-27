@@ -61,6 +61,34 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
+**2b. What the training curves say: the distillation is a regulariser.** The
+best-over-training numbers hide the mechanism; the curves show it plainly.
+
+| arm | best R@1 | peak epoch | position in run | decay after peak |
+| --- | ---: | ---: | ---: | ---: |
+| Proxy Anchor | 0.6825 | 12 / 60 | **20%** | **−1.35 pt** |
+| PA + distillation | 0.6916 | 20 / 60 | 33% | −0.95 pt |
+| HIST | 0.7183 | 27 / 41 | **66%** | **−0.16 pt** |
+| HERD (pairwise distill) | 0.7156 | 19 / 41 | 46% | −1.05 pt |
+| herd_hg (hypergraph distill) | 0.7174 | 26 / 41 | 63% | −0.13 pt |
+
+Read down the "position in run" column:
+
+* **Proxy Anchor overfits hard** — it peaks a fifth of the way through and then
+  sheds 1.35 points. Distillation pushes the peak out to a third of the run and
+  lifts it by +0.91. That is textbook regularisation.
+* **HIST barely overfits** — it peaks two thirds through and sheds 0.16. It has no
+  use for another regulariser, and the pairwise target actively *over*-regularises
+  it: the peak is pulled forward to 46% and the decay triples to −1.05.
+* **The hypergraph target is gentler** — it leaves HIST's curve shape essentially
+  intact (63%, −0.13) and lands −0.09 instead of −0.27. Directionally better than
+  pairwise, still not an improvement.
+
+This single mechanism accounts for every distillation result we have, including
+In-Shop, and it resolves the apparent contradiction in §2: the effect tracks how
+much headroom the base has, not the dataset or the loss family. It also says
+plainly what beating HIST requires — **added structure, not added regularisation.**
+
 **3. Distillation helps the weaker base and not the stronger one.** On CUB it adds
 +0.91 to Proxy Anchor (0.6825, underfitting) and subtracts 0.27 from HIST (0.7183).
 Combined with In-Shop, where it costs both bases, the picture is:
