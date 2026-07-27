@@ -23,10 +23,12 @@ from sfora.image_end_to_end import (
     _freeze_batch_norm_layers,
     _hist_hypergraph_targets,
     _hist_loss,
+    _hist_sinkhorn_loss,
     _hypergraph_distillation_loss,
     _optimizer_parameter_groups,
     _resolve_training_schedule,
     _should_step_scheduler,
+    _sinkhorn_log_coupling,
     _update_ema_teacher,
     config_for_protocol,
     run_image_end_to_end_benchmark,
@@ -304,6 +306,98 @@ def _hist_fixture(torch: Any, *, nb_classes: int = 4, dim: int = 6, batch: int =
     labels = torch.tensor([i % nb_classes for i in range(batch)])
     label_to_index = {i: i for i in range(nb_classes)}
     return module, embeddings, labels, label_to_index
+
+
+def test_sinkhorn_coupling_attains_its_marginals() -> None:
+    """The transport constraints are what make this a coupling rather than a rescaling:
+    every sample distributes unit mass, and every hyperedge receives exactly its share."""
+    torch: Any = pytest.importorskip("torch")
+    torch.manual_seed(3)
+    cost = torch.rand(10, 4) * 3.0
+    row = torch.full((10,), 1.0 / 10.0)
+    column = torch.tensor([0.4, 0.3, 0.2, 0.1])
+
+    coupling = _sinkhorn_log_coupling(
+        cost,
+        row_marginal=row,
+        column_marginal=column,
+        epsilon=0.5,
+        iterations=200,
+        torch_module=torch,
+    )
+
+    assert torch.allclose(coupling.sum(dim=1), row, atol=1e-5)
+    assert torch.allclose(coupling.sum(dim=0), column, atol=1e-5)
+
+
+def test_sinkhorn_hist_reduces_to_hist_without_balancing() -> None:
+    """The generalisation claim, made checkable.
+
+    The cost is defined so that `exp(-cost)` IS HIST's soft incidence. So at
+    `epsilon=1.0` with zero Sinkhorn projections the coupling degenerates to that
+    incidence and the objective must coincide with `_hist_loss` exactly. Plain HIST is
+    therefore a special case, and any measured difference is attributable to the
+    transport balancing alone.
+    """
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    shared = {
+        "hist_module": module,
+        "label_to_index": label_to_index,
+        "tau": 32.0,
+        "alpha": 1.1,
+        "lambda_s": 1.0,
+        "var_floor": 0.0,
+        "torch_module": torch,
+    }
+
+    module.eval()  # keep bn1 deterministic across the two forwards
+    baseline = _hist_loss(embeddings, labels, **shared)
+    degenerate = _hist_sinkhorn_loss(
+        embeddings,
+        labels,
+        sinkhorn_epsilon=1.0,
+        sinkhorn_iterations=0,
+        sinkhorn_marginal="class_population",
+        **shared,
+    )
+
+    assert torch.allclose(baseline, degenerate, atol=1e-6)
+
+
+def test_sinkhorn_balancing_actually_changes_the_objective() -> None:
+    """...and with balancing on, it must differ -- otherwise the knob is inert."""
+    torch: Any = pytest.importorskip("torch")
+    module, embeddings, labels, label_to_index = _hist_fixture(torch)
+    shared = {
+        "hist_module": module,
+        "label_to_index": label_to_index,
+        "tau": 32.0,
+        "alpha": 1.1,
+        "lambda_s": 1.0,
+        "var_floor": 0.0,
+        "torch_module": torch,
+    }
+    module.eval()
+
+    unbalanced = _hist_sinkhorn_loss(
+        embeddings,
+        labels,
+        sinkhorn_epsilon=1.0,
+        sinkhorn_iterations=0,
+        sinkhorn_marginal="class_population",
+        **shared,
+    )
+    balanced = _hist_sinkhorn_loss(
+        embeddings,
+        labels,
+        sinkhorn_epsilon=1.0,
+        sinkhorn_iterations=5,
+        sinkhorn_marginal="class_population",
+        **shared,
+    )
+
+    assert not torch.allclose(unbalanced, balanced, atol=1e-6)
 
 
 def test_hypergraph_targets_match_hist_loss_internals() -> None:

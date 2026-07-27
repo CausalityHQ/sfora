@@ -33,6 +33,8 @@ DerivedMethod = Literal[
     "herd_bnfix",
     "herd_hg",
     "herd_hg_incidence",
+    "hist_shot",
+    "hist_shot_uniform",
 ]
 
 # Base loss each derived method attaches to.
@@ -43,6 +45,8 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "herd_bnfix": "hist",
     "herd_hg": "hist",
     "herd_hg_incidence": "hist",
+    "hist_shot": "hist",
+    "hist_shot_uniform": "hist",
 }
 
 # Shared distillation delta.
@@ -332,6 +336,19 @@ def reference_recipes_for_method(base_method: BaseMethod) -> list[ImageRecipe]:
     ]
 
 
+# SHOT -- Sinkhorn Hyperedge Optimal Transport. Replaces HIST's ad-hoc degree
+# normalisation of the soft incidence with the entropic-OT coupling that minimises the
+# free energy <C,P> - eps*H(P) under sample/hyperedge marginals. Because the cost is
+# defined so that exp(-C) IS HIST's incidence, `iterations=0, epsilon=1.0` recovers HIST
+# exactly -- so these recipes change ONE thing, and plain HIST is the null arm.
+# NOTE this is not a distillation method: no EMA teacher is involved.
+_SHOT_DELTA: dict[str, Any] = {
+    "objectives": ("hist_sinkhorn",),
+    "hist_sinkhorn_epsilon": 1.0,
+    "hist_sinkhorn_iterations": 3,
+}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -341,6 +358,11 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method.startswith("hist_shot"):
+        delta = dict(_SHOT_DELTA)
+        delta["hist_sinkhorn_marginal"] = (
+            "uniform" if method == "hist_shot_uniform" else "class_population"
+        )
     elif method.startswith("herd_hg"):
         delta.update(_HYPERGRAPH_DELTA)
         delta["hypergraph_distill_target"] = (

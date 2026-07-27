@@ -54,6 +54,7 @@ EndToEndObjective = Literal[
     "proxy_anchor_antico",
     "bio_physical_bond",
     "hist",
+    "hist_sinkhorn",
     "hist_proxy_anchor",
     "proxy_anchor_gsi",
     "proxy_anchor_bgsi",
@@ -218,6 +219,12 @@ class ImageEndToEndConfig(BaseModel):
     # than unit variance, an ablation lever for fine-grained retrieval. Upper clamp
     # stays at 6.0 (relu6's ceiling) for stability.
     hist_var_floor: float = Field(default=0.0, le=6.0)
+    # Entropic-OT (Sinkhorn) hyperedge coupling for the `hist_sinkhorn` objective.
+    # `iterations=0` with `epsilon=1.0` reduces it EXACTLY to plain HIST, so these
+    # defaults leave `hist` untouched and make the balancing a single-knob ablation.
+    hist_sinkhorn_epsilon: float = Field(default=1.0, gt=0.0)
+    hist_sinkhorn_iterations: int = Field(default=0, ge=0)
+    hist_sinkhorn_marginal: Literal["class_population", "uniform"] = "class_population"
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -2022,6 +2029,31 @@ def _hist_objective_loss(**kwargs: Any) -> Any:
     return hist_loss
 
 
+def _hist_sinkhorn_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    hist_module = kwargs["hist_module"]
+    hist_label_to_index = kwargs["hist_label_to_index"]
+    if hist_module is None or hist_label_to_index is None:
+        raise ValueError("the hist_sinkhorn objective requires an attached hist_module")
+    return _hist_sinkhorn_loss(
+        embeddings,
+        labels,
+        hist_module=hist_module,
+        label_to_index=hist_label_to_index,
+        tau=config.hist_tau,
+        alpha=config.hist_alpha,
+        lambda_s=config.hist_lambda_s,
+        var_floor=config.hist_var_floor,
+        sinkhorn_epsilon=config.hist_sinkhorn_epsilon,
+        sinkhorn_iterations=config.hist_sinkhorn_iterations,
+        sinkhorn_marginal=config.hist_sinkhorn_marginal,
+        torch_module=torch_module,
+    )
+
+
 def _hist_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -2623,6 +2655,7 @@ def _group_potential_objective_loss(**kwargs: Any) -> Any:
 
 _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "hist": _hist_objective_loss,
+    "hist_sinkhorn": _hist_sinkhorn_objective_loss,
     "hist_proxy_anchor": _hist_proxy_anchor_objective_loss,
     "triplet": _triplet_objective_loss,
     "triplet_pretrained": _triplet_objective_loss,
@@ -2732,6 +2765,7 @@ def _objective_display_name(objective: str) -> str:
         "proxy_anchor_antico": "Proxy Anchor + Anti-Collapse (Coding Rate)",
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
+        "hist_sinkhorn": "HIST + Sinkhorn hyperedge coupling",
         "hist_proxy_anchor": "HIST + Proxy Anchor (fused)",
         "proxy_anchor_gsi": "Proxy Anchor + GSI",
         "proxy_anchor_bgsi": "Proxy Anchor + BGSI",
@@ -3236,6 +3270,144 @@ def _hist_loss(
     hidden_state = propagate @ hist_module.theta1(features)
     hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
     logits = propagate @ hist_module.theta2(hidden_state)  # (N, C)
+    ce_loss = functional.cross_entropy(logits, target)
+    return dist_loss + float(lambda_s) * ce_loss
+
+
+def _sinkhorn_log_coupling(
+    cost: Any,
+    *,
+    row_marginal: Any,
+    column_marginal: Any,
+    epsilon: float,
+    iterations: int,
+    torch_module: Any,
+) -> Any:
+    """Entropic-optimal-transport coupling between batch samples and hyperedges.
+
+    Solves, in the log domain for numerical stability,
+
+        P* = argmin_P  <C, P>  -  eps * H(P)     s.t.  P 1 = r,  P^T 1 = c
+
+    whose solution is the Gibbs form ``P = diag(u) exp(-C/eps) diag(v)``. This is a
+    *free energy* ``F = U - T S`` with temperature ``T = eps``: the transport cost is
+    the internal energy and the entropy term is the thermodynamic entropy, so ``P*`` is
+    the equilibrium (maximum-entropy) coupling consistent with the two marginals.
+
+    ``iterations=0`` returns ``exp(-C/eps)`` unbalanced, i.e. no Sinkhorn projection.
+    """
+    log_kernel = -cost / float(epsilon)
+    log_r = torch_module.log(row_marginal.clamp_min(1.0e-12))
+    log_c = torch_module.log(column_marginal.clamp_min(1.0e-12))
+    f = torch_module.zeros_like(log_r)
+    g = torch_module.zeros_like(log_c)
+    for _ in range(int(iterations)):
+        f = log_r - torch_module.logsumexp(log_kernel + g.unsqueeze(0), dim=1)
+        g = log_c - torch_module.logsumexp(log_kernel + f.unsqueeze(1), dim=0)
+    return torch_module.exp(log_kernel + f.unsqueeze(1) + g.unsqueeze(0))
+
+
+def _hist_sinkhorn_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    hist_module: Any,
+    label_to_index: dict[int, int],
+    tau: float,
+    alpha: float,
+    lambda_s: float,
+    var_floor: float,
+    sinkhorn_epsilon: float,
+    sinkhorn_iterations: int,
+    sinkhorn_marginal: str,
+    torch_module: Any,
+) -> Any:
+    """HIST with its hyperedge normalisation replaced by an entropic-OT coupling.
+
+    HIST propagates with ``G = Dv^-1/2 H W De^-1 H^T Dv^-1/2``, where the soft
+    incidence ``H_ie = 1{y_i=e} + exp(-alpha d_ie)(1 - 1{y_i=e})`` is normalised only
+    by its own row/column degrees. That normalisation is *ad hoc*: a class whose
+    learned Gaussian happens to be broad accumulates soft membership mass from
+    non-members and dominates propagation for the whole batch, and nothing ties the
+    mass a hyperedge receives to the number of samples that actually belong to it.
+
+    Here ``H`` is replaced by the coupling ``P`` that minimises the free energy
+    ``<C,P> - eps H(P)`` subject to ``P 1 = 1/N`` and ``P^T 1 = c``, with cost
+    ``C_ie = alpha * d_ie`` masked to zero on the true class -- so ``exp(-C)`` is
+    exactly HIST's ``H``. Consequences:
+
+    * **Physics.** The coupling is a Gibbs equilibrium; ``u`` and ``v`` are two coupled
+      partition functions. This repository's catalogue of failed potentials records
+      that raw pairwise potentials collapse "without a partition-function (softmax)
+      normaliser"; entropic OT supplies that normalisation for a *higher-order*
+      structure rather than a pairwise one.
+    * **Biology.** The column marginal is competitive exclusion: each class holds
+      exactly its niche share of the batch's representational mass and none can
+      monopolise it.
+    * **Strict generalisation.** At ``sinkhorn_iterations=0`` and
+      ``sinkhorn_epsilon=1.0`` the coupling degenerates to ``H`` and this loss reduces
+      to ``_hist_loss`` exactly, which
+      ``test_sinkhorn_hist_reduces_to_hist_without_balancing`` asserts.
+
+    ``sinkhorn_marginal="class_population"`` sets ``c_e`` to class ``e``'s true share of
+    the batch, which respects genuine class imbalance; ``"uniform"`` forces equipartition
+    as SwAV does, whose uniform prior is known to misbehave under long-tailed data.
+    """
+    functional = torch_module.nn.functional
+    device = embeddings.device
+    target = torch_module.tensor(
+        [label_to_index[int(label)] for label in labels.tolist()],
+        dtype=torch_module.long,
+        device=device,
+    )
+    nb_classes = int(hist_module.means.shape[0])
+    features = functional.normalize(embeddings, p=2, dim=-1)
+    means = functional.normalize(hist_module.means, p=2, dim=-1)
+    log_vars = hist_module.log_vars.clamp(float(var_floor), 6.0)
+    covariances = torch_module.exp(log_vars).unsqueeze(0)
+    diff = features.unsqueeze(1) - means.unsqueeze(0)
+    distance = (diff.pow(2) / covariances).sum(dim=-1)  # (N, C)
+
+    one_hot = functional.one_hot(target, nb_classes).to(features.dtype)
+    dist_loss = functional.cross_entropy(-float(tau) * distance, target)
+
+    class_within = torch_module.nonzero(one_hot.sum(dim=0) != 0, as_tuple=False).squeeze(dim=1)
+    membership = one_hot[:, class_within]
+    # cost = alpha*d off the true class, 0 on it, so exp(-cost) == HIST's incidence.
+    cost = float(alpha) * distance[:, class_within] * (1.0 - membership)
+
+    sample_count = int(features.shape[0])
+    row_marginal = torch_module.full(
+        (sample_count,), 1.0 / float(sample_count), device=device, dtype=features.dtype
+    )
+    if sinkhorn_marginal == "uniform":
+        edge_count = int(class_within.shape[0])
+        column_marginal = torch_module.full(
+            (edge_count,), 1.0 / float(edge_count), device=device, dtype=features.dtype
+        )
+    else:  # "class_population": each hyperedge receives its true share of the batch
+        column_marginal = membership.sum(dim=0) / float(sample_count)
+
+    incidence = _sinkhorn_log_coupling(
+        cost,
+        row_marginal=row_marginal,
+        column_marginal=column_marginal,
+        epsilon=sinkhorn_epsilon,
+        iterations=sinkhorn_iterations,
+        torch_module=torch_module,
+    )
+
+    edge_weight = torch_module.ones(incidence.shape[1], device=device, dtype=features.dtype)
+    node_degree = (incidence * edge_weight).sum(dim=1).clamp_min(1.0e-12)
+    edge_degree = incidence.sum(dim=0).clamp_min(1.0e-12)
+    inv_node = torch_module.diag(node_degree.pow(-0.5))
+    inv_edge = torch_module.diag(edge_degree.pow(-1.0))
+    weight = torch_module.diag(edge_weight)
+    propagate = inv_node @ incidence @ weight @ inv_edge @ incidence.T @ inv_node
+
+    hidden_state = propagate @ hist_module.theta1(features)
+    hidden_state = hist_module.lrelu(hist_module.bn1(hidden_state))
+    logits = propagate @ hist_module.theta2(hidden_state)
     ce_loss = functional.cross_entropy(logits, target)
     return dist_loss + float(lambda_s) * ce_loss
 
