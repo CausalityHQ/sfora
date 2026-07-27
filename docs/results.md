@@ -61,6 +61,41 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
+### The first arm to beat HIST — and it is the one predicted not to
+
+| arm (CUB seed 0) | R@1 | vs HIST | peak epoch | decay |
+| --- | ---: | ---: | ---: | ---: |
+| HIST | 0.7183 | — | 27 / 41 | −0.16 |
+| HERD — pairwise EMA distillation | 0.7156 | −0.27 | 19 | −1.05 |
+| herd_hg — propagated HGNN logits | 0.7174 | −0.09 | 26 | −0.13 |
+| **herd_hg_incidence — Mahalanobis prototype affinity** | **0.7235** | **+0.52** | 22 | −0.61 |
+
+**This inverts the argument that motivated the work, and the inversion is the
+finding.** `herd_hg_incidence` was built as an *ablation control*, not a candidate:
+`test_only_the_propagated_target_is_a_genuine_n_ary_quantity` proves its target
+`H_i` depends solely on sample `i`'s own distances to the class Gaussians, is
+invariant to the rest of the batch, and is therefore ordinary dark-knowledge KD over
+Mahalanobis-proxy logits — **expressible without any hypergraph and carrying no
+novelty claim**. The arm that *does* carry the novelty claim, the propagated HGNN
+logits whose normalisation depends on the whole batch's hyperedge population, scored
+−0.09.
+
+So on this evidence the n-ary property is not what helps. The plausible reading,
+consistent with §2b: the propagated target mixes the entire batch and is
+correspondingly noisier, while the per-sample prototype affinity is a cleaner,
+lower-variance target. Its curve supports that — it is far ahead early (0.6931 at
+25% of the run against HIST's 0.6487) and peaks at 54%.
+
+Caveats that matter more than the number:
+
+* **One seed, and +0.52 is below CUB's σ ≈ 0.6.** This is a screening signal, not a
+  result. Seeds 1 and 2 are running; a claim needs ≥ 6 seeds (see the p-value floor
+  in `research_reset_plan.md` Phase 4).
+* If it survives, the honest framing is **not** "hypergraph-native distillation
+  works". It is "distilling an EMA teacher's class-prototype affinities helps a
+  strong HIST base" — closer to Hinton-style KD than to anything novel, and the
+  novelty question would have to be re-asked from scratch.
+
 **2b. What the training curves say: the distillation is a regulariser.** The
 best-over-training numbers hide the mechanism; the curves show it plainly.
 
