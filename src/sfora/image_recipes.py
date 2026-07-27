@@ -36,6 +36,8 @@ DerivedMethod = Literal[
     "hist_shot",
     "hist_shot_uniform",
     "hist_shot_geometric",
+    "hist_ipc4",
+    "hist_shot_geo_ipc4",
 ]
 
 # Base loss each derived method attaches to.
@@ -49,6 +51,8 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "hist_shot": "hist",
     "hist_shot_uniform": "hist",
     "hist_shot_geometric": "hist",
+    "hist_ipc4": "hist",
+    "hist_shot_geo_ipc4": "hist",
 }
 
 # Shared distillation delta.
@@ -351,6 +355,18 @@ _SHOT_DELTA: dict[str, Any] = {
 }
 
 
+# Balanced sampling. Official HIST sets --IPC 0, so batches are random -- and on CUB
+# (5864 images / 100 classes) a batch of 32 then holds ~27 distinct classes with ONE
+# or two samples each. Almost every hyperedge has a single true member, so HIST's
+# "higher-order" structure is carried by soft memberships rather than by genuine
+# n-ary grouping. IPC=4 gives 8 classes x 4 samples, producing real multi-member
+# hyperedges for the first time. This ADDS structure rather than regularisation,
+# which is what the training curves say HIST needs: it peaks at 66% of its run and
+# decays only 0.16 pt, i.e. it is not overfitting and has no use for another
+# regulariser. It also gives SHOT's marginal constraint something to act on.
+_IPC4_DELTA: dict[str, Any] = {"samples_per_class": 4}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
@@ -360,6 +376,10 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
+    elif method == "hist_ipc4":
+        delta = dict(_IPC4_DELTA)
+    elif method == "hist_shot_geo_ipc4":
+        delta = {**_SHOT_DELTA, "hist_sinkhorn_cost": "geometric", **_IPC4_DELTA}
     elif method.startswith("hist_shot"):
         delta = dict(_SHOT_DELTA)
         delta["hist_sinkhorn_marginal"] = (
