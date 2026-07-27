@@ -2229,6 +2229,7 @@ def _local_nca_objective_loss(**kwargs: Any) -> Any:
         temperature=config.temperature,
         negatives_k=config.local_nca_negatives_k,
         torch_module=torch_module,
+        diagnostics=cast("list[dict[str, float]] | None", kwargs.get("gsi_step_diagnostics")),
     )
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
@@ -4868,6 +4869,7 @@ def _local_nca_loss(
     negatives_k: int,
     torch_module: Any,
     exclude_self: bool = True,
+    diagnostics: list[dict[str, float]] | None = None,
 ) -> Any:
     """Local Neighbourhood Component Analysis: a NON-COLLAPSING supervised objective.
 
@@ -4876,18 +4878,42 @@ def _local_nca_loss(
 
         L_out = -(1/|P|) * sum_{p in P} log( e^{s_ip/T} / sum_a e^{s_ia/T} )
 
-    which is minimised only when EVERY positive is close to the anchor. That is
-    precisely a class-collapse objective: it drives all members of a class onto one
-    point and destroys intra-class structure. Khosla et al. (NeurIPS 2020) compared
-    both forms and chose L_out for classification, where collapsing to class identity
-    is exactly what you want.
+    which is minimised only when EVERY positive is close to the anchor -- a
+    class-collapse objective that drives all members of a class onto one point and
+    destroys intra-class structure.
 
-    For ZERO-SHOT retrieval the argument inverts: the test classes are unseen, so
-    class identity cannot transfer -- only local similarity structure can. This uses
-    the "L_in" form, which is the original NCA objective (Goldberger, Roweis, Hinton
-    & Salakhutdinov, NeurIPS 2004):
+    Khosla et al. (NeurIPS 2020, arXiv 2004.11362) analysed both forms, proved
+    L_in <= L_out by Jensen, and chose L_out. Their stated reason is NOT that collapse
+    is desirable: it is a gradient-structure argument, that L_out induces implicit
+    hard-positive/hard-negative mining (large gradients on hard pairs, small on easy
+    ones) whereas L_in's gradient is dominated by whichever positive is already
+    closest, drowning out the rest. **That objection applies directly to this loss and
+    is not resolved here** -- see the degenerate-solution risk documented below.
+
+    For ZERO-SHOT retrieval there is nonetheless a reason to prefer L_in: the test
+    classes are unseen, so class identity cannot transfer, only local similarity
+    structure can.
 
         L_in = -log( sum_{p in P} e^{s_ip/T} / sum_{a in P u H} e^{s_ia/T} )
+
+    Lineage, stated precisely. NCA (Goldberger, Roweis, Hinton & Salakhutdinov,
+    NeurIPS 2004) maximises sum_p p_ip directly -- an expected-accuracy objective with
+    no log, so it is related but not identical. The exact multi-positive-inside-one-log
+    form here is the Soft Nearest Neighbour Loss (Frosst, Papernot & Hinton, ICML 2019,
+    arXiv 1902.01889), which documents the same "some positive suffices" behaviour --
+    but uses it as an entanglement *diagnostic/regulariser*, sometimes deliberately
+    maximising entanglement, and never tests zero-shot transfer. So the loss FORM is
+    not novel. What is untested is the claim made here: that using it as the primary
+    discriminative objective helps zero-shot retrieval because class collapse destroys
+    the only structure that can transfer to unseen classes.
+
+    Related but structurally different: SoftTriple (Qian et al., ICCV 2019) applies a
+    softmax over K within-class proxies before the class softmax, so "some centre
+    suffices" exists at the proxy level -- but it still pulls toward a class-level
+    object rather than real instance structure. MIC (Roth et al., ICCV 2019) attacks
+    the same intra-class-collapse problem by a different mechanism (auxiliary
+    clustering of shared characteristics), so it is prior work on the problem, not
+    precedent for this loss.
 
     Because the positive sum is INSIDE the log, the loss is satisfied as soon as
     *some* genuine same-class instance outranks the negatives. It never requires a
@@ -4957,7 +4983,56 @@ def _local_nca_loss(
     log_prob = torch_module.logsumexp(positive_logits, dim=1) - torch_module.logsumexp(
         candidate_logits, dim=1
     )
+    if diagnostics is not None:
+        diagnostics.append(
+            _local_nca_effective_positives(
+                positive_logits,
+                positive_mask,
+                keep,
+                torch_module=torch_module,
+            )
+        )
     return -log_prob[keep].mean()
+
+
+def _local_nca_effective_positives(
+    positive_logits: Any,
+    positive_mask: Any,
+    keep: Any,
+    *,
+    torch_module: Any,
+) -> dict[str, float]:
+    """Detect the degenerate "one buddy per anchor" solution.
+
+    L_in is satisfied by pushing up a single nearest positive; nothing forces it to
+    touch any other same-class instance. If the model settles on one fixed partner per
+    sample it would satisfy the loss without learning transferable structure -- and the
+    resulting embedding would generalise no better than a lookup table. This is the
+    concrete form of Khosla et al.'s objection to L_in.
+
+    The measurement is the *effective number of positives*, exp(H) of the softmax over
+    an anchor's positives:
+
+        ~1.0        one buddy carries the anchor -- the degenerate regime
+        ~|P|        every positive contributes -- back toward L_out's behaviour
+
+    Healthy behaviour is in between, and crucially should not be pinned at 1.0. Note
+    this measures concentration at a single step, not whether the SAME partner keeps
+    winning across steps; a fixed-partner diagnostic would additionally need instance
+    IDs in the cross-batch memory, which `_XbmMemory` does not currently carry.
+    """
+    with torch_module.no_grad():
+        probabilities = torch_module.softmax(positive_logits, dim=1)
+        probabilities = probabilities * positive_mask.to(probabilities.dtype)
+        probabilities = probabilities / probabilities.sum(dim=1, keepdim=True).clamp_min(1e-12)
+        entropy = -(probabilities.clamp_min(1e-12).log() * probabilities).sum(dim=1)
+        effective = torch_module.exp(entropy)[keep]
+        available = positive_mask.sum(dim=1).to(effective.dtype)[keep]
+        return {
+            "local_nca_effective_positives": float(effective.mean()),
+            "local_nca_available_positives": float(available.mean()),
+            "local_nca_anchors_kept": float(keep.to(effective.dtype).mean()),
+        }
 
 
 def _supervised_contrastive_loss(

@@ -483,6 +483,56 @@ def test_local_nca_self_exclusion_survives_a_memory_augmented_contrast_set() -> 
     assert float(augmented) > 0.0  # ~0 would mean an anchor matched itself
 
 
+def test_local_nca_diagnostic_detects_the_one_buddy_regime() -> None:
+    """Guards the failure mode L_in is most exposed to, and which Khosla et al. raised
+    as their objection: the loss can be satisfied by a single nearest positive while
+    ignoring every other same-class instance.
+
+    `local_nca_effective_positives` = exp(H) of the softmax over an anchor's positives.
+    ~1.0 means one partner carries the anchor (degenerate); ~|P| means all contribute.
+    """
+    torch: Any = pytest.importorskip("torch")
+    anchor = torch.tensor([1.0, 0.0, 0.0])
+    negative = torch.tensor([0.0, 0.0, 1.0])
+
+    def effective_positives(positives: list[Any]) -> float:
+        stacked = torch.stack([anchor, *positives, negative])
+        stacked = torch.nn.functional.normalize(stacked, dim=1)
+        labels = torch.tensor([0] * (1 + len(positives)) + [1])
+        collected: list[dict[str, float]] = []
+        _local_nca_loss(
+            stacked[:1],
+            labels[:1],
+            contrast_embeddings=stacked,
+            contrast_labels=labels,
+            temperature=0.1,
+            negatives_k=1,
+            torch_module=torch,
+            diagnostics=collected,
+        )
+        return collected[0]["local_nca_effective_positives"]
+
+    # One positive far closer than the others -> a single buddy dominates.
+    lopsided = effective_positives(
+        [
+            torch.tensor([0.999, 0.045, 0.0]),
+            torch.tensor([0.10, 0.99, 0.0]),
+            torch.tensor([0.05, 0.0, 0.99]),
+        ]
+    )
+    # Three equidistant positives -> the anchor spreads across all of them.
+    balanced = effective_positives(
+        [
+            torch.tensor([0.90, 0.44, 0.0]),
+            torch.tensor([0.90, -0.44, 0.0]),
+            torch.tensor([0.90, 0.0, 0.44]),
+        ]
+    )
+
+    assert lopsided < 1.5, f"expected a near-degenerate reading, got {lopsided:.3f}"
+    assert balanced > 2.5, f"expected spread across ~3 positives, got {balanced:.3f}"
+
+
 def test_local_nca_skips_anchors_with_no_positive() -> None:
     """With unbalanced CUB batches ~74% of anchors have no same-class partner. Those
     must be skipped rather than producing NaN or a spurious gradient."""
