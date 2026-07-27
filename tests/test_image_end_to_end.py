@@ -420,6 +420,69 @@ def test_local_nca_still_separates_a_rank_inversion() -> None:
     assert float(inverted) > 1.0  # a real inversion is expensive
 
 
+def test_local_nca_is_a_smooth_relaxation_of_recall_at_1() -> None:
+    """The load-bearing property. `logsumexp` over positives is a soft maximum, so as
+    the temperature falls the loss tends to 0 when the anchor's nearest neighbour is a
+    positive and diverges when it is a negative -- exactly the indicator Recall@1
+    counts. L_out has no such limit: it is a surrogate for class compactness, which is
+    not the quantity any retrieval benchmark evaluates."""
+    torch: Any = pytest.importorskip("torch")
+    anchor = torch.tensor([[1.0, 0.0]])
+    positive = torch.tensor([[0.60, 0.80]])
+    negative = torch.tensor([[0.95, 0.31]])  # nearer than the positive: an inversion
+    labels = torch.tensor([0, 0, 1])
+
+    def loss_for(order: Any, temperature: float) -> float:
+        stacked = torch.nn.functional.normalize(torch.cat(order), dim=1)
+        return float(
+            _local_nca_loss(
+                stacked[:1],
+                labels[:1],
+                contrast_embeddings=stacked,
+                contrast_labels=labels,
+                temperature=temperature,
+                negatives_k=1,
+                torch_module=torch,
+            )
+        )
+
+    inverted = [anchor, positive, negative]
+    correct = [anchor, negative, positive]  # swap so the positive is nearest
+
+    # Sharpening drives the correct case to zero and the inversion to blow up.
+    assert loss_for(correct, 0.01) < 1e-3
+    assert loss_for(inverted, 0.01) > 20.0
+    # ...and the gap widens monotonically as temperature falls.
+    gaps = [loss_for(inverted, t) - loss_for(correct, t) for t in (1.0, 0.1, 0.01)]
+    assert gaps[0] < gaps[1] < gaps[2]
+
+
+def test_local_nca_self_exclusion_survives_a_memory_augmented_contrast_set() -> None:
+    """When memory is concatenated, `anchors` and `contrast_embeddings` have different
+    lengths. Self-exclusion relies on the batch occupying the FIRST rows of the
+    contrast set; if that assumption broke, each anchor would match itself at
+    similarity 1.0 and the loss would collapse to ~0 for free."""
+    torch: Any = pytest.importorskip("torch")
+    torch.manual_seed(0)
+    batch = torch.nn.functional.normalize(torch.randn(4, 8), dim=1)
+    memory = torch.nn.functional.normalize(torch.randn(20, 8), dim=1)
+    batch_labels = torch.tensor([0, 1, 0, 1])
+    memory_labels = torch.tensor([0, 1, 0, 1] * 5)
+
+    augmented = _local_nca_loss(
+        batch,
+        batch_labels,
+        contrast_embeddings=torch.cat([batch, memory]),
+        contrast_labels=torch.cat([batch_labels, memory_labels]),
+        temperature=0.1,
+        negatives_k=5,
+        torch_module=torch,
+    )
+
+    assert torch.isfinite(augmented)
+    assert float(augmented) > 0.0  # ~0 would mean an anchor matched itself
+
+
 def test_local_nca_skips_anchors_with_no_positive() -> None:
     """With unbalanced CUB batches ~74% of anchors have no same-class partner. Those
     must be skipped rather than producing NaN or a spurious gradient."""

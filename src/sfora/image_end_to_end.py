@@ -4895,6 +4895,21 @@ def _local_nca_loss(
     "spiky" at no cost. There is no prototype to collapse onto: the attractor is
     always another real instance.
 
+    **L_in is a smooth relaxation of Recall@1, which is the stronger argument.**
+    ``logsumexp`` over the positives is a soft maximum, so as ``T -> 0`` the loss
+    tends to 0 when the anchor's nearest neighbour is a positive and diverges when it
+    is a negative -- exactly the indicator that Recall@1 counts. Measured on a single
+    anchor with one positive and one negative:
+
+        T=1.0   inversion 0.884   correct 0.533
+        T=0.1   inversion 3.536   correct 0.030
+        T=0.01  inversion 35.07   correct 0.000
+
+    L_out has no such property: it is a surrogate for *class compactness*, which is
+    not the quantity any retrieval benchmark evaluates. The field optimises how
+    tightly a class clusters and then measures whether the nearest neighbour happens
+    to share a label. This objective optimises the thing that is actually measured.
+
     Two departures from 2004-era NCA, both load-bearing:
 
     * ``negatives_k`` restricts the denominator to each anchor's k nearest
