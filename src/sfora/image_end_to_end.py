@@ -245,6 +245,12 @@ class ImageEndToEndConfig(BaseModel):
     local_nca_negatives_k: int = Field(default=16, ge=1)
     local_nca_memory_size: int = Field(default=0, ge=0)
     local_nca_start_step: int = Field(default=0, ge=0)
+    # Bit-reproducibility at a fixed seed. Three effectively-identical CUB runs at the
+    # SAME seed scored 0.7183 / 0.7154 / 0.7075 - a 1.08 pt spread from GPU
+    # nondeterminism alone, comparable to the 0.88 pt across-seed sigma. Enabling this
+    # makes a rerun return the same number, so paired comparisons become exact.
+    # Default False so it cannot silently change artifacts produced before it existed.
+    deterministic: bool = False
     # Weight of the Proxy Anchor term in the fused `hist_proxy_anchor` objective
     # (L = L_HIST + proxy_fusion_weight * L_ProxyAnchor). One model, both losses.
     proxy_fusion_weight: float = Field(default=1.0, ge=0.0)
@@ -452,6 +458,41 @@ _GROUP_CENTROID_OBJECTIVES = {
 }
 
 
+def _enable_deterministic_algorithms(torch_module: Any) -> None:
+    """Make a run bit-reproducible at a fixed seed.
+
+    Measured motivation, not a precaution. Three effectively-identical CUB runs at the
+    SAME seed scored 0.7183 / 0.7154 / 0.7075 -- a 1.08 pt spread from GPU
+    nondeterminism alone (non-deterministic cuDNN kernels, atomics, and dataloader
+    ordering). That is comparable to the 0.88 pt across-seed sigma, so more than half
+    the observed "seed variance" in this project was never about seeds.
+
+    The consequence for measurement is larger than the variance reduction: with
+    determinism a rerun of a configuration returns the SAME number, so any difference
+    between two arms is attributable to the intervention rather than to the run. Paired
+    comparisons become exact.
+
+    `warn_only=True` because a few ops have no deterministic kernel; the run degrades
+    to partial determinism rather than crashing mid-experiment. `CUBLAS_WORKSPACE_CONFIG`
+    must be set before the first CUDA context is created, so it is exported here and
+    also documented for the launcher.
+    """
+    import os
+
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    backends = getattr(torch_module, "backends", None)
+    cudnn = getattr(backends, "cudnn", None) if backends is not None else None
+    if cudnn is not None:
+        cudnn.deterministic = True
+        cudnn.benchmark = False
+    use_deterministic = getattr(torch_module, "use_deterministic_algorithms", None)
+    if use_deterministic is not None:
+        try:
+            use_deterministic(True, warn_only=True)
+        except TypeError:  # older torch without warn_only
+            use_deterministic(True)
+
+
 def _validate_group_centroid_sampling(config: ImageEndToEndConfig) -> None:
     """Reject sampler settings that silently zero out group-centroid loss terms.
 
@@ -501,6 +542,8 @@ def run_image_end_to_end_benchmark(
     torch.manual_seed(config.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.seed)
+    if config.deterministic:
+        _enable_deterministic_algorithms(torch)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     train_transform = (transform_factory or _default_transform_factory)(config, True)
     test_transform = (transform_factory or _default_transform_factory)(config, False)

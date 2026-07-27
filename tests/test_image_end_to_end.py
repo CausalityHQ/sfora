@@ -897,6 +897,44 @@ def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
     assert torch.allclose(incidence_before, incidence_after, atol=1e-9)
 
 
+def test_deterministic_flag_configures_the_backend() -> None:
+    """The 1.08 pt fixed-seed spread this project measured is GPU nondeterminism, and
+    it is eliminable. Verify the switch actually reaches the backend rather than being
+    a config field nothing reads."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _enable_deterministic_algorithms
+
+    calls: dict[str, Any] = {}
+
+    class _Cudnn:
+        deterministic = False
+        benchmark = True
+
+    class _Backends:
+        cudnn = _Cudnn()
+
+    class _FakeTorch:
+        backends = _Backends()
+
+        @staticmethod
+        def use_deterministic_algorithms(value: bool, warn_only: bool = False) -> None:
+            calls["value"] = value
+            calls["warn_only"] = warn_only
+
+    _enable_deterministic_algorithms(_FakeTorch())
+
+    assert _FakeTorch.backends.cudnn.deterministic is True
+    assert _FakeTorch.backends.cudnn.benchmark is False
+    assert calls == {"value": True, "warn_only": True}
+
+    import os
+
+    assert os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8"
+    # The real torch must accept the same call without raising.
+    _enable_deterministic_algorithms(torch)
+    torch.use_deterministic_algorithms(False)  # restore for the rest of the suite
+
+
 def test_batch_norm_affine_freeze_disables_gradients() -> None:
     torch: Any = pytest.importorskip("torch")
     model = torch.nn.Sequential(torch.nn.BatchNorm2d(3), torch.nn.Conv2d(3, 4, 1))
