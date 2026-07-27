@@ -592,6 +592,81 @@ matrix (roughly the number of classes present in the batch), so its per-step
 estimate is noisier — and a noisier statistic is exactly where an EMA teacher has
 more variance to remove.
 
+### Phase 5b — SHOT: Sinkhorn Hyperedge Optimal Transport
+
+A second, independent bet, arrived at from a literature survey rather than from
+the existing code. Unlike the distillation family it is a **structural** change to
+HIST, not an added regularisation term, and it involves no EMA teacher at all.
+
+**Target, restated honestly.** Published CUB numbers are not a trustworthy bar.
+Musgrave et al., *A Metric Learning Reality Check* (ECCV 2020), showed that a
+decade of claimed DML advances were "marginal at best" once backbone, optimizer,
+augmentation and embedding size were held constant, and documented specific papers
+comparing against competitors on weaker backbones. Our own harness agrees: we
+reproduce HIST **above** its published number (0.7183 vs 0.714) while PFML — the
+nominal 73.4 SOTA — collapses entirely. So the bar we hold ourselves to is
+**beat 0.7183 in-harness**, everything else held constant. That is a harder and
+more meaningful target than beating a number we cannot reproduce.
+
+**The gap.** Optimal transport appears in the hypergraph literature only as a
+metric *between* hypergraphs (HyperCOT; Wasserstein hypergraph coarsening), while
+hypergraph message passing normalises the incidence matrix by degree (HGNN, HNHN's
+`D_V^-1`, SNALS's one-sided `D_E^-1`). Nothing replaces the degree normalisation
+*inside* node↔hyperedge message passing with an entropic-OT coupling. Separately,
+SwAV established that a Sinkhorn equipartition constraint prevents representation
+collapse, and its objective is explicitly a free energy — an energy term plus an
+entropy term scaled by a temperature `ε`.
+
+**The defect being fixed.** HIST propagates with
+
+```
+G = Dv^-1/2 · H · W · De^-1 · H^T · Dv^-1/2,
+H_ie = 1{y_i = e} + exp(-alpha·d_ie)·(1 - 1{y_i = e})
+```
+
+`De^-1` normalises each hyperedge by its *soft* degree. So a class whose learned
+Gaussian happens to be broad accumulates membership mass from samples that are not
+its members, and dominates propagation for the entire batch. Nothing ties the mass
+a hyperedge receives to the number of samples that actually belong to it. With
+`samples_per_class: 0` in the reference config, batches are not class-balanced
+either, so this imbalance is real rather than hypothetical.
+
+**The method.** Replace `H` with the coupling that minimises the free energy
+
+```
+P* = argmin_P  <C, P>  -  eps·H(P)      s.t.  P·1 = 1/N,  P^T·1 = c
+```
+
+solved by Sinkhorn iterations in the log domain, with `C_ie = alpha·d_ie` masked to
+zero on the true class and `c_e` = class `e`'s true share of the batch.
+
+Each domain does real work here:
+
+* **Physics.** `F = U − TS` with temperature `eps`; `P*` is the Gibbs equilibrium
+  coupling and the duals `u, v` are two coupled partition functions. This
+  repository's own catalogue records that raw potentials "collapse without a
+  partition-function (softmax) normaliser" — entropic OT supplies precisely that,
+  applied to the *higher-order* structure rather than to pairwise potentials.
+* **Biology.** The column marginal is competitive exclusion: every class holds
+  exactly its niche share of the batch's representational mass and none may
+  monopolise it. We use the *true* class share rather than SwAV's uniform prior,
+  which is known to degrade under long-tailed data.
+
+**Why this is a stronger bet than the distillation family.** It is not
+variance-reduction on a noisy target — the mechanism the In-Shop result went
+1-for-1 against. It changes what the hypergraph *computes*.
+
+**Strict generalisation, and why that matters.** The cost is defined so that
+`exp(-C)` **is** HIST's incidence. Therefore at `iterations=0, epsilon=1.0` the
+coupling degenerates to `H` and the loss equals `_hist_loss` exactly —
+`test_sinkhorn_hist_reduces_to_hist_without_balancing` asserts it. Plain HIST is a
+provable special case, the balancing is a single interpretable knob, and any
+measured difference is attributable to the transport constraint alone. The
+`hist_shot_uniform` arm ablates the marginal choice.
+
+Same preregistered gate as everything else: ≥ +0.5 R@1 over HIST on CUB seed 0 to
+earn a multi-seed run, and ≥ 6 seeds before any claim.
+
 ### Phase 6 — The fallback, which should be prepared in parallel, not after
 
 If the loss-innovation track fails, the honest and still-valuable contribution is
