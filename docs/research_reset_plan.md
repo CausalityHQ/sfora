@@ -683,8 +683,31 @@ provable special case, the balancing is a single interpretable knob, and any
 measured difference is attributable to the transport constraint alone. The
 `hist_shot_uniform` arm ablates the marginal choice.
 
+**Batch composition, and what it does to the marginal choice.** Official HIST sets
+`--IPC default=0`, i.e. balanced sampling *off*, and our `samples_per_class: 0`
+matches it (another fidelity check passed). But that has a consequence worth
+recording, because it is also a real observation about HIST itself: CUB has 5,864
+training images over 100 classes, so a random batch of 32 contains roughly 27
+distinct classes with **one or two samples each**. Almost every hyperedge therefore
+has a single true member.
+
+Two implications:
+
+1. HIST's "higher-order" structure on CUB is carried almost entirely by the *soft*
+   memberships `exp(-alpha·d)`, not by multiple true members sharing a hyperedge.
+   The hypergraph is doing soft label propagation more than it is doing genuine
+   n-ary grouping.
+2. With `n_e ∈ {1, 2}` the class-population marginal is already nearly uniform, so
+   `hist_shot` and `hist_shot_uniform` will be close to each other. The biology
+   framing (competitive exclusion via unequal niche shares) has much less to bite
+   on here than it would on a dataset with real batch imbalance. That is an honest
+   weakening of the motivation, and it further concentrates the bet on
+   `hist_shot_geometric`.
+
 Same preregistered gate as everything else: ≥ +0.5 R@1 over HIST on CUB seed 0 to
-earn a multi-seed run, and ≥ 6 seeds before any claim.
+earn a multi-seed run, and ≥ 6 seeds before any claim. The queue applies this
+automatically (`escalate_if_promising`), so a losing arm costs one run rather than
+three.
 
 ### Phase 6 — The fallback, which should be prepared in parallel, not after
 
