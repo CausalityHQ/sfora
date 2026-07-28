@@ -61,6 +61,48 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
+### The two new-method candidates: both clean negatives
+
+| arm | seeds | mean | vs baseline |
+| --- | --- | ---: | ---: |
+| `region_pa` (multi-vector, MaxSim retrieval) | 0.6442 / 0.6453 / 0.6502 | **0.6466** | **−3.6 pt** vs PA 0.6825 |
+| `local_nca` (L_in, memory positives) | 0.6590 / 0.5370 / 0.5240 | **0.5733** | **−13.7 pt** vs HIST 0.7107 |
+
+**`region_pa` — decisive, and the evaluation lesson is the keeper.** Its first run
+scored 0.5775 because the loss optimised a soft maximum over regions while retrieval
+scored cosine on the *concatenated* region vector. Wiring in MaxSim retrieval was
+worth **+6.7 pt** (0.5775 → 0.6442) — a real, reusable finding about evaluating
+region-based models. The reason is sharp: MaxSim matches each query region to its best
+gallery region wherever it sits, so the same object photographed off-centre scores
+1.00; concatenated cosine compares slot-to-slot and scores it **0.00**. Even so, the
+method sits 3.6 pt below Proxy Anchor with σ ≈ 0.03 pt across seeds, and peaks around
+epoch 11–17 of 60 before decaying. Not noise, not rescuable by the metric.
+
+**`local_nca` — failed, and the diagnostic refuted the failure I predicted.** I built
+`local_nca_effective_positives` (exp of the entropy of the softmax over an anchor's
+positives) expecting the "one buddy per anchor" collapse that Khosla et al.'s
+objection to L_in predicts: ~1.0 would mean a single partner carries each anchor.
+Measured:
+
+| seed | best | peak epoch | effective positives | available |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.6590 | 23 | 31.1 | 39.9 |
+| 1 | 0.5370 | **1** | 39.6 | 39.9 |
+| 2 | 0.5240 | **1** | 39.6 | 39.9 |
+
+The opposite happened. Effective positives ≈ *all* available, i.e. the positive
+softmax is essentially **uniform** — every same-class instance weighted equally, which
+is L_out's behaviour, not the selective behaviour L_in was chosen for. A flat positive
+distribution at τ = 0.1 means all within-class similarities sit within ~0.1 of each
+other: the representation is not discriminating inside a class at all. Two of three
+seeds peak at **epoch 1** and never recover.
+
+So the mechanism never engaged. Whether that is the memory queue supplying ~40
+stale positives per anchor (drowning the selectivity), the temperature, or the
+inherited HIST schedule is untested — but the honest statement is that this
+implementation of L_in did not behave like L_in, and the negative result is about the
+implementation as much as the idea.
+
 ### The properly paired CUB picture (3 seeds each)
 
 With HIST finally run at seeds 1 and 2, the comparisons become valid — and almost

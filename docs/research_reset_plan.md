@@ -19,6 +19,9 @@ dead or downgraded, and the surviving lead is not the one it was written to purs
 | H3: BatchNorm teacher/student mismatch | mechanism proved at unit level; In-Shop intervention queued |
 | SHOT (entropic-OT coupling) | untested; motivation weakened by batch composition (§Phase 5b) |
 | Prototype-affinity KD from an EMA teacher | **retracted** — +0.52 was seed noise; 3-seed mean is 0.7112 (σ = 1.1 pt) |
+| **H3: BatchNorm teacher/student mismatch** | **CONFIRMED** — In-Shop `herd_bnfix` 0.9035 / 0.9048 vs HERD 0.8899, ≈12σ. The −1.39 pt regression was a bug, not a finding. |
+| Local NCA (L_in with memory positives) | **dead** — 0.5733 mean, −13.7 pt; diagnostic shows the mechanism never engaged |
+| Region Proxy Anchor (multi-vector + MaxSim) | **dead** — 0.6466 mean, −3.6 pt, σ ≈ 0.03 across seeds |
 | Balanced sampling (IPC=4) activates the hypergraph | **dead** — 0.6909, −2.74 pt |
 
 **The measurement problem now dominates the method problem.** CUB seed noise in this
