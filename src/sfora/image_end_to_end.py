@@ -2968,6 +2968,7 @@ def _loss_for_objective(
     gsi_step_diagnostics: list[dict[str, float]] | None = None,
     hist_module: Any | None = None,
     hist_label_to_index: dict[int, int] | None = None,
+    tversky_feature_bank: Any | None = None,
     custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
 ) -> Any:
     # Caller-supplied objectives (e.g. the "custom" slot) take a clean signature and
@@ -2995,6 +2996,7 @@ def _loss_for_objective(
         gsi_step_diagnostics=gsi_step_diagnostics,
         hist_module=hist_module,
         hist_label_to_index=hist_label_to_index,
+        tversky_feature_bank=tversky_feature_bank,
     )
 
 
