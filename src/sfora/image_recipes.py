@@ -31,17 +31,6 @@ DerivedMethod = Literal[
     "herd",
     "pa_distill_bnfix",
     "herd_bnfix",
-    "herd_hg",
-    "herd_hg_incidence",
-    "hist_shot",
-    "hist_shot_uniform",
-    "hist_shot_geometric",
-    "hist_ipc4",
-    "hist_shot_geo_ipc4",
-    "herd_hg_prototype",
-    "hist_mem",
-    "local_nca",
-    "region_pa",
 ]
 
 # Base loss each derived method attaches to.
@@ -50,17 +39,6 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_distill_bnfix": "proxy_anchor",
     "herd": "hist",
     "herd_bnfix": "hist",
-    "herd_hg": "hist",
-    "herd_hg_incidence": "hist",
-    "hist_shot": "hist",
-    "hist_shot_uniform": "hist",
-    "hist_shot_geometric": "hist",
-    "hist_ipc4": "hist",
-    "hist_shot_geo_ipc4": "hist",
-    "herd_hg_prototype": "hist",
-    "hist_mem": "hist",
-    "local_nca": "hist",
-    "region_pa": "proxy_anchor",
 }
 
 # Shared distillation delta.
@@ -88,14 +66,6 @@ _BN_FIX_DELTA: dict[str, Any] = {
 # rather than a sum of two. The teacher is normalisation-consistent by construction
 # (`_BN_FIX_DELTA`), because an eval-mode teacher would forward `hist_module.bn1` on
 # running statistics and reintroduce the H3 defect inside the new loss.
-_HYPERGRAPH_DELTA: dict[str, Any] = {
-    **_BN_FIX_DELTA,
-    "ema_distill_weight": 0.0,
-    "hypergraph_distill_weight": 1.0,
-    "hypergraph_distill_tau_teacher": 0.5,
-    "hypergraph_distill_tau_student": 1.0,
-}
-
 _PROXY_ANCHOR_REVISION = "51db57031e38f75c03f69bbdfad1a3233afd9787"
 _PROXY_ANCHOR_SOURCE = "https://github.com/sung-yeon-kim/Proxy-Anchor-CVPR2020"
 _HIST_REVISION = "e7d650c80460f464c55bcdc2262d785923c50dc4"
@@ -356,12 +326,6 @@ def reference_recipes_for_method(base_method: BaseMethod) -> list[ImageRecipe]:
 # defined so that exp(-C) IS HIST's incidence, `iterations=0, epsilon=1.0` recovers HIST
 # exactly -- so these recipes change ONE thing, and plain HIST is the null arm.
 # NOTE this is not a distillation method: no EMA teacher is involved.
-_SHOT_DELTA: dict[str, Any] = {
-    "objectives": ("hist_sinkhorn",),
-    "hist_sinkhorn_epsilon": 1.0,
-    "hist_sinkhorn_iterations": 3,
-}
-
 
 # Balanced sampling. Official HIST sets --IPC 0, so batches are random -- and on CUB
 # (5864 images / 100 classes) a batch of 32 then holds ~27 distinct classes with ONE
@@ -383,12 +347,6 @@ _IPC4_DELTA: dict[str, Any] = {"samples_per_class": 4}
 # structure degenerates. Balanced sampling fixes that by spending class diversity and
 # fails badly (hist_ipc4, -2.74 pt); this spends staleness instead, the same trade
 # cross-batch memory already makes successfully here.
-_MEMORY_DELTA: dict[str, Any] = {
-    "objectives": ("hist_memory",),
-    "hist_memory_size": 1024,
-    "hist_memory_start_step": 200,
-}
-
 
 # Local NCA. Replaces the collapsing objective entirely rather than adding a term:
 # the positive sum moves INSIDE the log (the original NCA form), so the loss is
@@ -397,14 +355,6 @@ _MEMORY_DELTA: dict[str, Any] = {
 # memory supplies positives, because unbalanced CUB batches leave ~74% of anchors
 # without a same-class partner and balanced sampling costs -2.74 pt (hist_ipc4).
 # It borrows only the HIST recipe's optimiser/schedule; the loss itself is unrelated.
-_LOCAL_NCA_DELTA: dict[str, Any] = {
-    "objectives": ("local_nca",),
-    "local_nca_negatives_k": 16,
-    "local_nca_memory_size": 2048,
-    "local_nca_start_step": 200,
-    "temperature": 0.1,
-}
-
 
 # Region Proxy Anchor: represent an image as a SET of spatial descriptors and score
 # it against a class proxy by a soft maximum over regions, rather than pooling first.
@@ -413,11 +363,6 @@ _LOCAL_NCA_DELTA: dict[str, Any] = {
 # global pooling averages away the one locally-discriminative region that separates
 # two fine-grained classes. Everything else is the untouched official Proxy Anchor
 # recipe, so the comparison isolates the representation change.
-_REGION_PA_DELTA: dict[str, Any] = {
-    "objectives": ("region_proxy_anchor",),
-    "region_grid": 3,
-    "region_tau": 0.1,
-}
 
 
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
@@ -429,31 +374,6 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
-    elif method == "region_pa":
-        delta = dict(_REGION_PA_DELTA)
-    elif method == "local_nca":
-        delta = dict(_LOCAL_NCA_DELTA)
-    elif method == "hist_mem":
-        delta = dict(_MEMORY_DELTA)
-    elif method == "hist_ipc4":
-        delta = dict(_IPC4_DELTA)
-    elif method == "hist_shot_geo_ipc4":
-        delta = {**_SHOT_DELTA, "hist_sinkhorn_cost": "geometric", **_IPC4_DELTA}
-    elif method.startswith("hist_shot"):
-        delta = dict(_SHOT_DELTA)
-        delta["hist_sinkhorn_marginal"] = (
-            "uniform" if method == "hist_shot_uniform" else "class_population"
-        )
-        if method == "hist_shot_geometric":
-            delta["hist_sinkhorn_cost"] = "geometric"
-    elif method.startswith("herd_hg"):
-        delta.update(_HYPERGRAPH_DELTA)
-        if method == "herd_hg_incidence":
-            delta["hypergraph_distill_target"] = "incidence"
-        elif method == "herd_hg_prototype":
-            delta["hypergraph_distill_target"] = "prototype_full"
-        else:
-            delta["hypergraph_distill_target"] = "hgnn_logits"
     return recipe.model_copy(
         deep=True,
         update={
