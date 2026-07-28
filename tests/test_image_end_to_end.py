@@ -993,6 +993,80 @@ def test_region_head_emits_flat_embeddings_the_rest_of_the_pipeline_can_consume(
     assert torch.allclose(norms, torch.ones_like(norms), atol=1e-5)
 
 
+def test_tversky_similarity_is_asymmetric_which_cosine_cannot_be() -> None:
+    """The property the whole method exists for.
+
+    Cosine is symmetric by construction: s(a,b) == s(b,a) always. Tversky (1977)
+    showed human similarity is not - people judge North Korea more similar to China
+    than China to North Korea, because the two objects have different amounts of
+    DISTINCTIVE feature mass. Weighting those two sides differently (alpha != beta)
+    produces exactly that, and it is what lets the similarity express the directional
+    neighbour relations measured in this repo (35-42% of CUB top-10 neighbours cross
+    a class boundary).
+    """
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _tversky_similarity
+
+    features = torch.eye(3)
+    # `broad` carries all three features; `narrow` carries only the first.
+    broad = torch.tensor([[1.0, 1.0, 1.0]])
+    narrow = torch.tensor([[1.0, 0.0, 0.0]])
+
+    forward = _tversky_similarity(narrow, broad, features, alpha=1.0, beta=0.2, torch_module=torch)
+    backward = _tversky_similarity(broad, narrow, features, alpha=1.0, beta=0.2, torch_module=torch)
+
+    assert not torch.allclose(forward, backward), "alpha != beta must break symmetry"
+    # The narrow object has no distinctive mass of its own, so it looks MORE similar
+    # to the broad one than the reverse - Tversky's asymmetry, reproduced.
+    assert float(forward[0, 0]) > float(backward[0, 0])
+
+    symmetric = _tversky_similarity(
+        narrow, broad, features, alpha=1.0, beta=1.0, torch_module=torch
+    )
+    symmetric_reverse = _tversky_similarity(
+        broad, narrow, features, alpha=1.0, beta=1.0, torch_module=torch
+    )
+    assert torch.allclose(symmetric, symmetric_reverse), "alpha == beta must be symmetric"
+
+
+def test_tversky_ratio_form_reduces_to_tanimoto() -> None:
+    """At alpha = beta = 1 the ratio form IS the Tanimoto/Jaccard coefficient that
+    cheminformatics uses for molecular fingerprint similarity -- so the psychology and
+    the chemistry are the same object at a particular parameter setting."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _tversky_similarity
+
+    features = torch.eye(4)
+    a = torch.tensor([[1.0, 1.0, 1.0, 0.0]])  # set {0,1,2}
+    b = torch.tensor([[0.0, 1.0, 1.0, 1.0]])  # set {1,2,3}
+
+    similarity = _tversky_similarity(a, b, features, alpha=1.0, beta=1.0, torch_module=torch)
+
+    # |A n B| = 2, |A u B| = 4  ->  Jaccard = 0.5
+    assert abs(float(similarity[0, 0]) - 0.5) < 1e-5
+
+
+def test_tversky_similarity_is_bounded() -> None:
+    """Bounded in [0, 1] by construction -- the property every unnormalised objective
+    tried in this repo lacked, and collapsed for want of."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _tversky_similarity
+
+    torch.manual_seed(0)
+    embeddings = torch.nn.functional.normalize(torch.randn(16, 8), dim=1)
+    references = torch.nn.functional.normalize(torch.randn(5, 8), dim=1)
+    features = torch.nn.functional.normalize(torch.randn(32, 8), dim=1)
+
+    for alpha, beta in ((1.0, 1.0), (0.5, 2.0), (2.0, 0.1)):
+        similarity = _tversky_similarity(
+            embeddings, references, features, alpha=alpha, beta=beta, torch_module=torch
+        )
+        assert similarity.shape == (16, 5)
+        assert torch.isfinite(similarity).all()
+        assert float(similarity.min()) >= 0.0
+        assert float(similarity.max()) <= 1.0 + 1e-6
+
+
 def test_deterministic_flag_configures_the_backend() -> None:
     """The 1.08 pt fixed-seed spread this project measured is GPU nondeterminism, and
     it is eliminable. Verify the switch actually reaches the backend rather than being

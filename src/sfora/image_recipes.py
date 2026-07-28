@@ -31,6 +31,7 @@ DerivedMethod = Literal[
     "herd",
     "pa_distill_bnfix",
     "herd_bnfix",
+    "tversky",
 ]
 
 # Base loss each derived method attaches to.
@@ -39,6 +40,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_distill_bnfix": "proxy_anchor",
     "herd": "hist",
     "herd_bnfix": "hist",
+    "tversky": "proxy_anchor",
 }
 
 # Shared distillation delta.
@@ -365,12 +367,38 @@ _IPC4_DELTA: dict[str, Any] = {"samples_per_class": 4}
 # recipe, so the comparison isolates the representation change.
 
 
+# Tversky contrast similarity (Tversky, Psychological Review 1977) replacing cosine.
+# Objects become feature SETS via a learnable bank; similarity is the bounded ratio
+# |A n B| / (|A n B| + alpha|A - B| + beta|B - A|). alpha != beta makes it asymmetric,
+# which cosine cannot be, and alpha = beta = 1 recovers Tanimoto/Jaccard. Everything
+# else is the untouched official Proxy Anchor recipe, so the comparison isolates the
+# similarity function.
+_TVERSKY_DELTA: dict[str, Any] = {
+    "objectives": ("tversky_proxy_anchor",),
+    "tversky_features": 512,
+    "tversky_alpha": 1.0,
+    "tversky_beta": 0.5,
+}
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method == "tversky":
+        delta = dict(_TVERSKY_DELTA)
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     delta = dict(_DISTILL_DELTA)
     if method.endswith("_bnfix"):
         delta.update(_BN_FIX_DELTA)
