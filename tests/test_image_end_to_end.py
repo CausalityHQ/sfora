@@ -897,6 +897,46 @@ def test_only_the_propagated_target_is_a_genuine_n_ary_quantity() -> None:
     assert torch.allclose(incidence_before, incidence_after, atol=1e-9)
 
 
+def test_maxsim_is_invariant_to_where_the_object_sits_in_the_frame() -> None:
+    """The property that actually distinguishes MaxSim from concatenated cosine.
+
+    MaxSim matches each query region to its best gallery region wherever it is, so the
+    SAME regions in a different spatial order score identically. Concatenated cosine
+    compares slot-to-slot, so the same object photographed in a different part of the
+    frame looks ORTHOGONAL. That is why evaluating a region-trained model with concat
+    cosine cost 10.5 R@1 points.
+
+    Note this test replaced an earlier one asserting that a single distinctive region
+    carries the match. It does not: MaxSim averages over QUERY regions, so a candidate
+    partially matching every region (0.707) beats one perfectly matching a single
+    region (0.333). Position invariance, not best-region dominance, is the real
+    property.
+    """
+    from sfora.image_benchmark import maxsim_distances
+
+    first = np.array([1.0, 0.0, 0.0, 0.0])
+    second = np.array([0.0, 1.0, 0.0, 0.0])
+
+    query = np.stack([first, second])[None, :, :]
+    same_regions_moved = np.stack([second, first])  # identical content, shifted position
+    one_region_duplicated = np.stack([first, first])
+    gallery = np.stack([same_regions_moved, one_region_duplicated])
+
+    maxsim = -maxsim_distances(query, gallery)[0]
+    assert float(maxsim[0]) > 0.99, "MaxSim must ignore where in the frame a region sits"
+    assert float(maxsim[0]) > float(maxsim[1])
+
+    flat_query = query.reshape(1, -1)
+    flat_gallery = gallery.reshape(2, -1)
+    flat_query = flat_query / np.linalg.norm(flat_query)
+    flat_gallery = flat_gallery / np.linalg.norm(flat_gallery, axis=1, keepdims=True)
+    concat = (flat_query @ flat_gallery.T)[0]
+    # Concat cosine calls the repositioned object a total mismatch, and prefers the
+    # objectively worse candidate.
+    assert float(concat[0]) < 1e-9
+    assert float(concat[1]) > float(concat[0])
+
+
 def test_region_similarity_is_driven_by_the_best_region_not_the_average() -> None:
     """The whole point of the multi-vector representation.
 

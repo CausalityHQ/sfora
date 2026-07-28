@@ -1130,6 +1130,7 @@ def run_image_end_to_end_benchmark(
                         gallery_labels=epoch_gallery_labels,
                         query_limit=config.retrieval_query_limit,
                         random_state=config.seed,
+                        region_grid=config.region_grid,
                     )
                     epoch_recall = epoch_retrieval.recall_at_1
                     test_recall_history.append(float(epoch_recall))
@@ -1258,6 +1259,7 @@ def run_image_end_to_end_benchmark(
             gallery_labels=gallery_label_array,
             query_limit=config.retrieval_query_limit,
             random_state=config.seed,
+            region_grid=config.region_grid,
         )
         interference = _interference_diagnostics(test_embeddings, test_label_array)
         train_eval_embeddings, train_eval_labels = _encode_model(
@@ -1399,6 +1401,7 @@ def _score_end_to_end_retrieval(
     gallery_labels: NDArray[np.integer] | None,
     query_limit: int | None,
     random_state: int,
+    region_grid: int = 0,
 ) -> ImageRetrievalMetrics:
     if gallery_embeddings is None and gallery_labels is None:
         return image_self_retrieval_score(
@@ -1406,6 +1409,7 @@ def _score_end_to_end_retrieval(
             query_labels,
             query_limit=query_limit,
             random_state=random_state,
+            region_grid=region_grid,
         )
     if gallery_embeddings is None or gallery_labels is None:
         raise ValueError("gallery embeddings and labels must be supplied together")

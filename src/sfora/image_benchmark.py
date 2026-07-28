@@ -373,14 +373,54 @@ def _score_image_retrieval(
     )
 
 
+def maxsim_distances(
+    query_regions: NDArray[np.floating],
+    gallery_regions: NDArray[np.floating],
+) -> NDArray[np.floating]:
+    """Negated ColBERT-style late-interaction score, as a distance.
+
+    Each image is a SET of region descriptors rather than one pooled vector. For every
+    query region take its best-matching gallery region, then average over query
+    regions:
+
+        score(i, j) = mean_a max_b <r_a(i), r_b(j)>
+
+    Returned negated so smaller is nearer, matching the Euclidean convention the
+    ranking code below already uses. Regions are unit-normalised first, so the score
+    lies in [-1, 1] and the negation is a well-behaved distance surrogate (it is not a
+    metric -- neither is cosine, and the ranking machinery only needs an ordering).
+    """
+    query = query_regions / (np.linalg.norm(query_regions, axis=2, keepdims=True) + 1e-12)
+    gallery = gallery_regions / (np.linalg.norm(gallery_regions, axis=2, keepdims=True) + 1e-12)
+    n_query, tokens, _ = query.shape
+    n_gallery = gallery.shape[0]
+    flat_gallery = gallery.reshape(n_gallery * tokens, -1)
+    scores = np.empty((n_query, n_gallery), dtype=np.float64)
+    for start in range(0, n_query, 32):
+        stop = min(start + 32, n_query)
+        block = query[start:stop].reshape((stop - start) * tokens, -1)
+        similarity = block @ flat_gallery.T
+        similarity = similarity.reshape(stop - start, tokens, n_gallery, tokens)
+        scores[start:stop] = similarity.max(axis=3).mean(axis=1)
+    return -scores
+
+
 def image_self_retrieval_score(
     embeddings: NDArray[np.floating],
     labels: NDArray[np.integer],
     *,
     query_limit: int | None = None,
     random_state: int = 0,
+    region_grid: int = 0,
 ) -> ImageRetrievalMetrics:
-    """Evaluate retrieval within a held-out image split, excluding the query itself."""
+    """Evaluate retrieval within a held-out image split, excluding the query itself.
+
+    `region_grid > 0` switches scoring from cosine on the pooled vector to MaxSim over
+    `region_grid**2` region descriptors packed along the embedding axis. Without it, a
+    model trained with a region objective is measured by a similarity it was never
+    optimised for -- a train/eval mismatch that cost 10.5 R@1 points when first
+    measured, and the same class of error that made post-hoc hubness correction fail.
+    """
     embedding_array = np.asarray(embeddings, dtype=np.float64)
     label_array = np.asarray(labels, dtype=np.int64)
     if embedding_array.ndim != 2:
@@ -421,12 +461,19 @@ def image_self_retrieval_score(
     for start in range(0, query_indices.shape[0], chunk_size):
         chunk_indices = query_indices[start : start + chunk_size]
         query_embeddings = embedding_array[chunk_indices]
-        distances = (
-            np.sum(query_embeddings * query_embeddings, axis=1, keepdims=True)
-            + embedding_norms[np.newaxis, :]
-            - (2.0 * query_embeddings @ embedding_array.T)
-        )
-        distances = np.maximum(distances, 0.0)
+        if region_grid > 0:
+            tokens = region_grid * region_grid
+            distances = maxsim_distances(
+                query_embeddings.reshape(query_embeddings.shape[0], tokens, -1),
+                embedding_array.reshape(embedding_array.shape[0], tokens, -1),
+            )
+        else:
+            distances = (
+                np.sum(query_embeddings * query_embeddings, axis=1, keepdims=True)
+                + embedding_norms[np.newaxis, :]
+                - (2.0 * query_embeddings @ embedding_array.T)
+            )
+            distances = np.maximum(distances, 0.0)
         distances[np.arange(chunk_indices.shape[0]), chunk_indices] = np.inf
         if top_k < embedding_array.shape[0]:
             top_indices = np.argpartition(distances, kth=top_k - 1, axis=1)[:, :top_k]
