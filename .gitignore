@@ -25,3 +25,6 @@ test-results/
 site/test-results/
 playwright-report/
 site/playwright-report/
+
+# macOS
+.DS_Store
