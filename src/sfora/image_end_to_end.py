@@ -45,6 +45,7 @@ EndToEndObjective = Literal[
     "group_potential_xbm",
     "proxy_anchor",
     "tversky_proxy_anchor",
+    "shepard_proxy_anchor",
     "region_proxy_anchor",
     "proxy_anchor_group",
     "proxy_anchor_synthesis",
@@ -261,6 +262,9 @@ class ImageEndToEndConfig(BaseModel):
     tversky_alpha: float = Field(default=1.0, ge=0.0)
     tversky_beta: float = Field(default=1.0, ge=0.0)
     tversky_scale: float = Field(default=16.0, gt=0.0)
+    # Shepard's exponential generalisation kernel. order=2 is Euclidean ("integral"
+    # stimuli), order=1 city-block ("separable" stimuli) - Shepard's own distinction.
+    shepard_order: int = Field(default=2, ge=1, le=2)
     # Region (multi-vector) representation. 0 = off, i.e. the usual pooled embedding.
     # >0 replaces avgpool with a grid x grid pool and embeds each region separately,
     # so an image is a SET of descriptors scored by a soft max over regions.
@@ -1814,6 +1818,7 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     if objective in {
         "proxy_anchor",
         "tversky_proxy_anchor",
+        "shepard_proxy_anchor",
         "region_proxy_anchor",
         "proxy_anchor_group",
         "proxy_anchor_synthesis",
@@ -2453,6 +2458,33 @@ def _region_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     )
 
 
+def _shepard_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError(
+            "the shepard_proxy_anchor objective requires class proxies (proxy_count_per_class > 0)"
+        )
+    similarity = _shepard_similarity(
+        _normalize(embeddings, torch_module),
+        _normalize(proxy_embeddings, torch_module),
+        order=config.shepard_order,
+        torch_module=torch_module,
+    )
+    return _proxy_anchor_loss_from_similarity(
+        similarity,
+        labels,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+
+
 def _tversky_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -2921,6 +2953,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "pfml": _pfml_objective_loss,
     "proxy_anchor": _proxy_anchor_objective_loss,
     "tversky_proxy_anchor": _tversky_proxy_anchor_objective_loss,
+    "shepard_proxy_anchor": _shepard_proxy_anchor_objective_loss,
     "region_proxy_anchor": _region_proxy_anchor_objective_loss,
     "proxy_anchor_group": _proxy_anchor_group_objective_loss,
     "proxy_anchor_synthesis": _proxy_anchor_synthesis_objective_loss,
@@ -3014,6 +3047,7 @@ def _objective_display_name(objective: str) -> str:
         "group_potential_xbm": "Group Potential + XBM",
         "proxy_anchor": "Proxy Anchor",
         "tversky_proxy_anchor": "Tversky contrast similarity",
+        "shepard_proxy_anchor": "Shepard exponential kernel",
         "proxy_anchor_group": "Proxy Anchor (Group Proxies)",
         "proxy_anchor_synthesis": "Proxy Anchor + Synthesis",
         "proxy_anchor_subcenter": "Proxy Anchor (Sub-Center + Anti-Collapse)",
@@ -4068,6 +4102,55 @@ def _proxy_anchor_loss(
         delta=delta,
         torch_module=torch_module,
     )
+
+
+def _shepard_similarity(
+    embeddings: Any,
+    references: Any,
+    *,
+    order: int,
+    torch_module: Any,
+) -> Any:
+    """Shepard's exponential generalisation kernel, as a similarity.
+
+    Cosine-softmax -- Proxy Anchor, SupCon, InfoNCE, everything in this harness -- is
+    secretly a GAUSSIAN kernel. On L2-normalised embeddings ``cos = 1 - d^2/2``, so
+
+        exp(cos / T) = exp(1/T) * exp(-d^2 / 2T)
+
+    i.e. generalisation decaying in the SQUARE of distance. Shepard, "Toward a
+    Universal Law of Generalization for Psychological Science" (Science, 1987),
+    derived -- and Sims (Science, 2018) re-derived from efficient coding -- that
+    generalisation decays as ``exp(-d)``, linear in distance. That difference is not a
+    temperature: ``d = sqrt(2 - 2cos)`` is a concave, non-affine transform of cosine,
+    so no scalar on cosine reproduces it.
+
+    Returning ``1 - d`` keeps the range comparable to cosine (both land in [-1, 1]),
+    so Proxy Anchor's ``alpha``/``delta`` margins keep their meaning; the shift is
+    affine and leaves the exponential form intact, since
+    ``exp(alpha*(1 - d)) ~ exp(-alpha*d)``.
+
+    Why it should matter here specifically, tied to this repo's own numbers: 5-8% of
+    CUB test images are in nobody's top-10 and fail their own retrieval by 21 points.
+    Under a Gaussian kernel a same-class positive that drifts moderately far has its
+    softmax weight collapse toward zero and stops receiving gradient at all - which is
+    exactly how an orphan is made. The exponential form has a fatter tail and keeps
+    weak gradient flowing to moderately distant true positives. That is a hypothesis
+    about a measured pathology, not a general appeal to plausibility.
+
+    ``order`` selects Shepard's own distinction between stimulus types: Euclidean
+    (``2``) for "integral" stimuli perceived holistically, city-block (``1``) for
+    "separable" stimuli varying along independently analysable feature dimensions --
+    arguably the better description of bird part-attributes.
+    """
+    difference = embeddings.unsqueeze(1) - references.unsqueeze(0)
+    if order == 1:
+        distance = difference.abs().sum(dim=2)
+    else:
+        # sqrt is non-differentiable at 0; the epsilon keeps the cusp away from
+        # exactly-coincident pairs, which do occur once a class starts collapsing.
+        distance = difference.pow(2).sum(dim=2).clamp_min(1e-12).sqrt()
+    return 1.0 - distance
 
 
 def _tversky_similarity(

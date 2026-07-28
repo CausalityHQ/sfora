@@ -32,6 +32,8 @@ DerivedMethod = Literal[
     "pa_distill_bnfix",
     "herd_bnfix",
     "tversky",
+    "shepard",
+    "shepard_l1",
 ]
 
 # Base loss each derived method attaches to.
@@ -41,6 +43,8 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "herd": "hist",
     "herd_bnfix": "hist",
     "tversky": "proxy_anchor",
+    "shepard": "proxy_anchor",
+    "shepard_l1": "proxy_anchor",
 }
 
 # Shared distillation delta.
@@ -373,6 +377,16 @@ _IPC4_DELTA: dict[str, Any] = {"samples_per_class": 4}
 # which cosine cannot be, and alpha = beta = 1 recovers Tanimoto/Jaccard. Everything
 # else is the untouched official Proxy Anchor recipe, so the comparison isolates the
 # similarity function.
+# Shepard's exponential generalisation kernel (Science 1987) replacing the Gaussian
+# one hiding inside cosine-softmax. exp(cos/T) is proportional to exp(-d^2/2T); Shepard
+# derived exp(-d), linear in distance, and no temperature on cosine reproduces that.
+# Only the similarity function changes, so the comparison isolates the kernel.
+_SHEPARD_DELTA: dict[str, Any] = {
+    "objectives": ("shepard_proxy_anchor",),
+    "shepard_order": 2,
+}
+
+
 _TVERSKY_DELTA: dict[str, Any] = {
     "objectives": ("tversky_proxy_anchor",),
     "tversky_features": 512,
@@ -387,8 +401,12 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
-    if method == "tversky":
-        delta = dict(_TVERSKY_DELTA)
+    if method in {"tversky", "shepard", "shepard_l1"}:
+        if method == "tversky":
+            delta = dict(_TVERSKY_DELTA)
+        else:
+            delta = dict(_SHEPARD_DELTA)
+            delta["shepard_order"] = 1 if method == "shepard_l1" else 2
         return recipe.model_copy(
             deep=True,
             update={

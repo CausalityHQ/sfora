@@ -993,6 +993,84 @@ def test_region_head_emits_flat_embeddings_the_rest_of_the_pipeline_can_consume(
     assert torch.allclose(norms, torch.ones_like(norms), atol=1e-5)
 
 
+def test_shepard_kernel_has_a_fatter_tail_than_cosine_softmax() -> None:
+    """The claim the method rests on, made numerically.
+
+    Cosine-softmax is secretly Gaussian: on unit vectors cos = 1 - d^2/2, so
+    exp(cos/T) is proportional to exp(-d^2/2T) - decay in the SQUARE of distance.
+    Shepard (Science 1987) derived exp(-d), linear in distance. The consequence is
+    tail weight: a Gaussian kernel drives moderately-distant positives' softmax
+    weight to near zero, so they stop receiving gradient. That is how an orphan is
+    made, and 5-8% of CUB test images are orphans here.
+    """
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _shepard_similarity
+
+    anchor = torch.tensor([[1.0, 0.0]])
+    # Points at increasing angle, hence increasing Euclidean distance.
+    angles = torch.tensor([0.2, 0.8, 1.6, 2.4])
+    references = torch.stack([torch.cos(angles), torch.sin(angles)], dim=1)
+
+    shepard = _shepard_similarity(anchor, references, order=2, torch_module=torch)[0]
+    cosine = (anchor @ references.T)[0]
+
+    # Both must rank identically - this is a kernel change, not a ranking change.
+    assert torch.equal(shepard.argsort(descending=True), cosine.argsort(descending=True))
+
+    # The far tail keeps more mass under Shepard, and the gap WIDENS as temperature
+    # falls. That matters because Proxy Anchor runs at alpha = 32, i.e. an effective
+    # temperature near 0.03 - the sharp regime where the difference is largest.
+    # Measured ratios: 1.19x at T=1.0, 1.54x at T=0.2, 2.90x at T=0.05.
+    ratios = []
+    for temperature in (1.0, 0.2, 0.05):
+        shepard_weights = torch.softmax(shepard / temperature, dim=0)
+        cosine_weights = torch.softmax(cosine / temperature, dim=0)
+        assert float(shepard_weights[-1]) > float(cosine_weights[-1])
+        ratios.append(float(shepard_weights[-1] / cosine_weights[-1]))
+
+    assert ratios[0] < ratios[1] < ratios[2], f"tail gap should widen as T falls: {ratios}"
+    assert ratios[-1] > 2.0
+
+
+def test_shepard_kernel_is_not_reproducible_by_rescaling_cosine() -> None:
+    """If a temperature on cosine could reproduce it, this would be a hyperparameter,
+    not a method. d = sqrt(2 - 2cos) is concave in cos, so the map is non-affine and
+    no scalar rescaling matches it."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _shepard_similarity
+
+    angles = torch.linspace(0.1, 3.0, 12)
+    anchor = torch.tensor([[1.0, 0.0]])
+    references = torch.stack([torch.cos(angles), torch.sin(angles)], dim=1)
+
+    shepard = _shepard_similarity(anchor, references, order=2, torch_module=torch)[0]
+    cosine = (anchor @ references.T)[0]
+
+    # Best affine fit of shepard onto cosine; a good fit would mean "just a rescale".
+    design = torch.stack([cosine, torch.ones_like(cosine)], dim=1)
+    solution = torch.linalg.lstsq(design, shepard.unsqueeze(1)).solution
+    residual = float((design @ solution - shepard.unsqueeze(1)).abs().max())
+    assert residual > 0.05, f"expected a non-affine relationship, max residual {residual}"
+
+
+def test_shepard_city_block_order_differs_from_euclidean() -> None:
+    """Shepard distinguished integral (Euclidean) from separable (city-block) stimuli;
+    both are exposed because bird part-attributes plausibly vary independently."""
+    torch: Any = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _shepard_similarity
+
+    torch.manual_seed(0)
+    embeddings = torch.nn.functional.normalize(torch.randn(6, 5), dim=1)
+    references = torch.nn.functional.normalize(torch.randn(3, 5), dim=1)
+
+    euclidean = _shepard_similarity(embeddings, references, order=2, torch_module=torch)
+    city_block = _shepard_similarity(embeddings, references, order=1, torch_module=torch)
+
+    assert euclidean.shape == city_block.shape == (6, 3)
+    assert not torch.allclose(euclidean, city_block)
+    assert torch.isfinite(euclidean).all() and torch.isfinite(city_block).all()
+
+
 def test_tversky_similarity_is_asymmetric_which_cosine_cannot_be() -> None:
     """The property the whole method exists for.
 

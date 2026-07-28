@@ -2318,6 +2318,7 @@ def image_end_to_end(
 # declared objective is `local_nca`, which is then rejected as "not a base method".
 _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
     "tversky_proxy_anchor": "proxy_anchor",
+    "shepard_proxy_anchor": "proxy_anchor",
 }
 
 
