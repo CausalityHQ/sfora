@@ -1800,11 +1800,22 @@ def image_end_to_end(
             if objectives is None:
                 raise ValueError("recipe mode requires --objectives proxy_anchor or hist")
             resolved_objectives = _parse_end_to_end_objectives(objectives)
-            if resolved_objectives not in {("proxy_anchor",), ("hist",)}:
+            # A recipe is looked up by its BASE method, but a derived recipe may declare
+            # its own objective (e.g. `local_nca`, `region_proxy_anchor`) that is not a
+            # base method name. Map those back to the base they were derived from rather
+            # than rejecting them -- otherwise every derived objective is unrunnable.
+            base_for_objective = {
+                "proxy_anchor": "proxy_anchor",
+                "hist": "hist",
+                **{objective: base for objective, base in _DERIVED_OBJECTIVE_BASE.items()},
+            }
+            if len(resolved_objectives) != 1 or resolved_objectives[0] not in base_for_objective:
                 raise ValueError(
-                    "recipe mode requires exactly one base objective: proxy_anchor or hist"
+                    "recipe mode requires exactly one objective, either a base method "
+                    "(proxy_anchor, hist) or one declared by a derived recipe "
+                    f"({', '.join(sorted(_DERIVED_OBJECTIVE_BASE))})"
                 )
-            base_method = cast(BaseMethod, resolved_objectives[0])
+            base_method = cast(BaseMethod, base_for_objective[resolved_objectives[0]])
             resolved_recipe = resolve_recipe(
                 recipe,
                 base_method=base_method,
@@ -2300,6 +2311,17 @@ def image_end_to_end(
             "methods": list(result.methods),
         }
     )
+
+
+# Objectives introduced by DERIVED recipes, mapped to the base method whose recipe
+# they are derived from. Without this, `--recipe local_nca` resolves a recipe whose
+# declared objective is `local_nca`, which is then rejected as "not a base method".
+_DERIVED_OBJECTIVE_BASE: dict[str, str] = {
+    "local_nca": "hist",
+    "hist_memory": "hist",
+    "hist_sinkhorn": "hist",
+    "region_proxy_anchor": "proxy_anchor",
+}
 
 
 def _parse_end_to_end_objectives(raw: str) -> tuple[EndToEndObjective, ...]:

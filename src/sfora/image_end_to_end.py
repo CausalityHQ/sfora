@@ -1796,6 +1796,7 @@ class _BestCheckpoint:
 def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     if objective in {
         "proxy_anchor",
+        "region_proxy_anchor",
         "proxy_anchor_group",
         "proxy_anchor_synthesis",
         "proxy_anchor_subcenter",
@@ -5497,6 +5498,21 @@ def _summarize_gsi_training_diagnostics(
         return None
 
     summary: dict[str, float] = {}
+    # This channel is shared: other objectives (e.g. local_nca) append their own
+    # differently-shaped diagnostic dicts to the same list. Summarise only the entries
+    # that carry GSI's keys, and average any other numeric keys generically, rather
+    # than raising KeyError on a payload this summariser was not written for.
+    other_keys: dict[str, list[float]] = {}
+    for diagnostic in step_diagnostics or []:
+        if "unweighted_loss" in diagnostic:
+            continue
+        for key, value in diagnostic.items():
+            other_keys.setdefault(key, []).append(float(value))
+    for key, values in other_keys.items():
+        summary[key] = float(np.mean(values))
+    step_diagnostics = [
+        diagnostic for diagnostic in (step_diagnostics or []) if "unweighted_loss" in diagnostic
+    ]
     if step_diagnostics:
         unweighted_losses = np.asarray(
             [diagnostic["unweighted_loss"] for diagnostic in step_diagnostics],
