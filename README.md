@@ -44,9 +44,19 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 >    The EMA teacher ran in `eval()` mode — BatchNorm *running* statistics — while the
 >    student trained in `train()` mode using *batch* statistics. With BatchNorm frozen
 >    the two coincide; with it trainable the teacher is a different function of the
->    same images. Fixing it recovers a 1.39 pt In-Shop regression in full:
->    **0.8899 → 0.9041, +1.42 pt, every seed positive, ≈20σ.** Generalises to any
->    MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
+>    same images. Fixing it recovers the In-Shop regression on **two independent
+>    bases**, and each recovery is very nearly the size of the regression it undoes:
+>
+>    | base | regression | recovered by the fix |
+>    | --- | ---: | ---: |
+>    | HIST | −1.39 pt | **+1.42 pt** |
+>    | Proxy Anchor | −0.41 pt | **+0.37 pt** |
+>
+>    **Six paired seeds, every one positive** (exact sign test p = 0.031, no normality
+>    assumption). That proportionality is the tell: a bug-recovery predicts it, a method
+>    gain has no reason to. Note the claim is about the *bug* — with the fix in place,
+>    distillation still merely matches its base rather than beating it. Generalises to
+>    any MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
 >
 > 2. **CUB cannot resolve the effects this field reports.** Seed noise is σ ≈ 0.88 pt,
 >    *and* three effectively-identical runs at a **fixed seed** scored 0.7183 / 0.7154

@@ -70,7 +70,7 @@ seed conclusive.
 
 | method | In-Shop R@1 | vs PA 0.9035 | CUB (3 seeds) |
 | --- | ---: | ---: | ---: |
-| Shepard exponential kernel | 0.8999 | **−0.36 pt** (~3σ) | 0.6743 (−0.82, unreadable) |
+| Shepard exponential kernel | 0.8999 / 0.8998 | **−0.36 pt** (~3σ) | 0.6743 (−0.82, unreadable) |
 | Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | 0.6758 (−0.67, unreadable) |
 
 Both CUB columns are reported only to show they *are* unreadable: at σ = 0.88 pt a
@@ -352,7 +352,7 @@ defaulting to the historical behaviour so old artifacts still reproduce.
 | **`herd_bnfix`** | 0.9035 | 0.9048 | 0.9041 | **0.9041** |
 | Proxy Anchor | 0.9024 | 0.9048 | 0.9032 | 0.9035 |
 | PA + distillation | 0.8999 | 0.8994 | 0.8990 | 0.8994 |
-| **`pa_distill_bnfix`** | 0.9029 | 0.9021 | *running* | **0.9025** |
+| **`pa_distill_bnfix`** | 0.9029 | 0.9021 | 0.9044 | **0.9031** |
 
 Paired against the *unfixed* distilled arm, which is the comparison that isolates
 the bug:
@@ -360,16 +360,22 @@ the bug:
 | leg | per-seed recovery | mean | regression it had to undo |
 | --- | --- | ---: | ---: |
 | HIST | +1.29 / +1.56 / +1.41 | **+1.42 pt** | −1.39 pt |
-| Proxy Anchor (n=2) | +0.30 / +0.27 | **+0.29 pt** | −0.41 pt |
+| Proxy Anchor | +0.30 / +0.27 / +0.54 | **+0.37 pt** | −0.41 pt |
 
-Both legs move the same direction, every seed positive, and the HIST leg's spread
-(sd 0.14 pt against a 1.42 pt effect, ≈20σ) leaves no doubt about the mechanism.
-It was validated three ways: proved at unit level, its *null* prediction confirmed
-(inert under frozen BatchNorm) and its *positive* prediction confirmed across seeds.
+**Six paired seeds across two independent bases, every one positive** (exact sign
+test p = 2⁻⁵ = 0.031, and this one is assumption-free rather than resting on
+normality at n=3). Each leg recovers very nearly the whole regression it had to
+undo — 1.42 against 1.39, and 0.37 against 0.41. A bug-recovery predicts exactly
+that proportionality; a method gain has no reason to produce it.
+
+Validated three further ways: proved at unit level, its *null* prediction confirmed
+(inert under frozen BatchNorm) and its *positive* prediction confirmed across seeds
+on a base it was never tuned against.
 
 **But state the claim narrowly.** The fix repairs the bug; it does not turn
 distillation into a win. Against their own bases, `herd_bnfix` is +0.03 pt over HIST
-and `pa_distill_bnfix` is −0.12 pt under Proxy Anchor (n=2) — both indistinguishable.
+and `pa_distill_bnfix` is −0.04 pt under Proxy Anchor (t = −0.29, p = 0.80) — both
+indistinguishable.
 So the honest result is *"momentum-teacher recipes silently lose 0.3–1.4 pt under
 trainable BatchNorm unless the teacher's normalisation mode matches the student's"*,
 which is a bug-finding about a widely-used training pattern, **not** evidence that
@@ -379,7 +385,7 @@ large that base's distillation regression was, which is what a bug-recovery shou
 and what a genuine method gain would not.
 
 Generalises to any MoCo/BYOL/DINO-style teacher on a backbone with updating
-BatchNorm. Seed 2 of the PA leg is in flight.
+BatchNorm. Both legs are complete at three seeds; H3 is closed.
 
 **iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
 just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because
