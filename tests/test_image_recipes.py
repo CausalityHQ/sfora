@@ -180,6 +180,54 @@ def test_pa_distill_derivation_changes_only_distillation_fields() -> None:
     assert changed <= set(distilled.delta)
 
 
+@pytest.mark.parametrize(("narrow", "width"), [("narrow128", 128), ("narrow64", 64)])
+def test_narrow_derivation_changes_only_the_embedding_width(narrow: str, width: int) -> None:
+    """The capacity-weakened bases must differ from official Proxy Anchor in the
+    embedding width and nothing else, or they are not measuring headroom."""
+    base = reference_recipe("proxy_anchor", "cub")
+    narrowed = derive_recipe(base, cast("DerivedMethod", narrow))
+
+    changed = {
+        key
+        for key in set(base.config) | set(narrowed.config)
+        if base.config.get(key) != narrowed.config.get(key)
+    }
+    assert changed == {"embedding_dimensions"}
+    assert narrowed.config["embedding_dimensions"] == width
+    assert base.config["embedding_dimensions"] == 512
+    assert changed <= set(narrowed.delta)
+    # These overwrite a published hyperparameter rather than adding a term on top of
+    # an untouched base, so they must not be readable as a Proxy Anchor reproduction.
+    assert base.track == "reference"
+    assert narrowed.track == "modified"
+    assert derive_recipe(base, cast("DerivedMethod", f"{narrow}_distill")).track == "modified"
+
+
+@pytest.mark.parametrize(
+    ("narrow", "narrow_distill"),
+    [("narrow128", "narrow128_distill"), ("narrow64", "narrow64_distill")],
+)
+def test_narrow_distill_pairs_with_its_own_narrow_base(narrow: str, narrow_distill: str) -> None:
+    """Each weakened base is its own paired control: the distilled arm must add the
+    same distillation delta as `pa_distill` and change nothing else, so the measured
+    effect at that width is comparable to the +0.89 pt measured at 512."""
+    base = reference_recipe("proxy_anchor", "cub")
+    narrowed = derive_recipe(base, cast("DerivedMethod", narrow))
+    distilled = derive_recipe(base, cast("DerivedMethod", narrow_distill))
+    full_distill = derive_recipe(base, "pa_distill")
+
+    changed = {
+        key
+        for key in set(narrowed.config) | set(distilled.config)
+        if narrowed.config.get(key) != distilled.config.get(key)
+    }
+    assert changed == {"ema_distill_weight"}
+    # Identical distillation to the full-width arm, so widths are comparable.
+    for field in ("ema_distill_weight", "ema_momentum", "ema_distill_tau"):
+        assert distilled.config[field] == full_distill.config[field]
+    assert distilled.config["embedding_dimensions"] == narrowed.config["embedding_dimensions"]
+
+
 @pytest.mark.parametrize(
     ("derived", "base_method", "dataset"),
     [

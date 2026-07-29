@@ -34,6 +34,10 @@ DerivedMethod = Literal[
     "tversky",
     "shepard",
     "shepard_l1",
+    "narrow128",
+    "narrow64",
+    "narrow128_distill",
+    "narrow64_distill",
 ]
 
 # Base loss each derived method attaches to.
@@ -45,6 +49,18 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "tversky": "proxy_anchor",
     "shepard": "proxy_anchor",
     "shepard_l1": "proxy_anchor",
+    "narrow128": "proxy_anchor",
+    "narrow64": "proxy_anchor",
+    "narrow128_distill": "proxy_anchor",
+    "narrow64_distill": "proxy_anchor",
+}
+
+# Embedding width of each capacity-weakened arm, against the official 512.
+_NARROW_DIMENSIONS: dict[str, int] = {
+    "narrow128": 128,
+    "narrow64": 64,
+    "narrow128_distill": 128,
+    "narrow64_distill": 64,
 }
 
 # Shared distillation delta.
@@ -395,12 +411,45 @@ _TVERSKY_DELTA: dict[str, Any] = {
 }
 
 
+# Capacity-weakened Proxy Anchor bases, and the same bases with distillation added.
+# These exist to put arms at *intermediate* headroom: every distillation result we own
+# sits either at a large gap below the dataset's best base (CUB Proxy Anchor, +0.89 pt)
+# or effectively at the ceiling (everything else, |delta| <= 0.04), so the apparent
+# proportionality rests on a single informative point. Narrowing the embedding weakens
+# the base monotonically while changing nothing else in the recipe, and each narrowed
+# base is its own paired control. See docs/headroom_hypothesis.md for the predictions
+# these were registered against.
+def _narrow_delta(method: str) -> dict[str, Any]:
+    delta: dict[str, Any] = {"embedding_dimensions": _NARROW_DIMENSIONS[method]}
+    if method.endswith("_distill"):
+        delta.update(_DISTILL_DELTA)
+    return delta
+
+
 def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     """Pair a SFORA distillation variant with an otherwise unchanged base recipe."""
 
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method in _NARROW_DIMENSIONS:
+        delta = _narrow_delta(method)
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                # `modified`, not `reference`. Every other derived arm leaves the
+                # published recipe untouched and adds a SFORA term on top; these
+                # overwrite a published hyperparameter (the 512-d embedding), so
+                # they are deliberate ablations and must never be readable as
+                # reproductions of Proxy Anchor.
+                "track": "modified",
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     if method in {"tversky", "shepard", "shepard_l1"}:
         if method == "tversky":
             delta = dict(_TVERSKY_DELTA)
