@@ -71,7 +71,13 @@ seed conclusive.
 | method | In-Shop R@1 | vs PA 0.9035 | CUB (3 seeds) |
 | --- | ---: | ---: | ---: |
 | Shepard exponential kernel | 0.8999 | **−0.36 pt** (~3σ) | 0.6743 (−0.82, unreadable) |
-| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | in progress |
+| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | 0.6758 (−0.67, unreadable) |
+
+Both CUB columns are reported only to show they *are* unreadable: at σ = 0.88 pt a
+0.7 pt gap is 0.8σ, and Shepard's city-block variant (`shepard_l1`, 0.6778) lands
+inside its own Euclidean sibling's spread — so Shepard's integral/separable
+distinction makes no measurable difference here either. The verdicts come from
+In-Shop.
 
 **Shepard.** The mechanism was real and the derivation holds: cosine-softmax *is*
 secretly Gaussian — on unit vectors `cos = 1 − d²/2`, so `exp(cos/T) ∝ exp(−d²/2T)` —
@@ -298,6 +304,9 @@ or simply with dataset size), and within each dataset a benefit that accrues onl
 to the weaker, underfitting base (consistent with a variance-reducing regularizer).
 The queued `_bnfix` runs separate the first effect from the second.
 
+*Resolved below (H3): the first effect was the BatchNorm teacher/student mismatch,
+not dataset size. Fixing it recovers the In-Shop column on both legs.*
+
 Single seed — CUB seed noise has historically been σ ≈ 0.6 pt, so −0.27 is well
 inside noise while +0.91 is roughly 1.5σ. Neither is a result yet.
 
@@ -323,6 +332,54 @@ and only under a normality assumption that three points cannot evidence. The
 assumption-free exact sign test cannot go below 0.25 at n=3 for either leg, so
 both are screening evidence. HIST − PA is +0.03 pt — the two bases are
 indistinguishable on this dataset.
+
+### H3: those six negative deltas were a BatchNorm bug, and fixing it recovers them
+
+The EMA teacher was built with `deepcopy(model)` then `.eval()`, so it normalised
+with BatchNorm **running** statistics while the student trained in `.train()` mode
+on **batch** statistics; `_update_ema_teacher` also hard-copied buffers instead of
+blending them. Under frozen BatchNorm (CUB) the two coincide and the bug is inert.
+Under trainable BatchNorm (In-Shop) the teacher is a systematically different
+function of the same images — which is exactly where all six negative deltas are.
+
+The fix lives behind `ema_teacher_train_mode` / `ema_teacher_ema_buffers`, both
+defaulting to the historical behaviour so old artifacts still reproduce.
+
+| In-Shop arm | seed 0 | seed 1 | seed 2 | mean |
+| --- | ---: | ---: | ---: | ---: |
+| HIST | 0.9046 | 0.9037 | 0.9031 | 0.9038 |
+| HERD | 0.8906 | 0.8892 | 0.8900 | 0.8899 |
+| **`herd_bnfix`** | 0.9035 | 0.9048 | 0.9041 | **0.9041** |
+| Proxy Anchor | 0.9024 | 0.9048 | 0.9032 | 0.9035 |
+| PA + distillation | 0.8999 | 0.8994 | 0.8990 | 0.8994 |
+| **`pa_distill_bnfix`** | 0.9029 | 0.9021 | *running* | **0.9025** |
+
+Paired against the *unfixed* distilled arm, which is the comparison that isolates
+the bug:
+
+| leg | per-seed recovery | mean | regression it had to undo |
+| --- | --- | ---: | ---: |
+| HIST | +1.29 / +1.56 / +1.41 | **+1.42 pt** | −1.39 pt |
+| Proxy Anchor (n=2) | +0.30 / +0.27 | **+0.29 pt** | −0.41 pt |
+
+Both legs move the same direction, every seed positive, and the HIST leg's spread
+(sd 0.14 pt against a 1.42 pt effect, ≈20σ) leaves no doubt about the mechanism.
+It was validated three ways: proved at unit level, its *null* prediction confirmed
+(inert under frozen BatchNorm) and its *positive* prediction confirmed across seeds.
+
+**But state the claim narrowly.** The fix repairs the bug; it does not turn
+distillation into a win. Against their own bases, `herd_bnfix` is +0.03 pt over HIST
+and `pa_distill_bnfix` is −0.12 pt under Proxy Anchor (n=2) — both indistinguishable.
+So the honest result is *"momentum-teacher recipes silently lose 0.3–1.4 pt under
+trainable BatchNorm unless the teacher's normalisation mode matches the student's"*,
+which is a bug-finding about a widely-used training pattern, **not** evidence that
+this distillation helps. The PA leg matters precisely because it shows the effect is
+a property of the teacher construction rather than of HIST: the magnitude tracks how
+large that base's distillation regression was, which is what a bug-recovery should do
+and what a genuine method gain would not.
+
+Generalises to any MoCo/BYOL/DINO-style teacher on a backbone with updating
+BatchNorm. Seed 2 of the PA leg is in flight.
 
 **iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
 just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because
