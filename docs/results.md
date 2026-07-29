@@ -71,7 +71,7 @@ seed conclusive.
 | method | In-Shop R@1 | vs PA 0.9035 | CUB (3 seeds) |
 | --- | ---: | ---: | ---: |
 | Shepard exponential kernel | 0.8999 / 0.8998 | **−0.36 pt** (~3σ) | 0.6743 (−0.82, unreadable) |
-| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | 0.6758 (−0.67, unreadable) |
+| Tversky contrast similarity | 0.8600 / 0.8543 | **−4.63 pt** | 0.6758 (−0.67, unreadable) |
 
 Both CUB columns are reported only to show they *are* unreadable: at σ = 0.88 pt a
 0.7 pt gap is 0.8σ, and Shepard's city-block variant (`shepard_l1`, 0.6778) lands
@@ -95,6 +95,11 @@ embedding encodes. `x·f_k > 0` is a hard threshold: two embeddings agreeing str
 and two agreeing barely both count as "sharing the feature". On sparse binary
 fingerprints — where Tanimoto earns its keep in cheminformatics — that is lossless.
 On dense CNN embeddings it is not.
+
+Its two seeds also spread 0.57 pt — nearly 5× the 0.12 pt this dataset shows for
+every other arm (Shepard's two seeds differ by 0.01 pt). A similarity that is both
+much worse *and* much less stable is behaving like a poorly-conditioned objective,
+not like a method that needs tuning. Neither seed comes within 4 pt of the baseline.
 
 Worth recording as the general lesson from both: **a similarity function that is
 better-motivated as a model of *human judgement* is not thereby better as a *retrieval

@@ -141,7 +141,7 @@ decided on In-Shop, where σ = 0.12 pt makes one seed conclusive:
 | method | In-Shop | vs PA 0.9035 | CUB (3 seeds) |
 | --- | ---: | ---: | ---: |
 | Shepard exponential kernel | 0.8999 / 0.8998 | **−0.36 pt** (~3σ) | 0.6743 — unreadable |
-| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | 0.6758 — unreadable |
+| Tversky contrast similarity | 0.8600 / 0.8543 | **−4.63 pt** | 0.6758 — unreadable |
 
 The general lesson, worth carrying forward: **a similarity function better-motivated
 as a model of human judgement is not thereby better as a retrieval score.** Tversky's
