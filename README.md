@@ -20,26 +20,46 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-3d7c47.svg)](LICENSE)
 -->
 
-**SFORA** (Polish: *a hound pack* 🐕) is a research deep-metric-learning
-library for zero-shot image retrieval, built around strictly provenance-tracked
-reproductions of published method×dataset recipes. It also develops an
-experimental method, **HERD** — **H**ypergraph **E**MA-teacher **R**elational
-**D**istillation.
+**SFORA** (Polish: *a hound pack* 🐕) is a research deep-metric-learning library for
+zero-shot image retrieval, built around **strictly provenance-tracked reproductions**
+of published method×dataset recipes — every run pinned to a cryptographic digest of
+its recipe, so a comparison cannot silently drift.
 
-> ## ⚠️ Status (2026-07-27) — the method claim is under active correction
+That machinery is the point. It caught two real confounds that had each produced a
+published-looking result: a **LayerNorm** mismatch between a method and its own
+control, and a **BatchNorm** mismatch between an EMA teacher and its student.
+
+> ## ⚠️ Status (2026-07-29) — the method claim is withdrawn; two other results stand
 >
-> The historical CUB headline below was produced under a **non-official recipe**
-> and with a **confounded control** (the HIST baseline ran without embedding
-> LayerNorm while HERD ran with it, so HERD received LayerNorm *and*
-> distillation). The corrected, official-recipe, multi-seed evidence we now own
-> **contradicts** the method claim — on DeepFashion In-Shop the distillation
-> *hurts* both base losses (see [corrected evidence](#corrected-evidence--the-distillation-currently-hurts)).
+> **HERD is not a demonstrated improvement.** The historical CUB headline below ran
+> under a non-official recipe with a **confounded control** — the HIST baseline had no
+> embedding LayerNorm while HERD had it, so HERD received LayerNorm *and*
+> distillation. Corrected and properly paired under official recipes, HERD and HIST
+> are **indistinguishable** on CUB (+0.03 pt, p = 0.93). Treat every single-model HERD
+> number below as historical measurement, not as a method claim.
 >
-> A corrected CUB + Cars reference-recipe matrix is running. Until it lands,
-> **treat every single-model HERD number in this README as unverified**. The
-> ensemble and compression results are unaffected by this correction.
+> **Two results do stand, and they are what this repository is now for.**
 >
-> Full diagnosis and plan: [docs/research_reset_plan.md](docs/research_reset_plan.md).
+> 1. **A BatchNorm defect in momentum-teacher training** (§ [H3](docs/research_reset_plan.md)).
+>    The EMA teacher ran in `eval()` mode — BatchNorm *running* statistics — while the
+>    student trained in `train()` mode using *batch* statistics. With BatchNorm frozen
+>    the two coincide; with it trainable the teacher is a different function of the
+>    same images. Fixing it recovers a 1.39 pt In-Shop regression in full:
+>    **0.8899 → 0.9041, +1.42 pt, every seed positive, ≈20σ.** Generalises to any
+>    MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
+>
+> 2. **CUB cannot resolve the effects this field reports.** Seed noise is σ ≈ 0.88 pt,
+>    *and* three effectively-identical runs at a **fixed seed** scored 0.7183 / 0.7154
+>    / 0.7075 — a 1.08 pt spread from GPU nondeterminism alone. Detecting +0.5 pt needs
+>    12–37 seeds per arm. Most papers report one run. (Now eliminable: set
+>    `deterministic: true`.)
+>
+> **Thirteen method candidates have been tested and failed**, each recorded with its
+> mechanism in [docs/results.md](docs/results.md) — including two imported from
+> cognitive science (Shepard's exponential generalisation kernel, Tversky's contrast
+> similarity), both decisively negative on In-Shop where σ = 0.12 pt.
+>
+> Full history and handoff: [docs/HANDOFF.md](docs/HANDOFF.md).
 
 ## Historical CUB result (legacy recipe — not an official reproduction)
 
