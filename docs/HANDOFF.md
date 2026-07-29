@@ -1,4 +1,4 @@
-# SFORA handoff — state as of 2026-07-28
+# SFORA handoff — state as of 2026-07-29
 
 Everything needed to pick this up on a fresh machine. Written because the laptop is
 being reset; nothing here depends on local state except an SSH key for the DGX.
@@ -9,7 +9,7 @@ being reset; nothing here depends on local state except an SSH key for the DGX.
 
 | what | where |
 |---|---|
-| branch | `research-reset-2026-07-27` (64 commits ahead of `main`) |
+| branch | `research-reset-2026-07-27` (42 commits ahead of `main`) |
 | remote | `git@github.com:CausalityHQ/sfora.git` |
 | GPU host | `riomus@100.104.199.68` (Tailscale; a DGX Spark, one GB10) |
 | remote repo | `/home/riomus/group-learning` |
@@ -24,22 +24,26 @@ local branch. Deploy with:
 
 ```bash
 rsync -az src/sfora/ riomus@100.104.199.68:/home/riomus/group-learning/src/sfora/
-scp scripts/run_priority_queue_v16.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
+scp scripts/run_priority_queue_v18.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
 ```
 
 ---
 
 ## 2. What is running right now
 
-Queue `scripts/run_priority_queue_v16.sh`, launched detached on the DGX:
+Queue `scripts/run_priority_queue_v18.sh`, launched detached on the DGX:
 
 ```bash
 ssh riomus@100.104.199.68 'cd /home/riomus/group-learning && \
-  setsid nohup bash scripts/run_priority_queue_v16.sh > /home/riomus/experiment-logs/q.log 2>&1 &'
+  setsid nohup bash scripts/run_priority_queue_v18.sh > /home/riomus/experiment-logs/q.log 2>&1 &'
 ```
 
-Order: In-Shop `pa_distill_bnfix` ×3 → CUB `shepard` ×3 + `shepard_l1` → CUB
-`tversky` ×3 → remaining CUB baselines.
+**All method questions are now settled; v18 is consolidation only.** Order: In-Shop
+`pa_distill_bnfix` seeds 1–2 (done — closed H3, see §3) → one confirmation seed each
+for `shepard` and `tversky` → remaining CUB reference baselines.
+
+Nothing left in this queue can change a conclusion. When it drains, the GPU is free
+for whatever comes next; see §9.
 
 **Status check** (this is the whole loop):
 
@@ -55,7 +59,8 @@ Run times on the GB10: CUB ≈ 35–50 min/arm, In-Shop ≈ 2.2 h (Proxy Anchor)
 
 ## 3. The one strong result: H3, the BatchNorm teacher/student mismatch
 
-**This is the finding worth publishing, and it rescues HERD rather than burying it.**
+**This is the finding worth publishing.** It is a bug-finding about a widely-used
+training pattern — *not* a rescue of HERD. See the closing caveat below.
 
 The EMA teacher was created with `deepcopy(model)` then `.eval()`, so it normalised
 with BatchNorm **running** statistics while the student trained in `.train()` mode
@@ -71,10 +76,32 @@ is a systematically different function of the same images.
 **+1.42 pt, every seed positive, ≈20σ.** The "distillation hurts HIST by 1.39 pt"
 result that triggered this whole investigation was an implementation bug.
 
-Validated three ways: mechanism proved at unit level; the *null* prediction (inert
-under frozen BatchNorm) proved by test; the *positive* prediction confirmed across
-three seeds. Fix lives behind `ema_teacher_train_mode` / `ema_teacher_ema_buffers`,
-both defaulting to the historical behaviour so old artifacts still reproduce.
+It then replicated on a **second base it was never developed against**, Proxy Anchor
+(0.9029 / 0.9021 / 0.9044 vs `pa_distill` 0.8999 / 0.8994 / 0.8990): **+0.37 pt**
+against a −0.41 pt regression. So across both legs:
+
+| leg | recovery | regression it undoes |
+| --- | ---: | ---: |
+| HIST | +1.42 pt | −1.39 pt |
+| Proxy Anchor | +0.37 pt | −0.41 pt |
+
+**Six paired seeds, six positive** — exact sign test p = 2⁻⁵ = 0.031, which carries
+no normality assumption (the per-leg t-tests at n=3 do). The proportionality is the
+real tell: each leg recovers almost exactly the regression it had to undo, which is
+what a bug-recovery predicts and what a method gain has no reason to produce.
+
+Validated three further ways: mechanism proved at unit level; the *null* prediction
+(inert under frozen BatchNorm) proved by test; the *positive* prediction confirmed
+across seeds and bases.
+
+**State it narrowly.** The fix repairs the bug; it does not make distillation a win.
+With it in place `herd_bnfix` is +0.03 pt over HIST and `pa_distill_bnfix` is
+−0.04 pt under Proxy Anchor (t = −0.29, p = 0.80) — both indistinguishable from
+their bases. Anyone writing this up should resist the pull toward "our method
+improves retrieval"; the contribution is the defect and its generality.
+
+The fix lives behind `ema_teacher_train_mode` / `ema_teacher_ema_buffers`, both
+defaulting to the historical behaviour so old artifacts still reproduce.
 
 Generalisable claim: *momentum-teacher recipes silently break under trainable
 BatchNorm unless the teacher's normalisation mode matches the student's.* Applies to
@@ -105,10 +132,29 @@ essentially exactly its published 0.714.
 
 ---
 
-## 5. Live candidates (running now)
+## 5. The cognitive-science candidates — both settled, both failed
 
-Both replace the **similarity function** rather than adding a loss term, and both
-differ from official Proxy Anchor only in their declared recipe delta.
+Both replaced the **similarity function** rather than adding a loss term, and both
+differed from official Proxy Anchor only in their declared recipe delta. Both were
+decided on In-Shop, where σ = 0.12 pt makes one seed conclusive:
+
+| method | In-Shop | vs PA 0.9035 | CUB (3 seeds) |
+| --- | ---: | ---: | ---: |
+| Shepard exponential kernel | 0.8999 / 0.8998 | **−0.36 pt** (~3σ) | 0.6743 — unreadable |
+| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | 0.6758 — unreadable |
+
+The general lesson, worth carrying forward: **a similarity function better-motivated
+as a model of human judgement is not thereby better as a retrieval score.** Tversky's
+model is descriptively correct about people; retrieval is not asking that question.
+
+Tversky's failure size is the informative one — the `x·f_k > 0` membership test
+discards the *magnitude* of agreement, which is lossless on the sparse binary
+fingerprints where Tanimoto earns its keep in cheminformatics and very lossy on dense
+CNN embeddings. Shepard's was small and real: the fatter tail genuinely exists
+(2.9× more mass on the far neighbour at PA's operating point), it simply does not
+help, which suggests distant true positives are distant *because they should be*.
+
+The rationale as it stood before the runs is preserved below.
 
 **`shepard` / `shepard_l1`** — Shepard's exponential generalisation kernel.
 Cosine-softmax is secretly Gaussian: on unit vectors `cos = 1 − d²/2`, so
@@ -126,13 +172,15 @@ Anchor's α=32 ≈ T 0.03). Literature is entirely *observational* — nobody tr
 evaluated only on closed-set classification and language modelling — **no retrieval,
 no unseen classes** — and uses the *unbounded* contrast form.
 
-Honest priors from the literature sweep: ~20% (Shepard), 15–25% (Tversky).
+Honest priors from the literature sweep were ~20% (Shepard), 15–25% (Tversky) — both
+were, in the end, roughly calibrated.
 
 ---
 
 ## 6. What is dead — do not retry
 
-Eleven candidates, each with a mechanism recorded in `docs/results.md`:
+Thirteen candidates, each with a mechanism recorded in `docs/results.md`. The two
+cognitive-science imports of §5 are entries twelve and thirteen; the earlier eleven:
 
 | candidate | result |
 | --- | --- |
@@ -185,23 +233,42 @@ measured −1.47 pt).
 | `scripts/measure_antihubs.py` | antihub stability/cost/headroom |
 | `scripts/aligned_pack_fusion.py` | Procrustes-aligned pack fusion |
 | `scripts/probe_late_interaction.py` | MaxSim read-out probe |
-| `scripts/run_priority_queue_v16.sh` | current queue |
+| `scripts/run_priority_queue_v18.sh` | current queue (consolidation only) |
 
 ---
 
 ## 9. Recommended next steps
 
-1. **Let the queue finish.** `shepard` and `tversky` at 3 seeds each is the immediate
-   question. Given CUB's noise, only a ≥2 pt effect is interpretable at n=3.
-2. **Move method validation to In-Shop.** σ = 0.12 pt makes a single seed decisive.
-   Both new recipes need In-Shop variants (the HIST In-Shop recipe is a frozen
-   `selected_extension` via `reports/generated/recipe_selection.inshop.hist.json`).
-3. **Turn on `deterministic: true`** for everything new — it makes paired comparisons
-   exact and costs nothing.
-4. **Write up H3 regardless of what the new methods do.** It is a confirmed ~20σ
-   bug-finding with a generalisable claim, and it is currently the strongest result
-   in the project.
-5. If both new candidates fail, the defensible paper is the reproducibility one:
-   provenance infrastructure that caught two real confounds (LayerNorm, BatchNorm),
-   the quantified noise/headroom argument, and an eleven-entry negatives catalogue
-   with mechanisms.
+The search for a novel method has been run to exhaustion: **thirteen candidates,
+thirteen failures**, and the last two were the best-motivated of the lot. That is
+itself the signal. What survives is worth writing, and it is not a method paper.
+
+1. **Write up H3.** Six paired seeds across two bases, all positive, with the
+   recovery-tracks-regression proportionality as the mechanistic evidence. The claim
+   is *momentum-teacher recipes silently lose 0.3–1.4 pt under trainable BatchNorm
+   unless the teacher's normalisation mode matches the student's* — it applies to
+   MoCo/BYOL/DINO-style setups well beyond DML, and it is checkable in an afternoon
+   by anyone with such a codebase. This is the highest-value thing left.
+
+2. **The reproducibility paper is the defensible one**, and it is nearly written
+   already: provenance infrastructure that caught **two real confounds** (LayerNorm
+   between a method and its control, BatchNorm between teacher and student), the
+   quantified noise argument (CUB σ = 0.88 pt across seeds *and* 1.08 pt at fixed
+   seed; +0.5 pt needs 12–37 seeds; most papers report one run), and a thirteen-entry
+   negatives catalogue where every entry has a recorded mechanism rather than just a
+   number. A *Metric Learning Reality Check* with the measurement done properly.
+
+3. **Do not start candidate fourteen without changing the search strategy.** The
+   thirteen failures were not random: every one either (a) added regularisation where
+   the base was already fitting well, or (b) swapped the similarity function while
+   leaving the training signal intact. Both classes are now well-evidenced dead ends.
+   Something that changes *what supervision exists* — not how it is scored — is the
+   only untried direction.
+
+4. **Turn on `deterministic: true`** for everything new. It removes half the observed
+   seed noise and costs nothing. Should have been default from the start.
+
+5. **Validate on In-Shop, never CUB.** σ = 0.12 pt vs 0.88 pt. One In-Shop run at
+   2.2 h beats six CUB runs at 45 min for any effect under 2 pt. The single most
+   expensive lesson of this project — a CUB screen at n=1 produced a false positive
+   (+0.52 pt) that survived hours before three seeds killed it.
