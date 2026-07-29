@@ -61,7 +61,41 @@ they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
-### The two new-method candidates: both clean negatives
+### The cognitive-science candidates: both fail, decisively
+
+Two methods imported from outside ML, both replacing the **similarity function**
+rather than adding a loss term, both differing from official Proxy Anchor only in
+their declared recipe delta. Settled on In-Shop, where σ = 0.12 pt makes a single
+seed conclusive.
+
+| method | In-Shop R@1 | vs PA 0.9035 | CUB (3 seeds) |
+| --- | ---: | ---: | ---: |
+| Shepard exponential kernel | 0.8999 | **−0.36 pt** (~3σ) | 0.6743 (−0.82, unreadable) |
+| Tversky contrast similarity | 0.8600 | **−4.35 pt** (~36σ) | in progress |
+
+**Shepard.** The mechanism was real and the derivation holds: cosine-softmax *is*
+secretly Gaussian — on unit vectors `cos = 1 − d²/2`, so `exp(cos/T) ∝ exp(−d²/2T)` —
+and Shepard's `exp(−d)` genuinely has a fatter tail (measured 2.9× more mass on the
+far neighbour at T = 0.05, which is Proxy Anchor's operating point). It simply does
+not help. The hypothesis was that fatter tails would keep gradient flowing to
+moderately-distant true positives and rescue orphans; the result suggests those
+positives are distant *because they should be*, and weighting them more costs more
+than it recovers. A small, real, resolvable negative.
+
+**Tversky.** Much worse, and the size is informative. The bounded ratio form is
+correct and its asymmetry is genuine (tests pin both), but discarding the *magnitude*
+of agreement in favour of set-membership contrast throws away most of what a dense
+embedding encodes. `x·f_k > 0` is a hard threshold: two embeddings agreeing strongly
+and two agreeing barely both count as "sharing the feature". On sparse binary
+fingerprints — where Tanimoto earns its keep in cheminformatics — that is lossless.
+On dense CNN embeddings it is not.
+
+Worth recording as the general lesson from both: **a similarity function that is
+better-motivated as a model of *human judgement* is not thereby better as a *retrieval
+score*.** Tversky's model is descriptively correct about people; retrieval is not
+asking the same question.
+
+### The earlier new-method candidates: both clean negatives
 
 | arm | seeds | mean | vs baseline |
 | --- | --- | ---: | ---: |
