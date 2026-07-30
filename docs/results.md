@@ -199,6 +199,42 @@ statement is **a fixed increment of ~+0.4 pt, roughly independent of embedding w
 with no established mechanism.** Fourteenth and fifteenth candidate explanations, both
 pre-registered, both dead.
 
+### What the EMA teacher actually supplies: a 2×2, and a failed additivity prediction
+
+An EMA teacher does two separable things — it is a **distillation target**, and it is an
+**averaged copy of the weights**. `pa_distill` conflates them: it distils toward the
+teacher but evaluates the *student*. These arms separate the roles. Momentum is held at
+0.99 across the three non-base cells so a difference between cells cannot be the momentum.
+
+| CUB arm | momentum | distil | evaluate teacher | seed 0 | seed 1 | mean Δ |
+| --- | ---: | :-: | :-: | ---: | ---: | ---: |
+| `pa_distill` | 0.999 | ✓ | — | +0.91 | +1.03 | **+0.658** (6 seeds) |
+| `pa_ema_avg` | 0.999 | — | ✓ | +0.07 | +0.05 | **+0.06** |
+| `pa_ema_avg_fast` | 0.99 | — | ✓ | +0.46 | +0.37 | **+0.41** |
+| `pa_distill_avg` | 0.99 | ✓ | ✓ | +0.52 | — | **+0.52** (n=1) |
+
+**Momentum dominates the averaging arm.** At 0.999 over CUB's 2940 steps the average still
+retains 0.999²⁹⁴⁰ = **5.3% of its initialisation** — a pretrained backbone but a *randomly
+initialised* embedding head. That contamination is worth 0.35 pt: +0.06 against +0.41.
+The bracket was built from that arithmetic *before* any GPU was spent, and it earned its
+keep — the natural single arm to build is the one matching `pa_distill` at 0.999, and it
+would have measured +0.06 and retired weight averaging as useless on this benchmark.
+
+**The additivity prediction failed.** If the two roles were separable and complementary,
+`pa_distill_avg` should have exceeded both components. Instead +0.45 and +0.91 combine to
+**+0.52** — approximately the averaging arm alone, and *worse than the better single
+component*. The two are capturing overlapping signal, not complementary signal.
+
+`pa_distill_fast` (distil only at 0.99) is the arm that decides which reading holds:
+≈ +0.5 means momentum is what matters and the 0.999 teacher is simply a better
+distillation target; ≈ 0 means averaging carries the 0.99 arms entirely and distillation
+adds nothing on top.
+
+**Caution on the tight sds.** `pa_ema_avg_fast` shows sd 0.064 at n=2, implying an
+implausible 0.1 seeds for 80% power. An sd from two runs has *one* degree of freedom and
+is nearly worthless: `pa_distill`'s own 3-seed sd was 0.153 and became **0.367** at six
+seeds. Do not plan on it.
+
 **A methodological correction that matters more than either.** This project has been
 quoting CUB σ ≈ 0.88 pt and "+0.5 pt needs 12–37 seeds". Both came from three seeds.
 At six:
