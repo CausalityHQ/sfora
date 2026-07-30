@@ -211,24 +211,34 @@ teacher but evaluates the *student*. These arms separate the roles. Momentum is 
 | `pa_distill` | 0.999 | ✓ | — | +0.91 | +1.03 | **+0.658** (6 seeds) |
 | `pa_ema_avg` | 0.999 | — | ✓ | +0.07 | +0.05 | **+0.06** |
 | `pa_ema_avg_fast` | 0.99 | — | ✓ | +0.46 | +0.37 | **+0.41** |
+| `pa_distill_fast` | 0.99 | ✓ | — | +0.30 | — | **+0.30** (n=1) |
 | `pa_distill_avg` | 0.99 | ✓ | ✓ | +0.52 | — | **+0.52** (n=1) |
 
-**Momentum dominates the averaging arm.** At 0.999 over CUB's 2940 steps the average still
+**Momentum dominates the difference between the two averaging arms.** At 0.999 over CUB's 2940 steps the average still
 retains 0.999²⁹⁴⁰ = **5.3% of its initialisation** — a pretrained backbone but a *randomly
 initialised* embedding head. That contamination is worth 0.35 pt: +0.06 against +0.41.
 The bracket was built from that arithmetic *before* any GPU was spent, and it earned its
 keep — the natural single arm to build is the one matching `pa_distill` at 0.999, and it
 would have measured +0.06 and retired weight averaging as useless on this benchmark.
 
-**The additivity prediction failed.** If the two roles were separable and complementary,
-`pa_distill_avg` should have exceeded both components. Instead +0.45 and +0.91 combine to
-**+0.52** — approximately the averaging arm alone, and *worse than the better single
-component*. The two are capturing overlapping signal, not complementary signal.
+**The matched-momentum 2×2 does not reduce to either proposed binary explanation.**
+At momentum 0.99 on seed 0, distillation-only is **+0.30**, averaging-only is
+**+0.46**, and both is **+0.52**. The pre-registered alternatives were approximately
++0.5 (momentum carries the 0.99 cells) or approximately zero (averaging carries them
+entirely). The observed +0.30 is intermediate: faster momentum improves the
+distillation target, while evaluating the averaged weights carries the larger share
+of the observed gain. Adding distillation on top of averaging buys only another
++0.06 on this seed, not the +0.30 an additive model predicts.
 
-`pa_distill_fast` (distil only at 0.99) is the arm that decides which reading holds:
-≈ +0.5 means momentum is what matters and the 0.999 teacher is simply a better
-distillation target; ≈ 0 means averaging carries the 0.99 arms entirely and distillation
-adds nothing on top.
+This resolves the mechanism qualitatively, not the effect size statistically:
+`pa_distill_fast` and `pa_distill_avg` are each at **n=1**, while
+`pa_ema_avg_fast` is at n=2. Queue v24 is completing all three cells to three seeds;
+until then the 2×2 is a matched-seed mechanistic result, not a publishable estimate.
+
+**The additivity prediction failed.** If the two roles were separable and complementary,
+their matched-momentum seed-0 effects (+0.30 and +0.46) predict about +0.76 together.
+Observed is **+0.52** — only +0.06 above averaging alone. The two roles therefore capture
+mostly overlapping signal, not complementary signal.
 
 **Caution on the tight sds.** `pa_ema_avg_fast` shows sd 0.064 at n=2, implying an
 implausible 0.1 seeds for 80% power. An sd from two runs has *one* degree of freedom and
