@@ -39,6 +39,7 @@ DerivedMethod = Literal[
     "narrow128_distill",
     "narrow64_distill",
     "pa_ema_avg",
+    "pa_ema_avg_fast",
 ]
 
 # Base loss each derived method attaches to.
@@ -55,6 +56,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "narrow128_distill": "proxy_anchor",
     "narrow64_distill": "proxy_anchor",
     "pa_ema_avg": "proxy_anchor",
+    "pa_ema_avg_fast": "proxy_anchor",
 }
 
 # Polyak/SWA weight averaging with the distillation term REMOVED: maintain the EMA
@@ -64,10 +66,20 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
 # distillation target, and is an averaged copy of the weights. This arm isolates the
 # second. If it reproduces the gain, the distillation loss is inert and the effect is
 # weight averaging under another name; if it does not, the loss is doing real work.
-# Momentum matches `_DISTILL_DELTA` so the average is the same one `pa_distill` builds.
-_EMA_AVG_DELTA: dict[str, Any] = {
-    "ema_weight_averaging": True,
-    "ema_momentum": 0.999,
+#
+# Two momenta, because one would give an ambiguous null. At 0.999 over CUB's 2940 steps
+# the EMA retains 0.999^2940 = 5.3% of its INITIALISATION -- a pretrained backbone but a
+# randomly-initialised embedding head. That copy could score badly for a reason having
+# nothing to do with whether averaging helps, so a null at 0.999 alone would not be
+# readable. At 0.99 the initial weight is 3e-13, i.e. gone.
+#
+#   pa_ema_avg       momentum 0.999, matching `_DISTILL_DELTA` exactly. Isolates the
+#                    teacher `pa_distill` actually distils toward, contamination and all.
+#   pa_ema_avg_fast  momentum 0.99. Tests weight averaging as such, with no initialisation
+#                    left in the average.
+_EMA_AVG_MOMENTUM: dict[str, float] = {
+    "pa_ema_avg": 0.999,
+    "pa_ema_avg_fast": 0.99,
 }
 
 # Embedding width of each capacity-weakened arm, against the official 512.
@@ -447,8 +459,11 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
-    if method == "pa_ema_avg":
-        delta = dict(_EMA_AVG_DELTA)
+    if method in _EMA_AVG_MOMENTUM:
+        delta = {
+            "ema_weight_averaging": True,
+            "ema_momentum": _EMA_AVG_MOMENTUM[method],
+        }
         return recipe.model_copy(
             deep=True,
             update={

@@ -483,6 +483,26 @@ def test_derived_selector_uses_resolved_base_recipe() -> None:
     assert resolved.derived_from_recipe_id == "proxy_anchor.inshop.official-51db570"
 
 
+def test_ema_averaging_momenta_bracket_the_initialisation_contamination() -> None:
+    """The two averaging arms exist to disambiguate a null. At 0.999 over CUB's 2940
+    steps the EMA still holds ~5% of its initialisation, including a random embedding
+    head; at 0.99 that term is ~1e-13. If these momenta ever converge, the pair stops
+    bracketing the confound and a null result becomes unreadable."""
+    base = reference_recipe("proxy_anchor", "cub")
+    slow = derive_recipe(base, "pa_ema_avg")
+    fast = derive_recipe(base, "pa_ema_avg_fast")
+    steps = 2940
+
+    assert slow.config["ema_momentum"] == pytest.approx(0.999)
+    assert fast.config["ema_momentum"] == pytest.approx(0.99)
+    assert slow.config["ema_momentum"] ** steps > 0.01  # contaminated on purpose
+    assert fast.config["ema_momentum"] ** steps < 1e-6  # initialisation is gone
+    # Both must still be pure averaging, with no distillation term.
+    for recipe in (slow, fast):
+        assert recipe.config["ema_weight_averaging"] is True
+        assert recipe.config["ema_distill_weight"] == 0.0
+
+
 def test_pa_ema_avg_isolates_weight_averaging_from_the_distillation_loss() -> None:
     """The mechanism arm must differ from official Proxy Anchor ONLY by maintaining and
     scoring the EMA copy -- crucially with `ema_distill_weight` still 0. If a
