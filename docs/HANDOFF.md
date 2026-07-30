@@ -1,4 +1,4 @@
-# SFORA handoff — state as of 2026-07-29
+# SFORA handoff — state as of 2026-07-30
 
 Everything needed to pick this up on a fresh machine. Written because the laptop is
 being reset; nothing here depends on local state except an SSH key for the DGX.
@@ -9,7 +9,7 @@ being reset; nothing here depends on local state except an SSH key for the DGX.
 
 | what | where |
 |---|---|
-| branch | `research-reset-2026-07-27` (42 commits ahead of `main`) |
+| branch | `research-reset-2026-07-27` (71 commits ahead of `main`) |
 | remote | `git@github.com:CausalityHQ/sfora.git` |
 | GPU host | `riomus@100.104.199.68` (Tailscale; a DGX Spark, one GB10) |
 | remote repo | `/home/riomus/group-learning` |
@@ -24,38 +24,58 @@ local branch. Deploy with:
 
 ```bash
 rsync -az src/sfora/ riomus@100.104.199.68:/home/riomus/group-learning/src/sfora/
-scp scripts/run_priority_queue_v18.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
+scp scripts/run_priority_queue_v26.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
 ```
 
 ---
 
 ## 2. What is running right now
 
-Queue `scripts/run_priority_queue_v18.sh`, launched detached on the DGX:
+Queue `scripts/run_priority_queue_v26.sh`, launched detached on the DGX:
 
 ```bash
 ssh riomus@100.104.199.68 'cd /home/riomus/group-learning && \
-  setsid nohup bash scripts/run_priority_queue_v18.sh > /home/riomus/experiment-logs/q.log 2>&1 &'
+  setsid nohup bash scripts/run_priority_queue_v26.sh > /home/riomus/experiment-logs/q26.log 2>&1 &'
 ```
 
-**All method questions are now settled; v18 is consolidation only.** Order: In-Shop
-`pa_distill_bnfix` seeds 1–2 (done — closed H3, see §3) → one confirmation seed each
-for `shepard` and `tversky` → remaining CUB reference baselines.
-
-Nothing left in this queue can change a conclusion. When it drains, the GPU is free
-for whatever comes next; see §9.
+Order: CUB `pa_dual_ema` ×3 → momentum sweep (`pa_ema_avg_m95`, `pa_ema_avg_m90`) seed 0
+→ Cars196 `proxy_anchor`/`pa_distill` ×3. Arms already measured are **digest-cached and
+skip automatically**, so a re-launch never repeats work.
 
 **Status check** (this is the whole loop):
 
 ```bash
 ssh riomus@100.104.199.68 'grep -E "DONE|FAIL" /home/riomus/experiment-logs/reference-matrix/controller.log | tail -5'
 ssh riomus@100.104.199.68 'cd ~/group-learning && .venv/bin/python scripts/analyze_reference_matrix.py'
+ssh riomus@100.104.199.68 'cd ~/group-learning && .venv/bin/python scripts/measure_selection_bias.py "reports/generated/image_end_to_end_cub.*.json"'
 ```
 
-Run times on the GB10: CUB ≈ 35–50 min/arm, In-Shop ≈ 2.2 h (Proxy Anchor) to 4.6 h
-(HIST base).
+Run times on the GB10: CUB ≈ 44 min (base) to 55 min (any EMA arm), Cars ≈ 60–75 min,
+In-Shop ≈ 2.2 h (Proxy Anchor) to 4.6 h (HIST base).
 
----
+### 2b. The EMA factorial — the live line of work (2026-07-30)
+
+An EMA teacher supplies two separable things: a **distillation target**, and an **averaged
+copy of the weights to evaluate**. Every arm before `pa_dual_ema` forced one EMA to do
+both. CUB seed 0, against `proxy_anchor` 0.6825:
+
+| arm | teacher mom | eval mom | Δ |
+| --- | ---: | ---: | ---: |
+| `pa_distill` | 0.999 | — (student) | **+0.91** |
+| `pa_distill_avg` | 0.99 | 0.99 | +0.52 |
+| `pa_ema_avg_fast` | — | 0.99 | +0.45 |
+| `pa_distill_fast` | 0.99 | — (student) | +0.30 |
+| `pa_ema_avg` | — | 0.999 | +0.07 |
+
+**The two roles want opposite timescales.** As a target, 0.999 beats 0.99 (+0.91 vs
++0.30) — a slow teacher is a more stable thing to regress toward. As the evaluated model,
+0.99 beats 0.999 (+0.45 vs +0.07) — a fast average tracks the current solution instead of
+dragging 5.3% of the initialisation along. `ema_eval_momentum` decouples them;
+`pa_dual_ema` is slow teacher + fast evaluated average, and its prediction is registered
+in `image_recipes.py` before the result.
+
+**Read these numbers with §4b.** Reported deltas understate the averaging arms badly,
+because they collect far less best-over-training selection bonus.
 
 ## 3. The one strong result: H3, the BatchNorm teacher/student mismatch
 
@@ -158,6 +178,37 @@ essentially exactly its published 0.714.
 
 ---
 
+### 4b. Best-over-training selection bias — measure it before comparing arms
+
+`scripts/measure_selection_bias.py`. Best-over-training is a `max` over ~60 noisy
+evaluations, so it overshoots the true curve, and **the overshoot grows with the arm's
+noise**. Estimated per run from the selected epoch's *neighbours only*.
+
+| CUB arm | evaluates | selection bonus |
+| --- | --- | ---: |
+| `pa_distill` | student | 0.836 pt |
+| `proxy_anchor` | student | 0.769 pt |
+| `pa_ema_avg_fast` | averaged weights | 0.306 pt |
+| `pa_ema_avg` | averaged weights | 0.074 pt |
+
+Arms evaluating averaged weights collect **2.5–10× less** bonus, because averaging smooths
+the evaluated curve. Removing each arm's own bonus **reverses the ranking**:
+
+| paired | reported | corrected |
+| --- | ---: | ---: |
+| `pa_ema_avg_fast` − `proxy_anchor` | +0.414 | **+0.732** |
+| `pa_ema_avg` − `proxy_anchor` | +0.059 | **+0.610** |
+| `pa_distill` − `proxy_anchor` | +0.658 | +0.592 |
+
+So **the standard protocol structurally hides weight averaging.** On a flat simulated
+plateau with 0.5 pt evaluation noise the estimator recovers +1.16 pt of pure selection —
+larger than most published DML gains, from a truth with no improvement in it. It also
+reproduces a known failure as a sanity check: `local_nca` collapsed, peaked in its first
+epochs, and best-over-training still reported 0.5733 against a 0.3394 trend.
+
+Caveats: averaging arms are at n=2, the correction is one estimator, and corrected values
+are **not** the benchmark metric — a paper quoting them must argue the protocol.
+
 ## 5. The cognitive-science candidates — both settled, both failed
 
 Both replaced the **similarity function** rather than adding a loss term, and both
@@ -259,7 +310,8 @@ measured −1.47 pt).
 | `scripts/measure_antihubs.py` | antihub stability/cost/headroom |
 | `scripts/aligned_pack_fusion.py` | Procrustes-aligned pack fusion |
 | `scripts/probe_late_interaction.py` | MaxSim read-out probe |
-| `scripts/run_priority_queue_v18.sh` | current queue (consolidation only) |
+| `scripts/run_priority_queue_v26.sh` | current queue |
+| `scripts/measure_selection_bias.py` | best-over-training selection bonus, per arm and per pair |
 
 ---
 
