@@ -486,6 +486,24 @@ _GROUP_CENTROID_OBJECTIVES = {
 }
 
 
+def _export_cublas_workspace_config() -> None:
+    """Export `CUBLAS_WORKSPACE_CONFIG`, which cuBLAS reads ONCE when its handle is
+    created and ignores afterwards.
+
+    Called at the very top of a run rather than alongside the other determinism
+    switches. `torch.cuda.manual_seed_all` is lazy and `torch.cuda.is_available()`
+    goes through NVML, so today neither initialises a context before the switches are
+    set -- but both are implementation details of the installed torch, and if either
+    ever changes, determinism would degrade SILENTLY: `use_deterministic_algorithms`
+    runs with `warn_only=True`, so a nondeterministic cuBLAS matmul warns instead of
+    raising, and every run afterwards would quietly stop being reproducible.
+    Exporting first makes the ordering structural instead of incidental.
+    """
+    import os
+
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
+
 def _enable_deterministic_algorithms(torch_module: Any) -> None:
     """Make a run bit-reproducible at a fixed seed.
 
@@ -505,9 +523,7 @@ def _enable_deterministic_algorithms(torch_module: Any) -> None:
     must be set before the first CUDA context is created, so it is exported here and
     also documented for the launcher.
     """
-    import os
-
-    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    _export_cublas_workspace_config()
     backends = getattr(torch_module, "backends", None)
     cudnn = getattr(backends, "cudnn", None) if backends is not None else None
     if cudnn is not None:
@@ -567,6 +583,9 @@ def run_image_end_to_end_benchmark(
         ) from error
 
     _validate_group_centroid_sampling(config)
+    if config.deterministic:
+        # Before ANY torch.cuda call: cuBLAS latches this at handle creation.
+        _export_cublas_workspace_config()
     torch.manual_seed(config.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config.seed)

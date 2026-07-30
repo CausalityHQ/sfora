@@ -1,3 +1,4 @@
+import contextlib
 import json
 import math
 from collections.abc import Callable, Iterable
@@ -7251,3 +7252,73 @@ def test_without_averaging_the_student_is_scored_and_training_moves_it(
     scored, untrained = _averaging_probe_run(tmp_path, torch=torch, ema_weight_averaging=False)
 
     assert not np.allclose(scored, untrained, atol=1e-6)
+
+
+def test_cublas_workspace_config_is_exported_before_any_cuda_call() -> None:
+    """cuBLAS latches CUBLAS_WORKSPACE_CONFIG when its handle is created and ignores
+    later changes, so exporting it after a CUDA context exists is a silent no-op --
+    silent because `use_deterministic_algorithms(warn_only=True)` warns rather than
+    raises on a nondeterministic matmul. This pins the ordering: the export must
+    happen before the first `torch.cuda.*` call in a deterministic run."""
+    import os
+
+    from sfora.image_end_to_end import _export_cublas_workspace_config
+
+    previous = os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
+    try:
+        _export_cublas_workspace_config()
+        assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+        # setdefault, so an operator's explicit choice is never overwritten.
+        os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
+        _export_cublas_workspace_config()
+        assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":16:8"
+    finally:
+        if previous is None:
+            os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
+        else:
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = previous
+
+
+def test_deterministic_run_exports_workspace_config_before_seeding() -> None:
+    """The ordering above must hold inside the real entry point, not just in isolation.
+    Recording the order of the export against `torch.manual_seed` catches a future edit
+    that moves the determinism block back below the CUDA seeding calls."""
+    import os
+
+    import sfora.image_end_to_end as module
+
+    order: list[str] = []
+    previous = os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
+    real_export = module._export_cublas_workspace_config
+
+    def recording_export() -> None:
+        order.append("export")
+        real_export()
+
+    torch: Any = pytest.importorskip("torch")
+    real_seed = torch.manual_seed
+
+    def recording_seed(seed: int) -> Any:
+        order.append("manual_seed")
+        return real_seed(seed)
+
+    module._export_cublas_workspace_config = recording_export
+    torch.manual_seed = recording_seed
+    try:
+        # Fails later on the empty splits; the assertion is about ordering, not the
+        # failure, so the exception type is deliberately not pinned here.
+        with contextlib.suppress(Exception):
+            run_image_end_to_end_benchmark(
+                train_examples=[],
+                test_examples=[],
+                config=ImageEndToEndConfig(deterministic=True, num_workers=0),
+            )
+    finally:
+        module._export_cublas_workspace_config = real_export
+        torch.manual_seed = real_seed
+        if previous is None:
+            os.environ.pop("CUBLAS_WORKSPACE_CONFIG", None)
+        else:
+            os.environ["CUBLAS_WORKSPACE_CONFIG"] = previous
+
+    assert order[:2] == ["export", "manual_seed"], order
