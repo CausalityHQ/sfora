@@ -241,6 +241,96 @@ argument: you cannot out-measure this with a cleverer metric.
 **A caught bug, worth recording.** The first version of this script keyed artifacts on
 arm name and immediately produced `inshop/pa_distill − proxy_anchor = +3.401 pt` — the
 exact spurious number that superseded pre-`22f7dd6` artifacts fabricate. It now keys on
-recipe digest and *refuses* to pair an arm that has more than one, which is the rule
-`analyze_reference_matrix.py` already enforced. The same trap, in a new script, within an
-hour of writing it.
+recipe digest and resolves the current digest before pairing, which is the rule
+`analyze_reference_matrix.py` already enforced. If the current recipe cannot be resolved,
+it refuses the comparison. The same trap, in a new script, within an hour of writing it.
+
+## 7. Third audit: can the measured trajectory instability motivate candidate sixteen?
+
+**Audit written 2026-07-30 before spending GPU on a new method.** The standing objective
+remains a genuinely novel similarity-learning method, not a new evaluation of an old
+optimizer. Weight averaging is useful evidence but is Polyak/SWA, and therefore cannot
+satisfy that objective.
+
+The project's strongest new measurement is that training trajectories diverge materially:
+top-5 epoch averaging does not reduce the paired variance, and nominally identical
+fixed-seed runs spread by 1.08 pt. Four method ideas follow naturally. None survives both
+the mechanism check and primary literature.
+
+### 7a. Weight pairs by their stability across checkpoints — rejected
+
+The proposal is to keep temporal means and variances of pair similarities, then down-weight
+relations whose sign or rank changes during training. It sounds tailored to the measured
+instability, but it makes the same category error as the SAM proposal in §5b. The damaging
+variance is **between trajectories**: GPU nondeterminism sends nominally identical runs to
+different solutions. A variance estimate collected along one trajectory does not identify
+which of its relations would survive another trajectory. Our readout experiment already
+shows that smoothing observations on one path leaves the across-run paired sd unchanged.
+
+The nearby method space is occupied as well. General Pair Weighting and Multi-Similarity
+already cast DML as informative-pair selection and weighting
+([Wang et al., CVPR 2019](https://arxiv.org/abs/1904.06627)); distributionally robust
+pair weighting explicitly optimises over an uncertainty set
+([Qi et al., ECCV 2020](https://arxiv.org/abs/1912.11194)); and uncertainty-guided metric
+learning directly weights pairs by predictive confidence and uncertainty
+([Devalraju et al., WACV 2025](https://openaccess.thecvf.com/content/WACV2025/papers/Devalraju_Uncertainty-Guided_Metric_Learning_without_Labels_WACV_2025_paper.pdf)).
+Changing the uncertainty estimator to checkpoint variance would be a variant, not a new
+supervision mechanism, and its causal premise is unsupported by our measurement.
+
+### 7b. Learn pair weights on disjoint validation classes — already done
+
+This is the statistically correct response to zero-shot class generalisation: split the
+training classes, take a metric-learning step on one subset, and learn a constraint or
+weighting rule from retrieval on disjoint labels. It would also replace test-set
+best-checkpoint feedback with an inductive signal.
+
+But the method exists. *Deep Metric Learning with Adaptively Composite Dynamic
+Constraints* constructs disjoint-label episodes, performs a one-gradient update on one
+subset, and meta-learns its constraint generator from performance on the held-out subset
+([Chen et al., TNNLS 2023](https://pubmed.ncbi.nlm.nih.gov/37018614/)). This is not merely
+generic meta-learning near our proposal; it is the same class-disjoint DML mechanism.
+Reimplementing it under cleaner recipes could be a reproduction, not a novel method.
+
+### 7c. Momentum-stabilise proxy geometry rather than network weights — already done
+
+The proposal is to average class proxies or local proxy neighbourhoods so the supervision
+geometry moves more slowly than the network. It is attractive because Proxy Anchor's
+proxies are otherwise updated by the same noisy optimiser as the embedding.
+
+Again the benchmark-matched method space is occupied. *Piecewise-Linear Manifolds for Deep
+Metric Learning* uses a momentum encoder to construct data manifolds and combines
+point–point, proxy–point, and proxy-neighbourhood objectives
+([Bhatnagar et al., ACML 2023](https://proceedings.mlr.press/v234/bhatnagar24a/bhatnagar24a.pdf)).
+ProxyGML already builds adaptive proxy similarity subgraphs and label-propagated
+neighbourhoods on CUB, Cars, and SOP
+([Zhu et al., NeurIPS 2020](https://proceedings.neurips.cc/paper_files/paper/2020/hash/ce016f59ecc2366a43e1c96a4774d167-Abstract.html)).
+A moving-average proxy update is at most a simpler optimiser for an occupied supervision
+structure.
+
+### 7d. Environment-invariant similarity — occupied and unsupported here
+
+One could read zero-shot classes as environments and penalise class-specific or
+background-specific distances. *Deep Causal Metric Learning* already learns
+environment-invariant attention and task-invariant embeddings for exactly this
+generalisation argument
+([Deng & Zhang, ICML 2022](https://proceedings.mlr.press/v162/deng22c.html)).
+More importantly, this project has measured no environment annotation or spurious-feature
+mechanism that predicts a gain. It would be literature-driven speculation, not an
+experiment implied by our evidence.
+
+### Verdict of the third audit
+
+No genuinely novel mechanism survives. The remaining unoccupied observations are
+**evaluations and measurements**:
+
+1. EMA/SWA weight evaluation has not been benchmarked cleanly on Proxy Anchor or HIST
+   zero-shot retrieval, but the technique is old.
+2. Best-over-training systematically under-credits stable methods because they collect a
+   smaller selection bonus.
+3. Seeds-required is comparison-specific, and fixed-seed GPU nondeterminism can exceed
+   the claimed method gain.
+4. Published teacher-normalisation machinery (EMAN) has not been adopted consistently in
+   DML, and the measured cost here is 0.3–1.4 pt.
+
+Those can support a measurement paper. They do not become a novel similarity-learning
+method by being combined. Candidate sixteen remains unregistered and unqueued.
