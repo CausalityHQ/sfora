@@ -622,3 +622,37 @@ def test_dual_ema_keeps_the_slow_teacher_and_evaluates_a_fast_average() -> None:
     # The two timescales must actually differ, or this is just pa_distill.
     assert dual.config["ema_eval_momentum"] != dual.config["ema_momentum"]
     assert recipe_digest(dual) not in {recipe_digest(distil_only), recipe_digest(average_only)}
+
+
+def test_averaging_on_trainable_batch_norm_requires_the_buffer_fix() -> None:
+    """Weight averaging evaluates the EMA copy, so its BatchNorm statistics must be
+    averaged too. `_update_ema_teacher` hard-copies buffers by default, which would pair
+    averaged WEIGHTS with the student's last-step running statistics -- half an average.
+
+    On CUB this is inert (`freeze_batch_norm=True` stops the student's buffers moving),
+    which is why `pa_ema_avg_fast` is valid there. On In-Shop BatchNorm is trainable, so
+    the arm taken there must be `pa_ema_avg_bnfix` or the run measures the confound
+    instead of the method."""
+    cub = reference_recipe("proxy_anchor", "cub")
+    inshop = reference_recipe("proxy_anchor", "inshop")
+
+    assert cub.config["freeze_batch_norm"] is True
+    assert inshop.config["freeze_batch_norm"] is False
+
+    plain = derive_recipe(inshop, "pa_ema_avg_fast")
+    fixed = derive_recipe(inshop, "pa_ema_avg_bnfix")
+
+    assert plain.config.get("ema_teacher_ema_buffers", False) is False
+    assert fixed.config["ema_teacher_ema_buffers"] is True
+
+    # Identical in every other respect, so the pair isolates the buffer treatment.
+    changed = {
+        key
+        for key in set(plain.config) | set(fixed.config)
+        if plain.config.get(key) != fixed.config.get(key)
+    }
+    assert changed == {"ema_teacher_ema_buffers"}
+    assert fixed.config["ema_weight_averaging"] is True
+    assert fixed.config["ema_distill_weight"] == 0.0
+    assert fixed.config["ema_momentum"] == pytest.approx(0.99)
+    assert recipe_digest(plain) != recipe_digest(fixed)

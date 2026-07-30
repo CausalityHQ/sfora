@@ -45,6 +45,7 @@ DerivedMethod = Literal[
     "pa_ema_avg_m95",
     "pa_ema_avg_m90",
     "pa_dual_ema",
+    "pa_ema_avg_bnfix",
 ]
 
 # Base loss each derived method attaches to.
@@ -67,6 +68,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_ema_avg_m95": "proxy_anchor",
     "pa_ema_avg_m90": "proxy_anchor",
     "pa_dual_ema": "proxy_anchor",
+    "pa_ema_avg_bnfix": "proxy_anchor",
 }
 
 
@@ -121,6 +123,25 @@ _FAST_MOMENTUM = 0.99
 #
 # At the short end the average approaches the student and the benefit must vanish; the
 # question is where the optimum sits between that and contamination at the long end.
+# Weight averaging on a base with TRAINABLE BatchNorm needs the EMAN buffer fix, or the
+# average is only half an average. `_update_ema_teacher` hard-copies buffers by default,
+# so the teacher would carry averaged WEIGHTS alongside the student's last-step BatchNorm
+# running statistics. On CUB that is provably inert -- `freeze_batch_norm=True` stops the
+# student's buffers moving at all, which
+# `test_buffer_blending_is_a_no_op_while_batch_norm_stays_frozen` pins. On In-Shop
+# (`freeze_batch_norm=False`) it is not inert, and an arm that failed there would fail for
+# a reason having nothing to do with whether averaging helps -- the same shape of confound
+# as the 5.3% initialisation contamination at momentum 0.999.
+#
+# `ema_teacher_train_mode` is deliberately NOT set: with no distillation loss the teacher
+# is never forward-passed during training, and `_encode_model` forces eval() at scoring
+# time, so only the buffers matter here.
+_EMA_AVG_BNFIX_DELTA: dict[str, Any] = {
+    "ema_weight_averaging": True,
+    "ema_momentum": 0.99,
+    "ema_teacher_ema_buffers": True,
+}
+
 _EMA_AVG_MOMENTUM: dict[str, float] = {
     "pa_ema_avg": 0.999,
     "pa_ema_avg_fast": 0.99,
@@ -543,6 +564,18 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
         delta = {**_DISTILL_DELTA, "ema_momentum": _FAST_MOMENTUM}
         if method == "pa_distill_avg":
             delta["ema_weight_averaging"] = True
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "pa_ema_avg_bnfix":
+        delta = dict(_EMA_AVG_BNFIX_DELTA)
         return recipe.model_copy(
             deep=True,
             update={
