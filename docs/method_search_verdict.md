@@ -117,6 +117,30 @@ It also reproduces a known failure as a sanity check: `local_nca` collapsed and 
 in its first epochs, and best-over-training reported **0.5733 against a 0.3394 trend** —
 a 23.4 pt selection bonus on a run that never worked.
 
+### A better summary statistic does not buy power — the noise is in the training
+
+The obvious follow-up: if best-over-training is a noisy max, a less noisy summary should
+detect effects with fewer seeds, which would reopen the search on practical grounds. It
+does not. Paired `pa_distill − proxy_anchor` on CUB, 6 seeds:
+
+| summary statistic | mean Δ | paired sd | seeds for 80% power on +0.5 pt |
+| --- | ---: | ---: | ---: |
+| max (reported) | +0.658 | 0.367 | 4.2 |
+| mean of top 5 epochs | +0.554 | 0.363 | 4.1 |
+| mean of top 10 epochs | +0.608 | 0.414 | 5.4 |
+| mean of last 15 epochs | +0.842 | 0.554 | 9.6 |
+
+Averaging over epochs debiases the *mean* (+0.658 → +0.554) but leaves the variance
+untouched. So the limiting noise is **not** evaluation noise on a shared trajectory —
+if it were, top-5 averaging would collapse it. It is genuine run-to-run divergence:
+different runs follow different trajectories, and no readout statistic can recover what
+the training did not do consistently.
+
+This sharpens the fixed-seed result too. The 1.08 pt spread at an identical seed is not
+jitter in measuring one trajectory; GPU nondeterminism sends training down *materially
+different paths*. It also closes the last practical escape route from the stopping
+argument: you cannot out-measure this with a cleverer metric.
+
 **A caught bug, worth recording.** The first version of this script keyed artifacts on
 arm name and immediately produced `inshop/pa_distill − proxy_anchor = +3.401 pt` — the
 exact spurious number that superseded pre-`22f7dd6` artifacts fabricate. It now keys on
