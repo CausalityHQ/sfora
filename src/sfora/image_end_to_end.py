@@ -189,6 +189,14 @@ class ImageEndToEndConfig(BaseModel):
     # gain, the distillation loss is inert and the effect is Polyak averaging under
     # another name. See docs/headroom_hypothesis.md section 8.
     ema_weight_averaging: bool = False
+    # Momentum for the SEPARATE average used at evaluation, decoupling it from the
+    # distillation teacher's `ema_momentum`. Measured motivation: on CUB the two roles
+    # prefer different timescales. As a distillation TARGET, 0.999 beats 0.99 (+0.91 vs
+    # +0.30) -- a slow teacher is a more stable thing to regress toward. As the EVALUATED
+    # model, 0.99 beats 0.999 (+0.45 vs +0.07) -- a fast average tracks the current
+    # solution instead of dragging 5.3% of the initialisation along. One EMA cannot be
+    # both. None keeps the historical behaviour of reusing the teacher.
+    ema_eval_momentum: float | None = Field(default=None, gt=0.0, lt=1.0)
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -888,8 +896,18 @@ def run_image_end_to_end_benchmark(
             # is set, and from the student otherwise. `_encode_model` puts whichever it
             # gets into eval mode, and `model.train()` is restored after each evaluation
             # regardless, so the student's training regime is unaffected either way.
+            ema_eval_model: Any | None = None
             if config.ema_weight_averaging and ema_teacher is not None:
-                eval_model = ema_teacher
+                if config.ema_eval_momentum is None:
+                    eval_model = ema_teacher
+                else:
+                    # A second average at its own momentum. Copied from the teacher rather
+                    # than the student so both averages start from the same weights and
+                    # differ only in how fast they track.
+                    ema_eval_model = _copy.deepcopy(ema_teacher)
+                    for parameter in ema_eval_model.parameters():
+                        parameter.requires_grad_(False)
+                    eval_model = ema_eval_model
             checkpoint = (
                 _BestCheckpoint(metric_name=config.checkpoint_selection_metric, mode="max")
                 if config.checkpoint_selection_interval > 0
@@ -1150,6 +1168,14 @@ def run_image_end_to_end_benchmark(
                         ema_teacher,
                         model,
                         momentum=config.ema_momentum,
+                        ema_buffers=config.ema_teacher_ema_buffers,
+                    )
+                if ema_eval_model is not None:
+                    # Tracks the SAME student, at its own momentum. Never a target.
+                    _update_ema_teacher(
+                        ema_eval_model,
+                        model,
+                        momentum=cast(float, config.ema_eval_momentum),
                         ema_buffers=config.ema_teacher_ema_buffers,
                     )
                 enqueue_from = config.xbm_start_step
@@ -1417,6 +1443,8 @@ def run_image_end_to_end_benchmark(
             del optimizer, scheduler
         with contextlib.suppress(NameError, UnboundLocalError):
             del eval_model
+        with contextlib.suppress(NameError, UnboundLocalError):
+            del ema_eval_model
         with contextlib.suppress(NameError, UnboundLocalError):
             del ema_teacher
         del model

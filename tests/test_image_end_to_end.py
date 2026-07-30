@@ -7322,3 +7322,79 @@ def test_deterministic_run_exports_workspace_config_before_seeding() -> None:
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = previous
 
     assert order[:2] == ["export", "manual_seed"], order
+
+
+def test_evaluation_average_tracks_the_student_at_its_own_momentum(tmp_path: Path) -> None:
+    """`ema_eval_momentum` must give the evaluated average its OWN timescale, independent
+    of the distillation teacher's. Pinning it at 1.0 freezes it at initialisation while
+    the teacher keeps moving at 0.999, so scoring the untrained outputs proves the two
+    averages are genuinely separate objects rather than one aliased twice."""
+    torch: Any = pytest.importorskip("torch")
+
+    class FixedModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(2, 2, bias=False)
+            with torch.no_grad():
+                self.linear.weight.copy_(torch.tensor([[1.0, 0.25], [-0.25, 1.0]]))
+
+        def forward(self, images: object) -> object:
+            return self.linear(images)
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        def transform(image: object) -> object:
+            return torch.as_tensor(image, dtype=torch.float32)
+
+        return transform
+
+    examples = [
+        ImageExample(example_id="0-a", image=[1.0, 0.0], label=0),
+        ImageExample(example_id="0-b", image=[0.9, 0.1], label=0),
+        ImageExample(example_id="1-a", image=[0.0, 1.0], label=1),
+        ImageExample(example_id="1-b", image=[0.1, 0.9], label=1),
+    ]
+    out = tmp_path / "dual.npz"
+    run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="sota-resnet50-512",
+            objectives=("proxy_anchor",),
+            proxy_count_per_class=1,
+            backbone_name="tiny",
+            embedding_dimensions=2,
+            batch_size=4,
+            eval_batch_size=4,
+            train_steps=4,
+            learning_rate=0.5,
+            group_size=1,
+            progress_every=0,
+            num_workers=0,
+            # Teacher moves at 0.999; the evaluation average is frozen at 1.0.
+            ema_distill_weight=1.0,
+            ema_momentum=0.999,
+            ema_weight_averaging=True,
+            ema_eval_momentum=1.0 - 1e-12,
+            save_test_embeddings=str(out),
+        ),
+        model_factory=lambda config: FixedModel(),
+        transform_factory=transform_factory,
+    )
+    with np.load(out) as payload:
+        scored = np.asarray(payload["embeddings"], dtype=np.float64)
+
+    reference = FixedModel()
+    with torch.no_grad():
+        raw = reference(torch.tensor([e.image for e in examples], dtype=torch.float32))
+    untrained = (raw / raw.norm(dim=1, keepdim=True)).numpy().astype(np.float64)
+
+    np.testing.assert_allclose(scored, untrained, atol=1e-5)
+
+
+def test_without_eval_momentum_the_distillation_teacher_is_reused(tmp_path: Path) -> None:
+    """The control: leaving `ema_eval_momentum` unset must keep the historical single-EMA
+    behaviour, so existing recipes and their digests are unaffected by this addition."""
+    config = ImageEndToEndConfig(ema_weight_averaging=True, ema_momentum=0.99)
+
+    assert config.ema_eval_momentum is None
