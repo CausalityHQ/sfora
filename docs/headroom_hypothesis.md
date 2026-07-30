@@ -172,7 +172,55 @@ construction*, so ranking measured baselines against their own deltas proves not
 Embedding width is fixed in the recipe and independent of any measurement, which is
 exactly the property the test needs.
 
-## 7. Standing caveat
+## 7. First narrow point: the hypothesis is in trouble, and the sign may flip
+
+`narrow128/seed0` = **0.6610**, `narrow128_distill/seed0` = **0.6521** → **−0.89 pt**.
+
+Prediction 1 of §5 was: *"Distillation Δ increases monotonically as embedding dimension
+falls. Fails if any weaker base gains less than a stronger one."* The 128-d base has
+**4.72 pt** of headroom against HIST's 0.7082, versus 512-d's 1.63 pt — nearly 3× more.
+The hypothesis therefore predicted something in the region of **+0.9 pt** (at the
+honest out-of-sample ratio of 0.185) and observed **−0.89**. Wrong sign, and the gap
+from 512-d's +0.43 is 1.32 pt ≈ 3.6× the paired sd measured at full width.
+
+**At n=1 this is not yet a refutation** — the paired sd was measured at 512-d and
+could be larger at 128-d — but it is the pre-registered failure condition, hit on the
+first available point, in the direction that no amount of noise makes comfortable.
+
+### The alternative reading, registered now, before `narrow64_distill` lands
+
+If distillation is a **regulariser**, then what should matter is not headroom but
+whether the model has *excess capacity to regularise*. A 512-d embedding on CUB's
+5,864 training images has plenty; a 128-d one is already capacity-starved, and adding
+a second constraint on top costs more than it buys. That story is standard, it fits
+both points we have (+0.43 at 512, −0.89 at 128), and it is the exact opposite of the
+headroom story — which predicted the gain would *grow* as capacity shrank.
+
+It also makes a sharp prediction, written down here while `narrow64` is still training
+and `narrow64_distill` has not started:
+
+> **64-d should be worse than 128-d.** Specifically Δ(64) < Δ(128) = −0.89, i.e. more
+> negative still, with the whole family monotone *decreasing* in width rather than
+> increasing.
+
+**What each outcome means:**
+
+- **Δ(64) < −0.89** → headroom is dead; the capacity-regularisation reading survives
+  two out-of-sample predictions and becomes the thing to test properly at three seeds.
+- **Δ(64) ≈ 0 or positive** → *both* stories are wrong. The effect would then be
+  non-monotone in width, which no regularisation account predicts, and the honest
+  conclusion would be that we have one real +0.43 pt effect at 512-d and no
+  explanation for it.
+- **Δ(64) ≈ −0.89** → flat, not monotone; suggests a fixed cost of distillation at
+  narrow widths rather than a capacity-scaled one.
+
+Note the asymmetry worth being honest about: the capacity reading is being formed
+*after* seeing the 128-d point, so it gets far less credit than the headroom one did
+for surviving. It earns its keep only if the 64-d prediction lands, and even then it
+needs its own confirmation seeds. One out-of-sample hit is not a result — that is the
+lesson §6 already paid for.
+
+## 8. Standing caveat
 
 Even in the best case this is not the novel *method* the project set out to find. It
 is a conditional characterisation of a known technique. Worth having, worth writing
