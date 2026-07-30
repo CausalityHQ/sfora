@@ -180,6 +180,15 @@ class ImageEndToEndConfig(BaseModel):
     # Both flags default to the historical behaviour so existing artifacts reproduce.
     ema_teacher_train_mode: bool = False
     ema_teacher_ema_buffers: bool = False
+    # Maintain the EMA teacher and EVALUATE IT instead of the student, with no
+    # distillation loss (`ema_distill_weight = 0`). This is Polyak/SWA weight averaging
+    # with the distillation term removed, and it exists to answer a mechanism question:
+    # `pa_distill` beats `proxy_anchor` on CUB by ~+0.4 pt with no established cause. An
+    # EMA teacher does two separable things -- it supplies a distillation target, and it
+    # is an averaged copy of the weights. If evaluating the average alone reproduces the
+    # gain, the distillation loss is inert and the effect is Polyak averaging under
+    # another name. See docs/headroom_hypothesis.md section 8.
+    ema_weight_averaging: bool = False
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -750,6 +759,11 @@ def run_image_end_to_end_benchmark(
             model = model.to(device)
             if config.freeze_batch_norm_affine:
                 _freeze_batch_norm_affine_parameters(model)
+        # Whatever retrieval is scored from. Defaults to the student, and is rebound to
+        # the EMA copy below when `ema_weight_averaging` is set. Bound here rather than
+        # beside the teacher because objectives that skip training (frozen_pretrained)
+        # never reach that block but still run the final evaluation.
+        eval_model = model
         history: list[float] = []
         gsi_step_diagnostics: list[dict[str, float]] = []
         best_test_recall_at_1: float | None = None
@@ -837,6 +851,7 @@ def run_image_end_to_end_benchmark(
                 config.ema_distill_weight > 0.0
                 or config.mead_weight > 0.0
                 or config.hypergraph_distill_weight > 0.0
+                or config.ema_weight_averaging
             ):
                 import copy as _copy
 
@@ -850,6 +865,12 @@ def run_image_end_to_end_benchmark(
                         _freeze_batch_norm_layers(ema_teacher)
                 else:
                     ema_teacher.eval()
+            # Retrieval is scored from the averaged weights when `ema_weight_averaging`
+            # is set, and from the student otherwise. `_encode_model` puts whichever it
+            # gets into eval mode, and `model.train()` is restored after each evaluation
+            # regardless, so the student's training regime is unaffected either way.
+            if config.ema_weight_averaging and ema_teacher is not None:
+                eval_model = ema_teacher
             checkpoint = (
                 _BestCheckpoint(metric_name=config.checkpoint_selection_metric, mode="max")
                 if config.checkpoint_selection_interval > 0
@@ -1133,10 +1154,10 @@ def run_image_end_to_end_benchmark(
                 ):
                     epoch_index = math.ceil(step / steps_per_epoch)
                     epoch_embeddings, epoch_labels = _encode_model(
-                        model, test_loader, device, torch
+                        eval_model, test_loader, device, torch
                     )
                     epoch_gallery_embeddings, epoch_gallery_labels = (
-                        _encode_model(model, gallery_loader, device, torch)
+                        _encode_model(eval_model, gallery_loader, device, torch)
                         if gallery_loader is not None
                         else (None, None)
                     )
@@ -1186,7 +1207,7 @@ def run_image_end_to_end_benchmark(
                             # be fit on train and evaluated on test without touching the
                             # test split. Train classes are disjoint from test (zero-shot).
                             train_embeddings, train_label_array = _encode_model(
-                                model, train_eval_loader, device, torch
+                                eval_model, train_eval_loader, device, torch
                             )
                             _atomic_savez(
                                 Path(config.save_train_embeddings),
@@ -1234,9 +1255,9 @@ def run_image_end_to_end_benchmark(
                 selection_score = checkpoint.best_score
             del teacher_model
 
-        test_embeddings, test_label_array = _encode_model(model, test_loader, device, torch)
+        test_embeddings, test_label_array = _encode_model(eval_model, test_loader, device, torch)
         gallery_embeddings, gallery_label_array = (
-            _encode_model(model, gallery_loader, device, torch)
+            _encode_model(eval_model, gallery_loader, device, torch)
             if gallery_loader is not None
             else (None, None)
         )
@@ -1251,7 +1272,7 @@ def run_image_end_to_end_benchmark(
             )
         if config.save_train_embeddings and best_test_recall_at_1 is None:
             train_embeddings, train_label_array = _encode_model(
-                model, train_eval_loader, device, torch
+                eval_model, train_eval_loader, device, torch
             )
             _atomic_savez(
                 Path(config.save_train_embeddings),
@@ -1280,7 +1301,7 @@ def run_image_end_to_end_benchmark(
         )
         interference = _interference_diagnostics(test_embeddings, test_label_array)
         train_eval_embeddings, train_eval_labels = _encode_model(
-            model, train_eval_loader, device, torch
+            eval_model, train_eval_loader, device, torch
         )
         train_interference = _interference_diagnostics(train_eval_embeddings, train_eval_labels)
         proxy_axis_diagnostics = None
@@ -1375,6 +1396,8 @@ def run_image_end_to_end_benchmark(
         # (e.g. frozen_pretrained) skip training and never create an optimizer.
         with contextlib.suppress(NameError, UnboundLocalError):
             del optimizer, scheduler
+        with contextlib.suppress(NameError, UnboundLocalError):
+            del eval_model
         with contextlib.suppress(NameError, UnboundLocalError):
             del ema_teacher
         del model

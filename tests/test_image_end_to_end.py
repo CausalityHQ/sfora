@@ -7155,3 +7155,99 @@ def test_checkpoint_selection_uses_train_validation_split_not_test_labels(
     )
 
     assert scored_label_sets == [{0, 1}]
+
+
+def _averaging_probe_run(
+    tmp_path: Path,
+    *,
+    torch: Any,
+    ema_weight_averaging: bool,
+) -> Any:
+    """Run four steps on a two-dimensional toy problem and return the test embeddings
+    that were actually scored, with the EMA teacher pinned at its initialisation."""
+
+    class FixedModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(2, 2, bias=False)
+            with torch.no_grad():
+                self.linear.weight.copy_(torch.tensor([[1.0, 0.25], [-0.25, 1.0]]))
+
+        def forward(self, images: object) -> object:
+            return self.linear(images)
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        def transform(image: object) -> object:
+            return torch.as_tensor(image, dtype=torch.float32)
+
+        return transform
+
+    examples = [
+        ImageExample(example_id="0-a", image=[1.0, 0.0], label=0),
+        ImageExample(example_id="0-b", image=[0.9, 0.1], label=0),
+        ImageExample(example_id="1-a", image=[0.0, 1.0], label=1),
+        ImageExample(example_id="1-b", image=[0.1, 0.9], label=1),
+    ]
+    out = tmp_path / f"emb-{ema_weight_averaging}.npz"
+    run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="sota-resnet50-512",
+            objectives=("proxy_anchor",),
+            proxy_count_per_class=1,
+            backbone_name="tiny",
+            embedding_dimensions=2,
+            batch_size=4,
+            eval_batch_size=4,
+            train_steps=4,
+            learning_rate=0.5,
+            group_size=1,
+            progress_every=0,
+            num_workers=0,
+            # momentum 1.0 freezes the teacher at initialisation, so "did we score the
+            # teacher?" becomes "do the embeddings equal the untrained model's?".
+            ema_momentum=1.0,
+            ema_weight_averaging=ema_weight_averaging,
+            save_test_embeddings=str(out),
+        ),
+        model_factory=lambda config: FixedModel(),
+        transform_factory=transform_factory,
+    )
+    with np.load(out) as payload:
+        scored = np.asarray(payload["embeddings"], dtype=np.float64)
+
+    reference = FixedModel()
+    with torch.no_grad():
+        raw = reference(torch.tensor([e.image for e in examples], dtype=torch.float32))
+    untrained = raw / raw.norm(dim=1, keepdim=True)
+    return scored, untrained.numpy().astype(np.float64)
+
+
+def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
+    tmp_path: Path,
+) -> None:
+    """`ema_weight_averaging` must report the EMA copy. Pinning the teacher at
+    initialisation with `ema_momentum=1.0` makes that checkable exactly: the scored
+    embeddings have to equal the untrained model's, because that is what the teacher
+    still is after any number of student updates."""
+    torch: Any = pytest.importorskip("torch")
+
+    scored, untrained = _averaging_probe_run(tmp_path, torch=torch, ema_weight_averaging=True)
+
+    np.testing.assert_allclose(scored, untrained, atol=1e-6)
+
+
+def test_without_averaging_the_student_is_scored_and_training_moves_it(
+    tmp_path: Path,
+) -> None:
+    """The control for the test above. Without the flag the student is scored, and four
+    optimizer steps at lr 0.5 move it away from initialisation -- so if this ever starts
+    matching the untrained reference, the averaging test above has stopped proving
+    anything and is passing for the wrong reason."""
+    torch: Any = pytest.importorskip("torch")
+
+    scored, untrained = _averaging_probe_run(tmp_path, torch=torch, ema_weight_averaging=False)
+
+    assert not np.allclose(scored, untrained, atol=1e-6)

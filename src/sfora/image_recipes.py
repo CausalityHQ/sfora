@@ -38,6 +38,7 @@ DerivedMethod = Literal[
     "narrow64",
     "narrow128_distill",
     "narrow64_distill",
+    "pa_ema_avg",
 ]
 
 # Base loss each derived method attaches to.
@@ -53,6 +54,20 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "narrow64": "proxy_anchor",
     "narrow128_distill": "proxy_anchor",
     "narrow64_distill": "proxy_anchor",
+    "pa_ema_avg": "proxy_anchor",
+}
+
+# Polyak/SWA weight averaging with the distillation term REMOVED: maintain the EMA
+# teacher, score retrieval from it, and add no loss (`ema_distill_weight` stays 0).
+# `pa_distill` beats `proxy_anchor` on CUB by ~+0.4 pt (6/6 seeds, sign p=0.031) with no
+# established mechanism, and an EMA teacher does two separable things -- supplies a
+# distillation target, and is an averaged copy of the weights. This arm isolates the
+# second. If it reproduces the gain, the distillation loss is inert and the effect is
+# weight averaging under another name; if it does not, the loss is doing real work.
+# Momentum matches `_DISTILL_DELTA` so the average is the same one `pa_distill` builds.
+_EMA_AVG_DELTA: dict[str, Any] = {
+    "ema_weight_averaging": True,
+    "ema_momentum": 0.999,
 }
 
 # Embedding width of each capacity-weakened arm, against the official 512.
@@ -432,6 +447,18 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method == "pa_ema_avg":
+        delta = dict(_EMA_AVG_DELTA)
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     if method in _NARROW_DIMENSIONS:
         delta = _narrow_delta(method)
         return recipe.model_copy(

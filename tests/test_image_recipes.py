@@ -481,3 +481,27 @@ def test_derived_selector_uses_resolved_base_recipe() -> None:
 
     assert resolved.method_status == "sfora_derived"
     assert resolved.derived_from_recipe_id == "proxy_anchor.inshop.official-51db570"
+
+
+def test_pa_ema_avg_isolates_weight_averaging_from_the_distillation_loss() -> None:
+    """The mechanism arm must differ from official Proxy Anchor ONLY by maintaining and
+    scoring the EMA copy -- crucially with `ema_distill_weight` still 0. If a
+    distillation term ever leaks in, the arm stops separating the two things an EMA
+    teacher does and answers nothing."""
+    base = reference_recipe("proxy_anchor", "cub")
+    averaged = derive_recipe(base, "pa_ema_avg")
+    distilled = derive_recipe(base, "pa_distill")
+
+    changed = {
+        key
+        for key in set(base.config) | set(averaged.config)
+        if base.config.get(key) != averaged.config.get(key)
+    }
+    assert changed == {"ema_weight_averaging"}
+    assert averaged.config["ema_weight_averaging"] is True
+    assert averaged.config["ema_distill_weight"] == 0.0
+    # Same average `pa_distill` builds, so the two arms differ only in the loss term.
+    assert averaged.config["ema_momentum"] == distilled.config["ema_momentum"]
+    # Absent from the reference config, so it takes the field default of False -- which
+    # is what keeps `pa_distill` scoring the student.
+    assert distilled.config.get("ema_weight_averaging", False) is False
