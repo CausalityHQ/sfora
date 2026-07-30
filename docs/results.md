@@ -235,6 +235,50 @@ implausible 0.1 seeds for 80% power. An sd from two runs has *one* degree of fre
 is nearly worthless: `pa_distill`'s own 3-seed sd was 0.153 and became **0.367** at six
 seeds. Do not plan on it.
 
+### The protocol systematically under-credits weight averaging
+
+Averaging the weights smooths the *evaluated* model's test curve. Best-over-training is a
+maximum over that curve, so a smoother curve collects a smaller selection bonus — the
+protocol pays the noisier arm more. That was a prediction; it is now measured.
+
+| CUB arm | evaluates | selection bonus |
+| --- | --- | ---: |
+| `proxy_anchor` | student | **0.769 pt** |
+| `pa_distill` | student | **0.836 pt** |
+| `pa_ema_avg_fast` | averaged weights | 0.306 pt |
+| `pa_distill_avg` | averaged weights | 0.122 pt |
+| `pa_ema_avg` | averaged weights | **0.074 pt** |
+
+Every arm that evaluates the averaged weights collects **2.5–10× less** selection bonus
+than one evaluating the student. Removing each arm's own bonus reverses the ranking:
+
+| paired comparison | reported | corrected | protocol's effect |
+| --- | ---: | ---: | ---: |
+| `pa_ema_avg_fast` − `proxy_anchor` | +0.414 | **+0.732** | understates by 0.32 |
+| `pa_ema_avg` − `proxy_anchor` | +0.059 | **+0.610** | understates by **0.55** |
+| `pa_distill` − `proxy_anchor` | +0.658 | +0.592 | overstates by 0.07 |
+
+Three consequences.
+
+1. **Weight averaging is the strongest single intervention measured in this project**
+   (+0.73 corrected), ahead of distillation (+0.59) — the opposite of the reported
+   ordering.
+2. **The 0.999 arm was never useless.** Reported at +0.06 it looked dead; corrected it is
+   **+0.61**. Its apparent failure was almost entirely the protocol, not the method — the
+   averaged model is so stable it earns almost no bonus while the noisy baseline earns
+   +0.77. The initialisation-contamination story explains the *reported* gap between the
+   two momenta; it does not survive the correction.
+3. **The additivity failure looks different too.** `pa_distill_avg` collects only 0.122 pt
+   of bonus, so its reported +0.52 is much closer to its true value than `pa_distill`'s
+   reported +0.658 is to its +0.592.
+
+**Caveats, stated plainly.** The averaging arms are at n=2. The correction is one specific
+estimator (leave-one-out neighbour mean), and corrected values are *not* the benchmark
+metric — the field reports best-over-training, so a paper claiming these numbers would
+have to argue the protocol, not just quote them. But the direction is mechanically
+predicted rather than fitted, and the magnitude (0.32–0.55 pt) is larger than most
+published DML gains.
+
 **A methodological correction that matters more than either.** This project has been
 quoting CUB σ ≈ 0.88 pt and "+0.5 pt needs 12–37 seeds". Both came from three seeds.
 At six:

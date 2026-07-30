@@ -124,6 +124,10 @@ def main(pattern: str) -> int:
 
     pairs = [
         ("pa_distill", "proxy_anchor"),
+        ("pa_ema_avg", "proxy_anchor"),
+        ("pa_ema_avg_fast", "proxy_anchor"),
+        ("pa_distill_fast", "proxy_anchor"),
+        ("pa_distill_avg", "proxy_anchor"),
         ("herd", "hist"),
         ("narrow128_distill", "narrow128"),
         ("narrow64_distill", "narrow64"),
