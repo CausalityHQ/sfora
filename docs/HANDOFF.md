@@ -107,6 +107,19 @@ Generalisable claim: *momentum-teacher recipes silently break under trainable
 BatchNorm unless the teacher's normalisation mode matches the student's.* Applies to
 any MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
 
+> **⚠️ Prior art, found 2026-07-30 — this technique is not new.** Cai et al.,
+> *Exponential Moving Average Normalization for Self-Supervised and Semi-Supervised
+> Learning* (CVPR 2021), identify the same teacher/student BatchNorm mismatch and
+> propose EMA-ing the normalisation statistics — which is exactly what
+> `ema_teacher_ema_buffers` does. Our fix is EMAN, independently rediscovered.
+>
+> So H3 is **not a novel method**. What remains ours is the *audit* result: this defect
+> is present in DML momentum-teacher implementations, and its measured cost is a
+> 0.3–1.4 pt regression that recovers proportionally on two independent bases across
+> six paired seeds. Frame it as "a published fix that this subfield has not adopted,
+> and here is what it costs", never as a new technique. Anyone writing this up must
+> cite EMAN in the same breath as the claim.
+
 ---
 
 ## 4. The measurement result

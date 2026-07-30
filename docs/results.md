@@ -451,6 +451,14 @@ on a base it was never tuned against.
 distillation into a win. Against their own bases, `herd_bnfix` is +0.03 pt over HIST
 and `pa_distill_bnfix` is −0.04 pt under Proxy Anchor (t = −0.29, p = 0.80) — both
 indistinguishable.
+**Prior art (2026-07-30): the fix is EMAN.** Cai et al., *Exponential Moving Average
+Normalization for Self-Supervised and Semi-Supervised Learning* (CVPR 2021), describe
+the same teacher/student BatchNorm mismatch and propose EMA-ing the normalisation
+statistics — precisely what `ema_teacher_ema_buffers` does. We rediscovered it
+independently, which is not the same as inventing it. H3 is therefore an **audit**
+result, not a method: the defect is live in DML momentum-teacher code, and this is what
+it costs. Cite EMAN whenever the claim is made.
+
 So the honest result is *"momentum-teacher recipes silently lose 0.3–1.4 pt under
 trainable BatchNorm unless the teacher's normalisation mode matches the student's"*,
 which is a bug-finding about a widely-used training pattern, **not** evidence that
