@@ -182,6 +182,23 @@ the between-leg gap is +0.360 pt with SE 0.333 (t = 1.08), and separating them a
 power would need ≈40 seeds per arm. So *"distillation helps the underfitting base and
 not the one at the ceiling"* remains an unsupported story, not a finding.
 
+**The explanation was tested and refuted.** `narrow128` / `narrow64` weaken the Proxy
+Anchor embedding from the official 512, setting headroom *by construction* rather than
+measuring it (full detail in [headroom_hypothesis.md](headroom_hypothesis.md)):
+
+| width | base | headroom | mean Δ | headroom predicted |
+| ---: | ---: | ---: | ---: | ---: |
+| 512 | 0.6919 | 1.63 pt | +0.66 | +0.30 |
+| 128 | 0.6584 | 4.98 pt | −0.07 | +0.92 |
+| 64 | 0.6317 | 7.66 pt | +0.48 | +1.42 |
+
+Headroom varies nearly 5× and Δ does not track it. A second explanation — distillation
+as a regulariser that hurts a capacity-starved model — was registered in advance and
+died in one run (it predicted Δ(64) < −0.89; observed +0.42 / +0.54). So the honest
+statement is **a fixed increment of ~+0.4 pt, roughly independent of embedding width,
+with no established mechanism.** Fourteenth and fifteenth candidate explanations, both
+pre-registered, both dead.
+
 **A methodological correction that matters more than either.** This project has been
 quoting CUB σ ≈ 0.88 pt and "+0.5 pt needs 12–37 seeds". Both came from three seeds.
 At six:

@@ -220,7 +220,61 @@ for surviving. It earns its keep only if the 64-d prediction lands, and even the
 needs its own confirmation seeds. One out-of-sample hit is not a result — that is the
 lesson §6 already paid for.
 
-## 8. Standing caveat
+## 8. Verdict: both explanations refuted, by their own pre-registered conditions
+
+The width family, against the prediction from §5 (ratio 0.185, the honest
+out-of-sample value from 512-d):
+
+| width | base | headroom | per-seed Δ | mean Δ | headroom predicted |
+| ---: | ---: | ---: | --- | ---: | ---: |
+| 512 | 0.6919 | 1.63 pt | +0.91 +1.03 +0.73 +0.32 +0.86 +0.10 | **+0.66** | +0.30 |
+| 128 | 0.6584 | 4.98 pt | −0.89 +0.76 | **−0.07** | +0.92 |
+| 64 | 0.6317 | 7.66 pt | +0.42 +0.54 | **+0.48** | +1.42 |
+
+**Headroom varies nearly 5× across the family and Δ does not track it.** §5 named the
+condition: *"a weakened base that gains the same regardless of how far below the
+ceiling it sits… would mean distillation adds a fixed increment rather than a
+headroom-proportional one."* That is what the data show — Δ ≈ +0.4 pt at every width,
+with the 128-d point if anything the lowest despite having 3× the headroom of 512-d.
+
+**The rival from §7 is refuted faster and harder.** It predicted Δ(64) < −0.89,
+monotone decreasing in width; observed +0.42 and +0.54. Worse, the −0.89 that
+motivated it was the outlier — seed 1 at the same width gave +0.76, a **1.65 pt**
+paired spread at 128-d against 0.367 pt at 512-d. The capacity story was built on
+noise, and writing its prediction down before the data arrived is the only reason that
+cost an hour instead of a week.
+
+### What actually survives
+
+One modest, real thing: **EMA self-distillation adds roughly +0.4 pt to Proxy Anchor
+on CUB, approximately independent of embedding width, with no established mechanism.**
+Six seeds at 512-d give 6/6 positive and an assumption-free p = 0.031; the narrow
+widths are consistent with the same small positive increment. That is a fixed
+increment, not a scaling law, and it is well inside the range where this dataset's
+noise makes any explanation hard to test.
+
+### The methodological lesson, which is worth more than the result
+
+Two explanations were proposed, each was written down with a numeric prediction and a
+falsification condition *before* the deciding runs, and both died on contact. Total
+cost: about 14 GPU-hours. The alternative — noticing the +0.89 pt screening result,
+constructing the headroom story after the fact, and reporting it — would have produced
+a plausible, well-motivated, wrong paper. Three specific traps were avoided only
+because they were named in advance:
+
+1. **The winner's curse.** +0.890 in-sample became +0.427 out-of-sample. Without the
+   confirmation seeds we would have published double the true effect.
+2. **The regression artifact.** Δ = distilled − base correlates negatively with base
+   *by construction*, so `herd/seed4`'s +1.50 against the lowest baseline looked like
+   headroom operating within an arm. It is arithmetic, not evidence.
+3. **Post-hoc rescue.** When 128-d contradicted headroom, the capacity story was
+   immediately available and fit both points. Registering its prediction rather than
+   its narrative is what let 64-d kill it in one run.
+
+This is the same discipline that caught the LayerNorm and BatchNorm confounds, applied
+to our own hypotheses rather than to inherited code.
+
+## 9. Standing caveat
 
 Even in the best case this is not the novel *method* the project set out to find. It
 is a conditional characterisation of a known technique. Worth having, worth writing
