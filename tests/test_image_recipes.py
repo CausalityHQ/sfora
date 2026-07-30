@@ -558,3 +558,46 @@ def test_ema_factorial_arms_vary_only_the_two_teacher_roles_at_matched_momentum(
     # All four cells must be distinct runs.
     digests = {recipe_digest(r) for r in (base, average_only, distil_only, both)}
     assert len(digests) == 4
+
+
+@pytest.mark.parametrize(
+    ("arm", "momentum"),
+    [
+        ("pa_ema_avg", 0.999),
+        ("pa_ema_avg_fast", 0.99),
+        ("pa_ema_avg_m95", 0.95),
+        ("pa_ema_avg_m90", 0.90),
+    ],
+)
+def test_averaging_sweep_spans_windows_and_stays_pure_averaging(arm: str, momentum: float) -> None:
+    """The sweep is only a curve if the arms differ in momentum ALONE. Any of them
+    picking up a distillation term would make its point a different method."""
+    base = reference_recipe("proxy_anchor", "cub")
+    recipe = derive_recipe(base, cast("DerivedMethod", arm))
+
+    assert recipe.config["ema_momentum"] == pytest.approx(momentum)
+    assert recipe.config["ema_weight_averaging"] is True
+    assert recipe.config["ema_distill_weight"] == 0.0
+    changed = {
+        key
+        for key in set(base.config) | set(recipe.config)
+        if base.config.get(key) != recipe.config.get(key)
+    }
+    assert changed <= {"ema_momentum", "ema_weight_averaging"}
+
+
+def test_averaging_sweep_windows_are_actually_distinct() -> None:
+    """Guards against a sweep that looks like four points but is really two: the
+    averaging windows must separate by more than a factor of two, and all four arms
+    must resolve to distinct digests."""
+    base = reference_recipe("proxy_anchor", "cub")
+    arms = ["pa_ema_avg", "pa_ema_avg_fast", "pa_ema_avg_m95", "pa_ema_avg_m90"]
+    recipes = [derive_recipe(base, cast("DerivedMethod", a)) for a in arms]
+
+    windows = [1.0 / (1.0 - r.config["ema_momentum"]) for r in recipes]
+    assert windows == sorted(windows, reverse=True)
+    for longer, shorter in zip(windows[:-1], windows[1:], strict=True):
+        # 1/(1-m) is not exact in binary, so 0.95 vs 0.90 gives 19.999.../10.000...
+        assert longer / shorter == pytest.approx(2.0, rel=1e-6) or longer / shorter > 2.0
+
+    assert len({recipe_digest(r) for r in recipes}) == 4

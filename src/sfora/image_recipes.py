@@ -42,6 +42,8 @@ DerivedMethod = Literal[
     "pa_ema_avg_fast",
     "pa_distill_fast",
     "pa_distill_avg",
+    "pa_ema_avg_m95",
+    "pa_ema_avg_m90",
 ]
 
 # Base loss each derived method attaches to.
@@ -61,6 +63,8 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_ema_avg_fast": "proxy_anchor",
     "pa_distill_fast": "proxy_anchor",
     "pa_distill_avg": "proxy_anchor",
+    "pa_ema_avg_m95": "proxy_anchor",
+    "pa_ema_avg_m90": "proxy_anchor",
 }
 
 # A 2x2 over what an EMA teacher supplies. `pa_ema_avg_fast` showed that EVALUATING the
@@ -101,9 +105,24 @@ _FAST_MOMENTUM = 0.99
 #                    teacher `pa_distill` actually distils toward, contamination and all.
 #   pa_ema_avg_fast  momentum 0.99. Tests weight averaging as such, with no initialisation
 #                    left in the average.
+# Momentum sweep. Averaging is the strongest single intervention measured here once the
+# best-over-training selection bonus is removed (+0.73 corrected at 0.99, ahead of
+# distillation's +0.59), and momentum is its only real hyperparameter -- yet EMA
+# EVALUATION has never been assessed on these benchmarks at all, so no prior work fixes
+# it. Two sampled points is not a curve. Averaging windows over CUB's 2940 steps:
+#
+#   0.999   time constant 1000 steps, retains 5.3% of initialisation
+#   0.99    time constant  100 steps, retains 3e-13
+#   0.95    time constant   20 steps
+#   0.90    time constant   10 steps
+#
+# At the short end the average approaches the student and the benefit must vanish; the
+# question is where the optimum sits between that and contamination at the long end.
 _EMA_AVG_MOMENTUM: dict[str, float] = {
     "pa_ema_avg": 0.999,
     "pa_ema_avg_fast": 0.99,
+    "pa_ema_avg_m95": 0.95,
+    "pa_ema_avg_m90": 0.90,
 }
 
 # Embedding width of each capacity-weakened arm, against the official 512.
