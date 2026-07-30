@@ -41,6 +41,18 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
     "proxy_anchor": ("proxy_anchor", "auto"),
     "pa_distill": ("proxy_anchor", "pa_distill"),
     "pa_distill_bnfix": ("proxy_anchor", "pa_distill_bnfix"),
+    # The 2x2 over what an EMA teacher supplies. `pa_ema_avg`/`pa_ema_avg_fast` evaluate
+    # the averaged weights with NO distillation loss; `pa_distill_fast` distils at the
+    # matched 0.99 momentum; `pa_distill_avg` does both. See docs/method_search_verdict.md.
+    "pa_ema_avg": ("proxy_anchor", "pa_ema_avg"),
+    "pa_ema_avg_fast": ("proxy_anchor", "pa_ema_avg_fast"),
+    "pa_distill_fast": ("proxy_anchor", "pa_distill_fast"),
+    "pa_distill_avg": ("proxy_anchor", "pa_distill_avg"),
+    # Capacity-weakened bases, each its own paired control.
+    "narrow128": ("proxy_anchor", "narrow128"),
+    "narrow128_distill": ("proxy_anchor", "narrow128_distill"),
+    "narrow64": ("proxy_anchor", "narrow64"),
+    "narrow64_distill": ("proxy_anchor", "narrow64_distill"),
     "hist": ("hist", "auto"),
     "herd": ("hist", "herd"),
     "herd_bnfix": ("hist", "herd_bnfix"),
@@ -55,8 +67,16 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
 }
 
 # Which untouched baseline each derived arm is a paired comparison against.
+# A capacity-weakened arm is its OWN control. Pairing `narrow128_distill` against the
+# 512-d `proxy_anchor` would report a capacity difference as a method effect, so these
+# override the default "derived pairs with its base loss" rule.
+PAIRED_CONTROL: dict[str, str] = {
+    "narrow128_distill": "narrow128",
+    "narrow64_distill": "narrow64",
+}
+
 BASE_OF: dict[str, str] = {
-    arm: ("proxy_anchor" if base == "proxy_anchor" else "hist")
+    arm: PAIRED_CONTROL.get(arm, "proxy_anchor" if base == "proxy_anchor" else "hist")
     for arm, (base, selector) in ARMS.items()
     if selector != "auto"
 }
