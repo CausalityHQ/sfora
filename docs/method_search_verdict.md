@@ -129,7 +129,53 @@ filters that nine independently optimised backbones produce.
 
 **One number worth noting.** IDEAL reports HIST on CUB **69.7 → 72.3** and Cars
 87.4 → 90.3. If that reproduces, the headroom above HIST is not zero — it is *already
-taken*. That makes reproduction, not invention, the only route to "outperforms" here.
+taken*. That would make reproduction, not invention, the only route to "outperforms".
+
+## 5c. ⚠️ That conclusion is withdrawn — IDEAL does not foreclose the search
+
+The IDEAL citation was load-bearing for §5b's claim that the headroom is occupied, so it
+was verified against primary sources rather than cited. **It does not support the
+claim.**
+
+The paper is real: Zelin Yang, Lin Xu, Shiyang Yan, Haixia Bi & Fan Li, *IDEAL:
+Independent domain embedding augmentation learning*, **Pattern Recognition** 170,
+article 112024 (Feb 2026), [doi:10.1016/j.patcog.2025.112024](https://doi.org/10.1016/j.patcog.2025.112024).
+The numbers were quoted correctly. But:
+
+**Its HIST baseline is anomalously weak.** IDEAL reports HIST at 69.7 on CUB. HIST's own
+authors publish **71.4**. Our digest-pinned six-seed reproduction is **70.82**. So the
+advertised +2.6 is measured from a floor 1.7 pt below the original paper and 1.12 pt
+below ours. Against our baseline the gap is **+1.48, not +2.6**. No explanation for the
+69.7 appears in the accessible text.
+
+**Its inference is not like-for-like.** It appears to use a fixed **four-view rotation
+ensemble** at test time. Comparing that to single-view HIST is a compute and capacity
+difference, not purely an algorithmic one — the exact question this project asks of its
+own ensemble results (§ GPA, transductive).
+
+**Nobody has reproduced it.** No independent reproduction, critique, or failed
+replication was found. Meanwhile HIST *itself* has a
+[ReScience C reproduction study (2023)](https://openreview.net/forum?id=JJQbk2hIQ5) that
+spent 1,108 GPU-hours, fell ~1.5 R@1 short on CUB with the authors' own configurations,
+and received no clarification from the authors. HIST is known to be
+configuration-sensitive, which makes an unexplained 69.7 baseline more suspect, not less.
+
+**Forecast for a digest-pinned, paired, six-seed reproduction:** +0.8 to +1.0 under
+IDEAL's four-view inference; **0 to +0.8, centred on a few tenths, under a single-view
+budget matched to ordinary HIST inference.** The arithmetic: replacing 69.7 with our
+70.82 takes +2.6 → +1.48; a differential checkpoint-selection bonus of the size we
+measured (0.42 pt) takes it to ~+1.06; seed effects and augmentation parity can consume
+several more tenths.
+
+**Consequence: the headroom above HIST is not credibly occupied.** The strongest external
+reason to stop searching does not survive contact with its own sources. That does not
+manufacture a method — the fifteen failures and both reviews' other findings stand — but
+it removes a false ceiling, and it is exactly why the claim was worth checking before
+being written into a strategic conclusion.
+
+**A quiet validation, worth recording.** Our HIST reproduction is 70.82 with sd 0.67 over
+six seeds — a 95% interval of roughly 70.1–71.5, which **contains HIST's published
+71.4**. The pipeline reproduces the paper; IDEAL's baseline is the outlier, not ours.
 
 ## 6. That last claim, now measured (`scripts/measure_selection_bias.py`)
 
