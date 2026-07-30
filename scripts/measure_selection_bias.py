@@ -33,6 +33,10 @@ import math
 import re
 import sys
 from pathlib import Path
+from typing import Any, cast
+
+from sfora.data import ImageDatasetName
+from sfora.image_recipes import BaseMethod, recipe_digest, resolve_recipe
 
 _ARM = re.compile(
     r"image_end_to_end_(?P<dataset>[a-z0-9]+)\.(?P<arm>[^.]+)\..*?"
@@ -61,7 +65,7 @@ def selection_overshoot(history: list[float], half_width: int = 2) -> tuple[floa
     return history[index], leave_one_out_local_mean(history, index, half_width), index
 
 
-def _recall_history(payload: dict) -> list[float] | None:
+def _recall_history(payload: dict[str, Any]) -> list[float] | None:
     for method in payload.get("methods", {}).values():
         history = method.get("test_recall_history")
         if history:
@@ -80,6 +84,26 @@ def _sd(values: list[float]) -> float:
     return math.sqrt(sum((v - average) ** 2 for v in values) / (len(values) - 1))
 
 
+def _current_digest(dataset: str, arm: str) -> str | None:
+    """Resolve the current recipe digest instead of guessing from stale artifacts."""
+    hist_arms = {
+        "hist",
+        "herd",
+        "herd_bnfix",
+    }
+    base_method = "hist" if arm in hist_arms else "proxy_anchor"
+    selector = "auto" if arm in {"proxy_anchor", "hist"} else arm
+    try:
+        recipe = resolve_recipe(
+            selector,
+            base_method=cast(BaseMethod, base_method),
+            dataset=cast(ImageDatasetName, dataset),
+        )
+    except (KeyError, ValueError):
+        return None
+    return recipe_digest(recipe)[:12]
+
+
 def main(pattern: str) -> int:
     # Keyed by digest as well as arm. A recipe ID is stable across recipe FIXES, so
     # superseded runs share an ID at a different digest -- In-Shop Proxy Anchor has
@@ -94,9 +118,9 @@ def main(pattern: str) -> int:
         history = _recall_history(payload)
         if history is None or len(history) < 5:
             continue
-        reported, estimated, _ = selection_overshoot(history)
+        reported_value, estimated, _ = selection_overshoot(history)
         key = (match["dataset"], match["arm"], match["digest"])
-        runs.setdefault(key, {})[int(match["seed"])] = (reported, estimated)
+        runs.setdefault(key, {})[int(match["seed"])] = (reported_value, estimated)
 
     if not runs:
         print(f"no artifacts with a usable recall history matched {pattern!r}")
@@ -128,6 +152,7 @@ def main(pattern: str) -> int:
         ("pa_ema_avg_fast", "proxy_anchor"),
         ("pa_ema_avg_m95", "proxy_anchor"),
         ("pa_ema_avg_m90", "proxy_anchor"),
+        ("pa_ema_avg_bnfix", "proxy_anchor"),
         ("pa_distill_fast", "proxy_anchor"),
         ("pa_distill_avg", "proxy_anchor"),
         ("herd", "hist"),
@@ -138,18 +163,30 @@ def main(pattern: str) -> int:
     print(f"{'comparison':34} {'n':>2} {'reported':>10} {'corrected':>10} {'inflation':>10}")
     for derived, base in pairs:
         for dataset in sorted({d for d, _, _ in runs}):
-            if (dataset, derived) in ambiguous or (dataset, base) in ambiguous:
+            derived_digest = _current_digest(dataset, derived)
+            base_digest = _current_digest(dataset, base)
+            left_candidates = [
+                v
+                for (d, a, digest), v in runs.items()
+                if d == dataset and a == derived and digest == derived_digest
+            ]
+            right_candidates = [
+                v
+                for (d, a, digest), v in runs.items()
+                if d == dataset and a == base and digest == base_digest
+            ]
+            if derived_digest is None or base_digest is None:
                 print(
                     f"{dataset + '/' + derived + '-' + base:34} "
-                    "REFUSED: multiple digests present, pair by digest first"
+                    "REFUSED: current recipe digest could not be resolved"
                 )
                 continue
-            left = next((v for (d, a, _), v in runs.items() if d == dataset and a == derived), None)
-            right = next((v for (d, a, _), v in runs.items() if d == dataset and a == base), None)
+            left = left_candidates[0] if len(left_candidates) == 1 else None
+            right = right_candidates[0] if len(right_candidates) == 1 else None
             if not left or not right:
                 continue
             shared = sorted(set(left) & set(right))
-            if len(shared) < 2:
+            if not shared:
                 continue
             reported_delta = [(left[s][0] - right[s][0]) * 100 for s in shared]
             corrected_delta = [(left[s][1] - right[s][1]) * 100 for s in shared]
