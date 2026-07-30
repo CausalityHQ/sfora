@@ -80,6 +80,57 @@ the EMAN-class defect with its measured cost. This extends Musgrave, Belongie & 
 evidence — including something that paper did not have: interventions that were
 **pre-registered and then refuted**.
 
+## 5b. Second review: the stability class, which the first review never covered
+
+The first review only judged the three candidates named to it. Today's finding — that
+the limiting noise is run-to-run *trajectory divergence*, not evaluation noise — points
+at a class that was never asked about. It was put to a second independent review.
+**The stop recommendation held.**
+
+**Flat-minimum optimisers (SAM/ASAM/SWA/SWAD) on these benchmarks are genuinely
+untested** — no benchmark-matched evaluation exists as of 2026-07-30. But my motivation
+for them is wrong, and the refutation is clean:
+
+> The fixed-seed result shows *global trajectory bifurcation*, not evidence that the
+> final solution sits in a locally sharp basin. SAM controls the latter.
+
+Chaos in *which solution you reach* and curvature *around the solution you reached* are
+different properties. My "chaos ⇒ sharpness ⇒ SAM" chain does not connect. Add that
+parameter-space flatness is not a reliable OOD predictor (Andriushchenko et al., ICML
+2023, found sharper solutions sometimes generalise *better* OOD), that the zero-shot gap
+is across **classes** rather than samples, and that SAM doubles gradient cost — and it is
+a bounded ablation at best, not a direction.
+
+**The variance framing is genuinely unoccupied**, and this is the one thing that
+survived. Musgrave, Belongie & Lim (ECCV 2020) ran ten seeds and reported confidence
+intervals *"to be less subject to random seed noise"*, and proposed MAP@R partly for
+checkpoint stability — but they never proposed a method to reduce run-to-run variance,
+never decomposed seed vs GPU-nondeterministic variance, and never argued a
+same-mean/lower-variance method should be preferred. BIER (Opitz et al. ICCV 2017) is
+the closest, reporting CUB R@1 54.41±0.43 → 55.33±0.05, but variance was a by-product of
+a boosting claim, not the endpoint.
+
+It is still not a paper on its own. A negative mean plus a variance ratio from six seeds
+would need ~20–30 runs per cell, both backbones, all three datasets, class-disjoint
+validation checkpointing, a pre-declared non-inferiority margin, and tail-risk metrics
+(failure probability below a target R@1, expected retries) — and a *mechanism* for why
+trajectory bifurcation shrinks. The deeper objection is sharper than the statistics:
+best-test checkpointing is not merely a noisy estimator, it is **test-set feedback**, and
+the right response is to replace it with a class-disjoint validation rule rather than
+debias it.
+
+**Cheap cross-run diversity is crowded.** DiVA (ECCV 2020), IDEAL (*Pattern Recognition*
+2026), DFML (CVPR 2023), DREML, DIABLO. My K-heads-on-a-shared-backbone idea is
+explicitly the weak baseline form: DFML identifies shared-backbone *mixed gradients* as
+the limitation of embedding ensembles, and Havasi et al. (ICLR 2021) found shared-trunk
+multi-head diversity "quite lacking" — MIMO exists precisely because of it. Heads can
+learn rotations and proxy arrangements; they cannot learn the distinct low- and mid-level
+filters that nine independently optimised backbones produce.
+
+**One number worth noting.** IDEAL reports HIST on CUB **69.7 → 72.3** and Cars
+87.4 → 90.3. If that reproduces, the headroom above HIST is not zero — it is *already
+taken*. That makes reproduction, not invention, the only route to "outperforms" here.
+
 ## 6. That last claim, now measured (`scripts/measure_selection_bias.py`)
 
 Best-over-training reports `max` over ~60 test evaluations. A maximum over noisy
