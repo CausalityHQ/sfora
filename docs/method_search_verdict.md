@@ -80,7 +80,46 @@ the EMAN-class defect with its measured cost. This extends Musgrave, Belongie & 
 evidence — including something that paper did not have: interventions that were
 **pre-registered and then refuted**.
 
-One measurement claim is still unharvested and needs no GPU: quantifying the
-**best-over-training selection bias** from the per-epoch evaluation histories already
-saved in every artifact. If the upward bias scales with run noise, then a slice of the
-published DML literature is reporting max-statistics rather than improvements.
+## 6. That last claim, now measured (`scripts/measure_selection_bias.py`)
+
+Best-over-training reports `max` over ~60 test evaluations. A maximum over noisy
+observations of a curve overshoots the curve, and the overshoot grows with the noise.
+Estimated per run by taking the trend at the selected epoch from its **neighbours only**
+— excluding the selected point, whose own noise is what selection exploited.
+
+**Every reported number in this project is inflated**, and the inflation is not small:
+
+| dataset | arm | reported | trend | selection bonus |
+| --- | --- | ---: | ---: | ---: |
+| CUB | `proxy_anchor` | 0.6919 | 0.6842 | **+0.77 pt** |
+| CUB | `hist` | 0.7082 | 0.7047 | **+0.35 pt** |
+| CUB | `pa_distill` | 0.6985 | 0.6901 | +0.84 pt |
+| CUB | `narrow64` | 0.6293 | 0.6224 | +0.69 pt |
+| In-Shop | `hist` | 0.9038 | 0.9025 | +0.14 pt |
+| In-Shop | `proxy_anchor` | 0.9035 | 0.9015 | +0.20 pt |
+
+Three things follow.
+
+1. **The bonus tracks noise, as predicted.** In-Shop (σ = 0.12 pt) gets 0.14–0.37 pt;
+   CUB (σ = 0.57 pt) gets 0.35–0.84 pt. On a *flat* simulated plateau with 0.5 pt
+   evaluation noise the estimator recovers **+1.16 pt** of pure selection — larger than
+   most published DML gains, from a truth with no improvement in it at all.
+2. **It differs between arms, so it contaminates comparisons.** CUB `proxy_anchor` gets
+   +0.77 and `hist` only +0.35. The reported PA−HIST gap is therefore flattered toward
+   PA by ~0.42 pt; corrected, HIST's advantage is *larger* than the leaderboard shows.
+   Any leaderboard mixing a stable method with an unstable one is partly ranking
+   stability.
+3. **Our own effect survives.** `pa_distill − proxy_anchor` goes +0.658 → **+0.592**
+   corrected; `herd − hist` +0.298 → +0.187. The distillation gain is not a selection
+   artifact, which is the first thing this tool was pointed at.
+
+It also reproduces a known failure as a sanity check: `local_nca` collapsed and peaked
+in its first epochs, and best-over-training reported **0.5733 against a 0.3394 trend** —
+a 23.4 pt selection bonus on a run that never worked.
+
+**A caught bug, worth recording.** The first version of this script keyed artifacts on
+arm name and immediately produced `inshop/pa_distill − proxy_anchor = +3.401 pt` — the
+exact spurious number that superseded pre-`22f7dd6` artifacts fabricate. It now keys on
+recipe digest and *refuses* to pair an arm that has more than one, which is the rule
+`analyze_reference_matrix.py` already enforced. The same trap, in a new script, within an
+hour of writing it.
