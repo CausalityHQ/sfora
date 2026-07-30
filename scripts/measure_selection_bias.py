@@ -126,6 +126,8 @@ def main(pattern: str) -> int:
         ("pa_distill", "proxy_anchor"),
         ("pa_ema_avg", "proxy_anchor"),
         ("pa_ema_avg_fast", "proxy_anchor"),
+        ("pa_ema_avg_m95", "proxy_anchor"),
+        ("pa_ema_avg_m90", "proxy_anchor"),
         ("pa_distill_fast", "proxy_anchor"),
         ("pa_distill_avg", "proxy_anchor"),
         ("herd", "hist"),
