@@ -525,3 +525,36 @@ def test_pa_ema_avg_isolates_weight_averaging_from_the_distillation_loss() -> No
     # Absent from the reference config, so it takes the field default of False -- which
     # is what keeps `pa_distill` scoring the student.
     assert distilled.config.get("ema_weight_averaging", False) is False
+
+
+def test_ema_factorial_arms_vary_only_the_two_teacher_roles_at_matched_momentum() -> None:
+    """An EMA teacher supplies two separable things: a distillation target, and an
+    averaged copy of the weights to evaluate. These four arms are the 2x2 over those
+    roles, and they are only interpretable if momentum is held fixed across the three
+    non-base cells -- otherwise a difference between cells could be the momentum."""
+    base = reference_recipe("proxy_anchor", "cub")
+    average_only = derive_recipe(base, "pa_ema_avg_fast")
+    distil_only = derive_recipe(base, "pa_distill_fast")
+    both = derive_recipe(base, "pa_distill_avg")
+
+    for arm in (average_only, distil_only, both):
+        assert arm.config["ema_momentum"] == pytest.approx(0.99), arm.recipe_id
+
+    assert average_only.config["ema_distill_weight"] == 0.0
+    assert average_only.config["ema_weight_averaging"] is True
+
+    assert distil_only.config["ema_distill_weight"] == 1.0
+    assert distil_only.config.get("ema_weight_averaging", False) is False
+
+    assert both.config["ema_distill_weight"] == 1.0
+    assert both.config["ema_weight_averaging"] is True
+
+    # `both` must be exactly the union of the two single arms, or it does not test
+    # additivity -- it tests some third thing.
+    assert both.config["ema_distill_weight"] == distil_only.config["ema_distill_weight"]
+    assert both.config["ema_distill_tau"] == distil_only.config["ema_distill_tau"]
+    assert both.config["ema_weight_averaging"] == average_only.config["ema_weight_averaging"]
+
+    # All four cells must be distinct runs.
+    digests = {recipe_digest(r) for r in (base, average_only, distil_only, both)}
+    assert len(digests) == 4

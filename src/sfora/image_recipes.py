@@ -40,6 +40,8 @@ DerivedMethod = Literal[
     "narrow64_distill",
     "pa_ema_avg",
     "pa_ema_avg_fast",
+    "pa_distill_fast",
+    "pa_distill_avg",
 ]
 
 # Base loss each derived method attaches to.
@@ -57,7 +59,29 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "narrow64_distill": "proxy_anchor",
     "pa_ema_avg": "proxy_anchor",
     "pa_ema_avg_fast": "proxy_anchor",
+    "pa_distill_fast": "proxy_anchor",
+    "pa_distill_avg": "proxy_anchor",
 }
+
+# A 2x2 over what an EMA teacher supplies. `pa_ema_avg_fast` showed that EVALUATING the
+# averaged weights is worth >= +0.45 pt on CUB at zero training cost, while `pa_distill`
+# (which evaluates the STUDENT and only distils toward the teacher) is worth +0.658. Those
+# are two different uses of the same object, and until now no arm had both or neither at a
+# matched momentum -- so they could not be added, separated, or ranked.
+#
+# Everything here runs at momentum 0.99. `pa_distill` uses 0.999, where the average still
+# carries 5.3% of its initialisation; the slow/fast split (+0.07 vs >= +0.45) showed that
+# contamination is not negligible, so holding momentum fixed at 0.99 is what makes the
+# four cells comparable.
+#
+#   pa_ema_avg_fast   average only     evaluate teacher, no distillation loss
+#   pa_distill_fast   distil only      evaluate student, distillation loss at 0.99
+#   pa_distill_avg    both             evaluate teacher AND distil toward it
+#   proxy_anchor      neither          the base
+#
+# If `both` exceeds each single arm, the two effects are separable and additive, and the
+# combination is the arm to take to Cars and In-Shop.
+_FAST_MOMENTUM = 0.99
 
 # Polyak/SWA weight averaging with the distillation term REMOVED: maintain the EMA
 # teacher, score retrieval from it, and add no loss (`ema_distill_weight` stays 0).
@@ -459,6 +483,20 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method in {"pa_distill_fast", "pa_distill_avg"}:
+        delta = {**_DISTILL_DELTA, "ema_momentum": _FAST_MOMENTUM}
+        if method == "pa_distill_avg":
+            delta["ema_weight_averaging"] = True
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     if method in _EMA_AVG_MOMENTUM:
         delta = {
             "ema_weight_averaging": True,
