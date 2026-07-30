@@ -121,7 +121,58 @@ there is nothing to explain and this document is the record of an idea that did 
 survive its first confirmation, which is the outcome twelve of the previous thirteen
 candidates had.
 
-## 6. Standing caveat
+## 6. Outcome of v19/v20 — the effect is real, the explanation is not established
+
+Both legs finished at six paired seeds on 2026-07-30.
+
+| CUB leg | per-seed Δ | mean | sd | positive | paired t | exact sign p |
+| --- | --- | ---: | ---: | :-: | ---: | ---: |
+| `pa_distill` − `proxy_anchor` | +0.91 +1.03 +0.73 +0.32 +0.86 +0.10 | **+0.658** | 0.367 | **6/6** | +4.39 | **0.031** |
+| `herd` − `hist` | −0.27 +0.34 −0.15 −0.39 +1.50 +0.76 | +0.298 | 0.729 | 3/6 | +1.00 | 1.000 |
+
+**§4's question is answered: the PA effect is real.** Six of six positive gives the
+assumption-free p = 0.031 that was set as the bar, and the paired t agrees.
+
+**§2's explanation is not.** Three things go against it:
+
+1. **The dissociation is not resolvable here.** The between-leg gap is +0.360 pt with
+   SE 0.333 — t = 1.08, nowhere near significance. Reaching 80% power on a gap that
+   size, given the pooled sd of 0.577, needs **≈40 seeds per arm**. That is ~120 GPU-h
+   on CUB for one comparison, so this dataset cannot settle it. The same lesson as §4
+   of [HANDOFF.md](HANDOFF.md), arriving from a new direction.
+2. **The winner's curse was real, and it was large.** Splitting the PA leg by whether
+   a seed generated the hypothesis: in-sample (0–2) **+0.890**, out-of-sample (3–5)
+   **+0.427**. The honest effect size is *less than half* what the screening seeds
+   showed. The pre-registered doubt about sd 0.153 was also correct — it is 0.367.
+3. **On fresh seeds the ordering reverses.** HIST's out-of-sample mean is **+0.623**,
+   *higher* than PA's +0.427. Both subsets are n=3 and far too noisy to conclude
+   anything from, but the one cut of the data that is free of selection effects points
+   the opposite way to the hypothesis rather than supporting it.
+
+So: a real ~+0.43 pt gain from EMA self-distillation on Proxy Anchor/CUB, and no
+evidence that headroom explains it.
+
+### What this changes about the next experiment
+
+The dissociation failed for a *structural* reason worth naming: it tried to resolve a
+0.36 pt difference between two arms whose own noise is 0.37–0.73 pt. The lever was
+smaller than the noise. Adding seeds to that design is throwing GPU at a 40-seed
+requirement.
+
+The `narrow128`/`narrow64` design does not have that problem, and this is the argument
+for running it rather than abandoning the question. It sets headroom **by construction**
+instead of measuring it, and it multiplies the effect rather than differencing two
+similar ones: if the gain really scales with headroom, a 64-d base sitting several
+points below the ceiling should show something in the region of +1.3 pt against a
+per-seed sd of ~0.37 — resolvable at three seeds, not forty.
+
+It also avoids the artifact flagged when `herd/seed4` came in at +1.50 against the
+lowest HIST baseline: Δ = distilled − base is negatively correlated with base *by
+construction*, so ranking measured baselines against their own deltas proves nothing.
+Embedding width is fixed in the recipe and independent of any measurement, which is
+exactly the property the test needs.
+
+## 7. Standing caveat
 
 Even in the best case this is not the novel *method* the project set out to find. It
 is a conditional characterisation of a known technique. Worth having, worth writing
