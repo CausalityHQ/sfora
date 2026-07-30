@@ -624,6 +624,28 @@ def test_dual_ema_keeps_the_slow_teacher_and_evaluates_a_fast_average() -> None:
     assert recipe_digest(dual) not in {recipe_digest(distil_only), recipe_digest(average_only)}
 
 
+def test_dual_ema_bnfix_is_safe_for_trainable_batch_norm() -> None:
+    """Both EMA roles need coherent buffers, and the training teacher needs batch-mode
+    normalization, on an In-Shop base whose BatchNorm statistics update."""
+    base = reference_recipe("proxy_anchor", "inshop")
+    plain = derive_recipe(base, "pa_dual_ema")
+    fixed = derive_recipe(base, "pa_dual_ema_bnfix")
+
+    assert base.config["freeze_batch_norm"] is False
+    assert fixed.config["ema_momentum"] == pytest.approx(0.999)
+    assert fixed.config["ema_eval_momentum"] == pytest.approx(0.99)
+    assert fixed.config["ema_teacher_train_mode"] is True
+    assert fixed.config["ema_teacher_ema_buffers"] is True
+
+    changed = {
+        key
+        for key in set(plain.config) | set(fixed.config)
+        if plain.config.get(key) != fixed.config.get(key)
+    }
+    assert changed == {"ema_teacher_train_mode", "ema_teacher_ema_buffers"}
+    assert recipe_digest(plain) != recipe_digest(fixed)
+
+
 def test_averaging_on_trainable_batch_norm_requires_the_buffer_fix() -> None:
     """Weight averaging evaluates the EMA copy, so its BatchNorm statistics must be
     averaged too. `_update_ema_teacher` hard-copies buffers by default, which would pair

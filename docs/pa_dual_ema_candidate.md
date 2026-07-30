@@ -68,3 +68,58 @@ the measured DML-specific conflict between the two roles and this exact
 single-student resolution. If the result is not materially above both components,
 there is neither an empirical result nor enough distinction from adjacent work
 to defend.
+
+## Gate 3 — preregistration: PASS
+
+**Committed before either In-Shop averaging artifact exists.** The stopped CUB
+attempt reached only epoch 5 and emitted no artifact, so it did not reveal a
+deciding result.
+
+### Frozen In-Shop recipes
+
+| arm | selector | full recipe digest |
+| --- | --- | --- |
+| baseline | `auto` | `16a3bc844c81b53dc4d9f501d55d2fa5bbca174318edb5fbfd48107a411ee06a` |
+| average-only control | `pa_ema_avg_bnfix` | `80f57f183966d6adc868d2db319626d4a87160df7df44a2a82bd5af18d80d0f6` |
+| candidate | `pa_dual_ema_bnfix` | `79f9d35c4eeabf6cda08fc6f5e1b19a1d9440db4e05b4a7de2bc5cb7ec8fde3d` |
+
+Both derived arms use momentum 0.99 for the evaluated average and
+`ema_teacher_ema_buffers=True`. The candidate alone adds a slow 0.999
+distillation teacher, relational loss weight 1.0, and
+`ema_teacher_train_mode=True`. Thus trainable BatchNorm cannot create a
+half-averaged evaluation model or the previously measured teacher/student
+normalization mismatch.
+
+Seed 0 is a **screening seed**, not confirmation. The current baseline artifact is
+0.9024 at seed 0; its three-seed mean is 0.9035.
+
+### Numeric predictions
+
+The honest prediction is that candidate 1 fails its novelty screen on In-Shop.
+EMAN-correct distillation is −0.04 pt against Proxy Anchor on this dataset, so
+the slow teacher has no measured benefit to add to the fast average.
+
+1. `pa_ema_avg_bnfix − proxy_anchor`, raw: **+0.20 to +0.50 pt**.
+2. `pa_dual_ema_bnfix − proxy_anchor`, raw: **+0.20 to +0.50 pt**.
+3. `pa_dual_ema_bnfix − pa_ema_avg_bnfix`, raw: **−0.10 to +0.10 pt**,
+   centred on zero.
+4. Selection correction should increase each averaging arm's gain over Proxy
+   Anchor by **+0.05 to +0.20 pt**. The corrected dual-minus-average difference
+   should remain within **±0.10 pt** because both evaluate the same fast average.
+
+### Gate-4 success and falsification
+
+Candidate 1 passes the one-seed In-Shop screen only if all are true:
+
+- raw `dual − average-only` is at least **+0.24 pt** (two In-Shop baseline
+  standard deviations);
+- selection-corrected `dual − average-only` is positive;
+- raw dual R@1 is at least **0.9048**, clearing the paired Proxy Anchor seed by
+  +0.24 pt and the 0.9038 HIST reference.
+
+It fails candidate gate 4 if any condition is missed. A gain over Proxy Anchor
+that is already supplied by `pa_ema_avg_bnfix` is a positive result for old
+weight averaging and a negative result for the novel dual-timescale combination.
+
+If it unexpectedly passes, seeds 1–3 are fresh confirmation seeds. Seed 0 will
+never be included in the quoted confirmation estimate.

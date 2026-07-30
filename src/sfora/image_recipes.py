@@ -45,6 +45,7 @@ DerivedMethod = Literal[
     "pa_ema_avg_m95",
     "pa_ema_avg_m90",
     "pa_dual_ema",
+    "pa_dual_ema_bnfix",
     "pa_ema_avg_bnfix",
 ]
 
@@ -68,6 +69,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_ema_avg_m95": "proxy_anchor",
     "pa_ema_avg_m90": "proxy_anchor",
     "pa_dual_ema": "proxy_anchor",
+    "pa_dual_ema_bnfix": "proxy_anchor",
     "pa_ema_avg_bnfix": "proxy_anchor",
 }
 
@@ -548,8 +550,10 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
-    if method == "pa_dual_ema":
+    if method in {"pa_dual_ema", "pa_dual_ema_bnfix"}:
         delta = dict(_DUAL_EMA_DELTA)
+        if method == "pa_dual_ema_bnfix":
+            delta.update(_BN_FIX_DELTA)
         return recipe.model_copy(
             deep=True,
             update={

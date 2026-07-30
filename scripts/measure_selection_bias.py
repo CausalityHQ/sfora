@@ -153,6 +153,8 @@ def main(pattern: str) -> int:
         ("pa_ema_avg_m95", "proxy_anchor"),
         ("pa_ema_avg_m90", "proxy_anchor"),
         ("pa_ema_avg_bnfix", "proxy_anchor"),
+        ("pa_dual_ema", "proxy_anchor"),
+        ("pa_dual_ema_bnfix", "proxy_anchor"),
         ("pa_distill_fast", "proxy_anchor"),
         ("pa_distill_avg", "proxy_anchor"),
         ("herd", "hist"),
