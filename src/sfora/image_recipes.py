@@ -44,6 +44,7 @@ DerivedMethod = Literal[
     "pa_distill_avg",
     "pa_ema_avg_m95",
     "pa_ema_avg_m90",
+    "pa_dual_ema",
 ]
 
 # Base loss each derived method attaches to.
@@ -65,7 +66,9 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_distill_avg": "proxy_anchor",
     "pa_ema_avg_m95": "proxy_anchor",
     "pa_ema_avg_m90": "proxy_anchor",
+    "pa_dual_ema": "proxy_anchor",
 }
+
 
 # A 2x2 over what an EMA teacher supplies. `pa_ema_avg_fast` showed that EVALUATING the
 # averaged weights is worth >= +0.45 pt on CUB at zero training cost, while `pa_distill`
@@ -139,6 +142,28 @@ _DISTILL_DELTA: dict[str, Any] = {
     "ema_momentum": 0.999,
     "ema_distill_tau": 0.1,
 }
+
+# Two averages at two timescales, because the measurements say the roles want different
+# ones. On CUB against proxy_anchor, at 0.999 vs 0.99:
+#
+#   as a distillation TARGET    0.999 -> +0.91,  0.99 -> +0.30
+#   as the EVALUATED model      0.999 -> +0.07,  0.99 -> +0.45
+#
+# A slow teacher is a more stable thing to regress toward; a fast average tracks the
+# current solution instead of dragging 5.3% of the initialisation along. A single EMA has
+# to pick one and lose the other, which is what every arm before this did. This keeps the
+# teacher at 0.999 for distillation and evaluates a separate 0.99 average.
+#
+# Prediction, registered before the run: if the roles are independent this should land
+# near the sum of the two best cells rather than near either alone. It fails if it merely
+# matches pa_distill (+0.658 over six seeds), which would mean the evaluated average adds
+# nothing once a good teacher is present.
+_DUAL_EMA_DELTA: dict[str, Any] = {
+    **_DISTILL_DELTA,
+    "ema_weight_averaging": True,
+    "ema_eval_momentum": 0.99,
+}
+
 
 # The `_bnfix` variants additionally make the EMA teacher normalisation-consistent
 # with the student. Historically the teacher ran in eval mode (BatchNorm running
@@ -502,6 +527,18 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method == "pa_dual_ema":
+        delta = dict(_DUAL_EMA_DELTA)
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     if method in {"pa_distill_fast", "pa_distill_avg"}:
         delta = {**_DISTILL_DELTA, "ema_momentum": _FAST_MOMENTUM}
         if method == "pa_distill_avg":

@@ -601,3 +601,24 @@ def test_averaging_sweep_windows_are_actually_distinct() -> None:
         assert longer / shorter == pytest.approx(2.0, rel=1e-6) or longer / shorter > 2.0
 
     assert len({recipe_digest(r) for r in recipes}) == 4
+
+
+def test_dual_ema_keeps_the_slow_teacher_and_evaluates_a_fast_average() -> None:
+    """The arm is only meaningful if it takes the BEST momentum for each role rather than
+    compromising on one. Distillation keeps the teacher at 0.999, where it measured +0.91;
+    evaluation gets its own 0.99 average, where that role measured +0.45."""
+    base = reference_recipe("proxy_anchor", "cub")
+    dual = derive_recipe(base, "pa_dual_ema")
+    distil_only = derive_recipe(base, "pa_distill")
+    average_only = derive_recipe(base, "pa_ema_avg_fast")
+
+    # Distillation half is byte-identical to pa_distill.
+    for field in ("ema_distill_weight", "ema_momentum", "ema_distill_tau"):
+        assert dual.config[field] == distil_only.config[field], field
+    # Evaluation half runs at the averaging arm's momentum, not the teacher's.
+    assert dual.config["ema_weight_averaging"] is True
+    assert dual.config["ema_eval_momentum"] == pytest.approx(0.99)
+    assert dual.config["ema_eval_momentum"] == pytest.approx(average_only.config["ema_momentum"])
+    # The two timescales must actually differ, or this is just pa_distill.
+    assert dual.config["ema_eval_momentum"] != dual.config["ema_momentum"]
+    assert recipe_digest(dual) not in {recipe_digest(distil_only), recipe_digest(average_only)}
