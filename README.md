@@ -58,11 +58,19 @@ control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 >    distillation still merely matches its base rather than beating it. Generalises to
 >    any MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
 >
-> 2. **CUB cannot resolve the effects this field reports.** Seed noise is σ ≈ 0.88 pt,
->    *and* three effectively-identical runs at a **fixed seed** scored 0.7183 / 0.7154
->    / 0.7075 — a 1.08 pt spread from GPU nondeterminism alone. Detecting +0.5 pt needs
->    12–37 seeds per arm. Most papers report one run. (Now eliminable: set
->    `deterministic: true`.)
+> 2. **CUB cannot resolve the effects this field reports — and σ estimated from three
+>    seeds cannot tell you so.** At six seeds per arm, the across-seed σ is **0.57 pt**
+>    (the 0.88 below was 55% too high) while the *paired* sd is **0.367 pt** on one leg
+>    and **0.729 pt** on another (both 2–4× larger than three seeds suggested). Seeds
+>    needed for +0.5 pt is therefore **5 on one leg and 17 on another** — it is a
+>    property of the comparison, not of the dataset, because pairing removes most seed
+>    variance on one leg and none on the other. Always quote the paired sd of the
+>    specific comparison. The original three-seed figures, kept because the correction
+>    is the point: σ ≈ 0.88 pt and 12–37 seeds. What survives unchanged is the
+>    nondeterminism finding — three effectively-identical runs at a **fixed seed**
+>    scored 0.7183 / 0.7154 / 0.7075, a **1.08 pt spread with no seed difference at
+>    all**, so more than half the apparent "seed variance" was the GPU. Most papers
+>    report one run. (Now eliminable: set `deterministic: true`.)
 >
 > **Thirteen method candidates have been tested and failed**, each recorded with its
 > mechanism in [docs/results.md](docs/results.md) — including two imported from

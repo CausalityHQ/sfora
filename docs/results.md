@@ -148,7 +148,60 @@ inherited HIST schedule is untested — but the honest statement is that this
 implementation of L_in did not behave like L_in, and the negative result is about the
 implementation as much as the idea.
 
-### The properly paired CUB picture (3 seeds each)
+### The properly paired CUB picture at SIX seeds (supersedes the 3-seed tables below)
+
+Both CUB legs were taken to six paired seeds on 2026-07-30. This is the authoritative
+CUB record; the 3-seed tables that follow are kept because they document how the
+conclusions changed, not because their numbers should be quoted.
+
+| arm | s0 | s1 | s2 | s3 | s4 | s5 | mean | sd |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `proxy_anchor` | 0.6825 | 0.6882 | 0.6921 | 0.6924 | 0.6980 | 0.6982 | 0.6919 | 0.0060 |
+| `pa_distill` | 0.6916 | 0.6985 | 0.6994 | 0.6956 | 0.7066 | 0.6992 | **0.6985** | 0.0050 |
+| `hist` | 0.7183 | 0.7010 | 0.7127 | 0.7090 | 0.7009 | 0.7073 | 0.7082 | 0.0067 |
+| `herd` | 0.7156 | 0.7044 | 0.7112 | 0.7051 | 0.7159 | 0.7149 | **0.7112** | 0.0053 |
+
+| paired leg | per-seed Δ | mean | sd | positive | t | p_t | exact sign p |
+| --- | --- | ---: | ---: | :-: | ---: | ---: | ---: |
+| `pa_distill` − `proxy_anchor` | +0.91 +1.03 +0.73 +0.32 +0.86 +0.10 | **+0.658** | 0.367 | **6/6** | +4.39 | 0.0070 | **0.031** |
+| `herd` − `hist` | −0.27 +0.34 −0.15 −0.39 +1.50 +0.76 | +0.298 | 0.729 | 3/6 | +1.00 | 0.36 | 1.000 |
+
+**One real effect, and one lesson about how it was nearly overstated.**
+
+EMA self-distillation on Proxy Anchor/CUB is **real**: six of six seeds positive gives
+an assumption-free sign-test p = 0.031, the bar set in advance in
+[headroom_hypothesis.md](headroom_hypothesis.md). But the size shrank badly once seeds
+that had not generated the hypothesis arrived — in-sample (0–2) **+0.890**,
+out-of-sample (3–5) **+0.427**. Quote **+0.43 pt**, not +0.89. The screening estimate
+was inflated by more than a factor of two, and the paired sd it was computed against
+(0.153) was luck; the honest figure is 0.367.
+
+`herd` − `hist` is +0.298 with 3/6 positive — indistinguishable from zero, consistent
+with the retraction recorded below. It is also **not** distinguishable from the PA leg:
+the between-leg gap is +0.360 pt with SE 0.333 (t = 1.08), and separating them at 80%
+power would need ≈40 seeds per arm. So *"distillation helps the underfitting base and
+not the one at the ceiling"* remains an unsupported story, not a finding.
+
+**A methodological correction that matters more than either.** This project has been
+quoting CUB σ ≈ 0.88 pt and "+0.5 pt needs 12–37 seeds". Both came from three seeds.
+At six:
+
+| quantity | 3-seed figure | 6-seed figure |
+| --- | ---: | ---: |
+| per-arm across-seed σ | 0.88 pt | **0.57 pt** (0.50–0.68 across four arms) |
+| paired sd, PA leg | 0.153 pt | **0.367 pt** |
+| paired sd, HIST leg | 0.322 pt | **0.729 pt** |
+| seeds for 80% power on +0.5 pt, PA leg | 12–37 | **5** |
+| seeds for 80% power on +0.5 pt, HIST leg | 12–37 | **17** |
+
+Two things follow. σ estimated from three seeds is worthless in *either* direction —
+it was 55% too high for the arms and 2–4× too low for the paired differences. And the
+seeds-required figure is **not a property of the dataset**: it depends on the arm,
+because pairing removes most of the seed variance on the PA leg (0.60 → 0.37) and much
+less on the HIST leg (0.68 → 0.73, i.e. none). Always report the paired sd of the
+specific comparison; a dataset-level σ cannot power a paired test.
+
+### The earlier 3-seed picture (retained for the audit trail)
 
 With HIST finally run at seeds 1 and 2, the comparisons become valid — and almost
 nothing survives.

@@ -113,13 +113,26 @@ any MoCo/BYOL/DINO-style teacher on a backbone with updating BatchNorm.
 
 Nearly as important, and it explains why so much else failed.
 
-- CUB seed noise σ ≈ 0.88 pt **and a 1.08 pt spread at fixed seed** (three
-  effectively-identical runs: 0.7183 / 0.7154 / 0.7075). More than half the "seed
-  variance" was GPU nondeterminism.
-- Seeds needed for 80% power at α=0.05: **+0.5 pt → 12–37 seeds**; +1.0 pt → 3–10;
-  +2.0 pt → 1–3. So **CUB cannot resolve the ~1 pt improvements the literature
-  routinely reports from single runs.** A quantitative version of Musgrave's
-  *Metric Learning Reality Check*.
+- **A 1.08 pt spread at a FIXED seed** (three effectively-identical runs: 0.7183 /
+  0.7154 / 0.7075). More than half the apparent "seed variance" was GPU
+  nondeterminism, with no seed difference at all. This one is unchanged and is the
+  most useful measurement in the project.
+- **CUB across-seed σ is 0.57 pt at six seeds** (0.50–0.68 over four arms). The
+  σ ≈ 0.88 pt this document used to quote came from three seeds and was 55% too high.
+- **Seeds required is a property of the comparison, not the dataset.** Pairing removes
+  most seed variance on one leg and none on another, so for a +0.5 pt effect:
+
+  | leg | per-arm σ | paired sd | seeds for 80% power |
+  | --- | ---: | ---: | ---: |
+  | `pa_distill` − `proxy_anchor` | 0.60 pt | **0.367 pt** | **5** |
+  | `herd` − `hist` | 0.68 pt | **0.729 pt** | **17** |
+
+  The old "+0.5 pt → 12–37 seeds" was computed from an unpaired σ and is wrong in both
+  directions. **Always quote the paired sd of the specific comparison**; a
+  dataset-level σ cannot power a paired test. Three seeds cannot estimate either — the
+  3-seed paired sds were 0.153 and 0.322, i.e. 2–4× too small.
+- CUB still **cannot** resolve the ~1 pt improvements the literature reports from
+  single runs. A quantitative version of Musgrave's *Metric Learning Reality Check*.
 - **In-Shop σ = 0.12 pt.** All method questions should be settled there, not on CUB.
 - `deterministic: bool` (default False) now removes the nondeterminism entirely —
   `cudnn.deterministic`, `CUBLAS_WORKSPACE_CONFIG`, `use_deterministic_algorithms`.
@@ -253,8 +266,9 @@ itself the signal. What survives is worth writing, and it is not a method paper.
 2. **The reproducibility paper is the defensible one**, and it is nearly written
    already: provenance infrastructure that caught **two real confounds** (LayerNorm
    between a method and its control, BatchNorm between teacher and student), the
-   quantified noise argument (CUB σ = 0.88 pt across seeds *and* 1.08 pt at fixed
-   seed; +0.5 pt needs 12–37 seeds; most papers report one run), and a thirteen-entry
+   quantified noise argument (a 1.08 pt spread at *fixed* seed; σ = 0.57 pt across six
+   seeds; seeds-required is 5 or 17 depending on the *comparison*, not the dataset;
+   most papers report one run), and a thirteen-entry
    negatives catalogue where every entry has a recorded mechanism rather than just a
    number. A *Metric Learning Reality Check* with the measurement done properly.
 
@@ -268,7 +282,7 @@ itself the signal. What survives is worth writing, and it is not a method paper.
 4. **Turn on `deterministic: true`** for everything new. It removes half the observed
    seed noise and costs nothing. Should have been default from the start.
 
-5. **Validate on In-Shop, never CUB.** σ = 0.12 pt vs 0.88 pt. One In-Shop run at
+5. **Validate on In-Shop, never CUB.** σ = 0.12 pt vs 0.57 pt. One In-Shop run at
    2.2 h beats six CUB runs at 45 min for any effect under 2 pt. The single most
    expensive lesson of this project — a CUB screen at n=1 produced a false positive
    (+0.52 pt) that survived hours before three seeds killed it.
