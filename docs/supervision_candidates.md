@@ -3,8 +3,9 @@
 Search performed 2026-07-31, before implementation. I searched supervised DML,
 unsupervised DML, clustering/pseudo-label, local-neighbourhood, graph/label-propagation,
 positive-mining, multi-proxy, and intra-class-variance work. The ranking criterion is
-`P(genuinely distinct) × P(In-Shop R@1 ≥ 0.9085)`. Only rank 1 is recommended for GPU;
-ranks 2–3 are included as explicit prior-art casualties, not as experiments to run.
+`P(genuinely distinct) × P(In-Shop R@1 ≥ 0.9085)`. Rank 1 was initially recommended
+for GPU; the post-screen CPU diagnostic below killed it before a valid GPU result.
+Ranks 2–3 are explicit prior-art casualties. None is now recommended for GPU.
 
 ## 1. Rival-signature positive graph (RSPG) — **DEAD: CPU graph too dense**
 

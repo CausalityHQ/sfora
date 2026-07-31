@@ -603,13 +603,15 @@ measured rival-profile structure for a different operation: agreement over
 negative-class identities decides whether a same-class pair becomes a positive
 edge, while failed pairs are unknown.
 
-The pre-implementation audit found direct-distance positive mining (OSM),
-learned target neighbours, label propagation over proxy graphs, and contextual
-similarity distillation, but no primary DML source that uses agreement over
-negative-class identities to create positive relations. The distinction is
-narrow and novelty confidence is medium. The preregistered In-Shop seed-0
-prediction is 0.9100 R@1, falsified below 0.9085 or by the fixed training-graph
-diagnostic in `docs/rspg_candidate.md`. No CUB screen is permitted.
+The closest prior art includes Contextual Similarity Distillation, which makes
+contextual descriptors a training signal
+([Wu et al., CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/html/Wu_Contextual_Similarity_Distillation_for_Asymmetric_Image_Retrieval_CVPR_2022_paper.html)),
+and supervised Contextual Similarity Optimization
+([Liao et al., arXiv:2210.01908](https://arxiv.org/abs/2210.01908)). RSPG's only
+possible distinction is a target-class-excluded descriptor over rival class
+identities that gates same-class pairs from positive to unknown, rather than an
+instance-kNN contextual loss. That distinction is narrow and does **not**
+establish novelty; RSPG is not recorded as a novel method.
 
 The mandatory CUDA-disabled diagnostic on an existing CUB training-only pack
 retained **109,375 / 169,596 edges**, density **0.6449**, above the fixed 0.60

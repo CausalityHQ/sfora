@@ -13,7 +13,7 @@ the same time, global class-centred pseudo-modes are unstable (cross-run ARI
 is local agreement about *which other classes are rivals*, not a stable subclass
 centre.
 
-## Gate 2 — prior art: QUALIFIED PASS
+## Gate 2 — nearest prior art; novelty not claimed
 
 The exact candidate is narrower than the response-distillation/feature-mask
 proposal rejected as candidate 7. RSPG does not reproduce a response vector and
@@ -34,10 +34,18 @@ Closest primary-source mechanisms checked before implementation:
   relations
   ([Wu et al., CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/html/Wu_Contextual_Similarity_Distillation_for_Asymmetric_Image_Retrieval_CVPR_2022_paper.html)).
 
-None found makes *agreement over negative-class identities* the source of a new
-positive relation. A close same-class pair can fail RSPG and a distant pair can
-pass, so it is not merely easy-positive mining. Novelty confidence remains
-medium and must be described that way.
+Two especially close training-signal precedents bound the claim. Contextual
+Similarity Distillation makes contextual descriptors a training signal
+([Wu et al., CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/html/Wu_Contextual_Similarity_Distillation_for_Asymmetric_Image_Retrieval_CVPR_2022_paper.html)).
+Contextual Similarity Optimization explicitly optimizes contextual similarity
+as a supervised metric-learning loss
+([Liao et al., arXiv:2210.01908](https://arxiv.org/abs/2210.01908)).
+
+RSPG excludes the target class, describes rivals by class identity rather than
+instance kNN membership, and gates positive-to-unknown edges. The asymmetry test
+establishes that this is not direct distance mining, but it does not establish
+novelty over contextual training. RSPG must not be recorded as novel;
+`docs/rspg_prior_art.md` records the narrow unresolved boundary.
 
 ## Gate 3 — preregistration
 
