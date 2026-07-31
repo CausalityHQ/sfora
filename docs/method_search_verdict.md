@@ -1102,7 +1102,17 @@ group aggregation and confusable-pair sampling are estimator and mining choices.
 Candidate 40 is **DEAD at Gate 2** and the source comments' novelty wording is
 retracted.
 
-## 41. Reopened-loop stopping argument: data-only supervision expansion
+## 41. Acquisition ICC suppression: occupied cross-view center alignment
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** The 0.8199 within-session
+versus 0.6396 cross-session cosine gap motivated a random-effects/ANOVA loss that
+minimizes between-session center scatter relative to total within-identity scatter.
+Cross-view center loss, Hetero-Center loss, and camera-aware contrastive center
+loss already pull condition-specific centers of one identity together. An ICC
+denominator and nested group IDs change normalization and indexing, not the
+supervision mechanism. Candidate 41 is **DEAD at Gate 2**.
+
+## 42. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
