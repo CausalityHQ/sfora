@@ -59,3 +59,11 @@ Wu et al., *Contextual Similarity Distillation for Asymmetric Image Retrieval*
 (CVPR 2022), provides additional precedent for transferring contextual
 descriptors into a retrieval model. Reciprocal-risk distillation is therefore
 **DEAD at Gate 2**, despite the strong repository measurement.
+
+## Systematic class-pair error measurement
+
+The same exact neighbor computation was grouped by ordered `(query class,
+retrieved class)` for the 1,600 incorrect top-1 cases. **21.19% of errors occur
+in a class-pair cell containing at least two errors**, and the largest cell
+contains nine. This motivates testing whether repeated identity confusions need
+matched cross-class supervision rather than another query-local mining rule.
