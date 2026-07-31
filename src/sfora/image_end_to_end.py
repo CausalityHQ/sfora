@@ -15,6 +15,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field
 
+from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
 from sfora.data import ImageDatasetName, ImageExample, materialize_image
 from sfora.image_benchmark import (
     ImageRetrievalMetrics,
@@ -208,6 +209,11 @@ class ImageEndToEndConfig(BaseModel):
     rspg_control: Literal["signature_gate", "soft_js", "distance_gate", "instance_gate"] = (
         "signature_gate"
     )
+    # Augmentation-response compatibility graph. Zero preserves historical behavior.
+    arcg_weight: float = Field(default=0.0, ge=0.0)
+    arcg_warmup_epoch: int = Field(default=10, ge=1)
+    arcg_refresh_epoch: int = Field(default=40, ge=1)
+    arcg_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -633,7 +639,7 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
-        if config.rspg_weight > 0.0
+        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0
         else _TorchImageDataset(optimization_examples, train_transform)
     )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
@@ -755,6 +761,25 @@ def run_image_end_to_end_benchmark(
         num_workers=config.num_workers,
         pin_memory=torch.cuda.is_available(),
     )
+    arcg_eval_loaders: tuple[Any, ...] = ()
+    if config.arcg_weight > 0.0:
+        if config.dataset_name != "inshop" or config.backbone_name != "bn_inception":
+            raise ValueError("ARCG Gate 4 is preregistered only for In-Shop BN-Inception")
+        arcg_eval_loaders = tuple(
+            DataLoader(
+                cast(
+                    Any,
+                    _TorchImageDataset(
+                        optimization_examples, _arcg_transform_factory(config, view)
+                    ),
+                ),
+                batch_size=config.eval_batch_size,
+                shuffle=False,
+                num_workers=config.num_workers,
+                pin_memory=torch.cuda.is_available(),
+            )
+            for view in ("flip", "left", "right", "top", "bottom")
+        )
     # `save_test_embeddings` is a single path; with several objectives each would
     # overwrite the previous one's embeddings. Require a single objective so the
     # saved artifact is unambiguous (ensemble runs already use one objective).
@@ -939,7 +964,7 @@ def run_image_end_to_end_benchmark(
                 train_batches,
                 strict=False,
             ):
-                if config.rspg_weight > 0.0:
+                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0:
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:
@@ -972,6 +997,35 @@ def run_image_end_to_end_benchmark(
                         device=device,
                         torch_module=torch,
                         enforce_diagnostic=rspg_epoch == config.rspg_warmup_epoch,
+                    )
+                    model.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(model)
+                arcg_epoch = (step - 1) // steps_per_epoch
+                if (
+                    config.arcg_weight > 0.0
+                    and arcg_epoch in {config.arcg_warmup_epoch, config.arcg_refresh_epoch}
+                    and (step - 1) % steps_per_epoch == 0
+                ):
+                    graph_embeddings, graph_labels = _encode_model(
+                        model, train_eval_loader, device, torch
+                    )
+                    transformed_embeddings = []
+                    for arcg_loader in arcg_eval_loaders:
+                        view_embeddings, view_labels = _encode_model(
+                            model, arcg_loader, device, torch
+                        )
+                        if not np.array_equal(view_labels, graph_labels):
+                            raise RuntimeError("ARCG deterministic view labels are misaligned")
+                        transformed_embeddings.append(view_embeddings)
+                    rspg_state = _build_arcg_state(
+                        graph_embeddings,
+                        np.stack(transformed_embeddings, axis=1),
+                        graph_labels,
+                        config=config,
+                        device=device,
+                        torch_module=torch,
+                        enforce_diagnostic=arcg_epoch == config.arcg_warmup_epoch,
                     )
                     model.train()
                     if config.freeze_batch_norm:
@@ -2072,6 +2126,74 @@ def _build_rspg_state(
     )
 
 
+def _build_arcg_state(
+    anchor_embeddings: NDArray[np.float64],
+    transformed_embeddings: NDArray[np.float64],
+    labels: NDArray[np.int64],
+    *,
+    config: ImageEndToEndConfig,
+    device: Any,
+    torch_module: Any,
+    enforce_diagnostic: bool,
+) -> RSPGState:
+    """Build the registered binary graph from deterministic response signatures."""
+    signatures, valid = normalized_response_signatures(
+        anchor_embeddings, transformed_embeddings
+    )
+    diagnostics = diagnose_arcg_graph(
+        anchor_embeddings,
+        signatures,
+        labels,
+        valid,
+        agreement_threshold=config.arcg_agreement_threshold,
+    )
+    neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(labels))]
+    label_array = np.asarray(labels, dtype=np.int64)
+    for label in np.unique(label_array):
+        members = np.flatnonzero(label_array == label)
+        for left_pos, left in enumerate(members):
+            for right in members[left_pos + 1 :]:
+                agreement = float(np.dot(signatures[int(left)], signatures[int(right)]))
+                if (
+                    valid[int(left)]
+                    and valid[int(right)]
+                    and agreement >= config.arcg_agreement_threshold
+                ):
+                    neighbours[int(left)].append((int(right), 1.0))
+                    neighbours[int(right)].append((int(left), 1.0))
+    print(
+        "ARCG graph diagnostic: "
+        f"edges={diagnostics.eligible_edges}/{diagnostics.total_edges} "
+        f"density={diagnostics.density:.4f} "
+        f"multi_component_classes={diagnostics.multicomponent_fraction:.4f} "
+        f"close_rejected={diagnostics.closest_quartile_rejected_fraction:.4f} "
+        f"far_accepted={diagnostics.farthest_quartile_accepted_fraction:.4f}",
+        flush=True,
+    )
+    passes = (
+        0.05 <= diagnostics.density <= 0.50
+        and diagnostics.multicomponent_fraction >= 0.50
+        and diagnostics.closest_quartile_rejected_fraction >= 0.05
+        and diagnostics.farthest_quartile_accepted_fraction >= 0.05
+    )
+    if enforce_diagnostic and not passes:
+        raise RuntimeError(
+            "ARCG preregistered diagnostic failed: require density in [0.05, 0.50], "
+            "multi-component fraction >= 0.50, close rejection >= 0.05, and far "
+            "acceptance >= 0.05; thresholds may not be tuned"
+        )
+    target = torch_module.as_tensor(
+        anchor_embeddings, dtype=torch_module.float32, device=device
+    )
+    target = _normalize(target, torch_module).detach()
+    return RSPGState(
+        target_embeddings=target,
+        neighbours=tuple(tuple(items) for items in neighbours),
+        edge_density=float(diagnostics.density),
+        multi_component_fraction=float(diagnostics.multicomponent_fraction),
+    )
+
+
 class _XbmMemory:
     def __init__(self, max_size: int) -> None:
         self._max_size = max_size
@@ -2783,7 +2905,8 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     proxy_labels = kwargs["proxy_labels"]
     config = cast(ImageEndToEndConfig, kwargs["config"])
     torch_module = kwargs["torch_module"]
-    if config.rspg_weight > 0.0 and kwargs.get("rspg_state") is not None:
+    graph_weight = config.rspg_weight if config.rspg_weight > 0.0 else config.arcg_weight
+    if graph_weight > 0.0 and kwargs.get("rspg_state") is not None:
         rspg_state = cast(RSPGState, kwargs["rspg_state"])
         sample_indices = kwargs.get("sample_indices")
         if sample_indices is None:
@@ -2797,7 +2920,7 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             delta=config.proxy_anchor_delta,
             torch_module=torch_module,
         )
-        loss = loss + config.rspg_weight * _rspg_positive_loss(
+        loss = loss + graph_weight * _rspg_positive_loss(
             embeddings,
             sample_indices,
             state=rspg_state,
@@ -6715,6 +6838,50 @@ def _default_transform_factory(
         if hasattr(image, "convert"):
             image = image.convert("RGB")
         return transform(image)
+
+    return apply
+
+
+def _arcg_transform_factory(
+    config: ImageEndToEndConfig,
+    view: Literal["flip", "left", "right", "top", "bottom"],
+) -> Callable[[object], Any]:
+    """Create one preregistered deterministic ARCG BN-Inception view."""
+    if config.backbone_name != "bn_inception" or config.input_size != 224:
+        raise ValueError("ARCG transforms require BN-Inception at 224 pixels")
+    try:
+        from PIL import Image as PILImage
+        from torchvision import transforms
+    except ImportError as error:
+        raise RuntimeError("Install the research extra to construct ARCG views") from error
+
+    resize = transforms.Resize(256)
+
+    def apply(image: object) -> Any:
+        if not hasattr(image, "convert"):
+            raise TypeError("ARCG expects a PIL image")
+        image = resize(image.convert("RGB"))
+        width, height = image.size
+        x_center, y_center = (width - 224) // 2, (height - 224) // 2
+        positions = {
+            "flip": (x_center, y_center),
+            "left": (0, y_center),
+            "right": (width - 224, y_center),
+            "top": (x_center, 0),
+            "bottom": (x_center, height - 224),
+        }
+        x, y = positions[view]
+        image = image.crop((x, y, x + 224, y + 224))
+        if view == "flip":
+            image = transforms.functional.hflip(image)
+        channels = [image.getchannel(channel) for channel in range(3)]
+        image = PILImage.merge("RGB", list(reversed(channels)))
+        tensor = transforms.functional.pil_to_tensor(image).float()
+        return transforms.functional.normalize(
+            tensor,
+            mean=(104.0, 117.0, 128.0),
+            std=(1.0, 1.0, 1.0),
+        )
 
     return apply
 

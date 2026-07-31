@@ -690,6 +690,22 @@ def test_rspg_recipe_is_training_data_only_proxy_anchor_derivation() -> None:
     assert recipe.config["ema_distill_weight"] == 0.0
 
 
+def test_arcg_recipe_freezes_preregistered_graph_schedule() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    recipe = derive_recipe(base, "arcg")
+
+    assert recipe.config["arcg_weight"] == 1.0
+    assert recipe.config["arcg_warmup_epoch"] == 10
+    assert recipe.config["arcg_refresh_epoch"] == 40
+    assert recipe.config["arcg_agreement_threshold"] == 0.5
+    assert set(recipe.delta) == {
+        "arcg_weight",
+        "arcg_warmup_epoch",
+        "arcg_refresh_epoch",
+        "arcg_agreement_threshold",
+    }
+
+
 @pytest.mark.parametrize(
     ("method", "control"),
     [

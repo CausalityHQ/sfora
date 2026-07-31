@@ -7493,3 +7493,57 @@ def test_rspg_gate_rejects_close_disagreement_and_accepts_distant_agreement() ->
         max_js=0.25,
     )
     assert accepted == pytest.approx(1.0)
+
+
+def test_arcg_state_rejects_close_disagreement_and_accepts_distant_agreement() -> None:
+    import torch
+
+    from sfora.image_end_to_end import ImageEndToEndConfig, _build_arcg_state
+
+    anchors = np.array(
+        [[1.0, 0.0], [0.999, 0.001], [0.7, 0.7], [-0.8, 0.2]], dtype=np.float64
+    )
+    angles = np.array(
+        [
+            [0.5, 0.1, 0.1, 0.1, 0.1],
+            [0.1, 0.5, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.5, 0.1, 0.1],
+            [0.5, 0.1, 0.1, 0.1, 0.1],
+        ]
+    )
+    unit_anchors = anchors / np.linalg.norm(anchors, axis=1, keepdims=True)
+    transformed = np.stack(
+        [
+            np.stack(
+                [
+                    np.array(
+                        [
+                            [np.cos(angle), -np.sin(angle)],
+                            [np.sin(angle), np.cos(angle)],
+                        ]
+                    )
+                    @ unit_anchors[index]
+                    for angle in row
+                ]
+            )
+            for index, row in enumerate(angles)
+        ],
+        axis=0,
+    )
+    state = _build_arcg_state(
+        anchors,
+        transformed,
+        np.zeros(4, dtype=np.int64),
+        config=ImageEndToEndConfig(
+            dataset_name="inshop",
+            objectives=("proxy_anchor",),
+            arcg_weight=1.0,
+            arcg_agreement_threshold=0.5,
+        ),
+        device=torch.device("cpu"),
+        torch_module=torch,
+        enforce_diagnostic=False,
+    )
+    neighbours = {index for index, _ in state.neighbours[0]}
+    assert 1 not in neighbours  # close anchor, disagreeing intervention response
+    assert 3 in neighbours  # distant anchor, agreeing intervention response
