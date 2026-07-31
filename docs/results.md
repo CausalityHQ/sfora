@@ -541,6 +541,7 @@ on a base it was never tuned against.
 distillation into a win. Against their own bases, `herd_bnfix` is +0.03 pt over HIST
 and `pa_distill_bnfix` is −0.04 pt under Proxy Anchor (t = −0.29, p = 0.80) — both
 indistinguishable.
+
 **Prior art (2026-07-30): the fix is EMAN.** Cai et al., *Exponential Moving Average
 Normalization for Self-Supervised and Semi-Supervised Learning* (CVPR 2021), describe
 the same teacher/student BatchNorm mismatch and propose EMA-ing the normalisation
@@ -559,6 +560,30 @@ and what a genuine method gain would not.
 
 Generalises to any MoCo/BYOL/DINO-style teacher on a backbone with updating
 BatchNorm. Both legs are complete at three seeds; H3 is closed.
+
+### BN-correct weight averaging and dual-timescale EMA on In-Shop
+
+The preregistered seed-0 screen used BN-correct averaging because In-Shop trains
+BatchNorm. Raw best-over-training and leave-one-out-neighbour
+selection-corrected R@1 must both be reported:
+
+| arm | recipe digest | raw best R@1 | corrected R@1 | raw Δ vs paired PA | corrected Δ |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9015 | — | — |
+| `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9033 | **+0.183 pt** | **+0.255 pt** |
+| `pa_dual_ema_bnfix` | `79f9d35c4eea` | 0.9044 | 0.9040 | **+0.197 pt** | **+0.332 pt** |
+
+The averaging control narrowly missed its preregistered raw prediction of +0.20
+to +0.50 pt, although selection correction again increased its estimated gain.
+This is one seed and an evaluation of an established averaging technique, not a
+novel-method claim.
+
+The novel candidate failed. Dual-timescale EMA added only **+0.014 pt raw** and
+**+0.077 pt corrected** over averaging alone. It required +0.24 pt raw, a
+positive corrected delta, and raw R@1 ≥0.9048; it met only the corrected-sign
+condition. Once both arms evaluate the same BN-correct fast average, the slow
+relational teacher adds effectively nothing on In-Shop. No confirmation seeds
+were run.
 
 **iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
 just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because

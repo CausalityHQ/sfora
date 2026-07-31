@@ -33,16 +33,15 @@ not algorithmic headroom.
 ## 3. The one direction with a credible prior is occupied
 
 Changing *what supervision exists* — the only untried class — points at controlled
-generative expansion of intra-class support. That is reportedly already done: BLENDER
-(Kolf et al., arXiv 2026) claims +3.7 R@1 on CUB, +1.8 on Cars. Class-semantic
-supervision is likewise occupied by Roth, Vinyals & Akata, *Integrating Language
-Guidance into Vision-Based Deep Metric Learning* (CVPR 2022).
-
-*Not independently verified.* The BLENDER citation is a 2026 preprint reported by the
-reviewer and has not been checked against the actual paper; treat the exact numbers as
-unconfirmed until someone opens it. The estimate given was **~20%** that it delivers
-≥ +1.0 pt under our digest-pinned recipes, and *effectively zero* that it constitutes a
-novel direction.
+generative expansion of intra-class support. This was independently verified against
+the primary paper on 2026-07-31: BLenDeR performs controlled diffusion-based
+intra-class image synthesis specifically for DML and reports +3.7 R@1 on CUB and
++1.8 on Cars
+([Kolf et al., arXiv 2026](https://arxiv.org/abs/2601.20246)).
+Class-semantic supervision is likewise occupied by Roth, Vinyals & Akata,
+*Integrating Language Guidance into Vision-Based Deep Metric Learning* (CVPR 2022).
+The exact gains remain external claims rather than digest-pinned reproductions here,
+but the mechanism's existence is no longer an unverified premise.
 
 ## 4. Why the search should stop
 
@@ -406,3 +405,52 @@ new source of supervision. The defining move—letting agreement between
 independently varying retrieval representations determine which relations
 supervise training—is occupied. Candidate 2 stops before preregistration,
 implementation, or GPU screening.
+
+## 10. Candidate 3: controlled synthetic intra-class support
+
+**Gate 1 failure recorded 2026-07-31; no GPU used.** Controlled generation of
+new within-class views is the remaining obvious way to change what supervision
+exists. It is not, however, motivated by this repository's measurements.
+Sub-center Proxy Anchor lost about 1.7 pt, Tversky's distant-positive
+intervention lost about 1.6 pt, and same-resolution multi-crop was neutral.
+Those observations do not diagnose missing intra-class support. Variable-size
+multi-crop collapsed because of frozen BatchNorm and therefore supplies no
+positive evidence for the coverage story.
+
+The direction is independently occupied as well: BLenDeR performs controlled
+diffusion-based intra-class synthesis for DML and reports +3.7 R@1 on CUB and
++1.8 on Cars
+([Kolf et al., arXiv 2026](https://arxiv.org/abs/2601.20246)).
+Candidate 3 therefore has neither repository provenance nor a defensible novelty
+claim.
+
+## 11. Iterative-search stopping verdict
+
+The protocol's stopping condition is met. This is not a claim that no future
+similarity-learning method can exist; it is the narrower, evidence-backed
+conclusion that **no genuinely novel mechanism is defensible from the
+measurements in this repository**:
+
+1. Candidate 1 was the only mechanism with both numeric provenance and a
+   qualified novelty case. It failed the preregistered In-Shop screen:
+   dual-timescale EMA added +0.014 pt raw over averaging, versus +0.24 required.
+2. The remaining between-trajectory measurement motivated candidate 2, but
+   two-network agreement/disagreement as retrieval supervision is established
+   prior art.
+3. Controlled expansion of class support fails provenance here and is occupied
+   by BLenDeR; language-derived semantic supervision is occupied too.
+4. Every other measured defect already maps to a failed mechanism or established
+   method: teacher normalization to EMAN, trajectory averaging to Polyak/SWA,
+   class-disjoint meta-supervision to adaptive dynamic constraints, proxy
+   neighbourhood supervision to ProxyGML/piecewise-linear manifolds, and
+   environment invariance to Deep Causal Metric Learning.
+5. The remaining novel observations concern **measurement**, not a new training
+   signal: comparison-specific power, fixed-seed GPU nondeterminism,
+   best-over-training winner's-curse reversal, digest/provenance failures, and
+   the benchmark-specific cost of missing EMAN behavior.
+
+Generating another arm without a new repository measurement would violate gate
+1. Renaming or slightly changing an occupied mechanism would violate gate 2.
+The honest outcome of this loop is therefore a negative method search and a
+positive measurement contribution. No further method GPU run is warranted on
+the current evidence.
