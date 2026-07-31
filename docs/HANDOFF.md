@@ -9,7 +9,7 @@ being reset; nothing here depends on local state except an SSH key for the DGX.
 
 | what | where |
 |---|---|
-| branch | `research-reset-2026-07-27` (113 commits ahead of `main`) |
+| branch | `research-reset-2026-07-27` |
 | remote | `git@github.com:CausalityHQ/sfora.git` |
 | GPU host | `riomus@100.104.199.68` (Tailscale; a DGX Spark, one GB10) |
 | remote repo | `/home/riomus/group-learning` |

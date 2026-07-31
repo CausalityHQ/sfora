@@ -332,7 +332,9 @@ No genuinely novel mechanism survives. The remaining unoccupied observations are
    DML, and the measured cost here is 0.3–1.4 pt.
 
 Those can support a measurement paper. They do not become a novel similarity-learning
-method by being combined. Candidate sixteen remains unregistered and unqueued.
+method by being combined. At the time of this third audit, candidate sixteen remained
+unregistered and unqueued; §§8–11 record the subsequent protocol loop and stopping
+verdict.
 
 ## 8. Candidate 1 under the iterative protocol: dual-timescale EMA
 
