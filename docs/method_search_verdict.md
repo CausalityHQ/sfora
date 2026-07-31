@@ -676,6 +676,28 @@ seen partial-run 0.0863/0.8703. This paragraph is intentionally marked as a
 Under the adjudicated rule it warrants two full In-Shop RSPG seeds, not one;
 both must clear raw R@1 0.9085 before any novelty ablation is activated.
 
+### Mechanistic finding: rival identity carries dataset-dependent structure
+
+The density split is more informative than either gate decision alone. On CUB,
+retaining **64.49%** of same-class pairs means that the question “which other
+classes does this image resemble?” has nearly the same answer for most images
+of a bird class: they confuse with the same small set of rival species. The
+target-excluded rival signature therefore supplies little additional
+within-class information and RSPG degenerates toward the original class label.
+On In-Shop, retaining only **8.66%** of pairs at the trained operating point
+shows that rival identities genuinely distinguish samples within a class. With
+3,997 training identities, the cross-class reference set is rich enough for the
+same construction to become selective.
+
+This is a measured property of these datasets, not merely an implementation
+outcome. It constrains the next search batch: supervision routed through
+cross-class identities has weak empirical support as a source of CUB
+within-class structure. A CUB candidate should instead derive structure from
+within-class appearance factors, viewpoint, or instance-level relations that do
+not route through rival classes. Cross-class relational candidates should target
+many-class datasets such as In-Shop or SOP and must not be presented as a
+dataset-general solution without replication.
+
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
