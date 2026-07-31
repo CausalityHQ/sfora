@@ -996,6 +996,12 @@ roughly 23x. Update frequency was mistaken for update weight; the measured
 proxy asymmetry does not support EGPU's mechanism. Candidate 34 is **DEAD at
 Gate 1**.
 
+The corrected follow-up does find an ordinary frequency effect: proxy-centroid
+cosine correlates 0.276 with identity count, averaging 0.0876 for four-image
+classes versus 0.1906 for classes with at least 21 images. This belongs to
+class-frequency correction, balanced losses, and adaptive-margin prior art; it
+does not rescue EGPU or justify a renamed arm.
+
 ## 35. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
