@@ -1010,7 +1010,19 @@ the labelled-versus-foreign proxy inequalities defining that event. Using the
 event changes sample weights, curriculum, or margin, not what supervision exists.
 The defect predicts errors but does not identify a novel intervention.
 
-## 35. Reopened-loop stopping argument: data-only supervision expansion
+## 35. Proxy-neighbour disagreement curriculum: occupied hard mining
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** At the exact epoch-10
+In-Shop checkpoint, labelled-proxy-owned images have leave-one-out R@1 `0.9656`
+versus `0.8865` for foreign-proxy-owned images, a **7.91-point gap**. PNDC would
+combine this global proxy certificate with local-neighbour correctness to gate or
+schedule uncertain samples. Proxy Anchor already weights gradients by relative
+sample hardness; Suh et al.'s stochastic class-based hard mining already uses
+online class signatures followed by instance-level refinement; hard-aware
+point-to-set losses cover soft weighting. PNDC changes the hardness estimator,
+not the supervised relations. Candidate 35 is **DEAD at Gate 2**.
+
+## 36. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
