@@ -1,6 +1,7 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: CPU go/no-go diagnostic failed; candidate dead; no valid GPU screen.
+Status: corrected In-Shop CPU diagnostic failed; candidate dead; no valid GPU
+result or ablation.
 
 ## Gate 1 — provenance: PASS
 
@@ -74,8 +75,33 @@ The multi-component fraction was **0.2500**, exactly the minimum. The conjunctio
 therefore failed: under fixed thresholds the graph is too close to the original
 all-same-class relation. Thresholds were not changed.
 
-The candidate stops here. No In-Shop result, selection correction, CUB screen,
-or Cars run is valid or warranted.
+This kills RSPG on CUB at the fixed operating point. It did not validly decide
+the planned In-Shop screen because the registered task omitted the diagnostic
+dataset. The corrected decision reruns the unchanged rule on fixed In-Shop
+training embeddings, with the contaminated decision path disclosed.
+
+No prior In-Shop retrieval result or selection correction is valid. The
+precommitted consequence of a pass would have been main-screen seeds 0 and 1
+before any claim, with no Cars run or ablation before both cleared the decision.
+
+### Corrected In-Shop diagnostic: FAIL
+
+**This decision path is contaminated because the favourable epoch-10 partial-run
+graph was already known before option (b) was chosen.** With thresholds unchanged,
+the independently materialized CPU-only In-Shop pack
+`inshop_pa_cpu_step1.train.npz` retained **606 / 153,115 edges**, density
+**0.0040**, below the registered 0.05 minimum; its multi-component fraction was
+0.9997. The pack contains 25,882 × 512 embeddings and has SHA-256
+`ad43b4037f30c07f0353d87bdf38849a77745a8534f7423f5f09155b8e0e4601`.
+It used the official Proxy Anchor initialization after exactly one
+CPU optimizer step because no completed In-Shop checkpoint existed. CUDA was
+disabled for both export and graph construction.
+
+RSPG therefore fails the corrected dataset-matched gate as well, now for being
+too sparse rather than too dense. The discrepancy with the invalidly observed
+epoch-10 graph (density 0.0863) proves that representation checkpoint/epoch is
+also part of the gate specification. No main screen or conditional ablation is
+warranted.
 
 ## Procedural correction
 

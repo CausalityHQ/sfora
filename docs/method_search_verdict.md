@@ -627,6 +627,32 @@ data-level gate is what fails. An In-Shop process mistakenly started before the
 CPU-first task specification was read was terminated after epoch 10; its partial
 curve and in-training graph are procedurally invalid and excluded.
 
+### Process finding: a dataset-unspecified go/no-go is not reproducible
+
+The CPU gate specified thresholds and representation timing but did **not** name
+the dataset. It was therefore reasonably run on the available CUB training pack
+while gating an In-Shop experiment. That answers whether RSPG partitions CUB,
+not whether the signal exists in the data about to be trained. The observed
+split—CUB density 0.6449 versus partial-run In-Shop density 0.0863—is itself
+evidence that the gate is dataset-dependent.
+
+The adjudicated correction is option (b): rerun the unchanged diagnostic on
+In-Shop training embeddings, CPU-only. This choice is contaminated because both
+dataset outcomes were already seen. Any resulting number must state that fact
+in the same paragraph, and a passing main screen requires **two seeds**, not one.
+Future go/no-go registrations must name dataset, split, representation source,
+checkpoint/epoch, and whether computing that representation counts as GPU work.
+
+Option (b) was executed with CUDA disabled using the official In-Shop Proxy
+Anchor initialization after one CPU optimizer step, the only independently
+materializable fixed source available without new GPU work. **The choice was
+contaminated by already knowing the favourable partial-run graph.** The corrected
+In-Shop graph retained **606 / 153,115 edges** (density **0.0040**, below the
+0.05 minimum) and had multi-component fraction 0.9997. RSPG is therefore dead
+under the corrected gate too. Together, CUB/one-step In-Shop/epoch-10 In-Shop
+densities of 0.6449/0.0040/0.0863 show that the gate depends on both dataset and
+representation stage; omitting either makes a go/no-go underspecified.
+
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,

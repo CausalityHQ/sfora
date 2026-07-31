@@ -1,9 +1,8 @@
 # RSPG conditional ablation plan
 
-Status: preregistered plan only. **Do not run.** The main arm has no valid
-In-Shop result and the earlier CPU go/no-go gate failed. This plan activates
-only if that conflict is explicitly resolved and a valid main In-Shop seed-0
-run reaches raw best R@1 ≥0.9085.
+Status: archived preregistration; **do not run**. The corrected In-Shop CPU
+diagnostic failed below its minimum density, so its activation condition was
+not met.
 
 ## Why these controls are mandatory
 
@@ -42,8 +41,9 @@ This is the Liao-style contextual control.
 
 ## Registered decision
 
-The full RSPG prediction remains **0.9100**, falsified below **0.9085**. Even if
-it clears that absolute threshold, RSPG is dead unless its raw best R@1 is
+The full RSPG prediction remains **0.9100**, falsified below **0.9085**. Because
+the decision path is contaminated, both seeds 0 and 1 must clear that threshold
+before ablations. Even then RSPG is dead unless its raw best R@1 is
 strictly greater than **each** of A1, A2 and A3. Report raw and
 selection-corrected values for all four arms; corrected values are diagnostic,
 while the registered raw comparisons decide. No extra seed or second dataset is

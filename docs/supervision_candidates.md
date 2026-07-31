@@ -14,6 +14,13 @@ within-class pairs, above the preregistered 60% ceiling. The multi-component
 fraction was exactly 25%. RSPG therefore fails before a valid GPU screen; the
 thresholds were not tuned.
 
+The dataset-scope defect was then adjudicated conservatively by rerunning on an
+independently exported, CUDA-disabled In-Shop training pack. That graph failed
+in the opposite direction: density 0.0040, below the 0.05 minimum, with 0.9997
+multi-component classes. The known epoch-10 partial-run density of 0.0863 makes
+the representation-stage dependence explicit, but is not a valid result. RSPG
+remains dead and no ablation is activated.
+
 1. **Mechanism** — Warm up the ordinary Proxy Anchor model for 10 epochs, then make one
    stop-gradient, full-training-set embedding pass. For each image \(i\), form a *rival
    signature* \(q_i\): a distribution over **other-class identities**, obtained by
