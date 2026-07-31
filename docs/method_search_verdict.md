@@ -373,10 +373,13 @@ supervision conflict. **Decoupling target and evaluation timescales is not the
 constraint: a single EMA was not losing anything recoverable.** Candidate 1
 receives no confirmation run and no further dual-EMA GPU time.
 
-The averaging control itself improved raw by **+0.183 pt** and corrected by
-**+0.255 pt** over paired seed-0 Proxy Anchor. Its raw gain narrowly missed the
-preregistered +0.20 to +0.50 pt range. This remains evidence about an old
-weight-averaging method, not a novel-method success.
+The subsequent three-seed averaging confirmation produced raw deltas of
+**+0.18 / −0.13 / +0.15 pt**, mean **+0.068 pt** (sd 0.169, paired t
+p = 0.5589, exact sign p = 0.500). Selection correction increased the estimate
+to **+0.203 pt** (sd 0.157). Thus the raw CUB effect (+0.41 pt) did not replicate
+on In-Shop. The correction again shows that the standard protocol under-credits
+the stabler arm, but neither estimate supports a method claim at n=3. Weight
+averaging does not advance to Cars or a momentum sweep.
 
 ## 9. Candidate 2: cross-trajectory consensus supervision
 

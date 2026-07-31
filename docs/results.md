@@ -563,20 +563,27 @@ BatchNorm. Both legs are complete at three seeds; H3 is closed.
 
 ### BN-correct weight averaging and dual-timescale EMA on In-Shop
 
-The preregistered seed-0 screen used BN-correct averaging because In-Shop trains
+The preregistered screen used BN-correct averaging because In-Shop trains
 BatchNorm. Raw best-over-training and leave-one-out-neighbour
-selection-corrected R@1 must both be reported:
+selection-corrected R@1 must both be reported.
 
-| arm | recipe digest | raw best R@1 | corrected R@1 | raw Δ vs paired PA | corrected Δ |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9015 | — | — |
-| `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9033 | **+0.183 pt** | **+0.255 pt** |
-| `pa_dual_ema_bnfix` | `79f9d35c4eea` | 0.9044 | 0.9040 | **+0.197 pt** | **+0.332 pt** |
+Three-seed averaging confirmation:
 
-The averaging control narrowly missed its preregistered raw prediction of +0.20
-to +0.50 pt, although selection correction again increased its estimated gain.
-This is one seed and an evaluation of an established averaging technique, not a
-novel-method claim.
+| arm | recipe digest | seed 0 | seed 1 | seed 2 | raw mean | corrected mean |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9048 | 0.9032 | 0.9035 | 0.9015 |
+| `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9036 | 0.9046 | 0.9042 | 0.9035 |
+
+The paired raw deltas are **+0.18 / −0.13 / +0.15 pt**: mean **+0.068
+pt**, paired sd **0.169**, t(2) = 0.70, p = 0.5589, exact sign p = 0.500.
+Selection correction increases the mean to **+0.203 pt**, paired sd **0.157**.
+
+The standard raw benchmark effect therefore does **not replicate** off CUB:
+one seed is negative and the three-seed mean is only +0.07 pt, versus +0.41 pt
+on CUB. The correction confirms that best-over-training under-credits the
+stabler averaged arm, but a corrected +0.20 pt at n=3 is a measurement finding,
+not an established method gain. Averaging does not earn Cars or a momentum
+sweep.
 
 The novel candidate failed. Dual-timescale EMA added only **+0.014 pt raw** and
 **+0.077 pt corrected** over averaging alone. It required +0.24 pt raw, a
