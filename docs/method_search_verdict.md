@@ -369,7 +369,9 @@ evaluate the same BN-correct fast average, the slow relational teacher adds
 effectively nothing on In-Shop. That is consistent with the prior three-seed
 BN-correct distillation result (−0.04 pt versus Proxy Anchor). The opposing EMA
 timescale preferences measured on one CUB seed did not expose a transferable
-supervision conflict. Candidate 1 receives no confirmation run.
+supervision conflict. **Decoupling target and evaluation timescales is not the
+constraint: a single EMA was not losing anything recoverable.** Candidate 1
+receives no confirmation run and no further dual-EMA GPU time.
 
 The averaging control itself improved raw by **+0.183 pt** and corrected by
 **+0.255 pt** over paired seed-0 Proxy Anchor. Its raw gain narrowly missed the

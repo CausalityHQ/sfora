@@ -2,8 +2,8 @@
 """Paired analysis of the corrected reference-recipe matrix.
 
 Reads `image_end_to_end_*.json` artifacts produced by `run_reference_matrix.sh`
-and reports, per dataset, the **paired per-seed** effect of EMA relational
-distillation on each base loss.
+and reports, per dataset, the **paired per-seed** effect of every registered
+derived arm on its declared control.
 
 Statistical stance (important, and deliberately conservative):
 
@@ -76,6 +76,11 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
 # 512-d `proxy_anchor` would report a capacity difference as a method effect, so these
 # override the default "derived pairs with its base loss" rule.
 PAIRED_CONTROL: dict[str, str] = {
+    # BN-correct averaging and dual EMA are derived directly from the untouched
+    # Proxy Anchor recipe. Keep these explicit: silently pairing them with another
+    # EMA arm would answer a different question than their preregistration.
+    "pa_ema_avg_bnfix": "proxy_anchor",
+    "pa_dual_ema_bnfix": "proxy_anchor",
     "narrow128_distill": "narrow128",
     "narrow64_distill": "narrow64",
 }
@@ -303,7 +308,7 @@ def main() -> int:
                     "  Deltas below are NOT a clean distillation estimate."
                 )
 
-        print("\n  paired effect of distillation (derived - base), R@1 points:")
+        print("\n  paired effect (derived - declared control), R@1 points:")
         for derived, base in BASE_OF.items():
             deltas = [
                 100.0 * (found[(dataset, derived, s)].best - found[(dataset, base, s)].best)
