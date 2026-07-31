@@ -24,6 +24,11 @@ is a large, measurable within-class nuisance that fixed coordinates mishandle.
 
 ### 1. Augmentation-response compatibility graph (ARCG) — LIVE, narrow
 
+**Gate-2 adversarial audit completed 2026-07-31:** still live, narrowly; see
+[`docs/arcg_prior_art.md`](arcg_prior_art.md). Direct prior art occupies every
+ingredient, but the audit did not find the conjunction of cross-image response
+comparison and a discrete positive-to-unknown gate.
+
 At a fixed training checkpoint, evaluate each training image under a small,
 registered set of deterministic label-preserving interventions: horizontal
 flip, left/right/top/bottom crop, and mild desaturation. Its signature is the
