@@ -814,7 +814,19 @@ ordinal target remained substantially unresolved and its small training effect
 did not transfer to retrieval. A measured intra-class relation is not
 automatically a useful relevance order.
 
-## 21. Reopened-loop stopping argument: data-only supervision expansion
+## 21. Response-adaptive augmentation dosing: occupied by InstaAug
+
+**Gate-2 prior-art death recorded 2026-07-31; no GPU spent.** RAAD used the
+ARCG/IPSR result as augmentation-safety evidence rather than a relevance order:
+crop-sensitive images would receive milder crop distributions, analogous to
+per-unit dose titration. The mechanism is directly occupied by InstaAug (Miao
+et al., ICML 2023), which learns input-specific augmentation distributions to
+capture local crop invariances. AdaAug learns class/instance-adaptive policies,
+iMAS weakens augmentation per hard instance, and Soft Augmentation changes
+targets with crop severity. Replacing their learned policy or hardness with a
+frozen response score is not method novelty. Candidate 21 is **DEAD at Gate 2**.
+
+## 22. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
