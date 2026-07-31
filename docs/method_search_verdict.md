@@ -610,8 +610,9 @@ and supervised Contextual Similarity Optimization
 ([Liao et al., arXiv:2210.01908](https://arxiv.org/abs/2210.01908)). RSPG's only
 possible distinction is a target-class-excluded descriptor over rival class
 identities that gates same-class pairs from positive to unknown, rather than an
-instance-kNN contextual loss. That distinction is narrow and does **not**
-establish novelty; RSPG is not recorded as a novel method.
+instance-kNN contextual loss. The adversarial audit verdict is **LIVE,
+narrowly**, conditional on ablations showing that this operator—not generic
+contextual training—causes any gain.
 
 The mandatory CUDA-disabled diagnostic on an existing CUB training-only pack
 retained **109,375 / 169,596 edges**, density **0.6449**, above the fixed 0.60

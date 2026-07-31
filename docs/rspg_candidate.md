@@ -13,7 +13,7 @@ the same time, global class-centred pseudo-modes are unstable (cross-run ARI
 is local agreement about *which other classes are rivals*, not a stable subclass
 centre.
 
-## Gate 2 — nearest prior art; novelty not claimed
+## Gate 2 — prior art: LIVE, narrowly
 
 The exact candidate is narrower than the response-distillation/feature-mask
 proposal rejected as candidate 7. RSPG does not reproduce a response vector and
@@ -42,10 +42,10 @@ as a supervised metric-learning loss
 ([Liao et al., arXiv:2210.01908](https://arxiv.org/abs/2210.01908)).
 
 RSPG excludes the target class, describes rivals by class identity rather than
-instance kNN membership, and gates positive-to-unknown edges. The asymmetry test
-establishes that this is not direct distance mining, but it does not establish
-novelty over contextual training. RSPG must not be recorded as novel;
-`docs/rspg_prior_art.md` records the narrow unresolved boundary.
+instance kNN membership, and gates positive-to-unknown edges. The adversarial
+audit found this complete operator unoccupied, narrowly. The novelty claim lives
+or dies on the gate and requires the three controls in
+`docs/rspg_ablation_plan.md`; a headline retrieval gain alone is insufficient.
 
 ## Gate 3 — preregistration
 

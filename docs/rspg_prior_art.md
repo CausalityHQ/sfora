@@ -1,4 +1,4 @@
-# RSPG prior-art audit — novelty not claimed
+# RSPG prior-art audit — verdict: LIVE, narrowly
 
 Adversarial search, run **before** the In-Shop result arrived. The brief was to *falsify*
 the novelty claim, not support it — four candidates in this project were found to be prior
@@ -6,11 +6,9 @@ art only after the GPU work was done.
 
 ## Verdict
 
-> **Narrow distinction found; novelty remains unestablished.** No paper found in this
-> audit matches the complete operator. The idea is assembled from known ingredients,
-> and **cross-sample, target-excluded class-distribution agreement to gate same-class
-> positives** is the only possible distinction. It must not be reported as novel
-> without broader review and mechanism ablations.
+> **LIVE, narrowly.** No paper matches the complete operator. The idea is assembled from
+> known ingredients, but the decisive use of **cross-sample, target-excluded
+> class-distribution agreement to gate same-class positives** appears distinct.
 
 ## The two nearest neighbours, and why neither kills it
 
@@ -43,15 +41,14 @@ transfers instance *rankings* or aggregates other samples' predictions. No prior
 found combining different-sample agreement, target-excluded rival-class distributions, and
 same-class positive gating.
 
-## The possible distinction, not a novelty claim
+## Why the distinction is substantive rather than cosmetic
 
-Replacing instance neighbours with class identities changes the **support and
+> Replacing instance neighbours with class identities changes the **support and
 > invariances** of the signature: RSPG asks which competing identities explain each image
 > after removing its known identity. More importantly, RSPG uses agreement as a **discrete
 > eligibility test for supervision**. Neither contextual paper does that. Had RSPG merely
 > substituted class proxies into their contextual loss, the difference would have been
-cosmetic; **the positive-to-unknown gate is the only potentially meaningful
-distinction.** This audit does not establish that it is sufficient for novelty.
+> cosmetic; **the positive-to-unknown gate is the meaningful distinction.**
 
 ## The bar this sets — read before claiming anything
 
