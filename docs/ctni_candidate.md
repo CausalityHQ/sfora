@@ -1,7 +1,7 @@
 # CTNI — class-transmitted negative immunity
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, implementation, or GPU
-use.**
+**Status: DEAD at Gate 2 on 2026-07-31; no implementation or GPU use.** Gate 1
+was recorded before the audit below.
 
 ## Repository provenance
 
@@ -57,3 +57,30 @@ one labelled sample to other samples of that class. It is also dead if Proxy
 Anchor's existing all-proxy negative term makes the added eligibility purely an
 ordinary static reweighting with no distinct supervision operation.
 
+## Gate-2 result
+
+The second kill condition holds exactly. Proxy Anchor's negative term sums over
+every batch image whose label differs from a proxy. Consequently every proposed
+`(image from c, rival proxy r != c)` relation is already supervised as negative,
+whether or not `r` appears in that image's own top rivals. Transmitting a peer's
+rival can only increase an existing pair's weight or margin; it does not add a
+new negative relation.
+
+That remaining mechanism is occupied by hard-class/hard-prototype mining and
+class-adaptive margins. AdaptiveFace (Liu et al., CVPR 2019) jointly learns
+class-dependent margins and mines hard class prototypes for large-class face
+recognition. Confusion-Based Metric Learning explicitly uses confusion
+structure to regularize zero-shot retrieval, while the broad hard-negative and
+pair-weighting literature covers score-dependent emphasis. CTNI's same-class
+aggregation is a mining statistic, not a distinct supervision operator.
+
+The measured In-Shop rival diversity remains informative, but Proxy Anchor has
+already encoded the complete negative label relation. Candidate 27 fails prior
+art/redundancy before preregistration.
+
+Primary sources checked include:
+
+- H. Liu et al., *AdaptiveFace: Adaptive Margin and Sampling for Face
+  Recognition*, CVPR 2019.
+- *Confusion-Based Metric Learning for Regularizing Zero-Shot Image Retrieval
+  and Clustering*, IEEE TNNLS 2022.

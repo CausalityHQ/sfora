@@ -898,7 +898,18 @@ Most classes therefore offer only three or four leave-one-out calibration
 scores. Pooling across identities would discard class-conditional calibration
 and leave an occupied kNN/radius loss. Candidate 26 is **DEAD at Gate 1**.
 
-## 27. Reopened-loop stopping argument: data-only supervision expansion
+## 27. Class-transmitted negative immunity: algebraically redundant
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** In-Shop's diverse rival
+profiles and few examples per identity motivated sharing a rival discovered by
+one class member as negative supervision for all peers. Proxy Anchor already
+labels every image negative against every nonmatching proxy, however, so the
+proposal adds no relation: it only reweights or enlarges the margin of an
+existing one. AdaptiveFace's hard-class mining/class-adaptive margins,
+confusion-based metric learning, and ordinary pair weighting occupy that
+remainder. Candidate 27 is **DEAD at Gate 2**.
+
+## 28. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
