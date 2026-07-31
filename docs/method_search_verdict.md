@@ -554,7 +554,47 @@ similarity is Conditional Similarity Networks
 Self-derived conditions and a temporal teacher alter target acquisition, not
 the underlying supervision primitive. Candidate 7 stops before preregistration.
 
-## 16. Reopened-loop stopping argument: data-only supervision expansion
+## 16. Weight averaging: dataset-specific CUB effect
+
+**Replication failure recorded 2026-07-31; line closed.** BN-correct weight
+averaging (`pa_ema_avg_bnfix`) changed In-Shop R@1 by **+0.19, −0.12, and
++0.14 pt** against seed-paired Proxy Anchor: mean **+0.070 pt**, sd **0.166**,
+paired t = **0.73**, with only two of three signs positive. Seed 1 was negative.
+The selection-corrected estimate was +0.203 pt, but the registered raw retrieval
+effect is the deciding quantity and is neither practically nor statistically
+established.
+
+This is a failure to replicate the CUB +0.414 pt effect, not evidence for a
+smaller universal benefit. The mechanism—Polyak/SWA-style temporal weight
+averaging—reduced trajectory noise on CUB but did not transfer to In-Shop under
+the required BatchNorm-correct evaluation. No Cars run and no momentum sweep
+are warranted.
+
+The measurement lesson is stronger than the method result. The CUB effect
+looked solid after two seeds and had a tight sd of **0.060 pt**, yet it was
+dataset-specific. **Tight variance on one dataset is evidence about repeatability
+on that dataset, not evidence that an intervention is real across datasets.**
+This joins the winner's-curse result: checkpoint-selection correction can alter
+arm rankings, while low within-dataset seed variance can still leave an entire
+method claim non-replicating out of dataset.
+
+## 17. Dual-timescale EMA: no recoverable timescale conflict
+
+**Registered falsification recorded 2026-07-31; line closed.** On In-Shop,
+`pa_dual_ema_bnfix` beat the matched BN-correct averaging arm by only **+0.014
+pt raw** and **+0.077 pt selection-corrected**, versus the preregistered minimum
+raw gain of +0.24 pt and absolute threshold of 0.9048. It therefore failed its
+own Gate-4 condition.
+
+The factorial suggested that relational targets preferred momentum 0.999 while
+evaluated weights preferred 0.99. Decoupling those roles did not recover their
+putative sum: once both methods evaluated the same BN-correct fast average, the
+slow relational teacher contributed effectively nothing. The apparent CUB
+timescale conflict was not a transferable constraint. The accidental CUB
+seed-0 continuation was terminated before producing a result; no further
+dual-EMA or momentum-sweep GPU time is permitted.
+
+## 18. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
