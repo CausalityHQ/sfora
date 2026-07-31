@@ -1002,6 +1002,14 @@ classes versus 0.1906 for classes with at least 21 images. This belongs to
 class-frequency correction, balanced losses, and adaptive-margin prior art; it
 does not rescue EGPU or justify a renamed arm.
 
+An image-level follow-up makes the negative conclusion sharper rather than weaker.
+At the exact epoch-10 operating point, images owned by their labelled proxy have
+leave-one-out R@1 `0.9656`, versus `0.8865` when a foreign proxy scores highest: a
+large **7.91-point conditional gap**. But Proxy Anchor already optimizes exactly
+the labelled-versus-foreign proxy inequalities defining that event. Using the
+event changes sample weights, curriculum, or margin, not what supervision exists.
+The defect predicts errors but does not identify a novel intervention.
+
 ## 35. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,

@@ -40,3 +40,26 @@ The residual proxy defect is therefore consistent with ordinary class-frequency
 imbalance, not an exposure-gating mechanism. Frequency-aware weighting,
 class-balanced loss, logit correction, and count-adaptive margins are established
 method classes; this observation does not open a novel arm by itself.
+
+## Image-level ownership and retrieval errors
+
+An exact CPU-only follow-up used the same 25,882 normalized training embeddings
+and checkpoint. For each image it computed (i) leave-one-out nearest-neighbour
+correctness and (ii) the margin between its labelled proxy and its highest-scoring
+foreign proxy.
+
+| ownership condition | images | leave-one-out R@1 |
+|---|---:|---:|
+| labelled proxy wins | 16,903 | **0.9656** |
+| a foreign proxy wins | 8,979 | **0.8865** |
+
+The conditional gap is **7.91 points**. Mean ownership margin is `+0.0305` for
+correct retrievals and `-0.0309` for errors; among the 118 images with margin at
+most `-0.20`, R@1 is only `0.6441`. Proxy ownership is therefore a real error-risk
+indicator, even though its class-level correlation with R@1 is weak.
+
+This still does not supply a new supervision relation. Proxy Anchor already
+optimizes each image's labelled-proxy score against every foreign proxy. Acting on
+the indicator would reweight hard examples, schedule them as a curriculum, or add
+another classification margin. Those are occupied mechanisms, so this measurement
+closes rather than reopens the proxy-calibration branch.
