@@ -875,7 +875,19 @@ positive or negative accordingly. A supervised proxy-response detector and an
 unknown rather than negative target are implementation choices, not a novel
 mechanism. Candidate 24 is **DEAD at Gate 2**.
 
-## 25. Reopened-loop stopping argument: data-only supervision expansion
+## 25. Occupancy-bag Proxy Anchor: occupied by Bag Exponential Loss
+
+**Gate-2 prior-art death recorded 2026-07-31; no GPU spent.** Inspired by
+repeated-survey occupancy models, OBPA would assign an identity label to a bag
+of augmented views under an at-least-one-positive assumption, allowing an
+occluded crop to be uninformative without selecting or relabeling it directly.
+Martinez-Cortes et al.'s Bag Exponential Loss (Pattern Recognition 2021) already
+trains deep image retrieval with bags of matching images under exactly this
+latent-positive MIL assumption and dynamically weights relevance inside each
+bag. Augmented views and class proxies are an application choice. Candidate 25
+is **DEAD at Gate 2**.
+
+## 26. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
