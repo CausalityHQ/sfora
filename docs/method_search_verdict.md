@@ -826,7 +826,25 @@ iMAS weakens augmentation per hard instance, and Soft Augmentation changes
 targets with crop severity. Replacing their learned policy or hardness with a
 frozen response score is not method novelty. Candidate 21 is **DEAD at Gate 2**.
 
-## 22. Reopened-loop stopping argument: data-only supervision expansion
+## 22. Reaction-norm transport and homeostatic factor competition
+
+**Shortlist exhausted before GPU.** RNT proposed cross-image/cross-view
+supervision derived from augmentation reaction norms. Fu et al.'s Deep Metric
+Learning with Self-Supervised Ranking (AAAI 2021) already uses crop,
+perspective, and colour transformations to create intra-class ranking
+supervision, and its TCSVT 2022 synthesis extension plus later intra-variance
+ranking work generalize that mechanism. Matching transformed views across
+images by a response descriptor is an adjacent sampler, not a defensible new
+supervision class, and would cost roughly 2x training.
+
+HFC proposed reallocating positive loss toward under-covered response strata.
+That is continuous sample/loss reweighting—occupied by general pair weighting,
+hardness-adaptive objectives, and instance-adaptive supervision—and its Gate-1
+premise was absent: the repository measured response heterogeneity, not
+per-stratum gradient starvation. Both candidates are **DEAD before
+implementation**.
+
+## 23. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
