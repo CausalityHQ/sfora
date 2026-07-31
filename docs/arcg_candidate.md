@@ -95,8 +95,14 @@ screen can establish that.
 ## Registered In-Shop screen
 
 Only if the diagnostic passes, the full ARCG arm will use the same fixed panel,
-normalization, threshold, warm-up epoch, and refresh schedule; none may be tuned
-from the diagnostic. Seed 0 is the Gate 4 screen. The predicted raw best-over-
+normalization, threshold, and warm-up epoch; none may be tuned from the
+diagnostic. **Prospective correction before implementation or screening:** the
+initial Gate-3 text referred to a “refresh schedule” without naming one. That is
+an underspecified preregistration. The executable rule is now fixed as graph
+construction at epoch 10 and one refresh at epoch 40, both from the current
+student. No EMA is introduced because it is not part of ARCG's mechanism. This
+correction is uncontaminated by retrieval results: no ARCG training arm exists
+and no screen has run. Seed 0 is the Gate 4 screen. The predicted raw best-over-
 training In-Shop R@1 is **0.9080**. It is falsified below **0.9059**, which is
 0.24 point above the paired Proxy Anchor mean and two times the measured
 0.12-point dataset sigma. Raw and selection-corrected values must both be
