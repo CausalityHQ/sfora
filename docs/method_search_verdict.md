@@ -334,3 +334,43 @@ No genuinely novel mechanism survives. The remaining unoccupied observations are
 
 Those can support a measurement paper. They do not become a novel similarity-learning
 method by being combined. Candidate sixteen remains unregistered and unqueued.
+
+## 8. Candidate 1 under the iterative protocol: dual-timescale EMA
+
+**Gate 4 failure recorded 2026-07-31.** Candidate 1 was motivated by the CUB
+factorial: the relational-distillation target preferred EMA momentum 0.999
+(+0.91 pt versus +0.30 pt at 0.99), while the evaluated average preferred 0.99
+(+0.46 pt versus +0.07 pt at 0.999). `pa_dual_ema_bnfix` therefore used a slow
+0.999 teacher for relational supervision and a separate BN-correct 0.99 average
+for evaluation.
+
+The prior-art audit found role-specific and dual-timescale EMA teachers in
+adjacent fields, but no benchmark-matched implementation of this exact
+single-student DML mechanism. Novelty was explicitly qualified: without a
+material gain over averaging alone, the combination would not be distinct
+enough from its established components to defend.
+
+The preregistered In-Shop seed-0 screen compared:
+
+| arm | recipe digest | raw best R@1 | corrected R@1 |
+| --- | --- | ---: | ---: |
+| Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9015 |
+| BN-correct fast average | `80f57f183966` | 0.9043 | 0.9033 |
+| BN-correct dual EMA | `79f9d35c4eea` | 0.9044 | 0.9040 |
+
+Raw dual-minus-average was **+0.014 pt**; selection-corrected it was
+**+0.077 pt**. The candidate required at least +0.24 pt raw, a positive
+corrected delta, and absolute raw R@1 of at least 0.9048. It met only the
+corrected-sign condition and therefore **failed gate 4**.
+
+The mechanism is informative, not merely the negative score: once both arms
+evaluate the same BN-correct fast average, the slow relational teacher adds
+effectively nothing on In-Shop. That is consistent with the prior three-seed
+BN-correct distillation result (−0.04 pt versus Proxy Anchor). The opposing EMA
+timescale preferences measured on one CUB seed did not expose a transferable
+supervision conflict. Candidate 1 receives no confirmation run.
+
+The averaging control itself improved raw by **+0.183 pt** and corrected by
+**+0.255 pt** over paired seed-0 Proxy Anchor. Its raw gain narrowly missed the
+preregistered +0.20 to +0.50 pt range. This remains evidence about an old
+weight-averaging method, not a novel-method success.

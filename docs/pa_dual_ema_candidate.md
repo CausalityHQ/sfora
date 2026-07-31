@@ -1,6 +1,6 @@
 # Candidate 1: dual-timescale EMA
 
-Status: iterative search protocol in progress.
+Status: **failed gate 4 on In-Shop**.
 
 ## Gate 1 — provenance: PASS
 
@@ -123,3 +123,48 @@ weight averaging and a negative result for the novel dual-timescale combination.
 
 If it unexpectedly passes, seeds 1–3 are fresh confirmation seeds. Seed 0 will
 never be included in the quoted confirmation estimate.
+
+## Gate 4 — In-Shop screen: FAIL
+
+Both preregistered seed-0 artifacts completed on 2026-07-31. The queue stopped
+after the candidate for protocol judgement.
+
+| arm | digest | raw best R@1 | selection-corrected R@1 | selection bonus |
+| --- | --- | ---: | ---: | ---: |
+| Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9015 | +0.201 pt |
+| `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9033 | +0.100 pt |
+| `pa_dual_ema_bnfix` | `79f9d35c4eea` | 0.9044 | 0.9040 | +0.037 pt |
+
+The digest-pinned output files are:
+
+- `image_end_to_end_inshop.pa_ema_avg_bnfix.proxy_anchor.inshop.official-51db570.pa_ema_avg_bnfix.80f57f183966_seed0.json`
+- `image_end_to_end_inshop.pa_dual_ema_bnfix.proxy_anchor.inshop.official-51db570.pa_dual_ema_bnfix.79f9d35c4eea_seed0.json`
+
+The raw averaging gain over the paired seed-0 baseline was **+0.183 pt** and
+the corrected gain was **+0.255 pt**. This misses the preregistered +0.20 to
++0.50 pt raw prediction by 0.017 pt at its lower boundary. The raw dual gain
+was **+0.197 pt**, corrected to **+0.332 pt**.
+
+The deciding dual-minus-average comparison was:
+
+- raw: **+0.014 pt** (`0.9044` versus `0.9043`);
+- selection-corrected: **+0.077 pt** (`0.9040` versus `0.9033`).
+
+Selection correction therefore behaved in the predicted direction, but the
+candidate failed two of its three conjunctive success conditions:
+
+1. +0.014 pt raw is far below the required +0.24 pt;
+2. +0.077 pt corrected is positive, satisfying only this condition;
+3. 0.9044 raw is below the required 0.9048.
+
+### Mechanism verdict
+
+Separating the EMA timescales does not resolve a hidden conflict on In-Shop.
+Once the same BN-correct fast average is evaluated in both arms, adding the slow
+0.999 relational-distillation teacher changes raw Recall@1 by effectively zero.
+This agrees with the prior three-seed In-Shop result in which BN-correct
+distillation was already 0.04 pt below Proxy Anchor. The factorial conflict was
+CUB-specific evidence, not a transferable supervision mechanism.
+
+Candidate 1 stops here. It receives no confirmation seeds and cannot support a
+novel-method claim.
