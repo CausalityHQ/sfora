@@ -347,7 +347,8 @@ measured −1.47 pt).
 
 The iterative search is closed on the current evidence. Candidate 1 failed its
 preregistered In-Shop screen; candidate 2 died on retrieval prior art; candidate
-3 lacked repository provenance and was independently occupied by BLenDeR;
+3 lacked repository provenance; BLenDeR no longer closes the broader cheap,
+data-only supervision-expansion class;
 candidate 4's graded within-class relations were established continuous-label
 DML prior art. See `docs/method_search_verdict.md` §§8–12. What survives is
 worth writing, and it is not a novel-method claim.

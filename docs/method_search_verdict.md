@@ -32,16 +32,21 @@ not algorithmic headroom.
 
 ## 3. The one direction with a credible prior is occupied
 
-Changing *what supervision exists* — the only untried class — points at controlled
-generative expansion of intra-class support. This was independently verified against
-the primary paper on 2026-07-31: BLenDeR performs controlled diffusion-based
-intra-class image synthesis specifically for DML and reports +3.7 R@1 on CUB and
-+1.8 on Cars
-([Kolf et al., arXiv 2026](https://arxiv.org/abs/2601.20246)).
-Class-semantic supervision is likewise occupied by Roth, Vinyals & Akata,
-*Integrating Language Guidance into Vision-Based Deep Metric Learning* (CVPR 2022).
-The exact gains remain external claims rather than digest-pinned reproductions here,
-but the mechanism's existence is no longer an unverified premise.
+Changing *what supervision exists* — the only untried class — points at expansion of
+intra-class support. BLenDeR is positive evidence for one implementation, not closure
+of that direction
+([Kolf et al., arXiv v1 2026](https://arxiv.org/abs/2601.20246)). Its +3.7 CUB and
++1.8 Cars claims are single-run evidence: the paper reports no seed count, error bars,
+confidence intervals, or paired multi-seed test. It imports Stable Diffusion 1.5
+without a contamination audit for CUB/Cars, does not isolate gains from imported
+knowledge, and discloses neither end-to-end GPU cost nor a cheap recipe (20,000 LoRA
+steps per category and 150 samples per class per attribute are reported).
+
+The forecast for a faithful digest-pinned six-seed reproduction is roughly +1 to +2
+CUB points, not +3.7. More importantly, BLenDeR leaves open simpler, approximately
+1x, contamination-controlled **non-generative** supervision expansion derived only
+from the training images. Language guidance is occupied, but it is excluded from this
+open class for the same imported-knowledge reason.
 
 ## 4. Why the search should stop
 
@@ -424,12 +429,13 @@ Those observations do not diagnose missing intra-class support. Variable-size
 multi-crop collapsed because of frozen BatchNorm and therefore supplies no
 positive evidence for the coverage story.
 
-The direction is independently occupied as well: BLenDeR performs controlled
-diffusion-based intra-class synthesis for DML and reports +3.7 R@1 on CUB and
-+1.8 on Cars
-([Kolf et al., arXiv 2026](https://arxiv.org/abs/2601.20246)).
-Candidate 3 therefore has neither repository provenance nor a defensible novelty
-claim.
+BLenDeR implements expensive pretrained-generative expansion and reports +3.7
+R@1 on CUB and +1.8 on Cars, but its unreviewed single-run evidence and imported
+Stable Diffusion knowledge do **not** occupy cheap, data-only, non-generative
+expansion
+([Kolf et al., arXiv v1 2026](https://arxiv.org/abs/2601.20246)). Candidate 3's
+specific proposal still failed provenance at the time; its literature rationale
+for closing the entire supervision-expansion class is withdrawn.
 
 ## 11. Iterative-search stopping verdict
 
@@ -444,8 +450,10 @@ measurements in this repository**:
 2. The remaining between-trajectory measurement motivated candidate 2, but
    two-network agreement/disagreement as retrieval supervision is established
    prior art.
-3. Controlled expansion of class support fails provenance here and is occupied
-   by BLenDeR; language-derived semantic supervision is occupied too.
+3. Expensive pretrained-generative support expansion is demonstrated by BLenDeR,
+   but cheap, data-only, non-generative expansion remains open. The stopping
+   verdict is therefore superseded for that class; candidates 4 onward record
+   the reopened loop.
 4. Every other measured defect already maps to a failed mechanism or established
    method: teacher normalization to EMAN, trajectory averaging to Polyak/SWA,
    class-disjoint meta-supervision to adaptive dynamic constraints, proxy

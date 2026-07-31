@@ -111,8 +111,10 @@ that both effects are large enough to change conclusions.
 - CUB selection-bias estimates for averaging remain at n=2. In-Shop is now n=3:
   raw averaging is +0.068 pt and corrected +0.203 pt, so the stability correction
   survives while the raw method effect does not replicate.
-- BLenDeR was verified directly at arXiv:2601.20246. Its controlled synthetic
-  intra-class support mechanism is occupied.
+- BLenDeR was verified directly at arXiv:2601.20246. It is positive single-run
+  evidence for an expensive Stable-Diffusion implementation, with no seed count,
+  uncertainty, contamination audit, or disclosed GPU cost. It does not close
+  cheap, data-only, non-generative supervision expansion.
 
 Closed items: dual EMA failed its preregistered In-Shop screen (+0.014 pt raw
 over averaging versus +0.24 required), and no CUB confirmation is owed.
