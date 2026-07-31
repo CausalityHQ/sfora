@@ -6,7 +6,12 @@ positive-mining, multi-proxy, and intra-class-variance work. The ranking criteri
 `P(genuinely distinct) × P(In-Shop R@1 ≥ 0.9085)`. Only rank 1 is recommended for GPU;
 ranks 2–3 are included as explicit prior-art casualties, not as experiments to run.
 
-## 1. Rival-signature positive graph (RSPG) — **LIVE, but medium novelty confidence**
+## 1. Rival-signature positive graph (RSPG) — **DEAD: CPU graph too dense**
+
+Post-screen update: the fixed CPU-only diagnostic retained 64.49% of
+within-class pairs, above the preregistered 60% ceiling. The multi-component
+fraction was exactly 25%. RSPG therefore fails before a valid GPU screen; the
+thresholds were not tuned.
 
 1. **Mechanism** — Warm up the ordinary Proxy Anchor model for 10 epochs, then make one
    stop-gradient, full-training-set embedding pass. For each image \(i\), form a *rival

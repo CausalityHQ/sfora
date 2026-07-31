@@ -1,7 +1,6 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: gates 1–3 passed with qualified novelty; In-Shop graph diagnostic
-passed; seed-0 screen running.
+Status: CPU go/no-go diagnostic failed; candidate dead; no valid GPU screen.
 
 ## Gate 1 — provenance: PASS
 
@@ -58,10 +57,30 @@ at epoch 40 from a stop-gradient EMA snapshot. Training data, labels, and the
 current model are the only sources. Inference remains one model, one view,
 512-dimensional cosine retrieval.
 
-## Gate 4a — fixed graph diagnostic: PASS
+## CPU go/no-go diagnostic: FAIL
 
-On the In-Shop seed-0 run (recipe digest `7a57b992b6a4`), the epoch-10 graph had
+The required standalone diagnostic was run with `CUDA_VISIBLE_DEVICES=""` on
+the existing training-only `herd_tt_seed0.train.npz` pack. It retained **109,375
+/ 169,596 edges**, density **0.6449**, above the preregistered maximum 0.60.
+The multi-component fraction was **0.2500**, exactly the minimum. The conjunction
+therefore failed: under fixed thresholds the graph is too close to the original
+all-same-class relation. Thresholds were not changed.
+
+The candidate stops here. No In-Shop result, selection correction, CUB screen,
+or Cars run is valid or warranted.
+
+## Procedural correction
+
+An In-Shop seed-0 process was mistakenly started before this CPU-first task file
+was read. It was terminated after epoch 10 and is excluded from evidence. Its
+in-training graph happened to have
 **13,209 / 153,115 edges**, density **0.0863**, and **0.8703** of eligible
-classes had two or more connected components. Both preregistered conditions
-passed without changing the thresholds. Training therefore continued to the
-registered R@1 decision; this diagnostic alone is not a method win.
+classes with two or more components, but it cannot retroactively satisfy the
+registered ordering and produced no deciding retrieval result. No artifact from
+that partial run may be quoted.
+
+The required asymmetry test now exists and passes: the gate rejects a close
+same-class pair with disjoint rival signatures and accepts a distant pair with
+identical signatures. This confirms that the implementation did not collapse
+to Easy Positive or OSM distance mining, but it does not rescue the failed
+free diagnostic.

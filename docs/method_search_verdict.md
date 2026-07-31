@@ -596,7 +596,8 @@ dual-EMA or momentum-sweep GPU time is permitted.
 
 ## 18. Candidate 8: rival-signature positive graph
 
-**Gates 1–3 passed 2026-07-31 with qualified novelty.** Candidate 7's response
+**CPU diagnostic failure recorded 2026-07-31; no valid GPU result.** Candidate
+7's response
 distillation and conditional-mask mechanism remains dead. RSPG uses the same
 measured rival-profile structure for a different operation: agreement over
 negative-class identities decides whether a same-class pair becomes a positive
@@ -610,11 +611,18 @@ narrow and novelty confidence is medium. The preregistered In-Shop seed-0
 prediction is 0.9100 R@1, falsified below 0.9085 or by the fixed training-graph
 diagnostic in `docs/rspg_candidate.md`. No CUB screen is permitted.
 
-The fixed In-Shop epoch-10 graph diagnostic passed: 13,209 of 153,115 possible
-within-class edges were retained (density 0.0863), and 0.8703 of eligible
-classes had multiple connected components. The signal is therefore neither
-absent nor an alias for the full class label. The seed-0 retrieval threshold
-remains the deciding Gate-4 test.
+The mandatory CUDA-disabled diagnostic on an existing CUB training-only pack
+retained **109,375 / 169,596 edges**, density **0.6449**, above the fixed 0.60
+maximum. Its multi-component fraction was **0.2500**, exactly the minimum. The
+graph is therefore too close to indiscriminate same-class supervision and the
+candidate dies before a valid GPU screen. Thresholds were not tuned.
+
+The explicit mechanism test does reject a geometrically close pair with
+disagreeing rival signatures and accept a distant pair with agreeing signatures,
+so the implementation-level distinction from Easy Positive/OSM is real. The
+data-level gate is what fails. An In-Shop process mistakenly started before the
+CPU-first task specification was read was terminated after epoch 10; its partial
+curve and in-training graph are procedurally invalid and excluded.
 
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 

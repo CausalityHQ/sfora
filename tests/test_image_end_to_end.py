@@ -7457,3 +7457,39 @@ def test_rspg_graph_builder_creates_training_only_edges() -> None:
     assert state.target_embeddings.shape == (6, 2)
     assert 0.0 < state.edge_density <= 1.0
     assert any(state.neighbours)
+
+
+def test_rspg_gate_rejects_close_disagreement_and_accepts_distant_agreement() -> None:
+    from sfora.image_end_to_end import _rspg_signature_edge
+
+    # Distance cannot decide the edge: the close pair disagrees about every rival.
+    close_left = np.asarray([1.0, 0.0])
+    close_right = np.asarray([0.9999, 0.0001])
+    assert np.linalg.norm(close_left - close_right) < 0.001
+    rejected = _rspg_signature_edge(
+        np.asarray([0, 1, 2, 3, 4, 5, 6, 7]),
+        np.full(8, 1.0 / 8.0),
+        np.asarray([8, 9, 10, 11, 12, 13, 14, 15]),
+        np.full(8, 1.0 / 8.0),
+        overlap_count=8,
+        min_overlap=4,
+        max_js=0.25,
+    )
+    assert rejected is None
+
+    # Conversely, geometrically opposite samples pass when their rival identities agree.
+    distant_left = np.asarray([1.0, 0.0])
+    distant_right = np.asarray([-1.0, 0.0])
+    assert np.linalg.norm(distant_left - distant_right) == pytest.approx(2.0)
+    signature = np.asarray([0, 1, 2, 3, 4, 5, 6, 7])
+    probabilities = np.asarray([0.20, 0.18, 0.16, 0.14, 0.10, 0.09, 0.07, 0.06])
+    accepted = _rspg_signature_edge(
+        signature,
+        probabilities,
+        signature.copy(),
+        probabilities.copy(),
+        overlap_count=8,
+        min_overlap=4,
+        max_js=0.25,
+    )
+    assert accepted == pytest.approx(1.0)

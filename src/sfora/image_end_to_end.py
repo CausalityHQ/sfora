@@ -1857,6 +1857,42 @@ def _union_find_root(parents: list[int], index: int) -> int:
     return index
 
 
+def _rspg_signature_edge(
+    left_indices: NDArray[np.int64],
+    left_probabilities: NDArray[np.float64],
+    right_indices: NDArray[np.int64],
+    right_probabilities: NDArray[np.float64],
+    *,
+    overlap_count: int,
+    min_overlap: int,
+    max_js: float,
+) -> float | None:
+    """Return the edge target when rival signatures agree, independent of distance."""
+    overlap_width = min(overlap_count, len(left_indices), len(right_indices))
+    overlap = len(
+        set(left_indices[:overlap_width].tolist())
+        & set(right_indices[:overlap_width].tolist())
+    )
+    if overlap < min_overlap:
+        return None
+    support = np.union1d(left_indices, right_indices)
+    left_lookup = dict(zip(left_indices.tolist(), left_probabilities.tolist(), strict=True))
+    right_lookup = dict(zip(right_indices.tolist(), right_probabilities.tolist(), strict=True))
+    left_values = np.asarray([left_lookup.get(int(item), 0.0) for item in support])
+    right_values = np.asarray([right_lookup.get(int(item), 0.0) for item in support])
+    midpoint = 0.5 * (left_values + right_values)
+    left_mask = left_values > 0
+    right_mask = right_values > 0
+    left_divergence = np.sum(
+        left_values[left_mask] * np.log(left_values[left_mask] / midpoint[left_mask])
+    )
+    right_divergence = np.sum(
+        right_values[right_mask] * np.log(right_values[right_mask] / midpoint[right_mask])
+    )
+    js = 0.5 * float(left_divergence + right_divergence)
+    return None if js > max_js else 1.0 - js
+
+
 def _build_rspg_state(
     embeddings: NDArray[np.float64],
     labels: NDArray[np.int64],
@@ -1898,7 +1934,6 @@ def _build_rspg_state(
     top_indices = torch_module.cat(rival_indices).numpy()
     top_probabilities = torch_module.cat(rival_probabilities).numpy()
 
-    overlap_width = min(config.rspg_overlap_count, rival_count)
     label_array = np.asarray(labels, dtype=np.int64)
     neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(label_array))]
     edge_count = 0
@@ -1916,44 +1951,17 @@ def _build_rspg_state(
         for left_pos, left in enumerate(members):
             for right_pos in range(left_pos + 1, len(members)):
                 right = int(members[right_pos])
-                overlap = len(
-                    set(top_indices[left, :overlap_width].tolist())
-                    & set(top_indices[right, :overlap_width].tolist())
+                weight = _rspg_signature_edge(
+                    top_indices[left],
+                    top_probabilities[left],
+                    top_indices[right],
+                    top_probabilities[right],
+                    overlap_count=config.rspg_overlap_count,
+                    min_overlap=config.rspg_min_overlap,
+                    max_js=config.rspg_max_js,
                 )
-                if overlap < config.rspg_min_overlap:
+                if weight is None:
                     continue
-                support = np.union1d(top_indices[left], top_indices[right])
-                left_lookup = dict(
-                    zip(top_indices[left].tolist(), top_probabilities[left].tolist(), strict=True)
-                )
-                right_lookup = dict(
-                    zip(
-                        top_indices[right].tolist(),
-                        top_probabilities[right].tolist(),
-                        strict=True,
-                    )
-                )
-                left_values = np.asarray([left_lookup.get(int(item), 0.0) for item in support])
-                right_values = np.asarray(
-                    [right_lookup.get(int(item), 0.0) for item in support]
-                )
-                midpoint = 0.5 * (left_values + right_values)
-                left_mask = left_values > 0
-                right_mask = right_values > 0
-                left_divergence = np.sum(
-                    left_values[left_mask]
-                    * np.log(left_values[left_mask] / midpoint[left_mask])
-                )
-                js = 0.5 * float(
-                    left_divergence
-                    + np.sum(
-                        right_values[right_mask]
-                        * np.log(right_values[right_mask] / midpoint[right_mask])
-                    )
-                )
-                if js > config.rspg_max_js:
-                    continue
-                weight = 1.0 - js
                 neighbours[int(left)].append((right, weight))
                 neighbours[right].append((int(left), weight))
                 edge_count += 1
