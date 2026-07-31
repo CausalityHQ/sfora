@@ -1,7 +1,8 @@
 # Candidate 20: interventional principal-stratum ranking (IPSR)
 
-**Status: Gate 3 preregistered 2026-07-31 before implementation, inversion
-measurement, or IPSR GPU work.** Gate 1 is in
+**Status: preregistered operating diagnostic PASSED 2026-07-31; eligible for
+Gate-4 implementation and In-Shop screening.** Gate 3 was committed before
+implementation, inversion measurement, or IPSR GPU work. Gate 1 is in
 `post_arcg_candidate_batch.md`; the narrowly live Gate-2 audit is in
 `ipsr_prior_art.md`.
 
@@ -54,6 +55,15 @@ the 0.70 condition catches numerical or implementation mistakes rather than
 serving as a tunable effect-size threshold. Failure of any condition kills IPSR
 before training. The measured values may not change the selection rule or
 thresholds.
+
+### Diagnostic result
+
+The unchanged epoch-10 export produced **16,455 preferences**, covering
+**63.58% of training anchors** (prediction 70%, required at least 50%) and
+**73.36% of eligible identities** (prediction 70%, required at least 50%). Mean
+initial Bradley–Terry loss was **0.7359** (required at least 0.70). All three
+conditions passed. The independently rerun ARCG statistics reproduced exactly,
+confirming that preference construction used the registered response graph.
 
 ## Registered training operator
 
