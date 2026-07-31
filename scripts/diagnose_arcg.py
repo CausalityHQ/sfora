@@ -14,6 +14,7 @@ from PIL import Image
 from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
 from sfora.data import load_image_retrieval_bundle, materialize_image
 from sfora.image_end_to_end import ImageEndToEndConfig, _torchvision_model_factory
+from sfora.ipsr import build_ipsr_preferences
 
 
 def main() -> None:
@@ -22,6 +23,7 @@ def main() -> None:
     parser.add_argument("--training-report", type=Path, required=True)
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ipsr-output", type=Path)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=8)
     args = parser.parse_args()
@@ -108,6 +110,21 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(payload, indent=2))
+    if args.ipsr_output is not None:
+        ipsr = build_ipsr_preferences(anchor, signatures, labels, valid)
+        ipsr_payload = {
+            "preference_count": ipsr.preference_count,
+            "anchor_coverage": ipsr.anchor_coverage,
+            "class_coverage": ipsr.class_coverage,
+            "mean_initial_loss": ipsr.mean_initial_loss,
+            "checkpoint": str(args.checkpoint),
+            "dataset": "inshop.train",
+        }
+        args.ipsr_output.parent.mkdir(parents=True, exist_ok=True)
+        args.ipsr_output.write_text(
+            json.dumps(ipsr_payload, indent=2) + "\n", encoding="utf-8"
+        )
+        print(json.dumps({"ipsr": ipsr_payload}, indent=2))
 
 
 if __name__ == "__main__":
