@@ -461,3 +461,28 @@ Generating another arm without a new repository measurement would violate gate
 The honest outcome of this loop is therefore a negative method search and a
 positive measurement contribution. No further method GPU run is warranted on
 the current evidence.
+
+## 12. Candidate 4: graded within-class relation supervision
+
+**Gate 2 failure recorded 2026-07-31; no GPU used.** Sub-center Proxy Anchor
+lost roughly 1.7 pt on CUB, while Tversky's attempt to rescue distant positives
+lost roughly 1.6 pt on CUB and 4.63 pt on In-Shop. Candidate 4 interpreted those
+failures as evidence that binary class labels overstate within-class
+equivalence: discrete modes fragment the class, but uniform attraction
+over-collapses useful variation. It proposed pair-specific ordinal constraints
+from a frozen feature source.
+
+The causal mechanism is already established:
+
+- continuous/structured DML labels and distance-ratio preservation in
+  [Kim et al., CVPR 2019](https://openaccess.thecvf.com/content_CVPR_2019/papers/Kim_Deep_Metric_Learning_Beyond_Binary_Supervision_CVPR_2019_paper.pdf);
+- annotation-free latent fine-grained hierarchy supervision in
+  [HIER](https://arxiv.org/abs/2212.14258);
+- explicit preservation of useful intra-class variance by soft positive mining
+  in [Wang et al., 2018](https://arxiv.org/abs/1811.01459); and
+- automatic continuous re-annotation of binary retrieval pairs in
+  [Leyva-Vallina et al., CVPR 2023](https://openaccess.thecvf.com/content/CVPR2023/papers/Leyva-Vallina_Data-Efficient_Large_Scale_Place_Recognition_With_Graded_Similarity_Supervision_CVPR_2023_paper.pdf).
+
+A frozen encoder changes where the graded labels come from, not what supervision
+the method uses. Candidate 4 fails novelty before preregistration or
+implementation.
