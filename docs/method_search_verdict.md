@@ -1034,7 +1034,25 @@ versus **67.25% observed**. Relative to the correct sparse null, the learned err
 graph is already exceptionally reciprocal and balanced. Candidate 36 is **DEAD
 at Gate 1**; the raw one-way fraction was a sparsity artefact.
 
-## 37. Reopened-loop stopping argument: data-only supervision expansion
+## 37. Gradient-coalition supervision: real conflicts, occupied operators
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** Exact full-dataset Proxy
+Anchor tangent gradients at epoch 10 disagree for **17.94%** of In-Shop
+same-class pairs; 46.08% have cosine below 0.5, and gradient agreement correlates
+only 0.212 with embedding similarity. The signal is real. But Proxy Anchor has no
+image-to-image positive relation to gate. Sample or batch selection is GRAD-MATCH;
+one-step generalization weighting in DML is DML-ALA; projecting conflicts is
+PCGrad; adding compatible pair attraction returns to the already-falsified
+RSPG/ARCG interface. Candidate 37 is **DEAD at Gate 2** because every executable
+operator is occupied, not because the motivating measurement vanished.
+
+The estimator itself supplies a process correction: per-image proxy-softmax
+gradients falsely showed zero conflicts and mean cosine 0.891. Only the exact
+Proxy Anchor log-sum-exp aggregation revealed the 17.94% conflict rate. A
+convenient surrogate cannot adjudicate a mechanism whose premise depends on the
+operating loss.
+
+## 38. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
