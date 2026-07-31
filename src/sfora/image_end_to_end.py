@@ -205,6 +205,9 @@ class ImageEndToEndConfig(BaseModel):
     rspg_overlap_count: int = Field(default=8, ge=1)
     rspg_min_overlap: int = Field(default=4, ge=1)
     rspg_max_js: float = Field(default=0.25, gt=0.0)
+    rspg_control: Literal["signature_gate", "soft_js", "distance_gate", "instance_gate"] = (
+        "signature_gate"
+    )
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -947,13 +950,16 @@ def run_image_end_to_end_benchmark(
                         parameter.requires_grad_(True)
                 labels = labels.to(device, non_blocking=True)
                 rspg_epoch = (step - 1) // steps_per_epoch
-                if config.rspg_weight > 0.0 and rspg_epoch in {
-                    config.rspg_warmup_epoch,
-                    config.rspg_refresh_epoch,
-                } and (step - 1) % steps_per_epoch == 0:
-                    graph_model = (
-                        ema_teacher if rspg_epoch == config.rspg_refresh_epoch else model
-                    )
+                if (
+                    config.rspg_weight > 0.0
+                    and rspg_epoch
+                    in {
+                        config.rspg_warmup_epoch,
+                        config.rspg_refresh_epoch,
+                    }
+                    and (step - 1) % steps_per_epoch == 0
+                ):
+                    graph_model = ema_teacher if rspg_epoch == config.rspg_refresh_epoch else model
                     if graph_model is None:
                         raise RuntimeError("RSPG refresh requires its EMA snapshot")
                     graph_embeddings, graph_labels = _encode_model(
@@ -1870,11 +1876,21 @@ def _rspg_signature_edge(
     """Return the edge target when rival signatures agree, independent of distance."""
     overlap_width = min(overlap_count, len(left_indices), len(right_indices))
     overlap = len(
-        set(left_indices[:overlap_width].tolist())
-        & set(right_indices[:overlap_width].tolist())
+        set(left_indices[:overlap_width].tolist()) & set(right_indices[:overlap_width].tolist())
     )
     if overlap < min_overlap:
         return None
+    weight = _rspg_js_weight(left_indices, left_probabilities, right_indices, right_probabilities)
+    return None if 1.0 - weight > max_js else weight
+
+
+def _rspg_js_weight(
+    left_indices: NDArray[np.int64],
+    left_probabilities: NDArray[np.float64],
+    right_indices: NDArray[np.int64],
+    right_probabilities: NDArray[np.float64],
+) -> float:
+    """Continuous rival-distribution agreement, without an edge gate."""
     support = np.union1d(left_indices, right_indices)
     left_lookup = dict(zip(left_indices.tolist(), left_probabilities.tolist(), strict=True))
     right_lookup = dict(zip(right_indices.tolist(), right_probabilities.tolist(), strict=True))
@@ -1890,7 +1906,7 @@ def _rspg_signature_edge(
         right_values[right_mask] * np.log(right_values[right_mask] / midpoint[right_mask])
     )
     js = 0.5 * float(left_divergence + right_divergence)
-    return None if js > max_js else 1.0 - js
+    return max(1.0 - js, 1.0e-8)
 
 
 def _build_rspg_state(
@@ -1933,12 +1949,27 @@ def _build_rspg_state(
         rival_probabilities.append(torch_module.softmax(values, dim=1).cpu())
     top_indices = torch_module.cat(rival_indices).numpy()
     top_probabilities = torch_module.cat(rival_probabilities).numpy()
+    normalized_embeddings = target.detach().cpu().numpy()
 
     label_array = np.asarray(labels, dtype=np.int64)
-    neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(label_array))]
-    edge_count = 0
+    instance_sets: list[set[int]] | None = None
+    if config.rspg_control == "instance_gate":
+        instance_sets = []
+        for start in range(0, int(target.shape[0]), 256):
+            query = target[start : start + 256]
+            similarities = query @ target.T
+            own = class_index[start : start + int(query.shape[0])]
+            similarities = similarities.masked_fill(
+                class_index.unsqueeze(0).eq(own.unsqueeze(1)), -1.0e9
+            )
+            indices = torch_module.topk(
+                similarities, k=min(config.rspg_rival_count, int(target.shape[0]) - 1), dim=1
+            ).indices
+            instance_sets.extend(set(row) for row in indices.cpu().tolist())
+
+    # (left, right, rival weight, embedding cosine, instance-neighbour overlap)
+    records: list[tuple[int, int, float | None, float, int]] = []
     possible_edges = 0
-    multi_component_classes = 0
     eligible_classes = 0
     for label in np.unique(label_array):
         members = np.flatnonzero(label_array == label)
@@ -1946,8 +1977,6 @@ def _build_rspg_state(
             continue
         eligible_classes += 1
         possible_edges += len(members) * (len(members) - 1) // 2
-        parents = list(range(len(members)))
-
         for left_pos, left in enumerate(members):
             for right_pos in range(left_pos + 1, len(members)):
                 right = int(members[right_pos])
@@ -1960,13 +1989,60 @@ def _build_rspg_state(
                     min_overlap=config.rspg_min_overlap,
                     max_js=config.rspg_max_js,
                 )
-                if weight is None:
-                    continue
-                neighbours[int(left)].append((right, weight))
-                neighbours[right].append((int(left), weight))
-                edge_count += 1
-                left_root = _union_find_root(parents, left_pos)
-                right_root = _union_find_root(parents, right_pos)
+                cosine = float(
+                    np.dot(normalized_embeddings[int(left)], normalized_embeddings[right])
+                )
+                overlap = (
+                    0
+                    if instance_sets is None
+                    else len(instance_sets[int(left)] & instance_sets[right])
+                )
+                records.append((int(left), right, weight, cosine, overlap))
+
+    signature_count = sum(weight is not None for _, _, weight, _, _ in records)
+    if config.rspg_control == "signature_gate":
+        selected = [record for record in records if record[2] is not None]
+    elif config.rspg_control == "soft_js":
+        selected = [
+            (
+                left,
+                right,
+                _rspg_js_weight(
+                    top_indices[left],
+                    top_probabilities[left],
+                    top_indices[right],
+                    top_probabilities[right],
+                ),
+                cosine,
+                overlap,
+            )
+            for left, right, _, cosine, overlap in records
+        ]
+    elif config.rspg_control == "distance_gate":
+        selected = sorted(records, key=lambda item: (-item[3], item[0], item[1]))[:signature_count]
+    else:
+        selected = sorted(records, key=lambda item: (-item[4], item[0], item[1]))[:signature_count]
+
+    neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(label_array))]
+    for left, right, weight, _, _ in selected:
+        edge_weight = (
+            1.0 if config.rspg_control in {"distance_gate", "instance_gate"} else float(weight)
+        )
+        neighbours[left].append((right, edge_weight))
+        neighbours[right].append((left, edge_weight))
+    edge_count = len(selected)
+
+    multi_component_classes = 0
+    for label in np.unique(label_array):
+        members = np.flatnonzero(label_array == label)
+        if len(members) < 2:
+            continue
+        positions = {int(member): pos for pos, member in enumerate(members)}
+        parents = list(range(len(members)))
+        for left in members:
+            for right, _ in neighbours[int(left)]:
+                left_root = _union_find_root(parents, positions[int(left)])
+                right_root = _union_find_root(parents, positions[right])
                 parents[right_root] = left_root
         if len({_union_find_root(parents, index) for index in range(len(members))}) >= 2:
             multi_component_classes += 1
@@ -1974,13 +2050,15 @@ def _build_rspg_state(
     edge_density = edge_count / max(possible_edges, 1)
     multi_component_fraction = multi_component_classes / max(eligible_classes, 1)
     print(
-        "RSPG graph diagnostic: "
+        f"RSPG {config.rspg_control} graph diagnostic: "
         f"edges={edge_count}/{possible_edges} density={edge_density:.4f} "
         f"multi_component_classes={multi_component_fraction:.4f}",
         flush=True,
     )
-    if enforce_diagnostic and not (
-        0.05 <= edge_density <= 0.60 and multi_component_fraction >= 0.25
+    if (
+        enforce_diagnostic
+        and config.rspg_control != "soft_js"
+        and not (0.05 <= edge_density <= 0.60 and multi_component_fraction >= 0.25)
     ):
         raise RuntimeError(
             "RSPG preregistered graph diagnostic failed: require density in [0.05, 0.60] "
@@ -4432,14 +4510,12 @@ def _proxy_anchor_negative_loss(
     """The unchanged different-class half of Proxy Anchor."""
     if proxy_embeddings is None or proxy_labels is None:
         raise ValueError("RSPG requires Proxy Anchor class proxies")
-    similarities = _normalize(embeddings, torch_module) @ _normalize(
-        proxy_embeddings, torch_module
-    ).T
+    similarities = (
+        _normalize(embeddings, torch_module) @ _normalize(proxy_embeddings, torch_module).T
+    )
     negative_mask = ~labels[:, None].eq(proxy_labels[None, :])
     with_negative = negative_mask.any(dim=0)
-    logits = (float(alpha) * (similarities + float(delta))).masked_fill(
-        ~negative_mask, -1.0e9
-    )
+    logits = (float(alpha) * (similarities + float(delta))).masked_fill(~negative_mask, -1.0e9)
     return torch_module.nn.functional.softplus(
         torch_module.logsumexp(logits[:, with_negative], dim=0)
     ).mean()
@@ -4475,12 +4551,8 @@ def _rspg_positive_loss(
         weights, dtype=embeddings.dtype, device=embeddings.device
     )
     normalized = _normalize(embeddings, torch_module)
-    similarities = (
-        normalized[source_tensor] * state.target_embeddings[target_tensor]
-    ).sum(dim=1)
-    positive = torch_module.nn.functional.softplus(
-        -float(alpha) * (similarities - float(delta))
-    )
+    similarities = (normalized[source_tensor] * state.target_embeddings[target_tensor]).sum(dim=1)
+    positive = torch_module.nn.functional.softplus(-float(alpha) * (similarities - float(delta)))
     return (positive * weight_tensor).sum() / weight_tensor.sum().clamp_min(1.0e-8)
 
 

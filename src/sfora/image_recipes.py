@@ -48,6 +48,9 @@ DerivedMethod = Literal[
     "pa_dual_ema_bnfix",
     "pa_ema_avg_bnfix",
     "rspg",
+    "rspg_soft_js",
+    "rspg_distance_gate",
+    "rspg_instance_gate",
 ]
 
 # Base loss each derived method attaches to.
@@ -73,6 +76,9 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_dual_ema_bnfix": "proxy_anchor",
     "pa_ema_avg_bnfix": "proxy_anchor",
     "rspg": "proxy_anchor",
+    "rspg_soft_js": "proxy_anchor",
+    "rspg_distance_gate": "proxy_anchor",
+    "rspg_instance_gate": "proxy_anchor",
 }
 
 
@@ -592,12 +598,19 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "config": {**recipe.config, **delta},
             },
         )
-    if method == "rspg":
+    if method in {"rspg", "rspg_soft_js", "rspg_distance_gate", "rspg_instance_gate"}:
         delta = {
             "rspg_weight": 1.0,
             "ema_momentum": 0.99,
             "ema_teacher_ema_buffers": True,
         }
+        controls = {
+            "rspg": "signature_gate",
+            "rspg_soft_js": "soft_js",
+            "rspg_distance_gate": "distance_gate",
+            "rspg_instance_gate": "instance_gate",
+        }
+        delta["rspg_control"] = controls[method]
         return recipe.model_copy(
             deep=True,
             update={

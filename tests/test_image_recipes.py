@@ -688,3 +688,25 @@ def test_rspg_recipe_is_training_data_only_proxy_anchor_derivation() -> None:
     assert recipe.config["ema_momentum"] == 0.99
     assert recipe.config["ema_teacher_ema_buffers"] is True
     assert recipe.config["ema_distill_weight"] == 0.0
+
+
+@pytest.mark.parametrize(
+    ("method", "control"),
+    [
+        ("rspg_soft_js", "soft_js"),
+        ("rspg_distance_gate", "distance_gate"),
+        ("rspg_instance_gate", "instance_gate"),
+    ],
+)
+def test_rspg_ablation_recipe_changes_only_registered_control(method: str, control: str) -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    full = derive_recipe(base, "rspg")
+    ablation = derive_recipe(base, method)
+
+    assert ablation.config["rspg_control"] == control
+    changed = {
+        key
+        for key in set(full.config) | set(ablation.config)
+        if full.config.get(key) != ablation.config.get(key)
+    }
+    assert changed == {"rspg_control"}
