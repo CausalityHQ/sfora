@@ -1052,7 +1052,20 @@ Proxy Anchor log-sum-exp aggregation revealed the 17.94% conflict rate. A
 convenient surrogate cannot adjudicate a mechanism whose premise depends on the
 operating loss.
 
-## 38. Reopened-loop stopping argument: data-only supervision expansion
+## 38. Cross-session privileged supervision: occupied camera-aware retrieval
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** In-Shop filenames expose
+acquisition groups and named views. At the exact epoch-10 checkpoint, same-item
+same-group pairs have cosine `0.8199`, versus `0.6396` across groups, and 90.90%
+of nearest neighbours share the acquisition token. The model clearly exploits a
+photoshoot/model/background shortcut. Privileging cross-group same-item positives
+is nevertheless the established camera-aware retrieval mechanism: Wu et al.
+align intra- and cross-camera similarities, Lee et al. explicitly increases the
+role of same-identity cross-camera images, and Qi et al. aligns camera subdomains.
+Using a DeepFashion acquisition token instead of camera ID is a benchmark
+adaptation. Candidate 38 is **DEAD at Gate 2**.
+
+## 39. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
