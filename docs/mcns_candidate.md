@@ -1,7 +1,7 @@
 # MCNS — matched-control negative supervision
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, implementation, or GPU
-use.**
+**Status: DEAD at Gate 2 on 2026-07-31; no implementation or GPU use.** Gate 1
+was recorded before the audit below.
 
 ## Repository provenance
 
@@ -62,3 +62,20 @@ nuisance covariate before applying metric supervision. It is also dead if using
 a learned response signature instead of explicit pose is merely an estimator
 substitution for that established mechanism.
 
+## Gate-2 result
+
+The kill condition is met directly by *Unmasking Puppeteers: Leveraging
+Biometric Leakage to Disarm Impersonation in AI-based Videoconferencing*
+(OpenReview preprint, 2025/2026). Its central pose-matched contrastive loss
+constructs different-identity negatives with matched pose/expression; the paper
+states that matching every negative on pose makes the gradient orthogonal to
+pose variation and amplifies identity information. That is the same
+matched-control supervision operation as MCNS.
+
+Deep View-Aware Metric Learning (Chen, Xu, and Deng, IJCAI 2018) and pose-aware
+multi-shot re-identification provide older adjacent evidence that nuisance/view
+conditioning in identity metrics is established. But the pose-matched
+contrastive loss is decisive by itself. Replacing explicit pose/expression with
+a label-free intervention-response signature is a nuisance-estimator change,
+not a new similarity-learning mechanism, exactly as the preregistered kill rule
+states. Candidate 29 is **DEAD at Gate 2**.

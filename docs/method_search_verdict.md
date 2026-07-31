@@ -922,7 +922,20 @@ whose definition explicitly uses reciprocal-neighbor sets and query expansion.
 Wu et al. CVPR 2022 adds contextual distillation precedent. Candidate 28 is
 **DEAD at Gate 2**.
 
-## 29. Reopened-loop stopping argument: data-only supervision expansion
+## 29. Matched-control negative supervision: occupied by pose-matched contrast
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** A new CPU audit found that
+21.19% of the 1,600 epoch-10 In-Shop top-1 training errors repeat within an
+ordered identity-pair cell, motivating causal-style nuisance matching within
+confused negative identity pairs. MCNS would match different-identity images on
+their controlled-augmentation response and contrast them with nuisance held
+approximately fixed. *Unmasking Puppeteers* already introduces a pose-matched
+contrastive loss whose different-identity negatives share pose/expression so
+the gradient isolates identity. Deep View-Aware Metric Learning is older
+adjacent precedent. A response signature instead of pose is an estimator
+substitution, not method novelty. Candidate 29 is **DEAD at Gate 2**.
+
+## 30. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
