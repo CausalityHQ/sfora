@@ -844,7 +844,26 @@ premise was absent: the repository measured response heterogeneity, not
 per-stratum gradient starvation. Both candidates are **DEAD before
 implementation**.
 
-## 23. Reopened-loop stopping argument: data-only supervision expansion
+## 23. Interventional differencing nuisance residualization: occupied by NAP
+
+**Gate-2 prior-art death recorded 2026-07-31; no GPU spent.** IDNR treated
+controlled augmentations like fixed-effects interventions: within-image
+embedding differences would cancel identity, estimate an augmentation nuisance
+subspace, and define a fixed orthogonal quotient for Proxy Anchor training and
+retrieval. This followed directly from ARCG finding stable heterogeneous
+augmentation response and IPSR showing that response agreement is not retrieval
+relevance.
+
+The mechanism is already nuisance attribute projection (Solomonoff, Campbell,
+and Quillen, 2007 and earlier 2004--2006 work): estimate within-identity nuisance
+directions by an eigenproblem, orthogonally remove them, and compare identity in
+the retained space. Weighted and nonlinear NAP variants cover covariance
+weighting and learned feature spaces. Simard, LeCun, and Denker's tangent
+distance is additional image-transformation precedent. Controlled augmentation
+pairs are a cleaner estimator, not a new method class. Candidate 23 is **DEAD at
+Gate 2**.
+
+## 24. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
