@@ -776,7 +776,45 @@ is the second independent graph to show the same constraint: finding genuine
 intra-class structure is not enough; a positive-to-unknown graph must also
 define an unsatisfied, non-self-erasing training target.
 
-## 20. Reopened-loop stopping argument: data-only supervision expansion
+## 20. Interventional principal-stratum ranking: stable signal, irrelevant order
+
+**Gate-4 failure recorded 2026-07-31; line closed.** IPSR was motivated by
+ARCG's measured response/distance inversions and its objective collapse. It kept
+Proxy Anchor intact and added only ordinal preferences that were provably
+unsatisfied: for an anchor, a response-compatible but farther same-class peer
+should outrank the closest response-incompatible peer. The construction was
+inspired by principal stratification and Bradley–Terry paired comparisons.
+
+The Gate-2 audit found close prior art in Deep Metric Learning with
+Self-Supervised Ranking (Fu et al., AAAI 2021), its TCSVT synthesis-ranking
+extension, intra-class ranking losses, hard-positive mining, and adversarial
+same-source ordinal constraints. IPSR survived narrowly because those methods
+rank transformed/synthetic variants around one source or derive order from
+embedding distance; IPSR ranked three distinct real images using agreement of
+their empirical intervention-response profiles.
+
+The preregistered diagnostic passed with 16,455 preferences, **63.58% anchor
+coverage**, **73.36% class coverage**, and initial Bradley–Terry loss **0.7359**.
+The full run reproduced it (16,303 preferences; 62.99% / 73.31%; loss 0.7352),
+kept total loss at an ordinary scale, and retained a nonzero 0.71–0.73 ranking
+loss. The epoch-40 refresh also remained stable at 16,401 preferences and
+63.37% / 73.81% coverage. Thus this is not ARCG/RSPG self-erasure.
+
+The complete In-Shop screen reached raw best R@1 **0.9034**, below the registered
+0.9059 gate and existing HIST 0.9038. Against paired Proxy Anchor seed 0 the
+raw delta was only **+0.091 pt**. Selection correction gives IPSR **0.9013** and
+the shared-seed baseline **0.9007**, delta **+0.060 pt**. Both are below the
+measured 0.12-point In-Shop sigma; no controls, extra seeds, or replication are
+warranted.
+
+The mechanism is a clean negative: augmentation response encodes a stable
+nuisance stratum, but agreement of nuisance sensitivity does not establish
+which same-identity image should rank closer for unseen-identity retrieval. The
+ordinal target remained substantially unresolved and its small training effect
+did not transfer to retrieval. A measured intra-class relation is not
+automatically a useful relevance order.
+
+## 21. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

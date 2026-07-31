@@ -1,7 +1,8 @@
 # Candidate 20: interventional principal-stratum ranking (IPSR)
 
-**Status: preregistered operating diagnostic PASSED 2026-07-31; eligible for
-Gate-4 implementation and In-Shop screening.** Gate 3 was committed before
+**Status: DEAD at Gate 4 on 2026-07-31.** The preregistered diagnostic passed
+and training remained mechanically healthy, but the complete In-Shop screen
+failed its absolute performance threshold. Gate 3 was committed before
 implementation, inversion measurement, or IPSR GPU work. Gate 1 is in
 `post_arcg_candidate_batch.md`; the narrowly live Gate-2 audit is in
 `ipsr_prior_art.md`.
@@ -101,3 +102,32 @@ loss:
 Failure to beat either control kills IPSR before extra seeds or a second
 dataset. Only a full-method win over both controls may advance to out-of-sample
 seeds and then Cars196 or CUB replication.
+
+## Gate-4 result
+
+The full run reproduced the operating signal at activation: **16,303
+preferences**, anchor coverage **62.99%**, class coverage **73.31%**, and initial
+ranking loss **0.7352**. Unlike ARCG, IPSR retained the full Proxy Anchor loss.
+Total loss stayed on its ordinary scale, approximately 1.3–2.7 after
+activation, while ranking loss remained nonzero around 0.71–0.73. At the
+epoch-40 refresh the signal also persisted: 16,401 preferences, 63.37% anchor
+coverage, 73.81% class coverage, and initial loss 0.7223. The candidate neither
+collapsed nor erased its own graph.
+
+It nevertheless failed the registered performance condition. Raw
+best-over-training In-Shop R@1 was **0.9034 at epoch 51**, below the 0.9059
+minimum and below the existing HIST 0.9038. Against paired Proxy Anchor seed 0,
+the raw delta was only **+0.091 pt**. Selection correction reports IPSR
+**0.9013** versus Proxy Anchor **0.9007** for the shared seed, a corrected delta
+of only **+0.060 pt**. The small positive ordering reversal is not decisive:
+both deltas are below one measured In-Shop sigma (0.12 pt), and the absolute
+registered gate failed.
+
+No distance or random controls, additional seeds, or second dataset are
+permitted. Mechanistically, response compatibility identified stable nuisance
+strata but did not identify retrieval relevance. The ranking loss fell only
+from 0.7352 to roughly 0.715 and forced one same-identity appearance ordering
+without improving unseen-identity retrieval. Matching crop/flip sensitivity is
+a measurable relation, but it is not evidence that one same-class peer should
+rank ahead of another for identity retrieval. IPSR is closed rather than
+escalated on its sub-sigma paired gain.
