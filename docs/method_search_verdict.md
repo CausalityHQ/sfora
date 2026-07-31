@@ -374,3 +374,35 @@ The averaging control itself improved raw by **+0.183 pt** and corrected by
 **+0.255 pt** over paired seed-0 Proxy Anchor. Its raw gain narrowly missed the
 preregistered +0.20 to +0.50 pt range. This remains evidence about an old
 weight-averaging method, not a novel-method success.
+
+## 9. Candidate 2: cross-trajectory consensus supervision
+
+**Gate 2 failure recorded 2026-07-31; no GPU used.** This candidate addressed a
+specific weakness in the earlier checkpoint-stability proposal. Fixed-seed CUB
+runs spread by 1.08 pt, while top-5 checkpoint averaging left the six-seed
+paired sd almost unchanged (0.367 pt for the maximum versus 0.363 pt for top
+5). A single trajectory cannot reveal what survives another trajectory.
+Candidate 2 therefore proposed two independently perturbed replicas and allowed
+new neighbourhood relations to become supervision only when the replicas
+agreed.
+
+That supervision mechanism is prior art in retrieval:
+
+- NRMT uses two networks, collaborative clustering, and mutual instance
+  selection based on peer confidence and relationship disagreement
+  ([Zhao et al., ECCV 2020](https://www.ecva.net/papers/eccv_2020/papers_ECCV/html/1391_ECCV_2020_paper.php)).
+- Mutual Mean-Teaching uses independently initialized collaborative networks
+  and their temporal averages to generate soft triplet supervision
+  ([Ge et al., ICLR 2020](https://arxiv.org/abs/2001.01526)).
+- GCMT constructs teacher similarity graphs and supplies graph-consistency
+  supervision
+  ([Yang et al., IJCAI 2021](https://www.ijcai.org/proceedings/2021/121)).
+- PPLR refines person-retrieval pseudo-labels using cross-agreement between
+  k-nearest-neighbour sets from two feature spaces
+  ([Cho et al., CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/papers/Cho_Part-Based_Pseudo_Label_Refinement_for_Unsupervised_Person_Re-Identification_CVPR_2022_paper.pdf)).
+
+The exact hard intersection and supervised benchmark setting are details, not a
+new source of supervision. The defining move—letting agreement between
+independently varying retrieval representations determine which relations
+supervise training—is occupied. Candidate 2 stops before preregistration,
+implementation, or GPU screening.
