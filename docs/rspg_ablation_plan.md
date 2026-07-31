@@ -1,8 +1,8 @@
 # RSPG conditional ablation plan
 
-Status: archived preregistration; **do not run**. The corrected In-Shop CPU
-diagnostic failed below its minimum density, so its activation condition was
-not met.
+Status: preregistered plan only; **do not run**. Activation awaits the exact
+epoch-10 In-Shop operating-point diagnostic and, if it passes, two valid main
+RSPG seeds clearing the registered threshold.
 
 ## Why these controls are mandatory
 

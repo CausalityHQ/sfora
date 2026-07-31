@@ -1,7 +1,7 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: corrected In-Shop CPU diagnostic failed; candidate dead; no valid GPU
-result or ablation.
+Status: operating-point diagnostic pending; no valid retrieval result or
+ablation.
 
 ## Gate 1 — provenance: PASS
 
@@ -84,7 +84,7 @@ No prior In-Shop retrieval result or selection correction is valid. The
 precommitted consequence of a pass would have been main-screen seeds 0 and 1
 before any claim, with no Cars run or ablation before both cleared the decision.
 
-### Corrected In-Shop diagnostic: FAIL
+### One-step In-Shop diagnostic: INVALID FOR THE OPERATING POINT
 
 **This decision path is contaminated because the favourable epoch-10 partial-run
 graph was already known before option (b) was chosen.** With thresholds unchanged,
@@ -97,11 +97,18 @@ It used the official Proxy Anchor initialization after exactly one
 CPU optimizer step because no completed In-Shop checkpoint existed. CUDA was
 disabled for both export and graph construction.
 
-RSPG therefore fails the corrected dataset-matched gate as well, now for being
-too sparse rather than too dense. The discrepancy with the invalidly observed
-epoch-10 graph (density 0.0863) proves that representation checkpoint/epoch is
-also part of the gate specification. No main screen or conditional ablation is
-warranted.
+This number does not decide RSPG. A one-step model is effectively the pretrained
+BN-Inception backbone plus a nearly random embedding head; its rival signatures
+do not represent the learned In-Shop class structure encountered when the gate
+actually fires at epoch 10. Treating it as a clean correction would answer the
+wrong representation-stage question.
+
+The adjudicated operating-point diagnostic therefore trains **plain official
+Proxy Anchor for exactly 10 In-Shop epochs**, with periodic test evaluation
+disabled, exports final epoch-10 training embeddings, and applies the unchanged
+graph rule on CPU. This costs GPU time because the supposedly free diagnostic
+depends on a trained representation. The already-seen partial-run density 0.0863
+makes the confirmation path contaminated and must remain adjacent to its result.
 
 ## Procedural correction
 

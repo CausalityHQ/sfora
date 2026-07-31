@@ -643,15 +643,23 @@ in the same paragraph, and a passing main screen requires **two seeds**, not one
 Future go/no-go registrations must name dataset, split, representation source,
 checkpoint/epoch, and whether computing that representation counts as GPU work.
 
-Option (b) was executed with CUDA disabled using the official In-Shop Proxy
+Option (b) was first executed with CUDA disabled using the official In-Shop Proxy
 Anchor initialization after one CPU optimizer step, the only independently
 materializable fixed source available without new GPU work. **The choice was
 contaminated by already knowing the favourable partial-run graph.** The corrected
 In-Shop graph retained **606 / 153,115 edges** (density **0.0040**, below the
-0.05 minimum) and had multi-component fraction 0.9997. RSPG is therefore dead
-under the corrected gate too. Together, CUB/one-step In-Shop/epoch-10 In-Shop
-densities of 0.6449/0.0040/0.0863 show that the gate depends on both dataset and
+0.05 minimum) and had multi-component fraction 0.9997. That result is invalid as
+the candidate decision: after one step the embedding head is essentially random,
+whereas the method constructs its graph from a trained epoch-10 state. Together,
+CUB/one-step In-Shop/partial epoch-10 In-Shop densities of
+0.6449/0.0040/0.0863 prove that the gate depends on both dataset and
 representation stage; omitting either makes a go/no-go underspecified.
+
+The final adjudication pays the real cost: train plain official Proxy Anchor for
+10 In-Shop epochs, export final training embeddings without periodic test
+selection, then run the frozen diagnostic on CPU. A "free CPU diagnostic" that
+requires a trained representation is not free unless the exact checkpoint
+already exists. That dependency must be budgeted and registered up front.
 
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
