@@ -85,7 +85,7 @@ before.
 - The correction is one estimator (leave-one-out neighbour mean). Corrected values are
   **not** the benchmark metric; a reader who wants the leaderboard number should use the
   reported one. The argument is about the protocol, not a proposal to restate scores.
-- Averaging arms are at n=2–3 on some cells.
+- CUB averaging arms are at n=2; BN-correct In-Shop averaging is at n=3.
 - Single architecture family (ResNet-50/512, BN-Inception/512) and three datasets.
 - The deeper problem is that best-test checkpointing is **test-set feedback**, not merely
   a noisy estimator. The right fix is class-disjoint validation checkpointing, which
@@ -102,9 +102,14 @@ that both effects are large enough to change conclusions.
 
 ## Open items before submission
 
-- `pa_dual_ema` on CUB (queued): the last untested cell. Expected to fail; recorded either
-  way.
-- Cars196 under corrected recipes has **never been run** — the matrix is CUB + In-Shop
-  only, and Cars is one of the three benchmarks claimed.
-- Selection-bias numbers should be recomputed at n≥3 for every averaging arm.
-- Verify the BLENDER citation (arXiv 2026) directly rather than second-hand.
+- Cars196 under corrected recipes has **never been run**. Do not represent Cars as
+  measurement-paper evidence unless that matrix is eventually run for a separately
+  justified reason.
+- CUB selection-bias estimates for averaging remain at n=2. In-Shop is now n=3:
+  raw averaging is +0.068 pt and corrected +0.203 pt, so the stability correction
+  survives while the raw method effect does not replicate.
+- BLenDeR was verified directly at arXiv:2601.20246. Its controlled synthetic
+  intra-class support mechanism is occupied.
+
+Closed items: dual EMA failed its preregistered In-Shop screen (+0.014 pt raw
+over averaging versus +0.24 required), and no CUB confirmation is owed.

@@ -24,23 +24,25 @@ local branch. Deploy with:
 
 ```bash
 rsync -az src/sfora/ riomus@100.104.199.68:/home/riomus/group-learning/src/sfora/
-scp scripts/run_priority_queue_v29.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
+scp scripts/run_priority_queue_v30.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
 ```
 
 ---
 
 ## 2. GPU queue state
 
-**The GPU is idle.** Queue `scripts/run_priority_queue_v29.sh` completed at
-2026-07-31T03:11:41+02:00 and intentionally stopped for protocol judgement:
+**The GPU is idle.** Queue `scripts/run_priority_queue_v30.sh` completed at
+2026-07-31T13:19:06+02:00 and intentionally stopped for three-seed averaging
+judgement:
 
 ```bash
-ssh riomus@100.104.199.68 'tail -n 20 /home/riomus/experiment-logs/q29.log'
+ssh riomus@100.104.199.68 'tail -n 20 /home/riomus/experiment-logs/q30.log'
 ```
 
-It completed the preregistered In-Shop seed-0 `pa_ema_avg_bnfix` control and
-`pa_dual_ema_bnfix` candidate. Do not restart the superseded v26 plan: the
-iterative method search reached its evidence-backed stopping condition in
+It completed only In-Shop `pa_ema_avg_bnfix` seeds 1 and 2, as ordered. Do not
+restart the superseded v26 plan: dual EMA is falsified, averaging did not
+replicate as a raw effect, and neither Cars nor the momentum sweep is warranted.
+The continuing prior-art-gated search is recorded in
 `docs/method_search_verdict.md`.
 
 **Status check** (this is the whole loop):
@@ -89,6 +91,13 @@ Dual-minus-average was +0.014 pt raw and +0.077 pt corrected. The
 preregistered raw threshold was +0.24 pt and absolute dual R@1 had to reach
 0.9048; it reached 0.9044. Candidate 1 failed gate 4 and received no
 confirmation seeds.
+
+The averaging-only follow-up then completed seeds 1–2. Its three paired raw
+deltas were +0.18 / −0.13 / +0.15 pt: mean **+0.068 pt**, sd 0.169,
+paired-t p = 0.5589, exact sign p = 0.500. Selection correction increased the
+mean to **+0.203 pt**, sd 0.157. This is evidence that best-over-training
+under-credits the stable arm, but not a replicated raw method gain. Do not queue
+Cars or the momentum sweep.
 
 ## 3. The one strong result: H3, the BatchNorm teacher/student mismatch
 
@@ -323,7 +332,7 @@ measured −1.47 pt).
 | `scripts/measure_antihubs.py` | antihub stability/cost/headroom |
 | `scripts/aligned_pack_fusion.py` | Procrustes-aligned pack fusion |
 | `scripts/probe_late_interaction.py` | MaxSim read-out probe |
-| `scripts/run_priority_queue_v29.sh` | completed candidate-1 In-Shop screen |
+| `scripts/run_priority_queue_v30.sh` | completed averaging seeds 1–2; queue now idle |
 | `scripts/measure_selection_bias.py` | best-over-training selection bonus, per arm and per pair |
 
 ---
