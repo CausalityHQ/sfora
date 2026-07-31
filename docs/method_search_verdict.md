@@ -983,7 +983,20 @@ Cycle-consistent correspondence, transformation synchronization, and
 gauge/equivariant local-frame learning occupy the remaining abstraction.
 Candidate 33 is **DEAD before diagnostic**.
 
-## 34. Reopened-loop stopping argument: data-only supervision expansion
+## 34. Exposure-gated proxy updates: premise falsified by loss normalization
+
+**Gate-1 death recorded 2026-07-31; no GPU spent.** Uniform In-Shop batching
+means a typical proxy appears positively in only about one of 23 batches, which
+initially appeared to expose it to chronic negative-only drift. The exact Proxy
+Anchor arithmetic compensates this: positive loss is averaged over roughly 176
+present proxies while negative loss is averaged over all 3,997. For an
+average-frequency class, `0.044/176` and `1/3997` are both about 0.00025.
+Masking absent proxy gradients would instead suppress negative proxy motion by
+roughly 23x. Update frequency was mistaken for update weight; the measured
+proxy asymmetry does not support EGPU's mechanism. Candidate 34 is **DEAD at
+Gate 1**.
+
+## 35. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

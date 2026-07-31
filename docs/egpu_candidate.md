@@ -1,7 +1,8 @@
 # EGPU — exposure-gated proxy updates
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, diagnostic, implementation,
-or GPU use.**
+**Status: DEAD at Gate 1 after an exact loss-normalization audit on 2026-07-31;
+no diagnostic, implementation, or GPU use.** The hypothesis below was recorded
+before that audit.
 
 ## Repository provenance
 
@@ -65,3 +66,25 @@ methods that omit absent proxies from the forward loss, use class-balanced
 batches, or replace trainable proxies with EMA centroids; those change the
 sample supervision or proxy estimator.
 
+## Gate-1 correction: update counts are not update weights
+
+The motivating argument counted how often a proxy receives positive versus
+negative updates but omitted Proxy Anchor's different normalizations:
+
+- the positive term is averaged over only the distinct proxies represented in
+  the current batch (about 176 for 180 uniformly sampled In-Shop images);
+- the negative term is averaged over all 3,997 proxies.
+
+For an average-frequency identity, the probability of appearing in a batch is
+approximately `1-exp(-180/3997) = 0.0440`. Its expected positive prefactor is
+therefore about `0.0440/176 = 0.000250`, essentially identical to the negative
+prefactor `1/3997 = 0.000250`. The loss already compensates the exposure
+frequency at first order. Four-image identities receive somewhat less expected
+positive mass, but not the claimed 35.5-fold imbalance; exponential hardness
+weights, not update counts, determine the remainder.
+
+EGPU would mask negative proxy motion on about 95.6% of steps while leaving the
+positive normalization intact, reducing the average-class negative proxy
+gradient by roughly 23x. That is a new imbalance, not a correction. The
+proxy-centroid geometry remains a measurement, but it does not establish the
+proposed missing-observation mechanism. Candidate 34 is **DEAD at Gate 1**.
