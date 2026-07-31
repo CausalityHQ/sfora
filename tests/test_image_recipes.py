@@ -678,3 +678,13 @@ def test_averaging_on_trainable_batch_norm_requires_the_buffer_fix() -> None:
     assert fixed.config["ema_distill_weight"] == 0.0
     assert fixed.config["ema_momentum"] == pytest.approx(0.99)
     assert recipe_digest(plain) != recipe_digest(fixed)
+
+
+def test_rspg_recipe_is_training_data_only_proxy_anchor_derivation() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    recipe = derive_recipe(base, "rspg")
+
+    assert recipe.config["rspg_weight"] == 1.0
+    assert recipe.config["ema_momentum"] == 0.99
+    assert recipe.config["ema_teacher_ema_buffers"] is True
+    assert recipe.config["ema_distill_weight"] == 0.0

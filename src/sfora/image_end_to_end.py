@@ -197,6 +197,14 @@ class ImageEndToEndConfig(BaseModel):
     # solution instead of dragging 5.3% of the initialisation along. One EMA cannot be
     # both. None keeps the historical behaviour of reusing the teacher.
     ema_eval_momentum: float | None = Field(default=None, gt=0.0, lt=1.0)
+    # Rival-signature positive graph. Zero preserves historical behavior.
+    rspg_weight: float = Field(default=0.0, ge=0.0)
+    rspg_warmup_epoch: int = Field(default=10, ge=1)
+    rspg_refresh_epoch: int = Field(default=40, ge=1)
+    rspg_rival_count: int = Field(default=32, ge=2)
+    rspg_overlap_count: int = Field(default=8, ge=1)
+    rspg_min_overlap: int = Field(default=4, ge=1)
+    rspg_max_js: float = Field(default=0.25, gt=0.0)
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -620,7 +628,11 @@ def run_image_end_to_end_benchmark(
         config,
         optimization_example_count=len(optimization_examples),
     )
-    train_dataset = _TorchImageDataset(optimization_examples, train_transform)
+    train_dataset = (
+        _IndexedTorchImageDataset(optimization_examples, train_transform)
+        if config.rspg_weight > 0.0
+        else _TorchImageDataset(optimization_examples, train_transform)
+    )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
     gallery_dataset = (
         _TorchImageDataset(gallery_examples, test_transform)
@@ -879,6 +891,7 @@ def run_image_end_to_end_benchmark(
                 or config.mead_weight > 0.0
                 or config.hypergraph_distill_weight > 0.0
                 or config.ema_weight_averaging
+                or config.rspg_weight > 0.0
             ):
                 import copy as _copy
 
@@ -917,15 +930,46 @@ def run_image_end_to_end_benchmark(
             if config.freeze_batch_norm:
                 _freeze_batch_norm_layers(model)
             train_batches = _iter_training_batches(train_loader)
-            for step, (images, labels) in zip(
+            rspg_state: RSPGState | None = None
+            for step, batch in zip(
                 range(1, train_steps + 1),
                 train_batches,
                 strict=False,
             ):
+                if config.rspg_weight > 0.0:
+                    images, labels, sample_indices = batch
+                    sample_indices = sample_indices.to(device, non_blocking=True)
+                else:
+                    images, labels = batch
+                    sample_indices = None
                 if config.warmup_epochs > 0 and step == warmup_steps + 1:
                     for parameter in backbone_warmup_parameters:
                         parameter.requires_grad_(True)
                 labels = labels.to(device, non_blocking=True)
+                rspg_epoch = (step - 1) // steps_per_epoch
+                if config.rspg_weight > 0.0 and rspg_epoch in {
+                    config.rspg_warmup_epoch,
+                    config.rspg_refresh_epoch,
+                } and (step - 1) % steps_per_epoch == 0:
+                    graph_model = (
+                        ema_teacher if rspg_epoch == config.rspg_refresh_epoch else model
+                    )
+                    if graph_model is None:
+                        raise RuntimeError("RSPG refresh requires its EMA snapshot")
+                    graph_embeddings, graph_labels = _encode_model(
+                        cast(TorchImageModel, graph_model), train_eval_loader, device, torch
+                    )
+                    rspg_state = _build_rspg_state(
+                        graph_embeddings,
+                        graph_labels,
+                        config=config,
+                        device=device,
+                        torch_module=torch,
+                        enforce_diagnostic=rspg_epoch == config.rspg_warmup_epoch,
+                    )
+                    model.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(model)
                 if config.mead_weight > 0.0:
                     if not isinstance(images, tuple) or len(images) != 2:
                         raise ValueError(
@@ -940,6 +984,9 @@ def run_image_end_to_end_benchmark(
                 loss_kwargs: dict[str, Any] = {}
                 if custom_losses:
                     loss_kwargs["custom_losses"] = custom_losses
+                if rspg_state is not None:
+                    loss_kwargs["rspg_state"] = rspg_state
+                    loss_kwargs["sample_indices"] = sample_indices
                 if bgsi_state is not None:
                     loss_kwargs["bgsi_state"] = bgsi_state
                 if objective in {"hist", "hist_proxy_anchor"}:
@@ -1565,6 +1612,23 @@ class _TorchImageDataset:
         return self._transform(materialize_image(example.image)), int(example.label)
 
 
+class _IndexedTorchImageDataset:
+    """Training dataset variant that exposes stable row indices to RSPG."""
+
+    def __init__(
+        self, examples: Sequence[ImageExample], transform: Callable[[object], Any]
+    ) -> None:
+        self._examples = list(examples)
+        self._transform = transform
+
+    def __len__(self) -> int:
+        return len(self._examples)
+
+    def __getitem__(self, index: int) -> tuple[Any, int, int]:
+        example = self._examples[index]
+        return self._transform(materialize_image(example.image)), int(example.label), index
+
+
 def _mead_multicrop_collate(
     batch: Sequence[tuple[tuple[torch.Tensor, torch.Tensor], int]],
 ) -> tuple[tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
@@ -1774,6 +1838,152 @@ def _balanced_batch_indices(
                 )
         batches.append(batch[:batch_size])
     return batches
+
+
+@dataclass
+class RSPGState:
+    """Detached graph targets constructed only from the training split."""
+
+    target_embeddings: Any
+    neighbours: tuple[tuple[tuple[int, float], ...], ...]
+    edge_density: float
+    multi_component_fraction: float
+
+
+def _union_find_root(parents: list[int], index: int) -> int:
+    while parents[index] != index:
+        parents[index] = parents[parents[index]]
+        index = parents[index]
+    return index
+
+
+def _build_rspg_state(
+    embeddings: NDArray[np.float64],
+    labels: NDArray[np.int64],
+    *,
+    config: ImageEndToEndConfig,
+    device: Any,
+    torch_module: Any,
+    enforce_diagnostic: bool,
+) -> RSPGState:
+    """Build rival distributions and same-class edges from a detached snapshot."""
+    target = torch_module.as_tensor(embeddings, dtype=torch_module.float32, device=device)
+    target = _normalize(target, torch_module).detach()
+    label_tensor = torch_module.as_tensor(labels, dtype=torch_module.long, device=device)
+    unique_labels, class_index = torch_module.unique(label_tensor, sorted=True, return_inverse=True)
+    class_count = int(unique_labels.numel())
+    rival_count = min(config.rspg_rival_count, class_count - 1)
+    if rival_count < 2:
+        raise RuntimeError("RSPG requires at least three training classes")
+
+    rival_indices: list[Any] = []
+    rival_probabilities: list[Any] = []
+    expanded_class_index = class_index.unsqueeze(0)
+    for start in range(0, int(target.shape[0]), 256):
+        query = target[start : start + 256]
+        similarities = query @ target.T
+        per_class = similarities.new_full((int(query.shape[0]), class_count), -1.0e9)
+        per_class.scatter_reduce_(
+            1,
+            expanded_class_index.expand(int(query.shape[0]), -1),
+            similarities,
+            reduce="amax",
+            include_self=True,
+        )
+        own = class_index[start : start + int(query.shape[0])]
+        per_class[torch_module.arange(int(query.shape[0]), device=device), own] = -1.0e9
+        values, indices = torch_module.topk(per_class, k=rival_count, dim=1)
+        rival_indices.append(indices.cpu())
+        rival_probabilities.append(torch_module.softmax(values, dim=1).cpu())
+    top_indices = torch_module.cat(rival_indices).numpy()
+    top_probabilities = torch_module.cat(rival_probabilities).numpy()
+
+    overlap_width = min(config.rspg_overlap_count, rival_count)
+    label_array = np.asarray(labels, dtype=np.int64)
+    neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(label_array))]
+    edge_count = 0
+    possible_edges = 0
+    multi_component_classes = 0
+    eligible_classes = 0
+    for label in np.unique(label_array):
+        members = np.flatnonzero(label_array == label)
+        if len(members) < 2:
+            continue
+        eligible_classes += 1
+        possible_edges += len(members) * (len(members) - 1) // 2
+        parents = list(range(len(members)))
+
+        for left_pos, left in enumerate(members):
+            for right_pos in range(left_pos + 1, len(members)):
+                right = int(members[right_pos])
+                overlap = len(
+                    set(top_indices[left, :overlap_width].tolist())
+                    & set(top_indices[right, :overlap_width].tolist())
+                )
+                if overlap < config.rspg_min_overlap:
+                    continue
+                support = np.union1d(top_indices[left], top_indices[right])
+                left_lookup = dict(
+                    zip(top_indices[left].tolist(), top_probabilities[left].tolist(), strict=True)
+                )
+                right_lookup = dict(
+                    zip(
+                        top_indices[right].tolist(),
+                        top_probabilities[right].tolist(),
+                        strict=True,
+                    )
+                )
+                left_values = np.asarray([left_lookup.get(int(item), 0.0) for item in support])
+                right_values = np.asarray(
+                    [right_lookup.get(int(item), 0.0) for item in support]
+                )
+                midpoint = 0.5 * (left_values + right_values)
+                left_mask = left_values > 0
+                right_mask = right_values > 0
+                left_divergence = np.sum(
+                    left_values[left_mask]
+                    * np.log(left_values[left_mask] / midpoint[left_mask])
+                )
+                js = 0.5 * float(
+                    left_divergence
+                    + np.sum(
+                        right_values[right_mask]
+                        * np.log(right_values[right_mask] / midpoint[right_mask])
+                    )
+                )
+                if js > config.rspg_max_js:
+                    continue
+                weight = 1.0 - js
+                neighbours[int(left)].append((right, weight))
+                neighbours[right].append((int(left), weight))
+                edge_count += 1
+                left_root = _union_find_root(parents, left_pos)
+                right_root = _union_find_root(parents, right_pos)
+                parents[right_root] = left_root
+        if len({_union_find_root(parents, index) for index in range(len(members))}) >= 2:
+            multi_component_classes += 1
+
+    edge_density = edge_count / max(possible_edges, 1)
+    multi_component_fraction = multi_component_classes / max(eligible_classes, 1)
+    print(
+        "RSPG graph diagnostic: "
+        f"edges={edge_count}/{possible_edges} density={edge_density:.4f} "
+        f"multi_component_classes={multi_component_fraction:.4f}",
+        flush=True,
+    )
+    if enforce_diagnostic and not (
+        0.05 <= edge_density <= 0.60 and multi_component_fraction >= 0.25
+    ):
+        raise RuntimeError(
+            "RSPG preregistered graph diagnostic failed: require density in [0.05, 0.60] "
+            "and multi-component fraction >= 0.25; thresholds may not be tuned"
+        )
+    return RSPGState(
+        target_embeddings=target,
+        neighbours=tuple(tuple(items) for items in neighbours),
+        edge_density=float(edge_density),
+        multi_component_fraction=float(multi_component_fraction),
+    )
 
 
 class _XbmMemory:
@@ -2487,15 +2697,38 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     proxy_labels = kwargs["proxy_labels"]
     config = cast(ImageEndToEndConfig, kwargs["config"])
     torch_module = kwargs["torch_module"]
-    loss = _proxy_anchor_loss(
-        embeddings,
-        labels,
-        proxy_embeddings=proxy_embeddings,
-        proxy_labels=proxy_labels,
-        alpha=config.proxy_anchor_alpha,
-        delta=config.proxy_anchor_delta,
-        torch_module=torch_module,
-    )
+    if config.rspg_weight > 0.0 and kwargs.get("rspg_state") is not None:
+        rspg_state = cast(RSPGState, kwargs["rspg_state"])
+        sample_indices = kwargs.get("sample_indices")
+        if sample_indices is None:
+            raise RuntimeError("RSPG requires stable training sample indices")
+        loss = _proxy_anchor_negative_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            torch_module=torch_module,
+        )
+        loss = loss + config.rspg_weight * _rspg_positive_loss(
+            embeddings,
+            sample_indices,
+            state=rspg_state,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            torch_module=torch_module,
+        )
+    else:
+        loss = _proxy_anchor_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            alpha=config.proxy_anchor_alpha,
+            delta=config.proxy_anchor_delta,
+            torch_module=torch_module,
+        )
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
@@ -3072,6 +3305,8 @@ def _loss_for_objective(
     hist_module: Any | None = None,
     hist_label_to_index: dict[int, int] | None = None,
     tversky_feature_bank: Any | None = None,
+    rspg_state: RSPGState | None = None,
+    sample_indices: Any | None = None,
     custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
 ) -> Any:
     # Caller-supplied objectives (e.g. the "custom" slot) take a clean signature and
@@ -3100,6 +3335,8 @@ def _loss_for_objective(
         hist_module=hist_module,
         hist_label_to_index=hist_label_to_index,
         tversky_feature_bank=tversky_feature_bank,
+        rspg_state=rspg_state,
+        sample_indices=sample_indices,
     )
 
 
@@ -4172,6 +4409,71 @@ def _proxy_anchor_loss(
         delta=delta,
         torch_module=torch_module,
     )
+
+
+def _proxy_anchor_negative_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    proxy_embeddings: Any | None,
+    proxy_labels: Any | None,
+    alpha: float,
+    delta: float,
+    torch_module: Any,
+) -> Any:
+    """The unchanged different-class half of Proxy Anchor."""
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("RSPG requires Proxy Anchor class proxies")
+    similarities = _normalize(embeddings, torch_module) @ _normalize(
+        proxy_embeddings, torch_module
+    ).T
+    negative_mask = ~labels[:, None].eq(proxy_labels[None, :])
+    with_negative = negative_mask.any(dim=0)
+    logits = (float(alpha) * (similarities + float(delta))).masked_fill(
+        ~negative_mask, -1.0e9
+    )
+    return torch_module.nn.functional.softplus(
+        torch_module.logsumexp(logits[:, with_negative], dim=0)
+    ).mean()
+
+
+def _rspg_positive_loss(
+    embeddings: Any,
+    sample_indices: Any,
+    *,
+    state: RSPGState,
+    alpha: float,
+    delta: float,
+    torch_module: Any,
+) -> Any:
+    """Attract each sampled image only to its detached rival-signature neighbours."""
+    sources: list[int] = []
+    targets: list[int] = []
+    weights: list[float] = []
+    for batch_row, sample_index in enumerate(sample_indices.detach().cpu().tolist()):
+        for target_index, weight in state.neighbours[int(sample_index)]:
+            sources.append(batch_row)
+            targets.append(target_index)
+            weights.append(weight)
+    if not sources:
+        return embeddings.sum() * 0.0
+    source_tensor = torch_module.as_tensor(
+        sources, dtype=torch_module.long, device=embeddings.device
+    )
+    target_tensor = torch_module.as_tensor(
+        targets, dtype=torch_module.long, device=embeddings.device
+    )
+    weight_tensor = torch_module.as_tensor(
+        weights, dtype=embeddings.dtype, device=embeddings.device
+    )
+    normalized = _normalize(embeddings, torch_module)
+    similarities = (
+        normalized[source_tensor] * state.target_embeddings[target_tensor]
+    ).sum(dim=1)
+    positive = torch_module.nn.functional.softplus(
+        -float(alpha) * (similarities - float(delta))
+    )
+    return (positive * weight_tensor).sum() / weight_tensor.sum().clamp_min(1.0e-8)
 
 
 def _shepard_similarity(

@@ -7398,3 +7398,62 @@ def test_without_eval_momentum_the_distillation_teacher_is_reused(tmp_path: Path
     config = ImageEndToEndConfig(ema_weight_averaging=True, ema_momentum=0.99)
 
     assert config.ema_eval_momentum is None
+
+
+def test_rspg_positive_loss_uses_only_registered_graph_edges() -> None:
+    import torch
+
+    from sfora.image_end_to_end import RSPGState, _rspg_positive_loss
+
+    embeddings = torch.tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True)
+    state = RSPGState(
+        target_embeddings=torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
+        neighbours=(((1, 1.0),), (), ((0, 1.0),)),
+        edge_density=0.25,
+        multi_component_fraction=0.5,
+    )
+    loss = _rspg_positive_loss(
+        embeddings,
+        torch.tensor([0, 1]),
+        state=state,
+        alpha=1.0,
+        delta=0.0,
+        torch_module=torch,
+    )
+
+    expected = torch.nn.functional.softplus(torch.tensor(-1.0))
+    assert float(loss.detach()) == pytest.approx(float(expected))
+    loss.backward()
+    assert embeddings.grad is not None
+    assert torch.count_nonzero(embeddings.grad[1]) == 0
+
+
+def test_rspg_graph_builder_creates_training_only_edges() -> None:
+    import torch
+
+    from sfora.image_end_to_end import _build_rspg_state
+
+    embeddings = np.asarray(
+        [[1.0, 0.0], [0.98, 0.02], [0.0, 1.0], [0.02, 0.98], [-1.0, 0.0], [-0.98, 0.02]],
+        dtype=np.float64,
+    )
+    labels = np.asarray([0, 0, 1, 1, 2, 2], dtype=np.int64)
+    config = ImageEndToEndConfig(
+        rspg_weight=1.0,
+        rspg_rival_count=2,
+        rspg_overlap_count=1,
+        rspg_min_overlap=1,
+        rspg_max_js=1.0,
+    )
+    state = _build_rspg_state(
+        embeddings,
+        labels,
+        config=config,
+        device=torch.device("cpu"),
+        torch_module=torch,
+        enforce_diagnostic=False,
+    )
+
+    assert state.target_embeddings.shape == (6, 2)
+    assert 0.0 < state.edge_density <= 1.0
+    assert any(state.neighbours)
