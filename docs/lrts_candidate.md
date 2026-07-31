@@ -1,7 +1,7 @@
 # LRTS — local-response transport supervision
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, diagnostic, implementation,
-or GPU use.**
+**Status: DEAD after Gate-2/identifiability audit on 2026-07-31; no diagnostic,
+implementation, or GPU use.** Gate 1 was recorded before the audit below.
 
 ## Repository provenance
 
@@ -54,3 +54,26 @@ rotation fitting every pair. Any diagnostic must preregister a fixed
 low-dimensional frame construction and show lower transport residual for
 same-class than matched different-class pairs before training.
 
+## Audit result
+
+The exact proposed transition is underidentified. Each image provides only five
+displacement vectors in a 512-dimensional embedding. An unrestricted ambient
+orthogonal map can fit every pair of five-dimensional spans. Restricting the map
+to a 5x5 factor-coordinate rotation avoids that extreme but still estimates the
+map from the same two frames whose residual it minimizes; without an independent
+factor basis, Procrustes absorbs pair-specific disagreement and makes the
+auxiliary target self-fitting.
+
+The available ARCG export stores only five normalized response magnitudes, not
+the displacement frames. Identifying and differentiating the proposed maps
+would require repeated six-view inference (centre plus five interventions) or a
+large stale memory, moving training far beyond the roughly-1x constraint and
+reintroducing the stale-target problem. A one-transform stochastic version no
+longer identifies a frame or its holonomy.
+
+The remaining high-level operation is also established: temporal and cross-video
+cycle-consistency learn representations from correspondence cycles; class-pose
+and gauge-equivariant methods align local transformation frames; synchronization
+literature explicitly imposes identity composition around cycles. LRTS has no
+identified, efficient mechanism left between those precedents. Candidate 33 is
+**DEAD before diagnostic**.

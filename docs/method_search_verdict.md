@@ -970,7 +970,20 @@ and evaluates it on CUB, Cars196, and SOP. Adding ordinary Proxy Anchor as a
 root solves an implementation failure but only composes two established
 mechanisms. Candidate 32 is **DEAD at Gate 2**.
 
-## 33. Reopened-loop stopping argument: data-only supervision expansion
+## 33. Local-response transport supervision: underidentified local frames
+
+**Identifiability/Gate-2 death recorded 2026-07-31; no GPU spent.** LRTS tried
+to replace scalar response agreement with cycle-consistent transport between
+per-image augmentation-response frames. Five displacement vectors in 512
+dimensions do not identify an ambient transport; a pairwise 5x5 Procrustes map
+estimated from the same frames self-fits the residual. A differentiable frame
+requires centre plus five augmented forwards or a stale memory, violating the
+roughly-1x constraint, while a one-view version cannot define holonomy.
+Cycle-consistent correspondence, transformation synchronization, and
+gauge/equivariant local-frame learning occupy the remaining abstraction.
+Candidate 33 is **DEAD before diagnostic**.
+
+## 34. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
