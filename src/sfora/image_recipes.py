@@ -610,7 +610,10 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "rspg_distance_gate": "distance_gate",
             "rspg_instance_gate": "instance_gate",
         }
-        delta["rspg_control"] = controls[method]
+        # Keep the already-running full arm's digest stable: signature_gate is
+        # the runtime default and was absent from its frozen recipe delta.
+        if method != "rspg":
+            delta["rspg_control"] = controls[method]
         return recipe.model_copy(
             deep=True,
             update={

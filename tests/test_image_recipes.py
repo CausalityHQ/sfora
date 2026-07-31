@@ -703,6 +703,7 @@ def test_rspg_ablation_recipe_changes_only_registered_control(method: str, contr
     full = derive_recipe(base, "rspg")
     ablation = derive_recipe(base, method)
 
+    assert full.config.get("rspg_control", "signature_gate") == "signature_gate"
     assert ablation.config["rspg_control"] == control
     changed = {
         key
