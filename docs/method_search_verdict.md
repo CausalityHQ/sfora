@@ -38,9 +38,17 @@ of that direction
 ([Kolf et al., arXiv v1 2026](https://arxiv.org/abs/2601.20246)). Its +3.7 CUB and
 +1.8 Cars claims are single-run evidence: the paper reports no seed count, error bars,
 confidence intervals, or paired multi-seed test. It imports Stable Diffusion 1.5
-without a contamination audit for CUB/Cars, does not isolate gains from imported
-knowledge, and discloses neither end-to-end GPU cost nor a cheap recipe (20,000 LoRA
-steps per category and 150 samples per class per attribute are reported).
+alongside LLaVA-Next, CLIP ViT-L/14, and Segment Anything without a contamination
+audit for CUB/Cars, does not isolate gains from imported knowledge, and discloses
+neither end-to-end GPU cost nor a cheap recipe (20,000 LoRA steps per category and
+150 samples per class per attribute are reported).
+
+The baselines are **not** the objection. BLENDER's own Proxy Anchor baseline is
+72.7 CUB versus the published 69.7, and its controlled BLENDER-PA result is 74.6
+(+1.9); PF is 73.3 → 77.0 (+3.7) against published PF 73.4. Evaluation is
+like-for-like ResNet-50, single-view, one 512-dimensional descriptor. The weak-
+baseline/capacity defect that invalidates IDEAL as ceiling evidence does not apply
+to BLENDER. `docs/blender_verification.md` records the primary-source audit.
 
 The forecast for a faithful digest-pinned six-seed reproduction is roughly +1 to +2
 CUB points, not +3.7. More importantly, BLenDeR leaves open simpler, approximately
