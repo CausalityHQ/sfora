@@ -49,6 +49,13 @@ method should not exploit this partition property, but neither should a lower R@
 be presented as evidence that session invariance failed without a cross-session
 evaluation.
 
+The acquisition effect also does **not** explain the separate Proxy Anchor
+gradient-conflict finding. Same-group pairs have a 21.02% conflict rate versus
+16.80% across groups, despite much higher mean gradient agreement. Cross-group
+pairs are more often moderately misaligned, but not oppositional. Treating the
+session token as the cause of gradient surgery's motivating signal would therefore
+be another unsupported causal jump.
+
 ## Interpretation and limitation
 
 The backbone strongly encodes acquisition-session/model/background evidence

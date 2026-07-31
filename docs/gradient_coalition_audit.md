@@ -43,3 +43,19 @@ implementable supervision operator. Proxy Anchor has image-to-proxy relations,
 not image-to-image positive edges. Using gradient compatibility must therefore
 become sample/batch selection, example weighting, gradient projection, or an
 auxiliary pair loss. Those routes are assessed in `docs/gcs_candidate.md`.
+
+## Acquisition groups do not explain the conflicts
+
+Crossing this audit with the filename acquisition groups rejects a tempting
+unification of two findings:
+
+| relation | pairs | mean gradient cosine | opposing gradients | cosine below 0.5 |
+|---|---:|---:|---:|---:|
+| same acquisition group | 41,312 | 0.4746 | **21.02%** | 38.66% |
+| different acquisition group | 111,803 | 0.3947 | **16.80%** | 48.82% |
+
+Same-group pairs are visually much closer, yet their odds of outright gradient
+conflict are 1.32 times the cross-group odds. Cross-group pairs have more moderate
+disagreement, not more sign reversals. The session shortcut therefore does not
+cause the gradient-conflict population and cannot justify a session-targeted
+gradient-surgery arm.

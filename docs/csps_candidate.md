@@ -34,3 +34,9 @@ cheap, but does not make the supervision mechanism new.
 
 **Verdict: DEAD at Gate 2.** The session shortcut is a strong benchmark finding;
 CSPS is an occupied application of camera-aware retrieval supervision.
+
+An adversarial refinement asked whether hard positive-to-unknown eligibility,
+rather than weighting, survives. It does not: cross-camera-only positive mining
+and systems explicitly assuming no same-camera positives are established in
+person re-identification. The acquisition-group substitution remains an
+application change.

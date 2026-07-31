@@ -1052,6 +1052,11 @@ Proxy Anchor log-sum-exp aggregation revealed the 17.94% conflict rate. A
 convenient surrogate cannot adjudicate a mechanism whose premise depends on the
 operating loss.
 
+Acquisition metadata does not rescue an operator: same-session pairs have a
+higher outright gradient-conflict rate than cross-session pairs (21.02% versus
+16.80%), even though their mean gradient cosine is higher. Session similarity and
+loss-gradient conflict are distinct effects, not a causal chain.
+
 ## 38. Cross-session privileged supervision: occupied camera-aware retrieval
 
 **Gate-2 death recorded 2026-07-31; no GPU spent.** In-Shop filenames expose
