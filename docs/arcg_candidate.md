@@ -1,7 +1,9 @@
 # Candidate 19: augmentation-response compatibility graph (ARCG)
 
-**Status: Gate 3 preregistered on 2026-07-31, before implementation, model
-export, or any ARCG GPU work.** Gate 1 provenance and the narrowly live Gate 2
+**Status: operating-point diagnostic PASSED on 2026-07-31; eligible for Gate 4
+implementation and the preregistered In-Shop screen.** Gate 3 was committed as
+`c652d1c` before implementation, model export, or any ARCG GPU work. Gate 1
+provenance and the narrowly live Gate 2
 audit are recorded in `post_rspg_candidate_batch.md` and `arcg_prior_art.md`.
 
 ## Claim and provenance
@@ -74,6 +76,21 @@ ordinary distance mining.
 The expected cost is approximately 20 minutes of GPU time to reproduce and save
 the exact epoch-10 model, plus at most 20 minutes for six deterministic passes.
 The graph calculation is CPU-only after export.
+
+### Diagnostic result
+
+The seed-0 epoch-10 checkpoint completed at step 1,440. The registered six-view
+diagnostic then measured **55,594 / 153,115 eligible edges, density 0.3631**
+(prediction 0.20; allowed interval [0.05, 0.50]). All remaining conditions also
+passed: **80.93%** of eligible classes had multiple graph components (required
+at least 50%), **53.07%** of closest-quartile pairs were rejected (required at
+least 5%), and **28.02%** of farthest-quartile pairs were accepted (required at
+least 5%). Every image had a valid response signature.
+
+This is a strong mechanism diagnostic: response agreement is not a disguised
+embedding-distance rule because it frequently rejects close pairs and accepts
+distant ones. It says nothing yet about retrieval quality; only the Gate 4
+screen can establish that.
 
 ## Registered In-Shop screen
 
