@@ -45,6 +45,12 @@ replicate as a raw effect, and neither Cars nor the momentum sweep is warranted.
 The continuing prior-art-gated search is recorded in
 `docs/method_search_verdict.md`.
 
+**Stopped stale controller:** a separately launched v26 controller (PGID
+`2754213`) had been waiting while v30 held the GPU and began CUB
+`pa_dual_ema` immediately afterward. It was terminated at
+2026-07-31T13:35:26+02:00, before any result artifact was written. The stop is
+recorded in `q26.log`. Do not treat that partial run as evidence or restart v26.
+
 **Status check** (this is the whole loop):
 
 ```bash
@@ -341,9 +347,10 @@ measured −1.47 pt).
 
 The iterative search is closed on the current evidence. Candidate 1 failed its
 preregistered In-Shop screen; candidate 2 died on retrieval prior art; candidate
-3 lacked repository provenance and was independently occupied by BLenDeR. See
-`docs/method_search_verdict.md` §§8–11. What survives is worth writing, and it
-is not a novel-method claim.
+3 lacked repository provenance and was independently occupied by BLenDeR;
+candidate 4's graded within-class relations were established continuous-label
+DML prior art. See `docs/method_search_verdict.md` §§8–12. What survives is
+worth writing, and it is not a novel-method claim.
 
 1. **Write up H3.** Six paired seeds across two bases, all positive, with the
    recovery-tracks-regression proportionality as the mechanistic evidence. The claim

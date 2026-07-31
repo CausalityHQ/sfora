@@ -1,6 +1,7 @@
 # Paper outline: what this project can actually claim
 
-Drafted 2026-07-31, after sixteen method candidates failed and two independent
+Drafted 2026-07-31, after nineteen method candidates or candidate directions
+failed and two independent
 literature reviews recommended stopping the search. This is the deliverable that the
 evidence supports. It is not a method paper, and the central discipline of writing it is
 refusing to dress it up as one.
@@ -67,11 +68,13 @@ comparisons rather than cancelling; or pre-register causal interventions and ref
 
 ## 4. The negative corpus
 
-Sixteen candidates, each with a *mechanism* rather than a number: relational and
+Nineteen candidates or candidate directions, each with a *mechanism* rather than a
+number: relational and
 hypergraph distillation, balanced sampling, persistent memory, Sinkhorn coupling, local
 NCA, region-based proxies, hubness correction, asymmetric query/gallery embeddings,
 Procrustes fusion, Shepard's generalisation kernel, Tversky contrast similarity, and four
-capacity/timescale variants.
+capacity/timescale variants, followed by cross-trajectory consensus, controlled
+synthetic support, and graded within-class supervision.
 
 **Six pre-registered predictions, all refuted**: headroom-proportional distillation;
 capacity-starved regularisation; averaging-explains-distillation; additivity of the two
