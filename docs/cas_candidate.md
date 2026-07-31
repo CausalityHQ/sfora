@@ -1,7 +1,8 @@
 # CAS — conformal acceptance-set similarity
 
-**Gate 1 recorded 2026-07-31 before the prior-art audit, implementation, or GPU
-use.**
+**Status: DEAD at Gate 1 after a CPU/data-card feasibility check on 2026-07-31.
+No implementation or GPU use.** The proposal below was recorded before that
+check and the prior-art audit.
 
 ## Repository provenance
 
@@ -56,3 +57,26 @@ other classes. It is also dead if the quantile merely reduces algebraically to
 hard-positive mining or a class-radius hinge without conformal calibration
 changing the supervision operator.
 
+## Gate-1 feasibility result
+
+The official In-Shop training partition has 25,882 images across 3,997
+identities, mean 6.48 images per identity but a sharply concentrated low-count
+distribution:
+
+- 12 identities have one image, 10 have two, and 416 have three;
+- 1,575 have four images and 671 have five;
+- only a small tail supplies enough observations for a resolved empirical
+  class-conditional quantile.
+
+Thus the intended class-conditional conformal calibration has only three or
+four leave-one-out calibration scores for most usable identities. At nominal
+coverage levels relevant to rejection, its attainable p-values/quantiles are
+too coarse to express the proposed supervision. The one- and two-image classes
+cannot calibrate it at all.
+
+Pooling nonconformity scores across identities would solve the sample-count
+problem only by removing the mechanism's defining class-conditional acceptance
+set. What remains is a global kNN or class-radius hinge, directly adjacent to
+LMNN, nearest-neighbour Gaussian-kernel DML, and hard-positive/range losses.
+CAS therefore fails repository-grounded feasibility at Gate 1; it is not
+rescued by redefining the candidate after seeing the class counts.

@@ -887,7 +887,18 @@ latent-positive MIL assumption and dynamically weights relevance inside each
 bag. Augmented views and class proxies are an application choice. Candidate 25
 is **DEAD at Gate 2**.
 
-## 26. Reopened-loop stopping argument: data-only supervision expansion
+## 26. Conformal acceptance-set similarity: insufficient calibration support
+
+**Gate-1 feasibility death recorded 2026-07-31; no GPU spent.** CAS proposed
+replacing point attraction with leave-one-out, class-conditional conformal
+acceptance regions. The official In-Shop training split makes that operator
+undefined or too coarsely resolved for most identities: among 3,997 classes, 12
+have one image, 10 have two, 416 have three, 1,575 have four, and 671 have five.
+Most classes therefore offer only three or four leave-one-out calibration
+scores. Pooling across identities would discard class-conditional calibration
+and leave an occupied kNN/radius loss. Candidate 26 is **DEAD at Gate 1**.
+
+## 27. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
