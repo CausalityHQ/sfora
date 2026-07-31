@@ -534,3 +534,54 @@ of supervision. Earlier weakly supervised alignment work also derives dense
 correspondence from same-category image pairs
 ([Rocco et al., CVPR 2018](https://arxiv.org/abs/1712.06861)). Candidate 6
 stops before preregistration or implementation.
+
+## 15. Candidate 7: shared-confusion positive supervision
+
+**Gate 2 failure recorded 2026-07-31; no GPU used.** Across five independent
+CUB training packs, top-5 same-class neighbours had a mean **+0.0913** advantage
+in the correlation of their rankings over negative-class centroids. Pairwise
+embedding similarity and negative-profile similarity correlated **0.7048**.
+The proposed method would use shared hard-negative response profiles to select
+which embedding dimensions make a same-class pair positive.
+
+The mechanism is not novel. A proxy-similarity vector is a response/logit
+profile, and preserving teacher-supplied metric relations is Relational
+Knowledge Distillation
+([Park et al., CVPR 2019](https://openaccess.thecvf.com/content_CVPR_2019/html/Park_Relational_Knowledge_Distillation_CVPR_2019_paper.html)).
+Learning masks that select embedding dimensions for conditional notions of
+similarity is Conditional Similarity Networks
+([Veit et al., CVPR 2017](https://openaccess.thecvf.com/content_cvpr_2017/html/Veit_Conditional_Similarity_Networks_CVPR_2017_paper.html)).
+Self-derived conditions and a temporal teacher alter target acquisition, not
+the underlying supervision primitive. Candidate 7 stops before preregistration.
+
+## 16. Reopened-loop stopping argument: data-only supervision expansion
+
+The strategic opening remains real: BLenDeR does not establish a clean,
+reproducible ceiling for cheap data-only intra-class expansion. But repository
+measurements plus pre-GPU prior-art audits now cover the plausible mechanism
+classes rather than merely a list of loss variants:
+
+1. **split a class into latent modes:** sub-centre Proxy Anchor failed here, and
+   SoftTriple/sub-centre classifiers occupy the mechanism;
+2. **grade or select same-class relations:** candidate 4 is occupied by Beyond
+   Binary Supervision, HIER, and soft-positive mining;
+3. **synthesize support between selected positives:** candidate 5 is occupied
+   by Metrix and Embedding Expansion;
+4. **add spatial/part correspondence:** candidate 6 is occupied directly by
+   DIML and weakly supervised semantic alignment;
+5. **condition similarity on shared negative relations:** candidate 7 reduces
+   to relational distillation plus conditional feature masks;
+6. **import or generate additional evidence:** BLenDeR is positive but expensive
+   external-generative evidence, explicitly outside the contamination-controlled
+   constraint; standard augmentation/multi-view supervision was already tested
+   and was neutral or failed under corrected recipes.
+
+The new diagnostics support the premise—same-class relations are stable and
+local, while global pseudo-modes are not—but every defensible way found to turn
+that structure into supervision is either measured negative or established
+prior art. A further arm would currently require relaxing gate 1, disguising an
+occupied mechanism, or adding external knowledge. Under the registered search
+protocol, none warrants preregistration or GPU use. This is an evidence-bounded
+stopping claim, not a claim that no method can ever exist; the loop should
+reopen only when a new repository measurement identifies a supervision
+operation outside these six covered classes.
