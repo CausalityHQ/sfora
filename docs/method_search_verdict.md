@@ -959,7 +959,18 @@ and a calibration loss to move proxies toward class feature centres, and
 Proxy-AN covers the sample-centric/proxy-centric distinction. Reciprocal
 Voronoi phrasing is not a new mechanism. Candidate 31 is **DEAD at Gate 2**.
 
-## 32. Reopened-loop stopping argument: data-only supervision expansion
+## 32. Rooted factor spanning supervision: occupied by DAMLRRM
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** ARCG's 81.84%
+multi-component class graph and self-erasure motivated using exactly `n-1`
+within-class edges plus one persistent proxy root. DAMLRRM (Xu et al., CVPR
+2019) already builds a minimum-cost spanning tree within each category so every
+positive pair has a direct or indirect path while avoiding all-pairs collapse,
+and evaluates it on CUB, Cars196, and SOP. Adding ordinary Proxy Anchor as a
+root solves an implementation failure but only composes two established
+mechanisms. Candidate 32 is **DEAD at Gate 2**.
+
+## 33. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

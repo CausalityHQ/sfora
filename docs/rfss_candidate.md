@@ -1,7 +1,7 @@
 # RFSS — rooted factor spanning supervision
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, diagnostic, implementation,
-or GPU use.**
+**Status: DEAD at Gate 2 on 2026-07-31; no diagnostic, implementation, or GPU
+use.** Gate 1 was recorded before the audit below.
 
 ## Repository provenance
 
@@ -55,3 +55,17 @@ equivalent sparse graph plus a prototype root. It is also dead if the rooted
 tree reduces mechanistically to established nearest-positive mining with an
 ordinary proxy loss, even if the exact implementation is absent.
 
+## Gate-2 result
+
+Xu et al., *Deep Asymmetric Metric Learning via Rich Relationship Mining*
+(CVPR 2019), is a direct collision. DAMLRRM explicitly rejects connecting every
+possible positive pair and instead builds a minimum-cost spanning tree within
+each category, guaranteeing a connected region and a direct or indirect path
+between arbitrary positives. It evaluates this tree supervision on CUB,
+Cars196, and SOP and attributes improved generalization to relaxing the positive
+constraint.
+
+RFSS adds a standard proxy root to DAMLRRM's exact within-class MST operation.
+That root addresses the repository's ARCG self-erasure engineering issue, but a
+composition of the published tree supervision with ordinary Proxy Anchor is not
+a novel method mechanism. Candidate 32 is **DEAD at Gate 2**.
