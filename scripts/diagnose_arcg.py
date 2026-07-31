@@ -34,7 +34,9 @@ def main() -> None:
     config = ImageEndToEndConfig.model_validate(report["config"])
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     model = _torchvision_model_factory(config.model_copy(update=checkpoint["arch"]))
-    model.load_state_dict(checkpoint["state_dict"])
+    # Training checkpoints also contain objective-only Proxy Anchor tensors;
+    # inference models intentionally omit them, as does the existing teacher loader.
+    model.load_state_dict(checkpoint["state_dict"], strict=False)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
 
