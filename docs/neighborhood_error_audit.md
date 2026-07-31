@@ -42,3 +42,20 @@ symmetric similarity that needs no query/gallery context at test. Merely adding
 a reciprocal-neighbor loss is not sufficient novelty if it reduces to contextual
 similarity optimization, graph distillation, or hard-pair mining.
 
+## Gate-2 consequence: reciprocal-risk distillation is occupied
+
+The direct candidate was to use reciprocal-neighborhood reliability on training
+identities as supervision, then retain ordinary single-image cosine retrieval at
+test. Liao, Tsiligkaridis, and Kulis, *Supervised Metric Learning to Rank for
+Retrieval via Contextual Similarity Optimization* (2022), already implement
+that mechanism. Their contextual similarity constructs close reciprocal-neighbor
+sets, performs neighborhood/query expansion through them, symmetrizes the
+result, and trains embeddings so contextual similarity approaches the binary
+supervised label while regularizing cosine similarity. It is explicitly a
+training loss for standard image-retrieval benchmarks, not merely test-time
+reranking.
+
+Wu et al., *Contextual Similarity Distillation for Asymmetric Image Retrieval*
+(CVPR 2022), provides additional precedent for transferring contextual
+descriptors into a retrieval model. Reciprocal-risk distillation is therefore
+**DEAD at Gate 2**, despite the strong repository measurement.

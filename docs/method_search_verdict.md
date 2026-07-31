@@ -909,7 +909,20 @@ existing one. AdaptiveFace's hard-class mining/class-adaptive margins,
 confusion-based metric learning, and ordinary pair weighting occupy that
 remainder. Candidate 27 is **DEAD at Gate 2**.
 
-## 28. Reopened-loop stopping argument: data-only supervision expansion
+## 28. Reciprocal-risk distillation: occupied by contextual similarity optimization
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** Exact epoch-10 In-Shop
+neighbors expose a strong training-set signal: leave-one-out R@1 is 0.9382;
+mutual top-1 cases are 0.9691 correct versus 0.8977 otherwise, and the 1.03% of
+queries lacking top-10 reciprocity are only 0.4060 correct. Direct use is
+transductive reranking. The apparent single-image alternative—optimize
+training-set reciprocal context so ordinary cosine retrieval internalizes
+it—is already Liao et al.'s supervised contextual similarity optimization,
+whose definition explicitly uses reciprocal-neighbor sets and query expansion.
+Wu et al. CVPR 2022 adds contextual distillation precedent. Candidate 28 is
+**DEAD at Gate 2**.
+
+## 29. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
