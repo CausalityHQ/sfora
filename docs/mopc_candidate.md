@@ -1,7 +1,7 @@
 # MOPC — mutual-ownership proxy calibration
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, implementation, or GPU
-use.**
+**Status: DEAD at Gate 2 on 2026-07-31; no implementation or GPU use.** Gate 1
+was recorded before the audit below.
 
 ## Repository provenance
 
@@ -59,3 +59,18 @@ select their labelled learned proxy over other proxies. It is also dead if the
 centroid hinge is merely an algebraic minibatch aggregation of a standard
 sample-to-proxy classification loss with no distinct effect.
 
+## Gate-2 result
+
+Li et al., *Robust Calibrate Proxy Loss for Deep Metric Learning* (2023), is a
+direct mechanism collision. Its Calibrate Proxy structure uses real sample
+information to improve proxy similarity and adds a calibration loss that
+constrains proxy optimization toward the centre of the class features. It was
+motivated by learned proxies failing to represent the real class distribution
+and evaluated on public DML benchmarks.
+
+Proxy-AN (Peng et al., Neural Networks 2025) additionally analyzes and combines
+sample-centric and proxy-centric proxy losses. Centre/proxy training and
+nearest-proxy alignment provide further adjacent prior art. MOPC's reciprocal
+Voronoi hinge changes the form of calibration but not the method class:
+empirical class support explicitly aligns its learned proxy. Candidate 31 is
+**DEAD at Gate 2**.

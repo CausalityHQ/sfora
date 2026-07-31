@@ -947,7 +947,19 @@ preserve geometry. Established equivariant/AugSelf work supplies the
 augmentation setting. Clean-to-augmented endpoints are an application change,
 not method novelty. Candidate 30 is **DEAD at Gate 2**.
 
-## 31. Reopened-loop stopping argument: data-only supervision expansion
+## 31. Mutual-ownership proxy calibration: occupied by Calibrate Proxy
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** The exact In-Shop epoch-10
+audit found a striking directional proxy defect: 99.975% of proxies choose their
+own empirical centroid, but only 70.303% of centroids choose their own proxy;
+only 65.308% of images score their own proxy highest. MOPC would impose a
+centroid-side reciprocal ownership margin without pulling individual samples to
+the centre. Robust Calibrate Proxy Loss already uses real sample information
+and a calibration loss to move proxies toward class feature centres, and
+Proxy-AN covers the sample-centric/proxy-centric distinction. Reciprocal
+Voronoi phrasing is not a new mechanism. Candidate 31 is **DEAD at Gate 2**.
+
+## 32. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
