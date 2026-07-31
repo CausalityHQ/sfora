@@ -1,4 +1,4 @@
-# SFORA handoff — state as of 2026-07-30
+# SFORA handoff — state as of 2026-07-31
 
 Everything needed to pick this up on a fresh machine. Written because the laptop is
 being reset; nothing here depends on local state except an SSH key for the DGX.
@@ -9,7 +9,7 @@ being reset; nothing here depends on local state except an SSH key for the DGX.
 
 | what | where |
 |---|---|
-| branch | `research-reset-2026-07-27` (71 commits ahead of `main`) |
+| branch | `research-reset-2026-07-27` (113 commits ahead of `main`) |
 | remote | `git@github.com:CausalityHQ/sfora.git` |
 | GPU host | `riomus@100.104.199.68` (Tailscale; a DGX Spark, one GB10) |
 | remote repo | `/home/riomus/group-learning` |
@@ -24,23 +24,24 @@ local branch. Deploy with:
 
 ```bash
 rsync -az src/sfora/ riomus@100.104.199.68:/home/riomus/group-learning/src/sfora/
-scp scripts/run_priority_queue_v26.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
+scp scripts/run_priority_queue_v29.sh riomus@100.104.199.68:/home/riomus/group-learning/scripts/
 ```
 
 ---
 
-## 2. What is running right now
+## 2. GPU queue state
 
-Queue `scripts/run_priority_queue_v26.sh`, launched detached on the DGX:
+**The GPU is idle.** Queue `scripts/run_priority_queue_v29.sh` completed at
+2026-07-31T03:11:41+02:00 and intentionally stopped for protocol judgement:
 
 ```bash
-ssh riomus@100.104.199.68 'cd /home/riomus/group-learning && \
-  setsid nohup bash scripts/run_priority_queue_v26.sh > /home/riomus/experiment-logs/q26.log 2>&1 &'
+ssh riomus@100.104.199.68 'tail -n 20 /home/riomus/experiment-logs/q29.log'
 ```
 
-Order: CUB `pa_dual_ema` ×3 → momentum sweep (`pa_ema_avg_m95`, `pa_ema_avg_m90`) seed 0
-→ Cars196 `proxy_anchor`/`pa_distill` ×3. Arms already measured are **digest-cached and
-skip automatically**, so a re-launch never repeats work.
+It completed the preregistered In-Shop seed-0 `pa_ema_avg_bnfix` control and
+`pa_dual_ema_bnfix` candidate. Do not restart the superseded v26 plan: the
+iterative method search reached its evidence-backed stopping condition in
+`docs/method_search_verdict.md`.
 
 **Status check** (this is the whole loop):
 
@@ -53,7 +54,7 @@ ssh riomus@100.104.199.68 'cd ~/group-learning && .venv/bin/python scripts/measu
 Run times on the GB10: CUB ≈ 44 min (base) to 55 min (any EMA arm), Cars ≈ 60–75 min,
 In-Shop ≈ 2.2 h (Proxy Anchor) to 4.6 h (HIST base).
 
-### 2b. The EMA factorial — the live line of work (2026-07-30)
+### 2b. The EMA factorial — resolved (2026-07-31)
 
 An EMA teacher supplies two separable things: a **distillation target**, and an **averaged
 copy of the weights to evaluate**. Every arm before `pa_dual_ema` forced one EMA to do
@@ -71,11 +72,23 @@ both. CUB seed 0, against `proxy_anchor` 0.6825:
 +0.30) — a slow teacher is a more stable thing to regress toward. As the evaluated model,
 0.99 beats 0.999 (+0.45 vs +0.07) — a fast average tracks the current solution instead of
 dragging 5.3% of the initialisation along. `ema_eval_momentum` decouples them;
-`pa_dual_ema` is slow teacher + fast evaluated average, and its prediction is registered
-in `image_recipes.py` before the result.
+`pa_dual_ema` is slow teacher + fast evaluated average.
 
 **Read these numbers with §4b.** Reported deltas understate the averaging arms badly,
 because they collect far less best-over-training selection bonus.
+
+The required BN-correct In-Shop screen rejected the combination:
+
+| arm | digest | raw R@1 | corrected R@1 |
+| --- | --- | ---: | ---: |
+| Proxy Anchor seed 0 | `16a3bc844c81` | 0.9024 | 0.9015 |
+| `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9033 |
+| `pa_dual_ema_bnfix` | `79f9d35c4eea` | 0.9044 | 0.9040 |
+
+Dual-minus-average was +0.014 pt raw and +0.077 pt corrected. The
+preregistered raw threshold was +0.24 pt and absolute dual R@1 had to reach
+0.9048; it reached 0.9044. Candidate 1 failed gate 4 and received no
+confirmation seeds.
 
 ## 3. The one strong result: H3, the BatchNorm teacher/student mismatch
 
@@ -310,16 +323,18 @@ measured −1.47 pt).
 | `scripts/measure_antihubs.py` | antihub stability/cost/headroom |
 | `scripts/aligned_pack_fusion.py` | Procrustes-aligned pack fusion |
 | `scripts/probe_late_interaction.py` | MaxSim read-out probe |
-| `scripts/run_priority_queue_v26.sh` | current queue |
+| `scripts/run_priority_queue_v29.sh` | completed candidate-1 In-Shop screen |
 | `scripts/measure_selection_bias.py` | best-over-training selection bonus, per arm and per pair |
 
 ---
 
 ## 9. Recommended next steps
 
-The search for a novel method has been run to exhaustion: **thirteen candidates,
-thirteen failures**, and the last two were the best-motivated of the lot. That is
-itself the signal. What survives is worth writing, and it is not a method paper.
+The iterative search is closed on the current evidence. Candidate 1 failed its
+preregistered In-Shop screen; candidate 2 died on retrieval prior art; candidate
+3 lacked repository provenance and was independently occupied by BLenDeR. See
+`docs/method_search_verdict.md` §§8–11. What survives is worth writing, and it
+is not a novel-method claim.
 
 1. **Write up H3.** Six paired seeds across two bases, all positive, with the
    recovery-tracks-regression proportionality as the mechanistic evidence. The claim
@@ -337,12 +352,11 @@ itself the signal. What survives is worth writing, and it is not a method paper.
    negatives catalogue where every entry has a recorded mechanism rather than just a
    number. A *Metric Learning Reality Check* with the measurement done properly.
 
-3. **Do not start candidate fourteen without changing the search strategy.** The
-   thirteen failures were not random: every one either (a) added regularisation where
-   the base was already fitting well, or (b) swapped the similarity function while
-   leaving the training signal intact. Both classes are now well-evidenced dead ends.
-   Something that changes *what supervision exists* — not how it is scored — is the
-   only untried direction.
+3. **Do not queue another method without a new repository measurement.** Another
+   regularizer or similarity score repeats the fifteen-candidate failure pattern.
+   Cross-trajectory supervision and controlled support expansion—the two
+   measurement-adjacent alternatives—are occupied prior art. A new candidate
+   must begin again at gate 1 of `docs/search_protocol.md`.
 
 4. **Turn on `deterministic: true`** for everything new. It removes half the observed
    seed noise and costs nothing. Should have been default from the start.
