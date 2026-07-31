@@ -729,7 +729,54 @@ not route through rival classes. Cross-class relational candidates should target
 many-class datasets such as In-Shop or SOP and must not be presented as a
 dataset-general solution without replication.
 
-## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
+## 19. Augmentation-response compatibility graph: real structure, no useful objective
+
+**Gate-4 mechanistic failure recorded 2026-07-31; line closed.** ARCG was the
+post-RSPG candidate derived from measurements rather than analogy: rival-class
+signatures were nearly vacuous on CUB (density 0.6449) but selective on In-Shop
+(0.0866), while position-tolerant region matching beat fixed coordinates by
+6.67 points. It therefore used each image's response to deterministic flip and
+spatial-crop interventions as a within-class factor signature, retaining a
+same-class edge only when two different images' signatures agreed.
+
+The adversarial Gate-2 audit found direct prior art for every ingredient but not
+the operator-level conjunction. AugSelf and EquiMod represent augmentation
+response within one source image; NNCLR/Easy Positive select other instances by
+embedding proximity; ScoreCL/CLVS/CoCor continuously weight augmented views;
+view-aware re-identification uses known or predicted nuisance factors. None
+retrieved work used agreement between two different images' controlled-response
+vectors as a binary positive-to-unknown eligibility gate. The novelty survived
+narrowly and required later soft-weight and distance-gate controls if the main
+arm won.
+
+The exact epoch-10 In-Shop diagnostic passed strongly: 55,594 / 153,115 edges,
+density 0.3631, 80.93% multi-component classes, 53.07% closest-quartile
+rejection, and 28.02% farthest-quartile acceptance. The full run reproduced it
+almost exactly at activation: **55,729 edges, density 0.3640, 81.84%
+multi-component, 53.37% close rejection, and 28.00% far acceptance**. The
+signature is real and is not ordinary distance mining.
+
+The supervision operator failed catastrophically. At epoch 10, before ARCG
+activation, raw R@1 was **0.8463** and loss 2.3593. Replacing Proxy Anchor's
+own-class positive-proxy term with attraction to eligible detached graph
+neighbours dropped loss to **0.0017** within 100 steps and R@1 to **0.7005** at
+epoch 11; by epoch 15 loss was **0.0005** and R@1 **0.6637**. The run was stopped
+because the nearly zero objective contained no recovery force. The epoch-10
+best is pre-activation, far below the registered 0.9059 minimum, and is not a
+completed ARCG benchmark. No final artifact or defensible selection-corrected
+estimate exists; Gate 6 was not reached, and no controls or replication ran.
+
+Mechanistically, the eligible same-class neighbours were already beyond Proxy
+Anchor's positive margin when frozen. Their pair loss was therefore satisfied
+at construction. Removing the unsatisfied own-class proxy term removed useful
+attraction, leaving a rapidly satisfied negative-only objective. Retaining the
+proxy term or choosing a new harder pair margin after seeing the curve would
+change ARCG into an added regularizer and contaminate the preregistration. This
+is the second independent graph to show the same constraint: finding genuine
+intra-class structure is not enough; a positive-to-unknown graph must also
+define an unsatisfied, non-self-erasing training target.
+
+## 20. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
@@ -750,6 +797,14 @@ classes rather than merely a list of loss variants:
    external-generative evidence, explicitly outside the contamination-controlled
    constraint; standard augmentation/multi-view supervision was already tested
    and was neutral or failed under corrected recipes.
+
+ARCG adds the previously untried data-only appearance-factor branch. Its
+augmentation-response graph was selective and demonstrably independent of base
+distance, so Gate 1's motivating structure exists; it still failed because the
+binary graph edges were already satisfied at the operating checkpoint and
+replacing proxy positives erased the attractive objective. RSPG failed through
+the same positive-to-unknown interface with a different, cross-class signature.
+The common failure is now the supervision operator, not the descriptor.
 
 The new diagnostics support the premise—same-class relations are stable and
 local, while global pseudo-modes are not—but every defensible way found to turn

@@ -1,7 +1,8 @@
 # Candidate 19: augmentation-response compatibility graph (ARCG)
 
-**Status: operating-point diagnostic PASSED on 2026-07-31; eligible for Gate 4
-implementation and the preregistered In-Shop screen.** Gate 3 was committed as
+**Status: DEAD at Gate 4 on 2026-07-31.** The operating-point diagnostic passed,
+but the training operator catastrophically removed useful positive supervision.
+Gate 3 was committed as
 `c652d1c` before implementation, model export, or any ARCG GPU work. Gate 1
 provenance and the narrowly live Gate 2
 audit are recorded in `post_rspg_candidate_batch.md` and `arcg_prior_art.md`.
@@ -112,3 +113,37 @@ A headline win is not sufficient for the novelty claim. Before any second-
 dataset escalation, the full method must strictly beat seed-matched controls
 for (1) continuous soft response weighting and (2) an ordinary anchor-embedding
 distance gate. Failure to beat either control kills the claimed gate mechanism.
+
+## Gate-4 result: objective collapse
+
+The full seed reproduced the diagnostic rather than invalidating it: **55,729 /
+153,115 edges, density 0.3640**, multi-component fraction **0.8184**, closest-
+quartile rejection **0.5337**, and farthest-quartile acceptance **0.2800**. Thus
+augmentation response really does define selective, non-distance intra-class
+structure on In-Shop.
+
+The training operator nevertheless failed immediately. Before activation,
+epoch-10 raw R@1 was **0.8463** and loss was **2.3593**. In the first hundred
+steps after replacing Proxy Anchor's own-class proxy-positive term with the
+registered graph-positive term, loss fell to **0.0017** and epoch-11 R@1 fell to
+**0.7005**. Loss then reached **0.0005** while R@1 declined monotonically to
+**0.6637 at epoch 15**. The run was terminated at that point: a virtually zero
+objective supplies no recovery force, and spending the remaining GPU time could
+not test the proposed mechanism more clearly.
+
+This is an early mechanistic kill, not a completed benchmark. The partial
+epoch-10 best is far below the registered 0.9059 falsification threshold and is
+the pre-activation model, not an ARCG result. No final artifact exists, so a
+selection-corrected estimate is neither available nor defensible; the protocol's
+Gate 6 was not reached. No controls, additional seeds, or second dataset are
+permitted.
+
+The mechanism matches but sharpens RSPG's failure. Same-class graph neighbours
+already have cosine similarity beyond Proxy Anchor's positive margin at graph
+construction, so their detached positive loss is almost zero. Removing the
+own-class proxy term therefore removes the only unsatisfied attractive force;
+the different-class proxy term is quickly satisfied alone. Keeping the proxy
+positive and merely adding or weighting graph pairs would no longer be the
+claimed positive-to-unknown gate—it would be another regularizer or soft
+reweighting method, both occupied by prior art. ARCG is therefore closed rather
+than retuned with a new pair margin after seeing the collapse.
