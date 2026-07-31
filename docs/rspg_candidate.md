@@ -1,7 +1,9 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: contaminated operating-point diagnostic passed; full In-Shop seeds 0
-and 1 required; no ablation until both decide.
+Status: **DEAD at Gate 4.** Contaminated-path In-Shop seed 0 reached raw best
+R@1 0.8452 versus the registered 0.9085 minimum; seed 1 became logically
+unnecessary and no ablation ran. See `docs/method_search_verdict.md`, candidate
+18, for the self-erasing-graph mechanism.
 
 ## Gate 1 — provenance: PASS
 

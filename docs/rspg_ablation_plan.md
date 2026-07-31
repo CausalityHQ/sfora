@@ -1,8 +1,8 @@
 # RSPG conditional ablation plan
 
-Status: preregistered plan only; **do not run**. Activation awaits the exact
-epoch-10 In-Shop operating-point diagnostic and, if it passes, two valid main
-RSPG seeds clearing the registered threshold.
+Status: **CANCELLED, never run.** The full RSPG arm failed Gate 4 at raw best
+R@1 0.8452 versus the registered 0.9085 minimum, so the activation condition
+could not be met.
 
 ## Why these controls are mandatory
 

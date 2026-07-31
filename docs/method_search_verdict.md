@@ -604,8 +604,7 @@ dual-EMA or momentum-sweep GPU time is permitted.
 
 ## 18. Candidate 8: rival-signature positive graph
 
-**CPU diagnostic failure recorded 2026-07-31; no valid GPU result.** Candidate
-7's response
+**Gate-4 failure recorded 2026-07-31; line closed.** Candidate 7's response
 distillation and conditional-mask mechanism remains dead. RSPG uses the same
 measured rival-profile structure for a different operation: agreement over
 negative-class identities decides whether a same-class pair becomes a positive
@@ -675,6 +674,38 @@ seen partial-run 0.0863/0.8703. This paragraph is intentionally marked as a
 **contaminated confirmation** because the favourable answer was known first.
 Under the adjudicated rule it warrants two full In-Shop RSPG seeds, not one;
 both must clear raw R@1 0.9085 before any novelty ablation is activated.
+
+### Deciding In-Shop screen: catastrophic self-erasure
+
+**The decision path was contaminated by the dataset-unspecified diagnostic defect
+described above.** On the resulting full In-Shop seed 0, RSPG reached raw
+best-over-training R@1 **0.8452 at epoch 10**, versus the paired Proxy Anchor
+seed-0 **0.9024** (a **-5.72 pt** result) and the preregistered 0.9085 minimum.
+`measure_selection_bias.py` reports **0.7262 selection-corrected** for RSPG versus
+**0.9015** for the paired baseline (a **-17.53 pt** corrected delta). That
+corrected value must not be interpreted as an ordinary winners-curse estimate:
+the estimator assumes a locally smooth curve, but the selected epoch is exactly
+the structural discontinuity where RSPG activates. It is reported because the
+protocol requires both numbers; the raw threshold alone already kills the arm.
+
+The failure mechanism is stronger than the headline number. Before activation,
+epoch-10 R@1 was 0.8452. Replacing Proxy Anchor's own-class positive-proxy term
+with attraction to detached graph neighbours immediately drove the logged loss
+from ordinary scale to approximately **0.0017**, then **0.0001**, while R@1 fell
+to 0.6415 at epoch 11 and **0.4251 at epoch 60**. At the epoch-40 refresh the
+graph retained only **1,451 / 153,115 edges**, density **0.0095**, down from
+13,615 edges and density 0.0889 at activation and below the registered 0.05
+minimum. Multi-component fraction rose to 0.9972. The model therefore erased the
+rival-agreement structure that supplied its positives, leaving a nearly empty
+graph whose detached-edge objective was trivially satisfied. Positive-to-unknown
+gating did not merely select useful supervision; without the own-class proxy
+anchor it created a self-reinforcing route to no positive supervision.
+
+The registered rule required both contaminated-path seeds to clear 0.9085 before
+ablations. Once completed seed 0 landed at 0.8452, seed 1 could not change the
+conjunction and was terminated after one minute; the soft-JS, distance-gate and
+instance-context controls were never run. This is not an ablation-stage novelty
+failure: RSPG died earlier on absolute performance. Candidate 18 is **DEAD**.
 
 ### Mechanistic finding: rival identity carries dataset-dependent structure
 
