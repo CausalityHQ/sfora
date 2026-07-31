@@ -594,7 +594,23 @@ timescale conflict was not a transferable constraint. The accidental CUB
 seed-0 continuation was terminated before producing a result; no further
 dual-EMA or momentum-sweep GPU time is permitted.
 
-## 18. Reopened-loop stopping argument: data-only supervision expansion
+## 18. Candidate 8: rival-signature positive graph
+
+**Gates 1–3 passed 2026-07-31 with qualified novelty.** Candidate 7's response
+distillation and conditional-mask mechanism remains dead. RSPG uses the same
+measured rival-profile structure for a different operation: agreement over
+negative-class identities decides whether a same-class pair becomes a positive
+edge, while failed pairs are unknown.
+
+The pre-implementation audit found direct-distance positive mining (OSM),
+learned target neighbours, label propagation over proxy graphs, and contextual
+similarity distillation, but no primary DML source that uses agreement over
+negative-class identities to create positive relations. The distinction is
+narrow and novelty confidence is medium. The preregistered In-Shop seed-0
+prediction is 0.9100 R@1, falsified below 0.9085 or by the fixed training-graph
+diagnostic in `docs/rspg_candidate.md`. No CUB screen is permitted.
+
+## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
