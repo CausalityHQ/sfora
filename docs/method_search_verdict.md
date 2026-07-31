@@ -863,7 +863,19 @@ distance is additional image-transformation precedent. Controlled augmentation
 pairs are a cleaner estimator, not a new method class. Candidate 23 is **DEAD at
 Gate 2**.
 
-## 24. Reopened-loop stopping argument: data-only supervision expansion
+## 24. Counterfactual identity-label invalidation: occupied by PNDA
+
+**Gate-2 prior-art death recorded 2026-07-31; no GPU spent.** ARCG's crop
+response and IPSR's negative result motivated a narrower intervention: if a
+controlled crop destroys the frozen model's own-class evidence, change that
+augmented observation from positive to unknown instead of using response to
+relate two images. Miyai et al.'s PNDA (WACV 2023) already makes the same
+per-image semantic-eligibility decision and assigns a transformed view as
+positive or negative accordingly. A supervised proxy-response detector and an
+unknown rather than negative target are implementation choices, not a novel
+mechanism. Candidate 24 is **DEAD at Gate 2**.
+
+## 25. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
