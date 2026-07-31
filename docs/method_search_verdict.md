@@ -1022,7 +1022,19 @@ online class signatures followed by instance-level refinement; hard-aware
 point-to-set losses cover soft weighting. PNDC changes the hardness estimator,
 not the supervised relations. Candidate 35 is **DEAD at Gate 2**.
 
-## 36. Reopened-loop stopping argument: data-only supervision expansion
+## 36. Detailed-balance confusion flow: premise reversed by sparse null
+
+**Gate-1 death recorded 2026-07-31; no GPU spent.** Exact epoch-10 In-Shop
+errors initially looked like irreversible class flow: 82.16% of connected class
+pairs were one-way and mass-weighted imbalance was 67.25%. A thermodynamics-
+inspired arm would symmetrize aggregate class-pair error flux. But destination
+permutations preserving the complete source and receiver marginals yield only
+0.43% reciprocal directed cells versus **30.28% observed**, and 99.43% imbalance
+versus **67.25% observed**. Relative to the correct sparse null, the learned error
+graph is already exceptionally reciprocal and balanced. Candidate 36 is **DEAD
+at Gate 1**; the raw one-way fraction was a sparsity artefact.
+
+## 37. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
