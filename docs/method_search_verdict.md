@@ -610,6 +610,12 @@ narrow and novelty confidence is medium. The preregistered In-Shop seed-0
 prediction is 0.9100 R@1, falsified below 0.9085 or by the fixed training-graph
 diagnostic in `docs/rspg_candidate.md`. No CUB screen is permitted.
 
+The fixed In-Shop epoch-10 graph diagnostic passed: 13,209 of 153,115 possible
+within-class edges were retained (density 0.0863), and 0.8703 of eligible
+classes had multiple connected components. The signal is therefore neither
+absent nor an alias for the full class label. The seed-0 retrieval threshold
+remains the deciding Gate-4 test.
+
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,

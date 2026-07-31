@@ -1,7 +1,7 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: gates 1–3 passed with qualified novelty; implementation and In-Shop
-graph diagnostic next.
+Status: gates 1–3 passed with qualified novelty; In-Shop graph diagnostic
+passed; seed-0 screen running.
 
 ## Gate 1 — provenance: PASS
 
@@ -57,3 +57,11 @@ One warm-up of 10 epochs precedes graph construction; the graph refreshes once
 at epoch 40 from a stop-gradient EMA snapshot. Training data, labels, and the
 current model are the only sources. Inference remains one model, one view,
 512-dimensional cosine retrieval.
+
+## Gate 4a — fixed graph diagnostic: PASS
+
+On the In-Shop seed-0 run (recipe digest `7a57b992b6a4`), the epoch-10 graph had
+**13,209 / 153,115 edges**, density **0.0863**, and **0.8703** of eligible
+classes had two or more connected components. Both preregistered conditions
+passed without changing the thresholds. Training therefore continued to the
+registered R@1 decision; this diagnostic alone is not a method win.
