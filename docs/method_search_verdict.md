@@ -935,7 +935,19 @@ the gradient isolates identity. Deep View-Aware Metric Learning is older
 adjacent precedent. A response signature instead of pose is an estimator
 substitution, not method novelty. Candidate 29 is **DEAD at Gate 2**.
 
-## 30. Reopened-loop stopping argument: data-only supervision expansion
+## 30. Difference-in-differences equivariance: occupied vector geometry
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** DiDE proposed preserving
+identity contrasts under a shared augmentation by equalizing clean-to-augmented
+embedding displacements across images, allowing nonzero equivariant motion
+instead of enforcing invariance. TraVeLGAN (CVPR 2019) already preserves equal
+transformation vectors across images, and Difference Vector Equalization (AAAI
+2026) explicitly equalizes embedding difference vectors across samples to
+preserve geometry. Established equivariant/AugSelf work supplies the
+augmentation setting. Clean-to-augmented endpoints are an application change,
+not method novelty. Candidate 30 is **DEAD at Gate 2**.
+
+## 31. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

@@ -1,7 +1,7 @@
 # DiDE — difference-in-differences equivariance
 
-**Gate 1 recorded 2026-07-31 before prior-art audit, diagnostic, implementation,
-or GPU use.**
+**Status: DEAD at Gate 2 on 2026-07-31; no diagnostic, implementation, or GPU
+use.** Gate 1 was recorded before the audit below.
 
 ## Repository provenance
 
@@ -57,3 +57,20 @@ algebraically equivalent preservation of all pairwise differences. It is also
 dead if the only surviving distinction is applying an established equivariance
 loss to Proxy Anchor.
 
+## Gate-2 result
+
+The algebraic mechanism is occupied from two directions:
+
+- Amodio and Krishnaswamy, *TraVeLGAN: Image-to-image Translation by
+  Transformation Vector Learning* (CVPR 2019), explicitly preserve vector
+  arithmetic across images: the vector transforming one original image into
+  another must equal the vector between their generated versions.
+- Suzuki et al., *Difference Vector Equalization for Robust Fine-tuning of
+  Vision-Language Models* (AAAI 2026), constrain embedding difference vectors
+  to be equal across data samples in order to preserve geometric structure.
+
+AugSelf, class-pose decomposition, CLeVER, and other equivariant representation
+methods already provide the augmentation-specific context. DiDE changes the
+endpoints of an established equal-displacement constraint to clean and
+augmented views. The difference-in-differences interpretation is useful, but it
+does not create a new learning mechanism. Candidate 30 is **DEAD at Gate 2**.
