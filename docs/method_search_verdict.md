@@ -1083,7 +1083,21 @@ changes nearest-centroid accuracy by only +0.0039 point and slightly reduces mea
 proxy alignment. Candidate 39 is **DEAD at Gate 1**: the session shortcut is
 geometric, not unequal-sample pseudoreplication.
 
-## 40. Reopened-loop stopping argument: data-only supervision expansion
+## 40. Legacy synthesis variants: stale novelty claim withdrawn
+
+**Gate-2/protocol death recorded 2026-07-31; no new GPU spent.** The repository
+still called group-mean and confusion-guided Proxy Synthesis “novel.” Existing
+paired CUB final-epoch deltas over an older ResNet-50 baseline are: vanilla
+`+0.523 ± 0.556` point, group mean `+0.422 ± 0.726`, and confusion-guided
+`+0.264 ± 0.469` (mean ± paired sd, n=3). Each is seed-0-heavy; group and
+confusion-guided each have a negative seed. The artifacts lack curves for
+selection correction and were never screened on In-Shop. More importantly,
+mixing virtual classes is Proxy Synthesis/Embedding Expansion/Metrix, while
+group aggregation and confusable-pair sampling are estimator and mining choices.
+Candidate 40 is **DEAD at Gate 2** and the source comments' novelty wording is
+retracted.
+
+## 41. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

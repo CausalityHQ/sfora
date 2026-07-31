@@ -5276,12 +5276,10 @@ def _sample_synthesis_class_pairs(
     """Pick a pair of present classes to synthesise a virtual class between.
 
     ``mode="random"`` draws a uniform distinct pair (vanilla Proxy Synthesis).
-    ``mode="confusable"`` (novel: Confusion-Guided Proxy Synthesis) draws a distinct
-    pair with probability proportional to ``softmax(cos(proxy_i, proxy_j) / temperature)``
-    over unordered pairs, so virtual classes densify the decision boundaries between
-    the classes that are hardest to tell apart — where boundary smoothing most helps
-    zero-shot transfer. The confusion axes GSI could only measure (not exploit) here
-    steer a mechanism that actually moves the metric.
+    ``mode="confusable"`` (an experimental Proxy Synthesis sampling variant)
+    draws a distinct pair with probability proportional to
+    ``softmax(cos(proxy_i, proxy_j) / temperature)`` over unordered pairs, so
+    virtual classes densify the hardest decision boundaries.
     """
     count = len(present)
     if mode != "confusable" or count <= 2:
@@ -5322,13 +5320,13 @@ def _proxy_synthesis_proxy_anchor_loss(
     classes. Virtual proxies/embeddings are differentiable mixtures, so gradients
     flow back to the real proxies and backbone.
 
-    Novel twist (``group_mix=True``): a virtual class is generated from the mix of
-    the two source classes' GROUP MEANS (set representatives) instead of individual
-    embedding pairs — a sfora-native form of synthesis.
+    Experimental variant (``group_mix=True``): a virtual class is generated from
+    the mix of the two source classes' group means instead of individual embedding
+    pairs.
 
-    Novel twist (``pair_selection="confusable"``): Confusion-Guided Proxy Synthesis —
-    source class pairs are drawn toward the most confusable (nearest-proxy) pairs
-    rather than uniformly, so virtual classes densify the hardest decision boundaries.
+    Experimental variant (``pair_selection="confusable"``): source class pairs
+    are drawn toward the most confusable (nearest-proxy) pairs rather than
+    uniformly, so virtual classes densify the hardest decision boundaries.
     Reduces exactly to plain Proxy Anchor over per-class mean proxies when ``ratio == 0``.
     """
     if proxy_embeddings is None or proxy_labels is None:
