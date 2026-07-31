@@ -1,6 +1,6 @@
 # Candidate 6: matched-patch positive supervision
 
-Status: gate 1 passed; prior-art audit required before implementation or GPU use.
+Status: gate 2 failed; no implementation or GPU use.
 
 ## Gate 1 — provenance: PASS
 
@@ -43,3 +43,25 @@ cross-image correspondence, local-feature DML, part-aware retrieval,
 mutual-nearest patch matching, and any method combining those elements on CUB,
 Cars, In-Shop, or adjacent retrieval tasks.
 
+## Gate 2 — prior art: FAIL
+
+The relevant prior art is not multi-centre classification but DIML
+([Zhao et al., ICCV 2021](https://openaccess.thecvf.com/content/ICCV2021/html/Zhao_Towards_Interpretable_Deep_Metric_Learning_With_Structural_Matching_ICCV_2021_paper.html)).
+DIML computes an explicit optimal matching flow between the convolutional
+feature maps of two images and substitutes the resulting structural similarity
+into existing metric-learning objectives. Its supplement applies that score to
+Proxy Anchor as well as pair-based losses, and the paper evaluates CUB200-2011
+and Cars196.
+
+Detached mutual-nearest patch pairs are a cheaper correspondence solver than
+DIML's optimal transport, and retaining global-only inference differs from its
+top-K structural reranking. Neither difference creates a new supervision
+mechanism: both methods let cross-image spatial correspondences determine the
+positive similarity used to train a DML model. Weakly supervised semantic
+alignment also predates DIML and learns dense correspondence from image-pair
+category supervision
+([Rocco et al., CVPR 2018](https://arxiv.org/abs/1712.06861)).
+
+Candidate 6 therefore stops before preregistration, implementation, or GPU
+screening. Its repository motivation remains useful evidence that spatially
+moving content is a real failure mode, but the proposed remedy is occupied.

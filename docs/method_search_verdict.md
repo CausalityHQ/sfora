@@ -514,3 +514,23 @@ extra model-size or training-speed cost
 ([Ko & Gu, CVPR 2020](https://openaccess.thecvf.com/content_CVPR_2020/papers/Ko_Embedding_Expansion_Augmentation_in_Embedding_Space_for_Deep_Metric_Learning_CVPR_2020_paper.pdf)).
 Nearest-neighbour restriction is a locality policy for that existing mechanism,
 not a new supervision source. Candidate 5 stops at gate 2.
+
+## 14. Candidate 6: matched-patch positive supervision
+
+**Gate 2 failure recorded 2026-07-31; no GPU used.** `region_pa` lost 3.6 pt,
+but replacing fixed slot cosine with position-tolerant MaxSim recovered 6.7 pt;
+`local_nca` meanwhile treated 31–40 of 40 same-class images as effective
+positives and collapsed. Together with stable global positive-neighbour ranks,
+this motivated selecting compatible image pairs and making only their matched
+local patches positive.
+
+The mechanism is occupied by DIML, which computes optimal-transport matching
+between cross-image feature maps and uses the structural similarity inside
+Proxy Anchor and other DML objectives on CUB and Cars196
+([Zhao et al., ICCV 2021](https://openaccess.thecvf.com/content/ICCV2021/html/Zhao_Towards_Interpretable_Deep_Metric_Learning_With_Structural_Matching_ICCV_2021_paper.html)).
+Mutual-nearest patches rather than optimal transport and global-only rather
+than structural-reranked inference are implementation choices, not a new source
+of supervision. Earlier weakly supervised alignment work also derives dense
+correspondence from same-category image pairs
+([Rocco et al., CVPR 2018](https://arxiv.org/abs/1712.06861)). Candidate 6
+stops before preregistration or implementation.
