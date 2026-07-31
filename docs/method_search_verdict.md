@@ -1065,7 +1065,17 @@ role of same-identity cross-camera images, and Qi et al. aligns camera subdomain
 Using a DeepFashion acquisition token instead of camera ID is a benchmark
 adaptation. Candidate 38 is **DEAD at Gate 2**.
 
-## 39. Reopened-loop stopping argument: data-only supervision expansion
+## 39. Acquisition-cluster robust PA: pseudoreplication premise absent
+
+**Gate-1 death recorded 2026-07-31; no GPU spent.** Equal-weighting In-Shop
+acquisition groups was motivated by the 0.8199 within-group versus 0.6396
+cross-group cosine gap. But multi-group identities have mean group-size CV only
+0.056; image-weighted and group-balanced centroids have cosine 0.99985. Balancing
+changes nearest-centroid accuracy by only +0.0039 point and slightly reduces mean
+proxy alignment. Candidate 39 is **DEAD at Gate 1**: the session shortcut is
+geometric, not unequal-sample pseudoreplication.
+
+## 40. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
