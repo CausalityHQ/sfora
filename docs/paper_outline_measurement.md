@@ -115,6 +115,17 @@ that both effects are large enough to change conclusions.
   evidence for an expensive Stable-Diffusion implementation, with no seed count,
   uncertainty, contamination audit, or disclosed GPU cost. It does not close
   cheap, data-only, non-generative supervision expansion.
+  A second independent check adds the baseline detail, which is the same defect
+  IDEAL had: the headline "+3.7 CUB / +1.8 Cars" is **two deltas against two
+  different baselines** — CUB is BLenDeR-PF (77.0) over the authors' own
+  reproduced Potential Field (73.3), Cars is BLenDeR-PA (92.3) over their own
+  reproduced Proxy Anchor (90.5) — and their reproduced Cars PF (91.9) lands
+  *below* published PF (92.7), which they attribute to a reproduction gap. So the
+  deltas are measured from self-reproduced floors, not published ones. It also
+  requires Stable Diffusion 1.5 with per-category LoRA/TI, LLaVA-NeXT captioning,
+  CLIP ViT-L/14 ranking, and language-guided SAM masks — capability imported from
+  models trained on orders of magnitude more data than the benchmark allows.
+  Unreviewed (arXiv v1, DBLP lists CoRR only); no reproduction outside the authors.
 
 Closed items: dual EMA failed its preregistered In-Shop screen (+0.014 pt raw
 over averaging versus +0.24 required), and no CUB confirmation is owed.
