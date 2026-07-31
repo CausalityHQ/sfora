@@ -1,6 +1,6 @@
 # Candidate 5: local-chord positive expansion
 
-Status: gate 1 passed; prior-art audit required before implementation or GPU use.
+Status: **failed gate 2 on prior art; no implementation or GPU run**.
 
 ## Gate 1 — provenance: PASS
 
@@ -50,3 +50,28 @@ combination—training-only reciprocal positive graph plus local feature-chord
 expansion—from generic MixUp, metric-learning embedding expansion, proxy
 synthesis, manifold interpolation, SoftTriple, and sub-centre ArcFace.
 
+## Gate 2 — prior art: FAIL
+
+The exact expansion operation is established in DML:
+
+- *It Takes Two to Tango: Mixup for Deep Metric Learning* introduces Metrix, a
+  general formulation that mixes inputs, intermediate representations, or
+  embeddings together with their metric-learning targets and evaluates on four
+  standard DML benchmarks
+  ([Venkataramanan et al., ICLR 2022](https://openreview.net/pdf?id=ZKy2X3dgPA)).
+- *Embedding Expansion* generates synthetic points by combining feature points,
+  applies them to DML losses, and explicitly claims no additional model size,
+  training-speed cost, or optimization difficulty
+  ([Ko & Gu, CVPR 2020](https://openaccess.thecvf.com/content_CVPR_2020/papers/Ko_Embedding_Expansion_Augmentation_in_Embedding_Space_for_Deep_Metric_Learning_CVPR_2020_paper.pdf)).
+- Local Mixup restricts interpolation using a k-nearest-neighbour graph to avoid
+  manifold intrusion. Although evaluated outside DML, it occupies the proposed
+  locality rule rather than merely generic MixUp.
+
+Reciprocal same-class filtering may be a sensible hyperparameter or corruption
+control for Metrix/Embedding Expansion, but it does not change the defining
+supervision mechanism: virtual labelled points on feature chords. The proposal
+is distinct from SoftTriple and sub-centre ArcFace, yet still not novel.
+
+Candidate 5 stops before preregistration, implementation, or GPU screening. The
+positive-neighbour stability measurement remains useful provenance for a
+different non-interpolation mechanism.

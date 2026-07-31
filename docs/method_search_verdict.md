@@ -494,3 +494,23 @@ The causal mechanism is already established:
 A frozen encoder changes where the graded labels come from, not what supervision
 the method uses. Candidate 4 fails novelty before preregistration or
 implementation.
+
+## 13. Candidate 5: local-chord positive expansion
+
+**Gate 2 failure recorded 2026-07-31; no GPU used.** Five aligned CUB training
+embedding packs established that within-class relation structure is real:
+pair-rank Spearman is 0.863 across independent runs and top-5 positive-neighbour
+Jaccard is 0.411, 9.06× chance. Global class-centred residual modes were not
+stable (cross-run ARI 0.06–0.07), so the candidate correctly targeted local
+class-specific structure.
+
+It proposed reciprocal same-class kNN edges and feature interpolation only
+along those edges, creating virtual positives without a generator or additional
+backbone work. That exact supervision class is occupied. Metrix mixes inputs,
+intermediate features, or embeddings for DML
+([Venkataramanan et al., ICLR 2022](https://openreview.net/pdf?id=ZKy2X3dgPA));
+Embedding Expansion combines feature points into synthetic DML samples without
+extra model-size or training-speed cost
+([Ko & Gu, CVPR 2020](https://openaccess.thecvf.com/content_CVPR_2020/papers/Ko_Embedding_Expansion_Augmentation_in_Embedding_Space_for_Deep_Metric_Learning_CVPR_2020_paper.pdf)).
+Nearest-neighbour restriction is a locality policy for that existing mechanism,
+not a new supervision source. Candidate 5 stops at gate 2.
