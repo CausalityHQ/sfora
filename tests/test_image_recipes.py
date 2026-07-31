@@ -706,6 +706,22 @@ def test_arcg_recipe_freezes_preregistered_graph_schedule() -> None:
     }
 
 
+def test_ipsr_recipe_freezes_preregistered_preference_schedule() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    recipe = derive_recipe(base, "ipsr")
+
+    assert recipe.config["ipsr_weight"] == 1.0
+    assert recipe.config["ipsr_warmup_epoch"] == 10
+    assert recipe.config["ipsr_refresh_epoch"] == 40
+    assert recipe.config["ipsr_agreement_threshold"] == 0.5
+    assert set(recipe.delta) == {
+        "ipsr_weight",
+        "ipsr_warmup_epoch",
+        "ipsr_refresh_epoch",
+        "ipsr_agreement_threshold",
+    }
+
+
 @pytest.mark.parametrize(
     ("method", "control"),
     [

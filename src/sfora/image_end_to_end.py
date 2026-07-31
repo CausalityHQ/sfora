@@ -22,6 +22,7 @@ from sfora.image_benchmark import (
     image_query_gallery_retrieval_score,
     image_self_retrieval_score,
 )
+from sfora.ipsr import build_ipsr_preferences
 
 if TYPE_CHECKING:
     import torch
@@ -214,6 +215,11 @@ class ImageEndToEndConfig(BaseModel):
     arcg_warmup_epoch: int = Field(default=10, ge=1)
     arcg_refresh_epoch: int = Field(default=40, ge=1)
     arcg_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
+    # Interventional principal-stratum ranking. Zero preserves historical behavior.
+    ipsr_weight: float = Field(default=0.0, ge=0.0)
+    ipsr_warmup_epoch: int = Field(default=10, ge=1)
+    ipsr_refresh_epoch: int = Field(default=40, ge=1)
+    ipsr_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -639,7 +645,7 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
-        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0
+        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0
         else _TorchImageDataset(optimization_examples, train_transform)
     )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
@@ -762,7 +768,7 @@ def run_image_end_to_end_benchmark(
         pin_memory=torch.cuda.is_available(),
     )
     arcg_eval_loaders: tuple[Any, ...] = ()
-    if config.arcg_weight > 0.0:
+    if config.arcg_weight > 0.0 or config.ipsr_weight > 0.0:
         if config.dataset_name != "inshop" or config.backbone_name != "bn_inception":
             raise ValueError("ARCG Gate 4 is preregistered only for In-Shop BN-Inception")
         arcg_eval_loaders = tuple(
@@ -959,12 +965,17 @@ def run_image_end_to_end_benchmark(
                 _freeze_batch_norm_layers(model)
             train_batches = _iter_training_batches(train_loader)
             rspg_state: RSPGState | None = None
+            ipsr_state: IPSRState | None = None
             for step, batch in zip(
                 range(1, train_steps + 1),
                 train_batches,
                 strict=False,
             ):
-                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0:
+                if (
+                    config.rspg_weight > 0.0
+                    or config.arcg_weight > 0.0
+                    or config.ipsr_weight > 0.0
+                ):
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:
@@ -997,6 +1008,35 @@ def run_image_end_to_end_benchmark(
                         device=device,
                         torch_module=torch,
                         enforce_diagnostic=rspg_epoch == config.rspg_warmup_epoch,
+                    )
+                    model.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(model)
+                ipsr_epoch = (step - 1) // steps_per_epoch
+                if (
+                    config.ipsr_weight > 0.0
+                    and ipsr_epoch in {config.ipsr_warmup_epoch, config.ipsr_refresh_epoch}
+                    and (step - 1) % steps_per_epoch == 0
+                ):
+                    ipsr_embeddings, ipsr_labels = _encode_model(
+                        model, train_eval_loader, device, torch
+                    )
+                    ipsr_transformed = []
+                    for arcg_loader in arcg_eval_loaders:
+                        view_embeddings, view_labels = _encode_model(
+                            model, arcg_loader, device, torch
+                        )
+                        if not np.array_equal(view_labels, ipsr_labels):
+                            raise RuntimeError("IPSR deterministic view labels are misaligned")
+                        ipsr_transformed.append(view_embeddings)
+                    ipsr_state = _build_ipsr_state(
+                        ipsr_embeddings,
+                        np.stack(ipsr_transformed, axis=1),
+                        ipsr_labels,
+                        config=config,
+                        device=device,
+                        torch_module=torch,
+                        enforce_diagnostic=ipsr_epoch == config.ipsr_warmup_epoch,
                     )
                     model.train()
                     if config.freeze_batch_norm:
@@ -1046,6 +1086,9 @@ def run_image_end_to_end_benchmark(
                     loss_kwargs["custom_losses"] = custom_losses
                 if rspg_state is not None:
                     loss_kwargs["rspg_state"] = rspg_state
+                    loss_kwargs["sample_indices"] = sample_indices
+                if ipsr_state is not None:
+                    loss_kwargs["ipsr_state"] = ipsr_state
                     loss_kwargs["sample_indices"] = sample_indices
                 if bgsi_state is not None:
                     loss_kwargs["bgsi_state"] = bgsi_state
@@ -1910,6 +1953,18 @@ class RSPGState:
     multi_component_fraction: float
 
 
+@dataclass
+class IPSRState:
+    """Detached real-image targets for registered response-order inversions."""
+
+    target_embeddings: Any
+    preferred_indices: Any
+    unknown_indices: Any
+    anchor_coverage: float
+    class_coverage: float
+    mean_initial_loss: float
+
+
 def _union_find_root(parents: list[int], index: int) -> int:
     while parents[index] != index:
         parents[index] = parents[parents[index]]
@@ -2191,6 +2246,62 @@ def _build_arcg_state(
         neighbours=tuple(tuple(items) for items in neighbours),
         edge_density=float(diagnostics.density),
         multi_component_fraction=float(diagnostics.multicomponent_fraction),
+    )
+
+
+def _build_ipsr_state(
+    anchor_embeddings: NDArray[np.float64],
+    transformed_embeddings: NDArray[np.float64],
+    labels: NDArray[np.int64],
+    *,
+    config: ImageEndToEndConfig,
+    device: Any,
+    torch_module: Any,
+    enforce_diagnostic: bool,
+) -> IPSRState:
+    """Build preregistered contradicted preferences from a detached snapshot."""
+    signatures, valid = normalized_response_signatures(
+        anchor_embeddings, transformed_embeddings
+    )
+    diagnostics = build_ipsr_preferences(
+        anchor_embeddings,
+        signatures,
+        labels,
+        valid,
+        agreement_threshold=config.ipsr_agreement_threshold,
+    )
+    print(
+        "IPSR preference diagnostic: "
+        f"preferences={diagnostics.preference_count}/{len(labels)} "
+        f"anchor_coverage={diagnostics.anchor_coverage:.4f} "
+        f"class_coverage={diagnostics.class_coverage:.4f} "
+        f"initial_loss={diagnostics.mean_initial_loss:.4f}",
+        flush=True,
+    )
+    passes = (
+        diagnostics.anchor_coverage >= 0.50
+        and diagnostics.class_coverage >= 0.50
+        and diagnostics.mean_initial_loss >= 0.70
+    )
+    if enforce_diagnostic and not passes:
+        raise RuntimeError(
+            "IPSR preregistered diagnostic failed: require anchor coverage >= 0.50, "
+            "class coverage >= 0.50, and initial loss >= 0.70; thresholds may not be tuned"
+        )
+    target = torch_module.as_tensor(
+        anchor_embeddings, dtype=torch_module.float32, device=device
+    )
+    return IPSRState(
+        target_embeddings=_normalize(target, torch_module).detach(),
+        preferred_indices=torch_module.as_tensor(
+            diagnostics.preferred_indices, dtype=torch_module.long, device=device
+        ),
+        unknown_indices=torch_module.as_tensor(
+            diagnostics.unknown_indices, dtype=torch_module.long, device=device
+        ),
+        anchor_coverage=diagnostics.anchor_coverage,
+        class_coverage=diagnostics.class_coverage,
+        mean_initial_loss=diagnostics.mean_initial_loss,
     )
 
 
@@ -2938,6 +3049,24 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             delta=config.proxy_anchor_delta,
             torch_module=torch_module,
         )
+    if config.ipsr_weight > 0.0 and kwargs.get("ipsr_state") is not None:
+        sample_indices = kwargs.get("sample_indices")
+        if sample_indices is None:
+            raise RuntimeError("IPSR requires stable training sample indices")
+        ipsr_loss, active = _ipsr_ranking_loss(
+            embeddings,
+            sample_indices,
+            state=cast(IPSRState, kwargs["ipsr_state"]),
+            torch_module=torch_module,
+        )
+        loss = loss + config.ipsr_weight * ipsr_loss
+        step = int(kwargs["step"])
+        if step % config.progress_every == 0:
+            print(
+                f"IPSR step {step} ranking_loss={float(ipsr_loss.detach().cpu()):.4f} "
+                f"active_anchors={active}",
+                flush=True,
+            )
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
@@ -3515,6 +3644,7 @@ def _loss_for_objective(
     hist_label_to_index: dict[int, int] | None = None,
     tversky_feature_bank: Any | None = None,
     rspg_state: RSPGState | None = None,
+    ipsr_state: IPSRState | None = None,
     sample_indices: Any | None = None,
     custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
 ) -> Any:
@@ -3545,6 +3675,7 @@ def _loss_for_objective(
         hist_label_to_index=hist_label_to_index,
         tversky_feature_bank=tversky_feature_bank,
         rspg_state=rspg_state,
+        ipsr_state=ipsr_state,
         sample_indices=sample_indices,
     )
 
@@ -4677,6 +4808,33 @@ def _rspg_positive_loss(
     similarities = (normalized[source_tensor] * state.target_embeddings[target_tensor]).sum(dim=1)
     positive = torch_module.nn.functional.softplus(-float(alpha) * (similarities - float(delta)))
     return (positive * weight_tensor).sum() / weight_tensor.sum().clamp_min(1.0e-8)
+
+
+def _ipsr_ranking_loss(
+    embeddings: Any,
+    sample_indices: Any,
+    *,
+    state: IPSRState,
+    torch_module: Any,
+) -> tuple[Any, int]:
+    """Correct registered same-class response-order inversions without a margin."""
+    preferred = state.preferred_indices[sample_indices]
+    unknown = state.unknown_indices[sample_indices]
+    active = preferred.ge(0) & unknown.ge(0)
+    active_count = int(active.sum().detach().cpu())
+    if active_count == 0:
+        return embeddings.sum() * 0.0, 0
+    normalized = _normalize(embeddings[active], torch_module)
+    preferred_similarity = (
+        normalized * state.target_embeddings[preferred[active]]
+    ).sum(dim=1)
+    unknown_similarity = (
+        normalized * state.target_embeddings[unknown[active]]
+    ).sum(dim=1)
+    loss = torch_module.nn.functional.softplus(
+        unknown_similarity - preferred_similarity
+    ).mean()
+    return loss, active_count
 
 
 def _shepard_similarity(

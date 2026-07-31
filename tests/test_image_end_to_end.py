@@ -7428,6 +7428,66 @@ def test_rspg_positive_loss_uses_only_registered_graph_edges() -> None:
     assert torch.count_nonzero(embeddings.grad[1]) == 0
 
 
+def test_ipsr_adds_ranking_loss_without_replacing_proxy_anchor() -> None:
+    import torch
+
+    from sfora.image_end_to_end import (
+        ImageEndToEndConfig,
+        IPSRState,
+        _ipsr_ranking_loss,
+        _proxy_anchor_loss,
+        _proxy_anchor_objective_loss,
+    )
+
+    embeddings = torch.tensor([[0.0, 1.0], [0.0, 1.0]], requires_grad=True)
+    labels = torch.tensor([0, 1])
+    proxies = torch.tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True)
+    proxy_labels = torch.tensor([0, 1])
+    state = IPSRState(
+        target_embeddings=torch.tensor([[1.0, 0.0], [0.0, 1.0]]),
+        preferred_indices=torch.tensor([0, -1]),
+        unknown_indices=torch.tensor([1, -1]),
+        anchor_coverage=0.5,
+        class_coverage=0.5,
+        mean_initial_loss=1.0,
+    )
+    config = ImageEndToEndConfig(
+        objectives=("proxy_anchor",),
+        proxy_anchor_alpha=1.0,
+        proxy_anchor_delta=0.0,
+        ipsr_weight=1.0,
+    )
+    ranking, active = _ipsr_ranking_loss(
+        embeddings, torch.tensor([0, 1]), state=state, torch_module=torch
+    )
+    base = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        alpha=1.0,
+        delta=0.0,
+        torch_module=torch,
+    )
+    combined = _proxy_anchor_objective_loss(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch,
+        ipsr_state=state,
+        sample_indices=torch.tensor([0, 1]),
+        step=1,
+        teacher_embeddings=None,
+    )
+    assert active == 1
+    torch.testing.assert_close(combined, base + ranking)
+    combined.backward()
+    assert embeddings.grad is not None
+    assert proxies.grad is not None  # proves the ordinary proxy term remained active
+
+
 def test_rspg_graph_builder_creates_training_only_edges() -> None:
     import torch
 
