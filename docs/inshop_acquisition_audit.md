@@ -28,6 +28,27 @@ easy same-group/different-view matches. Restricting candidates to the same named
 view gives only `0.2967`. The `flat` view is a small hard stratum (329 images,
 R@1 `0.6413`); the other named views range from `0.9102` to `0.9721`.
 
+A corrected cross-**group** diagnostic is much harder. Among 14,705 images from
+the 1,274 training identities that have another acquisition group, removing every
+same-group gallery candidate lowers R@1 to **`0.5542`**. Even restricting to a
+same-view candidate in another group gives only `0.5773` on the 13,936 queries
+for which such a positive exists. The ordinary 0.9382 training number is therefore
+dominated by acquisition-local retrieval.
+
+## The official test partition partly rewards the shortcut
+
+Parsing `Eval/list_eval_partition.txt` shows that 95.60% of the 14,218 official
+queries have at least one same-acquisition-token gallery image, whereas only
+57.28% have any relevant image with a different token. Across all relevant
+query-gallery pairs, 27.42% share the token and 16.09% share the named view.
+
+Consequently, In-Shop headline R@1 can be satisfied by an easy same-session match
+for nearly every query. Removing acquisition evidence may improve genuine
+cross-session identity retrieval while hurting the registered R@1 endpoint. A
+method should not exploit this partition property, but neither should a lower R@1
+be presented as evidence that session invariance failed without a cross-session
+evaluation.
+
 ## Interpretation and limitation
 
 The backbone strongly encodes acquisition-session/model/background evidence

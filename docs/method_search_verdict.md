@@ -1065,6 +1065,14 @@ role of same-identity cross-camera images, and Qi et al. aligns camera subdomain
 Using a DeepFashion acquisition token instead of camera ID is a benchmark
 adaptation. Candidate 38 is **DEAD at Gate 2**.
 
+The corrected diagnostic strengthens the dataset finding: cross-acquisition-only
+training R@1 is `0.5542` on identities where such a positive exists, versus
+ordinary `0.9382`. But the official partition gives 95.60% of test queries at
+least one same-token gallery positive and only 57.28% any cross-token positive.
+Headline In-Shop R@1 therefore partly rewards the acquisition shortcut. Fixing
+it may be scientifically desirable while moving against this project's registered
+screen; exploiting it would not constitute a retrieval-method contribution.
+
 ## 39. Acquisition-cluster robust PA: pseudoreplication premise absent
 
 **Gate-1 death recorded 2026-07-31; no GPU spent.** Equal-weighting In-Shop
