@@ -661,6 +661,13 @@ selection, then run the frozen diagnostic on CPU. A "free CPU diagnostic" that
 requires a trained representation is not free unless the exact checkpoint
 already exists. That dependency must be budgeted and registered up front.
 
+The exact operating-point rerun then passed: **13,253 / 153,115 edges**, density
+**0.0866**, multi-component fraction **0.8735**, closely reproducing the already
+seen partial-run 0.0863/0.8703. This paragraph is intentionally marked as a
+**contaminated confirmation** because the favourable answer was known first.
+Under the adjudicated rule it warrants two full In-Shop RSPG seeds, not one;
+both must clear raw R@1 0.9085 before any novelty ablation is activated.
+
 ## 19. Earlier reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,

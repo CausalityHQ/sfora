@@ -1,7 +1,7 @@
 # Candidate 8: rival-signature positive graph (RSPG)
 
-Status: operating-point diagnostic pending; no valid retrieval result or
-ablation.
+Status: contaminated operating-point diagnostic passed; full In-Shop seeds 0
+and 1 required; no ablation until both decide.
 
 ## Gate 1 — provenance: PASS
 
@@ -109,6 +109,20 @@ disabled, exports final epoch-10 training embeddings, and applies the unchanged
 graph rule on CPU. This costs GPU time because the supposedly free diagnostic
 depends on a trained representation. The already-seen partial-run density 0.0863
 makes the confirmation path contaminated and must remain adjacent to its result.
+
+### Exact epoch-10 operating-point diagnostic: PASS
+
+**This confirmation is contaminated because the prior partial run had already
+revealed a favourable epoch-10 graph.** The independently rerun official
+Proxy Anchor epoch-10 pack retained **13,253 / 153,115 edges**, density
+**0.0866**, and had multi-component fraction **0.8735**. It passes the unchanged
+0.05–0.60 and ≥0.25 gates and closely reproduces the invalidly observed
+0.0863/0.8703. The 25,882 × 512 training pack has SHA-256
+`85e76245603689c824ec3f6aefceb67eee34fb7df94d3a825977a8bd4d139b27`.
+
+The corrected gate therefore warrants full RSPG In-Shop seeds 0 and 1. Both are
+required because of contamination. No ablation, Cars run, or claim is allowed
+until the two raw screens are judged against 0.9085.
 
 ## Procedural correction
 

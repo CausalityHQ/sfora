@@ -21,6 +21,11 @@ RSPG constructs the graph at epoch 10. The one-step number is therefore not used
 to decide the candidate. An exact plain-Proxy-Anchor epoch-10 export and CPU
 diagnostic is required; no ablation is active meanwhile.
 
+The exact plain-Proxy-Anchor epoch-10 rerun passed at density 0.0866 and
+multi-component fraction 0.8735, closely reproducing the already-known partial
+graph. This is a contaminated confirmation, so two full In-Shop RSPG seeds are
+required before interpretation. No ablation is active until both clear 0.9085.
+
 1. **Mechanism** — Warm up the ordinary Proxy Anchor model for 10 epochs, then make one
    stop-gradient, full-training-set embedding pass. For each image \(i\), form a *rival
    signature* \(q_i\): a distribution over **other-class identities**, obtained by
