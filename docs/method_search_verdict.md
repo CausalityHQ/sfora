@@ -2152,3 +2152,20 @@ registered generic DML supervision. Treating it as ground truth would exploit a
 dataset-specific metadata convention unavailable on CUB/Cars and would not be a
 like-for-like similarity-learning result. Candidate 125 is **DEAD AT GATE 2 AND
 ON PROTOCOL**.
+
+## 126. Foundation projection with radius control: occupied composite, contaminated scale
+
+**Gate-1/Gate-2 death recorded 2026-08-01; no new GPU.** An inventory of legacy
+DGX artifacts found frozen DINOv2-small CUB R@1 0.85466 improving to 0.85770 and
+frozen SigLIP Cars196 0.96458 improving to 0.96987 after an 80-step Group SupCon
++ XBM + radius projection. These are one-seed historical results under a
+different pretrained-backbone regime.
+
+The delta cannot motivate a novel operator: supervised contrastive grouping,
+cross-batch memory, and class-radius regularization are each established, and
+the composite artifact has no component attribution. The absolute scale is not
+like-for-like with the corrected BN-Inception/ResNet-50 matrix and has no audit
+for CUB/Cars presence in foundation-model pretraining. Replicating the increment
+could validate a projection recipe but could not establish method novelty.
+Candidate 126 is **DEAD AT GATES 1--2**. Full audit:
+`docs/historical_artifact_audit_2026-08-01.md`.
