@@ -6,6 +6,13 @@ cosine **Recall@1**, reported as **best-over-training** (the protocol used by th
 papers below — evaluate the held-out test classes every few epochs and take the
 peak).
 
+> **Single-model rank diagnostic (2026-08-01, CPU-only).** A preregistered
+> train-fit/test-apply PCA sweep on CUB HERD seed 0 found unprojected R@1 0.6940,
+> fitted centered rank-512 0.6818, rank-256 0.6794, and rank-128 0.6661. The
+> fitted full-rank change (-1.215 points) violated the fixed 0.10-point validity
+> tolerance, so this is a diagnostic failure rather than a compressed-method
+> result. It shows that the cosine embedding's mean/origin is materially useful.
+
 > **Status correction (2026-07-20).** Results below predate strict
 > publication-backed method×dataset recipes and are retained as historical
 > `modified_legacy` evidence. They must not be called official Proxy Anchor or HIST

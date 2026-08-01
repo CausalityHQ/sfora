@@ -1457,3 +1457,15 @@ supervise transformation group action; equivariant reconstruction explicitly
 handles combined augmentations. The commutator is a particular algebraic
 summary of composition inside that established operator. Candidate 62 is
 **DEAD AT GATE 2**.
+
+## 63. Single-model effective-rank compression: diagnostic falsified
+
+**Gate-1 diagnostic failure recorded 2026-08-01; CPU only, no GPU.** Existing
+narrow-head failures did not establish whether a normally trained 512-D model
+actually uses all dimensions, so a train-fit/test-apply PCA sweep was registered
+before reading the result. Unprojected CUB HERD seed-0 Recall@1 was 0.6940.
+Centered fitted rank 512 fell to 0.6818 (-1.215 points), already violating the
+fixed 0.10-point geometry tolerance; rank 128 reached only 0.6661 (-2.785
+points) despite retaining 88.55% of train variance. The mean/origin is part of
+cosine retrieval geometry, and variance compression does not reveal unused
+capacity. Candidate 63 is **DEAD AT GATE 1**.

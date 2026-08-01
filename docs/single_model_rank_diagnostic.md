@@ -36,3 +36,23 @@ prior art in PCA/compressed retrieval, nested or Matryoshka embeddings,
 low-rank heads, and capacity reallocation. A compression-only head is not novel;
 the downstream operator must explain how freed capacity creates new similarity
 information at roughly unchanged compute.
+
+## Result
+
+Run CPU-only on the registered CUB HERD seed-0 packs after commit `3cfc3f1`:
+
+| representation | Recall@1 | cumulative train variance |
+| --- | ---: | ---: |
+| unprojected 512-D | 0.6940 | — |
+| fitted PCA rank 512 | 0.6818 | 1.0000 |
+| rank 384 | 0.6789 | 0.9867 |
+| rank 256 | 0.6794 | 0.9567 |
+| rank 128 | 0.6661 | 0.8855 |
+| rank 64 | 0.6438 | 0.7796 |
+
+The diagnostic is **falsified**. Fitting and centering alone changes Recall@1 by
+-1.215 points, far beyond the registered 0.10-point tolerance. Rank 128 loses
+2.785 points versus the unprojected embedding. Variance retained by PCA is not a
+proxy for retrieval information here, and the cosine embedding's origin/mean
+direction is materially part of its geometry. No bottleneck or capacity-
+reallocation candidate follows from this result.
