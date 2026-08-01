@@ -2065,3 +2065,21 @@ relational channel: within-identity norm predicts correctness, but raw dot and
 raw Euclidean retrieval lose 24.31 and 2.20 points. A regime cannot manufacture
 pairwise information absent from its routing scalar. Candidate 120 is **DEAD AT
 GATE 2**.
+
+## 121. Counterfactual mutual-necessity matching: saliency-guided hard attention
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Leave-one-region-out occlusion of the correct-class proxy score would label
+identity-necessary regions, and a pair would compare only regions labelled
+necessary in both images. This was motivated by MaxSim recovering 6.67 points
+over fixed-coordinate regions while remaining 3.6 points below global Proxy
+Anchor.
+
+Occlusion necessity is established perturbation attribution. Intersecting two
+binary attribution masks is hard pairwise attention, and matching the retained
+regions is saliency-guided structural matching. DIML already optimizes and
+evaluates explicit feature-map correspondences; self-supervised image-to-region
+similarity and attention-based DML already use region importance as retrieval
+supervision. The causal provenance of a mask does not change the downstream
+operator from masking/weighting correspondences. Candidate 121 is **DEAD AT
+GATE 2**.
