@@ -1835,6 +1835,25 @@ def test_pfml_objective_config_and_display_name() -> None:
     assert _objective_display_name("pfml") == "PFML (Potential Field)"
 
 
+def test_encode_model_norms_preserves_pre_normalisation_magnitude() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _encode_model_norms
+
+    model = torch.nn.Linear(2, 2, bias=False)
+    with torch.no_grad():
+        model.weight.copy_(torch.eye(2))
+    loader = [
+        (
+            torch.tensor([[3.0, 4.0], [5.0, 12.0]]),
+            torch.tensor([0, 1]),
+        )
+    ]
+
+    norms = _encode_model_norms(model, loader, torch.device("cpu"), torch)
+
+    assert norms.tolist() == pytest.approx([5.0, 13.0])
+
+
 def test_config_accepts_zero_potential_alpha() -> None:
     # The PFML paper cross-validates alpha in {0..6}, so alpha=0 must be valid.
     config = ImageEndToEndConfig(potential_alpha=0.0)

@@ -165,6 +165,8 @@ class ImageEndToEndConfig(BaseModel):
     # fold/projection can be fit on train (disjoint zero-shot classes) and evaluated on
     # test — the honest, non-transductive way to compress the pack.
     save_train_embeddings: str | None = None
+    # Optional joint artifact of raw head-output magnitudes before L2 normalisation.
+    save_embedding_norms: str | None = None
     teacher_checkpoint: str | None = None
     save_model_path: str | None = None
     # EMA-teacher relational self-distillation (any base objective). Weight 0 = off.
@@ -1509,6 +1511,28 @@ def run_image_end_to_end_benchmark(
         train_eval_embeddings, train_eval_labels = _encode_model(
             eval_model, train_eval_loader, device, torch
         )
+        if config.save_embedding_norms:
+            norm_arrays: dict[str, NDArray[Any]] = {
+                "train_norms": _encode_model_norms(eval_model, train_eval_loader, device, torch),
+                "train_labels": np.asarray(train_eval_labels, dtype=np.int64),
+                "train_example_ids": train_example_ids,
+                "query_norms": _encode_model_norms(eval_model, test_loader, device, torch),
+                "query_labels": np.asarray(test_label_array, dtype=np.int64),
+                "query_example_ids": test_example_ids,
+            }
+            if gallery_loader is not None:
+                assert gallery_label_array is not None
+                assert gallery_example_ids is not None
+                norm_arrays.update(
+                    {
+                        "gallery_norms": _encode_model_norms(
+                            eval_model, gallery_loader, device, torch
+                        ),
+                        "gallery_labels": np.asarray(gallery_label_array, dtype=np.int64),
+                        "gallery_example_ids": gallery_example_ids,
+                    }
+                )
+            _atomic_savez(Path(config.save_embedding_norms), **norm_arrays)
         train_interference = _interference_diagnostics(train_eval_embeddings, train_eval_labels)
         proxy_axis_diagnostics = None
         boundary_axis_diagnostics = None
@@ -6269,6 +6293,28 @@ def _encode_model(
             embeddings.append(batch_embeddings.detach().cpu().numpy().astype(np.float64))
             labels.append(batch_labels.detach().cpu().numpy().astype(np.int64))
     return np.concatenate(embeddings, axis=0), np.concatenate(labels, axis=0)
+
+
+def _encode_model_norms(
+    model: TorchImageModel,
+    loader: Any,
+    device: Any,
+    torch_module: Any,
+) -> NDArray[np.float64]:
+    """Return raw head-output L2 magnitudes before retrieval normalisation."""
+    norms = []
+    model.eval()
+    with torch_module.no_grad():
+        for images, _ in loader:
+            raw_embeddings = model(images.to(device, non_blocking=True))
+            norms.append(
+                torch_module.linalg.vector_norm(raw_embeddings, dim=1)
+                .detach()
+                .cpu()
+                .numpy()
+                .astype(np.float64)
+            )
+    return np.concatenate(norms, axis=0)
 
 
 def _interference_diagnostics(

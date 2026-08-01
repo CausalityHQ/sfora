@@ -1329,6 +1329,12 @@ def image_end_to_end(
             "(to fit a projection on train, evaluate on test)."
         ),
     ] = None,
+    save_embedding_norms: Annotated[
+        str | None,
+        typer.Option(
+            help="Save train/query/gallery pre-normalisation embedding magnitudes to this .npz."
+        ),
+    ] = None,
     save_model_path: Annotated[
         str | None,
         typer.Option(help="Save the trained model checkpoint to this path."),
@@ -1937,6 +1943,7 @@ def image_end_to_end(
                     if save_train_embeddings is not None
                     else base_config.save_train_embeddings
                 ),
+                "save_embedding_norms": save_embedding_norms,
                 "save_model_path": save_model_path,
                 "teacher_checkpoint": teacher_checkpoint,
                 "pretrained_weights": (
