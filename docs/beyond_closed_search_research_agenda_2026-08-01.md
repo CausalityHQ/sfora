@@ -48,6 +48,15 @@ This track is not a novelty claim. It is necessary experimental infrastructure.
 This track tells us whether any later mechanism beats a current baseline rather
 than a historically convenient one.
 
+The repository already contains a nearby but non-equivalent warning. Its
+`local_nca` objective is a smooth nearest-neighbour/Recall@1 relaxation with
+cross-batch memory; it reached only **0.5733 CUB R@1**, **-13.7 points** versus
+HIST. The registered diagnostic also found 31--40 effective positives out of
+40, refuting the intended "one sufficient positive" mechanism. Reproducing
+Patel et al. must therefore match their exact surrogate, effective batch size,
+mixup, and initialization. Merely renaming `local_nca` a large-batch retrieval
+loss would repeat a known failure.
+
 ## Track B: assumption changes that can add information
 
 ### B1. Auditable visual pretraining
