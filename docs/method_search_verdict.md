@@ -1771,3 +1771,22 @@ Candidates 98--101 are **DEAD BEFORE PREREGISTRATION**. The source taxonomy and
 its limitation are recorded in `docs/search_space_source_audit_2026-08-01.md`:
 future candidates must state both a source of information and an operator outside
 the occupied reduction for that source.
+
+## 102. Sparse-class covariance support: occupied by IAA
+
+**Gate-2 death recorded 2026-08-01; no implementation or candidate GPU.** The
+RSPG split (64.49% CUB versus 8.66% In-Shop pair retention) and In-Shop's many
+small identities suggest estimating within-class appearance variation and
+borrowing variation statistics across related classes. This is not open.
+Chen et al., *Intra-class Adaptive Augmentation with Neighbor Correction for
+Deep Metric Learning* (arXiv:2211.16264), estimate class-wise embedding
+covariances, use neighbouring classes to correct sparse estimates, and sample
+adaptive virtual embeddings for DML losses. They report CUB, Cars196, SOP,
+In-Shop, and VehicleID experiments at roughly 2% runtime overhead. Embedding
+Expansion, Symmetrical Synthesis, Proxy Synthesis, and variational/adversarial
+sample generation are additional adjacent priors enumerated by that paper.
+
+Changing the covariance estimator, conditioning it on this repository's
+response signatures, or using a stricter uncertainty threshold would be a
+variant of the same distribution-estimation-and-synthetic-support operator.
+Candidate 102 is **DEAD AT GATE 2**.

@@ -69,3 +69,22 @@ occupies the obvious route from a pre-normalisation magnitude diagnostic to
 confidence-controlled principal-direction feature augmentation. It is also
 additional evidence that controlled embedding-space expansion is not an open
 operator, even when no external generator is used.
+
+## Training-data-only covariance augmentation is occupied by IAA
+
+Chen et al., *Intra-class Adaptive Augmentation with Neighbor Correction for
+Deep Metric Learning* (arXiv:2211.16264), directly covers another tempting
+non-generative implementation of expanded support. It estimates a diagonal or
+full embedding covariance for every training class, corrects sparse-class
+estimates by borrowing covariance information from nearby classes, samples
+class-adaptive virtual embeddings, and inserts them into pair/mining losses. The
+paper evaluates CUB, Cars196, SOP, In-Shop, and VehicleID and reports about 2%
+runtime and 1% memory overhead. It also enumerates earlier synthetic-support
+priors: Embedding Expansion, Symmetrical Synthesis, Proxy Synthesis, adversarial
+metric sample generation, and variational metric learning.
+
+IAA's evidence quality still needs the same seed and recipe scrutiny applied to
+other external claims, and its proxy-loss gains are reportedly weaker than its
+pair-loss gains. Those limitations do not reopen the operator. Per-class
+covariance support, neighbour-corrected covariance for few-shot identities, and
+Gaussian virtual positives are all prior art before a candidate GPU run.
