@@ -28,3 +28,9 @@ def test_capacity_arms_keep_their_weakened_paired_controls() -> None:
     """Adding explicit EMA controls must not break the existing narrow-arm override."""
     assert _module.BASE_OF["narrow128_distill"] == "narrow128"
     assert _module.BASE_OF["narrow64_distill"] == "narrow64"
+
+
+def test_fiedler_arm_pairs_with_ipc4_sampler_control() -> None:
+    assert _module.ARMS["pa_ipc4"] == ("proxy_anchor", "pa_ipc4")
+    assert _module.ARMS["pa_fiedler"] == ("proxy_anchor", "pa_fiedler")
+    assert _module.BASE_OF["pa_fiedler"] == "pa_ipc4"
