@@ -2083,3 +2083,21 @@ similarity and attention-based DML already use region importance as retrieval
 supervision. The causal provenance of a mask does not change the downstream
 operator from masking/weighting correspondences. Candidate 121 is **DEAD AT
 GATE 2**.
+
+## 122. Gromov--Wasserstein internal-structure comparison: established correspondence
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The region result motivated a genuinely nonseparable comparison: represent each
+image by the metric-measure space of its intermediate regions, then compare two
+images by Gromov--Wasserstein distance so matching preserves region--region
+relations without requiring fixed coordinates.
+
+Gromov--Wasserstein distance is already the canonical isometry-invariant
+comparison of metric-measure spaces and is established for graph matching and
+representation alignment. More directly, Im, Liu, and Hong, *Shape-of-You:
+Fused Gromov-Wasserstein Optimal Transport for Semantic Correspondence in-the-Wild*
+(CVPR 2026), jointly optimize inter-feature similarity and intra-structural
+consistency to match image regions. DIML is the adjacent DML structural-matching
+baseline. Using the same operator as a retrieval score or Proxy Anchor companion
+changes the benchmark/application, not the comparison mechanism. Candidate 122
+is **DEAD AT GATE 2**.
