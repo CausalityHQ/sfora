@@ -1197,7 +1197,19 @@ learning directly supervises identity sets across cameras. Filename tokens and
 deterministic centroid regression alter group estimation and generator capacity,
 not the supervision mechanism. Candidate 46 is **DEAD at Gate 2**.
 
-## 47. Reopened-loop stopping argument: data-only supervision expansion
+## 47. Determinantal niche-volume preservation: occupied intra-class spreading
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** Exact gradients
+show Proxy Anchor's positive term contracts same-acquisition pairs nearly twice
+as quickly as cross-acquisition pairs. An ecology/DPP-inspired log-determinant
+could preserve the volume of centered within-class embeddings while the proxy
+maintains identity. IDID already explicitly generates intra-class diversity in
+DML, Ranked List Loss preserves class hyperspheres instead of compressing all
+positives, and reverse contrastive loss directly spreads same-class examples.
+The determinant changes the set aggregate, not the supervision instruction.
+Candidate 47 is **DEAD at Gate 2**.
+
+## 48. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
