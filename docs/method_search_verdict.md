@@ -1367,3 +1367,23 @@ established by SEE. No audited paper used ACPC's exact response score, but the
 score merely chooses which already-labelled positive receives more pressure.
 It is a new hardness descriptor inside an occupied positive-mining operator,
 not new supervision. Candidate 56 is **DEAD AT GATE 2**.
+
+## 57. Coverage audit: evidence-bounded stop
+
+**Stopping audit recorded 2026-08-01; no implementation or GPU.** After the
+post-TIRD shortlist was exhausted, an adversarial taxonomy pass checked the
+remaining apparent operator classes. Global clustering is occupied by
+facility-location DML; multilateral hypergraph supervision by HIST; batch-level
+assignment by optimal-transport DML; density and feasibility by density-aware
+and chance-constrained DML; distributional intra-class modelling and generated
+support by DVML. Together with candidates 1--56, this covers splitting,
+selecting/weighting, synthesizing, local alignment, contextual conditioning,
+teacher transfer, global/setwise structure, probabilistic coverage, and
+multi-view/temporal stability. The full argument and primary citations are in
+`docs/search_stopping_audit_2026-08-01.md`.
+
+The bounded verdict is that no candidate currently satisfies both repository
+provenance and mechanism-level novelty under the data-only, roughly-1x-cost
+constraints. Another GPU arm would require relaxing Gate 1, relaxing Gate 2,
+or importing external knowledge. This is not a universal impossibility claim;
+it is the registered stopping condition supported by the present evidence.
