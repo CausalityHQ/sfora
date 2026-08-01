@@ -2330,3 +2330,21 @@ helpfulness. Applying that estimator in both directions and thresholding it at
 pair granularity is a composition of influence-based data selection and ordinary
 positive mining; symmetry is a policy, not a new supervision principle.
 Candidate 135 is **DEAD AT GATE 2**.
+
+## 136. Spectral class connectivity: live through Gates 1--3
+
+**Preregistered 2026-08-01 before implementation or GPU.** Exact epoch-10
+In-Shop embeddings show that 40.33% of within-class 1-NN graphs are disconnected.
+A Fiedler-gradient diagnostic differs from ordinary farthest-positive mining in
+25.48% of classes, narrowly clearing the registered 20% minimum. The candidate
+maximizes the algebraic connectivity of each four-sample class affinity graph,
+supervising the existential property that the class has no weak cut rather than
+selecting labelled positive edges.
+
+DAMLRRM's fixed per-class minimum spanning tree is the closest DML prior;
+Fiedler regularization and spectral clustering apply the mathematics to network
+topology or clustering rather than a zero-shot-retrieval class graph. No direct
+primary-source collision was found. The qualified novelty case, diagnostic,
+matched-IPC4 control, numerical prediction, and falsification rule are in
+`docs/spectral_class_connectivity_candidate.md`. Candidate 136 is **LIVE THROUGH
+GATE 3**.
