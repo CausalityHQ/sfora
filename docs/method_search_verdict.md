@@ -1245,7 +1245,19 @@ adaptive disagreement weighting further occupy the class, and multiple complete
 teachers violate the roughly-1x cost constraint. Candidate 50 is **DEAD at Gate
 2** while the stability measurement remains useful.
 
-## 51. Reopened-loop stopping argument: data-only supervision expansion
+## 51. Residualized dark-relation distillation: occupied pairwise differences
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** Class-pair means
+explain 52.57--58.90% of cross-class similarity variance across five final HERD
+packs and reproduce at Pearson 0.9037, while image-pair residuals remain stable
+at Pearson 0.6980. RDRD would subtract class-pair fixed effects and distil only
+the residual that Proxy Anchor does not encode. Pairwise Difference Relational
+Distillation and D3still already transfer differential pairwise similarity
+matrices for object/image retrieval. Fixed-effect centering chooses a contrast
+inside that operator rather than defining new supervision. Candidate 51 is
+**DEAD at Gate 2**.
+
+## 52. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

@@ -52,3 +52,15 @@ The cross-class dark geometry is therefore substantially reproducible across
 independent runs, not arbitrary seed noise. This still does not show which part
 caused the retrieval gain, and using replica agreement as a target-reliability
 filter is occupied multi-teacher agreement distillation (candidate 50).
+
+## Class-pair versus image-level residual
+
+On 500,000 deterministic cross-class pair draws, I decomposed each cosine into
+the dot product of its two unnormalised class centroids plus an image-pair
+residual. Class-pair means explain **52.57--58.90%** of raw cross-class variance.
+Their cross-seed agreement is extremely high (mean Pearson **0.9037**, Spearman
+**0.8921**), but the residual is also reproducible (Pearson **0.6980**, Spearman
+**0.6756**). Thus stable dark geometry is not merely a relation among class
+proxies: it retains which individual images depart from their classes' typical
+relationship. Distilling that fixed-effect residual is nevertheless occupied
+pairwise-difference relational distillation (candidate 51).
