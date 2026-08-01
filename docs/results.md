@@ -1116,3 +1116,9 @@ with centred margin, clearing the frozen 0.10/0.15 prediction. Between-identity
 effects were larger (**0.25870**, **0.45322**), so magnitude contains both
 image-quality and identity-difficulty information. This strengthens the
 measurement, not the novelty claim.
+
+A further frozen diagnostic tested whether that scalar should enter pairwise
+ranking. It should not: raw dot-product R@1 was **0.60051** (-24.314 points
+versus cosine) and raw Euclidean was **0.82163** (-2.201 points), against cosine
+**0.84365**. Magnitude predicts confidence/difficulty but is not semantic
+similarity; restoring the discarded radius directly is severely harmful.

@@ -34,3 +34,22 @@ between 0 and +0.20 point are descriptive.
 This diagnostic cannot establish novelty. Unnormalised DML, norm/quality-aware
 similarity and uncertainty-aware comparison are prior art. It only determines
 whether a future mechanism must keep magnitude out of pairwise ranking.
+
+## Result
+
+| score | R@1 | delta vs cosine |
+| --- | ---: | ---: |
+| normalized cosine | **0.84365** | — |
+| raw dot product | 0.60051 | **-24.314 points** |
+| negative squared raw Euclidean | 0.82163 | **-2.201 points** |
+
+The prediction is decisively falsified: neither canonical raw score improves at
+all. Raw dot product is especially destructive because query magnitude is
+constant within a ranking while gallery magnitude is not; it promotes high-norm
+gallery identities regardless of semantic direction. Euclidean is less extreme
+but still loses more than two points.
+
+Magnitude is therefore a confidence/difficulty observable, not pairwise semantic
+information that should be multiplied into similarity. Future candidates must
+preserve direction-only ranking unless they provide a separately validated
+calibration mechanism; simply restoring the discarded radius is closed.

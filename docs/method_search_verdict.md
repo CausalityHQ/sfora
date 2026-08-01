@@ -1885,3 +1885,17 @@ difficulty. This is stronger provenance for quality-aware DML, but MagFace,
 AdaFace, IDML, SEC and ESA remain prior art for every direct action found. The
 measurement is **LIVE; THE METHOD SEARCH DOES NOT ADVANCE** without a novel
 operator.
+
+## 110. Restoring raw magnitude to similarity catastrophically hurts
+
+**Gate-1 diagnostic failed 2026-08-01; CPU only.** The positive within-identity
+quality signal motivated a preregistered test of whether raw magnitude also
+contains relational information. It does not. On the frozen In-Shop artifact,
+normalized cosine scored **0.84365** R@1, raw Euclidean **0.82163** (-2.201
+points), and raw dot product **0.60051** (-24.314 points). The prediction that a
+canonical raw score would gain at least 0.20 point was falsified.
+
+Raw dot ranks by gallery magnitude times cosine because query magnitude is a
+query-wise constant. Its collapse shows that identity/quality scale is not
+semantic compatibility. Magnitude should remain confidence, not similarity;
+unnormalised retrieval and norm-product comparisons are **DEAD AT GATE 1**.
