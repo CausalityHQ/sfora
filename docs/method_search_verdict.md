@@ -1616,3 +1616,24 @@ feature-map representation; changing vectors into matrices or named moments
 does not evade that equivalence. A live comparison candidate must justify a
 non-separable or non-kernel interaction and show why it is meaningful rather
 than merely nonlinear.
+
+## 83. Covariance-commutator similarity: occupied matrix comparison
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The failure of first-order multi-vector Region Proxy Anchor (0.6466 mean CUB,
+3.6 points below its paired baseline) suggested testing a genuinely
+non-separable comparison of per-image second-order feature operators. The
+candidate would encode an intermediate feature-map covariance `C(x)` and rank
+with the Frobenius norm of the commutator
+`C(x)C(y) - C(y)C(x)`, which measures failure of shared eigendirections.
+
+Both halves are occupied before DML implementation. Bilinear/global covariance
+pooling is established for fine-grained recognition and retrieval (including
+MPN-COV and SOLAR). More decisively, Glashoff and Bronstein, *Matrix
+commutators: their asymptotic metric properties and relation to approximate
+joint diagonalization* (Linear Algebra and its Applications, 2014,
+https://doi.org/10.1016/j.laa.2013.09.020), explicitly study commutator norm as
+a matrix dissimilarity and note joint diagonalizability as a similarity
+criterion for 3D shapes. Combining an established covariance descriptor with
+its established matrix comparison does not define a novel similarity operator.
+Candidate 83 is **DEAD AT GATE 2**.
