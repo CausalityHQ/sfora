@@ -2187,3 +2187,20 @@ recent descriptive-autoencoding work likewise derives conceptual similarity
 from conditional description complexity. Replacing a classical compressor with
 a learned one changes the approximation to code length, not the comparison
 operator. Candidate 127 is **DEAD AT GATE 2**.
+
+## 128. Hypergraph encounter-order tracking: underidentified seed audit, no new operator
+
+**Gate-1 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Given the historical hypergraph-incidence seed-0 outlier, Claude proposed
+correlating sample encounter order with the three seed outcomes and treating a
+lucky ordering as a new information source.
+
+The proposal is underidentified. In this implementation incidence is recomputed
+inside stochastic minibatches; seed changes initialization, augmentation,
+sampling order, optimizer trajectory, and nondeterministic kernels together.
+Three outcomes cannot attribute the difference to encounter order. Moreover,
+determinizing, stratifying, or averaging batch order is a sampling/training
+protocol change, not new supervision or a comparison operator. The already
+measured fixed-seed nondeterminism and six-seed CUB variance make the outlier
+expected rather than mechanistically diagnostic. Candidate 128 is **DEAD AT
+GATE 1**.
