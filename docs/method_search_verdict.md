@@ -2409,3 +2409,19 @@ supervisory signals to tune a retrieval model for unknown categories. Naming the
 latent factors viewpoint or appearance, using deterministic crops, or replacing its
 attribute encoder changes the factor estimator rather than the training-only latent
 attribute supervision mechanism. Candidate 139 is **DEAD AT GATE 2**.
+
+### Horizon correction forced by candidates 138--139
+
+The primary-source checks did more than kill two mechanisms. VAPNet reports
+standard-split, single-model Recall@1 of **0.762 CUB, 0.948 Cars196, and 0.939
+In-Shop**; AdvRF reports **0.766 CUB and 0.949 Cars196** and does not evaluate
+In-Shop. Both deploy a ResNet-50/GAP 2048-D representation after 200 training
+epochs and neither states a seed count or uncertainty. Therefore the previous
+language treating 0.9038 In-Shop as an open general ceiling is withdrawn.
+
+The repository's 512-D, corrected, multi-seed matrix remains a legitimate
+controlled regime, and 0.9038 remains a cheap In-Shop screening threshold. A
+method that clears it has only passed a recipe-matched screen; it has not beaten
+the published general benchmark horizon. Missing error bars weaken fine-grained
+comparisons but are not grounds to ignore reviewed standard-split results. Full
+audit: `docs/open_set_fg_retrieval_horizon_2026-08-01.md`.

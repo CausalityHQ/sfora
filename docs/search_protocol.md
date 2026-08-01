@@ -56,7 +56,7 @@ number. That catalogue is worth more than any single arm.
 Then generate the next candidate, preferring the one untried class: **change what
 supervision exists**, rather than how it is scored.
 
-## Standing fact corrected 2026-08-01: PFML occupies the old CUB/Cars ceiling
+## Standing fact corrected 2026-08-01: the general benchmark ceiling is occupied
 
 IDEAL's 72.3 remains non-comparable: its HIST baseline is 69.7, below HIST's published
 71.4 and our 70.82 six-seed reproduction, and it uses four-view inference. However,
@@ -66,8 +66,19 @@ runs: CUB 73.4 ± 0.3, Cars196 92.7 ± 0.3, and SOP 82.9 ± 0.2. Its 15 proxies/
 200-epoch recipe require care in a reproduction, but its evidence is credible enough that
 the old ~0.715 CUB ceiling is occupied. See `docs/recent_dml_horizon_scan_2026-08-01.md`.
 
-Our reproductions: **HIST 0.7082, Proxy Anchor 0.6919** on CUB; **PA 0.9035, HIST 0.9038**
-on In-Shop. PFML does not report In-Shop, so a novel single-model arm above 0.9038 there
-remains the fastest first screen. A CUB claim must now confront PFML's 0.734, not 0.715.
+Two later primary-source checks close more of the horizon. VAPNet (NeurIPS 2023)
+reports standard-split, single-model ResNet-50/GAP results of **0.762 CUB, 0.948
+Cars196, and 0.939 In-Shop**. AdvRF (ICCV 2025) reports **0.766 CUB and 0.949
+Cars196** with the same broad evaluation form and does not test In-Shop. Both use
+2048-D embeddings and 200 epochs and report no seed count or uncertainty. Those
+limitations prevent significance claims about small differences, but they do not
+leave the general benchmark regions open. See
+`docs/open_set_fg_retrieval_horizon_2026-08-01.md`.
+
+Our corrected 512-D reproductions remain **HIST 0.7082, Proxy Anchor 0.6919** on
+CUB and **PA 0.9035, HIST 0.9038** on In-Shop. A novel arm above 0.9038 remains
+the fastest *controlled-recipe screen*, not an overall-SOTA result. Any general
+claim must confront at least 0.766 CUB, 0.949 Cars196, or 0.939 In-Shop under
+comparable capacity.
 
 Commit and push after each gate. Report honestly whichever way each candidate goes.
