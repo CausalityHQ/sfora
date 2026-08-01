@@ -1469,3 +1469,17 @@ fixed 0.10-point geometry tolerance; rank 128 reached only 0.6661 (-2.785
 points) despite retaining 88.55% of train variance. The mean/origin is part of
 cosine retrieval geometry, and variance compression does not reveal unused
 capacity. Candidate 63 is **DEAD AT GATE 1**.
+
+## 64. Mean-direction factorization: occupied and unsupported improvement
+
+**Gate-2 death recorded 2026-08-01; no further diagnostic or GPU.** Candidate
+63 established that subtracting the train mean at full rank costs 1.215 CUB
+points, so the cosine embedding origin is useful. Explicitly separating a
+mean-direction scalar from the centered residual is adjusted-cosine/whitening
+geometry; a query-conditioned origin is local scaling/CSLS; a class-conditioned
+origin is proxy or density modelling; teacher mean/covariance transfer is
+MMD/CORAL/Gram distillation; homogeneous coordinates are the standard bias
+construction. More fundamentally, raw uncentered cosine already retains the
+useful mean at zero cost. The measurement supplies evidence against removing it,
+not evidence that a more complex reintroduction can improve it. Candidate 64 is
+**DEAD AT GATE 2**.
