@@ -2026,3 +2026,24 @@ identity-preserving augmentation are additionally established in person ReID.
 Recasting Metrix's mixture coefficient as the pasted area or a measured feature
 effect does not create new supervision; it is mixup target assignment or
 reweighting. Candidate 118 is **DEAD AT GATE 2**.
+
+## 119. Cross-instance transformation parallelograms: equivariance supervision
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The post-stopping loop searched for exact relational labels created by controlled
+interventions rather than extracted from the current embedding. The first proposal
+applies the same known transform `T` to two images and requires
+`f(Tx)-f(x) = f(Ty)-f(y)`, so a transformation has a shared displacement across
+identities. ARCG's reproducible, non-distance augmentation-response structure is
+the repository provenance.
+
+This is an equivariance constraint, not a new similarity-learning supervision
+object. Feige, *Invariant-Equivariant Representation Learning for Multi-Class
+Data* (ICML 2019), already decomposes class-invariant and transformation-equivariant
+latents. Marchetti et al., *Equivariant Representation Learning via Class-Pose
+Decomposition* (AISTATS 2023), train explicitly from relative symmetry information,
+and symmetric embedding networks learn a known feature-space action for input
+transformations (Park et al., ICML 2022). Matching displacement vectors is a
+linear parameterization of the same group-action consistency; using it beside
+Proxy Anchor makes it an auxiliary equivariance regularizer. Candidate 119 is
+**DEAD AT GATE 2**.
