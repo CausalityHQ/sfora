@@ -2135,3 +2135,20 @@ self-supervised objectives, project them, and concatenate them with frozen visua
 features for nearest-neighbour recognition. Choosing a DML encoder or a different
 pretext loss changes the source model, not the representation mechanism.
 Candidate 124 is **DEAD AT GATE 2**.
+
+## 125. Acquisition-crossing positives: camera-aware ReID and metadata leakage
+
+**Gate-2/protocol death recorded 2026-08-01; no diagnostic, implementation, or
+GPU.** RSPG's accepted In-Shop graph was 89.08% concentrated within filename
+acquisition tokens, suggesting an explicit countermeasure: preserve the identity
+label but apply positive attraction chiefly across acquisition groups so session,
+background, and model-shot shortcuts cannot satisfy it.
+
+Cross-camera positive learning, camera-diversity losses, camera-aware similarity
+consistency, and view-confusion training are established person-ReID mechanisms
+(including Wu et al., ICCV 2019, and Lee et al., ICCV 2023). More fundamentally,
+the In-Shop acquisition token was inferred from filenames and is not part of the
+registered generic DML supervision. Treating it as ground truth would exploit a
+dataset-specific metadata convention unavailable on CUB/Cars and would not be a
+like-for-like similarity-learning result. Candidate 125 is **DEAD AT GATE 2 AND
+ON PROTOCOL**.
