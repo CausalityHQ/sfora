@@ -1790,3 +1790,20 @@ Changing the covariance estimator, conditioning it on this repository's
 response signatures, or using a stricter uncertainty threshold would be a
 variant of the same distribution-estimation-and-synthetic-support operator.
 Candidate 102 is **DEAD AT GATE 2**.
+
+## 103. Origin-anchored semantic radius: incompatible with the measured representation
+
+**Algebraic death recorded 2026-08-01; no implementation or GPU.** The fitted
+PCA diagnostic found that subtracting the train mean lowers disjoint-test CUB
+R@1 by 1.215 points. Claude proposed interpreting the mean direction as an
+origin-anchored semantic radius. That explanation is incompatible with the
+measurement: the saved retrieval embeddings are L2-normalised, so every sample
+has radius one. Mean subtraction changes pairwise angles; it does not reveal
+class-conditional distance from the origin.
+
+Explicitly privileging the mean direction would be an affine or anisotropic
+metric/head transformation, while supervising magnitude would be norm/quality
+modelling. Both are occupied and were excluded from this generation round. The
+1.215-point observation remains evidence that centring is unsafe for cosine
+retrieval, not provenance for new supervision. Candidate 103 is **DEAD BEFORE
+GATE 2**.
