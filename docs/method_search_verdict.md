@@ -1542,3 +1542,26 @@ GradML already derives DML losses from per-sample gradient behaviour, while
 PCGrad-family and class-adaptive gradient optimisers occupy alignment and
 projection. Measuring a new tensor does not make its downstream regularizer a
 new supervision object. Candidates 69--71 are **DEAD AT GATE 2**.
+
+## 72. Cross-instance masked reconstruction: no identified pairing variable
+
+**Gate-1/2 death recorded 2026-08-01; no implementation or GPU.** A Claude
+round proposed taking different same-class images A and B, conditioning a
+masked-token decoder for B on A's global code, and using the reconstruction as
+an auxiliary target beside Proxy Anchor. The intended new supervision object
+was information shared across different instances rather than a weight on their
+positive edge. The proposal fails at the level of the data-generating relation:
+under uniform same-class sampling, A is exchangeable with every other
+same-class image. There is no fact saying *which* A should predict B.
+
+If a particular A predicts B better than a shuffled same-class A, that pairing
+must have been induced from visual proximity, part correspondence, pose, or a
+neighbour graph—the already occupied selection/local-matching operator. If it
+does not, the optimal decoder ignores A-specific information and learns a
+class-conditional reconstruction prior, an established supervised-autoencoding
+or conditional-generation auxiliary objective. Same-image masked modelling,
+positive-pair prediction, cross-view re-identification reconstruction, and
+class-conditioned autoencoders occupy the adjacent space. Claude's suggested
+diagnostic required the chosen A to beat a random same-class A by 15% MSE, but
+no registered variable defines that chosen pairing; the threshold therefore
+tests an unavailable relation. Candidate 72 is **DEAD BEFORE PREREGISTRATION**.
