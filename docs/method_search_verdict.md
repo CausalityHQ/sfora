@@ -2252,3 +2252,23 @@ embeddings provide differentiable expected intersections, and IDML is the direct
 uncertainty-aware DML neighbour. Substituting identity supervision for visible
 surface-overlap supervision changes the label semantics, not the set-valued
 representation or overlap comparison. Candidate 131 is **DEAD AT GATE 2**.
+
+## 132. Per-image Grassmann subspaces: direct local-feature prior
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The failure of fixed-coordinate region matching, despite the large MaxSim gain,
+motivated representing each image by the subspace spanned by its local features
+and comparing two images through principal angles or a learned Grassmann
+distance. This would preserve several plausible local appearances without
+committing to a probability or box-overlap model.
+
+The operator is already explicit in the primary literature. Wei et al.,
+*Grassmann Pooling as Compact Homogeneous Bilinear Pooling for Fine-Grained
+Visual Classification* (ECCV 2018), convert each image's local CNN activation
+matrix to its principal-singular-vector subspace and reduce image similarity to
+principal-angle comparison. Hu et al., *Subspace Representation Learning for
+Few-shot Image Classification* (2021), likewise represent an individual image
+by a subspace in local CNN feature space, learn a weighted subspace distance
+between images, and evaluate on CUB. End-to-end training, a retrieval loss, or a
+different benchmark changes the recipe rather than the representation and
+comparison mechanism. Candidate 132 is **DEAD AT GATE 2**.
