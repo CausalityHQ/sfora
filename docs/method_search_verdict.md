@@ -1726,3 +1726,16 @@ The proposed hinge is therefore exactly
 `max(a.n - a.p + margin, 0)`, the ordinary cosine triplet hinge. A different
 buffer implementation does not create a new similarity operator. The paper
 also gives no seed count or uncertainty. Candidate 96 is **DEAD AT GATE 2**.
+
+## 97. Norm-aligned principal-direction augmentation: occupied by ESA
+
+**Gate-2 death recorded 2026-08-01; no implementation or candidate GPU.** A
+pre-result audit of raw embedding magnitude considered whether norm could drive
+something beyond quality weighting. ESA (Park et al., IEEE Access 2025,
+https://doi.org/10.1109/ACCESS.2025.3637551) already links norm to confidence,
+identifies train--test scale drift, lowers confidence for hard samples, and
+augments embeddings along class principal eigendirections. It reports matched
+three-seed Proxy Anchor improvements of +0.50 CUB and +0.73 Cars196. Norm-ranked
+mining, norm consistency, and manifold alignment additionally reduce to hard
+mining or geometry regularization. Candidate 97 is **DEAD AT GATE 2** regardless
+of the pending magnitude diagnostic's sign.

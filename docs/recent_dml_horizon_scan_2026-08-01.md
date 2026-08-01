@@ -55,3 +55,17 @@ design; streaming statistics are a memory/EMA implementation of an existing
 coding-rate/covariance regularizer; automatic factor discovery is established
 disentangled representation learning. None is a new supervision or similarity
 operator, so no GPU work follows.
+
+## Additional norm/augmentation prior: ESA (IEEE Access 2025)
+
+Park, Yoo, Zhang, and Kwon, *Rethinking Metric Learning: Enhancing
+Generalization to Unseen Classes* (IEEE Access 2025,
+https://doi.org/10.1109/ACCESS.2025.3637551), explicitly diagnoses train--test
+feature-scale misalignment, disables feature normalisation, lowers confidence
+on hard samples, and augments embeddings along each class's principal
+eigendirection. Its Proxy Anchor appendix reports three-seed ResNet-50/512 gains
+of **+0.50 CUB R@1** and **+0.73 Cars196 R@1** under matched recipes. This
+occupies the obvious route from a pre-normalisation magnitude diagnostic to
+confidence-controlled principal-direction feature augmentation. It is also
+additional evidence that controlled embedding-space expansion is not an open
+operator, even when no external generator is used.
