@@ -1565,3 +1565,34 @@ class-conditioned autoencoders occupy the adjacent space. Claude's suggested
 diagnostic required the chosen A to beat a random same-class A by 15% MSE, but
 no registered variable defines that chosen pairing; the threshold therefore
 tests an unavailable relation. Candidate 72 is **DEAD BEFORE PREREGISTRATION**.
+
+## 73--77. Claude-proposed comparison algebras: degenerate or reparameterized
+
+**Gate-1 algebraic deaths recorded 2026-08-01; no implementation or GPU.** A
+comparison-operator round required a symmetric, subquadratic score on one
+512-D vector per image that was not a monotone transform of cosine. All five
+proposals failed their own specification before prior-art search.
+
+- **73, Clifford geometric-product score:**
+  `||x wedge y||^2 = ||x||^2 ||y||^2 - (x dot y)^2`; for normalized vectors the
+  proposed score is affine in squared cosine. It discards the sign and is not a
+  new geometric observable.
+- **74, pairwise Procrustes contraction:** an independently optimized rotation
+  can map any one equal-norm vector exactly onto any other. On normalized
+  embeddings every pair has zero residual, so the comparison is constant.
+- **75, rough-path signature over coordinates:** embedding coordinates have no
+  canonical sequence order. The score changes under an arbitrary basis
+  permutation/rotation and its truncated form is a polynomial feature kernel,
+  not a justified retrieval relation.
+- **76, “directional Fisher--Rao”:** the supplied formula was a learned
+  coordinate-wise mixed norm, not a Fisher--Rao metric. It is occupied metric
+  learning and basis-dependent scaling.
+- **77, anisotropic cosine:** diagonal scaling followed by cosine is exactly
+  absorbable into the preceding linear embedding head; labeling the matrix a
+  metric tensor does not change the model class.
+
+Candidates 73--77 are **DEAD BEFORE GATE 2**. The mechanism lesson is that a
+single-vector comparison must either respect the embedding's arbitrary basis,
+in which case orthogonal-invariant scalar information collapses to norms and
+inner products, or introduce learned structure equivalent to another embedding
+head or established metric tensor.
