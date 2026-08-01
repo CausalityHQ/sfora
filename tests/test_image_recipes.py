@@ -722,6 +722,23 @@ def test_ipsr_recipe_freezes_preregistered_preference_schedule() -> None:
     }
 
 
+def test_tird_recipe_is_normalization_consistent_and_has_no_ordinary_distillation() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    recipe = derive_recipe(base, "tird")
+
+    assert recipe.config["tird_weight"] == 1.0
+    assert recipe.config["ema_momentum"] == 0.999
+    assert recipe.config["ema_teacher_train_mode"] is True
+    assert recipe.config["ema_teacher_ema_buffers"] is True
+    assert recipe.config["ema_distill_weight"] == 0.0
+    assert set(recipe.delta) == {
+        "tird_weight",
+        "ema_momentum",
+        "ema_teacher_train_mode",
+        "ema_teacher_ema_buffers",
+    }
+
+
 @pytest.mark.parametrize(
     ("method", "control"),
     [

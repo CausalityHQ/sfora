@@ -33,11 +33,51 @@ from sfora.image_end_to_end import (
     _should_step_scheduler,
     _sinkhorn_log_coupling,
     _supervised_contrastive_loss,
+    _tird_interaction_matrix,
+    _tird_loss,
     _update_ema_teacher,
     config_for_protocol,
     run_image_end_to_end_benchmark,
 )
 from sfora.report import ReportConfig, build_site_data
+
+
+def test_tird_interaction_is_exact_closed_tetrad() -> None:
+    torch = pytest.importorskip("torch")
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.3, 0.7]], dtype=torch.float64
+    )
+    labels = torch.tensor([0, 0, 1, 1])
+    interaction = _tird_interaction_matrix(embeddings, labels, torch_module=torch)
+    raw = embeddings @ embeddings.T
+    tetrad = raw[0, 2] - raw[0, 3] - raw[1, 2] + raw[1, 3]
+
+    assert tetrad.item() == pytest.approx(
+        (interaction[0, 2] - interaction[0, 3] - interaction[1, 2] + interaction[1, 3]).item()
+    )
+    assert tetrad.item() == pytest.approx(4.0 * interaction[0, 2].item())
+
+
+def test_tird_loss_matches_interactions_and_backpropagates() -> None:
+    torch = pytest.importorskip("torch")
+    labels = torch.tensor([0, 0, 1, 1, 2, 2])
+    teacher = torch.tensor(
+        [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.3, 0.7], [0.8, 0.6], [0.4, 0.9]],
+        dtype=torch.float64,
+    )
+    identical = teacher.clone().requires_grad_(True)
+    assert _tird_loss(identical, teacher, labels, torch_module=torch).item() == pytest.approx(0.0)
+
+    student = torch.tensor(
+        [[1.0, 0.0], [0.7, 0.3], [0.2, 0.8], [0.4, 0.6], [0.9, 0.4], [0.3, 1.0]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    loss = _tird_loss(student, teacher, labels, torch_module=torch)
+    assert loss.item() > 0.0
+    loss.backward()
+    assert student.grad is not None
+    assert torch.isfinite(student.grad).all()
 
 
 def test_sota_protocol_uses_resnet50_512_adam_epochs() -> None:

@@ -171,6 +171,9 @@ class ImageEndToEndConfig(BaseModel):
     ema_distill_weight: float = Field(default=0.0, ge=0.0)
     ema_momentum: float = Field(default=0.999, ge=0.0, le=1.0)
     ema_distill_tau: float = Field(default=0.1, gt=0.0)
+    # Difference-in-differences relational self-distillation.  This matches only
+    # the cross-class interaction left after subtracting each class centroid.
+    tird_weight: float = Field(default=0.0, ge=0.0)
     # --- EMA-teacher normalisation consistency (see docs/research_reset_plan.md H3) ---
     # The student trains in `.train()` mode and normalises with BATCH statistics.
     # Historically the teacher ran in `.eval()` mode (RUNNING statistics) and had its
@@ -922,6 +925,7 @@ def run_image_end_to_end_benchmark(
             ema_teacher: Any | None = None
             if (
                 config.ema_distill_weight > 0.0
+                or config.tird_weight > 0.0
                 or config.mead_weight > 0.0
                 or config.hypergraph_distill_weight > 0.0
                 or config.ema_weight_averaging
@@ -1276,6 +1280,13 @@ def run_image_end_to_end_benchmark(
                                 embeddings,
                                 ema_embeddings,
                                 tau=config.ema_distill_tau,
+                                torch_module=torch,
+                            )
+                        if config.tird_weight > 0.0:
+                            loss = loss + config.tird_weight * _tird_loss(
+                                embeddings,
+                                ema_embeddings,
+                                labels,
                                 torch_module=torch,
                             )
                         if config.hypergraph_distill_weight > 0.0:
@@ -5120,6 +5131,44 @@ def _relational_distillation_loss(
     teacher_probs = torch_module.nn.functional.softmax(teacher_logits, dim=1)
     student_log_probs = torch_module.nn.functional.log_softmax(student_logits, dim=1)
     return -(teacher_probs * student_log_probs).sum(dim=1).mean()
+
+
+def _tird_interaction_matrix(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
+    """Return the class-centred Gram matrix whose 2x2 contrasts are tetrads."""
+    unique_labels, inverse = torch_module.unique(labels, sorted=True, return_inverse=True)
+    class_count = int(unique_labels.numel())
+    sums = embeddings.new_zeros((class_count, int(embeddings.shape[1])))
+    sums.index_add_(0, inverse, embeddings)
+    counts = torch_module.bincount(inverse, minlength=class_count).to(embeddings.dtype)
+    means = sums / counts.clamp_min(1.0).unsqueeze(1)
+    residuals = embeddings - means[inverse]
+    return residuals @ residuals.T
+
+
+def _tird_loss(
+    student_embeddings: Any,
+    teacher_embeddings: Any,
+    labels: Any,
+    *,
+    torch_module: Any,
+) -> Any:
+    """Match only cross-class image-by-image interaction in teacher geometry.
+
+    Class-centering removes class-pair and both single-image main effects.  The
+    remaining Gram entry is the interaction isolated by a closed two-by-two
+    similarity contrast.  Cosine matching of all eligible entries avoids making
+    the loss depend on the small raw scale of centred residuals.
+    """
+    student = _tird_interaction_matrix(student_embeddings, labels, torch_module=torch_module)
+    teacher = _tird_interaction_matrix(teacher_embeddings, labels, torch_module=torch_module)
+    cross_class = ~labels[:, None].eq(labels[None, :])
+    student_values = student[cross_class]
+    teacher_values = teacher[cross_class].detach()
+    if int(student_values.numel()) == 0:
+        return student_embeddings.sum() * 0.0
+    numerator = (student_values * teacher_values).sum()
+    denominator = student_values.norm() * teacher_values.norm()
+    return 1.0 - numerator / denominator.clamp_min(1.0e-8)
 
 
 def _mead_assignment_distillation_loss(

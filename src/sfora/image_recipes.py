@@ -53,6 +53,7 @@ DerivedMethod = Literal[
     "rspg_instance_gate",
     "arcg",
     "ipsr",
+    "tird",
 ]
 
 # Base loss each derived method attaches to.
@@ -83,6 +84,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "rspg_instance_gate": "proxy_anchor",
     "arcg": "proxy_anchor",
     "ipsr": "proxy_anchor",
+    "tird": "proxy_anchor",
 }
 
 
@@ -651,6 +653,24 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "ipsr_warmup_epoch": 10,
             "ipsr_refresh_epoch": 40,
             "ipsr_agreement_threshold": 0.5,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "tird":
+        delta = {
+            "tird_weight": 1.0,
+            "ema_momentum": 0.999,
+            # In-Shop has trainable BatchNorm; the teacher must see the same
+            # normalization regime and average its buffers as well as weights.
+            **_BN_FIX_DELTA,
         }
         return recipe.model_copy(
             deep=True,
