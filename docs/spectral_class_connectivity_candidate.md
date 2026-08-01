@@ -3,6 +3,9 @@
 **Gate 1--3 record, committed before implementation or GPU screening —
 2026-08-01.**
 
+**Final verdict: DEAD AT GATE 1 after a stronger CPU diagnostic, before the
+spectral arm started.**
+
 ## Gate 1: repository provenance and CPU diagnostic
 
 The project repeatedly found that contracting every labelled positive is a bad
@@ -82,3 +85,21 @@ reverse below either after selection correction. Otherwise its performance is
 attributable to an established edge-mining/tree mechanism and candidate 136 is
 dead regardless of its absolute score. Only after this mechanism test may unseen
 confirmation seeds run. Conditional control cost: about **4.5 GPU-hours**.
+
+## Stronger outcome-relevance diagnostic and termination
+
+Before the matched control completed, the same epoch-10 pack was tested for the
+missing premise: whether disconnected class graphs actually predict retrieval
+failure. They predict the opposite. Class-balanced leave-one-out training R@1 is
+**0.94813 for fragmented classes versus 0.93605 for connected classes**, a
+**+1.208-point** advantage. After exact class-size stratification, fragmented
+classes remain **+3.534 points** better; the common size-4 and size-5 strata are
+respectively +3.165 and +3.181 points.
+
+The 40.33% fragmentation measurement is real, but it is not a defect. It is
+consistent with legitimate multimodality whose local components retrieve well.
+Maximizing connectivity would erase structure associated with *better* retrieval,
+so candidate 136 fails provenance rather than earning a GPU test. The in-progress
+`pa_ipc4` control was terminated after epoch 5 and is excluded from evidence;
+`pa_fiedler` never started and produced no artifact. No controls or confirmation
+seeds may run.

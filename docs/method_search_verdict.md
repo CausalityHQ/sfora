@@ -2331,7 +2331,7 @@ pair granularity is a composition of influence-based data selection and ordinary
 positive mining; symmetry is a policy, not a new supervision principle.
 Candidate 135 is **DEAD AT GATE 2**.
 
-## 136. Spectral class connectivity: live through Gates 1--3
+## 136. Spectral class connectivity: fragmentation predicts better retrieval
 
 **Preregistered 2026-08-01 before implementation or GPU.** Exact epoch-10
 In-Shop embeddings show that 40.33% of within-class 1-NN graphs are disconnected.
@@ -2346,5 +2346,12 @@ Fiedler regularization and spectral clustering apply the mathematics to network
 topology or clustering rather than a zero-shot-retrieval class graph. No direct
 primary-source collision was found. The qualified novelty case, diagnostic,
 matched-IPC4 control, numerical prediction, and falsification rule are in
-`docs/spectral_class_connectivity_candidate.md`. Candidate 136 is **LIVE THROUGH
-GATE 3**.
+`docs/spectral_class_connectivity_candidate.md`.
+
+A stronger CPU diagnostic then falsified the premise before the spectral arm
+started. Fragmented classes have class-balanced leave-one-out R@1 0.94813 versus
+0.93605 for connected classes (+1.208 pt), and exact class-size matching increases
+the difference to +3.534 pt. Thus disconnectedness marks legitimate multimodal
+structure associated with better retrieval, not a failure needing repair. The
+partial IPC4 control was killed after epoch 5 and excluded; no `pa_fiedler`
+artifact exists. Candidate 136 is **DEAD AT GATE 1**.

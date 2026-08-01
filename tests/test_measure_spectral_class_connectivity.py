@@ -18,10 +18,24 @@ _spec.loader.exec_module(_module)
 
 
 def test_measure_detects_disconnected_one_nn_class_graph() -> None:
-    embeddings = np.asarray([[1.0, 0.0], [0.99, 0.1], [-1.0, 0.0], [-0.99, 0.1]], dtype=np.float64)
-    result = _module.measure(embeddings, np.zeros(4, dtype=np.int64), temperature=0.1)
+    embeddings = np.asarray(
+        [
+            [1.0, 0.0],
+            [0.99, 0.1],
+            [-1.0, 0.0],
+            [-0.99, 0.1],
+            [0.0, 1.0],
+            [0.1, 0.99],
+            [-0.1, 0.99],
+            [0.0, 0.98],
+        ],
+        dtype=np.float64,
+    )
+    labels = np.asarray([0, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
+    result = _module.measure(embeddings, labels, temperature=0.1)
 
-    assert result["eligible_classes"] == 1
-    assert result["one_nn_fragmented_fraction"] == pytest.approx(1.0)
+    assert result["eligible_classes"] == 2
+    assert result["one_nn_fragmented_fraction"] == pytest.approx(0.5)
     assert result["mean_class_size"] == pytest.approx(4.0)
     assert np.isfinite(result["median_fiedler_value"])
+    assert np.isfinite(result["size_matched_fragmented_minus_connected_top1_points"])

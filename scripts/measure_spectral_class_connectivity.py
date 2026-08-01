@@ -39,13 +39,23 @@ def measure(embeddings: np.ndarray, labels: np.ndarray, *, temperature: float) -
     singleton_cut: list[bool] = []
     sizes: list[int] = []
     fiedler_values: list[float] = []
+    class_rows: list[tuple[int, bool, float]] = []
+    predicted = np.empty(labels.shape[0], dtype=labels.dtype)
+    for low in range(0, labels.shape[0], 512):
+        high = min(low + 512, labels.shape[0])
+        similarities = normalized[low:high] @ normalized.T
+        similarities[np.arange(high - low), np.arange(low, high)] = -np.inf
+        predicted[low:high] = labels[np.argmax(similarities, axis=1)]
+    correct = predicted == labels
     for label in np.unique(labels):
         members = normalized[labels == label]
         count = members.shape[0]
         if count < 3:
             continue
         similarities = members @ members.T
-        fragmented.append(_one_nn_is_disconnected(similarities))
+        is_fragmented = _one_nn_is_disconnected(similarities)
+        fragmented.append(is_fragmented)
+        class_rows.append((count, is_fragmented, float(np.mean(correct[labels == label]))))
 
         affinities = np.exp((similarities - 1.0) / temperature)
         np.fill_diagonal(affinities, 0.0)
@@ -60,6 +70,17 @@ def measure(embeddings: np.ndarray, labels: np.ndarray, *, temperature: float) -
         sizes.append(count)
         fiedler_values.append(float(eigenvalues[1]))
 
+    fragmented_accuracy = [accuracy for _, flag, accuracy in class_rows if flag]
+    connected_accuracy = [accuracy for _, flag, accuracy in class_rows if not flag]
+    matched_deltas: list[float] = []
+    matched_weights: list[int] = []
+    for size in sorted({size for size, _, _ in class_rows}):
+        left = [accuracy for n, flag, accuracy in class_rows if n == size and flag]
+        right = [accuracy for n, flag, accuracy in class_rows if n == size and not flag]
+        if left and right:
+            matched_deltas.append(float(np.mean(left) - np.mean(right)))
+            matched_weights.append(min(len(left), len(right)))
+
     return {
         "eligible_classes": len(sizes),
         "mean_class_size": float(np.mean(sizes)),
@@ -71,6 +92,14 @@ def measure(embeddings: np.ndarray, labels: np.ndarray, *, temperature: float) -
         "fiedler_max_derivative_equals_farthest_fraction": float(np.mean(same_as_farthest)),
         "singleton_fiedler_cut_fraction": float(np.mean(singleton_cut)),
         "median_fiedler_value": float(np.median(fiedler_values)),
+        "fragmented_class_balanced_top1": float(np.mean(fragmented_accuracy)),
+        "connected_class_balanced_top1": float(np.mean(connected_accuracy)),
+        "fragmented_minus_connected_top1_points": float(
+            100.0 * (np.mean(fragmented_accuracy) - np.mean(connected_accuracy))
+        ),
+        "size_matched_fragmented_minus_connected_top1_points": float(
+            100.0 * np.average(matched_deltas, weights=matched_weights)
+        ),
     }
 
 
