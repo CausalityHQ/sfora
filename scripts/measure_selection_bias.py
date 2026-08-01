@@ -159,6 +159,7 @@ def main(pattern: str) -> int:
         ("pa_distill_avg", "proxy_anchor"),
         ("ipsr", "proxy_anchor"),
         ("tird", "proxy_anchor"),
+        ("pa_fiedler", "pa_ipc4"),
         ("herd", "hist"),
         ("narrow128_distill", "narrow128"),
         ("narrow64_distill", "narrow64"),
