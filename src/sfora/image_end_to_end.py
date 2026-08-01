@@ -6158,6 +6158,68 @@ def _local_nca_loss(
     return -log_prob[keep].mean()
 
 
+def _recall_at_k_surrogate_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    k_values: tuple[int, ...] = (1, 2, 4, 8, 16),
+    rank_temperature: float = 0.01,
+    recall_temperature: float = 1.0,
+    torch_module: Any,
+) -> Any:
+    """Vectorised RS@k surrogate from Patel, Tolias, and Matas (CVPR 2022).
+
+    Each positive's rank is estimated with smooth comparisons against cross-class
+    database items. A second sigmoid relaxes top-k membership. The public code
+    assumes contiguous class blocks; using label masks is mathematically identical
+    and makes that sampler implementation detail explicit.
+    """
+    if embeddings.ndim != 2:
+        raise ValueError("RS@k embeddings must have shape (batch, dimension)")
+    if labels.ndim != 1 or int(labels.shape[0]) != int(embeddings.shape[0]):
+        raise ValueError("RS@k labels must have shape (batch,)")
+    if not k_values or any(int(k) <= 0 for k in k_values):
+        raise ValueError("RS@k k_values must contain positive integers")
+    if rank_temperature <= 0.0 or recall_temperature <= 0.0:
+        raise ValueError("RS@k temperatures must be positive")
+
+    batch = int(embeddings.shape[0])
+    if batch < 2:
+        return embeddings.sum() * 0.0
+
+    similarities = embeddings @ embeddings.T
+    same_class = labels[:, None].eq(labels[None, :])
+    eye = torch_module.eye(batch, dtype=torch_module.bool, device=embeddings.device)
+    positive_mask = same_class & ~eye
+    valid_queries = positive_mask.any(dim=1)
+    if not bool(valid_queries.any()):
+        return embeddings.sum() * 0.0
+
+    # [query, candidate-positive, database-item]. Same-class competitors are
+    # excluded exactly as in the reference implementation's explicit zeroing.
+    comparison = torch_module.sigmoid(
+        (similarities[:, None, :] - similarities[:, :, None])
+        / float(rank_temperature)
+    )
+    comparison = comparison * (~same_class)[:, None, :]
+    soft_ranks = 1.0 + comparison.sum(dim=2)
+
+    recalls = []
+    positive_counts = positive_mask.sum(dim=1).to(embeddings.dtype)
+    for k in k_values:
+        membership = torch_module.sigmoid(
+            (float(k) - soft_ranks) / float(recall_temperature)
+        )
+        retrieved = (membership * positive_mask).sum(dim=1)
+        normalizer = torch_module.minimum(
+            positive_counts,
+            torch_module.full_like(positive_counts, float(k)),
+        ).clamp_min(1.0)
+        recalls.append((retrieved / normalizer)[valid_queries])
+
+    return 1.0 - torch_module.stack(recalls, dim=1).mean()
+
+
 def _local_nca_effective_positives(
     positive_logits: Any,
     positive_mask: Any,

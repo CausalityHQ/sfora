@@ -29,6 +29,7 @@ from sfora.image_end_to_end import (
     _hypergraph_distillation_loss,
     _local_nca_loss,
     _optimizer_parameter_groups,
+    _recall_at_k_surrogate_loss,
     _resolve_training_schedule,
     _should_step_scheduler,
     _sinkhorn_log_coupling,
@@ -494,6 +495,72 @@ def test_local_nca_is_a_smooth_relaxation_of_recall_at_1() -> None:
     # ...and the gap widens monotonically as temperature falls.
     gaps = [loss_for(inverted, t) - loss_for(correct, t) for t in (1.0, 0.1, 0.01)]
     assert gaps[0] < gaps[1] < gaps[2]
+
+
+def test_recall_at_k_surrogate_matches_literal_rank_definition() -> None:
+    torch: Any = pytest.importorskip("torch")
+    embeddings = torch.nn.functional.normalize(
+        torch.tensor(
+            [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.2, 0.8], [-1.0, 0.0], [-0.8, 0.2]],
+            dtype=torch.float64,
+        ),
+        dim=1,
+    ).requires_grad_(True)
+    labels = torch.tensor([0, 0, 1, 1, 2, 2])
+    rank_temperature = 0.07
+    recall_temperature = 0.8
+    k_values = (1, 2)
+
+    actual = _recall_at_k_surrogate_loss(
+        embeddings,
+        labels,
+        k_values=k_values,
+        rank_temperature=rank_temperature,
+        recall_temperature=recall_temperature,
+        torch_module=torch,
+    )
+
+    per_query = []
+    similarities = embeddings @ embeddings.T
+    for query in range(len(labels)):
+        positives = [i for i in range(len(labels)) if i != query and labels[i] == labels[query]]
+        recalls = []
+        for k in k_values:
+            memberships = []
+            for positive in positives:
+                soft_rank = embeddings.new_tensor(1.0)
+                for candidate in range(len(labels)):
+                    if labels[candidate] != labels[query]:
+                        soft_rank = soft_rank + torch.sigmoid(
+                            (similarities[query, candidate] - similarities[query, positive])
+                            / rank_temperature
+                        )
+                memberships.append(torch.sigmoid((k - soft_rank) / recall_temperature))
+            recalls.append(torch.stack(memberships).sum() / min(k, len(positives)))
+        per_query.append(torch.stack(recalls).mean())
+    expected = 1.0 - torch.stack(per_query).mean()
+
+    assert actual.item() == pytest.approx(expected.item(), abs=1e-10)
+    actual.backward()
+    assert embeddings.grad is not None
+    assert torch.isfinite(embeddings.grad).all()
+
+
+def test_recall_at_k_surrogate_rewards_correct_nearest_neighbours() -> None:
+    torch: Any = pytest.importorskip("torch")
+    labels = torch.tensor([0, 0, 1, 1])
+    correct = torch.nn.functional.normalize(
+        torch.tensor([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]]), dim=1
+    )
+    inverted = correct[[0, 2, 1, 3]]
+
+    correct_loss = _recall_at_k_surrogate_loss(
+        correct, labels, k_values=(1,), torch_module=torch
+    )
+    inverted_loss = _recall_at_k_surrogate_loss(
+        inverted, labels, k_values=(1,), torch_module=torch
+    )
+    assert correct_loss < inverted_loss
 
 
 def test_local_nca_self_exclusion_survives_a_memory_augmented_contrast_set() -> None:
