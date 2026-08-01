@@ -56,14 +56,18 @@ number. That catalogue is worth more than any single arm.
 Then generate the next candidate, preferring the one untried class: **change what
 supervision exists**, rather than how it is scored.
 
-## Standing fact: the ceiling is open
+## Standing fact corrected 2026-08-01: PFML occupies the old CUB/Cars ceiling
 
-IDEAL's 72.3 rests on a 69.7 HIST baseline — below HIST's published 71.4 and below our
-70.82 six-seed reproduction — and it uses four-view inference. So the headroom above HIST
-is not credibly occupied.
+IDEAL's 72.3 remains non-comparable: its HIST baseline is 69.7, below HIST's published
+71.4 and our 70.82 six-seed reproduction, and it uses four-view inference. However,
+*Potential Field Based Deep Metric Learning* (Bhatnagar and Ahuja, CVPR 2025) was missed
+by the earlier audit. It reports standard single-view ResNet-50/512-D results over five
+runs: CUB 73.4 ± 0.3, Cars196 92.7 ± 0.3, and SOP 82.9 ± 0.2. Its 15 proxies/class and
+200-epoch recipe require care in a reproduction, but its evidence is credible enough that
+the old ~0.715 CUB ceiling is occupied. See `docs/recent_dml_horizon_scan_2026-08-01.md`.
 
 Our reproductions: **HIST 0.7082, Proxy Anchor 0.6919** on CUB; **PA 0.9035, HIST 0.9038**
-on In-Shop. A real single-model arm above ~0.715 on CUB, or above 0.9038 on In-Shop, is a
-genuine result.
+on In-Shop. PFML does not report In-Shop, so a novel single-model arm above 0.9038 there
+remains the fastest first screen. A CUB claim must now confront PFML's 0.734, not 0.715.
 
 Commit and push after each gate. Report honestly whichever way each candidate goes.

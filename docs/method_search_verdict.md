@@ -1483,3 +1483,19 @@ construction. More fundamentally, raw uncentered cosine already retains the
 useful mean at zero cost. The measurement supplies evidence against removing it,
 not evidence that a more complex reintroduction can improve it. Candidate 64 is
 **DEAD AT GATE 2**.
+
+## 65--67. Recent-paper gap proposals: occupied implementation variants
+
+**Gate-2 deaths recorded 2026-08-01; no implementation or GPU.** A 2024--2026
+horizon scan found PFML, Anti-Collapse, Realigned Softmax Warping, DDML, and
+CouCE. Three apparent gaps were audited: (65) learning rather than hand-setting
+the field/warping curve is established meta-loss/loss-shape learning; (66)
+streaming whole-dataset coding rate is a memory/EMA implementation of an
+existing coding-rate/covariance regularizer; and (67) automatic nuisance-factor
+discovery is established disentangled representation learning. None changes the
+supervision or similarity operator. Candidates 65--67 are **DEAD AT GATE 2**.
+
+The scan does correct the external ceiling: PFML (CVPR 2025) credibly reports
+five-run ResNet-50 single-view results of 0.734 CUB and 0.927 Cars196. The old
+statement that roughly 0.715 CUB was unoccupied is withdrawn. PFML reports no
+In-Shop result, leaving In-Shop as the appropriate first screen for a novel arm.
