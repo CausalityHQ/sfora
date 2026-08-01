@@ -56,6 +56,7 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
     "rspg": ("proxy_anchor", "rspg"),
     "arcg": ("proxy_anchor", "arcg"),
     "ipsr": ("proxy_anchor", "ipsr"),
+    "tird": ("proxy_anchor", "tird"),
     # Capacity-weakened bases, each its own paired control.
     "narrow128": ("proxy_anchor", "narrow128"),
     "narrow128_distill": ("proxy_anchor", "narrow128_distill"),
@@ -84,6 +85,7 @@ PAIRED_CONTROL: dict[str, str] = {
     # EMA arm would answer a different question than their preregistration.
     "pa_ema_avg_bnfix": "proxy_anchor",
     "pa_dual_ema_bnfix": "proxy_anchor",
+    "tird": "proxy_anchor",
     "narrow128_distill": "narrow128",
     "narrow64_distill": "narrow64",
 }
