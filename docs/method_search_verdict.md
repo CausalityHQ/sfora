@@ -2101,3 +2101,20 @@ consistency to match image regions. DIML is the adjacent DML structural-matching
 baseline. Using the same operator as a retrieval score or Proxy Anchor companion
 changes the benchmark/application, not the comparison mechanism. Candidate 122
 is **DEAD AT GATE 2**.
+
+## 123. Per-query augmentation adaptation: established test-time training
+
+**Gate-2/protocol death recorded 2026-08-01; no diagnostic, implementation, or
+GPU.** ARCG measured heterogeneous image-specific transformation response, which
+suggested adapting the embedding separately for each unseen query using only its
+controlled augmented views.
+
+Tursun et al., *Learning Test-time Augmentation for Content-based Image Retrieval*
+(2020), already learn transformation policies and aggregate augmented query
+features specifically for retrieval. Test-Time Training (Sun et al., 2020)
+already updates a model on a single unlabeled test example through self-supervision,
+and later retrieval TTA methods adapt online query representations. Choosing an
+augmentation-consistency objective for a DML encoder is an application of these
+operators, not a new method. Multi-view aggregation also violates the registered
+single-view comparison used to reject IDEAL/BLenDeR-style capacity advantages.
+Candidate 123 is **DEAD AT GATE 2**.
