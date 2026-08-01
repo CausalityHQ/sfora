@@ -126,6 +126,17 @@ The corrected gate therefore warrants full RSPG In-Shop seeds 0 and 1. Both are
 required because of contamination. No ablation, Cars run, or claim is allowed
 until the two raw screens are judged against 0.9085.
 
+### Acquisition-token stratification
+
+Post-mortem reconstruction of this exact graph found that it accepted
+**11,806 / 41,312 (28.58%)** same-acquisition pairs and only
+**1,447 / 111,803 (1.29%)** cross-acquisition pairs. Same-token pairs therefore
+made up **89.08%** of accepted edges. The selective In-Shop graph was primarily
+an acquisition-session detector, not evidence that the rival signature had
+recovered semantic pose or appearance factors. This analysis is retrospective
+and does not alter the registered screen decision; it explains why this measured
+structure is not a sound basis for another RSPG-like arm.
+
 ## Procedural correction
 
 An In-Shop seed-0 process was mistakenly started before this CPU-first task file

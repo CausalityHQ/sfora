@@ -720,6 +720,16 @@ shows that rival identities genuinely distinguish samples within a class. With
 3,997 training identities, the cross-class reference set is rich enough for the
 same construction to become selective.
 
+That selectivity is not semantic evidence. Reconstructing the exact registered
+graph from the epoch-10 pack shows that it retained **11,806 / 41,312 (28.58%)**
+same-acquisition pairs but only **1,447 / 111,803 (1.29%)** cross-acquisition
+pairs. Consequently **89.08%** of all accepted edges shared the filename
+acquisition token. RSPG mainly rediscovered the session/model/background
+shortcut that ordinary In-Shop R@1 already rewards. This sharpens its death:
+the target-excluded rival signature was dataset-selective, but on the dataset
+where it was selective its positive-to-unknown decisions largely encoded a
+known nuisance variable, then the replacement objective self-erased.
+
 This is a measured property of these datasets, not merely an implementation
 outcome. It constrains the next search batch: supervision routed through
 cross-class identities has weak empirical support as a source of CUB
