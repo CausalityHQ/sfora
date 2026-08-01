@@ -1807,3 +1807,21 @@ modelling. Both are occupied and were excluded from this generation round. The
 1.215-point observation remains evidence that centring is unsafe for cosine
 retrieval, not provenance for new supervision. Candidate 103 is **DEAD BEFORE
 GATE 2**.
+
+## 104. Confusable negative-to-unknown editing: hierarchical relation weighting
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** The failures of
+positive-to-unknown RSPG/ARCG leave a superficially different edit: preserve all
+same-class positives, but turn a foreign-class negative into unknown when the
+two training classes are empirically confusable. This could avoid erasing Proxy
+Anchor's attractive term while preserving features shared by nearby classes.
+
+The operation is occupied. HIER (Kim et al., CVPR 2023) discovers inter-class
+hierarchy and supplies graded relations beyond binary class labels. Kim et al.,
+*Deep Metric Learning Beyond Binary Supervision* (CVPR 2019), learn continuous
+semantic similarity rather than treating every different-class relation as
+equally negative. False-negative cancellation supplies the exact remove-from-
+the-negative-set operation in contrastive learning. A hard unknown threshold is
+therefore a binary relation weight/mask, not a new supervision operator; deriving
+it from proxies, neighbours, response signatures, or early confusion changes
+only its estimator. Candidate 104 is **DEAD AT GATE 2**.
