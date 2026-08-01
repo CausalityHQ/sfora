@@ -43,3 +43,31 @@ the same seed-matched 10-epoch measurement will be repeated. The official
 recipe does not enable deterministic CUDA kernels, so fixed-seed replay may
 differ slightly; the repository already measures that effect. This is an
 instrumentation repair, not a second draw or threshold change.
+
+## Corrected result
+
+The corrected seed-0 replay reached epoch-10 In-Shop R@1 **0.84365** (no
+checkpoint selection). Its raw head-output query magnitudes had mean **430.80**
+and standard deviation **60.77**, proving that the hook now observes the
+pre-normalisation head rather than the unit-normalised model return. The frozen
+analysis measured:
+
+| statistic | result | registered threshold |
+| --- | ---: | ---: |
+| Pearson, query magnitude vs R@1 correctness | **0.18675** | predicted absolute value >= 0.15 |
+| Spearman, query magnitude vs retrieval margin | **0.32574** | predicted absolute value >= 0.20 |
+| train identity ICC of magnitude | **0.57754** | descriptive |
+
+Both predictions pass, and both are far outside the joint falsifier of absolute
+correlation below 0.05. Pre-normalisation magnitude is a material missing
+observable: larger magnitude is associated with correct retrieval and with a
+wider positive-versus-negative cosine margin, while more than half of its train
+variance under the one-way ICC is identity-structured.
+
+This positive diagnostic does **not** advance a method to GPU. Quality-aware
+face losses (MagFace, AdaFace), uncertainty-aware metric learning (IDML), SEC,
+ESA's norm/confidence-driven principal-direction augmentation, and IAA's
+class-covariance synthetic support occupy the direct actions. Using magnitude
+to weight, mine, gate, adjust a margin, select augmentation strength, or alter
+similarity would be an estimator substitution inside those established
+operators. A new action would still need independent Gate-2 novelty.

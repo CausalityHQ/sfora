@@ -1825,3 +1825,21 @@ the-negative-set operation in contrastive learning. A hard unknown threshold is
 therefore a binary relation weight/mask, not a new supervision operator; deriving
 it from proxies, neighbours, response signatures, or early confusion changes
 only its estimator. Candidate 104 is **DEAD AT GATE 2**.
+
+## 105. Pre-normalisation magnitude is predictive, but every direct action is occupied
+
+**Gate-1 diagnostic passed 2026-08-01; no candidate GPU.** At the exact
+epoch-10 In-Shop Proxy Anchor operating point, correctly hooked raw head-output
+magnitude correlated **0.18675** with query R@1 correctness and **0.32574**
+(Spearman) with retrieval margin. Both clear the preregistered 0.15/0.20
+prediction, and train identity ICC was **0.57754**. The first export that returned
+unit norms was rejected as an instrumentation failure before adjudication; the
+corrected hook and its regression test were committed before replay.
+
+The measurement establishes a missing observable, not a novel operator.
+MagFace, AdaFace, IDML, SEC, ESA, and IAA occupy magnitude/quality-aware margins,
+similarities, confidence, augmentation, and synthetic support. Norm-ranked
+mining, norm-conditioned gates, norm consistency, and dynamic margins reduce to
+the same quality weighting or geometry regularisation. Candidate 105 therefore
+**PASSES GATE 1 BUT CANNOT ENTER GATE 3** without a separately stated and audited
+operator. No method run follows from the positive number.

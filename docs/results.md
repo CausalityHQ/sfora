@@ -1090,3 +1090,21 @@ For a metric-learning practitioner, these are as useful as the positive result:
   TIRD isolated the reproducible 4.75%-variance image-by-image interaction, but
   cosine normalization gave that weak residual unit-scale pressure; training
   was delayed, volatile, and converged to a much lower retrieval ceiling.
+
+## Pre-normalisation magnitude diagnostic (measurement, not a method)
+
+A preregistered epoch-10 In-Shop Proxy Anchor diagnostic measured the raw
+BN-Inception embedding-head magnitude before the model's internal L2
+normalisation. The corrected seed-0 endpoint was R@1 **0.84365**, with no
+best-over-training selection. Query magnitude correlated **0.18675** (Pearson)
+with R@1 correctness and **0.32574** (Spearman) with the positive-minus-negative
+retrieval margin; train identity ICC was **0.57754**. The registered prediction
+was absolute correlation at least 0.15 or 0.20 respectively, and the joint
+falsifier was both below 0.05, so the missing-observable hypothesis passes.
+
+The first export was invalid because official BN-Inception normalises inside
+`forward`; its unit norms were rejected before reading the corrected result. A
+head-output hook and internal-normalisation regression test fixed the
+measurement. No method claim follows: norm/quality-aware similarity, margins,
+confidence and augmentation are occupied by MagFace, AdaFace, IDML, SEC and
+ESA, while class-covariance synthetic support is occupied by IAA.
