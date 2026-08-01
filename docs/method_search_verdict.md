@@ -1596,3 +1596,23 @@ single-vector comparison must either respect the embedding's arbitrary basis,
 in which case orthogonal-invariant scalar information collapses to norms and
 inner products, or introduce learned structure equivalent to another embedding
 head or established metric tensor.
+
+## 78--82. Claude-proposed structured outputs: separable feature-map equivalence
+
+**Gate-1 algebraic deaths recorded 2026-08-01; no implementation or GPU.** A
+second operator round allowed structured per-image outputs but required each
+image to be encoded independently. The proposed conditional transformation
+`P(x)v(x)` (78) is simply another vector-valued embedding head. Frobenius inner
+products between predicted moment matrices (79) are dot products after
+vectorisation. Weighted orthogonal subspaces (80) are a concatenated/rescaled
+embedding. A per-image rotation and scale used as a Mahalanobis tensor (81) is
+established local/probabilistic metric learning. RBF coefficients plus an RBF
+of the base vector (82) are a direct-sum kernel feature map. None creates a
+non-separable comparison.
+
+Candidates 78--82 are **DEAD BEFORE GATE 2**. More generally, any positive
+semidefinite comparison between independently encoded finite objects has a
+feature-map representation; changing vectors into matrices or named moments
+does not evade that equivalence. A live comparison candidate must justify a
+non-separable or non-kernel interaction and show why it is meaningful rather
+than merely nonlinear.
