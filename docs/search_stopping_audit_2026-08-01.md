@@ -44,7 +44,7 @@ relation mining.
 
 ## Operator coverage
 
-The numbered verdict catalogue now reaches candidate 56. Its mechanisms cover
+The numbered verdict catalogue now reaches candidate 68. Its mechanisms cover
 the executable ways found to alter supervision from training data alone:
 
 | Operator family | Repository evidence | Nearest established operator |
@@ -90,6 +90,27 @@ families that the catalogue might have missed:
 None supplies a new repo-motivated candidate; instead they close the remaining
 global, hypergraph, transport, probabilistic, and distributional branches.
 
+## Post-audit horizon correction and independent challenge
+
+A 2024--2026 primary-source scan corrected one premise without reopening a
+method: PFML (Bhatnagar and Ahuja, CVPR 2025) reports five-run, single-view
+ResNet-50 results of 0.734 on CUB and 0.927 on Cars196. The earlier claim that
+the CUB ceiling above roughly 0.715 was unoccupied is withdrawn. This makes the
+novelty/performance target harder; it does not supply a new operator. This
+repository already contains a faithful, unit-tested PFML implementation whose
+reproduction collapsed to R@1 0.0155, so an unregistered PFML In-Shop run is
+not a novelty experiment.
+
+Two additional read-only Claude reviews were given the complete failure
+catalogue and instructed to attack the stopping conclusion. The successful
+review returned `NONE`. Its three attempted escapes—magnitude-conditioned
+margin, proxy-level gradient surgery, and proxy-quadruple Gram transfer—were,
+respectively, occupied by MagFace/AdaFace, PCGrad-family optimization, and
+similarity-preserving relational KD. Its only genuinely absent raw observable
+was pre-normalisation embedding magnitude, but no DML checkpoints were retained
+and its obvious use is precisely occupied quality/hardness weighting. A second
+Opus review timed out without a verdict and is not counted as evidence.
+
 ## Decision
 
 There is no defensible candidate left under the current constraints. Every
@@ -99,8 +120,8 @@ mask, normalization, or application. Starting another arm now would violate
 Gate 1 or Gate 2 and would make the search less rigorous, not more persistent.
 
 The search should reopen only on new evidence that identifies an operation not
-represented above—for example, a new annotation-free observable that changes
-the relation graph rather than weighting known labels—or if the project
+represented above—for example, a new annotation-free observable that creates
+a new supervision object rather than selecting or weighting known labels—or if the project
 explicitly relaxes the no-external-knowledge or roughly-1x-cost constraint.
 Until then, the negative catalogue and its cross-dataset measurements are the
 research result.
