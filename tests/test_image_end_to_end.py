@@ -44,9 +44,7 @@ from sfora.report import ReportConfig, build_site_data
 
 def test_tird_interaction_is_exact_closed_tetrad() -> None:
     torch = pytest.importorskip("torch")
-    embeddings = torch.tensor(
-        [[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.3, 0.7]], dtype=torch.float64
-    )
+    embeddings = torch.tensor([[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.3, 0.7]], dtype=torch.float64)
     labels = torch.tensor([0, 0, 1, 1])
     interaction = _tird_interaction_matrix(embeddings, labels, torch_module=torch)
     raw = embeddings @ embeddings.T
@@ -7648,9 +7646,7 @@ def test_arcg_state_rejects_close_disagreement_and_accepts_distant_agreement() -
 
     from sfora.image_end_to_end import ImageEndToEndConfig, _build_arcg_state
 
-    anchors = np.array(
-        [[1.0, 0.0], [0.999, 0.001], [0.7, 0.7], [-0.8, 0.2]], dtype=np.float64
-    )
+    anchors = np.array([[1.0, 0.0], [0.999, 0.001], [0.7, 0.7], [-0.8, 0.2]], dtype=np.float64)
     angles = np.array(
         [
             [0.5, 0.1, 0.1, 0.1, 0.1],
@@ -7695,3 +7691,47 @@ def test_arcg_state_rejects_close_disagreement_and_accepts_distant_agreement() -
     neighbours = {index for index, _ in state.neighbours[0]}
     assert 1 not in neighbours  # close anchor, disagreeing intervention response
     assert 3 in neighbours  # distant anchor, agreeing intervention response
+
+
+def test_spectral_class_connectivity_loss_targets_weak_cut_with_finite_gradients() -> None:
+    import torch
+
+    from sfora.image_end_to_end import _spectral_class_connectivity_loss
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.99, 0.1], [-1.0, 0.0], [-0.99, 0.1]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    labels = torch.zeros(4, dtype=torch.long)
+    loss = _spectral_class_connectivity_loss(
+        embeddings,
+        labels,
+        temperature=0.1,
+        min_class_size=4,
+        torch_module=torch,
+    )
+    assert loss < 0.0
+    loss.backward()
+    assert embeddings.grad is not None
+    assert torch.isfinite(embeddings.grad).all()
+    assert float(embeddings.grad.norm()) > 0.0
+
+
+def test_spectral_class_connectivity_loss_is_zero_without_eligible_class() -> None:
+    import torch
+
+    from sfora.image_end_to_end import _spectral_class_connectivity_loss
+
+    embeddings = torch.randn(6, 3, requires_grad=True)
+    labels = torch.tensor([0, 0, 0, 1, 1, 1])
+    loss = _spectral_class_connectivity_loss(
+        embeddings,
+        labels,
+        temperature=0.1,
+        min_class_size=4,
+        torch_module=torch,
+    )
+    assert loss.item() == pytest.approx(0.0)
+    loss.backward()
+    assert embeddings.grad is not None

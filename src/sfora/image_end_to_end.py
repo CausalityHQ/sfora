@@ -225,6 +225,11 @@ class ImageEndToEndConfig(BaseModel):
     ipsr_warmup_epoch: int = Field(default=10, ge=1)
     ipsr_refresh_epoch: int = Field(default=40, ge=1)
     ipsr_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
+    # Spectral class connectivity. Maximizes the Fiedler value of each eligible
+    # within-class affinity graph; zero preserves the reference objective.
+    fiedler_weight: float = Field(default=0.0, ge=0.0)
+    fiedler_temperature: float = Field(default=0.1, gt=0.0)
+    fiedler_min_class_size: int = Field(default=4, ge=3)
     # --- Hypergraph-native EMA distillation (HIST bases only). Weight 0 = off. ---
     # Distils a target that only exists because HIST builds a hypergraph, rather than
     # another batch cosine-similarity matrix. See _hypergraph_distillation_loss.
@@ -977,11 +982,7 @@ def run_image_end_to_end_benchmark(
                 train_batches,
                 strict=False,
             ):
-                if (
-                    config.rspg_weight > 0.0
-                    or config.arcg_weight > 0.0
-                    or config.ipsr_weight > 0.0
-                ):
+                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0:
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:
@@ -2227,9 +2228,7 @@ def _build_arcg_state(
     enforce_diagnostic: bool,
 ) -> RSPGState:
     """Build the registered binary graph from deterministic response signatures."""
-    signatures, valid = normalized_response_signatures(
-        anchor_embeddings, transformed_embeddings
-    )
+    signatures, valid = normalized_response_signatures(anchor_embeddings, transformed_embeddings)
     diagnostics = diagnose_arcg_graph(
         anchor_embeddings,
         signatures,
@@ -2272,9 +2271,7 @@ def _build_arcg_state(
             "multi-component fraction >= 0.50, close rejection >= 0.05, and far "
             "acceptance >= 0.05; thresholds may not be tuned"
         )
-    target = torch_module.as_tensor(
-        anchor_embeddings, dtype=torch_module.float32, device=device
-    )
+    target = torch_module.as_tensor(anchor_embeddings, dtype=torch_module.float32, device=device)
     target = _normalize(target, torch_module).detach()
     return RSPGState(
         target_embeddings=target,
@@ -2295,9 +2292,7 @@ def _build_ipsr_state(
     enforce_diagnostic: bool,
 ) -> IPSRState:
     """Build preregistered contradicted preferences from a detached snapshot."""
-    signatures, valid = normalized_response_signatures(
-        anchor_embeddings, transformed_embeddings
-    )
+    signatures, valid = normalized_response_signatures(anchor_embeddings, transformed_embeddings)
     diagnostics = build_ipsr_preferences(
         anchor_embeddings,
         signatures,
@@ -2323,9 +2318,7 @@ def _build_ipsr_state(
             "IPSR preregistered diagnostic failed: require anchor coverage >= 0.50, "
             "class coverage >= 0.50, and initial loss >= 0.70; thresholds may not be tuned"
         )
-    target = torch_module.as_tensor(
-        anchor_embeddings, dtype=torch_module.float32, device=device
-    )
+    target = torch_module.as_tensor(anchor_embeddings, dtype=torch_module.float32, device=device)
     return IPSRState(
         target_embeddings=_normalize(target, torch_module).detach(),
         preferred_indices=torch_module.as_tensor(
@@ -3102,7 +3095,42 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
                 f"active_anchors={active}",
                 flush=True,
             )
+    if config.fiedler_weight > 0.0:
+        loss = loss + config.fiedler_weight * _spectral_class_connectivity_loss(
+            embeddings,
+            labels,
+            temperature=config.fiedler_temperature,
+            min_class_size=config.fiedler_min_class_size,
+            torch_module=torch_module,
+        )
     return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _spectral_class_connectivity_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    temperature: float,
+    min_class_size: int,
+    torch_module: Any,
+) -> Any:
+    """Negative mean Fiedler value of eligible within-class affinity graphs."""
+
+    normalized = _normalize(embeddings, torch_module)
+    class_losses: list[Any] = []
+    for label in torch_module.unique(labels):
+        members = normalized[labels == label]
+        if int(members.shape[0]) < min_class_size:
+            continue
+        similarities = members @ members.T
+        affinities = torch_module.exp((similarities - 1.0) / temperature)
+        affinities = affinities - torch_module.diag_embed(torch_module.diagonal(affinities))
+        laplacian = torch_module.diag(affinities.sum(dim=1)) - affinities
+        eigenvalues = torch_module.linalg.eigvalsh(laplacian)
+        class_losses.append(-eigenvalues[1])
+    if not class_losses:
+        return embeddings.sum() * 0.0
+    return torch_module.stack(class_losses).mean()
 
 
 def _region_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
@@ -4860,15 +4888,9 @@ def _ipsr_ranking_loss(
     if active_count == 0:
         return embeddings.sum() * 0.0, 0
     normalized = _normalize(embeddings[active], torch_module)
-    preferred_similarity = (
-        normalized * state.target_embeddings[preferred[active]]
-    ).sum(dim=1)
-    unknown_similarity = (
-        normalized * state.target_embeddings[unknown[active]]
-    ).sum(dim=1)
-    loss = torch_module.nn.functional.softplus(
-        unknown_similarity - preferred_similarity
-    ).mean()
+    preferred_similarity = (normalized * state.target_embeddings[preferred[active]]).sum(dim=1)
+    unknown_similarity = (normalized * state.target_embeddings[unknown[active]]).sum(dim=1)
+    loss = torch_module.nn.functional.softplus(unknown_similarity - preferred_similarity).mean()
     return loss, active_count
 
 

@@ -44,6 +44,20 @@ def test_proxy_anchor_inshop_matches_official_command() -> None:
     assert recipe.config["gradient_clip_value"] == pytest.approx(10.0)
 
 
+def test_fiedler_recipe_has_matched_ipc4_control() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    control = derive_recipe(base, "pa_ipc4")
+    candidate = derive_recipe(base, "pa_fiedler")
+
+    assert control.config["samples_per_class"] == 4
+    assert candidate.config["samples_per_class"] == 4
+    differing = {
+        key for key in candidate.config if candidate.config.get(key) != control.config.get(key)
+    }
+    assert differing == {"fiedler_weight", "fiedler_temperature", "fiedler_min_class_size"}
+    assert candidate.config["fiedler_weight"] == pytest.approx(0.05)
+
+
 @pytest.mark.parametrize(
     ("dataset", "step"),
     [("cub", 5), ("cars", 10)],
