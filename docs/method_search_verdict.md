@@ -1219,7 +1219,21 @@ within-identity positive part mixtures for contrastive person retrieval. Pixel
 versus descriptor mixing and donor sampling are implementation choices.
 Candidate 48 is **DEAD at Gate 2**.
 
-## 49. Reopened-loop stopping argument: data-only supervision expansion
+## 49. Compositional decoupled relational distillation: occupied DKD + RKD
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** On five saved
+final CUB HERD packs, same-class samples receive only 7.81--11.10% of the τ=0.1
+neighbourhood mass although the nearest neighbour is same-class 89.23--95.07%
+of the time. The live distillation target is therefore dominated by graded
+cross-class relations. An Aitchison-inspired decomposition would separately
+match same/different total mass and conditional rankings. Decoupled KD already
+factorizes target/non-target mass from the non-target conditional distribution;
+RKD transfers inter-sample geometry, and decoupled relational KD combines these
+operators. Relabelling the partition for DML is not novel. Candidate 49 is
+**DEAD at Gate 2**. The diagnostic is retained because it narrows the mechanism
+behind the only intervention that replicated on CUB and Cars.
+
+## 50. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
