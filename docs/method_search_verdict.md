@@ -1158,7 +1158,21 @@ relations; General Pair Weighting, DML-ALA, and camera-diversity losses occupy t
 operator. Candidate 43 is **DEAD at Gate 2** despite a successful causal
 decomposition.
 
-## 44. Reopened-loop stopping argument: data-only supervision expansion
+## 44. Residual-agreement positive preservation: occupied contextual pseudo-labeling
+
+**Gate-2 death recorded 2026-07-31; no implementation or GPU.** RSPG's exact
+In-Shop graph overlaps the equal-cardinality distance gate by 70.50%, leaving
+3,910 context-agreeing edges outside ordinary proximity selection. RAPP would
+retain Proxy Anchor and add positives only on this disagreement residual, thus
+avoiding RSPG's self-erasure. STML (Kim et al., CVPR 2022) already combines
+pairwise and reciprocal-neighbour contextual similarity as cross-instance
+relational pseudo-labels and explicitly analyzes the high-context/low-distance
+case. Liao et al. (arXiv:2210.01908) brings contextual-similarity optimization
+to supervised metric learning. Restricting that established relation to a
+binary residual and composing it with Proxy Anchor is a mask/loss-composition
+variant. Candidate 44 is **DEAD at Gate 2**.
+
+## 45. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
