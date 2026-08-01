@@ -1430,3 +1430,16 @@ on representations; and FATTEN explicitly models and transfers pose-induced
 feature trajectories. Replacing the trajectory endpoint with a rival-class
 identity is a descriptor change inside established equivariant/trajectory
 supervision. Candidate 60 is **DEAD AT GATE 2**.
+
+## 61. Episodic unseen-class supervision: no distinct provenance and occupied
+
+**Gate-1/2 death recorded 2026-08-01; no implementation or GPU.** A possible
+escape from fixed train-class supervision was to partition training identities
+into pseudo-seen and pseudo-unseen episodes and optimize retrieval on the held-
+out identities, importing bi-level meta-learning. The repository establishes
+ordinary zero-shot retrieval performance but contains no numeric defect showing
+that an episodic objective corrects a failure distinct from generalization
+itself, so the proposal lacks Gate-1 provenance. Independently, few-shot metric
+learning already uses episodic training on non-target classes (for example
+Channel-Rectifier Meta-Learning), while meta/factorized DML explicitly targets
+unseen-class generalization. Candidate 61 is **DEAD before preregistration**.
