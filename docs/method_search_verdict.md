@@ -2619,3 +2619,14 @@ BIER's online gradient-boosted embedding ensemble. The all-five-miss diagnostic
 also found only **15/5,924 = 0.253%** total-query rescues, too little Gate-1
 support for a distinct certificate/rescue mechanism. Candidate 158 is **DEAD**.
 Full audit: `docs/cross_field_candidate_batch_156_158.md`.
+
+## 159--163. Decorated higher-order constraints: no new observed label
+
+**Gate-2 deaths recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Per-identity matroid rank and tomographic rank reduce to low-rank/nuclear-norm
+regularisation. The proposed regional instrumental variable violates the
+exclusion restriction and reduces to routed adaptive-margin triplets. SAT
+transitivity plus capacity is constrained subclustering. Ecological niche
+competition is mixture-of-experts load balancing and diversity regularisation.
+None supplies a measured higher-order label. Full audit:
+`docs/higher_order_supervision_audit_159_163.md`.
