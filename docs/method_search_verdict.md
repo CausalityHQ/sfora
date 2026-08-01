@@ -1257,7 +1257,7 @@ matrices for object/image retrieval. Fixed-effect centering chooses a contrast
 inside that operator rather than defining new supervision. Candidate 51 is
 **DEAD at Gate 2**.
 
-## 52. Tetrad interaction relational distillation: live through Gate 3
+## 52. Tetrad interaction relational distillation: failed at Gate 4
 
 **Pre-registered 2026-08-01 before implementation.** Exact cross-class ANOVA on
 five final HERD packs isolates an image-by-image interaction with 4.75% variance
@@ -1267,8 +1267,24 @@ classes, cancelling class-pair and both single-image main effects. RKD transfers
 absolute pair/angle geometry; PDRD and D3still transfer first-order pairwise
 similarity differences for ranking; standard quadruplet losses impose labelled
 margins. No audited source transfers this two-class tetrad interaction. In-Shop
-seed 0 is predicted at raw R@1 0.9090 and falsified below 0.9085. Candidate 52 is
-**LIVE THROUGH GATE 3** pending implementation and screen.
+seed 0 was predicted at raw R@1 0.9090 and falsified below 0.9085.
+
+**Gate-4 death recorded 2026-08-01.** The complete official In-Shop seed-0
+screen reached raw best-over-training R@1 **0.8301** at epoch 59, versus paired
+Proxy Anchor **0.9024**: **-7.237 points**. Selection correction moved TIRD to
+**0.8267** and the paired delta to **-7.405 points**, so volatility made the raw
+best slightly optimistic rather than rescuing it. It missed its absolute 0.9085
+falsifier by **7.84 points**. No additional seed or dataset is warranted.
+
+The mechanism failure is stronger than “distillation did not help.” The
+measured interaction was real but small: only 4.75% of cross-class similarity
+variance. Cosine-normalizing all cross-class interaction entries promoted that
+small, sign-changing residual to a unit-scale global target. Training lagged
+Proxy Anchor drastically, oscillated, and only recovered to an approximately
+0.83 ceiling after 60 epochs. Isolating information not already encoded by the
+base loss does not establish that it is compatible with the dominant geometry;
+normalization can erase the variance share that made the component minor.
+Candidate 52 is **DEAD at Gate 4**.
 
 ## 53. Reopened-loop stopping argument: data-only supervision expansion
 

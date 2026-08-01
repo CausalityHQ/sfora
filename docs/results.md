@@ -1061,3 +1061,11 @@ For a metric-learning practitioner, these are as useful as the positive result:
   base. Same-resolution multi-crop avoids both but gives no benefit.
 - Bigger ImageNet-V2 pretrained weights, longer (100-epoch) schedules, and HIST
   hyper-parameter re-tuning all under-performed the plain HERD configuration.
+- **Tetrad interaction relational distillation (TIRD), In-Shop seed 0:** raw
+  best-over-training R@1 **0.8301** versus paired Proxy Anchor **0.9024**
+  (**-7.237 points**). Selection-corrected TIRD was **0.8267**, with corrected
+  paired delta **-7.405 points**. The preregistered prediction was 0.9090 and the
+  absolute falsifier was below 0.9085, so this is a decisive Gate-4 failure.
+  TIRD isolated the reproducible 4.75%-variance image-by-image interaction, but
+  cosine normalization gave that weak residual unit-scale pressure; training
+  was delayed, volatile, and converged to a much lower retrieval ceiling.
