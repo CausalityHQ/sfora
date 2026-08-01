@@ -2566,3 +2566,31 @@ correspondence as representation supervision. The proposed cycle law and atom
 dictionary instantiate that established group-action operator rather than
 creating new supervision. Candidate 152 is **DEAD AT GATE 2**. Full audit:
 `docs/transformation_algebra_candidate.md`.
+
+## 153. Immune negative selection: Proxy Anchor negative term alone
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Claude initially judged class-specific exclusion detectors live. Algebraic
+adversarial review reversed it: the normalized detector loss is exactly Proxy
+Anchor's foreign-proxy negative term with the non-collapse positive term
+removed. Empirical detector anchoring becomes complementary-label/one-vs-rest
+classification or classical real-valued artificial-immune coverage. Candidate
+153 is **DEAD**.
+
+## 154. Sheaf transport between class modes: learned sheaf regularisation
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Learned fibers, edge transports, and cycle holonomy are the objects of Neural
+Sheaf Diffusion; candidate 152 already established the adjacent latent
+group-action/cycle-consistency prior. Applying those objects to a within-class
+mode graph changes the application, not the geometric consistency operator.
+Candidate 154 is **DEAD**.
+
+## 155. Viability-constrained updates: rank constraints plus gradient projection
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Projecting negative-separation updates into the tangent cone that preserves
+same-class kNN ranks combines listwise rank constraints with PCGrad/trust-region
+optimization. Enforcing an occupied constraint through projection rather than
+a penalty is not new supervision. Candidate 155 is **DEAD**. Full batch:
+`docs/cross_field_candidate_batch_153_155.md`.
