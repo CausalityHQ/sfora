@@ -1401,3 +1401,17 @@ already establish KD as stochastic-gradient variance reduction. Subtracting a
 running expectation to make the auxiliary gradient unbiased is classical
 control-variate/SVRG machinery. Applying that occupied optimizer to Proxy Anchor
 does not define new similarity supervision. Candidate 58 is **DEAD AT GATE 2**.
+
+## 59. Reproducible ternary class betweenness: occupied ordinal geometry
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The five CUB teachers reproduce class-pair geometry strongly (class-pair variance
+component Pearson 0.9037), motivating a test for stable ternary statements of
+the form “class B lies between A and C.” A positive diagnostic would supervise
+class-centroid collinearity/barycentric order rather than another pair weight.
+But ordinal embedding and triplet networks already learn relative comparison
+relations; Piecewise-Linear Manifolds for DML explicitly models local linear
+submanifolds with proxies; HIST already makes multilateral class relations the
+supervision object. Betweenness is a particular tuple descriptor inside
+established ordinal/manifold/hypergraph geometry, not a new operator. Candidate
+59 is **DEAD AT GATE 2**.
