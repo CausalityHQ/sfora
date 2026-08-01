@@ -2047,3 +2047,21 @@ transformations (Park et al., ICML 2022). Matching displacement vectors is a
 linear parameterization of the same group-action consistency; using it beside
 Proxy Anchor makes it an auxiliary equivariance regularizer. Candidate 119 is
 **DEAD AT GATE 2**.
+
+## 120. Norm-stratified metric partitions: conditional metric plus uncertainty
+
+**Gate-2/algebraic death recorded 2026-08-01; no diagnostic, implementation, or
+GPU.** Asked for an information-producing operation outside the 119-candidate
+taxonomy, Claude proposed partitioning examples by raw-norm regime and selecting
+a different comparison metric per regime, with a fallback suggestion to train
+separate direction and scale heads.
+
+The first operation is a conditional similarity network or mixture of metrics:
+the norm routes a pair to an existing score, and any continuous version is
+adaptive weighting. The second is the established semantic-direction plus
+quality/concentration decomposition occupied by NIR, MagFace/AdaFace, and
+probabilistic DML. Repository evidence additionally contradicts scale as a
+relational channel: within-identity norm predicts correctness, but raw dot and
+raw Euclidean retrieval lose 24.31 and 2.20 points. A regime cannot manufacture
+pairwise information absent from its routing scalar. Candidate 120 is **DEAD AT
+GATE 2**.
