@@ -2630,3 +2630,15 @@ transitivity plus capacity is constrained subclustering. Ecological niche
 competition is mixture-of-experts load balancing and diversity regularisation.
 None supplies a measured higher-order label. Full audit:
 `docs/higher_order_supervision_audit_159_163.md`.
+
+## 164--169. Pixel observables: occupied reconstruction, transformation, and attention
+
+**Gate-2 deaths recorded 2026-08-01; no implementation or GPU.** PID synergy
+reduces to regional interaction/local-global aggregation; MDL grammar to
+reconstruction likelihood; causal controls and metamorphic relations to
+augmentation equivariance; algorithmic teaching to exemplar/prototype
+reconstruction. Gradient-attribution alignment is attention consistency with a
+different attribution estimator and requires double backpropagation. Li et al.
+(2020) already align transformed attention across matched images in metric
+learning, while MAMC regulates corresponding attention regions across images.
+Full audit: `docs/pixel_observable_audit_164_169.md`.
