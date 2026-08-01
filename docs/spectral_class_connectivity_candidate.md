@@ -67,3 +67,18 @@ confirm on unseen seeds before any second dataset. Report both raw and corrected
 numbers.
 
 Estimated screen cost: two In-Shop runs, about **4.5 GPU-hours** total.
+
+## Conditional mechanism controls
+
+These controls are registered before either screening result is known. Run none
+unless both Gate-4 conditions pass. A passing screen earns two additional
+seed-0 In-Shop arms under the identical IPC=4 recipe:
+
+1. a batch-hard positive term acting on the farthest same-class pair;
+2. a DAMLRRM-style minimum-spanning-tree positive term.
+
+The full spectral method must strictly beat both controls in raw R@1 and must not
+reverse below either after selection correction. Otherwise its performance is
+attributable to an established edge-mining/tree mechanism and candidate 136 is
+dead regardless of its absolute score. Only after this mechanism test may unseen
+confirmation seeds run. Conditional control cost: about **4.5 GPU-hours**.
