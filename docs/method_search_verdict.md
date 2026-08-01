@@ -2355,3 +2355,22 @@ the difference to +3.534 pt. Thus disconnectedness marks legitimate multimodal
 structure associated with better retrieval, not a failure needing repair. The
 partial IPC4 control was killed after epoch 5 and excluded; no `pa_fiedler`
 artifact exists. Candidate 136 is **DEAD AT GATE 1**.
+
+## 137. Weak-cut preservation: occupied intra-class diversity objective
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** Candidate 136's
+post-mortem established a real opposite-sign measurement: after exact class-size
+matching, In-Shop classes with disconnected within-class 1-NN graphs have
+leave-one-out R@1 **+3.534 points** above connected classes. Candidate 137 would
+therefore preserve weak cuts, for example by penalizing increases in the class
+Laplacian Fiedler value while Proxy Anchor retains identity supervision.
+
+The mechanism is occupied even though the statistic is new. Ranked List Loss
+explicitly preserves useful within-class hypersphere structure; Deep
+Compositional Metric Learning targets the generalization harm from suppressing
+intra-class variation; Self-Expanded Equalization, Deep Disentangled Metric
+Learning, and DAAL preserve diverse or adaptively subgrouped within-class
+representations. Reverse-contrastive and anti-collapse objectives cover direct
+same-class spreading. A Fiedler penalty changes the regularizer used to preserve
+diversity, not the supervision object, and its unconstrained optimum isolates
+samples. Candidate 137 is **DEAD AT GATE 2**.
