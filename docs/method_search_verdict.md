@@ -1843,3 +1843,29 @@ mining, norm-conditioned gates, norm consistency, and dynamic margins reduce to
 the same quality weighting or geometry regularisation. Candidate 105 therefore
 **PASSES GATE 1 BUT CANNOT ENTER GATE 3** without a separately stated and audited
 operator. No method run follows from the positive number.
+
+## 106--108. Claude norm-conditioned operators: endogenous targets or excluded scaling
+
+**Algebraic deaths recorded 2026-08-01; no implementation or GPU.** A
+result-conditioned Claude round was given the positive magnitude correlations
+and explicitly excluded known quality weighting, margins, mining, gates,
+uncertainty similarity, regularisation, augmentation, synthetic support, and
+architecture changes.
+
+- **106, norm-stratified ordinal supervision:** bin identities by the model's
+  current raw norm and require the high-norm bin to have a larger cosine margin.
+  This initially appeared to survive, but failed adversarial follow-up. Raw norm
+  is endogenous and PA removes it before similarity, so the model can change
+  radial scale without adding angular retrieval information. The rule rewards a
+  partition the model itself creates, has discontinuous moving bins, reverses
+  the causal interpretation of a correlation, and unjustifiably promotes a
+  query-level association to an identity-level ordering. Claude retracted it as
+  self-reinforcing regularisation rather than supervision.
+- **107, norm as latent margin predictor:** multiplying similarity by a learned
+  function of norm is exactly quality scaling/dynamic margin modelling.
+- **108, norm-inversive dual comparison:** requiring rankings to agree under
+  ordinary and norm-rescaled paths is a norm-conditioned auxiliary branch and
+  sample-dependent scaling, not a non-separable relation.
+
+Candidates 106--108 are **DEAD BEFORE GATE 2**. The positive diagnostic remains
+descriptive unless an exogenous target and a non-occupied action are both found.
