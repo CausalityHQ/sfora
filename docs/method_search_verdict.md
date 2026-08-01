@@ -1951,3 +1951,18 @@ not algebraically new; HIER, contextual-similarity optimisation, clustering,
 and confidence-set pseudo-labelling occupy the mechanism. It also replaces a
 known training label with an endogenous class set without a new information
 source. Candidates 113--114 are **DEAD BEFORE GATE 2**.
+
+## 115. Cross-seed prototype-offset drift: tautological diagnostic, occupied action
+
+**Gate-1 failure recorded 2026-08-01; no diagnostic or GPU.** Claude proposed
+measuring each training image's offset from its class mean across independent
+seeds. The registered-looking prediction that 10--25% of images would lie in the
+top quartile is tautological: exactly 25% lie there by definition. Raw offset
+vectors are also incomparable until the independently rotated embedding gauges
+are aligned, after which the statistic is another form of the ensemble/trajectory
+disagreement already audited in this repository.
+
+Most decisively, the proposed interventions were to reweight high-drift samples
+or mine their hard negatives. Thus even a non-tautological drift statistic would
+predict an occupied weighting/mining estimator, not new supervision. Candidate
+115 is **DEAD AT GATE 1**.
