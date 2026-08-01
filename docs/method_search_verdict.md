@@ -2392,3 +2392,20 @@ localization adversarially, and the category-agnostic representation is distille
 into the deployed retrieval model. A masked autoencoder, non-adversarial residual,
 or cheaper decoder changes capacity and optimization, not the reconstruction-derived
 supervision object. Candidate 138 is **DEAD AT GATE 2**.
+
+## 139. Training-only latent visual-attribute supervision: occupied by VAPNet
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The finding that disconnected same-class modes retrieve better suggested deriving
+pose, viewpoint, or appearance factors from training images and using those factors
+as richer supervision than the category label, with no text encoder, manual
+attributes, or external generator.
+
+Wang et al., *Learning to Parameterize Visual Attributes for Open-set Fine-grained
+Retrieval* (NeurIPS 2023), already solve this exact problem. VAPNet learns visual
+attributes from known-category images without attribute annotations, discovers rich
+semantics from local patches, refines the attributes online, and uses them as
+supervisory signals to tune a retrieval model for unknown categories. Naming the
+latent factors viewpoint or appearance, using deterministic crops, or replacing its
+attribute encoder changes the factor estimator rather than the training-only latent
+attribute supervision mechanism. Candidate 139 is **DEAD AT GATE 2**.
