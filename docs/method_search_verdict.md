@@ -1932,3 +1932,22 @@ ordinary Jacobian/Lipschitz/consistency regularizer, with spectral normalization
 gradient penalties, virtual adversarial training, and augmentation consistency
 as prior art. The proposal also explicitly violated the generation round's
 no-regularizer constraint. Candidate 112 is **DEAD BEFORE GATE 2**.
+
+## 113--114. Density routing and conformal class sets: weighting and pseudo-labels
+
+**Algebraic deaths recorded 2026-08-01; no implementation or GPU.** A Claude
+round was asked to import a genuinely different operator from topology, causal
+inference, cooperative games, coding theory, or statistical decision theory.
+Its density-stratified supervisor (113) routes high-, middle-, and low-density
+examples to different standard objectives. Claude's own reduction wrote it as a
+weighted sum of those objectives; changing weights discontinuously by density
+does not escape weighting/curriculum.
+
+Its fallback (114) constructs an online conformal set of plausible class proxies
+and applies a multi-positive margin against proxies outside the set. Static or
+online, this is a self-generated multi-label/pseudo-label mask plus an ordinary
+set margin. Recomputing the target from the current embedding makes it dynamic,
+not algebraically new; HIER, contextual-similarity optimisation, clustering,
+and confidence-set pseudo-labelling occupy the mechanism. It also replaces a
+known training label with an endogenous class set without a new information
+source. Candidates 113--114 are **DEAD BEFORE GATE 2**.
