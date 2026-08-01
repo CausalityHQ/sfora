@@ -2642,3 +2642,14 @@ different attribution estimator and requires double backpropagation. Li et al.
 (2020) already align transformed attention across matched images in metric
 learning, while MAMC regulates corresponding attention regions across images.
 Full audit: `docs/pixel_observable_audit_164_169.md`.
+
+## 170--173. Cross-domain relations: absent incidence or occupied mixing
+
+**Gate-1/2 deaths recorded 2026-08-01; no implementation or GPU.** Simplicial
+learning needs observed higher-order incidence absent from class-labelled image
+datasets; neighbourhood-derived simplices are circular. Speaker variability and
+protein ensemble imports reduce to nuisance subspaces or learned class densities.
+Counterfactual part transplantation is Metrix-style mixed-target DML, Embedding
+Expansion, and fine-grained intra-class part swapping unless causal parts are
+independently observed. Full audit:
+`docs/cross_domain_relations_audit_170_173.md`.
