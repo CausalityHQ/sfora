@@ -1916,3 +1916,19 @@ assessment (including degradation-representation learning such as DSL-FIQA,
 CVPR 2024). The proposed ordering is an auxiliary quality regularizer, and the
 trained scalar is discarded by the benchmark's direction-only retrieval—the
 raw-similarity diagnostic shows why. Candidate 111 is **DEAD AT GATE 2**.
+
+## 112. Relative similarity smoothness: constant bound or Jacobian regularisation
+
+**Algebraic death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Claude proposed perturbing an embedding and penalising the ratio of cosine-score
+change to perturbation size. For a unit gallery vector `y`, however,
+`s(x + e, y) - s(x, y) = e dot y`, whose absolute value is already bounded by
+`||e||`. Noise injected after the encoder makes the proposed penalty independent
+of the learned model (apart from a normalization projection); there is no new
+supervision to optimize.
+
+Moving the perturbation to pixels or intermediate activations makes the term an
+ordinary Jacobian/Lipschitz/consistency regularizer, with spectral normalization,
+gradient penalties, virtual adversarial training, and augmentation consistency
+as prior art. The proposal also explicitly violated the generation round's
+no-regularizer constraint. Candidate 112 is **DEAD BEFORE GATE 2**.
