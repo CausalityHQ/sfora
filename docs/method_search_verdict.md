@@ -1112,7 +1112,20 @@ loss already pull condition-specific centers of one identity together. An ICC
 denominator and nested group IDs change normalization and indexing, not the
 supervision mechanism. Candidate 41 is **DEAD at Gate 2**.
 
-## 42. Reopened-loop stopping argument: data-only supervision expansion
+## 42. Negative-control differential distillation: occupied pair-difference KD
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** The acquisition gap is
+mostly training-induced: same- versus cross-group cosine differs by only `0.0251`
+after one step but by `0.1804` at epoch 10, a **7.18× amplification**. NCDD would
+use the early snapshot as a negative control and apply a one-sided hinge to growth
+in `sim(same-session) - sim(cross-session)`. Pairwise Difference Relational
+Distillation already transfers differences between pairwise similarities in
+object re-identification; RKD and similarity-preserving KD cover the relational
+teacher operator. Selecting acquisition-labelled entries and penalizing only one
+direction is a mask/hinge variant. Candidate 42 is **DEAD at Gate 2**, while the
+training-induced shortcut remains a strong measurement result.
+
+## 43. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

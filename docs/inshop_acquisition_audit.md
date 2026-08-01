@@ -56,6 +56,12 @@ pairs are more often moderately misaligned, but not oppositional. Treating the
 session token as the cause of gradient surgery's motivating signal would therefore
 be another unsupported causal jump.
 
+The shortcut is largely learned rather than inherited. In the existing one-step
+export, same-group and cross-group cosines are `0.6947` and `0.6696`, a gap of
+only `0.0251`; by epoch 10 the gap is `0.1804`. Training amplifies it **7.18×**
+by increasing same-group cosine 0.1252 while decreasing cross-group cosine 0.0300.
+See `docs/acquisition_drift_audit.md` for the temporal audit and its caveats.
+
 ## Interpretation and limitation
 
 The backbone strongly encodes acquisition-session/model/background evidence
