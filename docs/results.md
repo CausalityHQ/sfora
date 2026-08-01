@@ -815,6 +815,13 @@ map fit only on train classes reduced disjoint-test R@1 from **0.6940 to
 five-seed concat and train-fit GPA target were 0.7350 and 0.7205. Thus the pack
 gain is not a simple deterministic linear calibration hidden inside one seed.
 
+An all-miss complementarity audit then found only **15 / 5,924 (0.253%)**
+queries where every individual seed missed R@1 but the concat succeeded. In
+73.3% of those rare rescues, however, the correct class was inside every seed's
+top 10 (median worst-seed rank 7). The registered frequency prediction of at
+least 0.5% failed; this is descriptive evidence of rare weak-score aggregation,
+not support for another ensemble-derived arm.
+
 Notably the **unsupervised PCA edges both supervised metric-learning heads** — for
 folding an already-trained pack the discriminative geometry is already present, so
 re-optimising it on train labels only risks overfitting the train classes.

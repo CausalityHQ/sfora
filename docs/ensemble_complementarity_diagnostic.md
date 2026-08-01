@@ -34,3 +34,22 @@ The complementarity hypothesis is falsified if the all-miss rescue rate is
 below **0.1%**, or if fewer than **25%** of rescues place the correct class in
 every seed's top 10. Intermediate outcomes are descriptive and do not justify a
 GPU arm. This is a CPU measurement, not a novelty claim.
+
+## Result
+
+| statistic | result |
+| --- | ---: |
+| queries | 5,924 |
+| all-five-miss queries | 727 |
+| all-five-miss concat rescues | 15 |
+| rescue fraction of all queries | **0.253%** |
+| median worst-seed correct-class rank in rescues | **7** |
+| 90th-percentile worst-seed rank | 20.8 |
+| rescues with correct class in every seed's top 10 | **73.3%** |
+
+The frequency prediction (at least 0.5%) failed, but its registered falsifier
+(below 0.1%) did not trigger. The top-10 consistency prediction passed. This is
+therefore the preregistered **intermediate/descriptive** outcome: rare all-miss
+rescues do combine weak evidence against different distractors, but 15 queries
+cannot motivate a new GPU arm. Most of the ensemble's gain occurs where at
+least one member is already correct.

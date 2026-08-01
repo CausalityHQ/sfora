@@ -1701,3 +1701,17 @@ the registered +0.5-point minimum and shows that the linear map overfits
 train-class cross-seed relations rather than recovering test-class ensemble
 information. Candidate 94 is **DEAD AT GATE 1**. The remaining ensemble gain is
 not available through a simple single-embedding calibration.
+
+## 95. All-miss ensemble complementarity: real but too rare
+
+**Gate-1 diagnostic recorded 2026-08-01; CPU only, no GPU.** A preregistered
+five-pack analysis asked whether concatenation succeeds when every individual
+seed misses. It rescued 15 of 5,924 CUB queries (**0.253%**), below the predicted
+0.5% but above the 0.1% falsifier. Among those 15, the median worst-seed rank of
+the correct class was 7 and 73.3% had a correct-class image in every seed's top
+10, clearing the registered consistency prediction. Thus score averaging can
+occasionally combine a consistently near correct class against different
+seed-specific distractors, but the event is too rare to explain the main pack
+gain or justify a method arm. Rank aggregation, consensus, and ensemble
+distillation are established in any case. Candidate 95 is **INCONCLUSIVE AT
+GATE 1 AND DOES NOT ADVANCE**.
