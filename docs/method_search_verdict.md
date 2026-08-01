@@ -1515,3 +1515,30 @@ operator. ProxyGML and STML are especially close instances of propagating or
 selecting supervision on an embedding graph. Calling the selected edges a
 minimum spanning forest changes the sparsifier, not what supervision exists.
 Candidate 68 is **DEAD AT GATE 2**.
+
+## 69--71. Claude-proposed subspace, isotropy, and gradient objectives: occupied regularizers
+
+**Gate-2 deaths recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+After the evidence-bounded stopping audit, a fresh Claude proposer was forced
+to use raw observables absent from the saved normalised packs. It proposed:
+(69) class-private/shared PCA leakage followed by gradient orthogonalisation;
+(70) a cross-class margin-isotropy tensor followed by directional-margin
+equalisation; and (71) sample-to-class gradient-direction entropy followed by
+gradient-alignment minimisation. None satisfies the requested mechanism class.
+
+Candidate 69 is explicitly a shared/private disentanglement and orthogonality
+regularizer. Deep Disentangled Metric Learning (Park et al., AAAI 2025,
+https://doi.org/10.1609/aaai.v39i19.34184) already separates class-specific and
+class-agnostic features for DML, and fine-grained DML with an orthogonalisation
+constraint is also published (Xiao et al., *Knowledge and Information Systems*,
+2026, https://doi.org/10.1007/s10115-026-02716-2). Candidate 70 is exactly a
+hyperspherical/margin geometry regularizer; Learning with Hyperspherical
+Uniformity (Liu et al., AISTATS 2021,
+https://proceedings.mlr.press/v130/liu21d.html), Deep Metric Learning with
+Spherical Embedding (Zhang et al., NeurIPS 2020), and Non-isotropy
+Regularization for Proxy-based DML (Roth et al., CVPR 2022 workshop/arXiv
+2203.08547) occupy the operator. Candidate 71 directly constrains gradients;
+GradML already derives DML losses from per-sample gradient behaviour, while
+PCGrad-family and class-adaptive gradient optimisers occupy alignment and
+projection. Measuring a new tensor does not make its downstream regularizer a
+new supervision object. Candidates 69--71 are **DEAD AT GATE 2**.
