@@ -1637,3 +1637,27 @@ a matrix dissimilarity and note joint diagonalizability as a similarity
 criterion for 3D shapes. Combining an established covariance descriptor with
 its established matrix comparison does not define a novel similarity operator.
 Candidate 83 is **DEAD AT GATE 2**.
+
+## 84--88. Reusing pretrained-backbone internals: pseudo-pairing or feature transfer
+
+**Gate-2 deaths recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Because ImageNet initialization is already part of the benchmark recipe, a
+Claude round was asked whether otherwise unused classifier logits,
+intermediate activations, BN deviations, Jacobians, or residual-path patterns
+could create a new supervision object without adding another model. Every
+proposal mapped those descriptors into pseudo-positive/pseudo-negative pairs
+or asked the metric embedding to preserve descriptor similarity:
+
+- top-k ImageNet-logit overlap (84),
+- layerwise channel-rank agreement (85),
+- BN-deviation cluster agreement (86),
+- layerwise Jacobian-profile agreement (87), and
+- residual-path sparsity-code agreement (88).
+
+These are descriptor substitutions inside pair mining/gating or
+similarity/feature distillation. Dark knowledge, activation transfer, neural
+tangent/gradient kernels, and general pair weighting occupy the mechanisms.
+Moreover, ImageNet logits explicitly expose imported semantic categories;
+having the classifier weights present in the initialization does not make
+their semantic targets contamination-free. Candidates 84--88 are **DEAD AT
+GATE 2**.
