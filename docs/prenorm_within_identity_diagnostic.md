@@ -41,3 +41,23 @@ or absolute within-identity margin Spearman is at least **0.15**. If both absolu
 values are below **0.05**, the per-image-quality interpretation is falsified.
 Intermediate values are descriptive. No outcome authorises a method run: direct
 norm actions remain occupied and still require an independent Gate-2 operator.
+
+## Result
+
+The frozen corrected artifacts contained 14,205 query rows in 3,972 identities
+with at least two query images. The decomposition measured:
+
+| level | correctness Pearson | margin Spearman |
+| --- | ---: | ---: |
+| within identity (mean-centred residuals) | **0.14170** | **0.20972** |
+| between identity (identity means) | **0.25870** | **0.45322** |
+
+Both within-identity statistics clear the registered 0.10/0.15 prediction. The
+per-image-quality interpretation therefore survives: among images of the same
+unseen identity, higher raw magnitude predicts both correctness and a wider
+retrieval margin. The larger between-identity effects show that identity
+difficulty is also present; the aggregate result contains both levels.
+
+This refinement changes no Gate-2 verdict. It strengthens the empirical premise
+of established quality-aware methods but supplies neither an exogenous target
+nor an unoccupied action for this project.

@@ -1869,3 +1869,19 @@ architecture changes.
 
 Candidates 106--108 are **DEAD BEFORE GATE 2**. The positive diagnostic remains
 descriptive unless an exogenous target and a non-occupied action are both found.
+
+## 109. Within-identity norm signal survives; action remains occupied
+
+**Gate-1 refinement passed 2026-08-01; CPU only.** Because train identity ICC was
+0.57754, the aggregate norm result could have been entirely identity difficulty.
+A separately preregistered decomposition rejected that explanation. Across
+14,205 query images in 3,972 repeated identities, within-identity centred norm
+correlated **0.14170** with centred correctness and **0.20972** (Spearman) with
+centred retrieval margin, clearing the registered 0.10/0.15 prediction. Between-
+identity correlations were still larger at **0.25870** and **0.45322**.
+
+Raw magnitude therefore encodes both image-level quality and identity-level
+difficulty. This is stronger provenance for quality-aware DML, but MagFace,
+AdaFace, IDML, SEC and ESA remain prior art for every direct action found. The
+measurement is **LIVE; THE METHOD SEARCH DOES NOT ADVANCE** without a novel
+operator.

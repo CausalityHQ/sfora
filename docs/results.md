@@ -1108,3 +1108,11 @@ head-output hook and internal-normalisation regression test fixed the
 measurement. No method claim follows: norm/quality-aware similarity, margins,
 confidence and augmentation are occupied by MagFace, AdaFace, IDML, SEC and
 ESA, while class-covariance synthetic support is occupied by IAA.
+
+A preregistered CPU-only decomposition then showed that the result is not merely
+between-identity confounding. Within 3,972 repeated query identities, centred
+norm correlated **0.14170** with centred correctness and **0.20972** (Spearman)
+with centred margin, clearing the frozen 0.10/0.15 prediction. Between-identity
+effects were larger (**0.25870**, **0.45322**), so magnitude contains both
+image-quality and identity-difficulty information. This strengthens the
+measurement, not the novelty claim.
