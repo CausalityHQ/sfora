@@ -1499,3 +1499,19 @@ The scan does correct the external ceiling: PFML (CVPR 2025) credibly reports
 five-run ResNet-50 single-view results of 0.734 CUB and 0.927 Cars196. The old
 statement that roughly 0.715 CUB was unoccupied is withdrawn. PFML reports no
 In-Shop result, leaving In-Shop as the appropriate first screen for a novel arm.
+
+## 68. Minimum-spanning same-class bridges: occupied graph-positive mining
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The RSPG post-mortem showed that rival-class signatures are nearly vacuous on
+CUB (0.6449 retained density) but selective on In-Shop (0.0863 at the trained
+operating point). One attempted escape was to ignore rival identities and make
+only the minimum set of within-class appearance edges needed to connect each
+class eligible positives, thereby supervising component bridges instead of all
+same-class pairs. This is graph construction from embedding proximity followed
+by hard positive selection: graph-based positive mining, local-manifold DML,
+self-supervised ranking, and graph-consistency objectives already contain that
+operator. ProxyGML and STML are especially close instances of propagating or
+selecting supervision on an embedding graph. Calling the selected edges a
+minimum spanning forest changes the sparsifier, not what supervision exists.
+Candidate 68 is **DEAD AT GATE 2**.
