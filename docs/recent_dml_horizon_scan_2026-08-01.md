@@ -88,3 +88,22 @@ other external claims, and its proxy-loss gains are reportedly weaker than its
 pair-loss gains. Those limitations do not reopen the operator. Per-class
 covariance support, neighbour-corrected covariance for few-shot identities, and
 Gaussian virtual positives are all prior art before a candidate GPU run.
+
+## Proxy aggregation orientation is occupied by Proxy-AN (Neural Networks 2026)
+
+Peng et al., *Proxy-AN Loss for Deep Metric Learning* (Neural Networks 195,
+108254, 2026, https://doi.org/10.1016/j.neunet.2025.108254), explicitly split
+proxy losses by aggregation orientation. Their positive term is proxy-centric,
+as in Proxy Anchor, so all sampled positives jointly improve class-proxy
+fidelity. Their negative term is sample-centric, so each image is repelled from
+all foreign proxies without another sampled negative changing its aggregation.
+The official code covers CUB, Cars196, SOP, and In-Shop plus partial-data and
+class-imbalance settings.
+
+This closes another plausible response to the repository's proxy-gradient and
+negative-interference measurements. Swapping positive and negative aggregation
+orientation, or conditioning that swap on norm, hardness, class size, or graph
+signals, is a proxy-loss weighting/aggregation variant rather than new
+supervision. The paper's seed counts and exact benchmark numbers were not
+available in the accessible abstract/code README, so it is recorded as prior
+art rather than a new external ceiling.
