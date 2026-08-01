@@ -35,6 +35,53 @@ def _icc_one_way(values: np.ndarray, labels: np.ndarray) -> float:
     return float((ms_between - ms_within) / (ms_between + (effective_n - 1.0) * ms_within))
 
 
+def _identity_decomposition(
+    norms: np.ndarray,
+    correctness: np.ndarray,
+    margins: np.ndarray,
+    labels: np.ndarray,
+) -> dict[str, float | int]:
+    residual_norms: list[np.ndarray] = []
+    residual_correctness: list[np.ndarray] = []
+    residual_margins: list[np.ndarray] = []
+    mean_norms: list[float] = []
+    mean_correctness: list[float] = []
+    mean_margins: list[float] = []
+    for label in np.unique(labels):
+        selected = labels == label
+        if int(selected.sum()) < 2:
+            continue
+        group_norms = norms[selected]
+        group_correctness = correctness[selected]
+        group_margins = margins[selected]
+        residual_norms.append(group_norms - group_norms.mean())
+        residual_correctness.append(group_correctness - group_correctness.mean())
+        residual_margins.append(group_margins - group_margins.mean())
+        mean_norms.append(float(group_norms.mean()))
+        mean_correctness.append(float(group_correctness.mean()))
+        mean_margins.append(float(group_margins.mean()))
+
+    pooled_norms = np.concatenate(residual_norms)
+    pooled_correctness = np.concatenate(residual_correctness)
+    pooled_margins = np.concatenate(residual_margins)
+    return {
+        "query_identities_with_replicates": len(mean_norms),
+        "within_identity_rows": int(pooled_norms.size),
+        "within_identity_correctness_pearson": float(
+            np.corrcoef(pooled_norms, pooled_correctness)[0, 1]
+        ),
+        "within_identity_margin_spearman": float(
+            spearmanr(pooled_norms, pooled_margins).statistic
+        ),
+        "between_identity_correctness_pearson": float(
+            np.corrcoef(mean_norms, mean_correctness)[0, 1]
+        ),
+        "between_identity_margin_spearman": float(
+            spearmanr(mean_norms, mean_margins).statistic
+        ),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--query", type=Path, required=True)
@@ -87,6 +134,7 @@ def main() -> None:
         "margin_spearman": float(spearmanr(query_norms, margin).statistic),
         "train_identity_icc": _icc_one_way(train_norms, train_labels),
     }
+    result.update(_identity_decomposition(query_norms, correct, margin, query_labels))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
