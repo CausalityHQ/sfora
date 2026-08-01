@@ -2236,3 +2236,19 @@ learning, denoising autoencoders, and deep mean-shift priors as direct families.
 Conditioning `D` jointly on `(x,y)` would instead be a learned non-metric pair
 network. Neither form creates a new comparison or supervision object. Candidate
 130 is **DEAD BEFORE GATE 2**.
+
+## 131. Convex-set image embeddings: visual-overlap boxes already exist
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The coexistence of image-specific uncertainty and region ambiguity motivated
+representing each image as a box/convex set and scoring two images by normalized
+intersection volume, avoiding the failed Tversky arm's sign threshold on dense
+coordinates.
+
+Rau et al., *Predicting Visual Overlap of Images Through Interpretable Non-Metric
+Box Embeddings* (2020), already map images to boxes and use asymmetric
+intersection/containment ratios as an image-matching score. Probabilistic box
+embeddings provide differentiable expected intersections, and IDML is the direct
+uncertainty-aware DML neighbour. Substituting identity supervision for visible
+surface-overlap supervision changes the label semantics, not the set-valued
+representation or overlap comparison. Candidate 131 is **DEAD AT GATE 2**.
