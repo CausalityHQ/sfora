@@ -1982,3 +1982,27 @@ distribution/distribution metrics on standard DML benchmarks. IDML and Bayesian
 metric learning are adjacent uncertainty-aware comparisons. Projected-normal
 instead of vMF, or Proxy Anchor instead of ProxyNCA++, changes the distribution
 family/base loss rather than the mechanism. Candidate 116 is **DEAD AT GATE 2**.
+
+## 117. Persistence-diagram positive gate: descriptor metric plus pair mining
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The motivating measurement was the In-Shop region diagnostic: replacing fixed
+coordinate matching (R@1 **0.5775**) with position-tolerant MaxSim (**0.6442**)
+recovered 6.67 points, although both remained below the global descriptor. This
+suggested testing whether topology of an intermediate feature map could preserve
+arrangement while tolerating displacement. The candidate would compute a
+persistence diagram per image and change a labelled same-class pair from positive
+to unknown when the two diagrams disagree.
+
+The operator does not survive a mechanism-level decomposition. Persistence images
+and sliced-Wasserstein and learned kernels already turn diagram agreement into a
+similarity (Adams et al., 2017; Carriere, Cuturi, and Oudot, ICML 2017; Zhao and
+Wang, 2019). Differentiable topology layers already place persistence-derived
+functionals inside learned objectives (Gabrielsson et al., AISTATS 2020). RETA
+(Li et al., CVPR 2026) additionally aligns persistence images of mutual-kNN
+feature graphs during vision training. Thresholding any established similarity
+to accept or reject a training pair is ordinary pair mining; substituting a
+diagram distance for cosine distance does not create a new supervision mechanism.
+The claimed hard positive-to-unknown gate is therefore an obvious composition of
+two occupied operators, not a defensible novelty. Candidate 117 is **DEAD AT GATE
+2**.
