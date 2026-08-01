@@ -1340,3 +1340,15 @@ The closed tetrad is a mask/contrast inside that established operator, while
 total-energy calibration is scalar loss normalization. Candidate 54 is **DEAD
 AT GATE 2**. Running it would be a post-result loss-weight sweep, not a new
 supervision method.
+
+## 55. Cross-fitted tetrad eligibility: occupied ordinal relation mining
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** CFTE would
+compute TIRD's tetrad under two augmentation views, retain sign-agreeing
+high-magnitude relations, and transfer their ordinal quartet constraints.
+Pairwise Ranking Distillation already defines ranking transfer for an arbitrary
+relational function over input n-tuples; D3still transfers strict similarity
+differentials; Cross-View Consistency KD combines view agreement with
+confidence-based teacher-signal mining. The tetrad selects the relational
+descriptor and cross-fitting selects a reliability mask inside those established
+operators. Candidate 55 is **DEAD AT GATE 2**.
