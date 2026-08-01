@@ -2594,3 +2594,28 @@ same-class kNN ranks combines listwise rank constraints with PCGrad/trust-region
 optimization. Enforcing an occupied constraint through projection rather than
 a penalty is not new supervision. Candidate 155 is **DEAD**. Full batch:
 `docs/cross_field_candidate_batch_153_155.md`.
+
+## 156. Same-class set volume: occupied variance preservation
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Requiring same-class batches to retain determinant volume is an intra-class
+diversity constraint. Variance-preserving DML, group-sensitive triplet sampling,
+and self-supervised intra-class ranking already occupy the action; log-det is a
+different scalar functional, not a new relation. Candidate 156 is **DEAD**.
+
+## 157. Cross-view error-correcting evidence: dropout or hashing
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Requiring matches to survive independent erasure of local evidence is feature or
+region-dropout consistency. Explicit parity coordinates make it supervised
+hashing/ECOC, already closed by candidate 151. A class-syndrome version also
+cannot transfer to unseen identities. Candidate 157 is **DEAD**.
+
+## 158. Residual retrieval-error boosting: occupied by BIER
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Assigning later metric heads the retrieval errors missed by earlier heads is
+BIER's online gradient-boosted embedding ensemble. The all-five-miss diagnostic
+also found only **15/5,924 = 0.253%** total-query rescues, too little Gate-1
+support for a distinct certificate/rescue mechanism. Candidate 158 is **DEAD**.
+Full audit: `docs/cross_field_candidate_batch_156_158.md`.
