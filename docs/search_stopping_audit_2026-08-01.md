@@ -44,7 +44,7 @@ relation mining.
 
 ## Operator coverage
 
-The numbered verdict catalogue now reaches candidate 68. Its mechanisms cover
+The numbered verdict catalogue now reaches candidate 118. Its mechanisms cover
 the executable ways found to alter supervision from training data alone:
 
 | Operator family | Repository evidence | Nearest established operator |
@@ -90,6 +90,40 @@ families that the catalogue might have missed:
 None supplies a new repo-motivated candidate; instead they close the remaining
 global, hypergraph, transport, probabilistic, and distributional branches.
 
+## Post-stopping challenge: candidates 69--118
+
+The loop was deliberately continued after the first stopping decision. Fifty
+additional mechanism proposals were reduced algebraically, checked against
+primary sources, or subjected to CPU diagnostics before GPU use. They covered
+channel and spatial comparisons, covariance and topology descriptors,
+trajectory and cross-seed observables, causal and conformal constructions,
+coding and game-theoretic objectives, and raw embedding magnitude. None changed
+the stopping decision.
+
+Two new measurements were real. At the exact official In-Shop Proxy Anchor
+epoch-10 operating point, pre-normalisation norm predicts correctness (Pearson
+**0.1868**) and retrieval margin (Spearman **0.3257**); after removing identity
+means the associations remain **0.1417** and **0.2097**. But restoring magnitude
+to the comparison is destructive: raw Euclidean loses **2.20 points** and raw
+dot product loses **24.31 points** against normalized cosine. NIR (ECCV 2022),
+MagFace, AdaFace, IDML, and ESA already occupy the valid interpretation—magnitude
+as quality/concentration rather than semantic compatibility.
+
+The internal-feature-map branch likewise produced no open operator. Learned
+covariance comparison is established second-order pooling; persistence images,
+learned diagram kernels, differentiable topology layers, and RETA's persistent
+feature-graph alignment occupy topological descriptors. Applying an established
+diagram metric and thresholding it is pair mining. Finally, controlled patch
+swaps with donor/recipient targets reduce directly to Metrix's input/feature/
+embedding mixup with metric-label interpolation. These last two proposals are
+candidates 117 and 118 and died at Gate 2 without GPU work.
+
+An independent Claude challenge, explicitly forbidden from returning weighting,
+mining, regularization, distillation, similarity swaps, or known uncertainty
+models under new names, returned **none defensible**. Its argument is supporting
+critique, not proof; the proof obligation remains the mechanism catalogue and
+the primary-source reductions above.
+
 ## Post-audit horizon correction and independent challenge
 
 A 2024--2026 primary-source scan corrected one premise without reopening a
@@ -113,7 +147,8 @@ Opus review timed out without a verdict and is not counted as evidence.
 
 ## Decision
 
-There is no defensible candidate left under the current constraints. Every
+There is no defensible candidate left under the current constraints after 118
+documented candidates. Every
 candidate that survived provenance either failed a registered experiment or
 reduced, before GPU use, to an established operator with a new descriptor,
 mask, normalization, or application. Starting another arm now would violate
