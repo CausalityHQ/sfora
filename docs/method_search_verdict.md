@@ -2272,3 +2272,24 @@ by a subspace in local CNN feature space, learn a weighted subspace distance
 between images, and evaluate on CUB. End-to-end training, a retrieval loss, or a
 different benchmark changes the recipe rather than the representation and
 comparison mechanism. Candidate 132 is **DEAD AT GATE 2**.
+
+## 133. Local-correspondence positive eligibility: occupied retrieval training
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The large gain from local-feature MaxSim, together with the failure of a
+trainable region arm, motivated using geometric/local-feature agreement only to
+decide which labelled same-class image pairs remain eligible positives. This
+would change the supervision graph without requiring local matching at test
+time.
+
+That mechanism is occupied. Lee et al., *Correlation Verification for Image
+Retrieval* (CVPR 2022), state that non-overlapping same-class landmark pairs can
+interfere with learning and preselect overlapping positive pairs using DELF
+local-feature evidence. Xu et al., *Deep Asymmetric Metric Learning via Rich
+Relationship Mining* (CVPR 2019), more generally reject the all-positive-pairs
+constraint and construct a visual-distance minimum spanning tree per class,
+allowing visually distant same-class images to remain only indirectly
+connected; they evaluate on CUB, Cars196, and SOP. Replacing DELF or embedding
+distance with a new local-consistency statistic changes the edge estimator, not
+the discrete same-class eligibility mechanism. Candidate 133 is **DEAD AT GATE
+2**.
