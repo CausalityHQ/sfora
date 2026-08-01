@@ -1741,8 +1741,8 @@ def image_end_to_end(
     if optimizer is not None and optimizer not in {"adam", "adamw", "rmsprop"}:
         console.print("Error: optimizer must be adam, adamw, or rmsprop")
         raise typer.Exit(1)
-    if lr_schedule is not None and lr_schedule not in {"none", "step", "cosine"}:
-        console.print("Error: lr_schedule must be none, step, or cosine")
+    if lr_schedule is not None and lr_schedule not in {"none", "step", "multistep", "cosine"}:
+        console.print("Error: lr_schedule must be none, step, multistep, or cosine")
         raise typer.Exit(1)
     if pretrained_weights is not None and pretrained_weights not in {
         "v1",
@@ -1751,8 +1751,8 @@ def image_end_to_end(
     }:
         console.print("Error: pretrained_weights must be v1, v2, or bn_inception_52deb4733")
         raise typer.Exit(1)
-    if head_pooling is not None and head_pooling not in {"avg", "avg_max"}:
-        console.print("Error: head_pooling must be avg or avg_max")
+    if head_pooling is not None and head_pooling not in {"avg", "avg_max", "gem"}:
+        console.print("Error: head_pooling must be avg, avg_max, or gem")
         raise typer.Exit(1)
     if embedding_head_init is not None and embedding_head_init not in {
         "default",
@@ -1804,7 +1804,10 @@ def image_end_to_end(
         resolved_recipe = None
         if recipe is not None:
             if objectives is None:
-                raise ValueError("recipe mode requires --objectives proxy_anchor or hist")
+                raise ValueError(
+                    "recipe mode requires --objectives proxy_anchor, hist, "
+                    "or recall_at_k_surrogate"
+                )
             resolved_objectives = _parse_end_to_end_objectives(objectives)
             # A recipe is looked up by its BASE method, but a derived recipe may declare
             # its own objective (e.g. `local_nca`, `region_proxy_anchor`) that is not a
@@ -1813,12 +1816,14 @@ def image_end_to_end(
             base_for_objective = {
                 "proxy_anchor": "proxy_anchor",
                 "hist": "hist",
+                "recall_at_k_surrogate": "recall_at_k_surrogate",
                 **{objective: base for objective, base in _DERIVED_OBJECTIVE_BASE.items()},
             }
             if len(resolved_objectives) != 1 or resolved_objectives[0] not in base_for_objective:
                 raise ValueError(
                     "recipe mode requires exactly one objective, either a base method "
-                    "(proxy_anchor, hist) or one declared by a derived recipe "
+                    "(proxy_anchor, hist, recall_at_k_surrogate) or one declared by "
+                    "a derived recipe "
                     f"({', '.join(sorted(_DERIVED_OBJECTIVE_BASE))})"
                 )
             base_method = cast(BaseMethod, base_for_objective[resolved_objectives[0]])

@@ -41,6 +41,7 @@ EndToEndObjective = Literal[
     "batch_hard_triplet",
     "supcon",
     "local_nca",
+    "recall_at_k_surrogate",
     "group_supcon",
     "group_supcon_xbm_radius",
     "group_potential",
@@ -101,7 +102,7 @@ class ImageEndToEndConfig(BaseModel):
         Literal["reference", "selected_extension", "modified", "modified_legacy"] | None
     ) = None
     recipe_method_status: Literal["reference_method", "sfora_derived"] | None = None
-    recipe_base_method: Literal["proxy_anchor", "hist"] | None = None
+    recipe_base_method: Literal["proxy_anchor", "hist", "recall_at_k_surrogate"] | None = None
     recipe_source_url: str | None = None
     recipe_source_revision: str | None = None
     recipe_source_dataset: ImageDatasetName | None = None
@@ -127,18 +128,24 @@ class ImageEndToEndConfig(BaseModel):
     # inside the declared epoch count.
     warmup_is_additional: bool = False
     schedule_during_warmup: bool = True
-    lr_schedule: Literal["none", "step", "cosine"] = "none"
+    lr_schedule: Literal["none", "step", "cosine", "multistep"] = "none"
     lr_step_epochs: int = Field(default=5, ge=1)
+    lr_milestones: tuple[int, ...] = ()
     lr_gamma: float = Field(default=0.5, gt=0.0, le=1.0)
     samples_per_class: int = Field(default=0, ge=0)
     pretrained_weights: Literal["v1", "v2", "bn_inception_52deb4733"] = "v2"
-    head_pooling: Literal["avg", "avg_max"] = "avg"
+    head_pooling: Literal["avg", "avg_max", "gem"] = "avg"
     embedding_head_init: Literal["default", "kaiming_normal"] = "default"
+    # RS@k uses LayerNorm on the pooled 2048-D backbone feature BEFORE projection.
+    pre_embedding_layer_norm: bool = False
     # Apply LayerNorm(embedding_dim, elementwise_affine=False) to the embedding, as in
     # the reference Proxy-Anchor / HIST ResNet50 head (`is_norm=1`). This centers and
     # standardizes each embedding before the downstream L2-for-cosine; omitting it is
     # the main architectural source of our ~2pt absolute offset from published numbers.
     embedding_layer_norm: bool = False
+    recall_at_k_values: tuple[int, ...] = (1, 2, 4, 8, 16)
+    recall_at_k_rank_temperature: float = Field(default=0.01, gt=0.0)
+    recall_at_k_membership_temperature: float = Field(default=1.0, gt=0.0)
     xbm_start_step: int = Field(default=0, ge=0)
     group_size: int = Field(default=4, ge=1)
     point_weight: float = Field(default=1.0, ge=0.0)
@@ -892,6 +899,14 @@ def run_image_end_to_end_benchmark(
                 scheduler = torch.optim.lr_scheduler.StepLR(
                     optimizer,
                     step_size=config.lr_step_epochs,
+                    gamma=config.lr_gamma,
+                )
+            elif config.lr_schedule == "multistep":
+                if not config.lr_milestones:
+                    raise ValueError("multistep learning-rate schedule requires lr_milestones")
+                scheduler = torch.optim.lr_scheduler.MultiStepLR(
+                    optimizer,
+                    milestones=list(config.lr_milestones),
                     gamma=config.lr_gamma,
                 )
             elif config.lr_schedule == "cosine":
@@ -2958,6 +2973,22 @@ def _local_nca_objective_loss(**kwargs: Any) -> Any:
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
+def _recall_at_k_surrogate_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    loss = _recall_at_k_surrogate_loss(
+        embeddings,
+        labels,
+        k_values=config.recall_at_k_values,
+        rank_temperature=config.recall_at_k_rank_temperature,
+        recall_temperature=config.recall_at_k_membership_temperature,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
 def _group_supcon_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -3647,6 +3678,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "hist_sinkhorn": _hist_sinkhorn_objective_loss,
     "hist_memory": _hist_memory_objective_loss,
     "local_nca": _local_nca_objective_loss,
+    "recall_at_k_surrogate": _recall_at_k_surrogate_objective_loss,
     "hist_proxy_anchor": _hist_proxy_anchor_objective_loss,
     "triplet": _triplet_objective_loss,
     "triplet_pretrained": _triplet_objective_loss,
@@ -6798,6 +6830,8 @@ def _set_resnet_output_layer(
 ) -> None:
     if config.head_pooling == "avg_max" and hasattr(model, "avgpool"):
         model.avgpool = _avg_max_pooling_layer(torch_module)
+    elif config.head_pooling == "gem" and hasattr(model, "avgpool"):
+        model.avgpool = _gem_pooling_layer(torch_module)
     if use_embedding_head and config.region_grid > 0:
         in_features = int(model.fc.in_features)
         if hasattr(model, "avgpool"):
@@ -6812,7 +6846,12 @@ def _set_resnet_output_layer(
             torch_module.nn.init.kaiming_normal_(head.weight, mode="fan_out")
             if head.bias is not None:
                 torch_module.nn.init.zeros_(head.bias)
-        if config.embedding_layer_norm:
+        if config.pre_embedding_layer_norm:
+            model.fc = torch_module.nn.Sequential(
+                torch_module.nn.LayerNorm(in_features),
+                head,
+            )
+        elif config.embedding_layer_norm:
             # Reference `is_norm`: LayerNorm with no affine params, applied after the
             # embedding Linear (see ljin0429/HIST net/resnet.py Resnet50.forward).
             layer_norm = torch_module.nn.LayerNorm(
@@ -6909,6 +6948,25 @@ def _avg_max_pooling_layer(torch_module: Any) -> Any:
             return self._avg(tensor) + self._max(tensor)
 
     return AvgMaxPool2d()
+
+
+def _gem_pooling_layer(torch_module: Any) -> Any:
+    """Learnable generalized-mean pooling used by the official RS@k model."""
+
+    class GeMPool2d(torch_module.nn.Module):  # type: ignore[misc]
+        def __init__(self, p: float = 3.0, eps: float = 1e-6) -> None:
+            super().__init__()
+            self.p = torch_module.nn.Parameter(torch_module.ones(1) * p)
+            self.eps = eps
+
+        def forward(self, tensor: Any) -> Any:
+            powered = tensor.clamp(min=self.eps).pow(self.p)
+            pooled = torch_module.nn.functional.avg_pool2d(
+                powered, (tensor.size(-2), tensor.size(-1))
+            )
+            return pooled.pow(1.0 / self.p)
+
+    return GeMPool2d()
 
 
 def _optimizer_parameter_groups(

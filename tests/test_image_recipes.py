@@ -135,6 +135,31 @@ def test_hist_reference_recipes_match_author_commands(
 
 
 @pytest.mark.parametrize(
+    ("dataset", "batch_size", "epochs", "milestones"),
+    [("cub", 400, 40, (10, 20, 30)), ("cars", 392, 170, (80, 140))],
+)
+def test_recall_at_k_reference_recipes_match_author_code(
+    dataset: str,
+    batch_size: int,
+    epochs: int,
+    milestones: tuple[int, ...],
+) -> None:
+    recipe = reference_recipe("recall_at_k_surrogate", dataset)
+
+    assert recipe.config["objectives"] == ("recall_at_k_surrogate",)
+    assert recipe.config["batch_size"] == batch_size
+    assert recipe.config["samples_per_class"] == 4
+    assert recipe.config["train_epochs"] == epochs
+    assert recipe.config["lr_schedule"] == "multistep"
+    assert recipe.config["lr_milestones"] == milestones
+    assert recipe.config["lr_gamma"] == pytest.approx(0.3)
+    assert recipe.config["head_pooling"] == "gem"
+    assert recipe.config["pre_embedding_layer_norm"] is True
+    assert recipe.config["recall_at_k_rank_temperature"] == pytest.approx(0.01)
+    assert recipe.config["recall_at_k_membership_temperature"] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
     ("method", "dataset"),
     [
         ("proxy_anchor", "inat2018"),
@@ -302,6 +327,8 @@ def test_bnfix_variants_do_not_disturb_existing_derived_digests() -> None:
         ("hist", "cub"),
         ("hist", "cars"),
         ("hist", "sop"),
+        ("recall_at_k_surrogate", "cub"),
+        ("recall_at_k_surrogate", "cars"),
     ],
 )
 def test_reference_recipe_resolves_to_complete_valid_config(

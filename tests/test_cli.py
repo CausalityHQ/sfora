@@ -871,6 +871,73 @@ def test_image_end_to_end_auto_recipe_uses_official_inshop_settings(
     assert captured["loader_kwargs"]["evaluation_min_per_class"] is None
 
 
+def test_image_end_to_end_auto_recipe_accepts_recall_at_k_surrogate(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    output_path = tmp_path / "rsatk-cars.json"
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{label}-{index}", f"train-{label}-{index}", label)
+            for label in (0, 1)
+            for index in range(4)
+        ],
+        query=[
+            ImageExample(f"test-{label}-{index}", f"test-{label}-{index}", label)
+            for label in (2, 3)
+            for index in range(2)
+        ],
+        gallery=[],
+        protocol="same_split",
+        protocol_name="cars196-official",
+    )
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured["config"] = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name="cars",
+            protocol=kwargs["config"].protocol,
+            train_examples=len(kwargs["train_examples"]),
+            test_examples=len(kwargs["test_examples"]),
+            gallery_examples=0,
+            methods={},
+        )
+
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr(
+        "sfora.cli.write_image_end_to_end_report",
+        lambda result, output: output,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(output_path),
+            "--dataset-name",
+            "cars",
+            "--objectives",
+            "recall_at_k_surrogate",
+            "--recipe",
+            "auto",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.recipe_id == "recall_at_k_surrogate.cars.official-ed05202"
+    assert config.objectives == ("recall_at_k_surrogate",)
+    assert config.batch_size == 392
+    assert config.lr_schedule == "multistep"
+    assert config.lr_milestones == (80, 140)
+    assert config.head_pooling == "gem"
+
+
 def test_image_end_to_end_recipe_override_is_marked_modified(
     tmp_path: Path,
     monkeypatch: Any,

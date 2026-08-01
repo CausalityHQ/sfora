@@ -23,7 +23,7 @@ from sfora.data import ImageDatasetName, ImageExample
 if TYPE_CHECKING:
     from sfora.image_end_to_end import ImageEndToEndConfig
 
-BaseMethod = Literal["proxy_anchor", "hist"]
+BaseMethod = Literal["proxy_anchor", "hist", "recall_at_k_surrogate"]
 RecipeTrack = Literal["reference", "selected_extension", "modified", "modified_legacy"]
 MethodStatus = Literal["reference_method", "sfora_derived"]
 DerivedMethod = Literal[
@@ -228,6 +228,8 @@ _PROXY_ANCHOR_REVISION = "51db57031e38f75c03f69bbdfad1a3233afd9787"
 _PROXY_ANCHOR_SOURCE = "https://github.com/sung-yeon-kim/Proxy-Anchor-CVPR2020"
 _HIST_REVISION = "e7d650c80460f464c55bcdc2262d785923c50dc4"
 _HIST_SOURCE = "https://github.com/ljin0429/HIST"
+_RSATK_SOURCE = "https://github.com/yash0307/RecallatK_surrogate"
+_RSATK_REVISION = "ed052029d258555df2f94dd82d6f7df60ef7cc6f"
 
 
 class RecipeUnavailableError(ValueError):
@@ -407,6 +409,41 @@ def _hist_config(dataset: ImageDatasetName) -> dict[str, Any]:
     }
 
 
+def _recall_at_k_surrogate_config(dataset: ImageDatasetName) -> dict[str, Any]:
+    if dataset not in {"cub", "cars"}:
+        raise RecipeUnavailableError(f"official RS@k recipe is unavailable for {dataset}")
+    is_cars = dataset == "cars"
+    return {
+        **_shared_reference_config(),
+        "objectives": ("recall_at_k_surrogate",),
+        "backbone_name": "resnet50",
+        "pretrained_weights": "v1",
+        "optimizer": "adam",
+        "batch_size": 392 if is_cars else 400,
+        "eval_batch_size": 128,
+        "samples_per_class": 4,
+        "group_size": 4,
+        "train_epochs": 170 if is_cars else 40,
+        "learning_rate": 1e-4,
+        "backbone_learning_rate": 1e-4,
+        "weight_decay": 4e-4,
+        "warmup_epochs": 0,
+        "lr_schedule": "multistep",
+        "lr_milestones": (80, 140) if is_cars else (10, 20, 30),
+        "lr_gamma": 0.3,
+        "head_pooling": "gem",
+        "embedding_head_init": "default",
+        "pre_embedding_layer_norm": True,
+        "embedding_layer_norm": False,
+        "freeze_batch_norm": True,
+        "freeze_batch_norm_affine": False,
+        "recall_at_k_values": (1, 2, 4, 8, 16),
+        "recall_at_k_rank_temperature": 0.01,
+        "recall_at_k_membership_temperature": 1.0,
+        "gradient_clip_value": None,
+    }
+
+
 def _build_reference_registry() -> dict[tuple[BaseMethod, ImageDatasetName], ImageRecipe]:
     registry: dict[tuple[BaseMethod, ImageDatasetName], ImageRecipe] = {}
     proxy_anchor_datasets: tuple[ImageDatasetName, ...] = ("cub", "cars", "sop", "inshop")
@@ -445,6 +482,24 @@ def _build_reference_registry() -> dict[tuple[BaseMethod, ImageDatasetName], Ima
                 source_dataset=dataset,
             ),
             config=_hist_config(dataset),
+        )
+    for dataset in ("cub", "cars"):
+        registry[("recall_at_k_surrogate", dataset)] = ImageRecipe(
+            recipe_id=(
+                f"recall_at_k_surrogate.{dataset}.official-{_RSATK_REVISION[:7]}"
+            ),
+            base_method="recall_at_k_surrogate",
+            dataset=dataset,
+            track="reference",
+            provenance=RecipeProvenance(
+                url=_RSATK_SOURCE,
+                revision=_RSATK_REVISION,
+                location="README training command plus src/main.py, losses.py, netlib.py",
+                source_method="recall_at_k_surrogate",
+                source_dataset=dataset,
+                note="RS@k without optional SiMix; exact published ResNet-50/512-D recipe.",
+            ),
+            config=_recall_at_k_surrogate_config(dataset),
         )
     return registry
 

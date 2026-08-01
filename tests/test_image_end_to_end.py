@@ -22,6 +22,7 @@ from sfora.image_end_to_end import (
     _default_transform_factory,
     _freeze_batch_norm_affine_parameters,
     _freeze_batch_norm_layers,
+    _gem_pooling_layer,
     _hist_hypergraph_targets,
     _hist_loss,
     _hist_memory_loss,
@@ -561,6 +562,17 @@ def test_recall_at_k_surrogate_rewards_correct_nearest_neighbours() -> None:
         inverted, labels, k_values=(1,), torch_module=torch
     )
     assert correct_loss < inverted_loss
+
+
+def test_gem_pooling_matches_reference_formula_and_learns_p() -> None:
+    torch: Any = pytest.importorskip("torch")
+    pooling = _gem_pooling_layer(torch)
+    tensor = torch.tensor([[[[1.0, 2.0], [3.0, 4.0]]]], requires_grad=True)
+    actual = pooling(tensor)
+    expected = tensor.pow(3.0).mean(dim=(-2, -1), keepdim=True).pow(1.0 / 3.0)
+    assert torch.allclose(actual, expected)
+    actual.sum().backward()
+    assert pooling.p.grad is not None
 
 
 def test_local_nca_self_exclusion_survives_a_memory_augmented_contrast_set() -> None:
