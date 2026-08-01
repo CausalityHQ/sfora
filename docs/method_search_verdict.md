@@ -730,6 +730,17 @@ the target-excluded rival signature was dataset-selective, but on the dataset
 where it was selective its positive-to-unknown decisions largely encoded a
 known nuisance variable, then the replacement objective self-erased.
 
+The formally non-distance gate also largely collapsed to distance mining in the
+operating distribution. Its 13,253 edges overlap **9,343 / 13,253 (70.50%)**
+with the equal-cardinality closest-pair gate (Jaccard **0.5444**). Among
+cross-acquisition pairs, accepted edges have mean cosine **0.8469** for
+different named views and **0.8794** for matching views, versus **0.6286** and
+**0.6660** when rejected. The preregistered synthetic asymmetry test correctly
+proved that the implementation *can* accept a distant agreement and reject a
+close disagreement; it did not establish that those cases are common in real
+data. Future novelty diagnostics must measure operational overlap with the
+nearest occupied control, not only exhibit a separating counterexample.
+
 This is a measured property of these datasets, not merely an implementation
 outcome. It constrains the next search batch: supervision routed through
 cross-class identities has weak empirical support as a source of CUB

@@ -137,6 +137,15 @@ recovered semantic pose or appearance factors. This analysis is retrospective
 and does not alter the registered screen decision; it explains why this measured
 structure is not a sound basis for another RSPG-like arm.
 
+Operationally, **9,343 / 13,253 (70.50%)** of these edges are also selected by
+an equal-cardinality closest-within-class gate (Jaccard **0.5444**). Accepted
+cross-acquisition pairs have mean cosine 0.8469--0.8794 depending on named-view
+agreement, versus 0.6286--0.6660 for rejected pairs. Thus the unit test's
+close-reject/distant-accept counterexample established a formal distinction from
+hard-positive mining, but the real graph mostly followed embedding proximity.
+Gate 2 should henceforth require an operational-overlap audit as well as a
+mechanism-level counterexample when an occupied control can be constructed.
+
 ## Procedural correction
 
 An In-Shop seed-0 process was mistakenly started before this CPU-first task file
