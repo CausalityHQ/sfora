@@ -1415,3 +1415,18 @@ submanifolds with proxies; HIST already makes multilateral class relations the
 supervision object. Betweenness is a particular tuple descriptor inside
 established ordinal/manifold/hypergraph geometry, not a new operator. Candidate
 59 is **DEAD AT GATE 2**.
+
+## 60. Directed augmentation-transition supervision: occupied equivariance
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+ARCG's In-Shop response graph was selective (density 0.3631), stable through
+activation (0.3640), and substantially independent of base distance, motivating
+a directed intervention object: for a controlled augmentation, record whether
+an image's nearest rival class changes from A to B and supervise that
+action-conditioned transition. This would be a directed relation rather than an
+agreement gate. But AugSelf already supervises augmentation information;
+orthogonally equivariant contrastive learning (CARE) learns augmentation action
+on representations; and FATTEN explicitly models and transfers pose-induced
+feature trajectories. Replacing the trajectory endpoint with a rival-class
+identity is a descriptor change inside established equivariant/trajectory
+supervision. Candidate 60 is **DEAD AT GATE 2**.
