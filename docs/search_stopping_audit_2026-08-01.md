@@ -174,7 +174,41 @@ regularisation. Candidates 140--144 died before diagnostics or GPU work; see
 
 ## Decision
 
-There is no defensible candidate left under the current constraints after 155
+## Final cross-field challenge: candidates 156--173
+
+The search was reopened once more under an explicit instruction to import
+mechanisms from other fields. Eighteen additional candidates covered coding
+theory, determinantal design, boosting, matroid rank, instrumental variables,
+SAT, tomography, ecological competition, partial-information decomposition,
+minimum description length, algorithmic teaching, metamorphic testing,
+gradient attribution, simplicial complexes, open-set speaker verification,
+molecular conformational ensembles, and counterfactual image composition.
+
+The adversarial reductions were consistent rather than merely negative:
+
+- coding and erasure proposals became supervised hashing/ECOC or dropout
+  consistency, and class syndromes cannot represent unseen identities;
+- set rank, tomography, and niche competition became low-rank, diversity, or
+  mixture-of-experts regularisation without a newly observed target;
+- the proposed instrumental variable violated the exclusion restriction and
+  reduced to region-conditioned adaptive-margin triplets;
+- PID, MDL, and algorithmic teaching became regional aggregation,
+  reconstruction likelihood, or exemplar/prototype learning;
+- metamorphic and causal-control proposals became augmentation equivariance;
+- gradient attribution changed the attention estimator inside established
+  cross-image attention consistency and required double backpropagation;
+- simplicial, speaker, and protein imports require incidence, nuisance, or
+  ensemble observations not supplied by these datasets; estimating them from
+  embeddings returns to contextual clustering, subspaces, or density;
+- counterfactual part transplantation is already covered by Metrix, Embedding
+  Expansion, and fine-grained intra-class part swapping.
+
+Full audits are in `docs/cross_field_candidate_batch_156_158.md`,
+`docs/higher_order_supervision_audit_159_163.md`,
+`docs/pixel_observable_audit_164_169.md`, and
+`docs/cross_domain_relations_audit_170_173.md`.
+
+There is no defensible candidate left under the current constraints after 173
 documented candidates. Every
 candidate that survived provenance either failed a registered experiment or
 reduced, before GPU use, to an established operator with a new descriptor,
