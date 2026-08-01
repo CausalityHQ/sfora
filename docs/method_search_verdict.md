@@ -1715,3 +1715,14 @@ seed-specific distractors, but the event is too rare to explain the main pack
 gain or justify a method arm. Rank aggregation, consensus, and ensemble
 distillation are established in any case. Candidate 95 is **INCONCLUSIVE AT
 GATE 1 AND DOES NOT ADVANCE**.
+
+## 96. Shadow-style anchor projection: exactly cosine triplet when normalised
+
+**Gate-2/algebraic death recorded 2026-08-01; no implementation or GPU.** A
+fresh 2026 horizon result claimed a scalar anchor-projection loss that improves
+CUB, Cars, SOP, and In-Shop. In the withdrawn Shadow Loss manuscript's own
+L2-normalised setting, however, its gaps reduce to `1 - a.p` and `1 - a.n`.
+The proposed hinge is therefore exactly
+`max(a.n - a.p + margin, 0)`, the ordinary cosine triplet hinge. A different
+buffer implementation does not create a new similarity operator. The paper
+also gives no seed count or uncertainty. Candidate 96 is **DEAD AT GATE 2**.
