@@ -1899,3 +1899,20 @@ Raw dot ranks by gallery magnitude times cosine because query magnitude is a
 query-wise constant. Its collapse shows that identity/quality scale is not
 semantic compatibility. Magnitude should remain confidence, not similarity;
 unnormalised retrieval and norm-product comparisons are **DEAD AT GATE 1**.
+
+## 111. Degradation-ordered norm supervision: occupied quality auxiliary task
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** The surviving
+within-identity norm signal and the failure of raw-magnitude ranking suggest an
+exogenous target: apply controlled degradations to one image and require raw
+head norm to decrease monotonically with registered severity, while cosine
+direction retains identity.
+
+This is not an open supervision operator. MagFace and AdaFace establish
+recognition-utility/quality control through embedding magnitude; AugSelf
+predicts augmentation parameters as an auxiliary representation task; and
+synthetic-degradation supervision is a standard mechanism in face/image quality
+assessment (including degradation-representation learning such as DSL-FIQA,
+CVPR 2024). The proposed ordering is an auxiliary quality regularizer, and the
+trained scalar is discarded by the benchmark's direction-only retrieval—the
+raw-similarity diagnostic shows why. Candidate 111 is **DEAD AT GATE 2**.
