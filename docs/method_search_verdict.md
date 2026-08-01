@@ -1172,7 +1172,20 @@ to supervised metric learning. Restricting that established relation to a
 binary residual and composing it with Proxy Anchor is a mask/loss-composition
 variant. Candidate 44 is **DEAD at Gate 2**.
 
-## 45. Reopened-loop stopping argument: data-only supervision expansion
+## 45. Transformation-response transplantation: occupied feature trajectory transfer
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** ARCG's 36.31%
+edge density and distance-disagreement rates motivate using real controlled-
+transformation responses without treating response agreement as relevance.
+TRRT would transplant an observed same-class donor's augmentation displacement
+onto a recipient as a counterfactual positive. FATTEN (Liu et al., AAAI 2018)
+already models and transfers pose-induced feature trajectories to synthesize
+target-pose features, and Embedding Expansion establishes synthetic feature
+support in DML. Directly observing the displacement and response-matching its
+donor alter estimation and matching, not the supervision mechanism. Candidate
+45 is **DEAD at Gate 2**.
+
+## 46. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
