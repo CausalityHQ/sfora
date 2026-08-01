@@ -2312,3 +2312,21 @@ ranking-based selection. Using head agreement instead of teacher confidence is
 an uncertainty estimator inside the same cross-model interaction-selection
 operator; it also adds training cost without identifying the source of this
 repository's between-trajectory variation. Candidate 134 is **DEAD AT GATE 2**.
+
+## 135. Mutual gradient-influence positive gating: DML influence prior
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The fixed-seed 1.08-point spread motivated defining a same-class edge by causal
+training helpfulness rather than appearance: retain `A--B` only when an update
+on `A` reduces `B`'s retrieval loss and the converse also holds, approximated by
+gradient dot products or an influence function.
+
+Liu et al., *Debugging and Explaining Metric Learning Approaches: An Influence
+Function Based Perspective* (NeurIPS 2022), already design an empirical
+influence function for DML, identify training samples responsible for retrieval
+generalization errors, and study CUB, Cars196, and In-Shop. TracIn and
+gradient-similarity data selection already operationalize training-example
+helpfulness. Applying that estimator in both directions and thresholding it at
+pair granularity is a composition of influence-based data selection and ordinary
+positive mining; symmetry is a policy, not a new supervision principle.
+Candidate 135 is **DEAD AT GATE 2**.
