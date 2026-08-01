@@ -2474,3 +2474,27 @@ embedding. Candidate 144 is **DEAD**.
 
 The full generation and adversarial audit is in
 `docs/post_horizon_candidate_batch_2026-08-01.md`.
+
+## 145. Learnable visual-concept decomposition: occupied by VCE
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The 6.67-point local MaxSim recovery motivated learning concept slots from
+regional features and aggregating them into one deployed descriptor. Wang et
+al., *VCE: Visual Concept Embedding for Open-set Fine-grained Image Retrieval*
+(Knowledge-Based Systems 2025), already uses learnable concept vectors,
+cross-attention over regional features, independence constraints, and concept
+relation modelling for the same open-set FGIR objective. Together with VAPNet,
+this closes the learnable local-concept route. Candidate 145 is **DEAD AT GATE
+2**.
+
+## 146. Local-similarity-to-global distillation: occupied self-distillation
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The same MaxSim measurement motivated computing an expensive local relation
+matrix only during training and teaching a compact global descriptor to
+reproduce it. S2SD (Roth et al., ICML 2021) already transfers similarities from
+auxiliary high-dimensional embedding and feature spaces into the deployed DML
+embedding; Global-Local Self-Distillation (Lebailly et al., WACV 2023) directly
+studies local-to-global feature matching. MaxSim changes the teacher kernel,
+not the similarity-distillation mechanism. Candidate 146 is **DEAD AT GATE
+2**. Full scan: `docs/recent_fg_operator_scan_2026-08-01.md`.
