@@ -2374,3 +2374,21 @@ representations. Reverse-contrastive and anti-collapse objectives cover direct
 same-class spreading. A Fiedler penalty changes the regularizer used to preserve
 diversity, not the supervision object, and its unconstrained optimum isolates
 samples. Candidate 137 is **DEAD AT GATE 2**.
+
+## 138. Reconstruction-derived discrepancy supervision: occupied by AdvRF
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The MaxSim recovery and the finding that disconnected class modes retrieve well
+motivated replacing category contraction with a training-data-only reconstruction
+signal: use residual regions that an image model cannot reconstruct to supervise
+category-agnostic visual discrepancies, then retain a single retrieval embedding
+at inference.
+
+Wang, Shi, and Li, *Adversarial Reconstruction Feedback for Robust Fine-grained
+Generalization* (ICCV 2025), already reformulate fine-grained image retrieval as
+visual discrepancy reconstruction. Their reconstruction model exposes residual
+discrepancies overlooked by the retrieval model, the two models refine discrepancy
+localization adversarially, and the category-agnostic representation is distilled
+into the deployed retrieval model. A masked autoencoder, non-adversarial residual,
+or cheaper decoder changes capacity and optimization, not the reconstruction-derived
+supervision object. Candidate 138 is **DEAD AT GATE 2**.
