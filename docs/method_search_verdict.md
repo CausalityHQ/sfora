@@ -1661,3 +1661,26 @@ Moreover, ImageNet logits explicitly expose imported semantic categories;
 having the classifier weights present in the initialization does not make
 their semantic targets contamination-free. Candidates 84--88 are **DEAD AT
 GATE 2**.
+
+## 89--93. Internalising the ensemble residual: excluded mechanisms in disguise
+
+**Gate-2/algebraic deaths recorded 2026-08-01; no implementation or GPU.** The
+largest measured headroom remains the seed ensemble: about 0.705 single-model
+CUB R@1 versus 0.7468 for five models, with a transductive 512-D GPA fold
+retaining 99.4% of the nine-model pack. A Claude round was required to capture
+that residual in one deterministic backbone/vector while excluding
+distillation, multiple heads, snapshots, weight averaging, Procrustes, MC
+inference, and extra backbone capacity. Its proposals were input routing (89),
+an input-dependent transform trained on seed disagreement (90), Hessian/stable-
+rank shaping (91), auxiliary seed-mode prediction (92), and disagreement-
+conditioned isotropy annealing (93).
+
+These are, respectively, mixture-of-experts, local metric learning plus
+ensemble distillation, loss-geometry regularization, auxiliary ensemble
+distillation, and covariance regularization plus ensemble weighting. Renaming
+the disagreement target a mode does not remove the teacher. More generally, a
+single deterministic model cannot acquire information about cross-seed
+disagreement unless training observes multiple seeds/outputs, maintains
+multiple hypotheses, averages trajectories, or adds capacity; those are
+exactly the excluded and occupied mechanisms. Candidates 89--93 are **DEAD AT
+GATE 2**.
