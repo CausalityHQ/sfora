@@ -1387,3 +1387,17 @@ provenance and mechanism-level novelty under the data-only, roughly-1x-cost
 constraints. Another GPU arm would require relaxing Gate 1, relaxing Gate 2,
 or importing external knowledge. This is not a universal impossibility claim;
 it is the registered stopping condition supported by the present evidence.
+
+## 58. Teacher-gradient control variate: occupied variance reduction
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** Reopening the
+search beyond fixed supervision operators suggested using the EMA teacher only
+as a zero-mean control variate for stochastic Proxy Anchor gradients, preserving
+the base objective in expectation while reducing the measured trajectory noise.
+The provenance was the 0.35--0.84-point best-over-training inflation and the
+selection-corrected distillation gain. Safaryan, Peste, and Alistarh,
+*Knowledge Distillation Performs Partial Variance Reduction* (NeurIPS 2023),
+already establish KD as stochastic-gradient variance reduction. Subtracting a
+running expectation to make the auxiliary gradient unbiased is classical
+control-variate/SVRG machinery. Applying that occupied optimizer to Proxy Anchor
+does not define new similarity supervision. Candidate 58 is **DEAD AT GATE 2**.
