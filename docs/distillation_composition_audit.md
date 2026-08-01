@@ -37,3 +37,18 @@ gain. A deciding decomposition would require separately distilling conditional
 same- and different-class distributions. That experiment is not warranted as a
 novel method because Gate 2 is already occupied (candidate 49).
 
+## Cross-seed stability of the dark geometry
+
+All five packs share 5,864 image IDs. On 400,000 deterministic random image
+pairs (395,829 different-class and 4,102 same-class after excluding self-pairs),
+the ten independent seed-pair comparisons give:
+
+| relation | mean Pearson similarity correlation | mean Spearman correlation |
+|---|---:|---:|
+| same class | 0.9098 | 0.9083 |
+| different class | **0.8127** | **0.7936** |
+
+The cross-class dark geometry is therefore substantially reproducible across
+independent runs, not arbitrary seed noise. This still does not show which part
+caused the retrieval gain, and using replica agreement as a target-reliability
+filter is occupied multi-teacher agreement distillation (candidate 50).

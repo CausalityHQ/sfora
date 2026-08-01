@@ -1233,7 +1233,19 @@ operators. Relabelling the partition for DML is not novel. Candidate 49 is
 **DEAD at Gate 2**. The diagnostic is retained because it narrows the mechanism
 behind the only intervention that replicated on CUB and Cars.
 
-## 50. Reopened-loop stopping argument: data-only supervision expansion
+## 50. Consensus-stable relational distillation: occupied multi-teacher agreement
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** Across five
+aligned final CUB HERD packs, different-class pair similarities are strongly
+reproducible (mean Pearson 0.8127, Spearman 0.7936), so the dark geometry is not
+seed noise. Filtering relational targets by replica agreement is nevertheless
+the mechanism of multi-teacher agreement KD; its relational component already
+weights distance and angular knowledge by teacher agreement. Ensemble KD and
+adaptive disagreement weighting further occupy the class, and multiple complete
+teachers violate the roughly-1x cost constraint. Candidate 50 is **DEAD at Gate
+2** while the stability measurement remains useful.
+
+## 51. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
