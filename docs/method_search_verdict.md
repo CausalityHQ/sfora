@@ -2498,3 +2498,34 @@ embedding; Global-Local Self-Distillation (Lebailly et al., WACV 2023) directly
 studies local-to-global feature matching. MaxSim changes the teacher kernel,
 not the similarity-distillation mechanism. Candidate 146 is **DEAD AT GATE
 2**. Full scan: `docs/recent_fg_operator_scan_2026-08-01.md`.
+
+## 147. Trajectory-aligned mode variance: augmentation-response supervision
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Preserving class modes whose members follow similar augmentation trajectories
+is the ARCG/AugSelf observable routed through invariance or pair weighting.
+Changing the statistic from response agreement to trajectory variance does not
+change the operator. Candidate 147 is **DEAD**.
+
+## 148. Direct nearest-neighbour event optimisation: listwise ranking
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Directly optimising the labelled top-1 retrieval event seems to avoid proxies,
+but every differentiable top-k surrogate assigns pressure to the winning
+positive and negative comparisons. Ranked List Loss, Smooth-AP, and
+differentiable ranking already occupy this supervision object. Candidate 148 is
+**DEAD**.
+
+## 149. Class-conditional implicit density fields: occupied density DML
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Fitting a scalar density field per labelled training class would preserve
+multiple modes, but it remains class-conditional density modelling. Density
+Aware Metric Learning and density-adaptive DML occupy the objective; replacing
+their estimator with a small implicit network is capacity, not a new
+supervision relation. Candidate 149 is **DEAD**.
+
+Claude also proposed an algebraic impossibility proof based on gradient
+factorisation. An adversarial follow-up correctly rejected that proof while
+still finding no concrete counterexample. The distinction is recorded in
+`docs/operator_counterexample_audit_2026-08-01.md`.
