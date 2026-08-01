@@ -2220,3 +2220,19 @@ image-retrieval experiments. Storing training samples, prototypes, or proxies
 changes the memory contents, not the associative operator. Using the held-out
 gallery instead would additionally be transductive. Candidate 129 is **DEAD AT
 GATE 2**.
+
+## 130. Score-flow embedding denoising: separable post-processing map
+
+**Algebraic death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The candidate learned a score/mean-shift field over training embeddings and
+iteratively denoised each unseen embedding toward the learned identity manifold
+before ordinary cosine retrieval.
+
+For a training-fitted deterministic flow `D`, its score is
+`cos(D(f(x)), D(f(y)))`. This is exactly a separable embedding map `D o f`; the
+iterations can be unrolled or amortized into an additional head. Score matching
+is then a generative/denoising auxiliary objective, with diffusion representation
+learning, denoising autoencoders, and deep mean-shift priors as direct families.
+Conditioning `D` jointly on `(x,y)` would instead be a learned non-metric pair
+network. Neither form creates a new comparison or supervision object. Candidate
+130 is **DEAD BEFORE GATE 2**.
