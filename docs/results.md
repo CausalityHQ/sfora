@@ -808,6 +808,13 @@ the train concat and evaluates it, frozen, on the test concat:
 | group-SupCon-XBM head fit on train | 0.7039 | 96.9% | +1.0 pt |
 | single HERD model | 0.6940 | 95.6% | — |
 
+A stricter 2026-08-01 diagnostic asked whether the five-seed train-fit GPA
+consensus could be predicted from seed 0 alone. A preregistered uncentred ridge
+map fit only on train classes reduced disjoint-test R@1 from **0.6940 to
+0.6813 (-1.266 pt)**; the orthogonal-map control remained exactly 0.6940. The
+five-seed concat and train-fit GPA target were 0.7350 and 0.7205. Thus the pack
+gain is not a simple deterministic linear calibration hidden inside one seed.
+
 Notably the **unsupervised PCA edges both supervised metric-learning heads** — for
 folding an already-trained pack the discriminative geometry is already present, so
 re-optimising it on train labels only risks overfitting the train classes.

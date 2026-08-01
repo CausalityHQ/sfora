@@ -1684,3 +1684,20 @@ disagreement unless training observes multiple seeds/outputs, maintains
 multiple hypotheses, averages trajectories, or adds capacity; those are
 exactly the excluded and occupied mechanisms. Candidates 89--93 are **DEAD AT
 GATE 2**.
+
+## 94. Single-seed consensus prediction: train-fit map worsens retrieval
+
+**Gate-1 diagnostic failure recorded 2026-08-01; CPU only, no GPU.** The large
+ensemble gap and the 98.9% inductive fold raised a distinct question: is the
+five-seed consensus mostly a deterministic calibration of information already
+inside one seed? Before measurement, a fixed uncentred ridge map from seed-0
+train embeddings to the five-seed train-fit GPA consensus was registered, with
+all fitting on train classes and frozen application to disjoint test classes.
+
+Seed 0 scored 0.6940 CUB R@1; the five-seed concat scored 0.7350 and train-fit
+GPA consensus 0.7205. The ridge prediction scored **0.6813**, a **-1.266-point**
+change. An orthogonal control remained exactly 0.6940. This decisively violates
+the registered +0.5-point minimum and shows that the linear map overfits
+train-class cross-seed relations rather than recovering test-class ensemble
+information. Candidate 94 is **DEAD AT GATE 1**. The remaining ensemble gain is
+not available through a simple single-embedding calibration.

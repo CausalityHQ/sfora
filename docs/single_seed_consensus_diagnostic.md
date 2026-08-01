@@ -39,3 +39,22 @@ and ridge-map R@1.
 This diagnostic is not a novelty claim. Linear metric post-processing and
 ensemble distillation are established. A positive result would only motivate a
 new search for an end-to-end mechanism; it would not itself pass Gate 2.
+
+## Result
+
+Run after preregistration against the five saved CUB packs:
+
+| representation | test R@1 |
+| --- | ---: |
+| seed 0 | 0.6940 |
+| orthogonal control | 0.6940 |
+| five-seed concat | 0.7350 |
+| train-fit GPA consensus | 0.7205 |
+| **single-seed ridge prediction** | **0.6813** |
+
+The ridge map changes seed 0 by **-1.266 points**. This decisively meets the
+registered falsification condition (gain below +0.5 point). The exact
+orthogonal-control equality confirms that applying a frozen train-fit rotation
+does not itself perturb cosine retrieval. A linear deterministic calibration of
+one seed does not recover the ensemble consensus; it overfits train-class
+cross-seed relations and worsens disjoint-class retrieval.
