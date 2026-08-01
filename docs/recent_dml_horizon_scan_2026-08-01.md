@@ -107,3 +107,21 @@ signals, is a proxy-loss weighting/aggregation variant rather than new
 supervision. The paper's seed counts and exact benchmark numbers were not
 available in the accessible abstract/code README, so it is recorded as prior
 art rather than a new external ceiling.
+
+## Norm-as-directional-concentration is exactly NIR (ECCV 2022)
+
+Kirchhof, Roth, Akata, and Kasneci, *A Non-isotropic Probabilistic Take on
+Proxy-based Deep Metric Learning* (ECCV 2022, https://arxiv.org/abs/2207.03784),
+state the exact premise measured here: angular proxy DML discards embedding norm
+even though norm can encode image- and class-intrinsic uncertainty. They treat
+each raw image embedding as the natural parameter of a directional von
+Mises--Fisher distribution, so direction is its mean and norm is concentration.
+They additionally derive non-isotropic vMF class proxies and compare image/proxy
+distributions using expected-likelihood and related metrics.
+
+The corrected In-Shop measurement (within-identity norm/correctness 0.14170 and
+norm/margin 0.20972) independently supports their premise, while the raw-dot
+collapse supports keeping concentration separate from semantic direction. It
+does not open projected-normal/vMF uncertainty, concentration-scaled logits, or
+probabilistic proxy comparison as a novel method class; all are directly
+occupied by NIR and adjacent IDML/Bayesian metric learning.

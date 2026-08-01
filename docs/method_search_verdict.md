@@ -1966,3 +1966,19 @@ Most decisively, the proposed interventions were to reweight high-drift samples
 or mine their hard negatives. Thus even a non-tautological drift statistic would
 predict an occupied weighting/mining estimator, not new supervision. Candidate
 115 is **DEAD AT GATE 1**.
+
+## 116. Raw norm as directional concentration: exactly NIR prior art
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** The paired
+findings that norm predicts within-identity correctness while raw norm-product
+similarity collapses suggest a coherent probabilistic interpretation: direction
+is semantic mean and raw magnitude is concentration/uncertainty on the sphere.
+
+Kirchhof et al., *A Non-isotropic Probabilistic Take on Proxy-based Deep Metric
+Learning* (ECCV 2022, arXiv:2207.03784), make exactly this argument. They model
+image embeddings as vMF natural parameters (direction plus norm concentration),
+derive non-isotropic vMF class proxies, and study point/distribution and
+distribution/distribution metrics on standard DML benchmarks. IDML and Bayesian
+metric learning are adjacent uncertainty-aware comparisons. Projected-normal
+instead of vMF, or Proxy Anchor instead of ProxyNCA++, changes the distribution
+family/base loss rather than the mechanism. Candidate 116 is **DEAD AT GATE 2**.
