@@ -1185,7 +1185,19 @@ support in DML. Directly observing the displacement and response-matching its
 donor alter estimation and matching, not the supervision mechanism. Candidate
 45 is **DEAD at Gate 2**.
 
-## 46. Reopened-loop stopping argument: data-only supervision expansion
+## 46. Repeated-measure set completion: occupied cross-camera generation
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** The 7.18x
+training amplification of In-Shop's acquisition gap and RSPG's 28.58% versus
+1.29% same-/cross-group gate rates motivate predicting a held-out acquisition
+group from the other repeated observations of an identity. Camera-Conditioned
+Stable Feature Generation (Wu et al., CVPR 2022) already synthesizes missing
+cross-camera identity features for ReID, while set-to-set cross-view metric
+learning directly supervises identity sets across cameras. Filename tokens and
+deterministic centroid regression alter group estimation and generator capacity,
+not the supervision mechanism. Candidate 46 is **DEAD at Gate 2**.
+
+## 47. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
