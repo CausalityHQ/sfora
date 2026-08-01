@@ -2118,3 +2118,20 @@ augmentation-consistency objective for a DML encoder is an application of these
 operators, not a new method. Multi-view aggregation also violates the registered
 single-view comparison used to reject IDEAL/BLenDeR-style capacity advantages.
 Candidate 123 is **DEAD AT GATE 2**.
+
+## 124. Self-supervised gradient signatures: Fisher features and FUNGI prior
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The repository already measures per-image and per-group gradient agreement, so
+the next candidate represented an unseen image by the parameter gradient of an
+augmentation-consistency objective and compared those gradients alongside the
+ordinary embedding.
+
+This is the Fisher-kernel construction: encode an observation by the score of a
+model with respect to its parameters and compare score vectors. More directly,
+Simoncini et al., *No Train, all Gain: Self-Supervised Gradients Improve Deep
+Frozen Representations* (FUNGI, 2024), compute per-image gradients from
+self-supervised objectives, project them, and concatenate them with frozen visual
+features for nearest-neighbour recognition. Choosing a DML encoder or a different
+pretext loss changes the source model, not the representation mechanism.
+Candidate 124 is **DEAD AT GATE 2**.
