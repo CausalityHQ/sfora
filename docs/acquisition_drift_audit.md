@@ -23,3 +23,27 @@ during Proxy Anchor training rather than already present at the first update.
 This motivates monitoring acquisition-gap *change*, not merely its final size.
 `docs/ncdd_candidate.md` records why the obvious temporal constraint still fails
 novelty.
+
+## Exact Proxy Anchor gradient decomposition
+
+At epoch 10, the full-dataset Proxy Anchor embedding gradient was separated into
+its own-proxy positive and foreign-proxy negative terms. For every same-class pair,
+the first-order gradient-descent change in cosine was computed after tangent-plane
+projection.
+
+| pair type | positive-term similarity rate | negative-term similarity rate | total |
+|---|---:|---:|---:|
+| same acquisition group | `+7.77e-5` | `+1.72e-4` | `+2.49e-4` |
+| cross acquisition group | `+4.16e-5` | `+1.94e-4` | `+2.35e-4` |
+
+The positive term predicts acquisition-gap growth of `+3.61e-5` per unit step.
+The negative term predicts `-2.20e-5` and therefore partially *corrects* the gap;
+net predicted gap growth is `+1.41e-5`. Both terms increase almost every
+same-class pair's similarity, so the issue is not repulsion between sessions.
+Single-proxy attraction contracts the already-local session clusters faster than
+it joins them.
+
+This is a local, full-dataset gradient calculation rather than a measured SGD
+trajectory decomposition, so its scale should not be extrapolated over epochs.
+Its directional attribution is nevertheless exact for the audited objective and
+checkpoint.

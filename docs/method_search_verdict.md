@@ -1125,7 +1125,19 @@ teacher operator. Selecting acquisition-labelled entries and penalizing only one
 direction is a mask/hinge variant. Candidate 42 is **DEAD at Gate 2**, while the
 training-induced shortcut remains a strong measurement result.
 
-## 43. Reopened-loop stopping argument: data-only supervision expansion
+## 43. Rate-balanced proxy attraction: measured cause, occupied weighting
+
+**Gate-2 death recorded 2026-07-31; no GPU spent.** Exact full-dataset
+epoch-10 gradients show that Proxy Anchor's positive term increases same-session
+similarity at `7.77e-5` versus `4.16e-5` across sessions, while its negative term
+partially corrects the gap (`1.72e-4` versus `1.94e-4`). Positive attraction, not
+foreign-proxy repulsion, causes the local acquisition-gap drift. A homeostatic
+controller could equalize those rates, but it only reweights existing positive
+relations; General Pair Weighting, DML-ALA, and camera-diversity losses occupy the
+operator. Candidate 43 is **DEAD at Gate 2** despite a successful causal
+decomposition.
+
+## 44. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
