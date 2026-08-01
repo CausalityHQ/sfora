@@ -1739,3 +1739,35 @@ three-seed Proxy Anchor improvements of +0.50 CUB and +0.73 Cars196. Norm-ranked
 mining, norm consistency, and manifold alignment additionally reduce to hard
 mining or geometry regularization. Candidate 97 is **DEAD AT GATE 2** regardless
 of the pending magnitude diagnostic's sign.
+
+## 98--101. Claude source audit: rank symmetry, graded positives, frequency, and manifold
+
+**Gate-2/algebraic deaths recorded 2026-08-01; no implementation or candidate
+GPU.** An adversarial generation round was constrained by the measured RSPG/ARCG,
+ensemble-complementarity, ridge-consensus, regional, and TIRD failures. Four
+apparent directions did not survive mechanism-level reduction.
+
+- **98, reciprocal ranking-inversion supervision:** penalising disagreement
+  between the rank of `x` from `y` and `y` from `x` is reciprocal-neighbour or
+  listwise ranking supervision. With a symmetric metric it supplies no new
+  relation beyond the same pair/set rankings already optimised by established
+  listwise DML.
+- **99, within-class appearance ranking:** tiering same-class peers using frozen
+  appearance similarity and assigning tiered margins is graded positive mining
+  or margin weighting. *Deep Metric Learning Beyond Binary Supervision* (Kim et
+  al., CVPR 2019) already occupies learned continuous similarity beyond binary
+  labels.
+- **100, class-frequency supervision:** class cardinality is a distinct measured
+  property but can enter this model only through sampling, class/example weights,
+  adjusted margins, or added capacity. It is imbalance handling, not a new
+  supervision operator.
+- **101, unlabeled-manifold co-similarity:** neighbourhood and second-order
+  co-similarity become clustering, contextual similarity, graph propagation, or
+  pseudo-pair eligibility. HIER (Kim et al., CVPR 2023) and contextual similarity
+  optimisation (Liao et al., arXiv:2210.01908) occupy the closest forms, while
+  this repository has directly falsified multiple graph interfaces.
+
+Candidates 98--101 are **DEAD BEFORE PREREGISTRATION**. The source taxonomy and
+its limitation are recorded in `docs/search_space_source_audit_2026-08-01.md`:
+future candidates must state both a source of information and an operator outside
+the occupied reduction for that source.
