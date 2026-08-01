@@ -108,18 +108,38 @@ def main() -> None:
             raise SystemExit("train norm rows do not match train embeddings")
 
     correctness: list[np.ndarray] = []
+    raw_dot_correctness: list[np.ndarray] = []
+    raw_euclidean_correctness: list[np.ndarray] = []
     margins: list[np.ndarray] = []
     for start in range(0, query.shape[0], args.chunk_size):
         stop = min(start + args.chunk_size, query.shape[0])
         scores = query[start:stop] @ gallery.T
+        raw_dot_scores = (
+            scores
+            * query_norms[start:stop, None]
+            * gallery_norms[None, :]
+        )
+        raw_euclidean_scores = -(
+            query_norms[start:stop, None] ** 2
+            + gallery_norms[None, :] ** 2
+            - 2.0 * raw_dot_scores
+        )
         batch_labels = query_labels[start:stop]
         same = batch_labels[:, None] == gallery_labels[None, :]
         best_positive = np.max(np.where(same, scores, -np.inf), axis=1)
         best_negative = np.max(np.where(~same, scores, -np.inf), axis=1)
         top_labels = gallery_labels[np.argmax(scores, axis=1)]
         correctness.append(top_labels == batch_labels)
+        raw_dot_correctness.append(
+            gallery_labels[np.argmax(raw_dot_scores, axis=1)] == batch_labels
+        )
+        raw_euclidean_correctness.append(
+            gallery_labels[np.argmax(raw_euclidean_scores, axis=1)] == batch_labels
+        )
         margins.append(best_positive - best_negative)
     correct = np.concatenate(correctness).astype(np.float64)
+    raw_dot_correct = np.concatenate(raw_dot_correctness).astype(np.float64)
+    raw_euclidean_correct = np.concatenate(raw_euclidean_correctness).astype(np.float64)
     margin = np.concatenate(margins).astype(np.float64)
 
     result = {
@@ -127,6 +147,8 @@ def main() -> None:
         "gallery": int(gallery.shape[0]),
         "train": int(train_labels.shape[0]),
         "recall_at_1": float(correct.mean()),
+        "raw_dot_recall_at_1": float(raw_dot_correct.mean()),
+        "raw_euclidean_recall_at_1": float(raw_euclidean_correct.mean()),
         "query_norm_mean": float(query_norms.mean()),
         "query_norm_std": float(query_norms.std(ddof=1)),
         "gallery_norm_mean": float(gallery_norms.mean()),
