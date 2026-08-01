@@ -39,5 +39,7 @@ a wrapper that normalises inside `forward` and proves that inputs with raw norms
 5 and 13 are exported as 5 and 13. The frozen thresholds, dataset, seed, epoch,
 and analysis above are unchanged. Because the saved checkpoint was produced
 before the corrected hook existed and there is no checkpoint-only export path,
-the same deterministic 10-epoch measurement will be repeated. This is an
+the same seed-matched 10-epoch measurement will be repeated. The official
+recipe does not enable deterministic CUDA kernels, so fixed-seed replay may
+differ slightly; the repository already measures that effect. This is an
 instrumentation repair, not a second draw or threshold change.
