@@ -1257,7 +1257,20 @@ matrices for object/image retrieval. Fixed-effect centering chooses a contrast
 inside that operator rather than defining new supervision. Candidate 51 is
 **DEAD at Gate 2**.
 
-## 52. Reopened-loop stopping argument: data-only supervision expansion
+## 52. Tetrad interaction relational distillation: live through Gate 3
+
+**Pre-registered 2026-08-01 before implementation.** Exact cross-class ANOVA on
+five final HERD packs isolates an image-by-image interaction with 4.75% variance
+share but reproducible cross-seed structure (Pearson 0.5710). TIRD transfers the
+EMA teacher's closed 2×2 similarity contrast over two images from each of two
+classes, cancelling class-pair and both single-image main effects. RKD transfers
+absolute pair/angle geometry; PDRD and D3still transfer first-order pairwise
+similarity differences for ranking; standard quadruplet losses impose labelled
+margins. No audited source transfers this two-class tetrad interaction. In-Shop
+seed 0 is predicted at raw R@1 0.9090 and falsified below 0.9085. Candidate 52 is
+**LIVE THROUGH GATE 3** pending implementation and screen.
+
+## 53. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository

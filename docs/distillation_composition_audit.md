@@ -64,3 +64,25 @@ Their cross-seed agreement is extremely high (mean Pearson **0.9037**, Spearman
 proxies: it retains which individual images depart from their classes' typical
 relationship. Distilling that fixed-effect residual is nevertheless occupied
 pairwise-difference relational distillation (candidate 51).
+
+## Exact four-term interaction
+
+Writing each normalized embedding as `z_i = mu_class(i) + delta_i` gives the
+exact identity
+
+`z_i·z_j = mu_c·mu_d + delta_i·mu_d + mu_c·delta_j + delta_i·delta_j`.
+
+Across the same sampled cross-class pairs, the average variance shares and
+cross-seed stability are:
+
+| component | mean variance / raw variance | Pearson | Spearman |
+|---|---:|---:|---:|
+| class-pair | 0.5615 | 0.9037 | 0.8921 |
+| left image × foreign class | 0.1954 | 0.7131 | 0.6865 |
+| own class × right image | 0.1956 | 0.7132 | 0.6870 |
+| image × image interaction | **0.0475** | **0.5710** | **0.5163** |
+
+The reconstruction error is below `3.4e-16`. A closed 2×2 tetrad contrast over
+two images from each of two classes cancels the first three components and
+isolates the final interaction. Candidate 52 tests whether transferring only
+that small but reproducible term adds supervision beyond Proxy Anchor.
