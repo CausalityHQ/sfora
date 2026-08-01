@@ -1325,3 +1325,18 @@ protocol, none warrants preregistration or GPU use. This is an evidence-bounded
 stopping claim, not a claim that no method can ever exist; the loop should
 reopen only when a new repository measurement identifies a supervision
 operation outside these six covered classes.
+
+## 54. Effect-size-calibrated tetrad distillation: occupied Gram matching
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** TIRD's In-Shop
+screen failed by -7.237 raw and -7.405 selection-corrected points after cosine
+normalization promoted a 4.75%-variance interaction residual to unit-scale
+pressure. ECTD would preserve that measured effect size by squared-error
+matching class-centred interaction Gram entries normalized by total teacher
+Gram energy. Similarity-Preserving KD already matches teacher/student pairwise
+similarity matrices; Full Kernel Matrix Transfer and geometry-aware KD use
+matrix-difference/Frobenius Gram objectives; DRDKD adds centred Gram matching.
+The closed tetrad is a mask/contrast inside that established operator, while
+total-energy calibration is scalar loss normalization. Candidate 54 is **DEAD
+AT GATE 2**. Running it would be a post-result loss-weight sweep, not a new
+supervision method.
