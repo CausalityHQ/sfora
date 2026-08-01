@@ -1352,3 +1352,18 @@ differentials; Cross-View Consistency KD combines view agreement with
 confidence-based teacher-signal mining. The tetrad selects the relational
 descriptor and cross-fitting selects a reliability mask inside those established
 operators. Candidate 55 is **DEAD AT GATE 2**.
+
+## 56. Augmentation-complement positive completion: occupied positive mining
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** ARCG measured
+an augmentation-response graph independent of base distance but failed after
+replacing ordinary positive attraction. ACPC would retain Proxy Anchor and add
+attraction specifically to same-class pairs with disagreeing response
+signatures, interpreting disagreement as missing appearance-factor coverage.
+AugSelf already establishes augmentation-response information as a learned
+descriptor; AdaSP and HAP2S already adaptively select or emphasize difficult,
+visually diverse same-class positives; proxy-based diversity expansion is also
+established by SEE. No audited paper used ACPC's exact response score, but the
+score merely chooses which already-labelled positive receives more pressure.
+It is a new hardness descriptor inside an occupied positive-mining operator,
+not new supervision. Candidate 56 is **DEAD AT GATE 2**.
