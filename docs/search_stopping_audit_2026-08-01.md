@@ -145,9 +145,36 @@ was pre-normalisation embedding magnitude, but no DML checkpoints were retained
 and its obvious use is precisely occupied quality/hardness weighting. A second
 Opus review timed out without a verdict and is not counted as evidence.
 
+## Post-horizon challenge: candidates 119--144
+
+The loop continued through 26 additional candidates after this audit's first
+version. Local correspondences, trajectory consensus, influence functions,
+spectral connectivity, weak-cut preservation, reconstruction discrepancies,
+and learned visual attributes either failed a registered measurement or were
+occupied by primary prior art. The most informative new result was opposite to
+the proposed intervention: after exact class-size matching, In-Shop classes
+whose within-class 1-NN graph is disconnected retrieve **3.534 points better**.
+Fragmentation is therefore evidence of useful multimodality, not a defect to
+repair.
+
+The primary checks also raised the external horizon. VAPNet reports 0.762 CUB,
+0.948 Cars196, and 0.939 In-Shop; AdvRF reports 0.766 CUB and 0.949 Cars196.
+Both use standard splits, a single ResNet-50/GAP 2048-D retriever at test, and
+200 epochs, but report no seed count or uncertainty. These results close the
+general benchmark-ceiling claim while leaving this repository's narrower 512-D
+controlled-recipe comparison meaningful.
+
+A final Claude-generated batch proposed density gradients, class-size margins,
+perturbation-stable rankings, persistent-homology repair, and curvature
+flattening. An immediate adversarial pass found no new supervision relation.
+Primary sources map them respectively to density-aware DML, class balancing,
+adversarial ranking defense, topological regularisation, and curvature
+regularisation. Candidates 140--144 died before diagnostics or GPU work; see
+`docs/post_horizon_candidate_batch_2026-08-01.md`.
+
 ## Decision
 
-There is no defensible candidate left under the current constraints after 118
+There is no defensible candidate left under the current constraints after 144
 documented candidates. Every
 candidate that survived provenance either failed a registered experiment or
 reduced, before GPU use, to an established operator with a new descriptor,

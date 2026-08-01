@@ -2425,3 +2425,52 @@ method that clears it has only passed a recipe-matched screen; it has not beaten
 the published general benchmark horizon. Missing error bars weaken fine-grained
 comparisons but are not grounds to ignore reviewed standard-split results. Full
 audit: `docs/open_set_fg_retrieval_horizon_2026-08-01.md`.
+
+## 140. Density-gradient alignment: occupied density attraction
+
+**Gate-1/2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The proposed CPU test would correlate within-class density-gradient direction
+with retrieval outcome and, if favourable, attract samples toward dense class
+regions. The number had not been measured, so it cannot supply provenance.
+Moreover, *On Learning Density Aware Embeddings* (Ghosh et al., CVPR 2019)
+already iteratively shifts class centres toward dense regions and attracts
+embeddings there. Candidate 140 is **DEAD**.
+
+## 141. Class-size-conditioned margin: scalar class balancing
+
+**Gate-1/2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The proposed correlation between rival cardinality and retrieval outcome is
+unmeasured, while the proposed action merely scales an existing margin by class
+frequency. Class-balanced loss and adaptive/hierarchical metric margins already
+occupy that operation. It changes pressure, not the supervision relation.
+Candidate 141 is **DEAD**.
+
+## 142. Perturbation-stable ranking: adversarial ranking defense
+
+**Gate-1/2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+Measuring top-k stability under small embedding perturbations would not itself
+motivate new supervision; penalising rank changes is robustness regularisation.
+Zhou et al., *Adversarial Attack and Defense in Deep Ranking* (ECCV 2020),
+already trains retrieval models against ranking perturbations on CUB, Cars196,
+and SOP. Candidate 142 is **DEAD**.
+
+## 143. Persistent-homology class repair: topological regularisation
+
+**Gate-1/2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The suggested first-Betti-number diagnostic is unmeasured and its proposed
+action is to remove loops from learned class clouds. Persistent-homology
+penalties for simplifying learned topology are established, including Chen et
+al., *A Topological Regularizer for Classifiers via Persistent Homology*
+(AISTATS 2019). Candidate 143 is **DEAD**.
+
+## 144. Local-curvature flattening: manifold regularisation
+
+**Gate-1/2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The proposed local Hessian-curvature correlation is unmeasured, and flattening
+the resulting geometry is a scalar manifold regularizer rather than additional
+supervision. *Curvature Regularization to Prevent Distortion in Graph
+Embedding* (Pei et al., NeurIPS 2020) directly occupies curvature-controlled
+embedding. Candidate 144 is **DEAD**.
+
+The full generation and adversarial audit is in
+`docs/post_horizon_candidate_batch_2026-08-01.md`.
