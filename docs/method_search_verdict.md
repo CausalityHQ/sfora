@@ -1209,7 +1209,17 @@ positives, and reverse contrastive loss directly spreads same-class examples.
 The determinant changes the set aggregate, not the supervision instruction.
 Candidate 47 is **DEAD at Gate 2**.
 
-## 48. Reopened-loop stopping argument: data-only supervision expansion
+## 48. Same-class patch recombination: occupied within-identity PartMix
+
+**Gate-2 death recorded 2026-08-01; no implementation or GPU.** The roughly
+6.7-point CUB MaxSim recovery motivates recombining authentic local evidence
+from two same-class training images into a new positive. CutMix supplies the
+generic image operation, and PartMix (Kim et al., CVPR 2023) directly synthesizes
+within-identity positive part mixtures for contrastive person retrieval. Pixel
+versus descriptor mixing and donor sampling are implementation choices.
+Candidate 48 is **DEAD at Gate 2**.
+
+## 49. Reopened-loop stopping argument: data-only supervision expansion
 
 The strategic opening remains real: BLenDeR does not establish a clean,
 reproducible ceiling for cheap data-only intra-class expansion. But repository
