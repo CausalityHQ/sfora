@@ -2006,3 +2006,23 @@ diagram distance for cosine distance does not create a new supervision mechanism
 The claimed hard positive-to-unknown gate is therefore an obvious composition of
 two occupied operators, not a defensible novelty. Candidate 117 is **DEAD AT GATE
 2**.
+
+## 118. Counterfactual patch-swap supervision: spatial Metric Mix
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+This branch asked whether donor/recipient labels from controlled cross-image
+patch swaps could add information that the current embedding cannot erase: paste
+a region from identity `b` into identity `a` and supervise the composite by the
+known contribution of both source identities. It is exogenous and data-only, but
+the supervision operator is occupied.
+
+Venkataramanan et al., *It Takes Two to Tango: Mixup for Deep Metric Learning*
+(ICLR 2022), define Metric Mix (Metrix) precisely to mix examples and their
+metric-learning targets. Their formulation covers input, intermediate-feature,
+and embedding mixing and explicitly studies anchor/positive/negative source
+pairs. CutMix changes the interpolation mask from dense to spatial; donor and
+recipient labels remain the same mixed target. Patch/part erasing, swapping, and
+identity-preserving augmentation are additionally established in person ReID.
+Recasting Metrix's mixture coefficient as the pasted area or a measured feature
+effect does not create new supervision; it is mixup target assignment or
+reweighting. Candidate 118 is **DEAD AT GATE 2**.
