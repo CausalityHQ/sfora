@@ -2169,3 +2169,21 @@ for CUB/Cars presence in foundation-model pretraining. Replicating the increment
 could validate a projection recipe but could not establish method novelty.
 Candidate 126 is **DEAD AT GATES 1--2**. Full audit:
 `docs/historical_artifact_audit_2026-08-01.md`.
+
+## 127. Pairwise conditional description length: established compression distance
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+To escape static descriptor distances, this proposal defined similarity by the
+reduction in code length when one image conditions the compression of another.
+The intended operator is nonseparable and pair-dependent.
+
+It is nevertheless established. Normalized information/compression distance
+defines similarity from individual and joint code lengths; Cerra and Datcu
+(2012) use fast compression distance for content-based image retrieval, and
+Guha and Ward (2012) measure image similarity through sparse conditional
+compressibility. Nikvand et al. (2018) explicitly propose normalized conditional
+compression distance for visual similarity, recognition, and retrieval. More
+recent descriptive-autoencoding work likewise derives conceptual similarity
+from conditional description complexity. Replacing a classical compressor with
+a learned one changes the approximation to code length, not the comparison
+operator. Candidate 127 is **DEAD AT GATE 2**.
