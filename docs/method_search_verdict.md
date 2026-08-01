@@ -2529,3 +2529,26 @@ Claude also proposed an algebraic impossibility proof based on gradient
 factorisation. An adversarial follow-up correctly rejected that proof while
 still finding no concrete counterexample. The distinction is recorded in
 `docs/operator_counterexample_audit_2026-08-01.md`.
+
+## 150. Cross-layer rescue supervision: deep supervision or distillation
+
+**Gate-2 death recorded 2026-08-01; no export, implementation, or GPU.** A
+proposed operating-point diagnostic would count final-head errors rescued by
+intermediate backbone layers. Every recovery action is already named: feature
+fusion/routing uses the intermediate representation at test; a companion loss
+is Deeply-Supervised Nets; transferring intermediate similarities into the
+512-D head is S2SD-style feature self-distillation; preservation constraints
+are regularisation. Because no outcome motivates an unoccupied operator, even
+the diagnostic would be purposeless. Candidate 150 is **DEAD**.
+
+## 151. Parity-coded multimodal supervision: supervised hashing and ECOC
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The +3.534-point benefit associated with disconnected In-Shop class graphs
+motivated a union of learned image codewords with shared parity checks. Deep
+supervised hashing already jointly learns semantic codes and continuous image
+representations, while ECOC networks impose algebraically separated class
+codes. Multiple codewords per class are discrete sub-centres; discarding the
+code head at test makes it auxiliary supervision rather than a new similarity
+operator. Candidate 151 is **DEAD**. Full audit:
+`docs/reopened_design_batch_150_151.md`.
