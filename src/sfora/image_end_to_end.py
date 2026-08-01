@@ -6303,17 +6303,36 @@ def _encode_model_norms(
 ) -> NDArray[np.float64]:
     """Return raw head-output L2 magnitudes before retrieval normalisation."""
     norms = []
+    # The official BN-Inception model performs its own L2 normalisation inside
+    # ``forward``.  Observe the embedding layer output with a hook instead of
+    # assuming that ``model(images)`` is raw.  ResNet heads do not normalise in
+    # forward, but using the same hook keeps the measurement definition exact.
+    head = getattr(getattr(model, "model", None), "embedding", None)
+    if head is None:
+        head = getattr(model, "fc", None)
+    captured: list[Any] = []
+
+    def _capture_head_output(_module: Any, _inputs: Any, output: Any) -> None:
+        captured.append(output)
+
+    handle = head.register_forward_hook(_capture_head_output) if head is not None else None
     model.eval()
-    with torch_module.no_grad():
-        for images, _ in loader:
-            raw_embeddings = model(images.to(device, non_blocking=True))
-            norms.append(
-                torch_module.linalg.vector_norm(raw_embeddings, dim=1)
-                .detach()
-                .cpu()
-                .numpy()
-                .astype(np.float64)
-            )
+    try:
+        with torch_module.no_grad():
+            for images, _ in loader:
+                captured.clear()
+                model_output = model(images.to(device, non_blocking=True))
+                raw_embeddings = captured[-1] if captured else model_output
+                norms.append(
+                    torch_module.linalg.vector_norm(raw_embeddings, dim=1)
+                    .detach()
+                    .cpu()
+                    .numpy()
+                    .astype(np.float64)
+                )
+    finally:
+        if handle is not None:
+            handle.remove()
     return np.concatenate(norms, axis=0)
 
 

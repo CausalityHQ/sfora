@@ -1854,6 +1854,35 @@ def test_encode_model_norms_preserves_pre_normalisation_magnitude() -> None:
     assert norms.tolist() == pytest.approx([5.0, 13.0])
 
 
+def test_encode_model_norms_observes_bn_inception_head_before_internal_normalisation() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _encode_model_norms
+
+    class NormalisingInner(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Linear(2, 2, bias=False)
+            with torch.no_grad():
+                self.embedding.weight.copy_(torch.eye(2))
+
+        def forward(self, values: object) -> object:
+            return torch.nn.functional.normalize(self.embedding(values), p=2, dim=1)
+
+    class Wrapper(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.model = NormalisingInner()
+
+        def forward(self, values: object) -> object:
+            return self.model(values)
+
+    loader = [(torch.tensor([[3.0, 4.0], [5.0, 12.0]]), torch.tensor([0, 1]))]
+
+    norms = _encode_model_norms(Wrapper(), loader, torch.device("cpu"), torch)
+
+    assert norms.tolist() == pytest.approx([5.0, 13.0])
+
+
 def test_config_accepts_zero_potential_alpha() -> None:
     # The PFML paper cross-validates alpha in {0..6}, so alpha=0 must be valid.
     config = ImageEndToEndConfig(potential_alpha=0.0)
