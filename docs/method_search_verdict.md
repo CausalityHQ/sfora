@@ -2204,3 +2204,19 @@ protocol change, not new supervision or a comparison operator. The already
 measured fixed-seed nondeterminism and six-seed CUB variance make the outlier
 expected rather than mechanistically diagnostic. Candidate 128 is **DEAD AT
 GATE 1**.
+
+## 129. Associative retrieval dynamics: modern Hopfield prior
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+This branch replaced a static pair score with iterative energy minimization: an
+unseen query would evolve toward memories learned only from training identities,
+and the converged state would be used for inductive retrieval.
+
+Modern Hopfield networks are exactly differentiable content-addressable memories;
+their update is attention over stored patterns. k-Hopfield layers retrieve the
+k-nearest memories, U-Hop learns a separating feature map for improved memory
+retrieval, and Hopfield--Fenchel--Young networks generalize the energy and report
+image-retrieval experiments. Storing training samples, prototypes, or proxies
+changes the memory contents, not the associative operator. Using the held-out
+gallery instead would additionally be transductive. Candidate 129 is **DEAD AT
+GATE 2**.
