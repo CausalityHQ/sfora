@@ -2552,3 +2552,17 @@ codes. Multiple codewords per class are discrete sub-centres; discarding the
 code head at test makes it auxiliary supervision rather than a new similarity
 operator. Candidate 151 is **DEAD**. Full audit:
 `docs/reopened_design_batch_150_151.md`.
+
+## 152. Cross-instance transformation algebra: group-action prior art
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The beneficial disconnected-class result and local MaxSim recovery motivated
+learning low-rank same-class transformation operators, enforcing composition
+over triples, and sharing transformation atoms across classes. VISALOGY already
+learns cross-image visual transformation analogies; SymReg (NeurIPS 2022)
+explicitly learns simple latent group actions for unknown input
+transformations; global temporal alignment uses cycle-consistent
+correspondence as representation supervision. The proposed cycle law and atom
+dictionary instantiate that established group-action operator rather than
+creating new supervision. Candidate 152 is **DEAD AT GATE 2**. Full audit:
+`docs/transformation_algebra_candidate.md`.

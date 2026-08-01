@@ -174,7 +174,7 @@ regularisation. Candidates 140--144 died before diagnostics or GPU work; see
 
 ## Decision
 
-There is no defensible candidate left under the current constraints after 151
+There is no defensible candidate left under the current constraints after 152
 documented candidates. Every
 candidate that survived provenance either failed a registered experiment or
 reduced, before GPU use, to an established operator with a new descriptor,
