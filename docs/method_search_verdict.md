@@ -1443,3 +1443,17 @@ itself, so the proposal lacks Gate-1 provenance. Independently, few-shot metric
 learning already uses episodic training on non-target classes (for example
 Channel-Rectifier Meta-Learning), while meta/factorized DML explicitly targets
 unseen-class generalization. Candidate 61 is **DEAD before preregistration**.
+
+## 62. Augmentation-commutator supervision: occupied transformation composition
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+ARCG's stable 0.3631--0.3640 response-graph density suggested measuring whether
+two controlled transformations have a reproducible order effect,
+`f(T1(T2(x))) - f(T2(T1(x)))`, and supervising that four-view commutator. This
+would expose factor interaction unavailable in static packs. But composable
+augmentation encoding (CATE) already represents sequences of augmentation
+parameterizations; class--pose decomposition and steerable equivariant learning
+supervise transformation group action; equivariant reconstruction explicitly
+handles combined augmentations. The commutator is a particular algebraic
+summary of composition inside that established operator. Candidate 62 is
+**DEAD AT GATE 2**.
