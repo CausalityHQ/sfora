@@ -2293,3 +2293,22 @@ connected; they evaluate on CUB, Cars196, and SOP. Replacing DELF or embedding
 distance with a new local-consistency statistic changes the edge estimator, not
 the discrete same-class eligibility mechanism. Candidate 133 is **DEAD AT GATE
 2**.
+
+## 134. Cross-trajectory consensus gating: teacher interaction selection
+
+**Gate-2 death recorded 2026-08-01; no diagnostic, implementation, or GPU.**
+The observed 1.08-point spread between nominally identical fixed-seed runs
+motivated training two independently initialized heads and retaining a labelled
+same-class edge only when both heads agree that it is positive. The intended
+observable was relation stability across optimization trajectories rather than
+hardness within one trajectory.
+
+The mechanism is occupied by co-teaching and, more directly, by Ibrahimi et al.,
+*Learning with Label Noise for Image Retrieval by Selecting Interactions*
+(WACV 2022). T-SINT uses a teacher-based setup to identify and exclude unreliable
+entries of the retrieval distance matrix, including positive and negative
+interactions. Noise-resistant DML also imports two-network co-teaching and
+ranking-based selection. Using head agreement instead of teacher confidence is
+an uncertainty estimator inside the same cross-model interaction-selection
+operator; it also adds training cost without identifying the source of this
+repository's between-trajectory variation. Candidate 134 is **DEAD AT GATE 2**.
