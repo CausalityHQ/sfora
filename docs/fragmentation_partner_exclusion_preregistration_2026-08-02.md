@@ -74,6 +74,19 @@ real fixed-data property, but the favourable outcome association was coupled
 to the retrieval estimator's trivial pair support. No additional seed or GPU
 work is warranted on this line, and candidates 185--198 remain dead.
 
+## Post-result identification correction
+
+An adversarial review after this locked result caught an important limit of the
+decision rule. Deleting the closest same-class partner does not vary estimator
+coupling alone: that partner is also the directed edge from which the
+symmetrized 1-NN fragmentation exposure is constructed. The control therefore
+removes both the shared measurement support and a real component of the
+exposure. The preregistered threshold passed as written, and the marker remains
+invalid provenance for a method, but the reversal must be interpreted as
+**unidentified, not refuted**. It cannot establish that fragmentation has a
+negative causal effect or that every part of the original positive association
+was mechanical.
+
 Immutable evidence:
 
 - analyzer SHA-256:

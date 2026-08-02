@@ -124,10 +124,14 @@ estimator: symmetrized 1-NN fragmentation and leave-one-out R@1 both depend on
 the query's closest same-class image. The preregistered test deleted that one
 partner per query while leaving exposure, covariates and matching unchanged.
 The seed-0 adjusted gap reversed from **+5.875** to **-3.910 points**
-(unadjusted **-2.240**) at the identical **60.43%** coverage. This closes the
-fragmentation association as method provenance. Cross-seed stability still
-shows that tight-pair structure is a reproducible data property, but it no
-longer supports a causal mode-preservation interpretation. Candidate 202's
+(unadjusted **-2.240**) at the identical **60.43%** coverage. A later
+adversarial review caught that this is an intentionally severe but not neutral
+control: deleting the closest same-class partner removes both the estimator
+overlap and the very graph edge that defines the exposure. The result therefore
+makes the favourable association **unidentified**, rather than proving its
+sign false. Cross-seed stability still shows that tight-pair structure is a
+reproducible data property, but neither the original nor partner-excluded
+estimand supports a causal mode-preservation interpretation. Candidate 202's
 support-multiplicity edit independently died at Gate 2 as positive mining over
 clustering-derived subidentities.
 

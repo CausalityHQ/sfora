@@ -3037,14 +3037,16 @@ soft form is positive weighting; and its worst-component form is group DRO.
 It does not introduce an observed supervision relation outside candidates
 185--198.
 
-The post-mortem also killed the motivating measurement rather than only the
-operator. Fragmentation exposure and leave-one-out R@1 shared the same nearest
+The post-mortem also invalidated the motivating measurement as causal
+provenance rather than only killing the operator. Fragmentation exposure and leave-one-out R@1 shared the same nearest
 same-class neighbour. In a preregistered CPU audit, deleting each query's
 nearest same-class partner reversed the locked adjusted gap from **+5.875** to
 **-3.910 points** (unadjusted **-2.240**) at unchanged **60.43%** matched
-coverage. Thus the stable graph property identifies fixed tight-pair structure,
-but its favourable retrieval association was estimator coupling, not evidence
-for mode-preserving supervision. Full audit:
+coverage. A subsequent adversarial review noted that this deletion removes both
+the shared estimator edge and a real part of the exposure, so it is an
+over-correction: the association is **unidentified, not refuted**. The stable
+graph property identifies fixed tight-pair structure, but it still supplies no
+identified evidence for mode-preserving supervision. Full audit:
 `docs/fragmentation_partner_exclusion_preregistration_2026-08-02.md`.
 
 ## Source-faithful Cars196 RS@k reference (not a numbered candidate)
@@ -3103,3 +3105,22 @@ The round's mechanism-level lesson is that cross-field imports now fail mainly
 because their required variable is not identified in the permitted data, not
 because the analogy lacks a name. Full audit:
 `docs/cross_field_candidate_batch_205_210_2026-08-02.md`.
+
+## 211--213. Adversarial supervision-object batch
+
+**All DEAD at Gate 2 on 2026-08-02; no implementation or GPU.** A controlled
+transform identity genuinely identifies intervention-corresponded quadruples,
+but enforcing equal displacement across two images is occupied cross-instance
+equivariance (AugSelf/EquiMod) and conflicts with ARCG's measured response
+disagreement (211). Treating a tight acquisition partner as a distinct relation
+type is DAMLRRM-style visual graph construction, graded supervision, or Easy
+Positive mining (212). Constraining the full image-to-proxy ownership matrix is
+balanced prototype assignment, multi-proxy assignment, or DADA distribution
+alignment (213).
+
+The audit corrected two inputs without reopening an operator. Use clean RSPG
+In-Shop density **8.66%**, not the contaminated partial-run **8.63%**. And the
+fragmentation partner-exclusion reversal makes the +5.875-point association
+**unidentified, not refuted**, because deleting the closest partner removes the
+edge defining the exposure as well as the shared outcome support. Full audit:
+`docs/adversarial_candidate_audit_211_213_2026-08-02.md`.
