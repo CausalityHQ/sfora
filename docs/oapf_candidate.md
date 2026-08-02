@@ -1,8 +1,11 @@
 # Candidate 174: orbit-adaptive potential fields (OAPF)
 
-Status: **Gate 2 narrowly live; Gate 1 diagnostic pending. No training arm is
-authorised.** This record was written before any OAPF diagnostic or retrieval
-result.
+Status: **DEAD before the Gate-1 diagnostic; no implementation or OAPF GPU.**
+The initial record below was written before any OAPF diagnostic or retrieval
+result. An independent adversarial preregistration review then found that the
+proposed diagnostic could not distinguish the surviving composition claim from
+ordinary uncertainty without inventing a control the retained model does not
+provide.
 
 ## Mechanism and measured provenance
 
@@ -102,6 +105,41 @@ but must not inspect In-Shop query/gallery retrieval. Its purpose is to decide
 whether augmentation orbit extent carries a distinct source-scale signal or is
 merely a noisy proxy for ordinary uncertainty and density.
 
+## Adversarial diagnostic verdict: not identifiable
+
+This section was recorded before implementing or running the diagnostic. The
+review found that the conditions above are not an executable preregistration:
+
+1. “held-out cross-view pair stability” did not define a binary outcome, pair
+   population, class weighting, or fold construction, so its AUC and effect size
+   were undefined;
+2. the retained BN-Inception model contains no dropout, and only one independent
+   epoch-10 checkpoint exists, so a faithful SER-FIQ-style stochastic-model
+   dispersion control cannot be computed; reusing input-augmentation dispersion
+   as that control would be circular because it is OAPF's radius;
+3. the proposed inverse-radius AUC test is algebraically void for an
+   unconstrained linear/logistic model: `log(1 / r) = -log(r)`, so the fitted
+   coefficient changes sign and predictions are identical;
+4. permutation scope was unspecified; a global permutation would not control
+   class and acquisition confounding;
+5. the two augmentation distributions and seeds were unspecified;
+6. cosine displacement and PFML's normalized-Euclidean distance use different
+   units (`d_euclidean = sqrt(2 * d_cosine)`), and no fixed map from the measured
+   radius to PFML's `delta` was registered; and
+7. the distance-decile sign, standardizer, and aggregation were undefined.
+
+These are not formatting defects. Defining a target by thresholding held-out
+augmentation radii would merely prove radius reproducibility. Injecting dropout
+into a model that was not trained with it would create an arbitrary control.
+Choosing a held-out pair-stability target and a radius-to-`delta` map now would
+create the very researcher degrees of freedom the protocol exists to prevent.
+
+Candidate 174 is therefore **dead at Gate 1/diagnostic specification**. The
+mechanism cannot presently be separated from established perturbation-derived
+quality/uncertainty scaling using the measurements and retained artifacts in
+this repository. No OAPF implementation, retrieval preregistration, or GPU run
+is warranted.
+
 ## Fatal-risk hypothesis and next decision
 
 A large orbit can mean legitimate semantic tolerance, but it can also mean a
@@ -111,7 +149,8 @@ corrective attraction, and stay unstable. If the inverse direction wins, or if
 quality/density controls absorb the signal, record candidate 174 dead at Gate 1
 and spend no training GPU.
 
-Only a diagnostic pass permits a numerical retrieval preregistration. Required
+Only a diagnostic pass would have permitted a numerical retrieval
+preregistration. Required
 controls then include fixed-bandwidth PFML, kNN self-tuning bandwidth,
 PFE/IDML- or ScaleFace-style quality scaling, ScoreCL-style augmentation
 weighting, permuted and inverted radii, and hard SOCPG. OAPF must beat every

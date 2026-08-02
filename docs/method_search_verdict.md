@@ -2654,9 +2654,9 @@ Expansion, and fine-grained intra-class part swapping unless causal parts are
 independently observed. Full audit:
 `docs/cross_domain_relations_audit_170_173.md`.
 
-## 174. Orbit-adaptive potential fields: narrowly live pending provenance diagnostic
+## 174. Orbit-adaptive potential fields: unidentifiable from uncertainty
 
-**Gate 2 narrowly live; no training arm authorised.** ARCG measured a selective,
+**Dead before Gate-1 diagnostic; no implementation or OAPF GPU.** ARCG measured a selective,
 non-distance augmentation-response graph on In-Shop but showed that hard
 positive replacement self-erases. Candidate 174 transfers each image's measured
 augmentation displacement into that image's PFML zero-force plateau when it
@@ -2668,7 +2668,18 @@ supply endpoint-local scales, PFE/IDML/ScaleFace supply endpoint uncertainty,
 SER-FIQ supplies perturbation dispersion as quality, and ScoreCL supplies
 augmentation-change weighting. Its largest risk is a sign/feedback defect:
 large displacement may mean instability, so a larger plateau removes precisely
-the corrective attraction the image needs. Candidate 174 proceeds only to the
-training-only, epoch-10 In-Shop diagnostic in `docs/oapf_candidate.md`; failure
-against density, uncertainty, inverse-radius, or permutation controls kills it
-at Gate 1 without a retrieval run.
+the corrective attraction the image needs.
+
+An adversarial review killed the proposed diagnostic before execution. Its
+held-out outcome, pair weighting, augmentation packs, units, and radius-to-PFML
+mapping were undefined. More decisively, BN-Inception has no dropout and only
+one independent epoch-10 checkpoint was retained, so the radius cannot be
+distinguished from SER-FIQ-style perturbation uncertainty without circularly
+reusing the same augmentation dispersion or inventing a stochastic model. The
+inverse-radius AUC control was also mathematically vacuous because
+`log(1/r) = -log(r)` under an unconstrained fitted model. Candidate 174 is
+**DEAD AT GATE 1/DIAGNOSTIC SPECIFICATION**. The process lesson is that an
+impressive list of thresholds does not identify a diagnostic: every outcome,
+nuisance control, unit conversion, permutation scope, and parameter map must
+exist independently of the candidate statistic. Full record:
+`docs/oapf_candidate.md`.
