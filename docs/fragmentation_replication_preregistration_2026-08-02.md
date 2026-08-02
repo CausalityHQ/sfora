@@ -44,3 +44,28 @@ supervision operator and prospective prediction.
 
 Expected incremental cost after the active Cars reference: roughly 20 minutes
 per seed plus CPU-only graph analysis.
+
+## Execution provenance correction (2026-08-02, before a new artifact existed)
+
+The first controller draft compared the final modified-recipe digest to
+`1ae133...`, copied from the later ARCG seed-0 checkpoint report. The actual
+hypothesis-generating embedding pack was written by
+`rspg_inshop_epoch10_operating_export.json`, whose digest is `6bb9cf...`.
+Those two seed-0 configs differ only in inactive `rspg_control` and runtime output
+paths, yet their digests differ because modified-recipe hashing includes runtime
+configuration. Current schema additions also change that hash without changing
+Proxy Anchor behavior. A full-digest equality rule therefore cannot establish
+the preregistered invariant.
+
+Before either new seed produced an artifact, the controller was corrected to
+compare the behavior-bearing training fields directly against the actual
+hypothesis-generating seed-0 report: backbone/head, optimizer and schedule,
+batch/sampling, augmentation, BatchNorm, Proxy Anchor parameters, epochs/steps,
+determinism, objective, and source revision. Runtime paths, seed, and schema-only
+inactive fields do not substitute for that comparison. The controller reports
+both digests and hashes the seed-0 report alongside every new pack.
+
+Two short seed-1 attempts were stopped during this audit at about step 200 and
+step 100 respectively. Neither wrote a pack, report, or checkpoint; neither is a
+result. The missing In-Shop root in the initial controller was also corrected
+before any artifact existed.
