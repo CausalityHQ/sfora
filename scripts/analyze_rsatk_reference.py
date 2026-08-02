@@ -10,7 +10,6 @@ from typing import Any
 
 from sfora.image_recipes import recipe_digest, reference_recipe
 
-
 EXPECTED_DATASET = "cars"
 EXPECTED_OBJECTIVE = "recall_at_k_surrogate"
 EXPECTED_EPOCHS = 170
