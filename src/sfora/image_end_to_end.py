@@ -7460,6 +7460,11 @@ def _to_payload(result: ImageEndToEndResult) -> dict[str, Any]:
                 "recall_at_8": metrics.recall_at_8,
                 "map_at_r": metrics.map_at_r,
                 "loss_history": metrics.loss_history,
+                # `config.train_steps` can be a CLI-side display estimate when an
+                # epoch-based sampler derives its authoritative schedule from the
+                # post-split class counts. Persist what actually executed beside
+                # the trajectory so artifacts remain self-describing.
+                "executed_train_steps": len(metrics.loss_history),
                 "interference": metrics.interference,
                 "train_interference": metrics.train_interference,
                 "gsi_diagnostics": metrics.gsi_diagnostics,

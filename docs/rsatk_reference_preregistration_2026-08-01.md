@@ -191,6 +191,18 @@ Immutable evidence:
 - strict analysis JSON SHA-256:
   `57e8969635a647652d1de2f49de5f8acd57649ff7ed22e936d6d71f5e538a229`.
 
+Post-result inspection found a metadata-only inconsistency:
+`config.train_steps` retained the CLI's 3,570-step display estimate even though
+the source-exhaustive runtime executed 2,380 updates. The artifact's complete
+`loss_history` has exactly **2,380** entries and the logs independently end at
+step 2,380, so this did not affect the run. Serialization now emits
+`executed_train_steps` beside each method, and the strict analyzer now requires
+the 2,380-entry trajectory. Reanalysis of the immutable artifact under that
+stronger check passed and produced SHA-256
+`a2c0724b828a23e86cd6ae9316d2a41b357ddde4c11640f7d0a9fa7d3353e132`
+(analyzer SHA-256
+`47d1da99f07dc83c5935a64a3a237e035231785ade7859bc6cac66ead11d4c0d`).
+
 The result establishes an occupied, stronger Cars196 reference under a
 source-faithful recipe. It is not a novel-method result and authorizes no RS@k
 extension; candidates 199 and 200 already failed Gate 2.

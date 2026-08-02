@@ -38,6 +38,8 @@ def _payload(*, evaluations: int = 35) -> dict[str, object]:
                 "best_test_recall_at_1": 0.807,
                 "best_test_retrieval": best,
                 "retrieval": retrieval,
+                "loss_history": [0.5] * 2380,
+                "executed_train_steps": 2380,
                 "test_recall_history": history,
             }
         },
@@ -62,4 +64,11 @@ def test_analyze_refuses_wrong_digest() -> None:
     payload = _payload()
     payload["config"]["recipe_digest"] = "wrong"  # type: ignore[index]
     with pytest.raises(ValueError, match="recipe_digest"):
+        _MODULE.analyze(payload)
+
+
+def test_analyze_refuses_wrong_executed_step_count() -> None:
+    payload = _payload()
+    payload["methods"]["rsatk"]["loss_history"] = [0.5] * 2379  # type: ignore[index]
+    with pytest.raises(ValueError, match="2380 executed updates"):
         _MODULE.analyze(payload)

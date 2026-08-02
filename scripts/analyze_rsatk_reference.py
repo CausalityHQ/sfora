@@ -13,6 +13,7 @@ from sfora.image_recipes import recipe_digest, reference_recipe
 EXPECTED_DATASET = "cars"
 EXPECTED_OBJECTIVE = "recall_at_k_surrogate"
 EXPECTED_EPOCHS = 170
+EXPECTED_TRAIN_STEPS = 2380
 EXPECTED_EVALUATION_EPOCHS = (*range(1, 167, 5), 170)
 PREDICTED_LOW = 0.787
 PREDICTED_HIGH = 0.827
@@ -55,6 +56,18 @@ def analyze(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         method = next(iter(methods.values()))
     history = [float(x) for x in method.get("test_recall_history") or []]
+    loss_history = [float(x) for x in method.get("loss_history") or []]
+    executed_train_steps = method.get("executed_train_steps")
+    if len(loss_history) != EXPECTED_TRAIN_STEPS:
+        errors.append(
+            f"loss_history must prove {EXPECTED_TRAIN_STEPS} executed updates, "
+            f"found {len(loss_history)}"
+        )
+    if executed_train_steps is not None and executed_train_steps != EXPECTED_TRAIN_STEPS:
+        errors.append(
+            f"executed_train_steps must be {EXPECTED_TRAIN_STEPS}, "
+            f"found {executed_train_steps}"
+        )
     if len(history) != len(EXPECTED_EVALUATION_EPOCHS):
         errors.append(
             "test_recall_history must contain "
@@ -93,6 +106,7 @@ def analyze(payload: dict[str, Any]) -> dict[str, Any]:
         "recipe_digest": expected_digest,
         "seed": 0,
         "epochs": EXPECTED_EPOCHS,
+        "executed_train_steps": len(loss_history),
         "best_epoch": expected_best_epoch,
         "raw_best_r@1": raw,
         "selection_corrected_r@1": corrected,
