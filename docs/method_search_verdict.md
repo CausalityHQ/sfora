@@ -2653,3 +2653,22 @@ Counterfactual part transplantation is Metrix-style mixed-target DML, Embedding
 Expansion, and fine-grained intra-class part swapping unless causal parts are
 independently observed. Full audit:
 `docs/cross_domain_relations_audit_170_173.md`.
+
+## 174. Orbit-adaptive potential fields: narrowly live pending provenance diagnostic
+
+**Gate 2 narrowly live; no training arm authorised.** ARCG measured a selective,
+non-distance augmentation-response graph on In-Shop but showed that hard
+positive replacement self-erases. Candidate 174 transfers each image's measured
+augmentation displacement into that image's PFML zero-force plateau when it
+acts on a different same-class image, while retaining PFML's proxy field.
+
+The exact composition was not found in the two adversarial prior-art passes, but
+all of its pieces are crowded: PFML supplies the field, self-tuning kernels
+supply endpoint-local scales, PFE/IDML/ScaleFace supply endpoint uncertainty,
+SER-FIQ supplies perturbation dispersion as quality, and ScoreCL supplies
+augmentation-change weighting. Its largest risk is a sign/feedback defect:
+large displacement may mean instability, so a larger plateau removes precisely
+the corrective attraction the image needs. Candidate 174 proceeds only to the
+training-only, epoch-10 In-Shop diagnostic in `docs/oapf_candidate.md`; failure
+against density, uncertainty, inverse-radius, or permutation controls kills it
+at Gate 1 without a retrieval run.
