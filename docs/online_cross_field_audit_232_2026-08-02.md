@@ -1,0 +1,96 @@
+# Online cross-field audit 232: intervention-redundant codes and frequency attribution
+
+Date: 2026-08-02. Online sources were inspected before method implementation or
+GPU use.
+
+## Sources that materially changed the boundary
+
+- Yuan et al., *CouCE: A Unified Causal Framework for Debiased Deep Metric
+  Learning* (arXiv:2606.30365, 2026) applies multiband feature-space Fourier
+  amplitude randomization, stop-gradient KL consistency over proxy rankings, a
+  variance-gated EMA dictionary, and soft orthogonality on CUB, Cars and SOP.
+  It claims single-run gains but reports no random-seed count or uncertainty.
+- Mohamadi et al., *Rethinking Self-Supervised Learning Within the Framework of
+  Partial Information Decomposition* (arXiv:2412.02121, 2024) explicitly routes
+  redundant/unique information components into SSL.
+- Halder et al., *Learning Invariant Graph Representations Through Redundant
+  Information* (arXiv:2512.06154, 2025) uses PID redundancy for OOD invariance.
+- Wen et al., *InfMasking* (NeurIPS 2025, arXiv:2509.25270) uses stochastic
+  masking to expose synergistic multimodal information.
+- de Andrade et al., *Lossy Common Information in a Learnable Gray-Wyner
+  Network* (arXiv:2601.21424, 2026) separates common and task-private codes.
+- Wang et al., *Adversarial Reconstruction Feedback for Robust Fine-grained
+  Generalization* (ICCV 2025, arXiv:2507.21742) already uses reconstruction
+  feedback and distillation to build category-agnostic retrieval features.
+
+These sources reopen causal *measurement*, but they close the obvious method
+combinations.
+
+## Candidate: intervention-redundant metric code (IRMC)
+
+IRMC proposed a deployed common code plus private codes for a clean feature and
+a Fourier-intervened feature. A PID/Gray-Wyner objective would retain in the
+common code only class information predictable from both views, while private
+codes explained intervention-specific residuals.
+
+**DEAD at Gates 1 and 2.** The In-Shop acquisition audit identifies a session
+shortcut but explicitly does not identify its pixel carrier; assuming Fourier
+amplitude is therefore unmatched provenance. The tractable objective is also
+only
+
+```
+proxy loss on clean/intervened common codes
++ cross-view alignment
++ shared/private reconstruction
++ common/private orthogonality.
+```
+
+Those are Fourier augmentation (FDA/FACT/APR and CouCE), view consistency,
+shared-private autoencoding, and disentanglement. PID supplies an interpretation,
+not an executable residual term. Because the intervened view is a degraded
+function of the clean image, its unique label information and clean/intervened
+synergy are expected to be negligible; “redundant label information” collapses
+to the label information that survives the intervention—ordinary invariance.
+Multi-View Information Bottleneck, Domain Separation Networks, DCCA/DCCAE, and
+the recent PID sources occupy the mechanism. No GPU method run follows.
+
+## Preregistered diagnostic: acquisition-band attribution
+
+CouCE's multiband intervention is useful as an **attribution instrument**. The
+missing Gate-1 fact is whether a specific Fourier band actually carries the
+measured In-Shop acquisition gap.
+
+Use only the official In-Shop training split and the digest-pinned seed-0 Proxy
+Anchor epoch-10/step-1,440 checkpoint already used by ARCG/OAPF. Resize to 256,
+centre-crop to 224, and operate in RGB before BN-Inception BGR normalization.
+For every image choose one deterministic (`seed=232`) donor having a different
+class and acquisition series. Preserve source phase and replace donor amplitude
+in exactly one of three radial bands, with normalized radii `[0,1/3)`,
+`[1/3,2/3)`, and `[2/3,1]`. No strength, band edge, or donor is tuned.
+
+For the canonical image and each band intervention report:
+
+1. same-class same-series and cross-series mean cosine and their gap;
+2. ordinary training leave-one-out R@1; and
+3. cross-series-only R@1 on queries whose class has another series.
+
+The baseline is recomputed in the same run; the historical checks are gap
+`0.1804`, ordinary R@1 `0.9382`, and cross-series R@1 `0.5542`.
+
+### Locked decision
+
+Prediction: the middle or high band reduces the acquisition gap by at least
+**30%**, while cross-series R@1 falls by no more than **1.0 point** and ordinary
+R@1 falls by no more than **2.0 points** relative to the same-run baseline.
+
+- **PASS:** at least one band meets all three conditions above.
+- **FAIL:** every band reduces the gap by at most **10%**, or every band reaching
+  30% reduction lowers cross-series R@1 by at least **3.0 points**.
+- Anything else is **inconclusive** and authorizes no method.
+
+A pass identifies a pixel carrier but does not make band randomization novel;
+FDA/FACT/APR and CouCE remain prior art. It authorizes a new Gate-2 search for an
+operator whose use of the identified band is not augmentation or consistency.
+A fail closes the frequency-carrier premise by measurement. This diagnostic is
+training-only and cannot produce a benchmark claim.
+
