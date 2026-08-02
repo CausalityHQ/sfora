@@ -34,3 +34,8 @@ def test_fiedler_arm_pairs_with_ipc4_sampler_control() -> None:
     assert _module.ARMS["pa_ipc4"] == ("proxy_anchor", "pa_ipc4")
     assert _module.ARMS["pa_fiedler"] == ("proxy_anchor", "pa_fiedler")
     assert _module.BASE_OF["pa_fiedler"] == "pa_ipc4"
+
+
+def test_rsatk_is_a_standalone_reference_arm() -> None:
+    assert _module.ARMS["rsatk"] == ("recall_at_k_surrogate", "auto")
+    assert "rsatk" not in _module.BASE_OF

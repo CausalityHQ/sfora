@@ -33,11 +33,13 @@ from itertools import product
 from pathlib import Path
 from typing import Literal, cast
 
-BaseMethodName = Literal["proxy_anchor", "hist"]
+BaseMethodName = Literal["proxy_anchor", "hist", "recall_at_k_surrogate"]
 
 # Every arm we know how to score: arm -> (base method, recipe selector).
 # `auto` resolves to the untouched reference recipe, everything else to a derived one.
 ARMS: dict[str, tuple[BaseMethodName, str]] = {
+    # Strong modern reference. It is standalone, not a paired intervention.
+    "rsatk": ("recall_at_k_surrogate", "auto"),
     "proxy_anchor": ("proxy_anchor", "auto"),
     "pa_distill": ("proxy_anchor", "pa_distill"),
     "pa_distill_bnfix": ("proxy_anchor", "pa_distill_bnfix"),
