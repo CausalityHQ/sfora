@@ -489,7 +489,7 @@ def config_for_protocol(
             lr_step_epochs=5 if dataset_name == "cub" else 10,
             lr_gamma=0.5,
             samples_per_class=4,
-            train_augmentation="full_res_crop",
+            train_augmentation="standard",
             pretrained_weights="v1",
             head_pooling="avg",
             embedding_head_init="default",

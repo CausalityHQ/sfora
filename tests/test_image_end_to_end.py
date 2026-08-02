@@ -1383,6 +1383,7 @@ def test_pfml_protocol_uses_repaired_resnet50_512_defaults() -> None:
     assert config.lr_gamma == pytest.approx(0.5)
     assert config.train_epochs == 200
     assert config.samples_per_class == 4
+    assert config.train_augmentation == "standard"
     assert config.batch_size == 100
     assert config.pretrained_weights == "v1"
     assert config.head_pooling == "avg"
