@@ -3309,3 +3309,24 @@ cross-seed residual-Gram diagnostic was also rejected before execution because
 any positive result feeds an already-occupied pair weight/gate/agreement loss;
 no outcome authorizes a new operator. Full audit:
 `docs/location_dependent_nuisance_audit_226_2026-08-02.md`.
+
+## 227. Cross-instance masked completion
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** The
+In-Shop `0.8199` within- versus `0.6396` cross-acquisition gap and 90.90%
+same-acquisition NN rate motivated conditioning a masked-token decoder on a
+stop-gradient second same-class image. CroCo (Weinzaepfel et al., NeurIPS 2022)
+is the cross-view completion architecture; CrossTransformers (Doersch et al.,
+NeurIPS 2020) reconstructs query tokens from same-class support tokens; and
+occluded-re-ID feature completion already uses other observations of an identity
+to complete missing region features.
+
+With stopped context and a discarded decoder, the objective's only addition
+over latent masked modeling is `I(T_masked; f(x_j) | T_visible)`: cross-image
+feature regression through learned regional weights. It is greatest for the
+same-acquisition pairs that embody the diagnosed nuisance. Cross-acquisition
+sampling drives it toward ordinary single-image masked modeling; on CUB, where
+a species class is not one physical instance, image-specific missing content is
+unpredictable and the MSE optimum becomes a class-conditional token mean. The
+method therefore cannot fix the measured shortcut and transfer across the
+required datasets. Full audit: `docs/cimc_audit_227_2026-08-02.md`.
