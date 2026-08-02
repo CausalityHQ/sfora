@@ -1,5 +1,16 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-02 addendum: DADA matched-cost reference
+
+Ren et al., DADA (AAAI 2024), was missing from the first inventory. Its
+PA+DADA ResNet-50/512, ImageNet-1k, single-view results are **72.9 CUB, 92.1
+Cars196, 81.0 SOP, and 93.0 In-Shop R@1**, at a reported ~6% epoch-time and
+~1% memory increase over PA. It does not raise the overall VAPNet/AdvRF/PFML
+horizon, but it is the strongest directly relevant cheap proxy-alignment
+reference. The paper reports no seed count or uncertainty, borrows its headline
+PA baseline from HIST, and gives a lower PA reproduction in its own ablation.
+See `docs/dada_primary_audit_2026-08-02.md`.
+
 Date: 2026-08-01. Initiated as a web-enabled Claude review and independently
 checked against primary sources before recording conclusions.
 

@@ -977,7 +977,10 @@ only 65.308% of images score their own proxy highest. MOPC would impose a
 centroid-side reciprocal ownership margin without pulling individual samples to
 the centre. Robust Calibrate Proxy Loss already uses real sample information
 and a calibration loss to move proxies toward class feature centres, and
-Proxy-AN covers the sample-centric/proxy-centric distinction. Reciprocal
+Proxy-AN covers the sample-centric/proxy-centric distinction. DADA (Ren et al.,
+AAAI 2024) is the more direct distribution-level occupant: it adversarially
+aligns sample and proxy populations and enforces category-posterior agreement
+between them, using feature mixtures as an intermediate domain. Reciprocal
 Voronoi phrasing is not a new mechanism. Candidate 31 is **DEAD at Gate 2**.
 
 ## 32. Rooted factor spanning supervision: occupied by DAMLRRM

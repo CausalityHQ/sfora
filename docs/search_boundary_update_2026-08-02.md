@@ -177,3 +177,10 @@ Proxy Synthesis was also rechecked directly. It explicitly creates synthetic
 embeddings **and proxies** that act as synthetic classes and mimic unseen
 classes inside proxy losses. Thus the virtual/reserved-class closures used for
 candidates 208 and 210 are accurate rather than an overbroad citation.
+
+**DADA horizon/prior update.** DADA (Ren et al., AAAI 2024) reports a cheap
+ResNet-50/512 proxy-alignment intervention at **72.9 CUB / 92.1 Cars / 81.0 SOP
+/ 93.0 In-Shop**, though with no seeds or uncertainty and inconsistent PA
+baseline sourcing. It does not raise the general ceiling, but directly occupies
+the distributional proxy/sample-alignment residue behind the 99.975%/70.303%
+ownership asymmetry. Candidate 31's closure is strengthened, not reopened.
