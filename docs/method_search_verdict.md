@@ -3291,3 +3291,21 @@ between-identity variation on another. This supplies measurement-based closure
 of the linear transferable-nuisance-subspace route; the lower permuted-label
 ratios do not rescue a statistic below one. Full preregistration, audit, hashes,
 and result: `docs/candidate_225_nuisance_transfer_preregistration_2026-08-02.md`.
+
+## 226. Location-dependent nuisance field
+
+**DEAD before Gate 3 on 2026-08-02; no diagnostic, implementation, or GPU.**
+Candidate 225's `rho_32 = 0.9312, 0.9287, 0.9345` does not positively motivate
+replacing a failed global subspace with a location-dependent one; all values are
+below the random-subspace baseline. The real-label advantage over the permuted
+control is the expected consequence of class centering, not residual evidence
+for a field. Gate 1 fails.
+
+Independently, contracting a learned tangent field is Tangent Prop/Manifold
+Tangent Classifier, using it to precondition updates is local/Riemannian metric
+learning, and applying it to the deployed vector is nonlinear nuisance
+projection. The only claimed difference is the covariance estimator. A proposed
+cross-seed residual-Gram diagnostic was also rejected before execution because
+any positive result feeds an already-occupied pair weight/gate/agreement loss;
+no outcome authorizes a new operator. Full audit:
+`docs/location_dependent_nuisance_audit_226_2026-08-02.md`.
