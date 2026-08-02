@@ -36,3 +36,10 @@ not new information; it knowingly injects false-negative labels determined by
 the current embedding. A parent-identity loss added back would turn the method
 into hierarchical/subcentre DML. Therefore even a clean replication of the
 fragmentation marker cannot authorize this operator.
+
+An independent bounded Claude review, run after this death was written but
+before either replication seed existed, reached the same mechanism verdict. It
+identified the 1-NN graph as a different component detector rather than a new
+interaction: downstream supervision is still hierarchical/subcentre
+pseudo-labelling, and explicit between-component repulsion is clustering-derived
+hard-negative supervision that contradicts the known parent label.
