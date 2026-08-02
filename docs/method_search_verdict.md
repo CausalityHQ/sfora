@@ -3330,3 +3330,21 @@ a species class is not one physical instance, image-specific missing content is
 unpredictable and the MSE optimum becomes a class-conditional token mean. The
 method therefore cannot fix the measured shortcut and transfer across the
 required datasets. Full audit: `docs/cimc_audit_227_2026-08-02.md`.
+
+## 228. Class-disjoint meta-update supervision
+
+**DEAD at Gates 1 and 2 on 2026-08-02; no diagnostic, implementation, or GPU.**
+The proxy-ownership numbers are within-train calibration associations; none
+measures transfer of an update between disjoint identity sets, so Gate 1 does
+not motivate the claimed object. Algebra independently kills it:
+`L_B(theta-eta grad L_A) = L_B(theta) - eta <grad L_B,grad L_A> + O(eta^2)`.
+Beyond ordinary `PA(A)+ranking(B)`, the only new leading-order term is the
+MLDG/Reptile/Fish gradient-alignment regularizer. Keeping it requires the
+meta-gradient/HVP; dropping it for a cheap first-order implementation removes
+the mechanism and leaves an occupied proxy-plus-listwise hybrid.
+
+Disjoint-label DML meta-episodes are themselves occupied by Chen et al.,
+*Deep Metric Learning with Adaptively Composite Dynamic Constraints* (TNNLS
+2023), and adjacent MASF, M3L, and PADS work. Candidate 61 in this repository
+already died on pseudo-seen/pseudo-unseen identity episodes. Full audit:
+`docs/class_disjoint_meta_update_audit_228_2026-08-02.md`.
