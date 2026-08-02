@@ -2808,3 +2808,21 @@ but this is still observational and in-sample. It strengthens the measured
 phenomenon, not candidate 185's occupied operator. Independent seeds 1 and 2
 remain pending. Full record:
 `docs/fragmentation_confounding_preregistration_2026-08-02.md`.
+
+## 186. Within-class subspace protection: occupied gradient surgery
+
+**Gate-2 death recorded 2026-08-02; no implementation or candidate GPU.** The
+adjusted In-Shop fragmentation gap (+5.875 points) motivated protecting measured
+within-class modes from proxy attraction. Projecting only the attractive gradient
+through the complement of a class covariance basis, however, is ordinary
+orthogonal gradient projection with a class-conditional estimator. On normalized
+embeddings it reduces, up to a radial term, to a projected positive proxy: either
+a conservative low-rank class metric or non-conservative selective gradient
+surgery. OGD/GPM occupy
+protected-subspace projection (GPM obtains bases by SVD of representations),
+PCGrad occupies loss-component gradient surgery, NIR already targets proxy-induced
+loss of non-isotropic class-local structure, and Easy Positive already loosens
+same-class collapse. It also repeats candidate 176 with class PCA substituted for
+augmentation tangents. Every labelled relation remains unchanged. The composition
+therefore changes optimization geometry, not what supervision exists. Full audit:
+`docs/within_class_subspace_protection_audit_2026-08-02.md`.
