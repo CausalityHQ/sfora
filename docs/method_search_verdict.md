@@ -2773,3 +2773,15 @@ attraction region, chance-constrained DML's class-proxy covering radii, and
 non-isotropic probabilistic proxy DML already occupy class-specific feasible
 spread around proxies. The shell changes constraint geometry, not the labelled
 relation. Audit: `docs/post_oapf_candidate_batch_2026-08-02.md`.
+
+## 184. Reciprocal proxy ownership: symmetric proxy/centroid cross-entropy
+
+**Algebraic Gate-2 death recorded 2026-08-02; no implementation or candidate
+GPU.** The motivating In-Shop asymmetry is real: proxy-to-own-centroid ownership
+is 99.975%, centroid-to-own-proxy ownership 70.303%, and the image-level
+ownership split carries a 7.91-point leave-one-out R@1 gap. But proxy-to-centroid
+ranking is Proxy Anchor aggregated by class, while centroid-to-proxy ranking is
+Proxy-NCA/class softmax applied to a centroid. Their reciprocal sum is symmetric
+cross-entropy on the same similarity matrix; leave-one-out changes only the
+centroid estimator. Claude's initial live verdict is rejected on this algebra.
+Full audit: `docs/reciprocal_proxy_ownership_audit_2026-08-02.md`.
