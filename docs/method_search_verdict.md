@@ -3348,3 +3348,27 @@ Disjoint-label DML meta-episodes are themselves occupied by Chen et al.,
 2023), and adjacent MASF, M3L, and PADS work. Candidate 61 in this repository
 already died on pseudo-seen/pseudo-unseen identity episodes. Full audit:
 `docs/class_disjoint_meta_update_audit_228_2026-08-02.md`.
+
+## 229. Invariant output-space operator boundary
+
+**No candidate survives; recorded on 2026-08-02 without diagnostic,
+implementation, or GPU.** A corrected invariant-theory argument gives a precise
+reopening rule. If `U` includes every gauge-covariant vector read by an
+orthogonally equivariant training operator—embeddings, augmented views, memory,
+teachers, and proxies—then its update is
+`V_i=sum_j W_ij(Gram(U),Y)U_j`. Villar et al., *Scalars are universal* (NeurIPS
+2021) establishes the relevant representation family; this is not a new theorem.
+The batch-only version is false because Proxy Anchor gradients can use proxy
+directions outside the batch span.
+
+The statement is a conservation law, not a prior-art proof: when the node set
+spans 512 dimensions it is vacuous, `W` is non-unique, and infinitely many
+global dynamics share the form. It therefore cannot replace specific
+mechanism-level audits or be used to declare every Gram loss non-novel. Its valid
+use is narrower: a reopening must name a new gauge-covariant node/observed
+relation or a concrete coefficient rule with unoccupied information and
+dynamics. Determinants, volumes, hypergraphs, transport, persistence, and rank
+aggregates do not satisfy that condition merely by being higher-order. Under the
+current data, deployment, cost, measurements, and literature, no remaining
+escape class is both unoccupied and motivated. Full boundary and caveats:
+`docs/invariant_operator_boundary_229_2026-08-02.md`.
