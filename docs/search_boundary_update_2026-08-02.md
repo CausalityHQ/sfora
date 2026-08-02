@@ -157,3 +157,11 @@ equalizes every pair's inclusion probability; removing realized-count variance
 is an objective inside GCBS's occupied global batch-assignment mechanism and
 the established combinatorial-design move of balancing random neural-training
 edges. No coverage diagnostic or GPU run followed.
+
+**Cross-field batch 205--210.** Information coding, Rasch psychometrics,
+proximal causal inference, Good--Turing ecology, fractional-factorial design,
+and perceptual binding yielded no survivor. The strongest new algebraic result
+is that invariant proxy comparisons are TIRD's double-centred interaction with
+the sign reversed into a regularizer; TIRD already lost **7.237 points**. The
+causal/ecological imports failed identification or arithmetic before prior art.
+No candidate reached preregistration.

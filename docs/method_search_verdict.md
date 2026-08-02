@@ -3077,3 +3077,20 @@ training; incomplete-U-statistic work formalizes pair-selection designs for
 metric-learning ERM. Cross-epoch statefulness is an application-level residue,
 not a defensible new mechanism. Full audit:
 `docs/pair_coverage_batch_design_audit_2026-08-02.md`.
+
+## 205--210. Cross-field supervision batch
+
+**All DEAD before Gate 3 on 2026-08-02; no diagnostic, implementation, or
+GPU.** Conditional-rate coding reduces to multi-view information bottleneck,
+class compression, or mined pairing (205). Rasch specific objectivity is the
+same double-centred interaction that TIRD lost **7.237 points** on (206).
+Proximal causal controls are unidentified under pixels plus class labels (207).
+Good--Turing reserves only **0.18--0.30%** mass and then becomes Proxy Synthesis
+(208). Fractional-factorial augmentation is an estimator for the already tried
+augmentation-response displacement at about 16x cost (209). Binding-error
+composites combine Metrix/CutMix with Proxy Synthesis or uniformity (210).
+
+The round's mechanism-level lesson is that cross-field imports now fail mainly
+because their required variable is not identified in the permitted data, not
+because the analogy lacks a name. Full audit:
+`docs/cross_field_candidate_batch_205_210_2026-08-02.md`.
