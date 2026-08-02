@@ -2973,3 +2973,15 @@ series structure recovered by the fragmented graphs. This explains why raw
 training leave-one-out is a poor causal outcome for cross-series invariance. It
 does not authorize exploiting filenames: such a method would be benchmark-
 specific hierarchy/mining and fail the protocol's second-dataset requirement.
+
+## 199. Existential Recall@k: Easy Positive over a smooth rank
+
+**DEAD at Gate 2 on 2026-08-02; no implementation or GPU.** RS@k's positive-
+count target differs from benchmark any-positive success, motivating a noisy-OR
+over positive rank events. In the zero-temperature limit that operator is
+`min_positive rank`: the easiest positive alone satisfies the query. Xuan et
+al.'s Easy Positive already proposes exactly that loosened same-class relation
+to prevent class collapse. Applying it to Patel et al.'s differentiable rank at
+multiple k values is a composition of occupied positive mining and an occupied
+surrogate, not a new supervision primitive. Full audit:
+`docs/existential_recall_audit_2026-08-02.md`.
