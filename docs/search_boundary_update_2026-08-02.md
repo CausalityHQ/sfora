@@ -140,3 +140,12 @@ matched architecture outputs exactly, and found no remaining recipe mismatch.
 This establishes a stronger occupied Cars reference but exposes no new
 supervision variable; the previously considered existential and first-hit
 extensions remain Easy Positive/listwise reparameterizations.
+
+**Post-RS@k candidate audit.** Aggregate interference ratios, the R@k curve and
+the full scalar loss trajectory yielded no Gate-2-surviving supervision
+relation. Candidate 203's balanced co-occurrence design failed earlier at Gate
+1: within-epoch loss variance confounds random transforms, parameter movement,
+CUDA nondeterminism and batch composition, so it cannot establish sensitivity
+to the co-occurrence partition. The proposed CPU decomposition was deliberately
+not computed because it would estimate stochastic step noise, not the claimed
+supervision variable.

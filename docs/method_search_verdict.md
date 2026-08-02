@@ -3047,3 +3047,18 @@ bonus. Its best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 /
 no remaining source mismatch. This validates RS@k as an occupied Cars196
 reference in this codebase; it does not revive candidates 199 or 200 and does
 not itself supply a novel supervision variable.
+
+## 203. Resolvable within-class co-occurrence design
+
+**DEAD at Gate 1 on 2026-08-02; no implementation or GPU.** RS@k's pinned
+sampler presents four images from every Cars class in each batch, suggesting
+that balancing which same-class images co-occur across steps could change what
+finite supervision is observed. But the immutable trajectory does not measure
+that mechanism. Its within-epoch loss variation jointly contains random
+crops/flips, changing parameters, CUDA nondeterminism, and batch composition;
+the scalar loss history cannot identify the composition share. A proposed
+variance decomposition was therefore rejected before calculation. Without an
+outcome-relevant co-occurrence measurement, the edit fails provenance and does
+not reach its required prior-art audit against batch design, tuple mining, and
+memory methods. Full audit:
+`docs/post_rsatk_candidate_audit_203_2026-08-02.md`.
