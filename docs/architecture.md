@@ -70,9 +70,15 @@ size, and a training protocol comparable to published metric-learning results.
   `kaiming_normal(fan_out)`, one trainable proxy per class at ×100 learning
   rate, 60 epochs, and checkpoint selection disabled (fixed schedule, final
   model). Preset objectives: `frozen_pretrained, proxy_anchor`.
-- `pfml-resnet50-512`: same repaired base, but Adam at `5e-4` for backbone and
-  head, cosine annealing, 100 epochs, 15 proxies per class (2 on SOP), and
-  potential kernel `delta=0.2`, `alpha=4.0`. Preset objectives:
+- `pfml-resnet50-512`: the prospectively repaired publication-matched
+  interpretation — standard ResNet-50 average pooling with only the final FC
+  replaced, Adam at `1e-4`, proxy LR `0.01`, batch 100, 200 epochs, no
+  undisclosed schedule, one warm-up epoch and frozen BatchNorm on CUB/Cars,
+  15 proxies per class (2 on SOP), and potential kernel `delta=0.2`,
+  `alpha=3.0`. CUB/SOP use weight decay `5e-4`; Cars uses `1e-4`. Primary
+  sources conflict on LR and omit exact augmentation/sampler details; the
+  frozen interpretation and falsification rule are recorded in
+  `docs/pfml_reproduction_preregistration_2026-08-02.md`. Preset objectives:
   `frozen_pretrained, pfml`.
 
 ### Training-Loop Mechanics

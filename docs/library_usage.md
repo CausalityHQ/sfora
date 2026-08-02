@@ -423,8 +423,10 @@ provenance track to `modified`.
   default. Keep `--gsi-start-epoch` at or after the warm-up end so GSI sees a
   partially organized space.
 - **Schedules (`--lr-schedule`):** `step` with `--lr-step-epochs 5` (CUB) or
-  `10` (Cars/SOP) and `--lr-gamma 0.5` matches the Proxy Anchor recipe;
-  `cosine` matches PFML. The scheduler steps at epoch boundaries computed
+  `10` (Cars/SOP) and `--lr-gamma 0.5` matches the Proxy Anchor recipe. The
+  repaired PFML preset uses no schedule because neither the paper nor its
+  dataset-specific supplement discloses one; the earlier local cosine choice
+  was ungrounded. The scheduler steps at epoch boundaries computed
   from the post-split train count.
 - **`gsi_floor` calibration:** run the base objective first and read the
   `interference` block from the artifact. Set `--gsi-floor` below the

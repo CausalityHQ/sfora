@@ -1374,22 +1374,23 @@ def test_pfml_protocol_uses_repaired_resnet50_512_defaults() -> None:
 
     assert config.objectives == ("frozen_pretrained", "pfml")
     assert config.optimizer == "adam"
-    assert config.learning_rate == pytest.approx(5e-4)
-    assert config.backbone_learning_rate == pytest.approx(5e-4)
-    assert config.weight_decay == pytest.approx(1e-4)
-    assert config.warmup_epochs == 5
-    assert config.lr_schedule == "cosine"
+    assert config.learning_rate == pytest.approx(1e-4)
+    assert config.backbone_learning_rate == pytest.approx(1e-4)
+    assert config.weight_decay == pytest.approx(5e-4)
+    assert config.warmup_epochs == 1
+    assert config.lr_schedule == "none"
     assert config.lr_step_epochs == 5
     assert config.lr_gamma == pytest.approx(0.5)
-    assert config.train_epochs == 100
+    assert config.train_epochs == 200
     assert config.samples_per_class == 4
-    assert config.batch_size == 120
+    assert config.batch_size == 100
     assert config.pretrained_weights == "v1"
-    assert config.head_pooling == "avg_max"
-    assert config.embedding_head_init == "kaiming_normal"
+    assert config.head_pooling == "avg"
+    assert config.embedding_head_init == "default"
+    assert config.freeze_batch_norm is True
     assert config.proxy_count_per_class == 15
     assert config.potential_delta == pytest.approx(0.2)
-    assert config.potential_alpha == pytest.approx(4.0)
+    assert config.potential_alpha == pytest.approx(3.0)
     assert config.checkpoint_selection_interval == 0
 
 
@@ -1397,6 +1398,16 @@ def test_pfml_protocol_uses_two_sop_proxies_per_class() -> None:
     config = config_for_protocol("pfml-resnet50-512", dataset_name="sop")
 
     assert config.proxy_count_per_class == 2
+    assert config.weight_decay == pytest.approx(5e-4)
+    assert config.warmup_epochs == 0
+    assert config.freeze_batch_norm is False
+
+
+def test_pfml_protocol_uses_cars_weight_decay() -> None:
+    config = config_for_protocol("pfml-resnet50-512", dataset_name="cars")
+
+    assert config.weight_decay == pytest.approx(1e-4)
+    assert config.freeze_batch_norm is True
 
 
 def test_pfml_protocol_train_steps_override_disables_epoch_schedule() -> None:
