@@ -165,3 +165,10 @@ is that invariant proxy comparisons are TIRD's double-centred interaction with
 the sign reversed into a regularizer; TIRD already lost **7.237 points**. The
 causal/ecological imports failed identification or arithmetic before prior art.
 No candidate reached preregistration.
+
+**Load-bearing prior re-audit.** Direct inspection of DAMLRRM (Xu et al., CVPR
+2019) confirmed that it uses a per-class visual-distance minimum spanning tree
+during training, explicitly replacing all-positive adjacency with direct or
+indirect connectivity, and evaluates CUB, Cars196 and SOP. Thus the sparse
+pixel-derived positive-eligibility and transitive-closure routes do not reopen;
+the repository's prior-art use was accurate.
