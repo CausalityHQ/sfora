@@ -1,0 +1,60 @@
+# Search boundary update after candidate 184
+
+Date: 2026-08-02.
+
+This is an evidence-bounded inventory, not a proof that invention is
+mathematically impossible. It records why another unconstrained naming round is
+not currently justified and what could reopen the search.
+
+## Current evidence
+
+The search has now adjudicated 184 numbered candidates. The most recent
+measurements closed apparently distinct routes rather than merely producing
+small benchmark numbers:
+
+- a stochastic crop-tail endpoint scale was unreliable across independent
+  packs (OAPF Spearman **0.317593** globally, **0.184057** after within-class
+  residualisation);
+- deterministic augmentation-response relations exist, but hard eligibility
+  erased class attraction and an unsatisfied ordinal version (IPSR) produced
+  only **+0.060 pt** selection-corrected;
+- beneficial class fragmentation (**+3.534 In-Shop R@1 points** after matching
+  class size) cannot be routed through log-determinant, class-shell, reverse
+  contrastive, subcentre, or density objectives without entering established
+  diversity/distributional DML;
+- proxy ownership is asymmetric (**99.975%** proxy-to-centroid versus
+  **70.303%** centroid-to-proxy), but reciprocal enforcement is algebraically
+  Proxy Anchor plus centroid-to-proxy class softmax;
+- the ensemble's all-model-miss rescue event is only **0.253%**, and a
+  single-seed map to consensus worsened CUB R@1 by **1.266 points**.
+
+## Independent operator audit
+
+Claude was asked to identify one omitted *forward supervision primitive* under
+the fixed information and deployment budget: labelled training pixels only, no
+external model/data/metadata, roughly one training pass, and one deterministic
+512-D cosine embedding at inference. The supplied inventory included point and
+pair relations; class sets, proxies and distributions; ordinal/listwise/direct
+retrieval relations; graph/hypergraph/topology/assignment; transformations and
+regions; synthesis/reconstruction; temporal/optimization signals;
+distillation/ensembles; auxiliary tasks; meta/robust objectives; and alternative
+geometry/diversity.
+
+The bounded response was `NONE`: any suggested primitive either belongs to one
+of those relation types or is a different statistic, estimator, sampler,
+architecture, or loss functional over an existing relation. This agrees with
+the repository's independent source and operator audits.
+
+## What this does and does not establish
+
+It establishes that **there is no presently defensible candidate to implement**
+from the measurements already in hand. It does not establish that no method can
+exist. The search reopens if a new experiment exposes an information-bearing
+relation that the inventory does not contain, or if a primary-source audit
+shows that an apparently occupied operator has not actually been evaluated or
+does not perform the claimed mechanism.
+
+The corrected Cars196 Recall@k-surrogate reproduction is running as the next
+measurement. It is an occupied reference, not a novelty claim. Its optimization
+trajectory and matched result may expose a defect different from the closed
+Proxy Anchor/HIST branches; no extension is preregistered before that evidence.
