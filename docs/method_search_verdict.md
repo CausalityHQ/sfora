@@ -2798,3 +2798,13 @@ subspaces, and subcentre/hierarchical DML occupies retaining the parent label.
 The only remaining distinction is to repel two modes known to share a true
 identity, which injects embedding-derived false negatives rather than new
 supervision. Full audit: `docs/mode_pseudoidentity_audit_2026-08-02.md`.
+
+**Fragmentation confounding follow-up (pre-registered, CPU only).** On the same
+frozen seed-0 operating pack, matching exact class size plus global quintiles of
+mean within-class cosine and nearest-foreign-centroid cosine retained 60.43% of
+eligible classes and increased the disconnected-minus-connected R@1 difference
+to **+5.875 points**. The marker is not explained away by those coarse controls,
+but this is still observational and in-sample. It strengthens the measured
+phenomenon, not candidate 185's occupied operator. Independent seeds 1 and 2
+remain pending. Full record:
+`docs/fragmentation_confounding_preregistration_2026-08-02.md`.

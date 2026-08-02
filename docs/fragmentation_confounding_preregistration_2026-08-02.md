@@ -51,3 +51,33 @@ Pearson correlations among fragmentation, both covariates, and outcome.
 
 This audit cannot prove causality. A pass only strengthens provenance and still
 requires the independent-seed replication and a Gate-2-surviving operator.
+
+## Result
+
+The locked audit **passed** on the frozen seed-0 pack. After crossing exact
+class size with the two global quintile bins, 72 cells retained 2,402 / 3,975
+eligible classes (**60.43%** coverage): 446 fragmented and 1,956 connected,
+with effective matched weight 367. The adjusted disconnected-minus-connected
+class-balanced leave-one-out R@1 difference was **+5.875 points**, above the
+registered +1.0 prediction and not attenuated from the size-only +3.534.
+
+Fragmentation itself has only Pearson `0.04754` correlation with class R@1 and
+is strongly anticorrelated with mean within-class cosine (`-0.52404`); mean
+within-class cosine correlates `0.41302` with R@1. Nearest-foreign-centroid
+cosine correlates `-0.29337` with R@1. Thus the adjusted result is not a claim
+that disconnectedness dominates ordinary compactness or separation. It says
+that coarse registered controls for both did not explain away the marker.
+
+Immutable inputs/code:
+
+- embedding pack SHA-256:
+  `85e76245603689c824ec3f6aefceb67eee34fb7df94d3a825977a8bd4d139b27`;
+- analyzer SHA-256:
+  `27f840b91b4d814d6cd8411536f68f2cc9e272fca85e1e3d137b238f04b6a7fa`;
+- rendered JSON SHA-256:
+  `9f3683abbec6668b12e274ceb6a1a382fa926c27a1cf398e1a689eb3a98d849c`.
+
+The result remains observational, reuses the hypothesis-generating seed, and
+uses coarse quintile balance rather than exact continuous balance. It therefore
+does not override the independent seed-1/2 kill rule and does not resurrect
+candidate 185 or any occupied diversity/subcentre method.

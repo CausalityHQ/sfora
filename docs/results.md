@@ -1138,3 +1138,19 @@ Mechanism: stochastic crop-tail magnitude is not a stable endpoint property at
 the epoch-10 In-Shop operating point. This does not retract ARCG's deterministic
 augmentation-response structure; it rules out using a six-draw tail statistic
 as an adaptive PFML plateau under candidate 174's fixed design.
+
+## In-Shop fragmentation confounding audit
+
+The seed-0 epoch-10 observation that disconnected within-class 1-NN graphs have
+**+3.534 class-balanced leave-one-out R@1 points** after exact class-size
+matching survives a preregistered coarse confounding audit. Crossing exact class
+size with global quintiles of mean within-class cosine and nearest-foreign-class
+centroid cosine retained 2,402 / 3,975 eligible classes (**60.43%**) and produced
+an adjusted disconnected-minus-connected difference of **+5.875 points**.
+
+This is an observational training-split measurement, not a method result or a
+causal estimate. It reuses the hypothesis-generating seed, and quintile matching
+does not guarantee continuous covariate balance. Seeds 1 and 2 were
+preregistered before export and remain the out-of-sample test. Mode splitting,
+subcentres, diversity penalties, and topology losses remain occupied or failed
+mechanisms regardless of this positive diagnostic.
