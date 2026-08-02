@@ -2985,3 +2985,13 @@ to prevent class collapse. Applying it to Patel et al.'s differentiable rank at
 multiple k values is a composition of occupied positive mining and an occupied
 surrogate, not a new supervision primitive. Full audit:
 `docs/existential_recall_audit_2026-08-02.md`.
+
+## 200. First-hit rank hazard: listwise loss reparameterization
+
+**DEAD at Gate 2 on 2026-08-02; no implementation or GPU.** Because R@k is the
+CDF of the first relevant rank, a discrete hazard would avoid independently
+counting nested k events. But the hazard is just the finite-difference
+parameterization of the same listwise relevance labels. Expected Reciprocal Rank
+already models first satisfaction/stopping across ranks, ListNet defines top-k
+probabilities, and RS@k provides the DML smooth-rank estimator. Only gradient
+allocation changes. Full audit: `docs/first_hit_rank_hazard_audit_2026-08-02.md`.
