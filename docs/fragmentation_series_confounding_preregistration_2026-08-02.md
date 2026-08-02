@@ -50,3 +50,26 @@ was carried by an observed dataset grouping whose direct and inferred operators
 are already occupied. Survival would still be observational and would require a
 new causal diagnostic; it would not revive pseudo-label, hierarchy, mining,
 topology or diversity candidates.
+
+## Result (2026-08-02)
+
+The registered collapse prediction **failed in all three seeds**. After exact
+series-size-signature matching plus the two geometry quintiles, adjusted
+fragmented-minus-connected R@1 remained **+5.476**, **+5.744**, and **+5.587
+points**, with **58.21%**, **61.03%**, and **59.45%** coverage. All exceed the
+registered +2.0 replicated-survival boundary. Matching only exact class size and
+series count gave nearly identical **+5.476**, **+5.749**, and **+5.605**.
+
+The analyzer SHA-256 was
+`d708e1f6ae7694743fc569c5763a2a8f579dcb0ed21831a3126cb96aa07ca865`.
+Result JSON SHA-256 values for seeds 0--2 were respectively
+`d394ef546a78a5e1b6540b6683e9e650766394f4d9d1b334908e216d728194a7`,
+`28cb3a701967ba0de92e9049412e703c431c53f68b90f57be2fe1a29c1c5d403`, and
+`f53f8413ab406ce01980abd6d779816f805aeb15c1a9bbfb20480a295d58f2f9`.
+
+Series composition therefore explains the component partition but not the
+positive outcome association. This is a useful negative against the tempting
+“more colourways/classes are simply easier” account. It remains observational:
+exact cells balance the registered covariates, not every latent property, and
+fragmentation is measured from the same embeddings as leave-one-out retrieval.
+No occupied series/hierarchy/clustering operator is revived.

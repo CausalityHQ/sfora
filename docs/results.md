@@ -1181,3 +1181,12 @@ used separate series for black and beige colourways of the same design, so serie
 can represent a genuine visual variant rather than only background leakage.
 Nevertheless, direct series supervision is dataset-specific hierarchical labels,
 and reconstructing it from pixels is occupied clustering/pseudo-labelling.
+
+Unexpectedly, exact series-composition adjustment did **not** explain the R@1
+association. Matching the full sorted series-size signature and the previous
+geometry cells retained 58.2--61.0% of classes and left gaps of **+5.476**,
+**+5.744**, and **+5.587 points** across seeds. The preregistered collapse
+prediction therefore failed. Series tells us what the stable graph components
+represent, but not why preserving their separation covaries with retrieval.
+This remains observational and does not revive hierarchical, clustering,
+cross-series mining, topology, or diversity methods.

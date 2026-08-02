@@ -2927,3 +2927,13 @@ hierarchical/subidentity metadata; pixel recovery is clustering/pseudo-label
 splitting. Both are occupied mechanisms, so this strong measurement does not
 create candidate 195. It instead exposes series composition as the omitted
 confounder in the earlier fragmentation-outcome association.
+
+**Series-confounding falsification.** The preregistered prediction that exact
+series composition would collapse the outcome gap failed. Matching the complete
+sorted series-size signature and prior geometry controls retained **58.2--61.0%**
+of classes and produced **+5.476**, **+5.744**, and **+5.587 points** across the
+three seeds. Exact size plus series count was essentially identical. Thus series
+identifies the repeatable partition but is not the omitted confounder carrying
+the retrieval association. This keeps a causal question open, not a method:
+direct series hierarchy, cross-series mining/alignment, and pixel-derived series
+clusters remain established supervision operators.
