@@ -2915,3 +2915,15 @@ ARI, so conditioning on three-seed disconnection did not manufacture it. This
 kills the narrow random-edge explanation, but not fixed acquisition clusters,
 label noise or near duplicates. No dead Gate-2 operator is revived; the next
 step is to test those observable alternatives before naming candidate 195.
+
+**Acquisition-token resolution.** The next preregistered audit found that the
+stable components are almost the filename-series partition: series ARI
+**0.7541--0.7607**, versus view-descriptor ARI **-0.1425-- -0.1416**, with mean
+paired difference **+0.9234**. A visual check of one multi-series identity found
+two colourways of the same design, each with its own front/side/additional views;
+series is therefore a real appearance grouping in at least that case, not merely
+camera pose. But it is already observed in the training filename. Direct use is
+hierarchical/subidentity metadata; pixel recovery is clustering/pseudo-label
+splitting. Both are occupied mechanisms, so this strong measurement does not
+create candidate 195. It instead exposes series composition as the omitted
+confounder in the earlier fragmentation-outcome association.

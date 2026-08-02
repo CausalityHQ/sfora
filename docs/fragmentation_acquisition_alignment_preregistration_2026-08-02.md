@@ -58,3 +58,34 @@ presentation. Conversely, view dominance is not novelty: pose-aware positives,
 pose-invariant representation learning and cross-view re-identification are
 established. This diagnostic decides whether the fragmentation line supplies an
 unobserved factor at all, not whether an occupied factor should become a loss.
+
+## Result (2026-08-02)
+
+The series-dominance prediction passed decisively. Across seeds 0, 1 and 2,
+component-versus-series macro ARI was respectively **0.76070**, **0.75801**, and
+**0.75411** (class-size-weighted **0.72717**, **0.72309**, **0.71912**) over
+1,243 eligible stable-fragmented identities. Component-versus-view macro ARI
+was instead **-0.14156**, **-0.14190**, and **-0.14251** over all 1,439. The
+paired series-minus-view difference was **+0.92595**, **+0.92366**, and
+**+0.92045** (mean **+0.92335**).
+
+Thus the repeatable components overwhelmingly recover the filename series, not
+front/side/back/full presentation. Inspection of one prospectively selected
+multi-series identity showed the same design in black (`03`) and beige (`05`)
+colourways, with multiple views inside each series. That example establishes
+that “series” need not be pure background/model leakage; it can encode a real
+appearance variant grouped under one benchmark item. It does not establish the
+semantics of every series.
+
+The analyzer SHA-256 was
+`3f1d94f2bb5835b457a7b8a4281cdbb04f8f9cacdc5dc098c3df21674ccf6287` and the
+result JSON SHA-256 was
+`ce54879d844f58b5b376ece4cd49ede57dc17c172f75b5ab8903e41c42d194ed`.
+
+The mechanism interpretation changes: fragmentation is not an undiscovered
+latent factor extracted by Proxy Anchor. It is largely recovery of a grouping
+already present in the training filenames. Using that grouping directly is
+hierarchical/subidentity supervision and is dataset-specific; re-deriving it
+from pixels is clustering/pseudo-labelling. Both operator families were already
+closed at Gate 2. The remaining causal question is whether the positive R@1
+association survives matching the number and sizes of series per identity.

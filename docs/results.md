@@ -1171,3 +1171,13 @@ three seeds. Thus repeatable membership, not merely repeatable class spread or
 one unstable bridge, drives the graph result. Dataset acquisition/view tokens,
 fixed label noise and near duplicates remain unresolved and prevent a semantic
 or method claim.
+
+The filename-token audit then resolved most of that ambiguity. Stable components
+aligned with the image-series token at ARI **0.7541--0.7607**, but anti-aligned
+with the explicit view descriptor at about **-0.142**; paired series-minus-view
+ARI was **+0.9234**. The graph is primarily recovering a grouping already encoded
+in the dataset path, not discovering front/side/back modes. One inspected identity
+used separate series for black and beige colourways of the same design, so series
+can represent a genuine visual variant rather than only background leakage.
+Nevertheless, direct series supervision is dataset-specific hierarchical labels,
+and reconstructing it from pixels is occupied clustering/pseudo-labelling.
