@@ -56,3 +56,30 @@ A positive survival would still be observational, but it would rule out the
 strongest outcome-definition artifact and motivate one further causal
 diagnostic. It would not by itself make hierarchy, clustering, cross-series
 mining, topology or diversity novel.
+
+## Result (2026-08-02)
+
+The registered test is **inconclusive because its overlap condition failed**.
+Among 1,274 multi-series identities, 1,264 / 1,259 / 1,260 were fragmented in
+seeds 0 / 1 / 2, leaving only 10 / 15 / 14 connected controls. Exact
+series-signature and geometry matching retained only **7.46%**, **9.97%**, and
+**6.83%** of eligible classes, below the locked 20% minimum.
+
+The descriptive direction is nevertheless large and replicated. Unadjusted
+fragmented-minus-connected cross-series R@1 was **-41.917**, **-22.047**, and
+**-28.672 points**. The under-covered matched estimates were **-27.776**,
+**-22.363**, and **-28.014 points**. These numbers cannot satisfy the registered
+claim because the connected comparison arm is nearly absent; they do show why a
+binary fragmentation exposure is poorly identified once the outcome requires a
+different series.
+
+The analyzer SHA-256 was
+`6f379422371184654f0598765594eeba87a05efa5839ece85d2bdd64d2bc6700`.
+Seed result SHA-256 values were
+`7dac1406f44efdf4b660756d918cebe5394b1410c70126af0bb1b0cb8edbe6e0`,
+`bc00a812573521ddb6515c51926f30b5fa65a8bac28492ea469710fcb05cef25`, and
+`282740c1096d66c2eb492bbff56c519f16d86ffb0766d818229609037a707479`.
+
+No method is authorized. The next defensible question is dataset-level rather
+than another exposure model: determine prospectively whether official In-Shop
+query/gallery evaluation normally offers each query a same-series positive.

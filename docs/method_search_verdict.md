@@ -2954,3 +2954,13 @@ The verdict is **NONE**. This is not evidence that the +5.5-point association is
 spurious; it is evidence that the currently identifiable interventions are
 occupied. The search moves to the faithful Cars RS@k measurement rather than
 spending GPU on a renamed camera-aware or hierarchical method.
+
+**Cross-series outcome audit.** A preregistered attempt to replace raw training
+leave-one-out R@1 with cross-series-only R@1 was underidentified: 1,259--1,264 of
+1,274 multi-series identities were fragmented, leaving 10--15 connected controls
+and only 6.83--9.97% matched coverage versus the required 20%. The result is
+formally **inconclusive**, despite replicated descriptive gaps of **-22.05 to
+-41.92 points** (under-covered matched: -22.36 to -28.01). This does not prove
+fragmentation harmful; it proves the binary exposure has almost no common
+support among multi-series identities. Do not report the large negative as a
+passed prediction.

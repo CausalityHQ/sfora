@@ -1190,3 +1190,12 @@ prediction therefore failed. Series tells us what the stable graph components
 represent, but not why preserving their separation covaries with retrieval.
 This remains observational and does not revive hierarchical, clustering,
 cross-series mining, topology, or diversity methods.
+
+When same-identity/same-series candidates were removed, fragmented identities
+were descriptively **22.05--41.92 points** worse at retrieving another series.
+However, this preregistered test is formally **inconclusive**: 1,259--1,264 of
+1,274 multi-series identities were fragmented, leaving only 10--15 connected
+controls and 6.83--9.97% matched coverage, below the locked 20% minimum. The
+negative cannot be promoted to a causal result; it exposes a lack of common
+support and motivates auditing whether official query/gallery evaluation itself
+offers same-series positives.
