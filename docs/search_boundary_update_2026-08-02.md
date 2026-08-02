@@ -118,3 +118,15 @@ or fixed-data artifacts such as label noise, near duplicates, class composition,
 or brittle 1-NN bridges. Until such an independently observed relation exists,
 turning the stable indicator into a loss still reduces to occupied class
 splitting, mining, topology, diversity, or gradient surgery.
+
+**Partner-exclusion resolution.** An adversarial audit identified a shared
+estimator: symmetrized 1-NN fragmentation and leave-one-out R@1 both depend on
+the query's closest same-class image. The preregistered test deleted that one
+partner per query while leaving exposure, covariates and matching unchanged.
+The seed-0 adjusted gap reversed from **+5.875** to **-3.910 points**
+(unadjusted **-2.240**) at the identical **60.43%** coverage. This closes the
+fragmentation association as method provenance. Cross-seed stability still
+shows that tight-pair structure is a reproducible data property, but it no
+longer supports a causal mode-preservation interpretation. Candidate 202's
+support-multiplicity edit independently died at Gate 2 as positive mining over
+clustering-derived subidentities.

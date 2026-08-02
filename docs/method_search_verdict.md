@@ -3014,3 +3014,26 @@ and test and uses output dimension equal to the class count. Under class-disjoin
 DML, its axes become foreign training-class landmarks, which is precisely the
 occupied representation above. Full algebra and primary sources:
 `docs/proxy_response_coordinates_audit_2026-08-02.md`.
+
+## 202. Support-multiplicity attraction from fragmented classes
+
+**DEAD at Gate 2 on 2026-08-02; no implementation or candidate GPU.** The
+strongest remaining measurement appeared to say that multiple independent
+within-class supports help: fragmented classes retained adjusted R@1 gaps of
+**+5.806 to +5.966 points** across three seeds, and their component identities
+were stable. But requiring a positive from another inferred component is an
+order-statistic positive-mining rule over a clustering-derived subidentity. Its
+hard form composes occupied mining with pseudo-label/subcentre supervision; its
+soft form is positive weighting; and its worst-component form is group DRO.
+It does not introduce an observed supervision relation outside candidates
+185--198.
+
+The post-mortem also killed the motivating measurement rather than only the
+operator. Fragmentation exposure and leave-one-out R@1 shared the same nearest
+same-class neighbour. In a preregistered CPU audit, deleting each query's
+nearest same-class partner reversed the locked adjusted gap from **+5.875** to
+**-3.910 points** (unadjusted **-2.240**) at unchanged **60.43%** matched
+coverage. Thus the stable graph property identifies fixed tight-pair structure,
+but its favourable retrieval association was estimator coupling, not evidence
+for mode-preserving supervision. Full audit:
+`docs/fragmentation_partner_exclusion_preregistration_2026-08-02.md`.

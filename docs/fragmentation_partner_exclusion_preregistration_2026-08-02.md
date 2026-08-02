@@ -56,3 +56,27 @@ retained coverage and exposure counts, plus the unadjusted class-balanced gap.
 This audit reuses the hypothesis-generating seed and cannot establish causality.
 No candidate or GPU run is authorized by a pass; a surviving relation would
 first require independent-seed confirmation and a new Gate-2 audit.
+
+## Result
+
+The estimator-coupling prediction **passed decisively**. With the same 72
+matched cells, 2,402 / 3,975 retained classes (**60.43%** coverage), 446
+fragmented retained classes, 1,956 connected retained classes, and effective
+matched weight 367, the adjusted fragmented-minus-connected
+partner-excluded R@1 gap was **-3.910 points**. The unadjusted class-balanced
+gap was **-2.240 points** (fragmented **0.84707**, connected **0.86947**).
+
+Removing only the same-class neighbour used most directly by the exposure did
+not merely attenuate the original **+5.875-point** adjusted association; it
+reversed it. The original marker is therefore not valid provenance for a
+mode-preservation intervention. Its stability across optimizer seeds remains a
+real fixed-data property, but the favourable outcome association was coupled
+to the retrieval estimator's trivial pair support. No additional seed or GPU
+work is warranted on this line, and candidates 185--198 remain dead.
+
+Immutable evidence:
+
+- analyzer SHA-256:
+  `28f12d8db68b2ed4eb9cf2d51f6890e55078e886da2afbdae4eeeaa11d2dbf1a`;
+- result JSON SHA-256:
+  `cddec1f14ec41128beac0db6f619d748c65ab2ad8e4c3a2dd795d6c63555f97b`.
