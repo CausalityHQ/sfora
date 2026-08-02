@@ -45,10 +45,17 @@ def test_measure_is_deterministic_and_finite() -> None:
     assert np.isfinite(first["spearman_opis_contribution_vs_class_error"])
 
 
-def test_measure_rejects_singleton_classes() -> None:
-    with pytest.raises(ValueError, match="at least two"):
-        measure(
-            np.eye(3, dtype=np.float32),
-            np.asarray([0, 0, 1]),
-            negative_sample_count=10,
-        )
+def test_measure_excludes_singleton_classes() -> None:
+    result = measure(
+        np.asarray([[1, 0], [0.9, 0.1], [0, 1], [-1, 0], [-0.9, 0.1]], dtype=np.float32),
+        np.asarray([0, 0, 1, 2, 2]),
+        negative_sample_count=100,
+    )
+    assert result["class_count"] == 2
+    assert result["excluded_singleton_classes"] == 1
+    assert result["image_count"] == 4
+
+
+def test_measure_rejects_when_every_class_is_singleton() -> None:
+    with pytest.raises(ValueError, match="no class"):
+        measure(np.eye(3, dtype=np.float32), np.asarray([0, 1, 2]), negative_sample_count=10)

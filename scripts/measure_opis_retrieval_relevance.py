@@ -67,10 +67,16 @@ def measure(
     vectors = np.asarray(embeddings, dtype=np.float32).copy()
     labels = np.asarray(labels)
     vectors /= np.maximum(np.linalg.norm(vectors, axis=1, keepdims=True), 1e-12)
+    all_classes, counts = np.unique(labels, return_counts=True)
+    eligible_labels = all_classes[counts >= 2]
+    eligible = np.isin(labels, eligible_labels)
+    excluded_singleton_classes = int(np.sum(counts == 1))
+    vectors = vectors[eligible]
+    labels = labels[eligible]
     classes = np.unique(labels)
+    if classes.size == 0:
+        raise ValueError("no class contains at least two images")
     class_indices = [np.flatnonzero(labels == label) for label in classes]
-    if any(indices.size < 2 for indices in class_indices):
-        raise ValueError("every class must contain at least two images")
 
     sampled_negatives = _sample_negative_distances(
         vectors, labels, count=negative_sample_count, seed=seed
@@ -124,6 +130,7 @@ def measure(
     rho, p_value = spearmanr(contributions, 1.0 - class_r1)
     return {
         "class_count": int(classes.size),
+        "excluded_singleton_classes": excluded_singleton_classes,
         "image_count": int(labels.size),
         "far_bounds": list(FAR_BOUNDS),
         "negative_sample_count": int(negative_sample_count),
