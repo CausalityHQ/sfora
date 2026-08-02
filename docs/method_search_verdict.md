@@ -2737,3 +2737,15 @@ occupy balanced Sinkhorn codes, while batch-wise optimal-transport metric
 learning already uses an OT plan as importance-weighted DML supervision.
 Changing the cost to response disagreement is not a new supervision mechanism.
 Full audit: `docs/force_conserving_transport_audit_2026-08-02.md`.
+
+## 176. Cross-instance nuisance-tangent quotient: classical tangent distance
+
+**Gate-2 death recorded 2026-08-02; no diagnostic, implementation, or GPU.**
+OAPF's stochastic radius was unreliable, so candidate 176 retained deterministic
+augmentation directions and proposed attracting same-class pairs only in the
+complement of their endpoint nuisance-tangent subspaces. Tangent distance
+already minimises distance between two local transformation manifolds/tangent
+planes, and adaptive tangent-distance methods learn those local metrics.
+Orthogonal projection is the least-squares form of the same operator; combining
+it with PFML does not create new supervision. Full audit:
+`docs/nuisance_tangent_quotient_audit_2026-08-02.md`.
