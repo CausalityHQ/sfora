@@ -3945,7 +3945,7 @@ def test_pfml_potential_loss_matches_hand_computed_energy() -> None:
     #   e1-p0 (diff, d^2=0.08 <  delta): +1/0.08 = 12.5
     #   e1-p1 (same, d^2=3.6  >= delta): -1/3.6
     #   p0-p1 (diff, d^2=3.2  >= delta): +4
-    expected = 2.0 * (4.0 - 1.25 + 4.0 + 12.5 - 1.0 / 3.6 + 4.0) / 12.0
+    expected = 2.0 * (4.0 - 1.25 + 4.0 + 12.5 - 1.0 / 3.6 + 4.0)
     assert float(loss.detach().cpu()) == pytest.approx(expected, rel=1e-5)
 
 
@@ -3972,9 +3972,9 @@ def test_pfml_potential_loss_supports_zero_alpha() -> None:
     )
 
     # 2 unordered same-label pairs at -1 and 4 different-label pairs at +1:
-    # mean over the 12 ordered off-diagonal pairs = (2*4 - 2*2) / 12 = 1/3.
+    # Raw Eq. 6 sum over 12 ordered off-diagonal pairs = 2*4 - 2*2 = 4.
     assert torch.isfinite(loss)
-    assert float(loss.detach().cpu()) == pytest.approx(1.0 / 3.0, rel=1e-5)
+    assert float(loss.detach().cpu()) == pytest.approx(4.0, rel=1e-5)
 
 
 def test_pfml_potential_loss_saturates_attraction_inside_margin() -> None:
@@ -3996,7 +3996,7 @@ def test_pfml_potential_loss_saturates_attraction_inside_margin() -> None:
         torch_module=torch,
     )
 
-    assert float(loss.detach().cpu()) == pytest.approx(-4.0, rel=1e-5)
+    assert float(loss.detach().cpu()) == pytest.approx(-8.0, rel=1e-5)
 
 
 def test_pfml_proxy_proxy_pairs_interact_and_saturated_pairs_exert_no_force() -> None:

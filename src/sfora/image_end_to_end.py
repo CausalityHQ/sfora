@@ -4050,12 +4050,9 @@ def _pfml_potential_loss(
       l2-normalized. Here ``delta``/``alpha`` map to ``potential_delta`` and
       ``potential_alpha``.
 
-    Deliberate deviations (gradients unchanged up to a uniform scale):
+    Deliberate deviations:
     - Self-interactions (distance 0, always the constant kernel branch) are
       excluded; they only shift the loss by a constant.
-    - The paper's raw double sum is divided by the number of interacting
-      ordered pairs so the reported loss is batch-size independent; Adam is
-      invariant to this uniform rescaling.
     - Distances are clamped below at 1e-4 for numerical stability of the
       singular repulsive kernel.
     - Proxies are l2-normalized before computing distances, matching how every
@@ -4084,7 +4081,12 @@ def _pfml_potential_loss(
     attraction = -torch_module.where(inside_margin, saturation, inverse_power)
     repulsion = torch_module.where(inside_margin, inverse_power, saturation)
     potentials = torch_module.where(same_label, attraction, repulsion)
-    return potentials[off_diagonal].mean()
+    # Eq. 6 is a raw total potential, not a pair mean.  This scale is
+    # load-bearing under Adam's *coupled* weight decay: averaging millions of
+    # sample/proxy terms shrinks only the data gradient while leaving the
+    # weight-decay gradient unchanged, so it is not the harmless uniform
+    # rescaling previously claimed here.
+    return potentials[off_diagonal].sum()
 
 
 def _symmetric_potential_loss(
