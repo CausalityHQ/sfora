@@ -3416,3 +3416,23 @@ It did not compare frozen mean and distribution pooling. The actual frozen Cars
 probe was global `0.8306` versus MaxSim `0.8159` (**-1.47 points**). Candidate
 231 therefore lacks evidence that token quantiles add identity information beyond
 the mean. Full audit: `docs/sqte_audit_231_2026-08-02.md`.
+
+## Stopping update after 231
+
+An independent adversarial audit found no remaining escape class that jointly
+has matched repository provenance, an unoccupied mechanism, cross-dataset
+semantics, <=1.5x cost, and single-vector cosine deployment. This is recorded as
+an evidence-bounded stop, not an impossibility theorem. The most important new
+fact is the corrected spatial evidence: the apparent `+6.67` was an evaluation
+repair inside a losing regional arm, while the actual frozen Cars local readout
+was **-1.47 points**. The only large identified effect left is In-Shop
+acquisition-session structure, which does not define the same object for CUB
+species. Candidate 225's preregistered `rho_32 < 1` result also failed to find a
+transferable linear bridge.
+
+Reopening now requires new information—most usefully SOP as a third class-
+semantic regime, an explicitly permitted annotation channel, a vacated
+mechanism-level prior-art ruling, or a new causal pixel measurement. Additional
+GPU alone does not help, and the averaging/dual-EMA/momentum lines remain
+cancelled after failed In-Shop replication. Full ruling:
+`docs/search_stopping_update_2026-08-02.md`.
