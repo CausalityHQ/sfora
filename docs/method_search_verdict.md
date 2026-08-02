@@ -854,7 +854,13 @@ supervision derived from augmentation reaction norms. Fu et al.'s Deep Metric
 Learning with Self-Supervised Ranking (AAAI 2021) already uses crop,
 perspective, and colour transformations to create intra-class ranking
 supervision, and its TCSVT 2022 synthesis extension plus later intra-variance
-ranking work generalize that mechanism. Matching transformed views across
+ranking work generalize that mechanism. A primary re-audit of the latter (SGAR,
+Liu et al., EAAI 2024) found that it generates isotropic Gaussian radial latent
+points and ranks them by construction intensity, nearly verbatim SR/SSR. Its
+single-run +0.3--0.5 point claims have no uncertainty, use six test-tuned
+hyperparameters, and contain baseline transcription errors in the accessible
+arXiv version. It strengthens synthesis-ranking prior art but supplies no
+real-image relation. Matching transformed views across
 images by a response descriptor is an adjacent sampler, not a defensible new
 supervision class, and would cost roughly 2x training.
 

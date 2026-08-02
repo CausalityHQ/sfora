@@ -184,3 +184,10 @@ ResNet-50/512 proxy-alignment intervention at **72.9 CUB / 92.1 Cars / 81.0 SOP
 baseline sourcing. It does not raise the general ceiling, but directly occupies
 the distributional proxy/sample-alignment residue behind the 99.975%/70.303%
 ownership asymmetry. Candidate 31's closure is strengthened, not reopened.
+
+**SGAR/intra-variance audit.** Liu et al. (EAAI 2024) adds Gaussian radial
+latent points and ranks them by synthesis intensity; it is a gate/order delta
+over SR/SSR, not real-image intra-class supervision. Its +0.3--0.5 point
+single-run claims have no uncertainty and are test-tuned at the scale of this
+repository's +0.427-point selection bonus. It strengthens the synthesis-ranking
+closure but does not close the non-generative supervision residue.
