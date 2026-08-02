@@ -3124,3 +3124,17 @@ fragmentation partner-exclusion reversal makes the +5.875-point association
 **unidentified, not refuted**, because deleting the closest partner removes the
 edge defining the exposure as well as the shared outcome support. Full audit:
 `docs/adversarial_candidate_audit_211_213_2026-08-02.md`.
+
+## 214. Fixed-probe learning-dynamics supervision
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** A
+fixed unaugmented panel at fixed checkpoints would validly measure per-image
+proxy acquisition and forgetting without candidate 203's transform and batch
+confounds. But the statistic is endogenous to the model trajectory. Acting on
+it is curriculum/dynamic sampling, interaction selection/co-teaching, temporal
+distillation, trajectory-derived relabelling, or regularization. Because test
+classes are disjoint, the training-indexed statistic cannot itself become an
+unseen-class supervision object. The repository's 1.08-point trajectory spread
+also makes a one-run trace unstable; multiple trajectories exceed the cost
+budget and reproduce candidate 134. Full audit:
+`docs/fixed_probe_trajectory_audit_2026-08-02.md`.
