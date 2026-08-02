@@ -2964,3 +2964,12 @@ formally **inconclusive**, despite replicated descriptive gaps of **-22.05 to
 fragmentation harmful; it proves the binary exposure has almost no common
 support among multi-series identities. Do not report the large negative as a
 passed prediction.
+
+**Official-split audit.** A separate preregistered metadata analysis found that
+**95.604%** of 14,218 In-Shop queries have a same-series gallery positive;
+**42.720%** have only same-series positives, 52.884% have both, and just 4.396%
+are cross-series-only. Thus official R@1 legitimately but strongly rewards the
+series structure recovered by the fragmented graphs. This explains why raw
+training leave-one-out is a poor causal outcome for cross-series invariance. It
+does not authorize exploiting filenames: such a method would be benchmark-
+specific hierarchy/mining and fail the protocol's second-dataset requirement.

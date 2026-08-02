@@ -1199,3 +1199,11 @@ controls and 6.83--9.97% matched coverage, below the locked 20% minimum. The
 negative cannot be promoted to a causal result; it exposes a lack of common
 support and motivates auditing whether official query/gallery evaluation itself
 offers same-series positives.
+
+That official-split audit passed its prediction: **95.604%** of 14,218 queries
+have a same-series gallery positive, and **42.720%** have no cross-series positive
+at all; 52.884% offer both, while only 4.396% force cross-series retrieval.
+Consequently In-Shop R@1 legitimately rewards series/colourway recognition much
+more than cross-series invariance. This resolves the fragmentation observation
+as benchmark-relevant but dataset-specific structure, not a general new
+supervision source.
