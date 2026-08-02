@@ -3192,3 +3192,21 @@ robust moments, or alternative divergences change the estimator, not the
 supervision object. PD-Loss reports no seeds, uncertainty, or paired test under
 its 500-epoch CUB/Cars recipe. Full audit:
 `docs/proxy_decidability_audit_218_2026-08-02.md`.
+
+## 219--222. Delta, structured, set-valued, and abstention batch
+
+**All DEAD before Gate 3 on 2026-08-02; no diagnostic, implementation, or
+GPU.** Response-agreement negative admissibility lacks matched provenance—the
+ARCG **0.3631** graph contains same-class pairs while the edit acts on
+different-class pairs—and is false-negative cancellation/mining regardless
+(219). Latent loss-augmented partitions are clustering/subcentres plus listwise
+structured prediction over an unidentified acquisition-aligned partition
+(220). Containment among set-valued embeddings is established probabilistic/
+order embedding and loses its radius under the required single-cosine deployment
+(221). Proxy-ownership-driven abstention is endogenous sample/interaction
+selection or weighting (222).
+
+Process lesson: the provenance estimand must match the relation type the method
+edits. A cheap missing measurement does not warrant collection when every
+possible result feeds an occupied operator. Full audit:
+`docs/cross_field_candidate_batch_219_222_2026-08-02.md`.
