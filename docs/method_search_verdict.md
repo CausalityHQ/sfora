@@ -2826,3 +2826,56 @@ same-class collapse. It also repeats candidate 176 with class PCA substituted fo
 augmentation tangents. Every labelled relation remains unchanged. The composition
 therefore changes optimization geometry, not what supervision exists. Full audit:
 `docs/within_class_subspace_protection_audit_2026-08-02.md`.
+
+## 187--194. Post-fragmentation batch: the partition is exhausted
+
+**All DEAD on 2026-08-02; no diagnostic, implementation, or GPU.** Eight
+candidates were generated under the tightest budget yet — training pixels and
+class labels only, roughly 1x cost, and an explicit requirement to change what
+cross-instance supervision exists rather than how it is scored, weighted,
+selected, or optimised.
+
+The batch repeatedly reduced to a small routing taxonomy rather than eight new
+mechanisms: identity, refinement, coarsening, weighting, or subsetting of the
+label partition. This is useful empirical coverage, **not a mathematical
+completeness theorem**; higher-order functionals exist, but the proposals here
+lacked an independently observed correspondence and collapsed to existing
+similarity contrasts.
+
+- **187, directed retrieval obligation** (mutual top-1 **0.567035**; R@1
+  **0.969065** versus **0.897733**): with a symmetric cosine the union of ordered
+  duties is exactly the per-anchor constraint set of Ranked List Loss/Smooth-AP
+  already killed as candidate 148, and no direction is representable at
+  inference.
+- **188, population-ablation invariance** (centroid-to-proxy ownership
+  **70.303%**): identically satisfied by a separable encoder, hence vacuous;
+  non-vacuous forms are group DRO or Qi et al.'s robust pair weighting.
+- **189, model-free pixel eligibility graph** (regional MaxSim **+6.67** points;
+  CUB top-5 positive Jaccard **0.411**): discrete same-class eligibility with a
+  new edge estimator, occupied by DAMLRRM. An independent draft incorrectly
+  cited Correlation Verification here; primary inspection showed it is a
+  geometric re-ranker, and that citation was removed before commit.
+- **190, cross-class analogical quadruples** (class-pair variance
+  **52.57--58.90%**, interaction **4.75%**): class labels do not observe which
+  arbitrary within-class displacement vectors express the same factor. Its loss
+  expands to a six-Gram-entry contrast, its vector-equality operator is adjacent
+  to TraVeLGAN/Difference Vector Equalization, and the closed in-repo analogue
+  lost **7.237** points as TIRD.
+- **191, observed mode-count preservation** (**40.33%** disconnected;
+  **+5.875** adjusted points): endogenous target, and every relaxation is
+  algebraic connectivity or a diversity penalty. Candidate 186's causal-direction
+  objection stands — fragmentation correlates **+0.04754** with class R@1 while
+  the spent variable correlates **+0.41302**.
+- **192, absolute margin distribution** (margin **0.033816** correct versus
+  **0.023650** incorrect): the definition of a margin loss, plus loss shaping.
+- **193, cardinality-invariant relations** (proxy-centroid cosine correlating
+  **0.2760** with class size): class-balanced loss, logit adjustment, adaptive
+  margins; candidates 100, 141 and 34 already closed it.
+- **194, transitive-closure certificates** (fragmentation plus stable local CUB
+  structure, pair-rank Spearman **0.863**): DAMLRRM verbatim, already candidates
+  32 and 68.
+
+The verdict is **NONE**. The useful update is that the excluded operator families
+covered every executable proposal in this round; this is not an impossibility
+proof. Full audit:
+`docs/post_fragmentation_candidate_batch_187_194_2026-08-02.md`.
