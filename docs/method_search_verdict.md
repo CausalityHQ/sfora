@@ -2008,8 +2008,9 @@ and sliced-Wasserstein and learned kernels already turn diagram agreement into a
 similarity (Adams et al., 2017; Carriere, Cuturi, and Oudot, ICML 2017; Zhao and
 Wang, 2019). Differentiable topology layers already place persistence-derived
 functionals inside learned objectives (Gabrielsson et al., AISTATS 2020). RETA
-(Li et al., CVPR 2026) additionally aligns persistence images of mutual-kNN
-feature graphs during vision training. Thresholding any established similarity
+(Li et al., arXiv:2602.24144, 2026; no verified conference venue) additionally
+aligns persistence images of mutual-kNN feature graphs during dataset
+distillation. Thresholding any established similarity
 to accept or reject a training pair is ordinary pair mining; substituting a
 diagram distance for cosine distance does not create a new supervision mechanism.
 The claimed hard positive-to-unknown gate is therefore an obvious composition of
@@ -3156,3 +3157,25 @@ Consistency Penalty; UniTSFace learns a unified threshold inside a
 sample-to-sample loss. Classwise alignment is the same threshold-consistency
 objective, and using deviations as coefficients is weighting. Full audit:
 `docs/threshold_consistency_horizon_audit_2026-08-02.md`.
+
+## 216--217. Input-topology and cross-model compatibility
+
+**Both DEAD before Gate 3 on 2026-08-02; no diagnostic, implementation, or
+GPU.** Candidate 216 proposed preserving raw-input persistent topology in the
+embedding, motivated by cross-seed partition ARI **0.842**. It fails provenance:
+that ARI measures embedding-space components, and their much stronger alignment
+with acquisition series (ARI about **0.757**) than view descriptors (about
+**-0.142**) does not identify pixel topology as useful. It is also exactly the
+input/latent persistent-homology alignment of Topological Autoencoders and
+TopoFR, while candidates 117 and 143 already close topology-derived pair gates
+and topological regularization.
+
+Candidate 217 proposed making two heads or checkpoints metric-compatible to
+address the fixed-seed **1.08-point** trajectory spread. That spread is caused
+by nondeterministic optimization trajectories, not identified distance-scale
+mismatch, and R@1 is invariant to monotone rescaling. Cross-model center,
+distance, basis, and rank compatibility are occupied by BCT, LCE, FCT, BT2,
+and Metric Compatible Training; the checkpoint version is temporal
+self-distillation/EMA. Two heads violate the roughly-1x budget, while the cheap
+version reproduces mechanisms already tested here. Full audit:
+`docs/topology_compatibility_audit_216_217_2026-08-02.md`.
