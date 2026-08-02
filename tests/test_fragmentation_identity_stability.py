@@ -19,7 +19,11 @@ _SPEC.loader.exec_module(_MODULE)
 
 
 def _pack(labels: np.ndarray, embeddings: np.ndarray) -> dict[str, np.ndarray]:
-    return {"labels": labels, "embeddings": embeddings}
+    return {
+        "labels": labels,
+        "embeddings": embeddings,
+        "example_ids": np.arange(len(labels)),
+    }
 
 
 def test_kappa_is_one_for_identical_and_negative_for_opposites() -> None:
@@ -34,5 +38,20 @@ def test_measure_refuses_nonidentical_class_sets() -> None:
     embeddings = np.eye(6, dtype=np.float64)
     first = _pack(np.asarray([0, 0, 0, 1, 1, 1]), embeddings)
     second = _pack(np.asarray([0, 0, 0, 2, 2, 2]), embeddings)
-    with pytest.raises(ValueError, match="identity labels differ"):
+    with pytest.raises(ValueError, match="sample labels differ"):
         _MODULE.measure([first, second, first])
+
+
+def test_measure_refuses_reordered_or_duplicate_examples() -> None:
+    labels = np.asarray([0, 0, 0, 1, 1, 1])
+    embeddings = np.eye(6, dtype=np.float64)
+    first = _pack(labels, embeddings)
+    reordered = _pack(labels, embeddings)
+    reordered["example_ids"] = np.asarray([1, 0, 2, 3, 4, 5])
+    with pytest.raises(ValueError, match="example_ids differ"):
+        _MODULE.measure([first, reordered, first])
+
+    duplicated = _pack(labels, embeddings)
+    duplicated["example_ids"] = np.asarray([0, 0, 2, 3, 4, 5])
+    with pytest.raises(ValueError, match="duplicate example_ids"):
+        _MODULE.measure([first, duplicated, first])

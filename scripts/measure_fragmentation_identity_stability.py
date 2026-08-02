@@ -68,6 +68,19 @@ def _kappa(left: np.ndarray, right: np.ndarray) -> tuple[float, float]:
 def measure(packs: list[dict[str, np.ndarray]]) -> dict[str, Any]:
     if len(packs) != 3:
         raise ValueError("exactly three seed packs are required")
+    reference_example_ids = np.asarray(packs[0]["example_ids"])
+    reference_sample_labels = np.asarray(packs[0]["labels"])
+    if len(np.unique(reference_example_ids)) != len(reference_example_ids):
+        raise ValueError("seed 0 contains duplicate example_ids")
+    for seed, pack in enumerate(packs[1:], start=1):
+        example_ids = np.asarray(pack["example_ids"])
+        sample_labels = np.asarray(pack["labels"])
+        if len(np.unique(example_ids)) != len(example_ids):
+            raise ValueError(f"seed {seed} contains duplicate example_ids")
+        if not np.array_equal(example_ids, reference_example_ids):
+            raise ValueError(f"example_ids differ for seed {seed}")
+        if not np.array_equal(sample_labels, reference_sample_labels):
+            raise ValueError(f"sample labels differ for seed {seed}")
     rows = [_per_class(pack) for pack in packs]
     reference_labels = rows[0][0]
     for seed, (labels, _, _) in enumerate(rows[1:], start=1):
