@@ -1,7 +1,6 @@
 # Candidate 174: orbit-adaptive potential fields (OAPF)
 
-Status: **Gate 2 narrowly live; corrected Gate-1 diagnostic pending. No OAPF
-training arm is authorised.** The initial diagnostic below was rejected by an
+Status: **DEAD at corrected Gate 1; no OAPF training was run.** The initial diagnostic below was rejected by an
 independent adversarial review before any OAPF diagnostic or retrieval result.
 The same review supplied the fully specified prospective replacement recorded
 below. This correction uses no candidate data.
@@ -246,3 +245,32 @@ PFE/IDML- or ScaleFace-style quality scaling, ScoreCL-style augmentation
 weighting, permuted and inverted radii, and hard SOCPG. OAPF must beat every
 mechanistically adjacent control before replication; a gain over Proxy Anchor
 alone is insufficient.
+
+## Corrected Gate-1 result: DEAD (2026-08-02)
+
+The digest-bound training-only diagnostic completed on all **25,882** official
+In-Shop training images and **153,115** same-class pairs without loading query
+or gallery images. The binary held-out compatibility outcome was well posed:
+class-balanced prevalence was **0.472582**, inside the registered `[0.10, 0.90]`
+range. The candidate failed earlier than any fitted model, however:
+
+- independent-pack global radius Spearman: **0.317593** (required `>= 0.50`);
+- pooled within-class-residual Spearman: **0.184057** (required `>= 0.50`).
+
+The q90 displacement of six random training crops is therefore not a reliable
+per-image source-scale measurement at the operating point. Most of its apparent
+variation changes when six new crops are drawn, and the reliability is even
+lower after removing class means. Incremental AUC, direction, permutation, and
+distance-decile models were correctly skipped; their false gate values mean
+“not reached,” not additional negative results.
+
+This kills OAPF's mechanism before training. No PFML reproduction is required
+for candidate 174, no OAPF arm may be implemented or queued, and the fixed
+`rho_i` mapping must not be tuned to rescue an unreliable predictor. Immutable
+artifact provenance: checkpoint `31307c9e...fcbd`, report `e84aa1b7...92cc`,
+view ledger `b2f0d80e...facbb`.
+
+The measurement lesson is narrower than “augmentation response is noise.”
+ARCG's deterministic response relation remains real; what failed is treating a
+small-sample stochastic **tail magnitude** as a stable endpoint property. A
+successor must not reuse per-image q90 crop extent under another name.

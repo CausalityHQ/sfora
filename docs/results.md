@@ -1122,3 +1122,19 @@ ranking. It should not: raw dot-product R@1 was **0.60051** (-24.314 points
 versus cosine) and raw Euclidean was **0.82163** (-2.201 points), against cosine
 **0.84365**. Magnitude predicts confidence/difficulty but is not semantic
 similarity; restoring the discarded radius directly is severely harmful.
+
+## OAPF training-only provenance diagnostic (candidate 174)
+
+OAPF was killed before retrieval training. On the official In-Shop training
+split, its digest-bound diagnostic covered **25,882 images** and **153,115
+same-class pairs** without loading evaluation images. Held-out compatibility
+prevalence was valid at **0.472582**, but the proposed per-image six-crop q90
+radius was not reliable across independent packs: global Spearman **0.317593**
+and within-class-residual Spearman **0.184057**, both below the preregistered
+**0.50** floor. Later AUC, direction, permutation, and decile gates were not
+reached. No OAPF or PFML-dependent candidate run followed.
+
+Mechanism: stochastic crop-tail magnitude is not a stable endpoint property at
+the epoch-10 In-Shop operating point. This does not retract ARCG's deterministic
+augmentation-response structure; it rules out using a six-draw tail statistic
+as an adaptive PFML plateau under candidate 174's fixed design.

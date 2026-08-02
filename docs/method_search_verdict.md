@@ -2654,10 +2654,9 @@ Expansion, and fine-grained intra-class part swapping unless causal parts are
 independently observed. Full audit:
 `docs/cross_domain_relations_audit_170_173.md`.
 
-## 174. Orbit-adaptive potential fields: narrowly live after diagnostic repair
+## 174. Orbit-adaptive potential fields: dead on radius reliability
 
-**Gate 2 narrowly live; corrected Gate-1 diagnostic pending; no OAPF training
-GPU.** ARCG measured a selective,
+**Gate-1 death recorded 2026-08-02; no OAPF training GPU.** ARCG measured a selective,
 non-distance augmentation-response graph on In-Shop but showed that hard
 positive replacement self-erases. Candidate 174 transfers each image's measured
 augmentation displacement into that image's PFML zero-force plateau when it
@@ -2689,9 +2688,16 @@ radius-independent held-out retrieval-margin event; class-held-out weighted
 folds; pack-A RMS dispersion as the explicit ordinary-uncertainty control;
 nonnegative-coefficient direction tests; within-class derangements; fixed
 distance-decile residual effects; Euclidean units; and a fixed map to PFML's
-`delta=0.2`. Candidate 174 therefore remains narrowly live at Gate 1. A
-diagnostic pass still cannot establish retrieval benefit, and no training arm is
-allowed until fixed-bandwidth PFML itself reproduces credibly. Full record:
+`delta=0.2`.
+
+The corrected diagnostic then killed the candidate at its first signal gate.
+On 25,882 official In-Shop training images and 153,115 same-class pairs, the
+held-out binary outcome had valid class-balanced prevalence **0.472582**, but
+independent six-view packs produced global radius Spearman only **0.317593** and
+within-class-residual Spearman only **0.184057**, versus **0.50** required for
+both. The q90 crop displacement is not a reproducible per-image endpoint scale;
+most variation changes with the crop draw. All fitted-model gates were correctly
+skipped. This kills OAPF before PFML reproduction or training. Full record:
 `docs/oapf_candidate.md`.
 
 **Second pre-data audit and baseline correction (2026-08-02).** Claude and an
@@ -2715,8 +2721,9 @@ gradient without dividing the weight-decay gradient and changed the
 optimization problem. The loss scale is repaired and unit-tested, but the
 local PFML preset still differs from the primary supplement in epochs, batch,
 warm-up, head, decay exponent, CUB weight decay, and learning rate. Therefore a
-Gate-1 pass advances OAPF only to a preregistered PFML reproduction, not to OAPF
-training. Full audit: `docs/pfml_reproduction_audit_2026-08-02.md`.
+Had Gate 1 passed it would have advanced only to a preregistered PFML
+reproduction, not to OAPF training. It did not pass. Full baseline audit:
+`docs/pfml_reproduction_audit_2026-08-02.md`.
 
 ## 175. Force-conserving response transport: occupied balanced OT weighting
 
