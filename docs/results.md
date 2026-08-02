@@ -1163,3 +1163,11 @@ same identities recur: pairwise Cohen kappas were **0.8859**, **0.8870**, and
 That establishes robustness to initialization, not semantic multimodality or a
 causal benefit. All seeds share the same data and pipeline, so label noise,
 near-duplicate composition and 1-NN graph brittleness remain possible causes.
+
+A further preregistered component-membership test ruled out the narrowest of
+those alternatives. Pairwise component ARI was **0.8375--0.8447** and **56.34%**
+of eligible stable-fragmented identities remained disconnected at k=2 in all
+three seeds. Thus repeatable membership, not merely repeatable class spread or
+one unstable bridge, drives the graph result. Dataset acquisition/view tokens,
+fixed label noise and near duplicates remain unresolved and prevent a semantic
+or method claim.

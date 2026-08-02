@@ -2906,3 +2906,12 @@ Process lesson: replication of a prevalence and outcome association is weaker
 than replication of the units carrying the exposure. Both were required here;
 even their joint pass establishes robustness only to the factor actually varied
 (optimizer seed).
+
+**Partition follow-up.** A second preregistered test found that the component
+membership itself recurs: mean pairwise ARI **0.8415**, minimum **0.8375**, exact
+component-count agreement **67.27%**, and all-three k=2 persistence **56.34%**
+among eligible stable-fragmented classes. Pairwise-only cohorts gave the same
+ARI, so conditioning on three-seed disconnection did not manufacture it. This
+kills the narrow random-edge explanation, but not fixed acquisition clusters,
+label noise or near duplicates. No dead Gate-2 operator is revived; the next
+step is to test those observable alternatives before naming candidate 195.

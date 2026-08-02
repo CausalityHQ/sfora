@@ -56,3 +56,29 @@ stable acquisition clusters can produce repeatable partitions. It would justify
 only a later independent diagnostic against those explanations. A failure kills
 the fragmentation-derived supervision line because binary stability would then
 describe class spread or graph brittleness, not repeatable component membership.
+
+## Result (2026-08-02)
+
+Every prediction clause passed. The stable three-seed cohort contained 1,439
+identities. Pairwise macro ARIs were **0.83755**, **0.84475**, and **0.84213**
+(mean **0.84148**, minimum **0.83755**); class-size-weighted values remained
+**0.80859--0.81624**. Restricting only to each pair's disconnected intersection
+gave essentially the same **0.83988--0.84678**, so selection on all three seeds
+did not create the result. Exact component-count agreement was **0.67269**.
+
+Of 1,246 stable-fragmented identities large enough for two k=2 components,
+per-seed k=2 disconnection was **0.70706**, **0.68379**, and **0.68379**, and
+**0.56340** remained disconnected at k=2 in all three seeds. The partitions are
+therefore neither arbitrary within a stably broad class nor predominantly a
+single-edge k=1 accident.
+
+The analyzer SHA-256 was
+`b2a9415afd5c0dedbec2ae502345ec75468fee7a49d366f4021b3b55397b7bca` and the
+result JSON SHA-256 was
+`81a81f1c89ca6e5e757f9621cf0b84c1f15c2dd22e676790afb07b215628903e`.
+
+This advances the provenance claim only to repeatable image membership. It does
+not distinguish clothing/viewpoint structure from fixed acquisition series,
+background, model identity, label noise, or near duplicates. In-Shop filenames
+contain explicit series and view-like tokens, enabling that cheaper audit before
+any supervision proposal.
