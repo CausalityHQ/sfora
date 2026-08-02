@@ -2717,3 +2717,16 @@ local PFML preset still differs from the primary supplement in epochs, batch,
 warm-up, head, decay exponent, CUB weight decay, and learning rate. Therefore a
 Gate-1 pass advances OAPF only to a preregistered PFML reproduction, not to OAPF
 training. Full audit: `docs/pfml_reproduction_audit_2026-08-02.md`.
+
+## 175. Force-conserving response transport: occupied balanced OT weighting
+
+**Gate-2 death recorded 2026-08-02; no diagnostic, implementation, or GPU.**
+ARCG's positive-to-unknown graph self-erased, so candidate 175 proposed routing
+a fixed amount of same-class attractive mass through a doubly-stochastic
+augmentation-response coupling. The conservation constraint prevents a vanishing
+positive objective, but the operator is Sinkhorn balanced assignment and the
+coupling is soft positive importance. SwAV and simultaneous self-labelling
+occupy balanced Sinkhorn codes, while batch-wise optimal-transport metric
+learning already uses an OT plan as importance-weighted DML supervision.
+Changing the cost to response disagreement is not a new supervision mechanism.
+Full audit: `docs/force_conserving_transport_audit_2026-08-02.md`.
