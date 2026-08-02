@@ -59,6 +59,15 @@ measurement. It is an occupied reference, not a novelty claim. Its optimization
 trajectory and matched result may expose a defect different from the closed
 Proxy Anchor/HIST branches; no extension is preregistered before that evidence.
 
+**RS@k audit update.** A source-level mechanism audit found no defensible novel
+extension: survival, conformal, differentiable-sorting/OT, exposure-correction,
+and causal-augmentation variants reduce to occupied listwise ranking, estimator
+replacement, weighting, or prior failed augmentation mechanisms. The same audit
+did expose a second native-port fidelity defect—whole-class rank exclusion where
+the source excludes only the candidate positive. The corrected-cap run was
+stopped at epoch 52 with no final artifact, the port was repaired, and a faithful
+rerun remains pending. Full audit: `docs/rsatk_mechanism_audit_2026-08-02.md`.
+
 ## Fragmentation reopening attempt
 
 A later preregistered seed-0 audit strengthened the best remaining marker:
