@@ -3269,3 +3269,25 @@ second declared delta. And with clean In-Shop/CUB labels, "suppression helped"
 is a statement about the current trajectory, not identity, so the repulsive
 label injects the noise T-SINT and co-teaching exist to remove. Full audit:
 `docs/randomized_relation_ablation_audit_224_2026-08-02.md`.
+
+## 225. Contraction-rate equalized proxy attraction
+
+**DEAD at Gate 2 on 2026-08-02; no implementation or GPU.** The proposal was to
+change the frame of own-proxy attraction so its induced pair contraction would
+not amplify In-Shop acquisition alignment. Exact first-order algebra closes the
+family. For same-class unit embeddings with proxy alignments `a,b`, mutual
+cosine `c`, and PA weights `w_i,w_j`, the cosine change is
+`eta[w_i(b-ac)+w_j(a-bc)]`. The available degrees of freedom are therefore only
+the weights (general pair weighting), attractor (multi/moving proxies), or step
+metric (preconditioning/natural gradient), all occupied. The measured drift is
+rich-get-richer joint proxy alignment, not a fourth supervision object.
+
+The preregistered follow-up asked whether a source-fold within-class covariance
+subspace transfers as nuisance-heavy and identity-light to disjoint identities.
+It decisively failed: fold-averaged `rho_32` was **0.9312, 0.9287, 0.9345** for
+seeds 0--2, all below the locked `1.15` falsifier. A direction budget learned as
+within-class variation on one identity set captures at least as much
+between-identity variation on another. This supplies measurement-based closure
+of the linear transferable-nuisance-subspace route; the lower permuted-label
+ratios do not rescue a statistic below one. Full preregistration, audit, hashes,
+and result: `docs/candidate_225_nuisance_transfer_preregistration_2026-08-02.md`.

@@ -79,3 +79,35 @@ WCCN (Interspeech 2006); Prince and Elder, PLDA (ICCV 2007); Amari, natural
 gradient (Neural Computation 1998); Martens and Grosse, K-FAC (ICML 2015); Wang
 et al., General Pair Weighting (CVPR 2019); Kim et al., Proxy Anchor (CVPR 2020).
 
+## Result
+
+The diagnostic **FAILS** the locked criterion in all three seeds. At `k=32`:
+
+| seed | A->B rho | B->A rho | fold mean | fold-mean w | fold-mean rho / permuted rho |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.9182 | 0.9442 | **0.9312** | 0.3685 | 1.3053 |
+| 1 | 0.9073 | 0.9501 | **0.9287** | 0.3513 | 1.3331 |
+| 2 | 0.9165 | 0.9525 | **0.9345** | 0.3597 | 1.3109 |
+
+Every fold-mean `rho_32` is below the preregistered `1.15` falsifier. Random
+32-dimensional subspaces give rho means `0.998--1.002`, so the result is not a
+normalization artifact. The source-fold within-class leading subspace captures
+roughly 35--37% of target within-class variance but 38--40% of target
+between-class variance: it is not nuisance-selective on disjoint identities.
+
+The permuted-label control has still lower rho (`0.688--0.719`), so real class
+structure is detectable relative to that anisotropic null. That does not rescue
+the candidate: the registered claim required nuisance to dominate identity, not
+merely to be less identity-heavy than a deliberately broken partition.
+
+This closes the **linear, class-exogenous nuisance-subspace** route on this
+operating point. It does not claim that no nonlinear transferable nuisance
+exists. No implementation or GPU run follows.
+
+Reproducibility:
+
+- analyzer commit: `3095cac`
+- analyzer SHA-256: `db15713899fbbcddc3090cd65c53f84989d0227f3b6e6ada8e72ec8006335ddf`
+- result SHA-256: `28979ad9ce5d48deab36e155955046247be02b7b224919236f50144f54a37864`
+- seed pack SHA-256 values: `85e76245...`, `ff30ac7f...`, `dfb72dde...`
+
