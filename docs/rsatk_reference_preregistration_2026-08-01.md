@@ -104,3 +104,42 @@ No final artifact was written by either invalid run. Their trajectories are
 debug evidence only. The original numerical prediction and falsification rule
 remain locked for the first run that matches both the retrieved-count cap and
 the source's candidate-only rank exclusion.
+
+## Third full run invalidated before completion (2026-08-02)
+
+The candidate-exclusion-corrected run was stopped at epoch 54 without a final
+artifact. It had reached raw best R@1 **0.7719** at epoch 50, but a fresh audit
+of the pinned `TrainDatasetrsk.reshuffle` implementation exposed a third recipe
+defect before completion.
+
+On the actual Cars train split there are 8,054 images in 98 classes, with class
+sizes 59--97. The source constructs a 392-image batch by taking four previously
+unused examples from **every** class, and ends the epoch as soon as the smallest
+class cannot supply another group. It therefore performs
+`floor(59 / 4) = 14` optimizer updates per epoch and rebuilds the shuffled class
+pools for the next epoch. The native balanced sampler instead performed
+`ceil(8054 / 392) = 21` independently resampled batches per epoch: 50% more
+updates, with examples eligible to repeat within an epoch. The run log confirms
+the wrong total of 3,570 rather than 2,380 steps.
+
+The same audit found that `pretrainedmodels==0.7.4` in the pinned source loads
+the legacy PyTorch `resnet50-19c8e357.pth` checkpoint. Current torchvision's
+`IMAGENET1K_V1` enum loads the different `resnet50-0676ba61.pth` checkpoint.
+The reference recipe now pins the former explicitly. Architecture, GeM,
+pre-projection affine LayerNorm, head initialization, augmentation, optimizer,
+schedule, and evaluation preprocessing were checked directly against the pinned
+source in the same pass.
+
+The split-count diagnostic reconstructed the full Hugging Face dataset while
+training was live and likely caused host-memory pressure; the trainer was killed
+at the same time. That was an operational error. It does not alter the scientific
+adjudication—the sampler mismatch had already invalidated the run and required
+stopping it—but future live diagnostics must use lightweight metadata rather
+than instantiate a second image dataset.
+
+The repaired sampler is source-exhaustive, rejects a batch that cannot contain
+one full group from every class, and derives epoch length from the smallest
+class. Tests prove within-epoch non-reuse, exact batch balance, the 14-step Cars
+schedule, and selection of the pinned legacy checkpoint. The original numerical
+prediction and falsification threshold remain locked for the first run matching
+all three corrected source mechanisms.

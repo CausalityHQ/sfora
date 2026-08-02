@@ -133,7 +133,12 @@ class ImageEndToEndConfig(BaseModel):
     lr_milestones: tuple[int, ...] = ()
     lr_gamma: float = Field(default=0.5, gt=0.0, le=1.0)
     samples_per_class: int = Field(default=0, ge=0)
-    pretrained_weights: Literal["v1", "v2", "bn_inception_52deb4733"] = "v2"
+    epoch_sampling_policy: Literal["independent_balanced", "source_exhaustive"] = (
+        "independent_balanced"
+    )
+    pretrained_weights: Literal[
+        "v1", "v2", "legacy_resnet50_19c8e357", "bn_inception_52deb4733"
+    ] = "v2"
     head_pooling: Literal["avg", "avg_max", "gem"] = "avg"
     embedding_head_init: Literal["default", "kaiming_normal"] = "default"
     # RS@k uses LayerNorm on the pooled 2048-D backbone feature BEFORE projection.
@@ -657,9 +662,11 @@ def run_image_end_to_end_benchmark(
         fraction=config.label_noise_fraction,
         seed=config.seed,
     )
+    train_labels = [example.label for example in optimization_examples]
     train_steps, steps_per_epoch, total_epochs = _resolve_training_schedule(
         config,
         optimization_example_count=len(optimization_examples),
+        optimization_labels=train_labels,
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
@@ -673,7 +680,6 @@ def run_image_end_to_end_benchmark(
         else None
     )
     checkpoint_dataset = _TorchImageDataset(checkpoint_examples, test_transform)
-    train_labels = [example.label for example in optimization_examples]
     # The test loader is shuffle=False, so encoded rows follow test_examples order.
     # Persisting the example ids lets the ensemble/thumbnail tooling prove row
     # alignment across independently-seeded runs (labels alone can't — a within-class
@@ -709,16 +715,25 @@ def run_image_end_to_end_benchmark(
         if sampler_factory is not None:
             batch_sampler = sampler_factory(np.asarray(train_labels, dtype=np.int64), config)
         else:
-            batch_sampler = _balanced_batch_indices(
-                train_labels,
-                batch_size=config.batch_size,
-                group_size=config.group_size,
-                samples_per_class=config.samples_per_class,
-                steps=train_steps,
-                seed=config.seed,
-                class_similarity=class_similarity,
-                hard_fraction=config.hard_class_fraction,
-            )
+            if config.epoch_sampling_policy == "source_exhaustive":
+                batch_sampler = _source_exhaustive_batch_indices(
+                    train_labels,
+                    batch_size=config.batch_size,
+                    samples_per_class=config.samples_per_class,
+                    epochs=total_epochs,
+                    seed=config.seed,
+                )
+            else:
+                batch_sampler = _balanced_batch_indices(
+                    train_labels,
+                    batch_size=config.batch_size,
+                    group_size=config.group_size,
+                    samples_per_class=config.samples_per_class,
+                    steps=train_steps,
+                    seed=config.seed,
+                    class_similarity=class_similarity,
+                    hard_fraction=config.hard_class_fraction,
+                )
         train_loader: Any = DataLoader(
             cast(Any, train_dataset),
             batch_sampler=batch_sampler,
@@ -1716,13 +1731,36 @@ def _resolve_training_schedule(
     config: ImageEndToEndConfig,
     *,
     optimization_example_count: int,
+    optimization_labels: Sequence[int] | None = None,
 ) -> tuple[int, int, int]:
     """Resolve benchmark-side steps from post-split optimization examples.
 
     CLI epoch-to-step conversion is only a display estimate; this function is
     authoritative because checkpoint selection can remove optimization examples.
     """
-    steps_per_epoch = max(1, math.ceil(optimization_example_count / config.batch_size))
+    if config.epoch_sampling_policy == "source_exhaustive":
+        if optimization_labels is None:
+            raise ValueError("source-exhaustive schedule requires optimization labels")
+        if config.samples_per_class <= 0:
+            raise ValueError("source-exhaustive schedule requires samples_per_class > 0")
+        counts: dict[int, int] = {}
+        for label in optimization_labels:
+            counts[int(label)] = counts.get(int(label), 0) + 1
+        if not counts:
+            raise ValueError("source-exhaustive schedule requires at least one class")
+        expected_batch_size = len(counts) * config.samples_per_class
+        if config.batch_size != expected_batch_size:
+            raise ValueError(
+                "source-exhaustive sampling requires one full chunk from every class: "
+                f"batch_size={config.batch_size}, expected {expected_batch_size}"
+            )
+        # The pinned RS@k dataset rebuilds each epoch from unique per-class chunks
+        # and stops as soon as the smallest class has fewer than P examples left.
+        steps_per_epoch = min(counts.values()) // config.samples_per_class
+        if steps_per_epoch < 1:
+            raise ValueError("source-exhaustive schedule has no complete class-balanced batch")
+    else:
+        steps_per_epoch = max(1, math.ceil(optimization_example_count / config.batch_size))
     if config.train_epochs is not None:
         total_epochs = config.train_epochs + (
             config.warmup_epochs if config.warmup_is_additional else 0
@@ -1993,6 +2031,59 @@ def _balanced_batch_indices(
                 )
         batches.append(batch[:batch_size])
     return batches
+
+
+def _source_exhaustive_batch_indices(
+    labels: Sequence[int],
+    *,
+    batch_size: int,
+    samples_per_class: int,
+    epochs: int,
+    seed: int,
+) -> list[list[int]]:
+    """Reproduce the pinned RS@k full-class, without-replacement epoch sampler.
+
+    `TrainDatasetrsk.reshuffle` shuffles every class pool, takes one P-example
+    chunk from every class into each batch, and discards the incomplete tail once
+    the smallest class is exhausted. It then rebuilds the pools for the next
+    epoch. This is materially different from independently redrawing P examples
+    for `ceil(N / batch_size)` steps: on Cars196 the source has 14 rather than 21
+    optimizer updates per epoch.
+    """
+    import random
+
+    if samples_per_class <= 0:
+        raise ValueError("source-exhaustive sampling requires samples_per_class > 0")
+    grouped: dict[int, list[int]] = {}
+    for index, label in enumerate(labels):
+        grouped.setdefault(int(label), []).append(index)
+    if not grouped:
+        raise ValueError("source-exhaustive sampling requires at least one class")
+    expected_batch_size = len(grouped) * samples_per_class
+    if batch_size != expected_batch_size:
+        raise ValueError(
+            "source-exhaustive sampling requires one full chunk from every class: "
+            f"batch_size={batch_size}, expected {expected_batch_size}"
+        )
+
+    rng = random.Random(seed)
+    all_batches: list[list[int]] = []
+    for _ in range(epochs):
+        pools = {label: list(indices) for label, indices in grouped.items()}
+        for pool in pools.values():
+            rng.shuffle(pool)
+        class_order = list(pools)
+        rng.shuffle(class_order)
+        epoch_batches: list[list[int]] = []
+        while all(len(pools[label]) >= samples_per_class for label in class_order):
+            batch: list[int] = []
+            for label in class_order:
+                batch.extend(pools[label][:samples_per_class])
+                del pools[label][:samples_per_class]
+            epoch_batches.append(batch)
+        rng.shuffle(epoch_batches)
+        all_batches.extend(epoch_batches)
+    return all_batches
 
 
 @dataclass
@@ -6820,12 +6911,24 @@ def _torchvision_model_factory(
         )
     if config.backbone_name != "resnet50":
         raise ValueError("Only resnet50 and bn_inception are supported for paper protocol runs")
-    weights = (
-        models.ResNet50_Weights.IMAGENET1K_V1
-        if config.pretrained_weights == "v1"
-        else models.ResNet50_Weights.IMAGENET1K_V2
-    )
-    model = models.resnet50(weights=weights)
+    if config.pretrained_weights == "legacy_resnet50_19c8e357":
+        # `pretrainedmodels==0.7.4`, used by the pinned RS@k source, wraps a
+        # torchvision ResNet-50 but loads the legacy 19c8e357 checkpoint. Current
+        # torchvision's V1 enum points at a different 0676ba61 checkpoint.
+        model = models.resnet50(weights=None)
+        state_dict = torch.hub.load_state_dict_from_url(
+            "https://download.pytorch.org/models/resnet50-19c8e357.pth",
+            map_location="cpu",
+            check_hash=True,
+        )
+        model.load_state_dict(state_dict)
+    else:
+        weights = (
+            models.ResNet50_Weights.IMAGENET1K_V1
+            if config.pretrained_weights == "v1"
+            else models.ResNet50_Weights.IMAGENET1K_V2
+        )
+        model = models.resnet50(weights=weights)
     _set_resnet_output_layer(
         model,
         config,

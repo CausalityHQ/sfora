@@ -6006,6 +6006,43 @@ def test_balanced_batch_indices_samples_per_class_zero_preserves_legacy_sequence
     ]
 
 
+def test_source_exhaustive_batches_stop_at_smallest_class_without_reuse() -> None:
+    from sfora.image_end_to_end import _source_exhaustive_batch_indices
+
+    labels = [0] * 9 + [1] * 13
+    batches = _source_exhaustive_batch_indices(
+        labels,
+        batch_size=8,
+        samples_per_class=4,
+        epochs=2,
+        seed=7,
+    )
+
+    assert len(batches) == 4  # floor(min(9, 13) / 4) * two epochs
+    for epoch_batches in (batches[:2], batches[2:]):
+        seen: set[int] = set()
+        for batch in epoch_batches:
+            batch_labels = [labels[index] for index in batch]
+            assert batch_labels.count(0) == 4
+            assert batch_labels.count(1) == 4
+            assert not seen.intersection(batch)
+            seen.update(batch)
+        assert len(seen) == 16
+
+
+def test_source_exhaustive_batches_require_every_class_in_the_batch() -> None:
+    from sfora.image_end_to_end import _source_exhaustive_batch_indices
+
+    with pytest.raises(ValueError, match="one full chunk from every class"):
+        _source_exhaustive_batch_indices(
+            [0] * 8 + [1] * 8,
+            batch_size=4,
+            samples_per_class=4,
+            epochs=1,
+            seed=0,
+        )
+
+
 def test_balanced_batch_indices_hard_class_sampling_groups_confusable_classes() -> None:
     from sfora.image_end_to_end import _balanced_batch_indices
 
@@ -6182,6 +6219,47 @@ def test_torchvision_model_factory_selects_v1_weights(
     assert captured["weights"] is models.ResNet50_Weights.IMAGENET1K_V1
 
 
+def test_torchvision_model_factory_loads_pinned_legacy_rsatk_weights(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    torch = pytest.importorskip("torch")
+    models = pytest.importorskip("torchvision.models")
+
+    from sfora.image_end_to_end import _torchvision_model_factory
+
+    captured: dict[str, object] = {}
+
+    class TinyResNet(torch.nn.Module):  # type: ignore[misc, name-defined]
+        def __init__(self) -> None:
+            super().__init__()
+            self.fc = torch.nn.Linear(4, 1000)
+
+    source = TinyResNet()
+
+    def resnet50(*, weights: object) -> TinyResNet:
+        captured["weights"] = weights
+        return TinyResNet()
+
+    def load_state_dict_from_url(url: str, **kwargs: object) -> dict[str, object]:
+        captured["url"] = url
+        captured["download_kwargs"] = kwargs
+        return source.state_dict()
+
+    monkeypatch.setattr(models, "resnet50", resnet50)
+    monkeypatch.setattr(torch.hub, "load_state_dict_from_url", load_state_dict_from_url)
+
+    _torchvision_model_factory(
+        ImageEndToEndConfig(
+            pretrained_weights="legacy_resnet50_19c8e357",
+            embedding_dimensions=2,
+        )
+    )
+
+    assert captured["weights"] is None
+    assert captured["url"] == "https://download.pytorch.org/models/resnet50-19c8e357.pth"
+    assert captured["download_kwargs"] == {"map_location": "cpu", "check_hash": True}
+
+
 def test_teacher_checkpoint_round_trip_loads_frozen_model(tmp_path: Path) -> None:
     torch = pytest.importorskip("torch")
 
@@ -6332,6 +6410,22 @@ def test_resolve_training_schedule_recomputes_steps_from_train_epochs() -> None:
     config = ImageEndToEndConfig(batch_size=4, train_steps=99, train_epochs=2)
 
     assert _resolve_training_schedule(config, optimization_example_count=9) == (6, 3, 2)
+
+
+def test_resolve_source_exhaustive_schedule_uses_smallest_class() -> None:
+    config = ImageEndToEndConfig(
+        batch_size=8,
+        samples_per_class=4,
+        epoch_sampling_policy="source_exhaustive",
+        train_epochs=3,
+    )
+    labels = [0] * 9 + [1] * 13
+
+    assert _resolve_training_schedule(
+        config,
+        optimization_example_count=len(labels),
+        optimization_labels=labels,
+    ) == (6, 2, 3)
 
 
 def test_train_epochs_schedule_uses_post_split_example_count() -> None:

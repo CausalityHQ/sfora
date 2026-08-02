@@ -69,6 +69,13 @@ corrected-cap Cars run was stopped at epoch 52 before an artifact was written;
 the port, literal test, and four-sample regression test were repaired before a
 third attempt. See `docs/rsatk_reference_preregistration_2026-08-01.md`.
 
+A later full-recipe audit found two additional source mismatches before that
+attempt completed: source-exhaustive epochs have 14 rather than 21 Cars batches,
+and the source uses legacy ImageNet weights `19c8e357` rather than torchvision
+V1 `0676ba61`. That attempt was also excluded without an artifact; both recipe
+mechanisms are now pinned and tested. These fidelity repairs do not create a new
+supervision claim.
+
 ## Primary sources
 
 - Patel, Tolias, and Matas, *Recall@k Surrogate Loss with Large Batches and
