@@ -42,6 +42,12 @@ def orbit_radius_and_rms(
         raise ValueError("canonical must be [N,D] and views [N,V,D]")
     if views.shape[0] != canonical.shape[0] or views.shape[2] != canonical.shape[1]:
         raise ValueError("canonical and views shapes are incompatible")
+    if views.shape[1] != 6:
+        raise ValueError("views must contain exactly six registered draws")
+    if not np.allclose(np.linalg.norm(canonical, axis=1), 1.0, atol=1.0e-5):
+        raise ValueError("canonical embeddings must be L2-normalized")
+    if not np.allclose(np.linalg.norm(views, axis=2), 1.0, atol=1.0e-5):
+        raise ValueError("view embeddings must be L2-normalized")
     displacement = np.linalg.norm(views - canonical[:, None, :], axis=2)
     radius = np.quantile(displacement, 0.9, axis=1, method="linear")
     centered = views - views.mean(axis=1, keepdims=True)
@@ -88,20 +94,22 @@ def heldout_pair_compatibility(
     if left.shape != right.shape:
         raise ValueError("pair endpoint arrays must match")
 
-    forward = np.linalg.norm(
-        heldout_views[left] - canonical[right, None, :], axis=2
-    )
-    reverse = np.linalg.norm(
-        heldout_views[right] - canonical[left, None, :], axis=2
-    )
-    successes = np.concatenate(
-        [
-            nearest_negative_distances[left] - forward > 0.0,
-            nearest_negative_distances[right] - reverse > 0.0,
-        ],
-        axis=1,
-    )
-    count = successes.sum(axis=1)
+    count = np.empty(left.size, dtype=np.int64)
+    # In-Shop has enough within-class pairs that materializing all indexed
+    # [pair, view, embedding] tensors at once can consume several GiB.
+    for start in range(0, left.size, 4096):
+        stop = min(start + 4096, left.size)
+        chunk_left = left[start:stop]
+        chunk_right = right[start:stop]
+        forward = np.linalg.norm(
+            heldout_views[chunk_left] - canonical[chunk_right, None, :], axis=2
+        )
+        reverse = np.linalg.norm(
+            heldout_views[chunk_right] - canonical[chunk_left, None, :], axis=2
+        )
+        forward_success = nearest_negative_distances[chunk_left] - forward > 0.0
+        reverse_success = nearest_negative_distances[chunk_right] - reverse > 0.0
+        count[start:stop] = forward_success.sum(axis=1) + reverse_success.sum(axis=1)
     return count.astype(np.float64) / 12.0, (count >= 10).astype(np.int64)
 
 
@@ -131,7 +139,7 @@ def within_class_derangement(
     labels: IntArray,
     seed: int,
 ) -> FloatArray:
-    """Derange values by a seeded nonzero cyclic shift inside every class."""
+    """Apply a seeded uniform random derangement inside every nonsingleton class."""
 
     result = values.copy()
     rng = np.random.Generator(np.random.PCG64(seed))
@@ -139,8 +147,10 @@ def within_class_derangement(
         indices = np.flatnonzero(labels == label)
         if indices.size < 2:
             continue
-        shift = int(rng.integers(1, indices.size))
-        result[indices] = values[np.roll(indices, shift)]
+        permutation = rng.permutation(indices.size)
+        while np.any(permutation == np.arange(indices.size)):
+            permutation = rng.permutation(indices.size)
+        result[indices] = values[indices[permutation]]
     return result
 
 
@@ -184,9 +194,7 @@ def fit_weighted_logistic(
     bounds = None
     if nonnegative_from is not None:
         first_beta = 1 + nonnegative_from
-        bounds = [(None, None)] * first_beta + [(0.0, None)] * (
-            design.shape[1] - first_beta
-        )
+        bounds = [(None, None)] * first_beta + [(0.0, None)] * (design.shape[1] - first_beta)
     result = minimize(
         objective,
         np.zeros(design.shape[1], dtype=np.float64),
