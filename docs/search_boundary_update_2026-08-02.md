@@ -58,3 +58,20 @@ The corrected Cars196 Recall@k-surrogate reproduction is running as the next
 measurement. It is an occupied reference, not a novelty claim. Its optimization
 trajectory and matched result may expose a defect different from the closed
 Proxy Anchor/HIST branches; no extension is preregistered before that evidence.
+
+## Fragmentation reopening attempt
+
+A later preregistered seed-0 audit strengthened the best remaining marker:
+after matching exact class size and global quintiles of within-class compactness
+and nearest-foreign-centroid similarity, disconnected classes retained a
+**+5.875-point** R@1 association at 60.43% coverage. This is observational and
+awaits independent seeds.
+
+Claude was then asked for a causal edit outside sparse positives, mining and
+gating, bounded attraction, explicit diversity/repulsion, mixtures/subcentres,
+manifolds/densities, pseudo-label class splitting, hierarchy/topology,
+factorisation, synthesis, or multi-model transfer. Its bounded answer was
+`NONE`: with labelled pixels and one cosine vector, a mode-preservation edit
+enters one of those mechanisms. Candidate 185 independently demonstrated the
+reduction for the most literal edit, component pseudo-identities. Thus the
+positive marker reopens a scientific question, but not an executable novel arm.
