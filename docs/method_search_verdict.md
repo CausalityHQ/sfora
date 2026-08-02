@@ -2693,3 +2693,27 @@ distance-decile residual effects; Euclidean units; and a fixed map to PFML's
 diagnostic pass still cannot establish retrieval benefit, and no training arm is
 allowed until fixed-bandwidth PFML itself reproduces credibly. Full record:
 `docs/oapf_candidate.md`.
+
+**Second pre-data audit and baseline correction (2026-08-02).** Claude and an
+independent static review attacked the executable diagnostic before it touched
+candidate data. Accepted corrections add coherent pack-to-canonical shift to
+M0, replace order-preserving cyclic permutations with within-class random
+derangements, regress the continuous decile outcome on a continuous baseline,
+class-balance every decile stratum, enforce six L2-normalised views, chunk pair
+outcomes, bind the exact checkpoint/report digests, and emit explicit failure
+artifacts for undefined negative outcomes. The review's broader circularity
+claim is rejected: RMS is intentionally an adjacent control for whether q90
+tail extent adds information, and pack-B augmentation compatibility is the
+held-out phenomenon being predicted rather than a radius-defined label. This
+limits any pass to that narrow statement. Full adjudication:
+`docs/oapf_claude_audit_2026-08-02.md`.
+
+The same audit cycle found that the historical PFML collapse is invalid as a
+baseline result. Local code averaged the raw Eq. 6 total over millions of
+ordered pairs while using Adam's coupled weight decay; this divided the data
+gradient without dividing the weight-decay gradient and changed the
+optimization problem. The loss scale is repaired and unit-tested, but the
+local PFML preset still differs from the primary supplement in epochs, batch,
+warm-up, head, decay exponent, CUB weight decay, and learning rate. Therefore a
+Gate-1 pass advances OAPF only to a preregistered PFML reproduction, not to OAPF
+training. Full audit: `docs/pfml_reproduction_audit_2026-08-02.md`.
