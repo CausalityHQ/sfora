@@ -531,7 +531,7 @@ def test_recall_at_k_surrogate_matches_literal_rank_definition() -> None:
             for positive in positives:
                 soft_rank = embeddings.new_tensor(1.0)
                 for candidate in range(len(labels)):
-                    if labels[candidate] != labels[query]:
+                    if candidate != positive:
                         soft_rank = soft_rank + torch.sigmoid(
                             (similarities[query, candidate] - similarities[query, positive])
                             / rank_temperature
@@ -550,12 +550,13 @@ def test_recall_at_k_surrogate_matches_literal_rank_definition() -> None:
     assert torch.isfinite(embeddings.grad).all()
 
 
-def test_recall_at_k_surrogate_caps_soft_retrieved_count_like_reference() -> None:
+def test_recall_at_k_surrogate_keeps_same_class_rank_competitors_like_reference() -> None:
     torch: Any = pytest.importorskip("torch")
     # Four examples per class give every query three positives. With perfectly
-    # separated classes each top-1 membership tends to 0.5 at rank exactly 1,
-    # so their sum is 1.5. The pinned source caps that sum at k=1; omitting the
-    # cap produces impossible recall 1.5 and loss -0.5.
+    # separated classes, each positive still has soft rank 2.5: its query and
+    # two co-positives remain in the rank sum at sigmoid(0)=0.5, while only that
+    # candidate positive itself is excluded. This is the pinned source's exact
+    # behaviour and catches the earlier, incorrect whole-class rank mask.
     embeddings = torch.tensor(
         [[1.0, 0.0]] * 4 + [[-1.0, 0.0]] * 4,
         dtype=torch.float64,
@@ -571,7 +572,8 @@ def test_recall_at_k_surrogate_caps_soft_retrieved_count_like_reference() -> Non
         torch_module=torch,
     )
 
-    assert loss.item() == pytest.approx(0.0, abs=1e-10)
+    expected_recall = 3.0 * torch.sigmoid(torch.tensor(-1.5)).item()
+    assert loss.item() == pytest.approx(1.0 - expected_recall, abs=1e-7)
 
 
 def test_recall_at_k_surrogate_rewards_correct_nearest_neighbours() -> None:

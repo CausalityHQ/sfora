@@ -3,26 +3,37 @@ set -euo pipefail
 
 PROJECT="${PROJECT:-/home/riomus/group-learning}"
 LOG_ROOT="${LOG_ROOT:-/home/riomus/experiment-logs/reference-matrix}"
+INSHOP_ROOT="${INSHOP_ROOT:-/home/riomus/datasets/inshop}"
 CARS_PATTERN="image_end_to_end.*cars.*recall_at_k_surrogate"
 
 cd "${PROJECT}"
 mkdir -p "${LOG_ROOT}" reports/emb reports/generated reports/checkpoints
+[[ -f "${INSHOP_ROOT}/Eval/list_eval_partition.txt" && -d "${INSHOP_ROOT}/Img" ]] || {
+  echo "refusing missing/invalid In-Shop root: ${INSHOP_ROOT}" >&2
+  exit 2
+}
+
+EXPECTED_RECIPE_DIGEST="$(${PROJECT}/.venv/bin/python - <<'PY'
+from sfora.image_recipes import recipe_digest, reference_recipe
+print(recipe_digest(reference_recipe("proxy_anchor", "inshop")))
+PY
+)"
 
 verify_report() {
   local report="$1"
   local expected_seed="$2"
-  .venv/bin/python - "${report}" "${expected_seed}" <<'PY'
+  .venv/bin/python - "${report}" "${expected_seed}" "${EXPECTED_RECIPE_DIGEST}" <<'PY'
 import json
 import sys
 
-report_path, expected_seed = sys.argv[1], int(sys.argv[2])
+report_path, expected_seed, expected_digest = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 with open(report_path, encoding="utf-8") as handle:
     config = json.load(handle)["config"]
 expected = {
     "dataset_name": "inshop",
     "objectives": ["proxy_anchor"],
     "recipe_id": "proxy_anchor.inshop.official-51db570",
-    "recipe_digest": "1ae1335dcaf816e39c6c87c7c95d697efadd399f84b20d6a1c42d5a272c4f53a",
+    "recipe_digest": expected_digest,
     "train_epochs": 10,
     "train_steps": 1440,
     "eval_test_interval_epochs": 0,
@@ -57,6 +68,7 @@ for seed in 1 2; do
   if [[ "${existing}" -eq 0 ]]; then
     .venv/bin/sfora image-end-to-end \
       --dataset-name inshop \
+      --dataset-root "${INSHOP_ROOT}" \
       --objectives proxy_anchor \
       --recipe auto \
       --num-workers 8 \

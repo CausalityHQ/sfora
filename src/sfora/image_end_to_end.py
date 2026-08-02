@@ -6204,10 +6204,10 @@ def _recall_at_k_surrogate_loss(
 ) -> Any:
     """Vectorised RS@k surrogate from Patel, Tolias, and Matas (CVPR 2022).
 
-    Each positive's rank is estimated with smooth comparisons against cross-class
-    database items. A second sigmoid relaxes top-k membership. The public code
-    assumes contiguous class blocks; using label masks is mathematically identical
-    and makes that sampler implementation detail explicit.
+    Each positive's rank is estimated with smooth comparisons against every
+    database item except that positive itself. A second sigmoid relaxes top-k
+    membership. The public code assumes contiguous class blocks; using label
+    masks only for selecting positives removes that sampler implementation detail.
     """
     if embeddings.ndim != 2:
         raise ValueError("RS@k embeddings must have shape (batch, dimension)")
@@ -6230,13 +6230,16 @@ def _recall_at_k_surrogate_loss(
     if not bool(valid_queries.any()):
         return embeddings.sum() * 0.0
 
-    # [query, candidate-positive, database-item]. Same-class competitors are
-    # excluded exactly as in the reference implementation's explicit zeroing.
+    # [query, candidate-positive, database-item]. Equation (2) and the pinned
+    # implementation exclude only z == x from x's rank sum. In particular, the
+    # query and the other same-class positives remain rank competitors. The first
+    # port incorrectly masked the whole same-class block, changing the objective
+    # to rank-among-negatives and making within-class collapse artificially free.
     comparison = torch_module.sigmoid(
         (similarities[:, None, :] - similarities[:, :, None])
         / float(rank_temperature)
     )
-    comparison = comparison * (~same_class)[:, None, :]
+    comparison = comparison * (~eye)[None, :, :]
     soft_ranks = 1.0 + comparison.sum(dim=2)
 
     recalls = []

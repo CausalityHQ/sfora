@@ -70,10 +70,37 @@ the cap surrogate recall can exceed one and the loss rewards an impossible
 negative-loss regime. The existing two-example-per-class unit test could not
 exercise this because every query had only one positive.
 
-The correction was made before a deciding artifact existed. A new
-four-example-per-class test now proves the cap: perfectly separated classes at
-k=1 otherwise produce soft count 1.5, while the pinned source and corrected
-port both return recall 1 and loss 0. The numerical prediction and falsification
-threshold above remain unchanged; the corrected rerun starts from scratch at
-seed 0. The partial 0.7664 trajectory is implementation-debug evidence only and
-may not be pooled, selected, or quoted as RS@k performance.
+The cap correction was made before a deciding artifact existed. The first
+four-example-per-class regression test correctly required the cap but
+incorrectly encoded the port's rank mask as source behaviour; that expectation
+is superseded by the second audit below. The numerical prediction and
+falsification threshold above remained unchanged. The partial 0.7664 trajectory
+is implementation-debug evidence only and may not be pooled, selected, or
+quoted as RS@k performance.
+
+## Second full run invalidated before completion (2026-08-02)
+
+The corrected-cap rerun was stopped at epoch 52 and is also excluded from every
+result. It had reached raw best R@1 **0.7765**, but an independent Claude audit
+of the primary equation and exact pinned source exposed a second fidelity defect,
+which was then verified directly against `src/losses.py` at `ed052029...` before
+the process was killed.
+
+For query `q` and candidate positive `x`, paper Eq. (2) sums smooth comparisons
+over every database item `z != x`. The authors' code implements that by zeroing
+only the comparison between `x` and itself. The first native port instead masked
+the entire same-class block, excluding the query and all other positives from
+each positive's rank. It therefore optimized rank-among-negatives, a different
+and systematically easier-collapse objective.
+
+With two perfectly separated four-sample classes at `k=1`, the old test expected
+all three positives at soft rank 1, a capped surrogate recall of 1, and zero
+loss. The pinned source keeps the query and two co-positives as tied rank
+competitors, giving each positive soft rank 2.5, total surrogate recall about
+**0.5473**, and loss about **0.4527**. The literal-definition test and the
+four-sample regression test now enforce that source behaviour.
+
+No final artifact was written by either invalid run. Their trajectories are
+debug evidence only. The original numerical prediction and falsification rule
+remain locked for the first run that matches both the retrieved-count cap and
+the source's candidate-only rank exclusion.
