@@ -6113,13 +6113,16 @@ def test_default_transform_uses_full_res_random_resized_crop_for_train(
     assert ("RandomResizedCrop", (224,), {}) in legacy_train_calls
 
 
-def test_repaired_presets_use_full_res_crop_augmentation() -> None:
-    repaired: tuple[EndToEndProtocol, ...] = ("proxy-anchor-resnet50-512", "pfml-resnet50-512")
+def test_protocol_presets_pin_their_registered_crop_augmentation() -> None:
     legacy: tuple[EndToEndProtocol, ...] = ("sota-resnet50-512", "hpl-resnet50-512")
-    for protocol in repaired:
-        assert config_for_protocol(protocol, dataset_name="cub").train_augmentation == (
-            "full_res_crop"
-        )
+    assert (
+        config_for_protocol("proxy-anchor-resnet50-512", dataset_name="cub").train_augmentation
+        == "full_res_crop"
+    )
+    assert (
+        config_for_protocol("pfml-resnet50-512", dataset_name="cub").train_augmentation
+        == "standard"
+    )
     for protocol in legacy:
         assert config_for_protocol(protocol, dataset_name="cub").train_augmentation == "standard"
 
