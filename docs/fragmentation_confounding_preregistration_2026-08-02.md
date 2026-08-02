@@ -26,9 +26,10 @@ Use every training identity with at least three examples from
   3. maximum cosine similarity from the class centroid to any foreign class
      centroid.
 
-Within each exact class-size stratum, assign covariates 2 and 3 to deterministic
-pooled quintiles using all eligible classes, with quantile edges computed by
-NumPy's default linear quantile and duplicate edges collapsed. A cell is the
+Assign covariates 2 and 3 to deterministic global quintiles pooled over all
+eligible classes, with quantile edges computed by NumPy's default linear
+quantile and duplicate edges collapsed; then cross those bins with exact class
+size. A cell is the
 tuple `(exact size, within-similarity quintile, foreign-centroid quintile)`.
 Retain only cells containing both fragmented and connected classes. The
 adjusted effect is the weighted mean of cell-level outcome differences, with
