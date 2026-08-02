@@ -58,3 +58,22 @@ selection-corrected R@1 whenever the available evaluation trajectory supports
 the repository's selection-bias estimator. Do not silently substitute the
 final checkpoint for either quantity. Record deviations from the pinned source
 recipe and do not use single-run variance language.
+
+## First full run invalidated before completion (2026-08-02)
+
+The first full Cars run was stopped at epoch 52 and is excluded from every
+result. It had reached raw best R@1 **0.7664** at epoch 51, but a direct audit
+against pinned authors' `src/losses.py` found that the native port omitted
+their `min(soft_retrieved_count, k)` operation before normalisation. With four
+examples per class, several positive membership values can sum above k; without
+the cap surrogate recall can exceed one and the loss rewards an impossible
+negative-loss regime. The existing two-example-per-class unit test could not
+exercise this because every query had only one positive.
+
+The correction was made before a deciding artifact existed. A new
+four-example-per-class test now proves the cap: perfectly separated classes at
+k=1 otherwise produce soft count 1.5, while the pinned source and corrected
+port both return recall 1 and loss 0. The numerical prediction and falsification
+threshold above remain unchanged; the corrected rerun starts from scratch at
+seed 0. The partial 0.7664 trajectory is implementation-debug evidence only and
+may not be pooled, selected, or quoted as RS@k performance.

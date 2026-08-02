@@ -6246,6 +6246,14 @@ def _recall_at_k_surrogate_loss(
             (float(k) - soft_ranks) / float(recall_temperature)
         )
         retrieved = (membership * positive_mask).sum(dim=1)
+        # The authors' implementation caps the soft count at k before
+        # normalising (losses.py, pinned ed05202, lines 64-67). Without this,
+        # several soft-positive memberships can sum above k, surrogate recall
+        # exceeds one, and the loss acquires a spurious negative-reward regime.
+        retrieved = torch_module.minimum(
+            retrieved,
+            torch_module.full_like(retrieved, float(k)),
+        )
         normalizer = torch_module.minimum(
             positive_counts,
             torch_module.full_like(positive_counts, float(k)),

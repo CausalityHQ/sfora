@@ -537,7 +537,10 @@ def test_recall_at_k_surrogate_matches_literal_rank_definition() -> None:
                             / rank_temperature
                         )
                 memberships.append(torch.sigmoid((k - soft_rank) / recall_temperature))
-            recalls.append(torch.stack(memberships).sum() / min(k, len(positives)))
+            retrieved = torch.minimum(
+                torch.stack(memberships).sum(), embeddings.new_tensor(float(k))
+            )
+            recalls.append(retrieved / min(k, len(positives)))
         per_query.append(torch.stack(recalls).mean())
     expected = 1.0 - torch.stack(per_query).mean()
 
@@ -545,6 +548,30 @@ def test_recall_at_k_surrogate_matches_literal_rank_definition() -> None:
     actual.backward()
     assert embeddings.grad is not None
     assert torch.isfinite(embeddings.grad).all()
+
+
+def test_recall_at_k_surrogate_caps_soft_retrieved_count_like_reference() -> None:
+    torch: Any = pytest.importorskip("torch")
+    # Four examples per class give every query three positives. With perfectly
+    # separated classes each top-1 membership tends to 0.5 at rank exactly 1,
+    # so their sum is 1.5. The pinned source caps that sum at k=1; omitting the
+    # cap produces impossible recall 1.5 and loss -0.5.
+    embeddings = torch.tensor(
+        [[1.0, 0.0]] * 4 + [[-1.0, 0.0]] * 4,
+        dtype=torch.float64,
+    )
+    labels = torch.tensor([0] * 4 + [1] * 4)
+
+    loss = _recall_at_k_surrogate_loss(
+        embeddings,
+        labels,
+        k_values=(1,),
+        rank_temperature=0.01,
+        recall_temperature=1.0,
+        torch_module=torch,
+    )
+
+    assert loss.item() == pytest.approx(0.0, abs=1e-10)
 
 
 def test_recall_at_k_surrogate_rewards_correct_nearest_neighbours() -> None:
