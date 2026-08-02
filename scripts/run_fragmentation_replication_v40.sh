@@ -13,11 +13,11 @@ mkdir -p "${LOG_ROOT}" reports/emb reports/generated reports/checkpoints
   exit 2
 }
 
-EXPECTED_RECIPE_DIGEST="$(${PROJECT}/.venv/bin/python - <<'PY'
-from sfora.image_recipes import recipe_digest, reference_recipe
-print(recipe_digest(reference_recipe("proxy_anchor", "inshop")))
-PY
-)"
+# Locked to the hypothesis-generating seed-0 report. The startup banner prints
+# the base recipe digest (16a3bc...), but the final report correctly hashes the
+# explicit 10-epoch/no-test-eval modification as 1ae133.... Comparing against
+# the base digest here would validate the wrong lifecycle object.
+EXPECTED_RECIPE_DIGEST="1ae1335dcaf816e39c6c87c7c95d697efadd399f84b20d6a1c42d5a272c4f53a"
 
 verify_report() {
   local report="$1"
@@ -87,8 +87,11 @@ for seed in 1 2; do
   }
   .venv/bin/python scripts/measure_spectral_class_connectivity.py "${pack}" \
     | tee "reports/generated/inshop_fragmentation_epoch10_seed${seed}.json"
+  .venv/bin/python scripts/measure_fragmentation_confounding.py "${pack}" \
+    --output "reports/generated/inshop_fragmentation_confounding_epoch10_seed${seed}.json"
   sha256sum "${pack}" "${report}" "${checkpoint}" \
     scripts/measure_spectral_class_connectivity.py \
+    scripts/measure_fragmentation_confounding.py \
     src/sfora/image_end_to_end.py src/sfora/image_recipes.py \
     | tee "reports/generated/inshop_fragmentation_epoch10_seed${seed}.sha256"
 done
