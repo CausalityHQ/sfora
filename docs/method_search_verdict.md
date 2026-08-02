@@ -3179,3 +3179,16 @@ and Metric Compatible Training; the checkpoint version is temporal
 self-distillation/EMA. Two heads violate the roughly-1x budget, while the cheap
 version reproduces mechanisms already tested here. Full audit:
 `docs/topology_compatibility_audit_216_217_2026-08-02.md`.
+
+## 218. Proxy-estimated distribution decidability
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** The
+small, preregistration-failing OPIS/error correlations suggested optimizing
+global genuine/impostor score separation. D-Loss (IJCNN 2022) already optimizes
+the biometric decidability index, and PD-Loss (arXiv:2508.17082, 2025) estimates
+the same means and variances through own- versus foreign-proxy similarities.
+Histogram Loss occupies nonparametric distribution overlap. Proxy estimation,
+robust moments, or alternative divergences change the estimator, not the
+supervision object. PD-Loss reports no seeds, uncertainty, or paired test under
+its 500-epoch CUB/Cars recipe. Full audit:
+`docs/proxy_decidability_audit_218_2026-08-02.md`.
