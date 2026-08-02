@@ -2995,3 +2995,22 @@ parameterization of the same listwise relevance labels. Expected Reciprocal Rank
 already models first satisfaction/stopping across ranks, ListNet defines top-k
 probabilities, and RS@k provides the DML smooth-rank estimator. Only gradient
 allocation changes. Full audit: `docs/first_hit_rank_hazard_audit_2026-08-02.md`.
+
+## 201. Training-proxy response coordinates: Mahalanobis reduction and Classemes prior
+
+**DEAD at Gate 2 on 2026-08-02; no implementation or candidate GPU.** The
+99.975% proxy-to-own-centroid ownership measurement motivated treating the
+training proxy bank as relational coordinates for unseen images. For proxy
+matrix `P`, however, cosine between linear response vectors `Px` and `Py` is
+exactly cosine after the fixed map `(P^T P)^(1/2)`: a PSD Mahalanobis remapping
+absorbable into the embedding head. Softmax responses break that linear identity
+but enter established dissimilarity representations and, most directly,
+Classemes (Torresani et al., ECCV 2010), which uses a category-classifier output
+vector as a compact descriptor for novel-category retrieval/classification.
+
+The newly found weak-metric Cross-Entropy paper by Mou et al. (PMLR 2025) does
+not reopen the route: it evaluates CIFAR with the same class vocabulary at train
+and test and uses output dimension equal to the class count. Under class-disjoint
+DML, its axes become foreign training-class landmarks, which is precisely the
+occupied representation above. Full algebra and primary sources:
+`docs/proxy_response_coordinates_audit_2026-08-02.md`.

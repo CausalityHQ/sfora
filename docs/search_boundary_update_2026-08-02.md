@@ -78,6 +78,16 @@ phase is now pinned and the strict analyzer requires the exact 35-opportunity
 history. Full audit:
 `docs/rsatk_mechanism_audit_2026-08-02.md`.
 
+**Horizon re-scan and candidate 201.** A newly located PMLR paper derives a
+weak metric on Cross-Entropy class-probability vectors, but evaluates only
+closed-set CIFAR with descriptor dimension equal to the class count. Transplanting
+the idea to class-disjoint retrieval as training-proxy response coordinates did
+not survive Gate 2. Linear responses satisfy
+`cos(Px,Py) = cos((P^T P)^(1/2)x,(P^T P)^(1/2)y)` exactly, so they are a fixed
+Mahalanobis head; softmax responses are the established dissimilarity/
+Classemes representation. Full audit:
+`docs/proxy_response_coordinates_audit_2026-08-02.md`.
+
 ## Fragmentation reopening attempt
 
 A later preregistered seed-0 audit strengthened the best remaining marker:
