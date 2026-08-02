@@ -1,11 +1,10 @@
 # Candidate 174: orbit-adaptive potential fields (OAPF)
 
-Status: **DEAD before the Gate-1 diagnostic; no implementation or OAPF GPU.**
-The initial record below was written before any OAPF diagnostic or retrieval
-result. An independent adversarial preregistration review then found that the
-proposed diagnostic could not distinguish the surviving composition claim from
-ordinary uncertainty without inventing a control the retained model does not
-provide.
+Status: **Gate 2 narrowly live; corrected Gate-1 diagnostic pending. No OAPF
+training arm is authorised.** The initial diagnostic below was rejected by an
+independent adversarial review before any OAPF diagnostic or retrieval result.
+The same review supplied the fully specified prospective replacement recorded
+below. This correction uses no candidate data.
 
 ## Mechanism and measured provenance
 
@@ -105,7 +104,7 @@ but must not inspect In-Shop query/gallery retrieval. Its purpose is to decide
 whether augmentation orbit extent carries a distinct source-scale signal or is
 merely a noisy proxy for ordinary uncertainty and density.
 
-## Adversarial diagnostic verdict: not identifiable
+## Adversarial diagnostic verdict: first draft rejected
 
 This section was recorded before implementing or running the diagnostic. The
 review found that the conditions above are not an executable preregistration:
@@ -131,14 +130,95 @@ review found that the conditions above are not an executable preregistration:
 These are not formatting defects. Defining a target by thresholding held-out
 augmentation radii would merely prove radius reproducibility. Injecting dropout
 into a model that was not trained with it would create an arbitrary control.
-Choosing a held-out pair-stability target and a radius-to-`delta` map now would
-create the very researcher degrees of freedom the protocol exists to prevent.
+The first diagnostic is therefore void and may never be run or quoted.
 
-Candidate 174 is therefore **dead at Gate 1/diagnostic specification**. The
-mechanism cannot presently be separated from established perturbation-derived
-quality/uncertainty scaling using the measurements and retained artifacts in
-this repository. No OAPF implementation, retrieval preregistration, or GPU run
-is warranted.
+## Prospective replacement Gate-1 diagnostic
+
+This replacement was fixed before viewing any OAPF data. Freeze the digest-pinned
+seed-0 official In-Shop Proxy Anchor epoch-10 checkpoint and official training
+examples. The canonical view is resize 256, centre crop 224, and reference BGR
+normalisation.
+
+### Augmentation packs and radii
+
+Use the exact BN-Inception reference training distribution:
+`RandomResizedCrop(224, scale=(0.08, 1.0), ratio=(3/4, 4/3), bilinear)` followed
+by horizontal flip with probability 0.5. Draw six views per image for calibration
+pack A and six for held-out pack B. Every draw uses a pure pinned RNG seeded by
+SHA-256 of
+`oapf-v1|{A-or-B}|{official-relative-path}|{view-index}`. Persist every sampled
+crop box and flip. B is outcome-only.
+
+With L2-normalised embeddings, use PFML-compatible Euclidean displacement
+`a_it = ||z_i^0 - z_i^{A,t}||_2`, and
+`r_i^A = quantile_0.9(a_i, method="linear")`, floored at `1e-6`; define `r_i^B`
+identically. Require both global Spearman and pooled within-class-residual
+Spearman between A and B to be **>= 0.50**.
+
+### Radius-independent held-out outcome
+
+For every unordered same-class training pair `{i,j}` and each of B's six views,
+compute directional margins
+
+```
+m(i -> j, t) = min_{k: y_k != y_i} d(z_i^{B,t}, z_k^0)
+               - d(z_i^{B,t}, z_j^0)
+```
+
+and the reverse direction. Let continuous compatibility `C_ij` be the fraction
+of these 12 margins above zero and binary `Y_ij = 1` iff at least 10/12 are
+positive. All negatives and embeddings are training-only. Kill if Y prevalence
+is outside **[0.10, 0.90]**. A target based on `d_ij < r_i^B` is explicitly
+forbidden as circular.
+
+### Class-held-out models and controls
+
+Use all unordered same-class pairs with equal total weight per class and equal
+weight per pair within class. Create five fixed class folds by applying
+`PCG64(seed=174)` to sorted labels and assigning them round-robin. Standardise
+and fit on four folds only; score the fifth. Use fixed L2 logistic regression
+with `C=1`, no tuning.
+
+Baseline M0 uses canonical distance; min/max pre-L2 head norm; min/max log mean
+20-nearest-neighbour canonical distance; min/max own-proxy versus best-rival
+margin; and min/max ordinary pack-A RMS dispersion
+`u_i = sqrt(mean_t ||z_i^{A,t} - mean_t z_i^{A,t}||^2)`. M1 adds min/max
+`log(r_i^A)`. This RMS statistic is the explicit adjacent uncertainty control;
+BN-Inception has no dropout, so MC-dropout is forbidden. Require macro mean
+`AUC(M1) - AUC(M0) >= 0.03`.
+
+For direction, constrain both radius coefficients nonnegative. The real model
+uses standardised log radius; the inverse uses its negative with the same
+nonnegative constraints. Require real to beat inverse in **>= 4/5** folds and by
+mean AUC **>= 0.03**. This removes the sign-flip equivalence in the rejected
+unconstrained test.
+
+For permutation, use 100 seeds `174000..174099`. Within each class, derange
+radii by a seeded cyclic shift; exclude singleton classes. Refit M1 each time.
+Require real to exceed the permutation mean in **>= 4/5** folds and by macro
+mean AUC **>= 0.03**. Global permutation is forbidden.
+
+### Distance-decile effect
+
+Form cross-fitted M0 probabilities `p0` and compatibility residual
+`e = C - p0`. Regress mean endpoint log radius on M0 controls in training folds
+and form held-out radius residual `q`. Use training-fold weighted deciles of
+canonical pair distance and the training-fold median of q. Within every held-out
+bin compute class-weighted Hedges `g` for high-q versus low-q compatibility
+residual, pooling weighted moments across folds. The registered direction is
+larger orbit -> greater compatibility / less need for attraction. Require
+`g >= +0.20` in at least **7/10** deciles.
+
+### Mapping to the method
+
+Even a pass only establishes provenance; it does not authorise retrieval
+training. Before any OAPF run, use the fixed PFML reference plateau
+`delta_0 = 0.2` and map
+`rho_i = delta_0 * r_i / median_train(r)` in normalized-Euclidean units, with no
+clipping or tuning. The fixed-bandwidth PFML base must first reproduce credibly;
+the repository's collapsed historical PFML attempt is not an adequate control.
+If PFML cannot be reproduced, OAPF remains blocked rather than being tested on a
+broken base.
 
 ## Fatal-risk hypothesis and next decision
 
@@ -149,8 +229,8 @@ corrective attraction, and stay unstable. If the inverse direction wins, or if
 quality/density controls absorb the signal, record candidate 174 dead at Gate 1
 and spend no training GPU.
 
-Only a diagnostic pass would have permitted a numerical retrieval
-preregistration. Required
+Only a corrected-diagnostic pass and a faithful PFML reproduction permit a
+numerical retrieval preregistration. Required
 controls then include fixed-bandwidth PFML, kNN self-tuning bandwidth,
 PFE/IDML- or ScaleFace-style quality scaling, ScoreCL-style augmentation
 weighting, permuted and inverted radii, and hard SOCPG. OAPF must beat every
