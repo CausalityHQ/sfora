@@ -3062,3 +3062,18 @@ outcome-relevant co-occurrence measurement, the edit fails provenance and does
 not reach its required prior-art audit against batch design, tuple mining, and
 memory methods. Full audit:
 `docs/post_rsatk_candidate_audit_203_2026-08-02.md`.
+
+## 204. Near-resolvable positive-pair batch design
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** The
+proposal equalized each same-class pair's realized cross-epoch co-occurrence
+count under a fixed M-per-class budget. Random sampling already gives every pair
+the same inclusion probability, so the block design changes count variance,
+not the expected supervision relation. GCBS (Sachidananda et al., ICML 2023)
+occupies global contrastive batch assignment over sample permutations;
+Combinatorial Designs for Deep Learning (Chisaki et al., JCD 2020) already uses
+balanced designs to replace irregular random edge frequencies in neural
+training; incomplete-U-statistic work formalizes pair-selection designs for
+metric-learning ERM. Cross-epoch statefulness is an application-level residue,
+not a defensible new mechanism. Full audit:
+`docs/pair_coverage_batch_design_audit_2026-08-02.md`.

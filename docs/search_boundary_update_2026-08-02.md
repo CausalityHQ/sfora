@@ -149,3 +149,11 @@ CUDA nondeterminism and batch composition, so it cannot establish sensitivity
 to the co-occurrence partition. The proposed CPU decomposition was deliberately
 not computed because it would estimate stochastic step noise, not the claimed
 supervision variable.
+
+**Pair-coverage follow-up.** Candidate 204 tried to rescue the co-occurrence
+route without the invalid loss-variance attribution by using a cross-epoch
+balanced block design. It died at Gate 2. A random M-per-class sampler already
+equalizes every pair's inclusion probability; removing realized-count variance
+is an objective inside GCBS's occupied global batch-assignment mechanism and
+the established combinatorial-design move of balancing random neural-training
+edges. No coverage diagnostic or GPU run followed.
