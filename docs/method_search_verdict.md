@@ -2763,3 +2763,13 @@ Claude's independent cross-field batch additionally reduced to ECOC, unavailable
 causal instruments, variance regularisation, adversarial robustness, or an
 externally supplied hierarchy. Full audit:
 `docs/post_oapf_candidate_batch_2026-08-02.md`.
+
+## 183. Proxy shell membership: occupied class-radius geometry
+
+**Gate-2 death recorded 2026-08-02; no implementation or GPU.** Replacing a
+point proxy by an admissible shell was intended to preserve the measured
+beneficial fragmentation while retaining identity membership. PFML's flat
+attraction region, chance-constrained DML's class-proxy covering radii, and
+non-isotropic probabilistic proxy DML already occupy class-specific feasible
+spread around proxies. The shell changes constraint geometry, not the labelled
+relation. Audit: `docs/post_oapf_candidate_batch_2026-08-02.md`.

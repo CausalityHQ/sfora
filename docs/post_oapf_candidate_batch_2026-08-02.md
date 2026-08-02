@@ -39,8 +39,9 @@ Anchor preserves identity attraction. This is intra-class diversity
 regularisation, not a new label. Joint Representation Diversification already
 balances metric discrimination with representation diversity (Chu et al., ICML
 2020, <https://proceedings.mlr.press/v119/chu20a.html>); reverse contrastive
-intra-class diversity and DVML occupy the same objective class. A DPP changes
-the diversity functional, not the supervision.
+intra-class diversity, DVML, and *Determinant regularization for Deep Metric
+Learning* (<https://openreview.net/forum?id=NUBuJsAq1U>) occupy the same
+objective class. A DPP changes the diversity functional, not the supervision.
 
 ### 179. Response-code parity — DEAD
 
@@ -85,3 +86,15 @@ This is an exhausted batch, not a proof of impossibility. The useful update is
 that neither deterministic response nor observed fragmentation can be routed
 through another ranking/diversity functional and called a new supervision
 mechanism.
+
+## Immediate topology follow-up: 183 — DEAD
+
+Candidate 183 replaced a point proxy by an admissible class shell/level set so
+same-class samples would be supervised as members without collapsing to one
+point. PFML already gives same-class attraction a zero-force interior;
+chance-constrained DML explicitly characterises class-proxy covering radii
+(Gürbüz et al., WACV 2024,
+<https://openaccess.thecvf.com/content/WACV2024/html/Gurbuz_Deep_Metric_Learning_With_Chance_Constraints_WACV_2024_paper.html>),
+and non-isotropic probabilistic proxy DML represents class-specific spread
+(Kirchhof et al., <https://arxiv.org/abs/2207.03784>). A shell changes the
+feasible-set geometry, not what label relation exists. It is **dead at Gate 2**.
