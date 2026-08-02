@@ -8,6 +8,35 @@ CARS_PATTERN="image_end_to_end.*cars.*recall_at_k_surrogate"
 cd "${PROJECT}"
 mkdir -p "${LOG_ROOT}" reports/emb reports/generated reports/checkpoints
 
+verify_report() {
+  local report="$1"
+  local expected_seed="$2"
+  .venv/bin/python - "${report}" "${expected_seed}" <<'PY'
+import json
+import sys
+
+report_path, expected_seed = sys.argv[1], int(sys.argv[2])
+with open(report_path, encoding="utf-8") as handle:
+    config = json.load(handle)["config"]
+expected = {
+    "dataset_name": "inshop",
+    "objectives": ["proxy_anchor"],
+    "recipe_id": "proxy_anchor.inshop.official-51db570",
+    "recipe_digest": "1ae1335dcaf816e39c6c87c7c95d697efadd399f84b20d6a1c42d5a272c4f53a",
+    "train_epochs": 10,
+    "train_steps": 1440,
+    "eval_test_interval_epochs": 0,
+    "seed": expected_seed,
+}
+for key, value in expected.items():
+    if config.get(key) != value:
+        raise SystemExit(
+            f"refusing mismatched fragmentation artifact: {key}="
+            f"{config.get(key)!r}, expected {value!r}"
+        )
+PY
+}
+
 while pgrep -f "${CARS_PATTERN}" >/dev/null; do
   sleep 60
 done
@@ -17,7 +46,15 @@ for seed in 1 2; do
   report="reports/generated/inshop_pa_epoch10_operating_seed${seed}.json"
   checkpoint="reports/checkpoints/inshop_pa_epoch10_operating_seed${seed}.pt"
   log="${LOG_ROOT}/inshop.pa.epoch10.seed${seed}.log"
-  if [[ ! -s "${pack}" ]]; then
+  existing=0
+  [[ -e "${pack}" ]] && existing=$((existing + 1))
+  [[ -e "${report}" ]] && existing=$((existing + 1))
+  [[ -e "${checkpoint}" ]] && existing=$((existing + 1))
+  if [[ "${existing}" -ne 0 && "${existing}" -ne 3 ]]; then
+    echo "refusing partial seed-${seed} artifact set" >&2
+    exit 2
+  fi
+  if [[ "${existing}" -eq 0 ]]; then
     .venv/bin/sfora image-end-to-end \
       --dataset-name inshop \
       --objectives proxy_anchor \
@@ -31,8 +68,15 @@ for seed in 1 2; do
       --output "${report}" \
       >"${log}" 2>&1
   fi
+  verify_report "${report}" "${seed}"
+  [[ -s "${pack}" && -s "${checkpoint}" ]] || {
+    echo "refusing empty seed-${seed} artifact" >&2
+    exit 2
+  }
   .venv/bin/python scripts/measure_spectral_class_connectivity.py "${pack}" \
     | tee "reports/generated/inshop_fragmentation_epoch10_seed${seed}.json"
   sha256sum "${pack}" "${report}" "${checkpoint}" \
+    scripts/measure_spectral_class_connectivity.py \
+    src/sfora/image_end_to_end.py src/sfora/image_recipes.py \
     | tee "reports/generated/inshop_fragmentation_epoch10_seed${seed}.sha256"
 done
