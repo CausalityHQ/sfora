@@ -3210,3 +3210,21 @@ Process lesson: the provenance estimand must match the relation type the method
 edits. A cheap missing measurement does not warrant collection when every
 possible result feeds an occupied operator. Full audit:
 `docs/cross_field_candidate_batch_219_222_2026-08-02.md`.
+
+## 223. Game-dynamic conflict resolution
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** The
+**17.94%** negative same-class gradient fraction was originally over-described
+as conflict: mean cosine **0.4162** indicates substantial alignment against an
+isotropic null, and different image-specific tangent planes contribute
+geometric disagreement. More decisively, any coordinate-equivariant conflict
+operator returns a weighted combination of input gradients. The only natural
+privileged frame is the proxy bank, where every same-class image has the same
+coefficient-sign pattern (own proxy negative, foreign proxies positive), making
+sign masking vacuous.
+
+Proxy Anchor is a single potential objective, so game-Hamiltonian antisymmetric
+corrections vanish; curvature becomes a second-order optimizer, history becomes
+momentum/EMA, and an adversarial player reduces to gradient-covariance
+regularization. No non-scalar, non-projection, roughly-1x operator survives.
+Full audit: `docs/game_dynamics_audit_223_2026-08-02.md`.

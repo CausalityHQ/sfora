@@ -27,6 +27,24 @@ then measured for all 153,115 within-identity pairs.
 
 This is genuine heterogeneity not reducible to current embedding distance.
 
+## Post-hoc interpretation correction
+
+The label **conflict** was stronger than this diagnostic established. In 512
+dimensions, unrelated isotropic vectors have negative dot product about half
+the time; the observed **17.94%** and mean cosine **0.4162** therefore show
+substantial same-class alignment against that crude null, not globally unusual
+opposition. In addition, gradients were compared after projection into different
+image-specific tangent planes. Some negative cosines can arise from positional
+sphere geometry even when the proxy-coordinate coefficient patterns agree.
+
+The coefficient formula supplies the decisive operator fact without another
+diagnostic: every image has a negative coefficient for its own proxy and
+positive coefficients for every active foreign proxy. Thus a sign-agreement
+mask in the only natural shared frame is identically inactive. Measuring raw
+coefficient conflict could refine the dataset description, but every possible
+action on foreign-proxy coefficient variation is already negative weighting or
+mining, so it cannot authorize a novel method.
+
 ## Necessary estimator correction
 
 A first pass used a per-image proxy-softmax gradient. It found zero negative
