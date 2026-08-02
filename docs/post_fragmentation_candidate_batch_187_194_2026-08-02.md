@@ -94,10 +94,15 @@ al., *A Simple and Effective Framework for Pairwise Deep Metric Learning*
 ## 189. Model-free pixel-domain eligibility graph
 
 **Provenance.** `docs/results.md` §regional: fixed-slot region cosine **0.5775**
-versus position-tolerant MaxSim **0.6442**, a **+6.67-point** recovery, showing
-that raw position-tolerant appearance agreement carries real information.
+versus position-tolerant MaxSim **0.6442**, a **+6.67-point evaluation repair
+inside a trained regional arm**, not a frozen or model-free appearance result.
+The actual frozen Cars probe was global `0.8306` versus MaxSim `0.8159`.
 `docs/local_chord_expansion_candidate.md`: CUB top-5 positive-neighbour Jaccard
 **0.411** against **0.045** by chance (**9.06x**).
+
+The regional number therefore does not motivate the proposed model-free pixel
+estimator. Candidate 189 additionally fails Gate 1 on matched provenance; its
+Gate-2 reduction below remains independently decisive.
 
 **Mechanism.** Compute a once-only, model-free pixel-domain agreement between
 same-class images and let it decide which same-class pairs carry positive

@@ -9,8 +9,8 @@ generated with Claude and attacked before implementation.
 
 | candidate | executable operator | provenance | mechanism death |
 | --- | --- | --- | --- |
-| 230a, count-sketch token pooling | hash and sum spatial-token outer products into the deployed 512-d vector | frozen regional MaxSim recovers +6.67 CUB points | Compact Bilinear Pooling (Gao et al., CVPR 2016) is Tensor Sketch pooling; NetVLAD, Fisher, GeM, and bilinear pooling occupy the aggregation family. |
-| 230b, MIL negative-bag suppression | for a different-class pair suppress its maximum cross-token match, without a positive regional loss | same regional readout | max-instance bag supervision and attention MIL are established; the retrieval form is DIML/DeepEMD. Region Proxy Anchor's measured CUB 0.6466 additionally points against training the local evidence. |
+| 230a, count-sketch token pooling | hash and sum spatial-token outer products into the deployed 512-d vector | no matched positive measurement; see correction below | Compact Bilinear Pooling (Gao et al., CVPR 2016) is Tensor Sketch pooling; NetVLAD, Fisher, GeM, and bilinear pooling occupy the aggregation family. |
+| 230b, MIL negative-bag suppression | for a different-class pair suppress its maximum cross-token match, without a positive regional loss | no matched positive measurement; see correction below | max-instance bag supervision and attention MIL are established; the retrieval form is DIML/DeepEMD. Region Proxy Anchor's measured CUB 0.6466 additionally points against training the local evidence. |
 | 230c, Fourier amplitude intervention | swap/randomize amplitude spectra across labelled images while retaining phase and class label | In-Shop acquisition cosine .8199 within versus .6396 across, 90.9% same-acquisition neighbours, 7.18x gap amplification | FDA (Yang and Soatto, CVPR 2020), FACT (Xu et al., CVPR 2021), and APR (Chen et al., ICCV 2021) already use label-preserving Fourier amplitude interventions. |
 | 230d, description-length pruning | estimate a sample's conditional coding contribution and prune or resample redundant images | acquisition-series redundancy | description-length selection was closed at candidate 127; deployed action is data pruning/sampling, adjacent to forgetting/GraNd/EL2N. |
 | 230e, morphological token support | require identity evidence to form a compact connected spatial support | fine-grained parts | attention compactness, erasing, and part discovery are established by MA-CNN, ADL, and extensive part-based fine-grained recognition. |
@@ -45,3 +45,14 @@ specific measured spatial relation and distinguish itself from DIML, DeepEMD,
 part discovery, attention regularization, masked prediction, and cross-view
 completion before GPU use.
 
+## Provenance correction after the batch
+
+The `+6.67` CUB points used while generating 230a/230b were initially described
+as a frozen regional-feature gain. That was wrong. They are the improvement
+from repairing the **evaluation metric of an already-trained `region_pa` arm**:
+fixed-slot concatenated cosine `0.5775` to MaxSim `0.6442`. The arm still lost to
+Proxy Anchor (`0.6466` mean versus `0.6825`). The actual frozen-feature probe is
+on Cars: global pooling `0.8306`, MaxSim `0.8159`, **-1.47 points**. Therefore the
+repository does not currently contain positive evidence that a token aggregator
+beats the global descriptor. This correction weakens Gate 1 for 230a and 230b;
+their prior-art deaths remain unchanged.

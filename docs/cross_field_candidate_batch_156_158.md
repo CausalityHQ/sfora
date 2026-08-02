@@ -2,9 +2,11 @@
 
 Date: 2026-08-01. This batch was generated from the two strongest surviving
 repository measurements: disconnected within-class In-Shop graphs correlate
-with **+3.534 Recall@1 points** after exact class-size matching, while an
-untrained regional MaxSim readout recovers **+6.67 points** over its matched
-fixed-coordinate global readout. The batch was reported before implementation.
+with **+3.534 Recall@1 points** after exact class-size matching, while repairing
+the evaluation metric of a trained `region_pa` arm from fixed-slot cosine to
+MaxSim recovered **+6.67 points**. This is not a frozen-feature gain; the actual
+frozen Cars probe found MaxSim **-1.47 points** below global pooling. The batch
+was reported before implementation.
 No diagnostic, implementation, or GPU run followed.
 
 ## 156. Same-class set-volume supervision

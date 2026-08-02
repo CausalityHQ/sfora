@@ -2860,9 +2860,11 @@ similarity contrasts.
 - **188, population-ablation invariance** (centroid-to-proxy ownership
   **70.303%**): identically satisfied by a separable encoder, hence vacuous;
   non-vacuous forms are group DRO or Qi et al.'s robust pair weighting.
-- **189, model-free pixel eligibility graph** (regional MaxSim **+6.67** points;
-  CUB top-5 positive Jaccard **0.411**): discrete same-class eligibility with a
-  new edge estimator, occupied by DAMLRRM. An independent draft incorrectly
+- **189, model-free pixel eligibility graph** (regional MaxSim **+6.67**-point
+  evaluation repair inside a trained losing arm; CUB top-5 positive Jaccard
+  **0.411**): the regional number is not model-free provenance, so Gate 1 is
+  mismatched; discrete same-class eligibility with a new edge estimator is also
+  occupied by DAMLRRM. An independent draft incorrectly
   cited Correlation Verification here; primary inspection showed it is a
   geometric re-ranker, and that citation was removed before commit.
 - **190, cross-class analogical quadruples** (class-pair variance
@@ -3394,3 +3396,23 @@ destroying/splitting/coding constructions is not an exhaustive theorem.
 Spatial supervision remains a logical escape class; only the six concrete
 operators in this batch are dead. Full audit and corrections:
 `docs/post_boundary_candidate_batch_230_2026-08-02.md`.
+
+## 231. Sliced quantile token embedding
+
+**DEAD at Gate 2 and unsupported at Gate 1 on 2026-08-02; no diagnostic,
+implementation, or GPU.** Projecting a token set onto shared directions,
+sorting each one-dimensional projection, sampling fixed quantiles, and
+concatenating them is the mechanism in Naderializadeh et al., *Set
+Representation Learning with Generalized Sliced-Wasserstein Embeddings*
+(arXiv:2103.03892, 2021). Learned slices are covered by generalized
+Sliced-Wasserstein distances; order-statistic pooling, histogram/encoding layers,
+VLAD/Fisher, and set pooling occupy every proposed narrowing. Applying a linear
+map and cosine to that set embedding does not create a new mechanism.
+
+The audit also corrected the motivating measurement. `0.5775 -> 0.6442` was a
+fixed-slot-to-MaxSim **evaluation repair within an already-trained `region_pa`
+arm**, whose three-seed mean was still `0.6466` versus Proxy Anchor `0.6825`.
+It did not compare frozen mean and distribution pooling. The actual frozen Cars
+probe was global `0.8306` versus MaxSim `0.8159` (**-1.47 points**). Candidate
+231 therefore lacks evidence that token quantiles add identity information beyond
+the mean. Full audit: `docs/sqte_audit_231_2026-08-02.md`.
