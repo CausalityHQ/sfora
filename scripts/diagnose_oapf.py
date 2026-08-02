@@ -358,6 +358,16 @@ def require_sha256(path: Path, expected: str, artifact: str) -> str:
     return actual
 
 
+def report_has_objective(report: dict[str, Any], objective: str) -> bool:
+    """Match an objective by payload value, not its model-qualified method key."""
+
+    methods = report.get("methods", {})
+    return isinstance(methods, dict) and any(
+        isinstance(method, dict) and method.get("objective") == objective
+        for method in methods.values()
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -371,6 +381,11 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--distance-chunk-size", type=int, default=512)
     parser.add_argument("--num-workers", type=int, default=8)
+    parser.add_argument(
+        "--validate-only",
+        action="store_true",
+        help="validate frozen provenance/model/split and exit before CUDA or image encoding",
+    )
     args = parser.parse_args()
 
     metadata_path = args.view_metadata_output or args.output.with_suffix(".views.json")
@@ -408,7 +423,9 @@ def main() -> None:
         or config.max_classes is not None
     ):
         raise ValueError("OAPF diagnostic requires the unabridged official training partition")
-    if "proxy_anchor" not in config.objectives or "proxy_anchor" not in report.get("methods", {}):
+    if "proxy_anchor" not in config.objectives or not report_has_objective(
+        report, "proxy_anchor"
+    ):
         raise ValueError("training report is not an official Proxy Anchor run")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     for field, value in checkpoint.get("arch", {}).items():
@@ -438,6 +455,22 @@ def main() -> None:
         },
         strict=True,
     )
+    if args.validate_only:
+        print(
+            json.dumps(
+                {
+                    "validated": True,
+                    "checkpoint_sha256": actual_checkpoint_sha256,
+                    "training_report_sha256": actual_report_sha256,
+                    "dataset": "inshop.train",
+                    "examples": len(records),
+                    "classes": len(expected_labels),
+                    "query_gallery_images_loaded": False,
+                },
+                indent=2,
+            )
+        )
+        return
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
 

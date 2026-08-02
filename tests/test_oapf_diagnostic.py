@@ -17,6 +17,16 @@ sys.modules[_spec.name] = _module
 _spec.loader.exec_module(_module)
 
 
+def test_report_objective_uses_payload_not_model_qualified_key() -> None:
+    report = {
+        "methods": {
+            "proxy_anchor_end_to_end:bn_inception": {"objective": "proxy_anchor"}
+        }
+    }
+    assert _module.report_has_objective(report, "proxy_anchor")
+    assert not _module.report_has_objective(report, "hist")
+
+
 def test_train_loader_excludes_query_and_gallery_identities(tmp_path: Path) -> None:
     root = tmp_path / "inshop"
     (root / "Eval").mkdir(parents=True)
