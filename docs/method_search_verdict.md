@@ -2937,3 +2937,20 @@ identifies the repeatable partition but is not the omitted confounder carrying
 the retrieval association. This keeps a causal question open, not a method:
 direct series hierarchy, cross-series mining/alignment, and pixel-derived series
 clusters remain established supervision operators.
+
+## 195--198. Post-series intervention batch
+
+**All DEAD at Gate 2 on 2026-08-02; no implementation or candidate GPU.** The
+surviving series-adjusted association motivated four concrete edits. A
+cross-series bridge is camera-aware positive emphasis/mining; a series-child plus
+identity-parent relation is SoftTriple/hierarchical proxy DML; removing series is
+camera/domain-invariant representation learning; and leave-one-series-out
+retrieval is episodic meta metric learning or group DRO. The filename token
+changes the group estimator, not any of those operators, and has no matched
+analogue on CUB or Cars. Full primary-source audit:
+`docs/post_series_candidate_batch_195_198_2026-08-02.md`.
+
+The verdict is **NONE**. This is not evidence that the +5.5-point association is
+spurious; it is evidence that the currently identifiable interventions are
+occupied. The search moves to the faithful Cars RS@k measurement rather than
+spending GPU on a renamed camera-aware or hierarchical method.
