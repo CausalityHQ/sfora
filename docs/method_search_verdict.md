@@ -3372,3 +3372,25 @@ aggregates do not satisfy that condition merely by being higher-order. Under the
 current data, deployment, cost, measurements, and literature, no remaining
 escape class is both unoccupied and motivated. Full boundary and caveats:
 `docs/invariant_operator_boundary_229_2026-08-02.md`.
+
+## 230. Post-boundary token and construction batch
+
+**No candidate survives Gate 2; recorded on 2026-08-02 without diagnostic,
+implementation, or GPU.** Six crosses were attacked: count-sketch token pooling
+(Compact Bilinear Pooling), MIL maximum-token negative suppression
+(MIL/attention-MIL and DIML/DeepEMD), Fourier amplitude intervention
+(FDA/FACT/APR), description-length pruning (data valuation/sampling),
+morphological attention compactness (part/attention discovery), and coded image
+superposition (Mixup/Metrix). The Fourier intervention was the strongest
+mechanistic near-miss because it directly targets the measured In-Shop
+acquisition shortcut at roughly 1x cost, but it is a known method and therefore
+does not satisfy the objective.
+
+The independent audit proposed two broader closures that this project rejects.
+Average pooling at inference does **not** make token-level supervision equivalent
+to a pooled-output loss: position-specific token gradients can shape the
+backbone differently. And the five-way taxonomy of label-preserving/mixing/
+destroying/splitting/coding constructions is not an exhaustive theorem.
+Spatial supervision remains a logical escape class; only the six concrete
+operators in this batch are dead. Full audit and corrections:
+`docs/post_boundary_candidate_batch_230_2026-08-02.md`.
