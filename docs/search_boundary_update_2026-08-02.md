@@ -172,3 +172,8 @@ during training, explicitly replacing all-positive adjacency with direct or
 indirect connectivity, and evaluates CUB, Cars196 and SOP. Thus the sparse
 pixel-derived positive-eligibility and transitive-closure routes do not reopen;
 the repository's prior-art use was accurate.
+
+Proxy Synthesis was also rechecked directly. It explicitly creates synthetic
+embeddings **and proxies** that act as synthetic classes and mimic unseen
+classes inside proxy losses. Thus the virtual/reserved-class closures used for
+candidates 208 and 210 are accurate rather than an overbroad citation.
