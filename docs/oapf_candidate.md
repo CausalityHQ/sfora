@@ -181,8 +181,13 @@ with `C=1`, no tuning.
 
 Baseline M0 uses canonical distance; min/max pre-L2 head norm; min/max log mean
 20-nearest-neighbour canonical distance; min/max own-proxy versus best-rival
-margin; and min/max ordinary pack-A RMS dispersion
-`u_i = sqrt(mean_t ||z_i^{A,t} - mean_t z_i^{A,t}||^2)`. M1 adds min/max
+margin; min/max pack-A mean displacement from canonical
+`mean_t ||z_i^{A,t} - z_i^0||`; min/max displacement of the pack-A centroid
+from canonical `||mean_t z_i^{A,t} - z_i^0||`; and min/max ordinary pack-A
+centred RMS dispersion
+`u_i = sqrt(mean_t ||z_i^{A,t} - mean_t z_i^{A,t}||^2)`. The first two added
+controls prevent coherent crop response from masquerading as a special tail
+radius. M1 adds min/max
 `log(r_i^A)`. This RMS statistic is the explicit adjacent uncertainty control;
 BN-Inception has no dropout, so MC-dropout is forbidden. Require macro mean
 `AUC(M1) - AUC(M0) >= 0.03`.
@@ -193,19 +198,24 @@ nonnegative constraints. Require real to beat inverse in **>= 4/5** folds and by
 mean AUC **>= 0.03**. This removes the sign-flip equivalence in the rejected
 unconstrained test.
 
-For permutation, use 100 seeds `174000..174099`. Within each class, derange
-radii by a seeded cyclic shift; exclude singleton classes. Refit M1 each time.
+For permutation, use 100 seeds `174000..174099`. Within each class, apply a
+seeded random derangement with no fixed points (a size-two class swaps); exclude
+singleton classes. A cyclic shift is forbidden because official file order can
+preserve acquisition sequence. Refit M1 each time.
 Require real to exceed the permutation mean in **>= 4/5** folds and by macro
 mean AUC **>= 0.03**. Global permutation is forbidden.
 
 ### Distance-decile effect
 
-Form cross-fitted M0 probabilities `p0` and compatibility residual
-`e = C - p0`. Regress mean endpoint log radius on M0 controls in training folds
-and form held-out radius residual `q`. Use training-fold weighted deciles of
-canonical pair distance and the training-fold median of q. Within every held-out
-bin compute class-weighted Hedges `g` for high-q versus low-q compatibility
-residual, pooling weighted moments across folds. The registered direction is
+Fit a separate weighted linear M0 model to the **continuous** compatibility C
+on each training fold and form held-out compatibility residual `e = C - C_hat`;
+subtracting the binary-event probability from C is forbidden because those are
+different outcomes. Regress mean endpoint log radius on M0 controls in training
+folds and form held-out radius residual `q`. Use training-fold weighted deciles
+of canonical pair distance and the training-fold median of q. Within every
+held-out bin and high/low-q group, renormalise weights so every represented
+class has equal total weight, then pool weighted moments across folds for
+Hedges `g`. The registered direction is
 larger orbit -> greater compatibility / less need for attraction. Require
 `g >= +0.20` in at least **7/10** deciles.
 
