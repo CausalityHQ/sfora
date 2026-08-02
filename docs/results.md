@@ -1207,3 +1207,33 @@ Consequently In-Shop R@1 legitimately rewards series/colourway recognition much
 more than cross-series invariance. This resolves the fragmentation observation
 as benchmark-relevant but dataset-specific structure, not a general new
 supervision source.
+
+A final preregistered partner-exclusion audit corrected that interpretation
+further. Fragmentation exposure and leave-one-out R@1 used the same closest
+same-class neighbour. Deleting exactly that partner for each query reversed the
+locked adjusted fragmented-minus-connected gap from **+5.875** to **-3.910
+points** (unadjusted **-2.240**) at unchanged 60.43% matched coverage. The
+repeatable graph components remain a real fixed-data property, but their
+favourable retrieval association was estimator coupling and is not valid
+provenance for a mode-preservation method.
+
+## Cars196 source-faithful Recall@k-surrogate reference
+
+The digest-pinned Patel--Tolias--Matas RS@k reproduction without SiMix completed
+170 epochs / 2,380 updates at the source's 35-opportunity evaluation cadence.
+Raw best R@1 was **0.793260** at epoch 156 and the preregistered local-neighbour
+selection-corrected R@1 was **0.788987**, a **+0.427-point** selection bonus.
+
+| Checkpoint | R@1 | R@2 | R@4 | R@8 |
+| --- | ---: | ---: | ---: | ---: |
+| selected epoch 156 | 0.793260 | 0.863608 | 0.912803 | 0.946993 |
+| final epoch 170 | 0.788095 | 0.860288 | 0.909728 | 0.943672 |
+
+The raw value is within the preregistered **[0.787, 0.827]** reproduction range
+and 1.374 points below the paper's single reported no-SiMix R@1 of 0.807. Four
+earlier partial trajectories are excluded because source audits found, in
+sequence, a missing retrieved-count cap, the wrong rank exclusion, wrong epoch
+sampling plus pretrained weights, and wrong evaluation cadence. After those
+repairs, an independent audit obtained source-equivalent loss gradients and
+exact architecture outputs and found no remaining mismatch. This is an
+occupied reference and one seed, not a novelty or uncertainty claim.

@@ -3037,3 +3037,13 @@ coverage. Thus the stable graph property identifies fixed tight-pair structure,
 but its favourable retrieval association was estimator coupling, not evidence
 for mode-preserving supervision. Full audit:
 `docs/fragmentation_partner_exclusion_preregistration_2026-08-02.md`.
+
+## Source-faithful Cars196 RS@k reference (not a numbered candidate)
+
+The preregistered deciding run passed its reproduction interval: raw best R@1
+**0.793260**, selection-corrected **0.788987**, with a **+0.427-point** selection
+bonus. Its best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 /
+0.946993**. An independent audit against official revision `ed052029...` found
+no remaining source mismatch. This validates RS@k as an occupied Cars196
+reference in this codebase; it does not revive candidates 199 or 200 and does
+not itself supply a novel supervision variable.

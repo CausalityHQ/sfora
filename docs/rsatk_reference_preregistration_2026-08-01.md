@@ -161,3 +161,36 @@ evaluation phase offset; the RS@k recipe pins interval 5 and offset 1, and the
 strict analyzer requires exactly those 35 opportunities and maps the selected
 history index back to its true completed epoch. No final artifact from this
 attempt is admissible.
+
+## Source-faithful deciding run result (2026-08-02)
+
+The fifth run completed the exact 2,380-update, 170-epoch recipe and all 35
+source-cadence evaluations. The strict digest-bound analyzer returned
+**WITHIN_PREREGISTERED_RANGE**:
+
+- raw best R@1 **0.793260** at epoch 156;
+- selection-corrected R@1 **0.788987**;
+- local-neighbour selection bonus **+0.4274 point**;
+- best-checkpoint R@1/2/4/8 **0.793260 / 0.863608 / 0.912803 / 0.946993**;
+- final-checkpoint R@1/2/4/8 **0.788095 / 0.860288 / 0.909728 / 0.943672**.
+
+Raw R@1 is 1.374 points below the paper's reported no-SiMix value 0.807, but it
+passes the locked [0.787, 0.827] faithful-reproduction interval. An independent
+post-repair audit cloned the pinned source, matched loss gradients to float32
+round-off and architecture outputs exactly, and found no remaining recipe
+mismatch (`docs/rsatk_final_fidelity_audit_2026-08-02.md`). This is one seed;
+the paper does not report a seed distribution, so the residual difference
+cannot be assigned to variance or implementation from available evidence.
+
+Immutable evidence:
+
+- recipe digest:
+  `3c72b7193c3ac78ae76beb823443ac1e94ef76f582ed597e0baf24d541c70a17`;
+- completed artifact SHA-256:
+  `5965544898eb48f2ed08700a86918c0784c0cbb9f14c0c59f9705e08f946c47c`;
+- strict analysis JSON SHA-256:
+  `57e8969635a647652d1de2f49de5f8acd57649ff7ed22e936d6d71f5e538a229`.
+
+The result establishes an occupied, stronger Cars196 reference under a
+source-faithful recipe. It is not a novel-method result and authorizes no RS@k
+extension; candidates 199 and 200 already failed Gate 2.

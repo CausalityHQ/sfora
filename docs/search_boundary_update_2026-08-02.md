@@ -130,3 +130,13 @@ shows that tight-pair structure is a reproducible data property, but it no
 longer supports a causal mode-preservation interpretation. Candidate 202's
 support-multiplicity edit independently died at Gate 2 as positive mining over
 clustering-derived subidentities.
+
+**Faithful Cars196 RS@k resolution.** The corrected source-cadenced run finished
+within its preregistered range: raw best R@1 **0.793260** and
+selection-corrected **0.788987**, with a **+0.427-point** selection bonus. The
+best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 / 0.946993**. A final
+independent audit matched the official loss and gradients to float32 round-off,
+matched architecture outputs exactly, and found no remaining recipe mismatch.
+This establishes a stronger occupied Cars reference but exposes no new
+supervision variable; the previously considered existential and first-hit
+extensions remain Easy Positive/listwise reparameterizations.
