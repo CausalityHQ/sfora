@@ -2749,3 +2749,17 @@ planes, and adaptive tangent-distance methods learn those local metrics.
 Orthogonal projection is the least-squares form of the same operator; combining
 it with PFML does not create new supervision. Full audit:
 `docs/nuisance_tangent_quotient_audit_2026-08-02.md`.
+
+## 177--182. Post-OAPF batch: ranking, diversity, codes, sets, synthesis, abstention
+
+**All DEAD at Gate 2 on 2026-08-02; no implementation or GPU.** Consensus
+intervention ordering is Fu et al.'s augmentation ranking with a response-based
+label source and repeats IPSR's failed ordinal mechanism. Determinantal class
+volume is established representation-diversity regularisation. Response-code
+parity is augmentation-aware auxiliary prediction; complementary evidence
+union is set/part supervision; nuisance-delta transplantation is established
+feature synthesis; and counterfactual negative abstention is negative mining.
+Claude's independent cross-field batch additionally reduced to ECOC, unavailable
+causal instruments, variance regularisation, adversarial robustness, or an
+externally supplied hierarchy. Full audit:
+`docs/post_oapf_candidate_batch_2026-08-02.md`.
