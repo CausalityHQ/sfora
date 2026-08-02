@@ -47,3 +47,28 @@ gate, because conditioning on stability changes class composition.
 This diagnostic cannot itself authorize a method. A pass supplies provenance
 for an intrinsic within-class factor; any intervention still needs Gate 2 prior
 art clearance and a prospective In-Shop screen.
+
+## Result (2026-08-02)
+
+The identity-stability prediction passed by a wide margin. Across 3,975 eligible
+identities, pairwise agreement was **0.94516**, **0.94566**, and **0.94314**;
+the corresponding Cohen kappas were **0.88593**, **0.88696**, and **0.88160**
+(mean **0.88483**, minimum **0.88160**). Fully **36.201%** of identities were
+fragmented in all three seeds, versus the predicted 10% floor; 55.497% were
+connected in all three, 4.780% fragmented once, and 3.522% fragmented twice.
+Stable-fragmented identities had class-balanced leave-one-out R@1 **+1.050
+points** above stable-connected identities; as registered, that compositionally
+conditioned difference is descriptive rather than a gate.
+
+The three packs contained the same 25,882 unique `example_ids` in the same order
+with identical sample-label assignments. The analyzer SHA-256 was
+`9b7ecfaf00e853fabd5f9b2a71e66a65dbc9c2f773a2e88c6085230a70ba8e84` and the
+result JSON SHA-256 was
+`114e6c1ab60ed806c80ef078578f6be1f2eb4a0c9f2ab620573a61a8d81adb22`.
+
+Interpretation is deliberately narrow: the 1-NN fragmentation label is a stable
+identity property under optimizer reseeding, not proof of semantic modes or
+causality. Fixed data, architecture, loss, augmentation and preprocessing leave
+shared label noise, near-duplicate groups, sample composition and a brittle
+single-edge connectivity boundary as live explanations. Any next diagnostic
+must separate those explanations prospectively before proposing an operator.

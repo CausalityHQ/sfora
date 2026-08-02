@@ -84,3 +84,17 @@ factorisation, synthesis, or multi-model transfer. Its bounded answer was
 enters one of those mechanisms. Candidate 185 independently demonstrated the
 reduction for the most literal edit, component pseudo-identities. Thus the
 positive marker reopens a scientific question, but not an executable novel arm.
+
+**Replication update.** Seeds 1 and 2 passed the locked aggregate gates, with
+fragmentation fractions **40.075%** and **40.025%**, exact size-matched R@1
+associations **+2.932** and **+3.262 points**, and adjusted associations **+5.966**
+and **+5.806 points**. A separately preregistered identity-overlap test found
+pairwise kappas **0.8859--0.8870** and 36.20% fragmented in all three seeds.
+Thus the same classes, not merely the same fraction, recur under reseeding.
+
+That new evidence does not overturn the operator audit. It narrows the next
+useful measurement: determine whether stability reflects semantic substructure
+or fixed-data artifacts such as label noise, near duplicates, class composition,
+or brittle 1-NN bridges. Until such an independently observed relation exists,
+turning the stable indicator into a loss still reduces to occupied class
+splitting, mining, topology, diversity, or gradient surgery.

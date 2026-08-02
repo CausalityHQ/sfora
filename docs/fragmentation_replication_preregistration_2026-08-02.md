@@ -69,3 +69,24 @@ Two short seed-1 attempts were stopped during this audit at about step 200 and
 step 100 respectively. Neither wrote a pack, report, or checkpoint; neither is a
 result. The missing In-Shop root in the initial controller was also corrected
 before any artifact existed.
+
+## Result (2026-08-02)
+
+Both out-of-sample seeds passed the locked aggregate gates. Seed 1 fragmented
+1,593 / 3,975 eligible identities (**0.400755**) and seed 2 fragmented 1,591 /
+3,975 (**0.400252**), both inside the predicted [0.35, 0.45] interval. Their
+exact class-size-matched fragmented-minus-connected leave-one-out R@1 gaps were
+respectively **+2.932** and **+3.262 points**, both above the registered +2.0
+floor and concordant with seed 0's +3.534 points. The separate coarse
+confounding analysis produced adjusted gaps of **+5.966** and **+5.806 points**
+(seed 0: +5.875). The aggregate marker therefore replicates across optimizer
+seeds; it is not a one-seed winners' curse.
+
+Artifact SHA-256 values were:
+
+- seed 0 pack: `85e76245603689c824ec3f6aefceb67eee34fb7df94d3a825977a8bd4d139b27`;
+- seed 1 pack: `ff30ac7f5ee260fa9715c9283ea2ccd36401d10c35c272b83c830f56b1d4e96e`;
+- seed 2 pack: `dfb72dde7666c099b18ba1277fc7ed04cda56e333f07b81294c576b160e399b2`.
+
+This passes a reproducibility gate, not a causal one. A separately committed
+preregistration tested whether the same identities recur across seeds.

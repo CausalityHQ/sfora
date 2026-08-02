@@ -1151,6 +1151,15 @@ an adjusted disconnected-minus-connected difference of **+5.875 points**.
 This is an observational training-split measurement, not a method result or a
 causal estimate. It reuses the hypothesis-generating seed, and quintile matching
 does not guarantee continuous covariate balance. Seeds 1 and 2 were
-preregistered before export and remain the out-of-sample test. Mode splitting,
-subcentres, diversity penalties, and topology losses remain occupied or failed
-mechanisms regardless of this positive diagnostic.
+preregistered before export and passed: fragmentation fractions were **40.075%**
+and **40.025%**, exact size-matched R@1 gaps were **+2.932** and **+3.262
+points**, and adjusted gaps were **+5.966** and **+5.806 points**. Mode
+splitting, subcentres, diversity penalties, and topology losses remain occupied
+or failed mechanisms regardless of this positive diagnostic.
+
+The separately preregistered identity-overlap test also passed strongly. The
+same identities recur: pairwise Cohen kappas were **0.8859**, **0.8870**, and
+**0.8816**, and **36.20%** of eligible identities fragmented in all three seeds.
+That establishes robustness to initialization, not semantic multimodality or a
+causal benefit. All seeds share the same data and pipeline, so label noise,
+near-duplicate composition and 1-NN graph brittleness remain possible causes.

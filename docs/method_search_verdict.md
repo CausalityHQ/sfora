@@ -2879,3 +2879,30 @@ The verdict is **NONE**. The useful update is that the excluded operator familie
 covered every executable proposal in this round; this is not an impossibility
 proof. Full audit:
 `docs/post_fragmentation_candidate_batch_187_194_2026-08-02.md`.
+
+### Fragmentation replication and identity stability (measurement update)
+
+The observation motivating candidates 185--194 is now substantially stronger,
+but those candidates remain dead. Two preregistered out-of-sample In-Shop
+epoch-10 Proxy Anchor seeds reproduced almost identical fragmentation prevalence
+(**40.075%**, **40.025%**) and positive exact size-matched class R@1 gaps
+(**+2.932**, **+3.262 points**); their separately adjusted gaps were **+5.966**
+and **+5.806 points**. More importantly, fragmentation was not assigned to a
+random 40% each run: pairwise cross-seed Cohen kappas were **0.8859**, **0.8870**
+and **0.8816**, with **36.20%** of identities fragmented in all three seeds.
+
+The mechanism-level finding is therefore that symmetrized within-class 1-NN
+disconnection is a reproducible *identity property* under optimizer reseeding,
+not merely an aggregate training accident. It still does not identify semantic
+modes or causality. Every run shares images, labels, model, loss and augmentation;
+stable label noise, near-duplicate groups, sample composition, or a knife-edge
+1-NN bridge can generate the same kappa. The stable-all versus connected-all R@1
+gap was only **+1.050 points** and was preregistered as descriptive because that
+conditioning changes class composition. Consequently the result reopens a
+diagnostic question, not pseudo-identities, sparse positives, subcentres,
+topology, diversity or gradient-protection operators already killed at Gate 2.
+
+Process lesson: replication of a prevalence and outcome association is weaker
+than replication of the units carrying the exposure. Both were required here;
+even their joint pass establishes robustness only to the factor actually varied
+(optimizer seed).
