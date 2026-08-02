@@ -3436,3 +3436,25 @@ mechanism-level prior-art ruling, or a new causal pixel measurement. Additional
 GPU alone does not help, and the averaging/dual-EMA/momentum lines remain
 cancelled after failed In-Shop replication. Full ruling:
 `docs/search_stopping_update_2026-08-02.md`.
+
+## 232. Intervention-redundant code and frequency acquisition attribution
+
+**IRMC is DEAD at Gates 1 and 2; the follow-up causal premise FAILED its locked
+diagnostic on 2026-08-02.** A PID/Gray-Wyner common code for clean and
+Fourier-intervened views was not motivated because the repository had measured
+an In-Shop acquisition association, not its pixel carrier. Its executable terms
+also reduce to occupied Fourier augmentation, cross-view alignment,
+shared/private reconstruction, and orthogonality; PID changes the interpretation
+but supplies no residual training operator.
+
+The preregistered epoch-10 attribution test then asked whether one Fourier band
+separably carries the acquisition shortcut. Low-band replacement removed
+`92.22%` of the gap, but destroyed ordinary R@1 by `92.93` points and
+cross-series R@1 by `57.09`; middle-band replacement removed only `21.79%` and
+cost `25.55`/`35.47` points; high-band replacement removed `0.65%` and cost
+`2.92`/`4.89` points. The locked falsifier therefore fired. **Mechanism:** the
+acquisition association lives largely in low-frequency content that is also
+essential to identity, rather than in a nuisance-only frequency carrier.
+Suppressing it by band replacement is destructive invariance, not new
+supervision. No method run follows. Full source audit, preregistration, hashes,
+and result: `docs/online_cross_field_audit_232_2026-08-02.md`.

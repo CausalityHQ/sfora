@@ -94,3 +94,22 @@ operator whose use of the identified band is not augmentation or consistency.
 A fail closes the frequency-carrier premise by measurement. This diagnostic is
 training-only and cannot produce a benchmark claim.
 
+## Locked result
+
+**FAIL.** The same-run baseline was acquisition gap `0.18384`, ordinary
+leave-one-out R@1 `0.94796`, and cross-series-only R@1 `0.57967`. Low-band
+replacement reduced the gap by `92.22%`, but ordinary and cross-series R@1 fell
+by `92.93` and `57.09` points. Middle-band replacement reduced the gap by only
+`21.79%` while costing `25.55` and `35.47` points. High-band replacement reduced
+the gap by `0.65%` and cost `2.92` and `4.89` points. Thus every band reaching
+30% gap reduction costs far more than the preregistered 3-point cross-series
+falsifier.
+
+The acquisition association is concentrated in low-frequency content, but the
+same content is indispensable for identity retrieval under this intervention.
+This rules out the proposed separable-frequency premise: amplitude replacement
+cannot identify a nuisance-only carrier that could motivate a new operator.
+No method implementation or further GPU run follows. Result artifact:
+`reports/generated/frequency_band_acquisition_49c841a.json`, SHA-256
+`bb200565b654e0eb00dac5c09c33f6663dc2a6ff7d01a0f66e59d4a32a4813e1` on the
+DGX; code/preregistration commit `49c841a`.
