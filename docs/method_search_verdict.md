@@ -3138,3 +3138,21 @@ unseen-class supervision object. The repository's 1.08-point trajectory spread
 also makes a one-run trace unstable; multiple trajectories exceed the cost
 budget and reproduce candidate 134. Full audit:
 `docs/fixed_probe_trajectory_audit_2026-08-02.md`.
+
+## 215. Class-conditional operating-point supervision
+
+**DEAD at Gate 1 on 2026-08-02; independently occupied at Gate 2; no candidate
+GPU.** A missing ICLR 2024 source introduced OPIS, the across-class variance of
+utility under one absolute threshold. The preregistered three-seed In-Shop
+diagnostic found class-OPIS-contribution versus class-error Spearman rhos
+**0.15688 / 0.13546 / 0.18039**. Median **0.15688** and every seed missed the
+registered pass thresholds; no seed crossed the <=+0.10 falsifier, so the
+result is inconclusive, not a clean refutation. OPIS CV across seeds was
+**0.24882**.
+
+The operator is closed independently. TCM uses absolute-margin hard-pair
+regularization; OneFace estimates domain thresholds and applies a Threshold
+Consistency Penalty; UniTSFace learns a unified threshold inside a
+sample-to-sample loss. Classwise alignment is the same threshold-consistency
+objective, and using deviations as coefficients is weighting. Full audit:
+`docs/threshold_consistency_horizon_audit_2026-08-02.md`.

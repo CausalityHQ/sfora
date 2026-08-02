@@ -83,3 +83,37 @@ at least **+0.25**.
 The correlation shares embedding scores with R@1 and is observational. Even a
 pass does not show that reducing OPIS improves ranking; it only establishes a
 reproducible relevance relationship worth taking to Gate 2.
+
+## Result
+
+The result is **inconclusive under the locked rule** and authorizes no method or
+GPU work. Across the three independent epoch-10 packs, class OPIS contribution
+versus class retrieval error had Spearman rho:
+
+| seed | OPIS | rho | two-sided p | class R@1 |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.0019813 | **0.15688** | 2.24e-23 | 0.94032 |
+| 1 | 0.0012063 | **0.13546** | 8.83e-18 | 0.94520 |
+| 2 | 0.0015159 | **0.18039** | 1.69e-30 | 0.94390 |
+
+Median rho was **0.15688**, below the registered +0.25 requirement; every seed
+was below the +0.20 per-seed pass threshold. None was at or below the +0.10
+falsifier, so this is not reported as a clean negative. OPIS itself was unstable
+at the scale relevant to the proposed mechanism: coefficient of variation
+**0.24882** across seeds. Each pack contained 3,985 eligible identities and 12
+excluded singleton identities.
+
+Immutable evidence:
+
+- analyzer SHA-256:
+  `5090d04bae9bf4203cb771d16e952fe9549f68861d1f9af01ed5b27aef15571c`;
+- seed-1 pack SHA-256:
+  `ff30ac7f5ee260fa9715c9283ea2ccd36401d10c35c272b83c830f56b1d4e96e`;
+- seed-2 pack SHA-256:
+  `dfb72dde7666c099b18ba1277fc7ed04cda56e333f07b81294c576b160e399b2`;
+- result JSON SHA-256:
+  `b02f020df8a7cb29b729fe019c8f9303bce0be2061e126886bb86046e6723273`.
+
+The very small p-values reflect 3,985 class observations and do not rescue the
+failed effect-size registration. The relationship is positive but too weak and
+too far below the locked threshold to motivate a training intervention.
