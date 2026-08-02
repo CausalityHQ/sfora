@@ -423,6 +423,8 @@ def _recall_at_k_surrogate_config(dataset: ImageDatasetName) -> dict[str, Any]:
         "eval_batch_size": 128,
         "samples_per_class": 4,
         "epoch_sampling_policy": "source_exhaustive",
+        "eval_test_interval_epochs": 5,
+        "eval_test_epoch_offset": 1,
         "group_size": 4,
         "train_epochs": 170 if is_cars else 40,
         "learning_rate": 1e-4,

@@ -143,3 +143,21 @@ class. Tests prove within-epoch non-reuse, exact batch balance, the 14-step Cars
 schedule, and selection of the pinned legacy checkpoint. The original numerical
 prediction and falsification threshold remain locked for the first run matching
 all three corrected source mechanisms.
+
+## Fourth full run invalidated at epoch 3 (2026-08-02)
+
+The source-exhaustive, legacy-weight run was stopped after only three epochs. It
+had reached R@1 **0.6248**, which is initialization-trajectory evidence only.
+The pinned source's default `infrequent_eval=1` is counterintuitive: it sets
+`epoch_freq=5`, so evaluation occurs at zero-based epochs 0, 5, 10, ..., 165,
+and 169. In completed-epoch notation this is **1, 6, 11, ..., 166, 170**—35
+evaluation opportunities. The native recipe still evaluated all 170 epochs.
+
+That does not change gradient updates, but it does change the raw
+best-over-training estimand and gives the native port nearly five times as many
+winner's-curse opportunities as the published result. It therefore cannot be
+used for the locked raw-R@1 comparison. The runtime now supports a tested
+evaluation phase offset; the RS@k recipe pins interval 5 and offset 1, and the
+strict analyzer requires exactly those 35 opportunities and maps the selected
+history index back to its true completed epoch. No final artifact from this
+attempt is admissible.

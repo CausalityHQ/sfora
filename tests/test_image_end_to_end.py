@@ -32,6 +32,7 @@ from sfora.image_end_to_end import (
     _optimizer_parameter_groups,
     _recall_at_k_surrogate_loss,
     _resolve_training_schedule,
+    _should_evaluate_test,
     _should_step_scheduler,
     _sinkhorn_log_coupling,
     _supervised_contrastive_loss,
@@ -6426,6 +6427,25 @@ def test_resolve_source_exhaustive_schedule_uses_smallest_class() -> None:
         optimization_example_count=len(labels),
         optimization_labels=labels,
     ) == (6, 2, 3)
+
+
+def test_source_zero_based_evaluation_cadence_is_phase_shifted_and_includes_final() -> None:
+    config = ImageEndToEndConfig(
+        eval_test_interval_epochs=5,
+        eval_test_epoch_offset=1,
+    )
+    evaluated_epochs = [
+        epoch
+        for epoch in range(1, 171)
+        if _should_evaluate_test(
+            config,
+            step=epoch * 14,
+            steps_per_epoch=14,
+            train_steps=170 * 14,
+        )
+    ]
+
+    assert evaluated_epochs == [*range(1, 167, 5), 170]
 
 
 def test_train_epochs_schedule_uses_post_split_example_count() -> None:

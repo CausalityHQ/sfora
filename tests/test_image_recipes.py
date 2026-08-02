@@ -151,6 +151,8 @@ def test_recall_at_k_reference_recipes_match_author_code(
     assert recipe.config["samples_per_class"] == 4
     assert recipe.config["epoch_sampling_policy"] == "source_exhaustive"
     assert recipe.config["pretrained_weights"] == "legacy_resnet50_19c8e357"
+    assert recipe.config["eval_test_interval_epochs"] == 5
+    assert recipe.config["eval_test_epoch_offset"] == 1
     assert recipe.config["train_epochs"] == epochs
     assert recipe.config["lr_schedule"] == "multistep"
     assert recipe.config["lr_milestones"] == milestones

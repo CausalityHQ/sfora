@@ -13,6 +13,7 @@ from sfora.image_recipes import recipe_digest, reference_recipe
 EXPECTED_DATASET = "cars"
 EXPECTED_OBJECTIVE = "recall_at_k_surrogate"
 EXPECTED_EPOCHS = 170
+EXPECTED_EVALUATION_EPOCHS = (*range(1, 167, 5), 170)
 PREDICTED_LOW = 0.787
 PREDICTED_HIGH = 0.827
 HARD_FAILURE = 0.780
@@ -54,9 +55,10 @@ def analyze(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         method = next(iter(methods.values()))
     history = [float(x) for x in method.get("test_recall_history") or []]
-    if len(history) != EXPECTED_EPOCHS:
+    if len(history) != len(EXPECTED_EVALUATION_EPOCHS):
         errors.append(
-            f"test_recall_history must contain {EXPECTED_EPOCHS} completed evaluations, "
+            "test_recall_history must contain "
+            f"{len(EXPECTED_EVALUATION_EPOCHS)} source-cadence evaluations, "
             f"found {len(history)}"
         )
     if errors:
@@ -65,11 +67,12 @@ def analyze(payload: dict[str, Any]) -> dict[str, Any]:
     raw, corrected, index = _selection_overshoot(history)
     recorded_best = float(method.get("best_test_recall_at_1"))
     recorded_epoch = int(method.get("best_test_epoch"))
-    if abs(recorded_best - raw) > 1e-12 or recorded_epoch != index + 1:
+    expected_best_epoch = EXPECTED_EVALUATION_EPOCHS[index]
+    if abs(recorded_best - raw) > 1e-12 or recorded_epoch != expected_best_epoch:
         raise ValueError(
             "artifact best fields disagree with the complete recall history: "
             f"fields=({recorded_best}, epoch {recorded_epoch}), "
-            f"history=({raw}, epoch {index + 1})"
+            f"history=({raw}, epoch {expected_best_epoch})"
         )
 
     best_retrieval = method.get("best_test_retrieval") or {}
@@ -90,7 +93,7 @@ def analyze(payload: dict[str, Any]) -> dict[str, Any]:
         "recipe_digest": expected_digest,
         "seed": 0,
         "epochs": EXPECTED_EPOCHS,
-        "best_epoch": index + 1,
+        "best_epoch": expected_best_epoch,
         "raw_best_r@1": raw,
         "selection_corrected_r@1": corrected,
         "selection_bonus_points": 100.0 * (raw - corrected),

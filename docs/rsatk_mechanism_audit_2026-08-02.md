@@ -76,6 +76,13 @@ V1 `0676ba61`. That attempt was also excluded without an artifact; both recipe
 mechanisms are now pinned and tested. These fidelity repairs do not create a new
 supervision claim.
 
+The next attempt was stopped at epoch 3 when the same audit found that the
+source evaluates only at completed epochs 1, 6, 11, ..., 166, and 170, whereas
+the native recipe evaluated every epoch. The update rule was already faithful,
+but the raw best-over-training comparison was not: 170 selection opportunities
+cannot be compared to the source's 35. Evaluation phase and strict analysis are
+now source-matched as well.
+
 ## Primary sources
 
 - Patel, Tolias, and Matas, *Recall@k Surrogate Loss with Large Batches and

@@ -70,7 +70,12 @@ rerun remains pending. A subsequent recipe audit invalidated the next partial
 run as well: it used 21 independently resampled updates per epoch where the
 pinned source exhausts full-class chunks for 14, and it loaded torchvision's
 `0676ba61` weights rather than the source's legacy `19c8e357` checkpoint. No
-artifact was written; both mechanisms are now pinned and tested. Full audit:
+artifact was written; both mechanisms are now pinned and tested. A fourth
+partial attempt was stopped at epoch 3 because the source evaluates 35 times
+(completed epochs 1, 6, ..., 166, 170), while the port still evaluated all 170
+epochs and therefore changed the raw best-over-training estimand. Evaluation
+phase is now pinned and the strict analyzer requires the exact 35-opportunity
+history. Full audit:
 `docs/rsatk_mechanism_audit_2026-08-02.md`.
 
 ## Fragmentation reopening attempt

@@ -390,6 +390,9 @@ class ImageEndToEndConfig(BaseModel):
     # report). Diagnostic only: it does NOT change model selection -- the primary
     # `recall_at_1` remains the final-epoch model. Default 0 = off (legacy behavior).
     eval_test_interval_epochs: int = Field(default=0, ge=0)
+    # Completed-epoch phase for source recipes whose zero-based loop evaluates
+    # epoch 0, N, 2N, ... (that is, completed epochs 1, N+1, 2N+1, ...).
+    eval_test_epoch_offset: int = Field(default=0, ge=0)
     retrieval_query_limit: int | None = Field(default=None, ge=1)
     limit_per_class: int | None = Field(default=None, ge=1)
     max_classes: int | None = Field(default=None, ge=2)
@@ -1385,12 +1388,11 @@ def run_image_end_to_end_benchmark(
                     completed_epoch = step // steps_per_epoch
                     if _should_step_scheduler(config, completed_epoch=completed_epoch):
                         scheduler.step()
-                if config.eval_test_interval_epochs > 0 and (
-                    step == train_steps
-                    or (
-                        step % steps_per_epoch == 0
-                        and (step // steps_per_epoch) % config.eval_test_interval_epochs == 0
-                    )
+                if _should_evaluate_test(
+                    config,
+                    step=step,
+                    steps_per_epoch=steps_per_epoch,
+                    train_steps=train_steps,
                 ):
                     epoch_index = math.ceil(step / steps_per_epoch)
                     epoch_embeddings, epoch_labels = _encode_model(
@@ -1780,6 +1782,27 @@ def _should_step_scheduler(
     if config.schedule_during_warmup:
         return True
     return completed_epoch > config.warmup_epochs
+
+
+def _should_evaluate_test(
+    config: ImageEndToEndConfig,
+    *,
+    step: int,
+    steps_per_epoch: int,
+    train_steps: int,
+) -> bool:
+    if config.eval_test_interval_epochs <= 0:
+        return False
+    if step == train_steps:
+        return True
+    if step % steps_per_epoch != 0:
+        return False
+    completed_epoch = step // steps_per_epoch
+    if completed_epoch < config.eval_test_epoch_offset:
+        return False
+    return (
+        completed_epoch - config.eval_test_epoch_offset
+    ) % config.eval_test_interval_epochs == 0
 
 
 def write_image_end_to_end_report(result: ImageEndToEndResult, output_path: Path) -> Path:
