@@ -3452,9 +3452,35 @@ separably carries the acquisition shortcut. Low-band replacement removed
 `92.22%` of the gap, but destroyed ordinary R@1 by `92.93` points and
 cross-series R@1 by `57.09`; middle-band replacement removed only `21.79%` and
 cost `25.55`/`35.47` points; high-band replacement removed `0.65%` and cost
-`2.92`/`4.89` points. The locked falsifier therefore fired. **Mechanism:** the
-acquisition association lives largely in low-frequency content that is also
-essential to identity, rather than in a nuisance-only frequency carrier.
-Suppressing it by band replacement is destructive invariance, not new
-supervision. No method run follows. Full source audit, preregistration, hashes,
-and result: `docs/online_cross_field_audit_232_2026-08-02.md`.
+`2.92`/`4.89` points. The locked falsifier therefore fired. **Mechanism:** at a
+frozen checkpoint, amplitude replacement cannot isolate a nuisance-only
+frequency carrier without severe off-manifold and/or identity damage.
+Suppressing it is destructive invariance, not new supervision. No method run
+follows. Full source audit, preregistration, hashes, and result:
+`docs/online_cross_field_audit_232_2026-08-02.md`.
+
+## 233. Cross-field reopening audit after frequency falsification
+
+**No candidate survives Gates 1 and 2 on 2026-08-02; no implementation or GPU.**
+An online sweep across weak supervision, selective prediction, causal learning,
+disentanglement, and class-collapse prevention found only occupied mechanisms.
+Zhou et al. (ICML 2025) iteratively refines continuous pair similarity under
+imprecise labels; Locatello et al. (ICML 2020) learns factors from weakly paired
+observations; Roth et al. (MIC, ICCV 2019) explicitly learns and removes latent
+cross-class characteristics; Lee et al. (AISTATS 2025) mixes supervised and
+self-supervised objectives to prevent class collapse. These map respectively to
+pair weighting/mining, shared-factor disentanglement, nuisance invariance, and
+an auxiliary loss—all already occupied here.
+
+An independent Claude audit then steelmanned three residuals. Acquisition-series
+supervision becomes DANN/gradient reversal if suppressed and known pair weighting
+if used relationally, with no CUB/Cars analogue. Band-conditioned supervision
+lacks Gate-1 authorization after candidate 232 failed and reduces to
+FDA/FACT/APR/CouCE. Token supervision lacks provenance after the corrected frozen
+Cars comparison (`0.8306` global versus `0.8159` MaxSim). **Mechanism-level
+conclusion:** the repository currently measures entanglement but identifies no
+new editable supervision object. A training-under-intervention repair was also
+rejected because every possible outcome feeds an occupied Fourier augmentation
+operator. Reopening still requires SOP, an allowed new annotation channel, a
+vacated specific prior-art ruling, or an on-manifold causal measurement whose
+outcomes are preregistered to authorize an unoccupied operator.

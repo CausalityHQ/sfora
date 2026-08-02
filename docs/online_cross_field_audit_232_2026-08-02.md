@@ -105,10 +105,11 @@ the gap by `0.65%` and cost `2.92` and `4.89` points. Thus every band reaching
 30% gap reduction costs far more than the preregistered 3-point cross-series
 falsifier.
 
-The acquisition association is concentrated in low-frequency content, but the
-same content is indispensable for identity retrieval under this intervention.
-This rules out the proposed separable-frequency premise: amplitude replacement
-cannot identify a nuisance-only carrier that could motivate a new operator.
+The acquisition association is sensitive to low-frequency replacement, but the
+near-chance retrieval result may reflect an off-manifold input as well as removal
+of identity information. The warranted claim is narrower: amplitude replacement
+at this frozen checkpoint cannot isolate a nuisance-only carrier that could
+motivate a new operator.
 No method implementation or further GPU run follows. Result artifact:
 `reports/generated/frequency_band_acquisition_49c841a.json`, SHA-256
 `bb200565b654e0eb00dac5c09c33f6663dc2a6ff7d01a0f66e59d4a32a4813e1` on the
