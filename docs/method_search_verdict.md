@@ -3228,3 +3228,44 @@ corrections vanish; curvature becomes a second-order optimizer, history becomes
 momentum/EMA, and an adversarial player reduces to gradient-covariance
 regularization. No non-scalar, non-projection, roughly-1x operator survives.
 Full audit: `docs/game_dynamics_audit_223_2026-08-02.md`.
+
+## 224. Randomized relation ablation: causal supervision labelling
+
+**DEAD at Gate 2 on 2026-08-02; no diagnostic, implementation, or GPU.** The
+proposal would suppress same-class relation contributions on a balanced
+factorial schedule during ordinary training, estimate each factor's effect on a
+held-out training-class panel, fit a cheap pixel-pair predictor of that effect,
+and use its sign in a fresh run to label relations positive, unknown, or
+repulsive.
+
+The supervision object is candidate 135's — a same-class edge labelled by causal
+training helpfulness — with only the estimator moved, from gradient influence to
+randomized ablation. Estimator swaps are not new mechanisms here (133, 209), and
+this estimator is occupied end to end: random subset ablation plus a fitted
+cheap surrogate of the held-out effect is Datamodels (Ilyas et al., ICML 2022);
+doing it at roughly 1x inside one run is In-Run Data Shapley (Wang et al., ICLR
+2025); learning a feature-conditioned value predictor from stochastically
+dropped contributions and reusing it in a fresh run is DVRL (Yoon et al., ICML
+2020). Liu et al. (NeurIPS 2022) remains the DML-specific influence prior.
+
+Three independent failures. **Identification:** run-long assignment gives one
+contrast per run, so 1x buys about one effect against 153,115 pairs; window
+re-randomization buys contrasts but each pair is presented about 15.2 times in
+the 8,631-step In-Shop run, so the optimizer re-supplies the withheld gradient
+and the persistent effect decays. Cost is not binding, identification is.
+**Support:** the design randomizes {present, suppressed} while the policy
+deploys {present, absent, repulsive}; the repulsive arm — the only part not
+already DAMLRRM — is never assigned, and log-sum-exp positive terms make
+relations substitutive, so sparse-marginal main effects do not extrapolate to
+the saturated flip-all policy. **Collapse:** a capacity-limited pixel-pair
+surrogate fit to noise-dominated targets can only recover the appearance and
+acquisition component, measured here at 28.58% versus 1.29% edge rate by
+acquisition, which is Easy Positive/OSM/DAMLRRM weighting — the similarity rule
+the claim says it is not.
+
+Two further blocks. `_proxy_anchor_loss` is image-to-proxy only, so the pinned
+baseline contains no same-class relation term to suppress; running this needs a
+second declared delta. And with clean In-Shop/CUB labels, "suppression helped"
+is a statement about the current trajectory, not identity, so the repulsive
+label injects the noise T-SINT and co-teaching exist to remove. Full audit:
+`docs/randomized_relation_ablation_audit_224_2026-08-02.md`.
