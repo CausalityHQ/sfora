@@ -2785,3 +2785,16 @@ Proxy-NCA/class softmax applied to a centroid. Their reciprocal sum is symmetric
 cross-entropy on the same similarity matrix; leave-one-out changes only the
 centroid estimator. Claude's initial live verdict is rejected on this algebra.
 Full audit: `docs/reciprocal_proxy_ownership_audit_2026-08-02.md`.
+
+## 185. Mode pseudo-identities: occupied class splitting and false negatives
+
+**Gate-2 death recorded 2026-08-02 before the fragmentation replication; no
+candidate GPU.** Splitting each annotated identity's early 1-NN components into
+separate Proxy Anchor labels would turn the measured +3.534-point fragmentation
+association into a causal edit. But the operator is clustering-derived
+pseudo-labelling. Easy Positive already preserves within-class subclusters by
+sparse positive connection, Divide-and-Conquer partitions data and embedding
+subspaces, and subcentre/hierarchical DML occupies retaining the parent label.
+The only remaining distinction is to repel two modes known to share a true
+identity, which injects embedding-derived false negatives rather than new
+supervision. Full audit: `docs/mode_pseudoidentity_audit_2026-08-02.md`.
