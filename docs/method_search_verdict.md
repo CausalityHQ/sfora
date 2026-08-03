@@ -4224,3 +4224,25 @@ and DML self-supervised local-structure ranking are established.  Training
 trajectory evidence likewise reduces to curriculum, self-paced weighting, or
 dynamic constraints.  Full primary-source audit:
 `docs/fable_verified_packet_critique_323_2026-08-03.md`.
+
+## 324--331. Fable cross-field candidate batch after the verified boundary
+
+**ALL DEAD at Gates 1--3; no diagnostic, implementation, or GPU.** Eight new
+imports from seismology, cryo-EM/SLAM synchronization, weak-lensing
+metacalibration, programmatic weak supervision, survival analysis, MDL,
+statistical physics, and survey calibration independently reconverged on the
+same operator boundary. Common-station differences are response-profile
+distillation; synchronized nuisance estimates feed occupied view-aware
+selection/projection; metacalibration is tangent/Jacobian regularization;
+censoring is a hinge plus listwise ranking; prequential streams are curriculum
+or episodic meta-learning; fluctuation response is proxy consistency; and
+vignette calibration is separable score post-processing.
+
+The closest proposal, candidate 327, used Snorkel-style agreement moments to
+estimate latent accuracies of multiple pair-signature heuristics. Its final
+objective is nevertheless graded pair weighting. The estimator may be a new
+combination in DML, but it does not create a new similarity-learning primitive.
+Independent web searches found no exact DML instantiation of candidate 327 or
+angular synchronization, but neither verdict relies on an absence-of-prior-art
+claim: both die by gradient/mechanism reduction first. Full audit:
+`docs/cross_field_candidate_batch_324_331_2026-08-03.md`.
