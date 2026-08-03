@@ -3618,3 +3618,13 @@ raw or mechanistic evidence independent of the invalid correction. Candidate 58 
 its stated provenance but remains occupied by KD variance reduction and classical
 control variates. Full audit:
 `docs/selection_retraction_reopening_audit_257_2026-08-03.md`.
+
+## 258. Shadow Loss speed-horizon audit
+
+**DEAD at Gate 2; no GPU.** The withdrawn ICLR 2026 submission describes anchor-axis
+projection as a memory-linear loss, but with its required unit-normalized embeddings
+the gaps are `1-cos(a,p)` and `1-cos(a,n)`. Its hinge is exactly cosine triplet loss,
+equivalent to squared-Euclidean triplet up to scale and margin. Reported SOP 69.94 and
+In-Shop 72.33 are far below faithful Proxy Anchor references, so it occupies neither
+the quality nor end-to-end speed horizon. Full algebra and source audit:
+`docs/shadow_loss_horizon_audit_258_2026-08-03.md`.
