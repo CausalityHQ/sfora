@@ -277,6 +277,15 @@ numbers and cross-dataset failures remain separate observations. Full falsificat
 
 ### Historical analysis (not an identified correction)
 
+> **Checkpoint identity correction (2026-08-03).** Historical EMA-averaging runs
+> correctly scored the averaged model in their report curves, but the generic final
+> checkpoint serializer wrote the student. Those checkpoint files cannot independently
+> reproduce the reported EMA model. The serializer now persists the exact evaluation
+> model and records whether it is the student or EMA average. This does not revive the
+> averaging line, which failed its raw In-Shop replication, but it retracts any
+> checkpoint-based verification claim for the old EMA artifacts. See
+> `docs/checkpoint_model_identity_audit_261_2026-08-03.md`.
+
 Averaging the weights smooths the *evaluated* model's test curve. Best-over-training is a
 maximum over that curve, so a smoother curve collects a smaller selection bonus — the
 protocol pays the noisier arm more. That was a prediction; it is now measured.
