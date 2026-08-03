@@ -3739,3 +3739,17 @@ unit norms before scoring, and persists the complete audit. The repaired exporte
 deployed before the queued reference launch. This is an evidence-path repair, not a
 method candidate or result. Full audit:
 `docs/inshop_three_way_partition_audit_272_2026-08-03.md`.
+
+## 273. Compression-distance positive eligibility
+
+**DEAD at Gate 2; no diagnostic or GPU.** A bounded Claude Sonnet critique used
+RSPG's CUB/In-Shop density split and ARCG's failed model-derived gate to motivate a
+fixed Normalized Compression Distance over canonical pixels, retaining only
+within-class pairs below a classwise threshold. The source is already occupied:
+Fast Compression Distance defines content-based color-image retrieval, perceptual
+conditional compression distance covers texture classification and face recognition,
+and compression similarities have long served image clustering/retrieval/classification.
+Thresholding that published image-similarity signal into positive-to-unknown edges is
+an application policy, not a new supervision source; raw compression also inherits
+strong background/texture dependence. Full audit:
+`docs/compression_eligibility_audit_273_2026-08-03.md`.
