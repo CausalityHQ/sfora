@@ -4090,3 +4090,17 @@ samples had no positive edge at all before the later density collapse. A masked
 ownership repair is a distinct selective-proxy/partial-positive method and is
 occupied by Proxy-ISA and related proxy weighting, so it does not reopen
 candidate 18. No GPU was spent.
+
+## 312. Augmentation-response tangent metric
+
+**DEAD at Gate 2; no implementation or GPU.** The proposed method would infer a
+within-class tangent/Fisher metric from each image's response to controlled
+augmentations, then use cross-instance agreement to define positives. The
+mechanism is already occupied in substance: Fu et al., *Deep Metric Learning
+with Self-Supervised Ranking* (AAAI 2021), explicitly simulates local
+intra-class transformations and preserves local structure; Ko and Gu,
+*Embedding Expansion* (CVPR 2020), creates transformed embedding points for
+metric learning; and EquiMod/AugSelf occupy augmentation-displacement and
+equivariance supervision. Changing the response statistic to a Fisher or
+tangent estimate does not establish a new supervision primitive. No GPU was
+spent.
