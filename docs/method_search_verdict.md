@@ -3774,3 +3774,14 @@ matched fragmented-minus-connected class-balanced R@1 effect >= +1.0, with at le
 100 classes per exposure. Effect <= 0 falsifies cross-dataset replication; `(0,+1)` is
 inconclusive. Even a pass is an observational marker and authorizes no method or GPU.
 Full registration: `docs/sop_fragmentation_preregistration_275_2026-08-03.md`.
+
+## 276. SOP/In-Shop resource serialization defect
+
+The original queue would launch In-Shop as soon as the SOP artifact audits finished,
+concurrently with candidate 275's roughly 1.82-trillion-MAC CPU analysis. That
+would starve In-Shop's image workers and confound throughput for a reason unrelated to
+its recipe. Before either output existed, the waiting controller was replaced with a
+fail-closed controller that requires the fragmentation result and its independent
+support audit before launching unchanged In-Shop Proxy Anchor. This is an evidence-path
+repair, not a method candidate or result. Full audit:
+`docs/sop_inshop_resource_serialization_audit_276_2026-08-03.md`.
