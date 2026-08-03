@@ -3976,3 +3976,14 @@ the declared scorer exactly, report cosine/tie-aware sensitivity, and publish
 atomically. Train contains zero cross-identity exact duplicate groups, so this
 cannot motivate a duplicate-conflict learning arm. Full audit:
 `docs/inshop_content_partition_audit_293_2026-08-03.md`.
+
+## 294. Filename-derived view-role supervision
+
+**DEAD at Gate 2; no diagnostic, implementation, or GPU.** In-Shop exposes
+front/side/back/full roles in filenames, but using role transitions to select
+same-item invariant positives is directly adjacent to VANet's jointly trained
+same-/different-view metrics, View Confusion Feature Learning, pose-sensitive
+re-ID embeddings, and front/side/back-aware fashion retrieval. A discrete gate
+is a weaker application of established view-aware supervision and repeats the
+failed positive-gating interface. Full audit:
+`docs/view_role_supervision_audit_294_2026-08-03.md`.
