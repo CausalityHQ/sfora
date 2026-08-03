@@ -66,3 +66,19 @@ No outcome authorizes GPU work.  Embedding/proxy/label statistics from one
 checkpoint are Gram-invariant observables.  A proposed first-order action must
 still be reduced to its actual supervision relation; scalar feedback through
 the existing proxy atoms is weighting/mining, not a new primitive.
+
+## Execution defect discovered before accepting a result
+
+The first execution exposed 12 singleton training identities.  Their nearest
+same-class similarity and image margin are undefined (`-inf`).  The initial
+script standardized those values, allowed NaNs through its optimizer and JSON
+writer, and emitted a meaningless `p=1.0` while exiting successfully.  That
+margin result is rejected in full.
+
+The correction excludes only rows whose registered margin predictors are
+non-finite, reports their row and event counts, fails if too little finite data
+remain, and forbids NaN JSON serialization.  The model terms, `p < 0.01`
+decision threshold, near-duplicate thresholds, and 13-error materiality rule
+are unchanged.  This is missing-predictor handling forced by an undefined
+quantity, not a result-dependent threshold change.  A regression test injects
+an undefined singleton margin and requires its explicit exclusion.

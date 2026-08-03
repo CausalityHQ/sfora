@@ -40,3 +40,26 @@ def test_margin_sufficiency_detects_added_agreement_signal() -> None:
     )
     assert result["agreement_coefficient"] > 1.0
     assert result["p_value_chi2_df1"] < 0.01
+
+
+def test_margin_sufficiency_excludes_undefined_singleton_margin() -> None:
+    rng = np.random.default_rng(8)
+    count = 2000
+    proxy = rng.normal(size=count)
+    image = rng.normal(size=count)
+    agreement = rng.random(count) < 0.2
+    logits = -3.0 - proxy - image
+    error = rng.random(count) < 1.0 / (1.0 + np.exp(-logits))
+    image[0] = -np.inf
+    error[0] = True
+    result = _MODULE.margin_sufficiency(
+        {
+            "proxy_margin": proxy,
+            "image_margin": image,
+            "agreement": agreement,
+            "error": error,
+        }
+    )
+    assert result["excluded_nonfinite_rows"] == 1
+    assert result["excluded_nonfinite_events"] == 1
+    assert np.isfinite(result["base_log_likelihood"])

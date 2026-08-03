@@ -116,21 +116,33 @@ def _fit_logistic(design: np.ndarray, outcome: np.ndarray) -> dict[str, Any]:
 
 
 def margin_sufficiency(observables: dict[str, np.ndarray]) -> dict[str, Any]:
+    finite = np.isfinite(observables["proxy_margin"]) & np.isfinite(
+        observables["image_margin"]
+    )
+    if finite.sum() < 100 or observables["error"][finite].sum() < 10:
+        raise ValueError("insufficient finite rows/events for the registered margin model")
     margins = []
     for name in ("proxy_margin", "image_margin"):
-        values = observables[name]
+        values = observables[name][finite]
+        if values.std(ddof=0) <= 0:
+            raise ValueError(f"{name} has zero variance on finite rows")
         margins.append((values - values.mean()) / values.std(ddof=0))
     proxy, image = margins
     base = np.column_stack(
         [np.ones(len(proxy)), proxy, image, proxy * proxy, image * image, proxy * image]
     )
-    extended = np.column_stack([base, observables["agreement"].astype(np.float64)])
-    base_fit = _fit_logistic(base, observables["error"])
-    extended_fit = _fit_logistic(extended, observables["error"])
+    extended = np.column_stack(
+        [base, observables["agreement"][finite].astype(np.float64)]
+    )
+    outcome = observables["error"][finite]
+    base_fit = _fit_logistic(base, outcome)
+    extended_fit = _fit_logistic(extended, outcome)
     statistic = max(0.0, 2.0 * (extended_fit["log_likelihood"] - base_fit["log_likelihood"]))
     return {
-        "events": int(observables["error"].sum()),
+        "events": int(outcome.sum()),
         "rows": len(proxy),
+        "excluded_nonfinite_rows": int((~finite).sum()),
+        "excluded_nonfinite_events": int(observables["error"][~finite].sum()),
         "base_log_likelihood": base_fit["log_likelihood"],
         "extended_log_likelihood": extended_fit["log_likelihood"],
         "likelihood_ratio": statistic,
@@ -272,8 +284,9 @@ def main() -> None:
         "near_duplicates": near_duplicate_audit(observables, labels, source_paths),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps(payload, indent=2, sort_keys=True))
+    serialized = json.dumps(payload, indent=2, sort_keys=True, allow_nan=False)
+    args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized)
 
 
 if __name__ == "__main__":
