@@ -3076,8 +3076,9 @@ identified evidence for mode-preserving supervision. Full audit:
 ## Source-faithful Cars196 RS@k reference (not a numbered candidate)
 
 The preregistered deciding run passed its reproduction interval: raw best R@1
-**0.793260**, selection-corrected **0.788987**, with a **+0.427-point** selection
-bonus. Its best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 /
+**0.793260**. Its historical local-neighbour diagnostic was **0.788987**, a
+**+0.427-point local peak gap**, but the retracted estimator does not make this a
+selection-corrected score or winner's-curse estimate. Its best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 /
 0.946993**. An independent audit against official revision `ed052029...` found
 no remaining source mismatch. This validates RS@k as an occupied Cars196
 reference in this codebase; it does not revive candidates 199 or 200 and does
@@ -3882,3 +3883,13 @@ for a profiled retrieval-specific bottleneck, a held-out training-only stopping 
 or a supervision method requiring fewer measured backbone passes at equal quality.
 This is a search boundary, not a method or impossibility theorem. Full audit:
 `docs/speed_search_boundary_285_2026-08-03.md`.
+
+## 286. Results consistency after selection-estimator retraction
+
+The main results file still called several leave-neighbour peak-gap outputs
+"selection-corrected" after audit 254 had falsified that interpretation. EMA ranking,
+In-Shop averaging, TIRD, and Cars RS@k prose now labels those values as invalid
+gap-subtracted/local diagnostics and relies on raw or independently final metrics.
+No observed number or candidate verdict changed. This is a claim-consistency repair,
+not a method result. Full audit:
+`docs/results_selection_retraction_consistency_audit_286_2026-08-03.md`.

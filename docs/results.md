@@ -286,11 +286,13 @@ numbers and cross-dataset failures remain separate observations. Full falsificat
 > checkpoint-based verification claim for the old EMA artifacts. See
 > `docs/checkpoint_model_identity_audit_261_2026-08-03.md`.
 
-Averaging the weights smooths the *evaluated* model's test curve. Best-over-training is a
-maximum over that curve, so a smoother curve collects a smaller selection bonus — the
-protocol pays the noisier arm more. That was a prediction; it is now measured.
+Averaging the weights appeared to smooth the evaluated test curve, motivating the
+hypothesis that best-over-training paid noisier arms more. The estimator does not
+identify that effect: curvature and endpoint slope can produce the same gaps without
+selection noise. The historical outputs below are retained only as local peak-gap
+diagnostics.
 
-| CUB arm | evaluates | selection bonus |
+| CUB arm | evaluates | local peak gap |
 | --- | --- | ---: |
 | `proxy_anchor` | student | **0.769 pt** |
 | `pa_distill` | student | **0.836 pt** |
@@ -298,35 +300,19 @@ protocol pays the noisier arm more. That was a prediction; it is now measured.
 | `pa_distill_avg` | averaged weights | 0.122 pt |
 | `pa_ema_avg` | averaged weights | **0.074 pt** |
 
-Every arm that evaluates the averaged weights collects **2.5–10× less** selection bonus
-than one evaluating the student. Removing each arm's own bonus reverses the ranking:
+The averaged-weight arms had smaller local peak gaps in these runs, but subtracting
+those gaps is not a valid correction and cannot establish a ranking reversal:
 
-| paired comparison | reported | corrected | protocol's effect |
+| paired comparison | reported | invalid gap-subtracted value | arithmetic difference |
 | --- | ---: | ---: | ---: |
-| `pa_ema_avg_fast` − `proxy_anchor` | +0.414 | **+0.732** | understates by 0.32 |
-| `pa_ema_avg` − `proxy_anchor` | +0.059 | **+0.610** | understates by **0.55** |
-| `pa_distill` − `proxy_anchor` | +0.658 | +0.592 | overstates by 0.07 |
+| `pa_ema_avg_fast` − `proxy_anchor` | +0.414 | **+0.732** | +0.318 |
+| `pa_ema_avg` − `proxy_anchor` | +0.059 | **+0.610** | +0.551 |
+| `pa_distill` − `proxy_anchor` | +0.658 | +0.592 | −0.066 |
 
-Three consequences.
-
-1. **Weight averaging is the strongest single intervention measured in this project**
-   (+0.73 corrected), ahead of distillation (+0.59) — the opposite of the reported
-   ordering.
-2. **The 0.999 arm was never useless.** Reported at +0.06 it looked dead; corrected it is
-   **+0.61**. Its apparent failure was almost entirely the protocol, not the method — the
-   averaged model is so stable it earns almost no bonus while the noisy baseline earns
-   +0.77. The initialisation-contamination story explains the *reported* gap between the
-   two momenta; it does not survive the correction.
-3. **The additivity failure looks different too.** `pa_distill_avg` collects only 0.122 pt
-   of bonus, so its reported +0.52 is much closer to its true value than `pa_distill`'s
-   reported +0.658 is to its +0.592.
-
-**Caveats, stated plainly.** The averaging arms are at n=2. The correction is one specific
-estimator (leave-one-out neighbour mean), and corrected values are *not* the benchmark
-metric — the field reports best-over-training, so a paper claiming these numbers would
-have to argue the protocol, not just quote them. But the direction is mechanically
-predicted rather than fitted, and the magnitude (0.32–0.55 pt) is larger than most
-published DML gains.
+The former conclusions that averaging was the strongest intervention, that the 0.999
+arm gained +0.61 point, and that the protocol caused the apparent additivity pattern
+are withdrawn. Only the raw benchmark values and independently selected/final metrics
+may support method comparisons.
 
 **A methodological correction that matters more than either.** This project has been
 quoting CUB σ ≈ 0.88 pt and "+0.5 pt needs 12–37 seeds". Both came from three seeds.
@@ -619,8 +605,8 @@ BatchNorm. Both legs are complete at three seeds; H3 is closed.
 ### BN-correct weight averaging and dual-timescale EMA on In-Shop
 
 The preregistered screen used BN-correct averaging because In-Shop trains
-BatchNorm. Raw best-over-training and leave-one-out-neighbour
-selection-corrected R@1 must both be reported.
+BatchNorm. Raw best-over-training and the historical leave-one-neighbour diagnostic
+are both shown, but the latter is not a selection correction.
 
 Three-seed averaging confirmation:
 
@@ -628,28 +614,27 @@ These arms inherit the same incomplete-batch and frozen-warm-up-head deviations
 noted above. Their paired failure remains a valid negative for that shared
 modified harness; the raw absolute values are not exact official-recipe results.
 
-| arm | recipe digest | seed 0 | seed 1 | seed 2 | raw mean | corrected mean |
+| arm | recipe digest | seed 0 | seed 1 | seed 2 | raw mean | invalid gap-subtracted mean |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | Proxy Anchor | `16a3bc844c81` | 0.9024 | 0.9048 | 0.9032 | 0.9035 | 0.9015 |
 | `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9036 | 0.9046 | 0.9042 | 0.9035 |
 
 The paired raw deltas are **+0.18 / −0.13 / +0.15 pt**: mean **+0.068
 pt**, paired sd **0.169**, t(2) = 0.70, p = 0.5589, exact sign p = 0.500.
-Selection correction increases the mean to **+0.203 pt**, paired sd **0.157**.
+The invalid gap-subtracted comparison was **+0.203 pt**, paired sd **0.157**; it
+cannot estimate a corrected retrieval effect.
 
 The standard raw benchmark effect therefore does **not replicate** off CUB:
 one seed is negative and the three-seed mean is only +0.07 pt, versus +0.41 pt
-on CUB. The correction confirms that best-over-training under-credits the
-stabler averaged arm, but a corrected +0.20 pt at n=3 is a measurement finding,
-not an established method gain. Averaging does not earn Cars or a momentum
-sweep.
+on CUB. The local-gap diagnostic does not establish that best-over-training
+under-credits the stabler arm. Averaging does not earn Cars or a momentum sweep.
 
-The novel candidate failed. Dual-timescale EMA added only **+0.014 pt raw** and
-**+0.077 pt corrected** over averaging alone. It required +0.24 pt raw, a
-positive corrected delta, and raw R@1 ≥0.9048; it met only the corrected-sign
-condition. Once both arms evaluate the same BN-correct fast average, the slow
-relational teacher adds effectively nothing on In-Shop. No confirmation seeds
-were run.
+The novel candidate failed. Dual-timescale EMA added only **+0.014 pt raw** over
+averaging alone; its historical gap-subtracted delta was **+0.077 pt** but is not
+an identified correction. It required +0.24 pt raw and raw R@1 ≥0.9048 and met
+neither valid condition. Once both arms evaluate the same BN-correct fast average,
+the slow relational teacher adds effectively nothing on In-Shop. No confirmation
+seeds were run.
 
 **iNaturalist 2018** — recorded for completeness, but the *recipe* is broken, not
 just the method. Both arms peak at **epoch 5 of 60** and decay thereafter, because
@@ -1122,8 +1107,9 @@ For a metric-learning practitioner, these are as useful as the positive result:
   hyper-parameter re-tuning all under-performed the plain HERD configuration.
 - **Tetrad interaction relational distillation (TIRD), In-Shop seed 0:** raw
   best-over-training R@1 **0.8301** versus paired Proxy Anchor **0.9024**
-  (**-7.237 points**). Selection-corrected TIRD was **0.8267**, with corrected
-  paired delta **-7.405 points**. The preregistered prediction was 0.9090 and the
+  (**-7.237 points**). Its historical gap-subtracted diagnostic was **0.8267**,
+  with paired diagnostic delta **-7.405 points**; this is not a selection-corrected
+  score. The preregistered prediction was 0.9090 and the
   absolute falsifier was below 0.9085, so this is a decisive Gate-4 failure.
   TIRD isolated the reproducible 4.75%-variance image-by-image interaction, but
   cosine normalization gave that weak residual unit-scale pressure; training
@@ -1259,8 +1245,10 @@ provenance for a mode-preservation method.
 
 The digest-pinned Patel--Tolias--Matas RS@k reproduction without SiMix completed
 170 epochs / 2,380 updates at the source's 35-opportunity evaluation cadence.
-Raw best R@1 was **0.793260** at epoch 156 and the preregistered local-neighbour
-selection-corrected R@1 was **0.788987**, a **+0.427-point** selection bonus.
+Raw best R@1 was **0.793260** at epoch 156. The historical local-neighbour
+peak diagnostic was **0.788987**, a **+0.427-point local gap**, but the estimator
+retraction means this is not a selection-corrected score or winner's-curse estimate.
+The independently persisted final epoch scored **0.788095**.
 
 | Checkpoint | R@1 | R@2 | R@4 | R@8 |
 | --- | ---: | ---: | ---: | ---: |
