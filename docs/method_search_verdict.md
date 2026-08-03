@@ -4165,8 +4165,22 @@ useful for analysis, not a defensible novel supervision mechanism.
 
 ## 320. Confusion-edge margin (CEM)
 
-**Gate 1 passed; Gate 3 preregistered, no GPU yet.** Cross-level foreign-class
-agreement localizes 2.3886% versus 0.1466% retrieval error. CEM tests a directed
-class-to-class proxy relation rather than sample-neighbor weighting. See
-`docs/confusion_edge_margin_candidate_320.md`; prediction 0.9155, falsifier
-below 0.9140 final-state In-Shop R@1.
+**DEAD at Gate 2; the prematurely launched run was stopped at 400 / 8,580
+steps.** Cross-level foreign-class agreement localizes 2.3886% versus 0.1466%
+retrieval error, but CEM's actual gradient merely pulls a sample toward its own
+proxy and pushes it from one selected foreign proxy.  That is hard-negative
+**class** mining, occupied by Sohn's N-pair method (NeurIPS 2016) and Suh et
+al.'s class-to-sample hard-class selection (CVPR 2019).  Requiring two selectors
+to agree changes the mining heuristic, not what supervision exists.  Chen et
+al.'s *Confusion-Based Metric Learning* (TNNLS 2022/2024) is adjacent in name
+but uses adversarial feature-distribution confusion and was not the killing
+collision.
+
+The run reached only epoch 3 (partial best R@1 0.7734), produced no result file,
+and is excluded from benchmark reporting.  It was launched after a superficial
+Gate-2 distinction but before the adversarial mechanism reduction was complete;
+this violated the protocol.  Its static graph also required a fully trained
+baseline checkpoint, so it carried an undisclosed extra training pass.  The
+process correction is to reduce the implemented gradient to its effective
+positive/negative relations—and finish that audit—before implementation or GPU.
+Full record: `docs/confusion_edge_margin_candidate_320.md`.
