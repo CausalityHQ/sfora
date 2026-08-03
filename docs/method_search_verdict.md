@@ -4044,3 +4044,20 @@ the own proxy and a unit test proves zero gradient to it.  The corrected corpus
 therefore confirms rather than retracts candidate 18's death, now with a sharper
 mechanism.  Full audit:
 `docs/rspg_corrected_pixel_postmortem_305_2026-08-03.md`.
+
+## 306--308. Post-corrected-RSPG supervision shortlist
+
+**ALL DEAD before implementation or GPU.** Cross-instance masked identity
+completion is occupied by cross-image representation and same-identity
+reconstruction in re-ID plus modern cross-view equivariant reconstruction (306).
+Transporting augmentation displacement around a same-class cycle is EquiMod,
+AugSelf and cross-instance equivariance with labels added (307).  Preserving
+Proxy Anchor while adding only margin-violating RSPG edges has no measured
+unsatisfied mass—the live objective was 0.0018 at activation—and reduces to hard
+positive mining plus auxiliary-loss balancing (308).
+
+The batch preserves the corrected post-mortem's constraint rather than evading
+it: replacement graphs self-erase, while ownership-preserving executable edits
+fall into occupied reconstruction, equivariance, mining or gradient-balancing
+families.  Full audit:
+`docs/post_rspg_corrected_candidate_batch_306_308_2026-08-03.md`.
