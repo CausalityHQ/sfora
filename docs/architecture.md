@@ -108,10 +108,15 @@ The end-to-end path implements several ResNet-50/512 objectives:
   diagonal Gaussian prototypes (a Mahalanobis softmax distribution loss) plus a
   hypergraph neural network over the batch. This is the base of the headline
   **HERD** method.
-- `pfml`: a faithful PFML potential-field objective (arXiv 2405.18560) — an
-  all-pairs attraction/repulsion potential over batch embeddings and class
-  proxies. Note: faithful reproductions collapse during training; see
-  [results.md](results.md#reproducibility-notes-numbers-we-could-not-reproduce).
+- `pfml`: a fixed local interpretation of the PFML potential-field objective
+  (arXiv 2405.18560) — an all-pairs attraction/repulsion potential over batch
+  embeddings and class proxies. It is not source-exact: the paper and supplement
+  disagree on the base learning rate, and reduction, sampler, clipping, proxy
+  normalization, and several other implementation details are undisclosed. The
+  historical collapsed run used a mean-scaled loss that changed coupled Adam's
+  effective weight-decay ratio by millions and is therefore invalid evidence for
+  or against PFML geometry. See
+  [the reproduction audit](pfml_reproduction_audit_2026-08-02.md).
 
 Two composable *training-procedure* switches turn a `hist` run into **HERD** and
 are the source of the SOTA-beating result (see [results.md](results.md)):

@@ -4391,8 +4391,11 @@ def _lennard_jones_loss(
 ) -> Any:
     """Lennard-Jones metric-learning energy — a novel MOLECULAR-DYNAMICS physics.
 
-    PFML models classes as electrostatic charges (monotone attraction/repulsion),
-    which on the unit sphere collapses because attraction has no lower length scale.
+    PFML models classes as electrostatic charges (monotone attraction/repulsion).
+    A historical local PFML attempt collapsed, but its mean reduction changed the
+    coupled-Adam weight-decay ratio by millions, so it is not valid evidence that
+    the PFML geometry itself collapses. The Lennard-Jones candidate instead tests
+    the separately motivated effect of adding an explicit equilibrium distance.
     The Lennard-Jones (van der Waals) potential — the physics of how atoms pack —
     instead has a built-in EQUILIBRIUM distance ``sigma``:
 
@@ -4401,8 +4404,7 @@ def _lennard_jones_loss(
     The steep ``(sigma/d)^(2p)`` repulsive core makes it energetically impossible for
     two points to coincide, while the ``(sigma/d)^p`` attractive tail pulls distant
     same-class points in. So same-class members settle into a compact shell of radius
-    ~``sigma`` that CANNOT collapse to a point — structurally fixing the failure mode
-    that sank both faithful PFML and the Symmetric Potential Field.
+    ~``sigma`` that cannot collapse to a point under the idealized pair potential.
 
     - Same-class pairs feel the full LJ potential (attract to the ``sigma`` shell,
       repel below it).
