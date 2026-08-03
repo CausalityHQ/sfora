@@ -141,6 +141,16 @@ def main() -> None:
         raise ValueError("checkpoint is not explicitly labeled as a final training state")
     if checkpoint.get("evaluation_model_source") != "student":
         raise ValueError("Cars196 PFML checkpoint is not the trained student")
+    expected_arch = {
+        "backbone_name": config.backbone_name,
+        "pretrained_weights": config.pretrained_weights,
+        "head_pooling": config.head_pooling,
+        "embedding_dimensions": config.embedding_dimensions,
+        "embedding_head_init": config.embedding_head_init,
+        "embedding_layer_norm": config.embedding_layer_norm,
+    }
+    if checkpoint.get("arch") != expected_arch:
+        raise ValueError("checkpoint architecture metadata does not match the report config")
     if checkpoint.get("training_config") != config.model_dump(mode="json"):
         raise ValueError("checkpoint training_config does not match the report config")
 
