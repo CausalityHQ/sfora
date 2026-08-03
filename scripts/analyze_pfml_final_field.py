@@ -273,6 +273,10 @@ def main() -> None:
     alpha = float(config["potential_alpha"])
     payload = {
         "evidence_status": "static_gram_diagnostic_not_candidate_provenance",
+        "pair_count_convention": (
+            "Each distinct pair is counted once. Eq. 6 contains both directions, so its "
+            "ordered energy/force totals are twice the reported pairwise sums."
+        ),
         "checkpoint_sha256": sha256(args.checkpoint),
         "report_sha256": sha256(args.report),
         "train_pack_sha256": sha256(args.train_pack),
