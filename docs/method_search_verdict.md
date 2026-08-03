@@ -4071,3 +4071,12 @@ identify a causal weighting effect, so Gate 1 fails.  Mechanistically it is
 ordinary hard-example/positive weighting, already occupied by Proxy Anchor's
 hardness-dependent gradients, Multi-Similarity/GPW, and focal-style losses.  Full
 audit: `docs/claude_apgc_gate2_audit_309_2026-08-03.md`.
+
+## 310. Geometric space-tuning branch
+
+**DEAD at Gate 2; no implementation or GPU.** Anisotropic covariance/Mahalanobis,
+vMF/Gaussian, spherical, hyperbolic, tangent/subspace, structural-flow, and
+nonlinear-rank similarity operators are occupied by primary metric-learning work.
+The repository's train-fit linear projection evidence is compression-only, not a
+quality result. Full audit:
+`docs/geometric_space_tuning_audit_310_2026-08-03.md`.
