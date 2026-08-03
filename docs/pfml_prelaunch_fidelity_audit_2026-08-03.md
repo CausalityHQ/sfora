@@ -112,6 +112,28 @@ the final checkpoint with `artifact_selection=final_training_state`; export
 final embeddings separately and verify their scorer before using them as
 candidate provenance.
 
+## Smoke result
+
+The repaired one-step Cars196 smoke completed successfully before the deciding
+run. Its artifact SHA-256 is
+`606fb5ed2b9ac5473db2b5bef94691b92f7e004b0c5ba2c54e74cc56e81d52e9`.
+The serialized executed config contains ResNet-50/512, Adam, base/head LR
+`1e-4`, proxy multiplier 100 (`0.01` effective), weight decay `1e-4`, 15
+proxies/class, delta 0.2, **alpha 3**, no schedule, and one warm-up epoch. The
+raw ordered potential was finite (`304,921,600`), the optimizer step completed,
+the complete JSON contains no NaN or infinity, and final scoring remained
+finite. The one-step R@1 `0.413602` is an initialization/smoke observation and
+is excluded from benchmark reporting.
+
+An independent reload verified 8,054 train images in 98 classes labelled 0--97
+and 8,131 test images in 98 classes labelled 98--195, with an empty class
+intersection. Peak observed GPU allocation was 2,808 MiB. Dataset materializing
+plus eight forked loader workers gave approximately 48 GB parent RSS (mostly
+shared copy-on-write pages) and left at least 65 GiB host memory available; this
+is high but did not approach the 121-GiB host limit. The smoke therefore clears
+the finite-state, split, configuration, and memory gates for the fixed 200-epoch
+run.
+
 ## Primary sources
 
 - Bhatnagar and Ahuja, *Potential Field Based Deep Metric Learning*, CVPR 2025:
