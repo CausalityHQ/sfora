@@ -1,5 +1,29 @@
 # PFML reproduction preregistration (2026-08-02)
 
+## Prospective 2026-08-03 resolution before any repaired result
+
+The original OAPF-only authorization is superseded for **baseline
+infrastructure only**. OAPF remains dead and cannot be revived by this run. The
+standing research agenda independently ranks a modern strong-baseline
+reproduction first, and the corrected static Proxy Anchor packet has exhausted
+its Gram-derived candidate space. A fixed PFML run can create the new final
+checkpoint and trajectory needed for a non-Gram measurement.
+
+A prelaunch source audit found and repaired a real command-path bug: the CLI
+silently overwrote this preregistration's alpha 3 with alpha 4. Commit `aa878e8`
+pins the actual command path. The audit also establishes that several recipe
+details are undisclosed; the run is therefore a **fixed-interpretation
+reference**, not a source-exact reproduction. Full assumptions and smoke gates
+are in `docs/pfml_prelaunch_fidelity_audit_2026-08-03.md`.
+
+The deciding cadence is now fixed before the result: evaluate every ten epochs,
+report raw best-over-training R@1/epoch as a test-selected diagnostic, and use
+the unrestored final-epoch R@1 as primary. The local-neighbour peak-gap is not a
+selection correction after audit 254 and must not be labeled one. The original
+raw-best prediction `[0.900,0.940]` and falsifier `<0.895` remain unchanged. In
+addition, final R@1 below `0.890`, any non-finite state, or failure to persist an
+exact final-state checkpoint blocks use as a modern reference.
+
 Recorded before running the repaired PFML loss or publication-matched preset.
 This is an occupied reference reproduction, not candidate evidence. It is
 conditionally authorised only if OAPF passes its training-only Gate-1

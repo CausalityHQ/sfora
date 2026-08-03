@@ -4246,3 +4246,18 @@ Independent web searches found no exact DML instantiation of candidate 327 or
 angular synchronization, but neither verdict relies on an absence-of-prior-art
 claim: both die by gradient/mechanism reduction first. Full audit:
 `docs/cross_field_candidate_batch_324_331_2026-08-03.md`.
+
+## PFML prelaunch source and command-path audit (not a numbered candidate)
+
+**ONE BUG REPAIRED; fixed-interpretation baseline conditionally authorized.**
+The PFML preset specified alpha 3, but the executable CLI silently overwrote it
+with alpha 4. Commit `aa878e8` repairs the fallback and adds a command-path
+regression test. The paper and supplement pin Eq. 1--6, optimizer family/LRs,
+weight decay, batch size, epochs, warm-up count, BatchNorm status, dimensions,
+and proxy count. They do not pin augmentation, sampling, proxy normalization,
+gradient clipping, head initialization, pretrained-weight digest, or selection
+cadence. Therefore a passing run can establish only the prospectively fixed
+local interpretation, not an exact reproduction or a novelty claim. The
+occupied baseline is useful because it can produce a new final checkpoint and
+trajectory after the verified Proxy Anchor static space yielded no survivor.
+Full audit: `docs/pfml_prelaunch_fidelity_audit_2026-08-03.md`.
