@@ -23,6 +23,13 @@ The first atlas will recompute, without tuning:
 5. the fixed RSPG signature-retention operator only as a falsification of the old
    wrong-corpus measurement, never as permission to revive RSPG.
 
+The final-state pack cannot adjudicate RSPG's go/no-go gate. That gate is defined
+at the epoch-10 operating point where the intervention begins. A mistakenly armed
+final-pack gate controller was cancelled before its input existed. Reconsidering
+RSPG requires a separate corrected-pixel 10-epoch warm-up and the unchanged
+0.05--0.60 edge-density / at-least-0.25 multi-component rule. A final-state density
+may be reported descriptively but has no gate status.
+
 A candidate requires a new observable outside the blind matrix and must still pass
 primary-source Gate 2. The independently generated chemistry/biology batch produced
 no current survivor: transition-state exclusion is adjacent to LoOp/interpolation;
