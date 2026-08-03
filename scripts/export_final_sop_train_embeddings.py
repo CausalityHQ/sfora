@@ -16,6 +16,7 @@ from sfora.image_end_to_end import (
     ImageEndToEndConfig,
     _default_transform_factory,
     _encode_model,
+    _resolve_training_schedule,
     _TorchImageDataset,
     _torchvision_model_factory,
 )
@@ -49,9 +50,6 @@ def main() -> None:
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     if checkpoint.get("artifact_selection") not in {None, "final_training_state"}:
         raise ValueError("checkpoint is not labeled as a final training state")
-    if checkpoint.get("training_step") not in {None, config.train_steps}:
-        raise ValueError("checkpoint training step differs from the report")
-
     examples = load_image_retrieval_examples(
         dataset_name="sop", split=args.split, seed=config.seed
     )
@@ -60,6 +58,21 @@ def main() -> None:
     if observed != expected:
         raise ValueError(
             f"official SOP {args.split} split count mismatch: {observed} != {expected}"
+        )
+    training_examples = (
+        examples
+        if args.split == "train"
+        else load_image_retrieval_examples(dataset_name="sop", split="train", seed=config.seed)
+    )
+    resolved_steps, _, _ = _resolve_training_schedule(
+        config,
+        optimization_example_count=len(training_examples),
+        optimization_labels=[example.label for example in training_examples],
+    )
+    if checkpoint.get("training_step") not in {None, resolved_steps}:
+        raise ValueError(
+            "checkpoint training step differs from the resolved official training schedule: "
+            f"{checkpoint.get('training_step')} != {resolved_steps}"
         )
     transform = _default_transform_factory(config, False)
     loader: Any = DataLoader(
