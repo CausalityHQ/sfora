@@ -58,7 +58,7 @@ def test_operating_point_verifier_binds_pack_report_and_checkpoint(tmp_path: Pat
     torch.save(
         {
             "artifact_selection": "final_training_state",
-            "training_step": 1440,
+            "training_step": 1430,
             "training_config": config.model_dump(mode="json"),
         },
         checkpoint,

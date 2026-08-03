@@ -52,6 +52,8 @@ def _verify_operating_point_artifacts(
         "objectives": ("proxy_anchor",),
         "recipe_id": "proxy_anchor.inshop.official-51db570",
         "train_epochs": 10,
+        # This is the recipe's nominal scheduler horizon.  The checkpoint's
+        # actual optimizer-step count is checked separately below.
         "train_steps": 1440,
         "eval_test_interval_epochs": 0,
         "checkpoint_selection_interval": 0,
@@ -69,8 +71,16 @@ def _verify_operating_point_artifacts(
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     if checkpoint.get("artifact_selection") != "final_training_state":
         raise ValueError("RSPG operating checkpoint is not a final training state")
-    if checkpoint.get("training_step") != 1440:
-        raise ValueError("RSPG operating checkpoint is not from step 1440")
+    # The official partition has 25,882 images.  With batch size 180 and
+    # drop_last=True this is 143 optimizer updates per epoch, hence 1,430
+    # actual updates at the registered epoch-10 operating point.  This differs
+    # intentionally from the recipe's nominal 1,440-step scheduler horizon.
+    expected_checkpoint_step = 1430
+    if checkpoint.get("training_step") != expected_checkpoint_step:
+        raise ValueError(
+            "RSPG operating checkpoint is not from step "
+            f"{expected_checkpoint_step}"
+        )
     if checkpoint.get("training_config") != config.model_dump(mode="json"):
         raise ValueError("RSPG checkpoint configuration differs from its report")
 
