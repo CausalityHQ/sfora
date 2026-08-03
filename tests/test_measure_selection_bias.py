@@ -18,6 +18,7 @@ _spec.loader.exec_module(_module)
 
 leave_one_out_local_mean = _module.leave_one_out_local_mean
 selection_overshoot = _module.selection_overshoot
+artifact_identity = _module._artifact_identity
 
 
 def test_selected_epoch_is_excluded_from_its_own_trend_estimate() -> None:
@@ -28,6 +29,20 @@ def test_selected_epoch_is_excluded_from_its_own_trend_estimate() -> None:
     assert leave_one_out_local_mean(history, 10, 2) == pytest.approx(0.70)
     reported, estimated, index = selection_overshoot(history)
     assert (index, reported, estimated) == (10, 0.90, pytest.approx(0.70))
+
+
+def test_generic_report_identity_comes_from_artifact_metadata(tmp_path: Path) -> None:
+    path = tmp_path / "sop_official_bninc_pa_seed0.json"
+    payload = {
+        "config": {
+            "dataset_name": "sop",
+            "recipe_digest": "6212b9499c00cf19deadbeef",
+            "seed": 0,
+        },
+        "methods": {"proxy_anchor": {}},
+    }
+
+    assert artifact_identity(path, payload) == ("sop", "proxy_anchor", "6212b9499c00", 0)
 
 
 def test_noiseless_history_has_no_overshoot() -> None:

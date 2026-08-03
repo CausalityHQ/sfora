@@ -73,6 +73,29 @@ def _recall_history(payload: dict[str, Any]) -> list[float] | None:
     return None
 
 
+def _artifact_identity(path: Path, payload: dict[str, Any]) -> tuple[str, str, str, int] | None:
+    match = _ARM.search(path.name)
+    if match is not None:
+        return match["dataset"], match["arm"], match["digest"], int(match["seed"])
+    config = payload.get("config")
+    methods = payload.get("methods")
+    if not isinstance(config, dict) or not isinstance(methods, dict) or len(methods) != 1:
+        return None
+    dataset = config.get("dataset_name")
+    digest = config.get("recipe_digest")
+    seed = config.get("seed")
+    arm = next(iter(methods))
+    if (
+        not isinstance(dataset, str)
+        or not isinstance(arm, str)
+        or not isinstance(digest, str)
+        or len(digest) < 12
+        or not isinstance(seed, int)
+    ):
+        return None
+    return dataset, arm, digest[:12], seed
+
+
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values)
 
@@ -111,16 +134,17 @@ def main(pattern: str) -> int:
     # +3.4 pt effect. The first draft of this script did exactly that.
     runs: dict[tuple[str, str, str], dict[int, tuple[float, float]]] = {}
     for path in sorted(glob.glob(pattern)):
-        match = _ARM.search(Path(path).name)
-        if match is None:
-            continue
         payload = json.loads(Path(path).read_text())
+        identity = _artifact_identity(Path(path), payload)
+        if identity is None:
+            continue
         history = _recall_history(payload)
         if history is None or len(history) < 5:
             continue
         reported_value, estimated, _ = selection_overshoot(history)
-        key = (match["dataset"], match["arm"], match["digest"])
-        runs.setdefault(key, {})[int(match["seed"])] = (reported_value, estimated)
+        dataset, arm, digest, seed = identity
+        key = (dataset, arm, digest)
+        runs.setdefault(key, {})[seed] = (reported_value, estimated)
 
     if not runs:
         print(f"no artifacts with a usable recall history matched {pattern!r}")
