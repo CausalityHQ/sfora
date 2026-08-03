@@ -4279,3 +4279,20 @@ kernels, and bilinear pooling independently occupy the machinery. A Fable 5
 critic proposed three fallbacks, but each was an already killed dataset repair,
 censored-pair mask, or temporal eligibility gate. Full corrected audit:
 `docs/set_matching_adversarial_audit_332_2026-08-03.md`.
+
+## 333--335. Fable non-Gram measurement batch
+
+**ALL DEAD at Gates 1--2; no diagnostic, implementation, or GPU.** Acquisition
+negative controls (333) would be observed-nuisance/domain invariance and have no
+verified Cars premise. Ecological repeat-visit detectability (334) is entirely
+output-Gram-derived and becomes scalar reliability weighting or a censored-pair
+mask. A make/model/year class-name lattice (335) supplies hierarchical graded
+pairs, an occupied operator with no opaque-In-Shop counterpart and a nearly
+foregone diagnostic prediction.
+
+The batch's useful closure is by artifact source: final geometry is Gram-derived;
+frozen-map input responses enter already occupied augmentation/Jacobian/local
+families; model-free pixel/file groupings enter clustering or domain invariance;
+and scalar curves contain no sample-level trajectory relation. A new observation
+channel or explicit claim change is required. Full audit:
+`docs/fable_nongram_measurement_batch_333_335_2026-08-03.md`.
