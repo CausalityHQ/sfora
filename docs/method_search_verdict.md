@@ -3826,3 +3826,15 @@ ASAP/CCP-DML establishes alternating proxy-defined optimization. Their combinati
 ordinary block-coordinate optimization, changes no supervision, and provides no
 measured reason that skipped backbone gradients preserve quality. Full audit:
 `docs/multirate_proxy_cache_audit_280_2026-08-03.md`.
+
+## 281. Proxy-replica disagreement supervision
+
+**DEAD at Gate 2; no implementation or GPU.** The observed single-model/ensemble gap
+suggested a statistical-physics replica construction: several cheap proxy/head replicas
+would share one backbone, and their disagreement would mark ambiguous relations unknown.
+Heterogeneous Double-Head Ensemble, Diversified Mutual Learning for DML, and Deep
+Factorized Metric Learning already occupy shared-backbone diversity and cross-model
+relational transfer; multi-proxy DML occupies replicated class representatives.
+Thresholding their variance is ensemble-uncertainty mining or co-teaching, not a new
+supervision source, and it repeats the project's failed gating interface. Full audit:
+`docs/proxy_replica_disagreement_audit_281_2026-08-03.md`.
