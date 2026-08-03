@@ -3943,3 +3943,14 @@ embedded full semantic training config, so the evidence remains explicitly bound
 report metadata, executed steps, final-state marker, and file hashes. This establishes
 a usable reference, not a novel method or a reopening beyond candidate 275's locked
 observational conclusion.
+
+## 291. Content-equivalence supervision
+
+**DEAD at Gate 1 and Gate 2; no implementation or GPU.** SOP contains exact
+cross-label content conflicts, but they touch only 24/59,551 training rows, too
+few to motivate a benchmark-scale quality prediction. Changing their negative
+relation to unknown is false-negative cancellation/noise-robust instance
+selection, occupied by PRISM, SGPS, Huynh et al., and GloFND. Exact hashing is a
+high-precision detector, not a new learning mechanism; removing duplicate rows
+is ordinary data deduplication and at most a modest throughput policy. Full
+audit: `docs/content_equivalence_supervision_audit_291_2026-08-03.md`.
