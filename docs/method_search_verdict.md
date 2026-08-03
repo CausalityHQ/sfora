@@ -3785,3 +3785,13 @@ fail-closed controller that requires the fragmentation result and its independen
 support audit before launching unchanged In-Shop Proxy Anchor. This is an evidence-path
 repair, not a method candidate or result. Full audit:
 `docs/sop_inshop_resource_serialization_audit_276_2026-08-03.md`.
+
+## 277. SOP evidence-publication race
+
+The fragmentation controller created its final JSON through shell redirection before
+the long CPU analysis began, allowing an existence-based downstream verifier to read
+empty or partial output. The joint verifier had the same race over a shorter direct-
+write window. Before either result existed, both were changed to validate temporary
+siblings and atomically rename them into place. The locked diagnostic is unchanged.
+This is an evidence-path repair, not a method candidate or score change. Full audit:
+`docs/sop_atomic_evidence_publication_audit_277_2026-08-03.md`.
