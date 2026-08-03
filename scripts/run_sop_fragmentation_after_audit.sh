@@ -13,10 +13,15 @@ test ! -e "${OUTPUT}"
 test ! -e "${TEMPORARY}"
 while [[ ! -f "${JOINT_AUDIT}" || ! -f "${TEST_AUDIT}" ]]; do
   if ! pgrep -f '[s]fora image-end-to-end.*sop_official_bninc_pa_seed0' >/dev/null \
-      && ! pgrep -f '[r]un_post_sop_official.*\.sh' >/dev/null \
-      && ! pgrep -f '[v]erify_sop_final_artifacts\.py' >/dev/null; then
-    echo "SOP producers exited without required audits" >&2
-    exit 1
+      && ! pgrep -f '[r]un_post_sop_official.*\.sh' >/dev/null; then
+    # A verifier is a legitimate producer only after both of its input packs exist.
+    # Its waiting shell contains the Python script name and must not mask export failure.
+    if [[ ! -f reports/emb/sop_official_bninc_pa_seed0_train_final.npz \
+          || ! -f reports/emb/sop_official_bninc_pa_seed0_test_final.npz ]] \
+        || ! pgrep -f '[v]erify_sop_final_artifacts\.py' >/dev/null; then
+      echo "SOP producers exited without required audits" >&2
+      exit 1
+    fi
   fi
   sleep 300
 done
