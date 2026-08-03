@@ -3871,3 +3871,14 @@ and offline tensor augmentation occupy cached-feature augmentation. Applying the
 operator to DML is not novel, and crop/resize does not exactly commute with a strided
 nonlinear stem. Full audit:
 `docs/augmentation_commuting_feature_cache_audit_284_2026-08-03.md`.
+
+## 285. Speed-branch stopping boundary
+
+Candidates 236, 258, 280, 282, and 284 now close the evidenced speed branches. Proxy
+algebra is measured-small; cache, selective-backward, progressive-freezing, adapter,
+and frozen-feature augmentation mechanisms are generic prior art; and the apparent
+early plateau is test-selected without a training-only stopping trajectory. Reopen only
+for a profiled retrieval-specific bottleneck, a held-out training-only stopping signal,
+or a supervision method requiring fewer measured backbone passes at equal quality.
+This is a search boundary, not a method or impossibility theorem. Full audit:
+`docs/speed_search_boundary_285_2026-08-03.md`.
