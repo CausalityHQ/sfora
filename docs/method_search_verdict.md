@@ -3683,3 +3683,15 @@ ingredients. Replacing top-positive selection with a hard positive-to-unknown th
 is not a new supervision source, and Proxy Anchor gradients would partly reconstruct
 the cross-class response that was near-vacuous on CUB. Full audit:
 `docs/gradient_compatibility_gate_audit_267_2026-08-03.md`.
+
+## 268. Developmental-timing positive eligibility
+
+**DEAD at Gate 1; no GPU.** A biology-inspired proposal would gate same-class
+positives by agreement between their per-example true-class margin trajectories. It
+would use learning-time behavior rather than embedding proximity or rival identity,
+but the corrected repository contains no independently valid per-example trajectories.
+Global epoch R@1 cannot demonstrate within-class temporal structure, and collecting the
+signal would require instrumented training rather than a free diagnostic. Dataset
+Cartography and forgetting-event work establish training dynamics as a sample signal,
+but prior art is not the deciding issue: the proposal has no measured provenance here.
+Full audit: `docs/developmental_timing_gate_audit_268_2026-08-03.md`.
