@@ -472,6 +472,49 @@ def test_parse_sop_metadata_uses_product_path_not_class_sort_order(tmp_path: Pat
     assert _parse_sop_metadata(metadata, expected_count=2) == {"900001", "100007"}
 
 
+def test_original_sop_records_materialize_pinned_image_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import datasets
+
+    from sfora.data import _load_original_sop_records
+
+    class FakeDataset:
+        def __len__(self) -> int:
+            return 59_551
+
+        def cast_column(self, _name: str, _feature: object) -> "FakeDataset":
+            return self
+
+        def __iter__(self):
+            yield {
+                "item_id": "111085122871",
+                "image_path": "Stanford_Online_Products/bicycle_final/111085122871_0.JPG",
+                "image": {"bytes": b"original-jpeg-bytes", "path": None},
+            }
+
+    calls: list[tuple[str, str, str]] = []
+
+    def fake_load_dataset(name: str, *, split: str, revision: str) -> FakeDataset:
+        calls.append((name, split, revision))
+        return FakeDataset()
+
+    monkeypatch.setattr(datasets, "load_dataset", fake_load_dataset)
+    monkeypatch.setenv("SFORA_SOP_ORIGINAL_CACHE", str(tmp_path))
+
+    records = list(_load_original_sop_records("train"))
+
+    assert calls == [
+        (
+            "nyris/stanford-online-products-v1",
+            "train",
+            "24a1b9b8ec6c0b1fc4dd324f24b2d829413a6c69",
+        )
+    ]
+    assert records[0]["id"] == "111085122871"
+    assert Path(records[0]["image"]).read_bytes() == b"original-jpeg-bytes"
+
+
 def test_select_labeled_image_examples_skips_underfilled_classes() -> None:
     records: list[dict[str, object]] = [{"image": "single", "id": "101_0"}]
     for product in [202, 303]:

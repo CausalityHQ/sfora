@@ -39,6 +39,18 @@ head selector is now covered by a regression test. This launch also produced no
 report. The admissible run must train `model.embedding.*` and metric proxies
 during epoch 1 while freezing only the pretrained backbone.
 
+The third launch was stopped after epoch 1 when a source-pixel audit found that
+`JamieSJS/stanford-online-products` stores every inspected corpus image at
+224×224. Correct membership on a pre-resized mirror cannot reproduce upstream's
+random-resized-crop and resize-256/center-crop evaluation over original images.
+That launch is also inadmissible and produced no final report. The final source
+is now the exact-count, original-resolution
+`nyris/stanford-online-products-v1` revision
+`24a1b9b8ec6c0b1fc4dd324f24b2d829413a6c69`; embedded JPEG bytes are
+materialized without decoding or re-encoding. Gate 0 must verify 59,551/60,502
+rows, official product membership, path-to-item agreement, nonuniform original
+dimensions, and the pinned source revision before another launch.
+
 The loader must independently verify the digest-pinned official membership:
 11,318 training classes / 59,551 images and 11,316 test classes / 60,502 images,
 with disjoint product identities.

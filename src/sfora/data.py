@@ -1,4 +1,5 @@
 import json
+import os
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -158,17 +159,20 @@ def load_image_retrieval_examples(
         else (spec.source_split_name or split,)
     )
     records: list[dict[str, object]] = []
-    for source_split in source_splits:
-        if dataset_loader is None and spec.config_name is not None:
-            records.extend(
-                _load_huggingface_dataset_config(
-                    spec.dataset_id,
-                    spec.config_name,
-                    source_split,
+    if dataset_name == "sop" and dataset_loader is None:
+        records.extend(_load_original_sop_records(split))
+    else:
+        for source_split in source_splits:
+            if dataset_loader is None and spec.config_name is not None:
+                records.extend(
+                    _load_huggingface_dataset_config(
+                        spec.dataset_id,
+                        spec.config_name,
+                        source_split,
+                    )
                 )
-            )
-        else:
-            records.extend(loader(spec.dataset_id, source_split))
+            else:
+                records.extend(loader(spec.dataset_id, source_split))
     if dataset_name == "sop" and dataset_loader is None:
         official_products = _sop_official_product_ids(split)
         records = [
@@ -183,6 +187,11 @@ def load_image_retrieval_examples(
         if missing:
             raise ValueError(
                 f"SOP corpus is missing {len(missing)} products from the official {split} split"
+            )
+        expected_images = 59_551 if split == "train" else 60_502
+        if len(records) != expected_images:
+            raise ValueError(
+                f"official SOP {split} has {len(records)} images; expected {expected_images}"
             )
     return select_labeled_image_examples(
         records,
@@ -232,6 +241,54 @@ def _sop_official_product_ids(split: str) -> set[str]:
         raise ValueError(f"official SOP {split} metadata digest mismatch: {observed}")
     expected_count = 11_318 if split == "train" else 11_316
     return _parse_sop_metadata(path, expected_count=expected_count)
+
+
+def _load_original_sop_records(split: str) -> Iterable[dict[str, object]]:
+    """Load and materialize digest-pinned original-resolution official SOP images."""
+    try:
+        from datasets import Image, load_dataset
+    except ImportError as error:
+        raise RuntimeError(
+            "Install the research extra to load original SOP images"
+        ) from error
+
+    revision = "24a1b9b8ec6c0b1fc4dd324f24b2d829413a6c69"
+    dataset = load_dataset(
+        "nyris/stanford-online-products-v1",
+        split=split,
+        revision=revision,
+    ).cast_column("image", Image(decode=False))
+    expected = 59_551 if split == "train" else 60_502
+    if len(dataset) != expected:
+        raise ValueError(
+            f"pinned original SOP {split} has {len(dataset)} rows; expected {expected}"
+        )
+
+    cache_root = Path(
+        os.environ.get(
+            "SFORA_SOP_ORIGINAL_CACHE",
+            Path.home() / ".cache" / "sfora" / "sop-original" / revision,
+        )
+    )
+    for index, record in enumerate(dataset):
+        item_id = str(record["item_id"])
+        relative = Path(str(record["image_path"]))
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"unsafe SOP image path at row {index}: {relative}")
+        if relative.stem.rsplit("_", 1)[0] != item_id:
+            raise ValueError(
+                f"SOP item/path mismatch at row {index}: {item_id} versus {relative}"
+            )
+        target = cache_root / relative
+        if not target.is_file():
+            raw_image = record["image"]
+            if not isinstance(raw_image, dict) or not isinstance(raw_image.get("bytes"), bytes):
+                raise ValueError(f"SOP row {index} does not contain embedded image bytes")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_suffix(target.suffix + f".{os.getpid()}.partial")
+            temporary.write_bytes(raw_image["bytes"])
+            temporary.replace(target)
+        yield {"image": target, "id": item_id}
 
 
 def _parse_sop_metadata(path: Path, *, expected_count: int) -> set[str]:
