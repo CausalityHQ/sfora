@@ -101,6 +101,8 @@ def main() -> None:
     config = ImageEndToEndConfig.model_validate(report["config"])
     if config.dataset_name != "inshop" or config.objectives != ("proxy_anchor",):
         raise ValueError("exporter requires one-objective In-Shop Proxy Anchor")
+    if config.checkpoint_selection_interval != 0:
+        raise ValueError("final-state exporter refuses checkpoint-selected training")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     if checkpoint.get("artifact_selection") != "final_training_state":
         raise ValueError("checkpoint is not explicitly labeled as a final training state")

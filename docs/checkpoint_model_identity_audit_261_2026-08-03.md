@@ -27,6 +27,9 @@ The non-EMA control proves the saved student moves and matches its scored embedd
 The pre-existing single-objective guard for artifact paths now also covers
 `save_model_path`, preventing successive objectives from silently overwriting one
 ambiguous checkpoint.
+The SOP and In-Shop final exporters additionally require
+`checkpoint_selection_interval=0` in the persisted report, so even a legacy serializer
+with misleading constant metadata cannot pass after restoring an earlier state.
 
 ## Scope
 
