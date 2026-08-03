@@ -3763,3 +3763,14 @@ the original binary labels while adding a fixed-feature regularizer rather than 
 new supervision. Color histograms are also foundational content-based retrieval features
 and invite background/photography shortcuts on these benchmarks. Full audit:
 `docs/histogram_alignment_audit_274_2026-08-03.md`.
+
+## 275. SOP fragmentation replication diagnostic
+
+**PREREGISTERED; CPU only, pending corrected final SOP artifacts.** In-Shop's
+size-matched fragmented-class retrieval advantage (+3.534 points; +5.875 after its
+registered coarse adjustment) is now tested out of dataset on SOP. The unchanged
+symmetrized 1-NN operator predicts fragmentation fraction 0.20--0.60 and an exact-size-
+matched fragmented-minus-connected class-balanced R@1 effect >= +1.0, with at least
+100 classes per exposure. Effect <= 0 falsifies cross-dataset replication; `(0,+1)` is
+inconclusive. Even a pass is an observational marker and authorizes no method or GPU.
+Full registration: `docs/sop_fragmentation_preregistration_275_2026-08-03.md`.
