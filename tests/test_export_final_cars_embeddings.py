@@ -64,3 +64,20 @@ def test_partition_verifier_rejects_identity_overlap(
     test = [_example(0, "test-a", tmp_path), _example(0, "test-b", tmp_path)]
     with pytest.raises(ValueError, match="identities overlap"):
         _module.verify_official_partition(train, test)
+
+
+def test_reported_final_recall_requires_one_completed_pfml_method() -> None:
+    report = {
+        "methods": {
+            "pfml_end_to_end:resnet50": {
+                "objective": "pfml",
+                "executed_train_steps": 16_200,
+                "recall_at_1": 0.91,
+            }
+        }
+    }
+    assert _module.reported_final_recall_at_1(report, 16_200) == 0.91
+
+    report["methods"]["pfml_end_to_end:resnet50"]["executed_train_steps"] = 16_199
+    with pytest.raises(ValueError, match="resolved final training step"):
+        _module.reported_final_recall_at_1(report, 16_200)

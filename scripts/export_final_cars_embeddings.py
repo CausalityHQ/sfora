@@ -102,6 +102,21 @@ def independent_leave_one_out_recall_at_1(
     return correct / len(vectors)
 
 
+def reported_final_recall_at_1(report: dict[str, Any], expected_steps: int) -> float:
+    methods = report.get("methods")
+    if not isinstance(methods, dict) or len(methods) != 1:
+        raise ValueError("Cars196 PFML report must contain exactly one method")
+    metrics = next(iter(methods.values()))
+    if metrics.get("objective") != "pfml":
+        raise ValueError("Cars196 report method is not PFML")
+    if metrics.get("executed_train_steps") != expected_steps:
+        raise ValueError("Cars196 report did not execute the resolved final training step")
+    value = float(metrics.get("recall_at_1", float("nan")))
+    if not np.isfinite(value):
+        raise ValueError("Cars196 report final R@1 is not finite")
+    return value
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -146,6 +161,7 @@ def main() -> None:
             "checkpoint training step differs from the resolved official training schedule: "
             f"{checkpoint.get('training_step')} != {resolved_steps}"
         )
+    reported_final_recall = reported_final_recall_at_1(report, resolved_steps)
 
     examples = train_examples if args.split == "train" else test_examples
     transform = _default_transform_factory(config, False)
@@ -173,6 +189,13 @@ def main() -> None:
         if args.split == "test"
         else None
     )
+    if independent_recall is not None and not np.isclose(
+        independent_recall, reported_final_recall, rtol=0.0, atol=1.0e-12
+    ):
+        raise ValueError(
+            "independently exported final R@1 disagrees with the report: "
+            f"{independent_recall} != {reported_final_recall}"
+        )
 
     checkpoint_digest = sha256(args.checkpoint)
     report_digest = sha256(args.report)
@@ -202,6 +225,7 @@ def main() -> None:
                 "checkpoint_sha256": checkpoint_digest,
                 "report_sha256": report_digest,
                 "independent_recall_at_1": independent_recall,
+                "reported_final_recall_at_1": reported_final_recall,
                 "partition_audit": partition_audit,
             },
             indent=2,
