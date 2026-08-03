@@ -3729,3 +3729,13 @@ and neural-collapse geometry are also adjacent established fields. Reconsider on
 an independently required run already records the trajectory and a predeclared rule
 predicts a held-out run. Full audit:
 `docs/proxy_equilibrium_stopping_audit_271_2026-08-03.md`.
+
+## 272. In-Shop three-way partition verification gap
+
+The independent In-Shop exporter checked query/gallery overlap but not within-split
+duplicate IDs/paths or train-versus-test identity/ID/path disjointness. It now verifies
+the full official three-way partition, exact encoded-label order, finite outputs, and
+unit norms before scoring, and persists the complete audit. The repaired exporter was
+deployed before the queued reference launch. This is an evidence-path repair, not a
+method candidate or result. Full audit:
+`docs/inshop_three_way_partition_audit_272_2026-08-03.md`.

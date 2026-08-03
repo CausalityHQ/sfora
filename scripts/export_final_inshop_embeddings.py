@@ -21,6 +21,12 @@ from sfora.image_end_to_end import (
     _torchvision_model_factory,
 )
 
+EXPECTED_INSHOP_PARTITION = {
+    "train": (25_882, 3_997),
+    "query": (14_218, 3_985),
+    "gallery": (12_612, 3_985),
+}
+
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -53,6 +59,52 @@ def independent_query_gallery_recall_at_1(
         nearest = np.argmax(query[start:stop] @ gallery.T, axis=1)
         correct += int(np.sum(gallery_labels[nearest] == query_labels[start:stop]))
     return correct / len(query)
+
+
+def verify_official_partition(bundle: Any) -> dict[str, Any]:
+    """Verify all within- and cross-split identity/row invariants."""
+    if bundle.gallery is None:
+        raise ValueError("In-Shop bundle lacks its official gallery")
+    splits = {
+        "train": bundle.train,
+        "query": bundle.query,
+        "gallery": bundle.gallery,
+    }
+    identities: dict[str, set[int]] = {}
+    ids: dict[str, set[str]] = {}
+    paths: dict[str, set[str]] = {}
+    for split, examples in splits.items():
+        identities[split] = {int(example.label) for example in examples}
+        ids[split] = {str(example.example_id) for example in examples}
+        paths[split] = {str(Path(example.image).resolve()) for example in examples}
+        observed = (len(examples), len(identities[split]))
+        if observed != EXPECTED_INSHOP_PARTITION[split]:
+            raise ValueError(f"unexpected official In-Shop {split} counts: {observed}")
+        if len(ids[split]) != len(examples):
+            raise ValueError(f"duplicate In-Shop {split} example IDs")
+        if len(paths[split]) != len(examples):
+            raise ValueError(f"duplicate In-Shop {split} source paths")
+
+    if identities["query"] != identities["gallery"]:
+        raise ValueError("In-Shop query and gallery identity sets differ")
+    if identities["train"] & identities["query"]:
+        raise ValueError("In-Shop train and test identities overlap")
+    for left, right in (("train", "query"), ("train", "gallery"), ("query", "gallery")):
+        if ids[left] & ids[right]:
+            raise ValueError(f"In-Shop {left}/{right} example IDs overlap")
+        if paths[left] & paths[right]:
+            raise ValueError(f"In-Shop {left}/{right} source paths overlap")
+    return {
+        "train_query_identity_overlap": 0,
+        "train_gallery_identity_overlap": 0,
+        "train_query_example_id_overlap": 0,
+        "train_gallery_example_id_overlap": 0,
+        "query_gallery_example_id_overlap": 0,
+        "train_query_source_path_overlap": 0,
+        "train_gallery_source_path_overlap": 0,
+        "query_gallery_source_path_overlap": 0,
+        "query_gallery_identity_sets_equal": True,
+    }
 
 
 def save_embeddings(
@@ -115,30 +167,8 @@ def main() -> None:
         dataset_root=args.dataset_root,
         seed=config.seed,
     )
-    counts = (
-        len(bundle.train),
-        len({example.label for example in bundle.train}),
-        len(bundle.query),
-        len({example.label for example in bundle.query}),
-        len(bundle.gallery or []),
-        len({example.label for example in bundle.gallery or []}),
-    )
-    if counts != (25_882, 3_997, 14_218, 3_985, 12_612, 3_985):
-        raise ValueError(f"unexpected official In-Shop counts: {counts}")
-    if bundle.gallery is None:
-        raise ValueError("In-Shop bundle lacks its official gallery")
-    query_ids = {example.example_id for example in bundle.query}
-    gallery_ids = {example.example_id for example in bundle.gallery}
-    if query_ids & gallery_ids:
-        raise ValueError("In-Shop query and gallery example IDs overlap")
-    query_paths = {str(Path(example.image).resolve()) for example in bundle.query}
-    gallery_paths = {str(Path(example.image).resolve()) for example in bundle.gallery}
-    if query_paths & gallery_paths:
-        raise ValueError("In-Shop query and gallery source paths overlap")
-    if {example.label for example in bundle.query} != {
-        example.label for example in bundle.gallery
-    }:
-        raise ValueError("In-Shop query and gallery identity sets differ")
+    partition_audit = verify_official_partition(bundle)
+    assert bundle.gallery is not None
 
     resolved_steps, _, _ = _resolve_training_schedule(
         config,
@@ -170,12 +200,23 @@ def main() -> None:
     model.load_state_dict(state, strict=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
-    query_embeddings, query_labels = _encode_model(
-        model, loader(bundle.query), device, torch
-    )
-    gallery_embeddings, gallery_labels = _encode_model(
-        model, loader(bundle.gallery), device, torch
-    )
+    query_embeddings, query_labels = _encode_model(model, loader(bundle.query), device, torch)
+    gallery_embeddings, gallery_labels = _encode_model(model, loader(bundle.gallery), device, torch)
+    expected_query_labels = np.asarray([example.label for example in bundle.query])
+    expected_gallery_labels = np.asarray([example.label for example in bundle.gallery])
+    if not np.array_equal(query_labels, expected_query_labels):
+        raise ValueError("encoded query labels differ from official query order")
+    if not np.array_equal(gallery_labels, expected_gallery_labels):
+        raise ValueError("encoded gallery labels differ from official gallery order")
+    for split, embeddings in (
+        ("query", query_embeddings),
+        ("gallery", gallery_embeddings),
+    ):
+        if not np.isfinite(embeddings).all():
+            raise ValueError(f"non-finite In-Shop {split} embeddings")
+        norms = np.linalg.norm(embeddings, axis=1)
+        if not np.allclose(norms, 1.0, atol=2e-5, rtol=2e-5):
+            raise ValueError(f"In-Shop {split} embeddings are not unit normalized")
     checkpoint_digest = sha256(args.checkpoint)
     report_digest = sha256(args.report)
     save_embeddings(
@@ -210,9 +251,7 @@ def main() -> None:
         "report_sha256": report_digest,
         "resolved_training_steps": resolved_steps,
         "independent_recall_at_1": independent_r1,
-        "query_gallery_example_id_overlap": 0,
-        "query_gallery_source_path_overlap": 0,
-        "query_gallery_identity_sets_equal": True,
+        **partition_audit,
     }
     args.retrieval_output.parent.mkdir(parents=True, exist_ok=True)
     args.retrieval_output.write_text(
