@@ -1,4 +1,4 @@
-"""Tests for the best-over-training selection-bias estimator."""
+"""Tests for the descriptive best-over-training local peak-gap diagnostic."""
 
 from __future__ import annotations
 
@@ -47,16 +47,24 @@ def test_generic_report_identity_comes_from_artifact_metadata(tmp_path: Path) ->
     assert artifact_identity(path, payload) == ("sop", "proxy_anchor", "6212b9499c00", 0)
 
 
-def test_noiseless_history_has_no_overshoot() -> None:
-    """A monotone, noiseless curve is selected at its true maximum, so a correct
-    estimator must report zero bias -- otherwise it would invent one everywhere."""
+def test_noiseless_monotone_history_exposes_endpoint_slope_confounding() -> None:
+    """The diagnostic is nonzero without noise and hence is not a bias correction."""
     history = [0.60 + 0.001 * i for i in range(60)]
 
     reported, estimated, index = selection_overshoot(history)
     assert index == 59
-    # Trailing-edge neighbours are all below the endpoint, so the estimate is lower by
-    # the local slope only; the point is that it does not scale with any noise term.
+    # Trailing-edge neighbours are below the endpoint. This deterministic gap is the
+    # counterexample that forbids interpreting the result as winner's-curse bias.
     assert reported - estimated == pytest.approx(0.0015, abs=1e-6)
+
+
+def test_noiseless_quadratic_peak_exposes_curvature_confounding() -> None:
+    history = [0.8 - 0.001 * (index - 5) ** 2 for index in range(11)]
+
+    reported, estimated, index = selection_overshoot(history)
+
+    assert index == 5
+    assert (reported - estimated) * 100 == pytest.approx(0.25)
 
 
 @pytest.mark.parametrize(("noise", "floor"), [(0.005, 0.5), (0.02, 2.0)])

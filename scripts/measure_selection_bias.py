@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Quantify the upward bias in best-over-training, per arm and per paired comparison.
+"""Diagnose the local peak gap in best-over-training curves.
 
 Best-over-training reports `max` over ~50-60 test evaluations of one run. A maximum over
 noisy observations of a curve overshoots the curve's true peak, and the overshoot grows
@@ -17,9 +17,10 @@ the trend, and it is uncontaminated by the noise that won the argmax.
 
     overshoot = h[argmax] - loo(h, argmax)
 
-`overshoot` is then the per-run selection bonus. The number that matters is not its
-size, which partly reflects local curvature, but whether it DIFFERS between two arms
-being compared -- because that difference transfers directly into the reported delta.
+`peak_gap` is a descriptive diagnostic, not an identified selection-bias correction.
+It mixes selection noise with local curvature, endpoint slope, autocorrelation, and
+nonstationarity.  In particular, it is nonzero for noiseless curved or increasing
+histories.  It must therefore never be presented as a corrected benchmark score.
 
 Usage:
     uv run python scripts/measure_selection_bias.py 'reports/generated/*cub*.json'
@@ -58,7 +59,10 @@ def leave_one_out_local_mean(history: list[float], index: int, half_width: int =
 
 
 def selection_overshoot(history: list[float], half_width: int = 2) -> tuple[float, float, int]:
-    """Return (reported max, leave-one-out estimate at the argmax, argmax index)."""
+    """Return (reported max, local-neighbour estimate, argmax index).
+
+    Their difference is a local peak gap, not an unbiased selection-bias estimate.
+    """
     if not history:
         raise ValueError("empty history")
     index = max(range(len(history)), key=lambda i: history[i])
@@ -164,7 +168,7 @@ def main(pattern: str) -> int:
 
     header = (
         f"{'dataset/arm':32} {'digest':>13} {'n':>2} "
-        f"{'reported':>9} {'corrected':>10} {'overshoot':>10}"
+        f"{'reported':>9} {'local trend':>11} {'peak gap':>10}"
     )
     print(header)
     for (dataset, arm, digest), seeds in sorted(runs.items()):
@@ -195,8 +199,8 @@ def main(pattern: str) -> int:
         ("narrow128_distill", "narrow128"),
         ("narrow64_distill", "narrow64"),
     ]
-    print("\nPaired deltas as reported vs after removing each arm's selection bonus:")
-    print(f"{'comparison':34} {'n':>2} {'reported':>10} {'corrected':>10} {'inflation':>10}")
+    print("\nPaired deltas: raw versus local-neighbour diagnostic (not bias-corrected):")
+    print(f"{'comparison':34} {'n':>2} {'reported':>10} {'local':>10} {'gap diff':>10}")
     for derived, base in pairs:
         for dataset in sorted({d for d, _, _ in runs}):
             derived_digest = _current_digest(dataset, derived)

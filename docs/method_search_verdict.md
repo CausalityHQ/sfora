@@ -189,7 +189,19 @@ being written into a strategic conclusion.
 six seeds — a 95% interval of roughly 70.1–71.5, which **contains HIST's published
 71.4**. The pipeline reproduces the paper; IDEAL's baseline is the outlier, not ours.
 
-## 6. That last claim, now measured (`scripts/measure_selection_bias.py`)
+## 6. RETRACTED: local peak gap was mislabeled as selection correction
+
+**2026-08-03 falsification.** `scripts/measure_selection_bias.py` does not identify a
+winner's-curse bonus. Its leave-neighbour gap is positive on noiseless curved and
+monotone histories, so it combines selection noise with curvature, endpoint slope,
+autocorrelation, and training nonstationarity. The claims below that every score was
+inflated by the tabulated amount, that averaging was systematically under-credited,
+and that corrected rankings reversed are withdrawn. The numeric gaps remain usable
+only as descriptive local-peak diagnostics. Future Gate 6 decisions require an
+independently selected/frozen checkpoint. Full audit and synthetic falsifiers:
+`docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
+
+### Historical text retained for provenance; interpretations below are superseded
 
 Best-over-training reports `max` over ~60 test evaluations. A maximum over noisy
 observations of a curve overshoots the curve, and the overshoot grows with the noise.

@@ -263,7 +263,19 @@ implausible 0.1 seeds for 80% power. An sd from two runs has *one* degree of fre
 is nearly worthless: `pa_distill`'s own 3-seed sd was 0.153 and became **0.367** at six
 seeds. Do not plan on it.
 
-### The protocol systematically under-credits weight averaging
+### RETRACTED: the claimed selection correction does not identify winner's-curse bias
+
+**2026-08-03 correction.** The table below is retained as historical provenance, but
+its “selection bonus” and “corrected” labels are invalid. The leave-neighbour estimator
+mixes selection noise with learning-curve curvature, endpoint slope, autocorrelation,
+and nonstationarity. On noiseless controls it invents gaps of +0.25 point for a
+quadratic peak, +0.75 for a plateau edge, and +1.50 for a rising endpoint. Consequently
+it does not establish that averaging was systematically under-credited or that the arm
+ranking reversed. Values below are local peak-gap diagnostics only. Raw benchmark
+numbers and cross-dataset failures remain separate observations. Full falsification:
+`docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
+
+### Historical analysis (not an identified correction)
 
 Averaging the weights smooths the *evaluated* model's test curve. Best-over-training is a
 maximum over that curve, so a smoother curve collects a smaller selection bonus — the

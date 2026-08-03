@@ -51,9 +51,12 @@ positive here once already (+0.52, retracted).
 In-sample gave +0.890; out-of-sample +0.427. An sd from 2–3 runs is worthless: n=3 gave
 0.153, n=6 gave 0.367.
 
-**6. Report raw *and* selection-corrected.** Run `scripts/measure_selection_bias.py`.
-Best-over-training inflates every arm by 0.35–0.84 pt and differs **between** arms by up
-to 0.42 — enough to reverse a ranking. A stabler method is penalised by the protocol.
+**6. Report raw and independently selected/final metrics.** The historical output of
+`scripts/measure_selection_bias.py` is only a local-neighbour peak-gap diagnostic, not
+an identified selection correction: noiseless curvature and endpoint slope produce a
+positive gap. Report it only under that name. A defensible correction requires nested
+validation, a frozen epoch, or an independently selected checkpoint; never relabel the
+local trend as corrected R@1. See `docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
 
 **7. Replicate on a second dataset.** Cars196 or CUB. One dataset is an observation; two
 is a result.
