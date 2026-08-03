@@ -1441,6 +1441,18 @@ def image_end_to_end(
         float | None,
         typer.Option(help="Proxy Anchor delta margin."),
     ] = None,
+    cem_edges_path: Annotated[
+        Path | None,
+        typer.Option(help="Digest-bound directed confusion edges for proxy_anchor_cem."),
+    ] = None,
+    cem_weight: Annotated[
+        float | None,
+        typer.Option(help="Confusion-edge margin loss weight."),
+    ] = None,
+    cem_margin: Annotated[
+        float | None,
+        typer.Option(help="Confusion-edge proxy margin."),
+    ] = None,
     subcenter_gamma: Annotated[
         float | None,
         typer.Option(help="Sub-center intra-class softmax temperature (proxy_anchor_subcenter)."),
@@ -2162,6 +2174,11 @@ def image_end_to_end(
                     if proxy_anchor_delta is not None
                     else base_config.proxy_anchor_delta
                 ),
+                "cem_edges_path": (
+                    str(cem_edges_path) if cem_edges_path is not None else base_config.cem_edges_path
+                ),
+                "cem_weight": cem_weight if cem_weight is not None else base_config.cem_weight,
+                "cem_margin": cem_margin if cem_margin is not None else base_config.cem_margin,
                 "gsi_weight": gsi_weight if gsi_weight is not None else base_config.gsi_weight,
                 "gsi_floor": gsi_floor if gsi_floor is not None else base_config.gsi_floor,
                 "gsi_top_k": gsi_top_k if gsi_top_k is not None else base_config.gsi_top_k,
