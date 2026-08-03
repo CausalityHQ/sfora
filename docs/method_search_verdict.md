@@ -4123,3 +4123,11 @@ would exclude foreign classes from same-class interpolation arcs. LoOp (Vasudeva
 et al., ICCV 2021) already searches hard-negative embeddings in the transition
 region between positive endpoints, so this is an established hard-negative
 mining/negative-constraint variant rather than novel supervision.
+
+## 315. Topology-preserving class supervision
+
+**DEAD at Gate 1; no implementation or GPU.** Corrected In-Shop embeddings had
+39.95% disconnected eligible class 1-NN graphs, but residual foreign-nearest
+failures were lower for fragmented classes (0.3056%) than connected classes
+(0.5376%). The measured topology does not support topology-preserving
+supervision, so this candidate was killed before prior-art or implementation.
