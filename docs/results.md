@@ -490,6 +490,16 @@ and distilled arms differ in `ema_distill_weight`/`ema_momentum`/`ema_distill_ta
 and nothing else (`derive_recipe`); `embedding_layer_norm` is held constant, so
 the legacy confound cannot recur.
 
+> **2026-08-03 recipe-fidelity correction:** “official `reference` recipe” in
+> this historical section means the then-registered configuration, not an exact
+> execution of upstream Proxy Anchor. A later source audit found that these
+> BN-Inception runs kept the incomplete final training batch and accidentally
+> froze `model.embedding.*` during the one-epoch warm-up; upstream drops that
+> batch and trains the new head with the proxies. The paired values below remain
+> observations from a shared modified harness, but absolute reproduction claims
+> and comparisons to the published 0.9035 baseline are withdrawn pending a
+> corrected run. See `docs/reference_drop_last_audit_240_2026-08-03.md`.
+
 | arm | seed 0 | seed 1 | seed 2 | mean | Δ vs base |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Proxy Anchor | 0.9024 | 0.9048 | 0.9032 | **0.9035** | — |
@@ -575,6 +585,10 @@ BatchNorm. Raw best-over-training and leave-one-out-neighbour
 selection-corrected R@1 must both be reported.
 
 Three-seed averaging confirmation:
+
+These arms inherit the same incomplete-batch and frozen-warm-up-head deviations
+noted above. Their paired failure remains a valid negative for that shared
+modified harness; the raw absolute values are not exact official-recipe results.
 
 | arm | recipe digest | seed 0 | seed 1 | seed 2 | raw mean | corrected mean |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |

@@ -207,6 +207,15 @@ Estimated per run by taking the trend at the selected epoch from its **neighbour
 | In-Shop | `hist` | 0.9038 | 0.9025 | +0.14 pt |
 | In-Shop | `proxy_anchor` | 0.9035 | 0.9015 | +0.20 pt |
 
+**2026-08-03 provenance correction:** all historical BN-Inception In-Shop rows
+in this catalogue used a modified reference execution: the final incomplete
+batch was retained and the new `model.embedding.*` head was mistakenly frozen
+during epoch-1 warm-up. Their paired candidate verdicts are not reversed merely
+by discovering a shared recipe deviation, but the absolute values, estimated
+noise, and external-baseline comparisons are not faithful-upstream evidence.
+They must not set an “official” threshold for new runs. The defect and repair
+are recorded in `docs/reference_drop_last_audit_240_2026-08-03.md`.
+
 Three things follow.
 
 1. **The bonus tracks noise, as predicted.** In-Shop (σ = 0.12 pt) gets 0.14–0.37 pt;
