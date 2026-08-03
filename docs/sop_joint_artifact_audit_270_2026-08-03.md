@@ -29,6 +29,9 @@ Three tests cover the valid path, cross-split overlap rejection, and hash mismat
 rejection. Ruff and whitespace checks pass. An independent controller (PID 3124219)
 will run the verifier after both atomic SOP exports appear and persist
 `reports/generated/sop_official_joint_artifact_verification_seed0_final.json`.
+The queued In-Shop controller was also replaced before launch: it now waits for both
+the original test audit and this joint audit, parses the latter, and requires
+`status="verified"` before it may consume GPU time.
 
 This verifier does not remove the separate configuration-binding caveat for the SOP
 checkpoint produced by the already-running pre-repair process. It closes a different
