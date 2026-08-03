@@ -3563,3 +3563,21 @@ absolute official-recipe comparisons and thresholds are withdrawn. Full audits:
 `docs/sop_original_image_source_audit_241_2026-08-03.md`,
 `docs/reference_drop_last_audit_240_2026-08-03.md`, and
 `docs/proxy_initialization_fidelity_audit_242_2026-08-03.md`.
+
+## 245--252. Post-fidelity cross-field candidate batch
+
+**No candidate survives Gates 1 and 2; no GPU spent.** Proxy-radius clocks reduce
+to weight normalization or spherical/Riemannian optimization and lack a measured
+retrieval effect. Nested dimensions are Nested Dropout/Matryoshka without matched
+provenance; superclass IRM is dataset-specific regularization; Kalman anchors are
+adaptive EMA; frozen codes are ECOC/fixed proxies; complex phase has no observed
+factor supervision; and a confusability bandit is curriculum sampling.
+
+The two strongest-looking proposals were exact rediscoveries. Balanced
+incomplete-block batching was already candidate 204 and is occupied by global
+contrastive batch selection, combinatorial designs, incomplete U-statistic SGD,
+and XBM. Train-only local-token MIL ignored that `region_pa` was a trained local
+arm that lost about 3.6 points, while Bag Exponential Loss, attention MIL,
+DIML, and DeepEMD already occupy the operator. The corrected independent batch
+therefore yields no shortlist survivor. Full audit:
+`docs/post_fidelity_candidate_batch_245_252_2026-08-03.md`.
