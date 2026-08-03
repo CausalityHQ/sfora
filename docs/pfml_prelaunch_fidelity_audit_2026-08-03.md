@@ -14,9 +14,15 @@ the main method and most high-impact hyperparameters, but do not pin the train
 augmentation, sampler, proxy normalization, gradient clipping, embedding-head
 initializer, pretrained-weight digest, or checkpoint-selection cadence.
 
+Post-launch reliability note: a second explicitly pinned Fable 5 audit found no
+new PFML loss bug but did find and repair weaknesses in the artifact-verification
+chain. See [the reliability re-audit](pfml_fable_reliability_reaudit_2026-08-03.md).
+
 This run is occupied baseline infrastructure, not candidate evidence. Its value
-is to test the repaired Eq. 6 implementation and produce a modern final
-checkpoint/trajectory from which a new non-Gram measurement can be derived.
+is to test the repaired Eq. 6 implementation. A final checkpoint/trajectory may
+motivate a new non-Gram measurement only if both preregistered metric gates pass;
+if they fail, the result is not attributable across the unresolved fidelity
+surface and cannot supply candidate provenance.
 
 ## Confirmed launch-blocking bug and repair
 
