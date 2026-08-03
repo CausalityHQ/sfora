@@ -4104,3 +4104,14 @@ metric learning; and EquiMod/AugSelf occupy augmentation-displacement and
 equivariance supervision. Changing the response statistic to a Fisher or
 tangent estimate does not establish a new supervision primitive. No GPU was
 spent.
+
+## 313. Cross-class view-factor supervision
+
+**DEAD at Gate 2; no implementation or GPU.** RSPG's dataset split suggested
+using cross-class appearance matches to infer a viewpoint/factor signature and
+gating same-class positives by factor agreement. This is occupied by Wang et
+al., *Exploiting View-Specific Appearance Similarities Across Classes for
+Zero-Shot Pose Prediction* (AAAI 2016), and by Chu et al., *Vehicle
+Re-Identification With Viewpoint-Aware Metric Learning* (ICCV 2019). The
+candidate is therefore supervised view-aware metric learning under a new name,
+not a novel supervision mechanism.
