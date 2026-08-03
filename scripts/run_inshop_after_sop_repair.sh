@@ -10,7 +10,7 @@ INSHOP_CHECKPOINT=reports/checkpoints/inshop_official_pa_repaired_seed0.pt
 
 while [[ ! -f "${SOP_TEST_AUDIT}" ]]; do
   if ! pgrep -f '[s]fora image-end-to-end.*sop_official_bninc_pa_seed0' >/dev/null \
-      && ! pgrep -f '[r]un_post_sop_official_active.sh' >/dev/null; then
+      && ! pgrep -f '[r]un_post_sop_official.*\.sh' >/dev/null; then
     echo "SOP run/post-controller exited without the required test audit" >&2
     exit 1
   fi
