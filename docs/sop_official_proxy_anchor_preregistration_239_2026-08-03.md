@@ -24,6 +24,13 @@ epochs, step decay by 0.25 every 20 epochs, trainable BatchNorm, gradient clip
 10, and test evaluation every epoch. No recipe field may be overridden except
 seed 0, worker count, output paths, and final-checkpoint persistence.
 
+An execution audit after this document's first commit found that the harness
+kept the final incomplete training batch while upstream sets `drop_last=True`.
+That first launch was stopped after about three minutes and produced no report.
+The recipe now explicitly sets `drop_last_train_batch=True`: 59,551 images at
+batch 180 give 330 updates per epoch and exactly **19,800** updates over 60
+epochs. A trace showing 19,860 updates falsifies the repaired invocation.
+
 The loader must independently verify the digest-pinned official membership:
 11,318 training classes / 59,551 images and 11,316 test classes / 60,502 images,
 with disjoint product identities.

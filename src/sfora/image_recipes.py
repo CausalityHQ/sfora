@@ -336,6 +336,7 @@ def _proxy_anchor_config(dataset: ImageDatasetName) -> dict[str, Any]:
         }
     return {
         **config,
+        "drop_last_train_batch": True,
         "backbone_name": "bn_inception",
         "pretrained_weights": "bn_inception_52deb4733",
         "batch_size": 180,

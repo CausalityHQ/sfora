@@ -32,6 +32,7 @@ def test_proxy_anchor_inshop_matches_official_command() -> None:
     assert recipe.method_status == "reference_method"
     assert recipe.config["backbone_name"] == "bn_inception"
     assert recipe.config["batch_size"] == 180
+    assert recipe.config["drop_last_train_batch"] is True
     assert recipe.config["learning_rate"] == pytest.approx(6e-4)
     assert recipe.config["backbone_learning_rate"] == pytest.approx(6e-4)
     assert recipe.config["train_epochs"] == 60

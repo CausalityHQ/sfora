@@ -117,6 +117,10 @@ class ImageEndToEndConfig(BaseModel):
     embedding_dimensions: int = Field(default=512, ge=2)
     optimizer: Literal["adam", "adamw", "rmsprop"] = "adam"
     batch_size: int = Field(default=128, ge=2)
+    # Reference implementations commonly discard the final incomplete training
+    # batch. This affects both optimizer updates and epoch-based scheduler/warm-up
+    # boundaries, so it is part of the recipe rather than a loader detail.
+    drop_last_train_batch: bool = False
     eval_batch_size: int = Field(default=128, ge=1)
     train_steps: int = Field(default=2000, ge=1)
     train_epochs: int | None = Field(default=None, ge=1)
@@ -754,6 +758,7 @@ def run_image_end_to_end_benchmark(
             generator=train_generator,
             num_workers=config.num_workers,
             pin_memory=torch.cuda.is_available(),
+            drop_last=config.drop_last_train_batch,
             **train_loader_kwargs,
         )
     test_loader: Any = DataLoader(
@@ -1771,7 +1776,10 @@ def _resolve_training_schedule(
         if steps_per_epoch < 1:
             raise ValueError("source-exhaustive schedule has no complete class-balanced batch")
     else:
-        steps_per_epoch = max(1, math.ceil(optimization_example_count / config.batch_size))
+        if config.drop_last_train_batch:
+            steps_per_epoch = max(1, optimization_example_count // config.batch_size)
+        else:
+            steps_per_epoch = max(1, math.ceil(optimization_example_count / config.batch_size))
     if config.train_epochs is not None:
         total_epochs = config.train_epochs + (
             config.warmup_epochs if config.warmup_is_additional else 0

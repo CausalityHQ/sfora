@@ -134,6 +134,24 @@ def test_proxy_anchor_protocol_train_steps_override_disables_epoch_schedule() ->
     assert config.train_epochs is None
 
 
+def test_epoch_schedule_respects_drop_last_train_batch() -> None:
+    keep = ImageEndToEndConfig(batch_size=180, train_epochs=60)
+    drop = ImageEndToEndConfig(
+        batch_size=180,
+        train_epochs=60,
+        drop_last_train_batch=True,
+    )
+
+    assert _resolve_training_schedule(
+        keep,
+        optimization_example_count=59_551,
+    )[:2] == (19_860, 331)
+    assert _resolve_training_schedule(
+        drop,
+        optimization_example_count=59_551,
+    )[:2] == (19_800, 330)
+
+
 def test_additional_warmup_does_not_consume_hist_main_epochs() -> None:
     config = ImageEndToEndConfig(
         batch_size=32,
