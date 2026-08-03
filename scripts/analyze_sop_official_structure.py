@@ -74,17 +74,25 @@ def analyze(
     nearest_correct = 0
     nearest_negative_same_superclass = 0
     nearest_negative_count = 0
+    import torch
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    vectors_t = torch.as_tensor(vectors, device=device)
+    labels_t = torch.as_tensor(labels, device=device)
+    superclasses_t = torch.as_tensor(superclasses, device=device)
     for start in range(0, len(vectors), chunk_size):
         stop = min(start + chunk_size, len(vectors))
-        similarity = vectors[start:stop] @ vectors.T
-        similarity[np.arange(stop - start), np.arange(start, stop)] = -np.inf
-        nearest = similarity.argmax(axis=1)
-        nearest_correct += int(np.sum(labels[nearest] == labels[start:stop]))
-        different = labels[start:stop, None] != labels[None, :]
-        negative_similarity = np.where(different, similarity, -np.inf)
-        nearest_negative = negative_similarity.argmax(axis=1)
+        similarity = vectors_t[start:stop] @ vectors_t.T
+        similarity[
+            torch.arange(stop - start, device=device), torch.arange(start, stop, device=device)
+        ] = -torch.inf
+        nearest = similarity.argmax(dim=1)
+        nearest_correct += int((labels_t[nearest] == labels_t[start:stop]).sum().item())
+        different = labels_t[start:stop, None] != labels_t[None, :]
+        similarity.masked_fill_(~different, -torch.inf)
+        nearest_negative = similarity.argmax(dim=1)
         nearest_negative_same_superclass += int(
-            np.sum(superclasses[nearest_negative] == superclasses[start:stop])
+            (superclasses_t[nearest_negative] == superclasses_t[start:stop]).sum().item()
         )
         nearest_negative_count += stop - start
 
@@ -130,9 +138,7 @@ def main() -> None:
     if missing:
         raise ValueError(f"metadata lacks {len(missing)} embedding labels; first={missing[0]}")
     superclasses = np.asarray([superclass_by_product[int(label)] for label in labels])
-    result = analyze(
-        archive["embeddings"], labels, superclasses, chunk_size=args.chunk_size
-    )
+    result = analyze(archive["embeddings"], labels, superclasses, chunk_size=args.chunk_size)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
