@@ -3607,3 +3607,14 @@ cosine implementation and verifies split disjointness/identity coverage. Full
 audits: `docs/selection_bias_estimator_retraction_254_2026-08-03.md` and
 `docs/final_checkpoint_fail_closed_audit_255_2026-08-03.md`, and
 `docs/inshop_independent_metric_audit_256_2026-08-03.md`.
+
+## 257. Reopening audit after the analysis retraction
+
+**No candidate reopens.** Every verdict that mentioned a selection-corrected value was
+checked against its prospective raw falsifier and mechanism. Dual EMA (+0.014 point
+raw versus required +0.24), averaging (paired In-Shop +0.19/-0.12/+0.14), RSPG
+(-5.72 points), ARCG (objective collapse), TIRD (-7.237 points), and IPSR all died on
+raw or mechanistic evidence independent of the invalid correction. Candidate 58 loses
+its stated provenance but remains occupied by KD variance reduction and classical
+control variates. Full audit:
+`docs/selection_retraction_reopening_audit_257_2026-08-03.md`.
