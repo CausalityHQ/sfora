@@ -938,13 +938,7 @@ def run_image_end_to_end_benchmark(
                     optimizer,
                     T_max=total_epochs,
                 )
-            backbone_warmup_parameters = [
-                parameter
-                for name, parameter in model.named_parameters()
-                if not name.startswith("fc.")
-                and not name.startswith("hist_module.")
-                and name != "metric_proxies"
-            ]
+            backbone_warmup_parameters = _backbone_warmup_parameters(model)
             warmup_steps = config.warmup_epochs * steps_per_epoch
             if config.warmup_epochs > 0:
                 for parameter in backbone_warmup_parameters:
@@ -4033,6 +4027,18 @@ def _clip_gradients(
     if clip_value is None:
         return
     torch_module.nn.utils.clip_grad_value_(model.parameters(), clip_value)
+
+
+def _backbone_warmup_parameters(model: Any) -> list[Any]:
+    """Parameters frozen while newly initialized retrieval heads warm up."""
+    head_prefixes = ("fc.", "model.embedding.")
+    return [
+        parameter
+        for name, parameter in model.named_parameters()
+        if not name.startswith(head_prefixes)
+        and not name.startswith("hist_module.")
+        and name != "metric_proxies"
+    ]
 
 
 def _update_ema_teacher(

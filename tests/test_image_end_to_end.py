@@ -17,6 +17,7 @@ from sfora.data import ImageExample
 from sfora.image_end_to_end import (
     EndToEndProtocol,
     ImageEndToEndConfig,
+    _backbone_warmup_parameters,
     _build_hist_module,
     _clip_gradients,
     _default_transform_factory,
@@ -150,6 +151,26 @@ def test_epoch_schedule_respects_drop_last_train_batch() -> None:
         drop,
         optimization_example_count=59_551,
     )[:2] == (19_800, 330)
+
+
+def test_bn_inception_warmup_keeps_embedding_head_trainable() -> None:
+    torch = pytest.importorskip("torch")
+
+    class WrappedBNInception(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.model = torch.nn.Module()
+            self.model.backbone = torch.nn.Linear(3, 4)
+            self.model.embedding = torch.nn.Linear(4, 2)
+            self.metric_proxies = torch.nn.Parameter(torch.zeros(2, 2))
+
+    model = WrappedBNInception()
+    frozen = {id(parameter) for parameter in _backbone_warmup_parameters(model)}
+
+    assert id(model.model.backbone.weight) in frozen
+    assert id(model.model.embedding.weight) not in frozen
+    assert id(model.model.embedding.bias) not in frozen
+    assert id(model.metric_proxies) not in frozen
 
 
 def test_additional_warmup_does_not_consume_hist_main_epochs() -> None:

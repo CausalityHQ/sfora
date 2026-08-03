@@ -41,3 +41,20 @@ recipes explicitly set it true, matching upstream. Unit tests lock the SOP
 schedule to 330 updates per epoch / 19,800 total and retain existing CUB/Cars
 recipe digests. The corrected run must print 19,800 total steps before its score
 is admissible.
+
+## Independent warm-up defect found before restart
+
+The same command audit found that SFORA's warm-up exclusion recognized the new
+ResNet head only by `fc.*`. BN-Inception calls it `model.embedding.*`, so prior
+BN-Inception runs froze the embedding head together with the pretrained
+backbone during epoch 1 and trained only the proxies. Upstream explicitly keeps
+both `model.embedding.parameters()` and the Proxy Anchor criterion parameters
+trainable. This is a mechanism-level mismatch, not merely a step-count issue.
+
+Historical In-Shop BN-Inception comparisons therefore share two deviations:
+the incomplete batch was kept and the new embedding head was incorrectly
+frozen during warm-up. Their paired deltas remain observations from the same
+modified harness, but neither their absolute baselines nor claims of exact
+official-recipe evaluation are valid. The repair excludes both `fc.*` and
+`model.embedding.*` from backbone freezing and locks that behavior in a unit
+test.

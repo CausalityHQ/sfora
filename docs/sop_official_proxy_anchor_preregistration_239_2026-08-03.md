@@ -31,6 +31,14 @@ The recipe now explicitly sets `drop_last_train_batch=True`: 59,551 images at
 batch 180 give 330 updates per epoch and exactly **19,800** updates over 60
 epochs. A trace showing 19,860 updates falsifies the repaired invocation.
 
+The repaired-batch launch was itself stopped at step 200 when a warm-up audit
+found a second harness mismatch: the generic code recognized only ResNet's
+`fc.*` head, while BN-Inception names its new head `model.embedding.*`. It
+therefore froze the embedding head during warm-up, contrary to upstream. The
+head selector is now covered by a regression test. This launch also produced no
+report. The admissible run must train `model.embedding.*` and metric proxies
+during epoch 1 while freezing only the pretrained backbone.
+
 The loader must independently verify the digest-pinned official membership:
 11,318 training classes / 59,551 images and 11,316 test classes / 60,502 images,
 with disjoint product identities.
