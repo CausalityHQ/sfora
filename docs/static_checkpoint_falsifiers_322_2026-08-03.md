@@ -82,3 +82,15 @@ decision threshold, near-duplicate thresholds, and 13-error materiality rule
 are unchanged.  This is missing-predictor handling forced by an undefined
 quantity, not a result-dependent threshold change.  A regression test injects
 an undefined singleton margin and requires its explicit exclusion.
+
+The corrected execution then exposed a design defect in Falsifier A rather than
+a model effect.  For every non-singleton row, leave-one-out error is **defined**
+by whether the nearest foreign image exceeds the nearest same-class image;
+therefore it is exactly equivalent to a negative image margin.  The polynomial
+base model has complete separation by construction.  Its huge coefficients and
+likelihood-ratio p-value are not regular inferential results and are rejected.
+The script now detects the exact sign identity and reports
+`complete_separation_by_definition` instead of fitting through it.  This does
+not change the decision: the agreement risk split cannot establish information
+beyond the outcome-defining image margin, while using cross-graph concurrence
+directly remains occupied graph-consistency supervision.

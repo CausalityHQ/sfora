@@ -63,3 +63,20 @@ def test_margin_sufficiency_excludes_undefined_singleton_margin() -> None:
     assert result["excluded_nonfinite_rows"] == 1
     assert result["excluded_nonfinite_events"] == 1
     assert np.isfinite(result["base_log_likelihood"])
+
+
+def test_margin_sufficiency_reports_definitional_complete_separation() -> None:
+    rng = np.random.default_rng(12)
+    count = 1000
+    image = rng.normal(size=count)
+    result = _MODULE.margin_sufficiency(
+        {
+            "proxy_margin": rng.normal(size=count),
+            "image_margin": image,
+            "agreement": rng.random(count) < 0.2,
+            "error": image < 0,
+        }
+    )
+    assert result["model_status"] == "complete_separation_by_definition"
+    assert result["image_margin_sign_identity_mismatches"] == 0
+    assert result["likelihood_ratio_valid"] is False

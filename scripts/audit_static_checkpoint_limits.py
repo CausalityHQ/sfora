@@ -121,6 +121,25 @@ def margin_sufficiency(observables: dict[str, np.ndarray]) -> dict[str, Any]:
     )
     if finite.sum() < 100 or observables["error"][finite].sum() < 10:
         raise ValueError("insufficient finite rows/events for the registered margin model")
+    outcome = observables["error"][finite]
+    margin_implied_error = observables["image_margin"][finite] < 0.0
+    identity_mismatches = int(np.count_nonzero(outcome != margin_implied_error))
+    common = {
+        "events": int(outcome.sum()),
+        "rows": int(finite.sum()),
+        "excluded_nonfinite_rows": int((~finite).sum()),
+        "excluded_nonfinite_events": int(observables["error"][~finite].sum()),
+        "image_margin_sign_identity_mismatches": identity_mismatches,
+    }
+    if identity_mismatches == 0:
+        return {
+            **common,
+            "model_status": "complete_separation_by_definition",
+            "likelihood_ratio_valid": False,
+            "interpretation": (
+                "finite-row leave-one-out error is exactly equivalent to negative image margin"
+            ),
+        }
     margins = []
     for name in ("proxy_margin", "image_margin"):
         values = observables[name][finite]
@@ -134,15 +153,13 @@ def margin_sufficiency(observables: dict[str, np.ndarray]) -> dict[str, Any]:
     extended = np.column_stack(
         [base, observables["agreement"][finite].astype(np.float64)]
     )
-    outcome = observables["error"][finite]
     base_fit = _fit_logistic(base, outcome)
     extended_fit = _fit_logistic(extended, outcome)
     statistic = max(0.0, 2.0 * (extended_fit["log_likelihood"] - base_fit["log_likelihood"]))
     return {
-        "events": int(outcome.sum()),
-        "rows": len(proxy),
-        "excluded_nonfinite_rows": int((~finite).sum()),
-        "excluded_nonfinite_events": int(observables["error"][~finite].sum()),
+        **common,
+        "model_status": "fitted",
+        "likelihood_ratio_valid": True,
         "base_log_likelihood": base_fit["log_likelihood"],
         "extended_log_likelihood": extended_fit["log_likelihood"],
         "likelihood_ratio": statistic,

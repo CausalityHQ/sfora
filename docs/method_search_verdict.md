@@ -4184,3 +4184,30 @@ baseline checkpoint, so it carried an undisclosed extra training pass.  The
 process correction is to reduce the implemented gradient to its effective
 positive/negative relations—and finish that audit—before implementation or GPU.
 Full record: `docs/confusion_edge_margin_candidate_320.md`.
+
+## 321--322. Reliability boundary and static-checkpoint falsifiers
+
+**NO LIVE CANDIDATE; no GPU.** Audit 321 quarantines historical measurements
+affected by wrong corpora, splits, selection states, model ambiguity, or code
+defects.  It independently reproduced the one eligible corrected In-Shop
+training diagnostic from digest-bound BN-Inception/512 final artifacts.
+
+Fable's recommended margin-sufficiency falsifier then exposed a definitional
+trap.  Excluding 12 singleton identities with undefined same-class margins,
+all 117 remaining leave-one-out errors are exactly the rows with negative
+nearest-same minus nearest-foreign image margin.  A logistic model has complete
+separation by construction, so its p-value is invalid; the 16x agreement/error
+association cannot be promoted beyond a stratification of the outcome-defining
+margin.  The first implementation also allowed undefined margins to produce
+NaN coefficients while exiting zero; that result was rejected and the script
+now forbids non-finite JSON.
+
+The preregistered near-duplicate audit found one nearly identical mutual
+cross-ID pair (perceptual-hash distance 0, grayscale correlation 0.999984),
+accounting for 2 / 129 leave-one-out errors.  This is a real data-hygiene defect
+but fails the locked materiality threshold of 13 errors.  Static
+embedding/proxy/label observables from this one checkpoint yield only
+Gram-invariant geometry; every proposed action reduced to mining, weighting,
+multi-proxy, graph consistency, or metric regularization.  Full records:
+`docs/current_evidence_reliability_audit_321_2026-08-03.md` and
+`docs/static_checkpoint_falsifiers_322_2026-08-03.md`.
