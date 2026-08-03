@@ -3705,3 +3705,13 @@ SOP reference predates the repair and must retain an explicit artifact-binding c
 the queued In-Shop reference will use the repaired path. This is an artifact-provenance
 repair, not a method candidate or score change. Full audit:
 `docs/checkpoint_config_binding_audit_269_2026-08-03.md`.
+
+## 270. SOP joint-artifact verification gap
+
+The corrected SOP chain checked train and test packs separately but did not jointly
+prove split disjointness or common checkpoint/report hashes. A new fail-closed verifier
+checks exact counts, within-split uniqueness, zero cross-split label/ID/path overlap,
+finite unit embeddings, equal dimensions, final-state labels, and both embedded file
+hashes. An independent post-run controller is armed. This is an evidence-path repair,
+not a method candidate or result. Full audit:
+`docs/sop_joint_artifact_audit_270_2026-08-03.md`.
