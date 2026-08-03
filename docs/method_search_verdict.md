@@ -4080,3 +4080,13 @@ nonlinear-rank similarity operators are occupied by primary metric-learning work
 The repository's train-fit linear projection evidence is compression-only, not a
 quality result. Full audit:
 `docs/geometric_space_tuning_audit_310_2026-08-03.md`.
+
+## 311. RSPG support-fraction audit
+
+The corrected epoch-10 graph had an eligible neighbor for only **53.23%** of
+training images, mean degree **0.9884**, and median degree **1**. This explains
+why replacing Proxy Anchor positive ownership self-erased: nearly half of
+samples had no positive edge at all before the later density collapse. A masked
+ownership repair is a distinct selective-proxy/partial-positive method and is
+occupied by Proxy-ISA and related proxy weighting, so it does not reopen
+candidate 18. No GPU was spent.

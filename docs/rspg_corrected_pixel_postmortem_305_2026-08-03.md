@@ -28,6 +28,14 @@ therefore explicitly a partial-run observed best, not a completed benchmark or
 selection-corrected result.  It is sufficient only as part of the mechanism
 kill: the live supervision object ceased satisfying the registered gate.
 
+The epoch-10 graph also makes the failure quantitative: only **53.23%** of the
+25,882 training images had any eligible neighbor, with mean degree **0.9884** and
+median degree **1**. Thus the replacement removed positive ownership for nearly
+half of samples before the later graph collapse. A post-hoc “masked ownership”
+repair would be a different selective-proxy method, not a correction to this
+registered replacement, and is occupied by Proxy-ISA and partial-positive proxy
+families.
+
 ## Mechanism
 
 RSPG does not accidentally treat an unknown same-class relation as negative.
@@ -53,4 +61,3 @@ remains dead on corrected official pixels.  Future graph candidates must retain
 the base ownership force and demonstrate a non-trivial additive signal at the
 operating margin; merely changing the source of a sparse eligibility graph
 repeats this failure class.
-
