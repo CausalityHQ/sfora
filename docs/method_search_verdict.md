@@ -4296,3 +4296,17 @@ families; model-free pixel/file groupings enter clustering or domain invariance;
 and scalar curves contain no sample-level trajectory relation. A new observation
 channel or explicit claim change is required. Full audit:
 `docs/fable_nongram_measurement_batch_333_335_2026-08-03.md`.
+
+## PFML code-to-primary-source re-audit (not a numbered candidate)
+
+**NO NEW EXECUTABLE BUG; ONE PRIMARY-SOURCE CONTRADICTION RECORDED.** A Fable
+line audit and independent check reproduced Eq. 1--6 signs, branches,
+sample/proxy populations, proxy--proxy interactions, and ordered pair counts.
+The main paper nevertheless says base LR `5e-4`, whereas supplement Table 5
+says `1e-4` / proxy LR `0.01`; the fixed run prospectively follows the
+dataset-specific supplement. “Raw sum required” is corrected to “literal fixed
+reading”: coupled Adam makes sum and mean different optimizers, but unavailable
+author code cannot establish which reduction produced the paper result. The
+historical mean-scaled collapse remains invalid evidence, not proof of a
+geometric failure. Full audit:
+`docs/pfml_fable_code_audit_2026-08-03.md`.

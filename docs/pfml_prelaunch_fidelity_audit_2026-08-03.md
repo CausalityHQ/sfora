@@ -40,6 +40,13 @@ The official supplement's Table 5 specifies, for Cars196 ResNet-50/512:
 - batch size 100, 200 epochs, one warm-up epoch, frozen BatchNorm;
 - 15 proxies per class.
 
+The main paper's Section 4.1 instead states base learning rate `5e-4` with
+proxies at 100x, contradicting Table 5's `1e-4` / `0.01`. The prospectively
+fixed rule gives the dataset/architecture-specific supplement precedence, so
+the active command remains unchanged. This 5x intra-source contradiction is a
+material fidelity limitation, not a post-result tuning opportunity. Full
+code-to-source re-audit: `docs/pfml_fable_code_audit_2026-08-03.md`.
+
 The main paper specifies L2-normalized 512-D output, a standard ResNet average
 pool with only the final FC changed, 224-pixel inputs, and 256-resize/224-center-
 crop evaluation. It searches delta in `[0.1,0.3]` and alpha in `{0,...,6}`;
@@ -69,9 +76,11 @@ proxy--proxy interactions are all present.
   changes only the reported energy offset, not optimization.
 - Clamping distance at `1e-4` affects exact/near-exact collisions only and
   prevents an infinite repulsive value. It is a disclosed numerical safeguard.
-- Returning the raw ordered sum is required by Eq. 6. The historical mean-loss
-  implementation changed the ratio of data gradient to Adam's coupled weight
-  decay by millions and its collapsed result remains invalid evidence.
+- Returning the raw ordered sum is the prospectively fixed literal reading of
+  Eq. 6; the unavailable authors' code does not prove which reduction executed.
+  The historical mean-loss implementation changed the ratio of data gradient
+  to Adam's coupled weight decay by millions and its collapsed result remains
+  invalid evidence about this fixed interpretation.
 
 ## Unresolved source ambiguities
 

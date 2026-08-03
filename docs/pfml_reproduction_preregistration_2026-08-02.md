@@ -32,7 +32,10 @@ diagnostic; otherwise it is not the next GPU priority.
 ## Frozen interpretation of conflicting primary sources
 
 The dataset-specific official supplement takes precedence over the main
-paper's summary where they conflict. The fixed ResNet-50/512 recipe is Adam,
+paper's summary where they conflict. In particular, main Section 4.1 says
+`5e-4` while supplement Table 5 says `1e-4`; this is an unresolved 5x primary-
+source contradiction, not a hyperparameter to choose after the result. The
+fixed ResNet-50/512 recipe is Adam,
 base LR `1e-4`, proxy LR `0.01`, batch 100, 200 epochs, one warm-up epoch on
 CUB/Cars, 15 proxies per class, frozen BatchNorm on CUB/Cars, CUB weight decay
 `5e-4`, Cars weight decay `1e-4`, L2-normalised embeddings, `delta=0.2`, and
@@ -43,8 +46,10 @@ sampler; the local fixed interpretation is resize-256/random-resized-crop-224
 plus horizontal flip and four samples per class. Those two assumptions must be
 reported with any number and may not be changed after seeing it.
 
-The loss is the raw ordered-pair Eq. 6 sum. Returning its mean is forbidden
-because coupled Adam weight decay makes that a different optimization problem.
+The loss is the prospectively fixed literal raw ordered-pair reading of Eq. 6.
+Returning its mean is forbidden for this run because coupled Adam weight decay
+makes that a different optimization problem; absent author code, this does not
+establish which reduction produced the paper's number.
 
 ## Deciding run
 

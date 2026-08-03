@@ -4319,14 +4319,14 @@ def _symmetric_potential_loss(
 ) -> Any:
     """Symmetric Potential Field (SPF) metric-learning energy — a novel objective.
 
-    Motivation: PFML (arXiv 2405.18560) uses a long-range *attraction* kernel but a
-    short-range *repulsion* kernel (constant, zero-force beyond ``delta``). On the
-    L2-normalised unit sphere almost no different-class pair is ever within a small
-    ``delta``, so the only globally active force is same-class attraction and the
-    backbone contracts to a delta-scale blob (empirically confirmed: our faithful
-    PFML reproduction collapsed to R@1 0.0155). SPF fixes this by making BOTH kernels
-    long-range and distance-decaying (a Coulomb-like symmetric field, capped inside
-    ``delta`` to avoid the singularity):
+    Heuristic motivation: PFML (arXiv 2405.18560) uses a long-range *attraction*
+    kernel but a short-range *repulsion* kernel (constant, zero-force beyond
+    ``delta``). On the L2-normalised unit sphere few different-class pairs may enter
+    a small ``delta`` ball, suggesting weak global repulsion. An earlier mean-scaled
+    local PFML run collapsed, but that result is invalid mechanistic evidence because
+    loss reduction changed its coupled-Adam weight-decay ratio by millions. SPF's
+    design makes BOTH kernels long-range and distance-decaying (a Coulomb-like
+    symmetric field, capped inside ``delta`` to avoid the singularity):
 
         potential(same-class pair)      = -1 / max(d, delta)^alpha    (attraction)
         potential(different-class pair) = +1 / max(d, delta)^alpha    (repulsion)
