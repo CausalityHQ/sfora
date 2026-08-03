@@ -72,6 +72,7 @@ def analyze(
         )
 
     nearest_correct = 0
+    nearest_correct_flags = np.zeros(len(vectors), dtype=bool)
     nearest_negative_same_superclass = 0
     nearest_negative_count = 0
     import torch
@@ -87,7 +88,9 @@ def analyze(
             torch.arange(stop - start, device=device), torch.arange(start, stop, device=device)
         ] = -torch.inf
         nearest = similarity.argmax(dim=1)
-        nearest_correct += int((labels_t[nearest] == labels_t[start:stop]).sum().item())
+        chunk_correct = (labels_t[nearest] == labels_t[start:stop]).detach().cpu().numpy()
+        nearest_correct_flags[start:stop] = chunk_correct
+        nearest_correct += int(chunk_correct.sum())
         different = labels_t[start:stop, None] != labels_t[None, :]
         similarity.masked_fill_(~different, -torch.inf)
         nearest_negative = similarity.argmax(dim=1)
@@ -106,16 +109,46 @@ def analyze(
             "mean_centroid_cosine": float(
                 np.mean([float(row["mean_centroid_cosine"]) for row in rows])
             ),
+            "leave_one_out_r1": float(
+                np.mean(
+                    [
+                        nearest_correct_flags[members[int(row["label"])]].mean()
+                        for row in rows
+                    ]
+                )
+            ),
         }
         for size, rows in sorted(by_size.items())
     }
+    superclass_counts = {
+        int(superclass): int(count)
+        for superclass, count in zip(*np.unique(superclasses, return_counts=True), strict=True)
+    }
+    chance_same_superclass = []
+    for label, index in members.items():
+        superclass = int(superclasses[index[0]])
+        if not np.all(superclasses[index] == superclass):
+            raise ValueError(f"label {label} spans multiple superclasses")
+        denominator = len(labels) - len(index)
+        chance_same_superclass.extend(
+            [
+                (superclass_counts[superclass] - len(index)) / denominator
+                if denominator > 0
+                else 0.0
+            ]
+            * len(index)
+        )
+    chance_fraction = float(np.mean(chance_same_superclass))
+    observed_fraction = nearest_negative_same_superclass / nearest_negative_count
     return {
         "examples": len(vectors),
         "classes": len(members),
         "superclasses": int(len(np.unique(superclasses))),
         "leave_one_out_r1": nearest_correct / len(vectors),
-        "nearest_negative_same_superclass_fraction": (
-            nearest_negative_same_superclass / nearest_negative_count
+        "nearest_negative_same_superclass_fraction": observed_fraction,
+        "chance_negative_same_superclass_fraction": chance_fraction,
+        "nearest_negative_same_superclass_enrichment": (
+            observed_fraction / chance_fraction if chance_fraction > 0 else None
         ),
         "mean_within_class_pair_cosine": float(np.mean(within_cosines)),
         "mean_sample_to_class_centroid_cosine": float(np.mean(centroid_cosines)),
