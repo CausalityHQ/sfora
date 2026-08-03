@@ -4061,3 +4061,13 @@ it: replacement graphs self-erase, while ownership-preserving executable edits
 fall into occupied reconstruction, equivariance, mining or gradient-balancing
 families.  Full audit:
 `docs/post_rspg_corrected_candidate_batch_306_308_2026-08-03.md`.
+
+## 309. Claude APGC proposal
+
+**DEAD at Gates 1 and 2; no implementation or GPU.** APGC retained all Proxy
+Anchor positives but multiplied each by a sigmoid of current hardness.  The
+corrected In-Shop/SOP numbers and observational SOP fragmentation gap do not
+identify a causal weighting effect, so Gate 1 fails.  Mechanistically it is
+ordinary hard-example/positive weighting, already occupied by Proxy Anchor's
+hardness-dependent gradients, Multi-Similarity/GPW, and focal-style losses.  Full
+audit: `docs/claude_apgc_gate2_audit_309_2026-08-03.md`.
