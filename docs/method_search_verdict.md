@@ -3902,3 +3902,18 @@ They now route to current evidence, mark the old paper claim retracted, and requ
 plus independently selected/final metrics. No score or candidate verdict changed. This
 is a context-integrity repair, not a method result. Full audit:
 `docs/handoff_selection_retraction_repair_287_2026-08-03.md`.
+
+## 288. SOP content duplicates and scorer ties
+
+**AUDIT FINDING; no method or GPU.** The corrected final SOP embedding artifact
+reproduces R@1 **0.79000694** with the canonical float64 squared-Euclidean
+scorer, **0.78999041** with float32 cosine, and **0.78998876** under exact-tie
+expected scoring. The one-query canonical/cosine difference comes from 1,028
+multiway nearest-neighbor ties. Source hashing found 690 duplicate-file groups
+in train and 749 in test, including 12 and 29 cross-label groups respectively,
+plus one byte-identical image present under four labels across the official
+train/test boundary. This is benchmark ambiguity, not a learnable effect:
+deduplication and tie-aware scoring are established policies and cannot become a
+novel candidate. It repairs the evidence boundary by requiring content-hash
+overlap checks in addition to identity/path checks. Full audit:
+`docs/sop_content_duplicate_audit_288_2026-08-03.md`.

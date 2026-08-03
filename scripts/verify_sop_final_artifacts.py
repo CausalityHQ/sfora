@@ -12,6 +12,21 @@ from typing import Any
 import numpy as np
 
 EXPECTED = {"train": (59_551, 11_318), "test": (60_502, 11_316)}
+EXPECTED_CONTENT_PROFILE = {
+    "train": {
+        "duplicate_groups": 690,
+        "duplicate_rows": 1_703,
+        "cross_label_groups": 12,
+        "cross_label_rows": 24,
+    },
+    "test": {
+        "duplicate_groups": 749,
+        "duplicate_rows": 1_761,
+        "cross_label_groups": 29,
+        "cross_label_rows": 62,
+    },
+}
+EXPECTED_CROSS_SPLIT_CONTENT = {"groups": 1, "rows": 4, "labels": 4}
 
 
 def sha256(path: Path) -> str:
@@ -29,6 +44,35 @@ def _scalar(archive: Any, key: str) -> str:
     if value.shape != ():
         raise ValueError(f"artifact {key} is not scalar")
     return str(value.item())
+
+
+def _content_rows(
+    labels: np.ndarray, resolved_paths: np.ndarray
+) -> tuple[dict[str, list[tuple[int, str]]], str]:
+    rows: dict[str, list[tuple[int, str]]] = {}
+    manifest = hashlib.sha256()
+    for label, value in zip(labels, resolved_paths, strict=True):
+        path = Path(str(value))
+        if not path.is_file():
+            raise ValueError(f"artifact references missing source path: {path}")
+        content_hash = sha256(path)
+        rows.setdefault(content_hash, []).append((int(label), str(path)))
+        manifest.update(str(path).encode("utf-8"))
+        manifest.update(b"\0")
+        manifest.update(content_hash.encode("ascii"))
+        manifest.update(b"\n")
+    return rows, manifest.hexdigest()
+
+
+def _content_profile(rows: dict[str, list[tuple[int, str]]]) -> dict[str, int]:
+    duplicates = [values for values in rows.values() if len(values) > 1]
+    cross_label = [values for values in duplicates if len({row[0] for row in values}) > 1]
+    return {
+        "duplicate_groups": len(duplicates),
+        "duplicate_rows": sum(len(values) for values in duplicates),
+        "cross_label_groups": len(cross_label),
+        "cross_label_rows": sum(len(values) for values in cross_label),
+    }
 
 
 def _load(path: Path, expected_split: str) -> dict[str, Any]:
@@ -65,6 +109,14 @@ def _load(path: Path, expected_split: str) -> dict[str, Any]:
     norms = np.linalg.norm(embeddings, axis=1)
     if not np.allclose(norms, 1.0, atol=2e-5, rtol=2e-5):
         raise ValueError(f"{expected_split} embeddings are not unit normalized")
+    content_rows, content_manifest_sha256 = _content_rows(labels, resolved_paths)
+    content_profile = _content_profile(content_rows)
+    expected_content_profile = EXPECTED_CONTENT_PROFILE[expected_split]
+    if content_profile != expected_content_profile:
+        raise ValueError(
+            f"unexpected {expected_split} source-content profile: "
+            f"{content_profile} != {expected_content_profile}"
+        )
     return {
         "rows": expected_rows,
         "classes": expected_classes,
@@ -72,6 +124,9 @@ def _load(path: Path, expected_split: str) -> dict[str, Any]:
         "labels": set(labels.tolist()),
         "example_ids": set(example_ids.tolist()),
         "source_paths": set(resolved_paths.tolist()),
+        "content_rows": content_rows,
+        "content_profile": content_profile,
+        "content_manifest_sha256": content_manifest_sha256,
         "checkpoint_sha256": checkpoint_hash,
         "report_sha256": report_hash,
     }
@@ -94,6 +149,26 @@ def verify(
     ):
         if train[key] & test[key]:
             raise ValueError(f"SOP train/test {label} overlap")
+    shared_content = set(train["content_rows"]) & set(test["content_rows"])
+    cross_split_content = {
+        "groups": len(shared_content),
+        "rows": sum(
+            len(train["content_rows"][digest]) + len(test["content_rows"][digest])
+            for digest in shared_content
+        ),
+        "labels": len(
+            {
+                row[0]
+                for digest in shared_content
+                for row in train["content_rows"][digest] + test["content_rows"][digest]
+            }
+        ),
+    }
+    if cross_split_content != EXPECTED_CROSS_SPLIT_CONTENT:
+        raise ValueError(
+            "unexpected SOP train/test source-content overlap: "
+            f"{cross_split_content} != {EXPECTED_CROSS_SPLIT_CONTENT}"
+        )
     expected_checkpoint_hash = sha256(checkpoint_path)
     expected_report_hash = sha256(report_path)
     for split, payload in (("train", train), ("test", test)):
@@ -112,6 +187,11 @@ def verify(
         "train_test_label_overlap": 0,
         "train_test_example_id_overlap": 0,
         "train_test_source_path_overlap": 0,
+        "train_content_profile": train["content_profile"],
+        "test_content_profile": test["content_profile"],
+        "train_content_manifest_sha256": train["content_manifest_sha256"],
+        "test_content_manifest_sha256": test["content_manifest_sha256"],
+        "train_test_content_overlap": cross_split_content,
         "checkpoint_sha256": expected_checkpoint_hash,
         "report_sha256": expected_report_hash,
     }
