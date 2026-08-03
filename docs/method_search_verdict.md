@@ -3520,3 +3520,13 @@ descriptors and position into one holistic vector was already published for
 image retrieval at CVPR 2021, while the corrected frozen Cars regional evidence
 is negative. Full primary-source audit:
 `docs/cross_field_representation_audit_237_2026-08-03.md`.
+
+## 238. Physics and chemistry operator batch
+
+**No candidate survives Gates 1 and 2 on 2026-08-03; no implementation or GPU.**
+Free-energy metric learning with a Boltzmann solution was published at KDD 2019;
+renormalization-group feature learning executes here as occupied multiscale
+consistency; quantum density-matrix metric learning and classical distributional
+DML occupy ensemble covariance geometry; and chemistry's atom-correspondence
+signal has no observed analogue in these image datasets. Full source audit:
+`docs/physics_chemistry_operator_audit_238_2026-08-03.md`.
