@@ -4138,3 +4138,11 @@ supervision, so this candidate was killed before prior-art or implementation.
 leave-one-out error was 0.5013% for classes of size ≤4 and 0.3858% for classes
 of size ≥8; the error/log-size correlation was only −0.0102. Class frequency
 does not provide a useful measured causal signal for a new supervision rule.
+
+## 317. Temporal relation-persistence supervision
+
+**DEAD at Gate 1; no implementation or GPU.** Nearest same-class identities
+persisted from epoch 10 to final for 64.99% of corrected In-Shop samples.
+Persistent relations had 0.4518% final leave-one-out error versus 0.5849% for
+changing relations, only a 0.133-point single-trajectory difference. This does
+not support a causal candidate.
