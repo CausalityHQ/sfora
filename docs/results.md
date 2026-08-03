@@ -22,6 +22,15 @@ peak).
 
 ## Corrected reference-recipe evidence
 
+> **Proxy initialization retraction (2026-08-03).** The Proxy Anchor and
+> PA-derived rows in this section are no longer exact reference-recipe evidence.
+> A source audit found that the harness normalized every proxy to unit norm at
+> initialization, while upstream leaves raw Kaiming-normal proxy parameters.
+> Forward cosine does not erase the optimizer-level difference. HIST-only rows
+> are unaffected. Paired PA-derived deltas remain shared-harness observations,
+> but PA-to-paper and PA-to-HIST absolute comparisons are withdrawn pending
+> corrected runs. See `docs/proxy_initialization_fidelity_audit_242_2026-08-03.md`.
+
 The first corrected results have landed, and they are **negative for the method**.
 
 ### CUB-200 under the official recipes (seed 0 — single seed, screening only)
@@ -61,9 +70,11 @@ audit against the official repository also found nothing to blame it on:
 | eval transform | `Resize(256)` + `CenterCrop(224)` | identical |
 | proxy LR multiplier | `lr * 100` | identical |
 
-(The audit was prompted by a specific suspicion — that we used torchvision's
+(This earlier audit was prompted by a specific suspicion — that we used torchvision's
 default crop scale where the authors set `scale=(0.16, 1)`. The authors do **not**;
-they call `RandomResizedCrop(224)` bare. Hypothesis wrong, fidelity confirmed.)
+they call `RandomResizedCrop(224)` bare. That transform hypothesis was wrong,
+but the later proxy-initialization audit independently disproved overall
+fidelity; “no identified fidelity defect” above is superseded.)
 
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
