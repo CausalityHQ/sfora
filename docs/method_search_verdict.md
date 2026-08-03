@@ -4261,3 +4261,21 @@ local interpretation, not an exact reproduction or a novelty claim. The
 occupied baseline is useful because it can produce a new final checkpoint and
 trajectory after the verified Proxy Anchor static space yielded no survivor.
 Full audit: `docs/pfml_prelaunch_fidelity_audit_2026-08-03.md`.
+
+## 332. Determinant/exterior-algebra distinct-part set matching
+
+**DEAD at Gates 1 and 2; no implementation or GPU.** The clean evidence points
+against local-set deployment: regional Proxy Anchor lost about 3.6 points, and
+the frozen Cars probe scored **0.8306 global versus 0.8159 MaxSim (-1.47
+points)**. The apparent +6.67-point regional recovery was only a scorer repair
+inside the losing regional arm, not evidence that parts add identity signal.
+
+Mechanistically, for `M=A^T B`, the gradient of `log|det(M)|` is
+`dS/dA=B M^-T`: a cross-Gram-dependent linear reweighting of existing part
+vectors. It changes the match kernel, not which labelled relations exist.
+Wolf--Shashua set kernels, Binet--Cauchy exterior-power kernels,
+Grassmann/projection metric learning, DPP diversification, efficient match
+kernels, and bilinear pooling independently occupy the machinery. A Fable 5
+critic proposed three fallbacks, but each was an already killed dataset repair,
+censored-pair mask, or temporal eligibility gate. Full corrected audit:
+`docs/set_matching_adversarial_audit_332_2026-08-03.md`.
