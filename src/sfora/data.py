@@ -169,6 +169,21 @@ def load_image_retrieval_examples(
             )
         else:
             records.extend(loader(spec.dataset_id, source_split))
+    if dataset_name == "sop" and dataset_loader is None:
+        official_products = _sop_official_product_ids(split)
+        records = [
+            record
+            for record in records
+            if str(record[spec.label_key]).rsplit("_", 1)[0] in official_products
+        ]
+        observed_products = {
+            str(record[spec.label_key]).rsplit("_", 1)[0] for record in records
+        }
+        missing = official_products - observed_products
+        if missing:
+            raise ValueError(
+                f"SOP corpus is missing {len(missing)} products from the official {split} split"
+            )
     return select_labeled_image_examples(
         records,
         image_key=spec.image_key,
@@ -179,7 +194,9 @@ def load_image_retrieval_examples(
         max_classes=max_classes,
         class_partition=(
             None
-            if class_ids is not None or max_classes is not None
+            if class_ids is not None
+            or max_classes is not None
+            or (dataset_name == "sop" and dataset_loader is None)
             else ("first_half" if split == "train" else "second_half")
         ),
         skip_classes=0 if split == "train" or class_ids is not None else (max_classes or 0),
@@ -187,6 +204,45 @@ def load_image_retrieval_examples(
         id_prefix=f"{dataset_name}-{split}",
         crop_bbox=spec.crop_bbox,
     )
+
+
+def _sop_official_product_ids(split: str) -> set[str]:
+    """Resolve the official SOP split from its digest-pinned metadata file."""
+    import hashlib
+
+    from huggingface_hub import hf_hub_download
+
+    if split not in {"train", "test"}:
+        raise ValueError(f"unknown SOP split: {split!r}")
+    filename = f"Stanford_Online_Products/Ebay_{split}.txt"
+    path = Path(
+        hf_hub_download(
+            repo_id="pawlo2013/StanfordOnlineProducts",
+            repo_type="dataset",
+            filename=filename,
+            revision="11cf4cdcd89ac209f05277fcabebf10f47d3467d",
+        )
+    )
+    expected = {
+        "train": "77abb1e82af49f2f1f272dc6bd0b8480904f58742091764f9511b152cad1824e",
+        "test": "63d559dc1ca1e03671224c58a26b18985bbff22ae20344d41dabcfe3873cc276",
+    }[split]
+    observed = hashlib.sha256(path.read_bytes()).hexdigest()
+    if observed != expected:
+        raise ValueError(f"official SOP {split} metadata digest mismatch: {observed}")
+    products: set[str] = set()
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for line_number, line in enumerate(lines[1:], start=2):
+        fields = line.split(maxsplit=3)
+        if len(fields) != 4:
+            raise ValueError(f"invalid SOP metadata row {line_number}: {line!r}")
+        products.add(Path(fields[3]).stem.rsplit("_", 1)[0])
+    expected_count = 11_318 if split == "train" else 11_316
+    if len(products) != expected_count:
+        raise ValueError(
+            f"official SOP {split} metadata has {len(products)} products; expected {expected_count}"
+        )
+    return products
 
 
 def load_image_retrieval_bundle(
