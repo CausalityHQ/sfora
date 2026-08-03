@@ -30,28 +30,28 @@ EXPECTED_INSHOP_PARTITION = {
 }
 EXPECTED_INSHOP_CONTENT_PROFILE = {
     "train": {
-        "duplicate_groups": 19,
-        "duplicate_rows": 40,
+        "duplicate_groups": 0,
+        "duplicate_rows": 0,
         "cross_identity_groups": 0,
         "cross_identity_rows": 0,
     },
     "query": {
-        "duplicate_groups": 7,
-        "duplicate_rows": 14,
-        "cross_identity_groups": 1,
-        "cross_identity_rows": 2,
+        "duplicate_groups": 0,
+        "duplicate_rows": 0,
+        "cross_identity_groups": 0,
+        "cross_identity_rows": 0,
     },
     "gallery": {
-        "duplicate_groups": 7,
-        "duplicate_rows": 14,
-        "cross_identity_groups": 1,
-        "cross_identity_rows": 2,
+        "duplicate_groups": 0,
+        "duplicate_rows": 0,
+        "cross_identity_groups": 0,
+        "cross_identity_rows": 0,
     },
 }
 EXPECTED_INSHOP_CONTENT_OVERLAP = {
     "train_query": {"groups": 0, "rows": 0, "cross_identity_groups": 0},
     "train_gallery": {"groups": 0, "rows": 0, "cross_identity_groups": 0},
-    "query_gallery": {"groups": 19, "rows": 38, "cross_identity_groups": 3},
+    "query_gallery": {"groups": 0, "rows": 0, "cross_identity_groups": 0},
 }
 
 
