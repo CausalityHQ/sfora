@@ -57,6 +57,7 @@ _HF_DATASET_REVISIONS = {
     "bentrevett/caltech-ucsd-birds-200-2011": (
         "1ef09e021b0b65b40337f6f285909656f407f6e0"
     ),
+    "tanganke/stanford_cars": "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40",
 }
 
 
@@ -183,6 +184,8 @@ def load_image_retrieval_examples(
                 records.extend(loader(spec.dataset_id, source_split))
     if dataset_name == "cub" and dataset_loader is None:
         _validate_pinned_cub_records(records, label_key=spec.label_key)
+    if dataset_name == "cars" and dataset_loader is None:
+        _validate_pinned_cars_records(records, label_key=spec.label_key)
     if dataset_name == "sop" and dataset_loader is None:
         official_products = _sop_official_product_ids(split)
         records = [
@@ -242,6 +245,26 @@ def _validate_pinned_cub_records(
         raise ValueError(
             "pinned CUB DML split has "
             f"{train_count}/{test_count} images; expected 5864/5924"
+        )
+
+
+def _validate_pinned_cars_records(
+    records: Sequence[dict[str, object]], *, label_key: str
+) -> None:
+    """Reject a corrupt or schema-drifted Cars196 mirror before training begins."""
+    if len(records) != 16_185:
+        raise ValueError(f"pinned Cars196 mirror has {len(records)} images; expected 16185")
+    counts: dict[int, int] = defaultdict(int)
+    for record in records:
+        counts[_read_image_label(record, label_key)] += 1
+    if set(counts) != set(range(196)):
+        raise ValueError("pinned Cars196 mirror labels are not exactly 0..195")
+    train_count = sum(count for label, count in counts.items() if label < 98)
+    test_count = sum(count for label, count in counts.items() if label >= 98)
+    if (train_count, test_count) != (8_054, 8_131):
+        raise ValueError(
+            "pinned Cars196 DML split has "
+            f"{train_count}/{test_count} images; expected 8054/8131"
         )
 
 

@@ -8,6 +8,7 @@ from sfora.data import (
     ImageExample,
     TextExample,
     _load_huggingface_dataset,
+    _validate_pinned_cars_records,
     _validate_pinned_cub_records,
     load_image_retrieval_bundle,
     load_image_retrieval_examples,
@@ -327,6 +328,31 @@ def test_cub_huggingface_mirror_is_revision_pinned(
     ]
 
 
+def test_cars_huggingface_mirror_is_revision_pinned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import datasets
+
+    calls: list[tuple[str, str, str | None]] = []
+
+    def fake_load_dataset(
+        name: str, *, split: str, revision: str | None
+    ) -> list[dict[str, object]]:
+        calls.append((name, split, revision))
+        return []
+
+    monkeypatch.setattr(datasets, "load_dataset", fake_load_dataset)
+
+    assert list(_load_huggingface_dataset("tanganke/stanford_cars", "train")) == []
+    assert calls == [
+        (
+            "tanganke/stanford_cars",
+            "train",
+            "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40",
+        )
+    ]
+
+
 def test_pinned_cub_runtime_guard_checks_zero_shot_partition_counts() -> None:
     records = [
         {"label": label}
@@ -341,6 +367,20 @@ def test_pinned_cub_runtime_guard_checks_zero_shot_partition_counts() -> None:
     records[-1]["label"] = 99
     with pytest.raises(ValueError, match="5864/5924"):
         _validate_pinned_cub_records(records, label_key="label")
+
+
+def test_pinned_cars_runtime_guard_checks_zero_shot_partition_counts() -> None:
+    records = [
+        {"label": label}
+        for label in range(196)
+        for _ in range((82 + (label < 18)) if label < 98 else (82 + (label < 193)))
+    ]
+
+    _validate_pinned_cars_records(records, label_key="label")
+
+    records[-1]["label"] = 97
+    with pytest.raises(ValueError, match="8054/8131"):
+        _validate_pinned_cars_records(records, label_key="label")
 
 
 def test_select_labeled_image_examples_can_crop_images_to_bbox() -> None:

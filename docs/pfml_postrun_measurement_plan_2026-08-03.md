@@ -4,6 +4,15 @@ Date: 2026-08-03. Written after the repaired run had reported only epochs 10
 and 20 (`0.5286`, `0.7080`) and before any deciding late-epoch or final result.
 This is baseline analysis, not a candidate preregistration.
 
+**Pre-result corpus hardening.** The Cars loader was found unpinned during this
+audit. The live DGX cache resolves `tanganke/stanford_cars` to
+`9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40`, the repository's unchanged current
+revision; that exact revision is now pinned in code. Runtime guards require 16,185
+images, labels 0--195, and the 8,054/8,131 first-98/last-98 DML counts. This was done
+while the run was still below step 13,300 and before its final result. The exporter
+will deploy only this loader hardening before reloading pixels; checkpoint/report
+configuration remains bound to the training executable.
+
 ## Artifact boundary correction
 
 The active command persists scalar per-step loss history, fixed-cadence test

@@ -25,6 +25,10 @@ rsync -a \
   scripts/analyze_pfml_final_field.py \
   scripts/analyze_pfml_reference.py \
   "$REMOTE_HOST:$REMOTE_PROJECT/scripts/"
+# The run itself used the same immutable Hub revision from the DGX cache. Deploy the
+# post-launch revision pin/count guards before the independent reload so verification
+# can never follow a later moving `main`.
+rsync -a src/sfora/data.py "$REMOTE_HOST:$REMOTE_PROJECT/src/sfora/data.py"
 
 ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && '$REMOTE_PYTHON' \
   scripts/analyze_pfml_reference.py \
@@ -64,6 +68,7 @@ scp "$REMOTE_HOST:$REMOTE_PROJECT/$TRAIN_PACK_REL" "reports/emb/"
 scp "$REMOTE_HOST:$REMOTE_PROJECT/$TEST_PACK_REL" "reports/emb/"
 
 ssh "$REMOTE_HOST" "sha256sum \
+  '$REMOTE_PROJECT/src/sfora/data.py' \
   '$REMOTE_PROJECT/$REPORT_REL' \
   '$REMOTE_PROJECT/$CHECKPOINT_REL' \
   '$REMOTE_PROJECT/$TRAIN_PACK_REL' \
