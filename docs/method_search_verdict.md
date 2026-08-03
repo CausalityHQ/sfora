@@ -3668,3 +3668,18 @@ estimator; and superclass negative restriction lacks a measured speed bottleneck
 being hierarchical candidate sampling. The batch therefore leaves the corrected final
 SOP artifacts as the next legitimate reopening measurement. Full audit:
 `docs/adversarial_candidate_batch_262_266_2026-08-03.md`.
+
+## 267. Gradient-compatibility positive gate
+
+**DEAD at Gate 2; no GPU.** RSPG's measured within-class retention split (CUB
+0.6449, In-Shop operating point 0.0863) motivated replacing rival-class signatures
+with per-example training-gradient agreement. The proposed gate would keep a
+same-class pair positive only when its two update signatures agree. Zeng et al.'s
+*Additional Positive Enables Better Representation Learning for Medical Images*
+(2023), however, already computes pairwise TracIn gradient similarity between
+different images and uses it to select an additional positive. Coherent gradients,
+label-gradient alignment, and influence analysis in DML occupy the remaining
+ingredients. Replacing top-positive selection with a hard positive-to-unknown threshold
+is not a new supervision source, and Proxy Anchor gradients would partly reconstruct
+the cross-class response that was near-vacuous on CUB. Full audit:
+`docs/gradient_compatibility_gate_audit_267_2026-08-03.md`.
