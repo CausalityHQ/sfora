@@ -15,6 +15,16 @@ to kill candidates cheaply, and in the order that kills most of them first.
 
 ## The gates — stop at the first one a candidate fails
 
+**0. Validate the motivating measurement from artifacts.** Configuration intent,
+code inspection, a plausible image count, and a green unit test are not sufficient.
+Before a number can motivate a candidate, independently verify the exact dataset
+membership, artifact labels and selection state, evaluation self-exclusion, and metric
+recomputation wherever the persisted artifacts permit it. If they do not permit
+recomputation, label the claim code-derived and rerun/export what is missing. The
+2026-08-03 SOP audit found both a wrong benchmark split and training embeddings saved
+at the best-test epoch; all historical SOP conclusions were retracted. A bug can
+invalidate a negative just as easily as a positive.
+
 **1. Provenance of the idea.** It must be motivated by a measurement *in this repo*, not
 by an armchair analogy. `pa_dual_ema` is the model: it came from the factorial showing
 the distillation-target role wants 0.999 while the evaluated-average role wants 0.99, so
