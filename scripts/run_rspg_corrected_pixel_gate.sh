@@ -53,6 +53,8 @@ PYTHONPATH=src .venv/bin/sfora image-end-to-end \
 temporary="${RESULT}.tmp"
 set +e
 PYTHONPATH=src .venv/bin/python scripts/diagnose_rspg_graph.py "${PACK}" \
+  --report "${REPORT}" \
+  --checkpoint "${CHECKPOINT}" \
   >"${temporary}" 2>&1
 status=$?
 set -e
