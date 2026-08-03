@@ -112,6 +112,13 @@ the final checkpoint with `artifact_selection=final_training_state`; export
 final embeddings separately and verify their scorer before using them as
 candidate provenance.
 
+Post-launch audit clarified that the command saves scalar loss/test curves and
+one final checkpoint, not per-epoch model states or per-sample assignments. It
+therefore cannot support temporal assignment or forgetting claims. The
+prospective reliability and static-field analysis is pinned in
+`docs/pfml_postrun_measurement_plan_2026-08-03.md`; its Gram-derived diagnostics
+cannot by themselves reopen candidate design.
+
 ## Smoke result
 
 The repaired one-step Cars196 smoke completed successfully before the deciding
