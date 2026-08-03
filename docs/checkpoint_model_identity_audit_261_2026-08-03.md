@@ -24,6 +24,9 @@ resolved last step is called `final_training_state`.
 Regression tests pin an EMA at its initialization while moving the student, then prove
 that both the scored embeddings and reloaded saved checkpoint produce the EMA output.
 The non-EMA control proves the saved student moves and matches its scored embeddings.
+The pre-existing single-objective guard for artifact paths now also covers
+`save_model_path`, preventing successive objectives from silently overwriting one
+ambiguous checkpoint.
 
 ## Scope
 

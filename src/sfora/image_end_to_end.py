@@ -835,9 +835,11 @@ def run_image_end_to_end_benchmark(
         config.save_test_embeddings
         or config.save_gallery_embeddings
         or config.save_train_embeddings
+        or config.save_model_path
     ) and len(config.objectives) > 1:
         raise ValueError(
-            "save_test_embeddings / save_gallery_embeddings / save_train_embeddings "
+            "save_test_embeddings / save_gallery_embeddings / save_train_embeddings / "
+            "save_model_path "
             "expect a single objective, but "
             f"{len(config.objectives)} were given ({', '.join(config.objectives)}); "
             "run one objective per invocation or drop the --save-*-embeddings flags."

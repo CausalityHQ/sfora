@@ -7690,6 +7690,41 @@ def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
     assert checkpoint["training_step"] == 4
 
 
+def test_checkpoint_path_rejects_multiple_objectives(tmp_path: Path) -> None:
+    torch: Any = pytest.importorskip("torch")
+
+    examples = [
+        ImageExample(example_id="0-a", image=[1.0, 0.0], label=0),
+        ImageExample(example_id="0-b", image=[0.9, 0.1], label=0),
+        ImageExample(example_id="1-a", image=[0.0, 1.0], label=1),
+        ImageExample(example_id="1-b", image=[0.1, 0.9], label=1),
+    ]
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: torch.as_tensor(image, dtype=torch.float32)
+
+    with pytest.raises(ValueError, match="save_model_path.*single objective"):
+        run_image_end_to_end_benchmark(
+            train_examples=examples,
+            test_examples=examples,
+            config=ImageEndToEndConfig(
+                dataset_name="cub",
+                objectives=("triplet", "proxy_anchor"),
+                backbone_name="tiny",
+                embedding_dimensions=2,
+                proxy_count_per_class=1,
+                batch_size=4,
+                eval_batch_size=4,
+                train_steps=1,
+                group_size=1,
+                progress_every=0,
+                num_workers=0,
+                save_model_path=str(tmp_path / "ambiguous.pt"),
+            ),
+            transform_factory=transform_factory,
+        )
+
+
 def test_without_averaging_the_student_is_scored_and_training_moves_it(
     tmp_path: Path,
 ) -> None:
