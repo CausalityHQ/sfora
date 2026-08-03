@@ -2644,7 +2644,12 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     # but do not require them — they also work on the batch alone.
     if objective in {"symmetric_potential", "lennard_jones"}:
         return config.proxy_count_per_class > 0
-    if objective in {"proxy_anchor_lj", "proxy_anchor_antico", "bio_physical_bond", "proxy_anchor_cem"}:
+    if objective in {
+        "proxy_anchor_lj",
+        "proxy_anchor_antico",
+        "bio_physical_bond",
+        "proxy_anchor_cem",
+    }:
         if config.proxy_count_per_class <= 0:
             raise ValueError(f"the {objective} objective requires proxy_count_per_class > 0")
         return True
@@ -3406,7 +3411,9 @@ def _proxy_anchor_cem_objective_loss(**kwargs: Any) -> Any:
         delta=config.proxy_anchor_delta,
         torch_module=torch_module,
     )
-    similarities = _normalize(embeddings, torch_module) @ _normalize(proxy_embeddings, torch_module).T
+    similarities = (
+        _normalize(embeddings, torch_module) @ _normalize(proxy_embeddings, torch_module).T
+    )
     from sfora.cem import confusion_edge_margin_loss
 
     return base + config.cem_weight * confusion_edge_margin_loss(
