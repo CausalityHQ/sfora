@@ -4392,3 +4392,29 @@ privileged-information learning are also established. Extra annotations change
 the ordinary label-only task. The factual census is reopened, but no new
 operator survives Gate 2. Full audit:
 `docs/fable_candidate_batch_341_346_2026-08-03.md`.
+
+## 347. Bounding-box object/context counterfactual supervision
+
+**DEAD at Gate 2 and unsupported at Gate 1; no implementation, diagnostic, or
+candidate GPU.** Official CUB, Cars196, and DeepFashion In-Shop boxes form a
+shared annotation channel, but annotation existence is not a measurement that
+context pixels cause retrieval error. The executable proposal is exhausted by
+known atoms: foreground-positive is supervised crop augmentation; context
+“unknown” is zero gradient; context “non-identity” is synthesized-negative,
+universum, or background-class repulsion; foreground/full equality is view
+consistency or distillation; object/background composites are copy-paste
+augmentation; spatial use is feature gating; and gradient/attention suppression
+is an attribution prior.
+
+Primary sources close the surrounding mechanism directly. Mask-Guided
+Contrastive Attention and Eliminating Background-Bias (CVPR 2018) explicitly
+separate body/background features or randomize backgrounds for re-ID;
+Counterfactual Attention Learning (ICCV 2021) uses counterfactual supervision in
+fine-grained recognition and re-ID; Learning to Rank Using Privileged
+Information (ICCV 2013) names bounding boxes as train-only privileged
+information; and DeepFashion already combines landmark/attribute supervision,
+feature gating, and triplet retrieval. A pinned Fable 5 adversarial review
+returned zero alternative survivors. It also found that the repository's latent
+bbox crop path is fail-open and no current dataset validator binds annotation
+coverage or coordinates, so it cannot support a deciding result as written.
+Full audit: `docs/bbox_object_context_candidate_347_2026-08-03.md`.
