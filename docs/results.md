@@ -1213,6 +1213,22 @@ the epoch-10 In-Shop operating point. This does not retract ARCG's deterministic
 augmentation-response structure; it rules out using a six-draw tail statistic
 as an adaptive PFML plateau under candidate 174's fixed design.
 
+## Corrected official-pixel In-Shop reference and RSPG screen
+
+On the standard 256x256 official corpus, Proxy Anchor seed 0 reached **0.916303
+raw best R@1** and **0.913701 independently exported final R@1**.  The +0.260
+point raw-to-final gap is observed checkpoint selection, not a selection-bias
+correction.  Independent cosine, Euclidean and tie-aware scorers agree at the
+final state, with no train/evaluation source overlap or cross-identity content
+duplicate contamination.
+
+RSPG did not survive corrected-pixel screening.  Its seed-0 graph began at
+density **0.0895**, then retrieval fell from **0.8769** at activation to
+**0.7102** one epoch later.  At epoch 40 R@1 was **0.5070** and the refreshed
+graph density was **0.0144**, below the fixed 0.05 feasibility floor.  The arm
+was stopped at 5,800 / 8,580 steps, so 0.8769 is a partial-run observed best and
+not a completed benchmark score.  Seed 1 and all ablations were cancelled.
+
 ## In-Shop fragmentation confounding audit
 
 The seed-0 epoch-10 observation that disconnected within-class 1-NN graphs have

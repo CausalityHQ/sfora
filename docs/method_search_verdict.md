@@ -4025,3 +4025,22 @@ produce 1,430 actual optimizer updates.  The verifier now binds both fields
 independently.  This is feasibility only; candidate retrieval remains governed
 by the prospectively committed two-seed screen in
 `docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md`.
+
+## 305. Candidate 18 corrected-pixel RSPG verdict
+
+**DEAD at Gate 4; seed 1 and all ablations cancelled.**  The corrected-pixel
+seed-0 graph began feasible at density **0.0895**, but replacing positive-to-proxy
+ownership with its sparse detached-pair attraction dropped R@1 from **0.8769** at
+activation to **0.7102** one epoch later.  At epoch 40 R@1 was **0.5070** and the
+refreshed graph retained only **1.44%** of pairs, below its own 5% feasibility
+floor.  The run was stopped at 5,800 / 8,580 steps; its pre-activation 0.8769 best
+is a partial observation, not a completed benchmark score.
+
+The mechanism is self-erasing supervision: selected pairs are already
+near-satisfied, removal of proxy ownership destroys class organization, and the
+degraded representation makes the next graph still sparser.  A proposed
+own-class-proxy repulsion explanation was falsified: the negative mask excludes
+the own proxy and a unit test proves zero gradient to it.  The corrected corpus
+therefore confirms rather than retracts candidate 18's death, now with a sharper
+mechanism.  Full audit:
+`docs/rspg_corrected_pixel_postmortem_305_2026-08-03.md`.

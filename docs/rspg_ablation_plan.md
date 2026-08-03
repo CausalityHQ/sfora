@@ -4,6 +4,11 @@ Status: **CANCELLED, never run.** The full RSPG arm failed Gate 4 at raw best
 R@1 0.8452 versus the registered 0.9085 minimum, so the activation condition
 could not be met.
 
+The standard-256px correction did not reopen these controls.  Its seed-0 graph
+collapsed from density 0.0895 at activation to **0.0144** at epoch 40 and the arm
+was stopped as mechanistically infeasible; see
+`docs/rspg_corrected_pixel_postmortem_305_2026-08-03.md`.
+
 ## Why these controls are mandatory
 
 The adversarial prior-art audit leaves one narrow novelty claim: agreement of
