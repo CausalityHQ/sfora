@@ -4162,3 +4162,11 @@ agreement was a strong error diagnostic (2.3886% error for agreeing samples vs
 0.1466% for disagreeing samples), but acting on it is either hard-negative proxy
 weighting or graph-consistency/confusion-graph metric learning. The signal is
 useful for analysis, not a defensible novel supervision mechanism.
+
+## 320. Confusion-edge margin (CEM)
+
+**Gate 1 passed; Gate 3 preregistered, no GPU yet.** Cross-level foreign-class
+agreement localizes 2.3886% versus 0.1466% retrieval error. CEM tests a directed
+class-to-class proxy relation rather than sample-neighbor weighting. See
+`docs/confusion_edge_margin_candidate_320.md`; prediction 0.9155, falsifier
+below 0.9140 final-state In-Shop R@1.
