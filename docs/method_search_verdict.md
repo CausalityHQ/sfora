@@ -3753,3 +3753,13 @@ Thresholding that published image-similarity signal into positive-to-unknown edg
 an application policy, not a new supervision source; raw compression also inherits
 strong background/texture dependence. Full audit:
 `docs/compression_eligibility_audit_273_2026-08-03.md`.
+
+## 274. Label-conditional pixel-histogram alignment
+
+**DEAD at Gate 1; no GPU.** A constrained Claude Haiku pass proposed aligning fixed
+color histograms for same-class images and separating different-class histograms. No
+validated repository measurement motivates color statistics, and the operator preserves
+the original binary labels while adding a fixed-feature regularizer rather than creating
+new supervision. Color histograms are also foundational content-based retrieval features
+and invite background/photography shortcuts on these benchmarks. Full audit:
+`docs/histogram_alignment_audit_274_2026-08-03.md`.
