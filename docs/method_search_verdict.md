@@ -3507,3 +3507,16 @@ or extragradient optimization. ASAP-DML already alternates proxy problems and
 projections, while Robust Calibrate Proxy directly corrects learned proxies from
 sample statistics. Changing update order supplies no DML-specific residual
 mechanism. Full audit: `docs/proxy_fast_variable_audit_236_2026-08-03.md`.
+
+## 237. Biological, psychological, and hyperdimensional representation batch
+
+**No candidate survives Gates 1 and 2 on 2026-08-03; no implementation or GPU.**
+Dentate-gyrus pattern separation becomes sparse coding, decorrelation, or sparse
+reconstruction, and the primary neuroscience analysis warns that sparsity can
+increase apparent separation while destroying transmitted information.
+Prototype--exemplar dual coding is exactly a class proxy plus exemplar memory,
+with mixtures reducing to multi-proxy models. Hyperdimensional binding of local
+descriptors and position into one holistic vector was already published for
+image retrieval at CVPR 2021, while the corrected frozen Cars regional evidence
+is negative. Full primary-source audit:
+`docs/cross_field_representation_audit_237_2026-08-03.md`.
