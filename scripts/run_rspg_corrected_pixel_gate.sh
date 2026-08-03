@@ -4,6 +4,8 @@ set -euo pipefail
 PROJECT="${PROJECT:-/home/riomus/group-learning}"
 DATASET_ROOT="${DATASET_ROOT:-/home/riomus/datasets/inshop_official_standard}"
 REFERENCE="${REFERENCE:-reports/generated/inshop_corrected_pa_seed0.json}"
+REFERENCE_FINAL="${REFERENCE_FINAL:-reports/generated/inshop_corrected_pa_seed0_final_retrieval.json}"
+REFERENCE_GEOMETRY="${REFERENCE_GEOMETRY:-reports/generated/inshop_corrected_pa_seed0_training_geometry.json}"
 REPORT="${REPORT:-reports/generated/inshop_corrected_pa_epoch10_seed0.json}"
 CHECKPOINT="${CHECKPOINT:-reports/checkpoints/inshop_corrected_pa_epoch10_seed0.pt}"
 PACK="${PACK:-reports/emb/inshop_corrected_pa_epoch10_seed0.train.npz}"
@@ -11,7 +13,7 @@ RESULT="${RESULT:-reports/generated/inshop_corrected_pa_epoch10_seed0_rspg_gate.
 LOG="${LOG:-logs/inshop_corrected_pa_epoch10_seed0.log}"
 
 cd "${PROJECT}"
-while [[ ! -s "${REFERENCE}" ]]; do
+while [[ ! -s "${REFERENCE}" || ! -s "${REFERENCE_FINAL}" || ! -s "${REFERENCE_GEOMETRY}" ]]; do
   sleep 60
 done
 
