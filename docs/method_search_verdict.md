@@ -3657,3 +3657,14 @@ Serialization now uses the exact evaluation model and records its source/actual 
 This invalidates historical EMA checkpoint-reproduction claims, not their raw report
 curves or existing cross-dataset death. Full audit:
 `docs/checkpoint_model_identity_audit_261_2026-08-03.md`.
+
+## 262--266. Adversarial post-retraction candidate batch
+
+**No survivor; no GPU.** Claude Opus generated five mechanisms against the full failure
+catalogue. Crop-IoU targets reduce to graded supervision/invariance; EVT foreign tails
+to a max-surrogate and hard-negative swap; sparse proxy atoms to dictionary
+regularization; split-half mutual centroids to reciprocal proxy alignment with a new
+estimator; and superclass negative restriction lacks a measured speed bottleneck while
+being hierarchical candidate sampling. The batch therefore leaves the corrected final
+SOP artifacts as the next legitimate reopening measurement. Full audit:
+`docs/adversarial_candidate_batch_262_266_2026-08-03.md`.
