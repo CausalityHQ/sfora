@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, cast
 
@@ -32,6 +33,32 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def image_content_sha256(image: object) -> str:
+    """Hash filesystem-backed or already-decoded image content deterministically."""
+    if isinstance(image, (str, os.PathLike)):
+        path = Path(image).resolve()
+        if not path.is_file():
+            raise ValueError(f"Cars196 source path is missing: {path}")
+        return sha256(path)
+    raw_bytes = getattr(image, "tobytes", None)
+    if callable(raw_bytes):
+        digest = hashlib.sha256()
+        digest.update(str(getattr(image, "mode", "")).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(str(getattr(image, "size", "")).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(raw_bytes())
+        return digest.hexdigest()
+    raise ValueError(f"unsupported Cars196 image source type: {type(image).__name__}")
+
+
+def image_source_reference(image: object) -> str:
+    """Return a path when one exists; decoded HF images intentionally have none."""
+    if isinstance(image, (str, os.PathLike)):
+        return str(Path(image).resolve())
+    return ""
+
+
 def verify_official_partition(
     train_examples: list[Any], test_examples: list[Any]
 ) -> dict[str, Any]:
@@ -40,7 +67,9 @@ def verify_official_partition(
     for split, examples in (("train", train_examples), ("test", test_examples)):
         labels = {int(example.label) for example in examples}
         example_ids = {str(example.example_id) for example in examples}
-        source_paths = {str(Path(example.image).resolve()) for example in examples}
+        source_references = [image_source_reference(example.image) for example in examples]
+        nonempty_source_references = {value for value in source_references if value}
+        content_hashes = {image_content_sha256(example.image) for example in examples}
         observed = (len(examples), len(labels))
         if observed != EXPECTED_CARS_PARTITION[split]:
             raise ValueError(
@@ -49,20 +78,25 @@ def verify_official_partition(
             )
         if len(example_ids) != len(examples):
             raise ValueError(f"duplicate Cars196 {split} example IDs")
-        if len(source_paths) != len(examples):
+        if nonempty_source_references and len(nonempty_source_references) != len(examples):
             raise ValueError(f"duplicate Cars196 {split} source paths")
         summaries[split] = {
             "labels": labels,
             "example_ids": example_ids,
-            "source_paths": source_paths,
+            "source_references": nonempty_source_references,
+            "content_hashes": content_hashes,
+            "content_duplicate_rows": len(examples) - len(content_hashes),
         }
 
     if summaries["train"]["labels"] & summaries["test"]["labels"]:
         raise ValueError("Cars196 train and test identities overlap")
     if summaries["train"]["example_ids"] & summaries["test"]["example_ids"]:
         raise ValueError("Cars196 train and test example IDs overlap")
-    if summaries["train"]["source_paths"] & summaries["test"]["source_paths"]:
+    if summaries["train"]["source_references"] & summaries["test"]["source_references"]:
         raise ValueError("Cars196 train and test source paths overlap")
+    content_overlap = summaries["train"]["content_hashes"] & summaries["test"]["content_hashes"]
+    if content_overlap:
+        raise ValueError("Cars196 train and test decoded image content overlaps")
     return {
         "train_examples": len(train_examples),
         "test_examples": len(test_examples),
@@ -70,7 +104,10 @@ def verify_official_partition(
         "test_classes": len(summaries["test"]["labels"]),
         "train_test_identity_overlap": 0,
         "train_test_example_id_overlap": 0,
-        "train_test_source_path_overlap": 0,
+        "train_test_source_reference_overlap": 0,
+        "train_test_content_overlap": 0,
+        "train_content_duplicate_rows": summaries["train"]["content_duplicate_rows"],
+        "test_content_duplicate_rows": summaries["test"]["content_duplicate_rows"],
     }
 
 
@@ -216,7 +253,10 @@ def main() -> None:
         embeddings=np.asarray(embeddings, dtype=np.float32),
         labels=np.asarray(labels, dtype=np.int64),
         example_ids=np.asarray([example.example_id for example in examples]),
-        source_paths=np.asarray([str(Path(example.image)) for example in examples]),
+        source_references=np.asarray(
+            [image_source_reference(example.image) for example in examples]
+        ),
+        content_sha256=np.asarray([image_content_sha256(example.image) for example in examples]),
         artifact_selection=np.asarray("final_training_state"),
         split=np.asarray(args.split),
         checkpoint_sha256=np.asarray(checkpoint_digest),

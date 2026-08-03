@@ -34,7 +34,10 @@ Before quoting the run or using its weights:
    `training_step=16200`, `evaluation_model_source=student`, and exact equality
    between checkpoint and report training configs.
 4. Independently reload the official 8,054/98 training and 8,131/98 test
-   partitions; require disjoint labels, example IDs, and source paths.
+   partitions; require disjoint labels and example IDs. Cars is supplied by the
+   Hugging Face loader as decoded images rather than stable filesystem paths, so
+   bind mode/size/pixel-content SHA-256 values and require zero cross-split
+   content overlap; retain the source-path check when a path is available.
 5. Export embeddings from the final checkpoint rather than the report's
    evaluation cache. Independently recompute leave-one-out test R@1 in float64,
    excluding each query itself, and require agreement with the report's final

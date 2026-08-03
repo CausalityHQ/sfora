@@ -24,6 +24,17 @@ def _example(label: int, suffix: str, root: Path) -> SimpleNamespace:
     return SimpleNamespace(label=label, example_id=suffix, image=str(path))
 
 
+class _DecodedImage:
+    mode = "RGB"
+    size = (2, 1)
+
+    def __init__(self, content: bytes) -> None:
+        self._content = content
+
+    def tobytes(self) -> bytes:
+        return self._content
+
+
 def test_independent_leave_one_out_recall_excludes_self() -> None:
     embeddings = np.asarray(
         [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]], dtype=np.float32
@@ -63,6 +74,24 @@ def test_partition_verifier_rejects_identity_overlap(
     train = [_example(0, "train-a", tmp_path), _example(0, "train-b", tmp_path)]
     test = [_example(0, "test-a", tmp_path), _example(0, "test-b", tmp_path)]
     with pytest.raises(ValueError, match="identities overlap"):
+        _module.verify_official_partition(train, test)
+
+
+def test_partition_verifier_hashes_decoded_images_and_rejects_cross_split_overlap(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)}
+    )
+    train = [
+        SimpleNamespace(label=0, example_id="train-a", image=_DecodedImage(b"a")),
+        SimpleNamespace(label=0, example_id="train-b", image=_DecodedImage(b"shared")),
+    ]
+    test = [
+        SimpleNamespace(label=1, example_id="test-a", image=_DecodedImage(b"b")),
+        SimpleNamespace(label=1, example_id="test-b", image=_DecodedImage(b"shared")),
+    ]
+    with pytest.raises(ValueError, match="decoded image content overlaps"):
         _module.verify_official_partition(train, test)
 
 
