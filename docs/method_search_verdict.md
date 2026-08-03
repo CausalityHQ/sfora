@@ -3859,3 +3859,15 @@ artifact existed, both were changed to flush and fsync unique same-directory tem
 files and atomically replace their destinations. Calculations and schemas are
 unchanged. This is an evidence-path repair, not a method or score change. Full audit:
 `docs/sop_structure_atomic_publication_audit_283_2026-08-03.md`.
+
+## 284. Augmentation-commuting feature cache
+
+**DEAD at Gate 2; no implementation or GPU.** Because backbone work dominates the
+audited operation count, the proposal would freeze an early convolutional stem, cache
+its spatial feature field, and apply crops/flips in feature space to avoid repeated
+stem forwards. Yang et al. (2025) directly occupy cached frozen-layer feature maps,
+augmentation-sensitivity handling, and progressive cache compression; CVPR 2024 FroFA
+and offline tensor augmentation occupy cached-feature augmentation. Applying the same
+operator to DML is not novel, and crop/resize does not exactly commute with a strided
+nonlinear stem. Full audit:
+`docs/augmentation_commuting_feature_cache_audit_284_2026-08-03.md`.
