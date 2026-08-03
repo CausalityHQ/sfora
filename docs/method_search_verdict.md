@@ -3767,14 +3767,15 @@ and invite background/photography shortcuts on these benchmarks. Full audit:
 
 ## 275. SOP fragmentation replication diagnostic
 
-**PREREGISTERED; CPU only, pending corrected final SOP artifacts.** In-Shop's
-size-matched fragmented-class retrieval advantage (+3.534 points; +5.875 after its
-registered coarse adjustment) is now tested out of dataset on SOP. The unchanged
-symmetrized 1-NN operator predicts fragmentation fraction 0.20--0.60 and an exact-size-
-matched fragmented-minus-connected class-balanced R@1 effect >= +1.0, with at least
-100 classes per exposure. Effect <= 0 falsifies cross-dataset replication; `(0,+1)` is
-inconclusive. Even a pass is an observational marker and authorizes no method or GPU.
-Full registration: `docs/sop_fragmentation_preregistration_275_2026-08-03.md`.
+**PASSED as an observational replication; no method or GPU authorized.** The
+independently verified corrected final SOP pack gave fragmentation fraction
+**0.45545** (registered interval 0.20--0.60) and exact-size-matched
+fragmented-minus-connected class-balanced R@1 **+2.195 points** (registered minimum
++1.0), with 4,181 fragmented and 4,999 connected classes across nine common size
+strata. This replicates In-Shop's association out of dataset. It does not identify a
+causal correction: connectivity repair, gating, diversity, class shells, and
+multi-centres remain occupied or previously falsified. Full registration:
+`docs/sop_fragmentation_preregistration_275_2026-08-03.md`.
 
 ## 276. SOP/In-Shop resource serialization defect
 
@@ -3928,3 +3929,17 @@ exact registered trainer command, then requires complete report/checkpoint
 artifacts before independent export. This is an orchestration repair, not a
 method or score. Full audit:
 `docs/inshop_controller_liveness_audit_289_2026-08-03.md`.
+
+## 290. Corrected official SOP reference
+
+The corrected seed-0 official-split Proxy Anchor run landed at **0.79109781 raw
+best-test R@1** (epoch 48) and **0.79000694 frozen-final R@1** (epoch 60), inside
+the preregistered `[0.777,0.807]` fidelity interval. Exact split counts, identities,
+paths, content profile, normalization, final-state selection, hashes, and scorer
+recomputation were independently checked. Float32 cosine gives **0.78999041** and
+exact-tie expected scoring **0.78998876** because of the official data's duplicate
+content; this sensitivity is reported rather than hidden. The checkpoint predates
+embedded full semantic training config, so the evidence remains explicitly bound by
+report metadata, executed steps, final-state marker, and file hashes. This establishes
+a usable reference, not a novel method or a reopening beyond candidate 275's locked
+observational conclusion.

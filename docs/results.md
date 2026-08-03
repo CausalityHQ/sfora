@@ -951,7 +951,7 @@ higher level: the PA+distill ensemble (**0.9172**) beats the HIST-based HERD ens
 (**0.9026**) — HIST is the weaker Cars base at *both* single-model and ensemble scale,
 so on Cars we ensemble the PA base.
 
-## SOP — historical results retracted pending corrected reruns
+## SOP — corrected official-split reference
 
 **Retraction dated 2026-08-03.** The SOP loader did not use the official
 `Ebay_train.txt`/`Ebay_test.txt` membership. It split lexicographically sorted eBay
@@ -967,8 +967,44 @@ claims that SOP extended the “base-adaptive” pattern and that the published 
 was intrinsically hard to reproduce are withdrawn. A corrected, digest-pinned seed-0
 PA run was preregistered before execution in
 [`sop_official_split_correction_234_2026-08-03.md`](sop_official_split_correction_234_2026-08-03.md).
-No replacement SOP claim will be written until its split membership, exact counts,
-checkpoint-selection semantics, and retrieval evaluation are independently checked.
+The corrected seed-0 reference has now completed those checks. It used the original
+official images, `Ebay_train.txt`/`Ebay_test.txt`, BN-Inception/512-D, 59,551 train
+images in 11,318 products, 60,502 test images in 11,316 products, 19,800 executed
+drop-last steps, and full self-excluded test retrieval. Its preregistered plausible
+range was `[0.777, 0.807]`.
+
+| checkpoint/score | R@1 | MAP@R | interpretation |
+| --- | ---: | ---: | --- |
+| test-selected epoch 48 | 0.79109781 | 0.51904458 | raw best-over-training; no persisted best checkpoint |
+| frozen final epoch 60 | 0.79000694 | 0.51811877 | canonical float64 squared-Euclidean scorer |
+| frozen final, independent float32 cosine | 0.78999041 | — | one fewer correct query because of exact ties |
+| frozen final, exact-tie expected value | 0.78998876 | — | tie-order-invariant sensitivity analysis |
+
+The final checkpoint, report, and independently exported train/test packs are bound by
+SHA-256. The joint verifier confirmed exact row/class counts, unique IDs and source
+paths within splits, zero train/test label/ID/path overlap, finite unit-normalized
+512-D rows, and independent final-state scoring. The run predates checkpoint-embedded
+full semantic `training_config`, so artifact identity is bound by final-state marker,
+executed-step count, report recipe metadata, and checkpoint/report hashes rather than
+by a redundant config inside the checkpoint. This is an explicit evidence limitation,
+not silently upgraded provenance.
+
+Content hashing found a benchmark caveat missed by path-level checks: 690 exact-file
+duplicate groups in train and 749 in test, including 12 and 29 cross-label groups, plus
+one byte-identical image shared across the official train/test boundary under four
+labels. Seven test queries have mixed-label exact nearest ties. The canonical/tie-aware
+spread is only 0.00182 percentage point, but mathematically equivalent scorers are not
+bit-identical on this data. See
+[`sop_content_duplicate_audit_288_2026-08-03.md`](sop_content_duplicate_audit_288_2026-08-03.md).
+
+The preregistered training-only fragmentation replication also passed independently:
+4,181 of 9,180 eligible classes were fragmented under the unchanged symmetrized 1-NN
+operator (**0.45545**, predicted 0.20–0.60), and the exact-size-matched fragmented-minus-
+connected class-balanced R@1 difference was **+2.195 points** (registered threshold
++1.0; nine common size strata; 4,181 versus 4,999 classes). This replicates an
+observational dataset marker from In-Shop. Under the blind decision matrix it does
+not authorize connectivity repair, positive gating, multi-centers, class shells, or a
+GPU method, because those intervention classes are prior art or already falsified.
 
 ## DeepFashion In-Shop and iNaturalist 2018 — dataset support and protocols
 
@@ -992,9 +1028,9 @@ a SOTA comparison. The exact setup and sequential runner are documented in
 | CUB | HIST | `hist.cub.official-e7d650c` | ResNet-50 | paper 71.4±0.2 | registered |
 | Cars | Proxy Anchor | `proxy_anchor.cars.official-51db570` | ResNet-50 | official repo 87.7 | registered |
 | Cars | HIST | `hist.cars.official-e7d650c` | ResNet-50 | paper 89.6±0.2 | registered |
-| SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | official repo 79.2 | registered |
+| SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | 79.11 raw best / 79.00 frozen final | completed seed 0 |
 | SOP | HIST | `hist.sop.official-e7d650c` | ResNet-50 | paper 81.4±0.2 | registered |
-| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | queued reference |
+| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | corrected seed 0 running |
 | In-Shop | HIST | `hist.inshop.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | Proxy Anchor | `proxy_anchor.inat2018.selected-from-<winner>-51db570` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | HIST | `hist.inat2018.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
