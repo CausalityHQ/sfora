@@ -126,6 +126,12 @@ The corrected gate therefore warrants full RSPG In-Shop seeds 0 and 1. Both are
 required because of contamination. No ablation, Cars run, or claim is allowed
 until the two raw screens are judged against 0.9085.
 
+That paragraph describes the now-quarantined `img_highres` evidence path.  The
+standard-256px rerun produced density **0.0835** and multi-component fraction
+**0.8866**.  Its replacement retrieval prediction and **0.9175 per-seed**
+falsifier were committed before corrected-pixel candidate training in
+`docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md`.
+
 ### Acquisition-token stratification
 
 Post-mortem reconstruction of this exact graph found that it accepted

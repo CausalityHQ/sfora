@@ -4007,3 +4007,21 @@ caveats, while raw-to-final gaps cannot revive selection, EMA, averaging, or
 stopping claims. Only a genuinely new independently validated observable outside
 the matrix can reopen candidate design. Full matrix:
 `docs/inshop_outcome_decision_matrix_295_2026-08-03.md`.
+
+## 304. Corrected-pixel Proxy Anchor reference and RSPG operating gate
+
+The standard-256px official In-Shop seed-0 reference reached **0.91630328 raw
+best R@1** and **0.91370094 independently exported final R@1**.  Independent
+cosine, Euclidean and tie-aware scorers agree, with no train/evaluation source
+overlap or cross-identity content-duplicate contamination.  This quarantines all
+earlier `img_highres` retrieval conclusions rather than rescuing them.
+
+At the exact epoch-10 operating representation, RSPG retained **12,791 / 153,115
+pairs** (density **0.0835**) and split **0.8866** of eligible classes into
+multiple components, passing its unchanged CPU feasibility thresholds.  The
+verifier audit exposed a bookkeeping distinction: the recipe records a nominal
+1,440-step scheduler horizon, while 25,882 images, batch 180 and `drop_last=True`
+produce 1,430 actual optimizer updates.  The verifier now binds both fields
+independently.  This is feasibility only; candidate retrieval remains governed
+by the prospectively committed two-seed screen in
+`docs/rspg_corrected_pixel_screen_preregistration_304_2026-08-03.md`.
