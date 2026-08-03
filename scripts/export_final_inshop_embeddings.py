@@ -79,8 +79,8 @@ def main() -> None:
     if config.dataset_name != "inshop" or config.objectives != ("proxy_anchor",):
         raise ValueError("exporter requires one-objective In-Shop Proxy Anchor")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
-    if checkpoint.get("artifact_selection") not in {None, "final_training_state"}:
-        raise ValueError("checkpoint is not a final training state")
+    if checkpoint.get("artifact_selection") != "final_training_state":
+        raise ValueError("checkpoint is not explicitly labeled as a final training state")
 
     bundle = load_image_retrieval_bundle(
         dataset_name="inshop",
@@ -103,7 +103,7 @@ def main() -> None:
         optimization_example_count=len(bundle.train),
         optimization_labels=[example.label for example in bundle.train],
     )
-    if checkpoint.get("training_step") not in {None, resolved_steps}:
+    if checkpoint.get("training_step") != resolved_steps:
         raise ValueError(
             f"checkpoint step {checkpoint.get('training_step')} != resolved {resolved_steps}"
         )

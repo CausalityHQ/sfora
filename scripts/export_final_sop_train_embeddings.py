@@ -48,8 +48,8 @@ def main() -> None:
     if config.dataset_name != "sop" or config.objectives != ("proxy_anchor",):
         raise ValueError("exporter requires a single-objective SOP Proxy Anchor report")
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
-    if checkpoint.get("artifact_selection") not in {None, "final_training_state"}:
-        raise ValueError("checkpoint is not labeled as a final training state")
+    if checkpoint.get("artifact_selection") != "final_training_state":
+        raise ValueError("checkpoint is not explicitly labeled as a final training state")
     examples = load_image_retrieval_examples(
         dataset_name="sop", split=args.split, seed=config.seed
     )
@@ -69,7 +69,7 @@ def main() -> None:
         optimization_example_count=len(training_examples),
         optimization_labels=[example.label for example in training_examples],
     )
-    if checkpoint.get("training_step") not in {None, resolved_steps}:
+    if checkpoint.get("training_step") != resolved_steps:
         raise ValueError(
             "checkpoint training step differs from the resolved official training schedule: "
             f"{checkpoint.get('training_step')} != {resolved_steps}"
