@@ -395,6 +395,20 @@ def _load_inshop_bundle(
     max_classes: int | None,
     seed: int,
 ) -> ImageRetrievalBundle:
+    image_tree = root / "Img" / "img"
+    # The DeepFashion release contains two pixel corpora with identical relative
+    # names. Retrieval papers use ``Img/img.zip`` (the centered 256-pixel images),
+    # while ``img_highres.zip`` is supplied for parsing/segmentation. Merely
+    # validating the partition therefore cannot detect the wrong benchmark. The
+    # project's first In-Shop acquisition made exactly that mistake through a
+    # symlink named ``img`` whose target was ``img_highres``.
+    resolved_image_tree = image_tree.resolve()
+    if "img_highres" in {part.lower() for part in resolved_image_tree.parts}:
+        raise ValueError(
+            "In-Shop retrieval requires the standard Img/img.zip image tree; "
+            f"{image_tree} resolves to the segmentation img_highres corpus "
+            f"({resolved_image_tree})"
+        )
     partition_path = root / "Eval" / "list_eval_partition.txt"
     if not partition_path.is_file():
         raise ValueError(f"missing In-Shop partition file: {partition_path}")

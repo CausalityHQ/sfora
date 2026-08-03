@@ -65,6 +65,16 @@ def test_load_inshop_bundle_uses_official_train_query_gallery_partition(
     assert query_labels == gallery_labels
 
 
+def test_load_inshop_bundle_rejects_highres_segmentation_corpus(tmp_path: Path) -> None:
+    highres = tmp_path / "img_highres"
+    highres.mkdir()
+    (tmp_path / "Img").mkdir()
+    (tmp_path / "Img" / "img").symlink_to(highres, target_is_directory=True)
+
+    with pytest.raises(ValueError, match=r"requires the standard Img/img\.zip"):
+        load_image_retrieval_bundle(dataset_name="inshop", dataset_root=tmp_path)
+
+
 def test_load_inat2018_bundle_builds_disjoint_zero_shot_species_protocol(
     tmp_path: Path,
 ) -> None:

@@ -1,5 +1,15 @@
 # Benchmark results
 
+> **In-Shop corpus retraction (2026-08-03).** Every In-Shop run reported in this
+> file used DeepFashion `img_highres`, the parsing/segmentation corpus, instead of
+> the benchmark's centered 256-pixel `Img/img.zip` retrieval corpus. The authors'
+> published Proxy Anchor checkpoint scored only 0.87354 on those wrong pixels
+> against its reported 0.919, while exact upstream/local model and transform
+> comparisons were bit-identical. All In-Shop scores, deltas, sigma estimates,
+> acquisition/fragmentation measurements and method verdicts are retracted as
+> benchmark evidence pending acquisition of `img.zip`. See
+> `docs/inshop_wrong_pixel_corpus_retraction_297_2026-08-03.md`.
+
 All numbers are **CUB-200-2011**, ResNet-50 backbone, 512-dim embedding, the
 standard zero-shot retrieval split (100 train / 100 disjoint test classes),
 cosine **Recall@1**, reported as **best-over-training** (the protocol used by the
@@ -79,9 +89,9 @@ fidelity; “no identified fidelity defect” above is superseded.)
 So the honest statement is that PA's single-seed number sits low but within noise,
 with no identified fidelity defect. Seeds 1 and 2 settle it.
 
-### The cognitive-science candidates: both fail, decisively
+### The cognitive-science candidates: historical wrong-corpus observations
 
-Two methods imported from outside ML, both replacing the **similarity function**
+The conclusions in this subsection are retracted by audit 297. Two methods imported from outside ML, both replacing the **similarity function**
 rather than adding a loss term, both differing from official Proxy Anchor only in
 their declared recipe delta. Settled on In-Shop, where σ = 0.12 pt makes a single
 seed conclusive.
@@ -500,7 +510,8 @@ not dataset size. Fixing it recovers the In-Shop column on both legs.*
 Single seed — CUB seed noise has historically been σ ≈ 0.6 pt, so −0.27 is well
 inside noise while +0.91 is roughly 1.5σ. Neither is a result yet.
 
-**DeepFashion In-Shop**, best-over-training R@1, 3 seeds. Proxy Anchor rows use
+**Retracted wrong-corpus DeepFashion In-Shop observations**, best-over-training R@1,
+3 seeds. Proxy Anchor rows use
 the official `reference` recipe; HIST rows use a frozen `selected_extension`
 (HIST published no In-Shop recipe, so it was selected from SOP using
 **training-split-only** scoring — no test leakage). Within each base, the plain
@@ -1030,7 +1041,7 @@ a SOTA comparison. The exact setup and sequential runner are documented in
 | Cars | HIST | `hist.cars.official-e7d650c` | ResNet-50 | paper 89.6±0.2 | registered |
 | SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | 79.11 raw best / 79.00 frozen final | completed seed 0 |
 | SOP | HIST | `hist.sop.official-e7d650c` | ResNet-50 | paper 81.4±0.2 | registered |
-| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | corrected seed 0 running |
+| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | **blocked: wrong pixel corpus retracted; `img.zip` acquisition in progress** |
 | In-Shop | HIST | `hist.inshop.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | Proxy Anchor | `proxy_anchor.inat2018.selected-from-<winner>-51db570` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | HIST | `hist.inat2018.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
