@@ -3530,3 +3530,15 @@ consistency; quantum density-matrix metric learning and classical distributional
 DML occupy ensemble covariance geometry; and chemistry's atom-correspondence
 signal has no observed analogue in these image datasets. Full source audit:
 `docs/physics_chemistry_operator_audit_238_2026-08-03.md`.
+
+## SOP claim retraction after candidate 238
+
+The old SOP loader's product-ID-halving defect invalidates every historical SOP
+method comparison. Prior claims that SOP extended the base-adaptive result, that
+PA plateaued canonically at `0.712--0.721`, and that the published PA score was
+hard to reproduce are retracted—not merely caveated. The old generated sets were
+mutually disjoint but disagreed with official membership on 449 products. The
+corrected run must pass artifact-level membership, count, label, self-exclusion,
+and checkpoint-selection checks before its number is accepted; one seed cannot
+support a method conclusion. Full retraction and checklist:
+`docs/sop_claim_retraction_and_validation_2026-08-03.md`.

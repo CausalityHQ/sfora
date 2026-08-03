@@ -914,38 +914,24 @@ higher level: the PA+distill ensemble (**0.9172**) beats the HIST-based HERD ens
 (**0.9026**) — HIST is the weaker Cars base at *both* single-model and ensemble scale,
 so on Cars we ensemble the PA base.
 
-## SOP — a third dataset (a genuine reproduction gap, thoroughly investigated)
+## SOP — historical results retracted pending corrected reruns
 
-Stanford Online Products (11,318 train classes, ResNet-50/512, best-over-training). At
-this scale the **base-adaptive story holds and extends**: Proxy Anchor is again the
-stronger base, and our distillation on it wins.
+**Retraction dated 2026-08-03.** The SOP loader did not use the official
+`Ebay_train.txt`/`Ebay_test.txt` membership. It split lexicographically sorted eBay
+product IDs in half. Although the two generated sets were mutually disjoint, 224
+official test products were placed in the repository's old training set and 225
+official training products in its old test set; image counts were 59,355/60,698 rather
+than 59,551/60,502.
 
-| method (SOP, seed 0) | R@1 | note |
-| --- | ---: | --- |
-| **PA + our distillation** | **~0.72** | stronger base at scale; distill neutral here |
-| HIST-HERD | 0.678 | HIST is weaker at 11k-class scale, as on Cars |
-
-So across all three datasets the pattern is consistent — **HIST wins CUB, Proxy Anchor
-wins Cars and SOP**, and "best base + our distillation" is the method each time.
-
-**Honest caveat: our SOP Proxy Anchor reproduces at ~0.72, ~7.5 pt below the reported
-0.796, and we could not close it.** This is not for lack of trying — we ran a full
-investigation:
-
-- **Hyperparameters (8 configs):** batch 120/180/256, lr 1e-4/2e-4, LR decay
-  γ 0.25/0.5, samples-per-class 2/3/4 (spc=2 sees all 11,317 classes; spc=4 silently
-  excluded 36% of them), the `is_norm` LayerNorm head on/off, 60 vs 90 epochs, and
-  distillation on/off. **Every config plateaus at 0.712–0.721.** is_norm was neutral
-  (0.719); 90 epochs peaked at 0.721 then overfit down.
-- **Implementation audit (code trace):** the Proxy-Anchor loss normalization (positive
-  term over |P⁺|, negative over all 11,318 proxies), proxies excluded from weight decay,
-  the disjoint first-half/second-half class split, the standard `Resize(256)→CenterCrop`
-  eval transform, and the eval protocol (60,698 test images / 11,317 classes ≈ the
-  standard 60,502 / 11,316) are all faithful.
-
-So SOP behaves like HIST (our 0.701 vs reported 0.714) and PFML (collapses): **the
-reported number is hard to reproduce, not a knob we failed to turn.** We report our
-honest ~0.72 as supporting evidence for the base-adaptive finding, **not** a SOTA claim.
+Therefore every historical SOP number in this repository—including PA `0.712–0.721`,
+PA+distillation, HIST-HERD `0.678`, and all tuning comparisons—is **noncanonical and
+must not support a method, reproduction, or cross-dataset claim**. In particular, the
+claims that SOP extended the “base-adaptive” pattern and that the published PA result
+was intrinsically hard to reproduce are withdrawn. A corrected, digest-pinned seed-0
+PA run was preregistered before execution in
+[`sop_official_split_correction_234_2026-08-03.md`](sop_official_split_correction_234_2026-08-03.md).
+No replacement SOP claim will be written until its split membership, exact counts,
+checkpoint-selection semantics, and retrieval evaluation are independently checked.
 
 ## DeepFashion In-Shop and iNaturalist 2018 — dataset support and protocols
 
