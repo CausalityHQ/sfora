@@ -7,6 +7,8 @@ import pytest
 from sfora.data import (
     ImageExample,
     TextExample,
+    _load_huggingface_dataset,
+    _validate_pinned_cub_records,
     load_image_retrieval_bundle,
     load_image_retrieval_examples,
     load_imdb_examples,
@@ -294,6 +296,51 @@ def test_load_image_retrieval_examples_uses_metric_learning_class_split() -> Non
     assert len(examples) == 100
     assert min(example.label for example in examples) == 100
     assert max(example.label for example in examples) == 199
+
+
+def test_cub_huggingface_mirror_is_revision_pinned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import datasets
+
+    calls: list[tuple[str, str, str | None]] = []
+
+    def fake_load_dataset(
+        name: str, *, split: str, revision: str | None
+    ) -> list[dict[str, object]]:
+        calls.append((name, split, revision))
+        return []
+
+    monkeypatch.setattr(datasets, "load_dataset", fake_load_dataset)
+
+    assert list(
+        _load_huggingface_dataset(
+            "bentrevett/caltech-ucsd-birds-200-2011", "train"
+        )
+    ) == []
+    assert calls == [
+        (
+            "bentrevett/caltech-ucsd-birds-200-2011",
+            "train",
+            "1ef09e021b0b65b40337f6f285909656f407f6e0",
+        )
+    ]
+
+
+def test_pinned_cub_runtime_guard_checks_zero_shot_partition_counts() -> None:
+    records = [
+        {"label": label}
+        for label in range(200)
+        for _ in range(
+            (58 + (label < 64)) if label < 100 else (59 + (label < 124))
+        )
+    ]
+
+    _validate_pinned_cub_records(records, label_key="label")
+
+    records[-1]["label"] = 99
+    with pytest.raises(ValueError, match="5864/5924"):
+        _validate_pinned_cub_records(records, label_key="label")
 
 
 def test_select_labeled_image_examples_can_crop_images_to_bbox() -> None:

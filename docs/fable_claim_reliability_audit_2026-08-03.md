@@ -27,11 +27,15 @@ were not accepted as evidence.
 ### Provisional
 
 - CUB PA distillation versus PA is `+0.658` points over six paired seeds, with
-  six of six positive and exact sign `p=0.031`; the honest hypothesis-separated
-  estimate is `+0.43` points. It is not established because both arms used the
-  same non-reference unit-normal proxy initialization, it has no valid
-  second-dataset replication, and no independent CUB corpus/artifact integrity
-  audit exists.
+  six of six positive and exact sign `p=0.031` **under best-over-test-training
+  selection**; the honest hypothesis-separated estimate is `+0.43` points. The
+  2026-08-03 integrity follow-up verified exact official pixels, partition counts,
+  report invariants, and scorer implementation. It also found that final epoch is
+  `+0.836` points but only five of six positive (sign `p=0.219`). The signal remains
+  provisional because both arms used the same non-reference unit-normal proxy
+  initialization, significance is reporting-convention fragile, no historical
+  checkpoint/embedding pack survives for independent rescoring, and it has no valid
+  second-dataset replication.
 - HIST CUB six-seed mean `0.7082`, the CUB EMA factorial, power calculations,
   and several CUB negatives remain shared-harness observations, not verified
   benchmark claims.
@@ -68,7 +72,8 @@ SOTA story. Protected untracked root inputs were not modified.
 
 ## Cheapest next reliability action
 
-Before reusing any CUB result as Gate-1 provenance, perform the same independent
-pixel, partition, artifact-selection, architecture, and scorer audit that caught
-the In-Shop and SOP defects. More seeds do not repair an unverified corpus or
-artifact path.
+Completed in [cub_integrity_audit_2026-08-03.md](cub_integrity_audit_2026-08-03.md):
+the mirror matches all 11,788 official encoded images and labels, the class split and
+report counts pass, and the scorer matches an independent full-sort reference. The
+next deciding benchmark run must retain a digest-bound final checkpoint and embedding
+pack; more seeds do not repair an artifact that cannot be independently rescored.

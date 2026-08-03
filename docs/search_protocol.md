@@ -97,10 +97,13 @@ limitations prevent significance claims about small differences, but they do not
 leave the general benchmark regions open. See
 `docs/open_set_fg_retrieval_horizon_2026-08-01.md`.
 
-Our corrected 512-D reproductions remain **HIST 0.7082, Proxy Anchor 0.6919** on
-CUB and **PA 0.9035, HIST 0.9038** on In-Shop. A novel arm above 0.9038 remains
-the fastest *controlled-recipe screen*, not an overall-SOTA result. Any general
-claim must confront at least 0.766 CUB, 0.949 Cars196, or 0.939 In-Shop under
-comparable capacity.
+Our historical CUB best-over-test-training observations are **HIST 0.7082, Proxy
+Anchor 0.6919**. Exact official pixels, partition, and scorer are now verified, but
+the harness is modified and the artifacts cannot be independently rescored. The old
+In-Shop **PA 0.9035 / HIST 0.9038** threshold is retracted because it used the wrong
+image corpus. Corrected-pixel PA seed 0 is raw `0.9163`, final `0.9137`, which is one
+seed—not a fixed gate. Future In-Shop screens require a same-seed, current-digest
+paired control and retained final artifacts. Any general claim must confront at least
+0.766 CUB, 0.949 Cars196, or 0.939 In-Shop under comparable capacity.
 
 Commit and push after each gate. Report honestly whichever way each candidate goes.

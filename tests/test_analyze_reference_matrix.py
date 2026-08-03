@@ -6,6 +6,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import pytest
+
 _spec = importlib.util.spec_from_file_location(
     "analyze_reference_matrix",
     Path(__file__).resolve().parents[1] / "scripts" / "analyze_reference_matrix.py",
@@ -39,3 +41,18 @@ def test_fiedler_arm_pairs_with_ipc4_sampler_control() -> None:
 def test_rsatk_is_a_standalone_reference_arm() -> None:
     assert _module.ARMS["rsatk"] == ("recall_at_k_surrogate", "auto")
     assert "rsatk" not in _module.BASE_OF
+
+
+def test_exact_sign_test_uses_counts_not_delta_magnitudes() -> None:
+    five_positive_one_negative = [100.0, 1.0, 1.0, 1.0, 1.0, -99.0]
+
+    assert _module.exact_sign_test_p(five_positive_one_negative) == pytest.approx(0.21875)
+    assert _module.exact_sign_test_p([1.0] * 6) == pytest.approx(0.03125)
+    assert _module.exact_sign_test_p([1.0, 1.0, 1.0, -1.0, -1.0, -1.0]) == 1.0
+    assert _module.exact_sign_test_p([0.0, 0.0]) == 1.0
+
+
+def test_paired_permutation_test_remains_separate_from_sign_test() -> None:
+    deltas = [100.0, 1.0, 1.0, 1.0, 1.0, -99.0]
+
+    assert _module.exact_paired_permutation_p(deltas) != _module.exact_sign_test_p(deltas)

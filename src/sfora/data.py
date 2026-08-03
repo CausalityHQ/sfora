@@ -51,6 +51,14 @@ ImageRetrievalProtocol = Literal["self", "query_gallery"]
 ClassPartition = Literal["first_half", "second_half"]
 IMDB_DATASET_ID = "stanfordnlp/imdb"
 
+# Community mirrors are executable inputs to a benchmark.  Pin them just like model
+# code: otherwise the same command can silently train on different pixels later.
+_HF_DATASET_REVISIONS = {
+    "bentrevett/caltech-ucsd-birds-200-2011": (
+        "1ef09e021b0b65b40337f6f285909656f407f6e0"
+    ),
+}
+
 
 @dataclass(frozen=True)
 class ImageRetrievalBundle:
@@ -173,6 +181,8 @@ def load_image_retrieval_examples(
                 )
             else:
                 records.extend(loader(spec.dataset_id, source_split))
+    if dataset_name == "cub" and dataset_loader is None:
+        _validate_pinned_cub_records(records, label_key=spec.label_key)
     if dataset_name == "sop" and dataset_loader is None:
         official_products = _sop_official_product_ids(split)
         records = [
@@ -213,6 +223,26 @@ def load_image_retrieval_examples(
         id_prefix=f"{dataset_name}-{split}",
         crop_bbox=spec.crop_bbox,
     )
+
+
+def _validate_pinned_cub_records(
+    records: Sequence[dict[str, object]], *, label_key: str
+) -> None:
+    """Reject a corrupt or schema-drifted CUB mirror before training begins."""
+    if len(records) != 11_788:
+        raise ValueError(f"pinned CUB mirror has {len(records)} images; expected 11788")
+    counts: dict[int, int] = defaultdict(int)
+    for record in records:
+        counts[_read_image_label(record, label_key)] += 1
+    if set(counts) != set(range(200)):
+        raise ValueError("pinned CUB mirror labels are not exactly 0..199")
+    train_count = sum(count for label, count in counts.items() if label < 100)
+    test_count = sum(count for label, count in counts.items() if label >= 100)
+    if (train_count, test_count) != (5_864, 5_924):
+        raise ValueError(
+            "pinned CUB DML split has "
+            f"{train_count}/{test_count} images; expected 5864/5924"
+        )
 
 
 def _sop_official_product_ids(split: str) -> set[str]:
@@ -853,7 +883,8 @@ def _load_huggingface_dataset(name: str, split: str) -> Iterable[dict[str, objec
             "Install the research extra to load IMDb: uv sync --group dev --extra research"
         ) from error
 
-    dataset = load_dataset(name, split=split)
+    revision = _HF_DATASET_REVISIONS.get(name)
+    dataset = load_dataset(name, split=split, revision=revision)
     return dataset  # type: ignore[no-any-return]
 
 

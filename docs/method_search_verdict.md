@@ -194,9 +194,12 @@ manufacture a method — the fifteen failures and both reviews' other findings s
 it removes a false ceiling, and it is exactly why the claim was worth checking before
 being written into a strategic conclusion.
 
-**A quiet validation, worth recording.** Our HIST reproduction is 70.82 with sd 0.67 over
-six seeds — a 95% interval of roughly 70.1–71.5, which **contains HIST's published
-71.4**. The pipeline reproduces the paper; IDEAL's baseline is the outlier, not ours.
+**A limited consistency check, worth recording.** Our test-selected HIST observation is
+70.82 with sd 0.67 over six seeds — a 95% interval of roughly 70.1–71.5, which contains
+HIST's published 71.4. The official pixels, partition, and scorer are now verified, but
+the historical artifact is not independently rescorable and uses this project's
+modified harness. Therefore “the pipeline reproduces the paper” was too strong; the
+result is numerically consistent with the paper.
 
 ## 6. RETRACTED: local peak gap was mislabeled as selection correction
 
@@ -209,6 +212,16 @@ and that corrected rankings reversed are withdrawn. The numeric gaps remain usab
 only as descriptive local-peak diagnostics. Future Gate 6 decisions require an
 independently selected/frozen checkpoint. Full audit and synthetic falsifiers:
 `docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
+
+**2026-08-03 convention audit.** The same six paired CUB artifacts give
+`pa_distill − proxy_anchor = +0.658 pt`, 6/6 positive, sign `p=0.03125` when each
+run is selected by its best test epoch. At final epoch they give **+0.836 pt but only
+5/6 positive, sign `p=0.21875`**. The mean signal remains, but the assumption-free
+significance claim is reporting-convention fragile. Final epoch is not a bias
+correction; it is a sensitivity analysis. The audit also found that the function named
+`exact_sign_test_p` was a magnitude-weighted paired randomisation test. The analyzer
+now reports the binomial sign test and paired randomisation test separately. See
+`docs/cub_integrity_audit_2026-08-03.md`.
 
 ### Historical text retained for provenance; interpretations below are superseded
 

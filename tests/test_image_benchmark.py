@@ -176,6 +176,47 @@ def test_image_self_retrieval_map_at_r_penalizes_late_relevant_neighbors() -> No
     assert score.mean_relevant_items == pytest.approx(1.0)
 
 
+def test_image_self_retrieval_matches_independent_full_sort_reference() -> None:
+    """Exercise the chunk/argpartition implementation against literal retrieval math."""
+    rng = np.random.default_rng(20260803)
+    labels = np.repeat(np.arange(7, dtype=np.int64), [5, 6, 7, 8, 9, 10, 11])
+    embeddings = rng.normal(size=(labels.size, 13))
+    embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+    observed = image_self_retrieval_score(embeddings, labels)
+
+    recalls = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
+    average_precisions = []
+    relevant_counts = []
+    for query_index, query in enumerate(embeddings):
+        distances = np.sum((embeddings - query) ** 2, axis=1)
+        distances[query_index] = np.inf
+        order = np.argsort(distances, kind="stable")
+        ordered_matches = labels[order] == labels[query_index]
+        relevant_count = int((labels == labels[query_index]).sum() - 1)
+        relevant_counts.append(relevant_count)
+        for cutoff in recalls:
+            recalls[cutoff].append(float(ordered_matches[:cutoff].any()))
+        top_r = ordered_matches[:relevant_count]
+        relevant_ranks = np.flatnonzero(top_r) + 1
+        average_precisions.append(
+            sum(float(top_r[:rank].sum() / rank) for rank in relevant_ranks)
+            / relevant_count
+        )
+
+    assert observed.recall_at_1 == pytest.approx(np.mean(recalls[1]))
+    assert observed.recall_at_2 == pytest.approx(np.mean(recalls[2]))
+    assert observed.recall_at_4 == pytest.approx(np.mean(recalls[4]))
+    assert observed.recall_at_8 == pytest.approx(np.mean(recalls[8]))
+    assert observed.recall_at_10 == pytest.approx(np.mean(recalls[10]))
+    assert observed.recall_at_20 == pytest.approx(np.mean(recalls[20]))
+    assert observed.recall_at_30 == pytest.approx(np.mean(recalls[30]))
+    assert observed.map_at_r == pytest.approx(np.mean(average_precisions))
+    assert observed.mean_relevant_items == pytest.approx(np.mean(relevant_counts))
+    assert observed.evaluated_queries == labels.size
+    assert observed.total_queries == labels.size
+
+
 def test_image_self_retrieval_query_limit_uses_deterministic_subset() -> None:
     embeddings = np.asarray([[float(index), 0.0] for index in range(12)], dtype=np.float64)
     labels = np.asarray([0] * 4 + [1] * 4 + [2] * 4, dtype=np.int64)

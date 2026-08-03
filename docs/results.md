@@ -182,8 +182,10 @@ implementation as much as the idea.
 ### The properly paired CUB picture at SIX seeds (supersedes the 3-seed tables below)
 
 Both CUB legs were taken to six paired seeds on 2026-07-30. This is the authoritative
-CUB record; the 3-seed tables that follow are kept because they document how the
-conclusions changed, not because their numbers should be quoted.
+record of those **shared-harness, best-over-test-training artifacts**; it is not a
+reference-faithful benchmark claim. The 3-seed tables that follow are kept because
+they document how the conclusions changed, not because their numbers should be
+quoted.
 
 | arm | s0 | s1 | s2 | s3 | s4 | s5 | mean | sd |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -197,11 +199,22 @@ conclusions changed, not because their numbers should be quoted.
 | `pa_distill` − `proxy_anchor` | +0.91 +1.03 +0.73 +0.32 +0.86 +0.10 | **+0.658** | 0.367 | **6/6** | +4.39 | 0.0070 | **0.031** |
 | `herd` − `hist` | −0.27 +0.34 −0.15 −0.39 +1.50 +0.76 | +0.298 | 0.729 | 3/6 | +1.00 | 0.36 | 1.000 |
 
-**One real effect, and one lesson about how it was nearly overstated.**
+An independent corpus/artifact audit on 2026-08-03 verified exact official CUB pixels,
+the 5,864/5,924 class split, and the scorer, but found that the sign-test conclusion is
+selection-convention fragile. The same artifacts at final epoch give Proxy Anchor
+`0.6789`, PA distillation `0.6873`, HIST `0.7039`, and HERD `0.7063`. Thus PA
+distillation is **+0.836 pt but only 5/6 positive (sign p=0.219)** at final epoch;
+HERD − HIST is +0.239 pt, 4/6 positive (sign p=0.688). Final epoch is a sensitivity
+analysis, not a selection correction. See
+[cub_integrity_audit_2026-08-03.md](cub_integrity_audit_2026-08-03.md).
 
-EMA self-distillation on Proxy Anchor/CUB is **real**: six of six seeds positive gives
-an assumption-free sign-test p = 0.031, the bar set in advance in
-[headroom_hypothesis.md](headroom_hypothesis.md). But the size shrank badly once seeds
+**One shared-harness signal, and one lesson about how it was nearly overstated.**
+
+Under the preregistered best-over-test-training convention, EMA self-distillation on
+Proxy Anchor/CUB is six of six positive with an assumption-free sign-test p = 0.031,
+the bar set in advance in [headroom_hypothesis.md](headroom_hypothesis.md). That
+significance does not survive the final-epoch convention, so it must not be called a
+convention-robust effect. Its raw-best size also shrank badly once seeds
 that had not generated the hypothesis arrived — in-sample (0–2) **+0.890**,
 out-of-sample (3–5) **+0.427**. Quote **+0.43 pt**, not +0.89. The screening estimate
 was inflated by more than a factor of two, and the paired sd it was computed against

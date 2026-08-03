@@ -13,7 +13,7 @@ bootstrap resamples from 3 points and its CI is an artifact of that fact. What
 
   * every paired delta and its mean (the effect size);
   * the seed spread of the base arm, so the reader can judge effect vs noise;
-  * an exact paired sign/permutation test, whose two-sided floor is
+  * an exact paired sign test, whose two-sided floor is
     p = 2^-(n-1). For n=3 the smallest attainable p is 0.25 - i.e. **3 seeds can
     never reach p<0.05**, no matter how large the effect.
 
@@ -109,6 +109,7 @@ class Run:
     """One current-digest reference-recipe run."""
 
     best: float
+    final: float
     recipe_id: str
     layer_norm: object
     path: str
@@ -161,9 +162,13 @@ def collect(report_dir: Path) -> dict[tuple[str, str, int], Run]:
             superseded += 1
             continue
         scores = [
-            float(cast(float, m.get("best_test_recall_at_1")))
+            (
+                float(cast(float, m.get("best_test_recall_at_1"))),
+                float(cast(float, m.get("recall_at_1"))),
+            )
             for m in (payload.get("methods") or {}).values()
             if isinstance(m.get("best_test_recall_at_1"), (int, float))
+            and isinstance(m.get("recall_at_1"), (int, float))
         ]
         if not scores or dataset is None or seed is None:
             continue
@@ -173,8 +178,10 @@ def collect(report_dir: Path) -> dict[tuple[str, str, int], Run]:
                 f"Duplicate current-digest artifact for {key}: "
                 f"{found[key].path} and {path.name}. Refusing to guess."
             )
+        best, final = max(scores, key=lambda values: values[0])
         found[key] = Run(
-            best=max(scores),
+            best=best,
+            final=final,
             recipe_id=str(recipe_id),
             layer_norm=config.get("embedding_layer_norm"),
             path=path.name,
@@ -185,7 +192,19 @@ def collect(report_dir: Path) -> dict[tuple[str, str, int], Run]:
 
 
 def exact_sign_test_p(deltas: list[float]) -> float:
-    """Two-sided exact paired permutation p-value over sign flips."""
+    """Two-sided exact binomial sign test, discarding exact zero differences."""
+    nonzero = [delta for delta in deltas if delta != 0.0]
+    n = len(nonzero)
+    if n == 0:
+        return 1.0
+    positives = sum(delta > 0.0 for delta in nonzero)
+    tail = min(positives, n - positives)
+    probability = 2.0 * sum(math.comb(n, count) for count in range(tail + 1)) / (2**n)
+    return float(min(1.0, probability))
+
+
+def exact_paired_permutation_p(deltas: list[float]) -> float:
+    """Two-sided paired randomization p-value over magnitude-preserving sign flips."""
     n = len(deltas)
     if n == 0:
         return float("nan")
@@ -293,16 +312,24 @@ def main() -> int:
         print(f"\n## {dataset}   seeds present: {seeds}")
 
         header = "".join(f"{'seed ' + str(s):>10}" for s in seeds)
-        print(f"\n  {'arm':<14}{header}{'mean':>10}{'sd':>9}")
-        for arm in ARM_ORDER:
-            row = [found.get((dataset, arm, s)) for s in seeds]
-            cells = "".join(f"{rec.best:>10.4f}" if rec else f"{'-':>10}" for rec in row)
-            present = [rec.best for rec in row if rec]
-            if present:
-                mean, sd = summarize(present)
-                print(f"  {arm:<14}{cells}{mean:>10.4f}{sd:>9.4f}")
-            else:
-                print(f"  {arm:<14}{cells}{'-':>10}{'-':>9}")
+        for metric, title in (
+            ("best", "raw best-over-test-training R@1"),
+            ("final", "final-epoch R@1 (descriptive; not a bias correction)"),
+        ):
+            print(f"\n  {title}")
+            print(f"  {'arm':<14}{header}{'mean':>10}{'sd':>9}")
+            for arm in ARM_ORDER:
+                row = [found.get((dataset, arm, s)) for s in seeds]
+                cells = "".join(
+                    f"{getattr(rec, metric):>10.4f}" if rec else f"{'-':>10}"
+                    for rec in row
+                )
+                present = [getattr(rec, metric) for rec in row if rec]
+                if present:
+                    mean, sd = summarize(present)
+                    print(f"  {arm:<14}{cells}{mean:>10.4f}{sd:>9.4f}")
+                else:
+                    print(f"  {arm:<14}{cells}{'-':>10}{'-':>9}")
 
         # Guard: the legacy confound was an unequal LayerNorm setting across arms.
         for derived, base in BASE_OF.items():
@@ -320,17 +347,30 @@ def main() -> int:
 
         print("\n  paired effect (derived - declared control), R@1 points:")
         for derived, base in BASE_OF.items():
-            deltas = [
-                100.0 * (found[(dataset, derived, s)].best - found[(dataset, base, s)].best)
+            paired_seeds = [
+                s
                 for s in seeds
                 if (dataset, derived, s) in found and (dataset, base, s) in found
             ]
-            if not deltas:
+            if not paired_seeds:
                 print(f"    {derived:<12} vs {base:<13} - incomplete")
                 continue
+            deltas_by_metric = {
+                metric: [
+                    100.0
+                    * (
+                        getattr(found[(dataset, derived, s)], metric)
+                        - getattr(found[(dataset, base, s)], metric)
+                    )
+                    for s in paired_seeds
+                ]
+                for metric in ("best", "final")
+            }
+            deltas = deltas_by_metric["best"]
             mean, sd = summarize(deltas)
             per_seed = ", ".join(f"{d:+.2f}" for d in deltas)
             p_sign = exact_sign_test_p(deltas)
+            p_permutation = exact_paired_permutation_p(deltas)
             t, p_t = paired_t(deltas)
             # A single seed cannot pass a gate that is partly about consistency.
             if len(deltas) < 3:
@@ -345,8 +385,20 @@ def main() -> int:
             )
             print(
                 f"      paired t={t:+.2f} (df={len(deltas) - 1}) p_t={p_t:.4f}   "
-                f"exact sign p={p_sign:.3f}   "
+                f"exact sign p={p_sign:.3f}   permutation p={p_permutation:.3f}   "
                 f"gate(>={args.gate:+.2f} & all-positive): {verdict}"
+            )
+            final = deltas_by_metric["final"]
+            final_mean, final_sd = summarize(final)
+            final_per_seed = ", ".join(f"{d:+.2f}" for d in final)
+            final_sign = exact_sign_test_p(final)
+            final_permutation = exact_paired_permutation_p(final)
+            final_t, final_p_t = paired_t(final)
+            print(
+                f"      final epoch (not bias-corrected): [{final_per_seed}]  "
+                f"mean {final_mean:+.3f}  sd {final_sd:.3f}  "
+                f"t={final_t:+.2f} p_t={final_p_t:.4f}  sign p={final_sign:.3f}  "
+                f"permutation p={final_permutation:.3f}"
             )
 
     print("\n" + "-" * 78)
