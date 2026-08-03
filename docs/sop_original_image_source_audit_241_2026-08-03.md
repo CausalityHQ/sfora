@@ -48,3 +48,12 @@ This avoids holding decoded originals in RAM and avoids JPEG re-encoding.
 Tests lock the source revision and byte-preserving materialization. No GPU run
 is admissible until a CPU preflight finishes extraction and validates dimensions
 and counts.
+
+## Preflight result
+
+The remote CPU preflight passed before the next GPU launch. It observed exactly
+59,551 images / 11,318 products in train and 60,502 / 11,316 in test, with zero
+product overlap. All 256 deterministically sampled images were not 224×224; the
+sample contained dimensions from 197×400 through 1600×1600. The byte-preserved
+cache occupies 3.2 GiB. The machine-readable artifact is
+`reports/generated/sop_original_source_preflight.json` on the DGX.
