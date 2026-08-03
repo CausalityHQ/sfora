@@ -4146,3 +4146,11 @@ persisted from epoch 10 to final for 64.99% of corrected In-Shop samples.
 Persistent relations had 0.4518% final leave-one-out error versus 0.5849% for
 changing relations, only a 0.133-point single-trajectory difference. This does
 not support a causal candidate.
+
+## 318. Bio-physical bond objective
+
+**DEAD at Gate 1; no implementation or GPU.** The unqueued repository objective
+combines a Lennard-Jones proxy shell with coding-rate regularization. Corrected
+In-Shop geometry shows no collapse premise: within-class cosine q10/median are
+0.6030/0.7701 (range 0.4031–0.99998), and proxy-margin failures are only 0.108%.
+The intervention is not measurement-motivated.
