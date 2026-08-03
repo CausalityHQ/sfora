@@ -3814,3 +3814,15 @@ superclass enrichment cannot revive hierarchical DML; raw-to-final gaps cannot r
 the retracted selection estimator or leakage-prone stopping. Only a new independently
 validated observable outside the planned table may reopen candidate generation. Full
 matrix: `docs/sop_outcome_decision_matrix_279_2026-08-03.md`.
+
+## 280. Multirate proxy/cache optimization
+
+**DEAD at Gate 2; no implementation or GPU.** The measured operation count establishes
+that BN-Inception, not Proxy Anchor's roughly 2.086-GFLOP proxy matrix, is the speed
+bottleneck. A molecular-dynamics-inspired proposal would refresh expensive image
+embeddings sparsely while taking cheap proxy-only steps against a cache. Cross-Batch
+Memory already establishes stale cached embeddings as DML training state, while
+ASAP/CCP-DML establishes alternating proxy-defined optimization. Their combination is
+ordinary block-coordinate optimization, changes no supervision, and provides no
+measured reason that skipped backbone gradients preserve quality. Full audit:
+`docs/multirate_proxy_cache_audit_280_2026-08-03.md`.
