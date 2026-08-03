@@ -37,9 +37,11 @@ def test_generic_report_identity_comes_from_artifact_metadata(tmp_path: Path) ->
         "config": {
             "dataset_name": "sop",
             "recipe_digest": "6212b9499c00cf19deadbeef",
+            "recipe_base_method": "proxy_anchor",
+            "recipe_delta": {},
             "seed": 0,
         },
-        "methods": {"proxy_anchor": {}},
+        "methods": {"proxy_anchor_end_to_end:bn_inception": {}},
     }
 
     assert artifact_identity(path, payload) == ("sop", "proxy_anchor", "6212b9499c00", 0)

@@ -84,7 +84,14 @@ def _artifact_identity(path: Path, payload: dict[str, Any]) -> tuple[str, str, s
     dataset = config.get("dataset_name")
     digest = config.get("recipe_digest")
     seed = config.get("seed")
-    arm = next(iter(methods))
+    method_key = next(iter(methods))
+    recipe_base_method = config.get("recipe_base_method")
+    recipe_delta = config.get("recipe_delta")
+    arm = (
+        recipe_base_method
+        if isinstance(recipe_base_method, str) and recipe_delta in ({}, None)
+        else method_key
+    )
     if (
         not isinstance(dataset, str)
         or not isinstance(arm, str)
