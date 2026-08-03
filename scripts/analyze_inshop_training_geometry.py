@@ -77,6 +77,9 @@ def analyze(
     nearest_positive = np.full(len(labels), -np.inf)
     nearest_foreign = np.full(len(labels), -np.inf)
     loo_correct = np.zeros(len(labels), dtype=bool)
+    unique_labels, class_counts = np.unique(labels, return_counts=True)
+    count_by_label = dict(zip(unique_labels.tolist(), class_counts.tolist(), strict=True))
+    positive_eligible = np.asarray([count_by_label[int(label)] >= 2 for label in labels])
     for start in range(0, len(labels), chunk_size):
         stop = min(start + chunk_size, len(labels))
         similarity = embeddings[start:stop] @ embeddings.T
@@ -98,24 +101,27 @@ def analyze(
     fragmented = 0
     eligible = 0
     class_sizes: list[int] = []
-    for label in np.unique(labels):
+    for label in unique_labels:
         members = embeddings[labels == label]
         class_sizes.append(len(members))
         similarity = members @ members.T
         upper = np.triu_indices(len(members), 1)
-        positive_cosines.append(similarity[upper])
+        if len(members) >= 2:
+            positive_cosines.append(similarity[upper])
         if len(members) >= 3:
             eligible += 1
             fragmented += int(_is_fragmented(similarity))
 
     pair_cosine = np.concatenate(positive_cosines)
-    sample_margin = nearest_positive - nearest_foreign
+    sample_margin = nearest_positive[positive_eligible] - nearest_foreign[positive_eligible]
     proxy_margin = true_proxy - foreign_proxy
     return {
         "rows": len(labels),
-        "classes": len(np.unique(labels)),
-        "leave_one_out_recall_at_1": float(loo_correct.mean()),
-        "nearest_positive_cosine": _quantiles(nearest_positive),
+        "classes": len(unique_labels),
+        "positive_eligible_rows": int(positive_eligible.sum()),
+        "singleton_rows": int((~positive_eligible).sum()),
+        "leave_one_out_recall_at_1": float(loo_correct[positive_eligible].mean()),
+        "nearest_positive_cosine": _quantiles(nearest_positive[positive_eligible]),
         "nearest_foreign_cosine": _quantiles(nearest_foreign),
         "nearest_positive_minus_foreign_margin": _quantiles(sample_margin),
         "negative_sample_margin_fraction": float(np.mean(sample_margin < 0.0)),

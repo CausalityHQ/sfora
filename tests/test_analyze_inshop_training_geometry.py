@@ -45,6 +45,28 @@ def test_fragmentation_detects_two_components() -> None:
     assert _module._is_fragmented(similarity) is True
 
 
+def test_singleton_is_excluded_from_positive_margin_and_loo() -> None:
+    embeddings = np.asarray(
+        [[1.0, 0.0], [0.9, 0.1], [0.8, 0.2], [-1.0, 0.0]], dtype=np.float64
+    )
+    embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
+    result = _module.analyze(
+        embeddings,
+        np.asarray([10, 10, 10, 20]),
+        np.asarray([[1.0, 0.0], [-1.0, 0.0]]),
+        np.asarray([10, 20]),
+        chunk_size=2,
+    )
+
+    assert result["positive_eligible_rows"] == 3
+    assert result["singleton_rows"] == 1
+    assert result["leave_one_out_recall_at_1"] == 1.0
+    assert all(
+        np.isfinite(value)
+        for value in result["nearest_positive_minus_foreign_margin"].values()
+    )
+
+
 def test_scalar_string_rejects_vector() -> None:
     with pytest.raises(ValueError, match="scalar"):
         _module._scalar_string(np.asarray(["train"]))
