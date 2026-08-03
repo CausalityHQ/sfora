@@ -106,6 +106,9 @@ def main() -> None:
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
     if checkpoint.get("artifact_selection") != "final_training_state":
         raise ValueError("checkpoint is not explicitly labeled as a final training state")
+    expected_training_config = config.model_dump(mode="json")
+    if checkpoint.get("training_config") != expected_training_config:
+        raise ValueError("checkpoint training_config does not match the report config")
 
     bundle = load_image_retrieval_bundle(
         dataset_name="inshop",

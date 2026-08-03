@@ -3695,3 +3695,13 @@ signal would require instrumented training rather than a free diagnostic. Datase
 Cartography and forgetting-event work establish training dynamics as a sample signal,
 but prior art is not the deciding issue: the proposal has no measured provenance here.
 Full audit: `docs/developmental_timing_gate_audit_268_2026-08-03.md`.
+
+## 269. Checkpoint-to-report configuration binding defect
+
+Checkpoint architecture and step checks did not bind weights to the report's exact
+resolved recipe. New checkpoints now persist the full JSON-mode training config, and
+the final SOP/In-Shop exporters require exact equality. The already-running corrected
+SOP reference predates the repair and must retain an explicit artifact-binding caveat;
+the queued In-Shop reference will use the repaired path. This is an artifact-provenance
+repair, not a method candidate or score change. Full audit:
+`docs/checkpoint_config_binding_audit_269_2026-08-03.md`.

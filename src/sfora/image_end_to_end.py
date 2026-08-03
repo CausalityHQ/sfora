@@ -1673,6 +1673,10 @@ def run_image_end_to_end_benchmark(
                     "artifact_selection": artifact_selection,
                     "training_step": persisted_step,
                     "evaluation_model_source": evaluation_model_source,
+                    # Bind the weights to the exact resolved run configuration.  An
+                    # architecture/step match alone cannot distinguish recipes that
+                    # happen to share both values.
+                    "training_config": config.model_dump(mode="json"),
                 },
                 config.save_model_path,
             )

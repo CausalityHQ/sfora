@@ -7613,31 +7613,32 @@ def _averaging_probe_run(
     out = tmp_path / f"emb-{ema_weight_averaging}.npz"
     train_out = tmp_path / f"train-emb-{ema_weight_averaging}.npz"
     checkpoint_out = tmp_path / f"model-{ema_weight_averaging}.pt"
+    run_config = ImageEndToEndConfig(
+        dataset_name="cub",
+        protocol="sota-resnet50-512",
+        objectives=("proxy_anchor",),
+        proxy_count_per_class=1,
+        backbone_name="tiny",
+        embedding_dimensions=2,
+        batch_size=4,
+        eval_batch_size=4,
+        train_steps=4,
+        learning_rate=0.5,
+        group_size=1,
+        progress_every=0,
+        num_workers=0,
+        # momentum 1.0 freezes the teacher at initialisation, so "did we score the
+        # teacher?" becomes "do the embeddings equal the untrained model's?".
+        ema_momentum=1.0,
+        ema_weight_averaging=ema_weight_averaging,
+        save_test_embeddings=str(out),
+        save_train_embeddings=str(train_out),
+        save_model_path=str(checkpoint_out),
+    )
     run_image_end_to_end_benchmark(
         train_examples=examples,
         test_examples=examples,
-        config=ImageEndToEndConfig(
-            dataset_name="cub",
-            protocol="sota-resnet50-512",
-            objectives=("proxy_anchor",),
-            proxy_count_per_class=1,
-            backbone_name="tiny",
-            embedding_dimensions=2,
-            batch_size=4,
-            eval_batch_size=4,
-            train_steps=4,
-            learning_rate=0.5,
-            group_size=1,
-            progress_every=0,
-            num_workers=0,
-            # momentum 1.0 freezes the teacher at initialisation, so "did we score the
-            # teacher?" becomes "do the embeddings equal the untrained model's?".
-            ema_momentum=1.0,
-            ema_weight_averaging=ema_weight_averaging,
-            save_test_embeddings=str(out),
-            save_train_embeddings=str(train_out),
-            save_model_path=str(checkpoint_out),
-        ),
+        config=run_config,
         model_factory=lambda config: FixedModel(),
         transform_factory=transform_factory,
     )
@@ -7667,7 +7668,7 @@ def _averaging_probe_run(
     with torch.no_grad():
         saved_raw = persisted(torch.tensor([e.image for e in examples], dtype=torch.float32))
     saved = (saved_raw / saved_raw.norm(dim=1, keepdim=True)).numpy().astype(np.float64)
-    return scored, untrained.numpy().astype(np.float64), saved, checkpoint
+    return scored, untrained.numpy().astype(np.float64), saved, checkpoint, run_config
 
 
 def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
@@ -7679,7 +7680,7 @@ def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
     still is after any number of student updates."""
     torch: Any = pytest.importorskip("torch")
 
-    scored, untrained, saved, checkpoint = _averaging_probe_run(
+    scored, untrained, saved, checkpoint, run_config = _averaging_probe_run(
         tmp_path, torch=torch, ema_weight_averaging=True
     )
 
@@ -7687,6 +7688,7 @@ def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
     np.testing.assert_allclose(saved, scored, atol=1e-6)
     assert checkpoint["evaluation_model_source"] == "ema_weight_average"
     assert checkpoint["artifact_selection"] == "final_training_state"
+    assert checkpoint["training_config"] == run_config.model_dump(mode="json")
     assert checkpoint["training_step"] == 4
 
 
@@ -7734,7 +7736,7 @@ def test_without_averaging_the_student_is_scored_and_training_moves_it(
     anything and is passing for the wrong reason."""
     torch: Any = pytest.importorskip("torch")
 
-    scored, untrained, saved, checkpoint = _averaging_probe_run(
+    scored, untrained, saved, checkpoint, _ = _averaging_probe_run(
         tmp_path, torch=torch, ema_weight_averaging=False
     )
 
