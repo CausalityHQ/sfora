@@ -56,3 +56,12 @@ Protected untracked handoff/spec files, ignored reports, the dirty historical
 checkout, and all local uncommitted state are excluded by construction. Record
 hashes of the deployed recipe, trainer, data loader, runner, and exporter with
 the result.
+
+**Pre-training path correction.** The first controller invocation exited before
+model construction because its inherited default `/home/riomus/datasets/inshop`
+resolves to the quarantined `img_highres` tree. The current loader caught this
+as intended; no report, checkpoint, step, or GPU work was produced. The
+digest-bound corrected seed-0 report identifies the authoritative root as
+`/home/riomus/datasets/inshop_official_standard`. The runner is corrected to
+that exact path before relaunch; the recipe, prediction, and all other settings
+remain unchanged.

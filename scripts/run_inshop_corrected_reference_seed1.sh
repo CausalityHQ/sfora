@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_DIR="${PROJECT_DIR:-/home/riomus/sfora-inshop-seed1}"
 PYTHON_BIN="${PYTHON_BIN:-/home/riomus/group-learning/.venv/bin/python}"
 SFORA_BIN="${SFORA_BIN:-/home/riomus/group-learning/.venv/bin/sfora}"
-DATASET_ROOT="${DATASET_ROOT:-/home/riomus/datasets/inshop}"
+DATASET_ROOT="${DATASET_ROOT:-/home/riomus/datasets/inshop_official_standard}"
 REPORT_REL="reports/generated/inshop_corrected_pa_seed1.json"
 CHECKPOINT_REL="reports/checkpoints/inshop_corrected_pa_seed1.pt"
 
