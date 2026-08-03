@@ -44,34 +44,50 @@ ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && env PYTHONPATH=src '$REMOTE_PYTHON' 
   --batch-size 128 \
   --num-workers 8"
 
-ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && env PYTHONPATH=src '$REMOTE_PYTHON' \
-  scripts/export_final_cars_embeddings.py \
-  --checkpoint '$CHECKPOINT_REL' \
-  --report '$REPORT_REL' \
-  --split train \
-  --output '$TRAIN_PACK_REL' \
-  --batch-size 128 \
-  --num-workers 8"
+metric_gate_decision="$(ssh "$REMOTE_HOST" "'$REMOTE_PYTHON' -c \
+  'import json, sys; print(json.load(open(sys.argv[1], encoding=\"utf-8\"))[\"decision\"])' \
+  '$REMOTE_PROJECT/$SCALAR_REL'")"
 
-ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && '$REMOTE_PYTHON' \
-  scripts/analyze_pfml_final_field.py \
-  --checkpoint '$CHECKPOINT_REL' \
-  --report '$REPORT_REL' \
-  --train-pack '$TRAIN_PACK_REL' \
-  --output '$FIELD_REL'"
+if [[ "$metric_gate_decision" == "passes_fixed_interpretation_metric_gates" ]]; then
+  ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && env PYTHONPATH=src '$REMOTE_PYTHON' \
+    scripts/export_final_cars_embeddings.py \
+    --checkpoint '$CHECKPOINT_REL' \
+    --report '$REPORT_REL' \
+    --split train \
+    --output '$TRAIN_PACK_REL' \
+    --batch-size 128 \
+    --num-workers 8"
+
+  ssh "$REMOTE_HOST" "cd '$REMOTE_PROJECT' && '$REMOTE_PYTHON' \
+    scripts/analyze_pfml_final_field.py \
+    --checkpoint '$CHECKPOINT_REL' \
+    --report '$REPORT_REL' \
+    --train-pack '$TRAIN_PACK_REL' \
+    --output '$FIELD_REL'"
+elif [[ "$metric_gate_decision" == "fails_fixed_interpretation_metric_gates" ]]; then
+  echo "PFML fixed interpretation failed; skipping unauthorized train export and field census"
+else
+  echo "unexpected PFML scalar decision: $metric_gate_decision" >&2
+  exit 1
+fi
 
 mkdir -p reports/generated reports/emb
 scp "$REMOTE_HOST:$REMOTE_PROJECT/$REPORT_REL" "reports/generated/"
-scp "$REMOTE_HOST:$REMOTE_PROJECT/$FIELD_REL" "reports/generated/"
 scp "$REMOTE_HOST:$REMOTE_PROJECT/$SCALAR_REL" "reports/generated/"
-scp "$REMOTE_HOST:$REMOTE_PROJECT/$TRAIN_PACK_REL" "reports/emb/"
 scp "$REMOTE_HOST:$REMOTE_PROJECT/$TEST_PACK_REL" "reports/emb/"
+if [[ "$metric_gate_decision" == "passes_fixed_interpretation_metric_gates" ]]; then
+  scp "$REMOTE_HOST:$REMOTE_PROJECT/$FIELD_REL" "reports/generated/"
+  scp "$REMOTE_HOST:$REMOTE_PROJECT/$TRAIN_PACK_REL" "reports/emb/"
+fi
 
 ssh "$REMOTE_HOST" "sha256sum \
   '$REMOTE_PROJECT/src/sfora/data.py' \
   '$REMOTE_PROJECT/$REPORT_REL' \
   '$REMOTE_PROJECT/$CHECKPOINT_REL' \
-  '$REMOTE_PROJECT/$TRAIN_PACK_REL' \
   '$REMOTE_PROJECT/$TEST_PACK_REL' \
-  '$REMOTE_PROJECT/$FIELD_REL' \
   '$REMOTE_PROJECT/$SCALAR_REL'"
+if [[ "$metric_gate_decision" == "passes_fixed_interpretation_metric_gates" ]]; then
+  ssh "$REMOTE_HOST" "sha256sum \
+    '$REMOTE_PROJECT/$TRAIN_PACK_REL' \
+    '$REMOTE_PROJECT/$FIELD_REL'"
+fi
