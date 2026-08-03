@@ -3484,3 +3484,26 @@ rejected because every possible outcome feeds an occupied Fourier augmentation
 operator. Reopening still requires SOP, an allowed new annotation channel, a
 vacated specific prior-art ruling, or an on-manifold causal measurement whose
 outcomes are preregistered to authorize an unoccupied operator.
+
+## 234--236. SOP correction and post-reopening operator audits
+
+The SOP reopening first uncovered a benchmark defect rather than a method: the
+loader used lexicographic halves of eBay product IDs instead of the official
+metadata. The two old sets were mutually disjoint, but 224 official test products
+were assigned to old training and 225 official training products to old test.
+This is a membership error, not leakage. The corrected split and preregistered
+baseline are documented in `docs/sop_official_split_correction_234_2026-08-03.md`.
+
+Embedding-derived SOP supervision then produced no surviving operator (candidate
+235): ecological rarefaction becomes class weighting/proxy shrinkage; packing
+statistics become uniformity or spectral regularization; graph non-reciprocity
+becomes mining or similarity correction; and the observed `super_class_id`
+channel is occupied by HPL/HIER/Divide-and-Conquer. Full audit:
+`docs/sop_structural_operator_audit_235_2026-08-03.md`.
+
+Candidate 236, control-theoretic fast-proxy elimination, is **DEAD at Gate 2**.
+A virtual proxy step followed by an encoder response is generic block-coordinate
+or extragradient optimization. ASAP-DML already alternates proxy problems and
+projections, while Robust Calibrate Proxy directly corrects learned proxies from
+sample statistics. Changing update order supplies no DML-specific residual
+mechanism. Full audit: `docs/proxy_fast_variable_audit_236_2026-08-03.md`.
