@@ -42,6 +42,9 @@ the reproduction gap. An intermediate change is recorded without a causal
 claim. This run repairs the benchmark and may provide new training-split
 measurements; it is not itself a novel-method experiment.
 
-The corrected run must save the model and training embeddings so subsequent
-hypotheses use official training identities only. No method screen is authorized
-until those measurements produce an operator that survives prior-art review.
+The corrected run saves a final model and training embeddings. A live code audit
+then found the embeddings are taken at the best-test epoch, not the final model;
+they are retained for provenance but **must not generate hypotheses**. Separate
+official-training embeddings will be exported from the final checkpoint. No
+method screen is authorized until those uncontaminated measurements produce an
+operator that survives prior-art review.

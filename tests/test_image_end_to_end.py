@@ -7513,6 +7513,7 @@ def _averaging_probe_run(
         ImageExample(example_id="1-b", image=[0.1, 0.9], label=1),
     ]
     out = tmp_path / f"emb-{ema_weight_averaging}.npz"
+    train_out = tmp_path / f"train-emb-{ema_weight_averaging}.npz"
     run_image_end_to_end_benchmark(
         train_examples=examples,
         test_examples=examples,
@@ -7535,12 +7536,19 @@ def _averaging_probe_run(
             ema_momentum=1.0,
             ema_weight_averaging=ema_weight_averaging,
             save_test_embeddings=str(out),
+            save_train_embeddings=str(train_out),
         ),
         model_factory=lambda config: FixedModel(),
         transform_factory=transform_factory,
     )
     with np.load(out) as payload:
         scored = np.asarray(payload["embeddings"], dtype=np.float64)
+    with np.load(train_out) as payload:
+        assert str(payload["artifact_selection"]) in {
+            "best_test_recall_at_1",
+            "final_no_periodic_test_evaluation",
+        }
+        assert int(payload["artifact_epoch"]) >= 1
 
     reference = FixedModel()
     with torch.no_grad():

@@ -25,12 +25,23 @@ configuration intent:
    artifact;
 4. reported R@1 is leave-one-out self-retrieval on the official test split and
    excludes the query itself;
-5. `best_test_recall_at_1` is explicitly labeled best-over-training, while the
-   saved model/training embeddings are identified as final-step unless the code
-   proves otherwise;
+5. `best_test_recall_at_1` is explicitly labeled best-over-training. Code trace
+   found that `save_train_embeddings` is also overwritten at each new best-test
+   epoch, while `save_model_path` stores the final model. Therefore the running
+   embedding artifact is test-selected and cannot generate a hypothesis; export
+   separate embeddings from the final checkpoint after training;
 6. the historical `0.72147` comparison is used only for the preregistered split
    correction check, never as a valid benchmark baseline;
 7. no method conclusion is drawn from one corrected seed.
 
 The ongoing corrected baseline is a benchmark repair and measurement source, not
 a novel-method result.
+
+## Audit correction made while the run was live
+
+The initially armed structural controller was cancelled before it ran because it
+would have consumed the test-selected training embeddings. Future artifacts now
+write explicit `artifact_selection`/`artifact_epoch` metadata, and checkpoints
+write `final_training_state` plus their training step. The already-running job
+uses the earlier code and must be labeled from the traced semantics rather than
+from absent metadata.

@@ -1456,6 +1456,8 @@ def run_image_end_to_end_benchmark(
                                 embeddings=np.asarray(train_embeddings, dtype=np.float32),
                                 labels=np.asarray(train_label_array, dtype=np.int64),
                                 example_ids=train_example_ids,
+                                artifact_selection=np.asarray("best_test_recall_at_1"),
+                                artifact_epoch=np.asarray(epoch_index, dtype=np.int64),
                             )
                     print(
                         f"{config.dataset_name} {objective} epoch {epoch_index} "
@@ -1521,6 +1523,8 @@ def run_image_end_to_end_benchmark(
                 embeddings=np.asarray(train_embeddings, dtype=np.float32),
                 labels=np.asarray(train_label_array, dtype=np.int64),
                 example_ids=train_example_ids,
+                artifact_selection=np.asarray("final_no_periodic_test_evaluation"),
+                artifact_epoch=np.asarray(total_epochs, dtype=np.int64),
             )
         if config.save_gallery_embeddings and best_test_recall_at_1 is None:
             assert gallery_embeddings is not None
@@ -1650,7 +1654,12 @@ def run_image_end_to_end_benchmark(
                 "embedding_layer_norm": config.embedding_layer_norm,
             }
             torch.save(
-                {"state_dict": cast(Any, model).state_dict(), "arch": arch_meta},
+                {
+                    "state_dict": cast(Any, model).state_dict(),
+                    "arch": arch_meta,
+                    "artifact_selection": "final_training_state",
+                    "training_step": train_steps,
+                },
                 config.save_model_path,
             )
         # Drop every local that still references the model's parameters/state before
