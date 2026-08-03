@@ -4115,3 +4115,11 @@ Zero-Shot Pose Prediction* (AAAI 2016), and by Chu et al., *Vehicle
 Re-Identification With Viewpoint-Aware Metric Learning* (ICCV 2019). The
 candidate is therefore supervised view-aware metric learning under a new name,
 not a novel supervision mechanism.
+
+## 314. Transition-state exclusion
+
+**DEAD at Gate 2; no implementation or GPU.** A proposed non-attractive repair
+would exclude foreign classes from same-class interpolation arcs. LoOp (Vasudeva
+et al., ICCV 2021) already searches hard-negative embeddings in the transition
+region between positive endpoints, so this is an established hard-negative
+mining/negative-constraint variant rather than novel supervision.
