@@ -3965,3 +3965,14 @@ handling, evaluation policy, or an occupied/unprofiled speed mechanism. This
 corroborates rather than proves the current boundary. The search reopens only on
 a new independently validated observable, with corrected In-Shop now running.
 Full audit: `docs/post_sop_claude_adversarial_review_292_2026-08-03.md`.
+
+## 293. In-Shop content-partition verification
+
+**AUDIT FINDING; no method.** A prospective SHA-256 audit found no train-to-test
+content overlap, but query/gallery share 19 byte-identical groups: 16 same-item
+trivial positives and three cross-item contradictions. The final exporter was
+repaired before the score existed to enforce and persist this profile, reproduce
+the declared scorer exactly, report cosine/tie-aware sensitivity, and publish
+atomically. Train contains zero cross-identity exact duplicate groups, so this
+cannot motivate a duplicate-conflict learning arm. Full audit:
+`docs/inshop_content_partition_audit_293_2026-08-03.md`.

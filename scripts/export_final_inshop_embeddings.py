@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, cast
 
@@ -25,6 +27,31 @@ EXPECTED_INSHOP_PARTITION = {
     "train": (25_882, 3_997),
     "query": (14_218, 3_985),
     "gallery": (12_612, 3_985),
+}
+EXPECTED_INSHOP_CONTENT_PROFILE = {
+    "train": {
+        "duplicate_groups": 19,
+        "duplicate_rows": 40,
+        "cross_identity_groups": 0,
+        "cross_identity_rows": 0,
+    },
+    "query": {
+        "duplicate_groups": 7,
+        "duplicate_rows": 14,
+        "cross_identity_groups": 1,
+        "cross_identity_rows": 2,
+    },
+    "gallery": {
+        "duplicate_groups": 7,
+        "duplicate_rows": 14,
+        "cross_identity_groups": 1,
+        "cross_identity_rows": 2,
+    },
+}
+EXPECTED_INSHOP_CONTENT_OVERLAP = {
+    "train_query": {"groups": 0, "rows": 0, "cross_identity_groups": 0},
+    "train_gallery": {"groups": 0, "rows": 0, "cross_identity_groups": 0},
+    "query_gallery": {"groups": 19, "rows": 38, "cross_identity_groups": 3},
 }
 
 
@@ -59,6 +86,133 @@ def independent_query_gallery_recall_at_1(
         nearest = np.argmax(query[start:stop] @ gallery.T, axis=1)
         correct += int(np.sum(gallery_labels[nearest] == query_labels[start:stop]))
     return correct / len(query)
+
+
+def independent_query_gallery_sensitivity(
+    query_embeddings: np.ndarray,
+    query_labels: np.ndarray,
+    gallery_embeddings: np.ndarray,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 512,
+) -> dict[str, float | int]:
+    """Compare the declared scorer with cosine and exact-tie expected R@1."""
+    query = np.asarray(query_embeddings, dtype=np.float64)
+    gallery = np.asarray(gallery_embeddings, dtype=np.float64)
+    query_labels = np.asarray(query_labels, dtype=np.int64)
+    gallery_labels = np.asarray(gallery_labels, dtype=np.int64)
+    query_sq_norms = np.sum(query * query, axis=1)
+    gallery_sq_norms = np.sum(gallery * gallery, axis=1)
+    query_norms = np.sqrt(query_sq_norms)
+    gallery_norms = np.sqrt(gallery_sq_norms)
+    if np.any(query_norms <= 0) or np.any(gallery_norms <= 0):
+        raise ValueError("independent retrieval received a zero-norm embedding")
+
+    euclidean_correct = 0
+    cosine_correct = 0
+    tie_expected_correct = 0.0
+    multiway_tie_queries = 0
+    mixed_identity_tie_queries = 0
+    gallery_label_counts = {
+        int(label): int(count)
+        for label, count in zip(*np.unique(gallery_labels, return_counts=True), strict=True)
+    }
+    max_relevant_count = max(
+        (gallery_label_counts.get(int(label), 0) for label in query_labels), default=0
+    )
+    canonical_top_k = min(len(gallery), max(30, max_relevant_count))
+    for start in range(0, len(query), chunk_size):
+        stop = min(start + chunk_size, len(query))
+        dot = query[start:stop] @ gallery.T
+        distances = query_sq_norms[start:stop, None] + gallery_sq_norms[None, :] - 2.0 * dot
+        if canonical_top_k < len(gallery):
+            top_indices = np.argpartition(distances, kth=canonical_top_k - 1, axis=1)[
+                :, :canonical_top_k
+            ]
+            top_distances = np.take_along_axis(distances, top_indices, axis=1)
+            top_order = np.argsort(top_distances, axis=1, kind="stable")
+            euclidean_nearest = np.take_along_axis(top_indices, top_order, axis=1)[:, 0]
+        else:
+            euclidean_nearest = np.argsort(distances, axis=1, kind="stable")[:, 0]
+        cosine = dot / (query_norms[start:stop, None] * gallery_norms[None, :])
+        cosine_nearest = np.argmax(cosine, axis=1)
+        chunk_labels = query_labels[start:stop]
+        euclidean_correct += int(np.sum(gallery_labels[euclidean_nearest] == chunk_labels))
+        cosine_correct += int(np.sum(gallery_labels[cosine_nearest] == chunk_labels))
+
+        minima = distances.min(axis=1, keepdims=True)
+        ties = distances == minima
+        tie_counts = ties.sum(axis=1)
+        correct_ties = (ties & (gallery_labels[None, :] == chunk_labels[:, None])).sum(axis=1)
+        tie_expected_correct += float(np.sum(correct_ties / tie_counts))
+        multiway_tie_queries += int(np.sum(tie_counts > 1))
+        mixed_identity_tie_queries += int(np.sum((correct_ties > 0) & (correct_ties < tie_counts)))
+
+    count = len(query)
+    return {
+        "canonical_float64_euclidean_recall_at_1": euclidean_correct / count,
+        "float64_cosine_recall_at_1": cosine_correct / count,
+        "exact_tie_expected_recall_at_1": tie_expected_correct / count,
+        "multiway_nearest_tie_queries": multiway_tie_queries,
+        "mixed_identity_nearest_tie_queries": mixed_identity_tie_queries,
+    }
+
+
+def _content_partition_audit(splits: dict[str, list[Any]]) -> dict[str, Any]:
+    by_split: dict[str, dict[str, list[tuple[int, str]]]] = {}
+    manifests: dict[str, str] = {}
+    profiles: dict[str, dict[str, int]] = {}
+    for split, examples in splits.items():
+        groups: dict[str, list[tuple[int, str]]] = defaultdict(list)
+        manifest = hashlib.sha256()
+        for example in examples:
+            path = Path(example.image).resolve()
+            if not path.is_file():
+                raise ValueError(f"In-Shop {split} references missing source path: {path}")
+            digest = sha256(path)
+            groups[digest].append((int(example.label), str(path)))
+            manifest.update(str(path).encode("utf-8"))
+            manifest.update(b"\0")
+            manifest.update(digest.encode("ascii"))
+            manifest.update(b"\n")
+        duplicates = [rows for rows in groups.values() if len(rows) > 1]
+        cross_identity = [rows for rows in duplicates if len({row[0] for row in rows}) > 1]
+        profile = {
+            "duplicate_groups": len(duplicates),
+            "duplicate_rows": sum(len(rows) for rows in duplicates),
+            "cross_identity_groups": len(cross_identity),
+            "cross_identity_rows": sum(len(rows) for rows in cross_identity),
+        }
+        if profile != EXPECTED_INSHOP_CONTENT_PROFILE[split]:
+            raise ValueError(
+                f"unexpected In-Shop {split} source-content profile: "
+                f"{profile} != {EXPECTED_INSHOP_CONTENT_PROFILE[split]}"
+            )
+        by_split[split] = groups
+        manifests[split] = manifest.hexdigest()
+        profiles[split] = profile
+
+    overlaps: dict[str, dict[str, int]] = {}
+    for left, right in (("train", "query"), ("train", "gallery"), ("query", "gallery")):
+        shared = set(by_split[left]) & set(by_split[right])
+        rows = [by_split[left][digest] + by_split[right][digest] for digest in shared]
+        overlap = {
+            "groups": len(shared),
+            "rows": sum(len(group) for group in rows),
+            "cross_identity_groups": sum(len({row[0] for row in group}) > 1 for group in rows),
+        }
+        key = f"{left}_{right}"
+        if overlap != EXPECTED_INSHOP_CONTENT_OVERLAP[key]:
+            raise ValueError(
+                f"unexpected In-Shop {left}/{right} source-content overlap: "
+                f"{overlap} != {EXPECTED_INSHOP_CONTENT_OVERLAP[key]}"
+            )
+        overlaps[key] = overlap
+    return {
+        "content_profiles": profiles,
+        "content_manifest_sha256": manifests,
+        "content_overlaps": overlaps,
+    }
 
 
 def verify_official_partition(bundle: Any) -> dict[str, Any]:
@@ -104,7 +258,21 @@ def verify_official_partition(bundle: Any) -> dict[str, Any]:
         "train_gallery_source_path_overlap": 0,
         "query_gallery_source_path_overlap": 0,
         "query_gallery_identity_sets_equal": True,
+        **_content_partition_audit(splits),
     }
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def save_embeddings(
@@ -239,24 +407,30 @@ def main() -> None:
         checkpoint_sha256=checkpoint_digest,
         report_sha256=report_digest,
     )
-    independent_r1 = independent_query_gallery_recall_at_1(
+    sensitivity = independent_query_gallery_sensitivity(
         query_embeddings,
         query_labels,
         gallery_embeddings,
         gallery_labels,
     )
+    method = report["methods"][next(iter(report["methods"]))]
+    reported_final_r1 = float(method["recall_at_1"])
+    canonical_r1 = float(sensitivity["canonical_float64_euclidean_recall_at_1"])
+    if canonical_r1 != reported_final_r1:
+        raise ValueError(
+            f"independent canonical R@1 {canonical_r1} != report final R@1 {reported_final_r1}"
+        )
     payload = {
         "artifact_selection": "final_training_state",
         "checkpoint_sha256": checkpoint_digest,
         "report_sha256": report_digest,
         "resolved_training_steps": resolved_steps,
-        "independent_recall_at_1": independent_r1,
+        "reported_final_recall_at_1": reported_final_r1,
+        "independent_recall_at_1": canonical_r1,
+        **sensitivity,
         **partition_audit,
     }
-    args.retrieval_output.parent.mkdir(parents=True, exist_ok=True)
-    args.retrieval_output.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    write_json_atomic(args.retrieval_output, payload)
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
