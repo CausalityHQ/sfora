@@ -14,7 +14,9 @@ Against the official metadata, the old 11,317-class training set contains 11,093
 official training products and **224 official test products**. Its test set
 contains 11,092 official test products and **225 official training products**.
 The old image counts were 59,355/60,698 instead of the official 59,551/60,502.
-Consequently all historical SOP training claims in this repository are
+The old train and test sets were still mutually disjoint, so this is a
+protocol-membership error, not train/test leakage. Consequently all historical
+SOP training claims in this repository are
 noncanonical and cannot supply protocol-grade evidence.
 
 The correction resolves product membership using the two metadata files from
@@ -32,11 +34,12 @@ Proxy Anchor, seed 0, batch 256, two samples per class, learning rate `2e-4`, on
 proxy per class, 60 epochs, evaluation every 10 epochs. The invalid-split result
 was best-over-training R@1 **0.72147** at epoch 50.
 
-Prediction: because 98.0% of each class set is unchanged, the corrected result
-will differ by no more than **0.5 point**. A change of at least **2.0 points**
-would falsify that prediction and identify split leakage/membership as a major
-cause of the reproduction gap. An intermediate change is recorded without a
-causal claim. This run repairs the benchmark and may provide new training-split
+Prediction: because 98.0% of each class set is unchanged and the official test
+gallery is 196 images smaller, the correction will be positive but no larger
+than **0.5 point**. A magnitude of at least **2.0 points** in either direction
+would falsify that prediction and identify split membership as a major cause of
+the reproduction gap. An intermediate change is recorded without a causal
+claim. This run repairs the benchmark and may provide new training-split
 measurements; it is not itself a novel-method experiment.
 
 The corrected run must save the model and training embeddings so subsequent
