@@ -1044,7 +1044,7 @@ a SOTA comparison. The exact setup and sequential runner are documented in
 | Cars | HIST | `hist.cars.official-e7d650c` | ResNet-50 | paper 89.6±0.2 | registered |
 | SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | 79.11 raw best / 79.00 frozen final | completed seed 0 |
 | SOP | HIST | `hist.sop.official-e7d650c` | ResNet-50 | paper 81.4±0.2 | registered |
-| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | official repo 91.9 | **blocked: wrong pixel corpus retracted; `img.zip` acquisition in progress** |
+| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | 91.63 raw best / 91.37 frozen final; published checkpoint 91.76 | completed corrected seed 0 |
 | In-Shop | HIST | `hist.inshop.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | Proxy Anchor | `proxy_anchor.inat2018.selected-from-<winner>-51db570` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | HIST | `hist.inat2018.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |

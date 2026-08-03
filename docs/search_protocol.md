@@ -25,6 +25,13 @@ recomputation, label the claim code-derived and rerun/export what is missing. Th
 at the best-test epoch; all historical SOP conclusions were retracted. A bug can
 invalidate a negative just as easily as a positive.
 
+The current evidence boundary is enumerated in
+`docs/current_evidence_reliability_audit_321_2026-08-03.md`.  Historical verdict
+entries are not a commensurate empirical table: use only the explicitly verified
+packet for new provenance.  In particular, the legacy `protocol` family string
+does not establish which backbone executed; bind architecture claims to the
+checkpoint, resolved `backbone_name`, recipe digest, and state keys.
+
 **1. Provenance of the idea.** It must be motivated by a measurement *in this repo*, not
 by an armchair analogy. `pa_dual_ema` is the model: it came from the factorial showing
 the distillation-target role wants 0.999 while the evaluated-average role wants 0.99, so
