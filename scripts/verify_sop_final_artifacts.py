@@ -127,7 +127,10 @@ def main() -> None:
     args = parser.parse_args()
     result = verify(args.train, args.test, args.checkpoint, args.report)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    rendered = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+    temporary.write_text(rendered, encoding="utf-8")
+    temporary.replace(args.output)
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
