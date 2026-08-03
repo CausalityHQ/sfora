@@ -44,3 +44,15 @@ two observations; it does not restore the old 0.12-point sigma claim, authorize
 a one-seed small-effect decision, or establish a standard deviation.
 
 Estimated cost: about 2.2 GPU-hours for training plus final exports.
+
+## Prelaunch deployment note
+
+The historical DGX checkout has no configured Git remote, so `git fetch` could
+not create the planned remote worktree. No training or output artifact had
+started. The equivalent fail-closed deployment is therefore locked before
+launch: create a new empty `/home/riomus/sfora-inshop-seed1` directory and rsync
+only the paths emitted by local `git ls-files` at committed revision `fa5ed46`.
+Protected untracked handoff/spec files, ignored reports, the dirty historical
+checkout, and all local uncommitted state are excluded by construction. Record
+hashes of the deployed recipe, trainer, data loader, runner, and exporter with
+the result.
