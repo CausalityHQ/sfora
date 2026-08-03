@@ -3795,3 +3795,12 @@ write window. Before either result existed, both were changed to validate tempor
 siblings and atomically rename them into place. The locked diagnostic is unchanged.
 This is an evidence-path repair, not a method candidate or score change. Full audit:
 `docs/sop_atomic_evidence_publication_audit_277_2026-08-03.md`.
+
+## 278. SOP producer-liveness cycle
+
+Waiting controller command lines contained downstream script names, so `pgrep` could
+mistake waiters for producers and keep a failed evidence chain alive forever. Before
+outputs existed, the joint controller was made fail-terminating on missing exports and
+the fragmentation controller now counts a verifier only after its input packs exist.
+This is an evidence-path repair, not a method candidate or result. Full audit:
+`docs/sop_producer_liveness_audit_278_2026-08-03.md`.
