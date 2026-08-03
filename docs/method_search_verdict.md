@@ -3637,3 +3637,14 @@ proxies. Its pinned author code establishes that choosing different sample/proxy
 for positive and negative aggregation is published prior art, not a residual candidate.
 Its best-test-epoch reporting still needs uncertainty caution, but that does not restore
 novelty. Full source/code audit: `docs/proxy_an_horizon_audit_259_2026-08-03.md`.
+
+## 260. Intervention-tangent transplantation
+
+**DEAD at Gate 2; no GPU.** ARCG's real controlled-response deltas motivated
+transplanting `z(aug(x_j))-z(x_j)` onto another same-class embedding as a virtual
+positive. The operator is already transferable intra-class deformation and
+feature-space augmentation: Delta-Encoder, Feature Space Transfer, Meta Variance
+Transfer, ISDA, and benchmark-matched Embedding Expansion occupy it. Fixing the delta
+to a controlled augmentation makes it cheaper and interpretable but does not change the
+supervision mechanism. Full audit:
+`docs/intervention_tangent_transplant_audit_260_2026-08-03.md`.
