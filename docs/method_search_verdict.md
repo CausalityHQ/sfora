@@ -3954,3 +3954,14 @@ selection, occupied by PRISM, SGPS, Huynh et al., and GloFND. Exact hashing is a
 high-precision detector, not a new learning mechanism; removing duplicate rows
 is ordinary data deduplication and at most a modest throughput policy. Full
 audit: `docs/content_equivalence_supervision_audit_291_2026-08-03.md`.
+
+## 292. Independent post-SOP adversarial mechanism review
+
+**NONE; no implementation or GPU.** A constrained Claude Sonnet 5 review used
+only verified SOP outputs and the locked outcome matrix, required quantitative
+provenance and primary-source distinctions, and rejected every cross-field
+recombination as wrong-sign fragmentation repair, sparse/prior-art duplicate
+handling, evaluation policy, or an occupied/unprofiled speed mechanism. This
+corroborates rather than proves the current boundary. The search reopens only on
+a new independently validated observable, with corrected In-Shop now running.
+Full audit: `docs/post_sop_claude_adversarial_review_292_2026-08-03.md`.
