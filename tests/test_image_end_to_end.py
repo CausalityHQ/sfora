@@ -5951,6 +5951,29 @@ def test_optimizer_groups_use_lower_backbone_learning_rate() -> None:
     assert list(groups[1]["params"]) == list(model.fc.parameters())
 
 
+def test_optimizer_groups_recognize_bn_inception_embedding_head() -> None:
+    torch = pytest.importorskip("torch")
+
+    from sfora.image_end_to_end import _optimizer_parameter_groups
+
+    class TinyBNInception(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.model = torch.nn.Module()
+            self.model.backbone = torch.nn.Linear(2, 2)
+            self.model.embedding = torch.nn.Linear(2, 2)
+
+    model = TinyBNInception()
+    groups = _optimizer_parameter_groups(
+        model,
+        ImageEndToEndConfig(learning_rate=6e-4, backbone_learning_rate=1e-4),
+    )
+
+    assert [group["lr"] for group in groups] == [1e-4, 6e-4]
+    assert list(groups[0]["params"]) == list(model.model.backbone.parameters())
+    assert list(groups[1]["params"]) == list(model.model.embedding.parameters())
+
+
 def test_metric_proxies_attach_one_parameter_per_train_class_proxy() -> None:
     torch = pytest.importorskip("torch")
 

@@ -4035,14 +4035,17 @@ def _clip_gradients(
 
 def _backbone_warmup_parameters(model: Any) -> list[Any]:
     """Parameters frozen while newly initialized retrieval heads warm up."""
-    head_prefixes = ("fc.", "model.embedding.")
     return [
         parameter
         for name, parameter in model.named_parameters()
-        if not name.startswith(head_prefixes)
+        if not _is_embedding_head_parameter(name)
         and not name.startswith("hist_module.")
         and name != "metric_proxies"
     ]
+
+
+def _is_embedding_head_parameter(name: str) -> bool:
+    return name.startswith(("fc.", "model.embedding."))
 
 
 def _update_ema_teacher(
@@ -7158,11 +7161,13 @@ def _optimizer_parameter_groups(
     backbone_parameters = [
         parameter
         for name, parameter in named_parameters
-        if not name.startswith("fc.")
+        if not _is_embedding_head_parameter(name)
         and not name.startswith("hist_module.")
         and name != "metric_proxies"
     ]
-    head_parameters = [parameter for name, parameter in named_parameters if name.startswith("fc.")]
+    head_parameters = [
+        parameter for name, parameter in named_parameters if _is_embedding_head_parameter(name)
+    ]
     # HIST trains its class distributions and HGNN at their own, much larger LRs.
     hist_distribution_parameters = [
         parameter
