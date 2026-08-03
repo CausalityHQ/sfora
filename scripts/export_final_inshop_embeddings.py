@@ -309,6 +309,11 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--query-output", type=Path, required=True)
     parser.add_argument("--gallery-output", type=Path, required=True)
+    parser.add_argument(
+        "--train-output",
+        type=Path,
+        help="Optionally export the final training embeddings for training-only diagnostics.",
+    )
     parser.add_argument("--retrieval-output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=4)
@@ -368,6 +373,12 @@ def main() -> None:
     model.load_state_dict(state, strict=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
+    train_embeddings: np.ndarray | None = None
+    train_labels: np.ndarray | None = None
+    if args.train_output is not None:
+        train_embeddings, train_labels = _encode_model(
+            model, loader(bundle.train), device, torch
+        )
     query_embeddings, query_labels = _encode_model(model, loader(bundle.query), device, torch)
     gallery_embeddings, gallery_labels = _encode_model(model, loader(bundle.gallery), device, torch)
     expected_query_labels = np.asarray([example.label for example in bundle.query])
@@ -376,10 +387,17 @@ def main() -> None:
         raise ValueError("encoded query labels differ from official query order")
     if not np.array_equal(gallery_labels, expected_gallery_labels):
         raise ValueError("encoded gallery labels differ from official gallery order")
-    for split, embeddings in (
+    encoded_splits = [
         ("query", query_embeddings),
         ("gallery", gallery_embeddings),
-    ):
+    ]
+    if train_embeddings is not None:
+        expected_train_labels = np.asarray([example.label for example in bundle.train])
+        assert train_labels is not None
+        if not np.array_equal(train_labels, expected_train_labels):
+            raise ValueError("encoded train labels differ from official train order")
+        encoded_splits.append(("train", train_embeddings))
+    for split, embeddings in encoded_splits:
         if not np.isfinite(embeddings).all():
             raise ValueError(f"non-finite In-Shop {split} embeddings")
         norms = np.linalg.norm(embeddings, axis=1)
@@ -387,6 +405,18 @@ def main() -> None:
             raise ValueError(f"In-Shop {split} embeddings are not unit normalized")
     checkpoint_digest = sha256(args.checkpoint)
     report_digest = sha256(args.report)
+    if args.train_output is not None:
+        assert train_embeddings is not None and train_labels is not None
+        save_embeddings(
+            args.train_output,
+            embeddings=train_embeddings,
+            labels=train_labels,
+            example_ids=np.asarray([example.example_id for example in bundle.train]),
+            source_paths=np.asarray([str(Path(example.image)) for example in bundle.train]),
+            split="train",
+            checkpoint_sha256=checkpoint_digest,
+            report_sha256=report_digest,
+        )
     save_embeddings(
         args.query_output,
         embeddings=query_embeddings,
