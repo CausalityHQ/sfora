@@ -5,11 +5,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Publish JSON only after a complete same-filesystem write."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def load_superclasses(path: Path) -> dict[int, int]:
@@ -192,8 +207,7 @@ def main() -> None:
     result = analyze(archive["embeddings"], labels, superclasses, chunk_size=args.chunk_size)
     result["artifact_selection"] = "final_training_state"
     result["source_path_rows_verified"] = len(source_paths)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    write_json_atomic(args.output, result)
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
@@ -47,3 +48,15 @@ def test_load_superclasses_reads_product_identity(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _MODULE.load_superclasses(metadata) == {123: 4, 987: 7}
+
+
+def test_write_json_atomic_leaves_only_complete_final_file(tmp_path: Path) -> None:
+    output = tmp_path / "nested" / "audit.json"
+
+    _MODULE.write_json_atomic(output, {"status": "verified", "rows": 42})
+
+    assert json.loads(output.read_text(encoding="utf-8")) == {
+        "rows": 42,
+        "status": "verified",
+    }
+    assert list(output.parent.iterdir()) == [output]

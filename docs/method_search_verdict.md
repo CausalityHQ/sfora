@@ -3850,3 +3850,12 @@ already freezes pretrained bodies for adapter updates. Proxy-force magnitude is 
 another current-loss priority score, creates no supervision, and has no measured
 advantage over loss selection. Full audit:
 `docs/event_triggered_backprop_audit_282_2026-08-03.md`.
+
+## 283. SOP structure-evidence publication gap
+
+The deployed structure and proxy-clock analyzers wrote directly to final JSON paths,
+so existence-based consumers could observe incomplete evidence. Before any final SOP
+artifact existed, both were changed to flush and fsync unique same-directory temporary
+files and atomically replace their destinations. Calculations and schemas are
+unchanged. This is an evidence-path repair, not a method or score change. Full audit:
+`docs/sop_structure_atomic_publication_audit_283_2026-08-03.md`.

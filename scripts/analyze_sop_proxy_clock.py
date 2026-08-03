@@ -5,10 +5,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from scipy.stats import pearsonr, spearmanr
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    """Publish JSON only after a complete same-filesystem write."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def unit_rows(array: np.ndarray) -> np.ndarray:
@@ -100,8 +116,7 @@ def main() -> None:
         "class_count_min": int(count_array.min()),
         "class_count_max": int(count_array.max()),
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    write_json_atomic(args.output, result)
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
