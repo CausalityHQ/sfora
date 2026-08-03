@@ -4211,3 +4211,16 @@ Gram-invariant geometry; every proposed action reduced to mining, weighting,
 multi-proxy, graph consistency, or metric regularization.  Full records:
 `docs/current_evidence_reliability_audit_321_2026-08-03.md` and
 `docs/static_checkpoint_falsifiers_322_2026-08-03.md`.
+
+## 323. Verified-packet Fable critique and escape-route audit
+
+**NO LIVE CANDIDATE; no GPU.** A Fable critique constrained to audit 321's
+verified facts returned zero live static-checkpoint methods.  Its structural
+argument is that embeddings/proxies/labels expose Gram-invariant statistics and
+the 3,997 proxies span the 512-dimensional output, so scalar feedback reduces
+to reweighting existing gradient atoms unless genuinely new supervision enters.
+Input/Jacobian evidence does not itself open a method: Jacobian regularization
+and DML self-supervised local-structure ranking are established.  Training
+trajectory evidence likewise reduces to curriculum, self-paced weighting, or
+dynamic constraints.  Full primary-source audit:
+`docs/fable_verified_packet_critique_323_2026-08-03.md`.
