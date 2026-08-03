@@ -3917,3 +3917,14 @@ deduplication and tie-aware scoring are established policies and cannot become a
 novel candidate. It repairs the evidence boundary by requiring content-hash
 overlap checks in addition to identity/path checks. Full audit:
 `docs/sop_content_duplicate_audit_288_2026-08-03.md`.
+
+## 289. In-Shop controller liveness repair
+
+The serialized In-Shop controller exited after all SOP evidence landed but
+before launching the registered reference; no partial target or GPU process was
+left. The run was relaunched after revalidating its prerequisites. Its post-run
+exporter also depended on an obsolete wrapper-process name and now waits on the
+exact registered trainer command, then requires complete report/checkpoint
+artifacts before independent export. This is an orchestration repair, not a
+method or score. Full audit:
+`docs/inshop_controller_liveness_audit_289_2026-08-03.md`.
