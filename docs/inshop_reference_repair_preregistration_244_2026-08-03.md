@@ -28,6 +28,12 @@ and independently reconstruct final-state query-to-gallery retrieval.
 The upstream improved recipe reports In-Shop R@1 **0.919**. Predict seed-0
 best-over-training R@1 in **[0.904, 0.934]**. Outside that interval blocks method
 screening and triggers another fidelity diagnosis; it is not a method result.
-Report code-derived best-over-training, selection-corrected, and independently
-recomputed final-state R@1 separately. One seed repairs the control's provenance
+Report code-derived best-over-training, the local-neighbour peak-gap diagnostic, and
+independently recomputed final-state R@1 separately. One seed repairs the control's provenance
 but does not estimate a stable method effect.
+
+**Prospective analysis correction (2026-08-03, before this run started):** the
+leave-neighbour value formerly called “selection-corrected” is not an identified bias
+correction. The decisive untouched quantity is the independently reconstructed
+final-state query/gallery R@1. See
+`docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
