@@ -3838,3 +3838,15 @@ relational transfer; multi-proxy DML occupies replicated class representatives.
 Thresholding their variance is ensemble-uncertainty mining or co-teaching, not a new
 supervision source, and it repeats the project's failed gating interface. Full audit:
 `docs/proxy_replica_disagreement_audit_281_2026-08-03.md`.
+
+## 282. Event-triggered metric backpropagation
+
+**DEAD at Gate 2; no implementation or GPU.** Because the backbone dominates the
+audited operation count, a neuromorphic-inspired proposal would backpropagate only for
+examples whose proxy loss/force crosses an event threshold. FreezeOut already removes
+layer backward work progressively; Selective-Backprop already selects per-example
+backward work from forward loss and can use stale scores to skip forward work; PEFT
+already freezes pretrained bodies for adapter updates. Proxy-force magnitude is merely
+another current-loss priority score, creates no supervision, and has no measured
+advantage over loss selection. Full audit:
+`docs/event_triggered_backprop_audit_282_2026-08-03.md`.
