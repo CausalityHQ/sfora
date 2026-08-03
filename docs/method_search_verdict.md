@@ -3594,13 +3594,16 @@ DIML, and DeepEMD already occupy the operator. The corrected independent batch
 therefore yields no shortlist survivor. Full audit:
 `docs/post_fidelity_candidate_batch_245_252_2026-08-03.md`.
 
-## 254--255. Analysis and artifact-verifier defects
+## 254--256. Analysis and artifact-verifier defects
 
 The historical leave-neighbour “selection correction” is retracted: noiseless
 curvature and endpoint slope generate nonzero gaps, so it cannot identify the
 winner's-curse bonus or support rank reversals. Separately, the final-state exporters
 accepted checkpoints with missing selection/step provenance; they now require explicit
 `final_training_state` and the exact resolved step. Neither repair creates a method,
-but both narrow what measurements may legitimately motivate the next candidate. Full
+but both narrow what measurements may legitimately motivate the next candidate. The
+In-Shop exporter also reused the trainer's retrieval scorer; it now uses a separate
+cosine implementation and verifies split disjointness/identity coverage. Full
 audits: `docs/selection_bias_estimator_retraction_254_2026-08-03.md` and
-`docs/final_checkpoint_fail_closed_audit_255_2026-08-03.md`.
+`docs/final_checkpoint_fail_closed_audit_255_2026-08-03.md`, and
+`docs/inshop_independent_metric_audit_256_2026-08-03.md`.

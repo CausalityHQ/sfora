@@ -6,14 +6,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, cast
 
 import numpy as np
 
 from sfora.data import load_image_retrieval_bundle
-from sfora.image_benchmark import image_query_gallery_retrieval_score
 from sfora.image_end_to_end import (
     ImageEndToEndConfig,
     _default_transform_factory,
@@ -30,6 +28,31 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def independent_query_gallery_recall_at_1(
+    query_embeddings: np.ndarray,
+    query_labels: np.ndarray,
+    gallery_embeddings: np.ndarray,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 512,
+) -> float:
+    """Recompute In-Shop R@1 without calling the benchmark scorer."""
+    query = np.asarray(query_embeddings, dtype=np.float64)
+    gallery = np.asarray(gallery_embeddings, dtype=np.float64)
+    query_norms = np.linalg.norm(query, axis=1, keepdims=True)
+    gallery_norms = np.linalg.norm(gallery, axis=1, keepdims=True)
+    if np.any(query_norms <= 0) or np.any(gallery_norms <= 0):
+        raise ValueError("independent retrieval received a zero-norm embedding")
+    query = query / query_norms
+    gallery = gallery / gallery_norms
+    correct = 0
+    for start in range(0, len(query), chunk_size):
+        stop = min(start + chunk_size, len(query))
+        nearest = np.argmax(query[start:stop] @ gallery.T, axis=1)
+        correct += int(np.sum(gallery_labels[nearest] == query_labels[start:stop]))
+    return correct / len(query)
 
 
 def save_embeddings(
@@ -91,12 +114,26 @@ def main() -> None:
         len(bundle.train),
         len({example.label for example in bundle.train}),
         len(bundle.query),
+        len({example.label for example in bundle.query}),
         len(bundle.gallery or []),
+        len({example.label for example in bundle.gallery or []}),
     )
-    if counts != (25_882, 3_997, 14_218, 12_612):
+    if counts != (25_882, 3_997, 14_218, 3_985, 12_612, 3_985):
         raise ValueError(f"unexpected official In-Shop counts: {counts}")
     if bundle.gallery is None:
         raise ValueError("In-Shop bundle lacks its official gallery")
+    query_ids = {example.example_id for example in bundle.query}
+    gallery_ids = {example.example_id for example in bundle.gallery}
+    if query_ids & gallery_ids:
+        raise ValueError("In-Shop query and gallery example IDs overlap")
+    query_paths = {str(Path(example.image).resolve()) for example in bundle.query}
+    gallery_paths = {str(Path(example.image).resolve()) for example in bundle.gallery}
+    if query_paths & gallery_paths:
+        raise ValueError("In-Shop query and gallery source paths overlap")
+    if {example.label for example in bundle.query} != {
+        example.label for example in bundle.gallery
+    }:
+        raise ValueError("In-Shop query and gallery identity sets differ")
 
     resolved_steps, _, _ = _resolve_training_schedule(
         config,
@@ -156,7 +193,7 @@ def main() -> None:
         checkpoint_sha256=checkpoint_digest,
         report_sha256=report_digest,
     )
-    retrieval = image_query_gallery_retrieval_score(
+    independent_r1 = independent_query_gallery_recall_at_1(
         query_embeddings,
         query_labels,
         gallery_embeddings,
@@ -167,7 +204,10 @@ def main() -> None:
         "checkpoint_sha256": checkpoint_digest,
         "report_sha256": report_digest,
         "resolved_training_steps": resolved_steps,
-        "retrieval": asdict(retrieval),
+        "independent_recall_at_1": independent_r1,
+        "query_gallery_example_id_overlap": 0,
+        "query_gallery_source_path_overlap": 0,
+        "query_gallery_identity_sets_equal": True,
     }
     args.retrieval_output.parent.mkdir(parents=True, exist_ok=True)
     args.retrieval_output.write_text(
