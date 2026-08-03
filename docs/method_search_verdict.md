@@ -3715,3 +3715,17 @@ finite unit embeddings, equal dimensions, final-state labels, and both embedded 
 hashes. An independent post-run controller is armed. This is an evidence-path repair,
 not a method candidate or result. Full audit:
 `docs/sop_joint_artifact_audit_270_2026-08-03.md`.
+
+## 271. Proxy-equilibrium stopping
+
+**DEAD at Gate 0 in its current form; no GPU.** SOP reached raw best-test R@1
+0.7812 at epoch 21 and 0.7837 at epoch 23 of 60, superficially suggesting a shorter
+recipe. Those are test-split observations, however, while the proposed chemistry-style
+criterion would stop from temporal proxy displacement, proxy/centroid alignment,
+dispersion, and force residuals. The run stores no per-epoch proxy geometry, and its
+single preregistered final proxy clock cannot establish an earlier equilibrium event.
+Using the test curve to design thresholds would be leakage. Training-only early stopping
+and neural-collapse geometry are also adjacent established fields. Reconsider only if
+an independently required run already records the trajectory and a predeclared rule
+predicts a held-out run. Full audit:
+`docs/proxy_equilibrium_stopping_audit_271_2026-08-03.md`.
