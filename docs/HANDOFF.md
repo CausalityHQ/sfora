@@ -1,5 +1,12 @@
 # SFORA handoff — state as of 2026-07-31
 
+> **SUPERSEDED OPERATIONAL SNAPSHOT.** This file preserves the 2026-07-31 state and
+> must not be used for current GPU/queue status. Read the repository-root
+> `HANDOFF_BRIEF.md`, `docs/method_search_verdict.md`, and `docs/search_protocol.md`
+> first. In particular, the leave-neighbour estimator described below was falsified on
+> 2026-08-03: its outputs are local peak gaps, not selection corrections or
+> winner's-curse estimates. The EMA ranking-reversal/under-credit claims are withdrawn.
+
 Everything needed to pick this up on a fresh machine. Written because the laptop is
 being reset; nothing here depends on local state except an SSH key for the DGX.
 
@@ -82,27 +89,28 @@ both. CUB seed 0, against `proxy_anchor` 0.6825:
 dragging 5.3% of the initialisation along. `ema_eval_momentum` decouples them;
 `pa_dual_ema` is slow teacher + fast evaluated average.
 
-**Read these numbers with §4b.** Reported deltas understate the averaging arms badly,
-because they collect far less best-over-training selection bonus.
+The former instruction to correct these numbers with §4b is withdrawn. Compare raw
+registered metrics and independently selected/final checkpoints only.
 
 The required BN-correct In-Shop screen rejected the combination:
 
-| arm | digest | raw R@1 | corrected R@1 |
+| arm | digest | raw R@1 | invalid gap-subtracted diagnostic |
 | --- | --- | ---: | ---: |
 | Proxy Anchor seed 0 | `16a3bc844c81` | 0.9024 | 0.9015 |
 | `pa_ema_avg_bnfix` | `80f57f183966` | 0.9043 | 0.9033 |
 | `pa_dual_ema_bnfix` | `79f9d35c4eea` | 0.9044 | 0.9040 |
 
-Dual-minus-average was +0.014 pt raw and +0.077 pt corrected. The
+Dual-minus-average was +0.014 pt raw. Its historical gap-subtracted diagnostic was
++0.077 pt but is not a corrected effect. The
 preregistered raw threshold was +0.24 pt and absolute dual R@1 had to reach
 0.9048; it reached 0.9044. Candidate 1 failed gate 4 and received no
 confirmation seeds.
 
 The averaging-only follow-up then completed seeds 1–2. Its three paired raw
 deltas were +0.18 / −0.13 / +0.15 pt: mean **+0.068 pt**, sd 0.169,
-paired-t p = 0.5589, exact sign p = 0.500. Selection correction increased the
-mean to **+0.203 pt**, sd 0.157. This is evidence that best-over-training
-under-credits the stable arm, but not a replicated raw method gain. Do not queue
+paired-t p = 0.5589, exact sign p = 0.500. The invalid gap-subtracted mean was
+**+0.203 pt**, sd 0.157; it supplies no evidence that best-over-training
+under-credits the stable arm. Do not queue
 Cars or the momentum sweep.
 
 ## 3. The one strong result: H3, the BatchNorm teacher/student mismatch
@@ -206,36 +214,35 @@ essentially exactly its published 0.714.
 
 ---
 
-### 4b. Best-over-training selection bias — measure it before comparing arms
+### 4b. RETRACTED: leave-neighbour peak gap is not a selection correction
 
-`scripts/measure_selection_bias.py`. Best-over-training is a `max` over ~60 noisy
-evaluations, so it overshoots the true curve, and **the overshoot grows with the arm's
-noise**. Estimated per run from the selected epoch's *neighbours only*.
+`scripts/measure_selection_bias.py` was falsified by noiseless curved and monotone
+histories. It mixes selection noise with curvature, endpoint slope, autocorrelation,
+and nonstationarity. The numbers below are retained only as historical local peak gaps.
+They cannot be subtracted from R@1 or used to infer method rankings. See
+`docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
 
-| CUB arm | evaluates | selection bonus |
+| CUB arm | evaluates | local peak gap |
 | --- | --- | ---: |
 | `pa_distill` | student | 0.836 pt |
 | `proxy_anchor` | student | 0.769 pt |
 | `pa_ema_avg_fast` | averaged weights | 0.306 pt |
 | `pa_ema_avg` | averaged weights | 0.074 pt |
 
-Arms evaluating averaged weights collect **2.5–10× less** bonus, because averaging smooths
-the evaluated curve. Removing each arm's own bonus **reverses the ranking**:
+The averaged-weight arms had smaller gaps in these histories, but the causal explanation
+and ranking reversal are withdrawn:
 
-| paired | reported | corrected |
+| paired | reported | invalid gap-subtracted value |
 | --- | ---: | ---: |
 | `pa_ema_avg_fast` − `proxy_anchor` | +0.414 | **+0.732** |
 | `pa_ema_avg` − `proxy_anchor` | +0.059 | **+0.610** |
 | `pa_distill` − `proxy_anchor` | +0.658 | +0.592 |
 
-So **the standard protocol structurally hides weight averaging.** On a flat simulated
-plateau with 0.5 pt evaluation noise the estimator recovers +1.16 pt of pure selection —
-larger than most published DML gains, from a truth with no improvement in it. It also
-reproduces a known failure as a sanity check: `local_nca` collapsed, peaked in its first
-epochs, and best-over-training still reported 0.5733 against a 0.3394 trend.
-
-Caveats: averaging arms are at n=2, the correction is one estimator, and corrected values
-are **not** the benchmark metric — a paper quoting them must argue the protocol.
+No protocol-under-credit conclusion follows. On a flat simulated plateau the tool can
+respond to noise, but its nonzero noiseless controls prove that it does not isolate
+selection bias.
+The collapsed `local_nca` run's large gap is likewise not a sanity check for selection
+bias; severe curve shape alone can generate it.
 
 ## 5. The cognitive-science candidates — both settled, both failed
 
@@ -339,7 +346,7 @@ measured −1.47 pt).
 | `scripts/aligned_pack_fusion.py` | Procrustes-aligned pack fusion |
 | `scripts/probe_late_interaction.py` | MaxSim read-out probe |
 | `scripts/run_priority_queue_v30.sh` | completed averaging seeds 1–2; queue now idle |
-| `scripts/measure_selection_bias.py` | best-over-training selection bonus, per arm and per pair |
+| `scripts/measure_selection_bias.py` | historical local peak-gap diagnostic; not a correction |
 
 ---
 

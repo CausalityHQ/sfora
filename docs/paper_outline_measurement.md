@@ -1,4 +1,11 @@
-# Paper outline: what this project can actually claim
+# RETRACTED paper outline: selection correction was not identified
+
+> The central claim below was withdrawn on 2026-08-03. The leave-neighbour estimator
+> returns nonzero gaps on noiseless curved and monotone histories, so it cannot identify
+> winner's-curse bias or a ranking reversal. Retain this file only as provenance. A
+> defensible paper may report raw/final checkpoint discrepancies, recipe/provenance
+> defects, replication failures, and the negative mechanism catalogue—not the claimed
+> correction. See `docs/selection_bias_estimator_retraction_254_2026-08-03.md`.
 
 Drafted 2026-07-31, after nineteen method candidates or candidate directions
 failed and two independent
@@ -6,12 +13,12 @@ literature reviews recommended stopping the search. This is the deliverable that
 evidence supports. It is not a method paper, and the central discipline of writing it is
 refusing to dress it up as one.
 
-**Working title.** *Best-over-training hides stable methods: a measurement audit of deep
-metric learning.*
+**Withdrawn working title.** *Best-over-training hides stable methods: a measurement
+audit of deep metric learning.*
 
 ---
 
-## 1. The claim
+## 1. RETRACTED claim
 
 The standard DML protocol — report `max` over ~60 test evaluations of one run — is a
 **maximum over noisy observations**, so it is upward-biased, and **the bias grows with a

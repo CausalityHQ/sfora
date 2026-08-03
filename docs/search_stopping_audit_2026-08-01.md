@@ -34,8 +34,9 @@ ideas:
   image-by-image cross-class interaction was reproducible (Pearson 0.5710) but
   only 4.75% of cross-class variance.
 - TIRD isolated that interaction and still failed catastrophically on In-Shop:
-  raw R@1 0.8301 and selection-corrected 0.8267 versus paired Proxy Anchor
-  0.9024. Normalizing a small residual promoted it to unit-scale pressure.
+  raw R@1 0.8301 versus paired Proxy Anchor 0.9024. Its historical 0.8267
+  gap-subtracted diagnostic is not a selection-corrected score. Normalizing a small
+  residual promoted it to unit-scale pressure.
 
 These results close the tempting post-hoc repairs. Reweighting RSPG/ARCG edges
 is established pair weighting; complement attraction is hard-positive mining;

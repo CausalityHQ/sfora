@@ -17,7 +17,8 @@ small benchmark numbers:
   residualisation);
 - deterministic augmentation-response relations exist, but hard eligibility
   erased class attraction and an unsatisfied ordinal version (IPSR) produced
-  only **+0.060 pt** selection-corrected;
+  only **+0.091 pt raw**; its historical +0.060-point gap-subtracted diagnostic
+  is not a selection correction;
 - beneficial class fragmentation (**+3.534 In-Shop R@1 points** after matching
   class size) cannot be routed through log-determinant, class-shell, reverse
   contrastive, subcentre, or density objectives without entering established
@@ -136,8 +137,9 @@ support-multiplicity edit independently died at Gate 2 as positive mining over
 clustering-derived subidentities.
 
 **Faithful Cars196 RS@k resolution.** The corrected source-cadenced run finished
-within its preregistered range: raw best R@1 **0.793260** and
-selection-corrected **0.788987**, with a **+0.427-point** selection bonus. The
+within its preregistered range: raw best R@1 **0.793260** and independently
+persisted final R@1 **0.788095**. The historical **0.788987** local-neighbour
+diagnostic is not a selection-corrected score. The
 best R@1/2/4/8 curve was **0.793260 / 0.863608 / 0.912803 / 0.946993**. A final
 independent audit matched the official loss and gradients to float32 round-off,
 matched architecture outputs exactly, and found no remaining recipe mismatch.
@@ -192,6 +194,6 @@ ownership asymmetry. Candidate 31's closure is strengthened, not reopened.
 **SGAR/intra-variance audit.** Liu et al. (EAAI 2024) adds Gaussian radial
 latent points and ranks them by synthesis intensity; it is a gate/order delta
 over SR/SSR, not real-image intra-class supervision. Its +0.3--0.5 point
-single-run claims have no uncertainty and are test-tuned at the scale of this
-repository's +0.427-point selection bonus. It strengthens the synthesis-ranking
-closure but does not close the non-generative supervision residue.
+single-run claims have no uncertainty and are test-tuned at a sub-point scale. The
+retracted +0.427-point local gap cannot quantify selection bias. It strengthens the
+synthesis-ranking closure but does not close the non-generative supervision residue.

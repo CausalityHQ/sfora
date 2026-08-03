@@ -43,7 +43,8 @@ This track is not a novelty claim. It is necessary experimental infrastructure.
 4. Evaluate 512-D and 2048-D heads separately. VAPNet and AdvRF show that the
    general published horizon uses 2048-D/200-epoch recipes; a 512-D result is a
    controlled ablation, not the overall frontier.
-5. Preserve raw and selection-corrected reporting and use paired seeds.
+5. Preserve raw and independently selected/final reporting and use paired seeds. The
+   historical local-neighbour peak gap is not a selection correction.
 
 This track tells us whether any later mechanism beats a current baseline rather
 than a historically convenient one.

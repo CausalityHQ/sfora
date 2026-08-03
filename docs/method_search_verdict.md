@@ -3893,3 +3893,12 @@ gap-subtracted/local diagnostics and relies on raw or independently final metric
 No observed number or candidate verdict changed. This is a claim-consistency repair,
 not a method result. Full audit:
 `docs/results_selection_retraction_consistency_audit_286_2026-08-03.md`.
+
+## 287. Handoff consistency after selection-estimator retraction
+
+The checked-in handoff and several strategy documents still carried the retracted EMA
+ranking reversal, gap-subtracted TIRD/IPSR/Cars labels, and an obsolete idle-GPU state.
+They now route to current evidence, mark the old paper claim retracted, and require raw
+plus independently selected/final metrics. No score or candidate verdict changed. This
+is a context-integrity repair, not a method result. Full audit:
+`docs/handoff_selection_retraction_repair_287_2026-08-03.md`.
