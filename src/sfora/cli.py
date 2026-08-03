@@ -1709,13 +1709,13 @@ def image_end_to_end(
         typer.Option(help="Weight for PFML-style local attraction/repulsion potential."),
     ] = 0.0,
     potential_delta: Annotated[
-        float,
+        float | None,
         typer.Option(help="Local potential radius delta."),
-    ] = 0.2,
+    ] = None,
     potential_alpha: Annotated[
-        float,
+        float | None,
         typer.Option(help="Local potential decay exponent alpha."),
-    ] = 4.0,
+    ] = None,
     teacher_similarity_weight: Annotated[
         float,
         typer.Option(help="Weight for preserving pretrained pairwise similarities."),
@@ -2175,7 +2175,9 @@ def image_end_to_end(
                     else base_config.proxy_anchor_delta
                 ),
                 "cem_edges_path": (
-                    str(cem_edges_path) if cem_edges_path is not None else base_config.cem_edges_path
+                    str(cem_edges_path)
+                    if cem_edges_path is not None
+                    else base_config.cem_edges_path
                 ),
                 "cem_weight": cem_weight if cem_weight is not None else base_config.cem_weight,
                 "cem_margin": cem_margin if cem_margin is not None else base_config.cem_margin,
@@ -2247,8 +2249,16 @@ def image_end_to_end(
                     else base_config.bgsi_axis_agreement
                 ),
                 "potential_weight": potential_weight,
-                "potential_delta": potential_delta,
-                "potential_alpha": potential_alpha,
+                "potential_delta": (
+                    potential_delta
+                    if potential_delta is not None
+                    else base_config.potential_delta
+                ),
+                "potential_alpha": (
+                    potential_alpha
+                    if potential_alpha is not None
+                    else base_config.potential_alpha
+                ),
                 "teacher_similarity_weight": teacher_similarity_weight,
                 "label_noise_fraction": label_noise_fraction,
                 "retrieval_query_limit": retrieval_query_limit,

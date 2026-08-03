@@ -1678,6 +1678,8 @@ def test_image_end_to_end_command_preserves_protocol_objectives_when_omitted(
                     "proxy_count_per_class": config.proxy_count_per_class,
                     "optimizer": config.optimizer,
                     "lr_schedule": config.lr_schedule,
+                    "potential_delta": config.potential_delta,
+                    "potential_alpha": config.potential_alpha,
                 }
             ),
             encoding="utf-8",
@@ -1708,7 +1710,9 @@ def test_image_end_to_end_command_preserves_protocol_objectives_when_omitted(
     assert payload["objectives"] == ["frozen_pretrained", "pfml"]
     assert payload["proxy_count_per_class"] == 15
     assert payload["optimizer"] == "adam"
-    assert payload["lr_schedule"] == "cosine"
+    assert payload["lr_schedule"] == "none"
+    assert payload["potential_delta"] == pytest.approx(0.2)
+    assert payload["potential_alpha"] == pytest.approx(3.0)
 
 
 def test_image_end_to_end_command_defaults_to_legacy_objectives_when_omitted(
