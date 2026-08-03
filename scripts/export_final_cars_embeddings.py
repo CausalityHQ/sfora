@@ -66,6 +66,9 @@ def verify_official_partition(
     summaries: dict[str, dict[str, Any]] = {}
     for split, examples in (("train", train_examples), ("test", test_examples)):
         labels = {int(example.label) for example in examples}
+        class_counts = {
+            label: sum(int(example.label) == label for example in examples) for label in labels
+        }
         example_ids = {str(example.example_id) for example in examples}
         source_references = [image_source_reference(example.image) for example in examples]
         nonempty_source_references = {value for value in source_references if value}
@@ -78,6 +81,11 @@ def verify_official_partition(
             )
         if len(example_ids) != len(examples):
             raise ValueError(f"duplicate Cars196 {split} example IDs")
+        if any(count < 2 for count in class_counts.values()):
+            raise ValueError(
+                f"Cars196 {split} contains a class with fewer than two examples; "
+                "leave-one-out R@1 would not be defined for every query"
+            )
         if nonempty_source_references and len(nonempty_source_references) != len(examples):
             raise ValueError(f"duplicate Cars196 {split} source paths")
         summaries[split] = {
@@ -86,6 +94,7 @@ def verify_official_partition(
             "source_references": nonempty_source_references,
             "content_hashes": content_hashes,
             "content_duplicate_rows": len(examples) - len(content_hashes),
+            "minimum_class_examples": min(class_counts.values()),
         }
 
     if summaries["train"]["labels"] & summaries["test"]["labels"]:
@@ -108,6 +117,8 @@ def verify_official_partition(
         "train_test_content_overlap": 0,
         "train_content_duplicate_rows": summaries["train"]["content_duplicate_rows"],
         "test_content_duplicate_rows": summaries["test"]["content_duplicate_rows"],
+        "train_minimum_class_examples": summaries["train"]["minimum_class_examples"],
+        "test_minimum_class_examples": summaries["test"]["minimum_class_examples"],
     }
 
 

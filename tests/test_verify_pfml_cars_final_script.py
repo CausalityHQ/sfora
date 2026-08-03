@@ -7,11 +7,15 @@ def test_controller_refuses_active_training_before_deploy_or_export() -> None:
     script = (
         Path(__file__).resolve().parents[1] / "scripts" / "verify_pfml_cars_final.sh"
     ).read_text(encoding="utf-8")
-    guard = script.index("pgrep -af '[s]fora image-end-to-end.*pfml.*alpha3_seed0'")
+    guard = script.index(
+        "pgrep -af '[s]fora image-end-to-end.*image_end_to_end_cars[.]"
+        "pfml_alpha3_seed0[.]json'"
+    )
     deploy = script.index("rsync -a")
     export = script.index("scripts/export_final_cars_embeddings.py", deploy)
     assert guard < deploy < export
     assert "refusing final verification while the PFML training process is active" in script
+    assert "image_end_to_end_cars[.]pfml_alpha3_seed0[.]json" in script
 
 
 def test_controller_runs_both_exports_before_field_analysis() -> None:

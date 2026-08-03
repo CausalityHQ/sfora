@@ -12,7 +12,8 @@ TEST_PACK_REL="reports/emb/pfml_cars_alpha3_seed0_final.test.npz"
 FIELD_REL="reports/generated/pfml_cars_alpha3_seed0_final_field.json"
 SCALAR_REL="reports/generated/pfml_cars_alpha3_seed0_scalar_analysis.json"
 
-if ssh "$REMOTE_HOST" "pgrep -af '[s]fora image-end-to-end.*pfml.*alpha3_seed0'"; then
+if ssh "$REMOTE_HOST" \
+  "pgrep -af '[s]fora image-end-to-end.*image_end_to_end_cars[.]pfml_alpha3_seed0[.]json'"; then
   echo "refusing final verification while the PFML training process is active" >&2
   exit 1
 fi

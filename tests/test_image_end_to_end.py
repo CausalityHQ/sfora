@@ -1457,6 +1457,7 @@ def test_pfml_protocol_uses_repaired_resnet50_512_defaults() -> None:
     assert config.pretrained_weights == "v1"
     assert config.head_pooling == "avg"
     assert config.embedding_head_init == "default"
+    assert config.dataset_selection_policy == "full_official_partition"
     assert config.freeze_batch_norm is True
     assert config.proxy_count_per_class == 15
     assert config.potential_delta == pytest.approx(0.2)
@@ -6069,6 +6070,22 @@ def test_balanced_batch_indices_samples_per_class_excludes_short_classes_without
         assert set(batch_labels) == set(range(30))
         assert 99 not in batch_labels
         assert all(batch_labels.count(label) == 4 for label in range(30))
+
+
+def test_balanced_batch_indices_proxy_mode_rejects_silent_class_exclusion() -> None:
+    from sfora.image_end_to_end import _balanced_batch_indices
+
+    labels = [label for label in range(3) for _ in range(4)] + [99, 99, 99]
+    with pytest.raises(ValueError, match="silently exclude classes"):
+        _balanced_batch_indices(
+            labels,
+            batch_size=12,
+            group_size=2,
+            samples_per_class=4,
+            steps=1,
+            seed=123,
+            require_all_classes=True,
+        )
 
 
 def test_balanced_batch_indices_samples_per_class_zero_preserves_legacy_sequence() -> None:

@@ -510,6 +510,7 @@ def config_for_protocol(
             pretrained_weights="v1",
             head_pooling="avg",
             embedding_head_init="default",
+            dataset_selection_policy="full_official_partition",
             freeze_batch_norm=dataset_name != "sop",
             proxy_count_per_class=2 if dataset_name == "sop" else 15,
             potential_delta=0.2,
@@ -745,6 +746,10 @@ def run_image_end_to_end_benchmark(
                     seed=config.seed,
                     class_similarity=class_similarity,
                     hard_fraction=config.hard_class_fraction,
+                    require_all_classes=any(
+                        _uses_metric_proxies(objective, config)
+                        for objective in config.objectives
+                    ),
                 )
         train_loader: Any = DataLoader(
             cast(Any, train_dataset),
@@ -2044,6 +2049,7 @@ def _balanced_batch_indices(
     seed: int,
     class_similarity: dict[int, list[int]] | None = None,
     hard_fraction: float = 0.0,
+    require_all_classes: bool = False,
 ) -> list[list[int]]:
     per_class = samples_per_class if samples_per_class > 0 else max(2 * group_size, 2)
     if batch_size < per_class * 2:
@@ -2055,6 +2061,12 @@ def _balanced_batch_indices(
     eligible = sorted(
         label for label, indices in grouped.items() if len(indices) >= minimum_examples
     )
+    if require_all_classes and len(eligible) != len(grouped):
+        excluded = sorted(label for label in grouped if label not in set(eligible))
+        raise ValueError(
+            "proxy-based balanced sampling refuses to silently exclude classes with "
+            f"fewer than {minimum_examples} examples: {excluded}"
+        )
     if len(eligible) < 2:
         raise ValueError("end-to-end training requires at least two eligible classes")
     rng = np.random.default_rng(seed)

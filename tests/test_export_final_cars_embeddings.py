@@ -77,6 +77,18 @@ def test_partition_verifier_rejects_identity_overlap(
         _module.verify_official_partition(train, test)
 
 
+def test_partition_verifier_rejects_singleton_test_class(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 2)}
+    )
+    train = [_example(0, "train-a", tmp_path), _example(0, "train-b", tmp_path)]
+    test = [_example(1, "test-a", tmp_path), _example(2, "test-b", tmp_path)]
+    with pytest.raises(ValueError, match="fewer than two examples"):
+        _module.verify_official_partition(train, test)
+
+
 def test_partition_verifier_hashes_decoded_images_and_rejects_cross_split_overlap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

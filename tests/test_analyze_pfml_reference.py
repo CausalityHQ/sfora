@@ -21,22 +21,9 @@ def _report(*, final: float = 0.91) -> dict:
     best = max(recalls)
     best_epoch = 10 * (recalls.index(best) + 1)
     return {
-        "config": {
-            "dataset_name": "cars",
-            "objectives": ["pfml"],
-            "backbone_name": "resnet50",
-            "embedding_dimensions": 512,
-            "optimizer": "adam",
-            "batch_size": 100,
-            "samples_per_class": 4,
-            "proxy_count_per_class": 15,
-            "potential_delta": 0.2,
-            "potential_alpha": 3.0,
-            "eval_test_interval_epochs": 10,
-            "eval_test_epoch_offset": 0,
-            "checkpoint_selection_interval": 0,
-            "train_epochs": 200,
-        },
+        "config": dict(_module.EXPECTED_CONFIG),
+        "train_examples": _module.EXPECTED_TRAIN_EXAMPLES,
+        "test_examples": _module.EXPECTED_TEST_EXAMPLES,
         "methods": {
             "pfml_end_to_end:resnet50": {
                 "objective": "pfml",
@@ -59,6 +46,15 @@ def test_theoretical_batch_energy_matches_fixed_pair_accounting() -> None:
     assert bounds["force_free_energy_minimum"] == pytest.approx(301_946_250.0)
 
 
+def test_expected_steps_are_independently_derived_from_official_count_and_epochs() -> None:
+    config = _module.EXPECTED_CONFIG
+    steps_per_epoch = (
+        _module.EXPECTED_TRAIN_EXAMPLES + int(config["batch_size"]) - 1
+    ) // int(config["batch_size"])
+    assert int(config["train_steps"]) == steps_per_epoch * int(config["train_epochs"])
+    assert int(config["train_steps"]) == _module.EXPECTED_STEPS
+
+
 def test_analysis_reports_raw_best_and_final_separately() -> None:
     result = _module.analyze_report(_report(final=0.91))
     assert result["decision"] == "passes_fixed_interpretation_metric_gates"
@@ -78,4 +74,20 @@ def test_analysis_rejects_incomplete_curve() -> None:
     report = _report()
     report["methods"]["pfml_end_to_end:resnet50"]["loss_history"].pop()
     with pytest.raises(ValueError, match="curve shapes"):
+        _module.analyze_report(report)
+
+
+@pytest.mark.parametrize("key", sorted(_module.EXPECTED_CONFIG))
+def test_analysis_rejects_every_mutated_frozen_recipe_field(key: str) -> None:
+    report = _report()
+    report["config"][key] = "mutated"
+    with pytest.raises(ValueError, match=f"unexpected PFML config {key}"):
+        _module.analyze_report(report)
+
+
+@pytest.mark.parametrize("field", ["train_examples", "test_examples"])
+def test_analysis_rejects_wrong_official_partition_count(field: str) -> None:
+    report = _report()
+    report[field] -= 1
+    with pytest.raises(ValueError, match=field):
         _module.analyze_report(report)

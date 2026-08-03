@@ -12,6 +12,61 @@ import numpy as np
 
 EXPECTED_STEPS = 16_200
 EXPECTED_EVAL_EPOCHS = tuple(range(10, 201, 10))
+EXPECTED_TRAIN_EXAMPLES = 8_054
+EXPECTED_TEST_EXAMPLES = 8_131
+EXPECTED_CONFIG: dict[str, Any] = {
+    "dataset_name": "cars",
+    "protocol": "pfml-resnet50-512",
+    # The already-running preregistered job predates the explicit preset repair.
+    # Exact official counts below prove that the legacy minimum filter was inert.
+    "dataset_selection_policy": "legacy_minimum_filter",
+    "objectives": ["pfml"],
+    "backbone_name": "resnet50",
+    "embedding_dimensions": 512,
+    "optimizer": "adam",
+    "batch_size": 100,
+    "drop_last_train_batch": False,
+    "eval_batch_size": 128,
+    "train_steps": EXPECTED_STEPS,
+    "train_epochs": 200,
+    "learning_rate": 1.0e-4,
+    "backbone_learning_rate": 1.0e-4,
+    "proxy_learning_rate_multiplier": 100.0,
+    "weight_decay": 1.0e-4,
+    "warmup_epochs": 1,
+    "warmup_is_additional": False,
+    "schedule_during_warmup": True,
+    "lr_schedule": "none",
+    "lr_step_epochs": 10,
+    "lr_milestones": [],
+    "lr_gamma": 0.5,
+    "samples_per_class": 4,
+    "epoch_sampling_policy": "independent_balanced",
+    "pretrained_weights": "v1",
+    "head_pooling": "avg",
+    "embedding_head_init": "default",
+    "pre_embedding_layer_norm": False,
+    "embedding_layer_norm": False,
+    "proxy_count_per_class": 15,
+    "proxy_initialization": "unit_normal",
+    "potential_delta": 0.2,
+    "potential_alpha": 3.0,
+    "input_size": 224,
+    "train_augmentation": "standard",
+    "freeze_batch_norm": True,
+    "freeze_batch_norm_affine": False,
+    "weight_decay_exclusions": "bias_bn_proxy",
+    "gradient_clip_value": None,
+    "label_noise_fraction": 0.0,
+    "eval_test_interval_epochs": 10,
+    "eval_test_epoch_offset": 0,
+    "checkpoint_selection_interval": 0,
+    "retrieval_query_limit": None,
+    "limit_per_class": None,
+    "max_classes": None,
+    "seed": 0,
+    "num_workers": 8,
+}
 
 
 def theoretical_batch_energy_bounds(config: dict[str, Any]) -> dict[str, float | int]:
@@ -48,25 +103,19 @@ def theoretical_batch_energy_bounds(config: dict[str, Any]) -> dict[str, float |
 
 def analyze_report(report: dict[str, Any]) -> dict[str, Any]:
     config = report.get("config", {})
-    expected_config = {
-        "dataset_name": "cars",
-        "objectives": ["pfml"],
-        "backbone_name": "resnet50",
-        "embedding_dimensions": 512,
-        "optimizer": "adam",
-        "batch_size": 100,
-        "samples_per_class": 4,
-        "proxy_count_per_class": 15,
-        "potential_delta": 0.2,
-        "potential_alpha": 3.0,
-        "eval_test_interval_epochs": 10,
-        "eval_test_epoch_offset": 0,
-        "checkpoint_selection_interval": 0,
-        "train_epochs": 200,
-    }
-    for key, expected in expected_config.items():
+    for key, expected in EXPECTED_CONFIG.items():
         if config.get(key) != expected:
             raise ValueError(f"unexpected PFML config {key}: {config.get(key)!r} != {expected!r}")
+    if report.get("train_examples") != EXPECTED_TRAIN_EXAMPLES:
+        raise ValueError(
+            "unexpected Cars196 PFML train_examples: "
+            f"{report.get('train_examples')!r} != {EXPECTED_TRAIN_EXAMPLES}"
+        )
+    if report.get("test_examples") != EXPECTED_TEST_EXAMPLES:
+        raise ValueError(
+            "unexpected Cars196 PFML test_examples: "
+            f"{report.get('test_examples')!r} != {EXPECTED_TEST_EXAMPLES}"
+        )
 
     methods = report.get("methods")
     if not isinstance(methods, dict) or len(methods) != 1:
