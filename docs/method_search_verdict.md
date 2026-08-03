@@ -4364,3 +4364,31 @@ incompletely specified recipe. Because the reference failed, the train export
 and field/occupancy census were skipped and no tuning or method is derived from
 it. Full audit:
 `docs/pfml_cars_fixed_interpretation_result_2026-08-03.md`.
+
+## 341--346. Fable deployment and quality candidate batch
+
+**ALL DEAD before implementation or candidate GPU.** Identity-set maximum
+aggregation (341) is algebraically ordinary nearest-image top-1; nontrivial set
+aggregation is established and changes deployment. Train-calibrated abstention
+(342) tries to transfer a 0.4984% seen-identity leave-one-out error population
+to an 8.630% unseen-identity test population and is occupied by selective/risk-
+controlled retrieval. Duplicate-conflict supervision (343) has only 2 / 129
+verified train errors as provenance and collides with noise-resistant DML.
+Paired-resolution response (344) is augmentation/self-distillation or occupied
+resolution-asymmetry training without a measured resolution failure.
+Acquisition-randomized supervision (345) has neither an identified association
+nor actual randomization and reduces to nuisance/domain invariance. A declared
+ensemble (346) is established, costs more at deployment, and is not a novel
+training mechanism.
+
+This batch also corrects candidate 339's statement that CUB attributes/parts
+have no matched second-dataset channel. Official CUB and DeepFashion/In-Shop
+distributions both expose broad attribute and landmark/part annotations,
+although their ontologies are not aligned. The correction does **not** make the
+obvious method novel: DeepFashion itself jointly trains landmark and attribute
+prediction with metric learning and uses predicted landmarks to pool or gate
+retrieval features; attribute-specific, structured-label, part-aware, and
+privileged-information learning are also established. Extra annotations change
+the ordinary label-only task. The factual census is reopened, but no new
+operator survives Gate 2. Full audit:
+`docs/fable_candidate_batch_341_346_2026-08-03.md`.
