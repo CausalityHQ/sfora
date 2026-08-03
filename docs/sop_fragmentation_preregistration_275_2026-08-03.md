@@ -57,3 +57,13 @@ retrieve well without collapsing their modes. It would not resurrect sub-centres
 diversity losses, graph connectivity, or positive gating, all of which are occupied or
 failed. A failure would strengthen the conclusion that the In-Shop association belongs
 to its acquisition/session structure and should not motivate a cross-dataset method.
+
+## Labels-only feasibility check after registration
+
+After the registration commit and still before the embedding pack existed, the official
+training metadata was inspected without embeddings or retrieval outcomes. It contains
+11,318 classes, of which **9,180** have at least three images. The immutable size
+histogram is `{2: 2138, 3: 1881, 4: 1767, 5: 1299, 6: 1051, 7: 737, 8: 565,
+9: 480, 10: 373, 11: 290, 12: 737}`. Thus lack of eligible classes cannot make the
+registered comparison vacuous; the exposure-count and common-stratum rules remain
+unchanged.
