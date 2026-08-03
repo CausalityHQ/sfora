@@ -48,3 +48,13 @@ they are retained for provenance but **must not generate hypotheses**. Separate
 official-training embeddings will be exported from the final checkpoint. No
 method screen is authorized until those uncontaminated measurements produce an
 operator that survives prior-art review.
+
+## Aborted execution
+
+This preregistered split-diagnostic run was stopped after 26 minutes, at about
+9% of training, before it produced a report. A command audit found that the
+ResNet-50 configuration above is the repository's earlier project recipe, not
+the registered official Proxy Anchor SOP recipe. Calling its result a canonical
+baseline would have repeated a benchmark-recipe error. No partial value is
+reported or used. The separate official-recipe preregistration is in
+`sop_official_proxy_anchor_preregistration_239_2026-08-03.md`.

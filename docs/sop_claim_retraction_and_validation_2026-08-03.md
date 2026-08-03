@@ -34,8 +34,8 @@ configuration intent:
    correction check, never as a valid benchmark baseline;
 7. no method conclusion is drawn from one corrected seed.
 
-The ongoing corrected baseline is a benchmark repair and measurement source, not
-a novel-method result.
+The corrected baseline is a benchmark repair and measurement source, not a
+novel-method result.
 
 ## Audit correction made while the run was live
 
@@ -46,9 +46,17 @@ write `final_training_state` plus their training step. The already-running job
 uses the earlier code and must be labeled from the traced semantics rather than
 from absent metadata.
 
-The running command also did not request saved test embeddings or a best-epoch
+The first corrected-split command also did not request saved test embeddings or a best-epoch
 checkpoint. Its report's best-over-training R@1 therefore cannot be independently
 recomputed from a persisted best state. The post-run controller now exports both
 official train and test embeddings from the final checkpoint. Final-state R@1
 will be independently recomputed; the report's best value remains code-derived
 and must not be described as artifact-verified.
+
+That command was subsequently aborted before producing a report: it used the
+project's ResNet-50 SOP recipe, whereas the registered official Proxy Anchor
+recipe uses BN-Inception. It therefore cannot repair the official benchmark.
+The replacement run is locked to recipe ID
+`proxy_anchor.sop.official-51db570`; its preregistration records the complete
+configuration and the distinction between code-derived best-over-training and
+artifact-verified final-state values.
