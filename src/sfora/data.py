@@ -230,6 +230,11 @@ def _sop_official_product_ids(split: str) -> set[str]:
     observed = hashlib.sha256(path.read_bytes()).hexdigest()
     if observed != expected:
         raise ValueError(f"official SOP {split} metadata digest mismatch: {observed}")
+    expected_count = 11_318 if split == "train" else 11_316
+    return _parse_sop_metadata(path, expected_count=expected_count)
+
+
+def _parse_sop_metadata(path: Path, *, expected_count: int) -> set[str]:
     products: set[str] = set()
     lines = path.read_text(encoding="utf-8").splitlines()
     for line_number, line in enumerate(lines[1:], start=2):
@@ -237,10 +242,9 @@ def _sop_official_product_ids(split: str) -> set[str]:
         if len(fields) != 4:
             raise ValueError(f"invalid SOP metadata row {line_number}: {line!r}")
         products.add(Path(fields[3]).stem.rsplit("_", 1)[0])
-    expected_count = 11_318 if split == "train" else 11_316
     if len(products) != expected_count:
         raise ValueError(
-            f"official SOP {split} metadata has {len(products)} products; expected {expected_count}"
+            f"SOP metadata has {len(products)} products; expected {expected_count}"
         )
     return products
 

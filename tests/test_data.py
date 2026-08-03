@@ -457,6 +457,21 @@ def test_select_labeled_image_examples_reads_sop_product_ids() -> None:
     assert sorted({example.label for example in examples}) == [202, 303]
 
 
+def test_parse_sop_metadata_uses_product_path_not_class_sort_order(tmp_path: Path) -> None:
+    from sfora.data import _parse_sop_metadata
+
+    metadata = tmp_path / "Ebay_train.txt"
+    metadata.write_text(
+        "image_id class_id super_class_id path\n"
+        "1 9 2 chair_final/900001_0.JPG\n"
+        "2 9 2 chair_final/900001_1.JPG\n"
+        "3 2 1 bicycle_final/100007_0.JPG\n",
+        encoding="utf-8",
+    )
+
+    assert _parse_sop_metadata(metadata, expected_count=2) == {"900001", "100007"}
+
+
 def test_select_labeled_image_examples_skips_underfilled_classes() -> None:
     records: list[dict[str, object]] = [{"image": "single", "id": "101_0"}]
     for product in [202, 303]:
