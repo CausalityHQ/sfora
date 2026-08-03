@@ -41,11 +41,13 @@ expensive to skip.
 *before* the deciding run. Four have been registered here and all four failed — that is
 the process working.
 
-**4. Screen on In-Shop, not CUB.** In-Shop σ = 0.12 pt, so **one seed per arm is
-decisive**; CUB σ = 0.57 and needs 5–17. One In-Shop run at 2.2 h beats six CUB runs for
-any effect under 2 pt. Use `pa_ema_avg_bnfix`-style buffer handling wherever BatchNorm is
-trainable, or the average is only half an average. CUB screening at n=1 produced a false
-positive here once already (+0.52, retracted).
+**4. Screen on corrected In-Shop, not CUB.** The historical claim that In-Shop
+σ = 0.12 point and one seed is decisive came from the wrong `img_highres` corpus and
+is retracted. Establish a paired corrected-corpus reference first. A single seed may
+kill a large miss against a prospectively fixed threshold, but cannot establish a small
+gain or a variance model. Use `pa_ema_avg_bnfix`-style buffer handling wherever
+BatchNorm is trainable, or the average is only half an average. CUB screening at n=1
+produced a false positive here once already (+0.52, retracted).
 
 **5. Confirm out-of-sample.** Never quote the seeds that generated the hypothesis.
 In-sample gave +0.890; out-of-sample +0.427. An sd from 2–3 runs is worthless: n=3 gave

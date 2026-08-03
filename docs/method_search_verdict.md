@@ -1,11 +1,13 @@
 # Verdict on the method search (2026-07-30)
 
-> **Global In-Shop evidence retraction (2026-08-03).** Audit 297 found that all
+> **Global In-Shop evidence repair boundary (2026-08-03).** Audit 297 found that all
 > In-Shop work used DeepFashion `img_highres` (parsing/segmentation) rather than
 > the official `Img/img.zip` retrieval pixels. All In-Shop numbers and any death
 > relying on them are withdrawn as benchmark evidence. Prior-art-only deaths and
-> evidence from CUB/Cars/SOP remain unchanged. See
-> `docs/inshop_wrong_pixel_corpus_retraction_297_2026-08-03.md`.
+> evidence from CUB/Cars/SOP remain unchanged. The replacement 256-pixel corpus
+> reproduces the authors' published checkpoint at **0.9176396 R@1** inside its
+> preregistered interval, so new In-Shop work may resume; this does not restore old
+> runs. See audits 297--299.
 
 Fifteen candidates, fifteen failures. Before starting a sixteenth, the whole search was
 put to an independent adversarial review (Codex, read-only, literature-grounded, asked

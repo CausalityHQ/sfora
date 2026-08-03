@@ -1,14 +1,17 @@
 # Benchmark results
 
-> **In-Shop corpus retraction (2026-08-03).** Every In-Shop run reported in this
+> **In-Shop corpus repair (2026-08-03).** Every historical In-Shop run reported in this
 > file used DeepFashion `img_highres`, the parsing/segmentation corpus, instead of
 > the benchmark's centered 256-pixel `Img/img.zip` retrieval corpus. The authors'
 > published Proxy Anchor checkpoint scored only 0.87354 on those wrong pixels
 > against its reported 0.919, while exact upstream/local model and transform
 > comparisons were bit-identical. All In-Shop scores, deltas, sigma estimates,
 > acquisition/fragmentation measurements and method verdicts are retracted as
-> benchmark evidence pending acquisition of `img.zip`. See
-> `docs/inshop_wrong_pixel_corpus_retraction_297_2026-08-03.md`.
+> benchmark evidence. A replacement 52,712-image 256-pixel corpus exactly matches
+> the official partition and the authors' published Proxy Anchor checkpoint scores
+> **0.9176396 R@1**, inside the prospectively registered `[0.917, 0.921]` interval.
+> This validates the replacement corpus but does not rehabilitate any historical
+> run; all methods require new training. See audits 297--299.
 
 All numbers are **CUB-200-2011**, ResNet-50 backbone, 512-dim embedding, the
 standard zero-shot retrieval split (100 train / 100 disjoint test classes),
