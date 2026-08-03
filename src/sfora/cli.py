@@ -2346,6 +2346,7 @@ def image_end_to_end(
 # they are derived from. Without this, `--recipe local_nca` resolves a recipe whose
 # declared objective is `local_nca`, which is then rejected as "not a base method".
 _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
+    "proxy_anchor_cem": "proxy_anchor",
     "tversky_proxy_anchor": "proxy_anchor",
     "shepard_proxy_anchor": "proxy_anchor",
 }

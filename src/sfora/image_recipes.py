@@ -56,6 +56,7 @@ DerivedMethod = Literal[
     "tird",
     "pa_ipc4",
     "pa_fiedler",
+    "pa_cem",
 ]
 
 # Base loss each derived method attaches to.
@@ -89,6 +90,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "tird": "proxy_anchor",
     "pa_ipc4": "proxy_anchor",
     "pa_fiedler": "proxy_anchor",
+    "pa_cem": "proxy_anchor",
 }
 
 
@@ -628,6 +630,22 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
     expected_base = _DERIVED_BASE[method]
     if recipe.base_method != expected_base:
         raise ValueError(f"{method} requires a {expected_base} base recipe")
+    if method == "pa_cem":
+        delta = {
+            "objectives": ("proxy_anchor_cem",),
+            "cem_weight": 0.05,
+            "cem_margin": 0.1,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
     if method in {"pa_ipc4", "pa_fiedler"}:
         delta: dict[str, Any] = {"samples_per_class": 4}
         if method == "pa_fiedler":

@@ -736,6 +736,19 @@ def test_rspg_recipe_is_training_data_only_proxy_anchor_derivation() -> None:
     assert recipe.config["ema_distill_weight"] == 0.0
 
 
+def test_cem_recipe_changes_only_objective_and_registered_margin() -> None:
+    base = reference_recipe("proxy_anchor", "inshop")
+    recipe = derive_recipe(base, "pa_cem")
+
+    assert recipe.config["objectives"] == ("proxy_anchor_cem",)
+    assert recipe.config["cem_weight"] == pytest.approx(0.05)
+    assert recipe.config["cem_margin"] == pytest.approx(0.1)
+    assert set(recipe.delta) == {"objectives", "cem_weight", "cem_margin"}
+    for key, value in base.config.items():
+        if key not in recipe.delta:
+            assert recipe.config[key] == value
+
+
 def test_arcg_recipe_freezes_preregistered_graph_schedule() -> None:
     base = reference_recipe("proxy_anchor", "inshop")
     recipe = derive_recipe(base, "arcg")
