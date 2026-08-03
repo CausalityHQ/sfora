@@ -24,3 +24,4 @@ def test_controller_runs_both_exports_before_field_analysis() -> None:
     assert test_export < train_export < analysis
     assert "image_end_to_end_cars.pfml_alpha3_seed0_final.pt" in script
     assert "pfml_cars_alpha3_seed0_final_field.json" in script
+    assert "pfml_cars_alpha3_seed0_scalar_analysis.json" in script
