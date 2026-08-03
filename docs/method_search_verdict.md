@@ -3987,3 +3987,14 @@ re-ID embeddings, and front/side/back-aware fashion retrieval. A discrete gate
 is a weaker application of established view-aware supervision and repeats the
 failed positive-gating interface. Full audit:
 `docs/view_role_supervision_audit_294_2026-08-03.md`.
+
+## 295. Blind corrected In-Shop outcome boundary
+
+Before the run matured, every planned output was mapped to its allowed
+interpretation. Raw best inside `[0.904,0.934]` and independently verified final
+R@1 establish a reference only; outside blocks screening. Canonical/cosine/tie
+differences and the 19 exact query/gallery content overlaps are evaluation
+caveats, while raw-to-final gaps cannot revive selection, EMA, averaging, or
+stopping claims. Only a genuinely new independently validated observable outside
+the matrix can reopen candidate design. Full matrix:
+`docs/inshop_outcome_decision_matrix_295_2026-08-03.md`.
