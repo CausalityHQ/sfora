@@ -4154,3 +4154,11 @@ combines a Lennard-Jones proxy shell with coding-rate regularization. Corrected
 In-Shop geometry shows no collapse premise: within-class cosine q10/median are
 0.6030/0.7701 (range 0.4031–0.99998), and proxy-margin failures are only 0.108%.
 The intervention is not measurement-motivated.
+
+## 319. Confusion-agreement supervision
+
+**DEAD at Gate 2; no implementation or GPU.** Foreign-image/foreign-proxy
+agreement was a strong error diagnostic (2.3886% error for agreeing samples vs
+0.1466% for disagreeing samples), but acting on it is either hard-negative proxy
+weighting or graph-consistency/confusion-graph metric learning. The signal is
+useful for analysis, not a defensible novel supervision mechanism.
