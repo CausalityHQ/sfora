@@ -3804,3 +3804,13 @@ outputs existed, the joint controller was made fail-terminating on missing expor
 the fragmentation controller now counts a verifier only after its input packs exist.
 This is an evidence-path repair, not a method candidate or result. Full audit:
 `docs/sop_producer_liveness_audit_278_2026-08-03.md`.
+
+## 279. Blind SOP outcome boundary
+
+Before corrected SOP final artifacts existed, every planned output was mapped to its
+permitted conclusion. Fragmentation cannot revive occupied connectivity/gating/
+diversity operators; proxy-radius clocks cannot revive occupied spherical optimization;
+superclass enrichment cannot revive hierarchical DML; raw-to-final gaps cannot revive
+the retracted selection estimator or leakage-prone stopping. Only a new independently
+validated observable outside the planned table may reopen candidate generation. Full
+matrix: `docs/sop_outcome_decision_matrix_279_2026-08-03.md`.
