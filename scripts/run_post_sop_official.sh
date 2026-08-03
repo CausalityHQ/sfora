@@ -35,3 +35,9 @@ test -f reports/checkpoints/sop_official_bninc_pa_seed0.pt
   --metadata /tmp/Ebay_test.txt \
   --output reports/generated/sop_official_test_verification_seed0_final.json \
   > logs/sop_official_test_verification_seed0_final.log 2>&1
+
+.venv/bin/python /tmp/analyze_sop_proxy_clock.py \
+  --checkpoint reports/checkpoints/sop_official_bninc_pa_seed0.pt \
+  --embeddings reports/emb/sop_official_bninc_pa_seed0_train_final.npz \
+  --output reports/generated/sop_official_proxy_clock_seed0_final.json \
+  > logs/sop_official_proxy_clock_seed0_final.log 2>&1
