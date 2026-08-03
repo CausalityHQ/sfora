@@ -43,6 +43,7 @@ def test_proxy_anchor_inshop_matches_official_command() -> None:
     assert recipe.config["samples_per_class"] == 0
     assert recipe.config["weight_decay_exclusions"] == "none"
     assert recipe.config["gradient_clip_value"] == pytest.approx(10.0)
+    assert recipe.config["proxy_initialization"] == "kaiming_normal"
 
 
 def test_fiedler_recipe_has_matched_ipc4_control() -> None:
@@ -304,16 +305,15 @@ def test_bnfix_derivation_adds_only_teacher_normalisation_fields(
     assert changed <= set(fixed.delta)
 
 
-def test_bnfix_variants_do_not_disturb_existing_derived_digests() -> None:
-    """Adding the `_bnfix` recipes must not change `pa_distill`/`herd` digests -- a
-    drift there would silently invalidate every in-flight and archived artifact."""
+def test_reference_recipe_digests_record_proxy_initialization_repair() -> None:
+    """Lock the intentional PA digest change while preserving unrelated HIST recipes."""
     expected: dict[tuple[BaseMethod, ImageDatasetName, str], str] = {
-        ("proxy_anchor", "cub", "auto"): "534a94b64783",
-        ("proxy_anchor", "cub", "pa_distill"): "47a0dea213ed",
+        ("proxy_anchor", "cub", "auto"): "5b636db1782a",
+        ("proxy_anchor", "cub", "pa_distill"): "f946de907ab9",
         ("hist", "cub", "auto"): "4d6f712a59ac",
         ("hist", "cub", "herd"): "9cdd73cfef24",
-        ("proxy_anchor", "cars", "auto"): "6fd195249c3a",
-        ("proxy_anchor", "cars", "pa_distill"): "0a096881e5cb",
+        ("proxy_anchor", "cars", "auto"): "d55241a64a5a",
+        ("proxy_anchor", "cars", "pa_distill"): "080a45b8c144",
         ("hist", "cars", "auto"): "fa44e0ac30b4",
         ("hist", "cars", "herd"): "65cc88758ed1",
     }

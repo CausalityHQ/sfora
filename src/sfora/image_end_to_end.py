@@ -165,6 +165,7 @@ class ImageEndToEndConfig(BaseModel):
     radius_target: float = Field(default=0.0, ge=0.0)
     proxy_weight: float = Field(default=0.0, ge=0.0)
     proxy_count_per_class: int = Field(default=0, ge=0)
+    proxy_initialization: Literal["unit_normal", "kaiming_normal"] = "unit_normal"
     proxy_learning_rate_multiplier: float = Field(default=100.0, gt=0.0)
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
@@ -2635,7 +2636,10 @@ def _attach_metric_proxies(
         config.embedding_dimensions,
         dtype=torch_module.float32,
     )
-    proxy_tensor = _normalize(proxy_tensor, torch_module)
+    if config.proxy_initialization == "kaiming_normal":
+        torch_module.nn.init.kaiming_normal_(proxy_tensor, mode="fan_out")
+    else:
+        proxy_tensor = _normalize(proxy_tensor, torch_module)
     cast(Any, model).register_parameter(
         "metric_proxies",
         torch_module.nn.Parameter(proxy_tensor),

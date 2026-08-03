@@ -3551,3 +3551,15 @@ corrected run must pass artifact-level membership, count, label, self-exclusion,
 and checkpoint-selection checks before its number is accepted; one seed cannot
 support a method conclusion. Full retraction and checklist:
 `docs/sop_claim_retraction_and_validation_2026-08-03.md`.
+
+Subsequent source audits found three additional fidelity defects before an
+admissible corrected run: pre-resized 224×224 SOP pixels instead of originals,
+retaining upstream's dropped final training batch plus freezing the
+BN-Inception embedding head during warm-up, and unit-normal proxy parameters
+instead of raw Kaiming-normal initialization. The first two affect historical
+BN-Inception runs; proxy initialization affects every historical PA-derived
+run. Shared-harness candidate deltas are not automatically sign-reversed, but
+absolute official-recipe comparisons and thresholds are withdrawn. Full audits:
+`docs/sop_original_image_source_audit_241_2026-08-03.md`,
+`docs/reference_drop_last_audit_240_2026-08-03.md`, and
+`docs/proxy_initialization_fidelity_audit_242_2026-08-03.md`.

@@ -500,6 +500,12 @@ the legacy confound cannot recur.
 > and comparisons to the published 0.9035 baseline are withdrawn pending a
 > corrected run. See `docs/reference_drop_last_audit_240_2026-08-03.md`.
 
+> A separate source audit also found unit-normal proxy initialization where
+> upstream uses raw Kaiming-normal parameters. That affects all historical PA
+> and PA-derived arms, including CUB and Cars, and further blocks absolute
+> official-recipe comparisons. See
+> `docs/proxy_initialization_fidelity_audit_242_2026-08-03.md`.
+
 | arm | seed 0 | seed 1 | seed 2 | mean | Δ vs base |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Proxy Anchor | 0.9024 | 0.9048 | 0.9032 | **0.9035** | — |

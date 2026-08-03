@@ -5973,6 +5973,29 @@ def test_metric_proxies_attach_one_parameter_per_train_class_proxy() -> None:
     assert model.metric_proxies.requires_grad is True
 
 
+def test_metric_proxies_support_reference_kaiming_initialization() -> None:
+    torch = pytest.importorskip("torch")
+
+    from sfora.image_end_to_end import _attach_metric_proxies
+
+    torch.manual_seed(7)
+    model = torch.nn.Linear(2, 2)
+    _attach_metric_proxies(
+        model,
+        train_labels=list(range(100)),
+        config=ImageEndToEndConfig(
+            embedding_dimensions=32,
+            proxy_count_per_class=1,
+            proxy_initialization="kaiming_normal",
+        ),
+        torch_module=torch,
+    )
+
+    row_norms = torch.linalg.vector_norm(model.metric_proxies.detach(), dim=1)
+    assert not torch.allclose(row_norms, torch.ones_like(row_norms), atol=1.0e-5)
+    assert float(row_norms.mean()) == pytest.approx((64.0 / 100.0) ** 0.5, rel=0.15)
+
+
 def test_optimizer_groups_use_high_proxy_learning_rate() -> None:
     torch = pytest.importorskip("torch")
 

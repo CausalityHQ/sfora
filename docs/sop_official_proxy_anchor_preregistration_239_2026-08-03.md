@@ -51,6 +51,17 @@ materialized without decoding or re-encoding. Gate 0 must verify 59,551/60,502
 rows, official product membership, path-to-item agreement, nonuniform original
 dimensions, and the pinned source revision before another launch.
 
+The original-image launch was stopped at step 300 when the loss audit found a
+fourth fidelity defect: local proxies were normalized to unit norm immediately
+after Gaussian initialization, while upstream applies
+`kaiming_normal_(mode="fan_out")` and leaves their raw norm unconstrained.
+Forward cosine does not make these equivalent because the normalization
+Jacobian, AdamW state, and weight decay act on the raw parameters. The registered
+recipe now locks `proxy_initialization=kaiming_normal`, covered by a norm
+regression test, and has digest
+`6212b9499c00cf19ad4a53344ea348a3ea903bced426a74ef3315695afab3d00`.
+No earlier partial launch produced an admissible report.
+
 The loader must independently verify the digest-pinned official membership:
 11,318 training classes / 59,551 images and 11,316 test classes / 60,502 images,
 with disjoint product identities.

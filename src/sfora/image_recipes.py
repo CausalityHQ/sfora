@@ -314,6 +314,7 @@ def _proxy_anchor_config(dataset: ImageDatasetName) -> dict[str, Any]:
         "weight_decay": 1e-4,
         "train_epochs": 60,
         "proxy_count_per_class": 1,
+        "proxy_initialization": "kaiming_normal",
         "proxy_learning_rate_multiplier": 100.0,
         "proxy_anchor_alpha": 32.0,
         "proxy_anchor_delta": 0.1,
