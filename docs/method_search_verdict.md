@@ -3648,3 +3648,12 @@ Transfer, ISDA, and benchmark-matched Embedding Expansion occupy it. Fixing the 
 to a controlled augmentation makes it cheaper and interpretable but does not change the
 supervision mechanism. Full audit:
 `docs/intervention_tangent_transplant_audit_260_2026-08-03.md`.
+
+## 261. Checkpoint model-identity defect
+
+An independent Claude audit found that validation-restored checkpoints were falsely
+labeled final and EMA-evaluated runs saved the student rather than the scored average.
+Serialization now uses the exact evaluation model and records its source/actual step.
+This invalidates historical EMA checkpoint-reproduction claims, not their raw report
+curves or existing cross-dataset death. Full audit:
+`docs/checkpoint_model_identity_audit_261_2026-08-03.md`.

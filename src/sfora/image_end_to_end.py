@@ -1653,12 +1653,24 @@ def run_image_end_to_end_benchmark(
                 "embedding_head_init": config.embedding_head_init,
                 "embedding_layer_norm": config.embedding_layer_norm,
             }
+            persisted_step = selected_step if selected_step is not None else train_steps
+            artifact_selection = (
+                "final_training_state"
+                if persisted_step == train_steps
+                else "training_validation_selected_state"
+            )
+            evaluation_model_source = (
+                "student" if eval_model is model else "ema_weight_average"
+            )
             torch.save(
                 {
-                    "state_dict": cast(Any, model).state_dict(),
+                    # Persist the exact model used for the final reported retrieval.
+                    # EMA averaging scores `eval_model`, not the student `model`.
+                    "state_dict": cast(Any, eval_model).state_dict(),
                     "arch": arch_meta,
-                    "artifact_selection": "final_training_state",
-                    "training_step": train_steps,
+                    "artifact_selection": artifact_selection,
+                    "training_step": persisted_step,
+                    "evaluation_model_source": evaluation_model_source,
                 },
                 config.save_model_path,
             )

@@ -7427,7 +7427,9 @@ def test_end_to_end_training_can_keep_batch_norm_layers_in_eval_mode() -> None:
     assert all(state is False for state in models[0].batch_norm_training_states)
 
 
-def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
+def test_end_to_end_training_reports_selected_checkpoint_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     torch: Any = pytest.importorskip("torch")
 
     class TinyModel(torch.nn.Module):  # type: ignore[misc]
@@ -7455,6 +7457,12 @@ def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
         for i in range(8)
     ]
 
+    scores = iter((1.0, 0.0))
+    monkeypatch.setattr(
+        "sfora.image_end_to_end._checkpoint_selection_score",
+        lambda *args, **kwargs: next(scores),
+    )
+    checkpoint_path = tmp_path / "selected.pt"
     result = run_image_end_to_end_benchmark(
         train_examples=examples,
         test_examples=examples,
@@ -7472,6 +7480,7 @@ def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
             checkpoint_selection_validation_fraction=0.5,
             checkpoint_selection_query_limit=4,
             checkpoint_selection_metric="map_at_r",
+            save_model_path=str(checkpoint_path),
             progress_every=0,
             num_workers=0,
         ),
@@ -7480,9 +7489,13 @@ def test_end_to_end_training_reports_selected_checkpoint_metadata() -> None:
     )
 
     metrics = result.methods["triplet_end_to_end:tiny"]
-    assert metrics.selected_step in {1, 2}
+    assert metrics.selected_step == 1
     assert metrics.selection_metric == "map_at_r"
     assert metrics.selection_score is not None
+    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    assert checkpoint["artifact_selection"] == "training_validation_selected_state"
+    assert checkpoint["training_step"] == 1
+    assert checkpoint["evaluation_model_source"] == "student"
 
 
 def test_checkpoint_selection_uses_train_validation_split_not_test_labels(
@@ -7599,6 +7612,7 @@ def _averaging_probe_run(
     ]
     out = tmp_path / f"emb-{ema_weight_averaging}.npz"
     train_out = tmp_path / f"train-emb-{ema_weight_averaging}.npz"
+    checkpoint_out = tmp_path / f"model-{ema_weight_averaging}.pt"
     run_image_end_to_end_benchmark(
         train_examples=examples,
         test_examples=examples,
@@ -7622,6 +7636,7 @@ def _averaging_probe_run(
             ema_weight_averaging=ema_weight_averaging,
             save_test_embeddings=str(out),
             save_train_embeddings=str(train_out),
+            save_model_path=str(checkpoint_out),
         ),
         model_factory=lambda config: FixedModel(),
         transform_factory=transform_factory,
@@ -7639,7 +7654,20 @@ def _averaging_probe_run(
     with torch.no_grad():
         raw = reference(torch.tensor([e.image for e in examples], dtype=torch.float32))
     untrained = raw / raw.norm(dim=1, keepdim=True)
-    return scored, untrained.numpy().astype(np.float64)
+    checkpoint = torch.load(checkpoint_out, map_location="cpu")
+    persisted = FixedModel()
+    persisted.load_state_dict(
+        {
+            name: value
+            for name, value in checkpoint["state_dict"].items()
+            if name not in {"metric_proxies", "metric_proxy_labels"}
+        },
+        strict=True,
+    )
+    with torch.no_grad():
+        saved_raw = persisted(torch.tensor([e.image for e in examples], dtype=torch.float32))
+    saved = (saved_raw / saved_raw.norm(dim=1, keepdim=True)).numpy().astype(np.float64)
+    return scored, untrained.numpy().astype(np.float64), saved, checkpoint
 
 
 def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
@@ -7651,9 +7679,15 @@ def test_ema_weight_averaging_scores_the_averaged_weights_not_the_student(
     still is after any number of student updates."""
     torch: Any = pytest.importorskip("torch")
 
-    scored, untrained = _averaging_probe_run(tmp_path, torch=torch, ema_weight_averaging=True)
+    scored, untrained, saved, checkpoint = _averaging_probe_run(
+        tmp_path, torch=torch, ema_weight_averaging=True
+    )
 
     np.testing.assert_allclose(scored, untrained, atol=1e-6)
+    np.testing.assert_allclose(saved, scored, atol=1e-6)
+    assert checkpoint["evaluation_model_source"] == "ema_weight_average"
+    assert checkpoint["artifact_selection"] == "final_training_state"
+    assert checkpoint["training_step"] == 4
 
 
 def test_without_averaging_the_student_is_scored_and_training_moves_it(
@@ -7665,9 +7699,13 @@ def test_without_averaging_the_student_is_scored_and_training_moves_it(
     anything and is passing for the wrong reason."""
     torch: Any = pytest.importorskip("torch")
 
-    scored, untrained = _averaging_probe_run(tmp_path, torch=torch, ema_weight_averaging=False)
+    scored, untrained, saved, checkpoint = _averaging_probe_run(
+        tmp_path, torch=torch, ema_weight_averaging=False
+    )
 
     assert not np.allclose(scored, untrained, atol=1e-6)
+    np.testing.assert_allclose(saved, scored, atol=1e-6)
+    assert checkpoint["evaluation_model_source"] == "student"
 
 
 def test_cublas_workspace_config_is_exported_before_any_cuda_call() -> None:
