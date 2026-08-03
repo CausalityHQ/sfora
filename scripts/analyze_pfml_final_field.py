@@ -237,6 +237,7 @@ def main() -> None:
                 "split",
                 "checkpoint_sha256",
                 "report_sha256",
+                "content_sha256",
             },
             "train pack",
         )
@@ -251,8 +252,11 @@ def main() -> None:
             raise ValueError("train pack report digest mismatch")
         embeddings = np.asarray(pack["embeddings"], dtype=np.float64)
         labels = np.asarray(pack["labels"], dtype=np.int64)
+        content_hashes = np.asarray(pack["content_sha256"])
     if embeddings.shape != (8_054, 512) or len(np.unique(labels)) != 98:
         raise ValueError("train pack does not have the official Cars196 shape")
+    if content_hashes.shape != (8_054,) or any(len(str(value)) != 64 for value in content_hashes):
+        raise ValueError("train pack lacks one SHA-256 image-content binding per row")
 
     state = checkpoint.get("state_dict", {})
     _require_keys(state, {"metric_proxies", "metric_proxy_labels"}, "checkpoint state")
