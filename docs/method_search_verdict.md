@@ -4323,3 +4323,39 @@ author code cannot establish which reduction produced the paper result. The
 historical mean-scaled collapse remains invalid evidence, not proof of a
 geometric failure. Full audit:
 `docs/pfml_fable_code_audit_2026-08-03.md`.
+
+## 336--340. Verified-evidence Fable mechanism batch
+
+**ALL DEAD before implementation or candidate GPU.** The deciding Claude pass
+was explicitly `claude-fable-5`, read-only, web-disabled, and produced no model
+fallback. Cross-fold unseen-structure targets (336) reduce to class-disjoint
+episodic relational distillation. Jackknife proxies (337) are an estimator swap
+motivated by an outcome-defining margin. A spherical proxy optimizer (338) has
+no measured pathology and is occupied by Riemannian adaptive optimization.
+Official CUB attributes/parts (339) are genuinely additional information, but
+their use is occupied attribute/part supervision, changes the label-only claim,
+and lacks a matched second dataset. Pair-margin co-fluctuation (340) has a weak
+single-trajectory premise and reduces to graph weighting, influence tracking,
+or curriculum.
+
+The batch leaves no preregisterable mechanism. It strengthens the reopening
+boundary: a new estimator of existing geometry is insufficient; a truly new
+annotation channel must be shared across at least two benchmarks or disclosed
+as a task change. Full audit:
+`docs/fable_candidate_batch_336_340_2026-08-03.md`.
+
+## Cars196 PFML fixed-interpretation result (not a numbered candidate)
+
+**FAILED BOTH LOCKED GATES; NO FOLLOW-UP GPU.** The 200-epoch / 16,200-step run
+reached **0.836305 raw best R@1 at epoch 70** and **0.793137 final R@1**, versus
+locked floors of 0.895 and 0.890. The digest-bound final checkpoint re-encoded
+to the production score exactly on the pinned 8,131-image Cars test partition.
+A stable full ordering scored 0.792768 because three rounded squared-distance
+ties resolve differently under the benchmark's partial top-k selection; this
+0.0369-point sensitivity cannot affect the failure.
+
+The result falsifies only the disclosed local interpretation, not the paper's
+incompletely specified recipe. Because the reference failed, the train export
+and field/occupancy census were skipped and no tuning or method is derived from
+it. Full audit:
+`docs/pfml_cars_fixed_interpretation_result_2026-08-03.md`.

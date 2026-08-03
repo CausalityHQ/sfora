@@ -1364,3 +1364,19 @@ sampling plus pretrained weights, and wrong evaluation cadence. After those
 repairs, an independent audit obtained source-equivalent loss gradients and
 exact architecture outputs and found no remaining mismatch. This is an
 occupied reference and one seed, not a novelty or uncertainty claim.
+
+## Cars196 PFML fixed local interpretation
+
+The prospectively fixed PFML reading failed decisively. Primary final-state R@1
+was **0.793137**; raw best-over-training was **0.836305 at epoch 70**. These miss
+the locked 0.890 final and 0.895 raw gates by 9.686 and 5.869 points. The final
+checkpoint was independently re-encoded on the pinned 8,131-image / 98-class
+test partition and reproduced the production score exactly. A stable full
+ordering scored **0.792768**, exposing a three-query (0.0369-point) rounded-tie
+sensitivity that is immaterial to the verdict.
+
+This is one failed local interpretation, not a retraction of the PFML paper:
+author code is unavailable, key recipe fields remain undisclosed, and the main
+paper and supplement conflict on base learning rate. No tuning, extra seed,
+train-pack field census, or candidate run follows. Full artifact and corpus
+audit: `docs/pfml_cars_fixed_interpretation_result_2026-08-03.md`.

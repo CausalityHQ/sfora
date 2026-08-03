@@ -18,6 +18,7 @@ from sfora.image_end_to_end import (
     _default_transform_factory,
     _encode_model,
     _resolve_training_schedule,
+    _score_end_to_end_retrieval,
     _TorchImageDataset,
     _torchvision_model_factory,
 )
@@ -126,9 +127,17 @@ def independent_leave_one_out_recall_at_1(
     embeddings: np.ndarray,
     labels: np.ndarray,
     *,
-    chunk_size: int = 512,
+    chunk_size: int = 1024,
+    use_partial_top_k: bool = True,
 ) -> float:
-    """Compute normalized test-to-test R@1 without the production scorer."""
+    """Compute test-to-test squared-L2 R@1 without the production scorer.
+
+    The model export is already L2-normalized in torch. Preserve those exported
+    float32 coordinates (cast to float64 for scoring) rather than normalizing a
+    second time: standard DML scoring ranks the exported unit vectors by L2, and
+    a second normalization can change near ties because float32 norms are not
+    mathematically exact ones.
+    """
     vectors = np.asarray(embeddings, dtype=np.float64)
     labels = np.asarray(labels, dtype=np.int64)
     if vectors.ndim != 2 or len(vectors) != len(labels):
@@ -138,14 +147,30 @@ def independent_leave_one_out_recall_at_1(
         raise ValueError("independent retrieval received a non-finite embedding")
     if np.any(norms <= 0):
         raise ValueError("independent retrieval received a zero-norm embedding")
-    vectors = vectors / norms
+    if not np.allclose(norms, 1.0, rtol=0.0, atol=1.0e-5):
+        raise ValueError("exported retrieval embeddings are not L2-normalized")
+    squared_norms = np.sum(vectors * vectors, axis=1)
+    label_counts = dict(zip(*np.unique(labels, return_counts=True), strict=True))
+    max_relevant_count = max(int(label_counts[label]) - 1 for label in label_counts)
+    top_k = min(len(vectors) - 1, max(30, max_relevant_count))
     correct = 0
     for start in range(0, len(vectors), chunk_size):
         stop = min(start + chunk_size, len(vectors))
-        similarities = vectors[start:stop] @ vectors.T
+        distances = (
+            squared_norms[start:stop, None]
+            + squared_norms[None, :]
+            - (2.0 * vectors[start:stop] @ vectors.T)
+        )
+        distances = np.maximum(distances, 0.0)
         row_indices = np.arange(stop - start)
-        similarities[row_indices, np.arange(start, stop)] = -np.inf
-        nearest = np.argmax(similarities, axis=1)
+        distances[row_indices, np.arange(start, stop)] = np.inf
+        if use_partial_top_k and top_k < len(vectors):
+            top_indices = np.argpartition(distances, kth=top_k - 1, axis=1)[:, :top_k]
+            top_distances = np.take_along_axis(distances, top_indices, axis=1)
+            top_order = np.argsort(top_distances, axis=1, kind="stable")
+            nearest = np.take_along_axis(top_indices, top_order, axis=1)[:, 0]
+        else:
+            nearest = np.argsort(distances, axis=1, kind="stable")[:, 0]
         correct += int(np.sum(labels[nearest] == labels[start:stop]))
     return correct / len(vectors)
 
@@ -247,13 +272,45 @@ def main() -> None:
         if args.split == "test"
         else None
     )
-    if independent_recall is not None and not np.isclose(
-        independent_recall, reported_final_recall, rtol=0.0, atol=1.0e-12
-    ):
-        raise ValueError(
-            "independently exported final R@1 disagrees with the report: "
-            f"{independent_recall} != {reported_final_recall}"
+    stable_full_order_recall = (
+        independent_leave_one_out_recall_at_1(
+            embeddings, labels, use_partial_top_k=False
         )
+        if args.split == "test"
+        else None
+    )
+    production_rescore = (
+        _score_end_to_end_retrieval(
+            query_embeddings=embeddings,
+            query_labels=labels,
+            gallery_embeddings=None,
+            gallery_labels=None,
+            query_limit=None,
+            random_state=config.seed,
+            region_grid=config.region_grid,
+        ).recall_at_1
+        if args.split == "test"
+        else None
+    )
+    if independent_recall is not None:
+        if production_rescore is None:
+            raise RuntimeError("test export did not produce a production-scorer result")
+        if not np.isclose(
+            independent_recall, reported_final_recall, rtol=0.0, atol=1.0e-12
+        ):
+            raise ValueError(
+                "independently exported final R@1 disagrees with the report: "
+                f"independent={independent_recall}, production_rescore={production_rescore}, "
+                f"stable_full_order={stable_full_order_recall}, "
+                f"report={reported_final_recall}"
+            )
+        if not np.isclose(
+            independent_recall, production_rescore, rtol=0.0, atol=1.0e-12
+        ):
+            raise ValueError(
+                "independent and production scorers disagree on the same exported embeddings: "
+                f"{independent_recall} != {production_rescore}"
+            )
 
     checkpoint_digest = sha256(args.checkpoint)
     report_digest = sha256(args.report)
@@ -275,6 +332,12 @@ def main() -> None:
         independent_recall_at_1=np.asarray(
             np.nan if independent_recall is None else independent_recall
         ),
+        production_rescore_at_1=np.asarray(
+            np.nan if production_rescore is None else production_rescore
+        ),
+        stable_full_order_recall_at_1=np.asarray(
+            np.nan if stable_full_order_recall is None else stable_full_order_recall
+        ),
     )
     temporary.replace(args.output)
     print(
@@ -286,6 +349,8 @@ def main() -> None:
                 "checkpoint_sha256": checkpoint_digest,
                 "report_sha256": report_digest,
                 "independent_recall_at_1": independent_recall,
+                "production_rescore_at_1": production_rescore,
+                "stable_full_order_recall_at_1": stable_full_order_recall,
                 "reported_final_recall_at_1": reported_final_recall,
                 "partition_audit": partition_audit,
             },

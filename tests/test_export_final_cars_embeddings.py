@@ -36,13 +36,59 @@ class _DecodedImage:
 
 
 def test_independent_leave_one_out_recall_excludes_self() -> None:
-    embeddings = np.asarray(
-        [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]], dtype=np.float32
-    )
+    embeddings = np.asarray([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]], dtype=np.float32)
+    embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
     labels = np.asarray([0, 0, 1, 1])
     assert _module.independent_leave_one_out_recall_at_1(
         embeddings, labels, chunk_size=1
     ) == pytest.approx(1.0)
+
+
+def test_independent_recall_preserves_exported_l2_near_ties() -> None:
+    # These vectors differ from unit norm only at float32-normalization scale.
+    # Exported-coordinate squared L2 gives 2/8 correct, while normalizing again
+    # in float64 changes the ranking to 3/8. The verifier must reproduce the
+    # benchmark metric, not silently substitute idealized cosine geometry.
+    embeddings = np.asarray(
+        [
+            [0.999999740485382, 2.939206875696321e-6, -7.36626053402835e-8, -3.794201970999852e-6],
+            [
+                0.9999998573013525,
+                -3.118063378160621e-6,
+                3.763879338067382e-6,
+                -5.068315744825331e-6,
+            ],
+            [
+                1.0000002267022614,
+                6.328542689090506e-8,
+                -1.1832455536608093e-6,
+                -1.3681275262267475e-7,
+            ],
+            [0.9999998456849051, 4.067739915150416e-7, 1.4553019288128912e-6, 2.58763818282212e-7],
+            [
+                0.9999999537389478,
+                -1.1386382926666143e-6,
+                -1.0319240403881874e-7,
+                1.830239947936335e-6,
+            ],
+            [
+                1.0000000908603262,
+                -2.3069892336120913e-6,
+                -1.2268802944470123e-6,
+                3.729797547454824e-7,
+            ],
+            [
+                1.0000001256918891,
+                -1.602603896057274e-6,
+                -4.0959457772671215e-6,
+                5.824869307477138e-7,
+            ],
+            [0.9999999321193099, 4.1391602154160095e-6, 2.380637514787195e-6, 8.930047013783728e-7],
+        ],
+        dtype=np.float64,
+    )
+    labels = np.repeat(np.arange(4), 2)
+    assert _module.independent_leave_one_out_recall_at_1(embeddings, labels) == 0.25
 
 
 def test_independent_leave_one_out_recall_rejects_nonfinite() -> None:
@@ -55,9 +101,7 @@ def test_independent_leave_one_out_recall_rejects_nonfinite() -> None:
 def test_partition_verifier_accepts_disjoint_official_shape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(
-        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)}
-    )
+    monkeypatch.setattr(_module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)})
     train = [_example(0, "train-a", tmp_path), _example(0, "train-b", tmp_path)]
     test = [_example(1, "test-a", tmp_path), _example(1, "test-b", tmp_path)]
     audit = _module.verify_official_partition(train, test)
@@ -68,9 +112,7 @@ def test_partition_verifier_accepts_disjoint_official_shape(
 def test_partition_verifier_rejects_identity_overlap(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(
-        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)}
-    )
+    monkeypatch.setattr(_module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)})
     train = [_example(0, "train-a", tmp_path), _example(0, "train-b", tmp_path)]
     test = [_example(0, "test-a", tmp_path), _example(0, "test-b", tmp_path)]
     with pytest.raises(ValueError, match="identities overlap"):
@@ -80,9 +122,7 @@ def test_partition_verifier_rejects_identity_overlap(
 def test_partition_verifier_rejects_singleton_test_class(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(
-        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 2)}
-    )
+    monkeypatch.setattr(_module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 2)})
     train = [_example(0, "train-a", tmp_path), _example(0, "train-b", tmp_path)]
     test = [_example(1, "test-a", tmp_path), _example(2, "test-b", tmp_path)]
     with pytest.raises(ValueError, match="fewer than two examples"):
@@ -92,9 +132,7 @@ def test_partition_verifier_rejects_singleton_test_class(
 def test_partition_verifier_hashes_decoded_images_and_rejects_cross_split_overlap(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        _module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)}
-    )
+    monkeypatch.setattr(_module, "EXPECTED_CARS_PARTITION", {"train": (2, 1), "test": (2, 1)})
     train = [
         SimpleNamespace(label=0, example_id="train-a", image=_DecodedImage(b"a")),
         SimpleNamespace(label=0, example_id="train-b", image=_DecodedImage(b"shared")),
