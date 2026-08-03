@@ -46,7 +46,8 @@ dense `O(B C d)` interaction by factored `O((B + C) r d)` aggregation. It fails
 both opening gates.
 
 At the live SOP dimensions (`B=180`, `C=11,318`, `d=512`), the proxy matrix is
-about 2.1 billion multiply-adds per batch and is small beside 180 BN-Inception
+about 1.04 billion multiply-accumulates per batch (2.09 GFLOP under the usual
+two-operations convention) and is small beside 180 BN-Inception
 forward/backward passes. A five-sample live utilization check showed 82--95%
 GPU SM use, but no operator-level profile identifies the proxy matrix as the
 wall-clock bottleneck. Thus the repository supplies no Gate-1 speed defect.
