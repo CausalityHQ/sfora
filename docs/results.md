@@ -1373,7 +1373,12 @@ the locked 0.890 final and 0.895 raw gates by 9.686 and 5.869 points. The final
 checkpoint was independently re-encoded on the pinned 8,131-image / 98-class
 test partition and reproduced the production score exactly. A stable full
 ordering scored **0.792768**, exposing a three-query (0.0369-point) rounded-tie
-sensitivity that is immaterial to the verdict.
+sensitivity that is immaterial to the verdict. The exact cause is an official
+corpus defect: seven test image pairs have identical decoded pixels but different
+class labels. All 14 conflicting duplicate queries are errors, while three other
+queries tie between the two labels and receive a favorable same-label choice
+under the benchmark's partial top-k ordering. Excluding the 14 conflicting
+queries gives a descriptive 0.794505, not a replacement benchmark score.
 
 This is one failed local interpretation, not a retraction of the PFML paper:
 author code is unavailable, key recipe fields remain undisclosed, and the main

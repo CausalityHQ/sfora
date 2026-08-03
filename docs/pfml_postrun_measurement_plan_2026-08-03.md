@@ -121,6 +121,9 @@ The run failed both locked metric gates: final R@1 **0.793137** and raw
 best-over-training **0.836305 at epoch 70**. The final checkpoint, config,
 pinned corpus, and production scorer were independently reproduced. A stable
 full ordering differed on three rounded-distance ties (**0.792768**), which is
-immaterial to the failure. In accordance with this plan, train export and field
-census were skipped; there will be no PFML tuning or candidate derivation. See
+immaterial to the failure. A follow-up content audit traced all three ties to
+seven exact-pixel, cross-label duplicate pairs in the official Cars test split;
+all 14 conflicting duplicate queries are themselves errors. In accordance with
+this plan, train export and field census were skipped; there will be no PFML
+tuning or candidate derivation. See
 `docs/pfml_cars_fixed_interpretation_result_2026-08-03.md`.

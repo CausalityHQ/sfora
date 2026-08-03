@@ -4352,7 +4352,12 @@ locked floors of 0.895 and 0.890. The digest-bound final checkpoint re-encoded
 to the production score exactly on the pinned 8,131-image Cars test partition.
 A stable full ordering scored 0.792768 because three rounded squared-distance
 ties resolve differently under the benchmark's partial top-k selection; this
-0.0369-point sensitivity cannot affect the failure.
+0.0369-point sensitivity cannot affect the failure. All three ties are caused
+by exact-pixel gallery duplicates assigned contradictory class labels. The
+official test split contains seven such cross-label duplicate pairs; all 14
+duplicate queries are unavoidable errors. This is a corpus/evaluation finding,
+not new method provenance: candidate 291 already closed content-equivalence
+supervision, and test-label repair would change the benchmark.
 
 The result falsifies only the disclosed local interpretation, not the paper's
 incompletely specified recipe. Because the reference failed, the train export
