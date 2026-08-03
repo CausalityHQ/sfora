@@ -38,9 +38,11 @@ Before the final exporter could run, it was changed to:
 4. publish the final retrieval audit through a unique same-directory temporary,
    flush/fsync, and atomic replace.
 
-Six focused tests pass, including a mixed-label exact tie and fail-closed
-unexpected content overlap. The deployed exporter hash matched the reviewed
-local script before the result existed.
+Seven focused tests pass, including a mixed-label exact tie, fail-closed
+unexpected content overlap, and direct agreement with the production scorer on
+randomized duplicate-bearing embeddings. The deployed exporter hash matched the
+reviewed local script before the result existed; the added test does not change
+that deployed script.
 
 ## Interpretation boundary
 

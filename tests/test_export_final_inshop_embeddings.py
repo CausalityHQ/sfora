@@ -9,6 +9,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from sfora.image_benchmark import image_query_gallery_retrieval_score
+
 _spec = importlib.util.spec_from_file_location(
     "export_final_inshop_embeddings",
     Path(__file__).resolve().parents[1] / "scripts" / "export_final_inshop_embeddings.py",
@@ -86,6 +88,33 @@ def test_independent_sensitivity_reports_mixed_exact_tie() -> None:
     assert result["exact_tie_expected_recall_at_1"] == 0.5
     assert result["multiway_nearest_tie_queries"] == 1
     assert result["mixed_identity_nearest_tie_queries"] == 1
+
+
+def test_independent_canonical_sensitivity_matches_production_scorer_with_duplicates() -> None:
+    rng = np.random.default_rng(17)
+    query = rng.normal(size=(11, 8)).astype(np.float32)
+    gallery = rng.normal(size=(41, 8)).astype(np.float32)
+    query /= np.linalg.norm(query, axis=1, keepdims=True)
+    gallery /= np.linalg.norm(gallery, axis=1, keepdims=True)
+    gallery[31:35] = gallery[3]
+    query_labels = np.arange(11, dtype=np.int64)
+    gallery_labels = np.arange(41, dtype=np.int64) % 11
+
+    production = image_query_gallery_retrieval_score(
+        query,
+        query_labels,
+        gallery,
+        gallery_labels,
+    )
+    independent = _module.independent_query_gallery_sensitivity(
+        query,
+        query_labels,
+        gallery,
+        gallery_labels,
+        chunk_size=4,
+    )
+
+    assert independent["canonical_float64_euclidean_recall_at_1"] == production.recall_at_1
 
 
 def test_partition_verifier_checks_all_three_splits(
