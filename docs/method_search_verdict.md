@@ -4131,3 +4131,10 @@ mining/negative-constraint variant rather than novel supervision.
 failures were lower for fragmented classes (0.3056%) than connected classes
 (0.5376%). The measured topology does not support topology-preserving
 supervision, so this candidate was killed before prior-art or implementation.
+
+## 316. Class-frequency adaptive supervision
+
+**DEAD at Gate 1; no implementation or GPU.** In corrected In-Shop embeddings,
+leave-one-out error was 0.5013% for classes of size ≤4 and 0.3858% for classes
+of size ≥8; the error/log-size correlation was only −0.0102. Class frequency
+does not provide a useful measured causal signal for a new supervision rule.
