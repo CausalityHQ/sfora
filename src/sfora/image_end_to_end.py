@@ -47,6 +47,7 @@ EndToEndObjective = Literal[
     "group_potential",
     "group_potential_xbm",
     "proxy_anchor",
+    "proxy_anchor_cem",
     "tversky_proxy_anchor",
     "shepard_proxy_anchor",
     "region_proxy_anchor",
@@ -169,6 +170,9 @@ class ImageEndToEndConfig(BaseModel):
     proxy_learning_rate_multiplier: float = Field(default=100.0, gt=0.0)
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
+    cem_edges_path: str | None = None
+    cem_weight: float = Field(default=0.05, ge=0.0)
+    cem_margin: float = Field(default=0.1, ge=0.0)
     # SoftTriple-style intra-class softmax temperature for sub-center assignment.
     subcenter_gamma: float = Field(default=0.1, gt=0.0)
     # Thermodynamic Gaussian-potential uniformity (proxy_anchor_uniformity).
@@ -894,6 +898,16 @@ def run_image_end_to_end_benchmark(
         selection_metric: str | None = None
         selection_score: float | None = None
         bgsi_state: BGSIClassMeanState | None = None
+        cem_edges: dict[int, tuple[int, float]] | None = None
+        if objective == "proxy_anchor_cem":
+            if not config.cem_edges_path:
+                raise ValueError("proxy_anchor_cem requires cem_edges_path")
+            with open(config.cem_edges_path, encoding="utf-8") as stream:
+                payload = json.load(stream)
+            cem_edges = {
+                int(source): (int(values[0]), float(values[1]))
+                for source, values in payload.get("edges", {}).items()
+            }
         if objective == "proxy_anchor_bgsi":
             bgsi_state = BGSIClassMeanState(
                 labels=train_labels,
@@ -1135,6 +1149,8 @@ def run_image_end_to_end_benchmark(
                     loss_kwargs["sample_indices"] = sample_indices
                 if bgsi_state is not None:
                     loss_kwargs["bgsi_state"] = bgsi_state
+                if cem_edges is not None:
+                    loss_kwargs["cem_edges"] = cem_edges
                 if objective in {"hist", "hist_proxy_anchor"}:
                     loss_kwargs["hist_module"] = getattr(model, "hist_module", None)
                     loss_kwargs["hist_label_to_index"] = getattr(model, "hist_label_to_index", None)
@@ -2604,6 +2620,7 @@ class _BestCheckpoint:
 def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     if objective in {
         "proxy_anchor",
+        "proxy_anchor_cem",
         "tversky_proxy_anchor",
         "shepard_proxy_anchor",
         "region_proxy_anchor",
@@ -2627,7 +2644,7 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     # but do not require them — they also work on the batch alone.
     if objective in {"symmetric_potential", "lennard_jones"}:
         return config.proxy_count_per_class > 0
-    if objective in {"proxy_anchor_lj", "proxy_anchor_antico", "bio_physical_bond"}:
+    if objective in {"proxy_anchor_lj", "proxy_anchor_antico", "bio_physical_bond", "proxy_anchor_cem"}:
         if config.proxy_count_per_class <= 0:
             raise ValueError(f"the {objective} objective requires proxy_count_per_class > 0")
         return True
@@ -3368,6 +3385,40 @@ def _shepard_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     )
 
 
+def _proxy_anchor_cem_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("proxy_anchor_cem requires class proxies")
+    edges = kwargs.get("cem_edges")
+    if edges is None:
+        raise ValueError("proxy_anchor_cem requires loaded cem_edges")
+    base = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    similarities = _normalize(embeddings, torch_module) @ _normalize(proxy_embeddings, torch_module).T
+    from sfora.cem import confusion_edge_margin_loss
+
+    return base + config.cem_weight * confusion_edge_margin_loss(
+        similarities,
+        labels,
+        proxy_labels,
+        edges,
+        margin=config.cem_margin,
+        torch_module=torch_module,
+    )
+
+
 def _tversky_proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -3836,6 +3887,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_supcon_xbm_radius": _group_supcon_xbm_radius_objective_loss,
     "pfml": _pfml_objective_loss,
     "proxy_anchor": _proxy_anchor_objective_loss,
+    "proxy_anchor_cem": _proxy_anchor_cem_objective_loss,
     "tversky_proxy_anchor": _tversky_proxy_anchor_objective_loss,
     "shepard_proxy_anchor": _shepard_proxy_anchor_objective_loss,
     "region_proxy_anchor": _region_proxy_anchor_objective_loss,
