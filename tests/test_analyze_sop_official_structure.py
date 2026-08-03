@@ -31,7 +31,7 @@ def test_analyze_reports_hierarchy_of_nearest_negative() -> None:
 
     result = _MODULE.analyze(embeddings, labels, superclasses, chunk_size=2)
 
-    assert result["training_leave_one_out_r1"] == 1.0
+    assert result["leave_one_out_r1"] == 1.0
     assert result["nearest_negative_same_superclass_fraction"] == 4 / 6
     assert result["classes"] == 3
     assert result["superclasses"] == 2

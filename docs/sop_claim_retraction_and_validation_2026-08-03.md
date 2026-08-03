@@ -45,3 +45,10 @@ write explicit `artifact_selection`/`artifact_epoch` metadata, and checkpoints
 write `final_training_state` plus their training step. The already-running job
 uses the earlier code and must be labeled from the traced semantics rather than
 from absent metadata.
+
+The running command also did not request saved test embeddings or a best-epoch
+checkpoint. Its report's best-over-training R@1 therefore cannot be independently
+recomputed from a persisted best state. The post-run controller now exports both
+official train and test embeddings from the final checkpoint. Final-state R@1
+will be independently recomputed; the report's best value remains code-derived
+and must not be described as artifact-verified.

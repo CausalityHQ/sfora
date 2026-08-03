@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export official SOP training embeddings from an explicitly final checkpoint."""
+"""Export an official SOP split from an explicitly final checkpoint."""
 
 from __future__ import annotations
 
@@ -33,6 +33,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--split", choices=("train", "test"), required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=4)
@@ -51,9 +52,15 @@ def main() -> None:
     if checkpoint.get("training_step") not in {None, config.train_steps}:
         raise ValueError("checkpoint training step differs from the report")
 
-    examples = load_image_retrieval_examples(dataset_name="sop", split="train", seed=config.seed)
-    if len(examples) != 59_551 or len({example.label for example in examples}) != 11_318:
-        raise ValueError("official SOP training split count mismatch")
+    examples = load_image_retrieval_examples(
+        dataset_name="sop", split=args.split, seed=config.seed
+    )
+    expected = {"train": (59_551, 11_318), "test": (60_502, 11_316)}[args.split]
+    observed = (len(examples), len({example.label for example in examples}))
+    if observed != expected:
+        raise ValueError(
+            f"official SOP {args.split} split count mismatch: {observed} != {expected}"
+        )
     transform = _default_transform_factory(config, False)
     loader: Any = DataLoader(
         cast(Any, _TorchImageDataset(examples, transform)),
@@ -81,6 +88,7 @@ def main() -> None:
         labels=np.asarray(labels, dtype=np.int64),
         example_ids=np.asarray([example.example_id for example in examples]),
         artifact_selection=np.asarray("final_training_state"),
+        split=np.asarray(args.split),
         checkpoint_sha256=np.asarray(sha256(args.checkpoint)),
         report_sha256=np.asarray(sha256(args.report)),
     )
@@ -91,6 +99,7 @@ def main() -> None:
                 "output": str(args.output),
                 "examples": len(examples),
                 "classes": len(set(labels.tolist())),
+                "split": args.split,
                 "artifact_selection": "final_training_state",
                 "checkpoint_sha256": sha256(args.checkpoint),
                 "report_sha256": sha256(args.report),

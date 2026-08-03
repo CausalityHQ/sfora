@@ -113,7 +113,7 @@ def analyze(
         "examples": len(vectors),
         "classes": len(members),
         "superclasses": int(len(np.unique(superclasses))),
-        "training_leave_one_out_r1": nearest_correct / len(vectors),
+        "leave_one_out_r1": nearest_correct / len(vectors),
         "nearest_negative_same_superclass_fraction": (
             nearest_negative_same_superclass / nearest_negative_count
         ),
