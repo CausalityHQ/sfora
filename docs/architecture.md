@@ -118,8 +118,11 @@ The end-to-end path implements several ResNet-50/512 objectives:
   or against PFML geometry. See
   [the reproduction audit](pfml_reproduction_audit_2026-08-02.md).
 
-Two composable *training-procedure* switches turn a `hist` run into **HERD** and
-are the source of the SOTA-beating result (see [results.md](results.md)):
+Two composable *training-procedure* switches turn a `hist` run into **HERD**.
+Historical legacy ensembles built from those models exceeded an older reported
+single-model number, but the single-model comparison was confounded and the
+ensemble is established practice, so this is not a current SOTA or novelty claim
+(see [results.md](results.md)):
 
 - `--embedding-layer-norm`: the reference `LayerNorm(no-affine)` `is_norm` head.
 - `--ema-distill-weight`: EMA-teacher relational self-distillation. A slow

@@ -3,9 +3,11 @@ import { expect, test } from "@playwright/test";
 test("landing renders the headline result and the key sections", async ({ page }) => {
   await page.goto("index.html");
 
-  // hero headline + the honest best reproducible number (9-model, not a fold)
-  await expect(page.locator("h1")).toContainText("out-hunts");
+  // The public landing page must lead with the current evidence status. The
+  // legacy 9-model number remains visible only as a historical artifact.
+  await expect(page.locator("h1")).toContainText("retracts its own claims");
   await expect(page.locator(".score.big .num")).toContainText("75.34");
+  await expect(page.locator(".score.big .lab")).toContainText("historical legacy");
 
   // the major sections all exist
   for (const id of ["result", "datasets", "explore", "separates", "separates-cars", "eli5"]) {

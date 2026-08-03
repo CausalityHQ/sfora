@@ -1,5 +1,12 @@
 # Protocol judgement — In-Shop averaging arms (2026-07-31)
 
+> **RETRACTED (2026-08-03).** Every score and sigma in this judgement came from
+> DeepFashion `img_highres`, not the official centered 256-pixel In-Shop retrieval
+> corpus. The instruction to run `measure_selection_bias.py` as a correction is
+> also invalid: that script measures a local peak gap, not selection bias. This file
+> is retained only as a record of the contaminated decision path and must not guide
+> GPU work or method verdicts.
+
 In-Shop seed 0, paired against `proxy_anchor` seed 0 = 0.9024:
 
 | arm | R@1 | Δ |

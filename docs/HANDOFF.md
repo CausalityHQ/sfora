@@ -1,9 +1,12 @@
 # SFORA handoff — state as of 2026-07-31
 
 > **SUPERSEDED OPERATIONAL SNAPSHOT.** This file preserves the 2026-07-31 state and
-> must not be used for current GPU/queue status. Read the repository-root
-> `HANDOFF_BRIEF.md`, `docs/method_search_verdict.md`, and `docs/search_protocol.md`
-> first. In particular, the leave-neighbour estimator described below was falsified on
+> must not be used for current GPU/queue status. The repository-root
+> `HANDOFF_BRIEF.md` is also a protected historical input dated before the 2026-08-03
+> retraction wave; do not treat it as current evidence. Read
+> `docs/current_evidence_reliability_audit_321_2026-08-03.md`,
+> `docs/method_search_verdict.md`, and `docs/search_protocol.md` first. In particular,
+> the leave-neighbour estimator described below was falsified on
 > 2026-08-03: its outputs are local peak gaps, not selection corrections or
 > winner's-curse estimates. The EMA ranking-reversal/under-credit claims are withdrawn.
 

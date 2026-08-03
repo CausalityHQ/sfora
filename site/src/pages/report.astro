@@ -49,8 +49,8 @@ const references = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HERD + SFORA — method report</title>
-    <meta name="description" content="Research report: HERD (Hypergraph EMA-teacher Relational Distillation) and the SFORA ensemble for deep metric learning — method, results with error bars, existing work, and honest reproducibility." />
+    <title>SFORA — retracted method report and evidence audit</title>
+    <meta name="description" content="Historical HERD and SFORA results, their retraction after corpus and evaluation audits, and the current evidence boundary." />
     <link rel="icon" type="image/svg+xml" href={`${base}/favicon.svg`.replace(/\/{2,}/g, "/")} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -72,24 +72,20 @@ const references = [
     <main class="report" id="report-main">
       <article>
         <p class="rpt-eyebrow">Method report</p>
-        <h1>HERD &amp; SFORA: breaking the same-architecture retrieval plateau with a training-procedure change and a pack</h1>
+        <h1>HERD &amp; SFORA: historical method report — headline withdrawn</h1>
         <p class="rpt-lede">
-          Fine-grained image retrieval on the standard ResNet-50 / 512-dim benchmarks
-          has sat on a ~0.71 Recall@1 plateau on CUB-200, and several of the strongest
-          <em>reported</em> numbers do not reproduce independently. We show that a
-          single <b>training-procedure</b> change — an EMA-teacher that distills the
-          <em>relational</em> neighbourhood structure of the batch — lifts the HIST
-          baseline over that plateau (<b>HERD</b>), and that an ensemble of such models
-          (<b>SFORA</b>) cleanly beats the best reported same-architecture number, on
-          two datasets. Every number is best-over-training on the standard split, our charts
-          carry error bars, and we are explicit about what did not reproduce, what is a
-          transductive upper bound, and where the method fails to transfer.
+          The historical HERD improvement and SFORA SOTA claim are not current
+          evidence. Audits found a LayerNorm-confounded control, a wrong In-Shop
+          corpus, SOP split/checkpoint defects, non-reference proxy initialization,
+          and an invalid selection-bias estimator. The material below is retained to
+          show how the claims were generated and falsified. No novel method
+          improvement is currently established.
         </p>
 
         <div class="rpt-meta">
           <span><b>Task</b> zero-shot image retrieval (CUB-200, Cars196)</span>
           <span><b>Backbone</b> ResNet-50, 512-dim embedding</span>
-          <span><b>Headline</b> CUB R@1 0.7534 (9-model), Cars 0.917 (3-model, PA base)</span>
+          <span><b>Status</b> historical headline withdrawn; values below are audit history</span>
         </div>
 
         <!-- ─────────────────────────  1. Background  ───────────────────────── -->

@@ -565,6 +565,12 @@ function of the same images — which is exactly where all six negative deltas a
 The fix lives behind `ema_teacher_train_mode` / `ema_teacher_ema_buffers`, both
 defaulting to the historical behaviour so old artifacts still reproduce.
 
+> **Corpus retraction (2026-08-03).** Every number and recovery magnitude in this
+> H3 subsection used the wrong DeepFashion `img_highres` corpus. They are not
+> In-Shop benchmark evidence and cannot quantify the defect's cost. The unit-level
+> proof that the BatchNorm mismatch exists and the EMAN prior-art verdict remain
+> valid; the empirical magnitudes and cross-base confirmation do not.
+
 | In-Shop arm | seed 0 | seed 1 | seed 2 | mean |
 | --- | ---: | ---: | ---: | ---: |
 | HIST | 0.9046 | 0.9037 | 0.9031 | 0.9038 |
@@ -605,9 +611,10 @@ independently, which is not the same as inventing it. H3 is therefore an **audit
 result, not a method: the defect is live in DML momentum-teacher code, and this is what
 it costs. Cite EMAN whenever the claim is made.
 
-So the honest result is *"momentum-teacher recipes silently lose 0.3–1.4 pt under
-trainable BatchNorm unless the teacher's normalisation mode matches the student's"*,
-which is a bug-finding about a widely-used training pattern, **not** evidence that
+So the only surviving result is that the mismatch exists in code and is already
+described by EMAN. Its benchmark cost is unknown until rerun on corrected pixels;
+the historical *"0.3–1.4 pt"* magnitude is withdrawn. This is a bug-finding about
+a widely-used training pattern, **not** evidence that
 this distillation helps. The PA leg matters precisely because it shows the effect is
 a property of the teacher construction rather than of HIST: the magnitude tracks how
 large that base's distillation regression was, which is what a bug-recovery should do
@@ -663,11 +670,17 @@ classes) to a ~450k-image / ~8k-class dataset:
 These arms are 0.05 pt apart — statistically empty. iNat needs its own recipe work
 before it can support any conclusion.
 
-**CUB and Cars under official reference recipes have never been run.** That matrix
-is now running; it is the experiment that decides whether the headline claim
-survives. See [research_reset_plan.md](research_reset_plan.md).
+This was the point at which the corrected CUB/Cars matrix was queued. Later
+sections supersede this snapshot; the legacy headline did not survive as a
+single-model method claim.
 
 ## Headline (legacy recipes — see status correction above)
+
+> **Historical observation, not a current SOTA claim.** These modified-legacy
+> ensemble scores compare an established multi-model ensemble with older
+> single-model reports. The later horizon scan also found higher reported CUB
+> values (VAPNet 0.762 and AdvRF 0.766). HERD's single-model delta was confounded
+> by LayerNorm and is withdrawn.
 
 | Method | R@1 | Notes |
 | --- | ---: | --- |
@@ -687,7 +700,9 @@ stacks three ingredients on a ResNet-50/512 backbone:
    hypergraph neural network over the batch).
 2. The official HIST **`LayerNorm(no-affine)` `is_norm` head** on the embedding
    (baseline behavior, not a HERD addition).
-3. The novel piece — **EMA-teacher relational self-distillation**: a slow
+3. The historical distinguishing piece — **EMA-teacher relational
+   self-distillation**, closely related to existing relational/self-distillation
+   work: a slow
    momentum copy of the model (`θ_teacher ← m·θ_teacher + (1−m)·θ_student`)
    produces a soft neighborhood distribution over the batch (row-wise softmax of
    the pairwise-similarity matrix); the student is trained to match it. Distilling
@@ -695,9 +710,9 @@ stacks three ingredients on a ResNet-50/512 backbone:
    and the temporal-ensemble teacher lowers target variance on the small
    (~5.9k-image) training set.
 
-This training-procedure change is what broke a long-standing ~0.71 same-arch
-plateau: a wide range of loss-geometry changes we tried did not move it, but
-changing the *information per training step* (teacher targets) did.
+The historical comparison appeared to break a ~0.71 same-architecture plateau,
+but the control omitted the LayerNorm already present in official HIST. The
+corrected paired comparison does not demonstrate a HERD improvement.
 
 ## The distillation on small datasets — broad gains (legacy recipes)
 
@@ -1131,9 +1146,10 @@ new digest-tracked runs must finish before drawing that conclusion.
   official HIST already includes LayerNorm and uses a different optimizer, sampler,
   schedule, and dataset-specific parameters, this is not a valid official HIST
   reproduction or a clean EMA ablation.
-- **PFML:** legacy attempts collapsed and did not approach the reported 73.4. This
-  recipe audit covers Proxy Anchor and HIST, so it does not upgrade those attempts to
-  an official PFML reproduction claim.
+- **PFML:** legacy attempts collapsed, but their mean-scaled loss changed coupled
+  Adam's weight-decay ratio by millions. They are invalid evidence for or against
+  PFML geometry and do not constitute an official reproduction. See
+  [the PFML reproduction audit](pfml_reproduction_audit_2026-08-02.md).
 
 **Interpretation.** The strongest reported same-architecture numbers remain reference
 targets. Only corrected artifacts with a `reference` or frozen `selected_extension`
@@ -1146,8 +1162,11 @@ For a metric-learning practitioner, these are as useful as the positive result:
 - **Sub-center Proxy Anchor** (K proxies/class): 0.675 — fragmenting a class into
   modes hurts zero-shot transfer.
 - **Gaussian-potential uniformity** (Wang–Isola) on PA/HIST: neutral-to-negative.
-- **Un-normalised physics potentials** (electrostatic/PFML, symmetric long-range):
-  collapse without a partition-function (softmax) normaliser.
+- **Un-normalised physics potentials:** the historical PFML collapse is invalid
+  mechanistic evidence because loss scaling changed coupled Adam's effective decay
+  ratio by millions. The local symmetric-potential/Lennard-Jones candidates remain
+  negative only for their own registered implementations; they do not establish
+  that PFML requires a softmax partition function.
 - **Multi-crop / DINO-style distillation** is **incompatible with the frozen-BN
   metric-learning recipe**: non-224 local crops hit the backbone's frozen
   ImageNet-224 BatchNorm statistics, produce out-of-distribution activations, and
@@ -1164,6 +1183,9 @@ For a metric-learning practitioner, these are as useful as the positive result:
   TIRD isolated the reproducible 4.75%-variance image-by-image interaction, but
   cosine normalization gave that weak residual unit-scale pressure; training
   was delayed, volatile, and converged to a much lower retrieval ceiling.
+  **Retracted as benchmark evidence:** this run used the wrong In-Shop pixel
+  corpus. The registered implementation failed there, but its `-7.237`-point
+  magnitude and Gate-4 verdict do not transfer to the corrected benchmark.
 
 ## Pre-normalisation magnitude diagnostic (measurement, not a method)
 

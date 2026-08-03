@@ -29,7 +29,30 @@ That machinery is the point. It caught two real confounds that had each produced
 published-looking result: a **LayerNorm** mismatch between a method and its own
 control, and a **BatchNorm** mismatch between an EMA teacher and its student.
 
-> ## ⚠️ Status (2026-07-29) — the method claim is withdrawn; two other results stand
+> ## ⚠️ Current status (2026-08-03) — no novel improvement is established
+>
+> The empirical claims below are historical, not current benchmark conclusions.
+> Every historical In-Shop run used the wrong DeepFashion pixel corpus; SOP had
+> split/checkpoint defects; Proxy Anchor arms used non-reference proxy
+> initialization; and the claimed selection-bias correction was invalid. Therefore
+> the measured BatchNorm-recovery magnitudes, In-Shop method comparisons, HERD
+> single-model claim, and “SFORA beats SOTA” headline are withdrawn. The code-level
+> BatchNorm mismatch exists and is EMAN prior art, but its corrected-benchmark cost
+> is unknown. The only surviving positive method effect, CUB PA distillation, is
+> provisional pending an independent CUB corpus/artifact audit and second-dataset
+> replication. See the
+> [current evidence boundary](docs/current_evidence_reliability_audit_321_2026-08-03.md)
+> and [method-search verdict](docs/method_search_verdict.md).
+>
+> The currently verified benchmark anchors are the corrected official In-Shop
+> corpus/published-checkpoint check (0.9176396), a hash-bound local In-Shop PA seed-0
+> final score (0.9137; raw best 0.9163), corrected SOP PA seed 0 (0.791), and the
+> Cars196 RS@k reference (0.7933). None is a novel method result.
+
+> ## Historical status (2026-07-29) — superseded and partly retracted
+>
+> The “two results stand” wording below is preserved as decision history. The
+> 2026-08-03 corpus and artifact audits retracted its empirical In-Shop claims.
 >
 > **HERD is not a demonstrated improvement.** The historical CUB headline below ran
 > under a non-official recipe with a **confounded control** — the HIST baseline had no
@@ -98,12 +121,13 @@ only lever that moved the single-model plateau that ~16 loss-geometry tweaks
 could not (0.716 best / 0.705 mean) — but that comparison is the confounded one
 described above, and the mechanism is closely related to prior work (RKD, S2SD,
 STML); see [docs/research_reset_plan.md](docs/research_reset_plan.md) §3.5.
-The **decisive** SOTA-beating work is done by a
+The historical above-target score is produced by a
 feature-concatenation ensemble of independently-trained HERD models (a *sfora* of
 them) — an established DML paradigm (BIER and related boosted-embedding methods).
 An ablation (see [docs/results.md](docs/results.md)) shows even a pack of *plain
-HIST* models beats reported PFML, with HERD adding a steady margin on top.
-Reproduce it with `scripts/ensemble_eval.py`.
+HIST* models exceeded the older PFML report. Because this is a legacy
+ensemble-versus-single comparison, it is not a current SOTA or novelty claim;
+`scripts/ensemble_eval.py` reproduces only the historical artifact measurement.
 
 > **Recipe correction (2026-07-20).** The numbers above were produced before the
 > harness enforced method-by-dataset author recipes. They remain valid
