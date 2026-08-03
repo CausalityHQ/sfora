@@ -3628,3 +3628,12 @@ equivalent to squared-Euclidean triplet up to scale and margin. Reported SOP 69.
 In-Shop 72.33 are far below faithful Proxy Anchor references, so it occupies neither
 the quality nor end-to-end speed horizon. Full algebra and source audit:
 `docs/shadow_loss_horizon_audit_258_2026-08-03.md`.
+
+## 259. Proxy-AN current-horizon audit
+
+**Occupied; no GPU.** The peer-reviewed 2026 Proxy-AN loss combines Proxy Anchor's
+proxy-centric positive aggregation with sample-centric log-sum-exp over negative
+proxies. Its pinned author code establishes that choosing different sample/proxy axes
+for positive and negative aggregation is published prior art, not a residual candidate.
+Its best-test-epoch reporting still needs uncertainty caution, but that does not restore
+novelty. Full source/code audit: `docs/proxy_an_horizon_audit_259_2026-08-03.md`.
