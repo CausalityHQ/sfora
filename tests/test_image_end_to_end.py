@@ -7919,6 +7919,32 @@ def test_rspg_positive_loss_uses_only_registered_graph_edges() -> None:
     assert torch.count_nonzero(embeddings.grad[1]) == 0
 
 
+def test_rspg_negative_proxy_loss_never_repels_the_own_class_proxy() -> None:
+    """A graph-unknown relation must not turn the identity's proxy negative."""
+    import torch
+
+    from sfora.image_end_to_end import _proxy_anchor_negative_loss
+
+    embeddings = torch.tensor([[1.0, 0.0]], requires_grad=True)
+    labels = torch.tensor([0])
+    proxies = torch.tensor([[1.0, 0.0], [0.0, 1.0]], requires_grad=True)
+    proxy_labels = torch.tensor([0, 1])
+    loss = _proxy_anchor_negative_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        alpha=1.0,
+        delta=0.0,
+        torch_module=torch,
+    )
+    loss.backward()
+
+    assert proxies.grad is not None
+    assert torch.count_nonzero(proxies.grad[0]) == 0
+    assert torch.count_nonzero(proxies.grad[1]) > 0
+
+
 def test_ipsr_adds_ranking_loss_without_replacing_proxy_anchor() -> None:
     import torch
 
