@@ -4642,3 +4642,24 @@ class-independent intra-class variation; WCCN/PLDA occupy the metric. A
 quantile matcher and spectral floor alter estimators/regularization, not the
 supervision relation. Full audit:
 `docs/fable_ene_invention_collision_369_2026-08-04.md`.
+
+## 370. RECOMB: second exact hard-composite virtual-class rediscovery
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A sixth clean, catalogue-blind Fable pass proposed spatially recombining
+two classes at a feature map, treating the ordered parent/mask recipe as a hard
+virtual identity, making multiple recipe instances from disjoint source images,
+and contrasting them against reversed/shared-part recipes. Its frozen forecast
+was 0.778 CUB, but its own probability of clearing 0.766 with confidence was
+only 35--40%.
+
+This is candidate 210's binding-error composite supervision and candidate 367's
+Composite Class Expansion for a second time. Metrix/CutMix occupy mixed
+features, while Proxy Synthesis and Memory-Based Virtual Classes occupy hard
+synthetic identities for class-disjoint DML. Recipe-consistency supplies
+ordinary positives within the synthetic class; reversed/shared-part recipes
+supply hard negatives. Those sampling details, spatial masks, and auxiliary BN
+change the generator and hygiene, not the supervision primitive. Gate 1 is also
+missing: cross-dataset class-count correlations do not identify this action,
+and the trained regional arm lost about 3.6 CUB points. Full audit:
+`docs/fable_recomb_invention_collision_370_2026-08-04.md`.
