@@ -4558,3 +4558,26 @@ under-constrain local sample structure. The frozen prediction was CUB 0.720
 versus a 0.690 same-recipe baseline, which would not beat the audited 0.766 CNN
 horizon even if true. Full record:
 `docs/fable_bsa_invention_collision_365_2026-08-04.md`.
+
+## 366. Reliability-Gated Descriptors: contradicted hubness premise and occupied uncertainty
+
+**DEAD at Gates 1 and 2; no oracle fitting, implementation, preregistration, or
+GPU.** A second catalogue-blind Fable pass proposed exporting a bounded
+per-group reliability with the semantic direction so ordinary squared-Euclidean
+retrieval supplies reliability-scaled evidence and a gallery norm penalty. It
+would train the score with listwise NCA and penalize class information in the
+reliability head.
+
+The corrected In-Shop evidence points the other way: no item is top-1 for more
+than six training queries, 90.1% of errors remain reciprocal within top 10, CSLS
+lost 0.65 points, Sinkhorn lost 3.16, and prospectively tested raw Euclidean lost
+2.201. The proposed per-gallery scalar oracle is transductive item-label fitting,
+not a strict bound on an inductive image-to-reliability function. Algebraically,
+the deployed score is ordinary Euclidean distance in a constrained learned
+descriptor. PFE/FastMLS, IDML, NIR/nivMF, MagFace/AdaFace, candidates 105--116,
+and the norm-aware retrieval paper found by Fable occupy uncertainty/quality and
+norm-aware comparison; listwise NCA and class-invariance regularization occupy
+the remaining training terms. Fable also falsely said VAPNet was unverifiable;
+the exact NeurIPS 2023 primary paper supplied in its brief verifies it. The
+frozen forecast topped out below the 0.939 In-Shop CNN horizon. Full record:
+`docs/fable_rgd_invention_collision_366_2026-08-04.md`.
