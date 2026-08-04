@@ -34,7 +34,14 @@ supervision. Related embedding interpolation is also established by
 2020)](https://openaccess.thecvf.com/content_CVPR_2020/papers/Ko_Embedding_Expansion_Augmentation_in_Embedding_Space_for_Deep_Metric_Learning_CVPR_2020_paper.pdf)
 and [Metrix (Venkataramanan et al., ICLR
 2022)](https://openreview.net/pdf?id=ZKy2X3dgPA).
+[Memory-Based Virtual Classes (Ko, Gu, and Kim, ICCV
+2021)](https://openaccess.thecvf.com/content/ICCV2021/html/Ko_Learning_With_Memory-Based_Virtual_Classes_for_Deep_Metric_Learning_ICCV_2021_paper.html)
+is an additional direct neighbour: it stores embeddings and class weights as
+virtual classes specifically to reduce over-focus on seen classes and improve
+unseen-class generalization.
 
 **Verdict:** the stale novelty labels are withdrawn. The old numbers are
 inconclusive evidence about established Proxy Synthesis variants and do not earn
-new GPU time under the search protocol.
+new GPU time under the search protocol. The executable CLI retained the stale
+“novel” labels after this audit was written; they are now replaced with accurate
+“experimental variant” wording without changing behavior.

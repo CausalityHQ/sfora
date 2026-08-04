@@ -1529,12 +1529,20 @@ def image_end_to_end(
         bool,
         typer.Option(
             "--synthesis-group-mix/--synthesis-pair-mix",
-            help="Synthesise virtual classes from group means (novel) vs embedding pairs.",
+            help=(
+                "Synthesise virtual classes from group means (experimental variant) "
+                "vs embedding pairs."
+            ),
         ),
     ] = False,
     synthesis_pair_selection: Annotated[
         str | None,
-        typer.Option(help="Synthesis source-pair selection: random or confusable (novel)."),
+        typer.Option(
+            help=(
+                "Synthesis source-pair selection: random or confusable "
+                "(experimental mining variant)."
+            )
+        ),
     ] = None,
     synthesis_pair_temperature: Annotated[
         float | None,
