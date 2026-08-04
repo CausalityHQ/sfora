@@ -23,12 +23,14 @@ closest-quartile same-class pairs establish a selective relation not reducible
 to base distance. A shared controlled transform could define quadruples
 `(A, T(A), B, T(B))` and supervise equal transformation displacement across
 same-class images. The transform identity is genuinely exogenous, but the
-operator is cross-instance equivariance. AugSelf learns augmentation-parameter
-differences as an auxiliary objective, while EquiMod explicitly predicts
-augmentation-caused embedding displacement. Quantifying the same displacement
-over a second labelled image is a scope extension, not a new supervision
-primitive. It is also contradicted by ARCG's measured response disagreement and
-failed positive-replacement experiment.
+operator is cross-instance equivariance. CARE Eq. 2 applies the same
+augmentation to two different images and preserves their pairwise inner
+product, directly occupying the shared-action geometric-consistency operator.
+AugSelf learns augmentation-parameter differences as an auxiliary objective,
+while EquiMod explicitly predicts augmentation-caused embedding displacement.
+Adding labels or Proxy Anchor is a scope extension, not a new supervision
+primitive. The old ARCG response evidence is quarantined under audit 321 and is
+not needed for this prior-art death.
 
 Primary neighbours:
 
@@ -38,6 +40,9 @@ Primary neighbours:
 - Devillers and Lefort, *EquiMod: An Equivariance Module to Improve Visual
   Instance Discrimination*, ICLR 2023,
   <https://openreview.net/forum?id=eDLwjKmtYFt>.
+- Gupta et al., *CARE: Learning Transformation Equivariant Representations for
+  Visual Correspondence*, NeurIPS 2023,
+  <https://arxiv.org/abs/2306.13924>.
 
 ## 212. Tight partner as a distinct relation type
 

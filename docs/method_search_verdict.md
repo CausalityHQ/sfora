@@ -342,7 +342,7 @@ best-checkpoint feedback with an inductive signal.
 But the method exists. *Deep Metric Learning with Adaptively Composite Dynamic
 Constraints* constructs disjoint-label episodes, performs a one-gradient update on one
 subset, and meta-learns its constraint generator from performance on the held-out subset
-([Chen et al., TNNLS 2023](https://pubmed.ncbi.nlm.nih.gov/37018614/)). This is not merely
+([Zheng, Lu, and Zhou, TPAMI 2023](https://ieeexplore.ieee.org/document/10008092/)). This is not merely
 generic meta-learning near our proposal; it is the same class-disjoint DML mechanism.
 Reimplementing it under cleaner recipes could be a reproduction, not a novel method.
 
@@ -449,6 +449,13 @@ new neighbourhood relations to become supervision only when the replicas
 agreed.
 
 That supervision mechanism is prior art in retrieval:
+
+- DM² trains differently initialized networks on labelled CUB, Cars, and SOP
+  while exchanging relational knowledge
+  ([Park et al., ECCV Workshops 2020](https://arxiv.org/abs/2009.04170)).
+- T-SINT uses a second model to select which positive and negative interactions
+  enter a supervised retrieval objective
+  ([Ibrahimi et al., WACV 2022](https://arxiv.org/abs/2112.10453)).
 
 - NRMT uses two networks, collaborative clustering, and mutual instance
   selection based on peer confidence and relationship disagreement
@@ -1010,12 +1017,14 @@ substitution, not method novelty. Candidate 29 is **DEAD at Gate 2**.
 **Gate-2 death recorded 2026-07-31; no GPU spent.** DiDE proposed preserving
 identity contrasts under a shared augmentation by equalizing clean-to-augmented
 embedding displacements across images, allowing nonzero equivariant motion
-instead of enforcing invariance. TraVeLGAN (CVPR 2019) already preserves equal
-transformation vectors across images, and Difference Vector Equalization (AAAI
-2026) explicitly equalizes embedding difference vectors across samples to
-preserve geometry. Established equivariant/AugSelf work supplies the
-augmentation setting. Clean-to-augmented endpoints are an application change,
-not method novelty. Candidate 30 is **DEAD at Gate 2**.
+instead of enforcing invariance. CARE Eq. 2 applies the same augmentation to
+two different images and preserves their pairwise inner product, the exact
+cross-instance spherical equivariance operator
+([Gupta et al., NeurIPS 2023](https://arxiv.org/abs/2306.13924)). TraVeLGAN
+(CVPR 2019) and Difference Vector Equalization provide algebraic corroboration
+for generator and parameter-update maps. Adding the established operator to
+Proxy Anchor is an application change, not method novelty. Candidate 30 is
+**DEAD at Gate 2**.
 
 ## 31. Mutual-ownership proxy calibration: occupied by Calibrate Proxy
 
@@ -4509,3 +4518,21 @@ optimizer/model-copy, and conditional/meta-learning families, and no corrected
 measurement supplies an irreducible target. This is an evidence-bounded typing
 and occupancy argument, not an impossibility theorem. Full audit:
 `docs/seventh_interface_falsification_363_2026-08-04.md`.
+
+## 364. Load-bearing occupancy re-audit
+
+**ZERO OPENINGS; no preregistration, diagnostic, or GPU.** The three weakest
+prior-art rulings were rechecked against primary sources. Class-disjoint
+episodic DML is exactly occupied by DML-DC; the repository citation was
+bibliographically wrong and is corrected to Zheng, Lu, and Zhou, TPAMI 2023.
+The earlier cross-instance equivariance sources were adjacent, but CARE Eq. 2
+is the exact same-augmentation/two-image geometric-consistency operator. The
+earlier consensus citations were task-mismatched UDA re-ID, but supervised DM²
+and T-SINT close relational mutual learning and second-model interaction
+selection on retrieval benchmarks. JRD is real joint representation
+diversification, not relational KD.
+
+No residual has corrected Gate-1 provenance: augmentation-response and CUB
+spread measurements remain quarantined, while corrected cross-seed persistence
+is descriptive. Full audit:
+`docs/prior_art_occupancy_reaudit_364_2026-08-04.md`.

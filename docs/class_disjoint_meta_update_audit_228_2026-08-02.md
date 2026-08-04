@@ -39,11 +39,11 @@ requires `(I - eta H_A) grad L_B`; dropping the Hessian to meet the proposed
 cost target removes the distinguishing term to first order and leaves Proxy
 Anchor on A plus a proxy-free pair/listwise loss on B.
 
-The application is occupied too. The repository had already recorded Chen et
-al., *Deep Metric Learning with Adaptively Composite Dynamic Constraints*
-(TNNLS 2023), which uses disjoint-label episodes and held-out retrieval through
-a virtual update. MASF applies a metric-style outer loss under virtually updated
-parameters; M3L uses meta-train/meta-test identity splits and a nonparametric
+The application is occupied too. The repository had already recorded Zheng,
+Lu, and Zhou, *Deep Metric Learning With Adaptively Composite Dynamic
+Constraints* (TPAMI 2023), which uses disjoint-label episodes and held-out
+retrieval through a virtual update. MASF applies a metric-style outer loss under
+virtually updated parameters; M3L uses meta-train/meta-test identity splits and a nonparametric
 meta-test objective because parametric identity classifiers do not transfer.
 PADS is bilevel policy learning on held-out DML classes. Candidate 61 in this
 repository previously died on the same pseudo-seen/pseudo-unseen construction.
@@ -58,4 +58,3 @@ The one-sentence mechanism death is: beyond `PA(A) + ranking(B)`, CDMS adds only
 `-eta <grad L_A,grad L_B>`, an occupied gradient-alignment regularizer, while the
 cheap first-order implementation deletes exactly that addition. No measurement
 or GPU run is warranted.
-

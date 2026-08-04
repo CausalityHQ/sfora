@@ -36,9 +36,11 @@ The prevalence change from 0.1569 to 0.1259 has only two observations and
 cannot support a stability mechanism at Gate 1. More fundamentally, a single
 model cannot observe cross-seed agreement unless training runs multiple models;
 using that information becomes consensus/ensemble relational distillation or
-disagreement weighting. Knowledge distillation with pairwise and higher-order
-relations is already explicit in JRD ([Chu et al., ICML
-2020](https://proceedings.mlr.press/v119/chu20a.html)).
+disagreement weighting. DM² already exchanges relational knowledge between
+differently initialized supervised DML networks on CUB, Cars, and SOP ([Park et
+al., ECCV Workshops 2020](https://arxiv.org/abs/2009.04170)); T-SINT uses a
+second model to select supervised retrieval interactions ([Ibrahimi et al.,
+WACV 2022](https://arxiv.org/abs/2112.10453)).
 
 ### 350. Confusion-agreement-localized supervision
 
@@ -82,4 +84,3 @@ benchmarks whose gradient does not reduce to weighting, mining, regularization,
 metric substitution, multi-centre learning, meta-learning, or distillation; or
 (b) an explicitly disclosed change of task. No method is preregisterable from
 this batch.
-
