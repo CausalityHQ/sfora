@@ -4684,3 +4684,24 @@ pretrained complement from the proxy loss while deploying it--is candidate
 representations. The alternate overcomplete-measurement branch is
 Classemes/proxy-response or attribute/concept embedding. Full audit:
 `docs/fable_rank_demand_measurement_audit_371_2026-08-04.md`.
+
+## Outcome-only Fable continuation after candidate 371 (no numbered candidate)
+
+The completed outcome-only Fable pass returned **NONE**. Its proposed missing
+measurement--Sinkhorn-OT local-correspondence headroom followed by distillation
+into the deployed cosine descriptor--is exact candidate 368 / candidate 146,
+already dead as DIML plus local-to-global similarity distillation. The pass
+cannot count as independent convergence because denied web tools caused its
+internal searches to fall back to this repository's ledger. A corrected
+web-only, filesystem-denied retry reached the Fable session limit before
+returning and therefore supplied no result. Full process record:
+`docs/fable_outcome_only_continuation_2026-08-04.md`.
+
+Candidate 370's Gate-2 audit also omitted the closest benchmark-matched primary
+source: **HSE** (Yang et al., ICCV 2023) already uses CutMix/MixUp/GridMask
+cross-class hybrids as auxiliary DML supervision on CUB, Cars196, and SOP. Its
+label semantics differ from RECOMB's hard ordered-recipe identity, but the only
+remaining residue is ordinary positive sampling across repeated instances of
+an occupied virtual mixing recipe. With no positive Gate-1 measurement, this
+does not revive RECOMB. Full correction:
+`docs/recomb_hse_primary_reaudit_2026-08-04.md`.
