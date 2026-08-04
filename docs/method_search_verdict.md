@@ -4536,3 +4536,25 @@ No residual has corrected Gate-1 provenance: augmentation-response and CUB
 spread measurements remain quarantined, while corrected cross-seed persistence
 is descriptive. Full audit:
 `docs/prior_art_occupancy_reaudit_364_2026-08-04.md`.
+
+## 365. Blind-Subspace Allocation: no provenance and occupied decomposition
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A maximum-effort Fable invention pass was deliberately isolated from the
+candidate catalogue and received only the problem, audited SOTA lanes, and
+corrected local reference. It proposed splitting the descriptor into a
+Proxy-Anchor block and a fixed-energy auxiliary block, then distilling into the
+second block the frozen ImageNet teacher relations left after rowwise
+least-squares removal of the first block's relations.
+
+The pass itself admitted that no supplied measurement motivates proxy-complement
+headroom, so Gate 1 fails. Its strongest mathematical claim also overreaches:
+the losses are decoupled at the two output blocks but still interfere through
+their shared backbone. At Gate 2 the construction reduces to candidate 80's
+weighted concatenated subspaces, candidate 69's shared/private decomposition,
+S2SD-style auxiliary similarity distillation, and candidate 51's residualized
+relational target. NIR already occupies the diagnosis that proxy distances
+under-constrain local sample structure. The frozen prediction was CUB 0.720
+versus a 0.690 same-recipe baseline, which would not beat the audited 0.766 CNN
+horizon even if true. Full record:
+`docs/fable_bsa_invention_collision_365_2026-08-04.md`.
