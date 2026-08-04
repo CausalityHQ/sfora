@@ -4663,3 +4663,24 @@ change the generator and hygiene, not the supervision primitive. Gate 1 is also
 missing: cross-dataset class-count correlations do not identify this action,
 and the trained regional arm lost about 3.6 CUB points. Full audit:
 `docs/fable_recomb_invention_collision_370_2026-08-04.md`.
+
+## 371. Supervised-rank versus demanded-rank measurement: no new action map
+
+**DEAD before diagnostic execution; no preregistration, implementation, or
+GPU.** A clean Fable measurement pass proposed comparing the centered proxy
+span with a rank-truncated oracle on held-out CUB training classes, then
+manipulating proxy rank at fixed class coverage. The apparently cheap supply
+result is tautological: 75 centered proxies have rank at most 74. A 512-D rank
+sweep cannot observe its proposed `r* > 512` outcome, and a metric fitted on 12
+held-out classes then tested on 13 others does not identify the benchmark's
+intrinsic demanded rank.
+
+The causal lever is not isolated either. Restricting proxy parameters to a
+random subspace changes geometry and optimization, while normalized-descriptor
+gradients retain a sample-direction term and propagate through the shared
+nonlinear backbone. Most decisively, the only positive-outcome action--hide a
+pretrained complement from the proxy loss while deploying it--is candidate
+365's Blind Subspace Allocation plus occupied direct-sum/shared-private
+representations. The alternate overcomplete-measurement branch is
+Classemes/proxy-response or attribute/concept embedding. Full audit:
+`docs/fable_rank_demand_measurement_audit_371_2026-08-04.md`.
