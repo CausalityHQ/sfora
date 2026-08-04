@@ -26,10 +26,16 @@ count; AdvRF at 0.766 CUB and 0.949 Cars196 under a broadly comparable form; and
 PFML five-run ResNet-50/512-D results of 0.734 CUB and 0.927 Cars196. In the
 less constrained pretrained-backbone lane, VPTSP-G reports 0.885 CUB, 0.912
 Cars196, and 0.925 In-Shop with an ImageNet-21K-pretrained ViT-B/16 and a 512-D
-descriptor. Thus 0.766 is not the unrestricted CUB horizon, while 0.949 Cars196
-and 0.939 In-Shop remain the recorded per-dataset maxima among these audited
-single-model results. Backbone, pretraining corpus, descriptor dimension, and
-training cost must accompany every SOTA comparison.
+descriptor. Its supplement also reports 0.867 CUB, 0.974 Cars196, and 0.965
+In-Shop using the vision tower of a ViT-L/14 CLIP model pretrained on LAION-2B.
+That web-scale result is a third lane: it imports vastly more data and capacity,
+has a materially different contamination surface, and is not a controlled
+comparison to the ImageNet-1K CNN setting. The recorded maxima across all three
+lanes are therefore 0.885 CUB, 0.974 Cars196, and 0.965 In-Shop, but the primary
+method-development target in this repository remains a reproducible gain in the
+ImageNet-1K fixed-recipe lane. Backbone, pretraining corpus, descriptor
+dimension, training cost, seed count, and uncertainty must accompany every SOTA
+comparison.
 
 The local corrected In-Shop Proxy Anchor final-state references are
 0.9137009425 and 0.9167956112, with raw best-over-training 0.9163032775 and
