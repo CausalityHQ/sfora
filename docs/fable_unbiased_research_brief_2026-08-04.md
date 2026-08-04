@@ -19,13 +19,21 @@ uses nearest-neighbour retrieval. Do not design from official test labels or use
 transductive test-set adaptation. A changed setting is allowed only if it is
 identified explicitly rather than reported as a standard result.
 
-The recorded external horizon is VAPNet at 0.762 CUB, 0.948 Cars196, and 0.939
-In-Shop with ResNet-50/GAP 2048-D and 200 epochs, without a reported seed count;
-AdvRF at 0.766 CUB and 0.949 Cars196 under a broadly comparable form; and PFML
-five-run ResNet-50 results of 0.734 CUB and 0.927 Cars196. The local corrected
-In-Shop Proxy Anchor final-state references are 0.9137009425 and 0.9167956112,
-with raw best-over-training 0.9163032775 and 0.9189056126. Two seeds are not a
-variance estimate.
+Keep two comparison lanes distinct. In the broadly comparable ImageNet-1K CNN
+lane, the recorded external horizon is VAPNet at 0.762 CUB, 0.948 Cars196, and
+0.939 In-Shop with ResNet-50/GAP 2048-D and 200 epochs, without a reported seed
+count; AdvRF at 0.766 CUB and 0.949 Cars196 under a broadly comparable form; and
+PFML five-run ResNet-50/512-D results of 0.734 CUB and 0.927 Cars196. In the
+less constrained pretrained-backbone lane, VPTSP-G reports 0.885 CUB, 0.912
+Cars196, and 0.925 In-Shop with an ImageNet-21K-pretrained ViT-B/16 and a 512-D
+descriptor. Thus 0.766 is not the unrestricted CUB horizon, while 0.949 Cars196
+and 0.939 In-Shop remain the recorded per-dataset maxima among these audited
+single-model results. Backbone, pretraining corpus, descriptor dimension, and
+training cost must accompany every SOTA comparison.
+
+The local corrected In-Shop Proxy Anchor final-state references are
+0.9137009425 and 0.9167956112, with raw best-over-training 0.9163032775 and
+0.9189056126. Two seeds are not a variance estimate.
 
 Before using local evidence, read `docs/search_protocol.md`,
 `docs/current_evidence_reliability_audit_321_2026-08-03.md`,
