@@ -4600,3 +4600,23 @@ an unordered-pair label, and a nonlinear rather than interpolated proxy change
 the content estimator, not the supervision primitive. The frozen +3 to +5 CUB
 forecast still fell below the audited external horizon. Full record:
 `docs/fable_cce_invention_collision_367_2026-08-04.md`.
+
+## 368. Correspondence-Distilled Embeddings: occupied local-to-global distillation
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A genuinely isolated, catalogue-blind Fable pass proposed using an EMA
+network's spatial-token optimal-transport similarity as a training-only teacher,
+supervising that teacher with a metric loss, and distilling its row-wise batch
+distribution into the deployed GAP descriptor. Its frozen forecast was 0.775
+CUB, gated on at least +0.8 points from OT reranking of an existing checkpoint.
+
+Repository provenance points against the premise: trained regional supervision
+lost about 3.6 CUB points and a Cars MaxSim probe lost 1.47 points. More
+decisively, this is exact candidate 146, local-similarity-to-global distillation:
+DIML supplies optimal-transport structural matching, S2SD supplies auxiliary
+similarity-to-deployed-descriptor distillation, and WACV 2023 global-local
+self-distillation is an additional direct neighbour. Sinkhorn rather than
+MaxSim, an EMA teacher, and a supervised token head change the estimator and
+recipe, not the supervision relation. The proposal also added guessed component
+gains despite this project's prospective failure of additivity. Full audit:
+`docs/fable_code_invention_collision_368_2026-08-04.md`.
