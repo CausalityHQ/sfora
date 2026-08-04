@@ -999,6 +999,14 @@ whose definition explicitly uses reciprocal-neighbor sets and query expansion.
 Wu et al. CVPR 2022 adds contextual distillation precedent. Candidate 28 is
 **DEAD at Gate 2**.
 
+**2026-08-04 primary-source correction.** Zeng et al., *Improving Deep Metric
+Learning via Self-Distillation and Online Batch Diffusion Process* (Visual
+Intelligence 2024), is an even more direct occupant: it diffuses the previous
+epoch teacher's within-batch affinity matrix and distils the refined similarity
+matrix into the current DML model during training. Thus graph diffusion as a
+training teacher, rather than test-time reranking, is explicitly established.
+See `docs/obd_sd_primary_prior_audit_2026-08-04.md`.
+
 ## 29. Matched-control negative supervision: occupied by pose-matched contrast
 
 **Gate-2 death recorded 2026-07-31; no GPU spent.** A new CPU audit found that
