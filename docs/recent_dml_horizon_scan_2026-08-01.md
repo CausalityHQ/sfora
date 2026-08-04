@@ -1,5 +1,17 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: confidence-gradient preservation prior
+
+Park et al., *Confidence Controls Deep Metric Learning* (Machine Learning 2026,
+DOI `10.1007/s10994-026-07032-y`), explicitly prevents normalized-classifier
+loss saturation using a detached-logit confidence reduction (NaiveCC), and
+couples it to principal-eigenvector augmentation (EVDCC) to avoid feature
+collapse. The publisher abstract claims 2--5% Recall@K gains, but accessible
+primary material does not expose benchmark/backbone/seed-specific numbers, so
+it does not alter the numerical horizon. It closes confidence-gradient
+preservation and its combination with eigenvector augmentation as candidate
+mechanisms. See `docs/confidence_control_2026_prior_art_2026-08-04.md`.
+
 ## 2026-08-04 addendum: neural-collapse proxy initialization prior
 
 Park et al. (AAAI 2026, DOI `10.1609/aaai.v40i10.37777`) initialize benchmark-
