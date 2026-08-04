@@ -1,6 +1,16 @@
 # Candidate 20: interventional principal-stratum ranking (IPSR)
 
-**Status: DEAD at Gate 4 on 2026-07-31.** The preregistered diagnostic passed
+**Correction 2026-08-04:** the Gate-4 death below used the retracted `img_highres`
+pixel corpus and is not benchmark evidence. A preregistered corrected-pixel Gate-0
+audit independently reproduced a strong, distance-nonreducible premise: 17,093
+preferences, 66.04% anchor coverage, 77.38% class coverage, loss 0.7332, 56.09%
+close-pair rejection and 29.15% distant-pair acceptance. See
+`ipsr_corrected_corpus_gate0_result_2026-08-04.md`. The old negative and its small
+positive delta are both withdrawn. The operator does not advance to a corrected
+training screen because no valid measurement supports the +2.530-point effect
+needed to reach the audited 0.939 In-Shop horizon.
+
+**Historical status: DEAD at Gate 4 on 2026-07-31.** The preregistered diagnostic passed
 and training remained mechanically healthy, but the complete In-Shop screen
 failed its absolute performance threshold. Gate 3 was committed before
 implementation, inversion measurement, or IPSR GPU work. Gate 1 is in

@@ -878,7 +878,28 @@ the shared-seed baseline **0.9007**, delta **+0.060 pt**. Both are below the
 measured 0.12-point In-Shop sigma; no controls, extra seeds, or replication are
 warranted.
 
-The mechanism is a clean negative: augmentation response encodes a stable
+**Corrected-corpus audit 2026-08-04.** The entire performance paragraph above is
+quarantined: its report and operating checkpoint bind the invalid `img_highres`
+tree. A prospectively committed official-pixel audit instead found 17,093 IPSR
+preferences, 66.04% anchor coverage, 77.38% eligible-class coverage and initial
+loss 0.7332. It also found 56.09% closest-quartile rejection and 29.15% farthest-
+quartile acceptance. A raw six-view pack was independently recomputed without
+importing project graph/preference code and reproduced every aggregate exactly.
+Thus the augmentation-response relation is real on corrected In-Shop and is not
+distance mining; the historical Gate-4 death and +0.091-point delta are both
+withdrawn.
+
+This does not rescue the training method. The corrected local final baseline is
+0.9137009 and the audited comparable horizon is 0.939, a +2.530-point requirement.
+No valid performance measurement links prevalence of the ordinal contradiction to
+an unseen-identity effect of that size. IPSR therefore stops before a new Gate-3
+forecast rather than spending GPU on a number that cannot meet the standing
+objective. The sharper mechanism lesson is: **intervention response identifies
+distance-independent within-class strata, but prevalence of a stratum relation is
+not a causal estimate that enforcing its order improves retrieval.** Full artifact
+record: `docs/ipsr_corrected_corpus_gate0_result_2026-08-04.md`.
+
+The historical mechanism interpretation was: augmentation response encodes a stable
 nuisance stratum, but agreement of nuisance sensitivity does not establish
 which same-identity image should rank closer for unseen-identity retrieval. The
 ordinal target remained substantially unresolved and its small training effect
