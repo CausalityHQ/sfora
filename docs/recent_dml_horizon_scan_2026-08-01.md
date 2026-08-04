@@ -1,5 +1,17 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: reviewed hyperbolic hierarchical ranking warning
+
+Zhang and Li, *Hierarchical Ranking in Hyperbolic Space* (Neural Networks 199,
+108658, 2026; DOI `10.1016/j.neunet.2026.108658`), claims +2.4 CUB and +1.6
+Cars196 Recall@1 over the state of the art selected in that paper. The full
+comparison table was inaccessible in this audit, so those abstract deltas are
+not converted into absolute scores or substituted for the audited comparable
+cosine-family horizons. The method appears to deploy hyperbolic distance, not
+the current single-cosine lane. It nevertheless occupies latent hierarchy from
+proxy geometry plus multi-level proxy ranking and must be included in future
+Gate-2 searches. See `docs/hrg_2026_horizon_audit_2026-08-04.md`.
+
 ## 2026-08-02 addendum: DADA matched-cost reference
 
 Ren et al., DADA (AAAI 2024), was missing from the first inventory. Its
