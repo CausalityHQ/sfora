@@ -51,6 +51,17 @@ exported final R@1 **0.9137009425**.  The final exporter verifies the exact
 source-path and byte-content disjointness, and agreement of three independent
 nearest-neighbour scorers.
 
+The prospectively registered seed-1 reference is independently verified as
+well. Its raw best-over-training R@1 is **0.9189056126** at epoch 46 and its
+frozen-final R@1 is **0.9167956112** at step 8,580, both within their locked
+intervals. The checkpoint SHA-256 is
+`a25dc22691981e6ad7df899878f448d96d4ac41adbb8e346e10322e93883e580`.
+Production, float64 Euclidean, float64 cosine and exact-tie scorers agree
+exactly. Its official partition/content manifests equal seed 0, with zero path,
+content or identity leakage. The two-seed raw/final means are **0.9176044451**
+and **0.9152482768** respectively. This adds a second artifact, not a defensible
+variance estimate.
+
 The config field `protocol="proxy-anchor-resnet50-512"` is misleading legacy
 schema metadata.  It is not the executed architecture: both the checkpoint and
 result identify BN-Inception, and the published-checkpoint functional test
@@ -59,8 +70,8 @@ exercises the same vendored BN-Inception.  Future reports must use
 the architecture authority; the protocol-family string must never be used to
 claim which backbone ran.
 
-This is one local seed.  It is a paired reference, not a variance estimate and
-not evidence that a small one-seed gain generalizes.
+These are two local seeds. They remain paired references, not a variance
+estimate and not evidence that a small one-seed gain generalizes.
 
 ## Independent recomputation of the surviving descriptive signal
 

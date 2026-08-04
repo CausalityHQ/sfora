@@ -1072,7 +1072,7 @@ a SOTA comparison. The exact setup and sequential runner are documented in
 | Cars | HIST | `hist.cars.official-e7d650c` | ResNet-50 | paper 89.6±0.2 | registered |
 | SOP | Proxy Anchor | `proxy_anchor.sop.official-51db570` | BN-Inception | 79.11 raw best / 79.00 frozen final | completed seed 0 |
 | SOP | HIST | `hist.sop.official-e7d650c` | ResNet-50 | paper 81.4±0.2 | registered |
-| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | 91.63 raw best / 91.37 frozen final; published checkpoint 91.76 | completed corrected seed 0 |
+| In-Shop | Proxy Anchor | `proxy_anchor.inshop.official-51db570` | BN-Inception | seeds 0–1 mean 91.76 raw best / 91.52 frozen final; published checkpoint 91.76 | completed corrected seeds 0–1 |
 | In-Shop | HIST | `hist.inshop.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | Proxy Anchor | `proxy_anchor.inat2018.selected-from-<winner>-51db570` | winner preserved | no published pair | train-only selection queued |
 | iNat2018 v1 | HIST | `hist.inat2018.selected-from-<winner>-e7d650c` | winner preserved | no published pair | train-only selection queued |
@@ -1256,6 +1256,16 @@ point raw-to-final gap is observed checkpoint selection, not a selection-bias
 correction.  Independent cosine, Euclidean and tie-aware scorers agree at the
 final state, with no train/evaluation source overlap or cross-identity content
 duplicate contamination.
+
+The preregistered seed-1 reference then reached **0.918906 raw best R@1** at
+epoch 46 and **0.916796 independently exported final R@1**. It passed the locked
+raw `[0.907, 0.929]` and final `[0.905, 0.923]` intervals. Production, float64
+Euclidean, float64 cosine and exact-tie scoring agree exactly; official counts,
+identity separation, content manifests and duplicate/overlap audits all pass.
+Across the two corrected local seeds, raw best mean is **0.917604** and frozen-
+final mean is **0.915248**. Two seeds do not estimate variance or reinstate the
+withdrawn one-seed decisiveness rule. Full artifact record:
+[`inshop_corrected_reference_seed1_result_2026-08-04.md`](inshop_corrected_reference_seed1_result_2026-08-04.md).
 
 RSPG did not survive corrected-pixel screening.  Its seed-0 graph began at
 density **0.0895**, then retrieval fell from **0.8769** at activation to
