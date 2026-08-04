@@ -1,5 +1,15 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: unsupervised object-location prior
+
+Ye et al.'s DML-OL (ICME 2025, DOI
+`10.1109/ICME59968.2025.11208917`) trains an unlabeled bounding-box predictor
+and differentiable crop/resize network jointly with DML. The closed accessible
+record does not expose datasets, scores, seeds, uncertainty, views, or cost, so
+it does not alter the numerical horizon. It directly occupies training-data-
+only object localization, learned foreground cropping, and differentiable
+spatial selection for DML. See `docs/dml_ol_2025_prior_art_2026-08-04.md`.
+
 ## 2026-08-04 addendum: confidence-gradient preservation prior
 
 Park et al., *Confidence Controls Deep Metric Learning* (Machine Learning 2026,
