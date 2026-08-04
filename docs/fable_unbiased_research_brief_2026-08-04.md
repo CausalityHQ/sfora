@@ -41,20 +41,21 @@ The local corrected In-Shop Proxy Anchor final-state references are
 0.9137009425 and 0.9167956112, with raw best-over-training 0.9163032775 and
 0.9189056126. Two seeds are not a variance estimate.
 
-Before using local evidence, read `docs/search_protocol.md`,
-`docs/current_evidence_reliability_audit_321_2026-08-03.md`,
-`docs/search_stopping_adjudication_353_357_2026-08-04.md`,
-`docs/method_search_verdict.md`, and `docs/results.md` in full. Read other files
-only when needed for exact collisions. Measurements not promoted by the
-reliability audit are untrusted; a bug can invalidate a negative as easily as a
-positive.
+This is the invention pass, not the collision-check pass. Do **not** read the
+repository's candidate catalogue, method-search verdict, stopping adjudication,
+candidate files, or prior Fable outputs before fixing your proposal. They contain
+hundreds of attempted mechanisms and would anchor the search. Work from the
+problem and benchmark evidence above. You may inspect the repository only if an
+exact implementation fact is indispensable; otherwise state the missing fact as
+a prospective diagnostic.
 
-Do not let the catalogue dictate the answer. Solve the research problem from
-first principles and choose the scientific framing, representation,
-architecture, activation, loss, training algorithm, or other mechanism. Do not
-merely combine named methods. Search primary literature and official author
-code before claiming novelty. Distinguish exact prior art from adjacent work;
-absence from a search is not proof of novelty.
+Solve the research problem from first principles. Choose the scientific framing
+and concrete mechanism yourself. Do not merely combine named methods. Search
+primary literature and official author code before claiming novelty.
+Distinguish exact prior art from adjacent work; absence from a search is not
+proof of novelty. Once your strongest proposal is fixed, report its closest
+prior art, but leave the repository-wide catalogue collision check to the next
+independent audit.
 
 ## Required deliverable
 
@@ -63,8 +64,8 @@ absence from a search is not proof of novelty.
    computation, training/inference costs, and why it should beat the relevant
    baseline.
 3. Give closest primary prior art and the precise non-cosmetic novelty boundary.
-4. Name the exact verified repository measurement motivating it, or a cheap
-   prospective diagnostic if current evidence is insufficient.
+4. Name the empirical fact motivating it from the evidence above, or a cheap
+   prospective diagnostic if that evidence is insufficient.
 5. State a numerical prediction, falsification condition, ablations, and
    second-dataset confirmation plan.
 6. Adversarially critique implementation bugs, benchmark leakage, selection
