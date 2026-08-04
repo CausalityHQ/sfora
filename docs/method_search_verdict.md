@@ -2770,6 +2770,14 @@ most variation changes with the crop draw. All fitted-model gates were correctly
 skipped. This kills OAPF before PFML reproduction or training. Full record:
 `docs/oapf_candidate.md`.
 
+**2026-08-04 Gate-0 revalidation.** The exact 712 MB embedding pack,
+checkpoint, training report, and deterministic view ledger survive on the DGX.
+An independent NumPy/SciPy recomputation that imported no project code exactly
+reproduced global Spearman `0.31759290322040923` and within-class-residual
+Spearman `0.18405712123299486`, both below the fixed `0.50` gates. The
+historical OAPF negative is therefore artifact-backed, not a bug-based opening.
+See `docs/oapf_gate0_revalidation_2026-08-04.md`.
+
 **Second pre-data audit and baseline correction (2026-08-02).** Claude and an
 independent static review attacked the executable diagnostic before it touched
 candidate data. Accepted corrections add coherent pack-to-canonical shift to
