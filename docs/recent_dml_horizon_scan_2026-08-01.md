@@ -1,5 +1,17 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: neural-collapse proxy initialization prior
+
+Park et al. (AAAI 2026, DOI `10.1609/aaai.v40i10.37777`) initialize benchmark-
+class proxies from frozen-backbone principal directions and inject Gaussian
+proxy noise during fine-tuning. With ImageNet-21K initialization they report
+83.2 CUB/89.2 Cars/82.1 SOP/92.5 In-Shop R@1 for ResNet-50 PA, and
+85.9/88.5/86.3/92.9 with HypViT. These do not raise the absolute horizons or
+the ImageNet-1K comparable lane. No seed count or uncertainty is reported; the
+released code fixes seed 1. The work directly occupies neural-collapse/data-
+direction proxy initialization, proxy-drift preservation, and perturbation
+injection. See `docs/nc_init_pi_2026_prior_art_2026-08-04.md`.
+
 ## 2026-08-04 addendum: DGSL-RCF is not a single-descriptor horizon
 
 Fei et al.'s unreviewed DGSL-RCF preprint (arXiv:2601.08149v1) reports values
