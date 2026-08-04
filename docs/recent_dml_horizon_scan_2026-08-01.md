@@ -1,5 +1,15 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: concept-metric architecture prior
+
+Chen et al.'s reviewed CMN (IEEE TNNLS 2025, DOI
+`10.1109/TNNLS.2025.3587907`) uses learnable visual-concept vectors,
+cross-attends them to regional features, and deploys inferred concept-presence
+values as a controllable DML descriptor on CUB, Cars and SOP. The accessible
+sources do not expose enough protocol/result detail to alter the numerical
+horizon, but they directly occupy concept-vector/slot decomposition as a DML
+architecture. See `docs/cmn_2025_concept_metric_prior_art_2026-08-04.md`.
+
 ## 2026-08-04 addendum: DiT-Distill external-knowledge horizon
 
 CVPR 2026 DiT-Distill reports single-student cosine R@1 87.2 on CUB and
