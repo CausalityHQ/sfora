@@ -1,5 +1,15 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: DiT-Distill external-knowledge horizon
+
+CVPR 2026 DiT-Distill reports single-student cosine R@1 87.2 on CUB and
+91.4 on Cars after distilling a refined pretrained FLUX diffusion transformer
+into ImageNet-21K ViT-B/16. It is reviewed and directly task-matched, but violates
+the present training-data-only constraint and does not exceed the 87.8 CUB or
+94.9 Cars absolute horizons already recorded here. It occupies the generative
+curriculum/distillation mechanism family. See
+`docs/dit_distill_2026_horizon_audit_2026-08-04.md`.
+
 ## 2026-08-04 addendum: reviewed hyperbolic hierarchical ranking warning
 
 Zhang and Li, *Hierarchical Ranking in Hyperbolic Space* (Neural Networks 199,
