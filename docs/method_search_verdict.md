@@ -4488,3 +4488,24 @@ and is fixed-classifier prior art, while a learned node is another embedding,
 proxy, or teacher. The bottleneck is the permitted action/deployment interface,
 not a shortage of untested channel names. Full audit:
 `docs/fable_training_observation_channel_audit_358_362_2026-08-04.md`.
+
+## 363. Seventh-interface mathematical falsification
+
+**NO LIVE INTERFACE; no diagnostic, implementation, or GPU.** A Fable
+proof-oriented pass attacked the action closure with implicit equilibria,
+conservation currents, measure-valued optimal transport, optimal-control
+boundaries/stopping times, and decorated higher-order incidence. Implicit and
+optimal-solution differentiation changes how existing evaluation-gradient
+atoms mix but not how observations attach. The first four constructions compile
+to graph/contextual supervision, weighting/mining, assignment/Gram transfer,
+or trajectory/listwise/optimizer mechanisms already closed by the catalogue.
+
+The pass did find a wording defect: a dense decorated three-tensor cannot be
+faithfully represented by bounded-dimension unary/pair/group interfaces.
+Higher-order decorated relations, input probes, parameter attachments, and
+learned non-embedding auxiliaries must be explicit. Adding them does not reopen
+the search: they route respectively to occupied tuple/hypergraph, synthesis,
+optimizer/model-copy, and conditional/meta-learning families, and no corrected
+measurement supplies an irreducible target. This is an evidence-bounded typing
+and occupancy argument, not an impossibility theorem. Full audit:
+`docs/seventh_interface_falsification_363_2026-08-04.md`.
