@@ -4620,3 +4620,25 @@ MaxSim, an EMA teacher, and a supervised token head change the estimator and
 recipe, not the supervision relation. The proposal also added guessed component
 gains despite this project's prospective failure of additivity. Full audit:
 `docs/fable_code_invention_collision_368_2026-08-04.md`.
+
+## 369. Exchangeable-Nuisance Embedding: premise falsified and occupied transfer
+
+**DEAD at Gates 1 and 2; no new diagnostic, implementation, preregistration, or
+GPU.** A clean, catalogue-blind Fable pass proposed matching within-class offset
+distributions across identities, transplanting empirical offsets onto foreign
+class centres, and training through a floored PLDA-style metric. Its frozen
+In-Shop forecast was 0.941 versus the 0.939 horizon, with an admitted success
+probability near 0.55.
+
+Candidate 225 had already preregistered and run the load-bearing diagnostic on
+three In-Shop seeds. A within-class subspace estimated on one identity fold was
+not nuisance-selective on the disjoint fold: `rho_32` was 0.9312, 0.9287, and
+0.9345, below the 1.15 falsifier, because it captured more between-class than
+within-class variance proportionally. Forcing exchangeability would suppress
+measured identity information. Gate 2 is independently closed: candidates 45
+and 260 plus Delta-Encoder, Feature Space Transfer, Meta Variance Transfer, and
+Embedding Expansion occupy offset transplantation; DVML assumes
+class-independent intra-class variation; WCCN/PLDA occupy the metric. A
+quantile matcher and spectral floor alter estimators/regularization, not the
+supervision relation. Full audit:
+`docs/fable_ene_invention_collision_369_2026-08-04.md`.
