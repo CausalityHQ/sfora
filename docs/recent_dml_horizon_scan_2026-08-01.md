@@ -1,5 +1,16 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: contrastive norm-dynamics prior
+
+Su, Ren, and Veitch (arXiv:2606.30625v1) derive contrastive embedding norm as an
+equilibrium of radial drift, minibatch-gradient noise, and decay, and show that
+it can encode specificity/uncertainty. Their practical intervention changes
+retrieval scoring by norm-weighting cosine on text/CLIP tasks, so it is neither
+benchmark matched nor eligible under the fixed-cosine deployment rule. It does
+occupy norm-as-specificity, norm-as-gradient-conflict, and norm-weighted
+calibration as mechanism claims. See
+`docs/contrastive_norm_dynamics_2026_prior_art_2026-08-04.md`.
+
 ## 2026-08-04 addendum: unsupervised object-location prior
 
 Ye et al.'s DML-OL (ICME 2025, DOI
