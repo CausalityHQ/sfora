@@ -4442,3 +4442,27 @@ across initialization strengthens the measurement boundary but does not create
 new supervision; ensemble and consensus responses are established. Full
 records: `docs/fable_two_seed_gap_candidate_batch_348_352_2026-08-04.md` and
 `docs/inshop_cross_seed_error_overlap_result_2026-08-04.md`.
+
+## 353--357. Final adversarial stopping falsifiers
+
+**ALL DEAD at Gates 1--2; no implementation, diagnostic, or GPU.** A pinned
+maximum-effort Fable pass was asked to falsify the stopping argument and
+returned the five strongest counterexamples it could construct. Dual-head
+identity-disjoint co-training is episodic relational distillation (353).
+Cross-seed churn pressure is temporal self-distillation or flatness
+regularization and mistakes descriptive disagreement for a cause (354). A
+fixed proxy constellation with confusion-aware assignment is occupied gauge
+fixing plus hard-negative mining, without a measured proxy-placement defect
+(355). Coupled same-class augmentation draws change estimator covariance but
+not Proxy Anchor's image-to-proxy supervision (356). Simulated train
+query/gallery roles are occupied listwise ranking, add filename metadata, and
+act on an already saturated training retrieval event (357).
+
+The proof-check also corrected the stopping rationale. Architecture,
+parameter/optimizer dynamics, and batch/data construction must be explicit
+families; the referent/channel enumeration, not proxy spanning, is
+load-bearing; and after audit 321, primary-art occupancy carries more weight
+than quarantined historical empirical deaths. The resulting claim is bounded:
+no presently justified label-only, roughly-1x, single-model supervision
+primitive is identified—not that invention is impossible. Full adjudication:
+`docs/search_stopping_adjudication_353_357_2026-08-04.md`.
