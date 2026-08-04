@@ -24,6 +24,7 @@ def main() -> None:
     parser.add_argument("--dataset-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ipsr-output", type=Path)
+    parser.add_argument("--pack-output", type=Path)
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--num-workers", type=int, default=8)
     args = parser.parse_args()
@@ -94,9 +95,21 @@ def main() -> None:
                 labels.append(batch_labels.numpy())
         return np.concatenate(embeddings), np.concatenate(labels)
 
+    view_names = ("flip", "left", "right", "top", "bottom")
     anchor, labels = encode("center")
-    views = [encode(view)[0] for view in ("flip", "left", "right", "top", "bottom")]
-    signatures, valid = normalized_response_signatures(anchor, np.stack(views, axis=1))
+    views = [encode(view)[0] for view in view_names]
+    transformed = np.stack(views, axis=1)
+    if args.pack_output is not None:
+        args.pack_output.parent.mkdir(parents=True, exist_ok=True)
+        with args.pack_output.open("wb") as handle:
+            np.savez(
+                handle,
+                anchor_embeddings=anchor,
+                transformed_embeddings=transformed,
+                labels=labels,
+                view_names=np.asarray(view_names),
+            )
+    signatures, valid = normalized_response_signatures(anchor, transformed)
     diagnostics = diagnose_arcg_graph(anchor, signatures, labels, valid)
     payload = {
         **diagnostics.__dict__,
@@ -105,7 +118,7 @@ def main() -> None:
         "training_report": str(args.training_report),
         "dataset": "inshop.train",
         "agreement_threshold": 0.5,
-        "views": ["center", "flip", "left", "right", "top", "bottom"],
+        "views": ["center", *view_names],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
