@@ -4581,3 +4581,22 @@ the remaining training terms. Fable also falsely said VAPNet was unverifiable;
 the exact NeurIPS 2023 primary paper supplied in its brief verifies it. The
 frozen forecast topped out below the 0.939 In-Shop CNN horizon. Full record:
 `docs/fable_rgd_invention_collision_366_2026-08-04.md`.
+
+## 367. Composite Class Expansion: exact synthetic-class collision
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A third catalogue-blind Fable pass spatially composed two different-class
+training images, assigned the unordered parent pair a hard virtual identity, and
+used a nonlinear composition of the parent proxies as its class proxy. It
+repeated candidate 365's unmeasured proxy-rank premise and again falsely said
+the exact NeurIPS 2023 VAPNet paper was unlocatable.
+
+The executable method is candidate 210's binding-error composite supervision:
+mixed inputs and targets are CutMix/Metrix, while a new hard virtual identity and
+proxy are Proxy Synthesis. The primary-source re-audit already confirmed that
+Proxy Synthesis generates synthetic embeddings and proxies as synthetic classes
+specifically to mimic unseen classes. Pixel rather than embedding composition,
+an unordered-pair label, and a nonlinear rather than interpolated proxy change
+the content estimator, not the supervision primitive. The frozen +3 to +5 CUB
+forecast still fell below the audited external horizon. Full record:
+`docs/fable_cce_invention_collision_367_2026-08-04.md`.
