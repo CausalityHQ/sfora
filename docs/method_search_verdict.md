@@ -4466,3 +4466,25 @@ than quarantined historical empirical deaths. The resulting claim is bounded:
 no presently justified label-only, roughly-1x, single-model supervision
 primitive is identified—not that invention is impossible. Full adjudication:
 `docs/search_stopping_adjudication_353_357_2026-08-04.md`.
+
+## 358--362. Fable training-only observation-channel audit
+
+**ALL DEAD at Gates 1--2; no diagnostic, implementation, or GPU.** JPEG
+codec/source fingerprints are real acquisition observables, but their actions
+are source conditioning, domain invariance, auxiliary prediction, or weighting
+(358). Photo-ID temporal incidence only supplies a within-class grouping and
+therefore routes to session-aware pairs, multi-centre learning, or variation
+modelling (359). Cross-class background matches are matched-pair/context
+counterfactual supervision and require the already adjudicated box channel
+(360). Directed near-duplicate lineage is unsupported by the repository's
+locked materiality measurements (361). Exchangeability/variance-component
+decomposition requires the preceding occasion channel and has a measured-null
+In-Shop balancing premise (362).
+
+The pass sharpened the closure again: model-free observables enter training as
+a per-sample value, pair, group, order, transform, or fixed embedding-space
+node. The first five map to occupied action families; a fixed node breaks gauge
+and is fixed-classifier prior art, while a learned node is another embedding,
+proxy, or teacher. The bottleneck is the permitted action/deployment interface,
+not a shortage of untested channel names. Full audit:
+`docs/fable_training_observation_channel_audit_358_362_2026-08-04.md`.
