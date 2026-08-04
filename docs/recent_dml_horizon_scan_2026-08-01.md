@@ -1,5 +1,17 @@
 # Recent DML horizon scan, 2024--2026
 
+## 2026-08-04 addendum: DGSL-RCF is not a single-descriptor horizon
+
+Fei et al.'s unreviewed DGSL-RCF preprint (arXiv:2601.08149v1) reports values
+labelled `Recall` as high as 82.97 CUB with BN-Inception, but its geometric-flow
+layer constructs each image activation by aggregating other images in the
+current minibatch. The paper gives no gallery-independent inference/export rule,
+does not identify Recall@K, reports no seed count or uncertainty, and points to
+an empty project repository. It therefore does not raise the comparable
+single-image cosine horizon. It does occupy minibatch kNN resistance-curvature
+flow and cross-instance graph aggregation as prior art. See
+`docs/dgsl_rcf_2026_horizon_audit_2026-08-04.md`.
+
 ## 2026-08-04 addendum: concept-metric architecture prior
 
 Chen et al.'s reviewed CMN (IEEE TNNLS 2025, DOI
