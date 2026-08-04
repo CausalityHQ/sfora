@@ -92,6 +92,15 @@ It does not validate CEM as a novel method.  CEM's gradient reduces to
 hard-negative-class mining, so candidate 320 remains dead independently of all
 performance numbers.
 
+Seed 1 replicates the descriptive boundary without test data. Train leave-one-
+out R@1 is **0.9955933514** (114 finite-row errors), the negative sample-margin
+fraction is **0.0044066486**, and 1,563 / 3,975 eligible classes are fragmented
+(**0.3932075472**). Confusion agreement is **0.1259176261**, with error
+**0.0285363608** given agreement versus **0.0014586925** given disagreement.
+The same single cross-identity near-duplicate pair explains two errors and
+again fails the fixed 13-error materiality threshold. Full record:
+`docs/inshop_seed1_geometry_replication_2026-08-04.md`.
+
 ## Operational rule
 
 The next Claude or human candidate critique receives only a compact verified
