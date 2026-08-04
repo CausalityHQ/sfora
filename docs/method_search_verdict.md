@@ -4418,3 +4418,27 @@ returned zero alternative survivors. It also found that the repository's latent
 bbox crop path is fail-open and no current dataset validator binds annotation
 coverage or coordinates, so it cannot support a deciding result as written.
 Full audit: `docs/bbox_object_context_candidate_347_2026-08-03.md`.
+
+## 348--352. Fable two-seed seen/unseen-gap batch
+
+**ALL DEAD before proposal; no implementation, diagnostic, or candidate GPU.**
+The independently verified two-seed packet motivated five direct attacks.
+Held-out-identity relation supervision is episodic/meta metric learning (348).
+Cross-seed confusion targets require multiple models and reduce to
+consensus/relational distillation or disagreement weighting, while the observed
+prevalence shift has only two samples (349). Confusion-agreement-localized
+updates are hard-negative mining, weighting, or graph consistency, and the
+associated margin is outcome-defining (350). Fragmentation preservation is
+occupied intra-class-variation modelling or multi-centre learning, with weak
+unidentified causal provenance (351). Deployment-population repair is
+transductive reranking, test-time adaptation, aggregation, or abstention and
+changes the inductive benchmark claim (352).
+
+The separately preregistered cross-seed audit found that **908** official
+queries are wrong in both corrected seeds: error-overlap coefficient
+**0.7675401522**, above the locked stable-error boundary. The same wrong
+identity occurs on only **0.6475770925** of those shared failures. Persistence
+across initialization strengthens the measurement boundary but does not create
+new supervision; ensemble and consensus responses are established. Full
+records: `docs/fable_two_seed_gap_candidate_batch_348_352_2026-08-04.md` and
+`docs/inshop_cross_seed_error_overlap_result_2026-08-04.md`.

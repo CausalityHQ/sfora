@@ -101,6 +101,17 @@ The same single cross-identity near-duplicate pair explains two errors and
 again fails the fixed 13-error materiality threshold. Full record:
 `docs/inshop_seed1_geometry_replication_2026-08-04.md`.
 
+The prospectively registered cross-seed official-query audit finds **908**
+queries wrong under both models, an error-overlap coefficient of
+**0.7675401522**, above the locked `0.70` stable-error boundary. Exact top-1
+gallery-row agreement is **0.8084822057**. The seeds choose the same wrong
+identity for only **0.6475770925** of jointly wrong queries, below the secondary
+`0.70` boundary. The result is invariant to float64 cosine chunk size and is
+bound to both checkpoint digests. It shows query-level persistence, not a new
+training signal; the oracle either-seed R@1 **0.9361372908** is explicitly not
+a deployable method result. Full record:
+`docs/inshop_cross_seed_error_overlap_result_2026-08-04.md`.
+
 ## Operational rule
 
 The next Claude or human candidate critique receives only a compact verified
