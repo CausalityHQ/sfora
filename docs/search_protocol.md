@@ -13,6 +13,43 @@ Fifteen candidates failed and the failures were not random. Every one either
 Three more died on **prior art** only *after* effort was spent. The loop below is ordered
 to kill candidates cheaply, and in the order that kills most of them first.
 
+## Idea generation: blind proposer, evidence-aware critic
+
+Generation and judgement are deliberately separate roles. The proposer is a fresh,
+repository-isolated Fable session. It receives only:
+
+- the zero-shot image-retrieval problem and disjoint-identity evaluation;
+- the legal training inputs and deployed-descriptor constraints;
+- audited, matched-capacity numeric frontiers, with higher-capacity observations
+  labelled separately; and
+- the required form of a defensible answer: one mathematical training object, causal
+  error mode, primary-source novelty case, decisive controls, frozen forecasts,
+  falsifiers, cost, and a quantitative frontier-crossing argument.
+
+The proposer receives **no repository measurements, candidate names, mechanism
+shortlist, failure catalogue, proposed scientific direction, or previous model
+answer**. Asking it to use augmentation, expanded supervision, another field, or an
+"untried class" already chooses part of the answer and invalidates the independence of
+the idea-generation pass. The prompt asks for exactly one concrete method or `NONE`.
+An API failure, generic idea list, diagnostic without an executable method, or `NONE`
+is not a candidate.
+
+Only after a complete proposal exists does the evidence-aware critic compare it with
+the verified repository packet. Gate 1 asks whether an audited measurement actually
+supports the proposed causal error mode; the proposer is not told that measurement in
+advance. Gate 2 independently checks the algebra, searches primary literature
+adversarially, and attacks the claimed distinction with the closest mechanism—not just
+the proposed citations. A second language-model critique may assist this audit, but it
+must receive the frozen proposal and act as a critic, never silently revise the method
+after seeing objections.
+
+Failed proposals update the evidence and mechanism ledger, but are not summarized back
+into the next proposer prompt. This prevents a sequence of nominally independent runs
+from collapsing into local variations of the latest failure. The next pass uses the
+same neutral problem specification in a fresh isolated session. Preserve the exact
+prompt and complete proposal for every concrete candidate so proposal, audit, and any
+later preregistration remain temporally distinguishable.
+
 ## The gates — stop at the first one a candidate fails
 
 **0. Validate the motivating measurement from artifacts.** Configuration intent,
@@ -75,8 +112,11 @@ is a result.
 Write it into `docs/method_search_verdict.md` with its **mechanism**, not just its
 number. That catalogue is worth more than any single arm.
 
-Then generate the next candidate, preferring the one untried class: **change what
-supervision exists**, rather than how it is scored.
+Then run a fresh blind generation pass. The historical project hypothesis preferred
+the one then-untried class—**change what supervision exists**, rather than how it is
+scored—but this is evidence for the critic, not an instruction to seed the proposer.
+Under the generation procedure above, Fable is not told this preference; it matters
+only when judging whether a returned method repeats an exhausted mechanism class.
 
 ## Standing fact corrected 2026-08-01: the general benchmark ceiling is occupied
 
