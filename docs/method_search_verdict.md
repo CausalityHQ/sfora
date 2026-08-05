@@ -4742,3 +4742,22 @@ remaining residue is ordinary positive sampling across repeated instances of
 an occupied virtual mixing recipe. With no positive Gate-1 measurement, this
 does not revive RECOMB. Full correction:
 `docs/recomb_hse_primary_reaudit_2026-08-04.md`.
+
+### Corrected repository-blind completion
+
+The corrected web-only, filesystem-denied Fable run later completed after the
+session reset and returned **`NONE`**. Its fallback was a four-fold, three-seed
+error decomposition into data noise, contextual-geometry corrections,
+metric-oracle corrections, and residual feature error. It does not pass as a
+measurement candidate: the buckets overlap; fitting and scoring the metric on
+the same held-out identities leaks labels, while nesting identities changes the
+estimand to transfer of one metric estimator; contextual and metric branches
+collide with the neighbourhood, geometric-space, and candidate-371 audits; and
+four folds by three seeds costs 12 training runs per dataset, not the claimed
+roughly two.
+
+The primary-source check also rejected Fable's suggestion that AdvRF's 76.6 CUB
+result used bounding-box crops. AdvRF's bounding-box ablation is 73.9; 76.6 uses
+its learned localization from ordinary full-image preprocessing. The audited
+0.766/0.949/0.939 horizons therefore stand. No GPU follows. Full record:
+`docs/fable_repository_blind_outcome_result_2026-08-05.md`.

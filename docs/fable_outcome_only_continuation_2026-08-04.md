@@ -36,15 +36,24 @@ invention is not.
 A fresh Fable session was started with local Read, Glob, Grep, Bash, Write,
 Edit, and NotebookEdit disabled, with only WebSearch and WebFetch allowed. It
 received the outcome-only brief again. The account reached its Fable session
-limit before the model returned; the limit reports a reset at 23:50 UTC. This
-retry produced no candidate and no scientific verdict.
+limit before the model returned; the limit reported a reset at 23:50 UTC.
+
+After reset, the exact prompt was rerun. The first post-reset execution was
+invalidated when the command-line client's default 600-second background-worker
+ceiling killed four still-running literature searches. The unchanged prompt was
+then run with the background ceiling disabled. That corrected web-only,
+filesystem-denied execution completed and returned **`NONE`**. Its fallback
+error-decomposition measurement was rejected after audit because its buckets
+overlap, its metric-oracle branch is label-leaky or non-identifying depending on
+the split, its action branches collide with existing audits, and its stated cost
+omits the 12 folded training runs per dataset. Full record:
+`docs/fable_repository_blind_outcome_result_2026-08-05.md`.
 
 ## Current ruling
 
 There is **no new eligible candidate from this continuation** and no reason to
-spend GPU on the repeated OT-distillation measurement. Candidate 370's
-separate primary-source re-audit is recorded in
-`docs/recomb_hse_primary_reaudit_2026-08-04.md`; HSE strengthens its existing
-dead verdict. The GPU remains idle because no proposal currently clears both
-provenance and prior-art gates.
-
+spend GPU on either the repeated OT-distillation measurement or the later
+omnibus error decomposition. Candidate 370's separate primary-source re-audit
+is recorded in `docs/recomb_hse_primary_reaudit_2026-08-04.md`; HSE strengthens
+its existing dead verdict. The GPU remains idle because no proposal currently
+clears both provenance and prior-art gates.
