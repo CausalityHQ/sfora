@@ -5137,3 +5137,37 @@ proposal, independent LIVE review, and authoritative local resolution:
 `docs/fable_sbe_proposal_pass13_2026-08-05.md`,
 `docs/fable_sbe_review_2026-08-05.md`, and
 `docs/fable_sbe_local_audit_2026-08-05.md`.
+
+### Fifteenth blind continuation: EGR-PFML repeats the EVT return-level line
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** After native Codex consultation startup failed twice before receipt, two
+separate shell-fallback GPT-5.6-Sol sessions produced and reviewed Extreme-
+Gallery Risk PFML. It fits a per-anchor GPD to the top 64 similarities in a
+detached FIFO image queue, extrapolates a nominal full-gallery maximum, and
+adds a positive-versus-return-level margin to PFML. The independent reviewer
+returned DEAD.
+
+The mechanism is a direct repeat of pass 9 EVPC's proposed return-level repair
+and pass 14 RLM, with XBM-style image negatives and PFML in place of proxies
+and cross-entropy. WEINCE (arXiv 2606.00262) already applies anchor-wise online
+EVT correction to contrastive top-score training, TriSim (CVPR 2026) already
+feeds GPD similarity-tail probabilities into a retrieval loss, and XBM supplies
+the queue. The exact wrapper may be unpublished; the scientific mechanism is
+occupied.
+
+Gate 1 independently fails because the verified packet explicitly supplies no
+unseen-class EVT-tail premise, tail calibration, or causal prevalence estimate.
+Its `+0.007/+0.004/+0.005` CUB/Cars/SOP forecasts are unsupported.
+
+The frozen algorithm is also not executable as one unique map: an exact
+constrained MLE is equated with eight unspecified damped Newton steps; the
+likelihood is undefined at allowed `xi=0`; the main equation uses undefined
+`nu_i`; and upper clipping invalidates its advertised 90% coverage. On SOP the
+64-step queue may expire before any of 11,318 identities repeats, leaving no
+valid positive and therefore no new-loss gradient. The queue's stale,
+class-balanced, changing-encoder observations do not identify an iid unseen-
+identity gallery tail. Full artifacts and resolution:
+`docs/sol_egr_pfml_proposal_pass15_2026-08-05.md`,
+`docs/sol_egr_pfml_review_2026-08-05.md`, and
+`docs/sol_egr_pfml_local_audit_2026-08-05.md`.
