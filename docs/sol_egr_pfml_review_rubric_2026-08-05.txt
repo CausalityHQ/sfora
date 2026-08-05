@@ -1,0 +1,45 @@
+You are the independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows this
+rubric in the same prompt. Use web search and primary literature.
+
+Legal task: zero-shot image similarity learning with disjoint train/test
+identities on CUB-200-2011, Cars196, In-Shop, or SOP. Only official training
+images, identity labels, ordinary augmentation, and ImageNet-1K initialization
+are permitted. Deployment must be one model, one view, one fixed 512-D global
+descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+Matched Lane-A references are ResNet-50/512-D/single-view: PFML CVPR 2025 CUB
+0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002 over five runs;
+PA+DADA In-Shop 0.930 with no uncertainty. Do not mix these with 2048-D or
+transformer lanes.
+
+Review the frozen proposal without silently repairing or replacing it. Return
+LIVE, DEAD, or UNRESOLVED. Independently check:
+
+1. every GPD/POT likelihood, constrained Newton update, differentiability,
+   support condition, order-statistic gradient, maximum-quantile formula,
+   confidence interpretation, clipping operation, and claimed certificate;
+2. monotonicity: whether lowering any individual negative similarity always
+   lowers the fitted target and loss, including threshold and fit dependence;
+3. whether a GPD fitted to stale, actively optimized, correlated seen-identity
+   queue similarities identifies a fresh unseen-identity gallery maximum;
+4. whether the proposed rare-impostor causal error mode is measured or merely
+   assumed, and whether the executable pressure reduces to queue hard mining,
+   top-k/CVaR, hot LSE, pAUC, or another occupied ranking surrogate;
+5. closest primary prior art, explicitly including WEINCE (arXiv 2606.00262),
+   TriSim (CVPR 2026), EVT/OpenMax/EVM, train-time tail-risk learning, memory-bank
+   metric learning, and rank-loss optimization;
+6. whether the controls distinguish EVT extrapolation from a flexible top-k
+   penalty, extra queue negatives, and PFML recipe/optimizer changes;
+7. whether forecasts follow quantitatively from measured premises and cross
+   the correct matched-capacity frontier; and
+8. hidden data, compute, inference, hyperparameter-selection, and benchmark
+   protocol violations.
+
+Any substantive repair is a different proposal and must not be credited. Cite
+primary sources for novelty conclusions. Identify the single strongest decisive
+reason for the verdict, and flag any equation that is undefined or internally
+inconsistent exactly as frozen.
+
+--- FROZEN PROPOSAL BEGINS ---
