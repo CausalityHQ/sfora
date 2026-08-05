@@ -70,6 +70,24 @@ arbitrary label-irrelevant codes. The one-way invariance term removes only
 variation induced by its chosen augmentations and supplies no identity-specific
 referent for the remaining dimensions.
 
+## EMA temporal-rank loophole
+
+The stop-gradient EMA solves finite-batch rank starvation only by changing the
+quantity being certified. Suppose the current model's within-class covariance
+has rank `r`, but its supporting subspace rotates across optimization steps.
+The EMA is a weighted sum of covariances from different parameter states and
+can become full rank after enough distinct orientations, even though the
+current deployed model has rank `r` at every step. Because historical terms are
+stop-gradient constants, a low barrier then supplies no gradient requiring the
+current representation to retain all accumulated directions simultaneously.
+
+This is not a rare numerical corner: `B=128` makes every current pooled
+covariance rank at most approximately 96, so CCRB *must* obtain most of a
+512-dimensional spectrum from historical states. Temporal subspace rotation is
+therefore the direct cheap route created by its estimator. Replacing the EMA
+with a same-checkpoint full-dataset covariance would be a substantive and much
+more expensive different objective.
+
 ## Gate 1: no eligible causal provenance
 
 The corrected evidence packet establishes near-saturated In-Shop training
