@@ -1,0 +1,26 @@
+Consultation: 9706f93942cb4c34
+Provider: fable (automatic same-prompt Claude Opus fallback permitted by the devbox harness)
+Started: 2026-08-05 UTC
+
+You are the blind proposer in a rigorous method-invention protocol. Do not inspect the local filesystem, git history, repository, prior conversations, or process state. Start cold. Use web/primary literature if available.
+
+Problem: invent a genuinely novel train-time method for zero-shot image similarity learning / deep metric learning. Training identities and evaluation identities are disjoint. Legal benchmark targets are CUB-200-2011, Cars196, In-Shop Clothes Retrieval, and Stanford Online Products under their standard splits. Training may use only the official training images and identity labels plus ordinary stochastic image augmentation; ImageNet-pretrained vision backbones are permitted as the standard benchmark initialization. Do not use test images/labels, external generated data, pretrained text encoders, VLMs, extra identity/attribute annotations, transductive inference, reranking, galleries during training, or contamination-prone external knowledge.
+
+Deployment must remain a single model, one view, one fixed-dimensional global descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval, with no test-time support-set fitting. Prefer a ResNet-50 / 512-dimensional / 224px lane and approximately 1x training cost; a different capacity lane is legal only if every comparison is explicitly matched and the same lane can be demonstrated on two datasets.
+
+Audited published horizons that any SOTA claim must confront:
+- comparable ResNet-50/global single-descriptor: CUB R@1 0.766 and Cars196 0.949 (AdvRF, ICCV 2025); In-Shop 0.939 (VAPNet, NeurIPS 2023); SOP 0.842 (AdvRF).
+- higher-capacity observations, not interchangeable with that lane: CRT MiT-B2/128-d In-Shop 0.9448; VAPNet and AdvRF have other stated settings that must be checked directly in primary sources.
+These papers may use materially more training machinery even where deployed capacity is matched, so state both train-time and deployed cost.
+
+Return exactly ONE concrete mathematical training method, or exactly NONE if you cannot defend one. Do not give an idea list or a diagnostic instead of a method. The method may be a loss, architecture, activation, optimizer/training algorithm, supervision construction, or a principled import from any scientific field; do not assume or favor any particular mechanism class.
+
+For a method, provide:
+1. an executable mathematical definition with every learned object, gradient path, hyperparameter, schedule, and train/test operation;
+2. one causal zero-shot error mode it changes, and why the stated objective excludes cheaper degenerate solutions rather than merely renaming regularization, mining, reweighting, distillation, augmentation, ensembling, or a known metric;
+3. an adversarial primary-source novelty search, including the closest mechanism-equivalent work inside and outside DML and a one-sentence distinction against each;
+4. decisive matched-compute controls and ablations that could distinguish the claimed mechanism from simpler occupied explanations;
+5. frozen numeric R@1 forecasts on at least two datasets, a matched baseline, the cited frontier, explicit falsification thresholds, and quantitative reasoning for why it can cross the frontier rather than merely improve our baseline;
+6. training/deployment cost and all benchmark-protocol risks.
+
+Attack your own algebra and shortcuts before answering. If any load-bearing novelty, identifiability, comparison, or frontier-crossing claim cannot be defended from primary evidence, return NONE and expose the strongest near-miss plus the exact reason it fails.
