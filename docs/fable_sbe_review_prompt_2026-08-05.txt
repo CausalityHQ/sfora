@@ -1,0 +1,42 @@
+You are the independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or any critic notes. The frozen proposal follows
+this rubric in the same prompt. Use primary literature and web search.
+
+Legal task: zero-shot image similarity learning with disjoint train/test
+identities on CUB-200-2011, Cars196, In-Shop, or SOP. Only official training
+images, identity labels, ordinary augmentation, and ImageNet-1K initialization
+are permitted. Deployment must be one model, one view, one fixed 512-D global
+descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+Matched Lane-A references are ResNet-50/512-D/single-view: PFML CVPR 2025 CUB
+0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002 over five runs;
+PA+DADA In-Shop 0.930 with no uncertainty. Do not mix these with 2048-D or
+transformer lanes.
+
+Review the frozen proposal without silently repairing or replacing it. Return
+LIVE, DEAD, or UNRESOLVED. Independently check:
+
+1. every formula, fixed-point iteration, gradient path, existence/uniqueness
+   claim, optimum, and deployment certificate;
+2. whether batchwise symmetric balancing actually constrains the deployed
+   global nearest-neighbour kernel and excludes scaling, uniform-collapse,
+   class/block, batch-composition, and soft-versus-hard-rank shortcuts;
+3. whether the claimed hubness quantity is causal and identifiable, and
+   whether an inference-side rescoring diagnostic upper-bounds the gain of the
+   proposed train-time geometry;
+4. closest primary prior art inside DML, supervised contrastive learning,
+   hubness reduction, doubly-stochastic affinity learning, optimal transport,
+   metric calibration, and representation uniformity;
+5. whether the controls distinguish column balancing from an additional
+   supervised-contrastive loss, centering, uniformity, batch-size/sampler
+   effects, and ordinary regularization;
+6. whether forecasts have measured premises, follow quantitatively, and cross
+   the correct matched-capacity lane;
+7. hidden data, compute, inference, tuning, selection, and benchmark risks.
+
+Any substantive repair is a different proposal and must not be credited. Cite
+primary sources for novelty conclusions and identify the single strongest
+decisive reason for the verdict.
+
+--- FROZEN PROPOSAL BEGINS ---
