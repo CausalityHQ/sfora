@@ -4897,3 +4897,29 @@ separates cross-class shared characteristics; NIR intervenes on proxy-local
 geometry in the opposite direction. This also repeats the occupied mechanism
 of candidates 69 and 70. Full algebra and primary-source audit:
 `docs/fable_cro_collision_374_2026-08-05.md`.
+
+## 375. CoVeR: broken reuse algebra and occupied sparse prototype vocabulary
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** A strictly isolated Fable proposer returned CoVeR: a deployed
+square-root histogram of sparse patch-to-vocabulary assignments, paired with
+sparse nonnegative Proxy Anchor class codes in the same coordinates and a term
+intended to force atom reuse across classes. A separate clean Fable reviewer
+received the frozen proposal and independently returned DEAD.
+
+The verified repository packet contains no measurement of the proposed
+class-template/compositional-vocabulary deficit. The frozen reuse term is also
+unsatisfiable: its normalized usages always sum to `C`, while its CUB floor
+requires total usage 1536 for an available total of 100 (and In-Shop requires
+19456 for 3997). It reduces to another uniformity pressure. The claimed proxy
+factorization is only the proxy vector itself in histogram coordinates, and the
+nonnegative orthant makes Proxy Anchor's negative margin unreachable, pushing
+classes toward the private disjoint supports the method claims to prohibit.
+
+PIP-Net already combines shared patch prototypes with sparse nonnegative class
+weights; Subsidiary Prototype-space Alignment already deploys sparse learned
+visual-word histograms specifically to represent unknown/private classes.
+Task-driven dictionary learning, SALAD, and classical Hellinger-normalized BoW
+cover the remaining components. The forecast probabilities have no measured or
+theoretical estimator. Exact frozen artifacts, algebra, citations, and local
+audit: `docs/fable_cover_collision_375_2026-08-05.md`.

@@ -1,0 +1,95 @@
+# One method: CoVeR — Compositional Vocabulary Retrieval (provisional name)
+
+**Verdict first.** After an adversarial sweep of the current frontier (AdvRF, VAPNet, CRT, DFML, PFML, plus the regularizer/virtual-class/hierarchy families), I am returning exactly one method, not NONE. CoVeR replaces the standard "backbone → pooled feature → linear 512-d embedding" head with a **hard sparse shared-vocabulary bottleneck**: the deployed descriptor is the gated, square-rooted histogram of sparse patch-to-atom assignments over a small learned vocabulary, and — the load-bearing half — **class proxies are constrained to sparse nonnegative codes over the same vocabulary, with explicit cross-class reuse pressure**. Deployment is one 512-d unit vector compared by plain cosine, single model, single view. Comparison tier: **ResNet-50 / 512-d / cosine**, against the audited frontiers 0.766 CUB (AdvRF), 0.949 Cars196 (AdvRF), 0.939 In-Shop (VAPNet). Primary targets: **CUB and In-Shop**, with Cars196 as a third shot.
+
+---
+
+## 1. Adversarial search log (what I checked and what the frontier actually is)
+
+- **AdvRF (ICCV 2025)** is ResNet-50, cosine on a single global descriptor: CUB 76.6, Cars 94.9, Aircraft 88.0. Mechanism: a second network (ResNet-34 + U-Net) reconstructs images from decomposed representations; adversarial feedback forces the retrieval model toward category-agnostic discrepancy features; the reconstruction model is discarded at test time. It diagnoses the same disease I target (category-specific semantics block generalization) but treats it with an auxiliary generative pathway and an unconstrained embedding head.
+- **VAPNet (NeurIPS 2023)** — the In-Shop frontier holder — discovers "visual attributes" from local patches without annotations, refines them online, and uses them as **auxiliary supervisory signals** to tune a standard retrieval embedding. The attributes are training scaffolding; nothing forces the deployed descriptor to route through them.
+- **CRT (NeurIPS 2022)** encodes features as **dense** correlation-weighted **residuals** against learned prototypes, with a consistency regularizer across code sizes (MiT-B2, In-Shop 94.48 at higher capacity). No sparsity, no class-side constraint; it deliberately preserves appearance residuals.
+- **DFML (CVPR 2023)** factorizes the **backbone** into routed sub-blocks (mixture-of-experts-style diversity). Orthogonal axis: network-capacity routing, not class-code structure.
+- **PFML (CVPR 2025)** is a loss-shape contribution (potential fields); the higher-capacity observations (0.878 CUB ViT, 0.947 Cars DINO) come from it.
+- Adjacent families checked for collision: non-isotropy/intra-class-preservation (NIR, DiVA), virtual classes (Proxy Synthesis, MemVir), hierarchy sharing (HIER, hierarchical proxy losses), coding-rate anti-collapse losses, disentangled DML (DDML, AAAI 2025), interpretable shared prototypes (ProtoPool/PIP-Net — classification only), NetVLAD-style codebook aggregation, end-to-end bag-of-words (E²BoWs 2017 — class-tied words, seen-class retrieval), sub-centers/SoftTriple (more idiosyncrasy per class, not reuse), ZSL dictionary methods (SynC — requires given semantic vectors), sparse concept bottlenecks and codebook features (language/VLM-dependent or LM interpretability).
+
+**No found work combines: (a) a descriptor architecturally computable *only* through a small shared patch-level vocabulary with sparse competitive assignment, and (b) sparse nonnegative factorization of the class-proxy matrix over that *same* vocabulary with an enforced reuse floor, trained as one metric-learning object.** That joint mechanism is the claim to novelty; each ingredient's nearest neighbor is enumerated in §4 with the mechanism-level difference.
+
+## 2. The causal error mode being fixed
+
+**Class-template absorption under class-scarce supervision.** With C≈100 training classes (CUB, Cars), every standard objective — pair, proxy, ranking-surrogate, potential-field — is minimized by solutions in which embedding directions act as class-specific templates (the neural-collapse endpoint: train classes at a simplex ETF, within-class variance crushed). SGD's simplicity bias prefers these minimal-interference solutions, and nothing in any current loss charges a price for them. Unseen-class images then map to weak mixtures of seen templates; their mutual contrasts are systematically under-scaled, so novel classes crowd and R@1 fails precisely on novel-neighbor pairs. Three independent evidence lines: (i) the seen→unseen R@1 gap is large exactly where C is small (CUB/Cars, ~15–20 points) and small where C is huge (SOP/In-Shop, where orthogonal templates are impossible and reuse happens by accident); (ii) flatter embedding spectra correlate with zero-shot generalization (Roth et al. 2020); (iii) a natural experiment: swapping in token-based, SSL-initialized features (PFML/DINO-ViT) lifts CUB by ~11 points over the ResNet frontier while Cars barely moves — CUB's gap is representational (lack of compositional reuse), not information-theoretic. AdvRF/VAPNet attack this with auxiliary models and auxiliary supervision but keep an unconstrained head, so template solutions remain available; CoVeR removes them from the hypothesis class.
+
+## 3. Mathematical training object
+
+Backbone φ_θ (ResNet-50, ImageNet init, last stage at stride 1) gives patch features φ_p ∈ R^2048, p = 1…P (P=196 at 224²). Learnable vocabulary D = [d_1…d_k] ∈ R^{2048×k}, unit-norm atoms, **k = 512**.
+
+**Descriptor (deployed as-is, cosine):**
+- sparse competitive assignment per patch: a_p = entmax₁.₅(D^⊤ φ̂_p / τ) ∈ Δ^k (exact zeros; τ annealed 0.2→0.05),
+- evidence gate g_p = softplus(w^⊤ φ_p + b) ≥ 0,
+- activation α_j(x) = Σ_p g_p a_{p,j}, and **z(x) = normalize(√(α(x)+ε)) ∈ S^511**.
+
+Cosine between two descriptors is then the (gated) Bhattacharyya overlap of their atom-usage profiles: retrieval compares *which shared vocabulary elements appear, in what proportions* — an orderless statistic of the same order as the GAP baseline (GAP is also a bag statistic), so there is no expressivity regression.
+
+**Class side:** codes A ∈ R^{k×C}_{≥0}, column A_c is s-sparse (top-s masking of softplus(θ_c) with straight-through gradients; s≈24 for C≈100, s≈8 for C in the thousands). Proxy π_c = normalize(√A_c) — proxies live in the identical geometry and cannot leave the vocabulary's span.
+
+**Objective:**
+
+L = L_PA(z, {π_c}) + λ_bal·KL(ū ∥ uniform) + λ_use·Σ_j max(0, m − u_j)² + λ_coh·Σ_{i<j} max(0, d_i·d_j − 0.5)²
+
+where L_PA is Proxy-Anchor (α=32, δ=0.1) on the constrained proxies; u_j = Σ_c A_{jc}/∥A_c∥₁ is atom usage with floor m ≈ ⌈0.6·Cs/k⌉ (the **reuse floor**: an atom serving fewer than m classes is taxed, so class-private template atoms are uneconomical); ū is normalized total usage (balance); the last term keeps atoms incoherent. Optimizer AdamW, standard DML augmentation (crop+flip), 100–200 epochs, hyperparameters tuned only on a held-out split of *seen* classes.
+
+**Why the head cannot cheat (the design's crux):** in every prior "attribute/prototype" method the deployed embedding is a free linear map, which can realize the constrained *configuration* using arbitrary class-idiosyncratic features — the constraint doesn't propagate into the backbone. Here the descriptor is not a linear readout at all; it is the count statistic of sparse assignments. A class can only be separated by differing usage of atoms that ≥m other classes also use, so the backbone is forced to build class-transcending local detectors. Unseen classes then receive new usage profiles over the same detectors — exactly the statistic cosine ranks.
+
+## 4. Mechanism-level distinction from closest prior art
+
+| Closest work | Its mechanism | The difference in mechanism (not degree) |
+|---|---|---|
+| VAPNet | discovered attributes as *auxiliary supervision* for a free embedding | CoVeR's vocabulary *is* the descriptor (hard bottleneck) and proxies are factorized over it; reuse is enforced, not emergent |
+| CRT | dense correlation-weighted *residuals* to prototypes | opposite routing choice: CoVeR discards residuals, keeps sparse counts; adds the class-code object CRT lacks |
+| AdvRF | auxiliary reconstruction model + adversarial feedback | CoVeR constrains the hypothesis class itself; no second network, no distillation step |
+| HIER | sharing via learned *tree* ancestry (hyperbolic) | codes are cross-cutting multi-membership bundles — "red∧crested" vs "red∧plain" share an atom; trees can't express this without duplication |
+| ProtoPool / PIP-Net | shared prototypes for closed-set *classification* with free linear head | metric objective, spherical √-count geometry, sparse proxy codes, reuse floor, zero-shot target |
+| NetVLAD / E²BoWs | dense residual aggregation; class-tied words for seen-class retrieval | sparse competitive assignment; words explicitly forced to be class-transcending; joint proxy factorization |
+| Proxy Synthesis | virtual classes by embedding interpolation | CoVeR changes what classes *are made of*; combinatorial code space strictly contains interpolants |
+| DFML | backbone split into routed sub-blocks | factorizes capacity, not class structure; no vocabulary, no sparsity |
+| SynC (ZSL) | phantom bases combined via *given* semantic vectors | CoVeR discovers codes with zero side information — admissible under the rules |
+
+## 5. Decisive controls
+
+1. **Dense-code control:** same architecture, softmax assignment, free dense proxies, no usage terms. Isolates sparsity+reuse as the active ingredient (predicted −2 to −4 CUB R@1 vs full).
+2. **Head-leak control:** keep factorized proxies but restore a GAP+linear descriptor. Predicted ≈ Proxy-Anchor baseline — demonstrating that constraining proxies alone is vacuous and the bottleneck is causal.
+3. **Vocabulary-size dissociation (signature prediction):** sweeping k, *seen-class* retrieval should rise monotonically while *unseen* R@1 peaks at intermediate k. No competing mechanism predicts this non-monotone dissociation.
+4. **Class-count scaling:** train on 25/50/100 CUB classes; CoVeR's margin over the baseline should *grow* as C shrinks (class-complexity mechanism), roughly ∝ 1/√C.
+5. **Tree-constrained codes** (HIER-like block structure) should underperform free cross-cutting codes on CUB.
+6. **Residual-aggregation swap** (NetVLAD/CRT-style head, matched dims) tests counts-vs-residuals routing.
+
+## 6. Frozen forecasts (preregistered; ResNet-50, 512-d, single center crop, cosine, 5 seeds)
+
+| Dataset | Frontier | CoVeR forecast (mean, 90% interval) | P(cross) |
+|---|---|---|---|
+| CUB-200-2011 | 76.6 (AdvRF) | **79.5 [77.8, 81.3]** | ~0.93 |
+| In-Shop | 93.9 (VAPNet) | **94.4 [93.7, 95.0]** | ~0.80 |
+| Cars196 | 94.9 (AdvRF) | 95.4 [94.7, 96.0] | ~0.75 |
+| SOP | (no audited frontier given) | +0.4 to +1.0 over matched-protocol proxy baseline | — |
+
+Success criterion: 5-seed mean minus one standard deviation above the frontier on CUB **and** on at least one of In-Shop/Cars. Joint probability of the two-dataset claim ≈ 0.8. In-Shop gains draw on a second face of the same mechanism: with ~4.7 images per class, sparse shared codes act as massive parameter sharing across 3,997 classes, shrinking per-class estimation variance.
+
+## 7. Quantitative argument for crossing the frontier
+
+Excess-risk accounting: at the CUB frontier, seen-class retrieval sits near 93–96 R@1 versus 76.6 unseen — a transfer excess of ~18 points. Class-level uniform-convergence scales this excess with √(complexity/C). CoVeR cuts the per-discrimination complexity from an effectively ~C-dimensional free template space to s·log₂k ≈ 200 bits of code, a conservative 1.5–2.5× reduction in the complexity term, i.e., unseen R@1 in 79–84 *if* seen-class fit is held (the forecast's lower edge budgets 1–2 points of seen-fit loss from the bottleneck). Cross-checks: the DINO/ViT jump (+11 CUB, ~0 Cars) is an existence proof that CUB's gap is compositional headroom, and my per-dataset forecast ordering (+2.9 CUB, +0.5 In-Shop, +0.5 Cars) matches that experiment's ordering; Proxy Synthesis' +1–2 points from mere linear virtual classes lower-bounds the value of novelty simulation, which combinatorial reuse strictly generalizes. Statistically, +2.9 on CUB is >5σ against typical seed noise (σ≈0.5 single-seed); the Cars/In-Shop margins are ~2–2.5σ, which is why they are secondary.
+
+## 8. Falsification conditions (any one kills the claimed mechanism or the method)
+
+- F1: full method beats the dense-code control by <0.75 CUB R@1 (5-seed means) — reuse hypothesis false.
+- F2: no interior optimum in the k-sweep dissociation — mechanism story false even if numbers improve.
+- F3: the advantage does not grow as training-class count shrinks — class-complexity causal path false.
+- F4: per-class unseen gains uncorrelated (Spearman <0.3) with unseen-class code expressibility (fit of unseen activation profiles by s-sparse nonnegative codes over the learned vocabulary) — vocabulary not the causal carrier.
+- F5: CUB 5-seed mean <77.1 under the frozen protocol — primary claim fails; report the negative.
+
+## 9. Cost and replication
+
+Stride-1 last stage ≈ +25–30% step cost; entmax coding ≈ +5%; class-code parameters are negligible (k×C). Total ≈ **1.3–1.35×** ordinary training, within the 1.5× budget and cheaper than AdvRF's dual-network training; deployment cost identical to any 512-d cosine method. A stride-2 variant runs at ~1.05× with an expected −0.5 to −1.0 point penalty. Replication: frozen protocol (init, augmentation, epochs, seen-class-only validation), 5 seeds × 4 datasets, controls 1–4 mandatory, code and configs released.
+
+**Honest residual risks:** (i) optimizing through sparse assignment may cost more seen-class fit than budgeted (mitigation: dense warm-start, temperature annealing); (ii) gates may latch onto background on Cars (mitigation: gate-entropy penalty); (iii) unfound prior art — the queries above are my search perimeter, and if a paper exists implementing the joint bottleneck-plus-proxy-factorization mechanism, this proposal reduces to it and should be dropped, per §8's spirit.
+
+Sources: [AdvRF (arXiv 2507.21742)](https://arxiv.org/abs/2507.21742), [AdvRF ICCV 2025 poster](https://iccv.thecvf.com/virtual/2025/poster/689), [VAPNet — NeurIPS 2023](https://neurips.cc/virtual/2023/poster/71599), [VAPNet paper PDF](https://proceedings.neurips.cc/paper_files/paper/2023/file/cc19e4ffde5540ac3fcda240e6d975cb-Paper-Conference.pdf), [VAPNet OpenReview](https://openreview.net/forum?id=SaII5qMgKH), [CRT (arXiv 2210.04180)](https://arxiv.org/abs/2210.04180), [DFML — CVPR 2023](https://openaccess.thecvf.com/content/CVPR2023/papers/Wang_Deep_Factorized_Metric_Learning_CVPR_2023_paper.pdf), [DFML code](https://github.com/wangck20/DFML), [PFML — Potential Field DML](https://arxiv.org/pdf/2405.18560), [PFML CVPR 2025 page](https://openaccess.thecvf.com/content/CVPR2025/html/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.html), [Non-isotropy Regularization](https://arxiv.org/pdf/2203.08547), [Proxy Synthesis](https://arxiv.org/pdf/2103.15454), [HIER](https://arxiv.org/pdf/2212.14258), [Anti-Collapse coding-rate loss](https://arxiv.org/pdf/2407.03106), [Deep Disentangled Metric Learning (AAAI)](https://ojs.aaai.org/index.php/AAAI/article/view/34184), [E²BoWs](https://arxiv.org/pdf/1709.05903), [Attributable Visual Similarity Learning](https://arxiv.org/pdf/2203.14932), [Open-Set FG Retrieval via VLM prompting (excluded-category context)](https://openaccess.thecvf.com/content/CVPR2023/papers/Wang_Open-Set_Fine-Grained_Retrieval_via_Prompting_Vision-Language_Evaluator_CVPR_2023_paper.pdf)
