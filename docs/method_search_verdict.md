@@ -4785,3 +4785,29 @@ three-seed averages, though it gives no uncertainty. Its lower PFML table row is
 not identified as a faithful reproduction and cannot establish the 2.4-point
 noise floor inferred by Fable. No GPU follows. Full record:
 `docs/fable_repository_blind_second_pass_2026-08-05.md`.
+
+## 372. Nuisance-Whitened Metric Learning: RCA/NAP rediscovery without provenance
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A third repository-blind, outcome-only Fable pass proposed estimating a
+global covariance from same-image controlled-augmentation differences,
+applying its negative fractional power to descriptors and proxies, and training
+through that transform with Proxy Anchor. Its own forecast of about 0.717 CUB
+did not reach the audited 0.766 comparable-capacity horizon.
+
+The repository establishes structured augmentation response, but not that its
+global covariance is nuisance rather than identity-bearing or that whitening it
+repairs retrieval errors. More decisively, exact inverse-square-root whitening
+from positive equivalence constraints is Relevant Component Analysis; known-
+transformation Mahalanobis invariance is Fetaya and Ullman (ICML 2015); and
+WCCN/NAP plus candidates 23, 176, and 312 already occupy suppression of
+within-identity or augmentation-response covariance. Same-image augmentation
+pairs are simply two-point RCA chunklets. Shrinkage, EMA estimation, and
+backpropagation through the covariance alter the estimator and optimization,
+not the method mechanism.
+
+Fable's claimed reparameterization invariance also holds only for exact full
+whitening (`alpha = 1/2`) without identity shrinkage or coordinate-fixed EMA.
+The stable general algorithm lacks the claimed property; the exact special case
+is classical RCA. Full audit:
+`docs/fable_nwml_collision_372_2026-08-05.md`.
