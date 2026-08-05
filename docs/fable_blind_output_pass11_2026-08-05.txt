@@ -1,0 +1,33 @@
+# Verdict: NONE
+
+I ran this cold (no repo/filesystem inspection, web-grounded). A systematic sweep across loss, geometry, supervision-construction, optimizer, architecture, and cross-field-import axes produced no candidate that survives all five demanded defenses simultaneously — every survivor of the causality check died on novelty occupation or forecast defensibility. Per protocol, I return NONE and expose only the strongest near-miss and its exact kill reason.
+
+## Strongest near-miss: Exchangeable-Partition Likelihood training (EPL), Lane A
+
+**The candidate.** Embed batch items as `e_i = f_θ(x_i) ∈ S^511`. Posit the generative model: identity partition `Π ~ CRP(α)`; each cluster `k` draws a center `c_k ~ G` on the sphere; members are drawn `vMF(c_k, κ)`. Train θ (plus κ, α) to maximize the sequential predictive log-likelihood of the ground-truth train-label partition Π*:
+
+- existing cluster: `p(z_i = k | z*_{<i}, e_{≤i}) ∝ n_k · m_k(e_i)`, where `m_k` is the vMF posterior predictive given the cluster's earlier members;
+- new identity: `p(z_i = new | ·) ∝ α · m_0(e_i)`, with `m_0(e) = ∫ vMF(e; c, κ) dG(c)`.
+
+Deployment is untouched: one ResNet-50, one 512-D normalized descriptor, cosine NN. It looked strongest because it is the only objective family whose training statistic *is* the deployment task — posterior inference over identity partitions, with an explicit term pricing "this image starts a novel identity" — and its count-weighted pooling suits the few-images-per-class SOP/In-Shop regime. My search found no published CRP-likelihood DML method, so the wrapper is genuinely unclaimed.
+
+## Exact kill reason
+
+**K1 — the distinctive term is provably inert or provably harmful.** The only ingredient separating EPL from known losses is the novel-identity mass `α·m_0(e_i)`. With any rotationally invariant prior G (the only choice that privileges no direction), `m_0(e) = C_d(κ) ∫ e^{κ c·e} dG(c)` is constant in `e` by rotational symmetry, so its feature gradient is exactly zero: the one term that "anticipates unseen identities" cannot shape the embedding at all — it is a pure logit offset. If instead G is learned (non-isotropic), then `∇_{e_i} log m_0(e_i) = κ·E_{c~posterior}[c]` pulls class-initial embeddings toward the prior's high-density directions, and the prior's own MLE concentrates on the *training* class-center layout — so the term actively contracts new-identity geometry toward seen-class regions, amplifying exactly the seen-class-collapse error mode it was built to attack. A fixed non-uniform G is no escape: f can rotate embeddings into the prior's cap, reproducing the same contraction voluntarily. Inert or harmful; there is no third regime.
+
+**K2 — everything that survives reduces to an occupied family.** For existing clusters, the vMF posterior predictive gives `logit_k(e_i) = log n_k + b_k + s_k·cos(e_i, ĉ_k)` with `ĉ_k` the running class-mean direction. The per-item loss is therefore softmax cross-entropy over `{a_k + s_k·cos(e_i, ĉ_k)}` plus one constant column — count/margin-biased normalized softmax over class means. That gradient field is mechanically the Magnet loss / ProxyNCA(++) / SupCon family (Magnet, ICLR 2016, is literally a softmax over cluster means with Gaussian kernels and multiple clusters per class), and the Bayesian-partition machinery itself is occupied by the PLDA lineage (Ioffe 2006; Prince & Elder 2007; discriminative PLDA, Burget et al. 2011; end-to-end PLDA-imitating nets, Rohdin et al. 2018) and by amortized partition inference (Neural Clustering Processes, Pakman et al. ICML 2020; Deep Amortized Clustering; DeepDPM, CVPR 2022). Since K1 removes the wrapper's only non-reducible term, publishing EPL would be publishing the reduction, renamed — which the protocol forbids.
+
+**K3 — identifiability collapse kills the forecast.** (α, κ, G, counts) enter the gradients only through effective per-class temperatures `s_k` and offsets `a_k` — a strict reparameterization of per-class margin/temperature softmax over class means. The decisive matched-compute control (ProxyNCA++/margin softmax with tuned per-class margin, temperature, and count bias) is therefore predicted to tie EPL exactly, which is the definition of no mechanism. And that occupied family sits measurably below the Lane A frontier — PFML's own comparisons put ProxyAnchor/SoftTriple-class losses ≥3–5 R@1 points behind its 0.734 CUB / 0.927 Cars / 0.829 SOP (seed σ ≈ 0.003) — so forecasting even a +0.3 frontier crossing from a reparameterization of a family 3+ points back is arithmetic I cannot defend. (Minor additional defect: the sequential factorization is order-dependent within a batch; symmetrizing over orders restores exchangeability but changes nothing in K1–K3.)
+
+Because the single load-bearing novelty claim — "the novel-class term shapes features in a class-agnostic way" — is disproved at proof level, the answer is NONE. The precise revival condition: exhibit a partition objective whose novel-identity term carries provably nonzero, class-agnostic feature gradient without reducing to a density fit on seen classes; K1 shows the CRP predictive cannot supply this under any choice of prior. The kill is algebraic, so the verdict is lane-independent; the candidate was scoped to Lane A throughout and no lane mixing occurred.
+
+**Audit note on the reference row:** the PFML numbers check out exactly (0.734/0.927/0.829, ResNet-50), but the paper surfaces as "Potential Field Based Deep Metric Learning," CVPR **2024**, not CVPR 2025 — worth correcting in the frozen prompt, though immaterial to this verdict.
+
+Sources:
+- [Metric Learning with Adaptive Density Discrimination (Magnet loss), arXiv:1511.05939](https://ar5iv.labs.arxiv.org/html/1511.05939)
+- [Neural Clustering Processes, ICML 2020](http://proceedings.mlr.press/v119/pakman20a/pakman20a.pdf)
+- [Neural Clustering Processes, arXiv:1901.00409](https://arxiv.org/pdf/1901.00409)
+- [Deep Amortized Clustering](https://www.researchgate.net/publication/336147753_Deep_Amortized_Clustering)
+- [Potential Field Based Deep Metric Learning (PFML) — quick review](https://liner.com/review/potential-field-based-deep-metric-learning)
+- [Towards Improved Proxy-based DML via Data-Augmented Domain Adaptation (DADA), arXiv:2401.00617](https://arxiv.org/pdf/2401.00617)
+- [Proxy Anchor Loss for Deep Metric Learning, CVPR 2020](https://openaccess.thecvf.com/content_CVPR_2020/papers/Kim_Proxy_Anchor_Loss_for_Deep_Metric_Learning_CVPR_2020_paper.pdf)

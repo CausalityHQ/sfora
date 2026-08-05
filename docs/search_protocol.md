@@ -37,6 +37,14 @@ the idea-generation pass. The prompt asks for exactly one concrete method or `NO
 An API failure, generic idea list, diagnostic without an executable method, or `NONE`
 is not a candidate.
 
+The proposer is constructive rather than dispositive. It must make a good-faith
+algebra and novelty case and disclose risks, but it should not suppress its strongest
+complete proposal merely because effect size is uncertain or neighboring work exists.
+The mandatory fresh reviewer owns the adversarial `LIVE`/`DEAD`/`UNRESOLVED`
+classification. This separation prevents cautious self-rejection from replacing the
+required independent review; `NONE` remains appropriate only when no executable,
+materially distinct method can be formulated.
+
 Only after a complete proposal exists does the evidence-aware critic compare it with
 the verified repository packet. Gate 1 asks whether an audited measurement actually
 supports the proposed causal error mode; the proposer is not told that measurement in

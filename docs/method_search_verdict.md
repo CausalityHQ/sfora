@@ -5044,3 +5044,28 @@ runner failed before receipt; the shell Fable run and its automatic Opus
 fallback each exhausted the USD 2 cap. This is not `NONE`, a proposal, or
 evidence about method availability. Full process record:
 `docs/fable_blind_pass10_outcome_2026-08-05.md`. No GPU follows.
+
+### Eleventh blind continuation: EPL partition likelihood (no numbered candidate)
+
+Fable returned **`NONE`** with Exchangeable-Partition Likelihood (EPL) as its
+strongest near-miss: train a normalized encoder by the ground-truth sequential
+partition likelihood of a CRP/vMF model, including an explicit new-cluster
+column, then deploy ordinary cosine retrieval.
+
+The response's decisive proof was wrong. A rotationally invariant new-cluster
+predictive is constant in the embedding and has zero direct derivative, but it
+remains in the softmax denominator and changes all existing-cluster gradient
+weights; first-in-class events also use it as the target. A learned base
+measure's sign differs between new and existing events. EPL is not inert for
+the stated reason.
+
+It remains dead without GPU. No verified corrected-repository measurement
+identifies new-cluster calibration as the cause of retrieval errors, and the
+response supplied no frontier-crossing two-dataset forecast. The executable
+residue is count/margin-biased vMF prototype softmax with a dustbin column.
+Magnet, directional-statistics DML, Neural Clustering Processes, and most
+directly Ye and Zhao's ACM MM 2019 deep-metric Dirichlet-process open-set model
+occupy that mechanism neighborhood. The narrow analytic train-only wrapper is
+not an evidence-backed new supervision relation. Full corrected audit:
+`docs/fable_blind_pass11_outcome_2026-08-05.md`. No implementation or GPU
+follows.
