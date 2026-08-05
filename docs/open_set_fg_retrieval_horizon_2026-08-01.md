@@ -39,9 +39,9 @@ those general benchmark regions are unoccupied.
 
 ## Correct claim boundary
 
-- The reported general single-model horizons are at least **0.766 CUB, 0.949
-  Cars196, and 0.939 In-Shop**. A new overall-SOTA claim must confront these
-  results under comparable capacity and evaluation.
+- The reported broadly comparable ImageNet-1K CNN single-model horizons are at
+  least **0.766 CUB, 0.949 Cars196, and 0.939 In-Shop**. A new claim in that
+  lane must confront these results under comparable capacity and evaluation.
 - This repository's corrected matrix is a different, controlled regime:
   BN-Inception or ResNet-50, 512-dimensional embeddings, shorter recipes, and
   multi-seed analysis. The open question is whether a novel method improves
@@ -58,3 +58,19 @@ Claude was asked to attack this boundary after the primary-source extraction.
 Its adversarial verdict agreed: retain the narrow controlled-recipe question,
 withdraw the general-ceiling language, and do not use missing uncertainty as a
 reason to discard reviewed results.
+
+## Higher-capacity In-Shop correction (2026-08-05)
+
+Kan et al., *Coded Residual Transform for Generalizable Deep Metric Learning*
+(NeurIPS 2022), reports a single-view, ImageNet-1K-pretrained MiT-B2/128-D
+configuration at **0.7898 CUB, 0.9116 Cars196, 0.8341 SOP, and 0.9448
+In-Shop**. Its explicit ResNet-50 + Multi-Similarity ablation is much lower at
+0.6420/0.8329/0.7897/0.9238. Thus CRT does not replace the comparable CNN bars,
+but **0.9448 is the higher-capacity In-Shop observation** that a general
+single-model SOTA claim must confront.
+
+The paper states in its checklist that error bars were reported, but its primary
+manuscript and tables contain no seed count or uncertainty. Treat 0.9448 as a
+published operating point, not a statistically resolved small-effect boundary.
+Primary source:
+https://proceedings.neurips.cc/paper_files/paper/2022/hash/b74a8de47d2b3c928360e0a011f48351-Abstract-Conference.html

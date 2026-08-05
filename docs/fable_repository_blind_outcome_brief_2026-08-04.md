@@ -1,8 +1,10 @@
 # Repository-blind Fable outcome brief
 
-Date: 2026-08-04. Status: scheduled to launch after the Fable session quota
-resets. The process has filesystem tools disabled and only primary-source web
-search/fetch enabled.
+Date: 2026-08-04. Status: completed twice after the Fable session quota reset;
+both valid web-enabled passes returned `NONE`. The process had filesystem tools
+disabled and only primary-source web search/fetch enabled. See
+`docs/fable_repository_blind_outcome_result_2026-08-05.md` and
+`docs/fable_repository_blind_second_pass_2026-08-05.md`.
 
 This round deliberately supplies no candidate mechanism and no catalogue of
 failed ideas. It asks an independent principal scientist to solve supervised
@@ -19,7 +21,8 @@ The only performance context supplied is:
 - broadly comparable ResNet/cosine R@1 horizons: 0.766 CUB, 0.949 Cars196 and
   0.939 In-Shop;
 - higher-capacity single-model observations: Potential Field 0.878 CUB and
-  0.882 SOP with ViT, and 0.947 Cars196 with DINO;
+  0.882 SOP with ViT, 0.947 Cars196 with DINO, and CRT 0.9448 In-Shop with
+  MiT-B2;
 - corrected local BN-Inception Proxy Anchor frozen-final In-Shop R@1 0.9137,
   explicitly identified as a weak reference rather than the target.
 

@@ -4761,3 +4761,27 @@ result used bounding-box crops. AdvRF's bounding-box ablation is 73.9; 76.6 uses
 its learned localization from ordinary full-image preprocessing. The audited
 0.766/0.949/0.939 horizons therefore stand. No GPU follows. Full record:
 `docs/fable_repository_blind_outcome_result_2026-08-05.md`.
+
+### Second repository-blind completion
+
+A second independent outcome-only pass also returned **`NONE`**. Its first
+invocation is excluded because the CLI denied both web tools; the corrected
+permission-mode invocation completed a primary-source search. It nevertheless
+misattributed the 0.766/0.949/0.939 horizon to CRT. CRT actually reports a main
+MiT-B2 result of 0.7898 CUB, 0.9116 Cars, and 0.9448 In-Shop, plus a much lower
+ResNet-50 ablation. The 0.9448 value is retained as a higher-capacity In-Shop
+observation, not as the source of the comparable ResNet bar.
+
+The pass proposed training frontier models on half of every benchmark test
+identity and evaluating the other half as a closed-set oracle. **DEAD before
+preregistration or execution:** using test labels and pixels to choose the next
+method contaminates the benchmark; direct identity supervision is not a bound
+on zero-shot method headroom; and five seeds on each of two datasets is ten
+trainings, not a sub-0.05x diagnostic. A held-out-training-identity repair
+returns to candidate 371's non-identifying oracle.
+
+The source check also corrects candidate 232's CouCE record: the preprint states
+three-seed averages, though it gives no uncertainty. Its lower PFML table row is
+not identified as a faithful reproduction and cannot establish the 2.4-point
+noise floor inferred by Fable. No GPU follows. Full record:
+`docs/fable_repository_blind_second_pass_2026-08-05.md`.

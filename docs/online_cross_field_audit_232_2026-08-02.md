@@ -9,7 +9,9 @@ GPU use.
   Learning* (arXiv:2606.30365, 2026) applies multiband feature-space Fourier
   amplitude randomization, stop-gradient KL consistency over proxy rankings, a
   variance-gated EMA dictionary, and soft orthogonality on CUB, Cars and SOP.
-  It claims single-run gains but reports no random-seed count or uncertainty.
+  Its source says results are averaged over three seeds, correcting the original
+  version of this audit, but reports no standard deviations, confidence
+  intervals, or paired tests.
 - Mohamadi et al., *Rethinking Self-Supervised Learning Within the Framework of
   Partial Information Decomposition* (arXiv:2412.02121, 2024) explicitly routes
   redundant/unique information components into SSL.

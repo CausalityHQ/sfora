@@ -97,6 +97,12 @@ limitations prevent significance claims about small differences, but they do not
 leave the general benchmark regions open. See
 `docs/open_set_fg_retrieval_horizon_2026-08-01.md`.
 
+CRT (NeurIPS 2022) additionally reports **0.9448 In-Shop** with an
+ImageNet-1K-pretrained MiT-B2/128-D single-view model. Its ResNet-50 ablation is
+only 0.9238, so 0.9448 belongs to a higher-capacity transformer lane rather than
+replacing the 0.939 comparable-CNN bar. A general, capacity-unrestricted
+In-Shop SOTA claim must nevertheless confront it.
+
 Our historical CUB best-over-test-training observations are **HIST 0.7082, Proxy
 Anchor 0.6919**. Exact official pixels, partition, and scorer are now verified, but
 the harness is modified and the artifacts cannot be independently rescored. The old
