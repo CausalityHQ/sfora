@@ -39,9 +39,30 @@ the verified repository packet. Gate 1 asks whether an audited measurement actua
 supports the proposed causal error mode; the proposer is not told that measurement in
 advance. Gate 2 independently checks the algebra, searches primary literature
 adversarially, and attacks the claimed distinction with the closest mechanism—not just
-the proposed citations. A second language-model critique may assist this audit, but it
-must receive the frozen proposal and act as a critic, never silently revise the method
-after seeing objections.
+the proposed citations.
+
+Before the local verdict, a **second fresh Fable session is mandatory**. Freeze the
+first session's complete response verbatim and give the reviewer that frozen proposal,
+the same legal-input/deployment constraints, the audited matched-capacity frontiers,
+and an adversarial review rubric. Do not give it the proposer's conversation state,
+the local critic's emerging verdict, or suggested repairs. The review must inspect:
+
+- whether the mathematical objective actually has the claimed optimum and excludes
+  the named shortcuts;
+- whether the causal quantity is identifiable from the proposed measurements;
+- closest primary prior art, including mechanism-equivalent work outside DML;
+- whether controls distinguish the claimed mechanism from simpler occupied ones;
+- whether forecasts follow quantitatively from measured premises and cross the proper
+  matched-capacity horizon; and
+- hidden data, compute, inference, tuning, and benchmark-protocol violations.
+
+The reviewer returns `LIVE`, `DEAD`, or `UNRESOLVED` with cited reasons. It may reject
+the frozen proposal but may not silently improve, reinterpret, or replace its training
+object. Any substantive repair is a new proposal that must restart blind generation
+and freezing. The local audit remains independent and authoritative only through
+reproducible algebra, repository artifacts, and primary sources; agreement between two
+language-model calls is not evidence by itself. Record both reviews and resolve every
+material disagreement before Gate 3 or GPU work.
 
 Failed proposals update the evidence and mechanism ledger, but are not summarized back
 into the next proposer prompt. This prevents a sequence of nominally independent runs
