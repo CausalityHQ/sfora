@@ -5171,3 +5171,36 @@ identity gallery tail. Full artifacts and resolution:
 `docs/sol_egr_pfml_proposal_pass15_2026-08-05.md`,
 `docs/sol_egr_pfml_review_2026-08-05.md`, and
 `docs/sol_egr_pfml_local_audit_2026-08-05.md`.
+
+### Sixteenth blind continuation: CF-ROD has no identified residual target
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** A blind Sol proposer returned Cross-Fitted Residual Orthogonal
+Distillation: four PFML teachers each exclude one identity fold; a student
+distills the excluded teacher's batch-class-centered residual through a stopped
+EMA Procrustes alignment while also optimizing PFML. A separate cold Sol
+reviewer returned DEAD.
+
+The decisive mechanism failure is that identity exclusion proves only that a
+teacher did not fit the held-out identity. It does not identify its centered
+residual as useful future-identity information. That residual can preserve
+ImageNet appearance, crop, pose, lighting, background, or acquisition nuisance.
+No corrected repository measurement links it to retrieval-error repair, so the
+`+0.007/+0.004/+0.004` forecasts are unsupported and Gate 1 fails.
+
+Gate 2 found a central omitted prior: Dao et al., *Knowledge Distillation as
+Semiparametric Inference* (ICLR 2021), explicitly introduce cross-fitted
+distillation with teachers queried only on held-out folds, including image
+experiments. Metric embedding distillation, RKD, center/variance separation,
+episodic disjoint-label meta-DML, and centered Procrustes distillation occupy
+the remaining components. The exact assembly may be unpublished but supplies
+no new identified supervision target.
+
+The class-code proof is also false for the normalized model: its loss and
+gradient are misstated, and the mandatory sphere-normalization Jacobian can
+annihilate a nonzero radial ambient gradient. Controls omit ImageNet-only and
+image-held-out/identity-seen teachers and change the PFML recipe relative to
+the published frontier. Full artifacts and resolution:
+`docs/sol_cfrod_proposal_pass16_2026-08-05.md`,
+`docs/sol_cfrod_review_2026-08-05.md`, and
+`docs/sol_cfrod_local_audit_2026-08-05.md`.
