@@ -1,0 +1,268 @@
+## ONE method: Cross-Fitted Residual Orthogonal Distillation (CF-ROD)
+
+I choose **Lane A exclusively**: ImageNet-1K initialized ResNet-50, 512-D normalized descriptor, 224-pixel training crops, one-view cosine retrieval, 200 student epochs.
+
+CF-ROD adds a training-only, identity-cross-fitted teacher signal to PFML. Its essential feature is that every teacher descriptor used to supervise an image comes from a model that was trained on neither that image nor any image sharing its identity. The student receives only the teacher’s within-identity residual geometry, not its class centroid.
+
+### 1. Executable method
+
+Let the official training set be
+
+\[
+\mathcal D=\{(x_i,y_i)\}_{i=1}^{n},\qquad y_i\in\{1,\dots,C\}.
+\]
+
+Partition identities—not images—uniformly into four fixed folds \(\mathcal C_1,\dots,\mathcal C_4\), using seed 20260805. Let \(\mathcal D_k=\{(x,y):y\in\mathcal C_k\}\).
+
+#### Descriptor and PFML base loss
+
+Every encoder is
+
+\[
+z_\theta(x)=\frac{W\,\operatorname{GAP}(\operatorname{ResNet50}_\theta(x))}
+{\|W\,\operatorname{GAP}(\operatorname{ResNet50}_\theta(x))\|_2},
+\qquad W\in\mathbb R^{512\times2048}.
+\]
+
+All proxies are normalized before use. For distance \(d_\epsilon(u,v)=\sqrt{\|u-v\|_2^2+10^{-12}}\), use
+
+\[
+\phi_{\rm att}(d)=-\max(d,\delta)^{-\alpha},
+\]
+
+\[
+\phi_{\rm rep}(d)=\mathbf 1[d<\delta]\left(d_\epsilon^{-\alpha}-\delta^{-\alpha}\right),
+\]
+
+with \(\delta=0.20,\alpha=4\). For the batch embeddings and all labeled proxies, the class-\(c\) potential is
+
+\[
+\Psi_c(r)=
+\sum_{\substack{q:\ell(q)=c\\q\ne r}}\phi_{\rm att}(d_\epsilon(r,q))
++
+\sum_{\ell(q)\ne c}\phi_{\rm rep}(d_\epsilon(r,q)).
+\]
+
+The supervised loss is the mean potential energy
+
+\[
+L_{\rm PF}=
+\frac1{|\mathcal B|+CM}
+\sum_{r\in\mathcal B\cup\mathcal P}\Psi_{\ell(r)}(r).
+\]
+
+This is an explicit realization of the attraction/repulsion, distance-decaying PFML mechanism; PFML itself reports the Lane-A frontier supplied in the question and uses 200 epochs, 512 dimensions, 224 crops, and multiple proxies [in its primary paper](https://arxiv.org/html/2405.18560v4).
+
+Use \(M=15\) proxies per class on CUB/Cars and \(M=2\) on SOP.
+
+#### Stage I: four cross-fitted teachers
+
+For \(k=1,\dots,4\), independently initialize \(T_k\) from the identical ImageNet-1K ResNet-50 checkpoint and train it for 100 epochs on
+
+\[
+\mathcal D\setminus\mathcal D_k
+\]
+
+using \(L_{\rm PF}\). Teacher \(T_k\) has no proxies for identities in \(\mathcal C_k\). Freeze its encoder and discard its proxies.
+
+Thus, when \(y_i\in\mathcal C_k\),
+
+\[
+t_i=T_k(a(x_i))
+\]
+
+is a genuine training-time zero-shot descriptor with respect to identity \(y_i\). There is no teacher gradient in Stage II.
+
+#### Stage II: residual teacher supervision
+
+Initialize a fresh student \(S_\theta\) from the same ImageNet checkpoint and train it for 200 epochs. Each batch contains 128 images:
+
+- CUB/Cars: 32 identities × 4 images;
+- SOP: 64 identities × 2 images;
+- identities are balanced as evenly as possible across the four folds.
+
+One ordinary stochastic crop \(a(x)\) is shared by teacher and student. Use random-resized crop to \(224^2\), scale \(0.16\!-\!1\), aspect ratio \(3/4\!-\!4/3\), horizontal flip \(0.5\), and standard ImageNet color jitter. No learned or generated augmentation is used.
+
+For fold \(k\), collect the \(n_k\) corresponding rows into student and teacher matrices
+
+\[
+Z_k=[S_\theta(a(x_i))]_{i:y_i\in\mathcal C_k},\qquad
+T_k^{B}=[T_k(a(x_i))]_{i:y_i\in\mathcal C_k}.
+\]
+
+Let \(Y_k\) be their batch one-hot identity matrix and
+
+\[
+P_k=Y_k(Y_k^\top Y_k)^{-1}Y_k^\top,\qquad C_k=I-P_k.
+\]
+
+Define within-identity residuals
+
+\[
+B_k=C_k Z_k,\qquad A_k=C_kT_k^{B}.
+\]
+
+Maintain a non-gradient cross-covariance state \(S_k\in\mathbb R^{512\times512}\), initialized to zero:
+
+\[
+S_k\leftarrow0.99S_k+
+0.01\,\operatorname{stopgrad}\left(\frac{A_k^\top B_k}{n_k}\right).
+\]
+
+If
+
+\[
+S_k+10^{-4}I=U_k\Sigma_kV_k^\top,
+\]
+
+set the stopped-gradient orthogonal Procrustes alignment
+
+\[
+Q_k=U_kV_k^\top.
+\]
+
+Reflections are allowed; \(Q_k\) is never optimized by gradient descent and is discarded after training. The residual loss is
+
+\[
+L_{\rm CFROD}
+=
+\frac14\sum_{k=1}^4
+\frac{\|B_k-A_kQ_k\|_F^2}
+{\|A_k\|_F^2+10^{-6}n_k}.
+\]
+
+The complete student objective is exactly
+
+\[
+L(\theta,\mathcal P)=L_{\rm PF}+\lambda(e)L_{\rm CFROD},
+\]
+
+where
+
+\[
+\lambda(e)=
+\begin{cases}
+0,&e\le20,\\
+0.25(e-20)/20,&20<e<40,\\
+0.25,&40\le e\le200.
+\end{cases}
+\]
+
+Gradients from both terms update the student backbone and projection \(W\); only \(L_{\rm PF}\) updates student proxies. Teachers, \(S_k\), \(Q_k\), folds, and augmentations receive no gradient.
+
+Use Adam with learning rate \(5\times10^{-4}\) for encoders/projections, \(5\times10^{-2}\) for proxies, weight decay \(10^{-4}\), and cosine learning-rate decay to \(5\times10^{-6}\). No benchmark test result participates in checkpoint or hyperparameter selection; deploy epoch 200.
+
+#### Test operation
+
+Discard every teacher, proxy, covariance, and alignment matrix. For the standard test resize/center crop, emit only
+
+\[
+z=S_\theta(x)\in\mathbb R^{512},\quad \|z\|_2=1.
+\]
+
+Rank gallery images by \(z_q^\top z_g\), equivalently squared Euclidean distance \(2-2z_q^\top z_g\). There is no reranking, fitting, adaptation, or multiple view.
+
+### 2. Causal error mode and degeneracy attack
+
+The proposed error mode is **identity-conditioned overcompression**. A supervised training identity supplies equivalence but not which of its visual variations will distinguish future identities. Proxy attraction can therefore discard pose, part configuration, trim, pattern, or viewpoint axes merely because they vary inside a training identity. Some of those axes become identity-defining after the train/test identity intervention.
+
+CF-ROD asks a counterfactual question: *which variation remains represented when the model has never been told that these images form this identity?* The cross-fitted teacher supplies precisely that geometry; centering prevents its unknown class centroid from competing with the ground-truth metric loss.
+
+There is a direct exclusion of the cheapest class-lookup solution. For any descriptor consisting only of an arbitrary per-training-class code,
+
+\[
+Z=YA,
+\]
+
+we have
+
+\[
+CZ=(I-Y(Y^\top Y)^{-1}Y^\top)YA=0.
+\]
+
+If the cross-fitted teacher has \(CT\ne0\), then
+
+\[
+L_{\rm CFROD}(Z=YA)=1
+\]
+
+under the stated normalization, and, holding the stopped-gradient \(Q\) fixed,
+
+\[
+\nabla_Z L_{\rm CFROD}
+=
+-\frac{2\,CTQ}{\|CT\|_F^2+\epsilon}\ne0.
+\]
+
+Hence one-vector-per-identity memorization and global collapse are not stationary in embedding space. Orthogonality of \(Q\) prevents the alignment from shrinking teacher residuals to zero. Conversely, simply copying the teacher cannot minimize the objective because PFML still enforces the official training labels.
+
+This is not a proof of neural-network generalization: a sufficiently overparameterized student could memorize image-specific residual targets or annihilate their gradients through a pathological Jacobian. Stochastic crops, weight decay, shared parameters, and cross-identity teacher exclusion make that solution more expensive, but do not make it impossible.
+
+### 3. Adversarial novelty search
+
+My search through 5 August 2026 found close ingredients but not the combination “identity-disjoint teachers → class-centered residual descriptors → stopped orthogonal alignment → single zero-shot metric student.”
+
+- **PFML** uses decaying sample/proxy potential fields but does not construct supervision from a model denied the target training identity [PFML](https://arxiv.org/html/2405.18560v4).
+- **Relational Knowledge Distillation** transfers distances and angles from an ordinarily trained teacher; its teacher is not identity-cross-fitted and it does not algebraically delete class-centroid information [RKD](https://arxiv.org/abs/1904.05068).
+- **Deep Relational Metric Learning** preserves intra-class variation through an ensemble-of-features graph deployed inside the metric model, rather than through an out-of-identity residual teacher [DRML](https://openaccess.thecvf.com/content/ICCV2021/html/Zheng_Deep_Relational_Metric_Learning_ICCV_2021_paper.html).
+- **Adaptive Learnable Assessment** simulates disjoint identities in a bilevel episode to train a sample assessor; it neither produces out-of-fold descriptors nor transfers their residual geometry [ALA](https://openaccess.thecvf.com/content_CVPR_2020/html/Zheng_Deep_Metric_Learning_via_Adaptive_Learnable_Assessment_CVPR_2020_paper.html).
+- **MLDG** makes a gradient step on virtual training domains useful on virtual test domains; CF-ROD instead supplies a frozen representation target from a model never trained on the target identity [MLDG](https://arxiv.org/abs/1710.03463).
+- **Fishr** matches gradient variances across domains, not identity-withheld feature residuals [Fishr](https://proceedings.mlr.press/v162/rame22a.html).
+- **HIER** mines a latent hierarchy with hyperbolic proxies but every hierarchy learner sees the same labeled training identities [HIER](https://openaccess.thecvf.com/content/CVPR2023/html/Kim_HIER_Metric_Learning_Beyond_Class_Labels_via_Hierarchical_Regularization_CVPR_2023_paper.html).
+- **DADA** aligns sample and proxy distributions after data augmentation; it does not estimate zero-shot geometry by identity-level sample splitting [DADA](https://ojs.aaai.org/index.php/AAAI/article/view/29400).
+- Econometric **cross-fitting** prevents a nuisance estimator from reusing an observation while estimating orthogonal statistical moments; CF-ROD imports the exclusion principle but applies it at identity level to representation supervision, with no treatment-effect or moment estimator [Double/Debiased ML](https://academic.oup.com/ectj/article/21/1/C1/5056401).
+
+The remaining novelty risk is that an obscure distillation or face-recognition paper may have used class-wise out-of-fold teachers without advertising “cross-fitting,” or that the construction could be judged an inventive combination of known cross-fitting, centering, and feature distillation rather than a new primitive.
+
+### 4. Decisive matched-compute controls
+
+All controls use identical splits, augmentation, architecture, batches, seeds, and total backbone FLOPs.
+
+1. **Long PFML:** spend CF-ROD’s entire compute budget on approximately 567 PFML epochs. This tests whether gains are merely more optimization.
+
+2. **Leaky-teacher control:** train four teachers on random 75% image subsets containing every identity, then use the identical residual loss. This isolates identity exclusion from ordinary ensemble distillation.
+
+3. **Uncentered OOF distillation:** use the same cross-fitted teachers but minimize Procrustes-aligned \(\|Z-TQ\|^2\). This tests whether algebraically removing identity centroids is necessary.
+
+4. **OOF-RKD:** same teachers and student, but transfer normalized pair distances and angles as in RKD. This distinguishes residual-coordinate preservation from an occupied relational-distillation alternative.
+
+I would accept the proposed causal mechanism only if CF-ROD exceeds controls 2–4 by at least 0.002 mean R@1 on at least two datasets and its advantage concentrates on queries whose nearest positive differs strongly in pose/view. Winning only against 200-epoch PFML would be insufficient.
+
+### 5. Frozen Lane-A forecasts
+
+All uncertainties below are forecast run standard deviations over five independent student/teacher seeds, frozen before experiment.
+
+| Dataset | Audited PFML frontier | Reproduced PFML-200 forecast | Compute-matched long PFML | CF-ROD forecast |
+|---|---:|---:|---:|---:|
+| CUB | 0.734 ± 0.003 | 0.734 ± 0.003 | 0.733 ± 0.004 | **0.741 ± 0.004** |
+| Cars196 | 0.927 ± 0.003 | 0.927 ± 0.003 | 0.926 ± 0.003 | **0.931 ± 0.003** |
+| SOP | 0.829 ± 0.002 | 0.829 ± 0.002 | 0.829 ± 0.002 | **0.833 ± 0.002** |
+
+Frontier-crossing arithmetic:
+
+- CUB: \(0.741-0.734=+0.007\). Under independent five-run forecasts, the difference SE is \(0.00224\), giving an approximate 95% interval \(+0.0026\) to \(+0.0114\).
+- Cars: \(0.931-0.927=+0.004\); difference SE \(0.00190\), approximate interval \(+0.0003\) to \(+0.0077\).
+- SOP: \(0.833-0.829=+0.004\); difference SE \(0.00126\), approximate interval \(+0.0015\) to \(+0.0065\).
+
+These are deliberately modest forecasts. I do not forecast In-Shop because the supplied audited Lane-A reference uses PA+DADA rather than PFML, so a claimed PFML-based delta there would be poorly anchored.
+
+Pre-registered falsification:
+
+- Strong falsification: CF-ROD gains less than 0.003 over paired PFML-200 on two or more of the three datasets.
+- Mechanistic falsification: the leaky-teacher control matches CF-ROD within 0.002 on all three datasets.
+- Frontier failure: the five-seed 95% interval of the absolute CF-ROD mean overlaps or falls below the supplied frontier on two datasets.
+- Safety failure: any dataset loses more than 0.002 against PFML-200.
+
+### 6. Cost and risks
+
+Four 100-epoch teachers on 75% of the data consume 300 full-dataset epoch equivalents. Student training consumes 200, plus one frozen teacher forward per student image. Treating a backward-enabled step as roughly three forward passes gives approximately
+
+\[
+\frac{300(3F)+200(3F)+200F}{200(3F)}\approx2.83\times
+\]
+
+PFML training FLOPs. The four teachers can train independently; sequential elapsed time is roughly 2.5–2.9× PFML, while four-way parallel training reduces wall time but not compute. Peak memory is about 1.3–1.7× depending on whether inactive teacher weights are CPU-offloaded. Deployment cost is exactly unchanged: one ResNet-50 and one 512-D vector.
+
+Principal failure risks are weak 75%-identity teachers, noisy Procrustes estimates when identities have only two images, preservation of nuisance rather than useful intra-class variation, conflict with PFML’s already strong local-variation behavior, and gains too small to justify 2.83× training compute.
+
+Contamination controls must freeze folds, augmentations, \(\lambda\), teacher length, and epoch 200 before test evaluation; prohibit test-time checkpoint selection; hash the official splits; retain only the permitted standard ImageNet-1K initialization; and report all seeds. ImageNet pretraining itself can carry category-level knowledge and possible image-overlap concerns, but it is explicitly permitted and must be identical for every control.
