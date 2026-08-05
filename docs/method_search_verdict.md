@@ -5204,3 +5204,35 @@ the published frontier. Full artifacts and resolution:
 `docs/sol_cfrod_proposal_pass16_2026-08-05.md`,
 `docs/sol_cfrod_review_2026-08-05.md`, and
 `docs/sol_cfrod_local_audit_2026-08-05.md`.
+
+### Seventeenth blind continuation: CRS rewards finite-set nuisance
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** A blind Sol proposer returned Cross-Fitted Reliability-Spectrum PFML:
+pair two distinct photos per training label, randomly project descriptors to
+16 dimensions, whiten a symmetrized cross-covariance, and maximize a
+log-determinant of squared canonical values. A fresh Sol reviewer returned
+DEAD.
+
+The repeated-measurement derivation is false under the stated sampler. Two
+distinct photographs drawn without replacement have negative finite-set
+residual cross-covariance, not independent zero-mean nuisance. Because the
+loss uses `CC^T`, it rewards negative correlation exactly like positive
+repeatability and can amplify the nuisance it claims to remove.
+
+The anti-concentration claim also has an exact counterexample. Put all identity
+codes in a fixed rank-16 subspace `A`. For a generic random 16-D probe `R`,
+`R^T A` is invertible almost surely, so the projected codes remain full-rank and
+perfectly repeatable on every iteration. Resampling probes does not distribute
+information across 512 dimensions.
+
+Gate 1 independently fails: no verified repository measurement links a
+reliability spectrum or nonrepeatable descriptor directions to corrected
+retrieval errors, so the `+0.008/+0.005/+0.005` forecasts are invented. The
+mechanism neighborhood is occupied by supervised/probabilistic CCA, Barlow
+Twins, VICReg, W-MSE, supervised contrastive learning, MCR2, Anti-Collapse DML,
+and NIR. The exact wrapper may be unpublished but its claimed new estimator is
+invalid. Full artifacts and resolution:
+`docs/sol_crs_pfml_proposal_pass17_2026-08-05.md`,
+`docs/sol_crs_pfml_review_2026-08-05.md`, and
+`docs/sol_crs_pfml_local_audit_2026-08-05.md`.
