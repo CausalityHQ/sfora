@@ -4826,3 +4826,19 @@ shell tools were absent, the Claude environment surfaced recent Git commit
 subjects, and Fable disclosed seeing the nuisance-whitening rejection title.
 Future passes must run outside the worktree. Full record:
 `docs/fable_repository_blind_fourth_pass_2026-08-05.md`.
+
+### Fifth outcome-only Fable continuation: first fully isolated pass
+
+A fresh Fable session ran from `/tmp` in safe mode with web-only tools and no
+repository metadata. It returned **`NONE`** and independently repeated candidate
+371's leave-classes-out oracle metric for a third time. Fitting a metric with
+pseudo-unseen identity labels measures that estimator's closed-set fit, not
+general zero-shot headroom. Its proposed true-test-class sanity check would
+contaminate the benchmark, and five class splits across CUB and Cars are not the
+claimed 0.6x diagnostic. No execution follows.
+
+The only nearly open family it named was train-time hubness penalization, which
+it rejected as an unfunded density-spreading variant adjacent to established
+uniformity/anti-collapse work. This is independent negative evidence, not an
+impossibility claim. Full record:
+`docs/fable_repository_isolated_fifth_pass_2026-08-05.md`.
