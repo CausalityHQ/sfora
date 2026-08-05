@@ -5236,3 +5236,45 @@ invalid. Full artifacts and resolution:
 `docs/sol_crs_pfml_proposal_pass17_2026-08-05.md`,
 `docs/sol_crs_pfml_review_2026-08-05.md`, and
 `docs/sol_crs_pfml_local_audit_2026-08-05.md`.
+
+### Eighteenth blind continuation: CITTR repeats spherical variation transfer
+
+**DEAD at Gates 1 and 2, with an invalid frozen baseline; no diagnostic,
+preregistration, implementation, or GPU.** A blind Sol proposer returned
+Cross-Identity Tangent-Transport Robustness: observe a two-view augmentation
+displacement, parallel-transport it on the descriptor sphere to a different
+identity, synthesize a target-labelled descriptor, and optimize the worst of
+four proxy-margin hinges. One durable independent review began under Fable and
+completed under the configured same-job Claude Opus fallback; it returned
+DEAD.
+
+Gate 1 fails because the corrected repository establishes an augmentation-
+response relation, not class-exogenous transfer or causal retrieval repair.
+Candidate 225's prospective disjoint-identity diagnostic is adverse: its
+`rho_32` values were `0.9312`, `0.9287`, and `0.9345`, all below the locked
+`1.15` falsifier, with the learned subspace capturing more between-class than
+within-class variance. CITTR contributes no contrary measurement.
+
+Gate 2 found the central omitted prior: Spherical Feature Transform (Zhu,
+Bai, and Wei, ECCV 2020) already transfers feature variation between classes
+by spherical rotation on benchmark-matched DML. DVML supplies the same
+class-independent-variation premise, while Delta-Encoder, Feature Space
+Transfer, and Embedding Expansion occupy transferable deformation and
+synthetic embedding support. Repository candidates 45 and 260 had already
+proposed observed augmentation-displacement transplantation; candidate 369
+had already combined that collision with the failed class-exogenous premise.
+Exact point-to-point parallel transport and worst-donor aggregation change the
+estimator/wrapper, not the supervision object.
+
+The proposal also repeats the known-invalid mean-scaled PFML base while
+changing `alpha`, batch size, optimizer recipe, schedule, and weight decay, so
+it cannot inherit the cited PFML frontier. Its isotropic fallback is
+unreachable, its log-map clipping can produce an uncaught NaN, and the frozen
+controls omit a plain-margin/`epsilon=0` arm. The review's claims that the
+radius always saturates and that the SOP proxy-count error implies leakage are
+not accepted without measurement or implementation; the 2x cost arithmetic
+error is accepted. Full frozen proposal, independent result, and authoritative
+local resolution:
+`docs/sol_cittr_proposal_pass18_2026-08-05.md`,
+`docs/sol_cittr_review_2026-08-05.md`, and
+`docs/sol_cittr_local_audit_2026-08-05.md`.
