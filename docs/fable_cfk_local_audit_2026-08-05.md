@@ -171,3 +171,40 @@ reallocation, and ECCV/CVPR 2022 already implement and benchmark the same
 non-isotropic-proxy diagnosis and mechanism. The forecast does not establish a
 frontier cross without an undefined composition. No diagnostic, implementation,
 preregistration, or GPU work follows.
+
+## Independent review and reconciliation
+
+The mandatory cold review completed as consultation `e35e30324c1c4ade` after
+Fable failed at tool startup and the configured same-job Claude Opus fallback
+finished the unchanged prompt. Its exact result is preserved at
+`docs/fable_cfk_review_2026-08-05.md`. It returned **DEAD** and independently
+confirmed the decisive collision: Kirchhof et al.'s learned `diag(kappa_p)` is
+per class, per embedding dimension, diagonal in the shared global basis,
+composed with Proxy Anchor, and absent from cosine deployment.
+
+The review also independently confirms or strengthens the formal defects:
+
+- C5 is not an absorbable null after unit normalization and Proxy Anchor's
+  log-sum-exp-with-one objective; therefore F8 would halt a correct
+  implementation.
+- C1 uses an across-class scalar gauge rather than CFK's within-class
+  per-coordinate gauge and is not a nested isotropic control.
+- Discarding the class precision table does not prevent it from relocating
+  class memorization out of the deployed descriptor.
+- The positive-only causal argument ignores equal attenuation of the negative
+  term.
+- The common-frame control changes learnability and noise simultaneously.
+- The stated clean-cross probabilities are mutually incoherent.
+- The missing prefix makes the exact transform and joint constraint
+  unverifiable without repair.
+
+One reviewer statement is **not adopted**: that Kirchhof et al. measured the
+mechanism negatively by comparing their literature-table R50/512 values
+`69.3/86.2/79.4` to CFK's forecast PA priors. Those rows are not a paired recipe.
+Kirchhof et al.'s standardized Table 1 instead reports its own matched Proxy
+Anchor comparison improving `64.4 -> 66.5` CUB, `82.4 -> 83.6` Cars, and
+`78.0 -> 78.2` SOP. The paper therefore establishes occupied positive evidence
+at a much lower historical horizon, not a negative causal estimate under CFK's
+forecast recipe. This correction does not weaken the Gate-2 death: exact prior
+art, not effect direction, is decisive, and the published R50/512 headline still
+falls below the current PFML frontier.

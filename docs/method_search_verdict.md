@@ -5278,3 +5278,44 @@ local resolution:
 `docs/sol_cittr_proposal_pass18_2026-08-05.md`,
 `docs/sol_cittr_review_2026-08-05.md`, and
 `docs/sol_cittr_local_audit_2026-08-05.md`.
+
+### Nineteenth blind continuation: CFK is benchmark-matched nivMF prior art
+
+**DEAD at Gates 1 and 2, and non-authorizing as an incomplete frozen artifact;
+no diagnostic, preregistration, implementation, or GPU.** The blind Pass-19
+consultation proposed Common-Frame Kent Supervision: replace Proxy Anchor's
+cosine with a training-only per-class diagonal precision score in one shared
+embedding basis, then discard the precision table for ordinary cosine
+deployment. Fable failed during tool startup and its same-job Opus fallback
+exited after streaming a coherent answer; the durable proposal begins during
+section 1.6 and was frozen without reconstruction. A mandatory fresh review
+completed through the same configured Fable-to-Opus path and returned DEAD.
+
+Gate 1 has no eligible provenance. The verified packet does not measure
+class-conditional coordinate precision, proxy-induced deletion of unseen-class
+factors, a shared diagonal covariance frame, or causal error repair from
+preserving within-class variance. Its augmentation-response relation observes a
+different object.
+
+Gate 2 is an exact collision. Kirchhof et al., *A Non-isotropic Probabilistic
+Take on Proxy-based Deep Metric Learning* (ECCV 2022), learn a positive
+per-class, per-embedding-dimension diagonal concentration vector in the shared
+global basis, use it in a non-isotropic proxy score composed with Proxy Anchor,
+benchmark ResNet-50/512 on CUB/Cars/SOP, and deploy ordinary cosine. NIR (Roth,
+Vinyals, and Akata, CVPR 2022) independently occupies the identical diagnosis
+that proxy attraction destroys useful local non-isotropic structure. HIST and
+L-GM supply still closer diagonal class-distribution precedents. CFK's hard
+gauge, clipping, and count shrinkage are parameterization/regularization choices
+inside that occupied mechanism, not new supervision.
+
+The frozen controls and causal proof also fail: class-independent anisotropy is
+not absorbable after L2 normalization; the purported isotropic control uses a
+different gauge; a discarded train-time class table can still steer backbone
+memorization; positive and negative gradients are attenuated together; and the
+only forecasted frontier crossing depends on an undefined CFK+PFML composition.
+The review's claim that prior work measured the mechanism negatively is not
+adopted: Kirchhof et al.'s own paired Table-1 result is positive but below the
+current horizon. Novelty, not sign, decides this death. Full artifacts:
+`docs/fable_cfk_proposal_pass19_2026-08-05.md`,
+`docs/fable_cfk_review_2026-08-05.md`, and
+`docs/fable_cfk_local_audit_2026-08-05.md`.
