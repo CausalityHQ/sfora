@@ -4923,3 +4923,33 @@ Task-driven dictionary learning, SALAD, and classical Hellinger-normalized BoW
 cover the remaining components. The forecast probabilities have no measured or
 theoretical estimator. Exact frozen artifacts, algebra, citations, and local
 audit: `docs/fable_cover_collision_375_2026-08-05.md`.
+
+### Sixth isolated Fable continuation: GES near-miss (no numbered candidate)
+
+The blind proposer returned **`NONE`**, while exposing Grassmannian Erasure
+Sufficiency (GES): minimize ordinary identity loss plus worst-case loss after an
+arbitrary rank-`k` descriptor subspace is projected away. It interpreted this
+as an erasure-code certificate that no low-dimensional “shortcut monopoly” can
+carry seen-class identity. A separate frozen-proposal review also returned
+**DEAD**; the review required automatic Fable-to-Claude-Opus fallback.
+
+GES fails Gate 1 because no corrected repository measurement identifies a
+low-rank monopoly as the cause of zero-shot errors. Its central mathematical
+claim is impossible as stated. For any prototypes `mu_a != mu_b`, a rank-one
+adversary can choose `U = span(mu_a - mu_b)`, giving
+`P_U(mu_a - mu_b) = 0` and erasing that pair's distinction exactly. Distributing
+the vector across coordinates does not change its one-dimensional span. The
+adversary can likewise project out an individual descriptor, making the stated
+normalization singular. Thus the minimax term has irreducible loss and can only
+redistribute margins/spectrum, not certify redundant evidence.
+
+Worst-case feature deletion is already occupied by adversarial dropout and
+robust learning under feature deletion; rank-constrained projection minimax is
+the operator in R-LACE. Candidate 157 already rejected evidence-erasure
+survival as dropout/erasure consistency or hashing/ECOC. The independent review
+added DiVA and BIER as close same-goal neighbours and correctly noted that `k`
+and a credible inner solver were absent. It also made two rejected factual
+errors: 0.939 In-Shop is VAPNet's ResNet-50/GAP result, not CRT/MiT-B2, and a
+generic Whitney projection result does not imply survival under every
+adversarial subspace. Full resolved audit:
+`docs/fable_ges_nearmiss_2026-08-05.md`. No diagnostic or GPU follows.
