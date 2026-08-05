@@ -1,0 +1,174 @@
+# Pass 22 frozen blind proposal: CINA
+
+Date: 2026-08-05 UTC  
+Frozen prompt: `docs/fable_blind_prompt_pass22_2026-08-05.txt`  
+Prompt SHA-256: `b7c988ae88b7c956e6656829d64ce838d09009497a5347eeaf6c9eae9058a3eb`  
+Native durable consultation: `67caa600e1874fb2`  
+Caller attribution: `sfora/emafactorial`  
+Provider path: Fable, then configured same-job Claude Opus fallback  
+Durable status: failed (`exit 1`); result untruncated and cleanly ended.
+
+The following is the exact durable `consult_result`, without repair or adjudication.
+
+---
+I'm the blind proposer for this consultation. I'll work from first principles plus targeted web checks of the nearest prior art (no repository inspection). Since I was dispatched as a consultation subagent with a fixed deliverable, I'm proceeding directly to the task. First, let me load web tools and verify the identity of the cited references and my candidate mechanism's closest neighbors.
+I'll work this as the blind proposer: cold start, web/primary-literature grounding, no repo inspection. Let me pull the search tools and pin down the named baselines and the nearest prior art before committing to a method.## Lane selection
+
+**Lane A** (ResNet‑50, 512‑D, ~224px, single‑view cosine, 200 epochs). All forecasts and comparisons below are Lane A only. Targets: PFML CUB 0.734±0.003, Cars196 0.927±0.003, SOP 0.829±0.002 (5 runs); In‑Shop reference PA+DADA 0.930 (seeds/uncertainty unreported).
+
+---
+
+# CINA — Cross‑Identity Nuisance Alignment
+
+A single train‑time penalty on the *cross‑identity dispersion of within‑identity second‑moment shape*, measured between **disjoint identity subsets** with an **affine‑invariant** discrepancy and **split‑debiased** against the finite‑sample null. No extra parameters, no extra networks, no extra forward passes, no test‑time change.
+
+---
+
+## 1. Executable mathematics
+
+**Pipeline.** ResNet‑50 (ImageNet‑1K init) → GAP → `u ∈ R^2048` → linear head `W ∈ R^{512×2048}` (no bias) → `z = Wu` → deploy `f = z/‖z‖₂ ∈ S^511`, cosine NN. Deployment is byte‑identical to the base method.
+
+**Objective.** `L = L_base(f, proxies) + λ(t) · L_CINA(z)`.
+
+**Batch construction.** Balanced sampler: `C` identities × `m` images, batch `Cm = 180`.
+- CUB/Cars: `C = 20, m = 9`. SOP/In‑Shop: `C = 36, m = 5`.
+
+**Step (all differentiable unless marked `sg[·]`):**
+
+1. Residuals: for identity `c`, `μ̂_c = (1/m)Σ_{i∈c} z_i`, `r_i = z_i − μ̂_c`.
+2. Fresh uniform partition of the batch's identity set into disjoint halves `A, B` (`|A|=|B|=C/2`), **re‑drawn every step**.
+3. `Σ_A = (1/n)Σ_{i∈A} r_i r_iᵀ`, `Σ_B` likewise; `n = (C/2)(m−1)`. `S = Σ_A + Σ_B`.
+4. Subspace: `U = sg[top‑k eigenvectors of S]`, `k = 24`. `Σ̂_A = UᵀΣ_AU`, `Ŝ = UᵀSU` (gradients flow through `Σ_A, Σ_B`, not through `U`).
+5. Relative spectrum: `μ₁…μ_k = eigvals(Ŝ^{−1/2} Σ̂_A Ŝ^{−1/2})`, clamped to `[η, 1−η]`, `η = 10⁻³`. (These are the generalized eigenvalues of the pencil `(Σ_A, Σ_A+Σ_B)` on the top‑k subspace; `Σ_B`'s spectrum is `1−μ_i` on the same basis.)
+6. Log‑odds: `ν_i = log(μ_i/(1−μ_i))` — the log generalized eigenvalues of `(Σ_A, Σ_B)`.
+7. Discrepancy: `D(A,B) = (1/k) Σ_i (ν_i − ν̄)²`. **`D = 0 ⟺ Σ_A ∝ Σ_B` on the measured subspace** (shapes equal, scales free).
+8. Null: repeat 3–7 with `A₁, A₂` = disjoint *sample* halves of the **same** identities (`⌊m/2⌋` each) → `D_null`.
+9. `L_CINA = max(0, D(A,B) − sg[D_null])`.
+
+**Gradient path.** `∂L_CINA/∂z_i` flows through steps 3–7 only: `∂D/∂ν → ∂ν/∂μ → ∂μ/∂(Σ̂_A, Ŝ)` (standard differentiable symmetric eigensolve; eigengap jitter `10⁻⁶·tr(Ŝ)/k`) `→ ∂Σ/∂r → ∂r/∂z` (including the `−1/m` mean‑subtraction term). It then flows into `W` and the backbone. `D_null` and `U` are stop‑gradiented; **this is load‑bearing** (see D3, D6).
+
+**Hyperparameters (frozen).** `k = 24`; `η = 10⁻³`; `λ(t) = λ_max · clip((t − 10)/20, 0, 1)` over 200 epochs; `λ_max ∈ {0.05, 0.1, 0.2, 0.4}` selected on a **class‑disjoint validation split of 20 training identities** (legal: official train images/labels only). Pre‑registered ceiling `λ_max ≤ α·s*/(8·D_max)` (derived in D2). Everything else inherited unchanged from the base recipe.
+
+**Variant to be selected on the same val split (both reported):** CINA‑Z (residuals in `z`, as above) vs CINA‑T (residuals projected onto the tangent space of `S^511` at `μ̂_c/‖μ̂_c‖`). I do **not** assert that the L2‑normalization is harmless: identity‑dependent norm variance leaks into CINA‑Z's `Σ_c`, which is exactly why CINA‑T exists and why per‑identity norm variance is a monitored diagnostic.
+
+**Base loss.** CINA is base‑agnostic. Because I **could not retrieve PFML's primary source in‑session** (CVF returned HTTP 403; see §7), I pre‑register two bases: (i) PFML if its equations/recipe are recoverable, reproduced exactly; (ii) **ProxyAnchor** (Kim et al., CVPR 2020) as the fully‑specified fallback:
+
+`L_PA = (1/|P⁺|) Σ_{p∈P⁺} log(1 + Σ_{x∈X_p⁺} e^{−α(s(x,p)−δ)}) + (1/|P|) Σ_p log(1 + Σ_{x∈X_p⁻} e^{α(s(x,p)+δ)})`, `s` = cosine, `α = 32`, `δ = 0.1`, one L2‑normalized proxy per class, proxy lr ×100, AdamW, 512‑D, 224px, batch 180, frozen‑BN, 1‑epoch embedding warmup. **These PA constants are asserted from memory and must be re‑verified against the primary source before freezing.**
+
+---
+
+## 2. Causal zero-shot error mode + degeneracy attack
+
+**Error mode: identity‑specific nuisance geometry is untransferable by construction.**
+
+Model `z | (identity c, nuisance) ≈ μ_c + ε`, `ε ∼ (0, Σ_c)`. Cosine retrieval error between identities `c, c′` is driven by the variance *along the mean‑difference direction* `Δ = μ_c − μ_{c′}`: effective margin `≈ ‖Δ‖⁴ / (Δᵀ(Σ_c + Σ_{c′})Δ)`. Training can shape `μ_c` so that mean differences avoid the heavy directions of *those specific* `Σ_c` — but that accommodation is **class‑pair‑specific** and there is no train‑time control over the means of two unseen identities. The only accommodation that survives identity substitution is one that holds *uniformly over identities*.
+
+**Proposition 1 (the exact obstruction).** ∃ invertible `A` with `AΣ_cAᵀ ∝ I` for all `c` ⟺ `Σ_c = σ_c²Σ` for a common `Σ`.
+*Proof.* (⇐) take `A = Σ^{−1/2}`. (⇒) `AΣ_cAᵀ = σ_c²I ⟹ Σ_c = σ_c²A^{−1}A^{−ᵀ} =: σ_c²Σ`. ∎
+**Corollary.** The cosine metric can be made simultaneously Bayes‑optimal (Gaussian same/different test) for *every* identity by some linear head reparameterization **iff** the identity covariances share a common shape. Hence the shared‑shape condition is precisely the obstruction that **no** post‑hoc linear recalibration — PCA/whitening (Jégou–Chum), a learned Mahalanobis metric, head re‑training — can remove. It must be produced by the backbone. This is the whole design rationale, and it directly predicts controls C2/C3/C6 will fail to reproduce the gain.
+
+**Proposition 2 (estimator ↔ target).** If `{Σ_c}` are i.i.d. with log‑Euclidean Fréchet mean `Σ̄`, and `A,B` are disjoint uniform identity subsets of size `h`, then `E[D(A,B)] = (2/h)·V + (noise floor) + O(h⁻²)`, where `V` is the between‑identity dispersion of nuisance *shape*. Step 9 subtracts the noise floor (estimated under the same rank/sample budget with identity held fixed). So minimizing `E_splits[D]` minimizes exactly the quantity Prop. 1 identifies as untransferable. *Caveat: exact in the log‑Euclidean linearization; approximate for the affine‑invariant metric.* Fresh splits each step recover the strong per‑identity constraint from a low‑variance pooled estimator.
+
+**Proposition 1b (non‑absorbability).** In the full‑rank population limit (`k = d`), `D` depends on `z` only through the generalized spectrum of `(Σ_A, Σ_B)`, which is invariant under every `z → Az`; hence `L_CINA` has zero gradient along all `GL(d)` reparameterizations of the head's row space. At finite `k` this holds only approximately — the exactly‑preserved symmetry is `O(d) × R⁺`, which is precisely the symmetry group of the deployed cosine metric, so CINA never fights deployment geometry. The residual gap is tested empirically by C6, not assumed.
+
+**Attack on the cheapest degeneracies.**
+
+- **D1 — Collapse (`z_i → μ_c`, memorization).** `D` is invariant under `Σ → sΣ`, so uniform shrinkage yields *no* reduction. As `Σ → 0`, sampling noise dominates `D(A,B)` and `D_null` symmetrically, so the hinge closes and gradients vanish rather than reward collapse. The `η`‑clamp bounds `D ≤ D_max = (log 999)² ≈ 47.7`, so *any* degenerate strategy can win at most `λ_max·D_max`.
+- **D2 — Common isotropic noise injection** (add identity‑independent `N` to all `Σ_c`, making shapes agree for free). This is the sharpest attack. Cost accounting: with unit‑norm `f`, `cos ≈ 1 − s/2` where `s = E‖r‖²`; the base attractive term has `∂L_base/∂s ≥ α/4` in the active regime, i.e. ≥ 8 at `α = 32`. Maximum benefit is `λ_max·D_max`. Choosing `λ_max ≤ α·s*/(8·D_max)` (`s*` = base model's measured scatter) makes every injection with `Δs > s*` strictly dominated. With `λ_max = 0.1`, benefit ≤ 4.8 vs. cost ≥ 8·Δs, so `Δs > 0.6` is dominated outright. Monitored: `tr(Σ̄_W)/tr(Σ_bet)`; a >10% rise falsifies the run (F4).
+- **D3 — Head absorption.** Blocked in the limit by Prop. 1b; tested by C6.
+- **D4 — Over‑invariance (rank‑1 nuisance along a shared direction).** Then the top‑`k` subspace is one signal direction plus `k−1` noise directions whose relative shapes cannot agree ⟹ `D` is *large*. The `top‑k of S` construction anti‑selects this degeneracy for `k > 1`. Note a general fact this exposes: **no scale‑free second‑order penalty on the pooled `Σ̄_W` can prevent over‑invariance**, because by Prop. 1 any such penalty is head‑absorbable. So the diagnostic must live in **backbone** feature space: monitor the effective rank of the within‑identity covariance of `u ∈ R^2048`; a >10% drop falsifies (F5).
+- **D5 — Split gaming** (make nuisance depend on batch position, not identity). Blocked by re‑randomizing the identity→half assignment every step; tested by C4.
+- **D6 — Null gaming** (inflate sampling noise so the hinge never activates). Blocked by `sg[D_null]`.
+
+---
+
+## 3. Adversarial novelty search — nearest works and mechanism distinctions
+
+| Nearest work | One‑sentence distinction |
+|---|---|
+| **Deep CORAL** (Sun & Saenko 2016) | Aligns *marginal* covariances between a source and a *target domain* using target data; CINA aligns *within‑identity* covariance **shapes** across **disjoint label subsets of the same training set**, with an affine‑invariant discrepancy chosen precisely because CORAL's Frobenius form is head‑absorbable. |
+| **NIR** (Roth, Vinyals & Akata, CVPR 2022) | Uses normalizing flows to make each class's sample cloud *non‑isotropic and uniquely translatable from its proxy*, enriching per‑class structure; CINA is indifferent to the shape itself and instead drives the *variation of that shape across identities* to zero, with no learned module. |
+| **SoftTriple / multi‑proxy (incl. PFML's 15 proxies)** | Models intra‑class multimodality by relaxing the *first‑moment* pull to a mixture of proxies; CINA constrains the *second‑moment shape* and is orthogonal to how the mean structure is parameterized. |
+| **ρ‑spectrum regularization** (Roth et al., ICML 2020) | Penalizes over‑compression of a single *global* embedding spectrum — a head‑absorbable, single‑population quantity; CINA targets exactly its head‑*non*‑absorbable complement. |
+| **Barlow Twins / VICReg / W‑MSE** | Push one global covariance toward a target value, label‑free; CINA is label‑partitioned, comparative, and specifies no target covariance. |
+| **HIB (Oh et al. 2019) / PFE (Shi & Jain 2019)** | *Model* heteroscedastic uncertainty and consume it at test time; CINA *suppresses* identity‑dependence of second‑order geometry at train time and leaves inference untouched. |
+| **Free Lunch for Few‑Shot (ICLR 2021) / Simple CNAPS** | *Transfer or shrink* base‑class covariance statistics onto novel classes at inference; CINA removes the need for that transfer during training and touches no test‑time statistics (mandatory here). |
+| **IRM / REx** | Enforce invariance of a *predictor/risk* across environments under causal assumptions; CINA enforces invariance of the *nuisance second‑moment geometry* across identity subsets, justified by an exact optimality lemma (Prop. 1). |
+| **Flury, *Common Principal Components* (1988); Box's M test (1949)** | Classical fixed‑dimension *hypothesis tests / estimators* for covariance proportionality; CINA is the import — the proportionality statistic turned into a split‑debiased, differentiable training signal on a deep backbone. This is the out‑of‑DML ancestor and I claim novelty in the *use*, not the statistic. |
+| **DiVA / "Sharing Matters"** (Milbich et al.) | Add auxiliary tasks/branches to enrich features; CINA adds no task, branch, parameter, or forward pass. |
+| **PA+DADA** (AAAI 2024) | Domain‑adapts the *sample vs. proxy* distributions with augmented data; CINA never compares samples to proxies and compares two disjoint identity populations to each other. |
+| **AdvRF** (ICCV 2025) | Training‑only reconstruction network + distillation (different lane, heavy machinery); CINA has no auxiliary network. |
+| **Spectral decoupling / gradient starvation** (Pezeshki et al. 2021) | A first‑order logit‑scale device against feature starvation; CINA acts on class‑conditional second moments and is silent about logit magnitudes. |
+
+**Residual novelty risk (stated plainly):** I could not exhaustively sweep 2024–2026 primary sources in this session. A reviewer should run: *"covariance homogeneity regularizer metric learning"*, *"common principal components deep representation"*, *"Box M test differentiable loss"*, *"class‑conditional covariance equality zero‑shot retrieval"*, *"cross‑class covariance consistency"*.
+
+---
+
+## 4. Decisive matched-compute controls
+
+All at identical epochs, sampler, seeds (5), and identical λ‑search budget on the class‑disjoint val split.
+
+| | Control | What it kills if it matches |
+|---|---|---|
+| C1 | Base reproduction (published recipe) | Establishes the inherited number; no frontier is inherited without it. |
+| C8 | Base at the **method's sampler** (`m = 9` / `m = 5`) | The gain is a sampler artifact, not CINA. **Mandatory** — `m` is the one recipe delta. |
+| **C3** | Same statistic, **Frobenius/CORAL** discrepancy `‖Σ_A/tr Σ_A − Σ_B/tr Σ_B‖²_F` | **Decisive.** Same estimator, same compute, same splits; only the affine‑invariant metric differs. If C3 matches, Prop. 1's mechanism claim is false. |
+| **C4** | Same statistic, splits over **samples within the same identities** (identity‑mixed) | **Decisive.** Kills "cross‑identity" as the operative ingredient. |
+| **C6** | CINA gradient routed to `W` only (backbone detached for this term) | **Decisive.** Tests non‑absorbability (Prop. 1b) empirically rather than by assumption. |
+| **C7** | Identity labels **shuffled** inside the penalty only | **Decisive.** Kills "it's generic regularization noise." |
+| C2 | Base + post‑hoc PCA whitening of descriptors | Kills "it's just whitening" (Prop. 1 predicts C2 cannot reach the method). |
+| C5 | Base + ρ‑spectrum at matched λ‑search | Kills "any spectral regularizer would do." |
+| C9 | Base + 1% extra epochs | Kills the compute artifact. |
+
+---
+
+## 5. Frozen forecasts, thresholds, frontier arithmetic (Lane A)
+
+**Frontier‑crossing arithmetic.** PFML ±0.003 over 5 runs, read as std ⟹ sem = 0.00134. A credible claim of exceeding it requires `Δ_abs ≥ 2√(sem_mine² + sem_PFML²) ≈ 0.0038`:
+
+- **CUB ≥ 0.738** · **Cars ≥ 0.931** · **SOP ≥ 0.832** (SOP ±0.002 ⟹ sem 0.0009 ⟹ +0.0025).
+- *If the reported ±0.003 is sem rather than std, thresholds rise to CUB ≥ 0.742, Cars ≥ 0.935, SOP ≥ 0.834.* This ambiguity is unresolved in my sources and I flag it rather than assume the favorable reading.
+- **In‑Shop: I decline to claim a frontier crossing.** PA+DADA's 0.930 has unreported seeds and a different base; I will report In‑Shop only as a paired Δ against my own base.
+
+**Frozen point forecasts.**
+
+*Tier 1 — paired Δ vs. matched base (C8), 5 seeds, the number I actually stand behind:*
+| | Δ R@1 | 80% CI |
+|---|---|---|
+| CUB | **+0.008** | [+0.002, +0.015] |
+| Cars196 | **+0.006** | [+0.001, +0.012] |
+| SOP | **+0.004** | [0.000, +0.008] |
+
+*Tier 2 — absolute, conditional on the base reproducing PFML within 0.004:*
+CUB **0.741** [0.733, 0.749]; Cars **0.932** [0.925, 0.939]; SOP **0.832** [0.828, 0.836].
+`P(cross threshold | CUB) ≈ 0.42` · `Cars ≈ 0.40` · `SOP ≈ 0.35` · **`P(cross on ≥2 of 3) ≈ 0.28`** · `P(Δ > 0 on all three) ≈ 0.60`. I state plainly that the modal outcome is a real but sub‑frontier gain.
+
+**Falsification thresholds (pre‑registered).**
+- **F1** paired Δ on CUB ≤ +0.002 → mechanism falsified.
+- **F2** any of C3/C4/C6/C7 within 0.002 of the method → attribution falsified.
+- **F3** held‑out‑identity `D` does not fall ≥30% vs. base → the term did not do what it claims; any R@1 gain is incidental.
+- **F4** `tr(Σ̄_W)/tr(Σ_bet)` rises >10% → noise‑injection degeneracy (D2).
+- **F5** backbone within‑identity effective rank drops >10% → over‑invariance degeneracy (D4).
+- **F6 (mediation, the riskiest prediction)** across ≥12 runs spanning seeds and λ, Spearman ρ between *reduction in held‑out `D`* and *R@1 gain* must be ≥ 0.5. If the gain is uncorrelated with the mechanism it claims, the method is falsified even if R@1 improves.
+
+---
+
+## 6. Cost, benchmark, and contamination risk
+
+**Training:** +2 covariance accumulations (`O(n·d²) ≈ 4·10⁷` FLOP) + two `24×24` eigensolves per step, against ~2.2 TFLOP for the ResNet‑50 forward/backward at batch 180 — **<0.01% FLOP, measured target +0.5–1.0% wall‑clock, ~0 extra memory, 0 extra parameters, 0 extra views.** Cheaper than DADA (1.06× time, 1.01× memory) and far cheaper than AdvRF/VAPNet auxiliary systems.
+**Deployment:** identical to base — one ResNet‑50, one 512‑D descriptor, one view, cosine NN. Zero inference cost.
+**Contamination:** none. No test images, no gallery statistics, no generated data, no text/VLM encoder, no extra annotation, no transduction or reranking. λ and the CINA‑Z/T choice are selected on a class‑disjoint split of the **training** identities.
+**Benchmark risks:** CUB/Cars seed variance (~0.003–0.005) dominates effects of this size — 5 seeds minimum, paired within one codebase. SOP gains below ~0.004 are not resolvable at 5 seeds. Cars196 contains near‑duplicate captures; CUB shares semantics with ImageNet‑1K pretraining — both are lane‑wide confounds shared by every reference, so neither differentially advantages CINA.
+**Method‑specific risks:** (a) `m = 9` on CUB/Cars is a genuine recipe change and C8 is mandatory — I do not inherit any published number without it; (b) at `n/k ≈ 3.3` the covariance estimates are noisy and the debias term is doing real work, so the method's benefit may not survive if `D_null` is a poor null; (c) the affine‑invariance argument is exact only at `k = d`, so C6 is doing the load‑bearing empirical work; (d) CINA has zero gradient w.r.t. overall embedding scale, so it does **not** interact with AdamW weight decay through a scale channel — but the base loss's `α` remains fully operational and is left untouched.
+
+## 7. Unresolved source ambiguities
+
+1. **PFML's equations and recipe are unverified by me.** Retrieval failed in‑session (CVF 403). Confirmed only: *Potential Field Based Deep Metric Learning*, Bhatnagar et al., CVPR 2025; continuous attractive/repulsive potential fields; proxies represent sub‑populations; evaluated on CUB/Cars/SOP. Its potential kernel, exponent, temperature, learning rates, sampler, and epoch count are unknown to me. **Consequence:** CINA is specified base‑agnostically, and PFML's 0.734/0.927/0.829 are not inherited without a matched reproduction.
+2. Whether PFML's ±0.003 is std or sem — changes every frontier threshold (§5).
+3. "15 proxies/class on CUB/Cars, 2 on SOP" is taken from the task statement, not independently verified.
+4. The ProxyAnchor constants in §1 (α=32, δ=0.1, proxy lr ×100, batch 180, 1‑epoch warmup) are from memory and must be re‑checked against the primary source before freezing.
+5. PA+DADA's In‑Shop 0.930 has no reported seed count — hence the explicit refusal to claim In‑Shop.
+
+**Sources:** [PFML — CVPR 2025 (CVF)](https://openaccess.thecvf.com/content/CVPR2025/html/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.html) · [PFML — CVPR poster](https://cvpr.thecvf.com/virtual/2025/poster/33305) · [NIR — CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/papers/Roth_Non-Isotropy_Regularization_for_Proxy-Based_Deep_Metric_Learning_CVPR_2022_paper.pdf) · [NIR code](https://github.com/ExplainableML/NonIsotropicProxyDML) · [DADA — AAAI 2024](https://arxiv.org/pdf/2401.00617) · [Proxy Anchor](https://cvlab.postech.ac.kr/research/ProxyAnchor/) · [ooDML generalization study](https://arxiv.org/pdf/2107.09562)
+
+**Note on tooling:** the claude.ai Gmail/Calendar/Drive/IBKR MCP connectors require authorization and are unavailable in this non‑interactive session — irrelevant to this task, but flagged since the harness raised it.
