@@ -4811,3 +4811,18 @@ whitening (`alpha = 1/2`) without identity shrinkage or coordinate-fixed EMA.
 The stable general algorithm lacks the claimed property; the exact special case
 is classical RCA. Full audit:
 `docs/fable_nwml_collision_372_2026-08-05.md`.
+
+### Fourth outcome-only Fable continuation (no numbered candidate)
+
+Fable returned **`NONE`** after a broad primary-literature search. Its sole
+fallback was candidate 371 again: train on half the official training classes,
+then use held-out identity labels to fit linear and nonlinear oracle metrics on
+the other half. This measures closed-set adaptation to those identities, not
+transferable zero-shot headroom; nested splitting only estimates transfer of
+one chosen estimator. No diagnostic or GPU follows.
+
+This pass is not counted as strictly repository-blind. Although filesystem and
+shell tools were absent, the Claude environment surfaced recent Git commit
+subjects, and Fable disclosed seeing the nuisance-whitening rejection title.
+Future passes must run outside the worktree. Full record:
+`docs/fable_repository_blind_fourth_pass_2026-08-05.md`.
