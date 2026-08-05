@@ -150,6 +150,45 @@ https://openaccess.thecvf.com/content/CVPR2026/html/Li_Fixed_Anchors_Are_Not_Eno
 and
 https://openaccess.thecvf.com/content/CVPR2026/papers/Meng_TopoCL_Topological_Contrastive_Learning_for_Medical_Imaging_CVPR_2026_paper.pdf
 
+## Boosting, direct-gradient, and adaptive-training algorithms
+
+**BIER: Boosting Independent Embeddings Robustly, Opitz et al., 2018.** BIER
+splits the final descriptor into an embedding ensemble and trains its learners
+as an online gradient-boosting sequence, reweighting examples from preceding
+learners and encouraging diversity. It evaluates on all four target benchmark
+families without extra deployed parameters. Boosted descriptor blocks,
+sequential residual experts, or “ecological niche” sub-embeddings therefore
+need a distinction stronger than a new diversity penalty.
+
+Primary source: https://arxiv.org/abs/1801.04815
+
+**GOAL, Xuan and Chen, WACV 2023.** GOAL analyzes DML objectives through their
+embedding gradients and directly implements desired gradient combinations even
+when no scalar loss integrates to that field. The paper is image--text
+retrieval rather than the present image-only lane, so it is adjacent rather
+than an exact benchmark collision. It nevertheless occupies “optimize the
+gradient law instead of inventing a loss” as a general contribution. A future
+proposal must supply a distinct field, causal premise, and image-only controls.
+
+Primary source:
+https://openaccess.thecvf.com/content/WACV2023/html/Xuan_Dissecting_Deep_Metric_Learning_Losses_for_Image-Text_Retrieval_WACV_2023_paper.html
+
+**ADroDML, Huai et al., IJCAI 2019.** ADroDML derives a DML generalization
+bound and adaptively learns dropout retention rates instead of fixing them.
+Learned stochastic-depth/dropout schedules or a bound-driven retention
+controller are occupied unless their learned object and bound differ
+materially.
+
+Primary source: https://www.ijcai.org/proceedings/2019/352
+
+Natural-gradient, Fisher--Rao, differential-game, and optimal-control
+optimizers are well-established outside DML. They are not blanket closures for
+a DML-specific update, but the scientific analogy itself supplies no novelty.
+The local critic must reduce the actual parameter update and compare it with
+natural gradient, second-order preconditioning, SAM, gradient surgery, and the
+meta-controller precedents above. Without a verified causal premise and a
+matched-compute optimizer control, a geometry/control label is insufficient.
+
 ## Adjudication rule
 
 These are guardrails, not blanket closures. Similar language does not kill a
