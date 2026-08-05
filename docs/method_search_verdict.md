@@ -5013,3 +5013,26 @@ CUB frontier `0.734` and misses its Cars frontier `0.927`, so it forecasts zero
 two-dataset crossings independently of the formal and novelty failures. Full
 local and independent audit: `docs/fable_ccrb_nearmiss_audit_2026-08-05.md`;
 exact frozen review: `docs/fable_ccrb_review_2026-08-05.txt`.
+
+### Ninth blind continuation: EVPC zero-gradient gallery correction (no numbered candidate)
+
+The corrected-lane proposer returned **`NONE`** after Fable exhausted its
+budget and the identical frozen prompt completed through Claude Opus. Its
+strongest near-miss, Extreme-Value Partition Correction (EVPC), fits a
+generalized Pareto tail to negative proxy scores and tries to extrapolate the
+training partition from `C` classes to deployment gallery size `M`.
+
+The claimed gallery correction is algebraically inert: its stated
+`Z_M = (M/C) Z_tail` gives `log Z_M = log(M/C) + log Z_tail`, so every bit of
+`M` dependence is an additive constant with zero parameter gradient. A
+return-level repair would change the method, leave the unseen-class tail
+unidentified from fitted seen classes, and collide with WEINCE (arXiv
+2606.00262), which already applies online per-anchor extreme-value endpoint
+correction to InfoNCE logits without learned parameters. No verified repository
+measurement supplies the missing tail premise.
+
+The response's broader claim that no all-class run can estimate any unseen
+geometry functional is not accepted as a theorem, and its suggested PFML 2024
+date is corrected by the primary proceedings: PFML is CVPR 2025. Full resolved
+record: `docs/fable_blind_pass9_outcome_2026-08-05.md`. No diagnostic,
+implementation, preregistration, or GPU follows.

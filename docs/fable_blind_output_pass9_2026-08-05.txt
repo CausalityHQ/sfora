@@ -1,0 +1,58 @@
+## NONE
+
+I did not inspect the filesystem, git history, or any repository state; this is cold. I ran the novelty search against primary sources and killed every candidate I generated, including my own strongest one. Per the protocol I return NONE and expose one near-miss.
+
+---
+
+## Why NONE, stated as arithmetic before rhetoric
+
+Chosen lane: **Lane A** (matched 512-D, ResNet-50, ~224px, single-view cosine, 200 epochs). Everything below is Lane A only; I make no use of AdvRF/VAPNet/CRT numbers.
+
+PFML reports CUB 0.734 ± 0.003, Cars 0.927 ± 0.003, SOP 0.829 ± 0.002 over five runs. A five-run mean therefore has SE ≈ 0.003/√5 ≈ 0.0013. A defensible crossing at ~3 SE on a *difference of two* five-run means needs
+
+  Δ ≳ 3·√2·0.0013 ≈ **0.0057 R@1**, i.e. ≥ +0.6 points on CUB.
+
+Every mechanism I could construct supported an argument of the form "this should regularize the seen/unseen gap," which predicts an effect of *unknown sign and magnitude*. That is exactly the regime in which the occupied matched-compute controls — ρ-spectrum regularization, S2SD, Proxy Synthesis, DiVA/MIC, SoftTriple-style multi-proxy (PFML itself already runs 15 proxies/class on CUB/Cars) — reliably reproduce the gain. Shipping a forecast I could not distinguish from those controls would fail the protocol's own falsification requirement, so it is not shippable.
+
+## The structural obstruction that killed the whole family
+
+All candidates died at one place, and I think this is the useful finding:
+
+> **There is no estimator, computable from an all-classes training run, of any functional of the unseen-class geometry.**
+
+The encoder fits every training class by construction. So (a) training-negative statistics are statistics of *memorized* classes, not of fresh classes; (b) simulating an unfit class requires permanent class holdout, i.e. meta-learning, and CUB has only 100 training classes to spend; (c) what remains is a *prior* on unseen-class geometry — and the space of such priors (flatten the spectrum, preserve intra-class variance, synthesize interpolated classes, multi-center proxies, uniformity/alignment) is precisely the occupied set. A novel method must either produce a genuinely unbiased unseen-class estimator (I argue below this is blocked, not merely hard) or introduce a prior outside that list with a derivation predicting ≥0.6 points. I have neither.
+
+Two candidates died on their own algebra before the literature search, which I record only to show the attacks were executed, not as an idea list:
+
+- **Leave-one-class-out stationarity** (penalize the change in ∂L/∂z_i when a random non-target class is masked from the proxy set): for normalized-softmax proxy losses ∂L_i/∂z_i = s·Σ_c(π_c − 1[c=y_i])·∂cos(z_i,p_c)/∂z_i, so masking-invariance is minimized exactly by driving π toward a one-hot. The penalty **is** margin maximization, algebraically, not an alternative to it.
+- **Geodesic path-rigidity** (require f(mix_t(x_a,x_b)) = slerp(f(x_a),f(x_b),t)): imposed over all pairs and recursively over mixtures-of-mixtures, this forces the pre-normalization feature map to be projectively affine on the convex hull of the data — the large-λ limit is a linear model on pixels. It is only safe as a small-λ regularizer, where it is Proxy Synthesis / Metrix territory with the same stated motivation.
+
+---
+
+## Strongest near-miss: Extreme-Value Partition Correction (EVPC)
+
+**The idea.** R@1 is a *maximum* statistic over a gallery of size M (SOP ≈ 6×10⁴, CUB ≈ 5.9×10³), but the training log-partition `log Σ_{c=1}^{C} exp(s⟨z,p_c⟩)` is a plug-in estimate at sample size C ≈ 100–11k. The mismatch lives entirely in the upper tail: M draws produce M·F̄(u) exceedances above level u, not C·F̄(u). So fit a peaks-over-threshold GPD to the per-anchor negative scores a_c = ⟨z,p_c⟩, c ≠ y (threshold u = the (1−k/C) empirical quantile, k = ⌈0.1C⌉, PWM estimator, EMA 0.99 on (σ̂,ξ̂)), and replace the partition function with its M-sample extrapolation:
+
+  Ẑ_M(z) = (M/C)·[ Σ_{a_c ≤ u} e^{s a_c} + k·Ê_GPD e^{s(u+E)} ],  L = −s⟨z,p_y⟩ + log Ẑ_M(z).
+
+Why it survived longer than the others: its flagship hyperparameter M is *fixed by deployment* rather than tuned; it targets the exact statistic R@1 measures; gradients are closed-form; cost is one O(C log C) quantile per anchor with no extra forward pass; deployment is untouched (plain cosine NN). And it is categorically distinct from hard-negative mining — mining reweights *observed* negatives, EVPC penalizes the fitted *upper endpoint* u* = u − σ̂/ξ̂ of the negative-score law, a quantity no observed negative need attain.
+
+**Exact kill (three independent, any one sufficient).**
+
+**(i) The extrapolation has identically zero gradient — proof-level.** Because the tail is fit to the *same* C negatives that appear in the sum, M enters only as a prefactor:
+
+  log Ẑ_M = **log(M/C)** + log[ Σ_{a_c ≤ u} e^{s a_c} + k·Ê ].
+
+`log(M/C)` is a constant in θ. Substituting k → kM/C in the tail term reproduces exactly (M/C)·Ẑ_C, so the same cancellation holds. The method's entire claimed mechanism is an additive constant. Repairing it requires abandoning the sum for a Fisher–Tippett return level, R_M = u + (σ̂/ξ̂)[(M·F̄(u))^{ξ̂} − 1], which does carry real M-dependence — and then (ii) fires.
+
+**(ii) The tail index is non-identifiable on fitted classes.** The descent field on a_c under the base loss is s·π_c ∝ e^{s a_c} — an exponential-in-score shrinkage applied hardest to the exceedances. Under that flow the empirical upper tail becomes light, ξ̂ → strongly negative, and R_M → u* independent of M: the return level saturates and M-dependence dies again. More fundamentally, ξ̂ estimates the tail index of the *seen*-class score law; the deployment quantity is the tail index of the *unseen*-class score law, and after the first epoch no training class is an unbiased draw from the unfit-class population. The repair is permanent class holdout — on CUB, surrendering ≥15 of 100 training classes to buy a ≤0.010 headroom, and the result is a calibration procedure, not a training method.
+
+**(iii) Prior-art collision.** The mechanism class — extreme-value correction of the softmax/InfoNCE top scores from online per-anchor batch statistics, no added parameters — is already published as WEINCE, ["When Softmax Fails at the Top: Extreme-Value Corrections for InfoNCE"](https://arxiv.org/abs/2606.00262). Even the repaired return-level form is one hop from it.
+
+(i) is the load-bearing kill: it is unconditional and does not depend on any empirical premise.
+
+---
+
+One factual note for your records, not a relitigation: the PFML numbers you gave (0.734 / 0.927) match *Potential Field Based Deep Metric Learning*, which one secondary source lists as CVPR **2024**, not 2025. The numbers, seed count, and 15-proxy configuration are as you stated, so the lane arithmetic above is unaffected — but the citation year is worth confirming against the proceedings before it goes into a writeup.
+
+Sources: [WEINCE / extreme-value InfoNCE](https://arxiv.org/abs/2606.00262) · [Potential Field Based DML](https://shubhangb97.github.io/potential_field_DML/) · [Proxy Synthesis (AAAI 2021)](https://arxiv.org/pdf/2103.15454) · [Metrix, mixup for DML (ICLR 2022)](https://arxiv.org/pdf/2106.04990) · [Non-isotropy Regularization (CVPR 2022)](https://openaccess.thecvf.com/content/CVPR2022/papers/Roth_Non-Isotropy_Regularization_for_Proxy-Based_Deep_Metric_Learning_CVPR_2022_paper.pdf)
