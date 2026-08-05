@@ -1,0 +1,26 @@
+Consultation: b5a40f14c63242d2
+Provider: fable (automatic same-prompt Claude Opus fallback permitted by the devbox harness)
+Started: 2026-08-05 UTC
+
+You are the blind proposer in a rigorous method-invention protocol. Do not inspect the local filesystem, git history, repository, prior conversations, or process state. Start cold. Use web/primary literature if available.
+
+Problem: invent a genuinely novel train-time method for zero-shot image similarity learning / deep metric learning. Training identities and evaluation identities are disjoint. Legal targets are CUB-200-2011, Cars196, In-Shop Clothes Retrieval, and Stanford Online Products under standard splits. Use only official training images and identity labels plus ordinary stochastic image augmentation. ImageNet-1K pretrained vision initialization is permitted. Do not use test data, external generated data, text/VLM encoders, extra annotations, transduction, reranking, test-gallery fitting, or contamination-prone external knowledge.
+
+Deployment must be a single model, one view, one fixed-dimensional global descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+There are TWO comparison lanes; they are not interchangeable. Choose one lane for all forecasts and comparisons:
+A) matched cheap lane: ResNet-50, 512-D normalized descriptor, approximately 224px, single view/cosine. Audited published PA+DADA references are CUB 0.729, Cars196 0.921, SOP 0.810, In-Shop 0.930 R@1; DADA reports about 1.06x epoch time and 1.01x memory. A novel method that prospectively and reproducibly beats a strong same-recipe control and the relevant published 512-D reference on two datasets is a valid method result, even if it does not beat the 2048-D absolute horizon.
+B) absolute published CNN lane: ResNet-50 with deployed 2048-D global-average-pooled descriptor, single view/cosine, generally 200 epochs. AdvRF (ICCV 2025) reports CUB 0.766, Cars196 0.949, SOP 0.842 using a training-only ResNet-34/U-Net reconstruction system plus distillation; VAPNet (NeurIPS 2023) reports In-Shop 0.939 using training-only attribute machinery. Both deploy one 2048-D ResNet-50 descriptor. Be explicit about materially different train-time machinery. Crossing these values is required only for an absolute general-SOTA claim in lane B.
+A higher-capacity CRT MiT-B2/128-D In-Shop result of 0.9448 is a separate transformer lane and may not be used as a CNN matched target.
+
+Return exactly ONE concrete mathematical training method, or exactly NONE. Do not give an idea list or diagnostic instead of a method. The method may be a loss, architecture, activation, optimizer/training algorithm, supervision construction, or principled import from any scientific field; do not favor a particular mechanism class.
+
+For a method provide:
+1) executable mathematics with every learned object, gradient path, hyperparameter, schedule, and train/test operation;
+2) one causal zero-shot error mode and proof-level attack on cheaper degeneracies;
+3) an adversarial primary-source novelty search inside and outside DML, with a one-sentence mechanism distinction from each nearest work;
+4) decisive matched-compute controls;
+5) frozen R@1 forecasts on at least two datasets in ONE chosen lane, matched baselines/references, falsification thresholds, and quantitative frontier-crossing reasoning;
+6) training/deployment cost and benchmark risks.
+
+Attack your algebra, identifiability, novelty, and comparison before answering. If a load-bearing claim cannot be defended, return NONE and expose only the strongest near-miss and exact kill reason.
