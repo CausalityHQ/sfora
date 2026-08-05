@@ -1,0 +1,265 @@
+You are the fresh independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows this
+rubric in the same prompt. Use web search and primary literature.
+
+Legal task: zero-shot image similarity learning with disjoint train/test
+identities on CUB-200-2011, Cars196, In-Shop, or SOP. Only official training
+images, identity labels, ordinary augmentation, and ImageNet-1K initialization
+are permitted. Deployment must be one model, one view, one fixed 512-D global
+descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+Matched Lane-A references are ResNet-50/512-D/single-view: PFML CVPR 2025 CUB
+0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002 over five runs;
+PA+DADA In-Shop 0.930 with no reported uncertainty. Do not mix capacity lanes.
+
+Review the frozen CFK proposal without silently repairing, completing, or
+replacing it. The durable provider record begins mid-section because its job
+failed after streaming; treat every unavailable definition as unavailable.
+Return LIVE, DEAD, or UNRESOLVED. Independently check:
+
+1. every definition, symbol, normalization, constraint, limiting case,
+   derivative, clipping/projection path, score expansion, regularizer, and cost;
+2. whether every claimed gauge or anti-degeneracy invariant remains true after
+   all parameter transformations, shrinkage, and bounds actually specified;
+3. whether the claimed causal pressure to suppress within-class factors follows
+   from the complete positive/negative objective, and whether discarded
+   class-specific training parameters rule out memorization or merely move it;
+4. exact mechanism-level prior art, especially Kirchhof et al. ECCV 2022
+   non-isotropic probabilistic proxy DML, L-GM, Fisher-Bingham/Kent directional
+   models, common-principal-component and semi-tied covariance models,
+   heteroscedastic discriminant/metric learning, probabilistic embeddings, and
+   any benchmark-matched DML method with class-conditional anisotropic scores;
+5. whether the common learned frame and per-class diagonal precision are a
+   substantive identifiable constraint or absorbable/gauge-equivalent under a
+   learned embedding and normalized cosine deployment;
+6. whether controls isolate anisotropy, class conditioning, common-frame
+   structure, extra class parameters, generic optimization effects, and the
+   claimed factor-preservation mechanism; verify each control's stated null;
+7. whether the conditional composition with PFML is executable and matched,
+   and whether any frozen forecast actually crosses the proper frontier with
+   decision-relevant uncertainty; and
+8. hidden data, contamination, inference, tuning, selection, recipe, capacity,
+   and benchmark-protocol violations.
+
+Any substantive repair is a different proposal and must not be credited. Cite
+primary sources. Identify the single strongest decisive reason for the verdict
+and flag every internally inconsistent, false, or underdefined frozen operation.
+
+--- FROZEN PROPOSAL BEGINS ---
+
+# Pass 19 frozen proposal — CFK (recovered durable partial)
+
+- Durable consultation: `436e657a8ba74784`
+- Caller attribution: `sfora/emafactorial`
+- Provider path: Fable → same-job Claude Opus fallback
+- Terminal status: failed (exit 1)
+- Recovery note: the durable 100 KB answer window begins mid-section; the provider emitted a clean ending, but its missing prefix is not reconstructed or silently edited here. This file freezes exactly the surviving provider text before local adjudication.
+
+---
+
+z_j-\hat p_{c,j})^2$ (it is for the raw Bingham form $\sum_j b_{c,j}z_j^2$, since $\sum_j z_j^2=1$). I therefore use the multiplicative log-det gauge $\prod_j\omega_{c,j}=1$, which is the correct one for this parameterization; using the additive Bingham gauge here would leave an unfixed global precision scale.
+3. **PA's weight decay acts on $p_c$ *before* normalization**, so it modulates $\|p_c\|$ and hence the effective proxy learning rate through $\partial\hat p/\partial p$. CFK inherits this unchanged rather than "cleaning it up", because changing it changes the baseline.
+
+### 1.7 Implementation (memory-safe; this is the whole kernel)
+
+Never materialize $B\times C\times d$. Expand the quadratic:
+
+$$
+D \;=\; Z^{\odot2}\,\Omega^\top \;-\; 2\,Z\,(\Omega\odot \hat P)^\top \;+\;\mathbf 1\,r^\top,\qquad r_c=\textstyle\sum_j \omega_{c,j}\hat p_{c,j}^2,\qquad \sigma = 1-\tfrac12 D .
+$$
+
+Two GEMMs of shape $(B,d)\times(d,C)$ plus a row broadcast. Memory $O(BC+Cd)$ — identical order to PA's single $Z\hat P^\top$.
+
+### 1.8 Test time
+
+Discard $\{p_c\}$, $\{\tilde u_c\}$. Forward one 224-px center crop, one ResNet-50, take $z\in S^{511}$, retrieve by cosine. **The anisotropy never touches the query, the gallery, or the metric.** Any gain must be a better backbone; that is the falsifiable claim.
+
+---
+
+## 2. Causal zero-shot error mode, and a proof-level attack on the degeneracies
+
+### 2.1 The error mode
+
+Let a latent generative factor $s_j$ (throat colour, plumage morph, bill shape) vary *within* some seen classes. Under any isotropic proxy/softmax score, the loss for a positive is monotone decreasing in $\sum_j(z_j-\hat p_{c,j})^2$ with **equal weight on every $j$**. There is therefore no configuration in which a class is rewarded for *representing* its own internal variation; the only loss-reducing move is to make $z_j$ constant within the class, i.e. to make the backbone insensitive to $s_j$. Suppression is not a failure to learn — it is the optimum.
+
+The zero-shot cost is direct: unseen bird species are separated chiefly by exactly the plumage/colour/pattern factors that are polymorphic *within* many seen species (sexual dimorphism, juvenile/adult morphs). Two hundred epochs of uniform compactness pressure is a sustained, systematic instruction to delete them. CFK removes the pressure specifically on the axes where the deletion is being paid for, and nowhere else.
+
+**Scope limit, stated up front.** CFK can only rescue factors that are *present as within-class variation in the training images*. A factor absent from all seen classes (all 100 seen species white-throated) is unrecoverable by any train-time reweighting; only the ImageNet prior can carry it. I do not claim otherwise. This is why the mechanism predicts an ordered, dataset-dependent footprint (§5) rather than a uniform lift.
+
+### 2.2 Degeneracy 1 — the geometric-mean shortcut (the real one)
+
+**Claim.** With $\tau=\infty$, CFK collapses to a geometric mean and a *single* matching axis suffices.
+
+*Proof.* Fix $z,\hat p_c$, write $r_j=(z_j-\hat p_{c,j})^2$. Minimize $\sum_j e^{u_j}r_j$ s.t. $\sum_j u_j=0$. Lagrangian stationarity gives $e^{u_j}r_j=\text{const}$, i.e. $e^{u_j}\propto r_j^{-1}$, with optimal value $d\big(\prod_j r_j\big)^{1/d}$. So unconstrained CFK replaces $d\cdot\mathrm{AM}(r)$ by $d\cdot\mathrm{GM}(r)$. Since $\mathrm{GM}(r)\to0$ whenever any single $r_j\to0$, a positive sample could achieve $\sigma_c\to1$ by matching the proxy exactly on one coordinate while being arbitrary on the other 511. $\square$
+
+**The attack.** The clip $\|u_c\|_\infty\le2\tau$ makes the bound two-sided and *quantitative*:
+
+$$
+e^{-2\tau}\|z-\hat p_c\|^2\;\le\;D_c(z)\;\le\;e^{2\tau}\|z-\hat p_c\|^2
+\;\Longrightarrow\;
+1-\sigma_c(z)\;\ge\;e^{-2\tau}\big(1-\langle z,\hat p_c\rangle\big).
+$$
+
+With $\tau_{\max}=0.55$, $e^{-2\tau}=1/3$: **the effective margin scale can never fall below $\alpha_{\text{eff}}=\alpha/3=10.7$.** A positive still requires genuine global alignment; the shortcut is bounded, not merely discouraged. (At $\tau=1.1$, $\alpha_{\text{eff}}=3.6$ — which is why the $\tau$-sweep must show an inverted U, and a monotone-increasing sweep falsifies this whole reading; see F7.)
+
+Second, the gauge makes the shortcut self-punishing: any axis discounted by $e^{-2\tau}$ forces compensating amplification elsewhere, and the *negative* term $e^{+\alpha\sigma_c(z^-)}$ then penalizes impostors on precisely those amplified axes. A class cannot buy positive slack without simultaneously sharpening its own impostor rejection.
+
+### 2.3 Degeneracy 2 — precision collapse
+
+Without the gauge, $\omega_c\to0$ drives $\sigma_c\to1$ for every sample and the loss to a constant: total representational collapse, zero backbone gradient. The hard constraint $\prod_j\omega_{c,j}=1$ makes this **exactly unreachable**, not penalized. This is the single most important structural difference from any soft log-det / entropy penalty.
+
+### 2.4 Degeneracy 3 — class memorization
+
+$\tilde u$ adds $Cd$ parameters (SOP: 5.8 M). It could memorize seen-class identity without improving features. Three guards: (i) $\eta_c$ shrinks hardest exactly where $n_c$ is smallest and memorization is easiest; (ii) $\lambda_u$; (iii) structurally, $\tilde u$ is discarded at test, so memorization cannot *help* zero-shot — it can only waste capacity, which shows up as CFK $\le$ PA and is caught by F1. The matched-parameter control C4 (§4) settles whether the gain is anisotropy or just $Cd$ more class parameters.
+
+### 2.5 Symmetry, stated precisely and not overclaimed
+
+$\mathcal L_{\mathrm{PA}}$ is **exactly invariant** under $R\in O(d)$ acting as $W\mapsto RW,\ w_0\mapsto Rw_0,\ p_c\mapsto Rp_c$ (cosines are preserved; $\|RW\|_F=\|W\|_F$ so weight decay is too). $\mathcal L_{\mathrm{CFK}}$ is invariant only under signed permutations $\{\pm1\}^d\rtimes S_d$. CFK therefore removes $d(d-1)/2=130{,}816$ flat directions from the minimizer set.
+
+**I do not use this as the load-bearing argument**, because cosine retrieval is itself rotation-invariant, so basis alignment *per se* cannot change R@1. Two honest caveats: (a) Adam's coordinate-wise preconditioner already breaks $O(d)$ weakly, but in a data- and class-independent way that cannot align coordinates with class-conditional factor structure; (b) if the released PA code places a `BatchNorm1d` on the embedding, the exact-symmetry statement is false and must be restated as approximate. The load-bearing argument is §2.1 + the gradient attenuation of §1.4, which changes *which function* is learned, not merely its coordinates.
+
+---
+
+## 3. Adversarial novelty search — including the one that may kill it
+
+### 3.1 ⚠ Highest-risk adjacency, unresolved
+
+**Kirchhof, Roth, Akata, Kasneci — "A Non-isotropic Probabilistic Take on Proxy-based Deep Metric Learning", ECCV 2022.** ([PDF](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136860423.pdf)) This paper explicitly discusses non-isotropic class distributions on the hypersphere and explicitly discusses Fisher–Bingham/Kent, noting that Fisher–Bingham "use covariance matrices with a quadratic number of parameters and constraints on their eigenvectors, which complicates their training via gradient descent, especially in high dimensions" — i.e. they considered the family and appear to have routed around it.
+
+I exhausted my search budget before I could fetch and read the paper. **This is the single verification that decides CFK's novelty and it must be done first.** My best-effort distinction, conditional on my reading being right: their non-isotropy is a per-class *probabilistic modeling* device for likelihood fit and uncertainty, with per-class free structure; CFK's non-isotropy is a **hard-gauged, bounded reallocation budget diagonal in one basis shared by all classes**, whose purpose is not modeling but the removal of a specific gradient pressure, and which is deleted before deployment. **If their method already learns per-class axis-wise concentration in the shared embedding basis under a total-precision normalization, CFK's remaining novelty is the gauge + shrinkage + control set, which I would not consider sufficient for a novelty claim.** I state that plainly rather than defend it.
+
+### 3.2 Nearest works, one-sentence mechanism distinctions
+
+| Work | Distinction |
+|---|---|
+| **Proxy Anchor** (CVPR 2020) | Isotropic cosine score; CFK is the $\tau>0$ deformation of exactly this objective, and reduces to it identically at $\tau=0$. |
+| **SoftTriple** (ICCV 2019) / **PFML** (potential-field DML, CVPR 2024/25 — [review](https://liner.com/review/potential-field-based-deep-metric-learning)) | Model class *multi-modality* (multiple proxies / a sample-sample potential field) while keeping every score isotropic in $z$; CFK models per-class *anisotropic scale* and is orthogonal to both — which is exactly why I forecast it composing (§5). |
+| **L-GM loss**, Wan et al. (CVPR 2018) ([PDF](https://openaccess.thecvf.com/content_cvpr_2018/papers/Wan_Rethinking_Feature_Distribution_CVPR_2018_paper.pdf)) | The closest *form*: per-class Gaussian covariances with a likelihood regularizer — but on unnormalized Euclidean features for **closed-set** classification, with the log-det as a soft likelihood term that permits global precision drift, no shared-frame claim, no bound, and used at test time. |
+| **Multi-metric LMNN** (Weinberger & Saul) | Full per-class Mahalanobis matrices on *fixed* features for closed-set kNN, deployed at test — impossible here, since test classes are unseen and have no learned metric. |
+| **A single global Mahalanobis $M$** | Provably vacuous for a learned linear embedding ($M$ is absorbed into $W$); only the *class-conditional* version is a real constraint. This is control C5. |
+| **PFE / HIB / DUL** (probabilistic embeddings) | Per-*sample* variance heads for uncertainty, used in the test-time score; CFK's variance is per-*class*, per-*axis*, gauge-fixed, and deleted before test. |
+| **DiVA / MIC** | Add SSL or surrogate-class *branches* and concatenate embedding spaces; CFK adds no branch, no forward pass, and no descriptor dimension — one scalar reweighting inside the existing loss. |
+| **Anti-Collapse Loss** (coding rate, [arXiv 2407.03106](https://arxiv.org/html/2407.03106v1)) | *Maximizes* a global log-det of the embedding covariance; CFK *fixes* a per-class log-det to a constant — an allocation constraint, not an expansion objective. |
+| **VICReg / Barlow Twins / W-MSE** | Global, class-free per-dimension variance floors or decorrelation; CFK's budget is per-class and modulates the supervised pull rather than adding a floor. |
+| **MagFace / AdaCos / adaptive-margin faces** | Learn a *scalar* per class or sample (isotropic); CFK learns a *vector* with a product constraint — the scalar version is control C1. |
+| **Proxy Synthesis / Embedding Expansion / Metrix** ([PS PDF](https://arxiv.org/pdf/2103.15454)) | Synthesize virtual classes/samples to simulate unseen classes; CFK adds no synthetic data and instead changes the loss geometry on real data. |
+
+### 3.3 Outside DML — the actual import, disclosed as prior art
+
+* **Flury, "Common Principal Components in $k$ groups", JASA/Biometrika 1984–86.** The model CFK implicitly fits: $k$ covariance matrices sharing one eigenbasis with group-specific eigenvalues. Flury *fits* the basis to fixed data by ML; CFK *learns the representation* so the model holds, discriminatively.
+* **Gales, "Semi-tied covariance matrices for HMMs", IEEE TSAP 1999; Kumar & Andreou, heteroscedastic LDA / MLLT.** Speech recognition's shared linear transform making every Gaussian diagonal. CFK replaces the linear transform with the whole ResNet-50, replaces EM with an anchor loss, and adds the sphere, the bound, and the shrinkage.
+* **Nonlinear ICA with auxiliary variables** (Hyvärinen–Morioka 2016/17; Hyvärinen–Sasaki–Turner AISTATS 2019; Khemakhem et al. iVAE 2020). These give the theoretical reason to expect transfer: with an auxiliary variable modulating conditionally-factorial sources, $k=1$ (location-only) sufficient statistics are *not* identifying; $k=2$ (location **and** scale) is. Every proxy loss in DML is the $k=1$ case with the class label as auxiliary variable. CFK is the $k=2$ case. I present this as *motivation, not proof* — the identifiability theorems' diversity conditions ($dk+1$ sufficiently varied auxiliary values, exact factorial conditionals) are not verifiable on CUB, and I do not claim they hold.
+* **Kent (1982) / Fisher–Bingham directional statistics** — the exact family $\exp(a_c^\top z+z^\top B_c z)$ that $\sigma_c$ instantiates with $B_c$ diagonal. (Prior deep use is concentrated in $SO(3)$/pose estimation, e.g. Deep Bingham Networks, not retrieval — but see §3.1.)
+
+---
+
+## 4. Decisive matched-compute controls
+
+All at identical epochs, batch, augmentation, optimizer, 5 seeds. Each is designed so that a *specific* mechanism claim dies if the control matches CFK.
+
+| # | Control | Kills what, if it matches CFK |
+|---|---|---|
+| **C0** | PA, identical recipe | Nothing works. Required anchor for all deltas. |
+| **C1** | **Isotropic per-class temperature**: $\sigma_c=\kappa_c\langle z,\hat p_c\rangle$, $\tfrac1C\sum_c\log\kappa_c=\log 1$ (same gauge, scalar instead of vector) | The **anisotropy** claim. Same parameter *type* and same gauge, one number per class instead of 512. This is the single most decisive control. |
+| **C2** | **Per-iteration random frame**: apply $\omega_c$ in a fresh random orthonormal basis $Q_t$ each step | The **common-frame / CPC** claim. (A *fixed* random $Q$ is not a valid control — it is absorbed into $W$; only re-randomization is.) If C2 ≈ CFK, CFK is noise regularization. |
+| **C3** | **Per-sample random index**: draw $\omega$ from a random row of the table per sample | The **class-conditionality** claim. (A fixed permutation of class indices is also absorbed and is not a valid control.) |
+| **C4** | **SoftTriple $K{=}2$**, i.e. PA with 2 proxies/class — **exactly matched added parameters ($Cd$)** | The claim that the gain is anisotropy rather than added class capacity. |
+| **C5** | Class-*independent* $\omega_c\equiv\omega$ | Sanity: must return baseline to within seed noise (it is absorbable into $W$). If it doesn't, the implementation is wrong. |
+| **C6** | CFK-A (anneal $\tau\!\to\!0$ over epochs 180–190) | Separates "training-time basin selection" from "train/test objective mismatch". |
+| **C7** | $\eta_c\in\{0,\ 8/(8{+}n_c),\ 1\}$ | Whether the shrinkage is doing anything; $\eta\!\equiv\!1$ must equal C0 exactly. |
+| **C8** | $\tau_{\max}\in\{0,0.28,0.55,1.1\}$ | The budget reading (predicts inverted U, §2.2). |
+
+**Mechanism fingerprints** (measurements, not claims). On *training* classes: joint-diagonality index $\Delta=\sum_c\|\mathrm{offdiag}(\Sigma_c)\|_F^2/\sum_c\|\Sigma_c\|_F^2$. On *test* classes: participation ratio $\mathrm{PR}=(\sum_i\lambda_i)^2/\sum_i\lambda_i^2$ of the embedding covariance. Prediction: CFK lowers $\Delta$ and raises test PR relative to C0; C1/C2/C3 do neither.
+
+---
+
+## 5. Frozen forecasts, falsification thresholds, frontier arithmetic
+
+**Lane A. ResNet-50 / 512-D / 224 px / 200 epochs / single view / cosine. 5 seeds, mean ± SD. Frozen 2026-08-05.**
+
+### 5.1 Reproduced baselines (my priors; these are predictions too)
+
+| | CUB | Cars196 | SOP | In-Shop |
+|---|---|---|---|---|
+| PA (C0) | 0.692 ± 0.004 | 0.879 ± 0.005 | 0.797 ± 0.002 | 0.912 ± 0.002 |
+| SoftTriple $K{=}2$ (C4) | 0.697 ± 0.004 | 0.884 ± 0.005 | — | — |
+
+### 5.2 CFK on the PA base — fully specified, no source ambiguity
+
+| | CUB | Cars196 | SOP | In-Shop |
+|---|---|---|---|---|
+| **CFK** | **0.723** [0.710, 0.735] | **0.903** [0.891, 0.913] | **0.808** [0.801, 0.814] | **0.925** [0.919, 0.930] |
+| Δ vs PA | +0.031 | +0.024 | +0.011 | +0.013 |
+
+Ordering CUB > Cars > In-Shop > SOP is a *mechanism fingerprint*, not a hedge: it tracks within-class factor richness and $n_c$. If the observed ordering is inverted (SOP gains most), the §2.1 story is wrong even if R@1 improves.
+
+### 5.3 CFK composed with a reproduced multi-proxy/potential-field base — **conditional**
+
+Conditional on my PFML reproduction landing within ±0.003 of the published CUB 0.734 / Cars 0.927 / SOP 0.829. **If the reproduction misses, this row is void and I report only §5.2** — I will not inherit a published frontier under a changed recipe.
+
+| | CUB | Cars196 | SOP |
+|---|---|---|---|
+| **CFK + PFML** | **0.745** [0.726, 0.760] | **0.932** [0.918, 0.941] | **0.833** [0.827, 0.839] |
+
+Gains are forecast **sub-additive** (+0.011 on CUB vs +0.031 on PA): multi-proxy already absorbs some intra-class structure as multimodality.
+
+### 5.4 Frontier-crossing arithmetic, explicit
+
+Clean cross := CFK mean > reference mean + 2×(reference SD).
+
+| dataset | reference | threshold | forecast | margin | **P(clean cross)** |
+|---|---|---|---|---|---|
+| CUB | PFML 0.734 ± 0.003 | 0.740 | 0.745 | +0.005 | **0.45** |
+| Cars196 | PFML 0.927 ± 0.003 | 0.933 | 0.932 | −0.001 | **0.33** |
+| SOP | PFML 0.829 ± 0.002 | 0.833 | 0.833 | 0.000 | **0.30** |
+| In-Shop | PA+DADA 0.930, **SD unreported** | undecidable | 0.925 | −0.005 | **~0** |
+
+P(≥1 clean cross among CUB/Cars/SOP) ≈ **0.62**; P(≥2) ≈ **0.22**. I state this rather than dress it up: **CFK on the PA base alone does not cross the Lane A frontier anywhere**, and even composed the most likely single outcome is one clean cross on CUB. The In-Shop comparison against PA+DADA is formally undecidable at ±0.005 without their seed variance, and I will report it as undecidable rather than as a loss or a win.
+
+### 5.5 Pre-registered falsification thresholds
+
+* **F1 (kill).** CFK − PA on CUB < +0.010 (5 seeds, paired) ⇒ the mechanism is not operative; the method fails.
+* **F2 (kill the anisotropy claim).** C1 within 0.005 of CFK on CUB ⇒ a scalar per-class temperature suffices; CFK is not about anisotropy.
+* **F3 (kill the common-frame claim).** C2 within 0.005 of CFK ⇒ CFK is noise regularization; report it as such.
+* **F4 (kill the mechanism attribution).** C4 ≥ CFK − 0.005 on CUB ⇒ indistinguishable from $Cd$ extra class parameters.
+* **F5.** $\Delta$ does not fall ≥15% relative vs. C0 ⇒ the CPC mechanism is not happening; any R@1 gain has a different cause and must be reported as unexplained.
+* **F6.** Test-class PR does not increase vs. C0 ⇒ the factor-preservation story is falsified.
+* **F7.** The $\tau$ sweep is monotone or flat rather than inverted-U ⇒ the §2.2 budget analysis is wrong.
+* **F8.** C5 differs from C0 by >0.003 ⇒ implementation bug, halt.
+
+---
+
+## 6. Cost, and benchmark / contamination risk
+
+**Training.** Added parameters $Cd$: CUB 51 k, Cars 50 k, In-Shop 2.1 M, SOP 5.8 M (a sparse table, batch-sparse access). Added FLOPs: two extra $(B,d)\times(d,C)$ GEMMs. At SOP's worst case ($B{=}180$, $C{=}11{,}318$, $d{=}512$) that is ≈2 GFLOP/step against ResNet-50's ≈2.2 TFLOP/step forward+backward — **<0.1 %**. Forecast **≤1.02× epoch time, ≤1.05× peak memory** vs. PA. No extra forward pass, no teacher, no second network, no extra views. For contrast, AdvRF's train-time ResNet-34/U-Net reconstruction + distillation is a materially larger training system, and DiVA-style multi-branch methods add branches; CFK adds two GEMMs and one table.
+
+**Deployment.** Byte-identical to the baseline: one ResNet-50, one 224-px view, one 512-D unit vector, cosine NN. Zero inference overhead, zero index change.
+
+**Risks.**
+
+1. **Seed noise.** All four benchmarks resolve <0.005 poorly. Everything above is 5 seeds with SD; I will not report single-seed numbers, and the In-Shop reference's missing variance is a stated limit on what can be concluded there.
+2. **ImageNet-1K overlap.** CUB and Cars overlap semantically with ImageNet-1K. This is lane-standard and shared by every reference, and CFK adds no new external data. **But CFK's mechanism specifically preserves factors already latent in the initialization**, so it may benefit from that overlap *more* than the baselines do — a real confound for the mechanism claim, not for lane legality. Control: rerun CUB from random init (both C0 and CFK, extended schedule) and confirm the delta persists directionally. If it vanishes, the honest description becomes "CFK retards catastrophic forgetting of pretrained factors", which is a different and weaker claim.
+3. **Hyperparameter contamination.** $\tau,\eta,\lambda_u$ will be selected on a **class-disjoint validation split carved from the training classes** (last 20 % of training identities held out as pseudo-unseen), then the model retrained on the full training split. Never on the test split. This is a common silent violation in DML and I am pre-committing against it.
+4. **No transduction anywhere.** $p_c,\tilde u_c$ are discarded; no test-gallery statistics, no reranking, no query expansion, no multi-crop.
+5. **Novelty risk dominates empirical risk.** See §3.1.
+
+---
+
+## 7. Unresolved source ambiguities
+
+1. **§3.1 — Kirchhof et al., ECCV 2022.** Unread within budget. Decides the novelty claim. Must be resolved before anything else.
+2. **PFML.** The prompt dates it CVPR 2025; my search returns CVPR 2024 ("Potential Field based deep Metric Learning") with matching numbers (73.4 / 92.7 / 82.9, ResNet-50). Venue/year discrepancy unresolved. Its exact objective, potential-field parameterization, proxy count schedule, optimizer, LR schedule, batch composition, and whether it uses GAP+GMP concat or a BN'd embedding are unknown to me. **§5.3 is void without a matched reproduction.**
+3. **PA+DADA (AAAI 2024), In-Shop 0.930** — seeds and variance unreported; the In-Shop comparison is undecidable, not merely uncertain.
+4. **Proxy Anchor recipe.** Every item in §0 marked "my reading" must be read out of the released code; in particular **whether a `BatchNorm1d` sits on the 512-D embedding**, which decides whether §2.5's exact-$O(d)$ statement holds or must be weakened to approximate.
+5. **$n_c$ for the shrinkage** is taken from the official train split image counts; if a dataset's per-class counts are non-standard in some released split, $\eta_c$ changes and must be re-reported.
+
+---
+
+**Summary of what I am and am not claiming.** I am claiming: a strict, exactly-reducing one-parameter deformation of Proxy Anchor that converts $Cd$ new parameters into a hard-gauged per-class precision *reallocation* in a single shared learned basis; a specific, gradient-level causal account of why that removes the standing pressure to delete unseen-class-discriminative factors; a proof that the cheapest degeneracy (geometric-mean single-axis matching) is bounded rather than merely discouraged; a control set in which four separate claims can each die independently; and a cost profile of ≤1.02× training with an unchanged deployment. I am not claiming a confident frontier cross — P(≥1 clean cross) ≈ 0.62, P(≥2) ≈ 0.22 — and I am not claiming novelty is settled until §3.1 is read.
+
+**Sources:** [Proxy Anchor (CVPR 2020)](https://openaccess.thecvf.com/content_CVPR_2020/papers/Kim_Proxy_Anchor_Loss_for_Deep_Metric_Learning_CVPR_2020_paper.pdf) · [Proxy Anchor code](https://github.com/sung-yeon-kim/Proxy-Anchor-CVPR2020) · [Non-isotropic Probabilistic Proxy DML (ECCV 2022)](https://www.ecva.net/papers/eccv_2022/papers_ECCV/papers/136860423.pdf) · [L-GM loss (CVPR 2018)](https://openaccess.thecvf.com/content_cvpr_2018/papers/Wan_Rethinking_Feature_Distribution_CVPR_2018_paper.pdf) · [L-GM code](https://github.com/WeitaoVan/L-GM-loss) · [PFML review](https://liner.com/review/potential-field-based-deep-metric-learning) · [Anti-Collapse Loss](https://arxiv.org/html/2407.03106v1) · [Proxy Synthesis](https://arxiv.org/pdf/2103.15454) · [PA+DADA (AAAI 2024)](https://arxiv.org/html/2401.00617v1) · [Kent distribution](https://en.wikipedia.org/wiki/Kent_distribution)
+
+
+--- FROZEN PROPOSAL ENDS ---
+
