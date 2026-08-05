@@ -1,0 +1,278 @@
+## One proposal: Cross-Identity Tangent-Transport Robustness
+
+I choose **Lane A only**: ImageNet-1K initialized ResNet-50, 512-D normalized descriptor, 224-pixel input, 200-equivalent-epoch training, single-view cosine retrieval.
+
+The proposed method, **Cross-Identity Tangent-Transport Robustness (CITTR)**, exposes every training identity to augmentation-induced feature directions observed on other identities. It transports those directions exactly on the descriptor sphere and requires a proxy margin against the worst transported direction.
+
+### 1. Executable method
+
+#### Model and base loss
+
+Let
+
+\[
+z_\theta(x)=
+\frac{W\,\mathrm{GAP}(\mathrm{R50}_\theta(x))}
+{\|W\,\mathrm{GAP}(\mathrm{R50}_\theta(x))\|_2}
+\in \mathbb S^{511},
+\]
+
+where \(W\in\mathbb R^{512\times2048}\) is learned. Each training class \(c\) has learned raw proxies \(\tilde p_{cm}\), normalized before use:
+
+\[
+p_{cm}=\tilde p_{cm}/\|\tilde p_{cm}\|_2.
+\]
+
+Use \(M=15\) proxies per class on CUB/Cars and \(M=2\) on SOP, matching PFML.
+
+The base objective is PFML’s potential energy. For chord distance \(d(a,b)=\|a-b\|_2\), \(\delta=0.2\), \(\alpha=4\), and numerical floor \(\eta=10^{-6}\),
+
+\[
+\phi_+(d)=
+\begin{cases}
+-1,&d\leq\delta,\\
+-(\delta/d)^\alpha,&d>\delta,
+\end{cases}
+\qquad
+\phi_-(d)=
+\begin{cases}
+(\delta/\max(d,\eta))^\alpha,&d<\delta,\\
+1,&d\geq\delta.
+\end{cases}
+\]
+
+For a target \(r\) with label \(c\), its field energy is the sum of \(\phi_+\) from same-class batch embeddings/proxies and \(\phi_-\) from different-class embeddings/proxies, excluding self-interaction. Average this over batch embeddings and proxies belonging to identities present in the batch. This is the normalized, numerically clamped form of the published PFML objective; the same implementation is used in every control. PFML’s distinctive decaying interactions and reported frontier are documented in the [CVPR 2025 primary paper](https://openaccess.thecvf.com/content/CVPR2025/html/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.html).
+
+#### Paired batch
+
+Sample 16 identities and two distinct images per identity. Draw two independent ordinary augmentations of every image, giving 64 network views:
+
+- random resized crop to \(224^2\), scale \([0.16,1]\), aspect ratio \([3/4,4/3]\);
+- horizontal flip with probability \(0.5\);
+- color jitter \(0.2\) for brightness, contrast, saturation and hue \(0.05\), applied with probability \(0.8\);
+- grayscale with probability \(0.1\).
+
+For original image \(i\), denote its two embeddings by \(a_i,z_i^+\). Randomly swap their order with probability \(1/2\).
+
+#### Donor tangent
+
+For unit \(a,b\), define the spherical logarithm
+
+\[
+\operatorname{Log}_{a}(b)=
+\frac{\vartheta}{\sqrt{1-(a^\top b)^2}}
+\left(b-(a^\top b)a\right),
+\qquad
+\vartheta=\arccos(\operatorname{clip}(a^\top b,-1+10^{-5},1-10^{-5})).
+\]
+
+Compute donor direction entirely under stop-gradient:
+
+\[
+u_i=\operatorname{Log}_{\operatorname{sg}(a_i)}
+                    (\operatorname{sg}(z_i^+)),\qquad
+\hat u_i=u_i/\|u_i\|.
+\]
+
+Let
+
+\[
+\epsilon_i=\operatorname{clip}(\|u_i\|,0.05,0.20)\ \text{radians}.
+\]
+
+If \(\|u_i\|<10^{-3}\), replace \(\hat u_i\) by
+
+\[
+\frac{(I-a_i a_i^\top)r_i}
+{\|(I-a_i a_i^\top)r_i\|},
+\quad r_i\sim\mathcal N(0,I),
+\]
+
+using a stateless seed derived from epoch and image index. Thus, shrinking the measured tangent cannot turn the intervention off.
+
+For each live receiver embedding \(z_j\), sample \(K=4\) donors from different identities. If stopped donor \(a_i\) and stopped receiver \(b_j=\operatorname{sg}(z_j)\) satisfy \(a_i^\top b_j\leq-0.95\), resample the donor. Parallel-transport the donor tangent along the shortest spherical geodesic:
+
+\[
+v_{i\to j}
+=
+\hat u_i-
+\frac{\hat u_i^\top b_j}{1+a_i^\top b_j}(a_i+b_j).
+\]
+
+Renormalize \(v_{i\to j}\); all quantities in this transport are stopped. Construct a live synthetic receiver descriptor using the spherical exponential map:
+
+\[
+q_{j,i}=
+\operatorname{normalize}\!\left[
+\cos(\epsilon_i)z_j+
+\sin(\epsilon_i)\operatorname{sg}(v_{i\to j})
+\right].
+\]
+
+No image, decoder, generator, second backbone, or learned augmentation object is created.
+
+#### Worst-transported margin
+
+For a unit descriptor \(q\) of class \(y\),
+
+\[
+h(q,y)=
+\left[
+\gamma+
+\max_{\substack{c\neq y\\m}}q^\top p_{cm}
+-\max_m q^\top p_{ym}
+\right]_+,
+\qquad \gamma=0.05.
+\]
+
+CITTR is
+
+\[
+L_{\mathrm{CITTR}}
+=
+\frac1{64}\sum_j
+\max_{i\in D_j}h(q_{j,i},y_j),
+\qquad |D_j|=4,
+\]
+
+and the complete loss is
+
+\[
+L=L_{\mathrm{PFML}}+\lambda(t)L_{\mathrm{CITTR}},
+\]
+
+with
+
+\[
+\lambda(t)=
+\begin{cases}
+0,&t<20,\\
+0.25(t-20)/20,&20\le t<40,\\
+0.25,&40\le t\le200.
+\end{cases}
+\]
+
+Gradient paths are unambiguous:
+
+- \(L_{\mathrm{PFML}}\) updates the backbone, projection and proxies through all 64 real views.
+- \(L_{\mathrm{CITTR}}\) updates the receiver backbone/projection and selected positive/negative proxies.
+- It sends no gradient through donor embeddings, tangent estimation, transport, donor selection, or radius.
+- The outer and inner maxima use their ordinary subgradients; ties select the lowest indexed item.
+
+Train with Adam, \((\beta_1,\beta_2)=(0.9,0.999)\), network learning rate \(5\cdot10^{-4}\), proxy learning rate \(5\cdot10^{-2}\), network \(L_2\) decay \(10^{-4}\), no proxy decay, five-epoch linear warm-up, then cosine decay to \(5\cdot10^{-6}\). Do not select checkpoints: deploy epoch 200.
+
+One equivalent epoch is exactly \(N\) ResNet image forwards. Because each original contributes two views, an equivalent epoch samples \(N/2\) originals; total backbone compute remains \(200N\) views.
+
+#### Test operation
+
+Discard proxies and all CITTR machinery. Resize the shorter side to 256, center-crop \(224^2\), compute one 512-D descriptor, and perform ordinary cosine nearest-neighbour retrieval. No test-time augmentation, fitting, reranking, or gallery processing.
+
+### 2. Causal error mode and degeneracy attack
+
+The proposed causal error is **identity-conditional nuisance support**: each training identity exposes only a sparse set of pose, crop, lighting and background changes. A metric learner can therefore treat a variation seen only in identity \(c\) as evidence for \(c\), even though the same variation occurs independently of identity at test time. Same-class covariance augmentation does not directly break this association because it estimates variation from the identity whose shortcut is being learned.
+
+CITTR breaks that association by applying each observed augmentation tangent to receivers with different labels.
+
+For any selected donor direction \(v\),
+
+\[
+q=\cos\epsilon\,z+\sin\epsilon\,v.
+\]
+
+If \(h(q,y)=0\), then for every negative proxy \(p_n\),
+
+\[
+q^\top p_y^\star-q^\top p_n\geq\gamma
+\]
+
+for some positive proxy \(p_y^\star\). Expanding,
+
+\[
+\cos\epsilon\,z^\top(p_y^\star-p_n)
++
+\sin\epsilon\,v^\top(p_y^\star-p_n)
+\geq\gamma.
+\]
+
+Because the outer loss is the maximum of non-negative hinges, zero CITTR loss certifies this inequality for **every sampled cross-identity tangent**, not merely their average. This is an exact sampled-direction certificate, not a claimed bound on unobserved test transformations.
+
+The cheapest shortcuts are blocked as follows:
+
+- **Descriptor collapse:** If differently labelled descriptors coincide, PFML’s \(\phi_-(d)\rightarrow\infty\) as \(d\rightarrow0\); the clamped implementation gives an enormous finite loss. Collapse cannot minimize the objective.
+- **Proxy escape:** all proxies are normalized, so norms cannot absorb the margin.
+- **Tangent shrinkage:** \(\epsilon\ge0.05\); a zero measured tangent triggers an isotropic tangent intervention instead of removing the loss.
+- **Corrupting donors to ease receivers:** donor embeddings and all transport calculations are stopped for CITTR.
+- **One easy transferred direction:** the maximum over four donors requires all four hinges to be small.
+- **Hiding nuisance in a proxy-orthogonal subspace:** this is not a damaging shortcut. It removes that direction from identity decisions, which is precisely the desired factorization; PFML still forces the remaining subspace to support retrieval.
+
+The proof does not establish coverage of real test nuisances. If ordinary augmentation tangents are unrelated to natural intra-class changes, the causal premise fails.
+
+### 3. Frozen novelty search
+
+Searches through 2026-08-05 covered combinations of *parallel transport, augmentation tangent, feature augmentation, cross-class variation, spherical embedding, DML, manifold robustness,* and *tangent propagation*. Negative search evidence cannot prove novelty, but these were the nearest primary works:
+
+| Nearest work | Mechanism distinction |
+|---|---|
+| [PFML, CVPR 2025](https://openaccess.thecvf.com/content/CVPR2025/html/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.html) | PFML changes distance-dependent sample/proxy forces; it does not observe augmentation tangents or transport them between identities. |
+| [DADA, AAAI 2024](https://ojs.aaai.org/index.php/AAAI/article/view/29400) | DADA aligns aggregate sample and proxy distributions; CITTR certifies per-receiver margins under cross-identity tangent interventions. |
+| [IAA, 2022](https://arxiv.org/abs/2211.16264) | IAA samples class-wise Gaussian covariance estimates, corrected from neighboring classes; CITTR uses paired augmentation displacements and exact point-to-point spherical transport without covariance estimation. |
+| [Meta Variance Transfer, ICML 2020](https://proceedings.mlr.press/v119/park20b.html) | MVT meta-learns which class covariance variations to transfer for few-shot classification; CITTR has no generator/meta-learner and optimizes the worst transported, augmentation-grounded direction. |
+| [Embedding Expansion, CVPR 2020](https://openaccess.thecvf.com/content_CVPR_2020/html/Ko_Embedding_Expansion_Augmentation_in_Embedding_Space_for_Deep_Metric_Learning_CVPR_2020_paper.html) | Embedding Expansion combines existing feature points for hard mining; it does not represent or geometrically transport a transformation tangent. |
+| [Hyperbolic Feature Augmentation, NeurIPS 2022](https://proceedings.neurips.cc/paper_files/paper/2022/hash/de7858e3e7f9f0f7b2c7bfdc86f6d928-Abstract-Conference.html) | HFA uses parallel transport to sample fitted wrapped-normal class distributions in hyperbolic space; CITTR transports observed paired augmentation tangents across labels on the deployed cosine sphere. |
+| [Manifold Mixup, ICML 2019](https://proceedings.mlr.press/v97/verma19a.html) | Manifold Mixup interpolates examples and soft labels; CITTR preserves the receiver’s hard identity while applying a tangent intervention. |
+| [Cross-Class Feature Augmentation, AAAI 2024](https://ojs.aaai.org/index.php/AAAI/article/view/29216) | CCFA uses adversarial directions from an old classifier to populate replay classes in continual learning; CITTR uses augmentation-derived directions and no old task/model. |
+| [Neural Frames, 2022](https://arxiv.org/abs/2211.10558) and [Kernel Theory of Augmentation, 2018](https://arxiv.org/abs/1803.06084) | These analyze augmentation tangents and induced regularization; neither constructs cross-identity transported descriptors optimized by a worst-case metric margin. |
+| [SAM, 2020](https://arxiv.org/abs/2010.01412) | SAM perturbs model parameters toward loss sharpness; CITTR perturbs descriptors along empirically observed, geometrically transported nuisance directions. |
+
+The apparently unoccupied conjunction is therefore: **paired image-augmentation tangent → exact spherical parallel transport to a different identity → fixed-radius descriptor intervention → worst-donor proxy-margin training**. The broad themes of feature augmentation and variation transfer are emphatically occupied.
+
+### 4. Decisive controls
+
+Every control uses the same initialization, batch identities, 64 image forwards, optimizer steps, augmentation draws, PFML loss, proxy counts and five paired seeds.
+
+1. **Paired-view PFML:** removes \(L_{\mathrm{CITTR}}\). This measures the complete method’s incremental value.
+2. **Random tangent:** replace transported donors by isotropic tangent vectors with identical radii and hard-max selection. If this ties CITTR, the mechanism is generic spherical robustness.
+3. **Raw Euclidean copy:** use \(\operatorname{normalize}(z_j+\epsilon\,\operatorname{sg}(z_i^+-a_i))\). This isolates exact parallel transport from ordinary feature-noise transfer.
+4. **IAA-style covariance directions:** use class-covariance samples at the same radii and \(K\), without extra image forwards. This distinguishes augmentation-grounded transport from occupied variance augmentation.
+5. **Same-identity donors:** perturb each receiver only with its own tangent. This distinguishes cross-identity support expansion from standard consistency/tangent propagation.
+6. **Mean rather than worst donor:** replace \(\max_i h\) by \(K^{-1}\sum_i h\). This tests whether sampled robust coverage, rather than simply more loss terms, is causal.
+7. **Wall-clock-matched PFML:** let PFML take extra updates until it consumes CITTR’s measured training time.
+
+The mechanism is falsified if CITTR fails to exceed both random-tangent and raw-copy controls by at least 0.002 mean R@1 averaged over the three datasets, even if it happens to beat PFML.
+
+### 5. Frozen Lane-A forecasts
+
+These are predictions, not measured results. Values are mean R@1 over five runs; uncertainties are forecast run-to-run standard deviations.
+
+| Dataset | Audited PFML frontier | Matched paired-view PFML forecast | CITTR forecast | Frontier arithmetic |
+|---|---:|---:|---:|---:|
+| CUB | \(0.734\pm0.003\) | \(0.732\pm0.004\) | **\(0.740\pm0.004\)** | \(0.740-0.734=+0.006\) |
+| Cars196 | \(0.927\pm0.003\) | \(0.925\pm0.003\) | **\(0.932\pm0.003\)** | \(0.932-0.927=+0.005\) |
+| SOP | \(0.829\pm0.002\) | \(0.827\pm0.002\) | **\(0.834\pm0.002\)** | \(0.834-0.829=+0.005\) |
+
+Combined forecast/reference one-sigma uncertainties are approximately 0.0050, 0.0042 and 0.0028 respectively. Thus the predicted crossings are only about \(1.2\sigma\), \(1.2\sigma\), and \(1.8\sigma\); CUB/Cars crossings are particularly uncertain.
+
+Predeclared failure thresholds:
+
+- practical failure: gain over paired-view PFML below 0.004 CUB, 0.003 Cars, or 0.003 SOP;
+- frontier failure: five-seed mean not above 0.734, 0.927, or 0.829 respectively;
+- strong crossing: mean above 0.737, 0.930, or 0.831, i.e. one reported PFML standard deviation beyond its mean;
+- causal failure: no advantage over the random-tangent/raw-copy controls under the rule above.
+
+I make no In-Shop forecast because the strongest supplied matched reference uses PA+DADA rather than an audited PFML reproduction; adding an uncalibrated number would weaken the frozen comparison.
+
+### 6. Cost and risks
+
+Training retains one ResNet-50. Relative to paired-view PFML, CITTR adds \(64K\) synthetic 512-D vectors and their proxy logits. Expected cost is roughly 1.04–1.08× epoch time and 1.05–1.10× peak memory, with SOP at the high end because it has about 45,000 proxies. Relative to ordinary one-view-per-image PFML, total backbone FLOPs remain matched at \(200N\) views, although only half as many distinct originals appear per equivalent epoch. Deployment cost and descriptor storage are exactly unchanged.
+
+Main scientific risks:
+
+- augmentation tangents may primarily encode crop artifacts, not test-time pose or appearance factors;
+- transporting a local direction between distant identities assumes more shared nuisance structure than birds, cars, and products may possess;
+- the fixed minimum radius can over-regularize already invariant embeddings;
+- the hard maximum can have noisy proxy-switching gradients;
+- correlated paired views reduce distinct-image diversity per update;
+- improvements may come entirely from generic angular margin robustness, which the random-tangent control would expose;
+- PFML reproduction differences of a few tenths of a point are large relative to the forecast frontier gaps.
+
+Contamination control must be mechanical: accept only hashes from each benchmark’s official training split, never instantiate test images during development, tune at most on an identity-disjoint split made solely from official training identities, freeze all choices before final retraining, and evaluate the untouched test split once. ImageNet-1K initialization is the only external source and is used solely because it is explicitly permitted.
