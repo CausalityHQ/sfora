@@ -5069,3 +5069,38 @@ occupy that mechanism neighborhood. The narrow analytic train-only wrapper is
 not an evidence-backed new supervision relation. Full corrected audit:
 `docs/fable_blind_pass11_outcome_2026-08-05.md`. No implementation or GPU
 follows.
+
+## 376. Tied-Mode Proxies: permutation invariance and class-group shortcut
+
+**DEAD at Gates 1 and 2/formal audit; no preregistration, implementation, or
+GPU.** A constructive Fable proposer returned TMP, parameterizing each
+multi-proxy as `normalize(q_c + r_k + epsilon_ck)` with norm-budgeted mode
+offsets shared across all training classes. A fresh independent Fable reviewer
+returned LIVE and found no exact prior instance, but its own audit invalidated
+the load-bearing mechanism.
+
+LSE pooling observes an unordered proxy set and supplies no cross-class
+correspondence for mode index `k`; balanced class-specific permutations have
+identical loss. Worse, classes can each use one offset and distribute themselves
+roughly evenly across `K` offsets. This satisfies the global usage penalty and
+uses `r_k` as coarse class-group separators, improving seen-class margins while
+encoding no within-class transformation. The claimed class-independent mode
+response is therefore not forced. The frozen mechanism audit is model-relative,
+does not define the free-proxy control's mode partition, and cannot turn a
+post-hoc signature into an exclusion proof. Its residual-margin bound also
+omits the second class's residual and is low by about 2x.
+
+Gate 1 independently fails. Verified In-Shop fragmentation is reproducible but
+aligned mainly with acquisition series; its association with retrieval became
+causally unidentified after partner exclusion. No audited measurement shows
+shared pose/view displacement directions causing corrected retrieval errors.
+Gate 2 is crowded by MIC, FATTEN, DAS Memorized Transformation Shifting,
+GroupFace, and tied-factor/PLDA models of shared within-identity variation. The
+exact proxy wrapper is narrower, but it supplies no new observation that aligns
+the shared factors. A missing budgeted-but-untied control also means the frozen
+rule could misattribute ordinary norm regularization to tying.
+
+Full frozen proposal, independent LIVE review, and local resolution:
+`docs/fable_tmp_proposal_pass12_2026-08-05.md`,
+`docs/fable_tmp_review_2026-08-05.md`, and
+`docs/fable_tmp_local_audit_2026-08-05.md`.
