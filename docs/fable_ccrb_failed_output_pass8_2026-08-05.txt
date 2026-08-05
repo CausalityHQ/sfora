@@ -1,0 +1,48 @@
+Consultation: b5a40f14c63242d2
+Provider requested: fable; Fable failed and same-prompt Claude Opus fallback also exited 1 after producing the partial answer below
+Harness final status: failed
+
+API Error: Internal server error
+I'll work this cold, and do a real primary-source check before committing to an answer.## Verdict: **NONE**
+
+I could not defend a load-bearing claim. Below is only the strongest near-miss and the exact kill.
+
+---
+
+## Strongest near-miss: Class-Conditional Rank Barrier (CCRB)
+
+Lane A (ResNet-50, 512-D, 224px, one view, cosine). Encoder $u=W\phi_\theta(x)\in\mathbb R^{512}$, $z=u/\|u\|$; ProxyAnchor $\mathcal L_{PA}$ unchanged.
+
+**Within-class second moment**, pooled over the $C_b$ classes in a batch, then EMA'd so the estimate is not rank-starved ($B=128 \Rightarrow \operatorname{rank}\le B-C_b\approx 96 \ll 512$):
+
+$$\Sigma_w^{(t)}=\tfrac{1}{B-C_b}\sum_c\sum_{i\in I_c}(z_i-\bar z_c)(z_i-\bar z_c)^\top,\qquad \tilde\Sigma=(1-m)\,\mathrm{sg}[\bar\Sigma]+m\,\Sigma_w^{(t)},\ m{=}0.05$$
+
+**Scale-invariant spectral barrier** (trace-normalized so it reshapes the spectrum without inflating total intra-class spread, which would fight $\mathcal L_{PA}$ and retrieval compactness):
+
+$$\hat\Sigma=\frac{d\,\tilde\Sigma}{\operatorname{tr}\tilde\Sigma},\qquad \boxed{\ \mathcal L_{\text{rank}}=\frac{\kappa}{d}\operatorname{tr}\big(\hat\Sigma+\kappa I\big)^{-1}=\frac{\kappa}{d}\sum_i\frac{1}{\hat\lambda_i+\kappa}\ }\quad \kappa{=}0.5$$
+
+Bounded in $[\kappa/(1{+}\kappa),\,1]$; it literally reads "fraction of dead directions." Cholesky solve on $512^2$, $\sim\!5\times10^7$ FLOPs vs $\sim\!5\times10^{11}$ for the batch forward — free. Gradient $\partial\mathcal L/\partial\tilde\Sigma=\frac{d}{s}\big[G-\frac1d\operatorname{tr}(G\hat\Sigma)I\big]$, $G=-\frac{\kappa}{d}(\hat\Sigma+\kappa I)^{-2}$, bounded (no eigendecomposition, no degenerate-eigenvalue blowup).
+
+**Steering term** so the floor is not filled by crop/color nuisance: strong second view on a $\rho{=}0.25$ subset, $\mathcal L_{\text{inv}}=\frac1{|S|}\sum_{i\in S}\|\mathrm{sg}[z_i^{(1)}]-z_i^{(2)}\|^2$, run as a separate micro-batch (≈1.25× epoch time, ≈1.02× memory, zero deployment cost).
+
+$$\mathcal L=\mathcal L_{PA}+\beta\mathcal L_{\text{inv}}+\mu\mathcal L_{\text{rank}}$$
+
+**The one genuinely good part — a rank-exclusion theorem.** If $f=g\circ s$ for *any* $k$-dimensional statistic $s$ (the train-class posterior, the logits, any simplex-ETF code, or a scalar shortcut replicated into 512 coordinates), then $\operatorname{rank}\Sigma_w\le k$, so $\mathcal L_{\text{rank}}\ge (d-k)/d$. On CUB ($k=C{-}1=99$, $d=512$) that is $\ge 0.807$, against $1/3$ for isotropic. Driving the barrier below $0.807$ is *impossible* for any shortcut/replication encoder. This kills the degeneracy that defeats every purely code-geometric objective (dense-code caps, $\ell_\infty$ box constraints, subspace-ablation robustness, proxy uniformity) — all of which a Hadamard-style replication of one sufficient scalar satisfies exactly.
+
+---
+
+## Exact kill
+
+**Primary — the content-selection gap.** $\mathcal L_{\text{rank}}$ is a functional of the *spectrum* of $\Sigma_w$ alone. It is therefore invariant to which augmentation-stable, label-orthogonal factor occupies the $\approx 413$ liberated dimensions: the theorem proves exclusion of the shortcut solution and proves **nothing** about the utility of its replacement. Under gradient descent from an ImageNet-1K initialization, the cheapest available fillers on CUB/Cars are scene context/background and viewpoint — both survive RandomResizedCrop + flip + jitter, so $\mathcal L_{\text{inv}}$ does not remove them, and both already sit at high gain in the initialization. Fine part-attributes (beak curvature, wing bars, throat patterning) are the *expensive* filler. Since retrieval is cosine over all 512 coordinates, a barrier satisfied by context/viewpoint dilutes the class signal and the sign of the effect is not determined by the mechanism. Forcing power and benefit are decoupled; the magnitude claim has no derivation behind it.
+
+**Secondary — the theorem is vacuous exactly where the second dataset would have to come from.** Exclusion requires $C_{\text{train}}-1<d$: CUB (99), Cars196 (97) qualify; SOP (11,317) and In-Shop (3,996) do not, so the bound is $\le 0$ there and only the un-proven spectral heuristic remains. The proof therefore covers only the two datasets where the lane-A references are hardest — 0.729 CUB and 0.921 Cars196 sit roughly +2.5 and +3.5 above a strong same-recipe ProxyAnchor R50/512-D control (≈0.70 / ≈0.885). Forecasting a spectral-reshaping regularizer clearing **both** is not defensible; my honest interval (CUB 0.735±0.008, Cars 0.910±0.010) crosses at most one, i.e. below the protocol's two-dataset bar and inside recipe noise.
+
+**Tertiary — novelty is a refinement, not a mechanism.** "Prevent intra-class variability collapse to improve transfer" is already the published claim of the neural-collapse-transfer line (including explicit Spread/Attract operations), and variance–covariance regularization has already been carried from SSL into supervised training *for transfer* (VCReg), with covariance-constraint losses and intra-variance-assisted DML occupying the metric-learning side. CCRB's distinction reduces to: a matrix barrier $\operatorname{tr}(\hat\Sigma+\kappa I)^{-1}$ instead of a diagonal variance hinge, applied class-conditionally, plus the rank-counting argument. That is an estimator-and-analysis upgrade inside an occupied mechanism class.
+
+**Generalizable residue (the reason no cheaper method exists here).** *Replication Lemma:* any objective that is a functional of the joint law of $(z,y)$ alone can be satisfied by $z=g(s(x))$ for a label-sufficient $s$, so it cannot force retention of information about $x$ — **except** through dimension counting, and dimension counting is content-agnostic (the primary kill). Hence a valid train-time method must constrain the *input-dependence* of $f$: rate/reconstruction, equivariance to a known group, or an input-rich teacher. That is precisely the family AdvRF and VAPNet occupy, and precisely where their train-time cost lives. A cheap decoder-free win is not available by this route.
+
+**What would revive it.** A pre-registered ablation showing that, at matched $\mathcal L_{\text{rank}}$, the liberated subspace is measurably part-attribute-aligned rather than context/viewpoint-aligned — e.g. CUB R@1 drop under held-out background substitution shrinks while $\mathcal L_{\text{rank}}$ falls from 0.81 to <0.45. Absent that measurement, the selection gap stands and the method is unfalsifiable in the direction that matters.
+
+Sources: [What Deep Representations Should We Learn? — A Neural Collapse Perspective](https://openreview.net/forum?id=ZKEhS93FjhR), [Variance-Covariance Regularization Improves Representation Learning](https://arxiv.org/pdf/2306.13292), [Deep Metric Learning Assisted by Intra-variance](https://arxiv.org/pdf/2304.10941), [Quantifying the Variability Collapse of Neural Networks](https://arxiv.org/pdf/2306.03440), [Covariance-based Space Regularization](https://arxiv.org/html/2411.01172v1), [How Far Pre-trained Models Are from Neural Collapse](https://openaccess.thecvf.com/content/ICCV2023/papers/Wang_How_Far_Pre-trained_Models_Are_from_Neural_Collapse_on_the_ICCV_2023_paper.pdf)
+
+> Note: the session token budget was exhausted during the novelty search, so the search was 2 queries deep rather than exhaustive — the tertiary (novelty) kill is the least hardened of the three. The primary kill does not depend on it.
