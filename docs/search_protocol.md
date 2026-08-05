@@ -21,7 +21,10 @@ repository-isolated Fable session. It receives only:
 - the zero-shot image-retrieval problem and disjoint-identity evaluation;
 - the legal training inputs and deployed-descriptor constraints;
 - audited, matched-capacity numeric frontiers, with higher-capacity observations
-  labelled separately; and
+  labelled separately. Every horizon must name backbone, deployed descriptor
+  dimension, test-time operation, and material train-time machinery. A
+  ResNet-50/2048-D GAP result is not a matched 512-D frontier merely because
+  the backbone and cosine scorer agree; and
 - the required form of a defensible answer: one mathematical training object, causal
   error mode, primary-source novelty case, decisive controls, frozen forecasts,
   falsifiers, cost, and a quantitative frontier-crossing argument.
@@ -70,6 +73,11 @@ from collapsing into local variations of the latest failure. The next pass uses 
 same neutral problem specification in a fresh isolated session. Preserve the exact
 prompt and complete proposal for every concrete candidate so proposal, audit, and any
 later preregistration remain temporally distinguishable.
+
+If a completed pass reveals that its supplied frontier mixed capacity lanes,
+the output is non-authorizing even when it returns `NONE`. Correct the prompt
+and rerun from a fresh session; repeated failure under mismatched frontier
+arithmetic is not evidence that no method exists.
 
 ## The gates — stop at the first one a candidate fails
 

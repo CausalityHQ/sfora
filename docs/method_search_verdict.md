@@ -4953,3 +4953,24 @@ errors: 0.939 In-Shop is VAPNet's ResNet-50/GAP result, not CRT/MiT-B2, and a
 generic Whitney projection result does not imply survival under every
 adversarial subspace. Full resolved audit:
 `docs/fable_ges_nearmiss_2026-08-05.md`. No diagnostic or GPU follows.
+
+### Seventh blind continuation: invalid lane framing and repeated near-misses
+
+The frozen pass returned `NONE`, with two concatenated analyses after automatic
+Fable-to-Claude-Opus fallback. Its Sinkhorn-equalized batch NCA is candidate
+373/NeighborRetr again: no verified hub-error provenance, and queue centrality
+plus a Sinkhorn uniform-marginal training loss with ordinary test similarity is
+already occupied. Its class-residual transplantation objective collapses at
+zero residual and repeats candidate 369, whose class-exogenous nuisance premise
+already failed a prospective three-seed disjoint-identity diagnostic.
+
+The pass also exposed a prompt defect. AdvRF's 0.766/0.949/0.842 and VAPNet's
+0.939 use ResNet-50 **2048-D GAP** descriptors; they were listed beside a
+preferred 512-D lane without the dimensional mismatch being explicit. The
+fallback's claim that AdvRF is 128-D was also false. The direct 512-D DADA
+reference is 0.729/0.921/0.810/0.930 on CUB/Cars/SOP/In-Shop. Repeated `NONE`
+under mismatched frontier arithmetic is not evidence that no method exists.
+The fallback's universal `C-1` label-gradient rank argument is likewise false
+for general sample-dependent DML losses and nonlinear learned systems. Full
+resolved record and exact artifacts:
+`docs/fable_blind_pass7_outcome_2026-08-05.md`. No GPU follows.

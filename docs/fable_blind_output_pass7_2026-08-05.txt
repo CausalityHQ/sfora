@@ -1,0 +1,88 @@
+Consultation: 9706f93942cb4c34
+Provider requested: fable; Fable stopped and the harness appended the same-prompt Claude Opus fallback
+Status: completed
+
+I'm acting as the blind proposer here: I'll reason from first principles and the published literature only, without touching the repo. First I'll load the web search tool and run a few adversarial verification probes — on the stipulated frontier papers and on the occupancy of my leading candidate mechanisms — before committing to a verdict.Budget check: most of the session budget is already consumed, so I'll skip the web probes — the verdict below does not hinge on them (the frontier numbers are stipulated as audited, and my kill reasons are arithmetic and evidentiary-absence arguments that a search cannot repair). Where I rely on memory-based numbers I flag them as approximate. Here is the deliverable.
+
+---
+
+# Verdict: NONE
+
+I cannot defend a single train-time method that crosses the audited frontier in the mandated lane, and the protocol explicitly prefers a defended NONE over a decorated hope. Below: the decisive obstruction, the strongest near-miss in full (so it is auditable), the exact reasons it fails, and the runner-ups with their kill reasons.
+
+## The decisive obstruction (frontier-gap arithmetic)
+
+In the ResNet-50 / 512-d / 224px / ~1× lane, the reproducible strong-baseline cluster (ProxyAnchor-class losses and their 2021–2024 successors — S2SD, Metrix, NIR, GSP, HIST, HIER, DAS, ROADMAP-style AP surrogates, XBM where it helps) sits, from memory of the primary tables (approximate): CUB R@1 ≈ 69–72, Cars ≈ 87–91, In-Shop ≈ 91.5–92.5, SOP ≈ 81–83.5. Across those venues, the honest per-paper delta of one new mechanism over a tuned strong baseline in this lane is +1–3 points; I know of no exception at matched backbone/dimension/compute (the historical step changes — XBM on SOP, AP surrogates on SOP, ViT/pretraining swaps — are either already inside every modern recipe or are lane changes).
+
+The audited horizons are CUB 0.766 / Cars 0.949 (AdvRF), In-Shop 0.939 (VAPNet), SOP 0.842 (AdvRF). Required deltas from the baseline cluster: **+5–7 on CUB, +4–8 on Cars, +1.5–2.5 on In-Shop, +1–3 on SOP.** A crossing claim therefore needs either (a) a categorical-deficiency fix with step-change evidence (I could not construct one whose deficiency isn't already occupied), or (b) stacking on top of the frontier's own machinery, which is no longer "one method" and is un-forecastable from primary sources. Every candidate I generated fails requirement 5 by this arithmetic; several also fail 2 or 3. Per the protocol, that mandates NONE.
+
+## Strongest near-miss: DS-NCA — Sinkhorn-equalized batch retrieval
+
+**Definition.** ResNet-50 → GAP → linear to ℝ⁵¹²  → ℓ2-normalize, giving zᵢ ∈ S⁵¹¹. Batches of P identities × K images (e.g. 32×4). Sᵢⱼ = zᵢ·zⱼ/τ (Sᵢᵢ = −∞), Kᵢⱼ = exp(Sᵢⱼ). Apply T unrolled Sinkhorn iterations to obtain P = diag(u) K diag(v) with unit row marginals and column marginals penalized by λ·KL(colsum‖1) (unbalanced OT; λ→∞ gives exact double stochasticity). Loss: L = −(1/N) Σᵢ log Σ_{j: yⱼ=yᵢ, j≠i} Pᵢⱼ. Gradients flow through the unrolled u, v. Hyperparameters: τ ∈ [0.05, 0.1], T ∈ {1,3,5}, λ swept from 0; AdamW, standard schedule; Sinkhorn on a 128×128 matrix is <0.1% step cost; deployment is the unchanged single 512-d descriptor with cosine k-NN. At λ=0 or T=0 it reduces *exactly* to multi-positive InfoNCE/NCA — a perfect built-in ablation: the column constraint is the entire mechanism.
+
+**Why it was strongest.** The targeted error mode is real as a phenomenon class: row-stochastic losses constrain only each query's distribution, so nothing taxes "hub" embeddings with anomalously high average similarity, and hubs are a documented retrieval failure in high-dimensional spaces. The column constraint is a genuine mathematical change, not reweighting — the scalings solve a global fixed point, coupling all queries' gradients. It is cheapest where the frontier gap is smallest (SOP/In-Shop: huge class counts, ~5 images/class, popularity effects strongest), it costs nothing, and it has a clean falsifiable ablation.
+
+**Exact reasons it fails.**
+
+1. **The causal premise is unmeasured on the legal benchmarks.** No primary source quantifies hub-caused R@1 loss for *supervised* R50/512 embeddings on CUB/Cars/In-Shop/SOP. All supporting evidence is cross-regime: doubly-stochastic affinity normalization mitigating hubs in *visualization* (DOSNES); robustness of DS kernel normalization to heteroskedastic noise (Landa–Coifman–Kluger, a test-time spectral result); hubness corrections like CSLS giving +1–3 in *zero-shot/cross-lingual* retrieval with *full test-gallery access*. Requirement 2 demands a defended causal error mode; I would be inventing its magnitude.
+2. **Effect-size ceiling.** The best analogues are strictly better-informed (they operate on the actual test gallery) and still yield +1–3 in other domains. A train-time-only proxy, transferring through unseen identities, cannot be forecast above that — so CUB (+5–7 needed) and Cars (+4–8) are unreachable, and the SOP/In-Shop path (+1.5–2.5 needed) rests entirely on the unmeasured premise in (1). I cannot write frozen forecasts crossing 84.2/93.9 that I could defend under audit.
+3. **Algebraic self-attack (mechanism decay).** At the Sinkhorn fixed point, diag scalings are per-item logit offsets bⱼ = log vⱼ that equalize column mass — i.e., DS-NCA reduces to NCA with adaptive instance-level logit adjustment. As training makes batch similarity block-diagonal (each identity's mass absorbed by its own K−1 positives, and PK sampling balances columns in expectation), the constraint deactivates precisely when the geometry crystallizes. The surviving claim is an implicit bias of early training — unverifiable a priori.
+4. **Residual novelty risk.** The mechanism has named precedents outside DML (Sinkformers' doubly-stochastic attention; SwAV/SeLa equipartition; DOSNES; long-tail logit adjustment as the reduction in (3)), and I could not complete a conclusive sweep of SSL literature for an existing batch-DS contrastive loss. A load-bearing novelty claim would be an absence-of-evidence assertion.
+
+## Runner-up near-misses (kill reasons)
+
+- **Class-jackknife debiased proxy risk** (leave-one-class-out correction of the training objective, targeting overfitting to the specific class set): the algebra is hollow — for fixed f, the empirical risk over distinct-class tuples is already an unbiased U-statistic of the class-population risk, so the debiasing term vanishes to first order; the zero-shot gap comes from minimization coupling, and repairing the idea to act on that coupling yields episodic meta-learning across class splits, which is occupied (MLDG-style; M3L/MetaBIN in generalizable re-ID) with a documented +1–2 history.
+- **Shared within-identity transport fields** (identity-agnostic Lie-algebra vector fields modeling pose/viewpoint variation, replayed across identities): mechanism-equivalent up to parameterization to the shared-intra-class-variance/synthesis family (DVML, HDML, Proxy Synthesis, MemVir), whose documented ceiling in this lane is +1–3; the "shared across identities" identifiability assumption is exactly what that family already exploits.
+- **Split-swap similarity agreement** (two proxy heads on disjoint class halves, cross-half similarity consistency): a variant of episodic meta-learning — occupied, modest gains.
+
+## What would flip NONE
+
+One measurement, obtainable only by experiment: the hub share of R@1 errors on SOP and In-Shop for a strong supervised R50/512 baseline (fraction of failed queries whose rank-1 item is a gallery point sitting in the top-1 of ≥ m unrelated queries). If that share is ≥2–3 points absolute, DS-NCA becomes a defensible proposal with frozen forecasts of roughly SOP 84.5 / In-Shop 94.2 against the 84.2/93.9 frontier, falsified if it fails to beat the λ=0 ablation by +0.5 under matched tuning. Without that measurement, the frontier-crossing claim is not defensible from primary evidence — hence NONE.
+## NONE
+
+I cannot defend a method that meets this bar. Below is the reason, then the strongest near-miss and its exact failure.
+
+---
+
+### Why NONE: two independent blockers
+
+**Blocker 1 — the frontier I would have to cross is not verified, and the one number I could extract contradicts the brief.**
+
+The audited horizon attributes CUB R@1 0.766 / Cars 0.949 / SOP 0.842 to AdvRF. AdvRF is [Adversarial Reconstruction Feedback for Robust Fine-grained Generalization (ICCV 2025)](https://openaccess.thecvf.com/content/ICCV2025/html/Wang_Adversarial_Reconstruction_Feedback_for_Robust_Fine-grained_Generalization_ICCV_2025_paper.html) — confirmed venue, authors, and mechanism. But my extraction of its results table returned **CUB 65.1 / Cars 84.4 / SOP 81.3 / In-Shop 91.2 at ResNet-50 / 128-d / 224px**, and a separate snippet reports "ResNet-50 with classification loss only achieves 66.3% R@1 on CUB" — which reads like a baseline row, meaning my 65.1 may also be a baseline row. I do not trust either reading. What I can state: I did not confirm 0.766/0.949/0.842 from primary source, and I did confirm the paper's deployed lane is **128-d, not 512-d**, so the horizon may not even be lane-matched as stated. A frontier-crossing claim built on an unverified and possibly mis-attributed target is not a claim, it is a guess. Resolving this requires reading the actual results tables in the CVF HTML, not a PDF summarizer.
+
+**Blocker 2 — the structural obstruction, which is the real reason.**
+
+Every candidate mechanism I generated dies on one algebraic fact:
+
+> Any supervision signal that is a **function of the seen class label** can only constrain a rank-≤(C−1) subspace of the 512-d descriptor. On CUB, C = 100, so at most 99 of 512 directions are identifiable from labels, under *any* loss — contrastive, proxy, angular, hierarchical, spectral, or hyperbolic. Re-weighting, mining, margin design, and proxy geometry all permute mass **inside** that subspace; none of them can populate the remaining ~413 directions, because those directions have literally zero gradient from a label-derived objective.
+
+Escaping therefore requires supervision that **varies within a class**. The legal sources are exhaustively enumerable under the stated constraints: (i) instance discrimination, (ii) reconstruction/input-information preservation, (iii) augmentation parameters. And each one is *anti-correlated with the deployed objective by construction*: they re-inject exactly the within-class variation that a single-descriptor cosine retriever must ignore. So every method in this family reduces to a tug-of-war balanced by a scalar hyperparameter — which is the definition of "renaming regularization," explicitly excluded by the brief.
+
+This also explains why the frontier paper is shaped the way it is: AdvRF attacks the identical causal error mode ("supervision from predefined categories introduces category-specific semantics… hindering generalization to unseen categories") and pays for it with a **three-network train-time pipeline** — reconstruction model + adversarial refinement + distillation into the deployed retriever. It buys within-class-varying supervision with reconstruction, at multiple-× train cost. I could not find a mechanism that buys the same thing at ~1× without collapsing into that tug-of-war.
+
+---
+
+### Strongest near-miss: nuisance-transplant consistency
+
+The most novel-*looking* thing I derived, stated precisely so it can be killed precisely.
+
+Batch of P classes × K samples. Embed and L2-normalize, `z = f_θ(x)/‖f_θ(x)‖`. Per class, mean direction `μ_c = Σz_i/‖Σz_i‖`. Tangential residual `u_i = (I − μ_cμ_c^ᵀ)z_i`. Transport to a common pole via the closed-form rotation `R_c` taking `μ_c → e` (differentiable, O(d)), giving `r_i = R_c u_i`. Then **graft class *a*'s nuisance onto class *b*'s identity**: `ẑ = normalize(μ_b + R_b^{-1} r_i^{(a)})`, and require `ẑ` to be classified as class *b* with the same margin as a real class-*b* sample.
+
+The intent: if within-class residuals are genuinely identity-independent, they must be transplantable. Satisfying this certifies "identity = mean direction, nuisance = a shared fiber," which is exactly the structure under which cosine-NN transfers to identities never seen. It is cheap (~1.05× — no second network, closed-form rotations, discarded at test), and deployment is untouched.
+
+**Why it fails — the algebra kills it.** The objective is *minimized by collapse*. If `‖r‖ → 0`, then `ẑ → μ_b` exactly, which is classified as *b* with **maximal** margin. So the loss has a global optimum at total within-class variability collapse — precisely the neural-collapse pathology it was invented to prevent. It is not merely weak against the degenerate solution; it actively rewards it. Repairing this requires bolting on a variance floor on `‖r‖`, at which point the entire mechanism is carried by the floor — i.e. it *is* the renamed regularization, and the transplant is decoration.
+
+Two secondary kills, either sufficient on its own: the transplant operation is mechanism-equivalent to **Delta-encoder (NeurIPS 2018)**, which transfers intra-class deltas from seen to unseen classes, and to **Embedding Expansion (CVPR 2020) / HDML (CVPR 2019)**, which synthesize embedding-space points for DML — the only distinction I could offer is "used as a constraint rather than as augmentation," which the brief names as a disqualifying rename.
+
+### The other two candidates, and why they are also occupied
+
+Stated only to show the search was closed, not as alternatives:
+
+- **Within-class covariance isotropy (drive Σ_W → I, not → 0).** Mechanistically sound and it *is* the right anti-collapse target — but it is Deep LDA (Dorfer et al., ICLR 2016) end-to-end, and WCCN/PLDA in speaker and face verification classically. The identifiability argument (isotropic nuisance ⇒ cosine is Bayes-optimal) is PLDA's textbook derivation, not a new one.
+- **Fixed i.i.d.-random class targets instead of maximally-separated ETF prototypes** (rationale: unseen classes arrive as i.i.d. interleaved draws, not as lattice-complementary points, so ETF training creates a geometry with no room for them). This distinction is sharp and I believe under-stated — but random fixed prototypes are already an explicit variant in Hyperspherical Prototype Networks (NeurIPS 2019) and "Fix your classifier," and I have no primary evidence that target-configuration statistics causally control unseen-class R@1. Unfalsifiable at this stage, so undefendable.
+
+### What would change the answer
+
+Two concrete unblocks, in order: (1) read AdvRF's actual CVF results tables and settle whether 0.766/0.949/0.842 exist and at what dimensionality — a frontier claim is undefendable until the frontier is pinned; (2) find a within-class-varying supervision signal that is *not* anti-correlated with same-class retrieval. Blocker 2 is the load-bearing one, and I do not currently have a construction that dissolves rather than re-balances that tension. I would rather hand back NONE than a re-balanced tug-of-war with a new name.
+
+Sources: [AdvRF (arXiv)](https://arxiv.org/abs/2507.21742) · [AdvRF (ICCV 2025 open access)](https://openaccess.thecvf.com/content/ICCV2025/html/Wang_Adversarial_Reconstruction_Feedback_for_Robust_Fine-grained_Generalization_ICCV_2025_paper.html) · [On the Role of Neural Collapse in Transfer Learning](https://arxiv.org/pdf/2112.15121) · [Generalization Bounds for Few-Shot Transfer Learning with Pretrained Classifiers](https://arxiv.org/pdf/2212.12532)
