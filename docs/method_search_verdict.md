@@ -4974,3 +4974,42 @@ The fallback's universal `C-1` label-gradient rank argument is likewise false
 for general sample-dependent DML losses and nonlinear learned systems. Full
 resolved record and exact artifacts:
 `docs/fable_blind_pass7_outcome_2026-08-05.md`. No GPU follows.
+
+### Eighth blind continuation: CCRB false certificate and occupied anti-collapse barrier (no numbered candidate)
+
+The isolated proposer job failed after returning `NONE`, so Class-Conditional
+Rank Barrier (CCRB) is recorded as a near-miss rather than a numbered candidate.
+It proposed a trace-normalized inverse spectral barrier on an EMA of pooled
+within-class covariance, plus partial two-view invariance and Proxy Anchor. Its
+claimed novelty was a certificate that any representation factoring through a
+`k`-dimensional label-sufficient statistic must retain rank at most `k`.
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** The load-bearing theorem is false: a nonlinear map of one scalar can
+have full-rank covariance (for example via orthogonal polynomial features or
+simplex-valued regions) without retaining any information beyond that scalar.
+The barrier can therefore reward a full-rank nonlinear recoding of the same
+shortcut. Trace normalization adds a separate failure: isotropic residuals of
+arbitrarily small magnitude minimize the objective even under complete
+within-class magnitude collapse, while its gradient scales as the inverse
+trace near that regime.
+
+The EMA does not certify the deployed checkpoint. With batch size 128, each
+current pooled covariance has rank at most about 96 and a barrier floor
+`0.8125`, already above the claimed CUB/Cars shortcut thresholds. A historical
+mixture can accumulate full rank from changing low-rank subspaces while every
+current representation remains low rank. No corrected repository measurement
+connects within-class covariance rank to retrieval errors, and the certificate
+is vacuous on In-Shop/SOP because their training class counts exceed 512.
+
+Prior art occupies the executable residue. Roth et al. (ICML 2020) directly
+connect spectrum flattening/compression to unseen-class DML generalization;
+NIR and VCReg preserve class-local or supervised variance structure; and Jiang
+et al.'s *Anti-Collapse Loss for Deep Metric Learning Based on Coding Rate
+Metric* combines a coding-rate rank barrier with Proxy Anchor. Primary-source
+verification confirms its ResNet-50/512 gains are only `+1.1` CUB, `+0.9` Cars,
+and `+0.8` SOP. CCRB forecast `0.735` CUB / `0.910` Cars ties the corrected PFML
+CUB frontier `0.734` and misses its Cars frontier `0.927`, so it forecasts zero
+two-dataset crossings independently of the formal and novelty failures. Full
+local and independent audit: `docs/fable_ccrb_nearmiss_audit_2026-08-05.md`;
+exact frozen review: `docs/fable_ccrb_review_2026-08-05.txt`.

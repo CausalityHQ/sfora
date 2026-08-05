@@ -148,4 +148,41 @@ two-dataset crossing. No GPU follows.
 
 ## Independent frozen-text review
 
-Pending consultation `4bb4c918c3f34e7a`.
+Consultation `4bb4c918c3f34e7a` completed after Fable failed during its
+literature search and the automatic Claude Opus fallback finished the review.
+The native consultation record keeps those provider histories separate: Fable
+performed one tool search and three web searches before exiting, while the
+final review is Opus's. The exact combined output is preserved at
+`docs/fable_ccrb_review_2026-08-05.txt`.
+
+The independent verdict is **DEAD** and confirms the local decisive result:
+nonlinear readout invalidates the proposed rank-exclusion theorem. It supplies
+an explicit scalar-to-full-rank construction using orthogonal polynomial
+features. It also finds a second independent degeneracy: because the loss sees
+only trace-normalized spectral *shape*, residuals of arbitrarily small
+magnitude can be isotropic and attain the optimum while within-class magnitude
+collapses. Meanwhile the full gradient retains a `d / tr(Sigma)` factor and is
+therefore not bounded as the trace approaches zero.
+
+The review independently identifies the finite-batch/EMA certificate defect:
+each current covariance has rank at most about 96, giving a barrier floor
+`0.8125`, above both alleged CUB and Cars exclusion thresholds. Consequently a
+low loss certifies a historical mixture rather than the shipped checkpoint.
+The review argues `kappa=0.5` suppresses *small* drift-created eigenvalues; that
+does not repair the local temporal-rotation counterexample for changing
+subspaces, and neither point affects the more fundamental nonlinear
+counterexample.
+
+Primary-source verification confirms the review's material Anti-Collapse
+claim. Jiang et al. explicitly combine a coding-rate anti-collapse term with
+proxy losses and report ResNet-50/512 Proxy Anchor comparisons of
+`70.6 -> 71.7` CUB, `89.6 -> 90.5` Cars, and `80.4 -> 81.2` SOP. This is not
+identical to CCRB—the published term operates on proxies, not within-class
+covariance—but it occupies the anti-collapse rank-barrier-plus-Proxy-Anchor
+mechanism and fixes the plausible effect scale near `+0.8` to `+1.1` points.
+NIR and VCReg cover the closer within-class geometry/variance residue.
+
+Two reviewer details are not adopted as evidence: its numerical estimate of a
+typical covariance trace was not sourced, and the stated rank-one value is a
+maximum (attained by a rank-one PSD spectrum), not merely an unattained
+supremum. Neither correction changes the verdict. No GPU follows.
