@@ -5367,3 +5367,51 @@ MP-PA objective a matched PFML reproduction. Full artifacts:
 `docs/fable_rim_proposal_pass21_2026-08-05.md`,
 `docs/fable_rim_review_2026-08-05.md`, and
 `docs/fable_rim_local_audit_2026-08-05.md`.
+
+### Twenty-second blind pass: CINA repeats homoscedastic covariance supervision
+
+**DEAD at Gates 1 and 2, with an underdefined and degenerate estimator; no
+diagnostic, preregistration, implementation, or GPU.** The blind proposal was
+Cross-Identity Nuisance Alignment: pool within-identity residual covariances
+over two random identity halves, penalize dispersion of their generalized
+log-eigenvalues above a same-identity sample-split null, and thereby try to make
+within-identity covariance shapes proportional across identities. The mandatory
+independent review returned DEAD through the configured same-job Fable-to-Opus
+path.
+
+Gate 1 has no eligible provenance. The verified packet explicitly says it does
+not support a shared cross-class nuisance basis. Nothing reliable measures
+per-identity covariance-shape dispersion, ties it to corrected official-query
+errors, or shows that homogenizing it transfers to unseen identities. The
+forecasted `+0.008/+0.006/+0.004` CUB/Cars/SOP deltas are invented rather than
+derived from a repository measurement.
+
+Gate 2 is occupied at the supervision-target level. Cheng et al., *Learning
+Deep Classifiers Consistent with Fine-Grained Novelty Detection* (CVPR 2021),
+train class-conditional feature distributions toward different means and one
+learned covariance shared across all classes, a stronger homoscedastic target
+than CINA's proportional shapes, and evaluate on CUB. Deep CORAL (Sun and
+Saenko, 2016) already makes covariance alignment a differentiable deep training
+loss; Conditional Bures Metric (Luo and Ren, CVPR 2021) supplies adjacent
+conditional-covariance alignment. Random identity pools, a generalized-spectrum
+distance, scale freedom, and a split null change the estimator, not what
+supervision exists.
+
+The frozen estimator fails independently. It constrains only pooled
+identity-set covariances, so random subsets can agree while individual class
+covariances remain heterogeneous. Its sample-split null does not match the
+statistic's sample geometry or class composition and has underdefined
+normalization/subspace reuse; exact reviewer claims of `60/36` null degrees of
+freedom and near-certain SOP inactivity are not adopted because step 8 reuses
+all-`m`-centered residuals rather than uniquely specifying half recentering.
+The finite top-24 Euclidean eigenspace destroys claimed affine invariance, a
+shared rank-24 low-rank nuisance geometry satisfies rather than defeats the
+loss, collapse has no absolute ridge, and raw-`z` covariance exposes a
+deployment-invisible norm channel. The Bayes-optimal cosine corollary omits
+between-identity geometry and sphere normalization. The emphasized Frobenius
+control has the same proportional-covariance zero set; the lambda ceiling,
+cost, probability forecasts, and sampler are internally inconsistent. Full
+artifacts:
+`docs/fable_cina_proposal_pass22_2026-08-05.md`,
+`docs/fable_cina_review_2026-08-05.md`, and
+`docs/fable_cina_local_audit_2026-08-05.md`.

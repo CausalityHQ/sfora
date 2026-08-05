@@ -123,3 +123,33 @@ failure mode: it promoted a mathematically attractive latent error mechanism
 without first measuring that mechanism in the corrected benchmark lane. The
 next blind pass must bind its causal premise to one of the verified channels or
 propose a prospective CPU diagnostic before claiming Gate 1.
+
+## Post-review reconciliation
+
+The independent frozen reviewer also returned **DEAD**. Its strongest new point
+is accepted in its robust form: the same-identity sample-split null does not
+match the cross-identity statistic's sample geometry, class composition, or
+possibly its selected subspace, so the proposal's “same rank/sample budget”
+claim is false. The review additionally confirms that the statistic constrains
+pooled identity-set covariances rather than individual identity covariances;
+the proposed Frobenius control has the same proportional-covariance zero set;
+the full-width eigensolve is omitted from cost; the lambda ceiling conflicts
+with its own arithmetic and search grid; and the stated sampler cannot draw
+five distinct images from many SOP/In-Shop classes.
+
+One quantitative reviewer claim is not adopted. Step 8 says to repeat steps
+3–7, not step 1, so its sample halves reuse residuals centered with the original
+all-`m` class mean. The review's exact `n_null = C(floor(m/2)-1)` formula assumes
+recentring each half, which is not the unique reading of the frozen algorithm.
+Under the literal reading, the effective null degrees of freedom are different
+but not the reviewer's exact `60/36`; the normalization itself is underdefined.
+Consequently the direction “null is not comparable” is accepted, while the
+derived “near-certain no-op on SOP/In-Shop” and its numerical activation
+threshold are not promoted without an executable definition and simulation.
+
+The reviewer records novelty as unresolved after a bounded search. The local
+primary-source audit resolves that disagreement: Cheng et al. (CVPR 2021)
+explicitly train class-conditional features toward a learned covariance shared
+by all classes, which occupies CINA's substantive homoscedastic representation
+target. CINA is therefore independently dead at Gate 2 even though its exact
+random-pool generalized-spectrum estimator may be unpublished.
