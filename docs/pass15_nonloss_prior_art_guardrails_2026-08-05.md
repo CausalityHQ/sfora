@@ -189,6 +189,53 @@ natural gradient, second-order preconditioning, SAM, gradient surgery, and the
 meta-controller precedents above. Without a verified causal premise and a
 matched-compute optimizer control, a geometry/control label is insufficient.
 
+## Pooling, parts, uncertainty, and normalization architectures
+
+**Generalized Sum Pooling for Metric Learning, Gürbüz et al., ICCV 2023.** GSP
+is a trainable generalization of global-average pooling that selects and
+reweights feature subsets, adds cross-batch regularization for zero-shot
+transfer, and evaluates on SOP, In-Shop, CUB, and Cars. A learned pooling
+operator, spatial/channel selection rule, or transport-inspired aggregation is
+occupied unless its executable invariant differs materially from GSP and the
+part-level structural-matching precedent.
+
+Primary source:
+https://openaccess.thecvf.com/content/ICCV2023/papers/Gurbuz_Generalized_Sum_Pooling_for_Metric_Learning_ICCV_2023_paper.pdf
+
+**Attention-based Ensemble for DML, Kim et al., ECCV 2018.** This method gives
+multiple embedding learners different attention masks and adds a divergence
+loss to promote part diversity on standard DML retrieval benchmarks. Together
+with DeML and BIER, it occupies the basic architecture of diverse
+part-specialized heads concatenated or ensembled into a descriptor.
+
+Primary source:
+https://openaccess.thecvf.com/content_ECCV_2018/html/Wonsik_Kim_Attention-based_Ensemble_for_ECCV_2018_paper.html
+
+**Multi-Head DML Using Global and Local Representations, Ebrahimpour et al.,
+WACV 2022.** Global/local multi-head representation learning is likewise a
+direct retrieval precedent. A capsule, expert, or anatomical-part proposal
+must show more than multiple heads receiving different spatial evidence.
+
+Primary source:
+https://openaccess.thecvf.com/content/WACV2022/papers/Ebrahimpour_Multi-Head_Deep_Metric_Learning_Using_Global_and_Local_Representations_WACV_2022_paper.pdf
+
+**Introspective DML, Zheng et al., 2022.** IDML learns a semantic embedding and
+an accompanying uncertainty embedding, then makes uncertainty-aware pairwise
+similarity judgments on CUB, Cars, and SOP. A confidence, evidential, variance,
+or ambiguity head is occupied unless it changes supervision or training action
+beyond uncertainty-conditioned comparison.
+
+Primary source: https://arxiv.org/abs/2205.04449
+
+**MDProp, Singh, Kakizaki, and Araki, ACML 2024.** MDProp generates several
+adversarial/unadversarial feature-space distributions and assigns them
+separate batch-normalization paths, improving clean DML retrieval as well as
+robustness. Learned or routed normalization remains possible, but a proposal
+needs a measured distribution split and must separate the normalization effect
+from augmented-example training.
+
+Primary source: https://proceedings.mlr.press/v222/singh24a.html
+
 ## Adjudication rule
 
 These are guardrails, not blanket closures. Similar language does not kill a
