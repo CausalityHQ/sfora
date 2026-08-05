@@ -116,6 +116,65 @@ Primary sources:
   Reliable Dimensions in Multivariate Data*, 2018:
   https://arxiv.org/abs/1801.08881
 
+## Independent-review reconciliation
+
+The mandatory frozen review returned **DEAD** through both provider paths. Its
+additional decisive findings are accepted:
+
+1. The five-step trace-normalized Newton--Schulz operator does not approximate
+   the specified 512-D inverse square root. Even at the isotropic initialization,
+   the scalar iterate begins near `1/sqrt(512)` and remains far from one after
+   five steps; low-variance directions are under-whitened most severely. Thus
+   the executed statistic trends toward reproducible variance rather than the
+   advertised reliability rank. IterNorm's groupwise construction exists in
+   part because full-width whitening converges poorly under this iteration.
+2. Exactly, with `u_i=W r_i^(1)` and `v_i=W r_i^(2)`,
+   `T = tr(W hatSigma W) - (1/(2 nu)) sum_i ||u_i-v_i||^2`. At stationarity the
+   first term is ridge effective-rank/variance expansion and the second is
+   whitened cross-view invariance. RIM is therefore a coupled version of its C5
+   and C3 null mechanisms. F4 tests each null *individually* at a 70% threshold,
+   so it cannot reject an additive combination in which neither arm reaches
+   70% alone.
+3. Ermolov et al.'s W-MSE already trains whitened augmented views through their
+   cross-view MSE, and Zhang, Jayasuriya, and Berisha (NeurIPS 2023) explicitly
+   add an intra-class-correlation repeatability regularizer to contrastive
+   embedding training. MIC (ICCV 2019) already targets class-exogenous factors
+   such as viewpoint and illumination for DML generalization. These do not make
+   the literal class-residual hinge conjunction word-for-word identical, but
+   they occupy its estimator, auxiliary-loss role, and causal motivation.
+4. The actual 15-proxy base makes the `d-C+1` forecast mechanism void; the
+   sampler is also not executable for classes with fewer than four images; the
+   smooth-max score can exceed one while inheriting PA's calibration; and the
+   proposed memory-bank variant changes the objective to current-versus-stale
+   temporal consistency.
+
+The review corrects one overstatement in the initial local audit: for the exact
+population whitener, a shared ordinary eigenbasis is unnecessary to bound the
+generalized reliability eigenvalues in `[0,1)`. The proposal's scalar
+same-index formula still assumes simultaneous diagonalization, while the
+finite-batch nonsymmetric cross-covariance can still make `T` negative and the
+claimed `[0,1]` loss range false.
+
+One reviewer assertion is explicitly **rejected**. PFML does use `M` learned
+proxies per class to represent out-of-batch subpopulations; the CVPR 2025 paper
+defines them in Sec. 3.2.2, and the local fidelity audit binds `M=15` on
+CUB/Cars and `M=2` on SOP to the released recipe. PFML is not merely a
+proxy-free continuous sample field. This correction does not rescue RIM:
+matching PFML's proxy *count* still does not make MP-PA's smooth-max objective a
+matched PFML reproduction.
+
+Additional primary sources:
+
+- Ermolov et al., *Whitening for Self-Supervised Representation Learning*,
+  ICML 2021: https://proceedings.mlr.press/v139/ermolov21a.html
+- Zhang, Jayasuriya, and Berisha, *Learning Repeatable Speech Embeddings Using
+  an Intra-class Correlation Regularizer*, NeurIPS 2023:
+  https://arxiv.org/abs/2310.17049
+- Roth, Brattoli, and Ommer, *MIC: Mining Interclass Characteristics for
+  Improved Metric Learning*, ICCV 2019: https://arxiv.org/abs/1909.11574
+- Bhatnagar and Ahuja, *Potential Field Based Deep Metric Learning*, CVPR 2025:
+  https://openaccess.thecvf.com/content/CVPR2025/papers/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.pdf
+
 ## Authorizing condition
 
 There is none for the frozen proposal. Fixing the zero-gradient state,

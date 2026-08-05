@@ -5319,3 +5319,51 @@ current horizon. Novelty, not sign, decides this death. Full artifacts:
 `docs/fable_cfk_proposal_pass19_2026-08-05.md`,
 `docs/fable_cfk_review_2026-08-05.md`, and
 `docs/fable_cfk_local_audit_2026-08-05.md`.
+
+### Twenty-first blind pass: RIM is conditional whitening/invariance with a broken rank estimator
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** Pass 20 was an infrastructure failure and produced no candidate. The
+next blind pass returned Reliable-Interaction Maximization (RIM): class-centre
+two augmented-view descriptor batches, whiten their within-class residuals,
+and maximize the whitened cross-view covariance trace up to a target rank. The
+mandatory independent review returned DEAD through both its Fable and same-job
+Opus paths.
+
+Gate 1 has no eligible provenance. The corrected In-Shop packet establishes a
+non-distance-reducible augmentation-*response relation between different
+same-class images*. It does not establish that same-image augmentation-
+reliable residual rank is suppressed, that retaining it repairs official-query
+errors, or that the effect follows `d-C+1`. RIM's own 15-proxy CUB/Cars base
+can span all 512 dimensions, directly invalidating the dimension-counted
+dataset-ordering premise.
+
+The frozen objective also fails algebraically. At exact class quantization its
+own bilinear derivative is zero, not the claimed nonzero escape gradient. Its
+five-step full-width Newton--Schulz operator severely under-whitens the
+low-variance directions the method exists to amplify, so the executed statistic
+is not the advertised reliable-rank count. Even with exact whitening,
+`T = tr(W hatSigma W) - 1/(2 nu) sum ||W r1-W r2||^2`: ridge effective-rank
+expansion plus whitened cross-view invariance. Those are precisely the C5 and
+C3 null mechanisms, but F4 only kills RIM when either control individually
+recovers 70%, so the frozen control matrix cannot detect their combination.
+With 24 classes x 4 images the target `r*=64` also sits just below the residual
+rank ceiling `nu=72`; finite-batch cross-covariance can make `T<0`, contradicting
+the claimed `[0,1]` loss range.
+
+The pieces are occupied: W-MSE (Ermolov et al., ICML 2021) trains whitened
+augmented views by cross-view MSE; the ICC regularizer (Zhang, Jayasuriya, and
+Berisha, NeurIPS 2023) adds repeatability supervision to contrastive
+embeddings; MIC (Roth, Brattoli, and Ommer, ICCV 2019) explicitly learns
+class-exogenous viewpoint/illumination factors for DML generalization; and
+RCA/CorrCA/partial CCA supply the repeated-measurement covariance object. The
+literal class-residual hinge wrapper may be unpublished, but its causal premise
+is unmeasured, its estimator/control logic is invalid, and its constituent
+training mechanisms are not new.
+
+One reviewer error is not propagated: PFML does use multiple learned proxies
+per class; matching their count still does not make RIM's invented smooth-max
+MP-PA objective a matched PFML reproduction. Full artifacts:
+`docs/fable_rim_proposal_pass21_2026-08-05.md`,
+`docs/fable_rim_review_2026-08-05.md`, and
+`docs/fable_rim_local_audit_2026-08-05.md`.
