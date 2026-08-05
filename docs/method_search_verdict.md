@@ -4842,3 +4842,29 @@ it rejected as an unfunded density-spreading variant adjacent to established
 uniformity/anti-collapse work. This is independent negative evidence, not an
 impossibility claim. Full record:
 `docs/fable_repository_isolated_fifth_pass_2026-08-05.md`.
+
+## 373. Held-out-class Density Equalization: unfunded occupied hubness regularization
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A repository-isolated Fable pass proposed rotating class holdouts,
+equalizing each sample's foreign-neighbour density from a queue, and imposing a
+Sinkhorn uniform-column marginal so ordinary cosine would need no hubness
+correction. Its own forecast was only +0.5--2.0 points on CUB/In-Shop and
+possibly zero on Cars, without a matched base that crosses the audited AdvRF/
+VAPNet frontier.
+
+No verified repository measurement shows positive hubness-correction headroom.
+The older CUB intervention is adverse (CSLS -0.65 points, Sinkhorn -3.16 on
+average across 17 models) but remains below the post-audit-321 evidence tier;
+it refutes only Fable's claim that repository headroom is known. Mechanistically,
+Li et al.'s Density Adaptivity and Roth et al.'s density/compression
+regularization occupy supervised DML density shaping. NeighborRetr computes
+queue centrality and a Sinkhorn uniform-marginal training loss to balance hubs
+and anti-hubs before ordinary-similarity inference. Rotating held-out classes
+are not actually unseen across epochs; a genuine disjoint split reduces to
+DML-DC's occupied class-disjoint episodic/meta-DML attachment.
+
+The successful quota-probe prompt had abbreviated rather than supplied the
+numeric SOTA, and Fable consequently substituted older IBC/PFML rows while
+omitting the in-scope AdvRF and VAPNet frontiers. Full audit:
+`docs/fable_hde_collision_373_2026-08-05.md`.
