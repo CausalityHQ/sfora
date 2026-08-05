@@ -1,0 +1,315 @@
+You are the independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows this
+rubric in the same prompt. Use web search and primary literature.
+
+Legal task: zero-shot image similarity learning with disjoint train/test
+identities on CUB-200-2011, Cars196, In-Shop, or SOP. Only official training
+images, identity labels, ordinary augmentation, and ImageNet-1K initialization
+are permitted. Deployment must be one model, one view, one fixed 512-D global
+descriptor, ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+Matched Lane-A references are ResNet-50/512-D/single-view: PFML CVPR 2025 CUB
+0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002 over five runs;
+PA+DADA In-Shop 0.930 with no uncertainty. Do not mix capacity lanes.
+
+Review the frozen proposal without silently repairing or replacing it. Return
+LIVE, DEAD, or UNRESOLVED. Independently check:
+
+1. every covariance, whitening, canonical-spectrum, log-determinant, random-
+   projection, EMA normalization, PFML, gradient, sampler, cost, and forecast
+   equation;
+2. the claimed anti-concentration theorem: specifically construct or exclude a
+   fixed rank-16 identity code whose generic 16-D random projection remains
+   full rank and perfectly repeatable on every iteration;
+3. whether two different photos yield conditionally independent zero-mean
+   nuisance, and whether repeatability identifies transferable morphology
+   rather than identity lookup, background, acquisition series, or pose;
+4. closest primary prior art inside and outside DML, explicitly including
+   supervised CCA/multiview discriminant analysis, same-class Barlow/VICReg or
+   redundancy reduction, W-MSE/whitening losses, covariance and coding-rate
+   DML, distinct-instance same-label consistency, repeated-measure reliability,
+   random-subspace training, face/re-ID, and augmentation-aware metric learning;
+5. whether controls isolate distinct-photo reliability and distributed rank
+   from ordinary positive compactness, supervised redundancy reduction, random
+   projection regularization, recipe changes, and stable identity shortcuts;
+6. whether a verified measurement supports the proposed causal error mode and
+   whether forecasts quantitatively cross the proper frontier; and
+7. hidden data, contamination, inference, tuning, selection, and benchmark
+   protocol violations.
+
+Any substantive repair is a different proposal and must not be credited. Cite
+primary sources. Identify the single strongest decisive reason for the verdict
+and flag every internally inconsistent or underdefined frozen operation.
+
+--- FROZEN PROPOSAL BEGINS ---
+## Proposed method: Cross-Fitted Reliability-Spectrum PFML
+
+I choose **Lane A only**: ImageNet-1K initialized ResNet-50, 512-D normalized descriptor, 224-pixel input, 200 epochs, single-view cosine retrieval.
+
+The method, abbreviated **CRS-PFML**, augments PFML with a cross-fitted spectral objective that rewards descriptor directions reproducible across two *different photographs of the same training identity*. Its purpose is to suppress instance-specific background, pose, crop, and augmentation shortcuts without collapsing all within-class structure.
+
+### 1. Executable definition
+
+Let \(f_\theta:\mathcal X\rightarrow\mathbb R^{512}\) be ResNet-50 followed by a learned \(2048\times512\) linear layer. The deployed descriptor is
+
+\[
+z_\theta(x)=\frac{f_\theta(x)}
+{\max(\|f_\theta(x)\|_2,10^{-12})}.
+\]
+
+The other learned objects are PFML’s unconstrained proxy parameters \(q_{y,m}\in\mathbb R^{512}\), used as normalized proxies
+
+\[
+p_{y,m}=\frac{q_{y,m}}{\max(\|q_{y,m}\|_2,10^{-12})}.
+\]
+
+Use \(M=15\) proxies per identity on CUB/Cars and \(M=2\) on SOP, matching audited PFML.
+
+#### Sampling
+
+Each iteration samples \(P=32\) training identities. For every identity \(y\), sample two distinct official training photographs \(x_y^{(1)}\ne x_y^{(2)}\), uniformly without replacement. Apply independent ordinary stochastic augmentations \(T_y^{(1)},T_y^{(2)}\):
+
+- random resized crop to \(224^2\), scale \([0.16,1]\), aspect ratio \([3/4,4/3]\);
+- horizontal flip with probability \(0.5\);
+- color jitter \((0.4,0.4,0.4,0.1)\) with probability \(0.8\);
+- grayscale with probability \(0.2\).
+
+Thus
+
+\[
+z_y^{(a)}=z_\theta(T_y^{(a)}x_y^{(a)}),\qquad a\in\{1,2\}.
+\]
+
+There is only one forward pass per sampled photograph; CRS uses the same 64 images that a class-balanced PFML batch would process.
+
+#### PFML term
+
+For distance \(d(r,u)=\|r-u\|_2\), fix \(\delta=0.2,\alpha=2\) and define
+
+\[
+\psi_{\rm att}(r,u)=
+\begin{cases}
+-\delta^{-\alpha},&d(r,u)<\delta,\\
+-d(r,u)^{-\alpha},&\text{otherwise},
+\end{cases}
+\]
+
+\[
+\psi_{\rm rep}(r,u)=
+\begin{cases}
+d(r,u)^{-\alpha},&d(r,u)<\delta,\\
+\delta^{-\alpha},&\text{otherwise}.
+\end{cases}
+\]
+
+For training class \(j\),
+
+\[
+\Psi_j(r)=
+\sum_{i:y_i=j}\psi_{\rm att}(r,z_i)
++\sum_{m=1}^{M}\psi_{\rm att}(r,p_{j,m})
++\sum_{i:y_i\ne j}\psi_{\rm rep}(r,z_i)
++\sum_{\gamma\ne j}\sum_{m=1}^{M}\psi_{\rm rep}(r,p_{\gamma,m}).
+\]
+
+The PFML energy is
+
+\[
+U=
+\sum_{i\in\mathcal B}\Psi_{y_i}(z_i)
++\sum_j\sum_{m=1}^{M}\Psi_j(p_{j,m}).
+\]
+
+This is the published potential-field construction: its interaction strength decays with distance and all embeddings and proxies receive gradients through \(U\). [PFML gives the original equations and training setup here.](https://arxiv.org/abs/2405.18560)
+
+#### Cross-fitted reliability spectrum
+
+At each iteration independently draw a Gaussian matrix \(G\in\mathbb R^{512\times16}\), compute its thin QR factorization, and retain the Haar-distributed orthonormal matrix \(R\in\mathbb R^{512\times16}\). \(R\) is not learned and receives no gradient.
+
+Project the two independently sampled photographs:
+
+\[
+v_y^{(a)}=R^\top z_y^{(a)}\in\mathbb R^{16},
+\qquad
+\tilde v_y^{(a)}=v_y^{(a)}-\frac1P\sum_{j=1}^{P}v_j^{(a)}.
+\]
+
+Define
+
+\[
+S_{aa}=\frac1{P-1}\sum_y
+\tilde v_y^{(a)}\tilde v_y^{(a)\top}
++\varepsilon I,
+\quad \varepsilon=10^{-3},
+\]
+
+\[
+S_{12}=\frac1{2(P-1)}
+\sum_y\left[
+\tilde v_y^{(1)}\tilde v_y^{(2)\top}
++\tilde v_y^{(2)}\tilde v_y^{(1)\top}
+\right].
+\]
+
+Let \(S=(S_{11}+S_{22})/2\) and
+
+\[
+C=S^{-1/2}S_{12}S^{-1/2},
+\]
+
+where the symmetric inverse square root is computed by `eigh`, clamping eigenvalues below \(10^{-3}\). All gradients pass through centering, covariances, eigendecomposition, \(z\), and \(\theta\).
+
+The reliability loss is
+
+\[
+L_{\rm CRS}
+=
+-\frac1{16}\log\det(CC^\top+10^{-3}I).
+\]
+
+Unlike a trace objective, this maximizes the *product* of the 16 canonical repeatabilities. Resampling \(R\) exposes all 512 descriptor directions over training and prevents the optimizer from concentrating repeatable information in a small fixed subspace.
+
+For numerical scaling, maintain detached exponential moving averages
+
+\[
+m_U\leftarrow .99m_U+.01|U|,\qquad
+m_C\leftarrow .99m_C+.01L_{\rm CRS},
+\]
+
+initialized from the first batch. Optimize the single objective
+
+\[
+L_t=\frac{U}{m_U+10^{-12}}
++\lambda_t\frac{L_{\rm CRS}}{m_C+10^{-12}},
+\]
+
+with
+
+\[
+\lambda_t=
+\begin{cases}
+0,&t<10,\\
+0.1\,\frac{t-10}{20},&10\le t<30,\\
+0.1,&t\ge30,
+\end{cases}
+\]
+
+where \(t\) is epoch number. No gradient flows through \(m_U,m_C,\lambda_t\).
+
+Train for 200 epochs with Adam: backbone/projection learning rate \(5\cdot10^{-4}\), proxy learning rate \(5\cdot10^{-2}\), cosine decay to zero, weight decay \(10^{-4}\) on \(\theta\) and zero on proxies. Hyperparameters remain fixed across datasets.
+
+At test time, discard proxies, CRS calculations, random projections, and augmentations. Resize to \(256^2\), take one \(224^2\) center crop, compute one 512-D \(z_\theta(x)\), and rank by cosine similarity. This exactly satisfies Lane A deployment.
+
+### 2. Causal error mode and degeneracies
+
+Suppose a projected descriptor admits the repeated-measurement model
+
+\[
+v_y^{(a)}=s_y+\eta_y^{(a)},
+\]
+
+where \(s_y\) is identity-reproducible visual evidence and the two errors—photograph-specific background, pose, crop, illumination, and augmentation response—are conditionally independent with zero mean given \(y\). Then
+
+\[
+\operatorname{Cov}(v^{(1)},v^{(2)})
+=\operatorname{Cov}(s_y),
+\]
+
+while
+
+\[
+\operatorname{Cov}(v^{(a)})
+=\operatorname{Cov}(s_y)+\operatorname{Cov}(\eta^{(a)}).
+\]
+
+Consequently, the singular/eigen spectrum of \(C\) consists of generalized reliability ratios. A direction containing only independent instance or augmentation noise has cross-covariance zero and reliability zero. Importantly, two augmented views of the *same photograph* do not have this property: their cross-covariance also retains the photograph-specific term. That is the causal reason for requiring distinct photographs.
+
+Cheap degeneracies are excluded as follows:
+
+- **Constant collapse:** \(S_{12}=0\), hence \(L_{\rm CRS}=-\log(10^{-3})\), while PFML’s repulsive energy is also unsatisfied.
+- **Rank-\(r<16\) collapse:** for almost every random \(R\), \(\operatorname{rank}(C)\le r\); at least \(16-r\) determinant factors remain at \(10^{-3}\). A trace objective could hide these zeros, but the log determinant cannot.
+- **Pure image/augmentation code:** conditional independence makes its population \(S_{12}=0\); allocating normalized-descriptor norm to it worsens both CRS and usable PFML separation.
+- **Norm inflation:** impossible because both embeddings and proxies are normalized; whitening also makes CRS scale invariant.
+- **Coordinate rotation or permutation:** harmless because random subspaces and singular values are rotationally invariant.
+
+This does **not** rule out a training-identity lookup code or a background consistently shared by every photograph of one training identity. Such a feature is repeatable and can pass CRS. The hypothesis is narrower: removing nonrepeatable high-margin directions frees capacity for reusable morphology. Static identity-correlated shortcuts remain a genuine failure mode.
+
+### 3. Adversarial novelty search
+
+Search cutoff: 2026-08-05. I searched DML, supervised/contrastive learning, repeated-measurement models, CCA, augmentation invariance, covariance regularization, and domain generalization. I found close ingredients, but not the proposed combination of distinct-photo cross-fitting, randomized low-dimensional canonical spectra, a weakest-spectrum log determinant, and PFML in zero-shot DML.
+
+- [Hotelling’s canonical correlation analysis](https://academic.oup.com/biomet/article-abstract/28/3-4/321/220073) finds linear relations between two fixed variable sets; CRS trains a nonlinear descriptor from randomly paired repeated identity measurements and repeatedly probes the full descriptor with random subspaces.
+- [Barlow Twins](https://arxiv.org/abs/2103.03230) drives coordinatewise cross-correlation toward identity for two augmentations of the *same image*; CRS uses distinct photographs, full whitening, and a rotation-invariant reliability-spectrum determinant.
+- Supervised contrastive learning attracts all same-label pairs through pairwise log-softmax forces; CRS estimates the repeatable covariance component and penalizes missing reliable rank rather than summing positive similarities.
+- [Deep Variational Metric Learning](https://openaccess.thecvf.com/content_ECCV_2018/html/Xudong_Lin_Deep_Variational_Metric_ECCV_2018_paper.html) models and generates class-independent intra-class variation; CRS neither fits a latent density nor generates features.
+- [Deep Compositional Metric Learning](https://openaccess.thecvf.com/content/CVPR2021/html/Zheng_Deep_Compositional_Metric_Learning_CVPR_2021_paper.html) learns several subembeddings and compositors; CRS deploys one undivided 512-D descriptor and random projections exist only inside its training loss.
+- [Deep Meta Metric Learning](https://openaccess.thecvf.com/content_ICCV_2019/html/Chen_Deep_Meta_Metric_Learning_ICCV_2019_paper.html) learns support/query set distances over sampled tasks; CRS performs no inner loop or set-valued inference and directly estimates repeated-measure reliability.
+- [DADA](https://ojs.aaai.org/index.php/AAAI/article/view/29400) aligns sample and proxy distributions through domain adaptation; CRS does not classify domains or align proxy distributions.
+- [PFML](https://openaccess.thecvf.com/content/CVPR2025/papers/Bhatnagar_Potential_Field_Based_Deep_Metric_Learning_CVPR_2025_paper.pdf) supplies local decaying attractive/repulsive forces, but has no cross-fitted repeatability estimator or spectral-rank pressure.
+
+The main novelty vulnerability is that a reviewer may classify CRS as supervised CCA/Barlow-style redundancy reduction applied to same-class photographs. The strongest distinction is not “cross-correlation plus PFML”; it is the repeated-measurement estimand and log-product of randomized canonical reliabilities.
+
+### 4. Decisive controls
+
+Every control uses the same ResNet, 512 dimensions, optimizer, images, augmentations, batch composition, proxies, 200 epochs, and five seeds.
+
+1. **PFML alone:** establishes the matched frontier baseline.
+2. **Same-image CRS:** replace the second photograph with a second augmentation of the first. If this matches CRS, the claimed removal of photograph-specific shortcuts is unsupported.
+3. **Positive MSE:** replace CRS with \(\|z_y^{(1)}-z_y^{(2)}\|^2\), normalized to the same EMA loss weight. This tests ordinary invariance/compactness.
+4. **Barlow control:** target the unwhitened coordinate correlation matrix to \(I\), using the same distinct photographs and compute.
+5. **Trace control:** replace \(-\log\det(CC^\top+\epsilon I)\) with \(-\operatorname{tr}(CC^\top)/16\). This distinguishes distributed reliable rank from average correlation.
+6. **Pair-shuffle negative control:** permute branch-2 identities before forming \(S_{12}\). It should erase both the spectral improvement and retrieval gain.
+7. **Fixed-subspace control:** retain one \(R\) throughout training. This tests whether coverage of all 512 dimensions, rather than merely adding a 16-D auxiliary head, matters.
+
+Mechanistic support requires distinct-photo CRS to beat same-image CRS, positive MSE, and the trace control by at least \(0.2\) R@1 points averaged over CUB and Cars, while pair-shuffling eliminates at least 80% of its gain.
+
+### 5. Frozen Lane-A forecasts
+
+These are pre-experiment five-run forecasts; “±” is forecast run-to-run standard deviation.
+
+| Dataset | Matched PFML | CRS-PFML forecast | Frontier gain |
+|---|---:|---:|---:|
+| CUB-200-2011 | \(0.734\pm0.003\) | **\(0.742\pm0.004\)** | \(0.742-0.734=+0.008\) |
+| Cars196 | \(0.927\pm0.003\) | **\(0.932\pm0.003\)** | \(0.932-0.927=+0.005\) |
+| SOP | \(0.829\pm0.002\) | **\(0.834\pm0.002\)** | \(0.834-0.829=+0.005\) |
+
+The audited PFML paper reports the corresponding 0.734/0.927/0.829 ResNet-50 results over five runs. [Its table and protocol are here.](https://arxiv.org/abs/2405.18560)
+
+Treating the reported deviations as run standard deviations, approximate two-sided 95% thresholds for a five-versus-five-run mean difference are:
+
+\[
+0.734+2\sqrt{(0.003^2+0.004^2)/5}=0.7385
+\]
+
+for CUB,
+
+\[
+0.927+2\sqrt{(0.003^2+0.003^2)/5}=0.9308
+\]
+
+for Cars, and
+
+\[
+0.829+2\sqrt{(0.002^2+0.002^2)/5}=0.8315
+\]
+
+for SOP. The frozen forecasts clear these approximate thresholds by \(0.0035\), \(0.0012\), and \(0.0025\), respectively.
+
+I would falsify the performance claim if the five-seed mean fails to exceed PFML on at least two datasets, or if gains are below \(+0.003\) CUB and \(+0.002\) on both Cars and SOP. I would separately falsify the causal mechanism if same-image CRS is within \(0.001\) R@1 of distinct-photo CRS on both CUB and Cars.
+
+### 6. Cost and risks
+
+Training uses the same 64 image forwards and PFML proxies as its matched baseline. The extra work is two \(16\times16\) eigendecompositions/matrix operations and a \(512\times16\) projection: expected overhead is below 1% FLOPs, about 1–3% wall time, and under 1 MB working memory. Deployment cost and storage are exactly unchanged.
+
+The largest risks are:
+
+- SOP’s few photographs per identity make its repeated-measure covariance much noisier, so the SOP forecast is less mechanistically secure.
+- Strong crops can destroy identity evidence, violating the conditional repeated-measure model.
+- Stable per-identity backgrounds survive CRS.
+- The log determinant can overemphasize weak/noisy directions; \(q=16\), ridge \(10^{-3}\), and the 0.1 loss weight are intended to limit that.
+- PFML’s proxies and training-label count make training memory dataset-dependent even though deployment is fixed.
+- ImageNet-1K initialization may contain visually related bird or vehicle categories. It is expressly permitted here, but exact pretrained checkpoint hashes must be recorded.
+- Hyperparameter selection must use only identity-disjoint validation folds carved from the official training identities, followed by one retraining on all official training identities. Test images must never influence schedules, augmentation, early stopping, or method selection.
+--- FROZEN PROPOSAL ENDS ---
+
