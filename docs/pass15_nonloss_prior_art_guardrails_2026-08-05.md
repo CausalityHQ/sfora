@@ -236,6 +236,21 @@ from augmented-example training.
 
 Primary source: https://proceedings.mlr.press/v222/singh24a.html
 
+## Direct learnable-activation retrieval precedent
+
+**ACTNET, Husain, Ong, and Bober, 2019.** ACTNET introduces learnable
+activation blocks specifically for image retrieval, jointly trains them with
+the CNN under triplet loss, and uses them to transform and balance multiple
+convolutional streams before global aggregation. It studies sine-hyperbolic,
+exponential, and modified Weibull response functions and reports the Weibull
+variant as strongest because it equalizes dominant activations. Consequently,
+“replace ReLU/GELU with a learned parametric nonlinearity” or “equalize strong
+responses before pooling” is occupied. A live activation proposal must derive
+an invariant from a verified failure, specify where the nonlinearity acts, and
+beat fixed-activation, parameter-count, and pooling controls.
+
+Primary source: https://arxiv.org/abs/1907.05794
+
 ## Adjudication rule
 
 These are guardrails, not blanket closures. Similar language does not kill a
