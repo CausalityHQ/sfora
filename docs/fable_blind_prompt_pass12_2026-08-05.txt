@@ -1,4 +1,5 @@
-Provider: fable (automatic same-prompt Claude Opus fallback permitted by the devbox harness)\nBounded consultation budget: USD 8
+Provider: fable (automatic same-prompt Claude Opus fallback permitted by the devbox harness)
+Bounded consultation budget: USD 8
 Frozen before consultation start: 2026-08-05 UTC
 
 You are the blind proposer in a rigorous method-invention protocol. Do not
