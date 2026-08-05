@@ -5104,3 +5104,36 @@ Full frozen proposal, independent LIVE review, and local resolution:
 `docs/fable_tmp_proposal_pass12_2026-08-05.md`,
 `docs/fable_tmp_review_2026-08-05.md`, and
 `docs/fable_tmp_local_audit_2026-08-05.md`.
+
+## 377. Self-Balancing Embeddings: exact DS-NCA repeat and adverse hubness evidence
+
+**DEAD at Gates 1 and 2; no diagnostic, implementation, preregistration, or
+GPU.** A blind Fable proposer returned SBE: unroll a symmetric Sinkhorn scaling
+of the batch similarity kernel, maximize the doubly-stochastic coupling's
+same-class mass, and penalize variance of its log scaling potentials so the raw
+cosine kernel tends toward uniform retrieval mass. A fresh independent Fable
+reviewer returned LIVE, but explicitly lacked the repository collision history.
+
+The collision is exact. Blind pass 7 already proposed Sinkhorn-equalized batch
+NCA, and candidate 373 already audited training-time uniform-column-marginal
+anti-hub learning. NeighborRetr (Lin et al., CVPR 2025, arXiv:2503.10526)
+computes training-sample hub centrality and uses a Sinkhorn uniform-marginal
+retrieval plan to train embeddings for balanced retrieval with ordinary
+similarity at deployment. HAL and DeHub separately disprove the proposal's
+claim that published hubness fixes are all inference-side; Dual Bank Sinkhorn
+Normalization occupies the exact test-time operator. `Var(a)` is a different
+scalarization of batch log-row-mass equality, not a new supervision referent,
+and its certificate does not transfer exactly across batch composition,
+unseen-class shift, or soft-to-hard ranking.
+
+Gate 1 is adverse. Historical CUB interventions reduced skew but changed R@1 by
+**-0.65 points with CSLS** and **-3.16 points with Sinkhorn**. They predate the
+strict current evidence boundary and are not universal falsification, but no
+corrected packet supplies positive hubness headroom; corrected In-Shop has no
+training item retrieved by more than six queries, 90.1% reciprocal-top-10
+errors, and raw Euclidean at -2.201 points. The reviewer also showed the frozen
+premises imply about **+0.9**, not the claimed **+2.2 SOP points**. Full frozen
+proposal, independent LIVE review, and authoritative local resolution:
+`docs/fable_sbe_proposal_pass13_2026-08-05.md`,
+`docs/fable_sbe_review_2026-08-05.md`, and
+`docs/fable_sbe_local_audit_2026-08-05.md`.
