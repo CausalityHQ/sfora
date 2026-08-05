@@ -4868,3 +4868,32 @@ The successful quota-probe prompt had abbreviated rather than supplied the
 numeric SOTA, and Fable consequently substituted older IBC/PFML rows while
 omitting the in-scope AdvRF and VAPNet frontiers. Full audit:
 `docs/fable_hde_collision_373_2026-08-05.md`.
+
+## 374. Cross-identity Residual Orthogonality: false estimator identity and class-code shortcut
+
+**DEAD at Gates 1 and 2; no diagnostic, preregistration, implementation, or
+GPU.** A full numeric-horizon, repository-isolated Fable search proposed
+normalizing each embedding's own-proxy-orthogonal residual and minimizing
+squared inner products only between residuals from different training
+identities. It claimed this equals the Frobenius norm of a pooled directional
+residual covariance, uniquely enforces isotropy, and cannot be satisfied by
+training-class memorization.
+
+All three claims fail. Under different-class conditioning the expectation is
+the pooled covariance cross term with every within-class self term removed,
+not the pooled Frobenius norm. A network can map each training class's residuals
+to a private low-coherence direction, driving the cross-class loss down while
+making every class maximally rank one. Residual normalization blocks shrinking,
+not class-conditional rotation. Different proxy-orthogonal residuals also live
+in different hyperplanes, so the claimed common `1/(d-1)` isotropic floor is
+wrong.
+
+Gate 1 independently fails: the proposed cross-identity residual-coherence
+mediator has not been measured here, while candidate 225's locked covariance-
+transfer ratios (`0.9312, 0.9287, 0.9345`) refuted positive linear
+shared-nuisance provenance. Repaired pooled/per-class versions collide with
+Global Orthogonal Regularization and Class-wise Decorrelation; MIC already
+separates cross-class shared characteristics; NIR intervenes on proxy-local
+geometry in the opposite direction. This also repeats the occupied mechanism
+of candidates 69 and 70. Full algebra and primary-source audit:
+`docs/fable_cro_collision_374_2026-08-05.md`.
