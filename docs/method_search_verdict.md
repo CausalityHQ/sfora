@@ -5036,3 +5036,11 @@ geometry functional is not accepted as a theorem, and its suggested PFML 2024
 date is corrected by the primary proceedings: PFML is CVPR 2025. Full resolved
 record: `docs/fable_blind_pass9_outcome_2026-08-05.md`. No diagnostic,
 implementation, preregistration, or GPU follows.
+
+### Tenth blind continuation: budget failure (no candidate)
+
+The corrected neutral prompt produced no completed model answer. The native
+runner failed before receipt; the shell Fable run and its automatic Opus
+fallback each exhausted the USD 2 cap. This is not `NONE`, a proposal, or
+evidence about method availability. Full process record:
+`docs/fable_blind_pass10_outcome_2026-08-05.md`. No GPU follows.
