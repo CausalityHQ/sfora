@@ -87,6 +87,69 @@ collides unless its supervision referent and gradient field differ.
 
 Primary source: https://arxiv.org/abs/2103.15454
 
+## Optimal transport, graph diffusion, and structural dynamics
+
+**Batch-Wise Optimal Transport Loss, Xu, Sun, and Liu, CVPR 2019.** This work
+solves an optimal-transport program over each batch to learn an
+importance-driven distance metric, emphasize hard examples, and train the
+representation end to end. An earth-mover, mass-flow, chemical-transport, or
+balanced-reaction story that compiles to batch assignment/reweighting is
+occupied at mechanism level.
+
+Primary source:
+https://openaccess.thecvf.com/content_CVPR_2019/html/Xu_Learning_With_Batch-Wise_Optimal_Transport_Loss_for_3D_Shape_Recognition_CVPR_2019_paper.html
+
+**Learning Intra-Batch Connections, Seidenschwarz, Elezi, and Leal-Taixé,
+ICML 2021.** This method refines embeddings by learned message exchange among
+all samples in a batch and evaluates on CUB, Cars196, SOP, and In-Shop. A
+reaction-diffusion, interacting-particle, or graph-neural update is not new if
+its executable step is batch-neighbour message passing followed by an ordinary
+DML objective.
+
+Primary source: https://proceedings.mlr.press/v139/seidenschwarz21a.html
+
+**Contextual Similarity Optimization, Liao, Tsiligkaridis, and Kulis, ICML
+2023.** Contextual loss optimizes neighbourhood-set structure together with
+cosine similarity for supervised retrieval. Diffusing labels/similarities on a
+kNN graph, matching neighbourhood overlap, or using graph context as a
+training signal must be distinguished from this direct standard-benchmark
+precedent.
+
+Primary source: https://proceedings.mlr.press/v202/liao23b.html
+
+**Structural Matching for interpretable DML, Zhao et al., ICCV 2021.** This
+line uses optimal transport for learned structural image matching. A proposal
+that transports spatial/token parts rather than batch samples must confront
+this part-level retrieval precedent as well as the batch-wise OT loss above.
+
+Primary source:
+https://openaccess.thecvf.com/content/ICCV2021/papers/Zhao_Towards_Interpretable_Deep_Metric_Learning_With_Structural_Matching_ICCV_2021_paper.pdf
+
+## Directional statistics and topology
+
+**Directional Statistics-based DML, Zhe, Chen, and Yan, 2018.** This method
+models normalized embeddings with a von Mises--Fisher distribution and derives
+a hyperspherical retrieval objective with a global view of the embedding
+space. A statistical-mechanics or molecular-orientation analogy that ends in a
+vMF energy is occupied.
+
+Primary source: https://arxiv.org/abs/1802.09662
+
+**Differentiable persistent-homology precedents.** Persistent-homology losses
+are already used to train visual models, including topology-preserving
+contrastive learning and persistent-topology alignment of real and synthetic
+feature graphs. These are adjacent rather than exact standard-DML precedents,
+so topology is not blanket-closed. But a future proposal must specify which
+Betti/persistence quantity is measured, prove it cannot be minimized by an
+irrelevant nuisance topology, and distinguish its gradient from ordinary
+neighbour-graph or spectral regularization. Merely adding a persistence-image
+distance is not a novelty case.
+
+Primary sources:
+https://openaccess.thecvf.com/content/CVPR2026/html/Li_Fixed_Anchors_Are_Not_Enough_Dynamic_Retrieval_and_Persistent_Homology_CVPR_2026_paper.html
+and
+https://openaccess.thecvf.com/content/CVPR2026/papers/Meng_TopoCL_Topological_Contrastive_Learning_for_Medical_Imaging_CVPR_2026_paper.pdf
+
 ## Adjudication rule
 
 These are guardrails, not blanket closures. Similar language does not kill a
