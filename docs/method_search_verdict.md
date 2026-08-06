@@ -7902,3 +7902,10 @@ supervision that defeats a compositeness gate; no defensible candidate was
 constructed. A cheap training-only C−1-subspace alpha probe was proposed before
 another blind pass. No candidate GPU run was authorized. Full artifact:
 `docs/opus_pass64_none_2026-08-06.md`.
+
+The proposed training-only alpha probe was also run on the cached CUB pack:
+alpha .0/.25/.5/.75/1/1.25/1.5/2/3 gave R@1 .6555/.6580/.6653/.6757/.6816/.6813/
+.6825/.6789/.6673. The best +.085 point over alpha=1 is far below the 1.5-point
+reopening threshold; local and between failures traded monotonically. This is
+diagnostic evidence against a large rank-preservation opportunity, not a method
+result.
