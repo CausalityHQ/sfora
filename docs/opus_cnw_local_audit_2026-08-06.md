@@ -246,3 +246,46 @@ Process lesson: a pooled conditional statistic is not a per-condition
 constraint. Before treating effective rank as transferable supervision,
 construct disjoint private subspaces and check the exact global minimum; then
 separate normalized-direction moments from covariance moments.
+
+## Independent-review reconciliation
+
+Frozen review prompt:
+`docs/opus_cnw_review_prompt_2026-08-06.txt`  
+Prompt SHA-256:
+`4314e45732da493eb70e612970e90a1d6adc2d50821474f0494ff37bf8cf601c`  
+Durable review job: `9bbcf23a341e4fb2` (same-job Fable-to-Opus fallback)  
+Frozen review: `docs/opus_cnw_review_2026-08-06.md`
+
+The cold reviewer returned **DEAD** without seeing this audit and independently
+constructed the same 30-private-tetrahedra zero. It additionally checked that
+the construction can place class means/proxies in the remaining complement,
+so the pooled loss's wrong zero set is compatible with low Proxy Anchor cost,
+not merely an abstract PSD counterexample. Its distinction from the proposal's
+shared-subspace D5 is retained: class-private `V_c` supplies no function-level
+rule for an unseen identity.
+
+Three reviewer overstatements are not propagated. First, at nonzero residual
+radius Proxy Anchor does not attain its literal compactness optimum; it prefers
+radius zero. The private code can make that cost arbitrarily close subject to
+the frozen gate, which is enough to refute identification, but it is not a
+simultaneous exact global optimum of both terms. Second, the proposal's D1
+`32/log(D_max)` profitability calculation is a qualitative scale comparison,
+not a proof: `O(alpha)` is not a derived lower bound on the actual PA increase
+under a realizable encoder perturbation. Third, inferring pairwise Gaussian
+`x approximately 3.9` from CUB R@1 assumes independent homogeneous distractor
+events; it may illustrate an operating scale but does not repair the stated
+Jensen proof.
+
+The review called its algebraic zero-set check “Gate 2.” Under this repository's
+seven-gate protocol, provenance is Gate 1 and prior art is Gate 2; executable
+algebra is an independent pre-GPU kill. The reconciled disposition therefore
+remains **DEAD at protocol Gates 1 and 2**, reinforced by the wrong zero set.
+
+The reviewer left the proposal's two disclosed source collisions unresolved.
+The local primary-source check resolves them narrowly without relying on either
+for the kill: Density Adaptivity regularizes scalar data concentration to
+balance intra-class variation, while JRD diversifies multi-layer joint
+representations. Neither primary description establishes CNW's exact pooled
+spectral-shape loss. DVML and class-conditional Gaussianity/shared covariance
+remain the stronger object-level prior-art closures, and NIR remains the
+benchmark-matched opposite-sign evidence.

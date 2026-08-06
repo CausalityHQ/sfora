@@ -6506,3 +6506,89 @@ docs/opus_fcs_proposal_pass39_2026-08-06.md,
 docs/opus_fcs_review_prompt_2026-08-06.txt,
 docs/opus_fcs_review_2026-08-06.md, and
 docs/opus_fcs_local_audit_2026-08-06.md.
+
+### Fortieth blind pass: CNW pools private anisotropic identity subspaces and repeats conditional-isotropy supervision
+
+**DEAD at Gates 1 and 2, independently reinforced by an exact wrong-zero-set
+construction; no preregistration, implementation, or GPU.** The blind proposal
+returned Conditional Nuisance Whitening (CNW): class-balance each batch, centre
+four descriptors per identity, normalize the residual directions, and maximize
+the participation ratio of their one pooled second-moment matrix. It forecast
+standalone gains of +1.9 CUB, +1.8 Cars, and +0.7 SOP points and larger
+unreproduced PA+DADA compositions.
+
+Gate 1 has no repository provenance. Nothing corrected here links pooled
+conditional anisotropy, directional participation ratio, or WCCN mismatch to
+official-query errors. The proposed `O(10)` rank, overlap, dataset ordering,
+and R@1 conversion are invented forecasts. The closest prospective result is
+adverse: candidate 225's disjoint-identity within-class-subspace transfer
+ratios were `0.9312`, `0.9287`, and `0.9345`, all below its locked `1.15`
+threshold. This does not prove every covariance penalty harmful, but it denies
+positive evidence for a transferable nuisance covariance.
+
+The executable loss does not identify its named target. Give each of 30 batch
+classes a private orthogonal 3-D subspace and put its four residual directions
+at a regular tetrahedron. Each class is rank 3 and maximally anisotropic, yet
+the pooled matrix is `(4/3)` times a rank-90 projector, so its participation
+ratio is exactly `D_max=90` and `L_CNW=0`. The same allocation is globally
+feasible for CUB (`3*100=300`) and Cars (`3*98=294`). A cold reviewer
+independently found the identical construction without seeing the local audit.
+It is not the proposal's shared-low-rank D5: identity-private planes supply no
+rule for an unseen class. Proxy Anchor prefers zero residual radius, so the
+combined objective is not proven to share an exact global optimum, but a
+private code can make PA cost arbitrarily close while exactly minimizing CNW.
+That is sufficient to destroy the claimed supervision identification.
+
+CNW also measures `E[rr^T/||r||^2]`, not `Sigma/tr(Sigma)`. Its smoothed
+normalizer has exact Jacobian `(I-rhat rhat^T)/s`, not the displayed formula,
+and a nonzero radial derivative; at the frozen 0.05 gate the radial eigenvalue
+is `0.754293`. Scale invariance, equal weighting, trace preservation, and exact
+orthogonality to compactness are therefore false as written. At residual
+collapse the gate leaves an empty set and the written `0/0` participation
+ratio is undefined. The Jensen curvature changes sign at
+`a/sqrt(v)=sqrt(3)`, not 1.5, and the Gaussian two-prototype surrogate does not
+identify many-distractor R@1.
+
+Gate 2 repeats an internally exhausted and publicly occupied target. DVML
+(Lin et al., ECCV 2018) explicitly drives class-independent intra-class
+variation toward an isotropic Gaussian and evaluates CUB, Cars, and SOP.
+Cheng and Vasconcelos (CVPR 2021) train fine-grained class-conditionals toward
+Gaussian distributions with shared covariance. WCCN/PLDA supply the
+train-identity conditional-whitening action, and NIR (Roth et al., CVPR 2022)
+provides benchmark-matched opposite-sign evidence that proxy-local isotropy
+loses useful intra-class structure. Repository passes CINA, EFML, FRAME, and
+HIRE had already closed shared/homoscedastic/isotropic conditional-variation
+supervision. A pooled participation-ratio estimator with a weaker zero set is
+not a new mechanism.
+
+Protocol and frontier claims fail independently. The proposal makes five-seed
+CUB its main gate instead of screening corrected In-Shop first, freezes BN
+despite the corrected trainable-BN recipe, leaves low-count `m_c<4` batching
+undefined, omits raw-versus-final selection correction, and invents an In-Shop
+PA+DADA reproduction at `0.926` rather than pairing against the verified local
+raw `0.916303` / final `0.913701` reference. Its crossing `z` values use sample
+SDs rather than a paired standard error.
+
+Correct pieces are the residual-span rank ceiling, rotation-invariant
+participation ratio and its gradient with respect to normalized residuals, the
+Gram implementation, deployment parity, candid SOP non-crossing, and the
+C6/C7 WCCN controls. They are diagnostic components, not authorization to run
+an occupied, unmeasured target.
+
+Process lesson: a pooled conditional statistic is not a per-condition
+constraint. Always test private orthogonal subspaces before treating pooled
+effective rank as transferable supervision, and never name a normalized-
+direction moment after an unnormalized covariance without proving the map.
+
+Primary neighbours: Lin et al., *Deep Variational Metric Learning*, ECCV 2018;
+Cheng and Vasconcelos, *Learning Deep Classifiers Consistent With Fine-Grained
+Novelty Detection*, CVPR 2021; Roth, Vinyals, and Akata, *Non-Isotropy
+Regularization for Proxy-Based Deep Metric Learning*, CVPR 2022; and classical
+WCCN/PLDA.
+
+Full artifacts:
+docs/opus_blind_prompt_pass40_2026-08-06.txt,
+docs/opus_cnw_proposal_pass40_2026-08-06.md,
+docs/opus_cnw_review_prompt_2026-08-06.txt,
+docs/opus_cnw_review_2026-08-06.md, and
+docs/opus_cnw_local_audit_2026-08-06.md.
