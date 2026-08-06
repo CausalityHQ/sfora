@@ -1,4 +1,135 @@
-2})=3.24$.
+I did not inspect the filesystem, git history, repository, or any prior state. This is a cold proposal. Novelty search below was done against primary/web sources during this session.
+
+---
+
+# AXE — Adversarial Subspace Excision for Zero-Shot Metric Learning
+
+**Lane: A** (ResNet-50, 512-D L2-normalized global descriptor, 224², single-view cosine NN, 200 epochs). All forecasts, baselines and references below are Lane A only.
+
+**One-line mechanism.** Train the deployed descriptor so that *every* co-dimension-$k$ linear subspace of it still solves the training retrieval task — i.e. make the class signal survive worst-case deletion of $k$ directions, where the deleted subspace is optimized on the Stiefel manifold rather than sampled or axis-aligned. At test time nothing is deleted; the certificate's residue is a descriptor whose class information is carried redundantly across $>k$ independent directions, which is the property zero-shot extrapolation to unseen identities actually consumes.
+
+---
+
+## 0. Base method reproduced exactly (Proxy Anchor, Kim et al., CVPR 2020)
+
+AXE is an add-on term; the base must be reproduced verbatim where disclosed.
+
+**Loss.** With $s(\cdot,\cdot)$ cosine similarity, $P$ all proxies (one per training class), $P^+$ the proxies of classes present in the batch, $X_p^+/X_p^-$ the batch embeddings positive/negative for proxy $p$:
+
+$$\ell(X)=\frac{1}{|P^{+}|}\sum_{p\in P^{+}}\log\Big(1+\sum_{x\in X_p^{+}}e^{-\alpha(s(x,p)-\delta)}\Big)\;+\;\frac{1}{|P|}\sum_{p\in P}\log\Big(1+\sum_{x\in X_p^{-}}e^{\alpha(s(x,p)+\delta)}\Big)$$
+
+$\alpha=32$, $\delta=10^{-1}$.
+
+**Disclosed recipe.** AdamW; base lr $10^{-4}$ (CUB, Cars) / $6\times10^{-4}$ (SOP, In-Shop); **proxy lr scaled ×100**; epochs 40 (CUB/Cars), 60 (SOP/In-Shop); batch 150 in the paper; input $224\times224$; train aug = random crop + horizontal flip; test = center crop; proxies initialised from a normal distribution (uniform on the hypersphere); L2-normalized embedding layer; batches randomly sampled (no balanced sampler). Official repo ResNet-50 commands: `--embedding-size 512 --batch-size 120 --lr 1e-4 --warm 5 --bn-freeze 1 --lr-decay-step 5` (CUB), `--lr-decay-step 10` (Cars).
+
+**Published Lane-adjacent anchors (Inception-BN 512-D, 224²):** CUB 68.4, Cars 86.1, SOP 79.1, In-Shop 91.5.
+
+### 0.1 Unresolved source ambiguities (stated, not papered over)
+
+1. **PFML venue.** The prompt dates PFML to CVPR 2025. The primary sources I retrieved describe *Potential Field based Deep Metric Learning* with exactly the quoted ResNet-50 numbers (CUB 0.734, Cars 0.927, SOP 0.829) but index it as **CVPR 2024**. Numbers match; venue year unresolved. I do not extend PFML and do not reproduce its recipe.
+2. **PA batch size.** Paper says 150; official ResNet-50 commands say 120; Inception-BN says 180. I pre-register **120** (the ResNet-50 command) and flag the deviation from the paper text.
+3. **PA weight decay is not stated in the paper.** Secondary sources report both $10^{-4}$ and $5\times10^{-4}$. I pre-register $10^{-4}$ and sweep $\{0,10^{-4},5\times10^{-4}\}$ **identically on both arms** (see §2, G2).
+4. **No official ResNet-50 command exists for SOP or In-Shop.** I must *construct* one: lr $6\times10^{-4}$, `warm 1`, `bn-freeze 0`, batch 120, `lr-decay-gamma 0.25`. This is constructed, not inherited.
+5. **Head pooling for ResNet-50** (GAP only vs GAP⊕GMP concat) is not disclosed in the paper. I pre-register **GAP only**, matching Lane A's "global-average-pooled" phrasing.
+6. **200 epochs is not PA's recipe** (40/60). I therefore run (a) everything at 200 epochs with cosine LR decay as the comparison arm, and (b) a 60-epoch step-schedule fidelity run whose Inception-BN number is checked against 68.4/86.1/79.1/91.5 as a reproduction anchor. **I do not inherit PA's published frontier under the changed schedule.**
+7. **PA+DADA In-Shop 0.930** has no reported seed count or uncertainty; backbone/dim assumed per the lane definition, not independently verified by me.
+8. **PFML's 15-proxy aggregator** is not established by my search. My multi-proxy variant therefore uses **SoftTriple's** disclosed smooth-max and is explicitly *not* a PFML reproduction.
+
+---
+
+## 1. Executable mathematics
+
+### 1.1 Objects
+
+* Backbone $\phi_\theta$: ResNet-50, ImageNet-1K init. $g=$ GAP $\Rightarrow \mathbb{R}^{2048}$.
+* Head $W\in\mathbb{R}^{d\times 2048}$, $d=512$. $z_i = W\,g(\phi_\theta(x_i))\in\mathbb{R}^{d}$.
+* Proxies $P=\{p_c\}_{c=1}^{C}\subset\mathbb{R}^{d}$, learned.
+* **Adversary buffers** $U_1,\dots,U_M\in \mathrm{St}(d,k)=\{U: U^\top U=I_k\}$. These are *buffers, not parameters*: no weight decay, no optimizer state, no outer gradient.
+
+### 1.2 The excision operator (subspace-restricted cosine)
+
+For $U\in\mathrm{St}(d,k)$ let $a_i=U^\top z_i$, $b_c=U^\top p_c$ and
+
+$$n_i(U)=\sqrt{\|z_i\|^2-\|a_i\|^2+\epsilon},\qquad m_c(U)=\sqrt{\|p_c\|^2-\|b_c\|^2+\epsilon},\qquad \epsilon=10^{-6}$$
+
+$$\boxed{\;S^{U}_{ic}\;=\;\frac{\langle z_i,p_c\rangle-\langle a_i,b_c\rangle}{n_i(U)\,m_c(U)}\;}$$
+
+This is **exactly** $\cos\!\big(V^\top z_i,\;V^\top p_c\big)$ for any orthonormal basis $V$ of $\mathrm{span}(U)^\perp$ — it is the *entire PA retrieval system executed inside the surviving $(d{-}k)$-dimensional subspace*, never materialising $V$. At $k=0$, $S^0_{ic}=\cos(z_i,p_c)$, the ordinary PA similarity.
+
+**Why both $z$ and $p$ are projected** — this is load-bearing, see §2 (G3). Projecting only the query admits a degenerate attack.
+
+### 1.3 Objective
+
+Write $\mathcal{L}_{\mathrm{PA}}(S)$ for the PA loss functional of §0 applied to a similarity matrix $S\in\mathbb{R}^{B\times C}$. Then
+
+$$\boxed{\;\mathcal{L}(\theta,W,P)\;=\;\mathcal{L}_{\mathrm{PA}}(S^{0})\;+\;\lambda\cdot\max_{m\in[M]}\;\mathcal{L}_{\mathrm{PA}}\!\big(S^{U_m}\big)\;}$$
+
+Gradients flow to $\theta,W,P$ through **both** terms. $U_m$ is a constant in the outer step (Danskin's theorem applied to the approximate inner maximiser).
+
+### 1.4 Adversary update (per optimizer step, before the outer step)
+
+For $m=1..M$, repeat $R$ times, with $z,p$ **detached**:
+
+$$G\leftarrow \nabla_U\,\mathcal{L}_{\mathrm{PA}}(S^{U_m}),\qquad G\leftarrow G-U_m(U_m^\top G),\qquad G\leftarrow \tfrac{G}{\|G\|_F+10^{-12}},\qquad U_m\leftarrow \mathrm{qf}\big(U_m+\eta_{\mathrm{adv}}G\big)$$
+
+$\mathrm{qf}(\cdot)$ = thin QR $Q$ with $Q\!\leftarrow\!Q\,\mathrm{diag}(\mathrm{sign}(\mathrm{diag}(R)))$. Normalising $G$ makes $\eta_{\mathrm{adv}}$ a trust-region radius, so it is not a sensitive hyperparameter.
+
+**Analytic gradient (for the record; autograd on the $k$-dim projections is equivalent and costs $O(dk(B{+}C))$):**
+
+$$\frac{\partial S^U_{ic}}{\partial U}=\frac{-(z_i b_c^\top+p_c a_i^\top)}{n_i m_c}+N_{ic}\left(\frac{z_i a_i^\top}{n_i^{3} m_c}+\frac{p_c b_c^\top}{n_i m_c^{3}}\right),\qquad N_{ic}=\langle z_i,p_c\rangle-\langle a_i,b_c\rangle$$
+
+$$\frac{\partial \mathcal{L}_{\mathrm{PA}}}{\partial S_{ic}}=\begin{cases}-\dfrac{\alpha}{|P^+|}\cdot\dfrac{e^{-\alpha(S_{ic}-\delta)}}{1+\sum_{i'\in X_c^+}e^{-\alpha(S_{i'c}-\delta)}} & y_i=c,\ c\in P^+\\[2ex] +\dfrac{\alpha}{C}\cdot\dfrac{e^{\alpha(S_{ic}+\delta)}}{1+\sum_{i'\in X_c^-}e^{\alpha(S_{i'c}+\delta)}} & y_i\neq c\end{cases}$$
+
+### 1.5 Schedules and hyperparameters (complete)
+
+| Symbol | Value | Notes |
+|---|---|---|
+| $M$ | 3 | persistent adversaries, Haar-random init (QR of $d\times k$ Gaussian) |
+| $R$ | 2 | ascent steps per adversary per batch |
+| $\eta_{\mathrm{adv}}$ | 0.1 | trust-region radius (normalized step) |
+| $T_{\text{reinit}}$ | 250 steps | the *weakest* adversary (lowest $\mathcal{L}_{\mathrm{PA}}(S^{U_m})$) is replaced by a fresh Haar draw |
+| $\lambda$ | 1.0 | searched $\{0.25,0.5,1,2\}$ on class-disjoint val |
+| $k_{\max}$ | 48 (CUB/Cars), 128 (SOP/In-Shop) | searched $\{16,32,48,64,96\}$ / $\{64,128,192\}$ |
+| $k(t)$ | 0 for epochs 0–4; then linear $1\to k_{\max}$ over epochs 5→45; constant after | epochs 0–4 = PA's `warm 5` backbone freeze, AXE off ($\lambda=0$) |
+| rank growth | append a Haar column orthogonal to current $\mathrm{span}(U_m)$, re-QR | preserves warm start when $k$ increments |
+| BN | `bn-freeze 1` (CUB/Cars), `0` (SOP/In-Shop) | matches PA |
+| everything else | identical to §0 | AXE adds **zero learned parameters** |
+
+**Model selection.** The training classes are split into 4 disjoint folds. Hyperparameters ($k_{\max}$, $\lambda$, weight decay) are chosen by training on 3 folds' classes and measuring R@1 on the held-out fold's classes — a genuine zero-shot proxy built only from official training images and identity labels. Test classes are never touched. Final runs use all training classes, 5 seeds.
+
+**SOP scale fallback (pre-registered).** If the $C=11{,}318$ proxy projection is a measurable bottleneck, the adversary's proxy set is restricted to batch classes plus a uniformly random 4096-class sample per step. Pre-registered so it is not a post-hoc knob.
+
+### 1.6 Test-time operation
+
+$e = z/\|z\|_2$; cosine nearest neighbour over the gallery. **$U$ is discarded.** One model, one view, one 512-D descriptor. Deployment is bit-for-bit identical to the PA baseline.
+
+---
+
+## 2. Causal zero-shot error mode, and proof-level attacks on the cheap degeneracies
+
+### 2.1 The error mode: redundancy-starved attribute suppression
+
+Generative model: image $x$ from identity attributes $a\in\mathbb{R}^{D}$ ($D\gg d$) plus nuisance $\nu$ (pose, lighting, background, crop). A class $c$ is a region with mean $a_c$.
+
+1. Separating the $C$ seen classes to PA's margin requires only the top-$r$ principal attribute directions, where $r$ is the smallest rank keeping the projected class means $\delta$-separated. On CUB ($C=100$, alphabetically-first-100-species split) $r$ is far below the algebraic ceiling $C-1=99$.
+2. PA's positive gradient decays as $e^{-\alpha(s-\delta)}$ with $\alpha=32$: **once the easiest $r$ attributes clear the margin, the gradient on every other attribute is $\sim e^{-3.2}$ of its peak and dies.** Combined with gradient starvation (Pezeshki et al., NeurIPS 2021) and decoupled weight decay on $W$, the residual attribute channels are actively pruned.
+3. At test, two unseen classes $c^+,c^-$ whose difference $\delta_{c^+c^-}$ is nearly orthogonal to the retained $r$-dim subspace map to descriptors separated by less than the nuisance scale $\sigma_\nu$. NN returns the wrong identity.
+4. Quantitatively, for an unseen difference direction with random orientation relative to the retained subspace $V_r$, $\mathbb{E}\big[\|\Pi_{V_r}\delta\|^2/\|\delta\|^2\big]=r/D$, so the retrieval SNR $\propto (r/D)\|\delta\|^2/\sigma_\nu^2$ and R@1 is monotone increasing in the **retained attribute rank $r$**.
+
+AXE attacks step 1 directly: it deletes the minimal-rank minimum from the feasible set.
+
+### 2.2 Proposition 1 (rotation invariance) — kills the duplication degeneracy
+
+$\mathcal{L}$ depends on $(z,p)$ only through $\langle z_i,p_c\rangle,\ \langle U^\top z_i,U^\top p_c\rangle,\ \|z_i\|,\|p_c\|,\|U^\top z_i\|,\|U^\top p_c\|$. Under $(W,P)\mapsto(RW,RP)$ for $R\in O(d)$, the substitution $U\mapsto RU$ is a bijection of $\mathrm{St}(d,k)$ preserving all six quantities, and the Haar initialisation of $U_m$ is $O(d)$-invariant. Hence $\mathcal{L}$ and its optimization are $O(d)$-equivariant. $\square$
+
+**Consequence.** No change of basis can satisfy AXE: not coordinate duplication, not block partitioning, not permutation. If an encoder writes one scalar feature into $m$ coordinates, the class signal still occupies a 1-dimensional subspace and a rank-1 adversary deletes it. **This is precisely the escape hatch that defeats coordinate dropout, BIER's fixed axis-aligned partition, and Matryoshka-style nested prefixes**, all of which are invariant only under the permutation subgroup or under no group at all.
+
+### 2.3 Proposition 2 (excision certificate) — an operational rank lower bound
+
+Let $\mathcal{S}=\mathrm{span}\{p_c-p_{c'}\}$. Suppose $\dim\mathcal{S}=r\le k$ and pick $U$ with $\mathrm{span}(U)\supseteq\mathcal{S}$. Then $\Pi_U p_c=\Pi_U p_{c'}$ for all $c,c'$, so $S^U_{ic}$ is constant in $c$: call it $\sigma$. Then
+
+* if $\sigma\ge 0$: the negative term is $\ge \frac{1}{C}\sum_c\log(1+(B-n_c)e^{\alpha\delta})\approx\log(1+115e^{3.2})=7.95$;
+* if $\sigma<0$: the positive term is $\ge\log(1+e^{\alpha\delta})=\log(1+e^{3.2})=3.24$.
 
 Hence $\mathcal{L}_{\mathrm{PA}}(S^U)\ \ge\ L_{\text{floor}}:=\log(1+e^{\alpha\delta})=3.24$ for $\alpha=32,\delta=0.1$. $\square$
 
