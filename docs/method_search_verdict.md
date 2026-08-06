@@ -7818,3 +7818,21 @@ disputed transfer sign (Galanti et al., 2021); ReDo, continual backpropagation,
 FIRE, and recent plasticity-restoration methods are adjacent prior art. No
 forecast or GPU run was authorized. Full artifact:
 `docs/opus_pass59_none_2026-08-06.md`.
+
+### Pass 60 — OFG barrier / blind proposer returned NONE before Gate 1
+
+The blind proposer returned NONE and formalized an orientation-free gain
+barrier: mechanisms invariant to descriptor rotations or based only on second
+order statistics/seen labels trade local within-class and between-class errors
+through one scalar contraction ratio. It closed bi-Lipschitz heads, whitening,
+MCR², kernel pooling, attractor/DEQ heads, IRM/V-REx with exchangeable classes,
+topological/MST objectives, and init-anchored metric distillation. An exactly
+equivariant backbone with invariant readout is the only principled survivor but
+is outside the audited ImageNet-initialized Lane-A architecture.
+
+The proposer’s CUB-derived split was nearly balanced (48.1% local versus 51.9%
+between failures), and its post-hoc whitening falsifier was run separately:
+alpha .0/.1/.25/.5/.75/1.0 yielded R@1 .6818/.6826/.6870/.6913/.6828/.6676
+while local and between failure shares traded monotonically. This is a
+diagnostic, not a method result; no GPU run was authorized. Full artifact:
+`docs/opus_pass60_none_2026-08-06.md`.
