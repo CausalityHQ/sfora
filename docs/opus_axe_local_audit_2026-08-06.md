@@ -189,3 +189,43 @@ the deployed encoder remains unchanged, and distinguish a true global
 worst-case from a handful of typical or locally optimized subspaces. Changing
 the mask from coordinate-wise to Stiefel does not reopen the already occupied
 self-challenging supervision action.
+
+## Frozen independent review and reconciliation
+
+The independent cold review ran as durable consultation
+`855d7855b94b4ba4`: Fable exhausted its credits and the same job completed
+under Claude Opus. Its exact final provider answer is frozen at
+`docs/opus_axe_review_2026-08-06.md`, file SHA-256
+`f3702d106e02763870b2598b3bac01eb4b3f2046dc85e2980905c46d2c2498ef`
+and pre-terminal-newline provider-answer SHA-256
+`27e0144a4c3e5340fde1391032d4308ceb8fbfce7cd5ca58d47dd7be41fc10f0`.
+The durable final receipt retained the reviewer's concise adjudication rather
+than its longer streamed working draft; only the exact retained final answer
+is treated as the frozen review artifact.
+
+The cold review independently returns **DEAD**. Its decisive formulation is a
+currency mismatch: AXE optimizes descriptor linear rank while its causal story
+requires an increase in the number of visual attributes computed. Those can
+be separated by nonlinear recoding. In the reviewer's disclosed toy check,
+holding three computed attributes fixed raised class-mean rank from `3` to
+`99`, participation ratio from `2.8` to `10.6`, and reduced excision loss from
+`0.108` to `0.008`. These are reviewer calculations, not repository or
+benchmark measurements, but they exhibit the exact shortcut the proposal did
+not rule out.
+
+The review also independently finds that Proposition 2's proxy-rank conclusion
+is generically true at initialization for every registered dataset/`k` pair,
+that 64 random Grassmann draws have about `9e-5` chance of detecting its
+constructed narrow evasion, and that four of nine proposed falsification
+thresholds lie below the design's own minimum detectable effect. It preserves
+the restricted-cosine formula, analytic gradients, exact inequality, legal
+deployment, class-disjoint selection, and ambiguity ledger as correct pieces.
+
+There is no conflict to resolve. The local audit kills AXE earlier at repository
+Gate 1 (no measured causal provenance) and independently at Gate 2 (internal
+DSA recurrence plus occupied self-challenging action). The cold review begins
+from a reconstructed mathematical ladder and kills it at its certificate gate.
+Both identify the same proxy/linear-rank versus transferable-image-evidence
+disconnect. AXE remains dead without GPU work; testing only whether an
+excision regularizer beats PA and its coordinate-mask control would be a new,
+separately motivated proposal, not a repair of this frozen candidate.

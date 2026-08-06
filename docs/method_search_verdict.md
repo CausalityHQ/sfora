@@ -6770,3 +6770,85 @@ docs/opus_gevs_proposal_pass42_2026-08-06.md,
 docs/opus_gevs_review_prompt_2026-08-06.txt,
 docs/opus_gevs_review_2026-08-06.md, and
 docs/opus_gevs_local_audit_2026-08-06.md.
+
+### Forty-third blind pass: AXE certifies proxy-table rank, not transferable visual evidence
+
+**DEAD at Gates 1 and 2, independently reinforced by a cold mathematical
+review; no diagnostic, preregistration, implementation, or candidate GPU.**
+Adversarial Subspace Excision (AXE) proposed deleting a learned worst-case
+`k`-dimensional descriptor subspace and reapplying Proxy Anchor in the
+surviving complement. Its theorem claimed that low worst-case loss certifies
+at least `k+1` discriminative directions, motivating evidence redundancy
+across unseen visual attributes.
+
+Gate 1 has no provenance. No corrected repository measurement establishes
+that official-query errors are caused by low train-label rank, that surviving
+worst-case deletion measures transferable factors, or that increasing this
+rank repairs retrieval. The proposed participation ranks and class-count dose
+are forecasts. Candidate 225 instead found disjoint-identity subspace-transfer
+ratios `0.9312`, `0.9287`, and `0.9345`, all below its locked `1.15` floor.
+That is not AXE's exact between-class statistic, but it is adverse to the broad
+premise that manipulating a seen-identity subspace reveals reusable factors.
+
+The theorem is valid only in a narrow and already-vacuous sense: it certifies
+`rank(span{p_c-p_c'}) >= k+1` for the **trainable proxy table** under an exact
+global inner maximum. Generic one-proxy-per-class tables already have ranks
+99 on CUB, 97 on Cars, and 512 on SOP/In-Shop, satisfying every registered
+`k` without new image evidence. Proxies train at 100 times the encoder learning
+rate and participate in both clean and excised losses, so they can spread while
+the deployed encoder remains low-dimensional. The proposed controls measure
+the same proxy shortcut rather than isolating it.
+
+The executable three-frame/two-ascent-step adversary is only a lower bound on
+the maximum over `Gr(k,512)`. Sixty-four fresh Haar draws test typical deletion,
+not the universal every-subspace claim. The cold review's constructed narrow
+evasion gives only about `9e-5` detection probability over those draws. Its
+separate nonlinear-recoding toy check held the computed attribute set fixed at
+three while raising class-mean rank `3 -> 99`, participation ratio
+`2.8 -> 10.6`, and reducing excision loss `0.108 -> 0.008`. These are reviewer
+calculations, not benchmark measurements, but they exhibit the exact currency
+mismatch: linear rank can improve without computing another visual attribute.
+
+Gate 2 recurs exactly through Pass 29 DSA: delete currently discriminative
+seen-label directions from embeddings and proxies, then optimize the same label
+loss on what survives. AXE changes the selector from leading scatter to a
+loss-maximizing Stiefel frame, not the supervision action. Representation
+Self-Challenging, adversarial dropout/regularization, adversarial erasure and
+feature-erasure ReID occupy that action publicly; BIER and related DML
+ensembles occupy distributing retrieval evidence across components. The
+rotation-invariant mask is a wrapper, not a new supervision referent.
+
+The cold review preserves the restricted-cosine formula, analytic gradients,
+the conservative proxy-collapse inequality, deployment legality,
+class-disjoint selection, and ambiguity ledger. It independently returns DEAD
+because the certificate does not identify the causal object. It also notes
+outer-gradient instability near deleted norms, approximate rather than exact
+scale invariance with epsilon, AdamW breaking optimization-level rotation
+equivariance, and four of nine thresholds below the proposed design's own
+minimum detectable effect.
+
+AXE additionally starts with CUB rather than corrected paired In-Shop, changes
+recipe/capacity lanes, omits raw-best versus final reporting, receives a much
+larger structural search than its baseline, and forecasts standalone results
+below every audited frontier. Its nominal multi-proxy CUB `0.736` is below its
+own decisive `0.740` threshold and uses a carrier for which the proxy theorem
+is conceded vacuous. No GPU result could rescue the frozen claim.
+
+Process lesson: a certificate must be attached to the deployed object that is
+supposed to carry the information. Before any rank/redundancy method reaches
+GPU, prove that trainable auxiliaries and nonlinear recoding cannot satisfy its
+statistic with unchanged image evidence, and distinguish an exact global
+worst-case from a few locally optimized or random subspaces.
+
+Primary neighbours: Huang et al., *Representation Self-Challenging*, ECCV
+2020; Park et al., *Adversarial Dropout*, AAAI 2018; Saito et al., *Adversarial
+Dropout Regularization*, ICLR 2018; Huang et al., *Adversarially Occluded
+Samples for Person Re-identification*, CVPR 2018; and Opitz et al., *BIER*,
+ICCV 2017.
+
+Full artifacts:
+docs/opus_blind_prompt_pass43_2026-08-06.txt,
+docs/opus_axe_proposal_pass43_2026-08-06.md,
+docs/opus_axe_review_prompt_2026-08-06.txt,
+docs/opus_axe_review_2026-08-06.md, and
+docs/opus_axe_local_audit_2026-08-06.md.
