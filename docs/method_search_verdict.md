@@ -5746,3 +5746,88 @@ can, statistic movement is not evidence of representation improvement. Full
 artifacts: `docs/opus_doir_proposal_pass28_2026-08-06.md`,
 `docs/opus_doir_review_2026-08-06.md`, and
 `docs/opus_doir_local_audit_2026-08-06.md`.
+
+### Twenty-ninth blind pass: DSA suppresses the wrong spectrum and repeats self-challenging
+
+**DEAD at Gate 1 and Gate 2, independently reinforced by a biased estimator,
+an impossible mechanism probe, and proxy/nonlinear shortcuts; no
+preregistration, implementation, or GPU.** The direct Opus proposal returned
+Discriminant-Subspace Ablation (DSA): estimate the leading eigenspace of an EMA
+of batch between-identity scatter, project that eigenspace out of embeddings
+and proxies during an auxiliary Proxy-Anchor loss, and require identity
+classification to remain possible from the residual. The claimed mechanism was
+that training identities monopolize a few discriminative directions and that
+self-erasure forces more transferable identity evidence.
+
+Gate 1 has no eligible provenance. The repository has no verified measurement
+that low between-training-identity participation ratio causes corrected
+official-query error or that raising it repairs unseen identities. Candidate
+371 established that the available `C-1` proxy-rank fact is dimensional
+algebra, not channel-starvation evidence, and that its proposed demanded-rank
+curve would not identify a benchmark dimension requirement. DSA instead turns
+a forecast retrieval error into an unobserved quadratic-form threshold and
+invents the base `PR=8--15` and a `+4.1`-point ceiling.
+
+The central causal substitution is false. If latent training identity contrasts
+have spectrum `s_i` and encoder squared gains are `g_i`, the realized scatter
+controlled by DSA is `lambda_i=g_i s_i`. The proposal's sphere-uniform transfer
+calculation prefers constant `g_i`; flattening observed `lambda_i` instead
+forces `g_i proportional to 1/s_i` when the data are anisotropic. A flat-gain
+encoder can therefore exhibit exactly the spiky observed scatter DSA calls
+diseased. The mechanism observable does not identify the mechanism target.
+
+The implemented EMA is not pure between-identity scatter either. With `P`
+batch identities and `m` stochastic images per identity,
+`E[S_batch]=S_between+(P-1)/P * mean(Sigma_within)/m`. At `P=30,m=4`, EMA
+preserves roughly one quarter of within-class/augmentation covariance; it
+reduces variance, not this bias. The matrix can be full rank, nuisance axes can
+occupy ablation slots, and as between-class energy flattens the method silently
+turns into nuisance-direction ablation.
+
+The registered C8/F4 mechanism test is arithmetically non-executable under its
+natural full-split definition: centered means of the 20 CUB validation
+identities have participation ratio at most 19, and the ten Cars identities at
+most nine, while DSA forecasts `30--45` and requires a twofold rise. If C8 uses
+the noisy batch EMA instead, only the within-class bias lets it exceed those
+ceilings. Neither version measures the claim.
+
+Gate 2 is occupied on supervision object and action. Representation
+Self-Challenging (Huang et al., ECCV 2020) already removes the representation's
+currently dominant label-predictive features, recomputes the same task loss on
+the residual, and backpropagates through the one network to elicit alternative
+OOD-generalizable evidence. PCA-Guided Dropout (Fei et al., SCSL at ICLR 2025)
+separately suppresses dominant in-distribution principal-component structure
+during fine-tuning for the same transfer story. Self-Erasing Network applies
+maximum-activation suppression at feature-vector level in person re-ID. DSA's
+labelled-scatter spectral selector is a wrapper/ablation within this established
+self-challenging family, not new supervision.
+
+The wrapper does not close the advertised shortcuts. Proxies are projected and
+trained too: on CUB they supply about 720k residual degrees of freedom at 100x
+the backbone learning rate with no decay, and a synthetic residual remained
+perfectly class-separable through `r=32`, allowing auxiliary-loss reduction
+with a fixed encoder. Nonlinear recoding such as
+`(s, ReLU(s), ReLU(-s))` turns one cue into several second-moment directions;
+D1 defeats only linear copies. Top-subspace controls are not difficulty-matched:
+the cold calculation retained 13.5% of between-class energy after top-32
+removal versus 93.6% after random-32 removal. At the intended flat spectrum,
+the cutoff eigenspace becomes arbitrary and DSA converges toward its own random
+control.
+
+The hard `K=15` Proxy-Anchor base also changes positive/negative normalization
+by roughly 3.75x relative to `K=1`, leaves most per-class proxies unattracted in
+a four-image batch, and never specifies whether positive assignment is
+recomputed after projection. The claimed `+2 MB` memory omits projected proxy
+and second-loss activations, although the single-backbone-backward time claim
+is credible. Most directly, the proposal itself forecasts below PFML on CUB
+and Cars, below PA+DADA on In-Shop, and declines to forecast DSA+PFML; matching
+its own numbers would not fulfill the standing objective.
+
+Process lesson: a spectrum of observed labels times learned gain is not a gain
+spectrum. Before optimizing a representation statistic, factor the data
+distribution from the encoder action, derive the finite-sample estimator's
+bias, and verify that the preregistered probe is numerically possible on the
+declared split. Full artifacts:
+`docs/opus_dsa_proposal_pass29_2026-08-06.md`,
+`docs/opus_dsa_review_2026-08-06.md`, and
+`docs/opus_dsa_local_audit_2026-08-06.md`.
