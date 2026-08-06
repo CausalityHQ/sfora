@@ -7757,3 +7757,37 @@ label permutation, and post-hoc covariance projection. Full artifacts:
 `docs/opus_ifr_proposal_pass56_2026-08-06.md`,
 `docs/opus_ifr_local_audit_2026-08-06.md`, and
 `docs/opus_ifr_review_2026-08-06.md`.
+
+### Pass 57 — OFRA (orbit-frame restricted attraction): DEAD at Gates 1–2
+
+Mechanism: fit a pointwise low-rank tangent frame from same-image augmentation
+pairs, constrain augmentation displacement outside that frame, and redirect the
+PFML supervised attractive gradient into the frame at fixed nominal magnitude.
+The deployment descriptor remains a single 512-D cosine vector.
+
+Gate 1 failed because no repository measurement established that directional
+attraction or augmentation tangent alignment predicts zero-shot retrieval. The
+blind forecast was also suspiciously anchored: its CUB +1.6 and SOP +0.4 point
+deltas match the published non-isotropic proxy-DML deltas to the decimal, so it
+was not an independent falsifier.
+
+Gate 2 failed by mechanism overlap. Non-Local Manifold Tangent Learning
+(Bengio & Monperrus, NIPS 2004) already learns pointwise tangent frames by
+projection residual; TangentProp (NIPS 1991), the Manifold Tangent Classifier
+(NIPS 2011), and Dao et al. (ICML 2019) occupy augmentation-tangent penalties.
+PCGrad, Gradient Projection Memory (ICLR 2021), CAGrad, and RI-PCGrad occupy
+projected/rescaled gradients. Xiao et al. (ICLR 2021), SIE (ICML 2023), MIC,
+DiVA, self-supervised ranking, and non-isotropic proxy DML occupy the
+invariance/equivariance and intra-class-preservation mechanisms. The remaining
+per-sample rotation is a composition of these known primitives, not a new
+mechanism.
+
+The review also exposed fatal degeneracies: the invariance term drives the
+augmentation displacement to zero while the scale-normalized frame loss still
+looks healthy; fixed-norm projection amplifies frame noise 5.6–8x when the
+hypothesis is strongest; no uniformly attenuated-attraction control is present;
+encoder rotation can make the frame equal the attraction direction and recover
+PFML; and the projected fallback is undefined at zero. No GPU run was
+authorized. Full artifacts: `docs/opus_ofra_proposal_pass57_2026-08-06.md`,
+`docs/opus_ofra_local_audit_2026-08-06.md`, and
+`docs/opus_ofra_review_2026-08-06.md`.
