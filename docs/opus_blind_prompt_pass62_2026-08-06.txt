@@ -1,0 +1,40 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold. Use only this prompt and public primary literature; do not inspect
+local files, prior candidates, or process state and do not edit files. Return
+exactly ONE executable method or NONE.
+
+Target: a genuinely novel train-time method that improves zero-shot image
+similarity learning on disjoint identities (CUB, Cars196, In-Shop, or SOP).
+Use only official training images and labels plus ordinary stochastic image
+augmentation and optional ImageNet-1K initialization. Deployment is one model,
+one view, one fixed global descriptor and cosine/Euclidean nearest-neighbour;
+no test/gallery fitting, reranking, transduction, external generated data,
+text/VLM encoders, extra annotations, or contamination-prone knowledge.
+
+Use one lane only: Lane A ResNet-50/512-D/224px/200 epochs with PFML references
+CUB .734, Cars .927, SOP .829; or Lane B ResNet-50/2048-D with AdvRF references
+CUB .766, Cars .949, SOP .842.
+
+Prior passes closed similarity-matrix reweighting, standard regularization,
+tangent/invariance, gradient surgery, EVT tails, multi-centers, averaging,
+optimizer/label-only objectives, and common architecture/inductive-bias ideas.
+Pass 60’s CUB diagnostic found 48.1% local within-class and 51.9% between-class
+failure signatures. Pass 61 argues an identifiability/rank barrier: all
+orientation-free methods trade those errors, and ordinary equivariant/invariant
+readouts are rank-reducing. Do not accept this as a reason to stop. Seek a
+method whose *training signal comes from pixels/trajectory in a way that
+changes the off-support function*, not merely a similarity weighting or
+diversity penalty. Explore unusual fields (evolutionary selection, cellular
+automata, associative memory, energy-based inference, information bottleneck,
+causal representation, chemistry/physics-inspired dynamics, novel activation
+or parameterization) but attack primary prior art first.
+
+Return complete equations, gradient/state update paths, initialization and
+schedules, causal error mode, proof-level degeneracy attacks, nearest primary
+citations with mechanism-level distinctions, matched-compute controls, frozen
+forecasts on >=2 datasets, falsification thresholds/frontier arithmetic, cost,
+and contamination risks. If no method survives, return NONE plus the strongest
+new closure result and one falsifiable diagnostic. Do not claim SOTA from a
+forecast.
