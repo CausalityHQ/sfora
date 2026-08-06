@@ -1,0 +1,94 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_nrc_proposal_pass48_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. Test identities are
+disjoint. No test/gallery data, external generated data, text/VLM, reranking,
+transduction, ensemble, or test-time fitting may enter selection. Deployment
+is one single-view encoder, one 512-D L2-normalized descriptor, and cosine NN.
+
+Audited Lane-A frontiers are PFML ResNet-50/512-D/single-view over five runs:
+CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002. PA+DADA reports
+In-Shop 0.930 without uncertainty. The corrected local BN-Inception In-Shop PA
+reference has three completed seeds: raw mean 0.918062, sample sd 0.001523;
+final mean 0.915201, sample sd 0.001549. A live candidate must screen paired
+corrected In-Shop first, report raw plus independently selected/final, confirm
+out of sample, and replicate.
+
+Independently audit at least:
+
+1. Recompute the geometry of `u_hat=u/(||u||+eps)`. Is it unit length or
+   zero-homogeneous? Derive its radial derivative for eps=1e-6 and determine
+   whether L_rot/L_comp gradients are exactly tangential and orthogonal to
+   radius losses for the executable forward pass.
+2. Even if eps were removed, determine whether orthogonal output-space
+   gradients imply orthogonal updates to shared trunk/head parameters. Write
+   the Jacobian expression, include batch cross-terms and optimizer effects,
+   and test the claim that using the same final coordinate pairs prevents a
+   trunk from servicing phase and radius through disjoint upstream channels.
+3. Check the maximal-invariant proposition for what is actually deployed:
+   `normalize(W_g log(1+r)+b_g)`. Does full rank of W_g make this normalized
+   affine map injective on radius vectors? Supply a concrete collision or proof.
+   Distinguish raw radii as a torus maximal invariant from the deployed map.
+4. Audit the declared `A ~= R^5 x S^1 x Z2` against actual image operators.
+   Random-resized crop includes translation/position; color-jitter operators,
+   clipping, and quantization may not commute or be invertible. The proposal
+   adds/clamps metadata and renders `a_t13(x)` once rather than applying
+   `a_t3(a_t1(x))`. Decide whether rho is an exact representation of the
+   rendered augmentation action and whether L_comp/D4 tests a homomorphism or
+   merely interpolation of a supplied parameter ledger.
+5. Construct cheap shortcuts. Can the trunk infer augmentation metadata from
+   rendering cues, combine identity amplitude with a prescribed phase, satisfy
+   rotor/composition/radius losses, and gain no retrieval information? Does D5
+   rule this out? Check whether L_occ prevents uniform all-radius shrinkage and
+   whether the claim that shrinking buys exactly zero is compatible with the
+   epsilon-dependent u_hat.
+6. Search primary prior art by supervision object and action, not wrapper name:
+   AugSelf (Lee et al., NeurIPS 2021), Equivariant Self-Supervised Learning
+   (Dangovski et al., ICLR 2022), EquiMod (Devillers/Lefort, ICLR 2023), SIE
+   (Garrido et al., ICML 2023), harmonic/group-equivariant networks, complex
+   modulus/scattering, transformation-prediction auxiliaries, and methods that
+   split invariant and equivariant representations. State the narrowest
+   defensible mechanism-level novelty and whether the rotor parameterization
+   creates new supervision or only a new wrapper.
+7. Treat this supplied repository evidence as evidence without reading other
+   local files. Corrected ARCG found augmentation-response compatibility to be
+   image-specific and heterogeneous on In-Shop: its graph retained about
+   0.3631--0.3640 of same-class pairs and passed close-pair rejection plus
+   distant-pair acceptance. An earlier ARCG self-erasure performance result was
+   retracted after a bug. IPSR established an augmentation-response relation
+   but no causal retrieval benefit. Candidate 147, an augmentation-response
+   supervision family, a tangent-metric line, and cycle-equivariance candidate
+   307 were already explored. ARCG's novelty audit says a single-image
+   augmentation-prediction/equivariance auxiliary is occupied by AugSelf and
+   EquiMod. Does NRC have positive Gate-1 provenance for its universal fixed
+   response law rather than a forecast contradicted by heterogeneity?
+8. Audit D1--D8 and C1--C8 as causal controls. Identify which controls can
+   separate identity-useful equivariance from parameter decoding or generic
+   regularization. Preserve correct controls even if the method dies.
+9. Check recipe and compute matching. NRC fixes trainable BN and a universal
+   batch/schedule although audited Proxy Anchor recipes freeze BN and use
+   dataset-specific batch sizes/lrs. Does 50 distinct images with three views
+   match a 150-image baseline at fixed steps, epochs, and unique-sample
+   exposure? Is NRC+PFML a frozen faithful carrier? Audit the claimed 1.00x
+   compute empirically rather than from forward-image count alone.
+10. Check protocol and forecasts: corrected paired In-Shop must precede CUB,
+    Cars, and SOP; raw-best plus independently selected/final, out-of-sample
+    confirmation, second-dataset replication, and paired uncertainty are
+    required. The proposal starts five seeds on three datasets, bypasses
+    In-Shop, and forecasts only +0.010 CUB over PFML for its strongest headline.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
