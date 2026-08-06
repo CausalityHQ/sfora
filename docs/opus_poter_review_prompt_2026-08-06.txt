@@ -1,0 +1,52 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly the frozen proposal at:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_poter_proposal_pass33_2026-08-06.md
+
+Do not edit any repository file. Do not inspect git history, earlier proposal
+or review artifacts, the verdict ledger, or prior conversations. Start cold
+from the proposal and primary sources. This is adjudication, not repair.
+
+Return LIVE, DEAD, or BLOCKED, naming the earliest failed section and the
+single most decisive mechanism-level reason. No GPU experiment may be used to
+repair anything decidable by algebra, finite differences, simulation, recipe
+inspection, forecasts, or primary literature.
+
+Independently verify:
+
+1. Re-derive the PWM/GPD estimator and the complete Lambda expression,
+   including support handling for positive, zero, and negative shape. Check
+   every claimed gradient sign through the live pooled/shrunk estimator.
+2. Test whether e_ic=max_j cosine(z_i,z_j)-cosine(z_i,p_c) is necessarily
+   nonnegative and whether its pooled law is a legal within-class excess law.
+   Derive the K-to-n block-maximum quantile transform and the positive-side
+   correction, including whether Q_{K-1} is actually defined by the algorithm.
+3. Audit the hierarchy's probability model: dependence of class proxy score
+   and within-class excess, heterogeneous class sizes, correlated/duplicate
+   product images, extremal index, using training class counts for unseen
+   galleries, and whether the quadrature estimates the stated R@1 event.
+4. Attack all shortcut claims with executable finite differences. In
+   particular, determine whether reducing top-proxy-score scale can create
+   gradients outside span(P), whether exact normalized-cosine collapse is
+   stationary, whether the loss can game u, sigma, the pooled excess
+   distribution, or proxy geometry, and whether min/clamp branches kill useful
+   gradients.
+5. Compare POTER at mechanism level with train-time EVT/LID, GPD similarity
+   losses, gallery-return-level objectives, top-k/CVaR/ranked losses,
+   AnchorFace/threshold methods, XBM, OpenMax/EVM, and hierarchical extreme
+   models. Search primary sources; distinguish a new supervision object from a
+   more elaborate estimator or margin wrapper.
+6. Audit Proxy Anchor recipe fidelity, P=40,K=3 sampler feasibility,
+   differentiable quantiles under AMP, loss-scale transfer, controls, test
+   gallery ladder leakage/repeated test touching, statistical power, total
+   programme cost, and frontier arithmetic.
+7. Treat the forecast literally: standalone PA+POTER crosses no stated
+   frontier, while the only crossing uses an assumed 60-percent additive
+   PA+DADA+POTER composition. Decide whether the frozen method could satisfy
+   the standing objective even if every forecast landed.
+
+Run the cheapest CPU simulations needed and report reproducible numbers.
+Preserve genuinely correct subcomponents separately from the verdict. Cite
+primary sources directly and state uncertainty where a source is unavailable.
