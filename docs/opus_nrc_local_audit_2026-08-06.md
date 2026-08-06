@@ -135,8 +135,9 @@ That object and action are occupied:
 - Lee et al., **AugSelf** (NeurIPS 2021), predicts differences in crop and color
   augmentation parameters as an auxiliary objective so representations retain
   augmentation-aware information, including in supervised transfer.
-- Dangovski et al., **Equivariant Self-Supervised Learning** (ICLR 2022), adds
-  transformation prediction to invariant contrastive learning.
+- Dangovski et al., **Equivariant Contrastive Learning** (ICLR 2022), calls its
+  framework E-SSL and adds transformation prediction to invariant contrastive
+  learning.
 - Devillers and Lefort, **EquiMod** (ICLR 2023), models augmentation-induced
   displacement in representation space.
 - Garrido et al., **Self-supervised learning of Split Invariant Equivariant
@@ -155,7 +156,7 @@ Primary sources:
 
 - Lee et al., *AugSelf*, NeurIPS 2021:
   <https://proceedings.neurips.cc/paper_files/paper/2021/hash/94130ea17023c4837f0dcdda95034b65-Abstract.html>
-- Dangovski et al., *Equivariant Self-Supervised Learning*, ICLR 2022:
+- Dangovski et al., *Equivariant Contrastive Learning*, ICLR 2022:
   <https://research.ibm.com/publications/equivariant-contrastive-learning>
 - Devillers and Lefort, *EquiMod*, ICLR 2023:
   <https://arxiv.org/abs/2211.01244>
