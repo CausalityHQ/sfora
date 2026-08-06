@@ -1,0 +1,62 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly the frozen proposal at:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_hire_proposal_pass32_2026-08-06.md
+
+Do not edit any file. Do not inspect git history, prior proposal/review artifacts,
+the verdict ledger, or earlier conversations. Start cold from the proposal and
+primary sources. This is an adjudication, not a request to improve the method.
+
+Adversarially determine whether HIRE is a genuinely novel, executable,
+causally justified train-time method for standard zero-shot DML and whether its
+own forecast could establish a matched frontier. Return LIVE, DEAD, or BLOCKED,
+with the earliest failed section and one most decisive mechanism-level reason.
+No GPU experiment may be used or recommended to repair a failure already
+settled by mathematics, source inspection, a cheap CPU calculation, or the
+proposal's own forecasts.
+
+Independently verify, rather than trusting the prose:
+
+1. Derive exactly what the cross-class statistic U estimates for heterogeneous
+   class covariances. Test whether isotropy of the average conditional shape
+   implies that every identity-conditional covariance is common and isotropic,
+   or whether anisotropies can cancel. Check dependence introduced by all ten
+   overlapping pairs from each five-image class.
+2. Differentiate delta=d/sg(max(rho,rho_min)) exactly. Compare its live
+   derivative with the claimed tangent derivative. Treat the clamped regime
+   separately: is delta unit length, is tr(C)=1, is U-1/d nonnegative, and is
+   log(d U) minimized at the claimed target?
+3. Attack collapse and numerical edge cases using the executable pseudocode,
+   including rho=0, R_c=0, log(0), U=0, finite precision, and gradients at the
+   symmetric collapsed configuration through normalized cosine.
+4. Re-derive the Euclidean-versus-Mahalanobis discriminability ratio and the
+   Kantorovich bound. Check the equality and losslessness claims, whether
+   condition number alone determines efficiency, and whether anisotropic
+   covariance can be harmless for particular between-class directions.
+5. Check geometric feasibility on the unit sphere of a common full-rank
+   isotropic conditional covariance with nonzero, separated class means and
+   the proposed trace floors. Determine what the losses can actually enforce
+   at K=5 and whether they preserve or destroy useful within-class factors.
+6. Search primary literature inside DML, face recognition, re-identification,
+   domain generalization, neural-collapse regularization, covariance
+   regularization, metric learning, conditional whitening, homoscedastic
+   representation learning, U-statistic covariance penalties, and
+   class-conditional isotropy. Resolve NIR from its primary paper. Distinguish
+   a new supervision object/action from a new estimator or wrapper.
+7. Audit the exact Proxy Anchor and PFML recipes, sampler feasibility on all
+   forecast datasets, loss-scale transfer across class counts, tuning budget,
+   controls, statistical power, and frontier arithmetic. In particular test
+   whether P=30,K=5 duplicates sparse SOP/In-Shop classes and whether a
+   PFML+HIRE forecast without an implemented matched PFML base can support the
+   standing objective.
+8. Check cost arithmetic and construct the cheapest synthetic counterexamples
+   or finite-difference tests needed to decide the claims. Report code,
+   distributions, and quantitative outcomes so the calculations are
+   reproducible.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources directly and state uncertainty where a source cannot be verified.
+Do not give credit for honest caveats when they invalidate the advertised
+mechanism, and do not reject solely because the proposal is ambitious.
