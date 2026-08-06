@@ -7801,3 +7801,20 @@ closing that prospective lane. It also supplied a reusable span lemma: if a
 loss depends only on the anchor–proxy similarity matrix, its parameter gradient
 lies in the span of the similarity gradients, so the method is only a General
 Pair Weighting/reweighting variant. No GPU run was authorized.
+
+### Pass 59 — blind proposer returned NONE before Gate 1
+
+The proposer derived a preconditioner dichotomy: invertible optimizer or
+feature-side preconditioners preserve the stationary set, while non-invertible
+ones are occupied gradient surgery; feature whitening therefore collapses to
+similarity-gradient reweighting under the Pass 58 span lemma. A collapse-
+satisfiability lemma further shows that purely discriminative objectives can
+achieve separated class means with zero within-class information; retaining it
+requires the already-occupied diversity/uniformity family. Random codes,
+projections, CutMix conservation, part additivity, and periodic head resets all
+remain satisfied at collapse. Channel recycling selected by class ANOVA was
+also rejected as basis-dependent, re-saturating matched-rate noise, and having a
+disputed transfer sign (Galanti et al., 2021); ReDo, continual backpropagation,
+FIRE, and recent plasticity-restoration methods are adjacent prior art. No
+forecast or GPU run was authorized. Full artifact:
+`docs/opus_pass59_none_2026-08-06.md`.
