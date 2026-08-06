@@ -1,0 +1,35 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold using only this prompt and public primary literature. Do not inspect
+local files, history, prior candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE.
+
+Target a genuinely novel train-time method for zero-shot deep metric learning on
+disjoint identities (CUB, Cars196, In-Shop, SOP), using only official training
+images/labels, ordinary stochastic augmentation, and optional ImageNet-1K
+initialization. Deployment is one model, one view, one fixed descriptor,
+cosine/Euclidean retrieval; no test/gallery fitting, reranking, transduction,
+external generated data, text/VLM encoders, extra annotations, or contamination.
+Choose Lane A (R50/512-D/224px/200 epochs; refs CUB .734/Cars .927/SOP .829)
+or Lane B (R50/2048-D; refs CUB .766/Cars .949/SOP .842), never mix.
+
+Prior passes closed support-local reweighting, ordinary regularization,
+tangent/invariance, gradient surgery, EVT tails, multi-centers, averaging,
+detached state, common architecture changes, and acceleration/DEQ/Krylov/RRE.
+ECT and IRH counterfactuals failed feasibility or reduced to consistency. A
+training-only C−1 alpha probe showed only +.085 post-hoc CUB gain. KCR was
+exactly Regularized Nonlinear Acceleration/Anderson and is dead. The remaining
+search must therefore alter the **parameterization or activation function** in a
+way that is not a known Lipschitz/spectral constraint, steerable/equivariant
+model, Matryoshka/nested head, projection head, rational/Padé activation,
+attention, residual-depth trick, or ordinary random-feature mapping.
+
+You may import mechanisms from chemistry, biology, physics, numerical analysis,
+cellular automata, or program synthesis. Require a real differentiable path,
+an off-support causal rationale, proof-level degeneracy defense, and primary
+novelty search. Return full executable equations, gradients, initialization and
+schedules, exact prior-art distinctions, matched controls, frozen >=2-dataset
+forecasts, falsifiers/frontier arithmetic, cost and contamination risks. If no
+defensible candidate survives, return NONE plus a new closure lemma and cheap
+diagnostic; do not claim SOTA from forecasts.
