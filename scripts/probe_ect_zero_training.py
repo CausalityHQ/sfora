@@ -51,7 +51,11 @@ def main() -> None:
     feats: list[torch.Tensor] = []
     def hook(_module: object, _inp: object, out: torch.Tensor) -> None:
         feats.append(out.detach())
-    handle = model.layer4.register_forward_hook(hook)  # type: ignore[attr-defined]
+    # ResNet-50 and the repository's BN-Inception reference expose different
+    # final convolution modules; both produce a spatial feature map suitable
+    # for the feasibility probe.
+    target = model.layer4 if hasattr(model, "layer4") else model.model.inception_5b  # type: ignore[attr-defined]
+    handle = target.register_forward_hook(hook)
     images = []
     labels = []
     for x, y in loader:
