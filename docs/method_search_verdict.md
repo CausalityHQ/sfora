@@ -6027,3 +6027,72 @@ Full artifacts:
 docs/opus_hire_proposal_pass32_2026-08-06.md,
 docs/opus_hire_review_2026-08-06.md, and
 docs/opus_hire_local_audit_2026-08-06.md.
+
+### Thirty-third blind pass: POTER is a seventh gallery-tail recurrence with hardest-negative attraction
+
+**DEAD at Gate 1 and Gate 2, with its live PWM gradient independently proven
+to attract the hardest negative class; no preregistration, implementation, or
+GPU.** The direct Opus proposal returned Peaks-over-Threshold Extrapolated
+Retrieval (POTER): fit a per-query GPD to top proxy scores, model sample-minus-
+proxy within-class maxima as a second extreme layer, extrapolate both layers
+to training-set gallery scale, and minimize the estimated count of gallery
+classes beating a soft-max positive.
+
+Gate 1 has no eligible provenance. No corrected repository measurement
+establishes tail fit, threshold stability, transport across disjoint
+identities, proxy-score/excess independence, block-max scaling from three
+images, or causal R@1 repair. The class-count and inverted-R@1 arithmetic does
+not identify gallery depth as the cause of error. Pass 31 had just measured in
+cold simulation that fitted GPD shape adds only 0.0087 incremental R-squared
+beyond simple tail summaries and loses to a constant coefficient.
+
+The independent review finds an exact adverse gradient. Because the largest
+exceedance has zero PWM weight in a1,
+
+    d sigma_hat / d m_(1)
+      = -4 a1^2 / [k (a0-2a1)^2] < 0.
+
+With positive d loss/d sigma in every live regime, descent raises similarity
+to the hardest negative proxy. The identity matched finite differences to
+1.1e-7 over 400 configurations. Threshold gradients also reverse at the
+published operating points; on SOP the adverse auxiliary signal exceeds the
+measured Proxy-Anchor correction by about 800--950x. POTER is therefore a
+tail-spread inverter, not a compressor.
+
+Its second level fails independently. The asserted nonnegative excess
+max_j sim(query,image_j)-sim(query,proxy_c) is negative for 25% of a favourable
+512-D simulation. Proxy score and excess are mechanically dependent; cold
+checks measured correlations from -0.643 to -0.776 and top-class conditional
+shifts of 3.5--8.5 scale units. That triggers POTER's own 0.2 misspecification
+falsifier before GPU. Q_(K-1) is undefined for the claimed positive law,
+mixture pooling does not commute with block-max exponentiation, and using mean
+class size cannot represent heterogeneous galleries.
+
+Gate 2 is the seventh internal recurrence after EVPC, RLM, EGR-PFML, PORTAL,
+PORT, and XTail. WEINCE, TriSim, Recall@k/top-k/ranked objectives, LDReg,
+AnchorFace/memory methods, and post-hoc EVT retrieval calibration occupy its
+public object and action neighbourhood. Adding a hierarchical estimator does
+not change the supervision referent. Detaching scale to repair the gradient
+reduces the term to the proposal's own temperature-plus-constant-offset
+controls, which its F4 defines as a margin-heuristic failure.
+
+Operationally, exact collapse gives a 0/0 shape and NaNs rather than escape;
+positive-shape support branches can NaN backward; AMP is unsafe; the
+proxy-scale gradient cannot leave span(P); and K=3 requires replacement for
+many SOP/In-Shop classes. The sole forecasted crossing is an assumed
+60-percent-additive DADA+POTER composition. Standalone POTER crosses zero of
+four frontiers. Worse, its In-Shop calculation uses 6.475 images per class
+instead of the actual test gallery's 3.165, a 2.05x error in the mechanism's
+load-bearing constant. The complete proposed programme is roughly 4,000
+A100-hours despite the small per-step overhead.
+
+Process lesson: differentiating through a statistically correct estimator does
+not guarantee a retrieval-aligned gradient. Before proposing any adaptive
+tail statistic, differentiate every order statistic, especially the maximum,
+and compare its sign with the deployed error event. The gallery-tail family is
+now closed seven times and must not recur without new prospective evidence.
+
+Full artifacts:
+docs/opus_poter_proposal_pass33_2026-08-06.md,
+docs/opus_poter_review_2026-08-06.md, and
+docs/opus_poter_local_audit_2026-08-06.md.

@@ -146,3 +146,56 @@ assumptions while retaining the same occupied supervision referent. A future
 tail proposal must be rejected immediately unless a preregistered repository
 measurement first demonstrates transport of the exact tail object and the
 method's own standalone forecast can cross a matched frontier.
+
+## Reconciliation with the frozen cold review
+
+The independent Opus review completed after this audit was frozen and also
+returned **DEAD**. It locates the earliest executable failure even earlier than
+the local excess-law objection: retaining gradient through the PWM scale gives
+the hardest negative proxy the wrong sign.
+
+For the frozen PWM weights, the largest exceedance has zero weight in a1, and
+the reviewer derives identically
+
+    d sigma_hat / d m_(1)
+      = -4 a1^2 / [k (a0-2a1)^2] < 0.
+
+Since d loss/d sigma is positive in every live operating regime, gradient
+descent raises similarity to the hardest negative class. Finite differences
+matched the identity to 1.1e-7 over 400 random configurations. At a
+representative five-exceedance point, the derivatives for ranks 5 through 1
+were +1.5945, +1.1288, +0.6632, +0.1975, and -0.2681: POTER pushes four
+scores down and the actual top-1 competitor up. The threshold derivative also
+flips negative at the published operating points; on SOP it overwhelms the
+measured Proxy-Anchor opposing gradient by roughly 800--950x.
+
+The review independently confirms that e_ic can be negative, including for a
+proxy at the exact normalized class mean. In a 512-D check, 991 of 4,000
+excesses were negative. More decisively, proxy score and excess correlation
+was -0.643 to -0.776 across synthetic variants. Selection on top proxy classes
+shifted the excess law by 3.5--8.5 fitted scale units, implying a 30x--5000x
+risk error. POTER's own absolute-correlation-above-0.2 falsifier therefore
+fires without GPU.
+
+The reviewer verifies that the formal block-max transform itself is correct,
+while confirming that Q_(K-1) is undefined for the positive law and that
+mixture pooling does not commute with exponentiation. It also corrects the
+claimed In-Shop gallery block size: the actual 12,612-image, 3,985-class
+gallery averages 3.165 images per class, not the training value 6.475 used by
+POTER. The one forecasted crossing is thus based on a 2.05x error in its
+load-bearing deployment constant.
+
+Additional confirmed failures are a 0/0 PWM shape at exact collapse, NaN
+backward branches for positive shape, fp16 scale mismatch, inability of the
+proxy-scale path to leave span(P), K=3 replacement sampling on roughly 40% of
+SOP classes, and an unreported full programme cost around 4,000 A100-hours.
+
+The cold reviewer did not find a train-time EVT/GPD DML loss because it was
+intentionally barred from repository history and its search was bounded. That
+does not override the audited primary-source and internal record: WEINCE,
+TriSim, LDReg, and six earlier repository return-level candidates occupy the
+broad object. The review's narrower result remains useful: if scale is
+detached to fix the sign, POTER reduces to its own global-temperature plus
+constant-offset controls, which its F4 declares a margin-heuristic failure.
+
+Frozen review: docs/opus_poter_review_2026-08-06.md.
