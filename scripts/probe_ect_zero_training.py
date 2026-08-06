@@ -57,15 +57,9 @@ def main() -> None:
     if hasattr(model, "layer4"):
         handle = model.layer4.register_forward_hook(hook)  # type: ignore[attr-defined]
     else:
-        # bn_inception calls the inner module's `.forward` directly, bypassing
-        # PyTorch module hooks. Wrap that method instead.
-        original_forward = model.model.forward  # type: ignore[attr-defined]
-        def wrapped_forward(inp: torch.Tensor) -> torch.Tensor:
-            out = original_forward(inp)
-            feats.append(out.detach())
-            return out
-        model.model.forward = wrapped_forward  # type: ignore[method-assign,attr-defined]
-        handle = None
+        # BN-Inception calls its `features` Sequential normally, so this hook
+        # captures the final spatial tensor before GAP+GMP and the embedding head.
+        handle = model.model.features.register_forward_hook(hook)  # type: ignore[attr-defined]
     images = []
     labels = []
     for x, y in loader:
