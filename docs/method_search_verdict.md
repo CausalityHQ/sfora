@@ -7409,3 +7409,105 @@ docs/opus_isuc_proposal_pass50_2026-08-06.md,
 docs/opus_isuc_review_prompt_2026-08-06.txt,
 docs/opus_isuc_review_2026-08-06.md, and
 docs/opus_isuc_local_audit_2026-08-06.md.
+
+### Fifty-first blind pass: PSPL is the third learned product-code label recurrence
+
+**DEAD at Gates 1 and 2, independently confirmed by a frozen cold review; no
+diagnostic, preregistration, implementation, or candidate GPU.** Product-Simplex
+Prototype Lattice supervision (PSPL) split the 512-D descriptor into 64 orthogonal
+eight-dimensional groups, gave each group nine fixed simplex atoms, assigned each
+training class a balanced Hamming-separated 64-digit code, and alternated groupwise
+cosine classification with feature-coupled code reassignment.
+
+Gate 1 has no measured causal premise. The corrected repository packet establishes
+persistent In-Shop errors across seeds, not that free prototype coordinates,
+prototype rank, or a class-private head causes those errors. PSPL's own universal-
+approximation argument says every empirical risk defined only on training support
+leaves unseen support unconstrained; that applies to PSPL itself. Because the full
+code is injective, a backbone can identify a training class privately and then emit
+its stored code. Shared digit values constrain the decoding table, not the visual
+computation. The proposal explicitly concedes that the code is a deterministic
+function of the label and adds no information.
+
+The advertised reserved geometry is therefore empty. Lemma 1 correctly gives
+`cos=1-h*9/512` between two constructed lattice points, but no term assigns an unseen
+identity to an unused point, makes its images agree there, or applies a margin to it.
+All code objects are discarded at deployment. An unoccupied vector is not reserved
+supervision.
+
+Gate 2 is an exact internal recurrence. Pass 39 FCS already used normalized descriptor
+blocks, balanced Hamming-separated multi-symbol class codes, blockwise symbol
+prediction, and feature-derived reassignment. Pass 46 FPC already used shared product
+codebooks with balanced learned class assignments. PSPL freezes each block codebook to
+a simplex, adds equal-energy KL, and changes the assignment wrapper; it does not change
+the injective recoding of the training label. Public fixed-simplex classifiers,
+Deep N-ary ECOC, neural/learned ECOC, target coding, informed codeword-to-class
+assignment, supervised product-quantization retrieval, Central Similarity
+Quantization, minimal-distance-separated semantic hash centers, and recent
+Codebook-Centric Deep Hashing occupy the surrounding components. The last source's
+full balanced-assignment details remain unverified, but the repository recurrence is
+already dispositive.
+
+The frozen method also fails internally. Its implemented
+`u/(||u||+epsilon)` is not unit norm and has a different Jacobian from the displayed
+one, invalidating the exact spherical proof and starved-group gradient formula. The
+pairwise-independence cost has unguarded `log(0)`; zero joint cells are possible and
+likely on CUB, though not mathematically guaranteed. Hysteresis/revert happens after
+balance and Hamming repair with no final recheck. The quoted sharing lower bounds are
+8/7/942/332 for CUB/Cars/SOP/In-Shop, not 8/8/1000/1000. The SOP Hamming matmul alone
+is 73.8 billion MACs and materializes about 0.5 GB fp32, before up to 20 repair passes.
+
+Controls C2 and C9 are not executable as frozen. A `C`-vertex simplex requires
+`C-1` dimensions, so C2 cannot exist in 512 D for SOP or In-Shop despite a forecasted
+SOP number. Fixing `G(K-1)=512` changes `K` across the G sweep, while `h_min=24` is
+impossible at `G=8,16` and `h_min=40` is impossible below `G=40`. The held-out
+identity cell diagnostic has no target unless it first fits the held-out labeled
+centroid. C4 changes the class-private parameter capacity and still cannot distinguish
+shared visual computation from label lookup.
+
+The review corrected one forecast arithmetic error: with the proposal's quoted PFML
+uncertainty fixed, a 0.004 CUB difference requires about 11 PSPL seeds for a two-sided
+1.96 threshold, not 35. It also observes that random balanced 64-digit codes have
+expected cosine zero with s.d. about 0.044 and that `h_min=24` lies about 13 standard
+deviations below their expected Hamming distance, so repair is normally inactive.
+Neither correction supplies provenance or novelty.
+
+Three cold-review overclaims are not propagated. Epsilon invalidates the supplied
+proof but does not by itself prove the full symmetric objective moves its minimizer
+away from equal-energy `f=mu(k)`; the private-label lookup escape works for whichever
+per-code optimum exists. A balanced 9-by-9 joint table over 100 classes can have all
+cells nonzero, so `log(0)` is a possible/likely unhandled case, not guaranteed.
+Global norm clipping scales rather than literally zeros nondominant group gradients.
+
+The protocol is independently bypassed: In-Shop is labeled secondary, no current-
+digest same-seed PA control is supplied, raw versus independently selected/final is
+absent, and no out-of-sample confirmation exists. The only predicted matched-lane
+crossing is Cars, and the forecast is not quantitatively derived from a measurement.
+
+Correct pieces preserved are the exact cosine-Hamming lemma, coherent equal-energy
+regularizer and gradient at uniform energy, legal zero-cost deployment, honest
+non-crossing forecasts, source ambiguity ledger, and explicit admission that no new
+information is added.
+
+Process lesson: **sharing target coordinates does not force sharing the computation
+that produces them, and unused geometric capacity is not unseen-class supervision.**
+Before proposing another coding bottleneck, identify a corrected query-error cause and
+show that the training object excludes class-first lookup rather than merely storing
+the same label in a different alphabet.
+
+Primary neighbours: Pernici et al., *Regular Polytope Networks*, TNNLS 2021;
+Yang et al., *Inducing Neural Collapse in Imbalanced Learning*, NeurIPS 2022;
+Zhang et al., *Deep N-ary Error Correcting Output Codes*, 2020; Evron et al.,
+*The Role of Codeword-to-Class Assignments in Error-Correcting Codes*, AISTATS 2023;
+Yang et al., *Deep Representation Learning with Target Coding*, AAAI 2015; Yuan et
+al., *Central Similarity Quantization*, CVPR 2020; Wang et al., *Deep Hashing with
+Minimal-Distance-Separated Hash Centers*, CVPR 2023; Yu et al., *Product Quantization
+Network for Fast Image Retrieval*, ECCV 2018; and Klein and Wolf, *End-to-End
+Supervised Product Quantization for Image Search and Retrieval*, CVPR 2019.
+
+Full artifacts:
+docs/opus_blind_prompt_pass51_2026-08-06.txt,
+docs/opus_pspl_proposal_pass51_2026-08-06.md,
+docs/opus_pspl_review_prompt_2026-08-06.txt,
+docs/opus_pspl_review_2026-08-06.md, and
+docs/opus_pspl_local_audit_2026-08-06.md.
