@@ -1,0 +1,40 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold using only this prompt and public primary literature. Do not inspect
+local files, history, prior candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE.
+
+Find a novel train-time method for zero-shot deep metric learning on disjoint
+identities (CUB, Cars196, In-Shop, SOP), with official training images/labels,
+ordinary stochastic augmentation, and optional ImageNet-1K initialization.
+Deployment is one model, one view, one fixed descriptor, cosine/Euclidean NN;
+no test/gallery fitting, reranking, transduction, external generated data,
+text/VLM encoders, extra annotations, or contamination. Pick one lane: Lane A
+R50/512-D/224px/200 epochs, refs CUB .734/Cars .927/SOP .829; or Lane B
+R50/2048-D, refs CUB .766/Cars .949/SOP .842.
+
+The project has closed support-local similarity reweighting, regularizers,
+tangent/invariance, gradient surgery, EVT, multi-centers, averaging, detached
+state, and common architecture ideas. ECT and IRH counterfactuals were killed
+by unsatisfiable hinges or reduction to occupied consistency. Pass 64’s
+training-only C−1-subspace alpha probe improved cached CUB R@1 by only .085 pt,
+so rank-preservation is not a large reopening. The remaining plausible lane is
+an **extrapolation-operator change**: a genuinely new activation,
+parameterization, architecture, or dynamical computation that changes the
+off-support function while remaining compatible with a pretrained ordinary
+ResNet-50 and a single fixed descriptor. Do not propose a post-hoc transform,
+ordinary spectral norm/Lipschitz regularization, steerable/equivariant model,
+Matryoshka/nested head, projection head, or known neural ODE/DEQ/attention
+module unless the mechanism is materially different and survives primary
+novelty search.
+
+Use ideas from numerical analysis, physics, chemistry, biology, dynamical
+systems, or program synthesis if useful. A candidate must have a real
+differentiable causal path and a proof-level defense against collapse and
+gating. Search primary literature adversarially first. Return equations,
+gradient/state paths, initialization/schedule, causal mode, exact prior-art
+distinctions, matched controls, frozen >=2-dataset forecasts, falsifiers,
+frontier arithmetic, cost and contamination risks. If none survives, return
+NONE plus a reusable operator closure and one cheap diagnostic. Do not claim
+SOTA from forecasts.
