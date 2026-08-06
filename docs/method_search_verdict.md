@@ -7791,3 +7791,13 @@ PFML; and the projected fallback is undefined at zero. No GPU run was
 authorized. Full artifacts: `docs/opus_ofra_proposal_pass57_2026-08-06.md`,
 `docs/opus_ofra_local_audit_2026-08-06.md`, and
 `docs/opus_ofra_review_2026-08-06.md`.
+
+### Pass 58 — blind proposer returned NONE before Gate 1
+
+The proposer could not formulate a materially distinct executable candidate.
+It found arXiv:2606.00262 (29 May 2026), which occupies training-time EVT-tail
+correction (POT/GPD cosine-tail fits with Weibull endpoint-shortfall logits),
+closing that prospective lane. It also supplied a reusable span lemma: if a
+loss depends only on the anchor–proxy similarity matrix, its parameter gradient
+lies in the span of the similarity gradients, so the method is only a General
+Pair Weighting/reweighting variant. No GPU run was authorized.
