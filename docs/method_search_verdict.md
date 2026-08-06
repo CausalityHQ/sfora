@@ -7927,3 +7927,18 @@ Gate 1 also failed because the proposed seen/unseen contraction mismatch was
 never measured locally. No D0 or GPU run was authorized. Full artifact:
 `docs/opus_kcr_proposal_pass65_2026-08-06.md`,
 `docs/opus_kcr_review_2026-08-06.md`.
+
+### Pass 66 — blind proposer returned NONE before Gate 1
+
+The proposer derived a Realized-Support Determination lemma: activation changes
+outside the per-unit preactivation values realized on the training support are
+inert unless unseen inputs actually escape those intervals; smooth
+reparameterizations reduce to state-dependent preconditioning. It closed fold/
+abs/PReLU, symplectic/coupling flows, population coding, homeostatic
+normalization, determinantal blocks, Kronecker binding, expander routing,
+periodic/injective/tropical activations, GDN, and nonnegative-weight nets by
+prior art, degeneracy, or capacity loss. Content-Aware Rectified Activation
+for Zero-Shot Fine-Grained Image Retrieval (TPAMI 2024) is a directly matched
+occupant. The proposed cheap PSE measurement would test activation-support
+escape and clamp-ablation payoff; no method or GPU run was authorized. Full
+artifact: `docs/opus_pass66_none_2026-08-06.md`.
