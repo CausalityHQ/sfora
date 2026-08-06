@@ -1,0 +1,17 @@
+You are the independent cold adversarial reviewer for a frozen similarity-learning proposal. Review only this proposal file:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_doir_proposal_pass28_2026-08-06.md
+
+Do not inspect the repository's method-search ledger, prior proposal/review files, or any hidden failure catalogue. Do not edit files. You may use primary literature and do fresh calculations. The proposal was generated blind and is frozen; your job is to decide whether DOIR is mathematically valid, genuinely distinct from prior art, causally motivated, executable, and capable of supporting its forecasts before any GPU is spent.
+
+Attack it rather than improve it. At minimum:
+
+1. Re-derive the class-marginal Fisher, its rank, the tangent projection, the trace-normalized log-det gradient, and Lemmas 1-2. Check whether a C-class categorical Fisher can ever be full rank in d=512, especially on CUB/Cars with fewer than d training identities, and what fixed zero eigenvalues do to the stated barrier, escape claim, gradients, and forecasts.
+2. Test all five degeneracy arguments with explicit counterexamples where possible: proxy movement, manufactured confusion, label permutation, noise, rank deficiency, temperature/margin behavior, and the anneal-to-zero endpoint.
+3. Check whether the proposed base loss is actually an exact class marginal, whether its margin is applied coherently, whether K=15/2 and the claimed PFML cost match are substantiated, and whether DOIR's gain can be separated from changing the base recipe.
+4. Search primary sources for the nearest prior art: Fisher-information regularization/objectives, determinant or D/A/E-optimality neural objectives, information-matrix isotropy, spectral/orthogonality proxy regularizers, Fisher discriminant metric learning, log-det divergence metric learning, natural-gradient or active-learning analogues, and any DML method targeting classifier Fisher spectra. Distinguish a new supervision object from a wrapper or renamed occupied object.
+5. Audit compute/memory estimates for B=180, d=512, C'=32, full backprop through q, m, F and logdet. Check the top-C truncation bound and the unsupported rho claim.
+6. Audit controls and falsifiers. In particular, decide whether C3/C4 descriptions match their detach paths; whether C8 is mathematically meaningful; whether C10 illegally uses unseen test labels or otherwise contaminates mechanism selection; whether five seeds support the mediation correlation; and whether the proposal's own frontier arithmetic meets the project's objective of outperforming an existing method.
+7. Give a decisive verdict: LIVE, DEAD, or BLOCKED. If DEAD, name the earliest protocol gate and the single most decisive mechanism-level reason. If BLOCKED, state exactly what evidence resolves it without GPU. Preserve valid subcomponents separately from the method verdict.
+
+Be precise and candid. Quote no more primary-source text than necessary, cite sources with direct links, and make uncertainty explicit. Do not launch another consultation or ask another model.
