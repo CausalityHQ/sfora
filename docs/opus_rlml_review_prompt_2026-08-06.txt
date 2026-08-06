@@ -1,0 +1,80 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_rlml_proposal_pass49_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. No test/gallery data or
+unseen test identities may enter method selection. Deployment is one
+single-view encoder, one 512-D normalized descriptor, and cosine NN. A live
+candidate must screen paired corrected In-Shop first, report raw plus
+independently selected/final, confirm out of sample, and replicate.
+
+Independently audit at least:
+
+1. Treat this supplied prospective repository evidence as evidence without
+   reading other local files. Pass 31 XTail measured only 0.0087 incremental
+   R-squared from fitted upper-tail shape beyond threshold and mean excess;
+   fitted-shape noise consumed 67--86% of the gallery-depth signal; a tuned
+   constant deep-quantile estimator had RMSE 0.0918 versus 0.1575 for the fitted
+   estimator. Does pooling/EMA reverse missing signal, or only variance?
+2. Treat this supplied internal chronology as prior mechanism evidence. Before
+   RLML, ten candidates—EVPC, RLM, EGR-PFML, PORTAL, PORT, XTail, POTER, CFEV,
+   GEVS, and TERL—already selected or fit negative-score upper tails and
+   penalized an extreme at larger nominal gallery depth. TERL specifically
+   pooled per-query exceedances, fit Hosking--Wallis PWM GPD shape, used a
+   straight-through EMA, extrapolated a return level, and hinged it against a
+   smooth best-positive score. Its frozen review found the differentiated shape
+   path rewarded raising 36--72% of selected negatives and either gamed the
+   estimator or parked at a clamp where it reduced to a fixed constant arm.
+   Decide whether raw rather than normalized exceedances, a tanh cap, and a new
+   extremal-index heuristic create a new supervision object or an estimator
+   wrapper.
+3. Verify RLML's PWM and return-level algebra, zero-shape series, cosine cap,
+   collapse argument, point-mass limit, and all gradient signs. The proposal
+   explicitly says lower-tail exceedances within the selected top 15% are
+   pulled closer. Determine whether this improves a retrieval objective or
+   supplies a descent direction that changes the fitted statistic while making
+   many negatives worse. Construct the cheapest estimator-gaming path.
+4. Search primary prior art by supervision object/action: WEINCE train-time POT
+   correction of negative cosine tails, LDReg differentiation through a
+   tail-index-family statistic, Recall@k surrogates, ROADMAP/Smooth-AP,
+   rank/top-k/CVaR losses, XBM, and biometric EVT return-level/FAR calibration.
+   State the narrowest defensible novelty and whether it survives the gradient
+   and internal-recurrence results.
+5. Audit F4. It fits tail shape on train-split and test-split negatives and
+   advances/kills the method from their difference. Decide whether that is a
+   legal post-hoc diagnostic or prohibited test-identity method selection.
+6. Verify all headline arithmetic. In particular, the table gives In-Shop
+   reference 0.930, predicted delta +1.3 percentage points, and predicted RLML
+   0.934. Reconcile those numbers. Check SOP/CUB/Cars arithmetic, SEM and
+   crossing claims, N/log-m values, split cardinalities, and extremal-index
+   choice.
+7. Determine whether N=training-set cardinality is causally identified as a
+   deployment-depth variable rather than confounded with dataset, class count,
+   and images/class. Check the statement that training cardinality happens to
+   be within about 2% of test gallery size against the no-test-selection rule.
+8. Check executable completeness and carrier fidelity. PFML leaves batch,
+   sampler, schedule, weight decay, augmentation, proxy normalization, and
+   alpha/delta selection unresolved, while RLML fixes batch 180 with 4x45.
+   Audit every hyperparameter/sweep and its train-only selection rule.
+9. Audit C1--C8 and F1--F6. Determine which controls isolate shape
+   extrapolation from a constant log-N margin, quantile/location pressure,
+   ordinary hard mining, XBM, generic added margin, or negative attraction.
+10. Check corrected paired In-Shop-first ordering, raw-best versus
+    independently selected/final reporting, out-of-sample confirmation,
+    second-dataset replication, paired uncertainty, and measured rather than
+    forward-FLOP-only cost.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
