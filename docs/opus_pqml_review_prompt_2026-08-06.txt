@@ -1,0 +1,96 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_pqml_proposal_pass47_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. Test identities are
+disjoint. No test/gallery data, external generated data, text/VLM, reranking,
+transduction, ensemble, or test-time fitting may enter selection. Deployment
+is one single-view encoder, one 512-D L2-normalized descriptor, and cosine NN.
+
+Audited Lane-A frontiers are PFML ResNet-50/512-D/single-view over five runs:
+CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002. PA+DADA reports
+In-Shop 0.930 without uncertainty. The corrected local BN-Inception In-Shop PA
+reference has three completed seeds: raw mean 0.918062, sample sd 0.001523;
+final mean 0.915201, sample sd 0.001549. A live candidate must screen paired
+corrected In-Shop first, report raw plus independently selected/final, confirm
+out of sample, and replicate.
+
+Independently audit at least:
+
+1. Separate the exact geometry of the raw complex-modulus quotient from the
+   executable epsilon-smoothed forward pass. Recompute the norm of y, maximal-
+   invariant/orbit-maximized-cosine identities, quotient distance, and displayed
+   gradients with epsilon=1e-6. Decide which claims remain exact and whether a
+   repair changes the frozen object or scorer.
+2. Construct the cheapest solution to L_base + L_inv + L_prot. In particular,
+   test whether an encoder can place arbitrary class-independent per-image
+   information, texture, augmentation detail, or deterministic hash in phase,
+   satisfy the same-class contraction target and first-two-moment hinges, put
+   identity in modulus/remainder, and thereby manufacture a disposable channel
+   without learning pose, viewpoint, or a shared transformation action.
+3. Determine identifiability. Do class labels, within-class phase spread, and
+   equality of two circular moments establish that phase has the same physical
+   meaning across images and disjoint identities? Distinguish a theorem about
+   quotienting a specified torus action from a theorem that this objective
+   discovers the action. Check the proposal's D5 claim explicitly.
+4. Audit collapse and shortcut arguments at exact equal phases and zero plane
+   energy. Delta is quadratic in phase separation: calculate first derivatives
+   at collapse and decide whether a positive hinge value supplies an escape
+   gradient. Treat the epoch-40 dispersion contingency as absent from the
+   frozen method.
+5. Derive the finite-batch null level for
+   E|m_class - m_global|^2 when the global mean includes the n_s=4 class
+   samples. Compare it with nu=(1-|m_global|^2)/n_s. Determine whether first-
+   and second-order circular moments imply phase/class independence or leave
+   higher-order and multimodal identity codes.
+6. Check D4/F8's instruction to discard phase-energy-above-0.6 runs and F4/F5's
+   proposed unseen-test-identity probes plus triggered repairs. Decide whether
+   these are valid frozen falsifiers, selective reporting, or prohibited
+   test-selected method changes.
+7. Search primary prior art by supervision object and action, not wrapper name:
+   MIC (Roth et al., ICCV 2019), Unsupervised Adversarial Invariance (Jaiswal
+   et al., NeurIPS 2018), Invariant-Equivariant Representation Learning for
+   Multi-Class Data (Feige, ICML 2019), complex modulus/scattering and Phase
+   Collapse, group-invariant instance retrieval, Augerino, learned
+   canonicalization, latent symmetry discovery, tangent distance/quotients,
+   and DML methods separating class-discriminative from shared intra-class
+   characteristics. State the narrowest defensible novelty distinction and
+   whether it survives the identifiability result.
+8. Treat this supplied repository evidence as evidence, without reading local
+   files: candidate 225 prospectively learned leading within-class subspaces on
+   one identity fold and tested nuisance-heavy transfer to disjoint identities.
+   Its fold-averaged rho_32 was 0.9312, 0.9287, and 0.9345 over seeds 0--2, all
+   below its locked 1.15 falsifier and below one. Candidate 176 already studied
+   a cross-instance nuisance-tangent quotient. Exchangeable-Nuisance Embedding
+   and blind EFML, CFR, FRAME, and CNW passes all required class-exogenous
+   intra-class structure and failed for adverse provenance, missing
+   correspondence, non-identification, or occupied supervision. Does PQML have
+   positive Gate-1 provenance rather than another forecast?
+9. Audit all controls and causal probes. Determine whether WCCN, quotient-only,
+   random-pair, generic anti-collapse, dimension dose, and no-protection arms
+   isolate circular physical nuisance from arbitrary disposable variation.
+   Horizontal flip and +/-10% scale are not observed viewpoint azimuth; state
+   what P2 can identify. Separate legal post-hoc diagnosis from test-driven
+   repair.
+10. Check recipe, compute, and protocol: invented PFML sampler/schedule and
+    missing source details, PA batch/lr portability, PFML reproduction before a
+    frontier claim, corrected paired In-Shop-first screen, raw-best versus
+    independently selected/final reporting, out-of-sample confirmation,
+    second-dataset replication, paired uncertainty, and the stated 1.00--1.02x
+    overhead. The proposal starts five-seed CUB/Cars and forecasts only 0.40
+    probability of crossing both PFML bars.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
