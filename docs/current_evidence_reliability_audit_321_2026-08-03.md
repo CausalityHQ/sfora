@@ -73,6 +73,21 @@ claim which backbone ran.
 These are two local seeds. They remain paired references, not a variance
 estimate and not evidence that a small one-seed gain generalizes.
 
+Two prospectively registered reference seeds completed after the original
+audit. Seed 2 reached raw-best R@1 **0.9189759460** at epoch 52 and independently
+exported final R@1 **0.9151076101**; seed 3 reached raw-best **0.9184132789** at
+epoch 58 and independently exported final **0.9159516106**. Both passed the
+locked raw `[0.907, 0.929]` and final `[0.905, 0.923]` integrity intervals.
+For both, production, float64 Euclidean, float64 cosine, and exact-tie scorers
+agree exactly; official counts, identity separation, content manifests, and
+duplicate/overlap checks pass. Across all four corrected local seeds, raw-best
+mean is **0.9181495288** with sample sd **0.0012560303**, and frozen-final mean
+is **0.9153889436** with sample sd **0.0013195712**. This is a stronger paired
+reference lane, not a known population variance or a license for unpaired
+one-seed claims. Full records:
+`docs/inshop_corrected_reference_seed2_result_2026-08-06.md` and
+`docs/inshop_corrected_reference_seed3_result_2026-08-06.md`.
+
 ## Independent recomputation of the surviving descriptive signal
 
 An inline NumPy/Torch audit that did not import `sfora.cem` loaded the final
