@@ -61,3 +61,19 @@ reducing to SnapMix. No GPU run is authorized before the cold review.
 
 This file is a recovered operational freeze of the retained consultation
 stream; the full provider stream was emitted in the terminal session.
+
+## Mandatory review amendments before any GPU
+
+The cold review found ECT LIVE only narrowly. Before implementation: freeze the
+`L_rep` reference (use an epoch-10 detached reference or fixed margin) so clean
+between-class similarity cannot relax repulsion; use exactly the same pooling
+operator in A0–A7; match replaced-area distributions between plateau and
+must-switch arms; and add A6 plateau-only plus A7 area-target controls.
+
+Run a zero-training probe on one existing baseline checkpoint over beta values.
+Measure both hinge activation rates, composite/clean similarities, and
+area-versus-target-regime correlation. Abort if either hinge is near 0% or 100%
+active across all beta, or if area nearly predicts the target regime. Entropy is
+not a sufficient anti-collapse diagnostic; record spatial feature-norm variance
+and any part-localization probe only post hoc. No candidate queue is authorized
+until this probe passes and the amended controls are pre-registered.
