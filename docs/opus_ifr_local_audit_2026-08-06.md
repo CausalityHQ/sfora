@@ -69,3 +69,16 @@ prediction, IFR is dead at Gate 2.
 
 No implementation or GPU queue is authorized until the exact-answer limitation,
 Gate 1 measurement, and cold prior-art review are resolved.
+
+## Cold-review reconciliation
+
+The independent reviewer returns **DEAD**. In addition to the recovered-stream
+specification failure, it derives the central algebraic defect: fitting the
+per-class scalar makes the normalized residual a weighted `1−CKA²`, which is
+zero for every `S_c=lambda_c S*`, including a rank-one common operator. With
+rank at most 3/5 and descriptor dimension 512, IFR has no rank or direction
+floor and can satisfy itself through low-dimensional collapse. This confirms
+the local concern that the term does not identify class-generic nuisance
+structure. The external Zhou evidence is not repository provenance, and the
+missing In-Shop-first screen is moot. Review details are in
+`docs/opus_ifr_review_2026-08-06.md`.

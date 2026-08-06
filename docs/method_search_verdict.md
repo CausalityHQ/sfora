@@ -7724,3 +7724,36 @@ not evidence that XCR is viable. Full artifacts:
 `docs/opus_xcr_review_prompt_pass55_2026-08-06.txt`,
 `docs/opus_xcr_local_audit_2026-08-06.md`, and
 `docs/opus_xcr_review_2026-08-06.md`.
+
+### Pass 56 — IFR (isothermal fluctuation–response regularization): DEAD before GPU
+
+Mechanism: construct same-image augmentation-response and cross-image
+within-class displacement scatter operators, then require each class’s
+scatter *shape* (with a fitted detached scalar) to be predictable from the
+leave-one-class-out mean of other classes. The proposal claimed this penalizes
+class-gated nuisance cancellation that fails on unseen identities, while
+leaving only a 512-D cosine descriptor at deployment.
+
+Gate 1 was not passed. Zhou et al. (arXiv:2203.09739/ICLR 2022) is external
+evidence, not a verified repository measurement; the current evidence packet
+contains no corrected artifact linking class-conditional scatter heterogeneity
+to disjoint-identity R@1. The proposal’s held-out-training-class probe was a
+future diagnostic, not provenance. The answer was also recovered from a
+completed terminal stream whose middle segment was omitted, so the exact
+proposal could not be frozen perfectly without rerunning.
+
+The independent cold review found a decisive mechanism failure: after fitting
+the per-class scalar `a_c`, the normalized Frobenius residual reduces to a
+weighted `1−CKA²`. It is exactly zero whenever `S_c=lambda_c S*`, including a
+rank-one common operator. The response/fluctuation estimates have rank at most
+3/5 in 512 dimensions, with no rank or direction floor, so the loss can satisfy
+itself by low-dimensional collapse rather than class-generic nuisance removal.
+The review therefore returns DEAD; Gate 2/novelty and the missing corrected
+In-Shop-first screen are moot. No GPU run followed.
+
+Useful residue: Gram-domain scatter computation, response-vs-fluctuation
+separation, held-out-training-class diagnostics, and controls for consistency,
+label permutation, and post-hoc covariance projection. Full artifacts:
+`docs/opus_ifr_proposal_pass56_2026-08-06.md`,
+`docs/opus_ifr_local_audit_2026-08-06.md`, and
+`docs/opus_ifr_review_2026-08-06.md`.
