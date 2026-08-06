@@ -1,0 +1,97 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_pspl_proposal_pass51_2026-08-06.md
+
+Its frozen SHA-256 is
+bba3410c569c3fcc3076441746ec0e620705de52b90c48d648980ce062a0d3d0.
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal, the
+supplied evidence below, and primary sources. Do not launch another
+consultation or agent. Return LIVE, DEAD, or UNRESOLVED with the earliest failed
+gate and one decisive mechanism-level reason. This is adjudication, not repair;
+do not silently improve or replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. No test/gallery data or
+unseen test identities may enter method selection. Deployment is one
+single-view encoder, one 512-D normalized descriptor, and cosine NN. A live
+candidate must screen paired corrected In-Shop first, report raw plus
+independently selected/final, confirm out of sample, and replicate.
+
+Independently audit at least:
+
+1. Treat this as the complete admissible repository premise. Corrected In-Shop
+   Proxy Anchor final artifacts and official partitions are independently
+   verified. Across two seeds, query-level top-1 error overlap is 0.7675401522,
+   exact top-1 gallery-row agreement is 0.8084822057, and the same wrong
+   identity is chosen for 0.6475770925 of jointly wrong queries. These establish
+   persistent errors, not their cause. The repository has not measured whether
+   free prototype coordinates, prototype-table rank, or private class heads
+   cause those errors, nor whether shared label-code digits transfer visual
+   factors. Decide whether PSPL has Gate-1 measurement provenance or infers a
+   causal prototype-privacy defect from the protocol alone.
+2. Treat this supplied chronology as prior mechanism evidence, but verify the
+   reduction yourself. Pass 39 FCS split a 512-D descriptor into normalized
+   blocks, assigned every training identity a balanced Hamming-separated
+   multi-symbol code, trained each block to predict its class-code symbol, and
+   updated codes from learned affinities. Pass 46 FPC represented class proxies
+   through shared multi-codebook product codes with balanced learned assignments
+   and soft-to-hard training. Both were rejected because an injective recoding
+   of training labels does not add supervision for unseen labels. Decide whether
+   fixed orthogonal simplex blocks, equal energy, min-cost assignment, and
+   hysteresis make PSPL a new supervision object or another learned-ECOC wrapper.
+3. Search primary prior art by mechanism, not names: fixed simplex-ETF
+   classifiers; ECOC and Deep N-ary ECOC; neural/joint ECOC with Hamming and
+   diversity objectives; target coding; problem-dependent codeword-to-class
+   assignment; product/additive codebooks; supervised product-quantization
+   retrieval; compositional/shared class codebooks; balanced optimal-transport
+   class assignment; and block-factorized embedding ensembles. State the
+   narrowest defensible novelty and whether product-simplex geometry plus online
+   assignment is substantive after the internal FCS/FPC recurrence.
+4. Audit the core causal implication. Does sharing each group digit among many
+   training labels force the backbone to compute a shared visual functional, or
+   can it first identify the training class privately and then emit that class's
+   injective 64-digit code? Does `ceil(log_K C)` constrain computation or merely
+   code length? Interpret literally the statement that no single group can
+   separate any pair of classes.
+5. Verify Lemma 1 and the reserved-geometry corollary separately. Does a uniform
+   cosine--Hamming law over all `K^G` points imply an unseen identity lands near
+   an unoccupied point, agrees across its images, or receives a margin when no
+   unseen code is assigned and all code objects are discarded at deployment?
+6. Verify Proposition 2 and every gradient for the implemented
+   `q(u)=u/(||u||+epsilon)`. Derive its exact Jacobian, including `u=0`, and
+   check whether `q` lies on the unit sphere or equals a unit simplex vertex at
+   the claimed solution. Separate an invalid proof from a false conclusion.
+   Audit the equal-energy gradient before and after global sphere projection.
+7. Attack D1--D6 and the E-step. Check `log` of zero co-occurrence counts,
+   feasibility and termination of Hamming repair, preservation of balance after
+   repair/revert, random-head epoch-zero centroids, self-confirmation, the cost
+   and memory of the `C x 576` by `576 x C` operation at SOP scale, and whether
+   the claimed sharing minima follow from the frozen beta rule for CUB, Cars,
+   SOP, and In-Shop.
+8. Audit controls C1--C13 for executability and causal isolation. In particular,
+   can a `C`-vertex simplex fit in 512 dimensions for SOP/In-Shop; can
+   `h_min=24` or 40 coexist with `G=8` or 16; does fixing
+   `G(K-1)=512` preserve `K=9`; is C4 parameter/geometry matched; and how does a
+   held-out identity receive a group-cell target without fitting its labeled
+   centroid? Determine whether C3/C4 distinguish shared visual computation from
+   deterministic label coding.
+9. Audit cost and implementation claims. Account for all 64 assignment problems,
+   pairwise Hamming materialization, up to 20 repair passes, co-occurrence state,
+   per-group normalizations/softmax backward, and code updates. Determine whether
+   <0.01% FLOPs, <0.1% wall time, and about 1 MB are credible and whether
+   assignment failures have deterministic behavior.
+10. Verify the frontier arithmetic and protocol. The proposal labels corrected
+    In-Shop secondary and Cars decisive despite the mandated In-Shop-first
+    screen. It supplies no current-digest same-seed PA control, no raw versus
+    independently selected/final plan, and no explicit out-of-sample stage.
+    Check paired uncertainty, lane matching, train-only model selection, second-
+    dataset replication, and whether any forecast is quantitatively derived
+    from measured premises rather than chosen judgmentally.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
