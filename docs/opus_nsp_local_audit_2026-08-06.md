@@ -176,3 +176,59 @@ There is none for the frozen proposal. Replacing the centroid complement by a
 measured causal subspace, changing same-class-negative instance supervision,
 or supplying a non-occupied supervision relation would be a new proposal and
 must restart blind generation and freezing.
+
+## Reconciliation with the frozen cold review
+
+The independent Opus review agrees on **DEAD, with no GPU authorization**. Its
+rubric calls the earliest failure mathematical validity; under this project's
+ordered protocol the authoritative earliest failure remains Gate 1, because
+the proposal has no eligible repository measurement before its mathematics is
+considered. This is a difference in gate labels, not in disposition.
+
+The review adds the strongest internal contradiction. The deployed descriptor
+uses both channels, so at fixed energy share `gamma`,
+`cos=(1-gamma)cos_P+gamma cos_Q`. If same-class negatives actually make `Q`
+class-exchangeable, as claimed, `cos_Q` has equal positive and negative means
+and contributes noise rather than identity signal. In a synthetic CUB-like
+calibration, base R@1 `0.706` fell to `0.606` at `gamma=0.25` when `Q` was
+exchangeable; it recovered only as `Q` itself became class-informative. The
+exact magnitude is model-dependent, but the sign of dilution follows from the
+decomposition. NSP can help only by violating its claimed class-blind state.
+
+The review independently confirms and sharpens the other failures:
+
+- `Q` removes class centroids, not labels. Classes with identical means and
+  different variances remained `0.923` classifiable from a `Q` coordinate.
+- The claimed `r_99=97--99` on CUB is not implied: synthetic plausible spectra
+  gave `r_99=32--77`; the resulting retained fraction varied from `0.850` to
+  `0.938` on CUB and from `0.016` to `0.826` on SOP. The dose law is therefore
+  unfrozen and can even reverse the proposal's dataset ordering.
+- The exact fixed-feature gradient is in `range(Q)`, but this is not functional
+  noninterference. In the reviewer's induced-update experiment, held-out
+  `P`-energy was `0` only for a frozen linear map with SGD, versus `0.0504` for
+  a trained map with AdamW at `gamma=0.25`.
+- The Welch argument is not a practical rank barrier: with 180 points, rank 64
+  was only `0.0540` NT-Xent loss units above rank 179, or `0.016` after the
+  proposed `beta=0.3` weighting.
+- Initialization is underdefined and can be invalid: zero-initialized centroid
+  rows are divided by zero during normalization, and most SOP classes remain
+  unvisited at the first scheduled SVD. `Q` before that SVD is also unspecified.
+- Peak memory measured about `1.322x`, not `1.20x`; the `1.3265x` FLOP ratio,
+  roughly 23 MB centroid table, and SVD cost were otherwise credible.
+- DiVA remains the closest object/action collision. Sharing Matters, MIC,
+  supervised-plus-SSL transfer work, gradient-projection continual learning,
+  and shared/private task-subspace methods reinforce that the wrapper is
+  adjacent rather than an unoccupied supervision relation.
+
+What survives is narrower and should be retained as measurement guidance: the
+instantaneous fixed-`Q` feature-gradient projection is exact; the detached
+denominator is sensible at the loss level; `r_99/d` is cheap to measure; and a
+controlled first-moment-only simulation reproduced the hypothesized failure
+(unseen R@1 in `P` rose `0.054 -> 0.106` while `Q` stayed at chance). That shows
+the error mode can exist, not that NSP repairs benchmark retrieval. The
+reviewer's suggested measurement of natural `E||Qz||^2` and standalone unseen
+R@1 of `Qz` (viability threshold about `0.15`) is useful for a future, newly
+proposed mechanism, but it is not run here: Gate 1, Gate 2, the deployed-channel
+contradiction, and the below-frontier forecast already close the frozen method.
+
+Exact independent review: `docs/opus_nsp_review_2026-08-06.md`.

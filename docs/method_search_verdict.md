@@ -5831,3 +5831,63 @@ declared split. Full artifacts:
 `docs/opus_dsa_proposal_pass29_2026-08-06.md`,
 `docs/opus_dsa_review_2026-08-06.md`, and
 `docs/opus_dsa_local_audit_2026-08-06.md`.
+
+### Thirtieth blind pass: NSP mistakes a centroid complement for a label-null space
+
+**DEAD at Gate 1 and Gate 2, independently reinforced by a self-defeating
+deployed-channel contradiction and proof-level defects; no preregistration,
+implementation, or GPU.** The direct Opus proposal returned Null-Space
+Provisioning (NSP): estimate the 99%-energy span of online training-class
+centroids, retain ordinary Proxy-Anchor supervision in that span, and apply
+same-class-negative instance contrast plus an energy floor in its orthogonal
+complement. The claim was that ordinary DML consumes only the class-centroid
+span and leaves transferable capacity idle.
+
+Gate 1 has no eligible repository provenance. No saved corrected measurement
+shows that centroid-orthogonal capacity is unused, that such use causes retrieval
+error, or that filling it repairs unseen identities. Candidate 365's BSA, blind
+Pass 7, and Pass 21's RIM already undermine the same low-rank-shortcut premise.
+The proposal's direct forecasts (`0.729` CUB, `0.908` Cars) also remain below
+its cited frontier (`0.734`, `0.927`); its only crossing is a guessed additive
+effect on an unknown, unimplemented PFML recipe.
+
+The decisive internal contradiction is algebraic. With deployed energy share
+`gamma`, `cos=(1-gamma)cos_P+gamma cos_Q`. If the auxiliary channel becomes
+class-exchangeable as NSP claims, its positive and negative cosine means match,
+so it dilutes retrieval. A synthetic CUB-like calibration fell from R@1 `0.706`
+to `0.606` at `gamma=0.25`; improvement appeared only when `Q` itself retained
+class information, the exact state the same-class negatives purport to forbid.
+The magnitude is synthetic, but the sign follows from the decomposition.
+
+The proposed complement is only centroid-orthogonal, not label-null: a
+variance-coded counterexample remained `0.923` classifiable after mean removal.
+Proxy-Anchor gradients span learned proxies rather than empirical centroids,
+normalization leaks sample-dependent components, and a nonlinear shared
+backbone plus AdamW breaks the asserted functional noninterference. The energy
+hinge has zero gradient at exact `Qz=0`; the Welch bound does not impose learned
+rank; same-class negatives do not force conditional zero means; zero-initialized
+centroid normalization can produce NaNs; and the first SVD leaves early `Q`
+undefined. Plausible spectra produced CUB `r_99=32--77`, not the asserted
+`97--99`, while SOP retained fractions ranged `0.016--0.826`, invalidating the
+registered dose law.
+
+Gate 2 is occupied at supervision-object and action level by DiVA (Milbich et
+al., ECCV 2020): supervised DML jointly with augmentation-based sample-specific
+contrastive learning, explicit decorrelation/partition from the discriminative
+embedding, and a unified deployed descriptor, including a reported reduction
+in spectral compression. NSP's online centroid SVD and energy hinge are a new
+wrapper around that established relation, not a new source of supervision.
+Sharing Matters, MIC, supervised-plus-SSL transfer, continual-learning null-space
+projection, and shared/private task-subspace work further narrow the claim.
+
+The cold review preserved several useful facts: fixed-`Q` auxiliary feature
+gradients do lie exactly in `range(Q)`; the first-moment shortcut error exists in
+a controlled simulation (`P` unseen R@1 `0.054 -> 0.106` while `Q` stayed near
+chance); `r_99/d` is cheap to measure; and the FLOP/table/SVD cost arithmetic is
+mostly credible. These are diagnostics, not authorization. Process lesson: an
+orthogonal complement of a class-mean statistic is not a label-null or
+functionally protected channel, and making an appended deployed channel truly
+class-blind makes it subtractive by construction. Full artifacts:
+`docs/opus_nsp_proposal_pass30_2026-08-06.md`,
+`docs/opus_nsp_review_2026-08-06.md`, and
+`docs/opus_nsp_local_audit_2026-08-06.md`.
