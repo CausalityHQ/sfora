@@ -7836,3 +7836,15 @@ alpha .0/.1/.25/.5/.75/1.0 yielded R@1 .6818/.6826/.6870/.6913/.6828/.6676
 while local and between failure shares traded monotonically. This is a
 diagnostic, not a method result; no GPU run was authorized. Full artifact:
 `docs/opus_pass60_none_2026-08-06.md`.
+
+### Pass 61 — blind proposer returned NONE before Gate 1
+
+The proposer corrected Pass 60’s equivariance escape: pretrained equivariant
+conversion exists (equi-tuning), but equivariance cannot provide off-support
+selectivity under a single invariant global readout and is rank-reducing in the
+binding regime. Its reusable closure combines gradient row-space truncation,
+the C−1 label-rank cap on CUB/Cars, and a three-source identifiability bound
+(labels, pixels/augmentation, initialization/parameterization). Conjunction
+features are saturated prior art. It recommends only cheap D1–D3 rank probes
+(about one GPU-hour) as a falsifier before another blind pass. No candidate GPU
+run was authorized. Full artifact: `docs/opus_pass61_none_2026-08-06.md`.
