@@ -1,0 +1,76 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_darc_proposal_pass36_2026-08-06.md
+
+Do not edit repository files or inspect git history, prior reviews, the verdict
+ledger, or conversations. Start cold from this frozen proposal and primary
+sources. Return LIVE, DEAD, or BLOCKED with the earliest failed gate/section
+and one decisive mechanism-level reason. This is adjudication, not repair.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce every formula and claimed gradient. Check the normalized Gaussian
+   dither, the two-view ANOVA estimators after within-class centering, the
+   softplus positive-part implementation, epsilon terms, and the displayed
+   derivatives. Test whether the proposal's dimension-free bound
+   E[nu_hat] >= sigma^2/(1+sigma^2) really holds for every encoder and axis in
+   d=512 after renormalization. Include aligned and orthogonal z/u cases and
+   quantify sigma*sqrt(d) at every proposed sigma. Use a small CPU simulation
+   or exact asymptotics where decisive.
+2. Determine whether tau_hat and nu_hat are unbiased for the claimed latent
+   signal/noise decomposition when two views share one source image, their
+   nonlinear normalized dither denominators depend on all 512 coordinates,
+   and the class mean is estimated from the same finite batch. Distinguish
+   between-image signal, augmentation covariance, dither, and finite-sample
+   centering. Check whether softplus creates a material positive floor.
+3. Attack the cheapest optimization shortcuts. In particular ask whether an
+   encoder can reduce measured noise by aligning descriptors with measured
+   axes, slowly steer the detached EMA frame, or encode a stable per-training-
+   image hash. Decide whether saturation and a unit-sphere budget select
+   semantic residuals rather than any view-stable nuisance/background/hash.
+   Assess whether the proposed linear image-index probe could actually detect
+   such a shortcut with only one underlying training image per identity label.
+4. Verify the claimed reverse-water-filling result. Derive stationarity under
+   the coupled unit-sphere geometry, moving class means/frame/weights, tau-nu
+   dependence, and ProxyAnchor gradients rather than treating each tau_k and
+   g_k as independent constants. Decide whether the displayed scalar balance
+   proves a Gaussian rate-distortion allocation, an interior optimum, or a
+   unique optimum.
+5. Test the causal direction. Top between-class eigenvectors are directions in
+   which seen labels separate; increasing within-class variance on those same
+   axes can increase class overlap. Decide whether the proposal identifies
+   continuous attributes useful for unseen identity retrieval, or merely
+   preserves label-irrelevant sex, color, pose, background, and instance
+   information. Check whether the proposed train-capacity and test level-
+   snapping mediator identifies causality or can be satisfied by ordinary
+   dispersion/regularization.
+6. Resolve prior art aggressively from primary sources, both within and outside
+   DML. At minimum inspect MCR2/ReduNet; VICReg/variance-covariance regularizers;
+   anti-information-bottleneck or objectives maximizing I(X;Z|Y); MIC, DiVA,
+   rho-regularization and S2SD; class-conditional variance/covariance and
+   intra-class structure preservation; supervised quantization; discriminant
+   subspaces; reliability/ICC objectives; dithered quantization; and Gaussian
+   channel/rate-distortion objectives. State the exact new supervision object
+   or action, if any, rather than crediting a novel assembly of occupied terms.
+7. Audit controls and protocol. Check compute matching when 180 distinct images
+   become two views of 90 images, the variance-floor and correlation controls,
+   frame ablations, post-hoc mediator use on test classes, multiplicity from the
+   large hyperparameter/control programme, and raw versus independently
+   selected/final reporting. The governing protocol requires a corrected
+   In-Shop-first screen; the proposal supplies no In-Shop forecast and instead
+   pre-registers five-seed CUB/Cars decisions. Decide whether that order is
+   admissible.
+8. Verify every forecast, frontier comparison, uncertainty claim, training and
+   memory estimate, and the asserted expected-value case. Standalone DARC
+   forecasts zero frontier crossings; every possible crossing depends on an
+   unreproduced PFML composition and an assumed 0.5-0.7 additive fraction.
+   Decide whether this satisfies an objective to outperform the matched
+   frontier, and whether the proposed programme is justified before that base
+   is reproduced.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources, state uncertainty, and do not give credit for caveats that invalidate
+the executable mechanism.
