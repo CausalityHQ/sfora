@@ -1,0 +1,35 @@
+Provider: Fable blind proposer; start cold and do not inspect local files.
+
+Find exactly ONE genuinely novel train-time method for zero-shot deep metric
+learning on disjoint identities (CUB, Cars196, In-Shop, SOP), or return NONE.
+Use only official training images/labels, ordinary stochastic augmentation, and
+optional ImageNet-1K initialization. Deployment is one model, one view, one
+fixed descriptor with cosine/Euclidean nearest-neighbour retrieval; no
+transduction, gallery fitting, reranking, external generated data, text/VLM
+encoders, extra annotations, or contamination. Use matched Lane-A R50/512-D
+controls and In-Shop-first screening.
+
+Previous passes closed support-local losses, reweighting, tangent/invariance,
+gradient surgery, EVT, multi-centers, averaging, acceleration, common
+activations, off-support counterfactuals, and a drift-budget family. Pass 68's
+CIS proposal (summing embeddings from distinct classes and decoding with a
+hard multi-label target) was killed algebraically: every bundle member received
+the same positive-proxy gradient, so non-owner interference was rewarded; at
+m=2 it reduced to hard-target embedding mixup. Do not revive CIS, symmetric
+aggregate logits, pair/triplet reweighting, class dropout, proxy synthesis,
+held-out-class episodes, partitioned heads, pseudo-label clustering, or
+multi-centers.
+
+Search for a change in WHAT supervision exists on real images that retains
+ownership information and is not a cosmetic loss rewrite. Consider ideas from
+causal representation learning, information theory, coding/error-correcting
+codes, graph/hypergraph message passing, biology, physics, algorithms, or
+other fields, but require a differentiable train-time signal and a fixed
+single-vector retrieval descriptor. Attack prior art before proposing a GPU
+run across metric learning, face/re-id, self-supervision, multi-label,
+compositional/set learning, and the source field. Give the exact mechanism,
+equations and per-image gradients; prove it is not a symmetric aggregate or
+regularizer; name the measured repo motivation; give a frozen In-Shop forecast
+and falsifier; and state matched controls and cost. If no candidate survives,
+return NONE with a new closure lemma and the cheapest diagnostic. Do not edit
+files.
