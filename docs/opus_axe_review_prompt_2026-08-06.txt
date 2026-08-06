@@ -1,0 +1,82 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_axe_proposal_pass43_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. Test identities are
+disjoint. No test/gallery data, external generated data, text/VLM, reranking,
+transduction, ensemble, or test-time fitting may enter selection. Deployment
+is one single-view encoder, one 512-D L2-normalized descriptor, and cosine NN.
+
+Audited Lane-A frontiers are PFML ResNet-50/512-D/single-view over five runs:
+CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002. Higher-capacity
+single-view observations include VAPNet 2048-D CUB 0.762/Cars 0.948/In-Shop
+0.939, AdvRF CUB 0.766/Cars 0.949, and CRT In-Shop 0.9448. The corrected local
+BN-Inception In-Shop PA seed 0 is raw 0.9163/final 0.9137; one seed is not a
+fixed baseline. A live candidate must screen paired corrected In-Shop first,
+report raw plus independently selected/final, confirm out of sample, and
+replicate on a second dataset.
+
+Independently audit at least:
+
+1. Reproduce the restricted-cosine formula, its feature/proxy/U gradients,
+   scale and O(d) invariance, Stiefel/Grassmann ascent update, QR convention,
+   rank-growth state, detach/Danskin semantics, and max-over-three buffers.
+   Decide whether the executable objective is unique and stable near deleted
+   norms, ties, rank changes, and adversary resets.
+2. Prove or refute Proposition 2 exactly. Track whether Pi denotes deleted or
+   surviving projection; verify both PA lower-bound branches and normalization;
+   state precisely what the contrapositive certifies. Distinguish proxy-table
+   difference rank from class-mean feature rank, attribute rank, image-image
+   retrieval, and transferable unseen-identity content.
+3. Construct the cheapest proxy-only and nonlinear-recoding shortcuts. With
+   one proxy/class, compute generic difference rank for CUB/Cars/SOP/In-Shop
+   and determine whether k=32--192 already passes the certificate without new
+   image evidence. Account for 100x proxy LR and projection/optimization of
+   proxies in both terms. Audit C5/C9 and the multi-proxy caveat.
+4. Audit the universal claim. Three persistent frames, two local ascent steps,
+   and occasional Haar replacement lower-bound a maximum on Gr(k,512). Determine
+   whether 64 fresh Haar draws can detect a narrow worst-case subspace or turn
+   that lower bound into the exact theorem's certificate. Quantify evasion risk.
+5. Attack every degeneracy: class-code memorization, nonlinear expansion of
+   one cue into many directions, noise/nuisance spreading, proxy motion,
+   feature/proxy norm collapse, tiny surviving norms, approximate-adversary
+   cycling, batch-specific U, adversary overfitting, and shared-backbone effects.
+6. Test causal provenance. Class count, C-1 algebra, Gradient Starvation, a
+   future C12 sweep, and invented participation ranks are not repository
+   measurements. State what corrected prospective evidence would establish
+   that low train-label rank causes official-query errors and that the added
+   directions encode transferable visual factors rather than seen-class code.
+7. Search primary prior art by supervision action: Representation Self-
+   Challenging; adversarial dropout/ADR; adversarial erasing and self-erasing;
+   feature erasing in re-ID/face recognition; BIER/A-BIER/ABE/DREML; dropout,
+   DropBlock, Batch DropBlock; Matryoshka representations; OLE; MCR-squared;
+   spectral decoupling; concept erasure (INLP/LEACE); feature-space adversarial
+   robustness; and worst-case subspace/Grassmann/Stiefel representation
+   training. Judge “erase strongest seen-label evidence and train the same
+   label loss on what survives,” not only the continuous mask wrapper.
+8. Audit C0--C12 and F1--F9. Check whether controls isolate proxy versus encoder
+   paths, semantic redundancy versus generic regularization, adversariality,
+   rotation invariance, exact versus approximate maximum, class count versus
+   class identity, hyperparameter search capacity, and statistical power.
+9. Check recipe and protocol: corrected In-Shop-first screening, trainable BN,
+   raw/final metrics, model selection, SOP proxy sampling fallback, equal
+   optimizer/data exposure, test-touch discipline, and paired tests. Recompute
+   FLOPs, memory, wall-clock, uncertainty, and every frontier comparison.
+10. Separate standalone AXE, the multi-proxy arm for which the theorem is
+    conceded vacuous, and speculative PFML additivity. Do not credit an
+    undefined composition or a nominal mean below its own decisive threshold.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
