@@ -1,0 +1,46 @@
+Provider: Fable blind reviewer with configured Claude Opus fallback
+Frozen proposal SHA-256: 65308915609a825de2baeb09fe3e61ee449c22e99e645367292c6b675c02b82a
+
+You are the mandatory cold reviewer. Read only the frozen proposal named
+above and this prompt; do not inspect local files, git history, prior audits,
+or the proposer conversation. Use public primary sources where available.
+Return exactly one verdict: LIVE, DEAD, or UNRESOLVED. Do not repair or replace
+the proposal. If it fails, identify the earliest failed gate.
+
+Problem envelope: invent a train-time method for zero-shot image similarity
+learning on disjoint identities using only official training images/labels,
+ordinary augmentations, and permitted ImageNet-1K initialization. Deployment
+must be one model, one view, one fixed global descriptor, ordinary cosine or
+Euclidean retrieval. No test/gallery fitting, transduction, reranking,
+external generated data, text/VLM encoders, or extra annotations. Lane A is
+ResNet-50, normalized 512-D, ~224 px, single view, 200 epochs. Audited
+matched Lane-A references are PFML: CUB 0.734±0.003, Cars196 0.927±0.003,
+SOP 0.829±0.002 over five runs; In-Shop PA+DADA 0.930 is a single-point
+reference with unreported uncertainty.
+
+Audit LORD on these gates:
+
+1. Provenance: does the proposal cite a real repository measurement that
+   establishes its causal error mode, rather than an unverified claim about
+   diffusion/reranking headroom or generic label-loss limitations?
+2. Mathematical executability and degeneracies: check the memory update,
+   kNN/PPR construction, the group KL gradient, the claimed collapse
+   instability factor, the softmax shift argument, tie/discontinuity cases,
+   and cost. Look for a concrete zero-gradient or shortcut solution.
+3. Prior art before any GPU: search adversarially in DML, retrieval, graph
+   learning, self-distillation, relational KD, contextual similarity,
+   diffusion/reranking, and metric learning. In particular test whether
+   training-time graph diffusion/self-distillation (including online batch
+   diffusion), teacher similarity-graph consistency, contextual similarity
+   distillation/optimization, RKD, XBM, or S2SD already occupy the mechanism.
+   Distinguish object/action, not just names or whether the graph is used at
+   inference.
+4. Forecast/protocol: does it actually forecast a frontier crossing in the
+   stated lane, with matched controls, raw/final selection discipline,
+   out-of-sample confirmation, and second-dataset replication? Treat a
+   below-frontier mechanism forecast as unable to satisfy the objective.
+
+State the strongest surviving distinction if any, but do not grant novelty
+for a different graph radius, teacher cadence, truncation, temperature,
+label-conditioned group split, or memory-bank implementation detail unless
+that changes the mechanism-level supervision object/action.
