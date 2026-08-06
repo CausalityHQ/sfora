@@ -6226,3 +6226,67 @@ Full artifacts:
 docs/opus_cfev_proposal_pass35_2026-08-06.md,
 docs/opus_cfev_review_2026-08-06.md, and
 docs/opus_cfev_local_audit_2026-08-06.md.
+
+### Thirty-sixth blind pass: DARC repeats reliable residual preservation and its dither clamp manufactures capacity
+
+**DEAD at Gates 1 and 2; no preregistration, implementation, or GPU.** DARC
+proposed a class-centred two-view ANOVA over the top 16 between-class
+eigenvectors, normalized Gaussian dither as an absolute ruler, and a weighted
+Gaussian-channel capacity reward alongside Proxy Anchor. Its intended action
+was to preserve augmentation-repeatable within-class resolution on axes useful
+for discrimination.
+
+Gate 1 has no supporting repository measurement. Pass 21 RIM already proposed
+and rejected the same supervision object and action: preserve class-centred
+augmentation-repeatable residual information in the deployed descriptor.
+DARC changes the estimator, frame, and ruler without evidence that the
+repeatable residual is useful rather than stable nuisance. Candidate 225 is
+adverse evidence for the required shared structure: its disjoint-identity
+ratios `0.9312/0.9287/0.9345` missed the locked `1.15` threshold and were at or
+below the random-frame value near one.
+
+The executable arithmetic also fails. For a unit 512-D descriptor the default
+`sigma=0.10` dither has pre-normalization norm about `2.263`, not a small
+perturbation. Independent Monte Carlo found the claimed `0.009901` per-axis
+noise floor was about `0.00164` when orthogonal and `0.00126` when aligned;
+the floor is alignment-dependent and therefore encoder-controllable. The
+finite-sample estimator obeys
+`E[tau_hat]=((m-1)/m)tau-nu/(2m)`. Most decisively, the executed clamp adds
+`softplus(0)*s=0.000693` at zero signal, 0.37--1.13 times the observed full
+noise denominator, yielding roughly 0.16--0.38 nats of fictitious capacity.
+The resulting action is a strong class-conditioned rotated cross-view
+invariance penalty, not reverse water-filling.
+
+One local overstatement was corrected after the cold review: despite the false
+bound, common high-dimensional attenuation can cancel so that an idealized
+`tau_hat/nu_hat` approaches `tau_raw/sigma^2`. The dither-ruler concept
+therefore survives in that restricted geometry. It does not rescue DARC's
+alignment-dependent executed floor, softplus artifact, biased signal estimate,
+or semantic non-identifiability. Likewise, `nu_hat` is unbiased, the displayed
+gradients are exact for the ideal hard loss but not for the executed
+softplus-and-epsilon loss, and the augmentation-noise arguments apply only to
+factors the augmentation family actually resamples.
+
+Gate 2 is closed internally by RIM and publicly at the mechanism level by
+Ranked List Loss, Deep Variational Metric Learning, whitening/Barlow-style
+cross-view regulation, intra-class-correlation embedding regularization, and
+MIC. The literal wrapper may differ, but its supervision referent and action do
+not. Controls also fail: the image-index probe is trivially self-classifiable,
+plain cross-view consistency is missing, and 90 unique images with two views
+do not exposure-match 180 unique baseline images. Standalone DARC predicts
+`0.708<0.734` CUB, `0.894<0.927` Cars, and `0.806<0.829` SOP. Its only claimed
+crossings assume 55 percent additivity with unreproduced PFML, even though
+PFML's 15 proxies per class already mitigate DARC's alleged one-proxy
+quantization error.
+
+Process lesson: test transforms at the numerical scale they actually receive,
+and distinguish an estimator novelty from a new supervision object. A bound
+can be false while a ratio survives, yet an apparently harmless positivity
+clamp can still replace the intended mechanism. Correct subcomponents should
+be retained without promoting a method whose executable objective, provenance,
+novelty, protocol order, and standalone forecast all fail.
+
+Full artifacts:
+docs/opus_darc_proposal_pass36_2026-08-06.md,
+docs/opus_darc_review_2026-08-06.md, and
+docs/opus_darc_local_audit_2026-08-06.md.

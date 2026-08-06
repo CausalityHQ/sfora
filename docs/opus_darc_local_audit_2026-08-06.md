@@ -266,3 +266,69 @@ estimator, introducing an observable that distinguishes useful residuals from
 stable nuisance, or replacing the supervision target is a substantive new
 proposal and must restart blind generation and freezing. No GPU work should be
 spent on DARC.
+
+## Independent-review reconciliation
+
+The sole cold review, job `65d94bfa5f8c4532`, is frozen byte-for-byte in
+`docs/opus_darc_review_2026-08-06.md`. It independently reproduced the two
+decisive arithmetic failures: the normalized-dither variance is far below the
+proposal's dimension-free bound, and finite-sample class centring biases
+`tau_hat` downward. It also found a still sharper executable failure. At the
+proposal's observed noise scales (`nu` about `0.0006--0.0019`), the supposedly
+innocuous clamp contributes `softplus(0)*s = 0.000693` even when the signal is
+zero. That is 0.37--1.13 times the entire noise denominator and manufactures
+about 0.16--0.38 nats of capacity from no reliable signal. The optimized
+residue is therefore a strong class-conditioned, rotated cross-view invariance
+penalty, not the claimed capacity allocator.
+
+The review correctly narrows one statement in the local audit. Although the
+proposal's lower bound and numerical constants are false, in a generic
+high-dimensional asymptotic the common attenuation cancels and
+`tau_hat/nu_hat` can converge to `tau_raw/sigma^2`. Thus exogenous dither can
+serve as an idealized absolute ruler in that restricted sense. This does not
+rescue frozen DARC: the floor depends on alignment `u_k^T z`, so the encoder can
+change it; the executed softplus term dominates the measured scale; and
+`tau_hat` remains biased. The audit's broader claim that the false bound alone
+destroys every scale-free ratio is withdrawn.
+
+Similarly, the two displayed gradients are exact for the ideal hard expression
+`0.5 log(1+tau/nu)`, but they are not the derivatives of the specified
+softplus-and-epsilon loss. D2 and D3 are sound for nuisance factors actually
+resampled independently by the augmentation family; they do not identify
+stable background, acquisition, pose, watermark, or image-code signal. The
+review also confirms that `nu_hat` itself is unbiased under the ideal additive
+model.
+
+Further review findings strengthen rather than change the disposition:
+
+- the default `sigma=0.10` dither supplies roughly 84 percent of the normalized
+  vector, and the false floor is encoder-controllable through alignment;
+- the claimed reverse water-filling is only an equal-marginal stationarity
+  display with no sphere-budget multiplier, coupled-noise dynamics, or
+  uniqueness proof;
+- C5's one-example-per-image probe is trivially self-classifiable and C6 omits
+  the plain cross-view-consistency control;
+- 180 forwards over 90 unique images do not match the baseline's 180 unique
+  images, so F1 compares DARC to the wrong exposure control;
+- the assumed PFML additivity is mechanism-inconsistent: PFML's 15 proxies per
+  class already attack the one-proxy quantization DARC claims to repair, making
+  a shrink factor near zero at least as plausible as the frozen 0.55; and
+- the standalone forecasts remain zero frontier crossings.
+
+The public literature may not contain this literal wrapper, but the repository
+already does contain the same supervision object and action in Pass 21 RIM:
+preserve augmentation-repeatable class-centred residual capacity. The public
+neighbourhood separately occupies intra-class variance preservation,
+cross-view repeatability, whitening/variance regulation, and class-discriminant
+frames. Changing the ruler, estimator, and frame does not clear Gate 2 here.
+
+## Authoritative disposition
+
+**DEAD at Gates 1 and 2; no preregistration, implementation, or GPU.** The
+restricted dither-ratio observation, unbiased `nu_hat`, ideal hard-loss
+derivatives, and augmentation-noise rejection are preserved as correct
+subcomponents. They do not supply repository provenance for useful residual
+signal, distinguish semantics from stable nuisance, make the executable loss a
+capacity allocator, create a new supervision object, or forecast a standalone
+frontier crossing. Any repair must return as a new blind proposal rather than
+an amendment to DARC.
