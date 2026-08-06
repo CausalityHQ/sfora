@@ -6156,3 +6156,73 @@ Full artifacts:
 docs/opus_gvf_proposal_pass34_2026-08-06.md,
 docs/opus_gvf_review_2026-08-06.md, and
 docs/opus_gvf_local_audit_2026-08-06.md.
+
+### Thirty-fifth blind pass: CFEV is an eighth gallery-tail recurrence whose scale map erases the tail
+
+**DEAD at Gates 1 and 2, with the frozen executable loss independently shown
+not to carry its claimed gallery-size mechanism; no preregistration,
+implementation, or GPU.** The direct Opus proposal returned Cross-Fitted
+Extreme-Value Retrieval Risk (CFEV): split each batch's identities in half,
+fit a pooled GPD negative-similarity tail on one half, combine that survival
+with positives from the other half, extrapolate the risk to
+`M=|D_train|`, and mirror the operation.
+
+Gate 1 is directly adverse. Pass 31's frozen cold simulations already found
+that batch-fitted GPD shape added only `0.0087` incremental R-squared over
+threshold and mean exceedance, with a constant coefficient beating the fit
+(`0.0918` versus `0.1575` deep-quantile RMSE) and shape noise consuming
+67--86 percent of the batch-to-SOP depth signal. CFEV supplies no prospective
+repository measurement of pooled-tail transport, query-conditional tail
+validity, or causal response to nominal M. Its `0.5` points-per-nat law is a
+forecast chosen from dataset sizes, not provenance.
+
+Gate 2 is the eighth internal recurrence after EVPC, RLM, EGR-PFML, PORTAL,
+PORT, XTail, and POTER. Every version fits or approximates the upper
+seen-identity similarity tail and treats an extrapolated deployment-size
+maximum as supervision. CFEV changes estimator scaffolding through random
+identity halves and a scalar agreement term, not the supervision referent.
+WEINCE, TriSim, LDReg, Recall@k/ranked-list/top-k/CVaR objectives, and
+Histogram Loss occupy the public mechanism neighbourhood. The cold review did
+not repeat primary-source retrieval, so the Gate-2 judgement rests on the
+seven exact frozen repository predecessors and previously audited sources.
+
+The executable method fails independently. It derives a small positive PWM
+scale and then applies ordinary `softplus`: raw scales
+`0.01/0.05/0.10/0.20` become approximately
+`0.698/0.719/0.744/0.798`, inflations of 70x/14x/7.4x/4.0x. The fitted
+scale is discarded. Correcting that map exposes the missing negative-shape
+support constraint; the cold simulation obtained invalid
+`log(1+xi*w)` arguments for 92/92 anchors in two trained regimes.
+
+Keeping the written inflated scale puts every anchor in
+`log(1+M*q) ~= log M + log q`. The reviewer measured median `M*q` around
+`2.5e3--4.5e3` at full M and `9.9` even at the nominal
+no-extrapolation control `M=180`. M is then an additive constant with nearly
+zero gradient effect. In the opposite `M*q << 1` limit, the frozen
+gradient-norm rule sets `lambda proportional to 1/M` and cancels M.
+Therefore neither C2 nor the M-sweep identifies gallery extrapolation, and the
+forecasted `log(M/m)` R@1 law does not follow from the update.
+
+Cross-fitting does not repair the estimand. A's global tail is combined only
+with B's positives; it is never evaluated against B negatives. The mirror
+term averages two noisy half-sample scalar fits through the same encoder, and
+the agreement penalty equalizes scalars. It neither tests query-conditional
+confusers nor blocks pair memorization. The U-statistic rate is shared by a
+mean-negative control and is not a mechanism distinction.
+
+C1 is also not gradient-norm matched: when the auxiliary gradient has norm
+`r=0.5` times the PA gradient, the total norm ranges from 0.5x to 1.5x with
+their angle and is 1.118x when orthogonal; C1 fixes it at 1.5x. Forecasts are
+two coin-flip point crossings on SOP/In-Shop and explicit CUB/Cars misses.
+
+Correct pieces are the untransformed Hosking--Wallis PWM algebra, combinatoric
+counts, train-only M discipline, cost order, and explicit negative forecasts.
+Process lesson: identity cross-fitting cannot rescue an occupied estimand, and
+a positivity transform must be tested on the numerical scale it receives.
+For gallery-size losses, derive the gradient's dependence on M before using
+loss-value dependence to forecast cross-dataset gains.
+
+Full artifacts:
+docs/opus_cfev_proposal_pass35_2026-08-06.md,
+docs/opus_cfev_review_2026-08-06.md, and
+docs/opus_cfev_local_audit_2026-08-06.md.

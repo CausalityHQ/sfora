@@ -191,3 +191,53 @@ The next candidate must leave EVT/GPD/return-level/gallery-multiplicity
 supervision unless a prospectively frozen repository measurement first
 reopens it.
 
+## Reconciliation with the frozen cold review
+
+The independently frozen review (`docs/opus_cfev_review_2026-08-06.md`)
+also returns **DEAD before implementation or GPU**. It independently recovered
+the local audit's three most decisive executable results:
+
+- ordinary `softplus` maps realistic raw scales `0.01--0.30` to
+  `0.698--0.855`, erasing the fitted GPD scale;
+- correcting that transform makes the negative-shape support expression
+  invalid for all anchors in its simulated typical and tight trained regimes;
+  retaining the transform avoids NaNs only by ceasing to represent the fitted
+  tail; and
+- `log(1+M*q)` is already in its log-saturated regime at `M=180`, while
+  gradient-norm calibration cancels M in the small-risk regime. Thus the
+  proposed M-sweep cannot identify the claimed extrapolation mechanism.
+
+The review adds a useful simulation. With 23 classes by four images in 512
+dimensions, it obtained `xi=-0.374/-0.392`, raw scales
+`0.087/0.141`, and written scales `0.737/0.766`; correcting the scale
+made `log(1+xi*w)` invalid for 92 of 92 anchors in both trained regimes.
+Under the written formula, median `M*q` was approximately
+`2.5e3--4.5e3` for every anchor, so M was an additive loss constant to
+first order. At `M=180`, median `M*q` remained about `9.9`.
+
+It also independently confirms that the identity split does not score
+cross-half negative predictions: two closed-form scalar estimates from random
+halves of one batch are averaged through one encoder, which injects
+half-sample variance rather than enforcing transfer. Its U-statistic
+observation is especially sharp: a mean-negative control has the same
+`O(C^-1/2)` class-level rate, so that rate cannot distinguish CFEV from its
+own C6 control.
+
+The review validates the PWM transcription, batch combinatorics,
+`log(M/m)` arithmetic, train-only M choice, rough cost, and disclosure
+structure. These are preserved as correct components, not evidence for the
+method. It did not perform the requested primary-source novelty retrieval, so
+its novelty paragraph is not used as a Gate-2 source. The exact seven-way
+repository collision and previously frozen WEINCE/TriSim/LDReg evidence supply
+that gate independently.
+
+One reviewer formulation is narrowed: a negative-shape GPD survival becoming
+zero beyond its fitted finite endpoint is statistically correct if the model
+and endpoint are correct; zero risk there is not by itself a contradiction.
+The fatal facts are that the written expression does not enforce that support,
+the stated positivity transform destroys the fitted endpoint, and the
+resulting loss has no identified M-dependent gradient. The DEAD verdict does
+not rely on overstating the endpoint observation.
+
+Frozen review SHA-256:
+`3e4fd518dec280795698551b816938d3a4630e533d0c26447a637adf79766fae`.
