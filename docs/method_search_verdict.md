@@ -5521,3 +5521,61 @@ current-digest control, not forecast arithmetic. Full artifacts:
 docs/fable_efml_proposal_pass24_2026-08-06.md,
 docs/fable_efml_review_2026-08-06.md, and
 docs/fable_efml_local_audit_2026-08-06.md.
+
+### Twenty-fifth blind pass: CFR has a valid Clifford frame but no fiber or identified nuisance action
+
+**DEAD at Gate 1, independently reinforced by fatal Gate-2 geometry and
+identifiability failures; no diagnostic, preregistration, implementation, or
+GPU.** The direct Opus fallback proposed Clifford Fiber Rectification (CFR):
+construct a maximal family of 17 fixed anticommuting signed-permutation complex
+structures in 512 dimensions, confine each sample's residual to 16 tangent
+directions around its proxy, align same-class residual coordinates, and
+decohere the induced frames across classes. Its claimed transfer mechanism was
+that a shared nuisance acts as the same orthogonal rotation on every identity,
+so cross-identity similarity cancels the nuisance exactly.
+
+Gate 1 is adverse. The prospective candidate-225 diagnostic measured how well
+a leading within-class subspace learned on disjoint source identities transfers
+to target identities. Its corrected ratios were `0.9312`, `0.9287`, and
+`0.9345` over seeds 0--2, all below the locked `1.15` falsifier: the source
+subspace captured only about 35--37% of target within-class energy but about
+38--40% of target between-class energy. Candidate 226 separately rejected the
+location-dependent tangent-field repair for lack of positive provenance. The
+repository therefore measures against, rather than for, CFR's class-exogenous
+shared nuisance frame.
+
+The independent cold review verified that the 17-matrix Hurwitz--Radon
+construction itself is mathematically correct. It also found the decisive
+failure: the loss never supplies the theorem's precondition that the same
+nuisance yields the same coefficients across different identities.
+`Phi_prox` is class-local, `Phi_pair` is within-class, and `Omega` separates
+different-class frames. No cross-identity nuisance correspondence is observed.
+The exact cancellation is merely the generic fact that a shared orthogonal map
+preserves inner products.
+
+The advertised geometry is also false. `span{A_k}` is not closed under products
+or brackets; the proposed rotations are not a group, and
+`S^511 intersect span{u,A_ku}` does not define a fiber for 16 independent
+generators. The generated closure needs 136 grade-one and grade-two directions,
+not the advertised 16. Residual collapse has zero gradient at exact collapse.
+The `beta` safety threshold is off by a factor of two and compares a maximum
+over up to billions of terms with the RMS scale of one term; its locked
+falsifier would fire at initialization. Reusing crop parameters on two
+different images does not fix physical nuisance, so the proposed causal probe
+cannot identify the mechanism.
+
+Gate 2 is occupied at the supervision-object level. DVML and Spherical Feature
+Transform already model/transfer class-independent intra-class variation, while
+OLE is strong adjacent prior art for low-rank within-class confinement and
+inter-class subspace separation. The exact fixed Clifford wrapper may be new,
+but wrapper novelty does not rescue an adverse, unobserved causal premise.
+
+Process lesson: an exact mathematical primitive is not an identified learning
+mechanism. The 17 signed-permutation frame survives as a potentially useful
+implementation object, but any future use needs a new repository measurement,
+an observable cross-identity correspondence, and controls against OLE and
+generic tangent frames. It cannot be repaired as an ablation of frozen CFR.
+Full artifacts:
+`docs/opus_cfr_proposal_pass25_2026-08-06.md`,
+`docs/opus_cfr_review_2026-08-06.md`, and
+`docs/opus_cfr_local_audit_2026-08-06.md`.

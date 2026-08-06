@@ -185,6 +185,39 @@ run.
   a forecasted CFR accuracy below PFML with a training-overhead estimate while
   ignoring the changed 200-epoch base and the unimplemented 136-map proxy term.
 
+## Independent-review reconciliation
+
+The separately frozen cold review (`docs/opus_cfr_review_2026-08-06.md`) reached
+the same DEAD verdict without seeing this audit. The following findings are
+adopted:
+
+- the 17-matrix signed-permutation Hurwitz--Radon construction is valid;
+- the proposed independent generators do not define the advertised fiber,
+  group, or nuisance orbit, and closure needs the 136-dimensional grade-one
+  plus grade-two algebra;
+- the loss never identifies a nuisance coordinate shared across identities;
+- exact residual collapse is stationary despite its positive penalty value;
+- the `beta` threshold has a factor-two arithmetic error and its max statistic
+  is compared with an inapplicable single-term RMS null;
+- the CUB/SOP crossing bars are 74.026 and 83.347 under the stated rule, so the
+  CUB forecast also fails to cross;
+- the same-augmentation probe does not hold physical nuisance state fixed;
+- DVML/SFT occupy the shared-variation premise and OLE is strong adjacent prior
+  art for the operational confinement mechanism; and
+- the proxy contribution is omitted from the stated compute accounting.
+
+Several stronger review claims are deliberately not propagated. A common
+additive vector orthogonal to all class means is impossible under the literal
+fixed-vector model once those means span the space, but that does not exclude
+state-dependent or locally projected nuisance fields. The reported PA
+SOP/In-Shop numbers are secondary published tabulations, not official
+recipe-matched controls. OLE is adjacent rather than exactly equivalent because
+it learns per-class subspaces. The constructed examples show that the
+advertised frame target does not jointly minimize both penalties; they do not
+prove universal absence of any common zero. Finally, streamed implementations
+can trade compute for lower peak memory, so only the missing operation count,
+not a necessary materialized-memory bound, is adopted.
+
 ## Authoritative disposition
 
 CFR is **DEAD at Gate 1**, independently reinforced by fatal identifiability,
