@@ -7511,3 +7511,103 @@ docs/opus_pspl_proposal_pass51_2026-08-06.md,
 docs/opus_pspl_review_prompt_2026-08-06.txt,
 docs/opus_pspl_review_2026-08-06.md, and
 docs/opus_pspl_local_audit_2026-08-06.md.
+
+### Fifty-second blind pass: NRQ's rank floor is amplitude-blind and its quotient is an occupied split/reconstruct/discard design
+
+**DEAD at Gates 1 and 2, independently confirmed by a frozen cold review; no
+diagnostic, preregistration, implementation, or candidate GPU.** Nuisance-
+Register Quotient Metric Learning (NRQ) added a frozen ImageNet-initialized
+teacher, reconstructed its augmented-view feature from the concatenation of a
+512-D deployed descriptor and a 64-D BatchNorm register, imposed two-view
+descriptor invariance, penalized between-class variance of register coordinate
+means, and deleted the register and decoder at deployment. Its headline theorem
+claimed a teacher-spectrum reconstruction threshold forced deployed covariance
+rank above the seen-class collapse ceiling.
+
+Gate 1 has no measured causal premise. The repository has not measured
+class-lookup augmentation invariance, a harmful train/test-identity variance
+ratio, teacher-spectrum rank starvation, achieved certified reconstruction, or
+loss of useful ImageNet features in the corrected PFML/PA baselines. The closest
+prospective evidence is adverse: candidate 225's disjoint-identity
+within-class-subspace transfer ratios were **0.9312, 0.9287, and 0.9345**, all
+below its locked 1.15 threshold and below one. Corrected ARCG separately found
+augmentation response image-specific on In-Shop, retaining only
+**0.3631--0.3640** of same-class pairs. External supervised-contrastive collapse
+literature and future diagnostics do not establish NRQ's benchmark-specific
+cause.
+
+The affine low-rank regression tail bound and its exact-rank corollary are
+mathematically valid, but operationally inert. Let
+`zhat_delta=normalize(mu_y+delta*q(x,theta))`, with a high-rank tangent code in
+a complement of the seen class means, and scale the corresponding decoder
+weights as `1/delta`. For every nonzero `delta`, the deployed covariance has the
+required rank and the decoder recovers an order-one teacher residual, while the
+cosine invariance cost is `O(delta^2)` and tends to zero. NRQ has no decoder-norm
+bound, minimum singular-value/amplitude floor, or signal-to-noise constraint.
+It excludes a measure-zero equality while leaving arbitrarily near class lookup
+essentially free. High rank can equally encode background, crop hash,
+augmentation noise, or instance-private detail, so it is not transferable
+supervision.
+
+Routing is unidentifiable. The full teacher feature is reconstructed jointly
+from both branches, both heads share one trunk, and the register penalty sees
+only first-moment differences between noisy four-sample class means. Identity
+can occupy within-class zero-mean patterns, cross-coordinate or nonlinear
+codes, while nuisance can remain in the deployed descriptor and trunk. A fixed
+coordinate deletion is not evidence that the deleted subspace is the kernel of
+a learned nuisance action.
+
+Gate 2 is occupied at the supervision-object/action level. Domain Separation
+Networks and Unsupervised Adversarial Invariance already learn shared/private
+representations through task plus joint reconstruction; Feige's invariant-
+equivariant multi-class model routes class and within-class transformation to
+separate variables; MIC is the benchmark-matched DML method that learns a
+separate cross-class characteristic encoder to explain away viewpoint and
+illumination. L2-SP, DELTA, and InFeR occupy frozen-initial-model retention and
+initial-feature reconstruction/rank regularization. NRQ's frozen-feature target
+and augmentation wrapper do not make the already occupied split/reconstruct/
+discard action novel, and its purported distinctive rank certificate fails by
+the infinitesimal side channel.
+
+The cold review adds that an EMA rather than exact teacher mean makes the
+normalized sufficiency threshold fail to imply the displayed PCA-tail
+certificate; `r=64` is not uniquely derived; no control holds the register and
+reconstruction fixed while disabling the alleged floor; and a 40% register
+class-probe threshold is incompatible with class exogeneity. The required
+In-Shop-first screen is non-diagnostic by the proposal's own arithmetic because
+the rank inequality is vacuous for 3,997 classes and no In-Shop prediction is
+registered. Training is about 2.6--2.8x per epoch without a clean matched-
+compute control, and raw/final plus out-of-sample stages are absent.
+
+Three cold-review overclaims are not propagated. Flat PFML attraction inside
+its clamp does not alone prove exact collapse is not a minimizer of the whole
+potential-field objective. A unit-sphere trace cap permits but does not force
+every direction to have tiny amplitude. Coordinate projection does delete the
+auxiliary register conceptually; the valid failure is that no nuisance kernel
+is identified and the shared path remains free to retain the same information.
+
+Correct pieces preserved: the affine regression tail lemma, its exact rank
+arithmetic, legal zero-cost deployment, explicit PFML recipe ambiguities, the
+refusal to inherit unreproduced reference means, CUB train-identity-only
+hyperparameter selection, honest admission that the theorem is vacuous on
+In-Shop/SOP, and the NAP/WCCN post-hoc control.
+
+Process lesson: **rank without amplitude is topological, not operational.** Any
+anti-collapse certificate used for cosine retrieval must bound nontrivial
+singular values or variance at fixed decoder/operator gain; otherwise an
+infinitesimal high-rank side channel defeats it. Before adding an auxiliary
+private branch, identify why information must enter that branch and why the
+shared trunk cannot carry it elsewhere.
+
+Primary neighbours: Bousmalis et al., *Domain Separation Networks*, NeurIPS
+2016; Jaiswal et al., *Unsupervised Adversarial Invariance*, NeurIPS 2018;
+Feige, *Invariant-Equivariant Representation Learning for Multi-Class Data*,
+ICML 2019; Roth et al., *MIC*, ICCV 2019; Li et al., *L2-SP*, ICML 2018; Li et
+al., *DELTA*, ICLR 2019; and Lyle et al., *InFeR*, 2022.
+
+Full artifacts:
+docs/opus_blind_prompt_pass52_2026-08-06.txt,
+docs/opus_nrq_proposal_pass52_2026-08-06.md,
+docs/opus_nrq_review_prompt_2026-08-06.txt,
+docs/opus_nrq_review_2026-08-06.md, and
+docs/opus_nrq_local_audit_2026-08-06.md.
