@@ -5464,3 +5464,60 @@ identically zero effect on gradients is not propagated. Full artifacts:
 `docs/fable_portal_proposal_pass23_2026-08-05.md`,
 `docs/fable_portal_review_2026-08-05.md`, and
 `docs/fable_portal_local_audit_2026-08-05.md`.
+
+### Twenty-fourth blind pass: EFML repeats class-independent variation
+
+**DEAD at Gates 1 and 2, with a projected/stale estimator that cannot enforce
+its advertised law; no diagnostic, preregistration, implementation, or GPU.**
+The blind Fable proposal returned Exchangeable-Fiber Metric Learning: map each
+sample's spherical proxy residual to one random common tangent pole, project it
+from 511 to 64 dimensions, use Gaussian-kernel MMD to match every class to a
+pooled FIFO law, and pin global residual dispersion to its epoch-5 warm-up
+value. The mandatory independent review exhausted Fable credits and completed
+through the configured same-job Claude Opus fallback; it also returned DEAD.
+
+Gate 1 has no eligible provenance. The repository does not measure a shared
+cross-class fiber law, connect classwise law discrepancy to corrected
+official-query errors, or show that homogenization repairs unseen-identity
+ranking. The immediately preceding CINA audit explicitly records that the
+verified packet does not support a shared nuisance basis. EFML's prospective P0
+only asks whether a scalar P90/P10 scatter ratio exceeds 1.5; heteroskedasticity
+does not identify nuisance, causal error, or the desired common distribution.
+Its benchmark gains and crossing probabilities are invented.
+
+Gate 2 is occupied at the supervision-object level. DVML (Lin et al., ECCV
+2018) explicitly models intra-class variation as independent of class and uses
+one shared isotropic distribution separated from class centers. SFT (Zhu, Bai,
+and Wei, ECCV 2020) transports feature variation between classes by spherical
+rotation under similar class covariances on CUB, Cars, and SOP. Cheng et al.
+(CVPR 2021) train different class means with one covariance shared across
+classes, while Deep CORAL and conditional MMD supply differentiable
+distribution-alignment machinery. A sphere log map, random pole, MMD, buffers,
+and a dispersion pin enforce rather than assume the old target; they do not
+create new supervision.
+
+The executed statistic is weaker than the claim. Equality after one fixed
+64-D projection leaves a roughly 447-D nullspace; the full-dimensional global
+pin cannot prevent classwise radius trading there. Minimal transport is
+singular near the antipodal pole and the solution changes with the random pole
+through class-dependent holonomy. Detached buffers store residuals under old
+moving-proxy gauges, and on SOP/In-Shop their eight entries can duplicate the
+five-to-six distinct images in an identity. MMD is underdefined (biased versus
+unbiased), mostly stale at two live samples per class, endogenous to its pooled
+target, and can become flat or undefined as its learned median bandwidth
+changes. A two-sided warm-up dispersion pin is not calibrated to center
+spacing, may expand tight classes, and has only a bounded collapse cost.
+Cosmetic shared noise and erasure of legitimate class-specific pose/view modes
+remain valid zero-loss escapes.
+
+The independent review's stronger claim that the penalties exactly freeze
+every class radius is not propagated: one term is projected, the other global,
+and both are soft. Its view that prior art is “thin but survivable” is also not
+adopted because this protocol judges the supervised object, for which DVML and
+SFT are direct. Finally, EFML invents a new recipe and unmeasured SOP/In-Shop
+base. The historical In-Shop 0.9035 mean and one-seed rule were retracted after
+the wrong-pixel-corpus discovery; valid future screens require a paired
+current-digest control, not forecast arithmetic. Full artifacts:
+docs/fable_efml_proposal_pass24_2026-08-06.md,
+docs/fable_efml_review_2026-08-06.md, and
+docs/fable_efml_local_audit_2026-08-06.md.

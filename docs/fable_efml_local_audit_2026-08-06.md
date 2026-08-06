@@ -154,3 +154,34 @@ homoscedasticity unless a prospective intervention first shows that a specific
 measured classwise discrepancy causes corrected unseen-identity retrieval
 errors. A different kernel, manifold, transport, or anti-collapse floor is not
 that intervention.
+
+## Reconciliation with the independent review
+
+The mandatory cold review
+(docs/fable_efml_review_2026-08-06.md) independently returns **DEAD**. It
+confirms the central local findings and adds three strong implementation-level
+ones: stored buffers mix residuals expressed in obsolete proxy-dependent
+gauges; a per-class buffer of eight entries exceeds the number of distinct
+images in many SOP/In-Shop identities and therefore contains duplicates rather
+than an empirical law; and the Gaussian-kernel median can become either
+gradient-flat or undefined under scale drift and collapse. It also verifies
+that the fixed 64-D projection only matches pushforwards, the random-pole gauge
+is not pole invariant, P0 is near-vacuous, controls omit the direct pole,
+projection, and one-sided-floor tests, and the crossing probabilities are
+incompatible with the proposal's own forecast variances.
+
+Two reviewer conclusions are not adopted as stated. First, the headline claim
+that the two soft penalties “jointly fix every class's fiber radius” is not an
+exact consequence of the frozen objective: L_hom sees only one 64-D
+projection, L_sc pins only a global batch mean, both are finite-weight
+penalties, and the Proxy Anchor gradient comparison omits other terms and
+parameter Jacobians. The narrower criticism is valid: a two-sided warm-up pin
+has no causal calibration to class-center spacing, may expand initially tight
+classes, and cannot *guarantee* exclusion of collapse because its total collapse
+cost is bounded. Second, the reviewer calls the prior-art gate “thin but
+survivable.” Under this project's mechanism-level rule it is not: DVML
+explicitly makes intra-class variation share one class-independent
+distribution, while SFT supplies benchmark-matched spherical rotation of
+cross-class variation. Replacing DVML's latent prior or SFT's assumption with
+projected MMD enforcement changes the estimator, not the supervised object.
+Gate 2 therefore remains independently decisive.
