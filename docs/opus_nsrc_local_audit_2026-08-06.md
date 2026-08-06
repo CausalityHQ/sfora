@@ -229,3 +229,33 @@ Process lesson: a truncated energy subspace is not a span for orthogonality
 proofs. Check whether the proposed combination erases the very complement on
 which the method depends, and distinguish descriptor-gradient orthogonality
 from shared-parameter-gradient orthogonality before claiming noninterference.
+
+## Reconciliation with the independent cold review
+
+The cold reviewer returned **DEAD at Gate 1** without seeing this audit and
+independently found the same earliest failure: the 95%-energy projector leaves
+proxy-tail directions in the alleged null block, so the omitted tangential
+Proxy Anchor gradient invalidates both frozen theorems. In a disclosed
+synthetic construction its complement proxy energy was `0.0491/0.0493`, the
+tangential/radial norm ratio was `2.23`, and the task/null feature-gradient
+cosine was `9.2e-3`, far above frozen F5's `1e-6`. These magnitudes are
+construction results, not checkpoint measurements; only the algebraic
+possibility of a nonzero tail term is required for the kill.
+
+It also independently retained the bounded-rate, zero-gradient floor,
+undefined normalization, batch-rank, deployed-noise, full-rank multi-proxy,
+shared-parameter-interference, moving-basis, exposure-control, missing-
+provenance, weak-recipe, and protocol failures. Its paired retrieval table is
+a stylized simulation and is not promoted to repository evidence. Likewise,
+the statement that `tau=0.95` *guarantees* approximately five percent omitted
+energy is too strong in general: the hard cumulative threshold bounds the tail
+at at most five percent and a spectrum can cross with a smaller or zero tail.
+The exact objection is conditional and sufficient: whenever the truncation
+omits nonzero proxy energy, the theorem is false; when it omits none, the
+claimed large null block is absent.
+
+The review added a useful control omission: `PA + L_f` alone is needed because
+the floor has the largest coefficient and could account for any gain without
+rate coding. It also identified Domain Separation Networks as another public
+shared/private orthogonal-allocation neighbour. Neither changes the Gates 1
+and 2 verdict.

@@ -6592,3 +6592,89 @@ docs/opus_cnw_proposal_pass40_2026-08-06.md,
 docs/opus_cnw_review_prompt_2026-08-06.txt,
 docs/opus_cnw_review_2026-08-06.md, and
 docs/opus_cnw_local_audit_2026-08-06.md.
+
+### Forty-first blind pass: NSRC's truncated proxy “null” space is supervised, and its frontier combination erases the null space
+
+**DEAD at Gates 1 and 2, independently reinforced by a cold algebraic review;
+no preregistration, implementation, or candidate GPU.** Null-Space Rate Coding
+(NSRC) proposed a 95%-proxy-energy eigenspace, two-view invariance plus a
+coding-rate reward in its complement, and a 15-percent complement-energy floor.
+It claimed Proxy Anchor could only shrink that block radially, so the auxiliary
+loss was pointwise orthogonal to the task. Standalone forecasts remained below
+PFML; only an assumed NSRC-plus-15-proxy combination forecast a Lane-A crossing.
+
+Gate 1 has no provenance. No corrected repository measurement shows exact
+proxy-complement energy decays below `0.15`, causes official-query errors,
+contains transferable unseen-identity information, or follows the proposed
+class-count dose. A future F6 measurement is not provenance. Candidate 365,
+Pass 30 NSP, Pass 21 RIM, Pass 36 DARC, candidate 225, candidate 371, Pass 29
+DSA, and Pass 39 FCS supply prior missing or adverse evidence for the same
+proxy-rank/residual-capacity premise.
+
+The central theorem is false for the executable method. A 95%-energy projector
+is not the full proxy-span projector. The exact projected task gradient contains
+`Pi_perp sum_c w_c p_c` in addition to its sample-radial term; omitted proxy-tail
+directions can rotate the alleged null code and interfere with its tangent rate
+gradient. A cold reviewer independently reproduced this failure and, in a
+disclosed synthetic construction, measured a `2.23` tangential/radial norm
+ratio and task/null cosine `9.2e-3`, versus frozen F5 `<1e-6`. Those magnitudes
+are not checkpoint evidence. The exact conclusion is the dichotomy: if the
+truncation leaves proxy-tail energy, both theorems fail; if it leaves none, the
+advertised large complement is absent. Descriptor-gradient orthogonality would
+still not imply shared-backbone or batch-summed parameter-gradient
+orthogonality.
+
+The anti-degeneracy claims also fail. `-logdet(I+aCC^T)` is finite at deficient
+rank rather than an infinite barrier; the squared energy hinge has zero
+gradient at exact `b=0`; `c/||c||` is undefined there; two identical views cap
+the per-batch rate rank by the number of distinct images; and the rate reward
+spreads same-class samples as well as different classes. An augmentation-stable
+but identity-exchangeable block consumes at least 15 percent of deployed energy
+and dilutes cosine rather than supervising unseen identity. The reviewer’s
+retrieval deltas are explicitly stylized simulations, not admitted benchmark
+measurements.
+
+The only forecast crossing is self-contradictory. Fifteen proxies for 100/98
+classes give 1,500/1,470 proxy vectors in 512 dimensions and generically fill
+the exact proxy span. An exact-span projector then has `d-r=0` and the NSRC loss
+is undefined; a nonempty 95%-energy complement consists of supervised proxy-
+tail directions and destroys the orthogonality theorem. The theorem, a
+nonempty multi-proxy complement, and the claimed combination cannot hold
+together. The multi-proxy loss itself is also unspecified.
+
+Gate 2 recurs internally through candidate 365 Blind-Subspace Allocation, Pass
+30 Null-Space Provisioning, Pass 21 RIM, and Pass 36 DARC. Public neighbours
+occupy the supervision object/action: DiVA and MIC split class-discriminative
+from complementary intra-class/self-supervised content; Domain Separation
+Networks split shared/private orthogonal content; Anti-Collapse DML and
+MCR-squared supply coding-rate expansion; VICReg/Barlow/W-MSE supply two-view
+invariance plus spread; S2SD supplies auxiliary capacity. A live truncated
+eigenspace is a wrapper, and its advertised zero-interference distinction is
+false.
+
+The experiment additionally bypasses corrected paired In-Shop, substitutes a
+weak unresolved no-decay PA recipe, halves unique images per batch without a
+paired-view/no-null control, omits `PA+floor` and full-span controls, supplies
+no raw-best/final split, and claims unmeasured uncertainty and exact `1.00x`
+cost. Correct pieces are the cosine gradient, radial null component under a
+fixed **exact** proxy-span projector, tangent complement-loss gradient,
+sign/rotation invariance within a fixed eigenspace, compact Gram logdet, clean
+`gamma=1` deployment, and small estimated compute.
+
+Process lesson: a truncated energy subspace is not an algebraic span. Before
+building a complementary objective, verify the named complement is genuinely
+task-null at the exact projector used, that the combined frontier method does
+not fill it, and that useful held-out-identity signal—not class-exchangeable
+instance noise—actually lives there.
+
+Primary neighbours: Milbich et al., *DiVA*, ECCV 2020; Roth et al., *MIC*,
+ICCV 2019; Bousmalis et al., *Domain Separation Networks*, NeurIPS 2016; Jiang
+et al., *Anti-Collapse Loss for Deep Metric Learning*, 2024; Yu et al.,
+MCR-squared, NeurIPS 2020; and Roth et al., S2SD, ICML 2021.
+
+Full artifacts:
+docs/opus_blind_prompt_pass41_2026-08-06.txt,
+docs/opus_nsrc_proposal_pass41_2026-08-06.md,
+docs/opus_nsrc_review_prompt_2026-08-06.txt,
+docs/opus_nsrc_review_2026-08-06.md, and
+docs/opus_nsrc_local_audit_2026-08-06.md.
