@@ -139,3 +139,49 @@ catalogue; local Gate 2 must therefore kill equation-level rediscoveries even
 when the new proposal is more carefully written. Future proposals should not
 return to GPD/EVT deployment-size corrections without a prospectively verified
 new causal measurement and a genuinely different supervision object.
+
+## Independent-review reconciliation
+
+The separately frozen cold review (`docs/opus_port_review_2026-08-06.md`) also
+returns **DEAD**. It accidentally opened the unrelated root file
+`RSPG_TASK.md`, immediately declared it irrelevant, and inspected no repository
+failure evidence; this is a minor protocol blemish but gives it no information
+about PORTAL or the earlier return-level line.
+
+The review independently verifies the PWM formulas, all five advertised
+partials, `E'(xi)>0`, the domination inequality, the declustering upper bound,
+and the broad FLOP estimate. It then supplies several stronger fatal results
+that are adopted:
+
+- every gradient weight on the retained order statistics is **exactly affine
+  in rank**, a two-parameter family containing uniform top-k/CVaR; the claimed
+  non-rank-determined fingerprint is false;
+- at the capped SOP/In-Shop operating point the return level is already 85.5%
+  of the way to the fitted endpoint, and changing nominal population size by
+  six orders of magnitude moves it only another 14% of that span; the practical
+  object is endpoint shaping, adjacent to WEINCE, not an identified deployment
+  population;
+- the threshold class receives the dominant repulsion while much of the hard
+  retained tail receives net attraction, with large cancellation and severe
+  PWM variance at `k=15/31`;
+- on CUB/Cars the hard floor binds about 45.6% of anchors and the mean raw EVT
+  increment is approximately zero, contradicting the forecasted mechanism
+  gains;
+- the motivating `0.07--0.13` cosine gap uses the `xi=0` limit even though the
+  proposal insists on a bounded-tail `xi≈-0.3` regime, where its own formula
+  gives only `0.013--0.026`;
+- the exact-collapse guard evaluates `0/0`, while class log-sum-exp maxima can
+  exceed one, so the frozen degeneracy branch is non-executable as written;
+- a cliff-shaped tail makes `a1=0`, `sigma_hat=0`, and PORT exactly hard mining,
+  directly falsifying the stated anti-threshold-gaming argument; and
+- the controls do not isolate an arbitrary affine rank-weight rule, scaled
+  CVaR, adaptive weighting, or the dataset-family batch-configuration change.
+
+The review did not find a public method named PORTAL because the cold search
+was barred from repository history. That absence is not evidence of novelty:
+the frozen Pass-23 PORTAL artifact is an internal prior proposal, and Gate 2
+rejects rediscovery regardless of publication status. Its stronger statement
+that the operational endpoint is “precisely” WEINCE's object is treated as
+adjacency rather than equation-level identity: WEINCE fixes the bounded
+endpoint and stop-graduates the fit, while PORT estimates and differentiates
+through it. The exact internal PORTAL collision is already sufficient.

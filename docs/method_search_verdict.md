@@ -5579,3 +5579,57 @@ Full artifacts:
 `docs/opus_cfr_proposal_pass25_2026-08-06.md`,
 `docs/opus_cfr_review_2026-08-06.md`, and
 `docs/opus_cfr_local_audit_2026-08-06.md`.
+
+### Twenty-sixth blind pass: PORT is a fifth return-level collision
+
+**DEAD at Gates 1 and 2, independently reinforced by a false gradient
+fingerprint and an operationally inert population target; no diagnostic,
+preregistration, implementation, or GPU.** The direct Opus proposal returned
+Peaks-Over-threshold Retrieval Training (PORT): form per-anchor class soft
+maxima, fit a differentiable GPD tail by probability-weighted moments, ramp an
+extrapolated return level beyond the observed maximum, floor it at the hardest
+observed negative, and use that scalar as the negative term of Multi-Similarity.
+
+Gate 1 has no eligible provenance. The repository contains no prospective
+evidence that a seen-identity POT law transfers to disjoint test identities or
+that corrected official-query errors are caused by batch-to-gallery extreme
+underestimation. The proposal's own suggested cheap test fits the law on test
+identities before deciding whether to run, which is prohibited test-conditioned
+method selection. Its population-size arithmetic and gains are forecasts, not
+measurements.
+
+Gate 2 is an exact supervision-object collision with Pass 23 PORTAL and the
+earlier EVPC, RLM, and EGR-PFML proposals. All fit a GPD/POT negative-similarity
+tail and train against an extrapolated gallery/population maximum. PORT changes
+declustering, per-anchor pooling, the surrounding loss, clamps, ramp, and the
+hard-minimum floor; none creates new supervision. WEINCE, TriSim, XBM,
+Recall@k surrogates, top-k/CVaR, and classical POT independently occupy the
+public components.
+
+The cold reviewer verified the PWM algebra but found that PORT's advertised
+gradient fingerprint is false: retained-tail weights are exactly a
+two-parameter affine function of rank, a family containing CVaR. At the capped
+large-dataset operating point the target is already 85.5% of the fitted finite
+endpoint; changing nominal population size by six orders of magnitude moves it
+only another 14% of that span. The dominant gradient repels the threshold class
+while much of the harder tail is attracted, with severe cancellation and noisy
+shape estimates at `k=15/31`. On CUB/Cars the floor binds about 45.6% of anchors
+and the mean raw EVT increment is approximately zero, despite forecasted gains.
+
+Several frozen proofs also fail. Exact collapse sends the guard through `0/0`
+and normalized-cosine collapse is stationary even when the scalar loss is high.
+A cliff-shaped tail yields `a1=0`, `sigma_hat=0`, so the method reduces exactly
+to hard mining rather than penalizing the cliff. The motivating `0.07--0.13`
+cosine gap uses the exponential `xi=0` limit while the claimed bounded-tail
+operating regime `xi≈-0.3` gives only `0.013--0.026`. The controls omit the
+decisive matched affine-rank, scaled-CVaR, and adaptive-margin alternatives.
+
+Process lesson: blind proposers repeatedly rediscover tail extrapolation
+because “training sees fewer negatives than deployment” is an attractive
+story. Five independent recurrences are not convergent evidence; they are a
+search prior. Unless a new prospective repository measurement establishes tail
+transport and error causality, future GPD/gallery-size variants should be
+killed immediately before review or GPU. Full artifacts:
+`docs/opus_port_proposal_pass26_2026-08-06.md`,
+`docs/opus_port_review_2026-08-06.md`, and
+`docs/opus_port_local_audit_2026-08-06.md`.
