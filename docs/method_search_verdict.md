@@ -6419,3 +6419,90 @@ docs/opus_chimera_proposal_pass38_2026-08-06.md,
 docs/opus_chimera_review_prompt_2026-08-06.txt,
 docs/opus_chimera_review_2026-08-06.md, and
 docs/opus_chimera_local_audit_2026-08-06.md.
+
+### Thirty-ninth blind pass: FCS repeats learned ECOC and its rank target disappears under symmetric differentiation
+
+**DEAD at Gates 1 and 2; no preregistration, implementation, or GPU.** FCS
+split one 512-D normalized descriptor into 32 normalized 16-D blocks, assigned
+each training identity a balanced 32-symbol code with minimum Hamming distance
+eight, trained coordinate softmaxes against fixed canonical atoms, and
+reassigned the class codes each epoch from model affinities. It forecast a
+matched-Lane-A CUB crossing at 0.745, smaller Cars improvement, and deliberate
+SOP/In-Shop nulls.
+
+Gate 1 has no verified repository provenance. No eligible artifact measures a
+proxy-span cause of corrected retrieval error, unseen-class evidence outside
+the training-proxy span, or a causal relationship between effective rank and
+R@1. Candidate 371 and Pass 29 DSA already established that the `C-1` rank
+bound is dimensional algebra rather than an observed capacity deficit; a
+99-dimensional continuous space is not limited to 100 identities.
+
+The causal derivation fails internally. FCS differentiates its own normalized
+head through `(I-uu^T)/r` but indicts the baseline using only the gradient after
+normalization. Applied symmetrically, a proxy loss gives pre-normalization
+gradient `(I-zz^T)v/r`, with `v` in the proxy span and a sample-aligned
+component outside it. This does not establish useful extra discriminative
+targets, but it refutes the literal claim of 413 loss-invisible directions.
+At the frozen AdamW learning rate and decay, 200 CUB epochs retain about
+`0.99990` of an unrefreshed parameter rather than annihilating it.
+
+Proposition 1 is impossible as written: 100 CUB codeword vectors have span at
+most 100, not 512, and each block softmax gradient lies in the 15-D zero-sum
+subspace. Proposition 3 conditions on Hamming-separated codewords that unseen
+identities never receive. The `d^K-C` unused tuples are cells in a discarded
+training table, not supervised zero-shot capacity. With the frozen scale and
+label smoothing, the loss-optimal different-symbol block cosine is about
+0.9037, reducing the advertised 25-percent tolerance to about 2.41 percent.
+
+The code update is not feasibility-preserving. A one-class move preserves the
+floor/ceiling balance only from an upper-count symbol to a lower-count symbol;
+the proposed “spare capacity” rule is insufficient. Repair need not make
+monotone progress, and reverting only involved classes mixes old and new tables
+without preserving either balance or pairwise separation. Gilbert--Varshamov
+proves separated-code abundance in isolation, not balanced reachability or the
+stated repair. The `C d log C` cost quoted for SOP is also a one-block count
+presented as the total for 32 flows.
+
+Controls cannot recover the claim. C5 changes block count, alphabet size,
+softmax geometry, Hamming threshold and over-subscription together; its own
+margin equation predicts the opposite direction from its falsifier. C6 tunes
+to measured **test** effective rank and therefore violates the no-test-selection
+rule. The proposal also bypasses the corrected In-Shop-first paired screen.
+
+Gate 2 independently recurs candidate 250 and a mature public family. Classical
+ECOC supplies distributed class codes; Deep N-ary ECOC supplies N-ary class
+partitions with shared neural architectures; Song et al.'s neural ECOC supplies
+joint Hamming/diversity training; JointECOC learns code matrices and classifiers
+from data by alternating optimization; and Evron et al. show that informed,
+problem-dependent codeword-to-class assignments control generalization. FCS's
+disjoint slices, 16-ary alphabet, exact assignment, and retrieval use narrow
+that conjunction but do not create a new supervision relation: the code remains
+a deterministic recoding of the original class label.
+
+The independent cold reviewer agreed on DEAD without seeing the local audit.
+Its exact min-cost-flow complexity and five-window memory multipliers were not
+retained because they depend on an unstated solver and a window can use rolling
+sums. Its gradient asymmetry, decay arithmetic, loss-optimal cosine, control
+inversion, repair failure, and unseen-code critique were retained. Correct
+subcomponents are the deployment-clean block normalization, displayed FCS
+gradient, scale/decay coupling, GV arithmetic, pigeonhole no-false-negative
+check, constant-code exclusion, honest lane separation, and explicit risky
+dataset-null prediction.
+
+Process lesson: a classifier-output rank bound is not an encoder-capacity
+measurement; compare gradients at the same normalization stage; unused discrete
+codes do not supervise unseen identities; and alternating a data-adaptive ECOC
+assignment is still learned ECOC, not new supervision.
+
+Primary neighbours: Dietterich and Bakiri, JAIR 1995;
+Zhang et al., *Deep N-ary Error Correcting Output Codes*, 2020;
+Song et al., AAAI 2021; Zhang et al., *Joint learning of error-correcting output
+codes and dichotomizers from data*, Neural Computing and Applications 2012;
+and Evron et al., AISTATS 2023.
+
+Full artifacts:
+docs/opus_blind_prompt_pass39_2026-08-06.txt,
+docs/opus_fcs_proposal_pass39_2026-08-06.md,
+docs/opus_fcs_review_prompt_2026-08-06.txt,
+docs/opus_fcs_review_2026-08-06.md, and
+docs/opus_fcs_local_audit_2026-08-06.md.

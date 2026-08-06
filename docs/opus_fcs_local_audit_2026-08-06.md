@@ -178,3 +178,52 @@ Stop before implementation, preregistration, or GPU. The proposal fails the
 earliest required gate and independently repeats an occupied mechanism. A cold
 review of the frozen proposal remains mandatory under the current search
 protocol; it must be frozen before the final ledger entry is reconciled.
+
+## Reconciliation with the frozen independent review
+
+Frozen review: `docs/opus_fcs_review_2026-08-06.md`; durable consultation
+`5ca48f86671a44d3`. Fable exhausted its credits and the same durable job
+completed through the configured Claude Opus fallback. The reviewer saw only
+the frozen proposal and review brief and independently returned **DEAD**.
+
+The two audits agree on every disposition-level fact: no measured provenance;
+false full-rank claim; no code or margin guarantee for unseen identities;
+broken one-class repair and partial revert; illegal test-rank-matched C6;
+confounded C5; understated update cost; and no authorization for GPU work.
+The review adds four retained results:
+
+1. FCS compares its pre-normalization gradient with a baseline
+   post-normalization gradient. Symmetric differentiation gives
+   `(I-zz^T)v/r`, so the literal statement that all proxy-orthogonal components
+   are loss-invisible is false. This does **not** prove that they receive useful
+   independent discriminative targets—the extra component is sample-aligned
+   normalization pressure—but it destroys the proposal's claimed rank theorem
+   and leaves the causal deficit unmeasured.
+2. At the frozen AdamW `lr=1e-4`, `weight_decay=1e-4`, roughly 9,773 CUB steps
+   multiply an unrefreshed parameter by about `0.99990`, not annihilate it.
+   Decoupled decay is uniform rather than selective.
+3. With `s=16`, label smoothing 0.1 and `d=16`, the loss-optimal different-symbol
+   block cosine is about `0.9037`, so Proposition 3's nominal `25%` tolerance is
+   about `0.25*(1-0.9037)=2.41%`, not 25%. More importantly, the condition still
+   applies only to training identities that own codewords.
+4. C5 keeps `delta_min/K=1/4` while changing target geometry; its own margin
+   calculation improves as `d` grows and rho approaches one, opposite the
+   registered monotone-degradation rule. The frozen method would reject itself
+   for following its own proposition.
+
+Two review cost claims require qualification and are not used as rejection
+evidence. Its `O(C^2 d)` successive-shortest-path estimate is algorithm-dependent;
+the robust finding is only that the proposal quoted `C d log C` for one block as
+the total despite `K=32` flows and supplied no specialized complexity proof.
+Likewise, a five-epoch window need not store five complete affinity tensors; a
+rolling sum can keep one tensor. The omitted `K*C*d` state is real, but the
+review's fivefold memory multiplier is not forced by the frozen text.
+
+The review labels executable mathematics “Gate 1” and the causal target “Gate
+2”; those are its rubric labels, not the repository protocol numbering. Under
+`docs/search_protocol.md`, FCS dies at protocol Gate 1 for absent repository
+provenance and independently at protocol Gate 2 for algebra and occupied ECOC
+mechanisms. The review left prior art unresolved because it performed no new
+primary-source search; the local primary-source audit resolves that downstream
+question through deep N-ary ECOC, JointECOC, neural ECOC, and informed
+codeword-to-class assignment.
