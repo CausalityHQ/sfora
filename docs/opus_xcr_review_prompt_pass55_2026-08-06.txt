@@ -1,0 +1,61 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer.
+Frozen before review consultation start: 2026-08-06 UTC.
+
+Read exactly:
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_xcr_proposal_pass55_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive
+mechanism-level reason. This is adjudication, not repair; do not silently
+improve, reinterpret, or replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, ImageNet-1K initialization, disjoint test identities, no test or
+gallery data in training/selection, no generated/text/VLM data, no reranking or
+transduction. Deployment is one single-view encoder, one 512-D normalized
+descriptor and cosine nearest-neighbour retrieval.
+
+Audited matched Lane-A references: PFML ResNet-50/512-D/single-view over five
+runs, CUB 0.734 +/- 0.003, Cars196 0.927 +/- 0.003, SOP 0.829 +/- 0.002.
+Higher-capacity lanes must not be treated as matched. Corrected In-Shop
+Proxy-Anchor controls have four verified local seeds with raw-best mean
+0.9181495288 and frozen-final mean 0.9153889436; these are controls, not a
+variance license. A live method must screen corrected In-Shop after Gates 1-3,
+report raw and final metrics, confirm out of sample, and replicate on a second
+dataset.
+
+Audit the frozen object independently:
+
+1. Check Gate 1 provenance. Does the repository contain a verified measurement
+   showing that negative-only local intrinsic dimension or an extrapolated
+   gallery-scale collision risk predicts disjoint-identity R@1? Distinguish a
+   hypothetical/asymptotic argument from a persisted, corrected measurement.
+   Account for the prospective XTail/GEVS/TERL tail evidence if found through
+   primary sources, but do not read local audits.
+2. Re-derive the exact Weissman/Hill/LID estimator, clipping, shrinkage, the
+   out-of-range branch, continuity at rho+=u, and every stated gradient. Check
+   signs, zero/tie behavior, order-statistic subgradients, normalization,
+   and whether the claimed error expression is an equality or only an
+   approximation/upper bound. Attack the use of training image count M as a
+   deployment exposure and transfer from class-balanced batches to unseen
+   galleries.
+3. Search primary literature adversarially by mechanism, not name: LDReg
+   (ICLR 2024), LID/EVT train-time objectives, WEINCE and TriSim, Recall@k
+   surrogate, Smooth-AP/FastAP, ranked-list/top-k/CVaR/XBM, coding-rate and
+   uniformity/anti-collapse objectives, and biometric EVT/OpenMax/EVM. Decide
+   whether risk-calibrated LID-exponent coupling is materially distinct or a
+   wrapper around occupied LID/tail supervision.
+4. Attack degeneracies: identical normalized descriptors, isotropic noise,
+   equidistant shells, runaway dimension, hard-negative repulsion, clamp and
+   estimator gaming, and the fact that LID estimates from only 16 of ~176
+   dependent balanced negatives are not iid deployment tails.
+5. Check all controls and falsifiers, cost claims, sampler feasibility, and
+   whether the frozen forecasts actually cross the matched PFML frontier.
+   Reject claims based on forecast compositions, unimplemented carriers, or
+   best-over-training selection.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
