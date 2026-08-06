@@ -1,0 +1,18 @@
+You are the mandatory cold independent reviewer for Pass 57 OFRA. Read only
+the frozen proposal docs/opus_ofra_proposal_pass57_2026-08-06.md and the local
+audit docs/opus_ofra_local_audit_2026-08-06.md. Do not inspect other local files,
+git history, or prior conversations. Use public primary literature if available.
+
+Judge Gates 1–2 before any GPU. OFRA claims: fit a pointwise tangent frame from
+same-image augmentation pairs, then redirect a supervised metric-learning
+attractive gradient into that frame at fixed magnitude, while constraining
+augmentation displacement outside the frame. Attack it adversarially against
+tangent propagation, augmentation-equivariant/self-supervised learning,
+gradient surgery/PCGrad, anisotropic metric learning, local PCA/manifold
+methods, and any metric-learning work that changes positive attraction. Decide
+LIVE or DEAD. A composition is not novel if it is merely a renamed known
+projection/gradient mask; identify the exact mechanism overlap and cite primary
+sources. Also test degeneracies: frame collapse, encoder rotation into frame,
+zero attraction, nuisance/content mismatch, and PFML recipe ambiguity. If LIVE,
+state the minimum controls and evidence needed before GPU. Return a concise
+review with an unambiguous gate decision and no implementation.
