@@ -1,0 +1,29 @@
+Provider: independent cold reviewer with Claude Opus fallback.
+Frozen before review start: 2026-08-06 UTC.
+
+Read exactly `docs/opus_ifr_proposal_pass56_2026-08-06.md` and this prompt only.
+Do not inspect other repository files, prior audits, git history, or
+conversations. Do not edit files or launch another consultation. The proposal
+is a recovered answer whose shell transcript omitted a middle segment; judge
+whether that makes the object non-adjudicable, and review the visible object as
+written. Return LIVE, DEAD, or UNRESOLVED with the earliest failed gate and
+mechanism-level reasons; do not repair it.
+
+Legal envelope: official training images/labels, ordinary augmentation,
+ImageNet initialization, disjoint test identities, no generated/external
+data, text/VLM, test/gallery fitting, reranking, or transduction. Deployment
+is one 512-D single-view cosine descriptor. Corrected In-Shop paired controls
+must precede any candidate GPU screen, with raw and final metrics.
+
+Audit: (1) whether repository evidence or only Zhou et al. motivates the
+class-gated-invariance premise; (2) the exact leave-one-class-out scatter
+operator, detached scale/denominator, Gram implementation and gradients; (3)
+degeneracies including total collapse, common-mode amplification, low-rank
+sampling noise, label permutation and duplicated sources; (4) primary-art
+novelty against class-conditional invariance, covariance-preserving feature
+augmentation, WCCN, coding-rate/VICReg, augmentation-response consistency,
+domain-generalization/meta-learning, and any leave-one-class-out covariance
+prediction; (5) controls and whether they isolate IFR from consistency,
+post-hoc whitening and generic variance shaping; (6) matched-lane forecasts,
+recipe completion, cost, and corrected In-Shop-first protocol. Preserve any
+correct subcomponents but do not upgrade the candidate through repairs.
