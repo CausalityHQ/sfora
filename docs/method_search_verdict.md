@@ -5692,3 +5692,57 @@ Full artifacts:
 `docs/opus_frame_proposal_pass27_2026-08-06.md`,
 `docs/opus_frame_review_2026-08-06.md`, and
 `docs/opus_frame_local_audit_2026-08-06.md`.
+
+### Twenty-eighth blind pass: DOIR has a new Fisher object but an unmeasured and proxy-degenerate mechanism
+
+**DEAD at Gate 1, independently reinforced by false escape dynamics and an
+exact proxy-only mechanism confound; no preregistration, implementation, or
+GPU.** The direct Opus proposal returned D-Optimal Identity-Information
+Regularization (DOIR): train a class-marginal multi-proxy softmax and isotropize
+the trace-normalized categorical Fisher in embedding coordinates with a
+log-determinant barrier. The proposed mechanism was that ordinary supervised
+training and weight decay trap identity information in a low-rank score span,
+whereas the barrier creates missing discriminative directions.
+
+Gate 1 has no eligible repository provenance. No saved measurement connects a
+low identity-Fisher spectrum to corrected zero-shot retrieval error. The
+closest prospective rank experiment, candidate 371, found that its apparent
+proxy-span deficit was a dimensional identity rather than causal evidence;
+candidate 225's disjoint-identity nuisance-frame ratios (`0.9312`, `0.9287`,
+`0.9345`) were all adverse. The proposal's only statistically claimed frontier
+crossing is SOP, while CUB and Cars are forecast merely at parity and In-Shop
+is explicitly non-frozen.
+
+The cold review found the decisive constructive failure. With embeddings held
+fixed, proxies alone could move in an exact base-loss null space: the barrier
+fell `1.1941 -> 0.3458`, Fisher effective rank rose `154.9 -> 355.7`, and base
+loss remained exactly `2.0739198`. The very signatures registered as evidence
+of repaired embeddings can therefore occur with no deployed-representation or
+retrieval change. This does not prove all real-training effects are zero; it
+proves the proposed controls cannot attribute one.
+
+Both load-bearing lemmas also fail. The alleged shared idle direction is
+generically absent with thousands of sample-dependent proxy score vectors, and
+the proposal's AdamW settings remove only a negligible embedding-parameter
+fraction over training. A log-determinant derivative with respect to an absent
+PSD eigenvalue does not yield a nonzero first-order gradient through the Gram
+factor that must create that direction. The reviewer verified that the batch
+Fisher can nevertheless be full rank, so the rejection is not the simplistic
+`C-1` argument. C8 is an exact class-label permutation no-op; C3 does not form
+the claimed proxy-only control; C10 measures a seen-proxy classifier on test
+embeddings, not unseen identity information.
+
+Gate 2 did not find an exact object-level collision: a class-marginal posterior
+Fisher in embedding coordinates, trace-normalized and logdet-isotropized, may
+be a new object. Its action remains adjacent to D-optimal/Fisher design,
+MCR-squared, covariance/dimensional-collapse regularization, and NIR. Narrow
+object novelty cannot rescue absent measured provenance, false dynamics, or a
+proxy-only path that reproduces every claimed signature.
+
+Process lesson: a new diagnostic matrix is not a new causal lever. Before GPU,
+construct whether the trainable auxiliaries can optimize the registered
+mechanism statistic while leaving the deployed representation fixed; if they
+can, statistic movement is not evidence of representation improvement. Full
+artifacts: `docs/opus_doir_proposal_pass28_2026-08-06.md`,
+`docs/opus_doir_review_2026-08-06.md`, and
+`docs/opus_doir_local_audit_2026-08-06.md`.

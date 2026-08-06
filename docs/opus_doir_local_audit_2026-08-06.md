@@ -90,3 +90,38 @@ The frozen proposal itself computes that CUB `0.735` versus PFML `0.734` and Car
 ## Local disposition
 
 Preserve the class-marginal embedding-coordinate Fisher derivation and the warning that a per-sample `C-1` rank bound does not automatically bound an average with sample-varying multi-proxy means. Reject DOIR as a method. Its causal premise lacks repository provenance, both load-bearing lemmas overclaim deep-network dynamics, the claimed spectral escape fails through a Gram factor, two decisive controls are malformed, and its registered forecast does not cross an in-scope frontier.
+
+## Independent-review reconciliation
+
+The frozen cold review (`docs/opus_doir_review_2026-08-06.md`) agrees with the
+DEAD disposition and supplies a stronger, constructive mechanism failure. In a
+synthetic instance using the proposal's own dimensions and hyperparameters, it
+held every embedding fixed and moved only proxies along an exact base-loss null
+space. The barrier fell from `1.1941` to `0.3458`, Fisher effective rank rose
+from `154.9` to `355.7`, and the base loss stayed exactly `2.0739198`. Thus the
+registered signatures `R down` and Fisher effective-rank up can be produced
+without changing the deployed representation or its retrieval result. The
+reviewer correctly limits this experiment: it does not prove that real joint
+training has zero transient effect, but it does prove that the proposed
+signatures and controls cannot attribute such an effect to embedding repair.
+
+The review independently confirmed that the batch-averaged Fisher can be full
+rank even though each sample Fisher has rank at most `C-1`; that correction is
+retained. It also quantified why Lemma 1 cannot carry the mechanism: with
+`lr=1e-4` and AdamW decay `1e-4`, the direct multiplicative decay is only
+`1e-8` per step, and the alleged common idle direction is generically absent
+when the many sample-dependent multi-proxy score vectors span 512 dimensions.
+For Lemma 2, an exactly absent factor direction has zero first-order parameter
+gradient, so the PSD-cone derivative is not an escape theorem.
+
+The independent Gate-2 search did **not** find an exact object-level collision:
+the class-marginal posterior Fisher in embedding coordinates with a
+trace-normalized log-determinant barrier may be a new object. That narrow
+novelty does not rescue an unmeasured causal premise or a proxy-only degenerate
+path. The nearest established actions remain Fisher/D-optimal design,
+MCR-squared, dimensional-collapse/covariance regularization, and NIR. The cold
+review also confirms that C8 is an exact label-permutation no-op and that C10
+fits seen proxies to test embeddings rather than measuring unseen identity
+information. For C3, the proposal's tangent projection means detaching `q` and
+`m` can at most leave a projector-only embedding path; it still does not create
+the claimed proxy-only control. No GPU work is justified.
