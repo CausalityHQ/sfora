@@ -139,8 +139,8 @@ That object and action are occupied:
   transformation prediction to invariant contrastive learning.
 - Devillers and Lefort, **EquiMod** (ICLR 2023), models augmentation-induced
   displacement in representation space.
-- Garrido et al., **Learning and Leveraging World Models in Visual
-  Representation Learning** / SIE (ICML 2023), explicitly splits invariant and
+- Garrido et al., **Self-supervised learning of Split Invariant Equivariant
+  representations** / SIE (ICML 2023), explicitly splits invariant and
   equivariant representations for controlled transformations.
 - Harmonic/group-equivariant networks and complex-modulus/scattering methods
   already occupy the fixed rotation plus invariant-radius operator.
@@ -160,7 +160,7 @@ Primary sources:
 - Devillers and Lefort, *EquiMod*, ICLR 2023:
   <https://arxiv.org/abs/2211.01244>
 - Garrido et al., *SIE*, ICML 2023:
-  <https://proceedings.mlr.press/v202/garrido23a.html>
+  <https://proceedings.mlr.press/v202/garrido23b.html>
 
 ## Protocol, recipe, and forecast failures
 
