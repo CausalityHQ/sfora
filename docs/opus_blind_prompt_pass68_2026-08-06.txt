@@ -1,0 +1,39 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold; use only this prompt and public primary literature. Do not inspect
+local files, history, prior candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE.
+
+Find a genuinely novel train-time method for zero-shot deep metric learning on
+disjoint identities (CUB, Cars196, In-Shop, SOP), using only official training
+images/labels and ordinary stochastic augmentation, with optional ImageNet-1K
+initialization. Deployment is one model, one view, one fixed descriptor,
+cosine/Euclidean NN; no test/gallery fitting, reranking, transduction, external
+generated data, text/VLM encoders, extra annotations, or contamination. Choose
+Lane A R50/512-D/224px/200 epochs (refs CUB .734/Cars .927/SOP .829) or Lane B
+R50/2048-D (refs CUB .766/Cars .949/SOP .842), never mix.
+
+Most support-local losses, regularizers, tangent/invariance, gradient surgery,
+EVT, multi-centers, averaging, acceleration/DEQ/Krylov, common activations and
+parameterizations, and off-support counterfactuals are closed. The CUB failure
+split is 48.1% local versus 51.9% between. Pass 67’s drift-budget closure says
+off-support inputs either leave no clean drift or become detector-solvable; the
+only remaining admissible branch is to change **what supervision exists on real
+training images**, i.e. alter class/identity partitions or construct new
+relations without synthetic inputs. Pass 67 specifically flags Proxy Synthesis
+(AAAI 2021), Partial FC/class subsampling, episodic held-out-class training,
+DeepCluster/multi-head partitions, and multi-center methods as adjacent prior
+art.
+
+Invent one mechanism-level supervision construction that is not merely class
+dropout, proxy synthesis, pseudo-label clustering, partitioned heads,
+multi-centers, pair reweighting, or meta-learning/gradient alignment. It must
+use labels/pixels to create a new relation or target on real images and have a
+real differentiable path. Attack prior art from metric learning, face/re-id,
+few-shot/meta-learning, self-supervision, graph/hypergraph learning, and other
+fields. Provide complete equations, gradients, schedules, causal error mode,
+proof-level degeneracy/gating attacks, exact citations/distinctions, matched
+controls, frozen >=2-dataset forecasts, falsifiers/frontier arithmetic, cost,
+and contamination risks. If no candidate survives, return NONE with a new
+closure lemma and cheap diagnostic; do not claim SOTA from forecasts.
