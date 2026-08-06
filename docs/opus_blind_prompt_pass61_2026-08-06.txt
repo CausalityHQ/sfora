@@ -1,0 +1,44 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold using only this prompt and public primary literature. Do not inspect
+the repository, prior candidates, or process state; do not edit files. Return
+exactly ONE executable method or NONE.
+
+Goal: beat audited zero-shot deep metric-learning references on disjoint
+identities using only official training images/labels plus ordinary stochastic
+augmentation and optional ImageNet-1K initialization. Deployment must be one
+single model, one view, one fixed-dimensional global descriptor with cosine or
+Euclidean retrieval; no test/gallery fitting, reranking, transduction, extra
+annotations, external generated data, text/VLM encoders, or contamination-prone
+knowledge.
+
+Choose one lane only. Lane A is ResNet-50, 512-D normalized descriptor, 224px,
+200 epochs, PFML references CUB .734, Cars .927, SOP .829. Lane B is ResNet-50,
+2048-D with AdvRF references CUB .766, Cars .949, SOP .842. Keep all forecasts
+lane-consistent.
+
+The prior 60 passes closed similarity-matrix reweighting, ordinary
+regularization, tangent/invariance, gradient surgery, EVT tails, multi-centers,
+averaging, and most optimizer/label-only/inductive-bias ideas. A cheap CUB
+diagnostic found failures split 48.1% local within-class versus 51.9%
+between-class. Pass 60 proposed an orientation-free gain barrier and claimed
+the only survivor is an off-support direction-selective group-equivariant
+architecture, but said standard ImageNet initialization blocks it.
+
+Attack that claim rather than accepting it. Find a compatible, genuinely novel
+architecture, activation, or stateful computation that creates useful
+off-support direction selectivity while retaining a pretrained ordinary
+ResNet-50 lane and single global descriptor. You may import ideas from physics,
+chemistry, biology, signal processing, numerical algorithms, or dynamical
+systems, but search adversarially for primary prior art (steerable CNNs,
+equivariance, scattering/wavelets, neural ODE/DEQ, cellular/associative
+memory, spectral operators, etc.). A parameterization that is merely a known
+knob is dead.
+
+Provide full executable equations/code-level details, gradient paths and
+schedule, causal error mode, proof-level degeneracy attacks, nearest prior-art
+distinctions, matched-compute controls, frozen forecasts on >=2 datasets,
+falsification thresholds, frontier arithmetic, cost and contamination risks.
+If no method survives honestly, return NONE and state the strongest reusable
+closure result. Do not claim SOTA from forecasts.
