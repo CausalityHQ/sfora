@@ -5415,3 +5415,52 @@ artifacts:
 `docs/fable_cina_proposal_pass22_2026-08-05.md`,
 `docs/fable_cina_review_2026-08-05.md`, and
 `docs/fable_cina_local_audit_2026-08-05.md`.
+
+### Twenty-third blind pass: PORTAL is a fourth return-level collision
+
+**DEAD at Gates 1 and 2, with a false anti-collapse proof and an undefined
+frontier arm; no diagnostic, preregistration, implementation, or GPU.** The
+blind Fable proposal returned POT Return-Level Alignment: fit one pooled GPD to
+the top 5% of similarities from a detached 4096-image queue, penalize the
+estimated probability that a training-set-sized gallery contains a negative
+above a pooled positive, and anchor the fitted tail index to the uniform-sphere
+endpoint asymptote. A mandatory independent review began under Fable and
+completed through the configured same-job Claude Opus fallback; it returned
+DEAD.
+
+Gate 1 has no eligible provenance. The verified repository packet contains no
+measurement that a stationary training-negative tail transfers to unseen
+classes, that a GPD return level predicts corrected retrieval errors, or that
+forcing learned semantic descriptors toward a uniform-sphere endpoint law
+repairs those errors. The forecasted PFML reproduction and PORTAL deltas are
+invented. Worse, the forecasted “PORTAL replacing PFML's repulsive term” arm is
+not the executable standalone objective: it removes proxies and never defines
+which PFML terms or recipe remain.
+
+Gate 2 is an exact repository collision. EVPC (pass 9), RLM (pass 14), and
+EGR-PFML (pass 15) had already fit an EVT hard-negative tail and optimized a
+gallery-scale extrapolated risk. WEINCE applies online anchor-wise EVT
+correction during contrastive training; TriSim fits a generalized Pareto
+similarity tail inside a retrieval loss; XBM supplies the detached FIFO queue;
+and top-k/CVaR and Recall@k surrogates occupy the observed-tail loss after
+algebraic reduction. PWM instead of MLE, `log(1+N*survival)`, and a
+dimension-chosen shape anchor change the estimator and wrapper, not the
+supervision object.
+
+The mechanism also fails internally. At atomic negative similarity the strict
+exceedance set is empty, so the claimed nonzero common excess and
+`xi -> -infinity` escape gradient do not exist. The PWM shape is
+scale-invariant, while its denominator guard disables or reverses the alleged
+dispersion channel near that limit. A 5% threshold is nowhere near the
+uniform-sphere endpoint asymptotic regime, and the proposal's own fitted GPD
+endpoint lies outside cosine support. Pooling anchor-centered excesses into one
+fit does not estimate per-anchor or unseen-gallery risk, especially from a
+stale dependent queue. In the near-exponential form the loss is a softplus
+margin on observed order statistics with adaptive scale; `N` changes that gate
+outside saturation but becomes an additive, parameter-gradient-inert offset in
+the proposal's own high-risk reduction. Thus the `N` sweep is not a clean test
+of extrapolated supervision. The review's stronger claim that `N` has
+identically zero effect on gradients is not propagated. Full artifacts:
+`docs/fable_portal_proposal_pass23_2026-08-05.md`,
+`docs/fable_portal_review_2026-08-05.md`, and
+`docs/fable_portal_local_audit_2026-08-05.md`.

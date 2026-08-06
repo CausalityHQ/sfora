@@ -127,3 +127,31 @@ premise, and the primary literature now occupies training-time EVT similarity
 shaping. A future blind return-level variant should be killed immediately at
 Gates 1 and 2 unless it first brings a prospectively verified causal tail
 measurement and a genuinely different supervision object.
+
+## Reconciliation with the independent review
+
+The mandatory cold review (`docs/fable_portal_review_2026-08-05.md`) also
+returns **DEAD**. It independently confirms the decisive points: the claimed
+unseen-gallery extrapolation reduces to a softplus applied to statistics of the
+observed batch/queue; the nominal deployment size acts as an offset (a margin
+in the near-exponential form); the tail-index anchor is an endpoint asymptote
+misapplied at a 5% threshold; the atomic-collapse proof contradicts its own
+empty-excess/denominator guard; the pooled estimator cannot identify
+anchor-specific risk; its fitted endpoint violates cosine support; and the
+controls do not isolate adaptive scale, quantile hardness, or a fixed-margin
+version of the same loss. The reviewer also identifies the exact
+scale-invariance of the PWM shape estimate and verifies the PWM formulas
+themselves, making clear that correct estimator algebra does not rescue the
+causal premise.
+
+Two reviewer formulations are not adopted. First, “`N` has identically zero
+gradient” confuses a fixed design constant with its effect on parameter
+gradients: changing `N` changes the softplus gate outside saturation. The
+narrow valid result is the one already recorded above—when `Lambda >> 1`,
+`log(Np)` is additive and parameter-gradient-inert; more generally `N` is an
+implicit margin, not evidence that an unobserved quantile supplied new
+supervision. Second, WEINCE's abstract establishes a very close training-time
+EVT neighborhood but not equation-level identity by itself. PORTAL is already
+dead without either overstatement: Gate 1 lacks the required transfer
+measurement, the repository has three exact return-level predecessors, and
+primary EVT/queue/rank-loss work occupies the mechanism.
