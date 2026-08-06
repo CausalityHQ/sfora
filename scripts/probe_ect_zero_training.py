@@ -57,9 +57,16 @@ def main() -> None:
     if hasattr(model, "layer4"):
         handle = model.layer4.register_forward_hook(hook)  # type: ignore[attr-defined]
     else:
-        # BN-Inception calls its `features` Sequential normally, so this hook
-        # captures the final spatial tensor before GAP+GMP and the embedding head.
-        handle = model.model.features.register_forward_hook(hook)  # type: ignore[attr-defined]
+        # BN-Inception's `features` is a method. Capture the four final Inception
+        # branches immediately before their concatenation.
+        branch_names = (
+            "inception_5b_1x1_bn",
+            "inception_5b_3x3_bn",
+            "inception_5b_double_3x3_2_bn",
+            "inception_5b_pool_proj_bn",
+        )
+        handles = [getattr(model.model, name).register_forward_hook(hook) for name in branch_names]  # type: ignore[attr-defined]
+        handle = None
     images = []
     labels = []
     for x, y in loader:
@@ -67,9 +74,13 @@ def main() -> None:
     x = torch.cat(images, 0)
     with torch.no_grad():
         clean = model(x)
-    Fmap = torch.cat(feats, 0)
+    # Four branch outputs share the same batch dimension; concatenate channels.
+    Fmap = torch.cat(feats, 1)
     if handle is not None:
         handle.remove()
+    if "handles" in locals():
+        for h in handles:
+            h.remove()
     clean = F.normalize(clean, dim=1)
     S = Fmap.flatten(2).norm(dim=1).pow(3)
     S = S / S.sum(dim=1, keepdim=True)
