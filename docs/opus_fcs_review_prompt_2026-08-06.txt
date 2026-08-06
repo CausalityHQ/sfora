@@ -1,0 +1,82 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_fcs_proposal_pass39_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Return LIVE, DEAD, or UNRESOLVED with the earliest failed gate
+and one decisive mechanism-level reason. This is adjudication, not repair. Do
+not silently improve, reinterpret, or replace the frozen object.
+
+Problem and legal envelope: train on the official training split with identity
+labels, ordinary image augmentation, and ImageNet-1K initialization only. Test
+identities are disjoint. No test images, gallery statistics, external generated
+data, text model, reranking, transduction, ensemble, or test-time fitting may
+enter training or selection. Deployment is one single-view image encoder, one
+512-D L2-normalized descriptor, and ordinary cosine nearest-neighbour retrieval.
+All train-only machinery must disappear at deployment. Hyperparameters may be
+selected only through a class-disjoint split of training identities.
+
+Audited matched Lane-A references are ResNet-50/512-D/single-view PFML over five
+runs: CUB 0.734 +/- 0.003, Cars196 0.927 +/- 0.003, SOP 0.829 +/- 0.002. These
+published results are credible horizons but their complete authors' executable
+recipe is unavailable locally. Higher-capacity single-view observations are
+VAPNet ResNet-50/2048-D at CUB 0.762, Cars 0.948, In-Shop 0.939; AdvRF at CUB
+0.766 and Cars 0.949; and CRT MiT-B2/128-D at In-Shop 0.9448. They have no
+reported multi-seed uncertainty and belong to separate capacity lanes, but a
+general SOTA claim must confront them. The corrected local In-Shop Proxy Anchor
+seed 0 is raw 0.9163 and final 0.9137; one seed is not a fixed baseline. A live
+candidate must first establish a same-seed corrected In-Shop paired control,
+then confirm out of sample and on a second dataset. Report raw and independently
+selected/final metrics; best-over-test-training is not valid selection.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce the complete forward map, block normalization, label-smoothed
+   coordinate loss, gradients, optimizer state, code-table initialization, and
+   epoch update. Decide whether each declared operation is uniquely executable.
+2. Prove or refute all three propositions. Carefully distinguish the span of
+   the finite class-code matrix, the span of per-sample gradients, the rank of
+   training features, and the geometry of unseen-identity features. Check every
+   use of `C`, `K`, `d`, and the softmax normalization invariances.
+3. Audit whether a proxy loss's normalized and pre-normalization gradients have
+   the stated subspace limitation, whether weight decay deletes only the
+   proxy-orthogonal component, and whether the proposal identifies encoder gain
+   separately from the distribution of training-class evidence.
+4. Attack every degeneracy block constructively. Include class-label lookup,
+   arbitrary code memorization, correlated or duplicate blocks, nuisance
+   partitions, unused coordinates, code chasing, and unseen samples occupying
+   incoherent or non-separated tuples. Determine what, if anything, constrains
+   two images of a novel identity to share an unused code and different novel
+   identities to receive separated codes.
+5. Verify existence and algorithmic feasibility of simultaneous balance and
+   minimum-Hamming separation. Audit the pigeonhole check, repair, partial
+   revert, induction claim, termination, freeze, low-count window, and exact
+   complexity at CUB, Cars, SOP, and In-Shop sizes.
+6. Search primary prior art aggressively inside and outside DML: classical and
+   deep binary/N-ary ECOC; learned/problem-dependent code matrices;
+   codeword-to-class assignment; fully/partially shared multi-head networks;
+   DREML and embedding ensembles; fixed classifiers; supervised/deep hashing;
+   product/compositional codes; product quantization; label embeddings;
+   hierarchical and factorized classifiers; and representation-rank methods.
+   Judge the supervision object and action, not absence of the exact name,
+   optimizer, alphabet size, retrieval use, or component conjunction.
+7. Audit the causal provenance. A rank bound, unused-code count, literature
+   diagnosis, or forecast is not a measured repository premise. State what
+   measurement would be required to connect the intervention to corrected
+   identity-disjoint retrieval.
+8. Audit controls C1--C10 for capacity/recipe confounds and decision validity.
+   In particular check whether changing `(K,d)` isolates over-subscription,
+   whether a test-rank-matched control uses forbidden test selection, and
+   whether a CUB-first forecast respects the corrected screening protocol.
+9. Recompute parameter, memory, affinity-table, min-cost-flow, separation-check,
+   and wall-clock costs. Recompute all uncertainty and frontier-crossing
+   arithmetic, and separate matched Lane-A evidence from a general SOTA claim.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources and state unresolved uncertainty. A substantive repair is a new
+proposal and must not be used to upgrade this frozen one.
