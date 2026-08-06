@@ -1,0 +1,89 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_codif_proposal_pass53_2026-08-06.md
+
+Its frozen SHA-256 is
+be2183383bc3d208d3a265552e88a457ebf5eac8352a7719b5ef2d4320038951.
+The proposal was recovered verbatim from the complete durable terminal partial
+of job e368f4caf5454264 after its process exited 1. Do not edit repository files
+or inspect git history, local audits, prior reviews, the verdict ledger, or
+conversations. Start cold from the frozen proposal, supplied evidence, and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. Adjudicate exactly as frozen; do not repair it.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. No test/gallery data or
+unseen test identities may enter selection. Deployment is one single-view
+encoder, one fixed normalized descriptor, and cosine NN. A live candidate must
+screen corrected paired In-Shop first, report raw plus independently selected/
+final, confirm out of sample, replicate, and credibly cross a matched frontier.
+
+Independently audit at least:
+
+1. Treat this as the complete admissible repository premise. No corrected
+   checkpoint measurement establishes a within/between distance “scale gap,”
+   its growth over training, an association between log-correlation-integral
+   curvature and official-query errors, or that unseen-identity distinctions
+   live at the training within-class median scale. Candidate 225's locked
+   disjoint-identity within-class-subspace ratios were 0.9312, 0.9287, and
+   0.9345, all below its 1.15 falsifier and below one. Corrected ARCG retained
+   0.3631--0.3640 of same-class pairs in its image-specific response graph.
+   Decide whether literature and future F3 constitute Gate-1 provenance.
+2. Reproduce every grid operation and boundary. Analyze `epsilon=0`,
+   `theta_max=epsilon`, `theta_max<epsilon`, `theta_0`, sigmoid bandwidth,
+   `(log rho)^2`, the pseudocount, and gradients as the explicit
+   `L_epsilon` term reduces the grid anchor. Determine whether the frozen loss
+   is defined and supplies first-order escape at exact view/class collapse.
+3. Verify the claim that zero discrete curvature is iff a power law over the
+   interval and is equivalent to memorylessness of log distance. Distinguish
+   values at nine grid points from the continuous CDF, and state all support,
+   truncation, smoothing, and finite-batch conditions.
+4. Audit the zero set semantically. The global term is dominated by different-
+   class pairs; determine whether arranging training class means can fill its
+   scale spectrum while classes collapse. The intra term pools 900 pairs across
+   classes; test private class radii/curves, training-image lookup, stable
+   background/pose codes, and mixtures whose pooled CDF is a power law. Decide
+   whether any frozen term makes smooth distance scale into unseen-identity
+   supervision.
+5. Verify the “second-moment blindness” lemma claim by claim. An ideal simplex
+   has equal nonzero eigenvalues, but check VICReg variance floors, covariance
+   decorrelation under arbitrary orientation, singular-value/intrinsic-rank
+   floors, coding-rate objectives, and whether training-class collapse implies
+   zero unseen-class resolution.
+6. Audit `L_dim`: endpoint slope versus correlation dimension under curved
+   CDFs, comparison of unnormalized 2048-D frozen GAP features to normalized
+   512-D trained descriptors, sampler/grid/normalization ambiguity, finite-
+   sample bias at B=180, and whether preserving scalar dimension identifies
+   useful directions.
+7. Audit the invented MPA carrier. Its class score is
+   `logsumexp(gamma*cosine_k)/gamma` without subtracting `log K/gamma`.
+   Derive score range and duplicate-proxy offset for K=15 versus K=2, then
+   trace its effect through positive and negative absolute-margin terms. Check
+   whether this is a valid matched Proxy Anchor/PFML carrier and whether a C1
+   delta can be composed with PFML.
+8. Search primary prior art by mechanism: LDReg/local intrinsic-dimensionality
+   regularization of distance distributions; Multi-level Distance
+   Regularization for benchmark DML; IDRR; LID losses; HORDE; uniformity;
+   correlation/fractal-dimension training objectives; NIR; coding-rate and
+   spectral collapse methods. Judge supervision object/action, not whether the
+   exact nine-point curvature stencil has appeared.
+9. Attack D1--D7 and controls C0--C8. In particular, determine whether
+   view-shared nuisance is penalized, whether the pooled intra term closes
+   heterogeneity, whether proxy cost really blocks a junk subspace, whether C8
+   grid permutation preserves loss magnitude/gradient noise, and whether C3
+   creates post-outcome model selection.
+10. Audit cost, forecast, and protocol. Include pair-distance forward/backward,
+    two-view exposure/BN, all controls and lambda sweeps. Every standalone
+    forecast is below PFML/PA+DADA; the only crossing is explicitly conditional
+    and unclaimed. Determine whether this can meet the standing objective, the
+    corrected In-Shop-first gate, raw/final reporting, OOS confirmation, and
+    second-dataset replication.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any clamp, per-class constraint, semantic
+relation, corrected carrier, or PFML composition is a new proposal.
