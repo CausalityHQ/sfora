@@ -1,0 +1,26 @@
+You are the mandatory cold independent reviewer for Pass 63 IRH. Read only
+docs/opus_irh_proposal_pass63_2026-08-06.md and
+docs/opus_irh_local_audit_2026-08-06.md. Do not inspect other local files,
+history, prior conversations, or process state; do not edit files. Use public
+primary literature where available.
+
+Judge Gates 1–2 before any GPU. IRH creates a divergence-free,
+evidence-structured pixel transport, probes each image at a per-example
+Robbins–Monro displacement level until descriptor response r*=.15, and trains
+a centered rank-weighted loss to equalize log response thresholds. Attack this
+against MMA Training, VAT/Pi-model, Jacobian/Lipschitz regularization, adaptive
+augmentation, elastic/incompressible registration, psychophysical iso-response
+methods, and any metric-learning threshold/state method. Decide whether the
+complete training mechanism is occupied or a defensible new supervision
+construction; do not treat a conjunction of known components as novel unless
+the interaction is mechanism-level and necessary.
+
+Attack math and degeneracies: does the rank surrogate implement implicit
+threshold variance; can the network collapse all responses or game evidence
+maps; is response monotonic in transport magnitude; does the staircase/controller
+leak validation or become an uncontrolled curriculum; are discrete warps truly
+area-preserving under grid_sample; and can the method reduce to ordinary
+augmentation consistency or Jacobian regularization? Check matched compute and
+deployment constraints. Return LIVE or DEAD unambiguously. If LIVE, specify
+minimum pre-GPU probe and controls. If DEAD, cite the decisive mechanism or
+equation and do not suggest implementation.
