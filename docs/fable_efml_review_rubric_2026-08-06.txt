@@ -1,0 +1,51 @@
+You are the fresh independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows in
+this prompt. Use web search and primary literature.
+
+Legal task: zero-shot DML with disjoint train/test identities on CUB, Cars196,
+In-Shop, or SOP; official training images/labels and ordinary augmentation only.
+Deployment is one ResNet-50, one view, one fixed 512-D descriptor, cosine NN.
+Matched Lane-A references: PFML CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003,
+SOP 0.829 +/- 0.002 over five runs; PA+DADA In-Shop 0.930, uncertainty unknown.
+
+Review frozen EFML without repairing or replacing it. Return LIVE, DEAD, or
+UNRESOLVED. Independently check:
+
+1. every spherical log map, minimal rotation, antipodal/zero-angle branch,
+   tangent gauge, random projection, FIFO buffer, pooled reference, kernel
+   bandwidth, MMD estimator, log-sum-exp, dispersion pin, stop-gradient,
+   schedule, sampler, and validation operation is executable and has the
+   claimed gradient;
+2. whether one minimal rotation to a fixed pole supplies a coherent common
+   tangent orientation, whether the construction is gauge/pole invariant or
+   discontinuous, and whether equality after one 64-D random projection implies
+   equality of the advertised 511-D fiber laws;
+3. classwise collapse hidden by a global dispersion mean, radius trading,
+   proxy rotation/gauge gaming, random or identity-irrelevant cosmetic scatter,
+   stale-buffer mixtures, self-contamination of the pooled target, M=2
+   estimation, multimodal and class-dependent nuisance, and bandwidth gaming;
+4. whether cross-class equality of transported within-class marginal laws
+   causally repairs unseen-class nearest-neighbor errors, rather than imposing
+   homoscedasticity, covariance/domain alignment, generic anti-collapse, or
+   class-independent augmentation invariance;
+5. exact prior art and mechanism equivalence: Spherical Feature Transform,
+   DVML, NIR, class-homoscedastic covariance/distribution objectives,
+   Deep CORAL and conditional distribution alignment, MMD domain/class
+   alignment, FTL/VPL/ISDA, distribution calibration, shared-covariance
+   classifiers, tangent-space alignment, and any DML work equalizing
+   within-class distributions across identities;
+6. whether controls isolate full-law exchangeability from scalar scatter
+   equalization, ordinary MMD regularization, global variance pinning, sampler
+   changes, queue/buffer regularization, spherical transport, and SFT;
+7. whether forecasts derive quantitatively from measured premises and a
+   reproduced matched base, cross the correct frontier, and use valid
+   uncertainty/probability arithmetic; and
+8. data, contamination, tuning, selection, compute, inference, recipe,
+   capacity, and benchmark-protocol violations.
+
+Any substantive repair is a new proposal. Cite primary sources. Identify the
+single strongest decisive reason and every false, inconsistent, or underdefined
+operation.
+
+--- FROZEN PROPOSAL BEGINS ---
