@@ -234,3 +234,28 @@ Before optimizing a global or pooled geometric statistic, enumerate which
 training-label lookup, class-mean arrangement, image-instance code, and stable
 nuisance distributions share its zero set. A scale grid must also remain
 defined at the very collapse boundary it claims to repel.
+
+## Cold-review reconciliation (Pass 53)
+
+The independent frozen-proposal review agrees with the Gate 1/2 death and
+strengthens it; it does not rescue any part of CoDiF. In particular, the
+review's exact scale argument shows that the proposed same-class flatness term
+is invariant under a -> lambda a, while the pooled term can shrink as the
+within-class scale shrinks. This is a direct counterexample to the claimed
+causal mechanism, not merely an empirical concern. It also confirms the
+undefined epsilon=0/rho=1 boundaries, the unnormalised logsumexp proxy
+carrier's log(K)/gamma shift, and the class-mean/private-code zero set.
+
+The review independently identifies LDReg (ICLR 2024) and Multi-level
+Distance Regularization (AAAI 2021) as mechanism-level prior art, so the
+curvature parameterisation cannot support a Gate 2 distinction after the
+causal claim fails. It further catches that the proposed variance/coding-rate
+lemma is not a valid consequence of the ETF identity, the grid permutation is
+not a matched placebo, and the stated standalone forecasts do not cross the
+audited frontier. These findings are accepted. One reviewer illustration
+uses a plausible operating point rather than a persisted checkpoint; that
+does not affect the exact invariance, boundary, prior-art, or forecast
+decisions. CoDiF remains DEAD at Gates 1 and 2 and receives no GPU run.
+
+Independent review artifact:
+docs/opus_codif_review_2026-08-06.md.

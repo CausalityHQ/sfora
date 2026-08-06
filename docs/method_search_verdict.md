@@ -7611,3 +7611,33 @@ docs/opus_nrq_proposal_pass52_2026-08-06.md,
 docs/opus_nrq_review_prompt_2026-08-06.txt,
 docs/opus_nrq_review_2026-08-06.md, and
 docs/opus_nrq_local_audit_2026-08-06.md.
+
+### Pass 53 — CoDiF (correlation-dimension flattening): DEAD at Gates 1–2
+
+Mechanism: two augmented views, a multi-proxy carrier, and a regularizer that
+flattens the log-log curvature of pooled and same-class pair-distance CDFs
+while matching a frozen ImageNet intrinsic-dimension target. The proposal
+claimed that a multiscale distance law would prevent within-class scale gaps
+and preserve unseen-identity structure.
+
+The premise was not supported by a verified repository measurement: no
+corrected checkpoint establishes the proposed scale-gap cause or a curvature /
+official-query-error relation, and the nearest locked transfer ratios point
+against it. More decisively, the same-class term is exactly invariant under a
+uniform within-class scale change when its bandwidth and grid endpoints scale
+with the median; the pooled term can become smaller as that scale collapses.
+The loss therefore admits the failure it claims to prevent, and is undefined
+at its named collapse boundary without additional clamps. Its unnormalised
+multi-proxy logsumexp also changes the absolute Proxy-Anchor margins with
+proxy count. The independent review additionally rejects the ETF-derived
+anti-collapse lemma, the un-matched grid-permutation placebo, and the
+standalone forecasts (all below the audited frontier).
+
+Gate 2 is independently closed by LDReg (ICLR 2024), which optimises local
+distance-distribution / intrinsic-dimensionality regularisation, and
+Multi-level Distance Regularization (AAAI 2021), which regularises pairwise
+distance distributions on the same DML benchmark family. CoDiF's curvature
+stencil is not a mechanism-level distinction after its causal claim fails.
+No GPU run was authorised. Full artifacts: `docs/opus_codif_proposal_pass53_2026-08-06.md`,
+`docs/opus_codif_review_2026-08-06.md`, and
+`docs/opus_codif_local_audit_2026-08-06.md`.
