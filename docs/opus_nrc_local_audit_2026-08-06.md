@@ -194,3 +194,44 @@ operators, not merely against additive augmentation metadata. Orthogonal output
 coordinates do not imply noninterfering shared-parameter updates, and a maximal
 invariant remains maximal only while every downstream map is injective on the
 orbit space.
+
+## Post-freeze reconciliation with the independent review
+
+The frozen cold review in `docs/opus_nrc_review_2026-08-06.md` independently
+returns **DEAD at Gate 1**, confirms every load-bearing local objection, and
+adds several corrections and stronger results:
+
+- The local audit was too generous in calling raw radii a maximal invariant of
+  the *stated* action. They are maximal for the full independent 512-torus, but
+  `rho(A)` has at most six continuous dimensions. Equal radii can differ by a
+  phase vector outside `im rho`, so radii are only a coarser invariant of the
+  actual prescribed subgroup. The downstream-normalization collision remains
+  an independent second failure.
+- The epsilon leak is exact but only about `1e-6` relative at ordinary radii;
+  it invalidates the proof, not necessarily trained behavior. The more material
+  D2 defect is that shrinking a maximally wrong plane changes its rotor penalty
+  from 2 toward 1. `L_occ` supplies no absolute floor because it normalizes
+  radius shares; only the task descriptor incidentally opposes global collapse.
+- The crop-area clamp activates in only about 1.25% of the proposed composed
+  draws and the photometric clamp essentially never activates. Those are minor
+  defects. Missing crop position, random ColorJitter order, noncommutation, and
+  rendering one added-parameter view instead of composing image operators are
+  the load-bearing group failures.
+- NRC does have a narrow unoccupied structural wrapper: a loss-imposed polar
+  split of the same head coordinates with a fixed rotor. The reviewer found no
+  exact supervised-DML analogue. Its supervision object is nevertheless
+  AugSelf's augmentation-parameter difference, and the shared-coordinate claim
+  that was meant to make the wrapper substantive fails at the trunk and even
+  for batch-summed head gradients.
+- The decisive parallel-head C4 is itself confounded: it changes both coupling
+  and head parameterization. The review also finds 50 distinct images with
+  three views supplies only one third of the baseline Proxy Anchor metric
+  samples per step; matching forward images does not match metric supervision.
+- The proposal's unpaired standard-error formula is conservative by `sqrt(2)`,
+  not optimistic. This arithmetic correction does not rescue the missing paired
+  In-Shop-first design.
+
+The source audit also corrected two bibliographic labels before this
+reconciliation: SIE is Garrido et al.'s `garrido23b` paper, and Dangovski et
+al.'s paper title is *Equivariant Contrastive Learning* (E-SSL is its framework
+name). Neither correction changes the verdict.

@@ -7122,3 +7122,99 @@ docs/opus_pqml_proposal_pass47_2026-08-06.md,
 docs/opus_pqml_review_prompt_2026-08-06.txt,
 docs/opus_pqml_review_2026-08-06.md, and
 docs/opus_pqml_local_audit_2026-08-06.md.
+
+### Forty-eighth blind pass: NRC prescribes an occupied augmentation ledger, not an identified nuisance action
+
+**DEAD at Gates 1 and 2, independently confirmed by a frozen cold review; no
+diagnostic, preregistration, implementation, or candidate GPU.** Nuisance-Rotor
+Coding (NRC) split a 1024-D head into 512 planes, sent plane radii through a
+normalized 512-D retrieval head, and required phase to follow a fixed
+multi-frequency code of crop, color, hue, and flip parameters. Its claimed
+novelty was exact radial/tangential task separation in the same coordinates,
+forcing the task representation to retain an augmentation nuisance ledger.
+
+Gate 1 is adverse. No corrected measurement says Proxy Anchor deletes useful
+augmentation state or that retaining it improves official-query retrieval.
+Corrected ARCG instead measured augmentation-response compatibility as
+image-specific and heterogeneous on In-Shop: density `0.3631--0.3640`, with
+53% of close same-class pairs rejected and 28% of distant pairs accepted. NRC
+requires the same response law for every image and class. IPSR established a
+real response relation but no causal retrieval benefit; candidate 147, ARCG,
+the tangent-metric line, and cycle-equivariance candidate 307 already make this
+a negative rather than blank family.
+
+The central coupling proof fails. `u_hat=u/(||u||+eps)` is neither unit nor
+zero-homogeneous and has radial derivative `eps/(r+eps)^2`. Removing epsilon
+does not rescue learning-level separation: for shared Jacobian `J`, orthogonal
+output gradients yield inner product `g_r^T J J^T g_t`, generally nonzero.
+Even the batch-summed head gradient contains cross-sample terms; the cold review
+constructs exact per-sample radial/tangential gradients whose head-parameter
+gradients have cosine `+0.27`. AdamW does not preserve raw orthogonality. A
+nonlinear trunk can compute identity amplitude and augmentation phase in
+disjoint upstream pathways and combine them only in the final plane, satisfying
+every stated loss without making the retrieval representation use new visual
+evidence. That is the proposal's own F4 falsifier.
+
+The invariant theorem also fails twice. `rho(A)` has at most six continuous
+dimensions inside the 512-torus, so radii are maximal only for the much larger
+full torus and discard about 506 unconstrained phase directions; equal radii do
+not imply one `rho(A)` orbit. Even raw-radius injectivity is lost after
+`normalize(W_g log(1+r)+b_g)`: with full-rank identity `W_g`, zero bias, and
+`log(1+r_2)=c log(1+r_1)`, distinct radii deploy exactly the same descriptor.
+
+The declared group is not the rendered augmentation action. Random-resized
+crop omits the sampled position; scale and translation generate nonabelian
+`ax+b`. ColorJitter uses random operator order, and its clipped hue/saturation/
+contrast/brightness maps do not generally commute or invert. NRC adds and
+clamps metadata and renders a single `a_t13(x)` instead of applying
+`a_t3(a_t1(x))`; `L_comp` therefore tests parameter-regression extrapolation,
+not an image-action homomorphism. The review quantifies the area clamp as minor
+(about 1.25%) and the photometric clamp as inert; omitted/random operator state
+and noncomposition are the decisive defects.
+
+Gate 2 is occupied at supervision-object/action level. AugSelf predicts the
+difference between crop/color augmentation parameters from two views;
+Equivariant Contrastive Learning (E-SSL), EquiMod, and SIE preserve or split
+invariant and equivariant augmentation information. Harmonic networks,
+scattering/complex modulus, and Phase Collapse occupy phase-equivariant/
+magnitude-invariant operators. The cold search found no exact supervised-DML
+copy of NRC's loss-imposed polar same-coordinate wrapper, a narrow distinction
+worth preserving. But the rotor carries exactly AugSelf's parameter-difference
+target, and the failed coupling theorem was the only claim making the wrapper a
+new causal mechanism.
+
+Its controls and protocol cannot rescue it. The decisive C4 changes both
+coupling and head parameterization. `L_occ` normalizes radius shares and cannot
+stop uniform shrinkage. Fifty distinct images with three views match forward
+count but give Proxy Anchor only one third of its baseline metric samples per
+step. NRC fixes trainable BN and one universal recipe, leaves PFML carrier
+hyperparameters as ranges, bypasses corrected paired In-Shop entirely, and
+omits raw-best/final, out-of-sample, and replication stages. Its strongest
+forecast, CUB `0.744`, is only +0.010 over PFML and is not evidence.
+
+Correct pieces are the classification of continuous homomorphisms into a
+circle, the proof that an abelian rotor cannot represent crop translation in
+the affine group, legal one-view deployment, explicit shortcut controls, and
+the unusually honest F4 falsifier naming the novelty claim itself. The unpaired
+standard-error formula was conservative by `sqrt(2)`, and the epsilon leak is
+numerically tiny; neither correction changes the earlier gates.
+
+Process lesson: an additive augmentation ledger is not the rendered
+transformation group; a maximal invariant of a larger group can be too coarse
+for the claimed subgroup; and orthogonal coordinates do not imply orthogonal
+shared-parameter learning. Any future equivariance candidate must first show an
+image-dependent transformation correspondence predicts official-query errors,
+then match distinct-image metric supervision—not merely forward-image count.
+
+Primary neighbours: Lee et al., *AugSelf*, NeurIPS 2021; Dangovski et al.,
+*Equivariant Contrastive Learning*, ICLR 2022; Devillers and Lefort, *EquiMod*,
+ICLR 2023; Garrido et al., *Self-supervised learning of Split Invariant
+Equivariant representations*, ICML 2023; and Zarka, Guth, and Mallat, *Phase
+Collapse in Neural Networks*, ICLR 2022.
+
+Full artifacts:
+docs/opus_blind_prompt_pass48_2026-08-06.txt,
+docs/opus_nrc_proposal_pass48_2026-08-06.md,
+docs/opus_nrc_review_prompt_2026-08-06.txt,
+docs/opus_nrc_review_2026-08-06.md, and
+docs/opus_nrc_local_audit_2026-08-06.md.
