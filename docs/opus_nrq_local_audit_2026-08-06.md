@@ -205,3 +205,58 @@ The reusable lesson is sharper than “rank is not semantics”: **a covariance-
 rank certificate without a lower singular-value/amplitude bound and a bounded
 decoder is topological, not operational.** It can exclude exact collapse while
 leaving arbitrarily close collapse essentially free.
+
+## Independent cold-review reconciliation
+
+The frozen review job `49727c9e13374d85` returned **DEAD at Gate 1** after the
+local audit was committed. It independently constructed the same tangent-code
+escape and made it explicit on CUB: choose the code in a complement of the at
+most 100 class means and scale the corresponding decoder block as `1/delta`.
+This agreement is decisive because the construction does not depend on the
+unmeasured teacher spectrum or on candidate 225.
+
+The review adds four valid defects that strengthen, but are not needed for, the
+verdict:
+
+1. With an EMA teacher mean rather than the exact population mean, the
+   denominator of `L_suf` is `T + ||E[h0]-bar_h0||^2`. Therefore
+   `L_suf <= epsilon` does not imply the numerator is at most `epsilon*T`, and
+   the advertised `k*(epsilon)` certificate need not follow until mean error is
+   separately bounded.
+2. `r=64` is not uniquely derived. Setting the calibration tail after component
+   400 leaves the CUB inequality true for a wide range of `r`; the window width
+   is independent of `r`, and C10 later sweeps the supposedly derived value.
+3. The controls omit register-plus-reconstruction with the alleged rank floor
+   disabled at fixed compute. C4 (`r=0`) actually tightens the claimed rank
+   burden, so the forecast ordering does not isolate the headline mechanism.
+4. A 40% register class-probe falsifier is far too permissive for a 100-class
+   dataset and contradicts the proposal's own predicted `<=15%`. The theta
+   probe also omits pose, articulation, background, and other view-shared
+   variation that the method calls nuisance.
+
+The review also confirms that the mandatory In-Shop screen cannot adjudicate
+NRQ's stated rank mechanism: the proposal declares the rank inequality vacuous
+there and gives no In-Shop forecast. A positive arm would support only the
+occupied auxiliary/quarantine family; a null would be non-diagnostic.
+
+Several reviewer formulations are deliberately **not** propagated:
+
+- PFML attraction being flat inside its radius does not prove exact class
+  collapse is not a minimizer of the complete potential-field objective;
+  repulsion, proxy-proxy terms, and the placement of all distances still
+  matter. The valid point is narrower: the proposal did not prove its claim
+  that collapse is globally optimal for its chosen base.
+- Unit-sphere trace at most one permits arbitrarily small nonzero eigenvalues;
+  it does not “force” every retained direction to be low-amplitude. The fatal
+  absence is a lower bound, not the trace upper bound itself.
+- Projecting `[zhat;n]` to `zhat` does delete the auxiliary coordinates from a
+  conceptual joint representation. Saying it removes “nothing” is too strong.
+  What remains true is that the objective never identifies those coordinates
+  as a nuisance-action kernel, and the shared trunk can retain the same
+  information in `zhat`.
+- A 540-epoch matched-cost control changes schedule and exposure, but the claim
+  that it necessarily biases toward NRQ through DML overfitting is unmeasured.
+
+The independent review is preserved verbatim in
+`docs/opus_nrq_review_2026-08-06.md`. These corrections leave both failed gates
+unchanged.
