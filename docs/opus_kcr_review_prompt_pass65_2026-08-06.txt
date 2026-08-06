@@ -1,0 +1,27 @@
+You are the mandatory cold independent reviewer for Pass 65 KCR. Read only
+docs/opus_kcr_proposal_pass65_2026-08-06.md and
+docs/opus_kcr_local_audit_2026-08-06.md. Do not inspect other local files,
+history, prior conversations, or process state and do not edit files. Use public
+primary literature.
+
+Judge Gates 1–2 before GPU. KCR appends a zero-initialized tied residual block,
+unrolls it 8 times, and reads an affine minimum-residual Krylov/RRE continuation
+`x*=sum gamma_j x_j`, differentiating through the Gram solve. It claims to
+change off-support extrapolation in a divergent/limit-cycle regime and is
+compared against the same block’s final iterate, uniform average, DEQ fixed
+point, untied depth, detached coefficients, and no horizon randomization.
+
+Attack mechanism-level novelty against Anderson/RRE/MPE/epsilon acceleration,
+DEQ/Anderson solvers, Richardson extrapolation, recurrent logical-extrapolation
+networks, rational/Padé activations, residual/deep networks, and any learned
+Krylov readout. Decide whether a finite differentiable deployed continuation
+readout is genuinely distinct or merely Anderson acceleration/depth averaging
+inside a network. Audit exact equations, ridge and coefficient stability,
+negative coefficients, zero initialization, horizon randomization, and whether
+the block converges to an ordinary deeper backbone.
+
+Also test degeneracies: block stays zero, gamma becomes uniform or last-iterate,
+feature-norm explosion, effective-rank collapse, coefficient-gradient gaming,
+and no seen/unseen transient mismatch. Return LIVE or DEAD unambiguously. If
+LIVE, specify minimum D0 probe and controls required before GPU. If DEAD, cite
+the decisive overlap or algebra and do not suggest implementation.
