@@ -1,0 +1,37 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold and use only public web-search/web-fetch. Do not inspect local files,
+repository history, prior conversations, or process state. Return exactly ONE
+concrete executable method or NONE; do not provide an idea list.
+
+Invent a genuinely novel train-time method for zero-shot image similarity / deep
+metric learning with disjoint train and test identities. Legal data are only
+official CUB-200-2011, Cars196, In-Shop, or SOP training images and labels plus
+ordinary stochastic augmentation; ImageNet-1K initialization is allowed. No
+test data, external generated data, text/VLM encoders, extra annotations,
+transduction, reranking, gallery fitting, or contamination-prone knowledge.
+Deployment must be one model, one view, one fixed global descriptor and ordinary
+cosine/Euclidean retrieval.
+
+Choose one lane and keep all forecasts there: Lane A is ResNet-50/512-D/224px,
+200 epochs with PFML references CUB .734, Cars .927, SOP .829; Lane B is
+ResNet-50/2048-D with AdvRF references CUB .766, Cars .949, SOP .842. Do not
+mix lanes.
+
+The project’s earlier proposals repeatedly collapsed into occupied regularizers,
+similarity reweighting, tangent/invariance methods, gradient surgery, contextual
+similarity, EVT tails, multi-centers, averaging, or external generative systems.
+The Pass 58 span lemma says any loss depending only on the anchor–proxy
+similarity matrix is gradient-span reweighting. Therefore favor a method whose
+causal mechanism changes the representation dynamics, data acquisition, model
+state, activation/architecture, optimizer, or supervision construction beyond a
+similarity-matrix weighting. Attack nearest prior art from machine learning and
+other fields before proposing novelty.
+
+Provide executable mathematics/code-level detail, gradient paths, schedules,
+causal error mode, proof-level degeneracy attacks, adversarial primary-source
+novelty distinctions, matched-compute controls, frozen forecasts on at least
+two datasets in one lane, falsification thresholds/frontier arithmetic, cost,
+and contamination risks. State ambiguities. Do not claim SOTA from forecasts.
+Return NONE if no materially distinct mechanism can be defended.
