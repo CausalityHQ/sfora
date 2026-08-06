@@ -195,3 +195,53 @@ error before spending GPU. FPC remains dead even if its optimizer wrapper were
 novel, because its cause is unmeasured, its key span theorem is false, and its
 own expected result is not a frontier crossing.
 
+## Frozen independent review and reconciliation
+
+The independent cold review ran as durable consultation
+`81741bf3725d4caa`: Fable exhausted its credits and the same job completed under
+Claude Opus. Its exact final answer, after removing only the preserved Fable
+credit-failure banner, is frozen at
+`docs/opus_fpc_review_2026-08-06.md`, file SHA-256
+`35276f2e66b143c1be5c33f2fa447c742e9e0d1fceb45143b57b3a7d8d59dc2e`
+and pre-terminal-newline provider-answer SHA-256
+`263a34e4a860ab2ede2deaf338e085202fd02d8967a34042eeb457c5d6554359`.
+
+The reviewer independently returns **DEAD**. It sharpens the rank failure from
+linear span at most 64 to discriminative affine/difference span at most
+`m(C-1)=56`, exactly the rank of FPC's own C1 control. It independently derives
+the same mutual-information defect: both an injective FPC code and a distinct
+free proxy carry `H(c)=log2(100)=6.64` bits about the uniform CUB class, while
+the advertised 24-bit bound is non-binding. The continuous class-private
+assignment logits further contradict “nothing more.”
+
+The cold review finds additional independent failures. Proposition 1 puts the
+positive-term sign on the negative term; the Welch bound prevents all 100
+proxies from having maximum cosine below `-0.1`, so the displayed PA loss does
+not approach zero as claimed. With minimum Hamming distance two, the design
+permits proxy cosine 0.75 and a maximum score difference only about 0.354,
+while the positive term is already saturated near similarity 0.4. Thus the
+hard code can cap separation exactly for the nearest labels rather than
+transport factors. C4 is not a PA reduction: at `m=1,h=2`, its injectivity
+hinge is unsatisfiable and the decorrelation mean is empty. The reviewer also
+confirms the relaxed-column OT program is not ordinary balanced Sinkhorn,
+repair lacks termination and balance preservation, and global repair at SOP
+scale contradicts the claimed cost.
+
+The admitted untraced neighbour resolves independently and exactly. Michalkiewicz
+et al., *Few-Shot Single-View 3-D Object Reconstruction with Compositional
+Priors* (ECCV 2020), learns per-class attention over multiple codebooks of
+vectors shared across classes and composes them into the class embedding. That
+is the proposal's shared-class-codebook object; learned/annealed discrete codes,
+ECOC row separation and column independence, and the balanced multi-symbol
+assignment additionally recur through public work and Pass 39 FCS. The domain
+is not DML, but the proposal's own pre-committed novelty rule said this primary
+mechanism match triggers re-adjudication, and none of its nominated residual
+distinctions survives.
+
+There is no conflict. The local audit killed FPC from missing provenance,
+false span and information claims, internal recurrence, and non-crossing
+forecasts. The cold review independently reproduces those failures and adds a
+false PA bound, adverse margin geometry, a broken sanity control, and the exact
+primary neighbour. Correct PA normalization, parameter/bit arithmetic, legal
+deployment, honest frontier arithmetic, sampler/learning-rate controls, and
+the proposal's ambiguity ledger remain useful. FPC receives no GPU.

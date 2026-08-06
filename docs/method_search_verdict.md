@@ -6932,3 +6932,92 @@ docs/opus_terl_proposal_pass44_2026-08-06.md,
 docs/opus_terl_review_prompt_2026-08-06.txt,
 docs/opus_terl_review_2026-08-06.md, and
 docs/opus_terl_local_audit_2026-08-06.md.
+
+### Forty-sixth blind pass: FPC is a rank-56 learned ECOC head, not a transferable-information bottleneck
+
+**DEAD at Gates 1 and 2, independently reinforced by a cold mathematical and
+primary-source review; no diagnostic, preregistration, implementation, or
+candidate GPU.** Factorial Proxy Codes (FPC) replaced every free PA class proxy
+with a balanced, injective composition from eight learned shared codebooks,
+annealed assignments to hard Hamming-separated codes, and forecast gains over
+its own weak reproduction but no Lane-A frontier crossing.
+
+Gate 1 has no eligible provenance. No corrected repository measurement ties
+free-proxy parameter count, proxy-table rank, or images per proxy parameter to
+official-query error, nor shows that restricting the head computes new visual
+evidence for unseen identities. Candidate 371 and Passes 29 DSA, 30 NSP,
+39 FCS, 41 NSRC, and 43 AXE already supply missing or adverse evidence for the
+same finite-training-label-rank premise. Official CUB training has 5,864 images
+over 100 classes, or 58.64 per class, not the proposal's “about 30”; 733 images
+per codeword is a 12.5-times coarser-parameter pool, not a measured
+sample-complexity gain.
+
+The central bottleneck theorem is false. Each block component remains in the
+span of at most eight codewords, so FPC's linear proxy span is at most 64 and
+its discriminative affine/difference span is at most `8(8-1)=56`, not 512.
+That is exactly the rank of its purportedly distinct low-rank control C1. An
+injective deterministic code for a uniform 100-class label carries
+`H(c)=log2(100)=6.64` bits, exactly as a distinct free proxy does; a 24-bit
+available code is non-binding. Comparing 24 code bits with 512 continuous
+coordinates is a unit error. Zero-decay, 100-times-lr class-private assignment
+logits remain trainable as well. Restricting a label head does not prevent the
+encoder from recognizing the training identity first and emitting its
+injective code: target sharing is not shared visual evidence.
+
+The cold review finds further fatal algebra. Proposition 1 assigns the positive
+term's sign to PA's negative term; the Welch bound makes maximum proxy cosine
+at least `-1/99`, above `-delta=-0.1`, so the negative loss grows rather than
+vanishes in the claimed limit. At the allowed Hamming distance two, proxy
+cosine can be 0.75 and maximum score separation only about 0.354, while the PA
+positive is already saturated near similarity 0.4. The hard code therefore
+caps the very fine-label margin it is meant to improve. C4 is not a PA sanity
+reduction because `m=1,h=2` makes its injectivity hinge unsatisfiable and its
+decorrelation mean empty. The relaxed-column OT objective is not specified by
+ordinary balanced Sinkhorn; repair has no termination or balance guarantee;
+and global `O(K^2m)` repair contradicts the SOP/In-Shop cost claim.
+
+Gate 2 is an exact internal and public recurrence. Pass 39 FCS already used
+balanced multi-symbol Hamming-separated class codes over descriptor blocks and
+learned assignments from model affinities. The proposal changes codeword
+parameterization and the optimizer wrapper, not the supervision object: an
+injective learned recoding of the original class label. The proposal's admitted
+untraced neighbour is Michalkiewicz et al.'s Compositional Global Class
+Embeddings (ECCV 2020), which learns per-class attention over multiple
+codebooks of vectors shared across classes and composes them into each class
+representation. Shu and Nakayama's deep compositional code learning supplies
+soft-to-hard learned multi-codebook codes; learned/N-ary ECOC supplies balanced
+assignment, row separation, and column independence. The cross-domain status
+does not rescue novelty because FPC's own frozen rule made this exact class-
+representation mechanism the deciding neighbour.
+
+FPC also predicts its own failure to fulfill the standing objective: CUB
+`0.712` versus `0.734`, Cars `0.905` versus `0.927`, SOP `0.806` versus
+`0.829`, and In-Shop `0.900` versus the corrected local final mean `0.915201`.
+It assigns only 7--8 percent crossing probability, bypasses the mandated paired
+corrected In-Shop recipe, and omits raw-best versus final selection reporting.
+
+Correct pieces are exact displayed PA normalization, head parameter and code-
+space arithmetic, legal one-view deployment, candid non-crossing forecasts,
+several useful random-code/sampler/lr controls, and the pre-committed ambiguity
+ledger that made the nearest-neighbour resolution decisive.
+
+Process lesson: an injective code is not an information bottleneck for its
+label; full coordinate support is not full linear span; images updating one
+coarser shared parameter do not prove shared visual evidence; and a trainable
+class-code table remains learned ECOC even when Sinkhorn and product codebooks
+parameterize it.
+
+Primary neighbours: Michalkiewicz et al., *Few-Shot Single-View 3-D Object
+Reconstruction with Compositional Priors*, ECCV 2020; Shu and Nakayama,
+*Compressing Word Embeddings via Deep Compositional Code Learning*, ICLR 2018;
+Chen, Min, and Sun, *Learning K-way D-dimensional Discrete Codes for Compact
+Embedding Representations*, ICML 2018; Crammer and Singer, *On the Learnability
+and Design of Output Codes for Multiclass Problems*, Machine Learning 2002;
+and Yuan et al., *Central Similarity Quantization*, CVPR 2020.
+
+Full artifacts:
+docs/opus_blind_prompt_pass46_2026-08-06.txt,
+docs/opus_fpc_proposal_pass46_2026-08-06.md,
+docs/opus_fpc_review_prompt_2026-08-06.txt,
+docs/opus_fpc_review_2026-08-06.md, and
+docs/opus_fpc_local_audit_2026-08-06.md.
