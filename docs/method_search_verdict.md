@@ -7641,3 +7641,39 @@ stencil is not a mechanism-level distinction after its causal claim fails.
 No GPU run was authorised. Full artifacts: `docs/opus_codif_proposal_pass53_2026-08-06.md`,
 `docs/opus_codif_review_2026-08-06.md`, and
 `docs/opus_codif_local_audit_2026-08-06.md`.
+
+### Pass 54 — LORD (label-orthogonal rank distillation): DEAD at Gates 1–4
+
+Mechanism: use a stop-gradient memory of training descriptors to construct a
+truncated personalized-PageRank graph, then distil the diffused ordering into
+the current Proxy-Anchor descriptor with separate KLs over label-defined
+positive and negative groups. The proposal claimed this internalises
+train-time diffusion/reranking headroom while preserving only geometry left
+unspecified by labels.
+
+Gate 1 failed because the claimed manifold-far-impostor/headroom effect was
+not a verified repository measurement; it was explicitly deferred to a
+future D1 diagnostic. The label-loss argument was generic and the transfer to
+unseen identities was admitted as an assumption. Gate 2 found a circular
+temperature controller (the reported expansion ratio is proportional to the
+temperature it controls), an omitted epsilon-driven target gap and tie rule,
+an unproved collapse dynamics at a discontinuous all-ties kNN graph, and a
+cost estimate that omits dynamic full-memory kNN construction. The standalone
+forecasts were below the audited PFML frontier and omitted In-Shop.
+
+Gate 3 independently closed the mechanism. Zeng et al., *Self-distillation
+with Online Diffusion on Batch Manifolds Improves Deep Metric Learning*,
+arXiv:2211.07566 / *Visual Intelligence* 2024, already freezes a DML teacher,
+diffuses a normalized affinity graph, and distils the resulting similarity
+into the current model, including ProxyAnchor and plain-cosine deployment.
+GCMT, contextual-similarity distillation/optimization, RKD, XBM, and S2SD
+are additional neighbours. LORD's memory-bank substrate, truncation,
+temperature control, and label-defined group split are implementation or
+normalisation refinements, not a new object/action. No GPU run followed.
+
+The useful residual is the zero-sum gradient induced by separate group
+softmaxes; it is recorded as an ablation idea inside the occupied OBD-SD
+family, not as candidate novelty. Full artifacts:
+`docs/opus_lord_proposal_pass54_2026-08-06.md`,
+`docs/opus_lord_local_audit_2026-08-06.md`, and
+`docs/opus_lord_review_2026-08-06.md`.

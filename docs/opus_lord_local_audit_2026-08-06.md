@@ -89,3 +89,19 @@ diagnostic, but they cannot repair Gate 1 or the occupied Gate 2 mechanism.
 No preregistered GPU screen follows. A mandatory independent cold review is
 still requested to preserve the protocol and to test whether any substantive
 disagreement remains.
+
+## Cold-review reconciliation
+
+The independent review returned DEAD and agrees with the earliest Gate-1
+decision. It independently confirms that the proposed provenance is only an
+uncited diffusion-headroom assertion plus a generic label-loss argument. It
+also confirms the circular temperature controller, the epsilon-driven
+unregistered target gap, the missing dynamic-kNN cost, and the omitted
+In-Shop forecast. Most importantly, its primary-source sweep identifies
+Zeng et al.'s OBD-SD (arXiv:2211.07566; *Visual Intelligence* 2024) as the
+same training-time graph-diffusion/self-distillation object and action on
+ProxyAnchor, with plain-cosine deployment. The residual group-normalisation
+property is accepted as a useful ablation, not a novel method. No material
+disagreement remains and LORD is closed without GPU work.
+
+Independent artifact: `docs/opus_lord_review_2026-08-06.md`.
