@@ -1,0 +1,40 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold; use only this prompt and public primary literature. Do not inspect
+local files, history, prior candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE.
+
+Goal: novel train-time zero-shot deep metric learning on disjoint identities
+(CUB, Cars196, In-Shop, SOP), using only official training images/labels plus
+ordinary stochastic augmentation and optional ImageNet-1K initialization.
+Deployment: one model, one view, one fixed global descriptor, cosine/Euclidean
+retrieval. No test/gallery fitting, reranking, transduction, external generated
+data, text/VLM encoders, extra annotations, or contamination-prone knowledge.
+Choose one lane: Lane A R50/512-D/224px/200 epochs, PFML references CUB .734,
+Cars .927, SOP .829; or Lane B R50/2048-D, AdvRF references CUB .766, Cars
+.949, SOP .842. Keep forecasts in one lane.
+
+Search after 62 prior passes have closed similarity-matrix reweighting,
+ordinary regularizers, tangent/invariance, gradient surgery, EVT tails,
+multi-centers, averaging, common optimizer/architecture ideas, and label-only
+objectives. Pass 60 measured CUB failures as 48.1% local within-class versus
+51.9% between-class. Pass 62 ECT (evidence-ranked deletion plus a bistable
+must-switch target) was narrowly novel but died before GPU: the must-switch
+hinge was active 100% over beta .15–.85 and replaced area correlated .897 with
+the target regime. Do not repeat hard winner-take-all, area-scheduled,
+unsatisfiable counterfactuals, SnapMix/ACoL/Batch-DropBlock, or ordinary
+CutMix/erasure.
+
+Find one feasible method whose signal comes from pixels or training trajectory
+and changes the off-support function. It may use a soft/continuous
+counterfactual, adaptive control, an unusual activation or stateful dynamical
+system, or an import from physics/biology/chemistry/signal processing. It must
+not be a renamed occupied regularizer or similarity weighting. Prior-art search
+must be primary and mechanism-level.
+
+Return full executable equations, gradients/state updates, schedules, causal
+error mode, proof-level degeneracy attacks, nearest prior citations and exact
+distinctions, matched controls, frozen >=2-dataset forecasts, falsifiers and
+frontier arithmetic, cost and contamination risks. If no method survives,
+return NONE and state a reusable closure plus one cheap falsifiable diagnostic.
