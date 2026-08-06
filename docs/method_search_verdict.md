@@ -7848,3 +7848,21 @@ the C−1 label-rank cap on CUB/Cars, and a three-source identifiability bound
 features are saturated prior art. It recommends only cheap D1–D3 rank probes
 (about one GPU-hour) as a falsifier before another blind pass. No candidate GPU
 run was authorized. Full artifact: `docs/opus_pass61_none_2026-08-06.md`.
+
+### Pass 62 — ECT (evidence-consensus transplantation): DEAD at pre-GPU probe
+
+Mechanism: use the current model’s spatial evidence map to delete salient
+anchor cells, transplant a partner, and enforce a thresholded winner-take-all
+descriptor target, with a must-switch contradiction. Cold review found this
+narrow residue plausibly distinct from ACoL/Batch DropBlock/SnapMix/CutMix and
+marked it LIVE only conditionally, requiring a zero-training feasibility probe
+and fixed-reference/pooling/area controls.
+
+The probe on the existing In-Shop corrected Proxy-Anchor checkpoint found the
+must-switch hinge active **100% at every beta** (.15/.25/.40/.60/.85), while the
+plateau hinge moved 23.4%→100%. Replaced area correlated with beta at r=.897.
+The review’s abort rule therefore fired: the must-switch target is
+unsatisfiable at the operating point and the construction is confounded by an
+area schedule. No ECT training run was authorized. Full artifacts:
+`docs/opus_ect_proposal_pass62_2026-08-06.md`,
+`docs/opus_ect_review_2026-08-06.md`, and `docs/ect_zero_probe_2026-08-06.md`.
