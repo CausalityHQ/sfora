@@ -7310,3 +7310,102 @@ docs/opus_rlml_proposal_pass49_2026-08-06.md,
 docs/opus_rlml_review_prompt_2026-08-06.txt,
 docs/opus_rlml_review_2026-08-06.md, and
 docs/opus_rlml_local_audit_2026-08-06.md.
+
+### Fiftieth blind pass: ISUC is class-disjoint gradient matching and independently recurs candidate 228
+
+**DEAD at Gates 1 and 2, independently confirmed by a frozen cold review; no
+diagnostic, preregistration, implementation, or candidate GPU.** Identity-Split
+Update Coherence (ISUC) partitioned each class-balanced batch into two
+class-disjoint halves, computed PFML-derived last-layer update fields
+`G_k=sum_i dtilde_i htilde_i^T`, and maximized their cosine. It claimed this
+cosine measured the fraction of an update that a fresh identity sample would
+also produce.
+
+Gate 1 has no admissible premise. The corrected repository packet measures
+persistent In-Shop query errors across seeds, not `G(S)`, `A`, `E(S)`, or a
+relationship between update-field coherence and final retrieval. The disjoint-
+identity benchmark protocol is not a causal measurement. The proposal's only
+bridge is Proposition 1, but its implemented halves are complements of one
+finite batch, not independent identity samples. Even in the favorable additive
+case, complementary sampling contributes negative covariance:
+`E<G1,G2> = ||Gbar||^2 - V`, not `||Gbar||^2`. Its guessed `A≈0.05` therefore
+cannot be read as five percent transferable update. The cold reviewer derives
+the corresponding idealized fraction as `(1+A)/2`; the actual restricted-PFML
+fields do not even satisfy that additive setup.
+
+The estimand is further broken because `U_1+U_2 != U(B)`: the restricted
+energies delete every cross-half sample/proxy interaction. Their fields are
+gradients of separate 15-class objectives, not subdivisions of the executed
+30-class SGD step. The proposal also replaces an expectation of a normalized
+random ratio by a ratio of expectations without a bound. Last-layer field
+alignment does not identify backbone-update alignment, which additionally
+contains every sample's backbone Jacobian; the review gives counterexamples in
+both directions.
+
+Gate 2 is an exact internal recurrence. Candidate 228 had already split
+training identities into disjoint A/B sets and asked whether an A update helps
+B. Its Taylor expansion left
+`-eta <grad L_A, grad L_B>`, the MLDG/Reptile/Fish gradient-alignment object.
+ISUC directly optimizes the normalized last-layer version of the same inner
+product. Random identity subsets instead of named domains/tasks, disjoint
+label-specific proxies, cosine normalization, and the
+`<d_i,d_j><h_i,h_j>` factorization are estimator/wrapper choices. MLDG,
+Reptile, Fish, Gradient Agreement, Sequential Reptile, gradient-similarity
+auxiliary weighting, and disjoint-label episodic/meta-DML occupy those axes.
+
+The centering proof is also misstated. Exact expansion gives
+`G_k=sum_i d_i h_i^T - n_k dbar_k hbar_k^T`; the global feature mean cancels
+identically because centered `d` sums to zero. Feature centering is a no-op,
+the removed term has rank at most one, and the field has rank at most 89 for a
+90-image half. Bounded penalty **value** does not bound its cosine gradient as
+`||G_k||` approaches zero. PFML's repulsion is flat beyond `delta`, so the
+`0.1998` calculation supplies only a barrier inside the clamp and does not
+prove useful class separation or benign training dynamics. A shared linear
+force map can encode background or illumination just as readily as
+identity-discriminative structure.
+
+The proposal bypasses the mandatory corrected paired In-Shop-first screen,
+gives no In-Shop forecast or threshold, reports no raw-best versus independently
+selected/final stage, and defines no out-of-sample confirmation. Cars `0.931`
+is below its own `0.932` crossing bar. Its displayed “80% CI” widths are not
+80% intervals, and several 75%-of-gain controls ask five seeds to resolve about
+`0.0005` against roughly `0.002` SEM. F8 is tautological in part—ISUC directly
+optimizes `A`—and `rho>0.5` across five seeds is not a meaningful mechanism
+test.
+
+Two cold-review corrections are accepted: PFML Eq. 5 discloses the all-class
+proxy-proxy range, and its Table 1 caption identifies the five-run `+/-` values
+as standard deviations. One reviewer arithmetic claim is **not propagated**:
+`1500^2 * 512` is about `1.15e9` scalar dimensions, not `5.8e12`; calling that
+term 5.8 TFLOP is a three-order-of-magnitude error. Likewise, packing distinct
+class centroids at cosine 0.97 does not by itself destroy nearest-neighbour R@1
+if within-class distances remain smaller. The valid conclusion is narrower:
+P2 does not exclude such packed solutions or establish retrieval margins. These
+corrections do not affect Gates 1 or 2.
+
+Correct pieces preserved: the Frobenius/Gram factorization, the exact centered
+field algebra, shift/positive-scale invariances supplied by `d` centering, the
+main frontier-bar arithmetic, the honest Cars non-crossing, the class-shared
+split as a useful null, and zero-cost legal deployment.
+
+Process lesson: class-disjointness is not independence, and a gradient of a
+restricted subproblem is not automatically a component of the executed update.
+Before treating gradient agreement as a new transfer signal, expand the actual
+sampling covariance and verify that the compared fields sum to the trained
+objective. A new grouping variable or normalized estimator does not reopen an
+occupied gradient-matching mechanism.
+
+Primary neighbours: Li et al., *Learning to Generalize: Meta-Learning for
+Domain Generalization* (MLDG), AAAI 2018; Nichol, Achiam, and Schulman, *On
+First-Order Meta-Learning Algorithms* (Reptile), 2018; Shi et al., *Gradient
+Matching for Domain Generalization* (Fish), ICLR 2022; Eshratifar, Eigen, and
+Pedram, *Gradient Agreement as an Optimization Objective for Meta-Learning*,
+2018; Lee et al., *Sequential Reptile*, ICLR 2022; and Chen et al., *Deep Meta
+Metric Learning*, ICCV 2019.
+
+Full artifacts:
+docs/opus_blind_prompt_pass50_2026-08-06.txt,
+docs/opus_isuc_proposal_pass50_2026-08-06.md,
+docs/opus_isuc_review_prompt_2026-08-06.txt,
+docs/opus_isuc_review_2026-08-06.md, and
+docs/opus_isuc_local_audit_2026-08-06.md.
