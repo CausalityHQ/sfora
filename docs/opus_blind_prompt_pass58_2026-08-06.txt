@@ -1,0 +1,40 @@
+Provider: Fable blind proposer with configured Claude Opus fallback if Fable credits are exhausted
+Frozen before consultation start: 2026-08-06 UTC
+
+You are the blind proposer in a rigorous method-invention protocol. Do not
+inspect the local filesystem, git history, repository, prior conversations, or
+process state. Start cold. Use only public web-search/web-fetch tools. Return
+exactly ONE concrete mathematical train-time method for zero-shot image
+similarity/deep metric learning, or exactly NONE. Do not return an idea list.
+
+Use official training images and identity labels plus ordinary stochastic image
+augmentation only; ImageNet-1K initialization is allowed. Evaluation identities
+are disjoint. Legal datasets: CUB-200-2011, Cars196, In-Shop Clothes Retrieval,
+Stanford Online Products. Deployment is one model, one view, one fixed global
+descriptor, ordinary cosine/Euclidean retrieval. No test data, external
+generated data, text/VLM encoders, extra annotations, transduction, reranking,
+gallery fitting, or contamination-prone knowledge.
+
+Choose exactly one comparison lane. Lane A: ResNet-50, 512-D normalized global
+descriptor, 224 px, 200 epochs; audited PFML references are CUB .734, Cars .927,
+SOP .829 (five-run means), In-Shop PA+DADA .930 with uncertain seeds. Lane B:
+2048-D ResNet-50; AdvRF references CUB .766, Cars .949, SOP .842 and VAPNet
+In-Shop .939 but with materially more training machinery. Do not mix lanes.
+
+The project has repeatedly rejected methods that add regularization, swap only
+similarity functions, or are prior art. A candidate must change what useful
+supervision or train-time computation exists, not merely rename tangent
+penalties, invariance, gradient surgery, multi-centers, contextual similarity,
+weight averaging, or external generative augmentation. Consider any scientific
+field and any design axis (activation, architecture, optimizer, sampling,
+curriculum, representation geometry, or supervision), but attack nearest prior
+art before proposing novelty.
+
+Return: executable equations with all learned objects, gradient paths,
+hyperparameters and schedules; one causal zero-shot error mode; proof-level
+degeneracy attacks; adversarial primary-source novelty search with
+mechanism-level distinctions; decisive matched-compute controls; frozen R@1
+forecasts on at least two datasets in one lane; explicit falsification
+thresholds/frontier arithmetic; costs and contamination risks. State source
+ambiguities. Do not claim SOTA from forecasts. Return NONE if no materially
+distinct mechanism can honestly be formulated.
