@@ -241,3 +241,78 @@ obtain the protocol-mandated independent cold review of the exact proposal. Reco
 that review into the method-search ledger. Any repair that introduces a real
 cross-identity visual target rather than a deterministic recoding of the class label
 is a new proposal and must restart the blind-generation protocol.
+
+## Frozen independent review and reconciliation
+
+The independent cold review ran as durable consultation
+`043c3c9f6dea41ac`: Fable exhausted its credits and the same job completed under
+Claude Opus. Its exact final answer, after removing only the preserved Fable
+credit-failure banner, is frozen at
+`docs/opus_pspl_review_2026-08-06.md`, file SHA-256
+`52d54b6518a0cf9298286cd6d214e9c501ec9672e5316bbc70d33a7b7a04560b`
+and pre-terminal-newline provider-answer SHA-256
+`551aa51aecd86339d8b9573531d0f864ed3109415357cf2df0ab4673d22c65f0`.
+
+The reviewer independently returns **DEAD at Gate 1** and confirms Gate 2 as the
+third occurrence of the FCS/FPC supervision object. Its decisive reduction is the
+same: an injective training-class code constrains decoding coordinates, not the
+image-to-code computation. A class-private recognizer followed by a code lookup
+remains feasible, while unused lattice points receive no gradient and have no test
+assignment. Thus the universal unseen-support counterexample used to criticize free
+prototypes applies to PSPL itself.
+
+The review adds useful evidence retained in the verdict:
+
+1. Random balanced 64-digit codes have expected Hamming distance `64*8/9=56.89`;
+   through Lemma 1 their expected cosine is zero with standard deviation about
+   0.044. The huge `9^64` learned target set is therefore nearly a random
+   orthogonal frame over the occupied classes, while `h_min=24` is about 13 standard
+   deviations below random and normally inactive.
+2. Public neighbours are closer than the proposal reports: Pernici et al.'s Regular
+   Polytope Networks fixes regular-simplex classifiers; Central Similarity
+   Quantization and minimal-distance-separated semantic hash centers use fixed class
+   retrieval targets and Hamming separation; and Codebook-Centric Deep Hashing
+   reports feature-coupled reassignment from a preset retrieval codebook. These join
+   Deep N-ary ECOC and the exact repository FCS/FPC recurrence. The recent CRH source
+   is an arXiv/AAAI listing whose full balanced-assignment details remain unverified;
+   the internal recurrence alone is dispositive.
+3. Hysteresis and per-class fallback occur after balance/repair without a final
+   constraint check, so the advertised hard balance and Hamming guarantees need not
+   hold in the accepted table. Sinkhorn-plus-rounding has the same unspecified
+   preservation problem.
+4. The equal-energy zero set has 63 independent norm constraints and is a
+   448-dimensional submanifold of the 511-dimensional descriptor sphere. This is a
+   material deployed-representation restriction absent from the causal controls.
+5. The proposal's CUB seed arithmetic is wrong. Holding the quoted PFML uncertainty
+   fixed, a 0.004 difference needs about 11 PSPL seeds for a two-sided 1.96 threshold,
+   not 35. This correction makes CUB less hopeless than claimed but supplies no
+   mechanism provenance or novelty.
+6. The stated algorithmic memory omits the `C x 512` centroid state and transient
+   `C x C` Hamming matrix; the latter is about 0.5 GB in fp32 on SOP. The centroid is
+   not a learned autograd parameter, so it does not erase the negative learned-
+   parameter count, but it is a class-private state that chooses supervision and must
+   be counted in training memory.
+
+Three review overclaims are explicitly **not propagated**:
+
+- `q(u)=u/(||u||+epsilon)` indeed has norm below one and the proposal's Jacobian and
+  spherical proof are invalid. It does **not** follow merely from that fact that
+  `f=mu(k)` ceases to minimize the *full* symmetric objective: equal block energy and
+  aligned directions remain feasible, and at the frozen values the epsilon effect is
+  about `8e-6`. The correct conclusion is the narrower local-audit conclusion: the
+  supplied exact-attainment/uniqueness proof fails. In either case, a private class
+  recognizer can emit whichever per-code optimum exists, so the Gate-1 escape is
+  unchanged.
+- Zero joint co-occurrence cells are likely, not guaranteed, for a balanced `9 x 9`
+  table with 100 classes. A table with all 81 cells nonzero is combinatorially
+  possible. The executable defect is that **any** zero produces an unguarded
+  `log(0)`, and no smoothing or fallback is specified.
+- Global-norm clipping scales all gradient components; a starved group's
+  `1/epsilon` Jacobian can dominate the clipped direction but does not literally
+  "zero out" every other group.
+
+There is no disposition conflict. The frozen local audit and cold review agree on
+missing measured provenance, injective-label-code memorization, empty-slot
+non-supervision, FCS/FPC recurrence, invalid epsilon algebra, impossible controls,
+broken sharing counts, undercounted assignment cost, and protocol bypass. PSPL
+receives no GPU.
