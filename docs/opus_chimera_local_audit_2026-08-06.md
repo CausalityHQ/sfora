@@ -219,3 +219,89 @@ Process lesson: a hyperparameter pattern in an external method is not repository
 provenance, a balanced transport marginal is not a factor-sharing theorem, and
 combining two occupied mechanisms does not become novel merely because their
 exact conjunction is absent from a title search.
+
+## Independent-review reconciliation (written after the frozen review)
+
+The cold review is `docs/opus_chimera_review_2026-08-06.md`, produced by durable
+consultation `de2e47fdb43c48a3`. Fable exhausted its allocation, so the same
+durable job used its configured Claude Opus fallback. The frozen review returns
+**DEAD** and independently agrees on the missing provenance, false rank story,
+underdefined Sinkhorn operator, optimizer/bootstrap contradictions, invalid C8,
+sampler problem, and synthetic-class/dictionary adjacency.
+
+The review adds one genuinely stronger mechanism failure. If two parent classes
+assign equal positive mass `g` to an atom, flipping only that atom's crossover
+bit leaves the unnormalized chimera, its normalization, and therefore `q`
+unchanged, while changing `beta` by `g/Z`. The two masks demand different
+calibration targets for the same similarity difference. Their minimum paired
+residual is `2*kappa^2*g^2/Z^2 > 0`. Thus the calibration term applies an
+anti-sharing pressure exactly where equal cross-class atom reuse occurs. The
+proposal's D3 duplicate-coordinate argument and its claimed semantic-sharing
+mechanism use the same algebra with opposite interpretations. This is accepted
+and strengthens the Gate-2 rejection.
+
+The review also finds a severe EMA scaling defect that the local audit missed.
+After balancing, a historical column has mass `1/C`, while the incoming batch
+mean has mass one. Blending them before rebalancing gives effective historical
+weight
+
+```
+(m/C) / (m/C + 1-m),
+```
+
+not `m`. At SOP's first-update `m=0.5`, history is outweighed 11,318 to one.
+Even after `m` grows, the intended count-debiased EMA is radically shortened.
+The proposed mitigation for rare-class staleness therefore destroys itself.
+This is accepted as an independent executable failure.
+
+### Corrections to the cold review
+
+The cold result is evidence only where its calculations survive checking. Four
+material statements need correction:
+
+1. Its displayed CUB common-plus-private matrix is **not** a Sinkhorn fixed
+   point. For classes with two versus three private atoms, the row contribution
+   `0.5/|S_c| + 100*0.5/256` differs; `0.5/|S_c|` is not the stated `0.195` in
+   either case. The entropy line also writes `ln(510)` although only 255 tail
+   coordinates exist (its numerical value happens to match the 255-coordinate
+   calculation). Therefore the review does not prove that *all* 256 rows are
+   class-private for the actual noninteger ratio `K/C=2.56`, nor that the
+   displayed object equals C3.
+2. The correct counterexample is weaker but sufficient. A greedy exact
+   transportation vertex with CUB marginals `row=1/256`, `column=1/100` has 352
+   nonzeros: **160 of 256 atom rows have support in exactly one class**, and the
+   other 96 touch only two classes. Hence a class-private atom is plainly not
+   “mathematically inadmissible.” Mixing that coupling `T` with the uniform
+   coupling as `Gamma=lambda*T+(1-lambda)/(KC)` preserves both marginals. At
+   `lambda=0.6`, every normalized class code has entropy between `3.504` and
+   `3.589`, above `ln(32)=3.466`, while 60 percent of its discriminative mass
+   remains in the sparse near-private transport component. Balance plus entropy
+   therefore fails to identify semantic reuse without relying on the review's
+   incorrect fixed point.
+3. The paired-mask calculation proves anti-sharing pressure for equal shared
+   mass. It does **not** prove that disjoint supports are the only global
+   minimizers for unequal masses, finite sampling of 64 masks, normalized `q`,
+   and the other three loss terms. The justified conclusion is conflict with
+   the claimed sharing mechanism, not a proved C3 equilibrium or a prediction
+   that F2/F3/F6 must fire.
+4. The review's cost check is more persuasive than the local audit's skepticism:
+   11.6 million entries are about 46 decimal MB, and three fused scaling passes
+   can plausibly remain below a millisecond on a DGX GPU. The exact wall time is
+   implementation-dependent, but cost is **not** a reason to reject CHIMERA.
+   The memory still has to be reported, but the earlier implication that the
+   sub-millisecond claim was likely false is withdrawn.
+
+Two additional reviewer endorsements are not retained. `tau` and `k*` remain
+two operational choices: temperature shapes the whole assignment distribution,
+while `k*` independently sets the hinge threshold; the fact that entropy is a
+function of temperature does not collapse them into one hyperparameter. Also,
+the chimeric term can reasonably be called a new derived constraint even though
+it contains no new label bits. What it cannot be called is an observed “real
+identity,” and its supervision primitive remains mechanism-equivalent to
+synthetic/virtual-class regularization for this protocol.
+
+Finally, the review labels executable mathematics “Gate 1” according to its own
+numbered rubric. Under `docs/search_protocol.md`, the authoritative earliest
+failure is **Gate 1: no repository provenance**; the algebra and prior-art
+failures are Gate 2. With those corrections, the two independent analyses still
+support the same disposition: CHIMERA is dead before preregistration or GPU.

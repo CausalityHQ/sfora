@@ -6341,3 +6341,81 @@ Full artifacts:
 docs/opus_pem_proposal_pass37_2026-08-06.md,
 docs/opus_pem_review_2026-08-06.md, and
 docs/opus_pem_local_audit_2026-08-06.md.
+
+### Thirty-eighth blind pass: CHIMERA's calibration law penalizes the atom sharing it claims to create
+
+**DEAD at Gates 1 and 2; no preregistration, implementation, or GPU.** The blind
+Pass 38 proposal, CHIMERA, replaced free class proxies by `P=U Gamma`, where U
+is a shared atom dictionary and Gamma is a balanced class-indexed EMA table. It
+then crossed two class codes coordinate-wise and calibrated each synthetic
+proxy's parent-similarity difference to inherited atom mass. Its frozen Lane-A
+forecast was 0.748 CUB, 0.933 Cars, and 0.833 SOP.
+
+Gate 1 has no repository provenance. The proposal treats PFML's published
+15/15/2 proxies-per-class configuration as evidence of a finite-class rank
+bottleneck. That is a selected recipe, not a measured causal quantity. The
+actual class-prototype matrix still has only C columns and centered rank at most
+`min(d,K,C-1)`; the full image cloud is not bounded by `C-1` without an
+unmeasured exact-collapse assumption. Proxy count also changes identifiability,
+memory, images per class, and multimodality, so it cannot determine rank as the
+cause of corrected unseen-class errors.
+
+Gate 2 fails internally and publicly. Uniform row/column marginals enforce atom
+usage, not cross-class semantic sharing. An exact CUB transportation vertex has
+352 nonzeros and leaves **160 of 256 atom rows supported by exactly one class**.
+A 0.6 mixture of this vertex with the uniform coupling preserves both marginals
+and gives every normalized class code entropy above `ln 32`, while its
+discriminative component remains sparse and near-private. The claimed two
+blockers therefore do not identify reusable factors.
+
+More decisively, the chimeric calibration fights equal atom reuse. If classes c
+and c' put equal mass g on one atom, flipping only that atom's crossover bit
+leaves q unchanged but changes beta by `g/Z`. The two masks demand different
+targets for the same similarity, leaving minimum paired residual
+`2*kappa^2*g^2/Z^2`. The proposal's D3 duplicate-coordinate proof and its
+sharing story are the same algebra with opposite signs. This does not prove a
+global class-private equilibrium under every loss term, but it does falsify the
+load-bearing claim that calibration makes shared atoms individually readable.
+
+The literal conjunction need not have appeared under the CHIMERA name. The
+mechanism is still the conjunction of two internally closed families:
+candidate 264 and CoVeR/375 already rejected shared nonnegative
+dictionary-factorized class proxies, while Composite Class Expansion/367 and
+RECOMB/370 already rejected recombined training classes as hard virtual
+identities. Proxy Synthesis supplies the public synthetic-class neighbour;
+LC-KSVD and PIP-Net/SPA supply supervised/shared-dictionary neighbours; SwAV
+and SeLa supply balanced prototype assignment. Binary masks and an
+inherited-mass regression change the estimator and, here, introduce an
+anti-sharing contradiction rather than new observed supervision.
+
+The executable recipe independently fails. `Sinkhorn_epsilon(Gamma)` does not
+say whether Gamma is scaled directly, exponentiated as logits, or treated as a
+cost; epsilon is vacuous under direct matrix scaling. U is assigned both SGD
+and AdamW and has no initialization even though Gamma's bootstrap depends on
+it. Balancing leaves each historical column with mass `1/C`, then the EMA mixes
+it with a mass-one batch code, so the intended historical weight becomes
+`(m/C)/(m/C+1-m)` and is almost erased on large-C datasets. C4 changes the code
+target mass by C when balancing is removed; C8 asks for 1,024 orthonormal
+vectors in 512 dimensions; C6 omits its Beta parameter; and the four advertised
+80-percent intervals use mutually inconsistent multipliers. SOP/In-Shop m=4
+also leaves the low-count identity handling undefined.
+
+The independent cold review agreed on the DEAD disposition and supplied the
+calibration and EMA failures. Its first displayed “fixed-point” counterexample
+was itself wrong: two- versus three-atom class groups have different row mass,
+so it did not prove a fully private CUB table. The corrected sparse-transport
+calculation above is the retained result. The review also correctly found that
+the full-table cost is plausible on a DGX; compute cost is not part of the
+rejection.
+
+Process lesson: balanced aggregate usage is not semantic sharing; a derived
+calibration target must be tested on coordinates shared by both parents; an
+external hyperparameter pattern is not measured provenance; and agreement
+between two model passes does not excuse checking the reviewer's arithmetic.
+
+Full artifacts:
+docs/opus_blind_prompt_pass38_2026-08-06.txt,
+docs/opus_chimera_proposal_pass38_2026-08-06.md,
+docs/opus_chimera_review_prompt_2026-08-06.txt,
+docs/opus_chimera_review_2026-08-06.md, and
+docs/opus_chimera_local_audit_2026-08-06.md.
