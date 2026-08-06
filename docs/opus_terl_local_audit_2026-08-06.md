@@ -127,3 +127,48 @@ surrogate does not reopen it. A future candidate must first supply a new
 prospective corrected measurement that reverses XTail's shape-instability
 result and must change what supervision exists, not merely how the same fitted
 extreme is estimated.
+
+## Frozen independent review and reconciliation
+
+The independent cold review ran as durable consultation
+`53e7fadb33c04a42`: Fable exhausted its credits and the same job completed
+under Claude Opus. Its exact final answer is frozen at
+`docs/opus_terl_review_2026-08-06.md`, file SHA-256
+`19e3ee80d7f6370c182a59c98bf514d08b807190a9443d37ee0083197f1e9884`
+and pre-terminal-newline provider-answer SHA-256
+`4be2572bd0c1dbc7a67f05465317b3755eee6cdcef582838de4491a69c7a79b2`.
+
+The reviewer independently returns **DEAD**, and finds an even earlier analytic
+failure in the executable gradient. Because normalized exceedances divide by
+a detached site mean, pooled `alpha0` is one. Differentiating the shared PWM
+shape makes the shape path dominate the honest mean-excess path with the wrong
+sign on most of the band: depending on `xi`, 36--72 percent of the top-band
+negatives are pushed toward **higher** similarity. The exact bottom-band
+shape-to-scale gradient ratio is reported as 2.5 at the `xi=-3` clamp, 6 at
+`xi=-1`, and about 21 at `xi=0` and `0.4` on SOP. Thus the novelty-bearing
+path recreates the threshold-gaming shortcut that the custom stop-gradient was
+introduced to remove.
+
+The reviewer's concrete population calculation starts from exponential
+excesses with `u=0.40`, mean `lambda=0.05`, and SOP scale. Flattening all top
+negatives upward to their own expected maximum raises the mean top-band
+similarity from `0.45` to about `0.68`, yet lowers the fitted return target from
+`0.855` to about `0.74` by driving shape to the lower clamp. This is analytic
+model evidence, not a benchmark measurement, but it is a direct shortcut of
+the frozen equations. At the clamp, the shape gradient dies and TERL reduces
+to a fixed `u+(4/3)lambda` control; away from it, the estimator is gameable.
+
+The reviewer also catches `ceil(0.15*176)=27`, not 26, so pooled `N=4860`, not
+4680; reproduces the zero first-order cosine gradient at collapse; confirms
+In-Shop's dose is `5.01`, not `4.60`; and finds the four-dataset slope
+underidentified and non-decisive. It independently identifies WEINCE and LDReg
+as closer train-time tail precedents, notes that WEINCE deliberately stops
+gradients through fitted tail parameters, and concludes that pooling/EMA does
+not reverse the supplied XTail evidence.
+
+There is no conflict. The local audit kills TERL at repository Gates 1 and 2
+from adverse measurements and exact recurrence; the cold review kills it even
+before those gates because the executable update optimizes the estimator
+shortcut. Correct PWM/return-level algebra, the threshold-path diagnosis,
+index-flood variance reduction, legal deployment, and candid non-crossing
+forecasts remain useful diagnostic pieces. TERL remains dead without GPU work.

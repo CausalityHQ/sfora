@@ -6852,3 +6852,83 @@ docs/opus_axe_proposal_pass43_2026-08-06.md,
 docs/opus_axe_review_prompt_2026-08-06.txt,
 docs/opus_axe_review_2026-08-06.md, and
 docs/opus_axe_local_audit_2026-08-06.md.
+
+### Forty-fourth blind pass: TERL is the tenth gallery-tail recurrence and its shape gradient rewards worse negatives
+
+**DEAD at Gates 1 and 2, with an independent cold review finding an even
+earlier executable-gradient failure; no diagnostic, preregistration,
+implementation, or candidate GPU.** Tail-Extrapolated Return-Level Metric
+Learning (TERL) proposed pooling per-query normalized exceedances, fitting a
+GPD shape by probability-weighted moments, and backpropagating an estimated
+training-population return level into a best-positive hinge.
+
+Gate 1 is adverse. Pass 31 XTail prospectively found only `0.0087` incremental
+R-squared from fitted shape beyond threshold and mean excess, a tuned constant
+deep-quantile RMSE of `0.0918` versus fitted `0.1575`, and shape noise consuming
+67--86 percent of the full depth signal. TERL's pooled estimator and EMA attack
+variance but supply no measurement that shape transports across disjoint
+identities or predicts official-query errors. Its 344-times SOP extrapolation
+and mixture misspecification are admitted risks, while its `0.253`-cosine tail
+example is constructed arithmetic rather than evidence.
+
+Gate 2 is the exact tenth internal recurrence after EVPC, RLM, EGR-PFML,
+PORTAL, PORT, XTail, POTER, CFEV, and GEVS: fit or approximate the observed
+negative-score upper tail and penalize its extreme at a larger nominal
+retrieval depth. A pooled index-flood estimator, smoothed threshold, EMA, and
+custom backward are estimator wrappers around the same supervision object.
+WEINCE already puts POT-fitted bounded contrastive tails into a train-time
+loss; LDReg differentiates a tail-index-family statistic; Recall@k surrogates,
+rank/top-k/CVaR objectives, XBM, and large-batch DML occupy operating-depth
+pressure. TERL omitted the nearest precedents.
+
+The cold review finds the frozen update is independently fatal. Detached
+per-site mean normalization makes pooled `alpha0=1`; differentiating the shared
+PWM shape produces a path 2.5--21 times the honest mean-excess path at the
+bottom of the band and gives 36--72 percent of top-band negatives a net update
+toward **higher** similarity. In its disclosed SOP population calculation,
+flattening exponential top-band excesses upward raises mean top similarity
+`0.45 -> 0.68` while lowering the fitted return target `0.855 -> 0.74` by
+driving shape to the `xi=-3` clamp. These are analytic reviewer calculations,
+not benchmark measurements, but they construct the cheapest exact shortcut.
+At the clamp the shape gradient is zero and TERL reduces to fixed
+`u+(4/3)lambda`; away from it the estimator is gameable. The advertised novel
+gradient therefore recreates the threshold-gaming pathology its stop-gradient
+was meant to remove.
+
+The review also catches `ceil(0.15*176)=27`, not 26 (`N=4860`, not 4680),
+confirms exact collapse is first-order stationary under normalized cosine,
+and corrects the In-Shop log-depth to `5.01`, not `4.60`. The four-dataset dose
+is collinear with training set size, class count, class size, and mixture
+composition, so it does not identify gallery depth. Selection for multiple
+best-of sweeps and raw-versus-final reporting are unspecified.
+
+TERL candidly forecasts no frontier crossing: CUB `0.716` versus `0.734`, Cars
+`0.899` versus `0.927`, SOP `0.828` versus `0.829`, and an unresolved In-Shop
+`0.933` versus a reference with unreported uncertainty. It bypasses corrected
+paired In-Shop, changes the PA recipe/capacity lane, and compares its gains to
+an invented weak reproduction. Exact agreement with all forecasts would not
+fulfill the standing objective.
+
+Correct pieces are the PWM-to-GPD conversion, mean-to-scale relation,
+continuous return-level formula, threshold-gradient pathology derivation,
+index-flood/EMA variance-reduction idea, magnitude-matched constant control,
+training-only calibration, legal deployment, and honest non-crossing/source
+ambiguity disclosures. They are diagnostic components, not a live method.
+
+Process lesson: ten gallery-tail rediscoveries make this a hard pre-GPU stop
+family. Any future tail candidate must first reverse the prospective XTail
+measurement and must analytically audit the **combined** gradient through every
+shared fitted statistic; detaching one adverse path does not prevent another
+from rewarding worse similarities.
+
+Primary neighbours: Erol et al., *WEINCE*, ICML 2026; Huang et al., *LDReg*,
+ICLR 2024; Patel et al., *Recall@k Surrogate Loss*, CVPR 2022; Wang et al.,
+*Cross-Batch Memory*, CVPR 2020; and Ding et al., *Extreme Value Loss*, KDD
+2019.
+
+Full artifacts:
+docs/opus_blind_prompt_pass44_2026-08-06.txt,
+docs/opus_terl_proposal_pass44_2026-08-06.md,
+docs/opus_terl_review_prompt_2026-08-06.txt,
+docs/opus_terl_review_2026-08-06.md, and
+docs/opus_terl_local_audit_2026-08-06.md.
