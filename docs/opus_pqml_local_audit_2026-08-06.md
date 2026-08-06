@@ -235,3 +235,50 @@ not proving that weak label-only losses discover that action. Always construct
 the cheapest class-independent disposable code, check finite-sample null levels,
 and separate diagnostic use of test identities from method-selection triggers
 before treating invariance as learned supervision.
+
+## Post-freeze reconciliation with the independent review
+
+Durable review job `83765ecccab04e9f` exhausted Fable credits and completed in
+the same job through the configured Claude Opus fallback. It independently
+returned **DEAD at Gate 1**, agreed on candidate 225's adverse provenance, the
+disposable phase shortcut, non-identification, zero-gradient collapse, MIC-level
+occupied supervision, selective F8 reporting, illegal F5-triggered repair, and
+the protocol failure. Its exact response is frozen in
+`docs/opus_pqml_review_2026-08-06.md`.
+
+The review sharpened the cheapest solution: the ordinary crop/flip augmentation
+already supplies class-independent per-image variation. Routing that variation
+into phase drives the intended terms toward their optimum without representing
+azimuth. Worse, the proposed P1--P3 probes all pass this shortcut: augmentation
+phase transfers, responds to flip/scale, and remains class-independent. Thus
+the mechanism probes positively confirm the cheapest confound.
+
+Four corrections to the local audit are adopted explicitly:
+
+1. Epsilon smoothing does **not** break maximal-invariant equivalence because
+   `sqrt(u+eps^2)` is strictly monotone. It perturbs the orbit-maximized inner
+   product by only about `3e-11` at the frozen scale; the identity is not
+   literally exact, but this is numerically immaterial and not a failed gate.
+   The image-independent norm inflation also leaves cosine ranking unchanged.
+2. The finite-global-mean null expectation stated locally,
+   `(1-|mu|^2)(1/n_s-1/B)`, is correct, but the written plug-in threshold is
+   only about **2.6%** conservative at `B=120,n_s=4`, not a practically large
+   calibration error. The stronger defect is that hinging a fluctuating null
+   statistic at its mean has positive expectation (approximately `0.37` times
+   the mean under an exponential approximation), so `L_prot` is not zero under
+   the null and exerts phase-concentration pressure.
+3. Under the natural epsilon-consistent reading, the displayed phasor Jacobian
+   is correct; the only definite displayed omission is the pair-average factor
+   in `dL_inv/dDelta`. Precision near zero remains unspecified and potentially
+   singular under half precision.
+4. F4 is a legal diagnostic falsifier because it only reattributes the result;
+   it does not select a repair. F5 is the illegal test-selected branch because
+   it chooses the adversarial replacement from unseen test labels. The local
+   audit's grouping of F4 with F5 was too broad.
+
+None changes the verdict. The independent review adds an exact third-harmonic
+counterexample: a three-mode phase distribution can make first and second
+circular moments zero for every class while its third harmonic carries a
+class-specific offset. It also finds the headline internally inconsistent:
+the proposal says changing the base loss requires retuning `Delta*`, yet applies
+the same `0.15` to PFML without a legal train-only selection protocol.

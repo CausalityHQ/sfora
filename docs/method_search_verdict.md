@@ -7021,3 +7021,104 @@ docs/opus_fpc_proposal_pass46_2026-08-06.md,
 docs/opus_fpc_review_prompt_2026-08-06.txt,
 docs/opus_fpc_review_2026-08-06.md, and
 docs/opus_fpc_local_audit_2026-08-06.md.
+
+### Forty-seventh blind pass: PQML proves a quotient identity but cannot identify the nuisance routed into it
+
+**DEAD at Gates 1 and 2, independently reinforced by a cold mathematical and
+mechanism review; no diagnostic, preregistration, implementation, or candidate
+GPU.** Phase-Quotient Metric Learning (PQML) created a 544-D internal unit
+vector with 32 complex coordinate planes, deployed each plane's modulus plus
+480 remaining coordinates as a 512-D descriptor, and required same-class phase
+spread while penalizing class-dependent first and second circular moments. It
+forecast PFML-carried CUB `0.746` and Cars `0.937` but only `0.40` probability
+of crossing both selected bars.
+
+Gate 1 is adverse. Nothing in the verified packet shows that corrected
+official-query errors arise from a circular nuisance, that viewpoint occupies
+a common two-plane rotation, or that quotienting it improves unseen identity
+retrieval. Candidate 225's prospective disjoint-identity within-class-subspace
+transfer ratios were `0.9312`, `0.9287`, and `0.9345`, all below its locked
+`1.15` falsifier and below one. Candidate 176, Exchangeable-Nuisance Embedding,
+and blind EFML, CFR, FRAME, and CNW passes already failed variants of the same
+class-exogenous intra-class-structure premise. A nonlinear modulus does not
+supply the missing cross-identity correspondence.
+
+The exact cheapest solution destroys the causal claim. `L_base` is phase-blind,
+so the encoder can put identity in modulus/remainder and put any
+class-independent per-image code into phase. Ordinary crop/flip augmentation
+supplies such a code for free: it provides enough same-class phase spread for
+`L_inv`, matches class and pooled phase laws for `L_prot`, and contains no pose,
+azimuth, or shared physical group action. Worse, all proposed mechanism probes
+pass the shortcut: augmentation phase transfers to unseen identities, responds
+strongly to flip/scale, and has low phase/class mutual information. The
+independent review further notes that physical azimuth may itself be
+class-correlated, in which case the protection term penalizes the stated target
+while favoring augmentation noise.
+
+Identification fails even without that empirical premise. Labels plus a scalar
+same-class contraction and two marginal circular moments do not make phase mean
+the same transformation across images or identities. A three-mode distribution
+can have zero first and second moments in every class while its third harmonic
+carries an arbitrary class offset. The torus is fixed, not learned; no objective
+term maximizes group size or observes paired transformations. D5 proves only
+that its two constraints are non-redundant, not that their intersection is a
+nuisance factor. At equal phases `Delta` is quadratic and its gradient is
+exactly zero, so maximal hinge violation does not escape collapse.
+
+Gate 2 is occupied at the supervision-object/action level. MIC (Roth, Brattoli,
+and Ommer, ICCV 2019) explicitly learns pose/view/illumination characteristics
+shared across classes, separates them from the class representation, and drops
+them for zero-shot DML deployment on the same benchmarks. Unsupervised
+Adversarial Invariance (Jaiswal et al., NeurIPS 2018) and
+Invariant-Equivariant Representation Learning for Multi-Class Data (Feige,
+ICML 2019) also split predictive/class content from unlabeled nuisance or
+within-class transformation content. Group-invariant retrieval, complex
+modulus/Phase Collapse, Augerino, canonicalization, latent-symmetry discovery,
+and tangent quotients occupy the operators. The narrow fixed-torus readout may
+be unoccupied, but stripped of non-identifying routing it is the proposal's
+quotient-only C3 control, forecast at zero gain.
+
+The cold review corrects four local overstatements without changing the death.
+Epsilon smoothing preserves maximal-invariant equivalence and changes the orbit
+inner product only by roughly `3e-11`; the finite-global-mean null threshold is
+only about 2.6 percent conservative; the epsilon-consistent phasor Jacobian is
+correct; and F4 is a legal diagnostic because it triggers no repair. The
+stronger null defect is that hinging a fluctuating statistic at its mean has
+positive expectation, so `L_prot` is not zero under the null. F5 remains an
+illegal test-label-selected repair, and F8's instruction to discard high-phase-
+energy seeds is selective reporting.
+
+The experiment also bypasses paired corrected In-Shop, omits raw-best versus
+independently selected/final reporting, leaves out-of-sample confirmation
+unspecified, and changes PFML's unresolved recipe. It says changing the base
+loss requires retuning `Delta*=0.15`, then uses that same value for its PFML
+headline without a legal train-only selection protocol. C4/C5/C9—the controls
+most able to expose generic disposable variation—have no locked thresholds.
+No amount of free GPU repairs a candidate that fails these earlier gates.
+
+Correct pieces are the raw-modulus maximal invariant, orbit-maximized cosine
+identity, nonnegative destroyed-distance formula, the conditional circle-versus-
+line lemma, finite-sample-null construction, compact 512-D deployment, strong
+WCCN/quotient/anti-collapse controls, and honest source ambiguity. They remain
+mathematical components, not authorization to run the frozen method.
+
+Process lesson: a theorem that a quotient removes a **specified** group action
+is not a theorem that label-only losses **discover** that action. Before GPU,
+construct the cheapest class-independent disposable channel and require every
+mechanism probe to distinguish it; non-redundant constraints and transferable
+junk are not identified nuisance supervision.
+
+Primary neighbours: Roth et al., *MIC*, ICCV 2019; Jaiswal et al.,
+*Unsupervised Adversarial Invariance*, NeurIPS 2018; Feige,
+*Invariant-Equivariant Representation Learning for Multi-Class Data*, ICML
+2019; Zarka, Guth, and Mallat, *Phase Collapse in Neural Networks*, ICLR 2022;
+Morere et al., *Group Invariant Deep Representations for Image Instance
+Retrieval*, 2016; and Singhal, Xing, and Yu, *Co-Domain Symmetry for
+Complex-Valued Deep Learning*, CVPR 2022.
+
+Full artifacts:
+docs/opus_blind_prompt_pass47_2026-08-06.txt,
+docs/opus_pqml_proposal_pass47_2026-08-06.md,
+docs/opus_pqml_review_prompt_2026-08-06.txt,
+docs/opus_pqml_review_2026-08-06.md, and
+docs/opus_pqml_local_audit_2026-08-06.md.
