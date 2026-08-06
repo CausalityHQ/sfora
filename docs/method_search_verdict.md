@@ -7866,3 +7866,22 @@ unsatisfiable at the operating point and the construction is confounded by an
 area schedule. No ECT training run was authorized. Full artifacts:
 `docs/opus_ect_proposal_pass62_2026-08-06.md`,
 `docs/opus_ect_review_2026-08-06.md`, and `docs/ect_zero_probe_2026-08-06.md`.
+
+### Pass 63 — IRH (iso-response homogenization): DEAD at Gates 1–2
+
+Mechanism: a divergence-free evidence-structured pixel transport, persistent
+per-example Robbins–Monro displacement states, and a centered loss intended to
+equalize finite-radius response thresholds. The cold review found the only
+gradient is a signed per-example Pi-model/VAT consistency term because the
+staircase state and rank weights are detached. Divergence-free transport and
+the stateful staircase are occupied by Mots’oehli et al. (ICCV 2025
+CV4DC/arXiv:2507.05536) and IAAT (arXiv:1910.08051); signed consistency is
+occupied by Equivariant Contrastive Learning (ICLR 2022).
+
+The proposed F0 spread test is unidentifiable at 15–25 trials per image and
+passes from staircase noise even with zero true spread. Area preservation also
+does not prevent condition-number growth and bilinear resampling blur, so the
+ECT area confound returns as a displacement-dependent resampling confound and
+response monotonicity fails. No GPU run was authorized. Full artifacts:
+`docs/opus_irh_proposal_pass63_2026-08-06.md`,
+`docs/opus_irh_review_2026-08-06.md`.
