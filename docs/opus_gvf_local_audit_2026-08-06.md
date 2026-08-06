@@ -119,3 +119,38 @@ The project has now repeatedly measured against and rejected a global
 cross-identity nuisance frame. Future proposals in this family require a new
 prospective disjoint-identity intervention, not another manifold, frame, or
 proxy parameterization.
+
+## Reconciliation with the frozen cold review
+
+The independent Opus review completed after this audit was frozen and also
+returned **DEAD**. It confirms the local Gate 1/2 rejection and adds a stronger
+executable kill inside the inherited PFML energy.
+
+GVF's amplitude derivation includes sample-to-proxy attraction but omits
+same-class proxy-to-proxy attraction. PFML evaluates every class potential at
+every proxy, producing 225 ordered proxy-proxy attractive terms at M=15 versus
+about 120 sample-proxy terms under the proposed sampler. Those proxy pairs sit
+at much smaller distance and are correspondingly stiffer. Exact spherical
+scalar calculations across PFML's disclosed delta range give an amplitude
+optimum of 0.000 rad at delta=0.1, 0.010 at delta=0.2, and 0.150 at delta=0.3,
+instead of the 0.615--0.650 rad predicted from samples alone. The first two
+trigger GVF's own F2 kill; the last is reduced to 0.0375 by the terminal beta
+anneal.
+
+The reviewer also finds that F0 confuses a per-direction escape condition with
+aggregate top-seven explained variance. If every direction needs
+a_k squared above 1/(alpha+2), seven live directions require E7 above
+7/(alpha+2), impossible for alpha at most four and requiring 87.5--100% of
+energy at alpha five or six. Four synthetic spectra all passed frozen F0 while
+zero or one directions were live. Thus the proposed pretest would authorize a
+mechanism its own derivation says is inactive.
+
+The review independently rejects the capacity proof, SOP's unsigned
+construction, the between-class self-certification, duplicated-proxy K
+controls, and the frozen probability arithmetic. It confirms that SFT's exact
+implementation differs from GVF, but identifies FTL (CVPR 2019) and shared
+intra-class variant-basis work as closer occupation of the same class-mean plus
+class-independent variation premise. This narrows the bibliographic claim but
+does not alter the local mechanism-level Gate 2 verdict.
+
+Frozen review: docs/opus_gvf_review_2026-08-06.md.

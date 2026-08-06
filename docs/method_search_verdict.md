@@ -6096,3 +6096,63 @@ Full artifacts:
 docs/opus_poter_proposal_pass33_2026-08-06.md,
 docs/opus_poter_review_2026-08-06.md, and
 docs/opus_poter_local_audit_2026-08-06.md.
+
+### Thirty-fourth blind pass: GVF repeats shared variation transfer and omits PFML proxy contraction
+
+**DEAD at Gate 1 and Gate 2, with the inherited PFML energy independently
+shown to crush the proposed frame; no preregistration, implementation, or
+GPU.** The direct Opus proposal returned Generic Variation Frame (GVF):
+replace PFML's free per-class proxies by geodesic displacements from class
+means along one learned global tangent frame, reuse that frame for stopped-
+anchor virtual classes, and delete all scaffolding at deployment.
+
+Gate 1 is prospectively adverse. Candidate 225's locked disjoint-identity
+within-class-subspace transfer ratios were 0.9312, 0.9287, and 0.9345, all
+below its 1.15 falsifier and the random-subspace reference. Passes CITTR, EFML,
+CFR, and FRAME already failed variants of the same shared-nuisance premise.
+GVF's proposed E7 test is an in-sample CUB PFML fit requiring a full GPU run;
+it cannot override disjoint-identity transfer evidence and violates the
+In-Shop-first screen.
+
+The cold review finds a decisive defect in GVF's amplitude calculation. It
+models sample-proxy attraction but omits PFML's 225 ordered same-class
+proxy-proxy attraction terms at M=15. Those pairs are much closer and vastly
+stiffer than roughly 120 sample-proxy terms. Across PFML's disclosed delta
+range, exact spherical calculations move the amplitude optimum from the
+predicted 0.615--0.650 rad to 0.000, 0.010, and 0.150 rad for delta 0.1, 0.2,
+and 0.3. Most settings trigger GVF's own below-0.02 kill; terminal beta reduces
+the surviving 0.150 to 0.0375.
+
+F0 is mathematically miscalibrated. Its escape condition is per direction,
+but it thresholds aggregate E7 at one direction's 1/(alpha+2) bar. Seven live
+directions require E7 above 7/(alpha+2), impossible for alpha at most four and
+nearly total seven-dimensional concentration for alpha five or six. Tested
+power-law, exponential, and hard-rank spectra all passed F0 while zero or one
+directions were live.
+
+Gate 2 is occupied at the supervision-object level by Spherical Feature
+Transform, DVML, FTL, ESRC/shared intra-class variant dictionaries, and
+structured multi-proxy work. The cold reviewer confirms SFT itself is
+nonparametric rather than GVF's exact learned frame, but FTL explicitly models
+features as a class-dependent mean plus class-independent shared variance.
+Changing the proxy parameterization and adding a virtual-class scaffold does
+not create a new supervision object.
+
+Other failures reinforce the rejection: scalar parameter counts do not prove
+PFML proxies memorize images; the backbone retains class-indexing capacity;
+repulsion is flat outside PFML's short hard core and cannot self-certify a
+nuisance frame; SOP's M=2 unsigned variant contradicts the p0-plus/minus
+formula; tied ambient directions are not parallel after class-specific tangent
+projection; best-test-epoch selection preserves the measured winners curse;
+and the proposal's headline means contradict its own crossing probabilities.
+
+Process lesson: when extending a published energy, derive the candidate under
+the complete interaction graph, including proxy-proxy terms. A correct local
+sample-proxy expansion can predict the opposite fixed point once the omitted
+interactions dominate. Shared-frame variants also remain closed absent new
+disjoint-identity evidence.
+
+Full artifacts:
+docs/opus_gvf_proposal_pass34_2026-08-06.md,
+docs/opus_gvf_review_2026-08-06.md, and
+docs/opus_gvf_local_audit_2026-08-06.md.
