@@ -191,3 +191,57 @@ estimator identity fail twice and the broader homoscedastic-covariance target
 at least twice. Future proposals must compare their statistic's exact finite-
 batch zero set against the advertised population property before novelty
 search or GPU.
+
+## Reconciliation with the frozen cold review
+
+The independent Opus review completed after this audit was frozen and returned
+**DEAD**, with the same earliest failure: T1's zero set is cross-class
+subspace separation, not class-conditional isotropy. It strengthens the local
+counterexample in four useful ways.
+
+First, exact degeneracy is dimensionally feasible on the two forecast
+fine-grained datasets. Five samples give each empirical class residual
+covariance rank at most four, while CUB has 100*4=400<=512 and Cars has
+98*4=392<=512; all training-class residual subspaces can therefore be mutually
+orthogonal in the deployed dimension. A direct 4,000-step CPU descent on the
+frozen pseudocode drove d*U from 1.0043 to zero and L_shape from +0.0043 to
+-11.5427, while per-class effective rank fell and condition number rose. Adding
+a Proxy-Anchor term did not reverse the sign.
+
+Second, direction normalization creates an additional identification error:
+E[dd^T/||d||^2] is not Sigma/tr(Sigma) for an anisotropic law. In the
+reviewer's four-dimensional Gaussian check, the leading directional moment
+was 0.6205 where the normalized covariance prediction was 0.8182.
+Consequently HIRE's reported r_eff is not the covariance effective rank named
+in its causal story.
+
+Third, finite-difference/autograd checks confirm the local derivative audit.
+The stopped denominator gives Jacobian I/rho; the measured radial shape
+gradient was +0.025418, exactly the non-tangent analytic value. Below the
+clamp, contributions shrink as rho^4, furnishing another reward for
+contraction. At exact collapse the executable log-scale terms yield NaN/Inf
+rather than the claimed repulsive dynamics.
+
+Fourth, the full proposed programme is about 1,206 GPU-hours, not merely the
+near-zero per-step overhead, once its tuning, controls, and seed table are
+counted. This makes the proof-level rejection especially consequential.
+
+The review correctly resolves NIR as a normalizing-flow density intervention,
+not literally a second-moment sign flip. Its published diagnosis remains
+adverse evidence: Proxy Anchor's locally isotropic residuals lose semantic
+context. The local Gate-2 verdict is stronger because the cold reviewer was
+intentionally barred from repository history and therefore did not see the
+exact candidate-374 recurrence or Pass-22 CINA/Cheng collision.
+
+One reviewer conclusion is not adopted. Its fixed-tangent-noise calculation
+shows that a common natural construction on the unit sphere has much smaller
+radial than tangential variance; it does not prove that every spherical
+distribution with nonzero mean and isotropic covariance is geometrically
+impossible. A scalar radial mixture with appropriately coupled uniform tangent
+directions can satisfy the first two moments when the moment inequalities are
+feasible. The narrower conclusions remain: HIRE does not derive feasibility
+for its trained distributions, its statistic does not enforce the target, and
+Frobenius effective rank does not control the condition number used in its
+causal bound.
+
+Frozen review: docs/opus_hire_review_2026-08-06.md.

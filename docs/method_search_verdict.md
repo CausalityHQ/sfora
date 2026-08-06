@@ -5952,3 +5952,78 @@ Full artifacts:
 `docs/opus_xtail_proposal_pass31_2026-08-06.md`,
 `docs/opus_xtail_review_2026-08-06.md`, and
 `docs/opus_xtail_local_audit_2026-08-06.md`.
+
+### Thirty-second blind pass: HIRE repeats cross-class residual orthogonality and homoscedastic covariance
+
+**DEAD at Gate 1 and Gate 2, with an exact wrong-zero-set failure independently
+confirmed by CPU descent; no preregistration, implementation, or GPU.** The
+direct Opus proposal returned Homoscedastic Isotropic Residual Embedding
+(HIRE): retain Proxy Anchor, equalize per-class pair-distance scales, impose a
+scatter floor, and minimize cross-class squared inner products between
+normalized same-class pair differences. It claimed the last statistic
+unbiasedly certifies that every identity-conditional covariance is a common
+isotropic matrix.
+
+Gate 1 has no eligible provenance. No corrected repository measurement links
+conditional covariance anisotropy or heteroscedasticity to official-query
+errors, demonstrates that whitening repairs them, or shows transfer of a
+common nuisance covariance across disjoint identities. Candidate 225's locked
+within-class-subspace transfer ratios (0.9312, 0.9287, 0.9345) were all below
+its 1.15 threshold and are adverse to the shared-nuisance premise. HIRE's
+effective ranks, condition numbers, and R@1 conversion are invented forecasts;
+BLenDeR's external-data gain measures a different intervention.
+
+The central statistic has the opposite zero set. For per-class directional
+moments C_c, it computes
+
+    U = [||sum_c C_c||_F^2 - sum_c ||C_c||_F^2]/[P(P-1)].
+
+It removes every within-class self term, so minimizing it rewards private,
+mutually orthogonal rank-one/low-rank class residual codes. Such a code gives
+U=0, strictly below the advertised isotropic value 1/d. This is the exact
+failure already recorded for candidate 374, Cross-identity Residual
+Orthogonality. It is not merely asymptotic: at five samples each empirical
+class residual subspace has rank at most four, and exact orthogonal allocation
+fits CUB (100*4=400<=512) and Cars (98*4=392<=512). The independent review's
+4,000-step CPU descent drove d*U: 1.0043 -> 0 and
+L_shape: +0.0043 -> -11.5427 while per-class anisotropy worsened, unchanged by
+adding Proxy Anchor.
+
+Two more proof-level defects reinforce the kill. Normalized pair directions
+satisfy E[dd^T/||d||^2] != Sigma/tr(Sigma) under anisotropy, so the named
+covariance effective rank is not what HIRE measures. And because the norm
+denominator is stopped, the executed Jacobian is I/rho, not the claimed
+tangent projector; shape pressure is radial and shrinks residuals. In the
+clamped regime direction norms fall below one and contributions decay as
+rho^4; at exact collapse the log-scale pseudocode returns NaN/Inf rather than
+a divergent escape gradient.
+
+Gate 2 is occupied twice. The shape action repeats candidate 374 and repaired
+forms are Global Orthogonal Regularization/class-wise decorrelation. The
+broader target repeats Pass 22 CINA: Cheng et al. (CVPR 2021) already train
+different class means with one learned covariance shared by all classes and
+evaluate on CUB; Deep CORAL and Conditional Bures Metric occupy differentiable
+covariance alignment. NIR is not literally the same statistic, but its
+published diagnosis is opposite: proxy-induced local isotropy discards useful
+semantic context.
+
+The causal proof also overstates Kantorovich: condition number supplies a
+worst-direction bound, while anisotropic covariance is lossless when a class
+mean difference aligns with an eigenvector. Thus efficiency is not determined
+by condition number alone. The fixed P=30,K=5 sampler duplicates sparse
+SOP/In-Shop classes, injecting zero pair differences into the broken
+statistics. Standalone PA+HIRE forecasts stay below PFML; every crossing
+depends on an unreproduced PFML+HIRE composition, and the required In-Shop
+screen is absent. Although per-step overhead is negligible, the proposed
+tuning/control programme totals roughly 1,206 GPU-hours.
+
+Process lesson: before naming a pairwise U-statistic after a population
+property, expand its exact finite-batch algebra and compare global minima. A
+cross-class-only squared-inner-product loss is a supervised private-subspace
+allocator unless within-class self terms oppose it. This exact estimator family
+should not recur.
+
+Full artifacts:
+docs/opus_hire_proposal_pass32_2026-08-06.md,
+docs/opus_hire_review_2026-08-06.md, and
+docs/opus_hire_local_audit_2026-08-06.md.
