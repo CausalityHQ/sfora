@@ -1,0 +1,64 @@
+Provider: claude-opus (independent frozen-proposal reviewer; do not dispatch another consultation)
+Frozen before consultation start: 2026-08-06 UTC
+
+You are the independent cold reviewer in a rigorous method-invention protocol.
+Review exactly this frozen proposal:
+
+  docs/opus_frame_proposal_pass27_2026-08-06.md
+
+Do not inspect any other repository file, git history, prior conversation,
+process state, or failure catalogue. Do not edit the repository. Use primary
+sources and scratch calculations as needed. Do not propose a repaired or
+replacement method.
+
+The proposal is FRAME: constrain class-conditional within-class covariance
+operators of a proxy-DML embedding to commute/share a diagonalizing frame,
+using a fourth-order U-statistic for conditional off-diagonal energy plus a
+two-sided information band on class identity versus variance coordinate.
+Judge the exact frozen formulation, not a charitable repair.
+
+Return one verdict: LIVE, DEAD, or BLOCKED. LIVE means the executable method,
+novelty distinction, causal mechanism, controls, forecasts, and costs survive
+strongly enough to proceed to local repository provenance. DEAD means any
+decisive mathematical, identifiability, prior-art, or protocol defect kills it.
+BLOCKED is only for a specific unavailable fact.
+
+At minimum:
+
+1. Derive the order-4 estimator and gradients exactly. Verify whether it is
+   unbiased for the claimed conditional off-diagonal/commutator functional at
+   m=4, including centering, tuple/pairing dependence, normalization, finite
+   sample bias, PSD/covariance assumptions, and behavior at collapse.
+2. Test the global-rotation argument. A proxy cosine loss is invariant under a
+   joint rotation of embeddings/proxies, but determine whether that makes a
+   coordinate-wise off-diagonal penalty a rotation-invariant family functional
+   during optimization, whether the proposed estimator actually minimizes over
+   the frame, and whether AdamW/BN/linear-head parameterization breaks the
+   claimed equivalence.
+3. Verify the theorem connecting joint diagonalization/commuting covariances to
+   zero-shot worst-case ranking leakage. Attack the fixed-diagonal assumption,
+   uniqueness claim, unseen-class transfer, covariance-only sufficiency,
+   tangent geometry of normalized descriptors, and nuisance/semantic
+   confounding.
+4. Derive the modulation-information estimator and both band limits. Check the
+   null calibration, minibatch/class-count dependence, differentiability,
+   shortcut solutions, dimension multiplicity, scale invariance, and whether
+   the upper/lower bounds are mutually satisfiable with Term 1 and Proxy Anchor.
+5. Search primary literature adversarially: class-wise covariance
+   regularization (especially cw-CR/cw-VR), simultaneous/joint diagonalization,
+   common principal components, nonlinear ICA with auxiliary variables,
+   conditional whitening/domain generalization, VICReg/Barlow Twins, OLE,
+   DVML/SFT/shared intra-class variation, non-isotropy DML, covariance pooling,
+   common-subspace face/re-ID methods, and any train-time DML method enforcing
+   commuting or shared covariance eigenvectors. Distinguish supervision object,
+   not notation.
+6. Verify every baseline recipe, reference value, forecast, SEM/frontier
+   calculation, control threshold, compute/memory estimate, and claim of an
+   unbiased 512-D estimator at batch m=4.
+7. Determine whether controls isolate commuting covariance from ordinary
+   isotropy, per-class covariance shrinkage, decorrelation, spectral
+   regularization, variance equalization, and generic fourth-order noise.
+8. Enumerate false, inconsistent, non-executable, and underdefined claims, and
+   state exactly what survives without repairing FRAME.
+
+Be mathematically explicit and report negatives as plainly as positives.
