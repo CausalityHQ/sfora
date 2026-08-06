@@ -1,0 +1,94 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_nrq_proposal_pass52_2026-08-06.md
+
+Its frozen SHA-256 is
+d12787effc0353a399c688404d1009974b962ff691b78cec9abb660f43c87b83.
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal, the
+supplied evidence below, and primary sources. Do not launch another
+consultation or agent. Return LIVE, DEAD, or UNRESOLVED with the earliest failed
+gate and one decisive mechanism-level reason. This is adjudication, not repair;
+do not silently improve or replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. No test/gallery data or
+unseen test identities may enter method selection. Deployment is one
+single-view encoder, one 512-D normalized descriptor, and cosine NN. A live
+candidate must screen paired corrected In-Shop first, report raw plus
+independently selected/final, confirm out of sample, and replicate.
+
+Independently audit at least:
+
+1. Treat this as the complete admissible repository premise. No corrected
+   measurement here shows that PFML or Proxy Anchor attains train augmentation
+   invariance by seen-class lookup, that a train/test-identity variance ratio
+   exceeds 3, that descriptor rank starvation causes official-query errors, or
+   that lost ImageNet-initial features are useful for unseen identities. The
+   proposal has not measured its teacher spectrum, `k*(epsilon)`, or achieved
+   sufficiency error. Decide whether external class-collapse literature and a
+   future diagnostic satisfy Gate 1.
+2. Treat the following as locked prospective evidence. Candidate 225 learned
+   leading within-class subspaces on source identities and tested transfer to
+   disjoint identities; corrected `rho_32` was 0.9312, 0.9287, and 0.9345 for
+   seeds 0--2, all below the locked 1.15 threshold and below one. Corrected ARCG
+   found augmentation-response compatibility image-specific on In-Shop,
+   retaining 0.3631--0.3640 of same-class pairs. Determine whether these support
+   or contradict a compact class-exogenous nuisance register safe to delete.
+3. Verify Proposition 1 and its corollary exactly. Separate the valid affine
+   low-rank regression tail bound from what it says about useful deployed
+   representation. Check all inequalities, normalization by total variance,
+   the proposed calibration, `r=64`, and the fact that normalized `zhat` lies
+   on a sphere.
+4. Attack this possible escape rigorously. Let
+   `zhat_delta=normalize(mu_y + delta*q(x,theta))`, where bounded tangent code
+   `q` has high covariance rank. For every nonzero delta, can an unregularized
+   decoder with weights scaling as `1/delta` recover teacher residuals while
+   the cosine invariance penalty is `O(delta^2)`? Does the rank certificate
+   exclude only exact equality while arbitrarily near class lookup remains
+   free? Identify any frozen term that bounds decoder gain or supplies a lower
+   singular-value/amplitude floor; do not import unspecified repairs.
+5. Audit whether rank has semantic force. Can augmentation hash, crop/background
+   detail, random-teacher variation, or identity-private codes satisfy the
+   certificate without helping unseen-identity retrieval? Determine what the
+   random-teacher control would and would not establish.
+6. Audit routing and deletion. The decoder reconstructs the whole frozen
+   feature from `[zhat;n]`, both heads share a trunk, and `L_reg` penalizes only
+   across-class variance of batch class means. Can view-dependent information
+   remain in `zhat` or the shared trunk? Can identity occupy zero-mean
+   within-class patterns, higher moments, or nonlinear register codes? Does
+   deleting the register constitute a nuisance quotient without an identified
+   group action or kernel?
+7. Search primary prior art aggressively by mechanism: Domain Separation
+   Networks; Unsupervised Adversarial Invariance; invariant-equivariant
+   representation learning for multi-class data; AugSelf, SIE, LOOC, E-SSL;
+   MIC, DiVA, S2SD, DVML; L2-SP, DELTA, LP-FT, and Initial Feature
+   Regularization; NAP/WCCN; spectral/rank anti-collapse methods. Judge the
+   supervision object and action -- shared/private or invariant/equivariant
+   split, joint reconstruction, task branch deployed/private branch discarded,
+   and frozen-init feature retention -- rather than exact names. State whether
+   frozen-feature target plus an ineffective rank wrapper is substantive.
+8. Audit all degeneracies and controls C1--C12. Check whether `L_reg` identifies
+   nuisance, whether a 40% register class probe is compatible with its claim,
+   whether CKA or theta probes prove routing, whether C7/C8 isolate the
+   conjunction, and whether C11's 540-epoch base is a matched-compute control.
+   Account for two student plus two frozen-teacher forwards and decoder
+   backward, sample exposure, memory, and wall time.
+9. Reconcile the method with the mandated screen. Its rank-floor inequality is
+   vacuous for In-Shop (`C=3997`) and SOP, which the proposal calls a feature.
+   It supplies no numeric In-Shop prediction, while the protocol requires
+   corrected paired In-Shop first. Decide what a positive or null In-Shop arm
+   could say about the claimed rank mechanism.
+10. Verify frontier arithmetic and protocol: PFML reproduction ambiguity,
+    paired uncertainty, hyperparameter selection, current-digest controls,
+    raw versus independently selected/final metrics, out-of-sample seeds,
+    second-dataset replication, and whether any forecast is quantitatively
+    derived from measured premises. Note internal specification errors without
+    inflating them into the verdict.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
