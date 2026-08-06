@@ -142,3 +142,43 @@ Primary neighbours:
   <https://arxiv.org/abs/2108.11179>
 - Wang et al., *Cross-Batch Memory*, CVPR 2020:
   <https://openaccess.thecvf.com/content_CVPR_2020/html/Wang_Cross-Batch_Memory_for_Embedding_Learning_CVPR_2020_paper.html>
+
+## Post-freeze reconciliation with the independent review
+
+The frozen cold review in `docs/opus_rlml_review_2026-08-06.md` independently
+returns **DEAD** and identifies the prohibited F4 test-identity gate as the
+earliest failure. It confirms the internal recurrence and adds several stronger
+exact results:
+
+- The attractive-gradient fraction is **38.7% Cars, 39.7% CUB, 69.3%
+  In-Shop, and 70.4% SOP** of the selected hardest-negative band. It rises with
+  the claimed extrapolation depth and tends to 75%. Near the exponential
+  reference, raising the bottom 70% is about **5.6 times** more loss-efficient
+  than honestly lowering the top 30%.
+- RLML's three changes from TERL cannot alter that sign: raw versus normalized
+  exceedances leave PWM shape invariant to scale; the tanh cap is strictly
+  monotone; and theta only shifts `log m`. They are inert estimator wrappers on
+  the rejected gradient.
+- Return level is monotone increasing in fitted shape, so descent has no
+  interior resistance to driving shape toward the `-4` clamp. There it is
+  essentially independent of `m` and reduces to a fixed scale offset. Worse,
+  separately clamping/EMA-averaging shape and scale breaks the point-mass limit
+  invoked in P2: scale can diverge while shape remains pinned.
+- With the frozen `theta=1/mean_images_per_class` and
+  `mean_images_per_class=N/C`, the proposed depth simplifies exactly to
+  `m=theta*rho*N=rho*C`. Training cardinality cancels. The method therefore
+  carries **training class count**, not gallery size. The In-Shop value is
+  `0.15*3997=599.55`, not 598; the heuristic is not a valid extremal-index
+  estimate because exceedance cluster size is not class size.
+- The claim that training cardinality is within about 2% of test-gallery size
+  is false on In-Shop: 25,882 is 105% larger than its 12,612-image gallery. It
+  is close only to query plus gallery, a quantity unavailable to legal method
+  design.
+- The review confirms the In-Shop forecast is irreconcilable and counts about
+  eleven, not seven, new constants. Tuning on CUB is especially uninformative
+  because the proposal itself says extrapolation is inactive there, while the
+  adverse attractive fraction nearly doubles on SOP.
+
+The review preserves the PWM algebra, series, split cardinalities, gradient-
+norm matching, several controls, legal zero-cost deployment, and the unpaired
+SE as conservative rather than optimistic. None changes the Gate-1/2 death.

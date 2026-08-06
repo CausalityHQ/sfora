@@ -7218,3 +7218,95 @@ docs/opus_nrc_proposal_pass48_2026-08-06.md,
 docs/opus_nrc_review_prompt_2026-08-06.txt,
 docs/opus_nrc_review_2026-08-06.md, and
 docs/opus_nrc_local_audit_2026-08-06.md.
+
+### Forty-ninth blind pass: RLML is the eleventh gallery-tail recurrence and its depth variable cancels
+
+**DEAD at the legal gate plus Gates 1 and 2, independently confirmed by a cold
+mathematical and primary-source review; no diagnostic, preregistration,
+implementation, or candidate GPU.** Return-Level Metric Learning (RLML)
+selected the top 15% of in-batch negative similarities, pooled their
+exceedances, fit Hosking--Wallis PWM GPD shape/scale, extrapolated a nominal
+hardest-negative return level, and hinged it against a smooth best-positive
+score. Its advertised novelty was differentiating through fitted shape so the
+lower portion of the hard-negative tail is attracted while its upper portion is
+repelled.
+
+The first frozen gate is illegal. F4 fits tail shape on unseen **test-split
+identities**, compares it with train-split shape, and advances or kills RLML at
+an absolute `0.15` threshold before training. That is test-identity method
+selection, not post-hoc diagnosis. A held-out training-identity fold could make
+a new legal diagnostic; it is not the frozen object.
+
+Gate 1 is prospectively adverse. Pass 31 XTail found only `0.0087` incremental
+R-squared from fitted shape beyond threshold and mean excess; shape noise used
+67--86% of the gallery-depth signal; and a tuned constant deep-quantile
+estimator had RMSE `0.0918` versus fitted `0.1575`. Pooling and EMA reduce
+variance but cannot create missing information, identify train-to-unseen tail
+transport, or make a heterogeneous mixture an anchor-specific tail. RLML
+provides no new causal measurement.
+
+Gate 2 is the exact **eleventh** internal gallery-tail recurrence after EVPC,
+RLM, EGR-PFML, PORTAL, PORT, XTail, POTER, CFEV, GEVS, and TERL. TERL already
+pooled per-query PWM exceedances, used a straight-through EMA, extrapolated a
+return level, and hinged it against a smooth positive. Raw instead of normalized
+exceedances leaves the PWM shape invariant to scale; the tanh cap is strictly
+monotone; and a changed extremal-index heuristic only shifts `log m`. None
+changes the supervision object or rejected gradient. Publicly, WEINCE places a
+POT correction of negative cosine tails in a train-time contrastive loss, while
+LDReg differentiates a tail-index-family statistic. Recall@k/rank/CVaR,
+ROADMAP/Smooth-AP, XBM, and biometric EVT occupy the surrounding action and
+return-level operator.
+
+The proposed novelty is analytically adverse. Its own formula assigns an
+attractive update to **38.7% Cars, 39.7% CUB, 69.3% In-Shop, and 70.4% SOP** of
+the selected top-15% negative band; the fraction rises toward 75% as nominal
+depth grows. Retrieval error is monotone nondecreasing in every negative
+similarity. Around the exponential reference, raising the lower 70% of the band
+reduces the fitted return loss about **5.6 times** more efficiently than honestly
+lowering the top 30%. Descent therefore improves the estimator by making many
+hard negatives worse. Return level is also monotone in fitted shape, driving it
+toward the `-4` clamp, where the value is essentially independent of depth and
+reduces to a fixed scale offset. Separately clamping/EMA-averaging shape and
+scale invalidates the point-mass limit used to defend this path.
+
+The alleged gallery-depth variable cancels exactly. With
+`theta=1/mean_images_per_class`, `mean_images_per_class=N/C`, and
+`m=theta*rho*N`, one obtains **`m=rho*C`**. RLML contains training class count,
+not gallery size. Its ordering prediction is therefore the class-count ordering
+and is confounded with PFML proxy count. The In-Shop `m` is 599.55, not 598;
+reciprocal class size is not a valid extremal index; and the claim that training
+size is within about 2% of test-gallery size is false on In-Shop, where 25,882
+is 105% larger than the 12,612-image gallery.
+
+The headline forecast also fails elementary registration. `0.930 + 1.3`
+percentage points is `0.943`, not the table's `0.934`; its interval and
+coin-flip prose match neither number. PFML's carrier leaves its sampler,
+schedule, weight decay, augmentation, proxy normalization, and alpha/delta
+selection unresolved, while RLML invents a 4-by-45 batch on which its estimator
+depends. About eleven new constants are present, not seven. It bypasses paired
+corrected In-Shop, omits raw-best/final and out-of-sample stages, and uses a
+conservative but unpaired uncertainty estimate.
+
+Correct pieces are the PWM-to-GPD formulas, exponential/uniform sanity checks,
+zero-shape series, cosine cap, legal zero-cost deployment, gradient-norm
+matching, explicit constant/quantile/XBM controls, and honest source
+ambiguities. They are reusable diagnostics, not a live method.
+
+Process lesson: the gallery-tail family is now a hard stop until prospective
+evidence reverses XTail. Algebraically simplify every purported dose variable
+before giving it causal meaning; here gallery depth became class count. Any
+gradient that rewards raising a negative is presumed estimator gaming until a
+separate retrieval-monotone objective proves otherwise, and unseen test
+identities can never be a pre-run gate.
+
+Primary neighbours: Erol et al., *WEINCE*, 2026; Huang et al., *LDReg*, ICLR
+2024; Patel et al., *Recall@k Surrogate Loss*, CVPR 2022; Wang et al.,
+*Cross-Batch Memory*, CVPR 2020; and Hosking and Wallis, *Parameter and Quantile
+Estimation for the Generalized Pareto Distribution*, Technometrics 1987.
+
+Full artifacts:
+docs/opus_blind_prompt_pass49_2026-08-06.txt,
+docs/opus_rlml_proposal_pass49_2026-08-06.md,
+docs/opus_rlml_review_prompt_2026-08-06.txt,
+docs/opus_rlml_review_2026-08-06.md, and
+docs/opus_rlml_local_audit_2026-08-06.md.
