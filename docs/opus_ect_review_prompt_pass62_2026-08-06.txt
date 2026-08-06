@@ -1,0 +1,29 @@
+You are the mandatory cold independent reviewer for Pass 62 ECT. Read only
+docs/opus_ect_proposal_pass62_2026-08-06.md and
+docs/opus_ect_local_audit_2026-08-06.md. Do not inspect other local files,
+history, or prior conversations and do not edit files. Use public primary
+literature where available.
+
+Judge Gates 1–2 before any GPU. ECT builds anchor/partner composites by
+deleting the anchor’s current evidence-salient cells and replacing them with a
+partner, then imposes a two-sided winner-take-all target: below a deletion mass
+the composite must remain the anchor, while must-switch composites must become
+the partner. The claim is that this causal contradiction trains redundant
+identity evidence and differs from proportional SnapMix/CutMix, erasure,
+attention diffusion, crop consistency, and metric-learning mixup.
+
+Attack novelty at mechanism level, not by finding a paper with one shared word.
+Check SnapMix, Attentive CutMix, PuzzleMix/Co-Mixup/SaliencyMix, Hide-and-Seek,
+Cutout/Random Erasing, ACoL/ADL/Batch DropBlock, Metrix/i-Mix, DAML/HDML,
+SwAV/DINO crops, and any counterfactual saliency or adversarial patch training.
+Decide whether evidence-adversarial *deletion* plus a bistable/must-switch
+target is an occupied mechanism or a defensible new supervision construction.
+
+Also audit fatal degeneracies: the model can suppress or flatten its evidence
+map; the pasted seam may be detectable; norm-weighted pooling may not match the
+baseline; must-switch may be impossible for visually dissimilar partners; the
+minority repulsion may be a hidden ordinary negative loss; and the composite
+could reduce to hard CutMix. Check compute, labels, and target stop-gradients.
+Return LIVE or DEAD unambiguously. If LIVE, state the minimum controls and
+pre-registration required before GPU. If DEAD, cite the decisive mechanism and
+do not suggest implementation.
