@@ -7909,3 +7909,21 @@ alpha .0/.25/.5/.75/1/1.25/1.5/2/3 gave R@1 .6555/.6580/.6653/.6757/.6816/.6813/
 reopening threshold; local and between failures traded monotonically. This is
 diagnostic evidence against a large rank-preservation opportunity, not a method
 result.
+
+### Pass 65 — KCR (Krylov continuation readout): DEAD at Gates 1–2
+
+Mechanism: unroll a zero-initialized tied residual block and read a
+Gram-ridged affine continuation of its iterates, differentiating through the
+coefficients to alter off-support extrapolation. The cold review found the
+operator exactly equals Regularized Nonlinear Acceleration (Scieur,
+d’Aspremont & Bach, NeurIPS 2016), which explicitly identifies it with
+Anderson/Eddy–Mešina/MPE/RRE. Differentiable unrolled Anderson/DEQ and
+divergent-sequence Shanks/Wynn use are also prior art. Algebraically KCR is
+seven scalar gains on the block’s own increments; final-iterate and uniform
+average controls are exact points of the same parameterization. Zero
+initialization makes the Gram coefficient gradient zero to first order, and
+contraction naturally reduces the block to a fixed point or deeper backbone.
+Gate 1 also failed because the proposed seen/unseen contraction mismatch was
+never measured locally. No D0 or GPU run was authorized. Full artifact:
+`docs/opus_kcr_proposal_pass65_2026-08-06.md`,
+`docs/opus_kcr_review_2026-08-06.md`.
