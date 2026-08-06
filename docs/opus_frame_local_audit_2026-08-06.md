@@ -182,3 +182,37 @@ the executed targets. A future covariance proposal needs a new positive
 repository measurement that survives disjoint identities and must change what
 supervision exists, not only provide a clever unbiased estimator for an old
 functional.
+
+## Independent-review reconciliation
+
+The separately frozen cold review (`docs/opus_frame_review_2026-08-06.md`) also
+returns **DEAD** and verifies that Proposition 1's tetrad U-statistic is correct,
+including its full four-sample symmetrization and usable signal-to-noise. That
+estimator survives as a component, not as evidence for FRAME's mechanism.
+
+The review strengthens the rejection in five ways:
+
+- primary-source inspection of cw-CR shows its class-covariance penalty is
+  applied at the ResNet output/last-hidden representation feeding a learned
+  linear softmax head. That pair has the same global orthogonal equivariance as
+  embeddings plus learnable proxies, so FRAME's principal claimed distinction
+  from cw-CR is false;
+- Term 1's leading operational direction is conditional whitening. Conditional
+  isotropy is a global optimum of the term, so C1 is not an external rival and
+  F2 can pass without identifying a shared physical frame;
+- the information band is coordinate-dependent. A global rotation leaves
+  cosine retrieval unchanged but changes Term 2, allowing the proposed
+  class-code shortcut to trade Term-1 and Term-2 costs. The headline
+  coordinate-free argument therefore does not survive composition of the full
+  method;
+- the worst-case leakage argument discards the unseen mean-separation signal,
+  and Proposition 4's claim that the diagonal is the **unique** minimizer for a
+  fixed diagonal is false; and
+- the upper information bound omits a negative contribution in its stated KL
+  derivation, while the 200-epoch PA schedule is not executable by simply
+  extending a step-decay recipe whose learning rate has already collapsed.
+
+The review computes that F1 would pass with probability only about `0.003`
+under the proposal's own frozen intervals, reinforcing that the proposal does
+not even forecast its stated two-dataset success condition credibly. These
+points are adopted without changing the authoritative Gate-1/2 disposition.

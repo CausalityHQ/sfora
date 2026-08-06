@@ -5633,3 +5633,62 @@ killed immediately before review or GPU. Full artifacts:
 `docs/opus_port_proposal_pass26_2026-08-06.md`,
 `docs/opus_port_review_2026-08-06.md`, and
 `docs/opus_port_local_audit_2026-08-06.md`.
+
+### Twenty-seventh blind pass: FRAME has a valid tetrad estimator but an adverse and occupied shared-frame target
+
+**DEAD at Gate 1 and Gate 2, independently reinforced by a false novelty
+distinction and false collapse/leakage arguments; no preregistration,
+implementation, or GPU.** The direct Opus proposal returned Factorized Residual
+Anisotropy for Metric Embeddings (FRAME): use an unbiased four-sample tetrad
+U-statistic to drive every class-conditional covariance diagonal in one global
+embedding frame, then constrain mutual information between class identity and
+the coordinate-wise variance profile to a two-sided band. The advertised
+mechanism was common physical nuisance factors with class-varying strengths.
+
+Gate 1 is prospectively adverse. Candidate 225 measured transfer of a leading
+within-class subspace across disjoint corrected In-Shop identities. Its locked
+`rho_32` values were `0.9312`, `0.9287`, and `0.9345`, all below the `1.15`
+falsifier: the source within-class directions captured about 35--37% of target
+within-class energy but 38--40% of target between-class energy. This does not
+forbid retraining covariances to commute, but it directly rejects the premise
+that a shared linear nuisance frame is an observed transferable structure.
+The proxy-span algebra is not a replacement for provenance; it does not measure
+harmful nuisance parking or its causal effect on official-query retrieval.
+
+Gate 2 is occupied at both levels. Term 1 is class-wise covariance
+decorrelation, already cw-CR's target, and its family-level interpretation is
+classical common principal components/approximate joint diagonalization. Term
+2 is class-wise variance-profile shaping adjacent to cw-VR, nonlinear ICA with
+auxiliary variance modulation, benchmark-matched non-isotropic probabilistic
+Proxy Anchor, NIR, DVML, and SFT. A four-sample unbiased estimator and a
+two-sided information wrapper improve estimation/control of those objects but
+do not create new supervision.
+
+The cold review closed FRAME's principal novelty distinction from the primary
+source: cw-CR regularizes the ResNet output/last-hidden representation feeding a
+learned linear softmax head, which is globally orthogonally equivariant in the
+same way as embeddings plus learned proxies. Term 1's leading operational
+effect is conditional whitening; isotropy is one of its global optima, so the
+proposed C1 control and F2 diagnostic do not identify commuting physical
+factors. Term 2 itself is coordinate-dependent, so rotating an unchanged
+retrieval representation can trade its cost against Term 1 and destroys the
+full method's coordinate-free claim.
+
+The frozen degeneracy arguments also fail. At exact within-class collapse all
+pairwise contrasts and all first derivatives of their squared variances are
+zero, so both terms are stationary despite a positive lower-band scalar loss.
+The detached current/EMA denominator leaves a real moving-scale collapse
+channel. The worst-case leakage bound discards mean-separation signal, and the
+claim that a diagonal covariance uniquely minimizes the maximum eigenvalue for
+a fixed diagonal is false. Dead dimensions can coexist with sufficient
+modulation in the remaining axes, and commuting label/background codes need
+not correspond to physical nuisances.
+
+What survives is Proposition 1: the symmetrized tetrad is an unbiased,
+`O(m^2d)` estimator of class-conditional off-diagonal covariance energy from
+four samples. That is a useful estimator for future diagnostics, but not a
+novel learning method and not authorization to optimize an adverse target.
+Full artifacts:
+`docs/opus_frame_proposal_pass27_2026-08-06.md`,
+`docs/opus_frame_review_2026-08-06.md`, and
+`docs/opus_frame_local_audit_2026-08-06.md`.
