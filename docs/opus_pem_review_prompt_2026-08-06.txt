@@ -1,0 +1,72 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_pem_proposal_pass37_2026-08-06.md
+
+Do not edit repository files or inspect git history, prior reviews, the verdict
+ledger, or conversations. Start cold from this frozen proposal and primary
+sources. Return LIVE, DEAD, or BLOCKED with the earliest failed gate/section
+and one decisive mechanism-level reason. This is adjudication, not repair.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce the vMF marginal likelihood, every partition-evidence formula,
+   the hypergeometric/Bessel identity, convexity/superadditivity claims,
+   descriptor gradient, asymptotic expansions, and the worked merge threshold.
+   Use exact numerical evaluation or a small CPU calculation where decisive.
+   Check all constants that vary with the number of clusters rather than being
+   partition-independent.
+2. Determine whether the executable lookup and gradient specification covers
+   every argument used by move, merge, and split hypotheses. Track the possible
+   resultant range for each family against the stated 4096-point domain. Trace
+   a complete gradient from the loss to every declared learned object,
+   especially a through the cached/rebuilt phi table, and reconcile the kappa
+   warm-up, learned phase, softplus parameterization, and clamp.
+3. Attack kappa as an optimization shortcut. Derive how move, merge, and split
+   deltas change as kappa approaches both clamp endpoints for already coherent
+   separated clusters, partial collapse, and total collapse. Decide whether
+   kappa is statistically identified, driven to a boundary, or really supplies
+   an absolute dimension-calibrated threshold. Include the effect of the number
+   of enumerated corrupt partitions on the effective margin.
+4. Test the causal claim that split evidence enforces isotropic within-class
+   covariance and makes cosine the likelihood-ratio-optimal rule. Determine
+   exactly which statistics the integrated vMF evidence observes, whether
+   different covariance shapes can share them, and whether the top-direction
+   split distinguishes anisotropy, multimodality, ordinary compactness, and
+   useful pose/viewpoint variation. Construct the cheapest instance-memorizing
+   or nuisance-coding solution that satisfies all three move families if one
+   exists.
+5. Resolve novelty aggressively from primary sources inside and outside DML.
+   At minimum inspect Deep Metric Learning via Facility Location / Learnable
+   Structured Clustering, Large-Margin Metric Learning for Partitioning
+   Problems, Deep Spectral Clustering Learning, Group Loss, DeepDPM and other
+   split/merge deep mixtures, vMF and directional-statistics DML,
+   non-isotropic probabilistic proxy DML, probabilistic/prototypical few-shot
+   embeddings, Bayesian random-effects verification such as PLDA, and product-
+   partition or DP-vMF models. State the exact new supervision object and
+   action, if any; do not equate a new scoring functional or assembly with new
+   supervision.
+6. Audit the proposal's causal provenance rather than accepting a plausible
+   story. Ask what measurement establishes that free per-class proxies absorb
+   transferable calibration or anisotropy, whether the strongest cited
+   multi-proxy frontier supports that diagnosis, and whether the frozen
+   forecasts quantitatively follow from any measured premise.
+7. Audit the controls and benchmark protocol. Check whether Occam-off is an
+   executable matched control over the operative range, whether moves-only and
+   no-split isolate their stated claims, and whether the proxy-back and
+   wall-clock controls match optimization and information exposure. Check the
+   P x K sampler against each official class-size distribution, especially
+   without-replacement K=8 In-Shop and K=4 SOP, and quantify filtered identities
+   or repeated samples. The governing protocol requires a corrected In-Shop-
+   first screen and raw plus independently selected/final reporting.
+8. Verify all parameter/FLOP/memory counts, published-recipe claims, uncertainty
+   interpretations, t statistics, forecasts, and frontier-crossing arithmetic.
+   Decide whether a programme is warranted when the sole forecast crossing is
+   conditional on an unresolved SD-versus-SEM reading and the named strongest
+   baseline has not been reproduced.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources, state uncertainty, and do not silently repair, reinterpret, or replace
+the frozen training object.
