@@ -1,0 +1,86 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_fpc_proposal_pass46_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. Test identities are
+disjoint. No test/gallery data, external generated data, text/VLM, reranking,
+transduction, ensemble, or test-time fitting may enter selection. Deployment
+is one single-view encoder, one 512-D L2-normalized descriptor, and cosine NN.
+
+Audited Lane-A frontiers are PFML ResNet-50/512-D/single-view over five runs:
+CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002. PA+DADA reports
+In-Shop 0.930 without uncertainty. The corrected local BN-Inception In-Shop PA
+reference has three completed seeds: raw mean 0.918062, sample sd 0.001523;
+final mean 0.915201, sample sd 0.001549. A live candidate must screen paired
+corrected In-Shop first, report raw plus independently selected/final, confirm
+out of sample, and replicate.
+
+Independently audit at least:
+
+1. Derive the linear and affine dimension of the proposed hard and soft proxy
+   sets. Check the claim that eight block codebooks with eight 64-D vectors per
+   block can have full 512-D span, and compare the honest rank with control C1.
+2. Formalize Proposition 3's mutual-information statement. Compare an injective
+   code for K labels with a free proxy table using the same random variable and
+   units; decide whether 24 available code bits constrain a uniform 100-class
+   identity whose entropy is log2(100), and whether train-time assignment logits
+   alter the capacity claim.
+3. Audit Propositions 1, 2, and 4 and Lemma 1 under finite-alpha normalized
+   Proxy Anchor. Determine whether a constrained label head forbids an encoder
+   from memorizing the same injective class code, whether parameter sharing
+   establishes shared visual evidence, and whether equality in a cosine bound
+   implies the proposed factorial semantics are transported to unseen classes.
+4. Check every executable path: the KL-relaxed column marginal versus claimed
+   Sinkhorn solver, normalization singularities, soft-to-hard straight-through
+   estimator, deterministic repair state/gradients/termination/balance, sampled
+   injectivity at large K, optimizer groups, and exact PA normalization.
+5. Recompute parameter counts, sample counts, asymptotic and practical repair
+   cost, memory, and the claimed 1.00--1.02x runtime. CUB official training has
+   5,864 images over 100 classes. Do not accept comparisons that mix images per
+   class, images per shared parameter, available code capacity, and information.
+6. Search primary prior art by mechanism rather than name: classical, N-ary,
+   deep, joint, and learned-assignment ECOC; product/additive/compositional code
+   learning; quantized classifier or output-embedding weights; shared class
+   codebooks; fixed/simplex classifiers; label embeddings; and product-code
+   image retrieval. Resolve the proposal's admitted untraced neighbour that
+   decomposes a class representation over multiple shared codebooks.
+7. Treat this supplied repository evidence as evidence, without reading local
+   files: an earlier FCS proposal already split a descriptor into blocks,
+   assigned each training identity a balanced multi-symbol Hamming-separated
+   code, trained block targets, and updated code assignments from learned
+   affinities; it was rejected as learned ECOC. Candidate 371 found that a
+   C-1 proxy-rank fact is dimensional algebra, not demanded representation
+   rank. Several proxy-null/rank methods failed to link this restriction to
+   corrected unseen-class retrieval. State what FPC changes at the supervision-
+   object level rather than only in optimization and parameterization.
+8. Audit controls C0--C10. In particular determine whether m=1,C=K truly reduces
+   algebraically and operationally to PA; whether r=56 is capacity matched once
+   the true proxy-table span is counted; whether random codes, learned codes,
+   balance, hardening, head learning rate, structural penalties, and total
+   search budget are separately identified; and whether the claimed falsifiers
+   are powered and non-adaptive.
+9. Check matched recipe and benchmark protocol: ResNet-50/200 epochs versus the
+   corrected paired BN-Inception In-Shop-first screen, BN behavior, sampler,
+   proxy learning rate, raw-best versus final reporting, held-out-train-class
+   selection, legal attribute diagnostics, five-seed paired tests, and second-
+   dataset replication.
+10. Decide standing-objective value separately from novelty. The proposal itself
+    forecasts CUB 0.712 versus 0.734, Cars 0.905 versus 0.927, SOP 0.806 versus
+    0.829, and In-Shop 0.900 below the corrected local final mean. Do not credit
+    an undefined combination, an unevaluated higher lane, or an expected gain
+    that does not cross a matched frontier.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
