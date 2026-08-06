@@ -1,0 +1,81 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_terl_proposal_pass44_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not launch another consultation or agent. Return LIVE,
+DEAD, or UNRESOLVED with the earliest failed gate and one decisive mechanism-
+level reason. This is adjudication, not repair; do not silently improve or
+replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. Test identities are
+disjoint. No test/gallery data, external generated data, text/VLM, reranking,
+transduction, ensemble, or test-time fitting may enter selection. Deployment
+is one single-view encoder, one 512-D L2-normalized descriptor, and cosine NN.
+
+Audited Lane-A frontiers are PFML ResNet-50/512-D/single-view over five runs:
+CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003, SOP 0.829 +/- 0.002. PA+DADA reports
+In-Shop 0.930 without uncertainty. The corrected local BN-Inception In-Shop PA
+reference currently has seed 0 raw 0.916303/final 0.913701 and seed 1 raw
+0.918906/final 0.916796; seed 2 was prospectively registered and is still
+running. A live candidate must screen paired corrected In-Shop first, report
+raw plus independently selected/final, confirm out of sample, and replicate.
+
+Independently audit at least:
+
+1. Reproduce the PWM shape estimator, mean-to-scale conversion, return-level
+   coefficient, xi=0 limit, monotonicity, clamps, EMA straight-through path,
+   smoothed threshold, every gradient, and all degeneracy guards. Decide
+   whether the executable object is unique and stable when exceedances are
+   equal, zero, sparse, tied, dependent, or make the PWM denominator small.
+2. Check the claimed collapse, cap, flattened-band, xi, scale, and temperature
+   arguments under L2-normalized cosine. In particular calculate first-order
+   descriptor gradients at exact total collapse rather than inferring from a
+   positive scalar loss.
+3. Audit the deliberate stop-gradient. Determine whether the backward is the
+   gradient of the displayed forward objective, whether the stated derivative
+   after detaching u is complete through lambda and pooled xi, and construct
+   the cheapest estimator-gaming or non-integrable update.
+4. Test causal provenance. A hypothetical pair of tails and asymptotic POT
+   consistency are not measurements. State what prospective corrected evidence
+   would show fitted shape is stable, transports across disjoint identities,
+   predicts official-query errors beyond threshold/scale, and causally improves
+   retrieval rather than simply amplifying hard-negative gradients.
+5. Search primary prior art by supervision action: WEINCE; TriSim; LDReg;
+   Extreme Value Loss; EVM/OpenMax/meta-recognition; DeepGPD; differentiable
+   Recall@k; XBM; Smooth-AP; ranked-list/top-k/CVaR; and train-time POT/GPD,
+   tail-index, return-level, or gallery-depth objectives in retrieval, face
+   recognition, re-ID, contrastive learning, anomaly detection, and ranking.
+   Judge “fit/approximate a negative-score tail and penalize its extrapolated
+   extreme,” not merely the index-flood wrapper.
+6. Compare against the frozen repository evidence stated here: an earlier
+   prospective tail diagnostic found only 0.0087 incremental R-squared from
+   fitted shape beyond threshold and mean excess, constant deep-quantile RMSE
+   0.0918 versus fitted 0.1575, and shape noise consuming 67--86 percent of
+   the full depth signal. Treat these as supplied evidence, not facts to seek
+   in the filesystem. Decide what, if anything, in TERL reverses them.
+7. Recompute ln(M*zeta/r), the claimed 344x SOP extrapolation, class-pair
+   coverage, dataset-dose ordering, every forecast delta/z/power statement,
+   and whether a four-dataset regression identifies gallery depth rather than
+   class count, class size, duplicate structure, or mixture composition.
+8. Audit controls C1--C10 for adaptivity versus magnitude, extrapolation versus
+   hard-negative amplification, shape versus threshold/scale, empirical versus
+   parametric depth, optimizer/search capacity, raw-versus-final selection,
+   exact calibration without test touch, and adequate statistical power.
+9. Check matched recipe and cost: ResNet-50/no-head-BN/batch-180/200 epochs
+   versus published and corrected references; pairwise matrix and sorting
+   overhead; trainable BN; PA normalization; hyperparameter budget; model
+   selection; and corrected paired In-Shop-first order.
+10. Decide standing-objective value separately from novelty. The frozen
+    proposal explicitly forecasts no defensible frontier crossing on CUB,
+    Cars, SOP, or In-Shop. Do not credit an undefined carrier, a nominal mean
+    below uncertainty, or a comparison to an invented weak reproduction.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
