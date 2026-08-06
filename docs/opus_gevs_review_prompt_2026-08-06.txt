@@ -1,0 +1,98 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_gevs_proposal_pass42_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Do not start or delegate to any other consultation or agent;
+perform the review directly. Return LIVE, DEAD, or UNRESOLVED with the earliest
+failed gate and one decisive mechanism-level reason. This is adjudication, not
+repair. Do not silently improve, reinterpret, or replace the frozen object.
+
+Problem and legal envelope: train on the official training split with identity
+labels, ordinary image augmentation, and ImageNet-1K initialization only. Test
+identities are disjoint. No test images, gallery statistics, external generated
+data, text model, reranking, transduction, ensemble, or test-time fitting may
+enter training or selection. Deployment is one single-view image encoder, one
+512-D L2-normalized descriptor, and ordinary cosine nearest-neighbour retrieval.
+All train-only machinery must disappear at deployment. Hyperparameters may be
+selected only through a class-disjoint split of training identities.
+
+Audited matched Lane-A references are ResNet-50/512-D/single-view PFML over five
+runs: CUB 0.734 +/- 0.003, Cars196 0.927 +/- 0.003, SOP 0.829 +/- 0.002. Higher-
+capacity single-view observations are VAPNet ResNet-50/2048-D at CUB 0.762,
+Cars 0.948, In-Shop 0.939; AdvRF at CUB 0.766 and Cars 0.949; and CRT MiT-B2/
+128-D at In-Shop 0.9448. They have no reported multi-seed uncertainty and are
+separate capacity lanes, but a general SOTA claim must confront them. The
+corrected local BN-Inception In-Shop Proxy Anchor seed 0 is raw 0.9163 and final
+0.9137; one seed is not a fixed baseline. A live candidate must first establish
+a same-seed corrected In-Shop paired control, then confirm out of sample and on
+a second dataset. Report raw and independently selected/final metrics;
+best-over-test-training is not valid selection.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce the complete GEVS estimator exactly. Re-derive the Hosking-Wallis
+   PWM shape formula under the stated ascending-excess and survival-weight
+   convention; the method-of-moments scale; the negative-shape limit; the
+   coefficient c; its xi-to-zero limit; and every displayed derivative. Check
+   all numerical examples and clamps with fresh calculations.
+2. Audit the endpoint guard as executable mathematics. The boxed target writes
+   s_hat=u+c*mean_excess after separately assigning and then clipping sigma.
+   Determine whether the clipped sigma actually enters c or s_hat, whether
+   s_hat<=1 follows, and whether the D1 derivative describes the written
+   program. Do not silently reconnect an unused intermediate.
+3. Test the claimed exact reduction to standard log-sum-exp at xi=0, theta=1,
+   N=M. Compare a POT distributional return quantile with deterministic LSE on
+   arbitrary finite score vectors and identify any missing constants or
+   assumptions. Decide whether “every LSE loss assumes N=M” follows.
+4. Audit the proposed extremal-index correction. Determine whether
+   k/(number of distinct labels among top-k), multiplied by training images per
+   class and inverted, is a runs/inter-exceedance extremal-index estimator.
+   Check transfer from class-balanced training batches to query-conditional
+   unseen galleries, class-size heterogeneity, In-Shop query/gallery structure,
+   and the use of training-set size N rather than the actual retrieval exposure.
+5. Test tail identifiability. There are only 24--36 exceedances at a 20-percent
+   upper-bulk threshold from a shared-anchor, repeated-class, nonstationary,
+   deliberately balanced sampler. Quantify estimator bias, variance, effective
+   distinct-class sample size, threshold stability, mixture effects, and deep-
+   quantile extrapolation for bounded and hard-cluster laws. Compare directly
+   with tuned constant-c, top-k mean, hardest-negative, CVaR/ranked-list, large-
+   batch, and XBM controls.
+6. Attack degeneracy and gradient claims. Check normalized-cosine collapse
+   through the sphere Jacobian; ties and zero excess; shape/EMA/clamp state;
+   whether a positive scalar loss proves a strict saddle; direct per-score
+   monotonicity versus full shared-network gradients; and whether detached
+   fitted statistics reduce the method to an adaptive top-k penalty.
+7. Search primary prior art aggressively inside and outside DML: WEINCE;
+   TriSim; LDReg; EVT-trained embeddings; extreme-value contrastive objectives;
+   Recall@k surrogate; Smooth-AP/FastAP; XBM; hard-negative, top-k, CVaR and
+   ranked-list losses; sampled-softmax/logQ correction; AnchorFace and low-FAR
+   face losses; OpenMax/EVM; EVT image search and relevance prediction; and
+   hydrology/insurance return-level design. Judge the supervision object and
+   optimization action, not merely the class-count wrapper.
+8. Re-derive the claimed causal error mode. Check the negative-class exposure
+   log-ratios for all datasets, the unverified Multi-Similarity batch-ablation
+   statement, familiarity bias left unresolved by the method, best-positive
+   treatment, and whether a train-identity tail predicts unseen-identity R@1.
+   Decide whether a predicted flat 16x N sweep supports or refutes a mechanism
+   whose load-bearing input is N.
+9. Audit controls C1--C8 and falsifiers F1--F6. Identify missing matched
+   adaptive-margin/rank-affine controls, unequal hyperparameter-search spaces,
+   duplicate lambda=0 configurations, carrier/additivity assumptions,
+   validation-selection capacity, sampler feasibility, AMP/sorting/state
+   behavior, and statistical power.
+10. Check protocol compliance and standing-objective arithmetic. The repository
+    requires corrected paired In-Shop screening after Gates 1--3, raw-best plus
+    independently selected/final metrics, out-of-sample confirmation, and a
+    second dataset. Separate standalone GEVS forecasts from undefined PFML/DADA
+    compositions. Recompute FLOPs, memory, wall-clock, uncertainty, and every
+    claimed frontier crossing; do not credit an unimplemented additive carrier.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources and state unresolved uncertainty. A substantive repair is a new
+proposal and must not be used to upgrade this frozen one.
