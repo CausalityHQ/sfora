@@ -7959,3 +7959,22 @@ real-vs-composite detector AUC. The remaining door is supervision-structure
 change, but Proxy Synthesis and episodic/class subsampling are immediate prior
 art. No method or GPU run was authorized. Full artifact:
 `docs/opus_pass67_none_2026-08-06.md`.
+
+### Pass 68 — CIS (Coalition Interference Supervision): DEAD before GPU
+
+CIS bundled real images from distinct classes, summed their embeddings, and
+decoded the sum with a hard multi-label target containing all bundle classes.
+The provenance was the 51.9% between-class component of the CUB failure split.
+The algebraic audit killed the mechanism: for the unnormalised bundle,
+`dL/dZ_ic` is identical for every bundle member, so a positive proxy target
+pushes non-owner images toward that proxy just as strongly as the owner. The
+normalised variant adds only an uncontrolled shared-norm/angular term; its
+negative aggregate allows cancellation and does not control per-image
+collision tails. At `m=2` its direction is embedding mixup, with harder
+targets that increase the wrong-direction pull. Deep Compositional Metric
+Learning (CVPR 2021), Compositional Embeddings for Multi-Label One-Shot
+Learning (WACV 2021), Xing et al.'s multi-label proxy retrieval
+(arXiv:2211.12185), and Metrix (ICLR 2022) are close occupied constructions.
+The 0.9115 In-Shop forecast is void; no GPU run occurred. Full artifacts:
+`docs/opus_cis_proposal_pass68_2026-08-06.md`,
+`docs/opus_cis_review_pass68_2026-08-06.md`.
