@@ -1,0 +1,37 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold; inspect only this prompt and public primary literature. Do not read
+the repository, previous candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE, not an idea list.
+
+Problem: zero-shot deep metric learning with disjoint train/test identities on
+CUB, Cars196, In-Shop, or SOP. Use only official training images/labels and
+ordinary stochastic augmentation, with optional ImageNet-1K initialization.
+Deployment must be a single one-view fixed global descriptor and ordinary
+cosine/Euclidean retrieval; no test data, external models/generated data,
+extra annotations, transduction, reranking, or gallery fitting.
+
+Choose one comparison lane and do not mix: Lane A ResNet-50, 512-D, 224px,
+200 epochs, PFML references CUB .734/Cars .927/SOP .829; Lane B ResNet-50,
+2048-D with AdvRF references CUB .766/Cars .949/SOP .842.
+
+Fresh local evidence available before this prompt: on a CUB seed-0 test pack,
+1813 failures were decomposed by comparing each query’s own-class centroid to
+the nearest wrong-class centroid. 873 (48.1%) had a nearer own centroid but a
+wrong nearest image (local within-class dispersion); 940 (51.9%) had no nearer
+own centroid (between-class overlap). Thus neither pure anti-collapse nor pure
+class separation dominates. The project has closed similarity-matrix
+reweighting, ordinary tangent/invariance, gradient surgery, EVT tails,
+multi-centers, averaging, and simple diversity regularizers. Pass-59 also
+showed invertible optimizers preserve stationary sets and label-only
+discriminative objectives are collapse-monotone.
+
+Find a mechanism that addresses this coupled local/global failure using a
+genuinely different architecture, activation, state dynamics, data/supervision
+construction, or principled import from another field—not a renamed occupied
+regularizer or similarity weighting. Search primary literature adversarially
+before asserting novelty. Return full equations, gradient paths, controls,
+falsifiers, Lane-consistent forecasts on >=2 datasets, cost and contamination
+risks. If no defensible method survives your own degeneracy and prior-art
+attack, return NONE and state the reusable closure result.
