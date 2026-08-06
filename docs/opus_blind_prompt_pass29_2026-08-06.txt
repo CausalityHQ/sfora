@@ -78,4 +78,3 @@ frozen-proposal reviewer will decide those questions adversarially. Return NONE
 only if you cannot formulate any executable method that you genuinely believe
 is materially distinct from the primary literature. Do not replace a proposal
 with an idea list.
-
