@@ -1,0 +1,51 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_gvf_proposal_pass34_2026-08-06.md
+
+Do not edit repository files or inspect git history, prior reviews, the verdict
+ledger, or conversations. Start cold from this frozen proposal and primary
+sources. Return LIVE, DEAD, or BLOCKED with the earliest failed section and
+one decisive mechanism-level reason. This is adjudication, not repair.
+
+Before recommending GPU work, independently:
+
+1. Reproduce PFML's exact reduction and primary-source recipe. Decide whether
+   GVF is executable where PFML details are undisclosed, especially SOP's
+   claimed M=2 “unsigned K=1” against the written p0 plus/minus construction.
+2. Derive gradients and stationary points through QR, tangent projection,
+   geodesic proxies, amplitudes, both PFML energy terms, and the stopped-anchor
+   virtual-class term. Check the strict-saddle threshold and the claim that the
+   learned frame equals top eigenvectors of within-minus-between scatter.
+3. Attack shortcuts: proxy means/frame optimizing while the deployed encoder
+   is fixed, amplitudes shrinking, frame rotation into signal or easy
+   directions, duplicated/identical generated proxies, class means absorbing
+   variation, virtual proxies becoming label smoothing or ordinary proxy
+   jitter, and normalized-cosine collapse.
+4. Test the causal capacity argument. Parameter count per image is not a
+   function-class proof: determine whether free PFML proxies can actually
+   memorize arbitrary training embeddings, whether tied proxies force the
+   backbone to learn transferable variation, and whether shared tangent
+   directions across different poles represent one common nuisance factor.
+5. Resolve primary prior art aggressively: Spherical Feature Transform,
+   DVML, ESRC/intraclass variant dictionaries, SoftTriple and structured/shared
+   multi-proxy methods, NIR, class-shared covariance/common-principal-component
+   models, tangent-transfer and Lie-generator learning, virtual classes, and
+   low-rank/shared dictionaries in face recognition and re-identification.
+   Distinguish a new supervision object/action from a proxy
+   reparameterization or training scaffold.
+6. Verify the cheap pretest E7 threshold: what covariance is measured, whether
+   seven global ambient directions survive class-specific tangent projection,
+   estimator rank/bias at four images per class, and whether 1/(alpha+2)
+   follows after repulsive and proxy-proxy terms.
+7. Audit sampler feasibility, optimizer/normalization traps, selection bias,
+   raw versus selection-corrected reporting, test touching, controls,
+   statistical power, total cost, and frontier arithmetic. The protocol screens
+   on In-Shop first, while GVF's forecast claims crossings only on CUB/Cars;
+   decide whether the planned order is admissible.
+
+Use reproducible CPU algebra/simulations where decisive. Preserve correct
+subcomponents separately from the verdict. Cite primary sources and state
+uncertainty. Do not give credit for caveats that invalidate the mechanism.
