@@ -1,0 +1,92 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_isuc_proposal_pass50_2026-08-06.md
+
+Its frozen SHA-256 is
+441bda5aeafc43e50831223e64f2e4ef174d0cdf523a64195ae93d39d7a6f367.
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal, the
+supplied evidence below, and primary sources. Do not launch another
+consultation or agent. Return LIVE, DEAD, or UNRESOLVED with the earliest failed
+gate and one decisive mechanism-level reason. This is adjudication, not repair;
+do not silently improve or replace the frozen object.
+
+Legal envelope: official training images and identity labels, ordinary image
+augmentation, and ImageNet-1K initialization only. No test/gallery data or
+unseen test identities may enter method selection. Deployment is one
+single-view encoder, one 512-D normalized descriptor, and cosine NN. A live
+candidate must screen paired corrected In-Shop first, report raw plus
+independently selected/final, confirm out of sample, and replicate.
+
+Independently audit at least:
+
+1. Treat this as the complete admissible repository premise. Corrected In-Shop
+   Proxy Anchor final artifacts and official partitions are independently
+   verified. Across two seeds, query-level top-1 error overlap is 0.7675401522,
+   exact top-1 gallery-row agreement is 0.8084822057, and the same wrong
+   identity is chosen for 0.6475770925 of jointly wrong queries. These establish
+   persistent errors, not their cause. The repository has not measured ISUC's
+   G(S), A, E(S), or a correlation between update coherence and corrected
+   retrieval. Decide whether the proposal has Gate-1 measurement provenance or
+   infers a causal update defect from the disjoint-identity protocol alone.
+2. Treat this supplied chronology as prior mechanism evidence, but verify the
+   reduction yourself. Candidate 228 (2026-08-02) split sampled training
+   identities into disjoint A/B, virtually updated the shared encoder on A, and
+   optimized retrieval on B. It was rejected because
+   L_B(theta-eta grad L_A) = L_B(theta) - eta <grad L_B,grad L_A> + O(eta^2),
+   reducing the new term to MLDG/Reptile/Fish gradient alignment; disjoint-label
+   DML meta-episodes were also found in Zheng, Lu, and Zhou, TPAMI 2023. Decide
+   whether ISUC's normalized closed-form last-layer field is a materially new
+   supervision object or an estimator/wrapper recurrence.
+3. Search primary prior art by mechanism, not names: MLDG; Reptile's gradient-
+   inner-product analysis; Fish inter-domain gradient matching; IGA/Fishr;
+   Gradient Agreement as an Optimization Objective for Meta-Learning;
+   Sequential Reptile; AND-mask/PCGrad; coherent gradients/stiffness/TracIn;
+   disjoint-label episodic/meta-DML, M3L, MASF, PADS, and the Zheng et al.
+   dynamic-constraints method. State the narrowest defensible novelty and
+   whether changing domains/tasks to random identity subsets, using disjoint
+   proxies, or normalizing to cosine is substantive.
+4. Verify Proposition 1. The two halves are balanced complements sampled
+   without replacement, Q splits reuse one batch, and A is a normalized random
+   ratio. Check every independence/exchangeability step and whether E[A] is
+   licensed by ratios of expected inner products and norms. Determine whether
+   restricted PFML energies, which remove all cross-half interactions, yield
+   unbiased subdivisions of the full update.
+5. Expand G_k exactly. With half-specific dbar_k, global hbar, and half mean
+   hbar_k, determine whether
+   sum_i(d_i-dbar_k)(h_i-hbar)^T equals the W gradient with a global common mode
+   removed, or instead sum_i d_i h_i^T - n_k dbar_k hbar_k^T. Audit the rank and
+   split dependence of the resulting field.
+6. Determine whether alignment of last-layer fields sum d_i h_i^T identifies
+   alignment or transfer of backbone parameter updates, which also depend on
+   per-sample backbone Jacobians. Construct counterexamples in both directions
+   if possible.
+7. Attack P1--P5. In particular, distinguish a bounded penalty value from a
+   bounded penalty gradient near ||G||=0; test the 0.1998 no-collapse argument
+   against the full summed objective; and decide whether d=Mh can encode shared
+   nuisance, a low-rank shortcut, or proxy geometry while satisfying A.
+8. Audit executable PFML fidelity. The source leaves material recipe choices
+   unresolved, while the proposal fixes alpha=2, batch 30x6, schedule,
+   augmentation, and proxy handling. Check the potential-energy transcription,
+   ordered-pair accounting, clamps, restricted energies, graph paths, and
+   whether four differentiable restricted energies plus double backward can
+   plausibly cost <0.2% FLOPs, 2--4% wall time, and <2% memory.
+9. Audit all controls and falsifiers. Do class-shared splits, shuffled forces,
+   gradient norm, SAM, spectral regularization, proxy-side alignment, Fish,
+   identity-count sweeps, and batch/epoch controls isolate the claimed
+   identity-sampling-transfer mechanism from generic gradient matching,
+   nuisance alignment, representation isotropy, and changed PFML optimization?
+   Check whether F8's post-training correlation is causal or only tracking.
+10. Verify the frontier arithmetic and protocol. Cars forecast 0.931 is below
+    the proposal's own 0.932 crossing bar. CUB's marginal crossing inherits a
+    not-yet-faithful PFML reproduction. There is no In-Shop forecast, yet the
+    mandated order is paired corrected In-Shop first. Check paired uncertainty,
+    raw-best versus independently selected/final reporting, out-of-sample
+    confirmation, second-dataset replication, and all train-only tuning rules.
+
+Preserve correct subcomponents separately from the verdict, cite primary
+sources, and state uncertainty. Any substantive repair is a new proposal.
