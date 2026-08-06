@@ -209,3 +209,45 @@ supervision. Future candidates in this family remain pre-GPU dead unless a
 prospectively frozen corrected measurement first demonstrates transport of
 the exact tail object and the proposal supplies a materially different
 supervision referent.
+
+## Reconciliation with the independent cold review
+
+The frozen cold review (`docs/opus_gevs_review_2026-08-06.md`, durable job
+`f3a993515dd84a3a`) also returns **DEAD at Gate 1**, independently of this
+audit. It reproduces the dead endpoint guard, false LSE reduction, normalized-
+cosine collapse stationarity, CUB/Cars arithmetic error, bulk-threshold and
+mixture objections, constant-top-k reduction, protocol mismatch, and absent
+standalone frontier crossing.
+
+Its strongest new algebraic result is exact. Since `N=C_train*nbar` and the
+written correction has `theta=K/(c_hat*nbar)`,
+
+```
+N * theta * zeta = K * zeta * C_train / c_hat.
+```
+
+The advertised image exposure cancels, leaving training class count and a
+coarsely quantized label-multiplicity factor. At the SOP operating point the
+review estimates the remaining finite-exposure displacement from the fitted
+endpoint at roughly `0.002` cosine while PWM shape noise contributes roughly
+`0.044`; its delta-method ratio is about 20.8 and is independent of mean
+excess. These are reviewer calculations rather than checkpoint measurements,
+but the exact cancellation and the existing Pass-31 adverse evidence already
+suffice for rejection.
+
+The review also finds that the frozen D5 limit has its sign reversed: equal
+excesses drive the PWM denominator to zero and the raw shape toward negative
+infinity, not `+2`. At exact or fp16-quantized ties the written `0/0` is NaN,
+`torch.clamp` does not repair it, and the shared EMA can be poisoned. Its
+direct counterexample `u=0.35`, mean excess `0.09`, and clamped coefficient
+`c=8` gives `s_hat=1.07`, confirming that the disconnected guard can create a
+permanently active impossible target.
+
+One local phrasing is narrowed. Mean exceedances per labelled cluster can be
+used as a crude reciprocal-cluster-size approximation to an extremal index;
+the fatal point is that this is not a runs/inter-exceedance estimator and its
+linear transfer from a forced `P x K` sampler to a heterogeneous unseen
+gallery is unjustified. The primary-source distinctions from WEINCE are
+otherwise accurate. They do not rescue novelty at the supervision-object
+level, where the executable method is a noisy detached adaptive top-k-mean
+hinge and an exact ninth internal recurrence.

@@ -6678,3 +6678,95 @@ docs/opus_nsrc_proposal_pass41_2026-08-06.md,
 docs/opus_nsrc_review_prompt_2026-08-06.txt,
 docs/opus_nsrc_review_2026-08-06.md, and
 docs/opus_nsrc_local_audit_2026-08-06.md.
+
+### Forty-second blind pass: GEVS is a ninth gallery-tail recurrence whose exposure cancels
+
+**DEAD at Gates 1 and 2, independently reinforced by a cold algebraic review;
+no diagnostic, preregistration, implementation, or candidate GPU.** Gallery-
+Scale Extreme-Value Supervision (GEVS) proposed fitting a per-anchor POT/GPD
+shape to the upper 20 percent of in-batch negative cosines, correcting a
+nominal gallery exposure by an estimated class-cluster “extremal index,” and
+penalizing a fitted gallery-scale return level against a best-positive soft
+maximum. Standalone forecasts remained below PFML/PA+DADA; only undefined
+PFML- or DADA-strength compositions suggested crossings.
+
+Gate 1 is adverse. No corrected repository measurement establishes GPD fit,
+threshold stability, seen-to-unseen tail transport, or causal repair by
+gallery-depth pressure. Pass 31 XTail found only `0.0087` incremental
+R-squared from fitted shape beyond threshold and mean excess, with a tuned
+constant giving lower deep-quantile RMSE (`0.0918` versus `0.1575`) and shape
+noise consuming 67--86 percent of the full depth signal. GEVS supplies no new
+measurement reversing that result. Its dataset-size ordering and unverified
+Multi-Similarity batch claim are hypotheses, not provenance.
+
+Gate 2 is exact internally. EVPC, RLM, EGR-PFML, PORTAL, PORT, XTail, POTER,
+and CFEV already fit or approximate a seen-identity negative upper tail and
+turn a train/gallery-scale extrapolation into supervision. GEVS is the ninth
+version; negative-shape clamps, EMA shrinkage, a detached threshold, and a
+label-count correction are estimator wrappers around the same supervision
+object. WEINCE independently supplies online EVT correction of bounded
+contrastive scores; TriSim fits GPD similarity tails inside retrieval
+training; LDReg differentiates an in-batch EVT/LID statistic; Recall@k,
+ranked-list/top-k/CVaR objectives, XBM, and large-batch DML occupy empirical
+operating-depth pressure. The frozen proposal's detailed distinctions from
+WEINCE are accurate but narrower than mechanism-level novelty.
+
+The executable method has independent fatal defects. Its endpoint guard clips
+`sigma` only after `sigma` has been substituted out: the boxed
+`s_hat=u+c*mean_excess` never uses the guarded value, so `s_hat<=1` and D1 do
+not follow. A direct example gives boxed `1.205` versus correctly guarded
+`0.98`; the cold review separately gives `1.07` at a plausible clamped branch.
+Its claim that LSE is recovered exactly at `xi=0, theta=1, N=M` is false: LSE
+is a deterministic smooth maximum of a finite vector, not a fitted POT return
+quantile. At identical descriptors normalized-cosine gradients vanish, so a
+positive scalar loss does not prove its claimed first-order escape. Equal
+excesses create an unhandled `0/0` shape and possible shared-EMA NaN rather
+than the stated `xi->+2` limit.
+
+The cold review adds the sharpest mechanism failure. The proposal defines
+`N=C_train*nbar` and `theta=K/(c_hat*nbar)`, hence exactly
+
+```
+N * theta * zeta = K * zeta * C_train / c_hat.
+```
+
+Image exposure cancels. The supposed gallery-size lever is training class
+count plus a sampler-manufactured, coarsely quantized label multiplicity. At
+SOP the reviewer estimates the finite-exposure signal at roughly `0.002`
+cosine versus `0.044` PWM-shape noise, about 20 times smaller. Those magnitudes
+are fresh reviewer calculations, not checkpoint evidence; the exact
+cancellation is sufficient to refute the named mechanism. The same algebra
+makes C6's demanded flat 16-fold N sweep vacuous: a constant top-k coefficient
+is also nontrivial and flat.
+
+The CUB/Cars exposure arithmetic uses 44 negative classes despite the frozen
+30x4 batch and should be about `1.23/1.21`, not `0.81/0.79`. The method screens
+SOP before corrected paired In-Shop, changes recipe/capacity lane, omits raw
+best versus independently selected/final reporting, and gives the method more
+effective hyperparameter search than its duplicated `lambda=0` baseline.
+Standalone GEVS is forecast below every matched frontier; unimplemented
+carrier additivity cannot satisfy the standing objective.
+
+Correct pieces are the PWM shape convention, method-of-moments scale, fixed-
+shape return-level coefficient and `xi->0` limit, the non-obvious finding that
+a differentiable threshold rewards the `(k+1)`-st negative when `c>1`, its
+detached-threshold repair, direct `c/k` top-k gradients, clean training-only
+metadata, and candid ambiguity disclosures. They are reusable diagnostics,
+not authorization to run the occupied method.
+
+Process lesson: when a proposed deployment-exposure correction combines total
+population and mean cluster size, simplify the product before treating either
+as a causal lever. Nine independent gallery-tail rediscoveries now constitute
+a pre-GPU stop family unless a prospective corrected measurement reopens the
+exact tail-transport premise and the supervision object changes materially.
+
+Primary neighbours: Erol et al., *WEINCE*, ICML 2026; Zheng et al., *TriSim*,
+CVPR 2026; Huang et al., *LDReg*, ICLR 2024; Patel et al., *Recall@k Surrogate
+Loss*, CVPR 2022; and Wang et al., *Cross-Batch Memory*, CVPR 2020.
+
+Full artifacts:
+docs/opus_blind_prompt_pass42_2026-08-06.txt,
+docs/opus_gevs_proposal_pass42_2026-08-06.md,
+docs/opus_gevs_review_prompt_2026-08-06.txt,
+docs/opus_gevs_review_2026-08-06.md, and
+docs/opus_gevs_local_audit_2026-08-06.md.
