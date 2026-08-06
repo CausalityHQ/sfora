@@ -1,0 +1,47 @@
+You are the fresh independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows in
+this prompt. Use web search and primary literature.
+
+Legal task: zero-shot DML with disjoint train/test identities on CUB, Cars196,
+In-Shop, or SOP; official training images/labels and ordinary augmentation only.
+Deployment is one ResNet-50, one view, one fixed 512-D descriptor, cosine NN.
+Matched Lane-A references: PFML CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003,
+SOP 0.829 +/- 0.002 over five runs; PA+DADA In-Shop 0.930, uncertainty unknown.
+
+Review frozen PORTAL without repairing or replacing it. Return LIVE, DEAD, or
+UNRESOLVED. Independently check:
+
+1. every order statistic, PWM/GPD estimator, denominator, tail-index/scale
+   domain, clipping/guard, empirical fallback, return-level equation,
+   stop-gradient, queue update, schedule, and sampler is executable and has the
+   claimed gradient;
+2. whether the proposed PWM formulas and exponential-tail reduction are exact,
+   whether a bounded cosine tail can use the stated asymptotics, and whether
+   one pooled tail fit identifies per-anchor or unseen-gallery exceedance risk;
+3. collapse, atomic similarities, threshold/scale/norm gaming, stale-queue
+   nonstationarity, duplicated/false negatives, class imbalance, dependence,
+   extremal index, train-gallery-size substitution, and support-endpoint
+   violations;
+4. whether minimizing the training-negative tail causally repairs unseen-class
+   zero-shot errors rather than ordinary hard-negative mining, uniformity,
+   compactness, spectral flattening, or simply using more negatives;
+5. exact prior art and mechanism equivalence: repository-independent primary
+   literature on EVT training losses, WEINCE, TriSim or similarity-tail GPD
+   losses, EGR/return-level contrastive learning, Recall@k surrogates, XBM,
+   OpenMax/EVM, chance-constrained DML, top-k/CVaR/quantile losses, and gallery-
+   scale retrieval-risk objectives;
+6. whether controls isolate extrapolation beyond the observed queue from hard-
+   negative mining, queue size, positive pooling, spectral/tail-index
+   regularization, hyperparameter search, and PFML recipe changes;
+7. whether forecasts derive quantitatively from measured premises and a
+   reproduced matched base, cross the correct frontier, and use valid
+   uncertainty/probability arithmetic; and
+8. data, contamination, tuning, selection, compute, inference, recipe,
+   capacity, and benchmark-protocol violations.
+
+Any substantive repair is a new proposal. Cite primary sources. Identify the
+single strongest decisive reason and every false, inconsistent, or underdefined
+operation.
+
+--- FROZEN PROPOSAL BEGINS ---

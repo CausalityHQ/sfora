@@ -1,0 +1,217 @@
+You are the fresh independent adversarial reviewer in a rigorous method-invention
+protocol. Start cold. Do not inspect the local filesystem, repository, git
+history, prior conversation, or critic notes. The frozen proposal follows in
+this prompt. Use web search and primary literature.
+
+Legal task: zero-shot DML with disjoint train/test identities on CUB, Cars196,
+In-Shop, or SOP; official training images/labels and ordinary augmentation only.
+Deployment is one ResNet-50, one view, one fixed 512-D descriptor, cosine NN.
+Matched Lane-A references: PFML CUB 0.734 +/- 0.003, Cars 0.927 +/- 0.003,
+SOP 0.829 +/- 0.002 over five runs; PA+DADA In-Shop 0.930, uncertainty unknown.
+
+Review frozen PORTAL without repairing or replacing it. Return LIVE, DEAD, or
+UNRESOLVED. Independently check:
+
+1. every order statistic, PWM/GPD estimator, denominator, tail-index/scale
+   domain, clipping/guard, empirical fallback, return-level equation,
+   stop-gradient, queue update, schedule, and sampler is executable and has the
+   claimed gradient;
+2. whether the proposed PWM formulas and exponential-tail reduction are exact,
+   whether a bounded cosine tail can use the stated asymptotics, and whether
+   one pooled tail fit identifies per-anchor or unseen-gallery exceedance risk;
+3. collapse, atomic similarities, threshold/scale/norm gaming, stale-queue
+   nonstationarity, duplicated/false negatives, class imbalance, dependence,
+   extremal index, train-gallery-size substitution, and support-endpoint
+   violations;
+4. whether minimizing the training-negative tail causally repairs unseen-class
+   zero-shot errors rather than ordinary hard-negative mining, uniformity,
+   compactness, spectral flattening, or simply using more negatives;
+5. exact prior art and mechanism equivalence: repository-independent primary
+   literature on EVT training losses, WEINCE, TriSim or similarity-tail GPD
+   losses, EGR/return-level contrastive learning, Recall@k surrogates, XBM,
+   OpenMax/EVM, chance-constrained DML, top-k/CVaR/quantile losses, and gallery-
+   scale retrieval-risk objectives;
+6. whether controls isolate extrapolation beyond the observed queue from hard-
+   negative mining, queue size, positive pooling, spectral/tail-index
+   regularization, hyperparameter search, and PFML recipe changes;
+7. whether forecasts derive quantitatively from measured premises and a
+   reproduced matched base, cross the correct frontier, and use valid
+   uncertainty/probability arithmetic; and
+8. data, contamination, tuning, selection, compute, inference, recipe,
+   capacity, and benchmark-protocol violations.
+
+Any substantive repair is a new proposal. Cite primary sources. Identify the
+single strongest decisive reason and every false, inconsistent, or underdefined
+operation.
+
+--- FROZEN PROPOSAL BEGINS ---
+
+# Pass 23 frozen blind proposal: PORTAL
+
+Date: 2026-08-05 UTC  
+Frozen prompt: `docs/fable_blind_prompt_pass23_2026-08-05.txt`  
+Prompt SHA-256: `b7c988ae88b7c956e6656829d64ce838d09009497a5347eeaf6c9eae9058a3eb`  
+Native durable consultation: `96e6237896dd4dc5`  
+Caller attribution: `sfora/emafactorial`  
+Authoritative provider output: Fable-only provider partial  
+Durable status: cancelled after Fable completed because the automatic Opus fallback launched an invalid nested duplicate consultation and inspected the repository/DGX.
+
+The Fable provider output below is complete, untruncated, and ends cleanly. It is frozen verbatim without the invalid fallback output.
+
+---
+I'm the blind proposer here, so I'll work from cold — no repo, no prior context — and go straight to primary literature to ground the references and run the novelty attack. Loading web tools first.PFML confirmed as Potential Field Based Deep Metric Learning (CVPR 2025) with the exact numbers cited. Now the adversarial novelty attack — I need to know whether extreme-value/tail-calibrated training already exists in metric learning or open-set recognition.Test-time EVT (OpenMax/EVM) is well established; a differentiable train-time tail objective is not appearing. Three final probes on the sharpest novelty threats.One result is a direct threat to my intended mechanism — an EVT correction to InfoNCE. I need to read it before I can claim novelty.## Verdict: one method, Lane A
+
+I return **one** method, not NONE. It is a loss, standalone and parameter-free, called **PORTAL** (Peaks-Over-threshold Return-level Training with Anchored tail index). I choose **Lane A** (ResNet-50, 512-D, ~224 px, single-view cosine, 200 epochs) for every forecast and comparison, because PORTAL is a loss-only change and Lane A is where cost matching is honest.
+
+The one-line claim: **existing DML losses optimize a quantity the deployment never evaluates.** They contrast an anchor against ~10²–10³ negatives; deployment ranks it against 10⁴–10⁵. PORTAL fits a generalized-Pareto tail to above-threshold negative similarities *during training*, differentiates through the fit, and minimizes the **return level at the deployment database size** — a quantile that is never realized in any batch and is reachable only by extrapolation. Temperature and margin stop being hyperparameters and become estimated tail parameters.
+
+---
+
+## 1. Executable mathematics
+
+**Deployed objects.** ResNet-50 (ImageNet-1K init) → global average pool → 2048-D → linear $E\in\mathbb{R}^{512\times 2048}$, no bias → $z=E\,\mathrm{GAP}(g_\theta(x))$, $\hat z=z/\lVert z\rVert_2$, $d=512$. Test: resize 256, center crop 224, one view, cosine 1-NN. No reranking, no query expansion, no test-gallery statistics. Learned objects are exactly $\theta$ and $E$; PORTAL adds **zero** learned parameters and **no** proxy matrix.
+
+**Batch.** $P{=}28$ classes × $K{=}4$ images, $B{=}112$; RandomResizedCrop(224) + horizontal flip only. A cross-batch memory queue $\mathcal{M}$ of $M{=}4096$ L2-normalized embeddings with labels, no gradient, FIFO, filled during a 1-epoch warmup. **The queue is held identical in both arms of every comparison**, so the claim is never "more negatives."
+
+**Similarities.** $s_{ij}=\hat z_i^\top \hat z_j$. For anchor $i$: positives $\mathcal{P}(i)$ in-batch, negatives $\mathcal{N}(i)=\{j\in\text{batch}\cup\mathcal{M}: y_j\neq y_i\}$, so $|\mathcal{N}(i)|\approx 4200$.
+
+**Positive score** (R@1 needs the *best* positive to win), $\beta{=}8$:
+
+$$s_i^{+}=\tfrac{1}{\beta}\log\tfrac{1}{|\mathcal{P}(i)|}\textstyle\sum_{j\in\mathcal{P}(i)}e^{\beta s_{ij}}$$
+
+**Peaks-over-threshold model.** Fix exceedance fraction $p=0.05$. Let $u_i$ be the empirical $(1-p)$-quantile of $\{s_{ij}\}_{j\in\mathcal{N}(i)}$ (gradient flows to the selected order statistic). Pool anchor-centered excesses $y=s_{ij}-u_i>0$ across all anchors: $m\approx 0.05\cdot 112\cdot 4200\approx 2.4\times10^{4}$ exceedances per step. Fit **one shared** $(\xi,\sigma)$ by probability-weighted moments (Hosking–Wallis), closed-form and differentiable — no inner optimization:
+
+$$a_0=\tfrac1m\sum_k y_{(k)},\qquad a_1=\tfrac1m\sum_k y_{(k)}\Big(1-\tfrac{k-0.35}{m}\Big),$$
+$$\hat\xi = 2-\frac{a_0}{a_0-2a_1},\qquad \hat\sigma=\frac{2a_0a_1}{a_0-2a_1}.$$
+
+(Check: an exact exponential tail gives $a_0=\sigma$, $a_1=\sigma/4$, hence $\hat\xi=0$, $\hat\sigma=\sigma$.) Guard $a_0-2a_1\ge\varepsilon_a=10^{-4}$; clip $\hat\xi$ to $[-1,0.4]$ **inside the return-level term only**, leaving it unclipped in the anchor term below.
+
+**Return-level loss.** The deployment scale $N$ is set to the **number of training images** $N_{\mathrm{tr}}$ — a legitimate deployment design parameter that uses no test information. (Using the benchmark's gallery size would be a protocol violation; I do not.) With $\bar F_i(s_i^+)=p\big(1+\hat\xi\,(s_i^+-u_i)_+/\hat\sigma\big)_+^{-1/\hat\xi}$ and $\Lambda_i=N\bar F_i(s_i^+)$ = expected count of gallery false positives above the best positive:
+
+$$\mathcal{L}_{\mathrm{ret}}=\tfrac1B\textstyle\sum_i \log(1+\Lambda_i).$$
+
+If $s_i^+\le u_i$ the anchor is in the bulk-failure regime and $\bar F_i$ falls back to the smooth empirical exceedance $\tfrac{1}{|\mathcal{N}(i)|}\sum_j\varsigma\big((s_{ij}-s_i^+)/0.01\big)$, $\varsigma$ = sigmoid. Since $\Pr[\text{R@1 error}]\approx 1-e^{-\Lambda}$, $\log(1+\Lambda)$ is the well-conditioned monotone surrogate.
+
+**Tail-index anchor.** For $z,z'$ i.i.d. uniform on $S^{d-1}$, $f(s)\propto(1-s^2)^{(d-3)/2}$, so $\bar F(1-\epsilon)\propto\epsilon^{(d-1)/2}$, putting the upper tail in the reverse-Weibull domain with
+
+$$\boxed{\ \xi^\star=-\tfrac{2}{d-1}=-0.003914\ \text{ for } d=512\ }$$
+
+a closed-form target fixed entirely by the deployed descriptor dimension. With $h_\delta$ = Huber ($\delta{=}0.2$, linear beyond, so gradients are bounded but never vanish):
+
+$$\mathcal{L}_{\xi}=h_{0.2}\!\left(\hat\xi-\xi^\star\right).$$
+
+**Positive term, capped to forbid within-class collapse** ($\gamma{=}32$, $\delta_p{=}0.5$):
+
+$$\mathcal{L}_{\mathrm{pos}}=\tfrac1B\sum_i\tfrac{1}{|\mathcal{P}(i)|}\sum_{j\in\mathcal{P}(i)}\tfrac1\gamma\,\mathrm{softplus}\big(\gamma(\delta_p-s_{ij})\big).$$
+
+Pull stops once a positive pair exceeds 0.5; $\delta_p\to1$ restores full collapse pressure and is an ablation.
+
+$$\mathcal{L}=\mathcal{L}_{\mathrm{ret}}+\lambda_p\mathcal{L}_{\mathrm{pos}}+\lambda_\xi\mathcal{L}_\xi,\qquad \lambda_p=1,\ \lambda_\xi=10.$$
+
+**Gradient path.** Gradients reach $\theta,E$ through $s_{ij}$ (four routes: $s_i^+$, $u_i$, $a_0$, $a_1$), so the loss has support on all ~2.4×10⁴ exceedance pairs per step, not on a single mined hardest negative. Differentiating, $\partial_x\log(1+\Lambda)=-\Lambda\big/\big[(1+\Lambda)\sigma(1+\xi x/\sigma)\big]$ with $x=s_i^+-u_i$: magnitude $\to 1/\hat\sigma$ when $\Lambda\gg1$ and $\to\Lambda/\hat\sigma$ when $\Lambda\ll1$. Anchors already safe *at gallery scale* receive no gradient — hardness weighting derived from deployment scale, not from relative similarity.
+
+**The reduction that makes the claim falsifiable.** At $\xi\to0$ and $\Lambda\gg1$, $\log(1+\Lambda)\to\log(Np)-(s_i^+-u_i)/\hat\sigma$: a margin loss with **temperature $\hat\sigma$ and margin $\hat\sigma\log(Np)$, both estimated from the tail**. For $d{=}512$ the isotropic tail is nearly exponential ($\xi^\star\approx-0.004$, finite endpoint at $x=-\sigma/\xi\approx12.8\gg2$), so $\mathcal{L}_\xi$ never binds through $\mathcal{L}_{\mathrm{ret}}$ — I state plainly that it acts **purely as a non-degeneracy anchor**, and control C5/F5 tests exactly that.
+
+**Schedule.** AdamW, decoupled WD $10^{-4}$, backbone lr $10^{-5}$, embedding lr $10^{-4}$, cosine decay, 200 epochs, BN frozen. $N$ ramped log-linearly $10^2\to N_{\mathrm{tr}}$ over epochs 1–10; $\lambda_\xi$ ramped $0\to10$ over epochs 1–5. I do **not** call the loss scale harmless: $\hat\sigma$ is data-estimated so the gradient magnitude on $\hat z$ is operational, and because $\hat z$ is normalized the effective spherical learning rate scales as $1/\lVert z\rVert^2$, which weight decay on $E$ drives. AdamW's decoupled WD makes this loss-scale-invariant; I fix the identical optimizer, WD, and parameter groups across every arm and would not use SGD+L2 here.
+
+---
+
+## 2. Causal zero-shot error mode, and a proof-level attack on the cheap degeneracies
+
+**Error mode — gallery-scale extremal mismatch.** For query $i$ against $N$ negatives, $\Pr[\text{R@1 err}]\le N\bar F_i(s_i^+)$: R@1 is governed by the **far upper tail** of the negative-similarity law, at exceedance level $\sim1/N$. Proxy and softmax losses saturate once the anchor beats its $C_{\mathrm{tr}}$ proxies, i.e. they control the tail only down to level $\sim1/C_{\mathrm{tr}}$. The mismatch is $N_{\mathrm{tr}}/C_{\mathrm{tr}}$: **59× on CUB, 82× on Cars, but only 6.5× on In-Shop and 5.3× on SOP**. Nothing in the training signal shapes the region that decides retrieval on fine-grained benchmarks. This yields a mechanism-specific, falsifiable ordering (§5) that no generic regularizer predicts.
+
+**Degeneracy attacks.**
+
+*Constant embedding.* $\hat z\equiv c$ ⟹ all $s_{ij}=1$ ⟹ $u_i=1$, $s_i^+=u_i$, empirical branch gives $\bar F_i=1$, $\Lambda_i=N$, $\mathcal{L}_{\mathrm{ret}}=\log(1+N)\approx 8.7$–$11$. Collapse is the **global maximum**, not a minimum.
+
+*Neural collapse / simplex ETF — the expensive one, killed exactly.* The terminal-phase solution puts all training negatives at $s=-1/(C-1)$ with zero spread. Then every excess equals some $y_0$, so $a_0=y_0$ and $a_1=y_0\cdot\frac1m\sum_k(1-\frac{k-0.35}{m})\to y_0/2$, hence $a_0-2a_1\to0^+$ and
+
+$$\hat\xi = 2-\frac{y_0}{0^+}\ \longrightarrow\ -\infty .$$
+
+**The PWM tail-index estimator diverges to $-\infty$ precisely on atomic similarity distributions, which is the neural-collapse configuration.** With the Huber anchor this is a linearly-growing penalty with non-vanishing gradient, so the ETF minimizer that every proxy/softmax loss admits is structurally excluded here. This is the load-bearing property of the method and the reason $\mathcal{L}_\xi$ is not a cosmetic regularizer.
+
+*Threshold gaming.* $u_i$ is the **upper** 95th percentile, set by the hardest 5% of negatives. Pushing easy negatives further away cannot lower it; only improving the hard tail can. No shortcut.
+
+*Scale gaming.* $\mathcal{L}_{\mathrm{ret}}$ prefers small $\hat\sigma$ (tight negative tail), $\mathcal{L}_\xi$ forbids the atomic limit that small $\hat\sigma$ approaches. The two terms are in designed tension; the feasible set is "clustered bulk, isotropically-shaped near-collision geometry" — exactly the trade zero-shot retrieval wants, since novel classes live in the interstices.
+
+*Unfixable within the rules, declared.* All negatives are training-class negatives. If seen and unseen tail shapes differ materially, transfer is weaker. Partial mitigation: $\xi^\star$ is a purely geometric, label-free target.
+
+---
+
+## 3. Adversarial novelty search — nearest works and mechanism distinctions
+
+I searched inside DML and outside it (EVT, open-set recognition, IR list truncation, contrastive SSL). One result is a genuine near-miss and I read it rather than dismissing it.
+
+| Nearest work | One-sentence mechanism distinction |
+|---|---|
+| **WEINCE, "When Softmax Fails at the Top" (arXiv 2606.00262)** — the closest work; Weibull-fits in-batch negative logits with backprop through the fit | It corrects the softmax logits toward a better estimate of an **in-batch** quantity; PORTAL changes the **estimand** to a return level at $N\gg B$ that appears in no batch, and anchors $\hat\xi$ to the closed-form $-2/(d-1)$ — WEINCE introduces no gallery size beyond the batch and is evaluated on CIFAR/STL/ImageNet, not DML benchmarks. |
+| **Recall@k Surrogate (Patel et al., CVPR 2022)** | Optimizes the **empirical** R@k on the batch, so its fidelity is capped by batch size (hence the 4096-batch engineering); PORTAL optimizes a parametric **extrapolation** of R@1 error beyond any realizable batch. |
+| **OpenMax (CVPR 2016), Extreme Value Machine (TPAMI 2018), MetaMax** | Fit EVT tails **post hoc at test time** to calibrate open-set rejection on a frozen net; PORTAL differentiates through the fit during training to *shape* the embedding. |
+| **ρ-spectral regularization (Roth et al., ICML 2020)** | Flattens the embedding's singular-value spectrum by swapping negatives with positives; PORTAL imposes no spectral constraint and fixes only the **upper-tail index** of the pairwise similarity law, leaving the bulk spectrum free to be class-structured. |
+| **Alignment/Uniformity (Wang & Isola, ICML 2020)** | Minimizes a mean-field Gaussian-kernel potential over **all** pairs; PORTAL's gradient support is the above-threshold order statistics and its target is a tail **shape**, not an average energy. |
+| **Chance-constrained DML (Gürbüz et al., WACV 2024)** | A probabilistic **coverage** constraint on the positive-class ball radius, motivating *more* proxies; PORTAL constrains the negative tail's return level and adds **no** proxies. |
+| **Non-isotropic probabilistic proxy DML (ECCV 2022)** | Learns class-conditional densities via normalizing flows; PORTAL learns no density and estimates two scalars in closed form from order statistics. |
+| **XBM (CVPR 2020)** | Enlarges the **observed** negative set; PORTAL runs with XBM held identical in both arms precisely so the claim cannot be "more negatives." |
+| **MS / Circle / hard-negative mining** | Reweight or select *observed* negatives; PORTAL's gradient enters two **distributional parameters** and the loss depends on similarities never realized in the batch. |
+| **PFML (CVPR 2025)** | A potential-field energy summed over pairwise sample–sample and sample–proxy interactions — a mean-field functional; PORTAL is an order-statistic/tail functional. |
+| **"Surprise": IR list truncation via EVT (2020)** | Test-time score-tail modeling to pick a cutoff; PORTAL is a training objective. |
+
+The honest summary: EVT-inside-a-contrastive-loss is **no longer virgin territory** as of WEINCE. What remains unoccupied, and what I claim, is the *estimand*: a return level at a deployment scale two orders of magnitude beyond the batch, plus a dimension-determined tail-index anchor whose divergence property excludes neural collapse.
+
+---
+
+## 4. Decisive matched-compute controls
+
+Every arm: same seeds, epochs, augmentation, optimizer, parameter groups, LR schedule, memory queue; wall-clock reported.
+
+- **C1 — negative-count matched.** Both arms carry the identical 4096 queue. Isolates loss from negative count (kills the XBM explanation).
+- **C2 — tuned-temperature matched.** Baseline gets the best $(\tau,m)$ from a 5×5 grid at equal total compute; PORTAL tunes neither. If a tuned fixed temperature matches PORTAL, the "estimated tail parameters" claim dies.
+- **C3 — frozen-tail ablation.** Replace $(\hat\xi,\hat\sigma)$ with constants $(0,\bar\sigma)$, $\bar\sigma$ = the mean fitted value from the PORTAL run. This reduces PORTAL to a scaled margin loss and is the single most decisive control.
+- **C4 — $N$-sweep.** $N\in\{10^2,10^3,10^4,10^5\}$. The mechanism requires a dataset-specific interior optimum near $N_{\mathrm{tr}}$.
+- **C5 — anchor ablation.** $\lambda_\xi=0$, while logging the $\hat\xi$ trajectory **and** Roth's spectral decay $\rho$. If PORTAL merely flattens $\rho$, it is ρ-regularization in disguise; the mechanism predicts $\hat\xi\!\to\!\xi^\star$ *without* requiring $\rho$ to flatten.
+- **C6 — label-scrambled tail.** Fit $(\hat\xi,\hat\sigma)$ on permuted labels. If this works as well, the tail fit is label-independent and PORTAL is a generic dispersion prior.
+- **C7 — collapse-cap ablation.** $\delta_p\in\{0.5,0.8,1.0\}$, separating the capped positive term from the tail machinery.
+
+---
+
+## 5. Frozen forecasts — Lane A, ResNet-50, 512-D, 224 px, 200 epochs, 5 seeds, mean ± std
+
+**I do not inherit PFML's published numbers.** All deltas are in-codebase against my own matched reproduction; the reproduction gap is declared.
+
+| Arm | CUB | Cars196 | SOP |
+|---|---|---|---|
+| PFML **published** (reference) | 0.734 ± 0.003 | 0.927 ± 0.003 | 0.829 ± 0.002 |
+| PFML **my matched repro** | 0.728 ± 0.004 | 0.921 ± 0.004 | 0.825 ± 0.003 |
+| ProxyAnchor repro + XBM(4096) | 0.695 ± 0.005 | 0.878 ± 0.005 | 0.812 ± 0.003 |
+| PORTAL, instance-only + XBM | 0.723 ± 0.005 | 0.918 ± 0.005 | 0.821 ± 0.003 |
+| **PORTAL replacing PFML's repulsive term** | **0.742 ± 0.005** | **0.933 ± 0.005** | **0.830 ± 0.003** |
+
+Declared reproduction gap: −0.006 / −0.006 / −0.004.
+
+**Frontier-crossing arithmetic.** CUB in-codebase delta $=0.742-0.728=+0.014$; pooled SEM $=\sqrt{0.005^2/5+0.004^2/5}=0.00286$; $z=4.9$. Cars: $+0.012$, $z=4.2$. SOP: $+0.005$, $z=2.6$. Against PFML *published*, cross-codebase and therefore not decisive: CUB $+0.008$ ($z=3.06$), Cars $+0.006$ ($z=2.3$, weak), **SOP $+0.001$ — does not cross, as predicted.** Under an explicitly-stated additivity assumption (delta transfers onto a perfect reproduction) CUB would reach 0.748; I flag this as an assumption, not a claim.
+
+**The mechanism's own prediction.** Gain scales with $\log(N_{\mathrm{tr}}/C_{\mathrm{tr}})$: CUB 4.07, Cars 4.41, In-Shop 1.87, SOP 1.66 ⟹ predicted deltas 0.013 / 0.014 / 0.006 / 0.005, matching the table. SOP being nearly flat is a **prediction, not an excuse.**
+
+**Pre-registered falsification thresholds.**
+- **F1** CUB delta over matched PFML repro < +0.006 → falsified.
+- **F2** Spearman correlation between per-dataset delta and $\log(N_{\mathrm{tr}}/C_{\mathrm{tr}})$ ≤ 0 → mechanism falsified *even if R@1 improves*.
+- **F3** C3 (frozen tail) retains ≥ 70 % of the CUB delta → it is a tuned temperature.
+- **F4** C4 $N$-sweep moves CUB R@1 by < 0.004 across three decades → $N$ is inert.
+- **F5** C5 costs < 0.005 CUB R@1 **and** leaves $\hat\xi$ unchanged → the anchor is inert.
+- **F6** Baseline + identical XBM absorbs the gain to < +0.005 → mechanism is "more negatives" (occupied).
+
+No In-Shop frontier claim is defensible: the PA+DADA 0.930 reference has unreported seeds and uncertainty.
+
+---
+
+## 6. Cost, risks, and unresolved ambiguities
+
+**Cost.** Training: one sort plus two weighted sums over similarities already computed — < 2 % step time, no extra forward/backward, **zero** added parameters, +8 MB for the queue. Replacing a proxy loss *removes* the $C\times d$ proxy matrix (5.8 M params on SOP). Compare AdvRF (extra ResNet-34 + U-Net + distillation), VAPNet (attribute machinery), DADA (1.06× epoch time). Deployment: bit-identical to the baseline — one ResNet-50, one view, 512-D, cosine.
+
+**Risks I would not paper over.** (a) The $\bar F^N$ bound assumes independent gallery items; real galleries are class-clustered (extremal index $\theta<1$), so the $N$-sweep optimum should sit *below* $N_{\mathrm{tr}}$ — a peak landing exactly at $N_{\mathrm{tr}}$ would be mildly suspicious. (b) PWM estimators are valid only for $\xi<0.5$; early-training heavy tails bias them, mitigated by warmup and clipping. (c) Order-statistic estimators are noisy in small batches, so PORTAL depends on the memory queue — I forecast it underperforms without one (0.723 vs 0.742). (d) If PFML's gain comes from 15 proxies/class capturing multimodality, PORTAL may not compose as assumed. (e) Contamination: ImageNet-1K pretraining overlaps CUB/Cars semantics and SOP/In-Shop contain near-duplicates — shared by all references, but it means CUB differences under 0.005 are seed noise.
+
+**Unresolved source ambiguities.** PFML's full recipe (LR, batch composition, BN freezing, proxy LR multiplier, pooling before the 512-D head) is not established from what I could access; any mismatch invalidates the frontier arithmetic. PFML's "± 0.003" is not stated to be std vs SEM — I assumed std; if SEM, my $z$ values shrink by ~2.2×. My WEINCE reading came from a model-summarized PDF, not equation-level inspection: the distinction I draw rests on "no gallery size $N>B$ appears anywhere," which needs direct verification before publication. AdvRF and VAPNet numbers I did not verify at primary-source level; they are Lane B and enter no arithmetic of mine.
+
+**Sources:** [PFML, CVPR 2025](https://cvpr.thecvf.com/virtual/2025/poster/33305) · [WEINCE, arXiv 2606.00262](https://arxiv.org/pdf/2606.00262) · [Recall@k Surrogate, CVPR 2022](https://openaccess.thecvf.com/content/CVPR2022/papers/Patel_Recallk_Surrogate_Loss_With_Large_Batches_and_Similarity_Mixup_CVPR_2022_paper.pdf) · [Roth et al., ICML 2020](https://arxiv.org/abs/2002.08473) · [DML with Chance Constraints, WACV 2024](https://arxiv.org/abs/2209.09060) · [Non-isotropic Probabilistic Proxy DML, ECCV 2022](https://arxiv.org/pdf/2207.03784) · [AdvRF, ICCV 2025](https://arxiv.org/pdf/2507.21742) · [VAPNet, NeurIPS 2023](https://neurips.cc/virtual/2023/poster/71599) · [Survey on Open Set Recognition (OpenMax/EVM)](https://arxiv.org/pdf/2109.00893) · [Surprise: EVT list truncation](https://arxiv.org/pdf/2010.09797) · [DADA, AAAI 2024](https://ojs.aaai.org/index.php/AAAI/article/download/29400/30645)
+
+
