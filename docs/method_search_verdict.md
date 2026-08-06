@@ -7677,3 +7677,50 @@ family, not as candidate novelty. Full artifacts:
 `docs/opus_lord_proposal_pass54_2026-08-06.md`,
 `docs/opus_lord_local_audit_2026-08-06.md`, and
 `docs/opus_lord_review_2026-08-06.md`.
+
+### Pass 55 — XCR (extrapolated collision risk via Hill/Weissman LID): DEAD at Gates 1–2 (and Gate 4 degeneracy)
+
+Mechanism: estimate a negative-only local intrinsic dimension from the nearest
+in-batch radii, extrapolate a Weissman collision-risk bound from the batch to
+the training-gallery scale, and backpropagate `log(1+N_hat)` through the
+positive radius, order statistics, threshold shell, and Hill exponent. The
+proposal claimed that ordinary DML leaves rare gallery-scale tails untreated.
+
+Gate 1 failed because the frozen object supplied forecasts and asymptotic
+arguments but no verified repository measurement linking negative-only LID or
+extrapolated collision risk to disjoint-identity R@1. The closest prospective
+tail measurement is adverse: Pass 31 XTail found only `0.0087` incremental
+R-squared for fitted shape beyond threshold and mean excess, a tuned constant
+had lower deep-quantile RMSE (`0.0918` vs `0.1575`), and shape noise consumed
+67–86% of the depth signal. Changing GPD shape to Hill LID does not reverse
+that evidence. The balanced in-batch sample is dependent and class-mixture
+biased, and multiplying by training image count is not a measured deployment
+exposure.
+
+Gate 2 is the same occupied tail-supervision object as EVPC, RLM, EGR-PFML,
+PORTAL, PORT, XTail, POTER, CFEV, and GEVS: fit an observed negative-similarity
+tail, extrapolate to gallery depth, and optimize the resulting risk. Public
+neighbours include LDReg (ICLR 2024) for differentiable LID training,
+WEINCE (ICML 2026) for online EVT score correction, TriSim (CVPR 2026) for
+GPD similarity-tail training, and Recall@k/Smooth-AP/ranked-list/top-k/CVaR/XBM
+for train-time operating-depth pressure. The LID-exponent coupling is a
+data-dependent reweighting of the LDReg carrier until a matched control proves
+otherwise; no GPU run was authorized.
+
+The independent cold review (`docs/opus_xcr_review_2026-08-06.md`, job
+`422b6f1c2e984728`) also returns DEAD. Its decisive mechanism counterexample
+compresses all 24 nearest negatives inward while holding the positive fixed:
+the Hill spacing tends to zero, the clamp returns `d̂=512`, and XCR’s loss falls
+80–90% although retrieval risk worsens. D3 mistakes a vanishing gradient at a
+minimum for a safety proof; D4 confuses mutual equidistance with many points on
+a sphere around one anchor. The review additionally finds a 28% seam-calibration
+mismatch (`k/B_neg` anchored at `r_k` but `u` averaged over `r_{k+1:k+m}`),
+an underpowered C1, and no decisive matched-frontier crossing in the forecasts.
+
+Useful residue: the union bound `M_neg F_q(rho+)`, the contrast/noise guard,
+and the differentiable Hill/Weissman fit are reusable diagnostic ingredients,
+not evidence that XCR is viable. Full artifacts:
+`docs/opus_xcr_proposal_pass55_2026-08-06.md`,
+`docs/opus_xcr_review_prompt_pass55_2026-08-06.txt`,
+`docs/opus_xcr_local_audit_2026-08-06.md`, and
+`docs/opus_xcr_review_2026-08-06.md`.

@@ -112,3 +112,17 @@ append XCR’s mechanism and the adverse tail-evidence lesson to
 `docs/method_search_verdict.md`, commit/push, and start the next neutral blind
 proposer pass. If it finds a substantive disagreement, resolve it without
 silently repairing XCR; a repair would be a new proposal.
+
+## Cold-review reconciliation
+
+The independent review (`422b6f1c2e984728`, completed under Claude Opus) also
+returns **DEAD**. It supplies a decisive constructive counterexample: with
+`rho+=0.70`, compressing all 24 nearest negatives from approximately
+`[0.90,1.10]` to `0.90` leaves every negative no farther (and most closer), yet
+drives `S→0`, `d̂→512`, and the loss down by roughly 80–90%. It also catches
+the mismatch between the `k/B_neg` tail fraction and the smoothed threshold
+`u`, underpowered C1 (which removes near-negative repulsion as well as the
+exponent path), and the fact that a constant-beta LDReg control cannot isolate
+XCR’s data-dependent hardness weighting. These findings strengthen rather than
+contradict the local Gate-1/2 rejection. Preserved details are in
+`docs/opus_xcr_review_2026-08-06.md`.
