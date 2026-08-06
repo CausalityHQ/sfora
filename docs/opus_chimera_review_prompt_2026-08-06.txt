@@ -1,0 +1,79 @@
+Provider: fresh Fable session with configured Claude Opus fallback, independent
+cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_chimera_proposal_pass38_2026-08-06.md
+
+Do not edit repository files or inspect git history, local audits, prior reviews,
+the verdict ledger, or conversations. Start cold from the frozen proposal and
+primary sources. Return LIVE, DEAD, or UNRESOLVED with the earliest failed gate
+and one decisive mechanism-level reason. This is adjudication, not repair. Do
+not silently improve, reinterpret, or replace the frozen object.
+
+Problem and legal envelope: train on the official training split with identity
+labels, ordinary image augmentation, and ImageNet-1K initialization only. Test
+identities are disjoint. No test images, gallery statistics, external generated
+data, text model, reranking, transduction, ensemble, or test-time fitting may
+enter training or selection. Deployment is one single-view image encoder, one
+512-D L2-normalized descriptor, and ordinary cosine nearest-neighbour retrieval.
+All train-only machinery must disappear at deployment. Hyperparameters may be
+selected only through a class-disjoint split of training identities.
+
+Audited matched Lane-A references are ResNet-50/512-D/single-view PFML over five
+runs: CUB 0.734 +/- 0.003, Cars196 0.927 +/- 0.003, SOP 0.829 +/- 0.002. These
+published results are credible horizons but their complete authors' executable
+recipe is unavailable locally. Higher-capacity single-view observations are
+VAPNet ResNet-50/2048-D at CUB 0.762, Cars 0.948, In-Shop 0.939; AdvRF at CUB
+0.766 and Cars 0.949; and CRT MiT-B2/128-D at In-Shop 0.9448. They have no
+reported multi-seed uncertainty and belong to separate capacity lanes, but a
+general SOTA claim must confront them. The corrected local In-Shop Proxy Anchor
+seed 0 is raw 0.9163 and final 0.9137; one seed is not a fixed baseline. A live
+candidate must first establish a same-seed corrected In-Shop paired control,
+then confirm out of sample and on a second dataset. Report raw and independently
+selected/final metrics; best-over-test-training is not valid selection.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce every dimension, marginal, normalization, gradient path, optimizer
+   state, EMA/update order, and loss term. Decide whether the stated Sinkhorn
+   operation is uniquely executable, whether its constraints have the claimed
+   consequences, and whether every declared learned object has a consistent
+   optimizer and initialization.
+2. Prove or refute the finite-class-rank causal argument. Distinguish class-mean,
+   class-prototype, full training-feature, generated-prototype, and test-feature
+   ranks. Check whether the stated PFML proxy-count pattern identifies the
+   proposed cause or has alternative explanations.
+3. Attack all claimed degeneracy blocks constructively. Seek the cheapest
+   class-private, group-private, common-plus-private, constant-code,
+   duplicate-atom, nuisance-code, lookup-table, and encoder/proxy co-adaptation
+   solutions. Do not accept aggregate balance or entropy as semantic sharing
+   without proof.
+4. Determine exactly what new supervision exists in the chimeric term. Ask
+   whether a chimeric vector has an observed matching input, what the calibration
+   and separation losses identify, and whether binary coordinate crossover is
+   materially different from virtual/synthetic classes, proxy synthesis, mixup,
+   embedding expansion, or proxy/dictionary factorization.
+5. Search primary prior art aggressively inside DML and in supervised dictionary
+   learning, compositional/factorized classifiers, balanced clustering,
+   synthetic-class learning, metric mixup, label/code embeddings, visual-word
+   models, neural-collapse transfer, and compositional representation learning.
+   Judge mechanism-level novelty, not absence of the exact conjunction or name.
+6. Audit the causal provenance. A formula, a published hyperparameter choice, a
+   cross-dataset difference, or a plausible analogy is not a repository
+   measurement. State which measured premise, if any, quantitatively supports
+   the forecast and expected dataset ordering.
+7. Audit every control for executability and identifiability. Check the
+   anchor-matched private control, convex-crossover control, random/frozen atom
+   controls, view-budget control, test-rank diagnostic, and whether any control
+   changes capacity, data exposure, optimizer, identity population, or test-data
+   use. Verify sampler feasibility from the official class-size distributions.
+8. Verify the parameter, memory, FLOP, wall-clock, and temporary-state counts,
+   including full-table balancing at the largest dataset. Recompute all
+   uncertainty, interval, z-score, and frontier-crossing arithmetic. Separate a
+   matched-lane crossing from a capacity-unrestricted SOTA claim.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources and state unresolved uncertainty. A substantive repair is a new
+proposal and must not be used to upgrade this frozen one.
