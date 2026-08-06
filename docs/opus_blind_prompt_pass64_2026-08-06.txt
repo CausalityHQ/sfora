@@ -1,0 +1,36 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold and use only this prompt plus public primary literature. Do not
+inspect local files, history, prior candidates, or process state and do not edit
+files. Return exactly ONE executable method or NONE.
+
+Find a genuinely novel train-time method for zero-shot deep metric learning on
+disjoint identities (CUB, Cars196, In-Shop, SOP), using only official training
+images/labels plus ordinary stochastic augmentation and optional ImageNet-1K
+initialization. Deployment is one model, one view, one fixed descriptor and
+cosine/Euclidean retrieval; no test/gallery fitting, reranking, transduction,
+external generated data, text/VLM encoders, extra annotations, or contamination.
+Choose one lane: Lane A R50/512-D/224px/200 epochs, refs CUB .734/Cars .927/SOP
+.829; or Lane B R50/2048-D, refs CUB .766/Cars .949/SOP .842.
+
+Prior passes closed similarity-matrix reweighting, ordinary regularizers,
+tangent/invariance, gradient surgery, EVT tails, multi-centers, averaging,
+common optimizer/architecture and label-only objectives. The CUB error split
+was 48.1% local within-class versus 51.9% between-class. ECT’s hard
+counterfactual was unsatisfiable; IRH’s soft counterfactual was rejected because
+its detached state reduced exactly to a signed Pi-model/VAT consistency term,
+and its transport/staircase were prior art. Therefore any new proposal MUST
+have a differentiable, mechanism-level gradient path that is not merely a
+per-example scalar weight on an occupied similarity/consistency loss. It must
+change the off-support function or supervision construction in a way that can
+survive a gradient reduction proof.
+
+Seek ideas from physics, chemistry, biology, control, information theory,
+program synthesis, cellular/associative systems, unusual activations, or
+architectures. Attack primary prior art before proposing novelty. Provide full
+equations, gradient/state paths, schedules, causal error mode, proof-level
+degeneracy attacks, exact prior-art distinctions, matched controls, frozen
+forecasts on >=2 datasets, falsifiers/frontier arithmetic, costs and risks. If
+no candidate survives honestly, return NONE plus a reusable closure lemma and a
+cheap falsifiable diagnostic. Do not claim SOTA from forecasts.
