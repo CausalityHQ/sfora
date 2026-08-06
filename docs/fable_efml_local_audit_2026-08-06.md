@@ -125,13 +125,15 @@ Primary sources:
    MMD implementation of DVML/SFT's occupied class-independent-variation
    premise. The placebo also changes the target from cross-class to
    self-history matching and is not machinery-equivalent.
-10. **The benchmark base is invented and contradicts the active protocol.**
-    The proposal changes backbone recipe, optimizer, sampler, batch
+10. **The benchmark base is invented and does not satisfy the repaired active
+    protocol.** The proposal changes backbone recipe, optimizer, sampler, batch
     composition, schedule, BN behavior, and evaluation convention; admits
-    unresolved official defaults; assumes SOP/In-Shop baselines; and forecasts
-    a 0.917 In-Shop PA base rather than using the repository's corrected
-    three-seed 0.9035 baseline. Gate 4 requires the established In-Shop screen,
-    not a new unmeasured lane.
+    unresolved official defaults; and assumes SOP/In-Shop baselines. The
+    historical 0.9035 In-Shop mean and one-seed variance rule were retracted
+    after the wrong-pixel-corpus discovery. The valid corrected-pixel evidence
+    is only PA seed 0 raw 0.9163/final 0.9137, not a fixed gate. A future Gate-4
+    screen therefore requires a same-seed, current-digest paired control and
+    retained artifacts; EFML's forecasted 0.917 base is not that reproduction.
 11. **The tuning budget is not “one method.”** A 3-by-3 validation grid,
     sampler replacement, projection seed, buffer sizes, pole, queue length,
     bandwidth refresh, beta, warm-up statistic, and eight controls create a
