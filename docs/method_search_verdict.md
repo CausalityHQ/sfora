@@ -7885,3 +7885,20 @@ ECT area confound returns as a displacement-dependent resampling confound and
 response monotonicity fails. No GPU run was authorized. Full artifacts:
 `docs/opus_irh_proposal_pass63_2026-08-06.md`,
 `docs/opus_irh_review_2026-08-06.md`.
+
+### Pass 64 — blind proposer returned NONE before Gate 1
+
+The proposer formalized an off-support underdetermination lemma: objectives
+local to the augmentation-reachable training support and neutral in
+parameterization leave unseen-function values underconstrained. This closes
+the recurring reweighting, proxy, margin, gradient-surgery, averaging, EVT,
+and detached-consistency families as one support-local class. It rejected Lie
+canonicalization, VSA binding, MCR²/whitening, pseudo-unseen meta-learning,
+augmentation equivariance, dense correspondence, spatial chimeras, Fourier
+factorization, sparse-coding heads, mask additivity, noise-continuum margins,
+and bi-Lipschitz parameterization as prior art, degeneracy, or sign-unstable.
+The residual open lanes are extrapolation-operator surgery and off-support
+supervision that defeats a compositeness gate; no defensible candidate was
+constructed. A cheap training-only C−1-subspace alpha probe was proposed before
+another blind pass. No candidate GPU run was authorized. Full artifact:
+`docs/opus_pass64_none_2026-08-06.md`.
