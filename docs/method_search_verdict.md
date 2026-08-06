@@ -5891,3 +5891,64 @@ class-blind makes it subtractive by construction. Full artifacts:
 `docs/opus_nsp_proposal_pass30_2026-08-06.md`,
 `docs/opus_nsp_review_2026-08-06.md`, and
 `docs/opus_nsp_local_audit_2026-08-06.md`.
+
+### Thirty-first blind pass: XTail is the sixth gallery-tail recurrence
+
+**DEAD at Gate 1 and Gate 2, with an independently demonstrated estimator and
+gradient failure; no preregistration, implementation, or GPU.** The direct
+Opus proposal returned Extrapolated-Tail Metric Learning (XTail): fit a
+per-anchor GPD by probability-weighted moments to the upper quartile of
+in-batch negative cosine similarities, extrapolate to a train-set-sized deep
+quantile, and use it as a positive-margin target.
+
+Gate 1 has no eligible repository provenance. No corrected measurement in this
+repository establishes stable GPD fits, transport from sampler-conditioned
+negative mixtures to unseen galleries, gallery multiplicity as the causal
+error source, or improvement under tail pressure. Dataset-size ratios and an
+illustrative fitted curve are inputs to a hypothesis, not measurements that
+motivate its mechanism.
+
+Gate 2 exposes an exact sixth recurrence of the same internal line: Pass 9
+EVPC, Pass 14 RLM, Pass 15 EGR-PFML, Pass 23 PORTAL, Pass 26 PORT, and now
+XTail all infer that training sees fewer negatives than deployment and wrap an
+extreme-tail estimate into the loss. Publicly, WEINCE, TriSim, Recall@k,
+top-k/CVaR and ranked-list objectives occupy the tail/rank supervision object;
+AnchorFace-family memory methods address empirical operating depth. The cold
+review confirms that AnchorFace itself is only a global empirical threshold,
+so XTail's narrower distinction there survives. But LDReg (ICLR 2024,
+<https://arxiv.org/abs/2401.10474>) already differentiates an in-batch,
+per-sample EVT/LID tail estimator into a learned representation, directly
+defeating the proposal's broader train-time-EVT novelty claim. Residual novelty
+is only the deep extrapolated quantile used as a margin target.
+
+That residual mechanism fails without training. With `zeta=0.25`, the nominal
+36 exceedances contain only about 12.8 distinct negative classes. Fresh cold
+simulations found shape-estimator noise equal to 67--86% of the entire
+batch-to-SOP depth signal. Shape adds just `0.0087` incremental R-squared over
+threshold and mean exceedance; a matched constant coefficient predicts the
+deep quantile better (`0.0918` versus `0.1575` RMSE). In a hard-negative
+mixture the fit returns `A=13.38` where `A*=5.09`, and its admitted positive
+shape violates bounded-cosine endpoint support.
+
+The complete live gradient is worse than the frozen fixed-shape expression:
+23 of 36 exceedance ranks are attracted, direct descent raises the negative
+75th percentile by `+0.036`, and the shape is driven to its lower clip, reducing
+XTail to a constant VaR/CVaR combination. Exact normalized-cosine collapse is
+stationary and leaves the strict exceedance set empty. Saturation exists as a
+theoretical dead branch, although the reviewer found it rare (`0.15%`) under
+realistic simulated scales, so it is not the primary practical kill.
+
+The recipe also duplicates sparse SOP classes at five samples per class,
+creating self-identical positives that switch the auxiliary term off, and its
+fixed coefficient ignores Proxy Anchor's class-count-dependent normalization.
+Even the frozen forecasts cross no frontier decisively: CUB misses, Cars ties,
+SOP is only `+0.001` against published uncertainty, and In-Shop is
+unadjudicable. Process lesson: a correct EVT formula is not evidence that a
+bulk, dependent, moving batch mixture estimates a deployed tail. A seventh
+variant in this family requires prospective repository evidence and a
+different supervision object before it deserves review, let alone GPU.
+
+Full artifacts:
+`docs/opus_xtail_proposal_pass31_2026-08-06.md`,
+`docs/opus_xtail_review_2026-08-06.md`, and
+`docs/opus_xtail_local_audit_2026-08-06.md`.

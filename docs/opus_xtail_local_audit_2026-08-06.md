@@ -158,3 +158,57 @@ new prospective repository measurement first establishes tail transport and
 causal error repair, and the supervision object is materially different from
 EVPC/RLM/EGR-PFML/PORTAL/PORT and WEINCE/TriSim. More careful shrinkage or a new
 margin wrapper is not enough.
+
+## Reconciliation with the frozen cold review
+
+The independent Opus review completed after this local audit was frozen and
+agrees on **DEAD before GPU**. It independently verified the PWM estimator,
+scale identity, extrapolation coefficient, Taylor branch, dataset counts, cost
+order, and the narrower distinction from AnchorFace. Those correct pieces do
+not rescue the supervision mechanism.
+
+The review sharpens the earliest failure to the estimator itself. At the
+specified bulk threshold (`zeta=0.25`) and roughly 36 nominal exceedances, only
+about 12.8 distinct negative classes contribute. Across realistic simulated
+similarity laws, shape-estimator noise is 67--86% of the full batch-to-SOP
+depth signal. The fitted shape adds only `0.0087` incremental R-squared beyond
+`u` and mean exceedance, while a tuned constant coefficient achieves lower
+deep-quantile RMSE (`0.0918` versus `0.1575`). The positive-shape hard-negative
+mixture is especially adverse: the fit returns `xi=+0.081` and `A=13.38`
+against a required `A*=5.09`. Cosine's bounded support also requires a
+negative, endpoint-compatible shape, which the proposed `[-0.5,+0.15]` clip
+does not enforce.
+
+The reviewer differentiated the complete `rho=1` pipeline rather than the
+proposal's displayed fixed-shape expression. At a realistic point, 23 of 36
+exceedance ranks receive attractive gradients, descent raises the negative
+75th percentile by `+0.036`, and the fitted shape is driven to the lower clip,
+where the method reduces to a constant-`A` VaR/CVaR combination. This is a
+stronger executable version of the local monotonicity objection. The review
+also confirms that exact normalized-cosine collapse is stationary and exposes
+an unhandled `k=0` case there.
+
+One local warning is narrowed rather than withdrawn: the `min(1,q)` branch is
+theoretically a dead-tail region with an impossible positive target, but the
+reviewer's realistic simulations enter it only about `0.15%` of the time.
+Saturation is therefore not the practical primary kill. The estimator's bias,
+noise, adverse live gradient, and constant-control reduction are.
+
+Gate 2 is stronger after the review. LDReg (ICLR 2024,
+<https://arxiv.org/abs/2401.10474>) already differentiates an in-batch,
+per-sample EVT/LID tail estimator through the learned representation. Thus the
+broad claim that train-time differentiated EVT is new is false. The residual
+deep-quantile-as-margin wrapper remains narrower than LDReg and AnchorFace, but
+it is both internally recurrent and mathematically unsuccessful. The review
+also identifies Furon--Jegou EVT image-detection and similarity-search
+relevance prediction as prior use of the same non-match upper-tail statistical
+object, albeit post hoc.
+
+Finally, the primary SOP recipe is operationally mismatched: forcing five
+images per class duplicates sparse classes, yielding self-identical positives
+and switching the auxiliary term nearly off for affected anchors. The proposed
+fixed auxiliary coefficient also does not compensate for Proxy Anchor's
+class-count-dependent normalization. These recipe failures reinforce, but are
+not needed for, the no-GPU verdict.
+
+Frozen review: `docs/opus_xtail_review_2026-08-06.md`.
