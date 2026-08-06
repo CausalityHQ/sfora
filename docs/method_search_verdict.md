@@ -7942,3 +7942,20 @@ for Zero-Shot Fine-Grained Image Retrieval (TPAMI 2024) is a directly matched
 occupant. The proposed cheap PSE measurement would test activation-support
 escape and clamp-ablation payoff; no method or GPU run was authorized. Full
 artifact: `docs/opus_pass66_none_2026-08-06.md`.
+
+### Pass 67 — blind proposer returned NONE before Gate 1
+
+The proposer derived a drift-budget closure: for `f=g_l o phi_l`, unseen clean
+drift is bounded by `2L delta_l + E_on`, where `delta_l` measures distance from
+unseen states to the training-realized state set and `E_on` is on-support
+function change. Off-support signals with negligible clean drift are inert;
+nonzero drift is an on-support method and falls into the closed families. The
+layer-depth argument predicts shallow states are compositeness-detector
+solvable while deep states have small coverage gaps. Candidate failures
+included canonicalization, VSA binding, class excision/meta-learning, spatial
+chimeras, Fourier recombination, and activation changes. The proposed DBRS
+diagnostic would measure layerwise state coverage, Lipschitz drift budgets, and
+real-vs-composite detector AUC. The remaining door is supervision-structure
+change, but Proxy Synthesis and episodic/class subsampling are immediate prior
+art. No method or GPU run was authorized. Full artifact:
+`docs/opus_pass67_none_2026-08-06.md`.
