@@ -1,0 +1,59 @@
+Provider: claude-opus (independent frozen-proposal reviewer; do not dispatch another consultation)
+Frozen before consultation start: 2026-08-06 UTC
+
+You are the independent cold reviewer in a rigorous method-invention protocol.
+Review exactly this frozen proposal:
+
+  docs/opus_port_proposal_pass26_2026-08-06.md
+
+You may read that file, but do not inspect any other repository file, git
+history, prior conversation, process state, or failure catalogue. Do not edit
+the repository. Use primary-source web research and your own scratch
+calculations where needed. Do not propose a repaired or replacement method.
+
+The proposal is PORT, Population-Order Return Training: it fits a differentiable
+generalized-Pareto tail to negative similarities and extrapolates an unseen
+population maximum for a Proxy-Anchor-style hinge. Judge the frozen formulation,
+not a charitable repair.
+
+Return a single verdict: LIVE, DEAD, or BLOCKED. LIVE means the executable
+method, novelty distinction, causal mechanism, controls, forecasts, and cost
+accounting survive adversarial inspection strongly enough to proceed to local
+repository provenance. DEAD means any decisive defect or occupied supervision
+object kills it. BLOCKED is only for a specific fact that cannot be resolved
+without unavailable evidence.
+
+At minimum:
+
+1. Derive every estimator and gradient, including order-statistic sorting,
+   probability-weighted moment denominators, scale/shape constraints,
+   extrapolated quantile, hinge, and all detach/no-detach paths. Check behavior
+   at ties, empty/degenerate tails, xi near zero, sigma near zero, cosine
+   endpoints, and atomic negative collapse.
+2. Test whether the claimed loss actually supervises unobserved population
+   order statistics or algebraically reduces to an adaptive weighting/margin on
+   observed batch/queue order statistics. Determine whether population size L
+   changes parameter gradients rather than only offsets or saturation.
+3. Attack the transfer premise: tail-law stability across disjoint identities,
+   dependence and staleness in XBM queues, mixture heterogeneity across
+   anchors/classes, finite-endpoint constraints, and whether train-versus-test
+   tail fitting is a legal pre-GPU diagnostic under the stated no-test-data
+   protocol.
+4. Search primary sources adversarially. Compare mechanism-level supervision
+   with PORTAL/EVT tail-risk DML if present, WEINCE, XBM, top-k/CVaR and
+   differentiable sorting/Recall@k surrogates, hard-negative mining,
+   distributionally robust/chance-constrained learning, OpenMax/MetaMax, and
+   any recent 2025--2026 extreme-value contrastive or metric-learning work.
+   A new estimator name or differentiable wrapper is insufficient if the
+   supervision object is occupied.
+5. Verify every cited baseline, recipe claim, lane comparison, frontier bar,
+   variance/SEM calculation, forecast probability, and cost/memory estimate.
+   Separate official primary-source numbers from secondary tabulations and
+   invented matched baselines.
+6. Assess whether the controls isolate extrapolation from tail weighting,
+   queue size, ordinary hard-negative mining, adaptive temperature/margin, and
+   batch-composition effects.
+7. Enumerate false, inconsistent, non-executable, and underdefined claims, then
+   state exactly what—if anything—survives without repairing the proposal.
+
+Be mathematically explicit and report negatives as plainly as positives.
