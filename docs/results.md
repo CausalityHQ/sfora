@@ -1257,17 +1257,18 @@ correction.  Independent cosine, Euclidean and tie-aware scorers agree at the
 final state, with no train/evaluation source overlap or cross-identity content
 duplicate contamination.
 
-The preregistered seeds 1 and 2 also passed their locked raw `[0.907, 0.929]`
+The preregistered seeds 1--3 also passed their locked raw `[0.907, 0.929]`
 and final `[0.905, 0.923]` intervals. Seed 1 reached **0.918906 raw / 0.916796
-final**; seed 2 reached **0.918976 raw** at epoch 52 / **0.915108 final**.
+final**; seed 2 reached **0.918976 raw** at epoch 52 / **0.915108 final**; and
+seed 3 reached **0.918413 raw** at epoch 58 / **0.915952 final**.
 Production, float64 Euclidean, float64 cosine and exact-tie scoring agree
-exactly for both; official counts, identity separation, content manifests and
-duplicate/overlap audits all pass. Across three corrected local seeds, raw-best
-mean is **0.918062** with sample sd **0.001523**, and frozen-final mean is
-**0.915201** with sample sd **0.001549**. Mean observed raw-to-final gap is
-**0.2860 point**. Three seeds strengthen the reference but do not reinstate a
-one-seed decisiveness rule. Full seed-2 artifact record:
-[`inshop_corrected_reference_seed2_result_2026-08-06.md`](inshop_corrected_reference_seed2_result_2026-08-06.md).
+exactly for all three; official counts, identity separation, content manifests
+and duplicate/overlap audits all pass. Across four corrected local seeds,
+raw-best mean is **0.918150** with sample sd **0.001256**, and frozen-final mean
+is **0.915389** with sample sd **0.001320**. Mean observed raw-to-final gap is
+**0.2761 point**. Four seeds strengthen the reference but do not reinstate a
+one-seed decisiveness rule. Full seed-3 artifact record:
+[`inshop_corrected_reference_seed3_result_2026-08-06.md`](inshop_corrected_reference_seed3_result_2026-08-06.md).
 
 RSPG did not survive corrected-pixel screening.  Its seed-0 graph began at
 density **0.0895**, then retrieval fell from **0.8769** at activation to
