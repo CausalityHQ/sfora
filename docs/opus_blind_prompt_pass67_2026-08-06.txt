@@ -1,0 +1,35 @@
+Provider: Fable blind proposer with Claude Opus fallback
+Frozen before consultation start: 2026-08-06 UTC
+
+Start cold using only this prompt and public primary literature. Do not inspect
+local files, history, prior candidates, or process state and do not edit files.
+Return exactly ONE executable method or NONE.
+
+Find a genuinely novel train-time method for zero-shot deep metric learning on
+disjoint identities (CUB, Cars196, In-Shop, SOP), using only official training
+images/labels, ordinary stochastic augmentation, and optional ImageNet-1K
+initialization. Deployment is one model, one view, one fixed descriptor,
+cosine/Euclidean retrieval. No test/gallery fitting, reranking, transduction,
+external generated data, text/VLM encoders, extra annotations, or contamination.
+Choose Lane A R50/512-D/224px/200 epochs (refs CUB .734/Cars .927/SOP .829) or
+Lane B R50/2048-D (refs CUB .766/Cars .949/SOP .842), never mix.
+
+The search has closed support-local reweighting, regularizers,
+tangent/invariance, gradient surgery, EVT, multi-centers, averaging,
+acceleration/DEQ/Krylov, common activations/parameterizations, and detached
+state. ECT and IRH counterfactuals failed feasibility or reduced to consistency.
+The CUB error split is 48.1% local versus 51.9% between. Pass 64’s rank probe
+found only +.085 post-hoc gain; Pass 66’s activation pass found that changing
+activation outside training-realized intervals is inert unless unseen inputs
+escape them. Any remaining candidate must use a differentiable off-support or
+counterfactual signal and **prove clean-input drift**; a synthetic branch that
+can be solved by a compositeness detector is dead.
+
+Search from other fields (causal inference, program synthesis, biology,
+physics, chemistry, control, information theory) and consider supervision
+construction, architecture, activation, or state dynamics. Primary-art novelty
+must be checked before any GPU. Return executable equations and gradient paths,
+degeneracy/gating proof, exact citations/distinctions, matched controls,
+forecasts on >=2 datasets in one lane, falsifiers/frontier arithmetic, cost and
+contamination risks. If no candidate survives, return NONE with a reusable
+closure and one cheap diagnostic. Do not claim SOTA from forecasts.
