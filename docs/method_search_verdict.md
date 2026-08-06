@@ -6290,3 +6290,54 @@ Full artifacts:
 docs/opus_darc_proposal_pass36_2026-08-06.md,
 docs/opus_darc_review_2026-08-06.md, and
 docs/opus_darc_local_audit_2026-08-06.md.
+
+### Thirty-seventh blind pass: PEM is occupied structured clustering whose evidence rewards class collapse
+
+**DEAD at Gates 1 and 2; no preregistration, implementation, or GPU.** PEM
+integrated out a uniform vMF class direction, then required the labelled batch
+partition to beat move, merge, and split corruptions under the resulting Bessel
+evidence. The literal score is interesting, but the supervision object and
+action are the same as Facility-Location DML, Large-Margin Metric Learning for
+Partitioning, and Deep Spectral Clustering Learning: optimize a representation
+so the supplied partition outscores alternative partitions. Bayesian-vMF
+marginal likelihood, DeepDPM split/merge inference, and end-to-end PLDA occupy
+the remaining components.
+
+Gate 1 has no verified measurement that proxies absorb transferable absolute
+calibration or covariance anisotropy. Its own strongest reference points the
+other way: PFML uses 15 proxies per class on CUB/Cars. The frozen forecasts
+follow from no repository premise and yield only one conditional CUB crossing,
+depending on an unresolved SD-versus-SEM interpretation of an unreproduced
+baseline.
+
+The executable specification fails before training: its phi table covers only
+`[0,K]` although moves require `K+1` and merges `2K`; its cached table provides
+no gradient to learned kappa; and its 16-to-96 warm-up contradicts a `[32,256]`
+clamp. Exact calculation moves the claimed 68-degree merge threshold to 74.61
+degrees. All three corruption families push repaired kappa to the upper clamp,
+so the alleged absolute ruler becomes a hand-chosen margin.
+
+Most decisively, the evidence depends on within-cluster resultant norms—hence
+covariance trace and subset means—not covariance shape. Collapsing every
+training class to its own point satisfies all moves with enormous margin
+(kappa 96, K=8, orthogonal means: merge `-124.3` nats, split `-127.7`). Thus
+PEM does not force meaningful isotropy; it rewards deleting all within-class
+pose/viewpoint variation and permits the exact memorizing solution its proof
+claims to exclude. Its Occam-off control is also invalid because linear phi
+makes merges vacuously satisfied and splits vacuously violated.
+
+The In-Shop K=8 and SOP K=4 without-replacement samplers filter low-count
+identities, while the K sweep changes the identity pool. The proposal demotes
+In-Shop instead of obeying the corrected In-Shop-first protocol. Correct pieces
+are the vMF marginalization, analytic descriptor gradient, convexity and total-
+collapse penalty, deployment legality, and candid frontier uncertainty.
+
+Process lesson: a probabilistic score is not a new supervision object, and an
+isotropic likelihood assumption does not make its sufficient statistic identify
+covariance isotropy. Before GPU work, enumerate every optimizer escape and test
+the loss on the simplest class-collapsed memorizing construction.
+
+Full artifacts:
+docs/opus_pem_proposal_pass37_2026-08-06.md,
+docs/opus_pem_review_2026-08-06.md, and
+docs/opus_pem_local_audit_2026-08-06.md.

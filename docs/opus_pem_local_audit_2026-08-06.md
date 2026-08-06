@@ -227,3 +227,35 @@ differentiable kappa path or freezing kappa, repairing the schedule, replacing
 the split claim, and supplying a mechanism-distinct supervision object would be
 a substantive new proposal. The next protocol step is the one mandatory cold
 review of this exact frozen artifact, not implementation or GPU work.
+
+## Independent-review reconciliation and authoritative disposition
+
+The sole cold review, job `673ebf290f3f4080`, is frozen exactly in
+`docs/opus_pem_review_2026-08-06.md`. It returned **DEAD** and independently
+reproduced the missing kappa gradient, undersized table, boundary-seeking
+kappa, 74.61-degree exact threshold, sampler confounds, absent provenance, and
+structured-partition prior-art collision.
+
+Its sharper mechanism result is adopted. For unit vectors,
+`R_A=|A| sqrt(1-tr(Sigma_A))`, so the evidence sees covariance trace and subset
+means, not covariance shape. A memorizing encoder can collapse each training
+class to a separate point: at kappa 96, K=8, and orthogonal class means the
+reviewer obtains merge delta `-124.3` nats and split delta `-127.7` nats, with
+moves also strongly negative. This satisfies every family and deletes all
+within-class variation. D3 and the claimed split-to-isotropy causal chain are
+therefore false, not merely unidentified.
+
+The review also corrects/refines the audit in four places. The large-argument
+Bessel expansion needs a much stronger regime than `kappa R > nu` and is about
+49 nats wrong at the stated operating point. C1 is not a valid Occam-only
+control: making phi linear makes merge deltas nonpositive and split deltas
+nonnegative by triangle inequalities, removing the very convexity used for the
+anti-collapse story. The objective is effectively hardest-hypothesis mining,
+with a roughly three-degree transition to float32-zero gradients, rather than a
+well-calibrated partition posterior. Finally, D4's qualitative no-volume-bonus
+conclusion can survive, but its asymptotic derivation does not.
+
+**Authoritative result: DEAD at Gates 1 and 2; no preregistration,
+implementation, or GPU.** Correct vMF integration, convexity, total-collapse
+rejection, legal deployment, and honest uncertainty are preserved. A repair is
+a new proposal.
