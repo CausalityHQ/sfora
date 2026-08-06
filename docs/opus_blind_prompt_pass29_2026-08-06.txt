@@ -1,0 +1,81 @@
+Provider: claude-opus (direct proposer fallback because Fable credits are exhausted; do not dispatch another consultation)
+Frozen before consultation start: 2026-08-06 UTC
+
+You are the blind proposer in a rigorous method-invention protocol. Do not
+inspect the local filesystem, git history, repository, prior conversations, or
+process state. Start cold. Use web and primary literature where available.
+
+Problem: invent a genuinely novel train-time method for zero-shot image
+similarity learning / deep metric learning. Training identities and evaluation
+identities are disjoint. Legal targets are CUB-200-2011, Cars196, In-Shop
+Clothes Retrieval, and Stanford Online Products under standard splits. Use only
+official training images and identity labels plus ordinary stochastic image
+augmentation. ImageNet-1K pretrained vision initialization is permitted. Do
+not use test data, external generated data, text/VLM encoders, extra
+annotations, transduction, reranking, test-gallery fitting, or
+contamination-prone external knowledge.
+
+Deployment must be a single model, one view, one fixed-dimensional global
+descriptor, and ordinary cosine/Euclidean nearest-neighbour retrieval.
+
+There are two comparison lanes. Choose exactly one lane for all forecasts and
+comparisons; do not mix them.
+
+Lane A is the matched 512-D CNN lane: ResNet-50, 512-D normalized global
+descriptor, approximately 224-pixel input, single-view cosine retrieval, and a
+200-epoch budget unless justified otherwise. The strongest audited references
+are PFML (CVPR 2025): CUB 0.734 +/- 0.003, Cars196 0.927 +/- 0.003, SOP
+0.829 +/- 0.002 over five runs. PFML uses 15 proxies per class on CUB/Cars and
+two on SOP. The In-Shop reference is PA+DADA (AAAI 2024) at 0.930; its seed
+count and uncertainty are unreported and its training costs roughly 1.06x epoch
+time and 1.01x memory. DADA's other same-lane rows are 0.729 CUB, 0.921 Cars,
+and 0.810 SOP; those are matched-cost controls, not the strongest targets.
+
+Lane B is the absolute 2048-D CNN lane: ResNet-50 with a deployed 2048-D
+global-average-pooled descriptor, single-view cosine retrieval, generally 200
+epochs. AdvRF (ICCV 2025) reports CUB 0.766, Cars196 0.949, and SOP 0.842; it
+uses a training-only ResNet-34/U-Net reconstruction system plus distillation.
+VAPNet (NeurIPS 2023) reports In-Shop 0.939 using training-only attribute
+machinery. Both auxiliary systems materially increase training machinery even
+though deployment is one ResNet-50 descriptor.
+
+CRT's MiT-B2/128-D In-Shop 0.9448 is a separate transformer lane and cannot be
+used as a matched ResNet target.
+
+Return exactly ONE concrete mathematical training method, or exactly NONE. Do
+not return an idea list, a measurement-only diagnostic, or a renamed package of
+known regularizers. The method may be a loss, architecture, activation,
+optimizer/training algorithm, supervision construction, or principled import
+from any scientific field. Do not favor any mechanism class.
+
+For a method provide:
+
+1. executable mathematics with every learned object, gradient path,
+   hyperparameter, schedule, and train/test operation;
+2. one causal zero-shot error mode and a proof-level attack on the cheapest
+   degeneracies or shortcut solutions;
+3. an adversarial primary-source novelty search inside and outside DML, with a
+   one-sentence mechanism distinction from each nearest work;
+4. decisive matched-compute controls that distinguish the claimed mechanism
+   from simpler occupied alternatives;
+5. frozen R@1 forecasts on at least two datasets in the one chosen lane,
+   matched baselines and references, falsification thresholds, and explicit
+   frontier-crossing arithmetic; and
+6. training/deployment cost plus benchmark and contamination risks.
+
+If the proposed method extends a named published baseline, reproduce that
+baseline's mathematical reduction and primary-source training recipe exactly
+where disclosed. State every unresolved source ambiguity. Do not call a loss
+normalization harmless when optimizer regularization or other additive terms
+make the scale operational, and do not inherit a published frontier after
+changing its baseline recipe without a matched reproduction/control.
+
+Your role is constructive proposer, not final adjudicator. Return the strongest
+complete method you can defend, with uncertainties and possible failure modes
+stated plainly. Do not return NONE merely because the forecast is uncertain,
+the mechanism has adjacent work, or a repair may be needed; the separate
+frozen-proposal reviewer will decide those questions adversarially. Return NONE
+only if you cannot formulate any executable method that you genuinely believe
+is materially distinct from the primary literature. Do not replace a proposal
+with an idea list.
+
