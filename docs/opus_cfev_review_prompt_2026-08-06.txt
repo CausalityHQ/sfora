@@ -1,0 +1,61 @@
+Provider: claude-opus, independent cold adversarial reviewer
+Frozen before review consultation start: 2026-08-06 UTC
+
+Read exactly:
+
+  /home/rb/worktrees/sfora-emafactorial/docs/opus_cfev_proposal_pass35_2026-08-06.md
+
+Do not edit repository files or inspect git history, prior reviews, the verdict
+ledger, or conversations. Start cold from this frozen proposal and primary
+sources. Return LIVE, DEAD, or BLOCKED with the earliest failed gate/section
+and one decisive mechanism-level reason. This is adjudication, not repair.
+
+Before recommending implementation or GPU work, independently:
+
+1. Reproduce every formula numerically and symbolically: ProxyAnchor's exact
+   reduction/recipe, the GPD PWM estimator, the smooth exceedance rate, the
+   GPD survival and support for both signs of xi, the xi-to-zero limit, the
+   log1p gallery risk, the agreement term, gradient-norm calibration, and every
+   claimed gradient path. Check whether the proposed expression is finite and
+   real throughout the stated clamp and cosine domain, including positives
+   below u and negative-shape bounded tails.
+2. Test whether the loss is actually an estimator of Recall@1 risk. Audit the
+   threshold/POT conditions, dependence among O(batch^2) pair similarities,
+   effective sample size with only 22-23 identities per half, global versus
+   query-conditional negative tails, correlated gallery items, hardest-positive
+   sampling with four images per class, and extrapolation from the upper 10%
+   to M=5.9k-59.6k. Use small CPU counterexamples/simulations where decisive.
+3. Derive how M affects gradients, not merely loss values. Determine the
+   operating regimes of M*q in log(1+M*q), whether M becomes an additive
+   constant or scale-only effect, and whether the proposed M-sweep can identify
+   gallery extrapolation rather than optimizer scaling/saturation.
+4. Attack the cross-fitting claim. The A-tail is applied to B positives but is
+   not directly scored against B negatives; both halves share one encoder and
+   are simultaneously optimized. Decide whether resampling class halves blocks
+   pair memorization, enforces tail transfer, or is only a noisy symmetric
+   batch statistic plus an agreement regularizer. Check the U-statistic and
+   O(C^-1/2) claims and whether they say anything about the learned optimum.
+5. Attack all shortcuts and numerical failures: support violation when xi<0,
+   denominator/sign clamps, tanh/softplus bias, quantile lag, sorting ties,
+   k-min skips, tail-scale collapse, outlier injection, global angular
+   compression/uniformity, easy-positive behavior, xi/sigma clamp saturation,
+   loss-scale/AdamW effects, and detached versus live threshold gradients.
+6. Resolve prior art aggressively using primary sources. Search train-time EVT
+   or Weibull/GPD objectives in metric learning, face verification and
+   retrieval; recall/rank/FAR-at-operating-point surrogates; distributional and
+   histogram losses; Extreme Value Machines/OpenMax/meta-recognition; Deep
+   Extrema and differentiable POT; CVaR/DRO; cross-batch memory/large-batch
+   ranking; and cross-fitting/domain-generalization over identities. State the
+   exact new supervision object/action, if any, rather than crediting a novel
+   assembly of occupied components.
+7. Verify controls, forecasts, arithmetic, protocol order, and cost. In
+   particular decide whether C1 truly matches a gradient norm after adding a
+   differently directed gradient, whether C3 is a fair empirical-survival
+   control, whether the seven thresholds are identifiable without selection
+   leakage, and whether a method forecasting failure on CUB/Cars is admissible
+   for the stated benchmark objective. Require raw and selection-corrected
+   reporting and an In-Shop-first screen if the candidate survives.
+
+Preserve correct subcomponents separately from the verdict. Cite primary
+sources, state uncertainty, and do not give credit for caveats that invalidate
+the executable mechanism.
