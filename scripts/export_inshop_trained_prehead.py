@@ -7,7 +7,7 @@ import numpy as np
 from sfora.data import load_image_retrieval_bundle
 from sfora.image_end_to_end import ImageEndToEndConfig, _TorchImageDataset, _default_transform_factory, _torchvision_model_factory
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--checkpoint',type=Path,required=True); p.add_argument('--report',type=Path,required=True); p.add_argument('--dataset-root',type=Path,required=True); p.add_argument('--output',type=Path,required=True); p.add_argument('--batch-size',type=int,default=256); p.add_argument('--num-workers',type=int,default=8); a=p.parse_args()
+    p=argparse.ArgumentParser(); p.add_argument('--checkpoint',type=Path,required=True); p.add_argument('--report',type=Path,required=True); p.add_argument('--dataset-root',type=Path,required=True); p.add_argument('--output',type=Path,required=True); p.add_argument('--batch-size',type=int,default=256); p.add_argument('--num-workers',type=int,default=8); p.add_argument('--reset-bn-stats',action='store_true'); a=p.parse_args()
     import torch
     from torch.utils.data import DataLoader
     report=json.loads(a.report.read_text()); raw_cfg=dict(report['config'])
@@ -15,7 +15,13 @@ def main():
     # they do not affect the BN-Inception forward path used by this diagnostic.
     for key in ('cem_edges_path','cem_margin','cem_weight'): raw_cfg.pop(key, None)
     cfg=ImageEndToEndConfig.model_validate(raw_cfg); ck=torch.load(a.checkpoint,map_location='cpu',weights_only=False)
-    model=_torchvision_model_factory(cfg); model.load_state_dict({k:v for k,v in ck['state_dict'].items() if k not in {'metric_proxies','metric_proxy_labels'}},strict=True)
+    model=_torchvision_model_factory(cfg)
+    state={k:v for k,v in ck['state_dict'].items() if k not in {'metric_proxies','metric_proxy_labels'}}
+    if a.reset_bn_stats:
+        state={k:v for k,v in state.items() if not (k.endswith('running_mean') or k.endswith('running_var') or k.endswith('num_batches_tracked'))}
+        model.load_state_dict(state,strict=False)
+    else:
+        model.load_state_dict(state,strict=True)
     device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'); model.to(device).eval(); tf=_default_transform_factory(cfg,False)
     b=load_image_retrieval_bundle(dataset_name='inshop',dataset_root=a.dataset_root,seed=cfg.seed)
     def enc(ex):
