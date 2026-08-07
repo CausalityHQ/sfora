@@ -47,6 +47,7 @@ EndToEndObjective = Literal[
     "group_potential",
     "group_potential_xbm",
     "proxy_anchor",
+    "proxy_anchor_coalition",
     "proxy_anchor_cem",
     "tversky_proxy_anchor",
     "shepard_proxy_anchor",
@@ -171,6 +172,7 @@ class ImageEndToEndConfig(BaseModel):
     proxy_learning_rate_multiplier: float = Field(default=100.0, gt=0.0)
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
+    coalition_weight: float = Field(default=0.1, ge=0.0)
     cem_edges_path: str | None = None
     cem_weight: float = Field(default=0.05, ge=0.0)
     cem_margin: float = Field(default=0.1, ge=0.0)
@@ -2860,6 +2862,7 @@ class _BestCheckpoint:
 def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     if objective in {
         "proxy_anchor",
+        "proxy_anchor_coalition",
         "proxy_anchor_cem",
         "tversky_proxy_anchor",
         "shepard_proxy_anchor",
@@ -3569,6 +3572,35 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             torch_module=torch_module,
         )
     return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    base = _proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    coalition = _coalition_proxy_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(
+        base + config.coalition_weight * coalition,
+        kwargs,
+    )
 
 
 def _redundant_connectivity_loss(
@@ -4308,6 +4340,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_supcon_xbm_radius": _group_supcon_xbm_radius_objective_loss,
     "pfml": _pfml_objective_loss,
     "proxy_anchor": _proxy_anchor_objective_loss,
+    "proxy_anchor_coalition": _proxy_anchor_coalition_objective_loss,
     "proxy_anchor_cem": _proxy_anchor_cem_objective_loss,
     "tversky_proxy_anchor": _tversky_proxy_anchor_objective_loss,
     "shepard_proxy_anchor": _shepard_proxy_anchor_objective_loss,
@@ -4412,6 +4445,7 @@ def _objective_display_name(objective: str) -> str:
         "group_potential": "Group Potential",
         "group_potential_xbm": "Group Potential + XBM",
         "proxy_anchor": "Proxy Anchor",
+        "proxy_anchor_coalition": "Proxy Anchor + Coalition Supervision",
         "proxy_anchor_cem": "Proxy Anchor + Confusion-Edge Margin",
         "tversky_proxy_anchor": "Tversky contrast similarity",
         "shepard_proxy_anchor": "Shepard exponential kernel",
@@ -5489,6 +5523,31 @@ def _proxy_anchor_loss(
         delta=delta,
         torch_module=torch_module,
     )
+
+
+def _coalition_proxy_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    proxy_embeddings: Any | None,
+    proxy_labels: Any | None,
+    torch_module: Any,
+) -> Any:
+    """Supervise a distinct-class bundle against its union of class proxies."""
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("the coalition objective requires class proxies")
+    unique_labels = torch_module.unique(labels, sorted=True)
+    first_positions: list[int] = []
+    for label in unique_labels:
+        first_positions.append(int(torch_module.nonzero(labels.eq(label), as_tuple=False)[0, 0]))
+    if len(first_positions) < 2:
+        return embeddings.sum() * 0.0
+    members = _normalize(embeddings[first_positions], torch_module)
+    coalition = members.sum(dim=0) / float(len(first_positions)) ** 0.5
+    proxies = _normalize(proxy_embeddings, torch_module)
+    logits = coalition @ proxies.T
+    target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).any(dim=0).to(logits.dtype)
+    return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
 
 
 def _crossfit_positive_centroids(

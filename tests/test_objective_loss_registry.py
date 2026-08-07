@@ -75,3 +75,66 @@ def test_registry_dispatch_matches_hist_and_proxy_anchor_helpers() -> None:
 
     assert torch.allclose(dispatched_hist, direct_hist)
     assert torch.allclose(dispatched_proxy_anchor, direct_proxy_anchor)
+
+
+def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -> None:
+    torch: Any = pytest.importorskip("torch")
+
+    import sfora.image_end_to_end as image_end_to_end
+
+    config = image_end_to_end.ImageEndToEndConfig()
+    embeddings = torch.randn(4, 8, generator=torch.Generator().manual_seed(3), requires_grad=True)
+    labels = torch.tensor([0, 1, 2, 3])
+    proxies = torch.randn(4, 8, generator=torch.Generator().manual_seed(4))
+    proxy_labels = torch.tensor([0, 1, 2, 3])
+
+    loss = image_end_to_end._loss_for_objective(
+        "proxy_anchor_coalition",
+        embeddings,
+        labels,
+        step=0,
+        steps_per_epoch=1,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch,
+    )
+    loss.backward()
+    assert torch.isfinite(loss)
+    assert torch.isfinite(embeddings.grad).all()
+    assert (embeddings.grad.norm(dim=1) > 0).all()
+
+    permutation = torch.tensor([2, 0, 3, 1])
+    permuted_loss = image_end_to_end._loss_for_objective(
+        "proxy_anchor_coalition",
+        embeddings.detach()[permutation],
+        labels[permutation],
+        step=0,
+        steps_per_epoch=1,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch,
+    )
+    assert torch.allclose(loss.detach(), permuted_loss)
+
+    changed_labels = labels.clone()
+    changed_labels[0] = 1
+    changed_loss = image_end_to_end._loss_for_objective(
+        "proxy_anchor_coalition",
+        embeddings.detach(),
+        changed_labels,
+        step=0,
+        steps_per_epoch=1,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch,
+    )
+    assert not torch.allclose(loss.detach(), changed_loss)

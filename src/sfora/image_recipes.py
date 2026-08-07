@@ -64,6 +64,7 @@ DerivedMethod = Literal[
     "ectr_random",
     "ectr_plateau",
     "ectr_area",
+    "pa_coalition",
 ]
 
 # Base loss each derived method attaches to.
@@ -105,6 +106,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "ectr_random": "proxy_anchor",
     "ectr_plateau": "proxy_anchor",
     "ectr_area": "proxy_anchor",
+    "pa_coalition": "proxy_anchor",
 }
 
 
@@ -649,6 +651,21 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "objectives": ("proxy_anchor_cem",),
             "cem_weight": 0.05,
             "cem_margin": 0.1,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "pa_coalition":
+        delta = {
+            "objectives": ("proxy_anchor_coalition",),
+            "coalition_weight": 0.1,
         }
         return recipe.model_copy(
             deep=True,
