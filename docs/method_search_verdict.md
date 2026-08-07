@@ -8609,3 +8609,28 @@ matrix-tree/log-determinant partition with detached cross-batch memory—did not
 survive the matched screen. SCoRe and MST controls are therefore not queued:
 the candidate cannot establish a benchmark effect to attribute to either
 connectivity mechanism.
+
+### Pass 112 — RCC closeout and reopening audit (no new GPU candidate)
+
+The matched RCC result does not reopen a new supervision channel. Its measured
+failure is specific: a within-class matrix-tree connectivity partition plus
+detached cross-batch memory was below the paired Proxy Anchor control at both
+the local best and the independent final export. The result therefore closes
+the remaining connectivity/coverage branch for this operating point; it does
+not justify relabelling SCoRe, MST mining, or another graph summary as a new
+method.
+
+I re-audited the remaining candidate space under the corrected gate
+interpretation. Gate 1 now accepts a theorem-backed or exact-dataset
+diagnostic anchor, and Gate 2 keeps adjacent (rather than mechanism-identical)
+ideas LIVE-NARROW with controls. Even with that relaxation, the remaining
+proposed referents reduce to occupied augmentation-policy, distributional
+proxy, graph/topology, ranking/mining, optimizer/preconditioning,
+distillation/teacher, or static-architecture operators already catalogued
+above. No executable candidate currently has both a measured causal anchor and
+an unoccupied training object; no GPU arm is authorized from this pass.
+
+This is an interim bounded search result, not a claim that future literature
+cannot create a method. The search remains open for a new information channel
+or a primary-source correction that vacates one of those mechanism-level
+occupancy rulings.
