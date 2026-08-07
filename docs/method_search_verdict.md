@@ -8597,4 +8597,15 @@ number is claimed yet. Gate 2 found SCoRe (Majee et al.,
 ICML 2024, https://openreview.net/pdf?id=G8zDeKOp0R), which optimizes a class
 similarity-kernel LogDet objective. That is adjacent and is now a mandatory
 control, but not mechanism-equivalent to a reduced-Laplacian matrix-tree
-partition. RCC remains **LIVE-NARROW** pending the matched full-sampler screen.
+partition.
+
+The full-sampler seed-0 screen is now complete and **DEAD at Gate 4**. Its raw
+best test R@1 was **0.9142636** (epoch 60), and the independent final 8,640-step
+export was **0.9131383**. The retained paired full-schedule Proxy Anchor
+control is **0.9163033**, so RCC is −0.20397 pt on the raw best and −0.31650 pt
+on the independent final state; it also misses the preregistered 0.9175 floor.
+The mechanism—rewarding redundant within-class connectivity through a
+matrix-tree/log-determinant partition with detached cross-batch memory—did not
+survive the matched screen. SCoRe and MST controls are therefore not queued:
+the candidate cannot establish a benchmark effect to attribute to either
+connectivity mechanism.
