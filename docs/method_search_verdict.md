@@ -8516,17 +8516,21 @@ mechanism-level space. A persistence summary and threshold schedule do not
 provide a defensible new supervision primitive. The measurement does survive as
 a useful decomposition: one-scale fragmentation and persistent fragmentation
 have opposite retrieval associations.
-## 107. Finite-shell Lennard–Jones transfer (LIVE-NARROW; preregistered)
+## 107. Finite-shell Lennard–Jones transfer (DEAD at Gate 2)
 
 The corrected In-Shop cardinality-matched nearest-positive gap is **−0.04968
-cosine** for unseen minus seen identities. Candidate 107 replaces only
-same-class Proxy-Anchor attraction with the implemented finite-shell
-Lennard–Jones well, using the audited within-class median-derived `sigma=0.68`,
-`power=2`, and weight `0.10`; the Proxy-Anchor proxy and negative terms remain
-unchanged. DVML, variance-preserving DML, and DRML occupy the broad goal of
-retaining intra-class variation, so this is recorded as **LIVE-NARROW**, not a
-blanket novelty claim. A matched fixed-radius hinge control is mandatory if the
-screen clears.
+cosine** for unseen minus seen identities. Candidate 107 replaced only
+same-class Proxy-Anchor attraction with a finite-shell Lennard–Jones well,
+using the audited within-class median-derived `sigma=0.68`, `power=2`, and
+weight `0.10`. It died at Gate 2 when primary-source checking found Bhatnagar
+and Ahuja, **Potential Field Based Deep Metric Learning**, CVPR 2025,
+DOI 10.1109/CVPR52734.2025.02379: continuous decaying attractive/repulsive
+potential fields for DML, explicitly motivated by intra-class variation and
+evaluated on CUB/Cars/SOP. The finite-shell physics term is a parameterization
+inside that occupied mechanism, not a novel method. The DGX run was killed
+after epoch 1 (R@1 0.2467), before any deciding checkpoint; no GPU result is
+claimed. Mechanism-level prior-art checking must include current CVPR papers,
+not only older DML literature.
 
 The preregistered corrected In-Shop seed-0 prediction is final R@1 **0.9145**
 versus paired Proxy Anchor final **0.9137009**; below **0.9132** kills the

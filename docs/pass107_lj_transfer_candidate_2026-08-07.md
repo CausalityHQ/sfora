@@ -1,4 +1,4 @@
-# Pass 107: finite-shell Lennard–Jones transfer (LIVE-NARROW)
+# Pass 107: finite-shell Lennard–Jones transfer (DEAD at Gate 2)
 
 ## Gate 1 — provenance
 
@@ -15,14 +15,19 @@ the all-within-class median cosine 0.7701 corresponds to Euclidean distance
 
 Deep Variational Metric Learning (ECCV 2018), Variance-Preserving DML (Pattern
 Recognition Letters 2020), and Deep Relational Metric Learning (ICCV 2021)
-occupy the broad goal of retaining intra-class variation. They do not use a
-pairwise finite-well potential with a repulsive core and an explicit equilibrium
-distance in a Proxy-Anchor objective. Under the revised gate interpretation
-this is **LIVE-NARROW**, not a claim that “preserving variance” is novel. The
-decisive control, if the screen survives, is a matched fixed-radius hinge with
-the same sigma and weight; failure to beat it kills the Lennard–Jones mechanism.
+occupy the broad goal of retaining intra-class variation. A subsequent primary
+source check found the closer, benchmark-matched prior art: Bhatnagar and Ahuja,
+“Potential Field Based Deep Metric Learning,” CVPR 2025,
+DOI 10.1109/CVPR52734.2025.02379. PFML represents every embedding with a
+continuous attractive/repulsive potential field whose influence decays with
+distance, explicitly targeting large intra-class variation and reporting CUB,
+Cars, and SOP retrieval gains. A finite-shell Lennard–Jones well is a specific
+potential-field parameterization, not a defensible new mechanism. Candidate 107
+is therefore **DEAD at Gate 2**. The DGX screen was terminated after epoch 1
+(R@1 0.2467); it produced no deciding artifact and must not be reported as
+evidence for the method.
 
-## Gate 3 — preregistration
+## Gate 3 — preregistration (not reached)
 
 Run corrected official In-Shop seed 0, exact `proxy_anchor.inshop.official-51db570`
 recipe, objective `proxy_anchor_lj`, no extra views or deployment machinery,
