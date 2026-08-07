@@ -8333,3 +8333,14 @@ attractive/repulsive fields, information-bottleneck regularisation, and
 synthetic embedding-center expansion. None adds a new supervision referent or
 is identified by the repo's transfer-gap/error-overlap measurements. No GPU
 run occurred. Full review: `docs/pass87_architecture_activation_review_2026-08-07.md`.
+
+### Pass 88 — cross-field batch dead at Gate 2 (no GPU)
+
+Frequency-band positive gating, persistent-topology proxy loss, and a
+probabilistic uncertainty descriptor were checked before implementation.
+Frequency-domain and intra-class adaptive augmentation already occupy the
+first mechanism; persistent-homology regularisation and the 2026 CVPR
+Persistent Topology Alignment occupy the second; Introspective DML, Hyp-UML,
+and directional-statistics DML occupy the third. None has a distinct training
+object supported by a verified repository measurement. No GPU run occurred.
+Full review: `docs/pass88_crossfield_batch_review_2026-08-07.md`.
