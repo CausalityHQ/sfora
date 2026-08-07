@@ -8270,3 +8270,16 @@ EMP additionally targeted CUB first instead of corrected In-Shop and forecast
 0.3). Its compute claim was understated by over an order of magnitude. No
 implementation or GPU run occurred. Full review:
 `docs/pass82_emp_review_2026-08-07.md`.
+
+### Pass 83 — candidate batch dead at Gate 2 (no GPU)
+
+The batch proposed positive-tail coverage, identity-deleted meta-retrieval,
+and permutation retrieval supervision. The first was motivated by the
+cardinality-matched positive gap (-0.04968 mean across four seeds), the second
+by the reproducible 7.7–7.9 point seen/unseen gap, and the third by
+between:local error ratios 3.05–3.22. Independent prior-art review killed all
+three: positive-set hardness is HAP2S/Ranked List Loss; disjoint held-out
+identity episodes are DML-DC/DMML; and global assignment is MVP Matching and
+structured DML, while In-Shop has no bijective deployment topology. None
+forecasts crossing the 0.930 512-D In-Shop frontier. No GPU run occurred.
+Full review: `docs/pass83_candidate_batch_review_2026-08-07.md`.
