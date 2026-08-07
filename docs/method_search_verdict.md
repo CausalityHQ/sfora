@@ -8169,3 +8169,18 @@ forecast (+0.7 CUB, +0.15 In-Shop) does not cross the matched frontier, and its
 preflight improperly reads test-class covariance. No code or GPU run occurred.
 Full proposal and review: `docs/pass77_proposal_nam_2026-08-07.md` and
 `docs/pass77_nam_review_2026-08-07.md`.
+
+### Pass 78 — MCB-PA dead at Gates 1–2 (no GPU)
+
+Meta-Class Block Codes for Proxy Anchor (MCB-PA) proposed frozen random coarse
+class surjections supervised on normalized descriptor blocks, plus equal block
+energy. The independent review found it is the same object already killed by
+FCS (Pass 39), FPC (Pass 46), and PSPL (Pass 51), with PSPL matching even the
+energy penalty. Its rank argument confuses learned-proxy span with
+label-bearing configuration rank: any `(x,y)` loss is bounded by `C−1`, and a
+deterministic recoding `π(y)` adds no label information. Class-first lookup is
+an available global minimizer, so blocks can become redundant; the proposal
+omits the decorrelation used by BIER/A-BIER. Primary prior art includes BIER,
+DREML, ECOC, and split-space DML. No Gate-1 measurement supports the premise;
+the existing DOIR null-space and candidate-371 controls contradict it. No code
+or GPU run occurred. Full review: `docs/pass78_mcb_pa_review_2026-08-07.md`.
