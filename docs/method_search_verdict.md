@@ -8714,3 +8714,20 @@ drift/margin correlations were **−0.087 (seed 0), +0.0076 (seed 1), and
 −0.1719 (seed 2)**, with the error-versus-correct drift direction reversing on
 seed 1. The premise is not stable, so MIPH is dead at Gate 1; no GPU run or
 PMH-style control was authorized.
+
+## Pass 118 — Residual positive exchange (DEAD at Gate 2)
+
+PEBH's corrected In-Shop CPU gate supplied a real but adverse provenance pattern:
+same-identity exchange increased positive similarity by mean `+0.004747`, while
+nearest-foreign similarity increased `+0.008855`, and one seed degraded LOO R@1.
+RPEX proposed exchanging only a donor residual orthogonal to the receiver's
+own-class direction to preserve the positive gain without the hub effect.
+
+The mechanism is still cross-image representation learning with a self-only
+deployment branch. Wang et al., *Joint Learning of Single-Image and Cross-Image
+Representations for Person Re-Identification* (CVPR 2016), X-ReID (Shen et al.,
+2023), Cross-GAN (2019), and feature-exchange/transfer blocks already occupy
+same-identity peer feature transfer. Residualization and proxy-orthogonal
+projection alter the estimator, not what supervision exists. RPEX is therefore
+**DEAD at Gate 2**; no implementation or GPU run occurred. Full audit:
+`docs/pass118_residual_positive_exchange_audit_2026-08-07.md`.
