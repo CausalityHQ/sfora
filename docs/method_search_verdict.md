@@ -8124,3 +8124,10 @@ change; within-class positive collapse dominates. The BN-reset placebo moves
 both effects to approximately zero, confirming the foreign result was a
 train-specific BN artifact. No candidate or GPU training run was authorized.
 Full artifact: `docs/opus_pass75_none_2026-08-07.md`.
+
+The preregistered cardinality-matched positive control sampled three peers per
+image on both splits. The four gaps were −0.04928/−0.05045/−0.04906/−0.04993
+(mean −0.04968), so the positive-side transfer failure survives equalized
+extreme-value sample size. IMTE remains dead at Gate 2; this measurement is
+now the valid Gate-1 provenance for the next candidate. Full result:
+`docs/inshop_positive_cardinality_result_2026-08-07.md`.
