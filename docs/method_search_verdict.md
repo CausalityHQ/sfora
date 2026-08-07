@@ -8827,3 +8827,19 @@ protocol artifact, not benchmark evidence.
 The SRC residual operator is now CPU-tested and exposed as
 `pa_coalition_residual`; the focused objective/recipe suite passes 65 tests.
 This implementation readiness does not authorize a GPU run.
+
+## Pass 122 — cross-field search: CEA remains Gate-1 unresolved
+
+The offline search generated counterfactual-evidence agreement (CEA) from the
+measured CUB local-evidence failure component: gate a same-class pair only when
+the two images' class-score-drop maps agree.  This is a proposed
+positive-to-unknown supervision gate, distinct in form from a single-image
+counterfactual-attention auxiliary loss.  The premise has not been measured
+at the operating point because no trained checkpoint is available for a
+pair-level diagnostic; the candidate is therefore **unresolved at Gate 1**,
+not a positive result and not authorized for GPU.
+
+Adaptive meta-assessment (DML-ALA, CVPR 2020) and environment-wise invariant
+risk games (IRM/IRM games, ICML 2020) were rejected at Gate 2 as occupied
+sampler/optimizer-objective mechanisms.  The full audit and primary-source
+links are in `docs/pass122_crossfield_search_2026-08-07.md`.
