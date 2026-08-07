@@ -8299,3 +8299,16 @@ On held-out identities, the self-matched probe produced mean positive gain
 exchange therefore broadens hub similarity rather than repairing transfer.
 No GPU implementation or run occurred. Full result:
 `docs/pass84_pebh_cpu_gate_2026-08-07.md`.
+
+### Pass 85 — MTSD out of scope (no GPU)
+
+Multi-Threshold Substitutability DML would replace identity-equivalence labels
+with fixed human judgments of mutual visual substitutability at several
+strictness levels. It is motivated by the corrected positive-transfer gap
+(`-0.04968`) and appears distinct from active relative querying, human
+similarity embedding, and relative-attribute supervision. However, it requires
+new human annotations and therefore changes the label-only benchmark’s
+information channel. Synthetic labels from identity would reduce to already
+closed pair supervision. No implementation or GPU run occurred; this is a
+scope boundary, not a claimed method result. Full review:
+`docs/pass85_mtsd_scope_review_2026-08-07.md`.
