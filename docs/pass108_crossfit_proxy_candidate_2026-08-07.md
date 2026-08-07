@@ -1,4 +1,4 @@
-# Pass 108: cross-fitted proxy supervision (Gate 1/2 pending)
+# Pass 108: cross-fitted proxy supervision (DEAD at Gate 1)
 
 ## Mechanism
 
@@ -23,6 +23,15 @@ pass only if at least 20% of eligible images have proxy-minus-cross-fitted
 cosine ≥ **0.03** while the cross-fitted median positive-vs-foreign margin is no
 more than **0.01** below the proxy margin. Otherwise the target-leakage premise
 is absent and no GPU is authorized.
+
+**Result (2026-08-07): DEAD.** On the exact epoch-10 In-Shop pack there were
+24,602 eligible images. Proxy-minus-cross-fitted cosine was **−0.7173** on
+average (median **−0.7240**), with **0.0%** at or above +0.03. The cross-fitted
+median positive-vs-foreign margin was **0.7871**, versus **0.0626** for the
+learned proxy (difference **+0.7244**). This is the opposite of the registered
+target-leakage premise. The candidate is closed before Gate 2 and no GPU run
+or implementation is authorized. The result is retained as a measurement of
+proxy/centroid misalignment, not as evidence for this candidate.
 
 ## Gate 2 — prior art
 

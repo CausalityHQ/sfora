@@ -8536,7 +8536,7 @@ The preregistered corrected In-Shop seed-0 prediction is final R@1 **0.9145**
 versus paired Proxy Anchor final **0.9137009**; below **0.9132** kills the
 candidate. Raw best and final values must both be reported. Full preregistration
 and prior-art resolution: `docs/pass107_lj_transfer_candidate_2026-08-07.md`.
-## 108. Cross-fitted proxy supervision (Gate 1/2 pending)
+## 108. Cross-fitted proxy supervision (DEAD at Gate 1)
 
 The corrected In-Shop unseen-minus-seen nearest-positive gap is **−0.0497**
 cosine. Candidate 108 proposes withholding the learned own-class proxy from an
@@ -8546,3 +8546,9 @@ This targets target leakage rather than adding a variance/potential regularizer.
 The CPU split-half diagnostic and exact prior-art search are preregistered in
 `docs/pass108_crossfit_proxy_candidate_2026-08-07.md`; no implementation or GPU
 run is authorized until both gates resolve.
+The exact CPU diagnostic then falsified the registered direction: over 24,602
+eligible epoch-10 In-Shop images, proxy-minus-cross-fitted cosine was **−0.7173**
+(median −0.7240), with 0% ≥ +0.03. Cross-fitted median positive-vs-foreign
+margin was **0.7871** versus **0.0626** for the learned proxy. The proxy is
+under-aligned, not over-privileged, so no GPU run occurred. This is a useful
+proxy/centroid measurement but not a surviving method.
