@@ -8209,3 +8209,27 @@ INLP, NAP/WCCN/Ledoit–Wolf and related projection methods cover the mechanism.
 The proposal's own F3 would therefore collapse to its arithmetic control, and
 F4 likely identifies post-hoc rather than train-time benefit. No code or GPU
 run occurred. Full audit: `docs/pass79_gcnp_review_2026-08-07.md`.
+
+### Pass 80 — ETSD dead at Gates 1–2 (no GPU)
+
+The blind proposer suggested Exponential Top-k Simplex Descriptor (ETSD):
+replace the signed head with a sparse nonnegative square-root-simplex code,
+so cosine becomes a Bhattacharyya coefficient. The independent review rejected
+it before GPU work.
+
+The load-bearing objective is self-defeating: with nonnegative descriptors,
+Multi-Similarity's negative term rewards disjoint supports while the positive
+term rewards one shared atom per class. For CUB/Cars (≤512 classes), the
+one-hot-per-class solution is a global shortcut, exactly the class-private
+geometry ETSD claims to prevent. No term enforces atom sharing; the proposed
+load-balancing term is only a fallback. This is the same failure already
+recorded for CoVeR/PSPL-style nonnegative support reuse.
+
+Gate 1 also fails: ETSD cites no repository measurement of private directions,
+compositional atoms, or hubness as the causal deficit, uses an unaudited
+ResNet-50/Multi-Similarity lane instead of corrected BN-Inception Proxy Anchor,
+and its preflight selects on CUB test classes. Gate 2 is occupied by
+RootSIFT/Fisher-Hellinger geometry, task-driven sparse coding, SPLADE, LexLIP,
+STAIR, SPA, and related sparse retrieval descriptors. The forecast does not
+cross an audited matched-capacity frontier. No code or GPU run occurred. Full
+audit: `docs/pass80_etsd_review_2026-08-07.md`.
