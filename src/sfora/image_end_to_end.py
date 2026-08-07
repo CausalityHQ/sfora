@@ -753,9 +753,18 @@ def run_image_end_to_end_benchmark(
                     seed=config.seed,
                     class_similarity=class_similarity,
                     hard_fraction=config.hard_class_fraction,
-                    require_all_classes=any(
-                        _uses_metric_proxies(objective, config)
-                        for objective in config.objectives
+                    # A fixed P-way class block is allowed to exclude classes
+                    # with fewer than P images.  Requiring every label here
+                    # made corrected In-Shop P=4 experiments fail before the
+                    # first step because that split legitimately contains
+                    # singleton/short identities.  The eligible class set is
+                    # recorded in the report and is shared by matched arms.
+                    require_all_classes=(
+                        config.samples_per_class <= 0
+                        and any(
+                            _uses_metric_proxies(objective, config)
+                            for objective in config.objectives
+                        )
                     ),
                 )
         train_loader: Any = DataLoader(
