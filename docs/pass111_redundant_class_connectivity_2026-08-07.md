@@ -104,6 +104,13 @@ In-Shop query/gallery after every epoch and made the run operationally
 non-terminating. Training steps, checkpoint rule, seed, and final independent
 export remain unchanged.
 
+An attempted epoch-10 shortcut was rejected: the retained epoch-10 control
+exports at only **0.874525** R@1, whereas the retained full-schedule control
+(`inshop_corrected_pa_seed0`, same base recipe digest and seed) reaches raw best
+R@1 **0.916303** at epoch 41. RCC is therefore being run for the full 8,640
+steps against that retained full-schedule control; no undertrained comparison
+will be reported.
+
 Before the deciding run, a numerical check on 99 real 512-D In-Shop class
 blocks (four current plus four memory descriptors) found reduced-Laplacian
 log-determinants from **1.31 to 11.23** (median **8.76**) and mean soft-edge
