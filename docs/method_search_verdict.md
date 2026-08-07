@@ -8667,3 +8667,18 @@ dead at the screen. No controls or replication were run. Mechanism:
 foreign-proxy path-energy suppression failed to improve the deployed descriptor
 at the registered weight; this closes this specific path-barrier regularizer,
 not every possible geometric supervision mechanism.
+
+## Pass 114 — Persistent component-consensus supervision (DEAD at Gate 2)
+
+The corrected epoch-10 In-Shop packs showed stable class fragmentation: 1,439 of
+3,975 identities were fragmented across three seeds, with mean pairwise partition
+agreement 0.94465 and a 1.04995-point leave-one-out difference between stable
+fragmented and connected classes. PCCS proposed using agreement of detached
+teacher-view component memberships as a hard positive-to-unknown gate while
+retaining one deployed descriptor. The mechanism was killed before GPU: CGML
+(AAAI 2021) and Self-Taught Metric Learning (2022) occupy graph/teacher pair
+relations, while MGC4 (Neurocomputing 2026) explicitly constructs positives from
+inter-view structural consensus. The proposed replacement of graph views by
+teacher snapshots is not a defensible mechanism-level novelty. The topology
+measurement remains useful evidence about mode structure; no benchmark number
+was produced.
