@@ -34,7 +34,6 @@ def main() -> None:
         ImageEndToEndConfig,
         _TorchImageDataset,
         _default_transform_factory,
-        _forward_with_spatial_features,
         _torchvision_model_factory,
     )
 
@@ -71,12 +70,34 @@ def main() -> None:
     labels: list[int] = []
     for images, batch_labels in loader:
         images = images.requires_grad_(False)
-        output, fmap = _forward_with_spatial_features(model, images, torch)
+        captured: list[torch.Tensor] = []
+        handles = []
+        if hasattr(model, "layer4"):
+            handles.append(model.layer4.register_forward_hook(lambda _m, _i, o: captured.append(o)))
+        else:
+            inner = model.model
+            for name in (
+                "inception_5b_1x1_bn",
+                "inception_5b_3x3_bn",
+                "inception_5b_double_3x3_2_bn",
+                "inception_5b_pool_proj_bn",
+            ):
+                handles.append(getattr(inner, name).register_forward_hook(lambda _m, _i, o: captured.append(o)))
+        try:
+            output = model(images)
+        finally:
+            for handle in handles:
+                handle.remove()
+        if not captured:
+            raise RuntimeError("no spatial feature map was captured")
         output = F.normalize(output, dim=1)
         target_proxy = torch.stack([proxies[lookup[int(y)]] for y in batch_labels])
         score = (output * target_proxy).sum(dim=1)
-        grad = torch.autograd.grad(score.sum(), fmap, retain_graph=False)[0]
-        evidence = (grad * fmap).sum(dim=1).clamp_min(0.0)
+        grads = torch.autograd.grad(score.sum(), captured, retain_graph=False)
+        evidence = torch.cat(
+            [(grad * fmap).sum(dim=1, keepdim=True) for grad, fmap in zip(grads, captured)],
+            dim=1,
+        ).clamp_min(0.0)
         evidence = evidence.flatten(1)
         evidence = evidence / evidence.norm(dim=1, keepdim=True).clamp_min(1e-12)
         embeddings.append(output.detach().numpy())
