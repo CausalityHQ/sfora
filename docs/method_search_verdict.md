@@ -8370,3 +8370,18 @@ similarity graph was checked before implementation. Graph Consistency DML
 the global graph/diffusion training object; commute-time resistance is a metric
 variant within it. No GPU run occurred. Full review:
 `docs/pass91_graph_diffusion_review_2026-08-07.md`.
+### Pass 92 — OAPF dead at Gate 1 (2026-08-07)
+
+Orbit-adaptive potential fields (OAPF) transferred each image's
+augmentation-orbit response into a per-endpoint PFML plateau radius.  The
+mechanism was motivated by ARCG's measured In-Shop response selectivity and
+had a narrow Gate-2 distinction from fixed PFML fields and generic adaptive
+bandwidths.  Its preregistered training-only diagnostic required independent
+augmentation packs to reproduce the radius (Spearman >= 0.50 globally and
+within classes) before retrieval training.  On the digest-pinned epoch-10
+In-Shop Proxy Anchor checkpoint, global rho was **0.3176** and within-class
+residual rho **0.1841**; compatibility prevalence was 0.4726.  Reliability
+therefore failed and OAPF was killed before any retrieval GPU run.  The
+mechanism-level failure is that the proposed endpoint radius is not a stable
+image property at the operating point, rather than a negative benchmark
+number.
