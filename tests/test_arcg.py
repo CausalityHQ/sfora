@@ -1,6 +1,7 @@
 import numpy as np
 
 from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
+from sfora.cea import build_cea_graph
 
 
 def test_graph_rejects_close_disagreement_and_accepts_distant_agreement() -> None:
@@ -32,3 +33,21 @@ def test_response_signatures_are_normalized_and_flat_profile_is_invalid() -> Non
     assert valid.tolist() == [True, True, True, False]
     np.testing.assert_allclose(np.linalg.norm(signatures[:3], axis=1), 1.0)
     np.testing.assert_array_equal(signatures[3], 0.0)
+
+
+def test_cea_graph_is_binary_and_reports_distance_asymmetry() -> None:
+    embeddings = np.array(
+        [[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [-1.0, 0.0]],
+        dtype=np.float64,
+    )
+    signatures = np.array(
+        [[1.0, 0.0], [-1.0, 0.0], [1.0, 0.0], [1.0, 0.0]],
+        dtype=np.float64,
+    )
+    result = build_cea_graph(
+        embeddings, signatures, np.zeros(4, dtype=np.int64), agreement_threshold=0.5
+    )
+    assert result.edge_density > 0.0
+    assert result.close_rejected_fraction > 0.0
+    assert result.far_accepted_fraction > 0.0
+    assert all(weight == 1.0 for row in result.neighbours for _, weight in row)
