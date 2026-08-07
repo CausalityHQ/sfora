@@ -8395,3 +8395,13 @@ via Shallow Embedding and RouterRetriever occupy per-example expert routing;
 and projected-hypersphere DML already evaluates the proposed geometry on the
 target benchmarks.  None is a defensible new mechanism.  No implementation or
 GPU run occurred.  Full review: `docs/pass93_architecture_search_2026-08-07.md`.
+### Pass 94 — competitive-learning candidate dead at Gate 2 (2026-08-07)
+
+A class-shared neural-gas/SOM codebook was proposed to preserve multiple
+within-class modes, motivated by persistent same-wrong identity overlap (0.6476)
+and the 44.7% transfer of within-class contraction.  Supervised SOM/codebook
+retrieval already occupies the mechanism (Deep Supervised Quantization by SOM,
+ACM Multimedia 2017; Deep Learning-based SOM for content-based retrieval), and
+the DML realization collapses into multi-proxy/sub-center/SoftTriple mode
+assignment.  No implementation or GPU run occurred.  Full review:
+`docs/pass94_competitive_learning_review_2026-08-07.md`.
