@@ -77,8 +77,12 @@ novelty claim.
 ## Gate 3 preregistration (before implementation)
 
 The exact corrected In-Shop screen will use the current BN-Inception/512-D
-Proxy Anchor recipe, seed 0, with a class-balanced `n=4` block sampler. The
-baseline is a matched `n=4` Proxy Anchor arm. Before implementation, the
+Proxy Anchor recipe, seed 0, with the full official training sampler
+(`samples_per_class=0`). The initially specified balanced `n=4` sampler was
+infeasible: the corrected train split contains identities with fewer than four
+images and the loader rejects that configuration before training. The baseline
+is therefore a matched full-sampler Proxy Anchor arm; RCC is applied only to
+in-batch classes with at least four members. Before implementation, the
 coefficient was amended to a fixed **0.05**: the earlier “0.25× initial
 gradient norm” target is not portable because the base gradient is unavailable
 to a loss constructor before the first backward pass; calibrating it per batch
