@@ -8184,3 +8184,28 @@ omits the decorrelation used by BIER/A-BIER. Primary prior art includes BIER,
 DREML, ECOC, and split-space DML. No Gate-1 measurement supports the premise;
 the existing DOIR null-space and candidate-371 controls contradict it. No code
 or GPU run occurred. Full review: `docs/pass78_mcb_pa_review_2026-08-07.md`.
+
+### Pass 79 — GCNP dead at Gates 1–2 (no GPU)
+
+The blind proposer suggested Geometric-Consensus Nuisance Projection (GCNP):
+an online log-det geometric consensus of per-class within-class covariances,
+then hard-project the consensus subspace from descriptors and proxies. The
+independent review killed it before any GPU work.
+
+Gate 1 is contradicted by the repository's protocol-clean candidate-225
+disjoint-identity In-Shop measurement at k=32: the within-class subspace
+captured about 35–37% target within variance but 38–40% target between variance,
+so GCNP's removed-within/removed-between ratio is about 0.92, below its 1.3
+falsifier. The proposal also used the wrong lane/baseline (ResNet-50 and a
+~91.9 In-Shop figure instead of the corrected BN-Inception frozen-final
+0.9153889 ± 0.0013196), and its F1 split would leak identities.
+
+Gate 2 is occupied and the claimed geometric-vs-arithmetic distinction is
+mathematically weak: log-det concavity makes the geometric objective a
+consensus restriction of pooled covariance, while the exported operator is
+the same post-hoc linear projection used by whitening/null-space projection.
+Radenović supervised whitening, Roth ρ-spectral regularization, Deep LDA,
+INLP, NAP/WCCN/Ledoit–Wolf and related projection methods cover the mechanism.
+The proposal's own F3 would therefore collapse to its arithmetic control, and
+F4 likely identifies post-hoc rather than train-time benefit. No code or GPU
+run occurred. Full audit: `docs/pass79_gcnp_review_2026-08-07.md`.
