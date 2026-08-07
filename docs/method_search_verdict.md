@@ -8810,3 +8810,8 @@ equations: a union-target sum plus complementary-proxy targets for every
 omitted member. This is not a novelty claim. SRC must first pass an
 implementation-level distinction audit and a finite-gradient test; it is not
 authorized for GPU until then.
+
+SRC preregistration is recorded in `docs/pass121_src_candidate_2026-08-07.md`:
+corrected prediction 0.9192 against the paired 0.9163033 reference, with a
+0.9180 falsifier and mandatory union/no-residual controls. This remains a
+protocol artifact, not benchmark evidence.
