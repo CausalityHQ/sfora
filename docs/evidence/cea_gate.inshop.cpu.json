@@ -1,0 +1,12 @@
+{
+  "dataset": "inshop",
+  "checkpoint": "/home/riomus/emafactorial-cis-active/reports/checkpoints/arcg_inshop_pa_epoch10_seed0.pt",
+  "samples": 128,
+  "same_class_pairs": 389,
+  "close_distance_q25": 0.1804249882698059,
+  "distant_distance_q75": 0.3621423840522766,
+  "agreement_auc_close_vs_distant": 0.6374427321949188,
+  "agreement_threshold_q75": 0.47127774357795715,
+  "same_class_retained_fraction": 0.2519280205655527,
+  "device": "cpu"
+}
