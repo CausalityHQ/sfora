@@ -8029,3 +8029,21 @@ The corrected four-seed In-Shop Proxy Anchor reference is 0.9153889 mean with
 0.0013196 SD (0.132 points), so a four-seed candidate should forecast at least
 0.9185 (about +0.31 points) to have useful power. No GPU run was authorized.
 Full artifact: `docs/opus_pass71_none_2026-08-06.md`.
+
+### Pass 72 — residual pure weight-space search: NONE before Gate 1
+
+The Fable→Claude review found no defensible candidate in the remaining data-free
+weight-space/architecture branch. Fixed priors/projections, parameter
+symmetries, trajectory filters, and injected noise reduce to regularization,
+preconditioning, averaging, or SGLD/shrink-and-perturb; nonlinear temporal
+filters are dominated by averaging on a drifting noisy trajectory. Hypernetworks
+and learned optimizers are data-dependent and belong to the already searched
+scalar-loss/optimizer families. The review also identified a protocol defect:
+any measurable update field can be represented by a stop-gradient scalar
+surrogate, so requiring a method outside scalar-loss space guarantees NONE. The
+next search must instead target a scalar loss with a measured off-support
+stationary-set difference. It confirmed the corrected four-seed In-Shop PA
+reference (mean 0.9153889, SD 0.0013196) and that +0.31 points is a useful
+four-seed power floor, while one seed can only safely kill a large miss below
+0.9132182. No GPU run was authorized. Full artifact:
+`docs/opus_pass72_none_2026-08-06.md`.
