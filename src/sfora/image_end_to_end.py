@@ -265,6 +265,7 @@ class ImageEndToEndConfig(BaseModel):
     ectr_plateau_target: float = Field(default=0.53, ge=-1.0, le=1.0)
     ectr_switch_margin: float = Field(default=0.20, ge=0.0)
     ectr_repulsion_gap: float = Field(default=0.10, ge=0.0)
+    ectr_variant: Literal["full", "soft", "random", "plateau", "area"] = "full"
     # Interventional principal-stratum ranking. Zero preserves historical behavior.
     ipsr_weight: float = Field(default=0.0, ge=0.0)
     ipsr_warmup_epoch: int = Field(default=10, ge=1)
@@ -1399,6 +1400,7 @@ def run_image_end_to_end_benchmark(
                             steps_per_epoch=steps_per_epoch,
                             config=config,
                             torch_module=torch,
+                            generator=loss_generator,
                         )
                     if ema_teacher is not None:
                         with torch.no_grad():
@@ -2328,6 +2330,18 @@ def _ectr_delete_mask(feature_map: Any, *, beta: float, torch_module: Any) -> An
     return torch_module.cat(masks, dim=0)
 
 
+def _ectr_random_area_mask(evidence_mask: Any, *, torch_module: Any, generator: Any) -> Any:
+    """Sample a cell mask with exactly the evidence mask's per-image area."""
+    masks: list[Any] = []
+    for row in evidence_mask.flatten(1):
+        count = int(row.sum().item())
+        noise = torch_module.rand(row.numel(), device=row.device, generator=generator)
+        chosen = torch_module.zeros_like(row, dtype=torch_module.bool)
+        chosen[torch_module.topk(noise, k=max(1, count)).indices] = True
+        masks.append(chosen.reshape_as(evidence_mask[0]))
+    return torch_module.stack(masks, dim=0)
+
+
 def _ectr_composite_loss(
     model: TorchImageModel,
     images: Any,
@@ -2341,6 +2355,7 @@ def _ectr_composite_loss(
     steps_per_epoch: int,
     config: ImageEndToEndConfig,
     torch_module: Any,
+    generator: Any | None = None,
 ) -> Any:
     """ECT-R's two-sided plateau/switch hinge on cross-class composites."""
     batch_size = int(labels.shape[0])
@@ -2356,6 +2371,11 @@ def _ectr_composite_loss(
         partners.append((left + found) % batch_size)
     partner_index = torch_module.as_tensor(partners, dtype=torch_module.long, device=images.device)
     deletion = _ectr_delete_mask(feature_map, beta=config.ectr_beta, torch_module=torch_module)
+    if config.ectr_variant in {"random", "area"}:
+        if generator is None:
+            generator = torch_module.Generator(device=images.device)
+            generator.manual_seed(0)
+        deletion = _ectr_random_area_mask(deletion, torch_module=torch_module, generator=generator)
     deletion = torch_module.nn.functional.interpolate(
         deletion, size=tuple(images.shape[-2:]), mode="bilinear", align_corners=False
     ).clamp(0.0, 1.0)
@@ -2376,8 +2396,15 @@ def _ectr_composite_loss(
     switch = torch_module.nn.functional.relu(
         config.ectr_switch_margin - (partner_cos - anchor_cos)
     )
-    half = torch_module.arange(batch_size, device=images.device) % 2 == 0
-    selected = torch_module.where(half, plateau, switch)
+    if config.ectr_variant == "soft":
+        selected = 0.5 * (plateau + switch)
+    elif config.ectr_variant in {"plateau", "area"}:
+        selected = plateau if config.ectr_variant == "plateau" else torch_module.nn.functional.relu(
+            config.ectr_plateau_target - anchor_cos
+        )
+    else:
+        half = torch_module.arange(batch_size, device=images.device) % 2 == 0
+        selected = torch_module.where(half, plateau, switch)
     epoch = (step - 1) // max(steps_per_epoch, 1)
     ramp = min(1.0, max(0.0, (epoch - config.ectr_warmup_epoch) / max(
         config.ectr_ramp_end_epoch - config.ectr_warmup_epoch, 1

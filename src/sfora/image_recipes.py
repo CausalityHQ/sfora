@@ -60,6 +60,10 @@ DerivedMethod = Literal[
     "pa_bep",
     "pa_cem",
     "ectr",
+    "ectr_soft",
+    "ectr_random",
+    "ectr_plateau",
+    "ectr_area",
 ]
 
 # Base loss each derived method attaches to.
@@ -97,6 +101,10 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_bep": "proxy_anchor",
     "pa_cem": "proxy_anchor",
     "ectr": "proxy_anchor",
+    "ectr_soft": "proxy_anchor",
+    "ectr_random": "proxy_anchor",
+    "ectr_plateau": "proxy_anchor",
+    "ectr_area": "proxy_anchor",
 }
 
 
@@ -652,7 +660,7 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "config": {**recipe.config, **delta},
             },
         )
-    if method == "ectr":
+    if method in {"ectr", "ectr_soft", "ectr_random", "ectr_plateau", "ectr_area"}:
         delta = {
             "ectr_weight": 0.5,
             "ectr_warmup_epoch": 10,
@@ -661,6 +669,13 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "ectr_plateau_target": 0.53,
             "ectr_switch_margin": 0.20,
             "ectr_repulsion_gap": 0.10,
+            "ectr_variant": {
+                "ectr": "full",
+                "ectr_soft": "soft",
+                "ectr_random": "random",
+                "ectr_plateau": "plateau",
+                "ectr_area": "area",
+            }[method],
         }
         return recipe.model_copy(
             deep=True,
