@@ -8748,3 +8748,22 @@ area-matched controls is authorized under the frozen thresholds in
 `docs/pass119_ectr_candidate_2026-08-07.md`; no second dataset or extra seed is
 authorized before those controls resolve the mechanism. Full CPU record:
 `docs/pass119_ectr_cpu_gate_2026-08-07.md`.
+
+## Pass 120 — Coalition Interference Supervision (CIS), LIVE-NARROW at Gate 2
+
+Pass 67's corrected CUB failure decomposition attributed **51.9%** of failures
+to the between-class component. CIS responds by sampling a bundle of distinct
+classes, summing their real image embeddings, and supervising that training-only
+coalition against the union of the member class proxies. This changes the
+supervised object rather than merely reweighting ordinary positives or adding a
+static regularizer.
+
+Gate 2 did not find a mechanism-identical paper. Deep Sets (Zaheer et al.,
+NeurIPS 2017) and Set Transformer (Lee et al., ICML 2019) occupy permutation-
+invariant set encoders; HyP² Loss (Xu et al., 2022) and Multi-Label Supervised
+Contrastive Learning (Zhang & Wu, AAAI 2024) occupy multi-label relations for
+individual samples; Proxy Anchor (Kim et al., CVPR 2020) has batch interactions
+but no union-labelled summed coalition. These are adjacent, so CIS remains
+**LIVE-NARROW**, not established novel. The full audit and required controls
+are in `docs/pass120_cis_gate2_audit_2026-08-07.md`; no GPU run is authorized
+until Gate 3 preregistration and operator tests pass.
