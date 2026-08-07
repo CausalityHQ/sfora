@@ -243,6 +243,7 @@ class ImageEndToEndConfig(BaseModel):
     rcc_tau: float = Field(default=0.8, ge=-1.0, le=1.0)
     rcc_temperature: float = Field(default=0.1, gt=0.0)
     rcc_min_class_size: int = Field(default=4, ge=2)
+    rcc_memory_per_class: int = Field(default=4, ge=0)
     # Augmentation-response compatibility graph. Zero preserves historical behavior.
     arcg_weight: float = Field(default=0.0, ge=0.0)
     arcg_warmup_epoch: int = Field(default=10, ge=1)
@@ -3340,6 +3341,9 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             tau=config.rcc_tau,
             temperature=config.rcc_temperature,
             min_class_size=config.rcc_min_class_size,
+            memory_embeddings=kwargs.get("memory_embeddings"),
+            memory_labels=kwargs.get("memory_labels"),
+            memory_per_class=config.rcc_memory_per_class,
             torch_module=torch_module,
         )
     return _apply_teacher_similarity_regularization(loss, kwargs)
@@ -3352,19 +3356,32 @@ def _redundant_connectivity_loss(
     tau: float,
     temperature: float,
     min_class_size: int,
+    memory_embeddings: Any | None,
+    memory_labels: Any | None,
+    memory_per_class: int,
     torch_module: Any,
 ) -> Any:
     """Negative log weighted spanning-tree mass for each sampled class.
 
     Kirchhoff's theorem makes the reduced-Laplacian determinant the sum of the
     weights of *all* spanning trees.  Unlike MST or Fiedler losses this rewards
-    redundant multi-path support.  Classes are averaged equally to avoid a
-    class-size weighting shortcut; the recipe uses fixed four-image blocks.
+    redundant multi-path support. Classes are averaged equally to avoid a
+    class-size weighting shortcut; the recipe supplies up to four detached
+    same-class memory descriptors without changing the base sampler.
     """
     normalized = _normalize(embeddings, torch_module)
+    normalized_memory = (
+        _normalize(memory_embeddings.detach(), torch_module)
+        if memory_embeddings is not None and memory_labels is not None and memory_per_class > 0
+        else None
+    )
     class_losses: list[Any] = []
     for label in torch_module.unique(labels):
         members = normalized[labels == label]
+        if normalized_memory is not None and memory_labels is not None:
+            prior = normalized_memory[memory_labels == label][:memory_per_class]
+            if int(prior.shape[0]) > 0:
+                members = torch_module.cat((members, prior), dim=0)
         n = int(members.shape[0])
         if n < min_class_size:
             continue

@@ -77,17 +77,20 @@ novelty claim.
 ## Gate 3 preregistration (before implementation)
 
 The exact corrected In-Shop screen will use the current BN-Inception/512-D
-Proxy Anchor recipe, seed 0, with a class-balanced `n=4` block sampler over the
-eligible identities (classes with fewer than four images are explicitly
-excluded, identically in both arms). The original loader incorrectly refused
-this valid controlled exclusion whenever a proxy objective was present; that
-pre-training bug was fixed before rerunning. The baseline is a matched `n=4`
-Proxy Anchor arm; RCC is applied to each sampled class block. Before implementation, the
+Proxy Anchor recipe, seed 0, with the full official sampler (`samples_per_class=0`),
+matching the corrected reference. The attempted `n=4` block screen was stopped
+as a sampler confound: matched Proxy Anchor reached only 0.2278 at epoch 1 and
+0.0494 at epoch 2, versus the corrected full-sampler reference near 0.91. The
+RCC-memory variant therefore adds no sampling intervention: it augments each
+current class block with at most four detached same-class descriptors from the
+existing cross-batch memory. The baseline is the identical full-sampler Proxy
+Anchor arm. This amendment was made before the new run, not after an RCC result.
+Before implementation, the
 coefficient was amended to a fixed **0.05**: the earlier “0.25× initial
 gradient norm” target is not portable because the base gradient is unavailable
 to a loss constructor before the first backward pass; calibrating it per batch
 would introduce an unregistered adaptive method. Temperature, threshold,
-coefficient, and sampler are now frozen (no retrieval tuning).
+coefficient, memory cap, and sampler are now frozen (no retrieval tuning).
 
 Prediction: raw best-over-training R@1 **0.9190**, versus the matched baseline;
 the method is falsified if it is below **0.9175** or fails to improve the
@@ -97,7 +100,7 @@ called a correction.
 
 The candidate earns confirmation only if it strictly beats both controls:
 
-1. ordinary Proxy Anchor with the same balanced sampler;
+1. ordinary Proxy Anchor with the same full sampler;
 2. the already-occupied MST/edge-mining control.
 
 If either control matches RCC, the mechanism is dead even if absolute R@1 rises.

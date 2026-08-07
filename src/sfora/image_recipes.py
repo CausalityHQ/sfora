@@ -674,7 +674,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "rcc_tau": 0.8,
             "rcc_temperature": 0.1,
             "rcc_min_class_size": 4,
-            "samples_per_class": 4,
+            "rcc_memory_per_class": 4,
+            "samples_per_class": 0,
         }
         return recipe.model_copy(
             deep=True,
