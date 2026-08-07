@@ -146,6 +146,34 @@ is a result.
 
 ## When a candidate dies
 
+### Evidence levels and gate semantics (clarified 2026-08-07)
+
+The gates are sequential controls, but they do not all have the same logical
+force. A provenance or prior-art failure can invalidate a candidate before GPU;
+an evidence failure limits the claim rather than proving that the mechanism is
+impossible. Record the first failed gate and its evidence level explicitly:
+
+* **Hard invalidity:** Gate 0 artifact/measurement failure, mechanism-equivalent
+  prior art at Gate 2, or an implementation that does not match the frozen
+  training object. These are `DEAD` unless the artifact or proposal is repaired
+  and restarted as a new candidate.
+* **Screen failure:** a preregistered forecast miss or a one-seed Gate-4 miss.
+  This authorizes stopping expensive follow-up, but means “failed this matched
+  screen,” not “the mechanism cannot work.” A near miss or uncertain paired
+  control is `UNRESOLVED`, not forced `DEAD`.
+* **Claim boundary:** Gates 5–7 (independent confirmation, raw/final reporting,
+  and second-dataset replication) determine which claims are allowed. They do
+  not erase a reproducible effect; without them the result is preliminary and
+  cannot be called SOTA or general.
+
+Adjacent prior art at Gate 2 is `LIVE-NARROW` with controls, not an automatic
+death. A failed prediction should be recorded verbatim and not tuned away, but
+the mechanism may remain scientifically unresolved when the run is underpowered
+or the control/reference is uncertain. This distinction is required because
+the repository has already retracted results for split, checkpoint-selection,
+and BN-buffer errors; a strict binary gate can turn a measurement defect into a
+false negative.
+
 Write it into `docs/method_search_verdict.md` with its **mechanism**, not just its
 number. That catalogue is worth more than any single arm.
 
