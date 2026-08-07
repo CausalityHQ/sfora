@@ -8097,3 +8097,10 @@ untrained avg+max excess was −0.00004, while corrected final embeddings gave
 still not identical between these measurements, this supports but does not
 complete Gate 1; no candidate is authorized from it yet. Full numbers and the
 remaining control are in `docs/inshop_rankmatched_geometry_result_2026-08-07.md`.
+
+The remaining control is now complete: trained pre-head exports use the same
+1024-D avg+max representation as initialization. Across four seeds the
+rank-matched excess is +0.03221 (SD 0.00018), versus −0.00004 at
+initialization. The training-associated crowding premise therefore survives
+the corrected control; it still motivates no method by itself and does not
+override Gate 2.
