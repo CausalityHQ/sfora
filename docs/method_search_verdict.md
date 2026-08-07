@@ -8312,3 +8312,14 @@ information channel. Synthetic labels from identity would reduce to already
 closed pair supervision. No implementation or GPU run occurred; this is a
 scope boundary, not a claimed method result. Full review:
 `docs/pass85_mtsd_scope_review_2026-08-07.md`.
+
+### Pass 86 — formal label-only boundary (no GPU)
+
+The adversarial search found no executable candidate surviving the current
+constraints. The only live Gate-1 signal is the cardinality-matched positive
+transfer gap (`-0.04968`), which quantifies lost transfer but does not identify
+which within-class differences are transferable. Every label-only response is
+already occupied as geometry refinement, geometry-only regularization, or a
+known cross-image relation. The exact assumption that must be relaxed is that
+identity equality is the only permitted supervision referent. Full boundary
+audit: `docs/pass86_label_only_boundary_2026-08-07.md`.
