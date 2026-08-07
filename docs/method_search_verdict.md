@@ -8693,3 +8693,14 @@ images. The registered causal edge signal is absent; the candidate is dead
 before prior-art or GPU work. Component count remains predictive at the
 class level, but local curvature does not identify which pairwise supervision
 should change.
+
+## Pass 116 — Distance-forward Proxy Anchor (DEAD at Gate 2)
+
+A biologically inspired local-learning branch proposed replacing end-to-end
+backpropagation with layer-wise distance goodness updates while retaining a
+single 512-D Proxy Anchor descriptor. It was killed before implementation:
+*Advancing the forward-forward algorithm towards high-performance deep local
+learning* (Neural Networks 2026, doi:10.1016/j.neunet.2026.108765) explicitly
+reformulates Forward-Forward using distance metric learning, and HCL-FF (CVPR
+2026) combines local goodness with supervised contrastive alignment. A Proxy
+Anchor adaptation is therefore a benchmark application, not a new mechanism.
