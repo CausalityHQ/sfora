@@ -1,0 +1,11 @@
+{
+  "eligible_images": 24602,
+  "proxy_minus_crossfit_mean": -0.6561580680240845,
+  "proxy_minus_crossfit_median": -0.6616141200065613,
+  "fraction_proxy_minus_crossfit_ge_0.03": 0.0,
+  "proxy_margin_median": 0.08636187389492989,
+  "crossfit_margin_median": 0.7477990984916687,
+  "crossfit_minus_proxy_margin_median": 0.6614372245967388,
+  "gate_pass": false,
+  "seed": 0
+}
