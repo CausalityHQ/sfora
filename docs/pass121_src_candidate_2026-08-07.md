@@ -35,9 +35,13 @@ Required CPU tests: finite loss/gradients, permutation invariance of the
 bundle, changed targets under each omission, and a test that a two-member
 residual cannot silently equal the ordinary single-image objective.
 
+The residual operator and recipe are now implemented locally and the focused
+objective/recipe suite passes (65 tests). This is only an implementation
+readiness result; it is not a benchmark result and has not been copied into
+the active DGX queue.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
 requires independent confirmation, selection-bias correction, and replication
 on CUB or Cars196. No SOTA claim follows from this screen alone.
-

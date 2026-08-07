@@ -8815,3 +8815,7 @@ SRC preregistration is recorded in `docs/pass121_src_candidate_2026-08-07.md`:
 corrected prediction 0.9192 against the paired 0.9163033 reference, with a
 0.9180 falsifier and mandatory union/no-residual controls. This remains a
 protocol artifact, not benchmark evidence.
+
+The SRC residual operator is now CPU-tested and exposed as
+`pa_coalition_residual`; the focused objective/recipe suite passes 65 tests.
+This implementation readiness does not authorize a GPU run.
