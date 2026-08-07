@@ -20,3 +20,7 @@ any spend.
 
 No candidate GPU run was authorized in Pass 69. Full blind prompt:
 `docs/opus_blind_prompt_pass69_2026-08-06.txt`.
+
+Read-only DGX inspection also found completed corrected Proxy Anchor final
+artifacts for seeds 2 and 3: frozen-final R@1 = 0.9151076101 and 0.9159516106.
+These strengthen the baseline variance estimate but are not candidate results.
