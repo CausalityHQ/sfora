@@ -47,6 +47,12 @@ target, and nonzero finite gradients). This is only an algebraic check: the
 repository/remote trainer integration and the one-image/control checks remain
 open and must pass before queueing.
 
+The controls use the same `proxy_anchor_coalition` operator and differ only in
+`coalition_mode`: `pa_coalition_single` applies the multi-label BCE to each
+single image independently, while `pa_coalition_dropout` removes the final
+member class from the summed union target. Both now have CPU coverage; the
+remote trainer integration must still be verified in the isolated checkout.
+
 ## Reporting
 
 For CIS and every control, report raw best-over-training and

@@ -173,6 +173,7 @@ class ImageEndToEndConfig(BaseModel):
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
     coalition_weight: float = Field(default=0.1, ge=0.0)
+    coalition_mode: Literal["union", "single", "dropout"] = "union"
     cem_edges_path: str | None = None
     cem_weight: float = Field(default=0.05, ge=0.0)
     cem_margin: float = Field(default=0.1, ge=0.0)
@@ -3595,6 +3596,7 @@ def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
         labels,
         proxy_embeddings=proxy_embeddings,
         proxy_labels=proxy_labels,
+        mode=config.coalition_mode,
         torch_module=torch_module,
     )
     return _apply_teacher_similarity_regularization(
@@ -5531,22 +5533,41 @@ def _coalition_proxy_loss(
     *,
     proxy_embeddings: Any | None,
     proxy_labels: Any | None,
+    mode: Literal["union", "single", "dropout"] = "union",
     torch_module: Any,
 ) -> Any:
-    """Supervise a distinct-class bundle against its union of class proxies."""
+    """Supervise a bundle with the full CIS operator or its preregistered controls.
+
+    ``union`` is CIS: one summed descriptor receives the union of member labels.
+    ``single`` is the single-image multi-label control: each selected image is
+    independently classified with a one-hot target through this same helper.
+    ``dropout`` is the class-dropout control: the summed descriptor receives the
+    union target with one deterministic member class removed.
+    """
     if proxy_embeddings is None or proxy_labels is None:
         raise ValueError("the coalition objective requires class proxies")
     unique_labels = torch_module.unique(labels, sorted=True)
     first_positions: list[int] = []
     for label in unique_labels:
         first_positions.append(int(torch_module.nonzero(labels.eq(label), as_tuple=False)[0, 0]))
-    if len(first_positions) < 2:
+    if len(first_positions) < (2 if mode != "single" else 1):
         return embeddings.sum() * 0.0
     members = _normalize(embeddings[first_positions], torch_module)
-    coalition = members.sum(dim=0) / float(len(first_positions)) ** 0.5
     proxies = _normalize(proxy_embeddings, torch_module)
-    logits = coalition @ proxies.T
-    target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).any(dim=0).to(logits.dtype)
+    if mode == "single":
+        logits = members @ proxies.T
+        target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).to(logits.dtype)
+        return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
+    coalition = members.sum(dim=0) / float(len(first_positions)) ** 0.5
+    logits = (coalition @ proxies.T).unsqueeze(0)
+    target_labels = unique_labels if mode == "union" else unique_labels[:-1]
+    target = (
+        proxy_labels.unsqueeze(0)
+        .eq(target_labels.unsqueeze(1))
+        .any(dim=0)
+        .to(logits.dtype)
+        .unsqueeze(0)
+    )
     return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
 
 

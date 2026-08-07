@@ -138,3 +138,30 @@ def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -
         torch_module=torch,
     )
     assert not torch.allclose(loss.detach(), changed_loss)
+
+
+def test_coalition_controls_use_same_operator_and_differ_from_union() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.randn(4, 8, generator=torch.Generator().manual_seed(13))
+    labels = torch.tensor([0, 1, 2, 3])
+    proxies = torch.randn(4, 8, generator=torch.Generator().manual_seed(14))
+    proxy_labels = torch.tensor([0, 1, 2, 3])
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    union = image_end_to_end._coalition_proxy_loss(**kwargs, mode="union")
+    single = image_end_to_end._coalition_proxy_loss(**kwargs, mode="single")
+    dropout = image_end_to_end._coalition_proxy_loss(**kwargs, mode="dropout")
+    assert torch.isfinite(torch.stack((union, single, dropout))).all()
+    assert not torch.allclose(union, single)
+    assert not torch.allclose(union, dropout)
+    one = image_end_to_end._coalition_proxy_loss(
+        **{**kwargs, "embeddings": embeddings[:1], "labels": labels[:1]}, mode="single"
+    )
+    assert torch.isfinite(one)
