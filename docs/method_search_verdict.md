@@ -8090,3 +8090,10 @@ rank-equalized, four-seed diagnostic also measures positive-minus-foreign
 margin. This is a measurement failure, not evidence for a method. Repair and
 falsification thresholds are preregistered in
 `docs/opus_pass74_none_2026-08-07.md`.
+
+The subsequent rank-matched GPU repair removed the unequal-pool confound: the
+untrained avg+max excess was −0.00004, while corrected final embeddings gave
++0.04206 mean excess across four seeds. Because the head/representation is
+still not identical between these measurements, this supports but does not
+complete Gate 1; no candidate is authorized from it yet. Full numbers and the
+remaining control are in `docs/inshop_rankmatched_geometry_result_2026-08-07.md`.
