@@ -8131,3 +8131,20 @@ image on both splits. The four gaps were −0.04928/−0.05045/−0.04906/−0.0
 extreme-value sample size. IMTE remains dead at Gate 2; this measurement is
 now the valid Gate-1 provenance for the next candidate. Full result:
 `docs/inshop_positive_cardinality_result_2026-08-07.md`.
+
+### Pass 76 — NONE; CIPR dead at Gate 2
+
+Complete-Invariant Positive Readout (CIPR) proposed replacing the spatial
+average-plus-max head with a G-bispectrum invariant, using the measured positive
+transfer deficit (mean unseen-minus-seen gap −0.04968 after cardinality matching)
+as provenance. Fresh controls also showed the untrained split-composition gap is
+only −0.000788; the deficit is training-induced, and only about 44.7% of
+within-class contraction transfers to unseen images.
+
+CIPR is not novel: bispectral pooling is established by Sanborn et al.,
+*Bispectral Neural Networks* (ICLR 2023), Sanborn & Miolane, *The Selective
+G-Bispectrum and its Inversion* (NeurIPS 2024), and Mathe et al., *bispectrum*
+(2026). A distillation variant is relational knowledge distillation, and the
+compact-group orbit assumption does not fit In-Shop pose/deformation variation.
+The candidate therefore died at Gate 2; no code or GPU run occurred. Full audit:
+`docs/opus_pass76_none_2026-08-07.md`.
