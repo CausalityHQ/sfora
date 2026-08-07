@@ -42,11 +42,23 @@ still collapse empirically to a regularizer or to ordinary multi-label loss;
 that is why the frozen controls must include class-dropout, a single-image
 multi-label target, proxy orthogonality, and ordinary Proxy Anchor.
 
+### Adversarial update: Potential Field Based DML
+
+Bhatnagar and Ahuja, *Potential Field Based Deep Metric Learning* (CVPR
+2025), is a close new neighbour. It superposes attractive/repulsive fields
+induced by many embeddings and uses proxies for sub-populations. This
+occupies global multi-sample interaction and narrows CIS's claim, but it does
+not form a real-image coalition whose **single summed embedding** is trained
+against the **union of member-class proxy labels**. CIS therefore remains
+LIVE-NARROW rather than unoccupied; any screen must cite this paper and
+include a no-coalition field control.
+
 ## Sources
 
 Zaheer et al., *Deep Sets*, NeurIPS 2017; Lee et al., *Set Transformer*, ICML
 2019; Xu et al., *HyP² Loss*, 2022; Zhang & Wu, *Multi-Label Supervised
-Contrastive Learning*, AAAI 2024; Kim et al., *Proxy Anchor Loss*, CVPR 2020.
+Contrastive Learning*, AAAI 2024; Kim et al., *Proxy Anchor Loss*, CVPR 2020;
+Bhatnagar & Ahuja, *Potential Field Based Deep Metric Learning*, CVPR 2025.
 
 No benchmark result is claimed by this audit. Gate 3 preregistration and an
 operator/gradient test are required before any queue submission.
