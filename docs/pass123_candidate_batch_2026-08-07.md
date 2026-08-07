@@ -44,7 +44,7 @@ gradient-descent plus bipartite-matching assignment.  Discrepant and
 multi-instance proxies (Zou et al., ICCV 2023) occupy the class-factor proxy
 variant.  DPA is therefore dead before GPU.
 
-### ERG — Exchangeability-Residual Gate: LIVE-NARROW at Gates 1–2
+### ERG — Exchangeability-Residual Gate: DEAD at Gate 2
 
 **Proposed mechanism.** Maintain a detached, class-conditional residual
 coordinate system from *within-class* embeddings.  For a same-class pair,
@@ -55,23 +55,22 @@ level.  This is a hard positive-to-unknown gate based on within-class factor
 compatibility; it is not a multi-center proxy, a distance weight, or a
 single-image auxiliary loss.
 
-**Adjacent prior art checked.** Deep Relational Metric Learning (Zheng et al.,
-ICCV 2021) learns an ensemble and a relation graph for each image; covariance
-embedding (Kamal et al., 2022) uses covariance as a pair representation; Deep
-Variational Metric Learning models intra-class variance.  None of the checked
-primary descriptions makes a discrete eligibility decision for a labelled
-same-class pair from a target-excluded, class-conditional exchangeability test.
-This is not a novelty claim: ERG remains live-narrow until an operating-point
-diagnostic measures whether its retention varies within class and predicts
-retrieval.  No GPU run is authorized.
+**Adversarial reduction.** The earlier PEBH measurement and RPEX audit already
+showed the relevant mechanism family: derive a within-class representation
+from a peer, use it to decide or improve a same-class relation, and retain a
+self-only deployment branch.  Wang et al. (CVPR 2016), X-ReID (Shen et al.,
+2023), Cross-GAN, and feature-exchange/transfer blocks occupy that family;
+residualizing the signal and changing the decision to an exchangeability test
+does not change the supervision object.  Deep Relational Metric Learning
+(Zheng et al., ICCV 2021), covariance embedding, and variational metric
+learning add further adjacent coverage.  ERG is therefore **DEAD at Gate 2**;
+no diagnostic, implementation, or GPU run is justified.
 
 ## Next gate
 
 After the Pass-119 controller, fixed random rerun, and selection analysis finish,
-run the ERG CPU diagnostic on a trained In-Shop epoch-10 checkpoint if one is
-available.  Pre-registration is permitted only if the diagnostic shows
-non-vacuous, stable within-class selectivity and a held-out pair-quality signal.
-Otherwise ERG is recorded dead at Gate 1 and the search continues.
+continue with SRC's implementation-level distinction audit and controls.  No
+ERG CPU diagnostic is authorized because Gate 2 already failed.
 
 ## Primary sources
 

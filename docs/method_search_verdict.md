@@ -8855,10 +8855,14 @@ PCGrad/CAGrad-style conflict handling. **DPA (Dynamic Prototype Assignment) is
 DEAD at Gate 2:** Saadabadi et al. (CVPR 2024) already performs dynamic
 label-to-prototype assignment by bipartite matching, while Zou et al. (ICCV
 2023) occupy discrepant/multi-instance class proxies. **ERG
-(Exchangeability-Residual Gate) remains LIVE-NARROW:** it would gate labelled
-same-class pairs using exchangeability of within-class residual rank/sign
-coordinates, rather than cross-class signatures or pair distance. Deep
-Relational Metric Learning (ICCV 2021), covariance embedding, and variational
-metric learning are adjacent but not mechanism-identical. ERG has no GPU
-authorization; it first needs a trained In-Shop operating-point diagnostic.
+(Exchangeability-Residual Gate) is DEAD at Gate 2** after adversarial comparison
+with the already-killed PEBH/RPEX family. Its residual rank/sign test still
+derives a within-class peer representation to decide or improve a same-class
+relation while retaining a self-only deployment branch. Wang et al. (CVPR
+2016), X-ReID, Cross-GAN, feature exchange/transfer, and Deep Relational Metric
+Learning (ICCV 2021) occupy that mechanism family; the exchangeability test is
+a cosmetic estimator change, not a new supervised object. No ERG diagnostic or
+GPU run is authorized. SRC remains the next genuinely different path because
+it changes the supervised object to leave-one-out coalition/complementary
+targets.
 Full record: `docs/pass123_candidate_batch_2026-08-07.md`.
