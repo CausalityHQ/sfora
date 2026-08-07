@@ -8233,3 +8233,23 @@ RootSIFT/Fisher-Hellinger geometry, task-driven sparse coding, SPLADE, LexLIP,
 STAIR, SPA, and related sparse retrieval descriptors. The forecast does not
 cross an audited matched-capacity frontier. No code or GPU run occurred. Full
 audit: `docs/pass80_etsd_review_2026-08-07.md`.
+
+### Pass 81 — SQLS dead at Gates 1–2 (no GPU)
+
+Subquorum Label Secrecy proposed adversarially denying label predictability to
+small random coordinate subsets while retaining full-vector discrimination.
+The CPU diagnostic did find strong seen-class leakage (32 coordinates: 0.93981
+held-out centroid accuracy; 64: 0.98680; 512: 0.99727), so the premise is
+measurable. However, the independent review killed the method before GPU.
+
+Gate 2 is occupied by MARS random-subspace adversarial censoring, adversarial
+representation learning, gradient reversal, and mask-based adversarial
+regularization. The claimed secret-sharing interpretation supplies no actual
+threshold guarantee. More fundamentally, the coordinate-quorum statistic is
+basis-dependent: an orthogonal rotation can change every subset-probe score
+without changing any cosine similarity or retrieval ranking. A quorum shift
+therefore cannot identify more transferable visual cues; it can be a pure
+coordinate gauge change. The detached-adversary semantics, unspecified NCA
+singleton handling, wrong CUB-first screen, and NCA-vs-Proxy-Anchor confound
+also fail the protocol. No GPU run occurred. Full review:
+`docs/pass81_sqls_review_2026-08-07.md`.
