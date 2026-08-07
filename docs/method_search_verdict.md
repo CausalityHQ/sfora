@@ -8353,3 +8353,11 @@ Similarity Matching for Supervised Learning* (Neural Computation 2021), already
 defines the same supervised training object and local learning rule. A Proxy
 Anchor adaptation would not be novel. No GPU run occurred. Full review:
 `docs/pass89_biological_learning_review_2026-08-07.md`.
+
+### Pass 90 — information-theoretic candidate dead at Gate 2 (no GPU)
+
+A class-conditional coding-rate/MDL objective was checked before
+implementation. MCR² (NeurIPS 2020), Anti-Collapse Loss for DML Based on
+Coding Rate Metric (2024), and earlier information-theoretic metric learning
+already occupy the training object. No GPU run occurred. Full review:
+`docs/pass90_information_theory_review_2026-08-07.md`.
