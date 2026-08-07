@@ -8098,6 +8098,14 @@ still not identical between these measurements, this supports but does not
 complete Gate 1; no candidate is authorized from it yet. Full numbers and the
 remaining control are in `docs/inshop_rankmatched_geometry_result_2026-08-07.md`.
 
+The preregistered BN-buffer placebo killed the premise: restoring ImageNet
+running statistics in the four trained checkpoints gave mean excess ≈−0.000015
+(all seeds near zero), versus +0.03221 with train-specific buffers. The earlier
+crowding signal was a BatchNorm covariate-shift artifact, not a learned
+similarity mechanism. BN calibration is established prior art (AdaBN,
+EvalNorm, Batch Renormalization, PreciseBN, EMAN); no GPU candidate was
+authorized. Full result: `docs/inshop_bn_buffer_control_result_2026-08-07.md`.
+
 The remaining control is now complete: trained pre-head exports use the same
 1024-D avg+max representation as initialization. Across four seeds the
 rank-matched excess is +0.03221 (SD 0.00018), versus −0.00004 at
