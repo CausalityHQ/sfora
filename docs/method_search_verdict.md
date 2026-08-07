@@ -8414,3 +8414,11 @@ self-supervised ranking already occupy uncertainty/intervention/predictive
 within-class supervision; a fixed reservoir is only an optimizer or feature
 parameterization change.  No implementation or GPU run occurred.  Full review:
 `docs/pass95_predictive_state_review_2026-08-07.md`.
+### Pass 96 — morphological head dead at Gate 2 (2026-08-07)
+
+A learned max/min morphological pooling head was proposed to preserve local
+nearest-positive evidence, motivated by the positive-transfer deficit.  Max and
+generalized pooling are already established fine-grained retrieval operators,
+and adaptive-region pooling occupies learned region aggregation.  The proposal
+therefore changes pooling only and supplies no new supervision object.  No GPU
+run occurred.  Full review: `docs/pass96_morphological_head_review_2026-08-07.md`.
