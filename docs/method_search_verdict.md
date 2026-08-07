@@ -8283,3 +8283,19 @@ identity episodes are DML-DC/DMML; and global assignment is MVP Matching and
 structured DML, while In-Shop has no bijective deployment topology. None
 forecasts crossing the 0.930 512-D In-Shop frontier. No GPU run occurred.
 Full review: `docs/pass83_candidate_batch_review_2026-08-07.md`.
+
+### Pass 84 — PEBH dead at Gate 3 (CPU; no GPU)
+
+Positive-Exchange Bilinear Head was motivated by the four-seed cardinality
+matched positive-transfer gap (mean unseen-minus-seen `-0.04968`). It required
+one same-class image's selector to gate another image's evidence during
+training, with self-only execution at inference. The prior-art audit found no
+paper combining that exact training/deployment pair, so it reached the CPU
+gate.
+
+On held-out identities, the self-matched probe produced mean positive gain
+`+0.004747` (required `+0.0050`), mean nearest-foreign increase `+0.008855`
+(allowed `+0.0020`), and seed 1 violated the leave-one-out R@1 bound. The
+exchange therefore broadens hub similarity rather than repairing transfer.
+No GPU implementation or run occurred. Full result:
+`docs/pass84_pebh_cpu_gate_2026-08-07.md`.
