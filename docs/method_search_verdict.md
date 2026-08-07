@@ -8405,3 +8405,12 @@ ACM Multimedia 2017; Deep Learning-based SOM for content-based retrieval), and
 the DML realization collapses into multi-proxy/sub-center/SoftTriple mode
 assignment.  No implementation or GPU run occurred.  Full review:
 `docs/pass94_competitive_learning_review_2026-08-07.md`.
+### Pass 95 — predictive-state candidate dead at Gate 2 (2026-08-07)
+
+A predictive-coding/reservoir head was proposed to separate persistent identity
+evidence from transient within-class state, motivated by same-wrong identity
+overlap **0.6476**.  Introspective DML, Deep Causal Metric Learning, and
+self-supervised ranking already occupy uncertainty/intervention/predictive
+within-class supervision; a fixed reservoir is only an optimizer or feature
+parameterization change.  No implementation or GPU run occurred.  Full review:
+`docs/pass95_predictive_state_review_2026-08-07.md`.
