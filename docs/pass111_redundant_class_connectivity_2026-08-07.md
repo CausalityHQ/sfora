@@ -1,6 +1,6 @@
 # Pass 111 — redundant class connectivity (RCC)
 
-Status: **LIVE-NARROW at Gates 0–2; no GPU authorized yet.**
+Status: **LIVE-NARROW at Gates 0–2; deciding run pending restart.**
 
 ## Gate 0/1: corrected, training-only provenance
 
@@ -69,10 +69,16 @@ consistency (CGML), TopNet, and the repository's own Fiedler candidate 136.
 Those make connectivity or a persistence summary the target; none found in the
 primary-source search optimizes the matrix-tree log-partition of a labelled
 within-class image graph for a fixed single-vector zero-shot retrieval model.
-This remains a qualified novelty distinction: if any cited method's objective
-is a weighted spanning-tree partition or an equivalent determinant, RCC is
-DEAD regardless of its score. The distinction is therefore `LIVE-NARROW`, not a
-novelty claim.
+
+An additional close prior is SCoRe (Majee et al., ICML 2024), whose
+SCoRe-LogDet minimizes `log det(S_A + λI)` on each class similarity kernel.
+That is an important mandatory control, but it is not the same object: SCoRe's
+kernel determinant measures class-set volume/variance, whereas RCC's reduced
+Laplacian determinant is the weighted sum over all within-class spanning trees
+and its gradient is connectivity/redundancy-specific. If a primary source is
+found optimizing this Laplacian/matrix-tree partition itself, RCC is DEAD
+regardless of its score. Until then the distinction remains **LIVE-NARROW**, not
+a novelty claim. Source: https://openreview.net/pdf?id=G8zDeKOp0R.
 
 ## Gate 3 preregistration (before implementation)
 
@@ -114,6 +120,10 @@ The candidate earns confirmation only if it strictly beats both controls:
 
 1. ordinary Proxy Anchor with the same full sampler;
 2. the already-occupied MST/edge-mining control.
+
+The SCoRe-LogDet control is also required if the implementation is retained;
+RCC must beat it or show a mechanism-specific connectivity improvement that
+SCoRe does not.
 
 If either control matches RCC, the mechanism is dead even if absolute R@1 rises.
 No second seed or second dataset is authorized until that mechanism test passes.

@@ -8577,3 +8577,23 @@ are direct prior art or outside the fixed-descriptor deployment constraint; the
 last is a multi-stage retrieval system rather than a train-time single-vector
 method. Full primary-source mapping and the no-GPU dispositions are in
 `docs/pass110_current-literature_batch_2026-08-07.md`.
+
+## 111. Redundant class connectivity (RCC) — LIVE-NARROW, deciding run pending
+
+The corrected In-Shop training-only half-split diagnostic on the exact 512-D
+deployment representation found support-component count versus held-out
+same-class top-1 Spearman **ρ = −0.180968, p = 3.95×10⁻¹¹** across 1,313
+identities. RCC uses a sigmoid-cosine within-class affinity graph and the
+negative log determinant of a reduced weighted Laplacian, which by Kirchhoff's
+theorem is the log partition over all spanning trees. It targets redundant
+multi-path support, not a selected MST or only the Fiedler eigenvalue.
+
+The first balanced-sampler screen was stopped as a sampler confound: matched
+Proxy Anchor reached only 0.2278 at epoch 1 and 0.0494 at epoch 2. The amended
+candidate preserves the full official sampler and adds at most four detached
+same-class cross-batch memory descriptors. Gate 2 found SCoRe (Majee et al.,
+ICML 2024, https://openreview.net/pdf?id=G8zDeKOp0R), which optimizes a class
+similarity-kernel LogDet objective. That is adjacent and is now a mandatory
+control, but not mechanism-equivalent to a reduced-Laplacian matrix-tree
+partition. RCC remains **LIVE-NARROW** pending the matched full-sampler screen;
+no benchmark number has been claimed.
