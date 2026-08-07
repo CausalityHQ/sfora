@@ -8731,3 +8731,20 @@ same-identity peer feature transfer. Residualization and proxy-orthogonal
 projection alter the estimator, not what supervision exists. RPEX is therefore
 **DEAD at Gate 2**; no implementation or GPU run occurred. Full audit:
 `docs/pass118_residual_positive_exchange_audit_2026-08-07.md`.
+
+## Pass 119 — ECT-R CPU gate passed; corrected In-Shop deciding run authorized
+
+ECT-R repairs the original ECT feasibility failure by using a relative
+winner-margin switch hinge, a fixed epoch-10 reference, and identical β=.85
+area construction for plateau and switch composites. On the retained corrected
+epoch-10 probe (64 cross-class pairs), plateau activation was **48.4375%**,
+switch activation **46.8750%**, and area/gap correlation **−0.08351**. These
+pass the preregistered 5–95% and `|r|<.20` thresholds. The original absolute
+partner-cosine hinge's 100% activation is excluded, not averaged with this
+result.
+
+Gate 3 therefore passed. A corrected In-Shop deciding run with A0/A2/A4/A5/A6/A7
+area-matched controls is authorized under the frozen thresholds in
+`docs/pass119_ectr_candidate_2026-08-07.md`; no second dataset or extra seed is
+authorized before those controls resolve the mechanism. Full CPU record:
+`docs/pass119_ectr_cpu_gate_2026-08-07.md`.
