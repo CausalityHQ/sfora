@@ -8704,3 +8704,13 @@ learning* (Neural Networks 2026, doi:10.1016/j.neunet.2026.108765) explicitly
 reformulates Forward-Forward using distance metric learning, and HCL-FF (CVPR
 2026) combines local goodness with supervised contrastive alignment. A Proxy
 Anchor adaptation is therefore a benchmark application, not a new mechanism.
+## Pass 117 — Margin-conditioned path harmonization (DEAD at Gate 1)
+
+The proposed MIPH loss would add Gaussian embedding-drift suppression in the
+subspace orthogonal to the own-class proxy, weighted by margin deficit. It was
+motivated by a seed-0 drift/margin signal, but the required operating-point
+replication failed before implementation: at normalized noise σ=.01, the
+drift/margin correlations were **−0.087 (seed 0), +0.0076 (seed 1), and
+−0.1719 (seed 2)**, with the error-versus-correct drift direction reversing on
+seed 1. The premise is not stable, so MIPH is dead at Gate 1; no GPU run or
+PMH-style control was authorized.
