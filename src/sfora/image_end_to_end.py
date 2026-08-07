@@ -1384,9 +1384,9 @@ def run_image_end_to_end_benchmark(
                         gsi_step_diagnostics=gsi_step_diagnostics,
                         **loss_kwargs,
                     )
-                    if config.ectr_weight > 0.0:
-                        if ectr_state is None or feature_map is None or sample_indices is None:
-                            raise RuntimeError("ECT-R state or indexed batch is unavailable")
+                    if config.ectr_weight > 0.0 and ectr_state is not None:
+                        if feature_map is None or sample_indices is None:
+                            raise RuntimeError("ECT-R indexed batch is unavailable")
                         loss = loss + config.ectr_weight * _ectr_composite_loss(
                             model,
                             images,
