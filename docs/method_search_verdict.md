@@ -8385,3 +8385,13 @@ therefore failed and OAPF was killed before any retrieval GPU run.  The
 mechanism-level failure is that the proposed endpoint radius is not a stable
 image property at the operating point, rather than a negative benchmark
 number.
+### Pass 93 — architecture/search batch dead at Gate 2 (2026-08-07)
+
+Three ideas motivated by persistent cross-seed error modes were checked before
+GPU: causal intervention pairs, input-routed multi-expert descriptors, and a
+projected-hypersphere/curvature head.  Deep Causal Metric Learning and Causal
+Triplet occupy intervention-based metric supervision; Deep Mixture of Experts
+via Shallow Embedding and RouterRetriever occupy per-example expert routing;
+and projected-hypersphere DML already evaluates the proposed geometry on the
+target benchmarks.  None is a defensible new mechanism.  No implementation or
+GPU run occurred.  Full review: `docs/pass93_architecture_search_2026-08-07.md`.
