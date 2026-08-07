@@ -8484,3 +8484,11 @@ identity pairs, showing a strongly directed confusion graph. A flow-balanced
 confusion loss was proposed, but confusion-based metric learning and graph
 consistency DML already occupy directed/graph confusion supervision. No GPU
 run occurred.
+### Pass 105 — activation-support escape killed by GPU diagnostic
+
+On the corrected In-Shop Proxy Anchor seed-0 checkpoint, train-channel extrema
+covered essentially all unseen features: query outside-value fraction
+**1.7652e-05** (1.779% of rows with any outside channel) and gallery
+**1.6183e-05** (1.625% of rows). The off-support activation hypothesis is
+therefore not supported at Gate 1; no method run occurred. Full result:
+`docs/pass105_support_escape_result_2026-08-07.md`.

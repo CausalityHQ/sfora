@@ -1,0 +1,18 @@
+{
+  "checkpoint": "reports/checkpoints/inshop_corrected_pa_seed0.pt",
+  "feature_dimensions": 1024,
+  "splits": {
+    "gallery": {
+      "outside_value_fraction": 1.6183124207104346e-05,
+      "rows": 12612,
+      "rows_with_any_outside_channel": 0.016254360926102124
+    },
+    "query": {
+      "outside_value_fraction": 1.7652029997186663e-05,
+      "rows": 14218,
+      "rows_with_any_outside_channel": 0.017794345196230132
+    }
+  },
+  "train_channel_max_max": 121.5401840209961,
+  "train_channel_min_min": 0.0
+}
