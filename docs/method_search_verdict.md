@@ -8682,3 +8682,14 @@ inter-view structural consensus. The proposed replacement of graph views by
 teacher snapshots is not a defensible mechanism-level novelty. The topology
 measurement remains useful evidence about mode structure; no benchmark number
 was produced.
+## Pass 115 — Ricci-bridge supervision (DEAD at Gate 1)
+
+The stable fragmentation result suggested an edge-level alternative: use
+discrete curvature to identify fragile bridges and preserve only redundant
+within-class support. On the corrected In-Shop epoch-10 512-D pack, a
+symmetrized two-nearest-neighbour graph and Forman bridge proxy produced only
+**r = -0.01844** correlation with leave-one-out correctness across 25,882
+images. The registered causal edge signal is absent; the candidate is dead
+before prior-art or GPU work. Component count remains predictive at the
+class level, but local curvature does not identify which pairwise supervision
+should change.
