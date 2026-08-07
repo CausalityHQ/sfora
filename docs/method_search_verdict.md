@@ -8652,3 +8652,18 @@ interpolation. Endpoint-margin and nearest-foreign-proxy controls are mandatory.
 The frozen prediction and falsifiers are in
 `docs/pass113_barrier_energy_candidate_2026-08-07.md`; implementation still
 requires a finite-gradient CPU test before any GPU queue.
+
+## Pass 113 closeout — Barrier-energy positive supervision (DEAD at Gate 4)
+
+BEP added a differentiable foreign-proxy saddle penalty along normalized paths
+between same-class descriptors, motivated by the measured barrier/correctness
+correlation `r=-0.1637256` on the corrected In-Shop training pack. The exact
+Torch/NumPy operator and gradient tests passed, and prior-art review left only a
+narrow distinction from energy, graph, and path methods. On the matched corrected
+In-Shop seed-0 schedule, raw best R@1 was **0.9159516** and the independent final
+export was **0.9149669**, versus paired Proxy Anchor raw best **0.9163033**. Both
+missed the preregistered floors (0.9175 raw, 0.9155 final), so the candidate is
+dead at the screen. No controls or replication were run. Mechanism:
+foreign-proxy path-energy suppression failed to improve the deployed descriptor
+at the registered weight; this closes this specific path-barrier regularizer,
+not every possible geometric supervision mechanism.

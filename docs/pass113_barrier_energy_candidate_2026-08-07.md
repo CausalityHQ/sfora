@@ -85,3 +85,14 @@ run reached roughly 200 steps and is likewise excluded. The final implementation
 applies the smooth maximum over path points and foreign proxies separately for
 each aligned pair, then averages pairs; an explicit Torch-vs-NumPy numerical test
 now passes.
+
+## Gate 4 decision
+
+The corrected In-Shop seed-0 run completed the registered 8,580 steps. Its raw
+best test R@1 was **0.9159516** (epoch 57), below the preregistered 0.9175
+screen floor. The independent final-state export was **0.9149669**, also below
+the preregistered 0.9155 floor and below the paired Proxy Anchor raw best
+0.9163033. BEP is therefore **DEAD at Gate 4** for this operating point. No
+controls, extra seeds, or second-dataset replication are authorized. The two
+earlier partial launches remain excluded as documented above. This is a failed
+matched screen, not evidence that every path-energy formulation is impossible.
