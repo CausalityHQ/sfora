@@ -8578,7 +8578,7 @@ last is a multi-stage retrieval system rather than a train-time single-vector
 method. Full primary-source mapping and the no-GPU dispositions are in
 `docs/pass110_current-literature_batch_2026-08-07.md`.
 
-## 111. Redundant class connectivity (RCC) — LIVE-NARROW, deciding run pending
+## 111. Redundant class connectivity (RCC) — LIVE-NARROW, deciding run active
 
 The corrected In-Shop training-only half-split diagnostic on the exact 512-D
 deployment representation found support-component count versus held-out
@@ -8591,9 +8591,10 @@ multi-path support, not a selected MST or only the Fiedler eigenvalue.
 The first balanced-sampler screen was stopped as a sampler confound: matched
 Proxy Anchor reached only 0.2278 at epoch 1 and 0.0494 at epoch 2. The amended
 candidate preserves the full official sampler and adds at most four detached
-same-class cross-batch memory descriptors. Gate 2 found SCoRe (Majee et al.,
+same-class cross-batch memory descriptors. The full-sampler seed-0 deciding run
+is active on the DGX for the preregistered 8,640-step horizon; no benchmark
+number is claimed yet. Gate 2 found SCoRe (Majee et al.,
 ICML 2024, https://openreview.net/pdf?id=G8zDeKOp0R), which optimizes a class
 similarity-kernel LogDet objective. That is adjacent and is now a mandatory
 control, but not mechanism-equivalent to a reduced-Laplacian matrix-tree
-partition. RCC remains **LIVE-NARROW** pending the matched full-sampler screen;
-no benchmark number has been claimed.
+partition. RCC remains **LIVE-NARROW** pending the matched full-sampler screen.

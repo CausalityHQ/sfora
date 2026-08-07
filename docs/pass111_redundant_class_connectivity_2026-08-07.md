@@ -1,6 +1,6 @@
 # Pass 111 — redundant class connectivity (RCC)
 
-Status: **LIVE-NARROW at Gates 0–2; deciding run pending restart.**
+Status: **LIVE-NARROW at Gates 0–2; the preregistered full-sampler deciding run is active on the DGX (seed 0, 8,640 steps).**
 
 ## Gate 0/1: corrected, training-only provenance
 
