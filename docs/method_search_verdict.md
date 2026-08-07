@@ -8422,3 +8422,11 @@ generalized pooling are already established fine-grained retrieval operators,
 and adaptive-region pooling occupies learned region aggregation.  The proposal
 therefore changes pooling only and supplies no new supervision object.  No GPU
 run occurred.  Full review: `docs/pass96_morphological_head_review_2026-08-07.md`.
+### Pass 97 — dendritic architecture dead at Gate 2 (2026-08-07)
+
+A dendritic/subunit head was proposed to preserve conjunctions of local evidence
+behind the positive-transfer deficit. DML-DC, neural-dendrite feature fusion,
+and deep compositional metric learning already occupy graph/compositor/subunit
+fusion. A dendritic activation would be a reparameterization, not a novel
+similarity-learning mechanism. No GPU run occurred. Full review:
+`docs/pass97_dendritic_architecture_review_2026-08-07.md`.
