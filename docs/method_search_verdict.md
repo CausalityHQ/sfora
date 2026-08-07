@@ -8463,3 +8463,11 @@ component-aware attraction/neutrality is occupied by OSM-style intra-class
 variance preservation, SoftTriple/multi-centre proxies, and graded supervision
 (*Deep Metric Learning Beyond Binary Supervision*). It is a mining/partitioning
 change rather than a new operator; no GPU run occurred.
+### Pass 102 — reaction–diffusion spatial head (dead before GPU)
+
+The local/centroid decomposition (48.1% local-evidence failures) motivated a
+reaction–diffusion recurrent head over the spatial feature map. Prior art
+already uses diffusion for image retrieval (Zhao et al., BMVC 2018,
+*Modelling Diffusion Process via DNN for Image Retrieval*) and graph/batch
+diffusion for DML. The proposed head is therefore an occupied diffusion/graph
+operator; no GPU run occurred.
