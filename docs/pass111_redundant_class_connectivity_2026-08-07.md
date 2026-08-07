@@ -31,6 +31,15 @@ the final 512-D operating representation must be rechecked before a deciding
 run. If the same statistic is absent after the exact deployed projection, the
 candidate dies at Gate 1.
 
+### Final operating-point check (2026-08-07)
+
+The same fixed RNG-123 half split and graph rule were rerun on the exported
+512-D deployment embeddings from the epoch-10 In-Shop checkpoint. The result
+is **1,313 identities**, held-out class-balanced top-1 **0.941186**, and
+component count versus held-out accuracy **Spearman ρ = −0.180968,
+p = 3.95×10⁻¹¹**. The signal survives the projection and is stronger than the
+pre-head measurement; Gate 1 remains open.
+
 ## Candidate training object
 
 For a balanced class block with normalized descriptors `z_1,…,z_n`, define a
@@ -69,9 +78,12 @@ novelty claim.
 
 The exact corrected In-Shop screen will use the current BN-Inception/512-D
 Proxy Anchor recipe, seed 0, with a class-balanced `n=4` block sampler. The
-baseline is a matched `n=4` Proxy Anchor arm; the method adds one fixed RCC
-coefficient chosen to make the initial auxiliary gradient norm 0.25 times the
-base gradient norm (no retrieval tuning).
+baseline is a matched `n=4` Proxy Anchor arm. Before implementation, the
+coefficient was amended to a fixed **0.05**: the earlier “0.25× initial
+gradient norm” target is not portable because the base gradient is unavailable
+to a loss constructor before the first backward pass; calibrating it per batch
+would introduce an unregistered adaptive method. Temperature, threshold,
+coefficient, and sampler are now frozen (no retrieval tuning).
 
 Prediction: raw best-over-training R@1 **0.9190**, versus the matched baseline;
 the method is falsified if it is below **0.9175** or fails to improve the

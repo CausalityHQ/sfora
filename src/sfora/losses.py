@@ -6,6 +6,38 @@ from numpy.typing import NDArray
 Reduction = Literal["mean", "sum"]
 
 
+def redundant_connectivity_loss(
+    embeddings: NDArray[np.floating],
+    *,
+    tau: float = 0.8,
+    scale: float = 0.1,
+    eps: float = 1e-6,
+) -> float:
+    """Negative log weighted spanning-tree mass for one class block.
+
+    The affinity is a soft cosine edge and Kirchhoff's matrix-tree theorem turns
+    the determinant of any reduced Laplacian into the total weight of all
+    spanning trees.  This is deliberately a redundant connectivity objective:
+    it does not select one tree or optimize only the second Laplacian eigenvalue.
+    """
+    array = _as_float_array(embeddings, expected_ndim=2, name="embeddings")
+    if array.shape[0] < 2:
+        raise ValueError("embeddings must contain at least two points")
+    if scale <= 0.0:
+        raise ValueError("scale must be positive")
+    norms = np.linalg.norm(array, axis=1, keepdims=True)
+    normalized = array / np.maximum(norms, 1e-12)
+    similarities = normalized @ normalized.T
+    affinities = 1.0 / (1.0 + np.exp(-(similarities - tau) / scale))
+    np.fill_diagonal(affinities, 0.0)
+    laplacian = np.diag(affinities.sum(axis=1)) - affinities
+    minor = laplacian[1:, 1:] + (eps * np.eye(array.shape[0] - 1))
+    sign, logdet = np.linalg.slogdet(minor)
+    if sign <= 0.0 or not np.isfinite(logdet):
+        raise ValueError("reduced Laplacian must have a positive finite determinant")
+    return float(-logdet)
+
+
 def triplet_margin_loss(
     anchors: NDArray[np.floating],
     positives: NDArray[np.floating],

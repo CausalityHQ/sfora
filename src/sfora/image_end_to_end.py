@@ -237,6 +237,12 @@ class ImageEndToEndConfig(BaseModel):
     rspg_control: Literal["signature_gate", "soft_js", "distance_gate", "instance_gate"] = (
         "signature_gate"
     )
+    # Redundant class connectivity: differentiable log-partition over all
+    # weighted within-class spanning trees.  Zero preserves Proxy Anchor.
+    rcc_weight: float = Field(default=0.0, ge=0.0)
+    rcc_tau: float = Field(default=0.8, ge=-1.0, le=1.0)
+    rcc_temperature: float = Field(default=0.1, gt=0.0)
+    rcc_min_class_size: int = Field(default=4, ge=2)
     # Augmentation-response compatibility graph. Zero preserves historical behavior.
     arcg_weight: float = Field(default=0.0, ge=0.0)
     arcg_warmup_epoch: int = Field(default=10, ge=1)
@@ -3318,7 +3324,55 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             min_class_size=config.fiedler_min_class_size,
             torch_module=torch_module,
         )
+    if config.rcc_weight > 0.0:
+        loss = loss + config.rcc_weight * _redundant_connectivity_loss(
+            embeddings,
+            labels,
+            tau=config.rcc_tau,
+            temperature=config.rcc_temperature,
+            min_class_size=config.rcc_min_class_size,
+            torch_module=torch_module,
+        )
     return _apply_teacher_similarity_regularization(loss, kwargs)
+
+
+def _redundant_connectivity_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    tau: float,
+    temperature: float,
+    min_class_size: int,
+    torch_module: Any,
+) -> Any:
+    """Negative log weighted spanning-tree mass for each sampled class.
+
+    Kirchhoff's theorem makes the reduced-Laplacian determinant the sum of the
+    weights of *all* spanning trees.  Unlike MST or Fiedler losses this rewards
+    redundant multi-path support.  Classes are averaged equally to avoid a
+    class-size weighting shortcut; the recipe uses fixed four-image blocks.
+    """
+    normalized = _normalize(embeddings, torch_module)
+    class_losses: list[Any] = []
+    for label in torch_module.unique(labels):
+        members = normalized[labels == label]
+        n = int(members.shape[0])
+        if n < min_class_size:
+            continue
+        similarities = members @ members.T
+        affinities = torch_module.sigmoid((similarities - tau) / temperature)
+        affinities = affinities - torch_module.diag_embed(torch_module.diagonal(affinities))
+        laplacian = torch_module.diag(affinities.sum(dim=1)) - affinities
+        minor = laplacian[1:, 1:]
+        sign, logdet = torch_module.linalg.slogdet(minor)
+        # A non-positive determinant can only arise from numerical pathology;
+        # keep the objective finite and differentiable rather than silently
+        # turning it into an unrelated connectivity penalty.
+        if bool((sign > 0).item()) and bool(torch_module.isfinite(logdet).item()):
+            class_losses.append(-logdet)
+    if not class_losses:
+        return embeddings.sum() * 0.0
+    return torch_module.stack(class_losses).mean()
 
 
 def _spectral_class_connectivity_loss(
