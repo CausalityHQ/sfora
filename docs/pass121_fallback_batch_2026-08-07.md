@@ -54,3 +54,24 @@ known factorized/teacher relation objective.
 No number is preregistered here.  A surviving option must pass the full
 protocol, including prior art before code, an In-Shop screen, out-of-sample
 confirmation, raw plus selection-corrected reporting, and a second dataset.
+
+## Gate-2 update (2026-08-07)
+
+**PMTS is dead at Gate 2.** Dou, Luo, and Yang, *An Optimal Transport
+Approach to Deep Metric Learning* (AAAI 2022), already trains image metric
+learning with Wasserstein/Sinkhorn geometry; Zhao et al., *Towards
+Interpretable Deep Metric Learning With Structural Matching* (ICCV 2021),
+also establishes optimal-transport structural matching. Replacing their image
+or batch measures with a member-proxy mass is an application-level substitution.
+
+**SRC remains LIVE-NARROW, not authorized.** Deep Compositional Metric
+Learning (Zheng et al., CVPR 2021) and HSE (Yang et al., ICCV 2023) are close
+compositional/mixed-sample precedents. The checked sources do not specify the
+exact leave-one-out real-image coalition equations (union target plus
+complementary proxy target), but an implementation-level distinction audit is
+required before any preregistration.
+
+**PGRH is dead at Gate 2.** MIC (Roth et al., ICCV 2019) occupies cross-class
+latent-factor supervision and DeepCD (Yang et al., ICCV 2017) occupies
+complementary residual descriptors. A train-only proxy-conditioned residual
+agreement head would be a combination of occupied mechanisms.

@@ -8785,3 +8785,28 @@ but no union-labelled summed coalition. These are adjacent, so CIS remains
 **LIVE-NARROW**, not established novel. The full audit and required controls
 are in `docs/pass120_cis_gate2_audit_2026-08-07.md`; no GPU run is authorized
 until Gate 3 preregistration and operator tests pass.
+
+## Pass 121 — fallback Gate-2 triage (2026-08-07)
+
+The reserve batch generated from the corrected between-class failure
+decomposition was checked before implementation. **Proxy-mass transport
+supervision (PMTS) is DEAD at Gate 2:** optimal-transport DML already uses
+Wasserstein/Sinkhorn geometry as the metric-learning object (Dou, Luo, and
+Yang, AAAI 2022), and structural matching via optimal transport is established
+by Zhao et al. (ICCV 2021). A bundle-to-proxy mass variant is an application-
+level substitution, not a defensible new mechanism.
+
+**Proxy-conditioned gated residual head (PGRH) is DEAD at Gate 2:** MIC (Roth
+et al., ICCV 2019) occupies cross-class latent-factor supervision and DeepCD
+(Yang et al., ICCV 2017) occupies complementary residual descriptors. The
+proposed train-only residual-agreement head would combine those mechanisms, so
+no GPU run is justified.
+
+**Stoichiometric residual coalition (SRC) remains LIVE-NARROW.** Deep
+Compositional Metric Learning (Zheng et al., CVPR 2021) and HSE (Yang et al.,
+ICCV 2023) are close compositional/mixed-sample precedents, but the checked
+primary sources do not contain the exact leave-one-out real-image coalition
+equations: a union-target sum plus complementary-proxy targets for every
+omitted member. This is not a novelty claim. SRC must first pass an
+implementation-level distinction audit and a finite-gradient test; it is not
+authorized for GPU until then.
