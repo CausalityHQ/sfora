@@ -17,8 +17,10 @@ def main():
     rows=[]
     for sd in a.seeds:
         d=a.root/sd/'reports/emb' if (a.root/sd/'reports/emb').exists() else a.root/'reports/emb'
-        tr,qu,ga=[load(d/f'inshop_corrected_pa_seed{sd}_{x}_final.npz') for x in ('train','query','gallery')]
-        labels=np.load(d/f'inshop_corrected_pa_seed{sd}_train_final.npz')['labels']; ql=np.load(d/f'inshop_corrected_pa_seed{sd}_query_final.npz')['labels']; gl=np.load(d/f'inshop_corrected_pa_seed{sd}_gallery_final.npz')['labels']
+        tf=next(d.glob('inshop_corrected_pa_seed*_train_final.npz'))
+        stem=tf.name.replace('_train_final.npz','')
+        tr,qu,ga=[load(d/f'{stem}_{x}_final.npz') for x in ('train','query','gallery')]
+        labels=np.load(tf)['labels']; ql=np.load(d/f'{stem}_query_final.npz')['labels']; gl=np.load(d/f'{stem}_gallery_final.npz')['labels']
         rows.append({'seed':sd,'train_rank2_foreign_cosine':kth(tr,labels,tr,labels,2),'query_rank1_gallery_foreign_cosine':kth(qu,ql,ga,gl,1)})
     json.dump(rows,open(a.output,'w'),indent=2); print(json.dumps(rows,indent=2))
 if __name__=='__main__': main()
