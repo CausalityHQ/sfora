@@ -8253,3 +8253,20 @@ coordinate gauge change. The detached-adversary semantics, unspecified NCA
 singleton handling, wrong CUB-first screen, and NCA-vs-Proxy-Anchor confound
 also fail the protocol. No GPU run occurred. Full review:
 `docs/pass81_sqls_review_2026-08-07.md`.
+
+### Pass 82 — EMP dead at Gates 1–2 (no GPU)
+
+Excitable-Medium Pooling proposed four fixed FitzHugh–Nagumo-like
+reaction-diffusion steps over the final spatial map before pooling. It had no
+pre-existing repository measurement: the only motivating diagnostic was a
+future CPU preflight, and the proposer had not inspected the repo. Gate 1
+therefore fails. Gate 2 is also occupied by cellular neural networks,
+FitzHugh–Nagumo image-grid reaction-diffusion, optimized reaction-diffusion,
+PDE-Net, GRAND, GREAD, and established spatial-pooling/local-descriptor
+families. A new retrieval application is not a materially distinct operator.
+
+EMP additionally targeted CUB first instead of corrected In-Shop and forecast
+69.5 raw / 68.9 corrected, below the matched 512-D PFML frontier (73.4 ±
+0.3). Its compute claim was understated by over an order of magnitude. No
+implementation or GPU run occurred. Full review:
+`docs/pass82_emp_review_2026-08-07.md`.
