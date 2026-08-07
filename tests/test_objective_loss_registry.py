@@ -192,3 +192,26 @@ def test_coalition_residual_uses_complementary_target_per_omitted_member() -> No
     assert not torch.allclose(residual, dropout)
     residual.backward()
     assert torch.isfinite(embeddings.grad).all()
+
+
+def test_coalition_single_complementary_is_distinct_and_finite() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.randn(3, 6, generator=torch.Generator().manual_seed(21))
+    labels = torch.tensor([0, 1, 2])
+    proxies = torch.randn(3, 6, generator=torch.Generator().manual_seed(22))
+    proxy_labels = torch.tensor([0, 1, 2])
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    complementary = image_end_to_end._coalition_proxy_loss(
+        **kwargs, mode="single_complementary"
+    )
+    single = image_end_to_end._coalition_proxy_loss(**kwargs, mode="single")
+    assert torch.isfinite(complementary)
+    assert not torch.allclose(complementary, single)

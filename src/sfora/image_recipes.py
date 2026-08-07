@@ -66,6 +66,7 @@ DerivedMethod = Literal[
     "ectr_area",
     "pa_coalition",
     "pa_coalition_single",
+    "pa_coalition_complementary",
     "pa_coalition_dropout",
     "pa_coalition_residual",
 ]
@@ -111,6 +112,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "ectr_area": "proxy_anchor",
     "pa_coalition": "proxy_anchor",
     "pa_coalition_single": "proxy_anchor",
+    "pa_coalition_complementary": "proxy_anchor",
     "pa_coalition_dropout": "proxy_anchor",
     "pa_coalition_residual": "proxy_anchor",
 }
@@ -668,13 +670,20 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "config": {**recipe.config, **delta},
             },
         )
-    if method in {"pa_coalition", "pa_coalition_single", "pa_coalition_dropout", "pa_coalition_residual"}:
+    if method in {
+        "pa_coalition",
+        "pa_coalition_single",
+        "pa_coalition_complementary",
+        "pa_coalition_dropout",
+        "pa_coalition_residual",
+    }:
         delta = {
             "objectives": ("proxy_anchor_coalition",),
             "coalition_weight": 0.1,
             "coalition_mode": {
                 "pa_coalition": "union",
                 "pa_coalition_single": "single",
+                "pa_coalition_complementary": "single_complementary",
                 "pa_coalition_dropout": "dropout",
                 "pa_coalition_residual": "residual",
             }[method],

@@ -43,7 +43,10 @@ selection correction.
 
 Required CPU tests: finite loss/gradients, permutation invariance of the
 bundle, changed targets under each omission, and a test that a two-member
-residual cannot silently equal the ordinary single-image objective.
+residual cannot silently equal the ordinary single-image objective.  The
+deciding controls must include `pa_coalition_complementary`, which trains each
+image independently against the other members' proxy labels; this separates
+complementary targets from SRC's leave-one-out sum.
 
 The residual operator and recipe are now implemented locally and the focused
 objective/recipe suite passes (65 tests). This is only an implementation

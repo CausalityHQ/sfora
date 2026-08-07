@@ -61,10 +61,13 @@ arbitrary mixture is a valid multi-label sample.
 ## CPU evidence
 
 The implementation has finite loss/gradient, bundle permutation-invariance,
-changed-target-under-omission, and non-equivalence-to-single-image tests.  The
-focused objective/recipe check currently passes 3 coalition tests (the full
-focused suite previously passed 65 tests).  These tests establish only that
-the proposed object is implemented; they are not benchmark evidence.
+changed-target-under-omission, and non-equivalence-to-single-image tests.  A
+previously missing control was added before any SRC queue: `pa_coalition_complementary`
+trains each image independently against the other members' proxy labels.  It
+isolates complementary supervision from SRC's leave-one-out sums and is now
+included in the Pass-120 control script.  The focused objective/recipe check
+passes 68 tests.  These tests establish only that the proposed objects are
+implemented; they are not benchmark evidence.
 
 ## Decision
 

@@ -25,5 +25,6 @@ run() {
 }
 
 run pa_coalition_single
+run pa_coalition_complementary
 run pa_coalition_dropout
 run pa_coalition

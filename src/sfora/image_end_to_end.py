@@ -173,7 +173,9 @@ class ImageEndToEndConfig(BaseModel):
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
     coalition_weight: float = Field(default=0.1, ge=0.0)
-    coalition_mode: Literal["union", "single", "dropout", "residual"] = "union"
+    coalition_mode: Literal[
+        "union", "single", "single_complementary", "dropout", "residual"
+    ] = "union"
     cem_edges_path: str | None = None
     cem_weight: float = Field(default=0.05, ge=0.0)
     cem_margin: float = Field(default=0.1, ge=0.0)
@@ -5536,7 +5538,9 @@ def _coalition_proxy_loss(
     *,
     proxy_embeddings: Any | None,
     proxy_labels: Any | None,
-    mode: Literal["union", "single", "dropout", "residual"] = "union",
+    mode: Literal[
+        "union", "single", "single_complementary", "dropout", "residual"
+    ] = "union",
     torch_module: Any,
 ) -> Any:
     """Supervise a bundle with the full CIS operator or its preregistered controls.
@@ -5560,6 +5564,23 @@ def _coalition_proxy_loss(
     if mode == "single":
         logits = members @ proxies.T
         target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).to(logits.dtype)
+        return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
+    if mode == "single_complementary":
+        # Per-image complementary control: each image is trained against the
+        # labels of the *other* members, without constructing a coalition. This
+        # isolates complementary supervision from SRC's leave-one-out sums.
+        logits = members @ proxies.T
+        targets = []
+        for omitted in range(len(first_positions)):
+            other_labels = torch_module.cat(
+                (unique_labels[:omitted], unique_labels[omitted + 1 :])
+            )
+            targets.append(
+                proxy_labels.unsqueeze(0)
+                .eq(other_labels.unsqueeze(1))
+                .any(dim=0)
+            )
+        target = torch_module.stack(targets).to(logits.dtype)
         return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
     if mode == "residual":
         # SRC: every leave-one-out sum receives the complementary proxy set.
