@@ -52,6 +52,7 @@ DerivedMethod = Literal[
     "rspg_distance_gate",
     "rspg_instance_gate",
     "arcg",
+    "pa_cea",
     "ipsr",
     "tird",
     "pa_ipc4",
@@ -98,6 +99,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "rspg_distance_gate": "proxy_anchor",
     "rspg_instance_gate": "proxy_anchor",
     "arcg": "proxy_anchor",
+    "pa_cea": "proxy_anchor",
     "ipsr": "proxy_anchor",
     "tird": "proxy_anchor",
     "pa_ipc4": "proxy_anchor",
@@ -854,6 +856,24 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "arcg_warmup_epoch": 10,
             "arcg_refresh_epoch": 40,
             "arcg_agreement_threshold": 0.5,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "pa_cea":
+        delta = {
+            "cea_weight": 1.0,
+            "cea_warmup_epoch": 10,
+            "cea_refresh_epoch": 40,
+            "cea_agreement_threshold": 0.47,
+            "ema_teacher_ema_buffers": True,
         }
         return recipe.model_copy(
             deep=True,

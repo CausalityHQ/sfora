@@ -16,6 +16,7 @@ from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field
 
 from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
+from sfora.cea import build_cea_graph
 from sfora.data import ImageDatasetName, ImageExample, materialize_image
 from sfora.image_benchmark import (
     ImageRetrievalMetrics,
@@ -260,6 +261,13 @@ class ImageEndToEndConfig(BaseModel):
     arcg_warmup_epoch: int = Field(default=10, ge=1)
     arcg_refresh_epoch: int = Field(default=40, ge=1)
     arcg_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
+    # Counterfactual-evidence agreement graph.  A detached class-evidence map
+    # is computed at warm-up and gates labelled same-class positives by
+    # cross-image agreement; zero preserves historical behavior.
+    cea_weight: float = Field(default=0.0, ge=0.0)
+    cea_warmup_epoch: int = Field(default=10, ge=1)
+    cea_refresh_epoch: int = Field(default=40, ge=1)
+    cea_agreement_threshold: float = Field(default=0.47, ge=-1.0, le=1.0)
     # Evidence-consensus transplantation (ECT-R).  This is an optional train-time
     # intervention on the corrected In-Shop recipe; deployment remains the ordinary
     # 512-D descriptor.  The reference snapshot is frozen at the warm-up epoch.
@@ -1075,6 +1083,7 @@ def run_image_end_to_end_benchmark(
                 _freeze_batch_norm_layers(model)
             train_batches = _iter_training_batches(train_loader)
             rspg_state: RSPGState | None = None
+            cea_state: RSPGState | None = None
             ipsr_state: IPSRState | None = None
             ectr_state: ECTRState | None = None
             for step, batch in zip(
@@ -1082,7 +1091,7 @@ def run_image_end_to_end_benchmark(
                 train_batches,
                 strict=False,
             ):
-                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0:
+                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0 or config.cea_weight > 0.0:
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:
@@ -1115,6 +1124,25 @@ def run_image_end_to_end_benchmark(
                         device=device,
                         torch_module=torch,
                         enforce_diagnostic=rspg_epoch == config.rspg_warmup_epoch,
+                    )
+                    model.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(model)
+                cea_epoch = (step - 1) // steps_per_epoch
+                if (
+                    config.cea_weight > 0.0
+                    and cea_epoch in {config.cea_warmup_epoch, config.cea_refresh_epoch}
+                    and (step - 1) % steps_per_epoch == 0
+                ):
+                    cea_state = _build_cea_state(
+                        model,
+                        train_eval_loader,
+                        proxy_embeddings=_metric_proxy_embeddings(model),
+                        proxy_labels=_metric_proxy_labels(model),
+                        config=config,
+                        device=device,
+                        torch_module=torch,
+                        enforce_diagnostic=cea_epoch == config.cea_warmup_epoch,
                     )
                     model.train()
                     if config.freeze_batch_norm:
@@ -1206,6 +1234,9 @@ def run_image_end_to_end_benchmark(
                     loss_kwargs["custom_losses"] = custom_losses
                 if rspg_state is not None:
                     loss_kwargs["rspg_state"] = rspg_state
+                    loss_kwargs["sample_indices"] = sample_indices
+                if cea_state is not None:
+                    loss_kwargs["cea_state"] = cea_state
                     loss_kwargs["sample_indices"] = sample_indices
                 if ipsr_state is not None:
                     loss_kwargs["ipsr_state"] = ipsr_state
@@ -2705,6 +2736,115 @@ def _build_arcg_state(
     )
 
 
+def _build_cea_state(
+    model: TorchImageModel,
+    loader: Any,
+    *,
+    proxy_embeddings: Any,
+    proxy_labels: Any,
+    config: ImageEndToEndConfig,
+    device: Any,
+    torch_module: Any,
+    enforce_diagnostic: bool,
+) -> RSPGState:
+    """Build a detached CEA graph from class-evidence gradients.
+
+    The maps are computed only at refresh points and are detached before the
+    training objective uses them.  Thus CEA changes supervision eligibility,
+    not the deployment descriptor or the gradient path through the evidence
+    computation itself.
+    """
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("CEA requires class proxies")
+    model.eval()
+    normalized_proxies = _normalize(proxy_embeddings, torch_module).detach()
+    first_proxy: dict[int, int] = {}
+    for index, label in enumerate(proxy_labels.detach().cpu().tolist()):
+        first_proxy.setdefault(int(label), index)
+    embeddings: list[Any] = []
+    signatures: list[Any] = []
+    labels: list[Any] = []
+    handles: list[Any] = []
+    for images, batch_labels in loader:
+        images = images.to(device, non_blocking=True)
+        captured: list[Any] = []
+
+        def hook(_module: Any, _inputs: Any, output: Any) -> None:
+            captured.append(output)
+
+        if hasattr(model, "layer4"):
+            handles = [getattr(model, "layer4").register_forward_hook(hook)]
+        else:
+            inner = getattr(model, "model", None)
+            branch_names = (
+                "inception_5b_1x1_bn",
+                "inception_5b_3x3_bn",
+                "inception_5b_double_3x3_2_bn",
+                "inception_5b_pool_proj_bn",
+            )
+            if inner is None or not all(hasattr(inner, name) for name in branch_names):
+                raise RuntimeError("CEA requires a final spatial feature map")
+            handles = [getattr(inner, name).register_forward_hook(hook) for name in branch_names]
+        try:
+            with torch_module.enable_grad():
+                output = model(images)
+                output = _normalize(output, torch_module)
+                target = torch_module.stack(
+                    [normalized_proxies[first_proxy[int(label)]] for label in batch_labels.tolist()]
+                )
+                score = (output * target).sum(dim=1)
+                gradients = torch_module.autograd.grad(score.sum(), captured)
+            evidence = torch_module.cat(
+                [
+                    (gradient * feature).sum(dim=1, keepdim=True)
+                    for gradient, feature in zip(gradients, captured, strict=True)
+                ],
+                dim=1,
+            ).clamp_min(0.0).flatten(1)
+            evidence = evidence / evidence.norm(dim=1, keepdim=True).clamp_min(1.0e-12)
+            embeddings.append(output.detach().cpu())
+            signatures.append(evidence.detach().cpu())
+            labels.append(batch_labels.detach().cpu())
+        finally:
+            for handle in handles:
+                handle.remove()
+            handles = []
+    embedding_array = torch_module.cat(embeddings).numpy()
+    signature_array = torch_module.cat(signatures).numpy()
+    label_array = torch_module.cat(labels).numpy()
+    graph = build_cea_graph(
+        embedding_array,
+        signature_array,
+        label_array,
+        agreement_threshold=config.cea_agreement_threshold,
+    )
+    print(
+        "CEA graph diagnostic: "
+        f"density={graph.edge_density:.4f} "
+        f"multi_component_classes={graph.multicomponent_fraction:.4f} "
+        f"close_rejected={graph.close_rejected_fraction:.4f} "
+        f"far_accepted={graph.far_accepted_fraction:.4f}",
+        flush=True,
+    )
+    if enforce_diagnostic and not (
+        0.05 <= graph.edge_density <= 0.50
+        and graph.multicomponent_fraction >= 0.25
+        and graph.close_rejected_fraction >= 0.05
+        and graph.far_accepted_fraction >= 0.05
+    ):
+        raise RuntimeError(
+            "CEA preregistered graph diagnostic failed: require density in [0.05, 0.50], "
+            "multi-component fraction >= 0.25, close rejection >= 0.05, and far acceptance >= 0.05"
+        )
+    target = torch_module.as_tensor(embedding_array, dtype=torch_module.float32, device=device)
+    return RSPGState(
+        target_embeddings=_normalize(target, torch_module).detach(),
+        neighbours=graph.neighbours,
+        edge_density=float(graph.edge_density),
+        multi_component_fraction=float(graph.multicomponent_fraction),
+    )
+
+
 def _build_ipsr_state(
     anchor_embeddings: NDArray[np.float64],
     transformed_embeddings: NDArray[np.float64],
@@ -3495,9 +3635,16 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     proxy_labels = kwargs["proxy_labels"]
     config = cast(ImageEndToEndConfig, kwargs["config"])
     torch_module = kwargs["torch_module"]
-    graph_weight = config.rspg_weight if config.rspg_weight > 0.0 else config.arcg_weight
-    if graph_weight > 0.0 and kwargs.get("rspg_state") is not None:
-        rspg_state = cast(RSPGState, kwargs["rspg_state"])
+    graph_weight = config.rspg_weight
+    graph_state = kwargs.get("rspg_state")
+    if graph_weight <= 0.0:
+        graph_weight = config.arcg_weight
+    if graph_state is None:
+        graph_state = kwargs.get("cea_state")
+        if graph_state is not None:
+            graph_weight = config.cea_weight
+    if graph_weight > 0.0 and graph_state is not None:
+        rspg_state = cast(RSPGState, graph_state)
         sample_indices = kwargs.get("sample_indices")
         if sample_indices is None:
             raise RuntimeError("RSPG requires stable training sample indices")
