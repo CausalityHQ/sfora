@@ -1,0 +1,34 @@
+Provider: Fable blind proposer with Claude fallback. Start cold; do not inspect
+local files, history, or prior candidates, and do not edit files.
+
+Find exactly ONE genuinely novel train-time method for zero-shot deep metric
+learning on disjoint identities (CUB, Cars196, In-Shop, SOP), or return NONE.
+Use official training images/labels, ordinary augmentation, optional
+ImageNet-1K initialization; deploy one model, one view, one fixed descriptor
+with cosine/Euclidean NN. No transduction, gallery fitting/reranking, external
+generated data, text/VLM encoders, extra annotations, or contamination.
+Use matched Lane-A R50/512-D controls and In-Shop-first screening.
+
+The search has closed most support-local losses, pair/reweighting, tangent and
+equivariance families, gradient surgery, EVT, multi-centers, averaging,
+acceleration/DEQ/Krylov, common activations/parameterizations, off-support
+counterfactuals, and cross-image supervision whose ownership gradient is not
+provably safe. Pass 68 CIS was killed because symmetric bundle logits reward
+non-owner proxy interference; Pass 69 formalized an ownership-attribution
+trichotomy for cross-image channels. Do not revive these or disguise a margin,
+temperature, normalization, optimizer schedule, or regularizer as a new
+method.
+
+Search the untried train-time design space: backbone/embedding architecture,
+optimizer or update rule, memory/state dynamics, representation geometry,
+activation with a measured on-support causal role, or principled combinations
+from physics, biology, coding, numerical algorithms, or control. The method
+must alter the learned single-image mapping in a way that is not equivalent to
+an existing loss/reparameterization and must have a differentiable or exactly
+defined optimization path. Attack prior art before proposing GPU work across
+metric learning, face/re-id, optimization, self-supervision, compression,
+neural ODEs, and the source field. Give complete equations and gradients,
+measured repo provenance (not forecasts), frozen Lane-A In-Shop prediction and
+falsifier, matched controls, compute cost, and a proof-level degeneracy test.
+If no candidate survives, return NONE with a new closure lemma and a cheap,
+corrected-reference diagnostic. Do not edit files.
