@@ -8903,3 +8903,20 @@ Physics-inspired attractive/repulsive particles are occupied directly by
 Bhatnagar et al., *Potential Field Based Deep Metric Learning* (CVPR 2025),
 including the retrieval objective. None changes the supervised object in a
 defensible way. Full record: `docs/pass126_cross_field_triage_2026-08-07.md`.
+
+## Pass 127 — counterfactual/factor batch (2026-08-07)
+
+CEA (counterfactual-evidence agreement) remains **LIVE-NARROW at Gate 2 but
+unresolved at Gate 1**: it would gate a same-class pair by agreement of the
+two images' class-score-drop maps.  Rao's Counterfactual Attention Learning,
+C2AM, MIC, and masked-counterfactual fine-tuning are adjacent intervention or
+factor methods, but none was found to make this cross-instance positive-to-
+unknown decision.  A trained operating-point checkpoint must establish the
+registered pair-level AUC test before any implementation or GPU run.
+
+Rewarded context selection is **DEAD at Gate 2** (TACS, CVPR 2026, and
+DML-ALA, CVPR 2020); cycle-consistent correspondence gating is **DEAD** (Zhou
+et al., CVPR 2016); and factorized routed embedding is **DEAD** (DFML, DVML,
+and HIER).  Their mechanisms are already occupied; changing the input signal
+or router would not be a defensible new method.  Full audit:
+`docs/pass127_candidate_batch_2026-08-07.md`.
