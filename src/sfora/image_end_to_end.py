@@ -675,6 +675,11 @@ def run_image_end_to_end_benchmark(
         ) from error
 
     _validate_group_centroid_sampling(config)
+    if config.ectr_weight > 0.0:
+        if config.dataset_name != "inshop" or config.backbone_name != "bn_inception":
+            raise ValueError("ECT-R Gate 4 is preregistered only for corrected In-Shop BN-Inception")
+        if config.ectr_ramp_end_epoch <= config.ectr_warmup_epoch:
+            raise ValueError("ECT-R ramp end must be later than its warm-up epoch")
     if config.deterministic:
         # Before ANY torch.cuda call: cuBLAS latches this at handle creation.
         _export_cublas_workspace_config()
