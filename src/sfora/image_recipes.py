@@ -53,6 +53,7 @@ DerivedMethod = Literal[
     "rspg_instance_gate",
     "arcg",
     "pa_cea",
+    "pa_cea_distance",
     "ipsr",
     "tird",
     "pa_ipc4",
@@ -100,6 +101,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "rspg_instance_gate": "proxy_anchor",
     "arcg": "proxy_anchor",
     "pa_cea": "proxy_anchor",
+    "pa_cea_distance": "proxy_anchor",
     "ipsr": "proxy_anchor",
     "tird": "proxy_anchor",
     "pa_ipc4": "proxy_anchor",
@@ -867,7 +869,7 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "config": {**recipe.config, **delta},
             },
         )
-    if method == "pa_cea":
+    if method in {"pa_cea", "pa_cea_distance"}:
         delta = {
             "cea_weight": 1.0,
             "cea_warmup_epoch": 10,
@@ -875,6 +877,8 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "cea_agreement_threshold": 0.47,
             "ema_teacher_ema_buffers": True,
         }
+        if method == "pa_cea_distance":
+            delta["cea_control"] = "distance"
         return recipe.model_copy(
             deep=True,
             update={

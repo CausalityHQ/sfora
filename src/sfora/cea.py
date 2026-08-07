@@ -20,6 +20,41 @@ class CEAGraph:
     far_accepted_fraction: float
 
 
+def distance_budget_control(
+    embeddings: NDArray[np.floating],
+    labels: NDArray[np.integer],
+    reference: CEAGraph,
+) -> CEAGraph:
+    """Select the same per-class edge budget using embedding distance only."""
+    z = np.asarray(embeddings, dtype=np.float64)
+    z /= np.maximum(np.linalg.norm(z, axis=1, keepdims=True), 1e-12)
+    y = np.asarray(labels, dtype=np.int64)
+    neighbours: list[list[tuple[int, float]]] = [[] for _ in range(len(y))]
+    eligible_edges = total_edges = 0
+    for label in np.unique(y):
+        members = np.flatnonzero(y == label)
+        if len(members) < 2:
+            continue
+        rows, cols = np.triu_indices(len(members), k=1)
+        total_edges += len(rows)
+        budget = sum(1 for i in members for j, _ in reference.neighbours[int(i)] if j > int(i) and y[j] == label)
+        order = np.argsort(
+            -np.einsum("nd,nd->n", z[members[rows]], z[members[cols]]), kind="stable"
+        )[:budget]
+        eligible_edges += len(order)
+        for k in order:
+            i, j = int(members[rows[k]]), int(members[cols[k]])
+            neighbours[i].append((j, 1.0))
+            neighbours[j].append((i, 1.0))
+    return CEAGraph(
+        neighbours=tuple(tuple(row) for row in neighbours),
+        edge_density=eligible_edges / total_edges if total_edges else 0.0,
+        multicomponent_fraction=0.0,
+        close_rejected_fraction=0.0,
+        far_accepted_fraction=0.0,
+    )
+
+
 def build_cea_graph(
     embeddings: NDArray[np.floating],
     signatures: NDArray[np.floating],

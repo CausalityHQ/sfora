@@ -1,7 +1,7 @@
 import numpy as np
 
 from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
-from sfora.cea import build_cea_graph
+from sfora.cea import build_cea_graph, distance_budget_control
 
 
 def test_graph_rejects_close_disagreement_and_accepts_distant_agreement() -> None:
@@ -51,3 +51,16 @@ def test_cea_graph_is_binary_and_reports_distance_asymmetry() -> None:
     assert result.close_rejected_fraction > 0.0
     assert result.far_accepted_fraction > 0.0
     assert all(weight == 1.0 for row in result.neighbours for _, weight in row)
+
+
+def test_cea_distance_control_matches_per_class_edge_budget() -> None:
+    embeddings = np.array(
+        [[1.0, 0.0], [0.99, 0.01], [0.0, 1.0], [-1.0, 0.0]], dtype=np.float64
+    )
+    signatures = np.ones_like(embeddings)
+    labels = np.zeros(4, dtype=np.int64)
+    evidence = build_cea_graph(embeddings, signatures, labels, agreement_threshold=0.5)
+    control = distance_budget_control(embeddings, labels, evidence)
+    evidence_count = sum(len(row) for row in evidence.neighbours) // 2
+    control_count = sum(len(row) for row in control.neighbours) // 2
+    assert control_count == evidence_count

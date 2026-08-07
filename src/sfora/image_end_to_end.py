@@ -16,7 +16,7 @@ from numpy.typing import NDArray
 from pydantic import BaseModel, ConfigDict, Field
 
 from sfora.arcg import diagnose_arcg_graph, normalized_response_signatures
-from sfora.cea import build_cea_graph
+from sfora.cea import build_cea_graph, distance_budget_control
 from sfora.data import ImageDatasetName, ImageExample, materialize_image
 from sfora.image_benchmark import (
     ImageRetrievalMetrics,
@@ -268,6 +268,7 @@ class ImageEndToEndConfig(BaseModel):
     cea_warmup_epoch: int = Field(default=10, ge=1)
     cea_refresh_epoch: int = Field(default=40, ge=1)
     cea_agreement_threshold: float = Field(default=0.47, ge=-1.0, le=1.0)
+    cea_control: Literal["evidence", "distance"] = "evidence"
     # Evidence-consensus transplantation (ECT-R).  This is an optional train-time
     # intervention on the corrected In-Shop recipe; deployment remains the ordinary
     # 512-D descriptor.  The reference snapshot is frozen at the warm-up epoch.
@@ -2812,25 +2813,28 @@ def _build_cea_state(
     embedding_array = torch_module.cat(embeddings).numpy()
     signature_array = torch_module.cat(signatures).numpy()
     label_array = torch_module.cat(labels).numpy()
-    graph = build_cea_graph(
+    evidence_graph = build_cea_graph(
         embedding_array,
         signature_array,
         label_array,
         agreement_threshold=config.cea_agreement_threshold,
     )
+    graph = evidence_graph
+    if config.cea_control == "distance":
+        graph = distance_budget_control(embedding_array, label_array, evidence_graph)
     print(
         "CEA graph diagnostic: "
-        f"density={graph.edge_density:.4f} "
-        f"multi_component_classes={graph.multicomponent_fraction:.4f} "
-        f"close_rejected={graph.close_rejected_fraction:.4f} "
-        f"far_accepted={graph.far_accepted_fraction:.4f}",
+        f"density={evidence_graph.edge_density:.4f} "
+        f"multi_component_classes={evidence_graph.multicomponent_fraction:.4f} "
+        f"close_rejected={evidence_graph.close_rejected_fraction:.4f} "
+        f"far_accepted={evidence_graph.far_accepted_fraction:.4f}",
         flush=True,
     )
     if enforce_diagnostic and not (
-        0.05 <= graph.edge_density <= 0.50
-        and graph.multicomponent_fraction >= 0.25
-        and graph.close_rejected_fraction >= 0.05
-        and graph.far_accepted_fraction >= 0.05
+        0.05 <= evidence_graph.edge_density <= 0.50
+        and evidence_graph.multicomponent_fraction >= 0.25
+        and evidence_graph.close_rejected_fraction >= 0.05
+        and evidence_graph.far_accepted_fraction >= 0.05
     ):
         raise RuntimeError(
             "CEA preregistered graph diagnostic failed: require density in [0.05, 0.50], "
