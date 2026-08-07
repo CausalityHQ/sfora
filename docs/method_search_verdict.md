@@ -8438,3 +8438,10 @@ multi-head global/local DML, and unified local/global image search already
 occupy the architecture; conditioning the gate on proxy margins is only a
 routing variant.  No implementation or GPU run occurred.  Full review:
 `docs/pass98_error_conditioned_fusion_review_2026-08-07.md`.
+### Pass 99 — conformal margin dead at Gate 2 (2026-08-07)
+
+Class/instance-conditional positive-margin quantiles were proposed from the
+nearest-positive transfer deficit. Threshold-Consistent Margin Loss,
+learnable dynamic-margin/adaptive-triplet DML, and conformal metric predictors
+already occupy this calibration mechanism. No GPU run occurred. Full review:
+`docs/pass99_conformal_margin_review_2026-08-07.md`.
