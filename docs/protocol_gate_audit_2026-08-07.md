@@ -43,6 +43,18 @@ reviews returned LIVE narrowly, while local resolution later killed them for
 provenance or degeneracy. Binary Gate-2 decisions erase that useful middle
 state.
 
+## Gate 4 must separate screening from a frontier claim
+
+The corrected In-Shop reference is a paired, current-corpus control, not a
+single absolute SOTA floor. A candidate can be worth a powered confirmation
+because it improves that control by a preregistered effect while still falling
+short of a higher-capacity literature number (for example, a 2048-D or
+transformer lane). Conversely, using a literature frontier as a one-seed kill
+threshold can discard a real, capacity-matched improvement before its variance
+is measurable. Gate 4 should therefore kill only a prospectively large miss
+against the paired control; Gate 5/7 decide whether a surviving delta is a
+claim and whether it reaches the relevant capacity lane.
+
 ## Gates that should remain hard
 
 - Gate 0 artifact and dataset validation: keep hard; a wrong corpus invalidates
