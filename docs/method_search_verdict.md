@@ -8070,3 +8070,23 @@ are also structurally overcomplete, making code-capacity mechanisms poor
 one-seed screens. The next required Gate-1 measurement is an untrained
 ImageNet BN-Inception seen-versus-unseen impostor comparison before any training.
 Full artifact: `docs/opus_pass73_none_2026-08-07.md`.
+
+### Pass 74 — NONE before GPU; Gate-1 measurement withdrawn pending repair
+
+The Fable→Claude review found no candidate mechanism outside the repository
+closures or primary prior art. In particular, non-isotropy/rho-spectrum
+regularization, proxy synthesis, coding-rate collapse controls, and the
+class-specific/class-agnostic split are occupied by NIR, Roth et al., Proxy
+Synthesis, Anti-Collapse, SEE, and DDML. No GPU training run was authorized.
+
+The review also found that the preceding untrained geometry diagnostic was not
+matched to the trained model: it used GAP-only 1024-D features rather than the
+trained average-plus-max pooling and signed 1024→512 head, and its nearest-
+foreign maxima used unequal candidate pools (25,882 train versus 12,612
+gallery). The resulting +0.0109 initialization excess is therefore not
+identified; pool-size extreme-value bias can bracket it. The earlier claim that
+the +0.0383 trained excess is training-induced is withdrawn until a matched,
+rank-equalized, four-seed diagnostic also measures positive-minus-foreign
+margin. This is a measurement failure, not evidence for a method. Repair and
+falsification thresholds are preregistered in
+`docs/opus_pass74_none_2026-08-07.md`.
