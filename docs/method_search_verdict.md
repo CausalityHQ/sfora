@@ -8838,6 +8838,29 @@ The SRC residual operator is now CPU-tested and exposed as
 `pa_coalition_residual`; the focused objective/recipe suite passes 65 tests.
 This implementation readiness does not authorize a GPU run.
 
+## Candidate 19 — Persistent-Class Connectivity (PCC): DEAD at Gate 1
+
+**Mechanism.** PCC proposed changing the positive supervision object from all
+same-class pairs to the edges that join components in a class-wise 0-D
+persistence/MST filtration, with cross-class component mergers repelled.  It was
+motivated by the CUB decomposition's wrong-own-class-nearest failure component,
+and was distinguished from nearest-positive mining as a global graph
+connectivity decision rather than an anchor-local nearest neighbour.
+
+**CPU operating-point result.** On the existing In-Shop Proxy Anchor operating
+checkpoints, a graph built from seed 1 and evaluated for pair quality in the
+independent seed 2 retained 40.65% of usable same-class pairs.  Its
+cross-seed pair-quality AUC was **0.7156**, while ordinary nearest-positive
+mining scored **0.7510**.  The preregistered Gate-1 requirement was backbone AUC
+at least 0.05 above nearest-positive mining; the observed difference was
+**-0.0354**.  PCC is therefore dead before implementation and has no GPU run.
+
+**Mechanism-level lesson.** A global class-connectivity skeleton does not
+identify more stable positives than local nearest-positive mining on In-Shop;
+its long bridge edges are less reproducible across independently trained
+embeddings.  Persistent topology remains a useful diagnostic, but not a
+justified supervision gate here.
+
 ## Pass 122 — cross-field search: CEA remains Gate-1 unresolved
 
 The offline search generated counterfactual-evidence agreement (CEA) from the
