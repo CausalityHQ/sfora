@@ -8047,3 +8047,26 @@ reference (mean 0.9153889, SD 0.0013196) and that +0.31 points is a useful
 four-seed power floor, while one seed can only safely kill a large miss below
 0.9132182. No GPU run was authorized. Full artifact:
 `docs/opus_pass72_none_2026-08-06.md`.
+
+### Pass 73 — repaired scalar-loss search: NONE before GPU
+
+The review validated the scorer against corrected In-Shop artifacts (seed-0
+official R@1 0.9137009, seed-0 train LOO 0.9950158, four-seed frozen-final mean
+0.9153890), then measured matched-protocol seen-identity R@1 of
+0.99246/0.99304/0.99239/0.99232 versus unseen
+0.91370/0.91680/0.91511/0.91595. The real seen/unseen gap is therefore 7.7–7.9
+points, but losses based only on training retrieval decisions have at most
+0.75% of rows to affect. Continuous Gram-matrix variants are reweighting;
+non-Gram channels map to already closed per-sample, pair, group, order,
+transform, or fixed-node families. No candidate survived Gates 1–2 and no GPU
+run occurred.
+
+The review corrected another gate error: Pass 60 used CUB's 1.08:1
+between:local error ratio to close class separation, while identical In-Shop
+diagnostics are 3.05/3.11/3.22/3.15 across four seeds and remain above 2:1 after
+gallery-quality stratification (2.18 at the strictest stratum). This reopens a
+measured In-Shop premise but not a method. In-Shop's 3997 classes and 512-D head
+are also structurally overcomplete, making code-capacity mechanisms poor
+one-seed screens. The next required Gate-1 measurement is an untrained
+ImageNet BN-Inception seen-versus-unseen impostor comparison before any training.
+Full artifact: `docs/opus_pass73_none_2026-08-07.md`.
