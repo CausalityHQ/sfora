@@ -165,3 +165,30 @@ def test_coalition_controls_use_same_operator_and_differ_from_union() -> None:
         **{**kwargs, "embeddings": embeddings[:1], "labels": labels[:1]}, mode="single"
     )
     assert torch.isfinite(one)
+
+
+def test_coalition_residual_uses_complementary_target_per_omitted_member() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], requires_grad=True
+    )
+    labels = torch.tensor([0, 1, 2])
+    proxies = torch.eye(3, 2)
+    proxy_labels = torch.tensor([0, 1, 2])
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    residual = image_end_to_end._coalition_proxy_loss(**kwargs, mode="residual")
+    union = image_end_to_end._coalition_proxy_loss(**kwargs, mode="union")
+    dropout = image_end_to_end._coalition_proxy_loss(**kwargs, mode="dropout")
+    assert torch.isfinite(residual)
+    assert not torch.allclose(residual, union)
+    assert not torch.allclose(residual, dropout)
+    residual.backward()
+    assert torch.isfinite(embeddings.grad).all()

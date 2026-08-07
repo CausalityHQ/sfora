@@ -67,6 +67,7 @@ DerivedMethod = Literal[
     "pa_coalition",
     "pa_coalition_single",
     "pa_coalition_dropout",
+    "pa_coalition_residual",
 ]
 
 # Base loss each derived method attaches to.
@@ -111,6 +112,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_coalition": "proxy_anchor",
     "pa_coalition_single": "proxy_anchor",
     "pa_coalition_dropout": "proxy_anchor",
+    "pa_coalition_residual": "proxy_anchor",
 }
 
 
@@ -666,7 +668,7 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "config": {**recipe.config, **delta},
             },
         )
-    if method in {"pa_coalition", "pa_coalition_single", "pa_coalition_dropout"}:
+    if method in {"pa_coalition", "pa_coalition_single", "pa_coalition_dropout", "pa_coalition_residual"}:
         delta = {
             "objectives": ("proxy_anchor_coalition",),
             "coalition_weight": 0.1,
@@ -674,6 +676,7 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
                 "pa_coalition": "union",
                 "pa_coalition_single": "single",
                 "pa_coalition_dropout": "dropout",
+                "pa_coalition_residual": "residual",
             }[method],
         }
         return recipe.model_copy(

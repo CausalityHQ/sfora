@@ -173,7 +173,7 @@ class ImageEndToEndConfig(BaseModel):
     proxy_anchor_alpha: float = Field(default=32.0, gt=0.0)
     proxy_anchor_delta: float = Field(default=0.1, ge=0.0)
     coalition_weight: float = Field(default=0.1, ge=0.0)
-    coalition_mode: Literal["union", "single", "dropout"] = "union"
+    coalition_mode: Literal["union", "single", "dropout", "residual"] = "union"
     cem_edges_path: str | None = None
     cem_weight: float = Field(default=0.05, ge=0.0)
     cem_margin: float = Field(default=0.1, ge=0.0)
@@ -5536,7 +5536,7 @@ def _coalition_proxy_loss(
     *,
     proxy_embeddings: Any | None,
     proxy_labels: Any | None,
-    mode: Literal["union", "single", "dropout"] = "union",
+    mode: Literal["union", "single", "dropout", "residual"] = "union",
     torch_module: Any,
 ) -> Any:
     """Supervise a bundle with the full CIS operator or its preregistered controls.
@@ -5561,6 +5561,31 @@ def _coalition_proxy_loss(
         logits = members @ proxies.T
         target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).to(logits.dtype)
         return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
+    if mode == "residual":
+        # SRC: every leave-one-out sum receives the complementary proxy set.
+        # Averaging the per-omission BCE keeps the scale independent of bundle
+        # size while retaining a gradient for every member.
+        residual_losses = []
+        for omitted in range(len(first_positions)):
+            keep = [j for j in range(len(first_positions)) if j != omitted]
+            residual = members[keep].sum(dim=0) / float(len(keep)) ** 0.5
+            logits = (residual @ proxies.T).unsqueeze(0)
+            target_labels = torch_module.cat(
+                (unique_labels[:omitted], unique_labels[omitted + 1 :])
+            )
+            target = (
+                proxy_labels.unsqueeze(0)
+                .eq(target_labels.unsqueeze(1))
+                .any(dim=0)
+                .to(logits.dtype)
+                .unsqueeze(0)
+            )
+            residual_losses.append(
+                torch_module.nn.functional.binary_cross_entropy_with_logits(
+                    logits, target
+                )
+            )
+        return torch_module.stack(residual_losses).mean()
     coalition = members.sum(dim=0) / float(len(first_positions)) ** 0.5
     logits = (coalition @ proxies.T).unsqueeze(0)
     target_labels = unique_labels if mode == "union" else unique_labels[:-1]
