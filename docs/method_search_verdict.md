@@ -8866,3 +8866,18 @@ GPU run is authorized. SRC remains the next genuinely different path because
 it changes the supervised object to leave-one-out coalition/complementary
 targets.
 Full record: `docs/pass123_candidate_batch_2026-08-07.md`.
+
+## Pass 125 — Augmentation-Response Compatibility Gate (LIVE-NARROW at Gate 2)
+
+ARCG proposes a hard positive-to-unknown gate between two different same-class
+images when their responses to a fixed panel of controlled augmentations agree.
+This is motivated by the RSPG finding that cross-class signatures are
+dataset-dependent, and would instead probe within-class appearance factors.
+AugSelf (Lee et al., NeurIPS 2021) predicts augmentation differences between
+two views of one image, while NNCLR (Dwibedi et al., ICCV 2021) selects
+cross-instance positives by embedding proximity; neither checked primary
+mechanism gates labelled same-class supervision by cross-instance
+augmentation-response agreement.  ARCG therefore survives only narrowly at
+Gate 2.  It has no Gate-1 operating-point diagnostic and no GPU authorization;
+the face/re-identification augmentation-aware literature must be searched
+before implementation.  Full audit: `docs/pass125_arcg_prior_art_audit_2026-08-07.md`.
