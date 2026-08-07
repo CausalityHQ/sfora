@@ -44,3 +44,26 @@ def test_ectr_mask_and_hinges_are_finite_and_differentiable() -> None:
     loss.backward()
     assert all(parameter.grad is not None for parameter in model.parameters())
     assert all(torch.isfinite(parameter.grad).all() for parameter in model.parameters())
+
+
+def test_ectr_random_control_uses_float_interpolation_mask() -> None:
+    model = _ToyModel()
+    images = torch.randn(6, 3, 8, 8)
+    labels = torch.tensor([0, 0, 1, 1, 2, 2])
+    feature_map = model.layer4(images)
+    embeddings = torch.nn.functional.normalize(model.fc(feature_map.mean((2, 3))), dim=1)
+    state = ECTRState(torch.nn.functional.normalize(torch.randn(6, 8), dim=1))
+    loss = _ectr_composite_loss(
+        model,
+        images,
+        labels,
+        embeddings,
+        feature_map,
+        torch.arange(6),
+        state,
+        step=21,
+        steps_per_epoch=1,
+        config=ImageEndToEndConfig(ectr_weight=0.5, ectr_variant="random"),
+        torch_module=torch,
+    )
+    assert torch.isfinite(loss)

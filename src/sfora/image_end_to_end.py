@@ -2384,6 +2384,9 @@ def _ectr_composite_loss(
             generator = torch_module.Generator(device=images.device)
             generator.manual_seed(0)
         deletion = _ectr_random_area_mask(deletion, torch_module=torch_module, generator=generator)
+    # Random/area controls are sampled as Boolean cell selections, but the
+    # image compositor uses bilinear interpolation, which has no Bool kernel.
+    deletion = deletion.float()
     deletion = torch_module.nn.functional.interpolate(
         deletion, size=tuple(images.shape[-2:]), mode="bilinear", align_corners=False
     ).clamp(0.0, 1.0)
