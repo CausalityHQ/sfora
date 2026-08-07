@@ -8471,3 +8471,9 @@ already uses diffusion for image retrieval (Zhao et al., BMVC 2018,
 *Modelling Diffusion Process via DNN for Image Retrieval*) and graph/batch
 diffusion for DML. The proposed head is therefore an occupied diffusion/graph
 operator; no GPU run occurred.
+### Pass 103 — state-space/Mamba embedding head (dead before GPU)
+
+The proposed long-range state-space head had no direct repo measurement of a
+long-range bottleneck and is a generic architecture swap. Vision Mamba and
+MambaHash already occupy state-space visual representation and retrieval
+architecture (arXiv:2401.09417; arXiv:2506.16353). No GPU run occurred.
