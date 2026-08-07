@@ -8757,6 +8757,16 @@ coalition (`pa_coalition`), independently classified single-image control
 without the controls that distinguish bundle supervision from merely changing
 the per-image classification term.
 
+### Pass 119 implementation correction (not benchmark evidence)
+
+The ECTR random-area control exited at epoch 10 with status 1 because its
+Boolean sampled cell mask was passed directly to bilinear interpolation:
+`upsample_bilinear2d_out_frame` has no Bool kernel. The arm is **invalid**, not
+a negative result; the controller continued to the full arm, and the random
+control must be rerun after the dtype fix. The fix casts the mask to float at
+the compositor boundary and adds a regression test (`259e58a`). This is a
+reproducibility bug in the control implementation, not evidence about ECTR.
+
 ## Pass 120 — Coalition Interference Supervision (CIS), LIVE-NARROW at Gate 2
 
 Pass 67's corrected CUB failure decomposition attributed **51.9%** of failures
