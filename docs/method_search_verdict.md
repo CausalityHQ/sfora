@@ -8749,6 +8749,14 @@ area-matched controls is authorized under the frozen thresholds in
 authorized before those controls resolve the mechanism. Full CPU record:
 `docs/pass119_ectr_cpu_gate_2026-08-07.md`.
 
+The next CIS screen is staged but deliberately queued behind Pass 119. Its
+three same-path In-Shop arms are now executable and CPU-tested: union-target
+coalition (`pa_coalition`), independently classified single-image control
+(`pa_coalition_single`), and deterministic union-target class-dropout control
+(`pa_coalition_dropout`). This prevents a CIS headline from being reported
+without the controls that distinguish bundle supervision from merely changing
+the per-image classification term.
+
 ## Pass 120 — Coalition Interference Supervision (CIS), LIVE-NARROW at Gate 2
 
 Pass 67's corrected CUB failure decomposition attributed **51.9%** of failures
