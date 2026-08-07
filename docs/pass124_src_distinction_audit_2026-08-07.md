@@ -48,6 +48,16 @@ arbitrary mixture is a valid multi-label sample.
   class or proxy and instead uses real-image sums plus omission-specific
   targets.  This is adjacent, not mechanism-identical.
 
+* **DiVA (Milbich et al., 2020)** is an additional broad prior-art warning.
+  It learns several complementary DML heads from standard images and labels,
+  including shared-across-class and within-class variation tasks, and combines
+  them through a shared encoder. This occupies the general idea of adding
+  data-derived complementary supervision, so SRC cannot claim novelty for
+  that high-level motivation. The remaining narrow distinction is the
+  specific real-image coalition sum together with one complementary proxy
+  target for each leave-one-out omission; that equation must beat union-only,
+  no-residual, and per-image-complementary controls to be worth reporting.
+
 ## CPU evidence
 
 The implementation has finite loss/gradient, bundle permutation-invariance,
@@ -76,3 +86,5 @@ survives those controls.
 - Gu et al., *Proxy Synthesis: Learning with Synthetic Classes for Deep Metric
   Learning*, AAAI 2021:
   https://ojs.aaai.org/index.php/AAAI/article/view/16236
+- Milbich et al., *DiVA: Diverse Visual Feature Aggregation for Deep Metric
+  Learning*, arXiv:2004.13458: https://arxiv.org/abs/2004.13458

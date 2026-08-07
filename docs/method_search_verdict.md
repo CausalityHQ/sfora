@@ -8819,6 +8819,16 @@ is a multi-image sum plus a separate complementary target for each omitted
 member. A per-image complementary-target control is now mandatory before any
 SRC novelty or benchmark claim.
 
+The subsequent primary-source search also checked DiVA (Milbich et al.,
+*Diverse Visual Feature Aggregation for Deep Metric Learning*, 2020). DiVA
+already occupies the broad motivation of learning complementary DML tasks
+from ordinary images and class labels, including shared-across-class and
+within-class variation heads. This narrows, rather than kills, SRC: only the
+real-image coalition sum paired with a distinct complementary proxy target
+for each leave-one-out omission remains potentially different. SRC must beat
+union-only, no-residual, and per-image-complementary controls; a gain over
+Proxy Anchor alone would not establish a new mechanism.
+
 SRC preregistration is recorded in `docs/pass121_src_candidate_2026-08-07.md`:
 corrected prediction 0.9192 against the paired 0.9163033 reference, with a
 0.9180 falsifier and mandatory union/no-residual controls. This remains a
