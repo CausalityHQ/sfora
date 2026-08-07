@@ -82,3 +82,8 @@ plateau/reference-repulsion hinge have finite-gradient CPU coverage. No GPU
 number is claimed yet. The deciding queue must still include A0, A2, A4, A5,
 A6, and A7 with identical composite counts and area accounting; the code is
 not authorization to call the full arm a result by itself.
+
+The queued implementation maps the controls to frozen recipe selectors:
+`ectr_soft` (A2), `ectr_random` (A4), `ectr` (A5), `ectr_plateau` (A6), and
+`ectr_area` (A7). A0 is the unmodified `auto` Proxy Anchor recipe. The
+controller runs them sequentially at seed 0 against the same corrected corpus.
