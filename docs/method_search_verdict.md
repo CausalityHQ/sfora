@@ -8361,3 +8361,12 @@ implementation. MCR² (NeurIPS 2020), Anti-Collapse Loss for DML Based on
 Coding Rate Metric (2024), and earlier information-theoretic metric learning
 already occupy the training object. No GPU run occurred. Full review:
 `docs/pass90_information_theory_review_2026-08-07.md`.
+
+### Pass 91 — graph-diffusion candidate dead at Gate 2 (no GPU)
+
+Effective-resistance and diffusion-distance supervision over a class-conditioned
+similarity graph was checked before implementation. Graph Consistency DML
+(AAAI 2021), Deep Graph Diffusion Networks, and DeepDiffusion already occupy
+the global graph/diffusion training object; commute-time resistance is a metric
+variant within it. No GPU run occurred. Full review:
+`docs/pass91_graph_diffusion_review_2026-08-07.md`.
