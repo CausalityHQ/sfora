@@ -92,6 +92,12 @@ to a loss constructor before the first backward pass; calibrating it per batch
 would introduce an unregistered adaptive method. Temperature, threshold,
 coefficient, memory cap, and sampler are now frozen (no retrieval tuning).
 
+The deciding run overrides only held-out evaluation cadence to every 10 epochs
+(`eval_test_interval_epochs=10`). The unchanged default evaluated the full
+In-Shop query/gallery after every epoch and made the run operationally
+non-terminating. Training steps, checkpoint rule, seed, and final independent
+export remain unchanged.
+
 Before the deciding run, a numerical check on 99 real 512-D In-Shop class
 blocks (four current plus four memory descriptors) found reduced-Laplacian
 log-determinants from **1.31 to 11.23** (median **8.76**) and mean soft-edge
