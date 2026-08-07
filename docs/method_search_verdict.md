@@ -8568,3 +8568,12 @@ step 300. These are partial diagnostics only and are excluded from raw or
 selection-corrected benchmark evidence. Foreign-negative-only proxies satisfy
 their constraints without maintaining a useful training gradient, so candidate
 109 is **DEAD at Gate 4**; no controls or confirmation seeds are authorized.
+## 110. Current-literature escape-route audit (no GPU)
+
+The post-Pass109 search checked projected-hypersphere DML, IMSDO incremental
+margin/feature-std optimization, ESA unseen-class augmentation, Shadow Loss,
+hyperbolic hierarchical ranking, and WISER retrieval pipelines. The first five
+are direct prior art or outside the fixed-descriptor deployment constraint; the
+last is a multi-stage retrieval system rather than a train-time single-vector
+method. Full primary-source mapping and the no-GPU dispositions are in
+`docs/pass110_current-literature_batch_2026-08-07.md`.
