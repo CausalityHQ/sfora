@@ -8430,3 +8430,11 @@ and deep compositional metric learning already occupy graph/compositor/subunit
 fusion. A dendritic activation would be a reparameterization, not a novel
 similarity-learning mechanism. No GPU run occurred. Full review:
 `docs/pass97_dendritic_architecture_review_2026-08-07.md`.
+### Pass 98 — error-conditioned local/global fusion dead at Gate 2 (2026-08-07)
+
+An adaptive gate between local and global descriptor channels was motivated by
+the verified 48.1% local versus 51.9% centroid-overlap error split.  GLAD,
+multi-head global/local DML, and unified local/global image search already
+occupy the architecture; conditioning the gate on proxy margins is only a
+routing variant.  No implementation or GPU run occurred.  Full review:
+`docs/pass98_error_conditioned_fusion_review_2026-08-07.md`.
