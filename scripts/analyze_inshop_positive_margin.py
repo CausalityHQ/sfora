@@ -11,7 +11,8 @@ def stats(q,ql,p,pl,foreign_k,chunk=256):
   if len(q)==len(p) and np.array_equal(ql,pl):
    rows=np.arange(s,min(s+chunk,len(q))); zp[np.arange(len(rows)),rows]=-np.inf
   pos.append(zp.max(axis=1)); forg.append(np.partition(zf,-foreign_k,axis=1)[:,-foreign_k])
- pos=np.concatenate(pos); forg=np.concatenate(forg); return {'positive':float(pos.mean()),'foreign':float(forg.mean()),'margin':float((pos-forg).mean()),'margin_fail_rate':float(np.mean(pos<=forg))}
+ pos=np.concatenate(pos); forg=np.concatenate(forg); valid=np.isfinite(pos)
+ return {'positive':float(pos[valid].mean()),'foreign':float(forg[valid].mean()),'margin':float((pos[valid]-forg[valid]).mean()),'margin_fail_rate':float(np.mean(pos[valid]<=forg[valid])),'positive_valid_rows':int(valid.sum()),'positive_invalid_rows':int((~valid).sum())}
 def main():
  p=argparse.ArgumentParser(); p.add_argument('--directory',required=True); p.add_argument('--prefix',required=True); p.add_argument('--seeds',nargs='+',required=True); p.add_argument('--output',required=True); a=p.parse_args(); rows=[]
  for s in a.seeds:
