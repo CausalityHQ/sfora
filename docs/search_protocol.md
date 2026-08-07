@@ -157,6 +157,11 @@ impossible. Record the first failed gate and its evidence level explicitly:
   prior art at Gate 2, or an implementation that does not match the frozen
   training object. These are `DEAD` unless the artifact or proposal is repaired
   and restarted as a new candidate.
+  Gate 1 has two different outcomes and must not be collapsed into this bucket:
+  an unmeasured or weakly supported premise is `UNRESOLVED`/`NO-GO` (no GPU),
+  while a correctly recomputed measurement that falsifies the proposed causal
+  signal is `DEAD` for that specific hypothesis. The latter closes the tested
+  mechanism, not every method in its broad family.
 * **Screen failure:** a preregistered forecast miss or a one-seed Gate-4 miss.
   This authorizes stopping expensive follow-up, but means “failed this matched
   screen,” not “the mechanism cannot work.” A near miss or uncertain paired
