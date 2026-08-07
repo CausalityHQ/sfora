@@ -8344,3 +8344,12 @@ Persistent Topology Alignment occupy the second; Introspective DML, Hyp-UML,
 and directional-statistics DML occupy the third. None has a distinct training
 object supported by a verified repository measurement. No GPU run occurred.
 Full review: `docs/pass88_crossfield_batch_review_2026-08-07.md`.
+
+### Pass 89 — biological learning candidate dead at Gate 2 (no GPU)
+
+Layer-wise contrastive similarity matching with Hebbian/anti-Hebbian updates
+was checked before implementation. Qin, Mudur, and Pehlevan, *Contrastive
+Similarity Matching for Supervised Learning* (Neural Computation 2021), already
+defines the same supervised training object and local learning rule. A Proxy
+Anchor adaptation would not be novel. No GPU run occurred. Full review:
+`docs/pass89_biological_learning_review_2026-08-07.md`.
