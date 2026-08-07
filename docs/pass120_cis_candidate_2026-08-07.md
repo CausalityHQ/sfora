@@ -41,6 +41,12 @@ ordinary single-image term; and (5) class-dropout and single-image multi-label
 controls must execute through the same code path. A failure is an implementation
 mismatch, not benchmark evidence.
 
+A standalone Torch sanity check of the proposed sum-plus-multi-hot operator
+passed the first three properties (finite loss, permutation invariance, changed
+target, and nonzero finite gradients). This is only an algebraic check: the
+repository/remote trainer integration and the one-image/control checks remain
+open and must pass before queueing.
+
 ## Reporting
 
 For CIS and every control, report raw best-over-training and
