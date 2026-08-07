@@ -8634,3 +8634,21 @@ This is an interim bounded search result, not a claim that future literature
 cannot create a method. The search remains open for a new information channel
 or a primary-source correction that vacates one of those mechanism-level
 occupancy rulings.
+
+## Pass 113 — Barrier-energy positive supervision (BEP), LIVE-NARROW
+
+The corrected In-Shop final training pack supplied a new Gate-1 measurement:
+for 4,999 images, the maximum foreign-class-centroid energy along a nine-point
+normalized interpolation to the nearest same-class neighbour correlated with
+leave-one-out correctness at **r = −0.1637256** (training R@1 0.995599). BEP
+keeps Proxy Anchor's ordinary attraction and adds a differentiable penalty on
+that foreign-proxy saddle, rather than selecting edges, deleting positives, or
+changing the deployed cosine descriptor.
+
+Gate 2 is **LIVE-NARROW**. Energy-based DML, graph/geodesic retrieval, and
+intra-batch connection papers are adjacent; the checked sources did not expose
+the exact train-time object of a foreign-proxy saddle along a same-class
+interpolation. Endpoint-margin and nearest-foreign-proxy controls are mandatory.
+The frozen prediction and falsifiers are in
+`docs/pass113_barrier_energy_candidate_2026-08-07.md`; implementation still
+requires a finite-gradient CPU test before any GPU queue.
