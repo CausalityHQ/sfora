@@ -6,6 +6,56 @@ from numpy.typing import NDArray
 Reduction = Literal["mean", "sum"]
 
 
+def barrier_energy_loss(
+    anchors: NDArray[np.floating],
+    positives: NDArray[np.floating],
+    proxies: NDArray[np.floating],
+    labels: NDArray[np.integer],
+    *,
+    temperature: float = 0.1,
+    path_points: int = 9,
+    reduction: Reduction = "mean",
+) -> float:
+    """Penalize foreign-proxy energy saddles along same-class paths.
+
+    This is the NumPy reference for BEP.  It intentionally uses a smooth
+    log-sum-exp over path points and foreign proxies so the Torch implementation
+    can be checked against a simple, differentiable definition.
+    """
+    anchor_array = _as_float_array(anchors, expected_ndim=2, name="anchors")
+    positive_array = _as_float_array(positives, expected_ndim=2, name="positives")
+    proxy_array = _as_float_array(proxies, expected_ndim=2, name="proxies")
+    label_array = np.asarray(labels, dtype=np.int64)
+    if anchor_array.shape != positive_array.shape:
+        raise ValueError("anchors and positives must have the same shape")
+    if proxy_array.shape[1] != anchor_array.shape[1]:
+        raise ValueError("proxies and embeddings must share embedding dimension")
+    if label_array.shape != (anchor_array.shape[0],):
+        raise ValueError("labels must align with anchors")
+    if temperature <= 0.0 or path_points < 2:
+        raise ValueError("temperature must be positive and path_points must be at least two")
+    if np.any(label_array < 0) or np.any(label_array >= proxy_array.shape[0]):
+        raise ValueError("labels must index proxies")
+    def normalize(array: NDArray[np.float64]) -> NDArray[np.float64]:
+        return array / np.maximum(np.linalg.norm(array, axis=1, keepdims=True), 1e-12)
+    anchor_unit = normalize(anchor_array)
+    positive_unit = normalize(positive_array)
+    proxy_unit = normalize(proxy_array)
+    values = []
+    for anchor, positive, label in zip(anchor_unit, positive_unit, label_array):
+        ts = np.linspace(0.0, 1.0, path_points)
+        path = (1.0 - ts[:, None]) * anchor[None, :] + ts[:, None] * positive[None, :]
+        path = normalize(path)
+        scores = path @ proxy_unit.T
+        foreign = np.delete(scores, int(label), axis=1)
+        own = scores[:, int(label)][:, None]
+        logits = (foreign - own) / temperature
+        max_logits = logits.max(axis=1)
+        logsum = max_logits + np.log(np.exp(logits - max_logits[:, None]).sum(axis=1))
+        values.append(float(np.log1p(np.exp(logsum)).mean()))
+    return _reduce(np.asarray(values, dtype=np.float64), reduction)
+
+
 def redundant_connectivity_loss(
     embeddings: NDArray[np.floating],
     *,
