@@ -8454,3 +8454,12 @@ transfer or explains persistent errors). KAN is a general MLP replacement
 retrieval representation learning already exist (Yu et al., 2024,
 https://arxiv.org/abs/2501.00420). It therefore fails provenance and prior-art
 gates; no GPU run occurred.
+### Pass 101 — fragmentation-preserving class graph (dead before GPU)
+
+The corrected In-Shop measurement found that disconnected within-class 1-NN
+graphs retrieve **3.534 points better** after class-size matching, motivating a
+candidate that preserves separate same-class components. The proposed
+component-aware attraction/neutrality is occupied by OSM-style intra-class
+variance preservation, SoftTriple/multi-centre proxies, and graded supervision
+(*Deep Metric Learning Beyond Binary Supervision*). It is a mining/partitioning
+change rather than a new operator; no GPU run occurred.
