@@ -8562,3 +8562,9 @@ for foreign negatives. It is a distinct, narrow reversal of Proxy Anchor's
 roles, with controls and a Gate-4 prediction preregistered in
 `docs/pass109_centroid_positive_proxy_negative_2026-08-07.md`. No GPU queue is
 authorized until the implementation has an exact operator test.
+The seed-0 screen then collapsed immediately: loss was **0.0000** by step 100,
+R@1 was 0.2232 at epoch 1 and 0.1057 at epoch 2, and the run was terminated at
+step 300. These are partial diagnostics only and are excluded from raw or
+selection-corrected benchmark evidence. Foreign-negative-only proxies satisfy
+their constraints without maintaining a useful training gradient, so candidate
+109 is **DEAD at Gate 4**; no controls or confirmation seeds are authorized.

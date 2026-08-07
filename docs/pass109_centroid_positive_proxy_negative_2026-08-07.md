@@ -1,4 +1,4 @@
-# Pass 109: cross-fitted-centroid positive / proxy-negative supervision
+# Pass 109: cross-fitted-centroid positive / proxy-negative supervision (DEAD at Gate 4)
 
 ## Gate 1 — provenance
 
@@ -36,3 +36,14 @@ Raw best and final independently-selected values are mandatory. A screen pass
 authorizes controls (ordinary prototype-positive and proxy-positive/sample-
 negative) before any unseen-seed confirmation; it is not itself a novelty/SOTA
 claim.
+
+## Gate 4 result — aborted collapse
+
+The exact In-Shop seed-0 screen was started after the preregistration and
+reached step 300. Its logged loss was **0.0000** by step 100; test R@1 was
+0.2232 at epoch 1 and fell to 0.1057 at epoch 2. The run was terminated before
+the deciding checkpoint because proxy-negative-only parameters rapidly
+satisfied all foreign-negative constraints, leaving no useful gradient for
+retrieval. These partial values are **excluded from all benchmark evidence**;
+there is no raw-best/final result and no selection correction. Candidate 109 is
+dead at the In-Shop screen and cannot advance to controls or confirmation.
