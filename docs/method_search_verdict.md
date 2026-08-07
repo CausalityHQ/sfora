@@ -8843,3 +8843,22 @@ Adaptive meta-assessment (DML-ALA, CVPR 2020) and environment-wise invariant
 risk games (IRM/IRM games, ICML 2020) were rejected at Gate 2 as occupied
 sampler/optimizer-objective mechanisms.  The full audit and primary-source
 links are in `docs/pass122_crossfield_search_2026-08-07.md`.
+
+## Pass 123 — post-ECTR candidate batch (2026-08-07)
+
+The post-ECTR batch was generated from the measured between-class failure
+decomposition and the RSPG dataset split. **GCPE (Gradient-Conflict Positive
+Eligibility) is DEAD at Gate 2:** its pair-gradient compatibility gate is an
+application of the gradient-equivalence/pair-weight view of Wang et al. (ICLR
+2019), distributionally robust pair weighting (Qi et al., ICLR 2020), and
+PCGrad/CAGrad-style conflict handling. **DPA (Dynamic Prototype Assignment) is
+DEAD at Gate 2:** Saadabadi et al. (CVPR 2024) already performs dynamic
+label-to-prototype assignment by bipartite matching, while Zou et al. (ICCV
+2023) occupy discrepant/multi-instance class proxies. **ERG
+(Exchangeability-Residual Gate) remains LIVE-NARROW:** it would gate labelled
+same-class pairs using exchangeability of within-class residual rank/sign
+coordinates, rather than cross-class signatures or pair distance. Deep
+Relational Metric Learning (ICCV 2021), covariance embedding, and variational
+metric learning are adjacent but not mechanism-identical. ERG has no GPU
+authorization; it first needs a trained In-Shop operating-point diagnostic.
+Full record: `docs/pass123_candidate_batch_2026-08-07.md`.
