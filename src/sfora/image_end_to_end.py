@@ -255,6 +255,16 @@ class ImageEndToEndConfig(BaseModel):
     arcg_warmup_epoch: int = Field(default=10, ge=1)
     arcg_refresh_epoch: int = Field(default=40, ge=1)
     arcg_agreement_threshold: float = Field(default=0.5, ge=-1.0, le=1.0)
+    # Evidence-consensus transplantation (ECT-R).  This is an optional train-time
+    # intervention on the corrected In-Shop recipe; deployment remains the ordinary
+    # 512-D descriptor.  The reference snapshot is frozen at the warm-up epoch.
+    ectr_weight: float = Field(default=0.0, ge=0.0)
+    ectr_warmup_epoch: int = Field(default=10, ge=1)
+    ectr_ramp_end_epoch: int = Field(default=30, ge=1)
+    ectr_beta: float = Field(default=0.85, gt=0.0, lt=1.0)
+    ectr_plateau_target: float = Field(default=0.53, ge=-1.0, le=1.0)
+    ectr_switch_margin: float = Field(default=0.20, ge=0.0)
+    ectr_repulsion_gap: float = Field(default=0.10, ge=0.0)
     # Interventional principal-stratum ranking. Zero preserves historical behavior.
     ipsr_weight: float = Field(default=0.0, ge=0.0)
     ipsr_warmup_epoch: int = Field(default=10, ge=1)
@@ -697,7 +707,7 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
-        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0
+        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0
         else _TorchImageDataset(optimization_examples, train_transform)
     )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
@@ -1055,12 +1065,13 @@ def run_image_end_to_end_benchmark(
             train_batches = _iter_training_batches(train_loader)
             rspg_state: RSPGState | None = None
             ipsr_state: IPSRState | None = None
+            ectr_state: ECTRState | None = None
             for step, batch in zip(
                 range(1, train_steps + 1),
                 train_batches,
                 strict=False,
             ):
-                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0:
+                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0:
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:
@@ -1093,6 +1104,19 @@ def run_image_end_to_end_benchmark(
                         device=device,
                         torch_module=torch,
                         enforce_diagnostic=rspg_epoch == config.rspg_warmup_epoch,
+                    )
+                    model.train()
+                    if config.freeze_batch_norm:
+                        _freeze_batch_norm_layers(model)
+                ectr_epoch = (step - 1) // steps_per_epoch
+                if (
+                    config.ectr_weight > 0.0
+                    and ectr_state is None
+                    and ectr_epoch >= config.ectr_warmup_epoch
+                    and (step - 1) % steps_per_epoch == 0
+                ):
+                    ectr_state = _build_ectr_state(
+                        model, train_eval_loader, device=device, torch_module=torch
                     )
                     model.train()
                     if config.freeze_batch_norm:
@@ -1331,7 +1355,12 @@ def run_image_end_to_end_benchmark(
                         )
                     memory_embeddings_to_enqueue = student_views[0]
                 else:
-                    embeddings = _normalize(model(images), torch)
+                    if config.ectr_weight > 0.0:
+                        clean_output, feature_map = _forward_with_spatial_features(model, images, torch)
+                        embeddings = _normalize(clean_output, torch)
+                    else:
+                        feature_map = None
+                        embeddings = _normalize(model(images), torch)
                     if bgsi_state is not None:
                         bgsi_state.update(embeddings, labels)
                     teacher_embeddings = None
@@ -1355,6 +1384,22 @@ def run_image_end_to_end_benchmark(
                         gsi_step_diagnostics=gsi_step_diagnostics,
                         **loss_kwargs,
                     )
+                    if config.ectr_weight > 0.0:
+                        if ectr_state is None or feature_map is None or sample_indices is None:
+                            raise RuntimeError("ECT-R state or indexed batch is unavailable")
+                        loss = loss + config.ectr_weight * _ectr_composite_loss(
+                            model,
+                            images,
+                            labels,
+                            embeddings,
+                            feature_map,
+                            sample_indices,
+                            ectr_state,
+                            step=step,
+                            steps_per_epoch=steps_per_epoch,
+                            config=config,
+                            torch_module=torch,
+                        )
                     if ema_teacher is not None:
                         with torch.no_grad():
                             ema_embeddings = _normalize(ema_teacher(images), torch).detach()
@@ -2210,6 +2255,134 @@ class IPSRState:
     anchor_coverage: float
     class_coverage: float
     mean_initial_loss: float
+
+
+@dataclass
+class ECTRState:
+    """Frozen epoch-10 descriptor snapshot for ECT-R composites."""
+
+    reference_embeddings: Any
+
+
+def _forward_with_spatial_features(model: TorchImageModel, images: Any, torch_module: Any) -> tuple[Any, Any]:
+    """Forward once while capturing the final spatial feature map.
+
+    The corrected In-Shop recipe uses BN-Inception, while the helper also supports
+    ResNet for unit tests and future matched controls.  The captured map is detached
+    by the caller when it is used only to construct a mask; the second composite
+    forward remains fully differentiable.
+    """
+    captured: list[Any] = []
+
+    def hook(_module: Any, _inputs: Any, output: Any) -> None:
+        captured.append(output)
+
+    handles: list[Any] = []
+    if hasattr(model, "layer4"):
+        handles.append(getattr(model, "layer4").register_forward_hook(hook))
+    else:
+        inner = getattr(model, "model", None)
+        branch_names = (
+            "inception_5b_1x1_bn",
+            "inception_5b_3x3_bn",
+            "inception_5b_double_3x3_2_bn",
+            "inception_5b_pool_proj_bn",
+        )
+        if inner is None or not all(hasattr(inner, name) for name in branch_names):
+            raise RuntimeError("ECT-R requires a model exposing a final spatial feature map")
+        handles.extend(getattr(inner, name).register_forward_hook(hook) for name in branch_names)
+    try:
+        output = model(images)
+    finally:
+        for handle in handles:
+            handle.remove()
+    if not captured:
+        raise RuntimeError("ECT-R feature-map hook captured no activation")
+    if len(captured) == 1:
+        fmap = captured[0]
+    else:
+        shape = tuple(captured[0].shape[-2:])
+        if any(tuple(item.shape[-2:]) != shape for item in captured):
+            raise RuntimeError("ECT-R feature branches have inconsistent spatial shapes")
+        fmap = torch_module.cat(captured, dim=1)
+    return output, fmap
+
+
+def _ectr_delete_mask(feature_map: Any, *, beta: float, torch_module: Any) -> Any:
+    """Return a detached image-resolution mask deleting top evidence mass."""
+    if feature_map.ndim != 4:
+        raise ValueError(f"ECT-R expects a 4-D feature map, got {tuple(feature_map.shape)}")
+    mass = feature_map.detach().flatten(2).norm(dim=1).pow(3)
+    mass = mass / mass.sum(dim=1, keepdim=True).clamp_min(1.0e-12)
+    masks: list[Any] = []
+    for row in mass:
+        order = torch_module.argsort(row, descending=True)
+        chosen = torch_module.zeros_like(row, dtype=torch_module.bool)
+        total = 0.0
+        for index in order.tolist():
+            chosen[index] = True
+            total += float(row[index].item())
+            if total >= beta:
+                break
+        masks.append(chosen.reshape(1, 1, *feature_map.shape[-2:]).float())
+    return torch_module.cat(masks, dim=0)
+
+
+def _ectr_composite_loss(
+    model: TorchImageModel,
+    images: Any,
+    labels: Any,
+    embeddings: Any,
+    feature_map: Any,
+    sample_indices: Any,
+    state: ECTRState,
+    *,
+    step: int,
+    steps_per_epoch: int,
+    config: ImageEndToEndConfig,
+    torch_module: Any,
+) -> Any:
+    """ECT-R's two-sided plateau/switch hinge on cross-class composites."""
+    batch_size = int(labels.shape[0])
+    if batch_size < 2:
+        return embeddings.sum() * 0.0
+    # Deterministically choose the first cyclic cross-class partner.  This is a
+    # supervision construction, not a mined nearest-neighbour shortcut.
+    partners: list[int] = []
+    for left in range(batch_size):
+        found = next((offset for offset in range(1, batch_size) if int(labels[(left + offset) % batch_size]) != int(labels[left])), None)
+        if found is None:
+            return embeddings.sum() * 0.0
+        partners.append((left + found) % batch_size)
+    partner_index = torch_module.as_tensor(partners, dtype=torch_module.long, device=images.device)
+    deletion = _ectr_delete_mask(feature_map, beta=config.ectr_beta, torch_module=torch_module)
+    deletion = torch_module.nn.functional.interpolate(
+        deletion, size=tuple(images.shape[-2:]), mode="bilinear", align_corners=False
+    ).clamp(0.0, 1.0)
+    composites = (1.0 - deletion) * images + deletion * images[partner_index]
+    composite_embeddings = _normalize(model(composites), torch_module)
+    anchor_targets = embeddings.detach()
+    partner_targets = embeddings.detach()[partner_index]
+    anchor_cos = (composite_embeddings * anchor_targets).sum(dim=1)
+    partner_cos = (composite_embeddings * partner_targets).sum(dim=1)
+    ref = state.reference_embeddings.to(images.device)
+    ref_anchor = ref[sample_indices]
+    ref_partner = ref[sample_indices[partner_index]]
+    reference_cos = (ref_anchor * ref_partner).sum(dim=1)
+    plateau = torch_module.nn.functional.relu(config.ectr_plateau_target - anchor_cos)
+    plateau = plateau + torch_module.nn.functional.relu(
+        partner_cos - (reference_cos - config.ectr_repulsion_gap)
+    )
+    switch = torch_module.nn.functional.relu(
+        config.ectr_switch_margin - (partner_cos - anchor_cos)
+    )
+    half = torch_module.arange(batch_size, device=images.device) % 2 == 0
+    selected = torch_module.where(half, plateau, switch)
+    epoch = (step - 1) // max(steps_per_epoch, 1)
+    ramp = min(1.0, max(0.0, (epoch - config.ectr_warmup_epoch) / max(
+        config.ectr_ramp_end_epoch - config.ectr_warmup_epoch, 1
+    )))
+    return selected.mean() * float(ramp)
 
 
 def _union_find_root(parents: list[int], index: int) -> int:
@@ -6894,6 +7067,19 @@ def _encode_model(
             embeddings.append(batch_embeddings.detach().cpu().numpy().astype(np.float64))
             labels.append(batch_labels.detach().cpu().numpy().astype(np.int64))
     return np.concatenate(embeddings, axis=0), np.concatenate(labels, axis=0)
+
+
+def _build_ectr_state(
+    model: TorchImageModel,
+    loader: Any,
+    *,
+    device: Any,
+    torch_module: Any,
+) -> ECTRState:
+    """Freeze the train-split epoch-10 descriptor reference for ECT-R."""
+    embeddings, _ = _encode_model(model, loader, device, torch_module)
+    reference = torch_module.as_tensor(embeddings, dtype=torch_module.float32, device=device)
+    return ECTRState(reference_embeddings=_normalize(reference, torch_module).detach())
 
 
 def _encode_model_norms(

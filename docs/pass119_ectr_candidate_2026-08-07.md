@@ -72,3 +72,13 @@ retracted local-trend statistic a selection correction.
 count. If A5 does not beat A2 and A4, the evidence-consensus mechanism is dead
 even if it beats PA. If the gain is reproduced by A7, report area curriculum,
 not ECT-R. This candidate is screen-only until the controls are run.
+
+## Implementation checkpoint (2026-08-07)
+
+The ECT-R operator is wired into the existing trainer behind `ectr_weight`,
+with an indexed train loader and a frozen epoch-10 train-split descriptor
+reference. The cubed channel-norm mask, relative switch hinge, and
+plateau/reference-repulsion hinge have finite-gradient CPU coverage. No GPU
+number is claimed yet. The deciding queue must still include A0, A2, A4, A5,
+A6, and A7 with identical composite counts and area accounting; the code is
+not authorization to call the full arm a result by itself.

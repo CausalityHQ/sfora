@@ -59,6 +59,7 @@ DerivedMethod = Literal[
     "pa_rcc",
     "pa_bep",
     "pa_cem",
+    "ectr",
 ]
 
 # Base loss each derived method attaches to.
@@ -95,6 +96,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_rcc": "proxy_anchor",
     "pa_bep": "proxy_anchor",
     "pa_cem": "proxy_anchor",
+    "ectr": "proxy_anchor",
 }
 
 
@@ -639,6 +641,26 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "objectives": ("proxy_anchor_cem",),
             "cem_weight": 0.05,
             "cem_margin": 0.1,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "ectr":
+        delta = {
+            "ectr_weight": 0.5,
+            "ectr_warmup_epoch": 10,
+            "ectr_ramp_end_epoch": 30,
+            "ectr_beta": 0.85,
+            "ectr_plateau_target": 0.53,
+            "ectr_switch_margin": 0.20,
+            "ectr_repulsion_gap": 0.10,
         }
         return recipe.model_copy(
             deep=True,
