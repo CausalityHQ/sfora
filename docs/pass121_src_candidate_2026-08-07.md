@@ -33,11 +33,13 @@ complementary-target control.
 ## Gate 3: preregistration (before any deciding GPU run)
 
 The paired corrected In-Shop Proxy Anchor reference is 0.9163033. If the
-coalition screen is authorized, SRC predicts corrected best R@1 **0.9192**.
-The candidate is falsified if corrected best is **<0.9180**, or if it fails to
-strictly beat both the CIS union-only arm and a same-compute no-residual
-coalition control by 0.0010. Raw best-over-training and selection-corrected
-values must both be reported.
+coalition screen is authorized, SRC predicts raw best-over-training R@1
+**0.9192**. The candidate is falsified if the independently frozen checkpoint
+is **<0.9180**, or if it fails to strictly beat both the CIS union-only arm and
+a same-compute no-residual coalition control by 0.0010. Report raw best and
+frozen-checkpoint values; the existing leave-neighbour peak-gap output may be
+reported only as a descriptive selection diagnostic, never as an identified
+selection correction.
 
 Required CPU tests: finite loss/gradients, permutation invariance of the
 bundle, changed targets under each omission, and a test that a two-member
