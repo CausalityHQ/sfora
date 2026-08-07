@@ -8322,4 +8322,14 @@ which within-class differences are transferable. Every label-only response is
 already occupied as geometry refinement, geometry-only regularization, or a
 known cross-image relation. The exact assumption that must be relaxed is that
 identity equality is the only permitted supervision referent. Full boundary
-audit: `docs/pass86_label_only_boundary_2026-08-07.md`.
+ audit: `docs/pass86_label_only_boundary_2026-08-07.md`.
+
+### Pass 87 — architecture/activation batch dead at Gate 2 (no GPU)
+
+Potential-Field DML (Bhatnagar & Ahuja, CVPR 2025), Deep Disentangled Metric
+Learning (AAAI 2025), and SEE: Spherical Embedding Expansion (IJCAI 2025) were
+checked before implementation. They occupy, respectively, compositional
+attractive/repulsive fields, information-bottleneck regularisation, and
+synthetic embedding-center expansion. None adds a new supervision referent or
+is identified by the repo's transfer-gap/error-overlap measurements. No GPU
+run occurred. Full review: `docs/pass87_architecture_activation_review_2026-08-07.md`.
