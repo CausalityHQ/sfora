@@ -8891,3 +8891,15 @@ augmentation-response agreement.  ARCG therefore survives only narrowly at
 Gate 2.  It has no Gate-1 operating-point diagnostic and no GPU authorization;
 the face/re-identification augmentation-aware literature must be searched
 before implementation.  Full audit: `docs/pass125_arcg_prior_art_audit_2026-08-07.md`.
+
+## Pass 126 — cross-field triage (2026-08-07)
+
+Three outside-field proposals were killed at Gate 2 before GPU. Error-
+correcting/Hadamard class-code supervision is standard multiclass ECOC and
+collapses to known multi-head or multi-proxy metric learning. Hebbian or
+anti-Hebbian proxy updates are occupied by FastHebb and supervised Hebbian
+learning and, in this setting, only reparameterize pair/proxy weighting.
+Physics-inspired attractive/repulsive particles are occupied directly by
+Bhatnagar et al., *Potential Field Based Deep Metric Learning* (CVPR 2025),
+including the retrieval objective. None changes the supervised object in a
+defensible way. Full record: `docs/pass126_cross_field_triage_2026-08-07.md`.
