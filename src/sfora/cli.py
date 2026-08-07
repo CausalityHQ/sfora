@@ -2370,6 +2370,7 @@ _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
     # base BN-Inception/optimizer/schedule rather than silently falling back to
     # the unrelated protocol defaults.
     "proxy_anchor_lj": "proxy_anchor",
+    "proxy_anchor_cf_centroid": "proxy_anchor",
     "tversky_proxy_anchor": "proxy_anchor",
     "shepard_proxy_anchor": "proxy_anchor",
 }

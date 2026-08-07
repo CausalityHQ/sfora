@@ -59,6 +59,7 @@ EndToEndObjective = Literal[
     "symmetric_potential",
     "lennard_jones",
     "proxy_anchor_lj",
+    "proxy_anchor_cf_centroid",
     "proxy_anchor_antico",
     "bio_physical_bond",
     "hist",
@@ -2658,6 +2659,7 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
         return config.proxy_count_per_class > 0
     if objective in {
         "proxy_anchor_lj",
+        "proxy_anchor_cf_centroid",
         "proxy_anchor_antico",
         "bio_physical_bond",
         "proxy_anchor_cem",
@@ -3779,6 +3781,46 @@ def _proxy_anchor_lj_objective_loss(**kwargs: Any) -> Any:
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
+def _proxy_anchor_cf_centroid_objective_loss(**kwargs: Any) -> Any:
+    """Cross-fitted centroid positives with Proxy-Anchor foreign negatives."""
+    embeddings = kwargs["embeddings"]
+    labels = kwargs["labels"]
+    proxy_embeddings = kwargs["proxy_embeddings"]
+    proxy_labels = kwargs["proxy_labels"]
+    memory_embeddings = kwargs.get("memory_embeddings")
+    memory_labels = kwargs.get("memory_labels")
+    config = cast(ImageEndToEndConfig, kwargs["config"])
+    torch_module = kwargs["torch_module"]
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("the proxy_anchor_cf_centroid objective requires class proxies")
+    centroids, valid = _crossfit_positive_centroids(
+        embeddings,
+        labels,
+        memory_embeddings=memory_embeddings,
+        memory_labels=memory_labels,
+        torch_module=torch_module,
+    )
+    normalized = _normalize(embeddings, torch_module)
+    normalized_centroids = _normalize(centroids, torch_module)
+    positive_scores = (normalized * normalized_centroids).sum(dim=1)
+    if bool(valid.any()):
+        positive_term = torch_module.nn.functional.softplus(
+            float(config.proxy_anchor_alpha) * (float(config.proxy_anchor_delta) - positive_scores[valid])
+        ).mean()
+    else:
+        positive_term = embeddings.sum() * 0.0
+    negative_term = _proxy_anchor_negative_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch_module,
+    )
+    return _apply_teacher_similarity_regularization(positive_term + negative_term, kwargs)
+
+
 def _lennard_jones_objective_loss(**kwargs: Any) -> Any:
     embeddings = kwargs["embeddings"]
     labels = kwargs["labels"]
@@ -3919,6 +3961,7 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "proxy_anchor_uniformity": _proxy_anchor_uniformity_objective_loss,
     "symmetric_potential": _symmetric_potential_objective_loss,
     "proxy_anchor_lj": _proxy_anchor_lj_objective_loss,
+    "proxy_anchor_cf_centroid": _proxy_anchor_cf_centroid_objective_loss,
     "lennard_jones": _lennard_jones_objective_loss,
     "proxy_anchor_gsi": _gsi_objective_loss,
     "pfml_gsi": _gsi_objective_loss,
@@ -4020,6 +4063,7 @@ def _objective_display_name(objective: str) -> str:
         "symmetric_potential": "Symmetric Potential Field",
         "lennard_jones": "Lennard-Jones Potential",
         "proxy_anchor_lj": "Proxy Anchor + Lennard-Jones",
+        "proxy_anchor_cf_centroid": "Cross-Fitted Centroid Positive + Proxy Negatives",
         "proxy_anchor_antico": "Proxy Anchor + Anti-Collapse (Coding Rate)",
         "bio_physical_bond": "Bio-Physical Bond (LJ-Boltzmann-Niche)",
         "hist": "HIST (Hypergraph Semantic Tuplet)",
@@ -5085,6 +5129,40 @@ def _proxy_anchor_loss(
         delta=delta,
         torch_module=torch_module,
     )
+
+
+def _crossfit_positive_centroids(
+    embeddings: Any,
+    labels: Any,
+    *,
+    memory_embeddings: Any | None,
+    memory_labels: Any | None,
+    torch_module: Any,
+) -> tuple[Any, Any]:
+    """Build per-query same-class targets without including the query itself.
+
+    Batch examples and any older cross-batch examples are pooled by label.  A
+    batch example is removed from its own support set exactly once; classes with
+    no remaining support are marked invalid rather than silently using the
+    query as its target.
+    """
+    if memory_embeddings is None or memory_labels is None or memory_embeddings.numel() == 0:
+        support_embeddings = embeddings
+        support_labels = labels
+    else:
+        support_embeddings = torch_module.cat((embeddings, memory_embeddings.detach()), dim=0)
+        support_labels = torch_module.cat((labels, memory_labels.detach()), dim=0)
+    centroids = torch_module.zeros_like(embeddings)
+    valid = torch_module.zeros(labels.shape[0], dtype=torch_module.bool, device=labels.device)
+    for i in range(int(labels.shape[0])):
+        same = support_labels.eq(labels[i])
+        # The first batch rows are the query batch; remove only this row. Memory
+        # rows are detached and therefore cannot accidentally become the query.
+        same[i] = False
+        if bool(same.any()):
+            centroids[i] = support_embeddings[same].mean(dim=0)
+            valid[i] = True
+    return centroids, valid
 
 
 def _proxy_anchor_negative_loss(

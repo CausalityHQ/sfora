@@ -3258,6 +3258,30 @@ def test_proxy_anchor_loss_matches_hand_computed_value() -> None:
     assert float(loss.detach().cpu()) == pytest.approx(float(expected), rel=1e-6)
 
 
+def test_crossfit_positive_centroids_exclude_the_query_and_use_memory() -> None:
+    torch = pytest.importorskip("torch")
+
+    from sfora.image_end_to_end import _crossfit_positive_centroids
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=torch.float32
+    )
+    labels = torch.tensor([7, 7, 9])
+    memory_embeddings = torch.tensor([[0.0, -1.0]], dtype=torch.float32)
+    memory_labels = torch.tensor([7])
+    centroids, valid = _crossfit_positive_centroids(
+        embeddings,
+        labels,
+        memory_embeddings=memory_embeddings,
+        memory_labels=memory_labels,
+        torch_module=torch,
+    )
+    assert valid.tolist() == [True, True, False]
+    # Query 0 sees query 1 plus memory, never itself; query 1 sees query 0 plus memory.
+    assert torch.allclose(centroids[0], torch.tensor([0.0, 0.0]), atol=1e-6)
+    assert torch.allclose(centroids[1], torch.tensor([0.5, -0.5]), atol=1e-6)
+
+
 def test_relational_distillation_matches_teacher_neighborhoods() -> None:
     torch = pytest.importorskip("torch")
 
