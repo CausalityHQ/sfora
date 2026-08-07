@@ -8492,3 +8492,27 @@ covered essentially all unseen features: query outside-value fraction
 **1.6183e-05** (1.625% of rows). The off-support activation hypothesis is
 therefore not supported at Gate 1; no method run occurred. Full result:
 `docs/pass105_support_escape_result_2026-08-07.md`.
+## 106. Persistent within-class topology: multiscale component repair
+
+**Gate-1 diagnostic completed on the corrected In-Shop epoch-10 pack; Gate-2
+death recorded 2026-08-07; no training run.** The earlier binary within-class
+1-NN fragmentation statistic was ambiguous: after matching, fragmented classes
+were actually better by +3.534 points. A fixed multiscale cosine filtration
+(thresholds 0.20--0.95) separates the cases. Its excess component persistence
+correlates with lower leave-one-out nearest-neighbour correctness (`r=-0.1800`
+overall; `r=-0.4321` after exact class-size stratification), and a within-size
+median split gives high-minus-low correctness of `-8.852` points over 3,696
+identities. The result was recomputed after fixing a diagonal-mask bug in the
+GPU diagnostic; artifact and method are in
+`docs/pass106_persistent_topology_review_2026-08-07.md` and
+`reports/generated/inshop_class_topology_epoch10.json`.
+
+The proposed operator would penalize only persistent, multiscale component
+separation while leaving transient local fragmentation alone. It is **DEAD at
+Gate 2**: topology-consistent descriptors (TCDesc, arXiv:2009.07036), graph
+consistency DML (CGML, AAAI 2021, DOI 10.1609/AAAI.v35i2.16182), and TopNet
+topology-preserving metric learning (arXiv:2009.08674) already occupy the
+mechanism-level space. A persistence summary and threshold schedule do not
+provide a defensible new supervision primitive. The measurement does survive as
+a useful decomposition: one-scale fragmentation and persistent fragmentation
+have opposite retrieval associations.
