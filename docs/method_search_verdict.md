@@ -8008,3 +8008,24 @@ isotropic and second-moment preconditioners, with scale-invariance caveats.
 The suggested head-ceiling LDA diagnostic was not run because the blind pass
 provided no measured provenance or forecast. No GPU run was authorized. Full
 artifact: `docs/opus_pass70_none_2026-08-06.md`.
+
+### Pass 71 — blind proposer returned NONE before Gate 1
+
+The review challenged the Owner-Tangent-Field closure with non-integrable,
+gradient-free, bilevel, finite-state, topological/coding, and static-architecture
+escapes. It found no candidate that survives the protocol. A cold proposer
+cannot simultaneously be blind to repo history and provide measured repo
+provenance, so Gate 1 must be adjudicated locally after invention review; this
+is a protocol defect, not evidence that every idea is impossible. The review's
+technical checks were: arbitrary tangent fields admit stop-gradient scalar
+surrogates; hard routing/VQ is piecewise Jacobian or zeroth-order and relaxed
+routing is a scalar surrogate; antithetic evolution-strategy updates are
+prohibitively noisy at roughly 24.6M parameters; KKT and bilevel hypergradients
+reduce to penalties or tangent fields; and static architectures at the same
+interface differ on the finite training set only by approximation or implicit
+optimization bias. A residual loophole remains for a genuinely new pure
+weight-space map outside projection/preconditioning and data-dependent loss.
+The corrected four-seed In-Shop Proxy Anchor reference is 0.9153889 mean with
+0.0013196 SD (0.132 points), so a four-seed candidate should forecast at least
+0.9185 (about +0.31 points) to have useful power. No GPU run was authorized.
+Full artifact: `docs/opus_pass71_none_2026-08-06.md`.
