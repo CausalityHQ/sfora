@@ -8477,3 +8477,10 @@ The proposed long-range state-space head had no direct repo measurement of a
 long-range bottleneck and is a generic architecture swap. Vision Mamba and
 MambaHash already occupy state-space visual representation and retrieval
 architecture (arXiv:2401.09417; arXiv:2506.16353). No GPU run occurred.
+### Pass 104 — directed confusion-flow supervision (dead before GPU)
+
+Corrected In-Shop seed-0 errors have only **9.78%** reciprocal error mass across
+identity pairs, showing a strongly directed confusion graph. A flow-balanced
+confusion loss was proposed, but confusion-based metric learning and graph
+consistency DML already occupy directed/graph confusion supervision. No GPU
+run occurred.
