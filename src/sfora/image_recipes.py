@@ -57,6 +57,7 @@ DerivedMethod = Literal[
     "pa_ipc4",
     "pa_fiedler",
     "pa_rcc",
+    "pa_bep",
     "pa_cem",
 ]
 
@@ -92,6 +93,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_ipc4": "proxy_anchor",
     "pa_fiedler": "proxy_anchor",
     "pa_rcc": "proxy_anchor",
+    "pa_bep": "proxy_anchor",
     "pa_cem": "proxy_anchor",
 }
 
@@ -675,6 +677,24 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "rcc_temperature": 0.1,
             "rcc_min_class_size": 4,
             "rcc_memory_per_class": 4,
+            "samples_per_class": 0,
+        }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "pa_bep":
+        delta = {
+            "bep_weight": 0.05,
+            "bep_temperature": 0.1,
+            "bep_path_points": 9,
+            "bep_min_class_size": 2,
             "samples_per_class": 0,
         }
         return recipe.model_copy(

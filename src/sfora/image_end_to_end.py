@@ -244,6 +244,12 @@ class ImageEndToEndConfig(BaseModel):
     rcc_temperature: float = Field(default=0.1, gt=0.0)
     rcc_min_class_size: int = Field(default=4, ge=2)
     rcc_memory_per_class: int = Field(default=4, ge=0)
+    # Barrier-energy positive supervision: penalize foreign-proxy saddles along
+    # normalized interpolations between same-class samples. Zero preserves PA.
+    bep_weight: float = Field(default=0.0, ge=0.0)
+    bep_temperature: float = Field(default=0.1, gt=0.0)
+    bep_path_points: int = Field(default=9, ge=2)
+    bep_min_class_size: int = Field(default=2, ge=2)
     # Augmentation-response compatibility graph. Zero preserves historical behavior.
     arcg_weight: float = Field(default=0.0, ge=0.0)
     arcg_warmup_epoch: int = Field(default=10, ge=1)
@@ -3346,6 +3352,17 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             memory_per_class=config.rcc_memory_per_class,
             torch_module=torch_module,
         )
+    if config.bep_weight > 0.0:
+        loss = loss + config.bep_weight * _barrier_energy_loss(
+            embeddings,
+            labels,
+            proxy_embeddings,
+            proxy_labels,
+            temperature=config.bep_temperature,
+            path_points=config.bep_path_points,
+            min_class_size=config.bep_min_class_size,
+            torch_module=torch_module,
+        )
     return _apply_teacher_similarity_regularization(loss, kwargs)
 
 
@@ -3399,6 +3416,58 @@ def _redundant_connectivity_loss(
     if not class_losses:
         return embeddings.sum() * 0.0
     return torch_module.stack(class_losses).mean()
+
+
+def _barrier_energy_loss(
+    embeddings: Any,
+    labels: Any,
+    proxy_embeddings: Any,
+    proxy_labels: Any,
+    *,
+    temperature: float,
+    path_points: int,
+    min_class_size: int,
+    torch_module: Any,
+) -> Any:
+    """Penalize foreign-proxy energy saddles on same-class interpolation paths.
+
+    The path is a normalized linear interpolation between cyclically paired
+    same-class samples.  At each point, a smooth maximum over *foreign* proxy
+    logits is compared with the owning proxy logit.  Unlike mining, all eligible
+    pairs remain supervised; the added term targets a measurable cross-class
+    barrier encountered between them.
+    """
+    if temperature <= 0.0 or path_points < 2:
+        raise ValueError("temperature must be positive and path_points must be at least two")
+    normalized = _normalize(embeddings, torch_module)
+    normalized_proxies = _normalize(proxy_embeddings, torch_module)
+    ts = torch_module.linspace(
+        0.0, 1.0, path_points, dtype=embeddings.dtype, device=embeddings.device
+    )
+    losses: list[Any] = []
+    for label in torch_module.unique(labels):
+        members = normalized[labels == label]
+        if int(members.shape[0]) < min_class_size:
+            continue
+        own_rows = torch_module.nonzero(proxy_labels == label, as_tuple=False).flatten()
+        if int(own_rows.numel()) != 1:
+            # A missing proxy cannot define the claimed barrier; duplicate
+            # proxies would make the owning-vs-foreign distinction ambiguous.
+            continue
+        own_row = int(own_rows[0].item())
+        anchors = members
+        positives = members.roll(-1, dims=0)
+        paths = (1.0 - ts[:, None, None]) * anchors[None, :, :] + ts[:, None, None] * positives[None, :, :]
+        paths = paths / paths.norm(dim=-1, keepdim=True).clamp_min(1e-12)
+        scores = torch_module.einsum("pnd,cd->pnc", paths, normalized_proxies)
+        own = scores[:, :, own_row]
+        foreign = torch_module.cat((scores[:, :, :own_row], scores[:, :, own_row + 1 :]), dim=-1)
+        relative = (foreign - own.unsqueeze(-1)) / temperature
+        foreign_energy = torch_module.logsumexp(relative, dim=-1)
+        losses.append(torch_module.nn.functional.softplus(foreign_energy).mean())
+    if not losses:
+        return embeddings.sum() * 0.0
+    return torch_module.stack(losses).mean()
 
 
 def _spectral_class_connectivity_loss(
