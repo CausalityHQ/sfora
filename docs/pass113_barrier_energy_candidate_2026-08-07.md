@@ -78,3 +78,10 @@ positions and foreign proxies. Its partial R@1 values (0.2408 at epoch 1,
 0.6822 at epoch 2) are excluded from evidence. The implementation now uses a
 single log-sum-exp over the flattened path/foreign dimensions, the NumPy
 reference and CPU tests agree, and the deciding run restarts from step zero.
+
+The next launch exposed a second implementation issue in review: its temporary
+flattening also coupled different same-class pairs in one batch. That partial
+run reached roughly 200 steps and is likewise excluded. The final implementation
+applies the smooth maximum over path points and foreign proxies separately for
+each aligned pair, then averages pairs; an explicit Torch-vs-NumPy numerical test
+now passes.
