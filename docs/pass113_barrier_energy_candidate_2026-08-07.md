@@ -68,3 +68,13 @@ will be relabelled as a correction.
 
 No GPU implementation is authorized until the algebraic CPU test confirms
 finite gradients and the path term is nonzero on the exact operating pack.
+
+## Implementation audit before deciding run
+
+The first launch was stopped at step 400/8,580 after code review found that
+the provisional Torch implementation averaged the path-point penalties,
+whereas the frozen object above requires a smooth maximum over both path
+positions and foreign proxies. Its partial R@1 values (0.2408 at epoch 1,
+0.6822 at epoch 2) are excluded from evidence. The implementation now uses a
+single log-sum-exp over the flattened path/foreign dimensions, the NumPy
+reference and CPU tests agree, and the deciding run restarts from step zero.

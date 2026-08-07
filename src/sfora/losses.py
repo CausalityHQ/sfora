@@ -18,9 +18,9 @@ def barrier_energy_loss(
 ) -> float:
     """Penalize foreign-proxy energy saddles along same-class paths.
 
-    This is the NumPy reference for BEP.  It intentionally uses a smooth
-    log-sum-exp over path points and foreign proxies so the Torch implementation
-    can be checked against a simple, differentiable definition.
+    This is the NumPy reference for BEP.  It intentionally uses one smooth
+    log-sum-exp over path points *and* foreign proxies so the Torch
+    implementation can be checked against a simple, differentiable definition.
     """
     anchor_array = _as_float_array(anchors, expected_ndim=2, name="anchors")
     positive_array = _as_float_array(positives, expected_ndim=2, name="positives")
@@ -50,9 +50,10 @@ def barrier_energy_loss(
         foreign = np.delete(scores, int(label), axis=1)
         own = scores[:, int(label)][:, None]
         logits = (foreign - own) / temperature
-        max_logits = logits.max(axis=1)
-        logsum = max_logits + np.log(np.exp(logits - max_logits[:, None]).sum(axis=1))
-        values.append(float(np.log1p(np.exp(logsum)).mean()))
+        flattened = logits.reshape(-1)
+        max_logit = flattened.max()
+        logsum = max_logit + np.log(np.exp(flattened - max_logit).sum())
+        values.append(float(np.logaddexp(0.0, logsum)))
     return _reduce(np.asarray(values, dtype=np.float64), reduction)
 
 

@@ -3463,8 +3463,11 @@ def _barrier_energy_loss(
         own = scores[:, :, own_row]
         foreign = torch_module.cat((scores[:, :, :own_row], scores[:, :, own_row + 1 :]), dim=-1)
         relative = (foreign - own.unsqueeze(-1)) / temperature
-        foreign_energy = torch_module.logsumexp(relative, dim=-1)
-        losses.append(torch_module.nn.functional.softplus(foreign_energy).mean())
+        # Smooth max over both the path coordinate and foreign identities.
+        # Flattening here is deliberate: averaging over t would not implement
+        # the preregistered barrier and would dilute a narrow saddle.
+        foreign_energy = torch_module.logsumexp(relative.reshape(-1), dim=0)
+        losses.append(torch_module.nn.functional.softplus(foreign_energy))
     if not losses:
         return embeddings.sum() * 0.0
     return torch_module.stack(losses).mean()
