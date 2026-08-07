@@ -7992,3 +7992,19 @@ and provenance were unverified and it assumed the obsolete 0.9035 In-Shop
 reference; current corrected references are 0.9163033 and 0.9189056. No GPU
 run was authorized. Full artifact:
 `docs/opus_pass69_none_2026-08-06.md`.
+
+### Pass 70 — blind proposer returned NONE before Gate 1
+
+The architecture/optimizer search returned NONE from two independent blind
+passes. VIB/quantization, LISTA/predictive coding, compressed-sensing heads,
+Forward-Forward, fast weights, reversible/Hamiltonian trunks,
+hyperbolic/product manifolds, ETF/simplex, OT/Sinkhorn, SAM/SGLD,
+Shampoo/K-FAC/Muon, and episodic holdout all reduced to prior art,
+regularization, or already-closed families. The proposed Owner-Tangent-Field
+result is a relocation theorem: per-image Jacobian updates are either an
+integrable scalar loss or non-integrable reweighting/gradient surgery; it does
+not prove every loss closed. A separate update-rule dichotomy covers common
+isotropic and second-moment preconditioners, with scale-invariance caveats.
+The suggested head-ceiling LDA diagnostic was not run because the blind pass
+provided no measured provenance or forecast. No GPU run was authorized. Full
+artifact: `docs/opus_pass70_none_2026-08-06.md`.
