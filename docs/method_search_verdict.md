@@ -8112,3 +8112,15 @@ rank-matched excess is +0.03221 (SD 0.00018), versus −0.00004 at
 initialization. The training-associated crowding premise therefore survives
 the corrected control; it still motivates no method by itself and does not
 override Gate 2.
+
+### Pass 75 — NONE; positive-side degradation is the surviving lead
+
+The adversarial review killed Identity-Agnostic Normalization Calibration at
+Gate 2 (Batch Renormalization, EvalNorm, AdaBN/PreciseBN, EMAN, and MetaBIN).
+The positive-side diagnostic then measured mean unseen-minus-seen changes of
+−0.05305 for nearest positive, +0.03220 for nearest foreign, and −0.08523 for
+the P−F margin. Foreign crowding accounts for only about 38% of the margin
+change; within-class positive collapse dominates. The BN-reset placebo moves
+both effects to approximately zero, confirming the foreign result was a
+train-specific BN artifact. No candidate or GPU training run was authorized.
+Full artifact: `docs/opus_pass75_none_2026-08-07.md`.
