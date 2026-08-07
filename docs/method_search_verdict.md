@@ -8536,3 +8536,13 @@ The preregistered corrected In-Shop seed-0 prediction is final R@1 **0.9145**
 versus paired Proxy Anchor final **0.9137009**; below **0.9132** kills the
 candidate. Raw best and final values must both be reported. Full preregistration
 and prior-art resolution: `docs/pass107_lj_transfer_candidate_2026-08-07.md`.
+## 108. Cross-fitted proxy supervision (Gate 1/2 pending)
+
+The corrected In-Shop unseen-minus-seen nearest-positive gap is **−0.0497**
+cosine. Candidate 108 proposes withholding the learned own-class proxy from an
+image's positive term and using a leave-one-image-out centroid/EMA estimate of
+the other same-class images, while retaining Proxy Anchor's proxy negative term.
+This targets target leakage rather than adding a variance/potential regularizer.
+The CPU split-half diagnostic and exact prior-art search are preregistered in
+`docs/pass108_crossfit_proxy_candidate_2026-08-07.md`; no implementation or GPU
+run is authorized until both gates resolve.
