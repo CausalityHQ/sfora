@@ -8552,3 +8552,13 @@ eligible epoch-10 In-Shop images, proxy-minus-cross-fitted cosine was **−0.717
 margin was **0.7871** versus **0.0626** for the learned proxy. The proxy is
 under-aligned, not over-privileged, so no GPU run occurred. This is a useful
 proxy/centroid measurement but not a surviving method.
+## 109. Cross-fitted-centroid positive / proxy-negative supervision (LIVE-NARROW; preregistered)
+
+Pass108's falsified target-leakage direction nevertheless exposed a replicated
+operator asymmetry: cross-fitted centroids beat learned proxies by +0.661 to
++0.724 median margin across three epoch-10 In-Shop seeds. Candidate 109 uses
+those centroids only for same-class positives and retains learned proxies only
+for foreign negatives. It is a distinct, narrow reversal of Proxy Anchor's
+roles, with controls and a Gate-4 prediction preregistered in
+`docs/pass109_centroid_positive_proxy_negative_2026-08-07.md`. No GPU queue is
+authorized until the implementation has an exact operator test.
