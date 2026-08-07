@@ -2365,6 +2365,11 @@ def image_end_to_end(
 # declared objective is `local_nca`, which is then rejected as "not a base method".
 _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
     "proxy_anchor_cem": "proxy_anchor",
+    # Lennard--Jones is an additive finite-shell term on Proxy Anchor.  Treat it
+    # as a derived Proxy Anchor objective so matched recipe mode can resolve the
+    # base BN-Inception/optimizer/schedule rather than silently falling back to
+    # the unrelated protocol defaults.
+    "proxy_anchor_lj": "proxy_anchor",
     "tversky_proxy_anchor": "proxy_anchor",
     "shepard_proxy_anchor": "proxy_anchor",
 }
