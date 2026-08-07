@@ -92,6 +92,12 @@ to a loss constructor before the first backward pass; calibrating it per batch
 would introduce an unregistered adaptive method. Temperature, threshold,
 coefficient, memory cap, and sampler are now frozen (no retrieval tuning).
 
+Before the deciding run, a numerical check on 99 real 512-D In-Shop class
+blocks (four current plus four memory descriptors) found reduced-Laplacian
+log-determinants from **1.31 to 11.23** (median **8.76**) and mean soft-edge
+affinities from **0.251 to 0.838** (median **0.597**). The determinant is not
+an epsilon-floor artifact at the registered threshold and temperature.
+
 Prediction: raw best-over-training R@1 **0.9190**, versus the matched baseline;
 the method is falsified if it is below **0.9175** or fails to improve the
 training-only held-out connectivity statistic by 10% relative. Report raw and
