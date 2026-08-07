@@ -8811,6 +8811,14 @@ omitted member. This is not a novelty claim. SRC must first pass an
 implementation-level distinction audit and a finite-gradient test; it is not
 authorized for GPU until then.
 
+The adversarial Gate-2 search also found Katsikas et al., *Your Dissimilarities
+Define You: Complementary Learning Exploiting Class Diversities* (CVPR 2026),
+which supervises per-image distributions over non-target classes. This is a
+close warning for SRC, not a mechanism-identical kill: SRC's proposed object
+is a multi-image sum plus a separate complementary target for each omitted
+member. A per-image complementary-target control is now mandatory before any
+SRC novelty or benchmark claim.
+
 SRC preregistration is recorded in `docs/pass121_src_candidate_2026-08-07.md`:
 corrected prediction 0.9192 against the paired 0.9163033 reference, with a
 0.9180 falsifier and mandatory union/no-residual controls. This remains a

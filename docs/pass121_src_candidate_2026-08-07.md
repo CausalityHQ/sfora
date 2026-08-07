@@ -22,6 +22,14 @@ leave-one-out coalition against complementary class-proxy targets. This
 distinction is narrow and must be demonstrated in code and controls; SRC is
 not being called novel yet.
 
+Adversarially, Katsikas et al., *Your Dissimilarities Define You:
+Complementary Learning Exploiting Class Diversities* (CVPR 2026), explicitly
+supervises per-image distributions over non-target classes. That is a close
+warning, not a mechanism-identical kill: it does not form a multi-image sum or
+train one complementary target for each omitted coalition member. Any future
+novelty claim must state this distinction and include a per-image
+complementary-target control.
+
 ## Gate 3: preregistration (before any deciding GPU run)
 
 The paired corrected In-Shop Proxy Anchor reference is 0.9163033. If the
