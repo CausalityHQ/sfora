@@ -8445,3 +8445,12 @@ nearest-positive transfer deficit. Threshold-Consistent Margin Loss,
 learnable dynamic-margin/adaptive-triplet DML, and conformal metric predictors
 already occupy this calibration mechanism. No GPU run occurred. Full review:
 `docs/pass99_conformal_margin_review_2026-08-07.md`.
+### Pass 100 — KAN/spline embedding head (dead before GPU)
+
+Replacing the Proxy Anchor embedding MLP with a Kolmogorov–Arnold spline head
+was not motivated by a repo measurement (no evidence that the head limits
+transfer or explains persistent errors). KAN is a general MLP replacement
+(Liu et al., 2024, https://arxiv.org/abs/2404.19756), and KAN autoencoders and
+retrieval representation learning already exist (Yu et al., 2024,
+https://arxiv.org/abs/2501.00420). It therefore fails provenance and prior-art
+gates; no GPU run occurred.
