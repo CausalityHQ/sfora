@@ -87,7 +87,13 @@ the output is non-authorizing even when it returns `NONE`. Correct the prompt
 and rerun from a fresh session; repeated failure under mismatched frontier
 arithmetic is not evidence that no method exists.
 
-## The gates — stop at the first one a candidate fails
+## The gates — stop expensive work at the first failed gate
+
+The gates are sequential controls, not a single binary survival test. Stop
+expensive implementation or follow-up at the first failed gate, then classify
+the result as hard invalidity, a matched-screen failure, or a claim boundary
+according to the semantics below. Do not turn a forecast miss or missing
+replication into a claim that the underlying mechanism is impossible.
 
 **0. Validate the motivating measurement from artifacts.** Configuration intent,
 code inspection, a plausible image count, and a green unit test are not sufficient.
