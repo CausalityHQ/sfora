@@ -8148,3 +8148,24 @@ G-Bispectrum and its Inversion* (NeurIPS 2024), and Mathe et al., *bispectrum*
 compact-group orbit assumption does not fit In-Shop pose/deformation variation.
 The candidate therefore died at Gate 2; no code or GPU run occurred. Full audit:
 `docs/opus_pass76_none_2026-08-07.md`.
+
+### Pass 77 — NAM dead at Gates 1–2 (no GPU)
+
+The blind proposer suggested Nuisance-Anisotropic Margin (NAM): use a pooled
+EMA covariance of proxy-tangent residuals to make a trace-normalized,
+per-sample robust margin. The independent reviewer rejected it before GPU.
+
+Gate 1 is negative: candidate 225's preregistered disjoint-identity In-Shop
+covariance transfer measured rho32 = 0.9312/0.9287/0.9345 and found the shared
+subspace carries between-class signal at least as strongly as within-class
+signal. Suppressing it would raise, not lower, the predicted test Sw/Sb ratio;
+the proposed preflight would pass while missing this nuisance-selectivity test.
+
+Gate 2 is also occupied by ISDA (NeurIPS 2019), IAA (arXiv:2211.16264; repo
+entry 102), adaptive-margin/feature-deviation work in the IMSDO ledger, and
+MagFace/CurricularFace/AdaCos. NAM's pooled covariance support-function margin
+is a per-sample scalar reweighting and adds no new supervision relation. Its
+forecast (+0.7 CUB, +0.15 In-Shop) does not cross the matched frontier, and its
+preflight improperly reads test-class covariance. No code or GPU run occurred.
+Full proposal and review: `docs/pass77_proposal_nam_2026-08-07.md` and
+`docs/pass77_nam_review_2026-08-07.md`.
