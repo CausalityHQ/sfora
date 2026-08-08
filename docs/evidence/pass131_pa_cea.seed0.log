@@ -1,0 +1,38 @@
+{
+    'recipe_id': 'proxy_anchor.inshop.official-51db570.pa_cea',
+    'recipe_digest': 
+'49fc78176ed7d6d53b89f77e4264a8d5d82ebe8a74fac18dd727c12981262891',
+    'recipe_track': 'reference',
+    'recipe_source_revision': '51db57031e38f75c03f69bbdfad1a3233afd9787'
+}
+inshop proxy_anchor step 100/8580 loss=10.9606
+inshop proxy_anchor epoch 1 test R@1=0.2396 (best 0.2396 @ epoch 1)
+inshop proxy_anchor step 200/8580 loss=7.8155
+inshop proxy_anchor epoch 2 test R@1=0.6850 (best 0.6850 @ epoch 2)
+inshop proxy_anchor step 300/8580 loss=5.6359
+inshop proxy_anchor step 400/8580 loss=5.0396
+inshop proxy_anchor epoch 3 test R@1=0.7693 (best 0.7693 @ epoch 3)
+inshop proxy_anchor step 500/8580 loss=4.1808
+inshop proxy_anchor epoch 4 test R@1=0.8069 (best 0.8069 @ epoch 4)
+inshop proxy_anchor step 600/8580 loss=3.4882
+inshop proxy_anchor step 700/8580 loss=3.3245
+inshop proxy_anchor epoch 5 test R@1=0.8337 (best 0.8337 @ epoch 5)
+inshop proxy_anchor step 800/8580 loss=2.6888
+inshop proxy_anchor epoch 6 test R@1=0.8543 (best 0.8543 @ epoch 6)
+inshop proxy_anchor step 900/8580 loss=2.6480
+inshop proxy_anchor step 1000/8580 loss=2.7933
+inshop proxy_anchor epoch 7 test R@1=0.8600 (best 0.8600 @ epoch 7)
+inshop proxy_anchor step 1100/8580 loss=2.6743
+inshop proxy_anchor epoch 8 test R@1=0.8648 (best 0.8648 @ epoch 8)
+inshop proxy_anchor step 1200/8580 loss=2.0362
+inshop proxy_anchor epoch 9 test R@1=0.8722 (best 0.8722 @ epoch 9)
+inshop proxy_anchor step 1300/8580 loss=1.8517
+inshop proxy_anchor step 1400/8580 loss=2.0771
+inshop proxy_anchor epoch 10 test R@1=0.8738 (best 0.8738 @ epoch 10)
+CEA graph diagnostic: density=0.2556 multi_component_classes=0.8538 close_rejected=0.6102 far_accepted=0.1460
+inshop proxy_anchor step 1500/8580 loss=0.0018
+inshop proxy_anchor epoch 11 test R@1=0.6156 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1600/8580 loss=0.0011
+inshop proxy_anchor step 1700/8580 loss=0.0009
+inshop proxy_anchor epoch 12 test R@1=0.5939 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1800/8580 loss=0.0007

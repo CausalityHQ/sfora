@@ -8955,3 +8955,18 @@ et al., CVPR 2016); and factorized routed embedding is **DEAD** (DFML, DVML,
 and HIER).  Their mechanisms are already occupied; changing the input signal
 or router would not be a defensible new method.  Full audit:
 `docs/pass127_candidate_batch_2026-08-07.md`.
+
+## Pass 132 — CEA In-Shop screen (DEAD at Gate 4)
+
+CEA's trained operating-point diagnostic passed its preregistered CPU test, but
+the deciding In-Shop run failed immediately when the graph was enabled.  The
+raw best and frozen checkpoint were both **0.8738** at epoch 10, below the
+registered **0.9175** floor; epochs 11 and 12 fell to **0.6156** and **0.5939**
+while loss approached zero.  The local-neighbour selection diagnostic was
+**0.7366** with a +13.718 pt gap, but the discontinuous intervention makes that
+descriptive number unsuitable as an unbiased correction.  The mechanism is a
+hard positive eligibility graph based on class-evidence-drop agreement; in
+this implementation it supplies detached positive targets alongside Proxy
+Anchor's negative term and causes retrieval collapse.  No ablations, extra
+seed, or second-dataset run is authorized.  Full record:
+`docs/pass132_cea_inshop_screen_2026-08-08.md`.
