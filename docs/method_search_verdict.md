@@ -9314,3 +9314,13 @@ links persistence lifetimes to the unseen-class retrieval errors or the
 regularization of mini-batch representations and differentiable topological
 graph embedding. No CPU or GPU run occurred. Full record:
 `docs/pass168_topological_supervision_search_2026-08-08.md`.
+
+## Pass 169 — cross-augmentation IRM/Gram invariance (NONE before GPU)
+
+An independent subagent searched a class-conditional Gram-invariance penalty
+across augmentation environments, motivated by the In-Shop transfer gap. Gate
+1 had no per-augmentation provenance artifact, and Gate 2 found exact or
+mechanism-equivalent prior art in IRM, Deep Causal Metric Learning, and
+augmentation-consistency metric learning. Leave-one-out prototypes reduce to
+Prototypical Networks/ProxyNCA/XBM. No GPU run occurred. Full record:
+`docs/pass169_irm_augmentation_environment_search_2026-08-08.md`.
