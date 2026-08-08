@@ -9485,6 +9485,19 @@ moments, but no label-excluded per-example BN in supervised metric learning
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
 
+## Pass 188 — Biology/physics cross-field search (NONE before GPU)
+
+An independent blind search examined Hill/cooperative activations, spiking/rate
+embeddings, dendritic coincidence heads, and reaction-diffusion/cellular
+automata representations. None had both repository-grounded Gate-1 evidence
+and a mechanism-level Gate-2 gap: Hill/power activations and variance-adaptive
+DML occupy activation reparameterization; neuromorphic CBIR and SNN retrieval
+occupy rate embeddings; dendritic multiplicative heads reduce to bilinear or
+gated attention; and diffusion/cellular-automata retrieval plus the project's
+energy/ODE closures occupy reaction-diffusion representations. No CPU or GPU
+work was performed. Full record:
+`docs/pass188_bio_crossfield_search_2026-08-08.md`.
+
 ## Pass 187 — Class-disjoint pixel signal re-audit (NONE at Gate 1)
 
 The repaired Gate-1 measurement asked whether a pixel-derived signal adds
