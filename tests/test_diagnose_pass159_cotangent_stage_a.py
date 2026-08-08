@@ -444,3 +444,87 @@ def test_compute_seed_rows_is_invariant_to_global_input_order() -> None:
         assert left["candidate_donor_id"] == right["candidate_donor_id"]
         assert left["foreign_support_ids"] == right["foreign_support_ids"]
         assert left["alignments"] == pytest.approx(right["alignments"], abs=1e-12)
+
+
+def _verdict_rows(candidate: float, strongest: float, orthogonal: float) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for label in range(20):
+        for seed in range(4):
+            jitter = 0.001 * ((label % 3) - 1)
+            rows.append(
+                {
+                    "label": label,
+                    "seed": seed,
+                    "orthogonal_fraction": orthogonal,
+                    "alignments": {
+                        "candidate": candidate + jitter,
+                        "receiver_own": strongest + jitter,
+                        "fixed_hash_donor": strongest - 0.01,
+                        "norm_permuted_donor": strongest - 0.02,
+                        "cosine_matched_donor": strongest - 0.015,
+                        "ambient_projection": strongest - 0.025,
+                        "proxy_only": strongest - 0.03,
+                    },
+                }
+            )
+    return rows
+
+
+def test_clustered_verdict_passes_only_when_every_frozen_condition_clears() -> None:
+    result = _MODULE.clustered_verdict(
+        _verdict_rows(candidate=0.50, strongest=0.40, orthogonal=0.30),
+        seed=159,
+        replicates=200,
+    )
+
+    assert result["stage_a"] == "PASS_ONWARD"
+    assert result["strongest_control"] == "receiver_own"
+    assert result["candidate_delta"] == pytest.approx(0.10)
+    assert result["bootstrap_95_lower_bound"] > 0.0
+    assert result["seed_deltas_ge_0_02"] == 4
+    assert result["seed_deltas_nonpositive"] == 0
+    assert result["beats_projection"] is True
+
+
+def test_clustered_verdict_fails_for_nonpositive_effect() -> None:
+    result = _MODULE.clustered_verdict(
+        _verdict_rows(candidate=0.39, strongest=0.40, orthogonal=0.30),
+        seed=159,
+        replicates=200,
+    )
+
+    assert result["stage_a"] == "FAIL"
+    assert result["candidate_delta"] < 0.0
+    assert result["seed_deltas_nonpositive"] == 4
+
+
+def test_clustered_verdict_leaves_intermediate_effect_unresolved() -> None:
+    result = _MODULE.clustered_verdict(
+        _verdict_rows(candidate=0.42, strongest=0.40, orthogonal=0.15),
+        seed=159,
+        replicates=200,
+    )
+
+    assert result["stage_a"] == "UNRESOLVED"
+    assert result["candidate_delta"] == pytest.approx(0.02)
+    assert result["median_orthogonal_fraction"] == pytest.approx(0.15)
+
+
+def test_clustered_verdict_uses_only_labels_present_in_all_four_seeds() -> None:
+    rows = _verdict_rows(candidate=0.50, strongest=0.40, orthogonal=0.30)
+    rows = [row for row in rows if not (row["label"] == 19 and row["seed"] == 3)]
+
+    result = _MODULE.clustered_verdict(rows, seed=159, replicates=100)
+
+    assert result["complete_identity_count"] == 19
+    assert result["incomplete_identity_count"] == 1
+
+
+def test_write_json_atomic_replaces_target_without_leaving_temporary_file(tmp_path: Path) -> None:
+    output = tmp_path / "result.json"
+    output.write_text('{"old": true}\n', encoding="utf-8")
+
+    _MODULE.write_json_atomic(output, {"new": True})
+
+    assert json.loads(output.read_text(encoding="utf-8")) == {"new": True}
+    assert list(tmp_path.glob(".*.tmp")) == []

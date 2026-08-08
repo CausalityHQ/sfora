@@ -138,7 +138,9 @@ noncollapse fraction exactly as `rho=||(I-uu^T)d||`. Its pooled median must be
 the control with the largest pooled mean alignment across seed×identity rows (ties by
 the numbered order above). Every reported seed delta is candidate mean minus that same
 named `c*` mean. The bootstrap resamples eligible identity labels jointly across all
-four seeds; in each of 1,000 fixed-seed (`159`) replicates it recomputes candidate mean
+four seeds. Only complete identity labels with a valid row in all four seeds enter the
+estimand; incomplete labels and their exclusion reasons are reported and never
+replaced. In each of 1,000 fixed-seed (`159`) replicates it recomputes candidate mean
 minus the maximum pooled control mean, giving a simultaneous strongest-control lower
 bound rather than treating seed×identity rows as independent.
 

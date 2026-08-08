@@ -27,11 +27,11 @@
 **Interfaces:**
 - Produces: `angular_proxy_anchor_cotangent`, `parallel_transport`, `smooth_margin_gradient`, `partition_identity`, `select_controls`.
 
-- [ ] Write tiny tests proving the analytic cotangent equals an autograd oracle and is tangent; parallel transport preserves tangency/norm and rejects antipodes; smooth margin/top-32 matches a dense fixture; and selection is input-order invariant with no support leakage.
-- [ ] Run only `tests/test_diagnose_pass159_cotangent_stage_a.py` on DGX and verify RED because the module/functions do not exist.
-- [ ] Implement the minimal pure functions, including every frozen hash/tie/zero guard.
-- [ ] Rerun the same DGX test and verify GREEN.
-- [ ] Commit the pure diagnostic core and tests.
+- [x] Write tiny tests proving the analytic cotangent equals an autograd oracle and is tangent; parallel transport preserves tangency/norm and rejects antipodes; smooth margin/top-32 matches a dense fixture; and selection is input-order invariant with no support leakage.
+- [x] Run only `tests/test_diagnose_pass159_cotangent_stage_a.py` on DGX and verify RED because the module/functions do not exist.
+- [x] Implement the minimal pure functions, including every frozen hash/tie/zero guard.
+- [x] Rerun the same DGX test and verify GREEN.
+- [x] Commit the pure diagnostic core and tests.
 
 ### Task 2: Artifact binding and seed computation
 
@@ -42,11 +42,11 @@
 **Interfaces:**
 - Produces: `load_bound_seed(manifest_entry, seed)` and `compute_seed_rows(bound_seed)`.
 
-- [ ] Add synthetic artifact tests where the valid bundle passes, then independently corrupt a digest, label order, embedded digest, config, checkpoint step, reconstructed embedding, and official R@1 and require each to fail closed.
-- [ ] Run the focused DGX test and verify the new cases fail for missing behavior.
-- [ ] Implement SHA-256 validation, schema/config invariants, head reconstruction, exact row-order bridge, chunked official R@1 binding, and training-only row computation.
-- [ ] Rerun the focused test and verify GREEN.
-- [ ] Commit artifact binding and per-seed computation.
+- [x] Add synthetic artifact tests where the valid bundle passes, then independently corrupt a digest, label order, embedded digest, config, checkpoint step, reconstructed embedding, and official R@1 and require each to fail closed.
+- [x] Run the focused DGX test and verify the new cases fail for missing behavior.
+- [x] Implement SHA-256 validation, schema/config invariants, head reconstruction, exact row-order bridge, chunked official R@1 binding, and training-only row computation.
+- [x] Rerun the focused test and verify GREEN.
+- [x] Commit artifact binding and per-seed computation.
 
 ### Task 3: Cluster bootstrap, frozen verdict, and CLI
 
@@ -55,13 +55,13 @@
 - Modify: `tests/test_diagnose_pass159_cotangent_stage_a.py`
 
 **Interfaces:**
-- Produces: `clustered_verdict(identity_rows, seed=159, replicates=1000)` and CLI arguments `--manifest`, `--output`, `--support-chunk-size`.
+- Produces: `clustered_verdict(identity_rows, seed=159, replicates=1000)` and CLI arguments `--manifest`, `--output`, `--top-k`, `--bootstrap-replicates`.
 
-- [ ] Add boundary tests for pooled strongest-control selection, joint identity resampling across seeds, simultaneous max-control bootstrap, noncollapse thresholds, and all three decision states.
-- [ ] Run the focused DGX test and verify RED.
-- [ ] Implement deterministic bootstrap/verdict, auditable per-identity/per-seed/pooled JSON, and atomic output.
-- [ ] Rerun focused tests plus `python -m py_compile` on DGX and verify GREEN.
-- [ ] Commit and push the complete diagnostic.
+- [x] Add boundary tests for pooled strongest-control selection, joint identity resampling across seeds, simultaneous max-control bootstrap, noncollapse thresholds, and all three decision states.
+- [x] Run the focused DGX test and verify RED.
+- [x] Implement deterministic bootstrap/verdict, auditable per-identity/per-seed/pooled JSON, and atomic output.
+- [x] Rerun focused tests plus `python -m py_compile` on DGX and verify GREEN.
+- [x] Commit and push the complete diagnostic.
 
 ### Task 4: Frozen four-seed execution and verdict
 

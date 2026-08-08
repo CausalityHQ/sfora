@@ -7,8 +7,10 @@ below are deliberately NumPy-only so their geometry can be tested in isolation.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -799,3 +801,212 @@ def compute_seed_rows(bound: BoundSeed, *, top_k: int = 32) -> dict[str, Any]:
         "single_cosine_match_alternative": singleton_match_alternatives,
         "identity_rows": rows,
     }
+
+
+_CONTROL_ORDER = (
+    "receiver_own",
+    "fixed_hash_donor",
+    "norm_permuted_donor",
+    "cosine_matched_donor",
+    "ambient_projection",
+    "proxy_only",
+)
+
+
+def clustered_verdict(
+    identity_rows: list[dict[str, Any]],
+    *,
+    seed: int = 159,
+    replicates: int = 1_000,
+) -> dict[str, Any]:
+    """Apply the frozen joint-identity bootstrap and Stage-A decision rule."""
+    if replicates <= 0:
+        raise ValueError("bootstrap replicates must be positive")
+    by_label: dict[int, dict[int, dict[str, Any]]] = {}
+    for row in identity_rows:
+        label = int(row["label"])
+        row_seed = int(row["seed"])
+        if row_seed in by_label.setdefault(label, {}):
+            raise ValueError(f"duplicate row for label={label}, seed={row_seed}")
+        alignments = row.get("alignments")
+        expected_arms = {"candidate", *_CONTROL_ORDER}
+        if not isinstance(alignments, dict) or set(alignments) != expected_arms:
+            raise ValueError("identity row alignment arms differ from the frozen set")
+        by_label[label][row_seed] = row
+    required_seeds = {0, 1, 2, 3}
+    complete_labels = sorted(
+        label for label, seed_rows in by_label.items() if set(seed_rows) == required_seeds
+    )
+    if not complete_labels:
+        raise ValueError("no identity is present in all four seeds")
+    incomplete_count = len(by_label) - len(complete_labels)
+    arms = ("candidate", *_CONTROL_ORDER)
+    values = np.asarray(
+        [
+            [
+                [float(by_label[label][row_seed]["alignments"][arm]) for arm in arms]
+                for row_seed in range(4)
+            ]
+            for label in complete_labels
+        ],
+        dtype=np.float64,
+    )
+    if not np.isfinite(values).all():
+        raise ValueError("verdict received nonfinite alignments")
+    pooled_means = values.mean(axis=(0, 1))
+    control_means = pooled_means[1:]
+    strongest_index = int(np.argmax(control_means))
+    strongest_control = _CONTROL_ORDER[strongest_index]
+    strongest_arm_index = strongest_index + 1
+    candidate_delta = float(pooled_means[0] - pooled_means[strongest_arm_index])
+    seed_deltas = {
+        str(row_seed): float(
+            values[:, row_seed, 0].mean() - values[:, row_seed, strongest_arm_index].mean()
+        )
+        for row_seed in range(4)
+    }
+
+    rng = np.random.default_rng(int(seed))
+    bootstrap_deltas = np.empty(replicates, dtype=np.float64)
+    identity_count = len(complete_labels)
+    for replicate in range(replicates):
+        sampled = rng.integers(0, identity_count, size=identity_count)
+        sampled_means = values[sampled].mean(axis=(0, 1))
+        bootstrap_deltas[replicate] = sampled_means[0] - float(np.max(sampled_means[1:]))
+    lower_bound = float(np.percentile(bootstrap_deltas, 2.5))
+
+    complete_rows = [
+        by_label[label][row_seed] for label in complete_labels for row_seed in range(4)
+    ]
+    median_orthogonal = float(
+        np.median([float(row["orthogonal_fraction"]) for row in complete_rows])
+    )
+    seed_ge = sum(delta >= 0.02 for delta in seed_deltas.values())
+    seed_nonpositive = sum(delta <= 0.0 for delta in seed_deltas.values())
+    projection_delta = float(pooled_means[0] - pooled_means[arms.index("ambient_projection")])
+    criteria = {
+        "noncollapse_ge_0_20": median_orthogonal >= 0.20,
+        "candidate_delta_ge_0_03": candidate_delta >= 0.03,
+        "bootstrap_lower_bound_positive": lower_bound > 0.0,
+        "at_least_three_seed_deltas_ge_0_02": seed_ge >= 3,
+        "beats_ambient_projection": projection_delta > 0.0,
+    }
+    fail_reasons: list[str] = []
+    if median_orthogonal < 0.10:
+        fail_reasons.append("median orthogonal fraction is below 0.10")
+    if candidate_delta <= 0.0:
+        fail_reasons.append("pooled candidate delta is nonpositive")
+    if seed_nonpositive >= 3:
+        fail_reasons.append("at least three seed deltas are nonpositive")
+    if fail_reasons:
+        stage_a = "FAIL"
+    elif all(criteria.values()):
+        stage_a = "PASS_ONWARD"
+    else:
+        stage_a = "UNRESOLVED"
+    return {
+        "stage_a": stage_a,
+        "reasons": fail_reasons,
+        "criteria": criteria,
+        "complete_identity_count": identity_count,
+        "incomplete_identity_count": incomplete_count,
+        "pooled_means": {arm: float(pooled_means[index]) for index, arm in enumerate(arms)},
+        "strongest_control": strongest_control,
+        "candidate_delta": candidate_delta,
+        "projection_delta": projection_delta,
+        "bootstrap_seed": int(seed),
+        "bootstrap_replicates": int(replicates),
+        "bootstrap_95_lower_bound": lower_bound,
+        "seed_deltas": seed_deltas,
+        "seed_deltas_ge_0_02": int(seed_ge),
+        "seed_deltas_nonpositive": int(seed_nonpositive),
+        "median_orthogonal_fraction": median_orthogonal,
+        "beats_projection": projection_delta > 0.0,
+    }
+
+
+def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--top-k", type=int, default=32)
+    parser.add_argument("--bootstrap-replicates", type=int, default=1_000)
+    args = parser.parse_args()
+
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != 1 or set(manifest.get("seeds", {})) != {
+        "0",
+        "1",
+        "2",
+        "3",
+    }:
+        raise ValueError("Pass159 manifest must contain schema 1 and exactly seeds 0-3")
+    bound_seeds: list[BoundSeed] = []
+    seed_results: list[dict[str, Any]] = []
+    for seed in range(4):
+        bound = load_bound_seed(manifest["seeds"][str(seed)], seed=seed)
+        if bound_seeds and not np.array_equal(
+            bound.train_example_ids, bound_seeds[0].train_example_ids
+        ):
+            raise ValueError("training example-ID order differs across seeds")
+        bound_seeds.append(bound)
+        seed_results.append(compute_seed_rows(bound, top_k=args.top_k))
+    identity_rows = [
+        row for seed_result in seed_results for row in seed_result["identity_rows"]
+    ]
+    verdict = clustered_verdict(
+        identity_rows,
+        seed=159,
+        replicates=args.bootstrap_replicates,
+    )
+    per_seed = []
+    for bound, result in zip(bound_seeds, seed_results, strict=True):
+        rows = result["identity_rows"]
+        arm_names = ("candidate", *_CONTROL_ORDER)
+        arm_means = {
+            arm: float(np.mean([row["alignments"][arm] for row in rows]))
+            for arm in arm_names
+        }
+        per_seed.append(
+            {
+                **{key: value for key, value in result.items() if key != "identity_rows"},
+                "official_recall_at_1": bound.official_recall_at_1,
+                "artifact_binding": bound.artifact_binding,
+                "alignment_means": arm_means,
+            }
+        )
+    payload = {
+        "schema_version": 1,
+        "preregistration": {
+            "document": "docs/pass159_gradient_transplant_search_2026-08-08.md",
+            "manifest": str(args.manifest),
+            "tau": 0.05,
+            "top_k": int(args.top_k),
+            "bootstrap_seed": 159,
+            "bootstrap_replicates": int(args.bootstrap_replicates),
+            "uses_test_data": "artifact_binding_only",
+            "stage_a_cannot_clear_gate_1": True,
+        },
+        "per_seed": per_seed,
+        "identity_rows": identity_rows,
+        "verdict": verdict,
+    }
+    write_json_atomic(args.output, payload)
+    print(json.dumps(verdict, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
