@@ -9456,3 +9456,14 @@ within-class entropy, while Kpotufe et al. (JMLR 2016) establish gradient
 weighting from coordinate variation. The class-ownership statistic is an
 estimator substitution, not a new supervision mechanism. No CPU or GPU work
 occurred. Full proposal: `docs/pass181_cieb_proposal_2026-08-08.md`.
+
+## Pass 182 — Coset-Syndrome Metric Learning (DEAD at Gate 2)
+
+The blind proposer suggested replacing Proxy Anchor by sparse BCH/LDPC parity
+syndrome constraints, leaving a null-space coset for within-class variation.
+Gate 2 closes this as supervised ECOC/deep hashing: Dietterich & Bakiri (JAIR
+1995), Deep N-ary/neural ECOC, Central Similarity Quantization, and
+minimal-distance-separated hash centers already occupy algebraic class-code
+supervision. The null space and differentiable parity products are
+parameterization details, not a new data-derived supervision relation. No CPU
+or GPU work occurred. Full proposal: `docs/pass182_csml_proposal_2026-08-08.md`.
