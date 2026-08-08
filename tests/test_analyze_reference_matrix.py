@@ -26,6 +26,13 @@ def test_bncorrect_ema_arms_are_registered_against_plain_proxy_anchor() -> None:
         assert _module.BASE_OF[arm] == "proxy_anchor"
 
 
+def test_cis_control_arms_are_registered_against_plain_proxy_anchor() -> None:
+    """The CIS screen must include the union and its two controls."""
+    for arm in ("pa_coalition", "pa_coalition_single", "pa_coalition_dropout"):
+        assert _module.ARMS[arm] == ("proxy_anchor", arm)
+        assert _module.BASE_OF[arm] == "proxy_anchor"
+
+
 def test_capacity_arms_keep_their_weakened_paired_controls() -> None:
     """Adding explicit EMA controls must not break the existing narrow-arm override."""
     assert _module.BASE_OF["narrow128_distill"] == "narrow128"

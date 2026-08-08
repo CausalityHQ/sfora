@@ -61,6 +61,11 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
     "tird": ("proxy_anchor", "tird"),
     "pa_ipc4": ("proxy_anchor", "pa_ipc4"),
     "pa_fiedler": ("proxy_anchor", "pa_fiedler"),
+    # CIS union and its same-path controls.  These must be registered here so
+    # the paired analysis cannot silently omit the active In-Shop screen.
+    "pa_coalition": ("proxy_anchor", "pa_coalition"),
+    "pa_coalition_single": ("proxy_anchor", "pa_coalition_single"),
+    "pa_coalition_dropout": ("proxy_anchor", "pa_coalition_dropout"),
     # Capacity-weakened bases, each its own paired control.
     "narrow128": ("proxy_anchor", "narrow128"),
     "narrow128_distill": ("proxy_anchor", "narrow128_distill"),
