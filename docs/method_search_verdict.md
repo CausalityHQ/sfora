@@ -9484,6 +9484,17 @@ moments, but no label-excluded per-example BN in supervised metric learning
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
 
+## Pass 187 — Class-disjoint pixel signal re-audit (NONE at Gate 1)
+
+The repaired Gate-1 measurement asked whether a pixel-derived signal adds
+held-out category/product information beyond descriptor and nuisance features.
+On the corrected In-Shop pack, product and label are one-to-one, so the original
+same-label/different-identity target is undefined. The valid category-vs-product
+repair (23 path categories, 8,604 pairs) gave a 48x48 RGB histogram plus
+mean/variance/edge signal ΔAUC `−0.000029`, only 2/5 positive folds, below the
+registered `+0.05` threshold. No mechanism follows and no GPU work occurred;
+full record: `docs/pass187_pixel_signal_reaudit_2026-08-08.md`.
+
 ## Pass 186 — Foreign-Gradient Fisher Preconditioning (DEAD at Gate 2)
 
 The candidate maintained a per-proxy covariance of foreign-negative gradients
