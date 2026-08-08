@@ -237,6 +237,7 @@ class ImageEndToEndConfig(BaseModel):
     # remains the ordinary single-model path.  This is an In-Shop-only candidate;
     # CUB freezes BN and must not use it.
     class_excluded_batch_norm: bool = False
+    class_excluded_batch_norm_blend: float | None = Field(default=None, ge=0.0, le=1.0)
     # Rival-signature positive graph. Zero preserves historical behavior.
     rspg_weight: float = Field(default=0.0, ge=0.0)
     rspg_warmup_epoch: int = Field(default=10, ge=1)
@@ -1415,7 +1416,13 @@ def run_image_end_to_end_benchmark(
                     else:
                         feature_map = None
                         raw_embeddings = model(images)
-                        if config.class_excluded_batch_norm:
+                        if config.class_excluded_batch_norm_blend is not None:
+                            ce_embeddings = _class_excluded_batch_norm(
+                                raw_embeddings, labels, torch_module=torch
+                            )
+                            blend = float(config.class_excluded_batch_norm_blend)
+                            raw_embeddings = (1.0 - blend) * raw_embeddings + blend * ce_embeddings
+                        elif config.class_excluded_batch_norm:
                             raw_embeddings = _class_excluded_batch_norm(
                                 raw_embeddings, labels, torch_module=torch
                             )
