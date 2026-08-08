@@ -1854,6 +1854,11 @@ def image_end_to_end(
                 selection_manifest=recipe_selection_manifest,
             )
             base_config = config_for_recipe(resolved_recipe)
+            # `--objectives` identifies the base recipe family.  The resolved recipe
+            # is authoritative for the objective that actually executes.  Keeping
+            # the CLI selector here silently turned derived objectives such as CIS
+            # back into plain Proxy Anchor while retaining their recipe labels.
+            resolved_objectives = base_config.objectives
             resolved_protocol = base_config.protocol
             console.print(
                 {

@@ -938,6 +938,66 @@ def test_image_end_to_end_auto_recipe_accepts_recall_at_k_surrogate(
     assert config.head_pooling == "gem"
 
 
+def test_image_end_to_end_derived_recipe_executes_its_declared_objective(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    """The base selector must not overwrite a derived recipe's training objective."""
+    bundle = ImageRetrievalBundle(
+        train=[
+            ImageExample(f"train-{label}-{index}", f"train-{label}-{index}", label)
+            for label in (0, 1)
+            for index in range(3)
+        ],
+        query=[ImageExample("query-10", "query-10", 10)],
+        gallery=[ImageExample("gallery-10", "gallery-10", 10)],
+        protocol="query_gallery",
+        protocol_name="deepfashion-inshop-official",
+    )
+    captured: dict[str, Any] = {}
+    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+
+    def fake_run(**kwargs: Any) -> Any:
+        captured["config"] = kwargs["config"]
+        return SimpleNamespace(
+            name="image-end-to-end-benchmark",
+            dataset_name="inshop",
+            protocol=kwargs["config"].protocol,
+            train_examples=len(kwargs["train_examples"]),
+            test_examples=len(kwargs["test_examples"]),
+            gallery_examples=len(kwargs["gallery_examples"]),
+            methods={},
+        )
+
+    monkeypatch.setattr("sfora.cli.run_image_end_to_end_benchmark", fake_run)
+    monkeypatch.setattr(
+        "sfora.cli.write_image_end_to_end_report",
+        lambda result, output: output,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "image-end-to-end",
+            "--output",
+            str(tmp_path / "coalition.json"),
+            "--dataset-name",
+            "inshop",
+            "--dataset-root",
+            str(tmp_path),
+            "--objectives",
+            "proxy_anchor",
+            "--recipe",
+            "pa_coalition",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    config = captured["config"]
+    assert config.objectives == ("proxy_anchor_coalition",)
+    assert config.recipe_delta["objectives"] == ("proxy_anchor_coalition",)
+
+
 def test_image_end_to_end_recipe_override_is_marked_modified(
     tmp_path: Path,
     monkeypatch: Any,
