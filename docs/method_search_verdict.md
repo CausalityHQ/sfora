@@ -9485,6 +9485,18 @@ moments, but no label-excluded per-example BN in supervised metric learning
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
 
+## Pass 190 — Soft CE-BN hill-climb (LIVE-NARROW; queued after Pass183)
+
+Hard CE-BN's early train/eval collapse motivated a local blend rather than a
+new random family. On corrected In-Shop descriptors, blending ordinary and
+leave-own-class-out normalized head outputs improved R@1 from `0.913701` at
+λ=0 to `0.921789` at λ=0.70 (`0.927275` at λ=1). This is a CPU mechanism probe,
+not benchmark evidence. Batch Renormalization (Ioffe, NeurIPS 2017) occupies
+batch/running-statistics interpolation but does not exclude same-label rows or
+define a metric-learning supervision relation; the label-excluded head blend
+remains LIVE-NARROW. Full preregistration and audit:
+`docs/pass190_soft_cebn_hillclimb_2026-08-08.md`.
+
 ## Pass 189 — Chemistry-inspired proxy search (NONE before GPU)
 
 The blind search considered cross-fitted/leave-class-out proxies and higher-
