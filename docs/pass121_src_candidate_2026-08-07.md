@@ -53,6 +53,25 @@ objective/recipe suite passes (65 tests). This is only an implementation
 readiness result; it is not a benchmark result and has not been copied into
 the active DGX queue.
 
+## Fresh Gate-2 adversarial audit (2026-08-08)
+
+A second primary-source pass found no metric-learning paper that combines all
+three defining operations: summing embeddings of distinct real images,
+forming one leave-one-out coalition for each omitted member, and supervising
+each residual against the complementary class-proxy target. Deep Sets and Set
+Transformer are set encoders without this supervision; Proxy Synthesis uses
+synthetic embeddings/proxies; multi-proxy methods use subproxies rather than
+real-image coalitions; complementary-label learning assigns non-target labels
+to a single image. SRC therefore remains **LIVE-NARROW**, not established
+novel. It must die if its implementation collapses into per-image
+complementary loss (Katsikas et al.), ordinary mixed-sample metric learning
+(HSE/CIS), a learned compositor (DCML), or synthetic/union-only proxy
+supervision (Proxy Synthesis).
+
+The deciding controls are consequently: union-only coalition, no-residual
+sum, per-image complementary target, and ordinary Proxy Anchor. This audit
+does not authorize GPU work by itself.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
