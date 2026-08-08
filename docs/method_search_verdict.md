@@ -9354,3 +9354,13 @@ DSLL, and DPP/log-det coverage occupy the candidate families; auction and
 submodular variants reduce to those mechanisms or selection/reweighting. No
 GPU run occurred. Full record:
 `docs/pass172_set_supervision_search_2026-08-08.md`.
+
+## Pass 173 — class-manifold connectivity (DEAD at Gate 1)
+
+The stable fragmentation observations motivated a bridge-preserving graph
+method. On the corrected In-Shop train pack, cross-fitted algebraic-connectivity
+versus class query-accuracy correlation was only `+0.071725`, below the
+preregistered `0.20` threshold and weaker than nearest-neighbour similarity
+(`+0.119417`). The proposed graph signal therefore fails Gate 1; no GPU run.
+Full record: `docs/pass173_connectivity_provenance_2026-08-08.md` and
+`scripts/diagnose_class_connectivity.py`.
