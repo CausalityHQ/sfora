@@ -9199,3 +9199,35 @@ plasticity is detached positive-loss reweighting (HFC/RBPA) or differentiable
 magnitude-dependent quality regularization (MagFace/AdaFace), depending on
 whether the norm is detached. No CPU or GPU work is authorized. Full record:
 `docs/pass158_positive_transfer_crossfield_search_2026-08-08.md`.
+
+## Pass 159 — norm-ranked cotangent transplant (DEAD at Gate 2)
+
+The measured positive-transfer norm signal motivated routing a high-norm
+same-identity donor's first-order Proxy-Anchor angular gradient to a low-norm
+receiver.  Collinear transport is pair/sample weighting (MS General Pair
+Weighting, DML-ALA); non-collinear transport is gradient-field manipulation
+(PCGrad/CAGrad); forward rewrites are embedding expansion/variance transfer;
+magnitude-dependent versions are MagFace/AdaFace.  Response-based abstention
+is InstaAug/AdaAug or mining.  The candidate is therefore dead before GPU.
+Full record: `docs/pass159_gradient_transplant_search_2026-08-08.md`.
+
+## Pass 160 — cross-field architecture/optimization search (NONE before GPU)
+
+Kinetic proofreading, non-reversible parameter circulation, predictive-coding
+credit assignment, and structural plasticity all reduce to occupied operators
+or lack a Gate-1 signal.  No implementation or GPU run is authorized. Full
+record: `docs/pass160_crossfield_architecture_search_2026-08-08.md`.
+
+## Pass 161 — protocol audit (discovery gate repaired, no candidate)
+
+Fourteen days of mostly pre-GPU `NONE` results exposed a structural deadlock:
+the proposer was blind to repository measurements while Gate 1 required a
+proposal to be motivated by one.  A universal `+0.05` diagnostic floor also
+rejected small signals before an operator could be tested.  This is a process
+failure mode, not evidence that no method exists.  The repaired protocol adds an
+independent measurement-conditioned generation lane, makes Gate 1 require
+reproducibility and causal relevance rather than a universal AUC threshold, and
+requires mechanism equivalence (same training object, data flow, and decision
+point) before Gate 2 kills a candidate.  Adjacent prior art is `LIVE-NARROW` with
+component-removal controls.  No GPU work is authorized by this audit alone.
+Full record: `docs/protocol_audit_2026-08-08.md`.

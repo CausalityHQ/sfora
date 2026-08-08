@@ -229,3 +229,47 @@ paired control and retained final artifacts. Any general claim must confront at 
 0.766 CUB, 0.949 Cars196, or 0.939 In-Shop under comparable capacity.
 
 Commit and push after each gate. Report honestly whichever way each candidate goes.
+
+## Protocol audit and repair (2026-08-08)
+
+Fourteen days of mostly pre-GPU `NONE` results exposed a process risk rather than
+evidence that the design space is empty.  The original loop contains a structural
+deadlock:
+
+1. The proposer is forbidden to see repository measurements.
+2. Gate 1 requires that the proposal be motivated by a repository measurement.
+3. Weak but real measurements are rejected by a fixed `+0.05` diagnostic floor,
+   even when the proposed operator could amplify a small signal.
+
+Thus a fresh proposer can pass provenance only by guessing an already audited
+measurement, while a measurement-aware proposal is disallowed by construction.
+This explains the high rate of clean Gate-1/2 negatives and is not evidence that
+no method exists.  The old floor is useful for a *specific diagnostic falsifier*,
+but it must not be a universal requirement for a training idea.
+
+### Repair, effective for the next pass
+
+Run two independent generation lanes:
+
+* **Blind novelty lane:** the original neutral prompt, retained to discover
+  mechanisms not suggested by the ledger.
+* **Measurement-conditioned lane:** a separate proposer receives one verified
+  measurement packet and must derive an operator from it.  It may use a small
+  effect or a mechanistic correlation; Gate 1 asks only whether the measurement
+  is reproducible, correctly scoped, and causally relevant enough to yield a
+  preregistered falsifier.  It does not require `+0.05` AUC unless that number is
+  the candidate's own registered diagnostic.
+
+The two lanes remain independent: neither sees the other's proposal or verdict.
+Both proposals still require the frozen second review, primary-source search,
+matched-compute controls, and out-of-sample confirmation.
+
+Gate 2 is also tightened.  A candidate is `DEAD` only when a cited paper has the
+same training object, data flow, and decision point.  A shared mathematical tool
+(for example, “uses a gradient” or “is a dynamical system”) is not mechanism-
+equivalent.  Genuine adjacent overlap becomes `LIVE-NARROW` with an explicit
+ablation that removes the allegedly new component.
+
+This amendment repairs an over-aggressive discovery gate; it does not authorize
+GPU work without preregistration, a CPU falsifier where available, and a paired
+In-Shop screen.
