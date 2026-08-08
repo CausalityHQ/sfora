@@ -9287,3 +9287,17 @@ head is an ordinary EBM. Tieleman (ICML 2008), Du et al. (ICML 2021), Grathwohl
 et al. (ICLR 2020), DAML, AdCo, LoOp, Proxy Synthesis, and MemVir establish the
 families. Forecast is `0.9154` (<5% chance above `0.9185`); no GPU run.
 Full record: `docs/pass167_persistent_spherical_cd_search_2026-08-08.md`.
+
+## Reopened-candidate audit (2026-08-08)
+
+The protocol repair invalidated blind `NONE` responses, not concrete
+evidence-aware Gate 1/2 decisions. Passes 58–72 were rechecked accordingly:
+blind searches are non-evidence, while measured tail failures, exact prior-art
+reviews, and diagnostics remain scoped to their tested mechanisms.
+Confusion-graph label elasticity remains occupied by Confusion-Based Metric
+Learning (Chen et al., TNNLS 2022), Group Loss, and hierarchical metric
+learning. The only live-narrow fresh direction is cross-instance transport of
+the descriptor's controlled-augmentation Jacobian; it has no GPU authorization
+until a primary-art audit and CPU falsifier distinguish it from transformed
+attention consistency, AugSelf/equivariance, and cross-image disentanglement.
+Full audit: `docs/reopened_candidate_audit_2026-08-08.md`.
