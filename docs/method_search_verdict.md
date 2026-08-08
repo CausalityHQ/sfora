@@ -9241,3 +9241,12 @@ error, under-specified equations, fatal decodability-versus-cosine
 non-identifiability, and direct same-identity cross-image reconstruction prior
 art in Zheng et al. CVPR 2019.  No CPU or GPU run occurred. Full record:
 `docs/pass162_icbc_adversarial_review_2026-08-08.md`.
+
+## Pass 163 — direct Gram-geometry search (NONE before GPU)
+
+The unseen-minus-seen gap motivated a direct normalized-Gram objective, but the
+strongest concrete class-conditional instance-discrimination construction is
+already occupied by Chen et al. ICML 2022 and Lee et al. AISTATS 2025.  The
+measurement does not identify a new editable signal or a defensible gain
+forecast.  No CPU or GPU run occurred.
+Full record: `docs/pass163_direct_gram_search_2026-08-08.md`.
