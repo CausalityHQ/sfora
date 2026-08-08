@@ -487,6 +487,8 @@ def test_head_only_kernel_preserves_registered_model_arithmetic_dtype() -> None:
 def test_cosine_rejects_either_tiny_norm_without_rejecting_small_valid_pair() -> None:
     with pytest.raises(ValueError, match="nonzero"):
         _MODULE.cosine_similarity(np.asarray([1.0e-13, 0.0]), np.asarray([1.0e13, 0.0]))
+    with pytest.raises(ValueError, match="nonzero"):
+        _MODULE.cosine_similarity(np.asarray([1.0e13, 0.0]), np.asarray([1.0e-13, 0.0]))
 
     assert _MODULE.cosine_similarity(
         np.asarray([1.0e-8, 0.0]), np.asarray([1.0e-8, 0.0])
@@ -611,31 +613,57 @@ def test_rotation_checker_rejects_errors_just_above_registered_thresholds() -> N
         _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
 
 
+def test_rotation_checker_accepts_errors_exactly_at_registered_thresholds() -> None:
+    rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
+    rotated_vectors["z"] = np.asarray([1.0, 5.0e-4, 0.0])
+    statistics["Delta"] = 0.0
+    rotated_statistics["Delta"] = 2.0e-4
+
+    checked = _MODULE.check_rotation(
+        vectors, rotated_vectors, statistics, rotated_statistics, rotation
+    )
+
+    assert checked["vector_residuals"]["z"] == pytest.approx(5.0e-4)
+    assert checked["statistic_differences"]["Delta"] == pytest.approx(2.0e-4)
+
+
 @pytest.mark.parametrize(
-    ("kind", "name"),
+    ("kind", "name", "side"),
     [
-        *(("vector", name) for name in _ROTATION_VECTOR_NAMES),
-        *(("statistic", name) for name in _ROTATION_STATISTIC_NAMES),
+        *(
+            ("vector", name, side)
+            for name in _ROTATION_VECTOR_NAMES
+            for side in ("original", "rotated")
+        ),
+        *(
+            ("statistic", name, side)
+            for name in _ROTATION_STATISTIC_NAMES
+            for side in ("original", "rotated")
+        ),
     ],
 )
-def test_rotation_checker_rejects_each_missing_registered_name(kind: str, name: str) -> None:
+def test_rotation_checker_rejects_each_missing_registered_name(
+    kind: str, name: str, side: str
+) -> None:
     rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
     if kind == "vector":
-        vectors.pop(name)
-        rotated_vectors.pop(name)
+        target = vectors if side == "original" else rotated_vectors
     else:
-        statistics.pop(name)
-        rotated_statistics.pop(name)
+        target = statistics if side == "original" else rotated_statistics
+    target.pop(name)
 
     with pytest.raises(ValueError, match="registered names"):
         _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
 
 
-@pytest.mark.parametrize("name", _ROTATION_VECTOR_NAMES)
-def test_rotation_checker_rejects_each_named_zero_vector(name: str) -> None:
+@pytest.mark.parametrize(
+    ("name", "side"),
+    [(name, side) for name in _ROTATION_VECTOR_NAMES for side in ("original", "rotated")],
+)
+def test_rotation_checker_rejects_each_named_zero_vector(name: str, side: str) -> None:
     rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
-    vectors[name] = np.zeros(3)
-    rotated_vectors[name] = np.zeros(3)
+    target = vectors if side == "original" else rotated_vectors
+    target[name] = np.zeros(3)
 
     with pytest.raises(ValueError, match="nonzero"):
         _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
