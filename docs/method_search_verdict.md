@@ -9034,3 +9034,19 @@ The mechanism-level negative and primary collision list are recorded in
 `docs/pass140_sol_fresh_search_2026-08-08.md`.  No CPU or GPU work is
 authorized from this pass.  The live CIS controls remain the next source of
 measurement-grounded candidate generation.
+## Pass 141 — CIS ownership-credit search (NONE at Gate 2, 2026-08-08)
+
+After the CIS coalition and paired Proxy Anchor each reached raw best In-Shop
+R@1 `0.9170` at epoch 41 (CIS final `0.9149`, reference final `0.9158`), Sol
+audited whether owner-specific credit could rescue the coalition mechanism.
+The coalition gradient gives every member the same proxy-gradient vector; only
+the tangent projection differs, so non-owner samples can be pulled toward a
+different member's proxy. Leave-one-out residuals reduce to ordinary
+single-image proxy supervision for an unnormalized linear coalition; normalized
+residuals either reintroduce cross-owner contamination or are merely
+context-conditioned scoring of the same atom. Coded/repeated coalitions
+linearly decode back to the same per-image scores, while nonlinear decoding is
+ECOC/vector-symbolic/compositional/routed prior art. No mechanism survived
+Gate 2, and no new GPU run is authorized. The raw numbers are one-seed
+screening evidence only; the required selection-corrected CIS/control analysis
+remains separate. Full audit: `docs/pass141_sol_cis_ownership_review_2026-08-08.md`.
