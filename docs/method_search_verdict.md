@@ -9445,3 +9445,14 @@ and split-half axis stability was `0.625897`. The preregistered retrieval and
 covariance criteria fail, so no train-time implementation or GPU run is
 authorized. Full proposal: `docs/pass180_camw_proposal_2026-08-08.md`;
 diagnostic: `scripts/measure_camw_cpu.py`.
+
+## Pass 181 — Class-Influence Entropy Backpropagation (DEAD at Gate 2)
+
+The blind proposer suggested scaling Proxy Anchor gradients by the entropy of
+each descriptor coordinate's class-ownership distribution. Gate 2 closes this
+as feature-wise gradient/entropy weighting: Jin et al. (IEEE TNNLS 2023)
+already derive entropy-based feature-dimension weights using class and
+within-class entropy, while Kpotufe et al. (JMLR 2016) establish gradient
+weighting from coordinate variation. The class-ownership statistic is an
+estimator substitution, not a new supervision mechanism. No CPU or GPU work
+occurred. Full proposal: `docs/pass181_cieb_proposal_2026-08-08.md`.
