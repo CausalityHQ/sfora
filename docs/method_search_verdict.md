@@ -9373,3 +9373,19 @@ vs `0.998333`, −0.167 points) on a deterministic 300-class In-Shop CPU proxy.
 Rank expansion without retrieval gain falsifies the preregistered Gate-1
 criterion; no GPU run. Full record:
 `docs/pass174_morphogenetic_embedding_head_2026-08-08.md`.
+
+## Pass 175 — Conformal Ambiguity-Set Pair Gate (DEAD at Gate 1)
+
+CASPG converted the measured RSPG rival-identity signal into split-conformal
+target-excluded class sets and used pairwise Jaccard overlap as a hard
+positive-to-unknown gate. The mechanism was LIVE-NARROW at Gate 2: conformal
+prediction sets and threshold-consistent DML are adjacent, but no exact
+train-time DML eligibility gate was found. On the corrected In-Shop training
+pack, a deterministic 249-class CPU proxy produced pair-gate AUC `0.894268`
+and mean set size `0.44`, but the preregistered cross-fitted selected-gallery
+retrieval delta was `+0.000000`, below the required `+0.005`. The calibrated
+sets therefore distinguish pair labels without improving the retrieval
+surrogate; CASPG is dead without GPU. This reinforces that a predictive pair
+statistic is not sufficient provenance for a useful supervision gate.
+Full proposal and audit: `docs/pass175_caspg_proposal_2026-08-08.md`;
+diagnostic: `scripts/measure_caspg_gate.py`.
