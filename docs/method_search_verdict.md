@@ -9835,3 +9835,25 @@ optimization capacity. This closes the registered CIEB operator without claiming
 all entropy preconditioners are mathematically impossible. No Stage B, implementation,
 or GPU run is authorized. Full result:
 `docs/pass181_cieb_stage_a_result_2026-08-09.md`.
+
+## Pass200 — Receiver-Self Tangent Alignment: LIVE-NARROW at Gate 2
+
+Pass159's singleton clean-eval diagnostic measured receiver-own PA angular descent
+alignment `0.592177` versus `0.559383` for a transported high-norm donor (difference
+`-0.032794` in all four corrected In-Shop seeds); it did not measure the contextual
+B=180 training cotangent. CIEB separately showed coordinate ownership instability
+(`0.0355`--`0.0864`) and a nearly scalar multiplier (CV `0.0385`--`0.0407`). RSTA
+therefore asks whether the remaining defect is cross-example Jacobian coupling: the
+ordinary full-batch raw-gradient motion `J_i sum_j J_j^T dbar_j` may be worse for a
+receiver than its self-induced motion `J_i J_i^T dbar_i`.
+
+Gradient Agreement, PCGrad/CAGrad, OGD, Fishr, DML-ALA, NINT, Semantic Granularity
+Alignment, and the internal gradient-routing candidates are adjacent but do not use
+the same receiver-specific output-space self-versus-batch motion as their training
+object and decision point. The repaired Gate-2 rule therefore leaves RSTA
+**LIVE-NARROW**, not established novel. Exact contextual batch PA cotangents are
+mandatory; singleton surrogates are invalid. A four-seed, full-BN-Inception VJP/JVP
+screen, its data roles, rotation test, controls, expected `Delta>=0.03`, and
+falsification conditions were frozen after cold review and before values in
+`docs/pass200_rsta_candidate_2026-08-09.md`. No benchmark training is authorized
+until that screen and a later virtual-update Stage B pass.
