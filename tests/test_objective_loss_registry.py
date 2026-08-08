@@ -215,3 +215,75 @@ def test_coalition_single_complementary_is_distinct_and_finite() -> None:
     single = image_end_to_end._coalition_proxy_loss(**kwargs, mode="single")
     assert torch.isfinite(complementary)
     assert not torch.allclose(complementary, single)
+
+
+def test_src_operator_contains_both_union_and_leave_one_out_terms() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], requires_grad=True
+    )
+    labels = torch.tensor([0, 1, 2])
+    proxies = torch.eye(3, 2)
+    proxy_labels = torch.tensor([0, 1, 2])
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    union = image_end_to_end._coalition_proxy_loss(**kwargs, mode="union")
+    residual = image_end_to_end._coalition_proxy_loss(**kwargs, mode="residual")
+    src = image_end_to_end._stoichiometric_residual_coalition_loss(**kwargs)
+    assert torch.allclose(src, union + residual)
+
+
+def test_src_dispatcher_uses_union_plus_residual_operator() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    config = image_end_to_end.ImageEndToEndConfig(
+        objectives=("proxy_anchor_coalition",),
+        coalition_mode="residual",
+        coalition_weight=0.25,
+        proxy_anchor_alpha=8.0,
+        proxy_anchor_delta=0.1,
+    )
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], requires_grad=True
+    )
+    labels = torch.tensor([0, 1, 2])
+    proxies = torch.eye(3, 2)
+    proxy_labels = torch.tensor([0, 1, 2])
+    base = image_end_to_end._proxy_anchor_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        alpha=config.proxy_anchor_alpha,
+        delta=config.proxy_anchor_delta,
+        torch_module=torch,
+    )
+    src = image_end_to_end._stoichiometric_residual_coalition_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    dispatched = image_end_to_end._loss_for_objective(
+        "proxy_anchor_coalition",
+        embeddings,
+        labels,
+        step=0,
+        steps_per_epoch=1,
+        memory_embeddings=None,
+        memory_labels=None,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        config=config,
+        torch_module=torch,
+    )
+    assert torch.allclose(dispatched, base + config.coalition_weight * src)

@@ -3777,14 +3777,23 @@ def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
         delta=config.proxy_anchor_delta,
         torch_module=torch_module,
     )
-    coalition = _coalition_proxy_loss(
-        embeddings,
-        labels,
-        proxy_embeddings=proxy_embeddings,
-        proxy_labels=proxy_labels,
-        mode=config.coalition_mode,
-        torch_module=torch_module,
-    )
+    if config.coalition_mode == "residual":
+        coalition = _stoichiometric_residual_coalition_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            torch_module=torch_module,
+        )
+    else:
+        coalition = _coalition_proxy_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            mode=config.coalition_mode,
+            torch_module=torch_module,
+        )
     return _apply_teacher_similarity_regularization(
         base + config.coalition_weight * coalition,
         kwargs,
@@ -5801,6 +5810,32 @@ def _coalition_proxy_loss(
         .unsqueeze(0)
     )
     return torch_module.nn.functional.binary_cross_entropy_with_logits(logits, target)
+
+
+def _stoichiometric_residual_coalition_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    proxy_embeddings: Any | None,
+    proxy_labels: Any | None,
+    torch_module: Any,
+) -> Any:
+    """SRC's union equation plus all leave-one-out residual equations.
+
+    Keeping this composition explicit prevents the residual-only dispatcher
+    from silently collapsing to the single-image control for two-member
+    bundles.
+    """
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxy_embeddings,
+        proxy_labels=proxy_labels,
+        torch_module=torch_module,
+    )
+    return _coalition_proxy_loss(**kwargs, mode="union") + _coalition_proxy_loss(
+        **kwargs, mode="residual"
+    )
 
 
 def _crossfit_positive_centroids(

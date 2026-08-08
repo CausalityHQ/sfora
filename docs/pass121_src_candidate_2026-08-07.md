@@ -72,6 +72,16 @@ The deciding controls are consequently: union-only coalition, no-residual
 sum, per-image complementary target, and ordinary Proxy Anchor. This audit
 does not authorize GPU work by itself.
 
+## Implementation repair (2026-08-08)
+
+The Gate-1 audit found that the dispatcher previously used residual-only
+supervision. It now has an explicit `_stoichiometric_residual_coalition_loss`
+composition containing both the union equation and all leave-one-out residual
+equations, with regression tests for the two-member collapse and dispatcher
+composition. This repairs the implementation mismatch only; the original
+SRC benchmark prediction is void and requires a fresh preregistration before
+any GPU screen.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
