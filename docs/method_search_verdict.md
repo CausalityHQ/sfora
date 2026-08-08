@@ -9410,3 +9410,12 @@ The full arm misses its preregistered `0.9190` threshold and loses to both
 mechanism controls. The earlier invalid pre-fix random log is excluded; the
 dtype-fixed artifact is the retained control. ECT-R is dead and receives no
 additional GPU. Full closeout: `docs/pass177_ectr_closeout_2026-08-08.md`.
+
+## Pass 178 — cross-field supervision search (NONE before GPU)
+
+An independent search across biology, chemistry, physics, and algorithmic
+supervision found no actionable mechanism with both measured provenance and a
+Gate-2 novelty distinction. The proposed routes reduce to audited
+potential-field/energy/ODE/symplectic, ranking/matching/coalition, or conformal
+selection families. No CPU or GPU work occurred. Full record:
+`docs/pass178_crossfield_supervision_search_2026-08-08.md`.
