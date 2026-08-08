@@ -9050,3 +9050,18 @@ ECOC/vector-symbolic/compositional/routed prior art. No mechanism survived
 Gate 2, and no new GPU run is authorized. The raw numbers are one-seed
 screening evidence only; the required selection-corrected CIS/control analysis
 remains separate. Full audit: `docs/pass141_sol_cis_ownership_review_2026-08-08.md`.
+## Pass 142 — synthetic within-class transport search (NONE at Gate 2, 2026-08-08)
+
+The focused Sol review attacked the remaining donor-to-recipient variation-
+transport route using the repository's fragmentation, proxy under-alignment,
+and disjoint-identity measurements. A spherical/geodesic transported donor
+feature supervised as the recipient class is exactly synthetic feature-space
+augmentation, occupied by Delta-Encoder, Deep Variational Metric Learning,
+Spherical Feature Transform, Meta Variance Transfer, and SEE (IJCAI 2025).
+Avoiding a virtual feature leaves detached relational distillation or live graph
+supervision/pair weighting, also occupied. CIS cannot provide owner-safe coupled
+credit: linear leave-one-out reduces to ordinary proxy supervision, while
+nonlinear coupling contaminates owners or becomes compositional/routed prior
+art. The CPU transfer test is adverse (`rho_32 = 0.9312, 0.9287, 0.9345`, below
+the 1.15 floor). No implementation or GPU run is authorized. Full audit:
+`docs/pass142_sol_synthetic_transport_review_2026-08-08.md`.
