@@ -9586,3 +9586,19 @@ forward but absent from the evaluation/deployment path, producing a severe
 optimization/representation mismatch.  No second seed or replication is
 justified.  Concurrent CPU wall-clock measurements are discarded as cost
 evidence; numerical diagnostic values remain valid.
+
+### Pass190 — soft CE-BN blend: DEAD, Gate 5
+
+**Mechanism:** blend the ordinary embedding with `lambda=0.70` of the
+label-excluded batch-normalized embedding during training, retaining the
+ordinary path at deployment.  This was a direct hill-climb intended to soften
+the hard CE-BN train/eval mismatch.
+
+**Result:** matched In-Shop seed 0 finished with final R@1 `0.889014`, raw
+best `0.890350`, versus paired Proxy Anchor final `0.913701`, raw best
+`0.916303`.  Raw final delta `-2.469 pt`; raw best delta `-2.595 pt`; the
+leave-one-out local-trend diagnostic is `0.887185` versus `0.913877`, delta
+`-2.669 pt`.  The CPU-only descriptor probe therefore does not survive even
+the softened train-time intervention.  The entire CE-BN line is closed;
+ARSN must pass its CPU predictability and strict prior-art gate before any
+implementation or GPU use.
