@@ -4559,6 +4559,7 @@ def _loss_for_objective(
     tversky_feature_bank: Any | None = None,
     cem_edges: dict[int, tuple[int, float]] | None = None,
     rspg_state: RSPGState | None = None,
+    cea_state: RSPGState | None = None,
     ipsr_state: IPSRState | None = None,
     sample_indices: Any | None = None,
     custom_losses: Mapping[str, Callable[[Any, Any, ImageEndToEndConfig, Any], Any]] | None = None,
@@ -4591,6 +4592,7 @@ def _loss_for_objective(
         tversky_feature_bank=tversky_feature_bank,
         cem_edges=cem_edges,
         rspg_state=rspg_state,
+        cea_state=cea_state,
         ipsr_state=ipsr_state,
         sample_indices=sample_indices,
     )
