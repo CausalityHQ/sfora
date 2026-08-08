@@ -9765,3 +9765,21 @@ requires exact train/head binding and recomputes official R@1 from immutable fin
 query/gallery packs; it does not loosen tolerance or score the legacy query export.
 This integrity-only adjudication was committed before rerunning Stage A. Full audit:
 `docs/pass159_prehead_batch_binding_defect_2026-08-08.md`.
+
+## Pass159 repaired closeout — norm-ranked cotangent transplant (DEAD at Gate 1)
+
+The repaired Gate-2 distinction was real, but its measured premise failed before GPU.
+On four corrected final In-Shop seeds and 1,984 complete training identities per seed,
+the transported high-norm donor cotangent aligned `0.559383` with a held-out smooth
+retrieval-margin gradient versus `0.592177` for the receiver's own PA descent:
+**`-0.032794`**, with four negative seed deltas and bootstrap lower bound `-0.033757`.
+It also lost to ambient projection of the same donor by `-0.002007`; fixed-hash,
+norm-permuted, and cosine-matched donors all slightly beat the norm-ranked donor.
+
+**Mechanism:** pre-normalization norm contains retrieval-quality information, but that
+does not make a high-norm example's angular loss cotangent a transferable correction
+for a low-norm same-class example. The donor lives at a different point in the shared
+gradient field; geodesic transport preserves its tangent geometry but not its local
+utility. This separates a valid quality observable from an invalid cross-example
+update operator. No Stage B or benchmark run is authorized. Full result:
+`docs/pass159_stage_a_result_2026-08-08.md`.

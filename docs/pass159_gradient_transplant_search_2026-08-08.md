@@ -162,3 +162,14 @@ update and improves alignment with a class-disjoint proxy-free retrieval gradien
 `>=0.02`, with positive clustered-bootstrap lower bound, all seeds positive, and a
 small stateless step agreeing in sign and within 20% of the first-order forecast.
 No training run is authorized before both stages clear.
+
+## Stage-A result (2026-08-08)
+
+**FAIL; closed with no GPU work.** Across 7,936 complete seed×identity rows, candidate
+alignment was `0.559383` versus `0.592177` for receiver-own PA descent, delta
+`-0.032794`, joint-bootstrap lower bound `-0.033757`. All four seed deltas were
+negative (`-0.0321` to `-0.0343`). The candidate also lost to ambient projection by
+`-0.002007`, and median noncollapse was only `0.112145`. High-norm donor selection
+therefore supplies a worse local update direction than using the receiver's own
+gradient; geodesic transport does not rescue it. Full result:
+`docs/pass159_stage_a_result_2026-08-08.md`.

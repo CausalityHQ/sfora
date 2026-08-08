@@ -73,8 +73,8 @@
 - Consumes: the committed manifest and diagnostic.
 - Produces: remote JSON artifact plus a mechanism-level durable verdict.
 
-- [ ] Sync the exact committed script/test/manifest to `/home/riomus/group-learning` without touching the active GPU run.
-- [ ] Run the diagnostic on DGX CPU with bounded BLAS/OpenMP threads and retain the original process/log until exit.
-- [ ] Check every artifact-binding field, exclusion count, control mean, bootstrap interval, seed delta, and frozen criterion before accepting the decision.
-- [ ] If `FAIL`, record why and spend no GPU. If `UNRESOLVED`, freeze the cheapest discriminating follow-up before running it. If `PASS_ONWARD`, implement only the preregistered bounded Stage-B VJP test.
-- [ ] Commit and push the result/verdict documents.
+- [x] Sync the exact committed script/test/manifest to `/home/riomus/group-learning` without touching the active GPU run.
+- [x] Run the diagnostic on DGX CPU with bounded BLAS/OpenMP threads and retain the original process/log until exit.
+- [x] Check every artifact-binding field, exclusion count, control mean, bootstrap interval, seed delta, and frozen criterion before accepting the decision.
+- [x] If `FAIL`, record why and spend no GPU. If `UNRESOLVED`, freeze the cheapest discriminating follow-up before running it. If `PASS_ONWARD`, implement only the preregistered bounded Stage-B VJP test.
+- [x] Commit and push the result/verdict documents.
