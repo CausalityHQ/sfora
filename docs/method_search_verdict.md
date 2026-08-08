@@ -9150,3 +9150,13 @@ were `+0.001134, +0.000932, +0.000922, +0.001779, +0.001206` (mean
 `+0.001195`, 5/5 positive), far below the `+0.05` Gate-1 threshold.  The
 signal is too small to authorize a training object; no prior-art or GPU work
 was performed.  Full record: `docs/pass153_texture_residual_preregistration_2026-08-08.md`.
+
+## Pass 154 — pixel spectral/material residual (NO-GO at Gate 1, 2026-08-08)
+
+A preregistered radial log-power-spectrum and low/high-frequency energy
+signature was tested on the same category-disjoint In-Shop pairs.  Held-out
+incremental AUC deltas were `+0.000551, -0.001052, +0.000255, +0.000051,
++0.000179`; mean `-0.000003`, with 4/5 positive folds.  This is effectively
+zero and far below `+0.05`; no spectral training object, prior-art search, or
+GPU run is authorized.  Full record:
+`docs/pass154_spectral_residual_preregistration_2026-08-08.md`.

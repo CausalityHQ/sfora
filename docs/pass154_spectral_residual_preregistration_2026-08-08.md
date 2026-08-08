@@ -13,3 +13,11 @@ negatives.  Compare embedding-distance-only and embedding-plus-spectrum
 logistic models.  Gate 1 requires held-out incremental `Delta AUC >= 0.05`, a
 positive bootstrap lower bound, and at least 4/5 positive folds.  Failure means
 no prior-art search, implementation, or GPU work for this signal.
+
+## Result
+
+The diagnostic failed Gate 1. Held-out category incremental AUC deltas were
+`+0.000551, -0.001052, +0.000255, +0.000051, +0.000179`; mean `-0.000003`
+with 4/5 positive folds. This is effectively zero and far below `+0.05`, so
+the spectral signal supplies no transferable training referent. No spectral
+objective, prior-art search, or GPU run is authorized.
