@@ -164,6 +164,7 @@ def _synthetic_bound_artifacts(
     root: Path,
     *,
     prehead_label_mismatch: bool = False,
+    query_prehead_reconstruction_mismatch: bool = False,
     reported_r1: float = 1.0,
 ) -> dict[str, dict[str, str]]:
     seed = 0
@@ -239,11 +240,15 @@ def _synthetic_bound_artifacts(
     written_train_labels = train_labels.copy()
     if prehead_label_mismatch:
         written_train_labels[[0, 5]] = written_train_labels[[5, 0]]
+    query_prehead = query.copy()
+    if query_prehead_reconstruction_mismatch:
+        query_prehead[0, 0] = 0.5
+        query_prehead[0, 1] = 0.5
     np.savez_compressed(
         prehead_path,
         train=train,
         train_labels=written_train_labels,
-        query=query,
+        query=query_prehead,
         query_labels=query_labels,
         gallery=gallery,
         gallery_labels=gallery_labels,
@@ -353,6 +358,27 @@ def test_load_bound_seed_fails_closed_on_reported_r1_mismatch(tmp_path: Path) ->
             seed=0,
             expected_partition={"train": (10, 2), "query": (2, 2), "gallery": (2, 2)},
         )
+
+
+def test_load_bound_seed_reports_but_does_not_score_legacy_query_prehead_batch_drift(
+    tmp_path: Path,
+) -> None:
+    entry = _synthetic_bound_artifacts(
+        tmp_path,
+        query_prehead_reconstruction_mismatch=True,
+    )
+
+    bound = _MODULE.load_bound_seed(
+        entry,
+        seed=0,
+        expected_partition={"train": (10, 2), "query": (2, 2), "gallery": (2, 2)},
+    )
+
+    query_check = bound.artifact_binding["prehead_reconstruction"]["query"]
+    assert query_check["within_tolerance"] is False
+    assert query_check["used_for_official_r1"] is False
+    assert query_check["max_abs_difference"] > 2.0e-5
+    assert bound.official_recall_at_1 == pytest.approx(1.0)
 
 
 def _synthetic_bound_seed() -> object:

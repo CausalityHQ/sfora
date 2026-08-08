@@ -381,6 +381,7 @@ def load_bound_seed(
 
     reconstructed: dict[str, np.ndarray] = {}
     raw_norms: dict[str, np.ndarray] = {}
+    prehead_checks: dict[str, dict[str, Any]] = {}
     all_ids: list[set[str]] = []
     for split in ("train", "query", "gallery"):
         labels = np.asarray(packs[split]["labels"], dtype=np.int64)
@@ -398,19 +399,34 @@ def load_bound_seed(
         all_ids.append(set(ids.tolist()))
         embeddings, norms = _reconstruct_head(prehead[split], weight, bias, split=split)
         exported = np.asarray(packs[split]["embeddings"], dtype=np.float32)
-        if embeddings.shape != exported.shape or not np.allclose(
-            embeddings, exported, atol=2.0e-5, rtol=2.0e-5
-        ):
-            raise ValueError(f"{split} reconstructed embeddings differ from final pack")
+        if embeddings.shape != exported.shape:
+            raise ValueError(f"{split} reconstructed embedding shape differs from final pack")
+        if not np.isfinite(exported).all():
+            raise ValueError(f"{split} final pack contains nonfinite embeddings")
+        exported_norms = np.linalg.norm(exported, axis=1)
+        if not np.allclose(exported_norms, 1.0, atol=2.0e-5, rtol=2.0e-5):
+            raise ValueError(f"{split} final-pack embeddings are not unit normalized")
+        absolute_difference = np.abs(embeddings - exported)
+        within_tolerance = bool(
+            np.allclose(embeddings, exported, atol=2.0e-5, rtol=2.0e-5)
+        )
+        prehead_checks[split] = {
+            "within_tolerance": within_tolerance,
+            "max_abs_difference": float(absolute_difference.max()),
+            "rows_above_2e_5": int(np.sum(absolute_difference.max(axis=1) > 2.0e-5)),
+            "used_for_official_r1": False,
+        }
+        if split == "train" and not within_tolerance:
+            raise ValueError("train reconstructed embeddings differ from final pack")
         reconstructed[split] = embeddings
         raw_norms[split] = norms
     if any(all_ids[left] & all_ids[right] for left, right in ((0, 1), (0, 2), (1, 2))):
         raise ValueError("example IDs overlap across official splits")
 
     official_r1 = _canonical_query_gallery_recall_at_1(
-        reconstructed["query"],
+        np.asarray(packs["query"]["embeddings"], dtype=np.float32),
         np.asarray(packs["query"]["labels"], dtype=np.int64),
-        reconstructed["gallery"],
+        np.asarray(packs["gallery"]["embeddings"], dtype=np.float32),
         np.asarray(packs["gallery"]["labels"], dtype=np.int64),
     )
     methods = report.get("methods")
@@ -445,8 +461,12 @@ def load_bound_seed(
         delta=float(config["proxy_anchor_delta"]),
         official_recall_at_1=official_r1,
         artifact_binding={
-            name: {"path": str(paths[name]), "sha256": entry[name]["sha256"]}
-            for name in sorted(paths)
+            "artifacts": {
+                name: {"path": str(paths[name]), "sha256": entry[name]["sha256"]}
+                for name in sorted(paths)
+            },
+            "prehead_reconstruction": prehead_checks,
+            "official_r1_source": "digest_bound_final_query_gallery_packs",
         },
     )
 

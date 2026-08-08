@@ -9755,3 +9755,13 @@ preregistrations:
 `docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.
 `docs/pass159_gradient_transplant_search_2026-08-08.md`.
 `docs/pass181_cieb_proposal_2026-08-08.md`.
+
+Before Pass159 Stage A produced any candidate statistic, its artifact gate exposed a
+legacy pre-head exporter defect: batch-size 256 versus the canonical final exporter's
+128 made exactly the last 138 In-Shop query rows batch-shape-dependent in all four
+seeds (worst coordinate difference `6.39e-4` to `8.45e-4`). Train reconstruction,
+which is the only Pass159 input, agrees to `1.35e-7`. The corrected gate therefore
+requires exact train/head binding and recomputes official R@1 from immutable final
+query/gallery packs; it does not loosen tolerance or score the legacy query export.
+This integrity-only adjudication was committed before rerunning Stage A. Full audit:
+`docs/pass159_prehead_batch_binding_defect_2026-08-08.md`.

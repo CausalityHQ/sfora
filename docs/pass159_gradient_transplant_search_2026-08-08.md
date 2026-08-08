@@ -55,15 +55,19 @@ Stage A is a necessary local-geometry screen and can kill the candidate, but can
 by itself pass Gate 1 because an embedding-space direction may collapse or reverse
 after the shared network Jacobian. It uses corrected final In-Shop PA seeds 0–3, the
 matching final checkpoints/reports, and the retained 1,024-D pre-head train packs.
-For each seed, reconstruct the 512-D pre-normalization head output, its norm, and its
-normalized descriptor. The reconstructed official query/gallery R@1 must exactly
-equal the checkpoint report before official test arrays are discarded; those arrays
-serve only artifact binding and never candidate selection or scoring.
+For each seed, reconstruct the 512-D pre-normalization **training** head output, its
+norm, and its normalized descriptor. Training reconstruction must agree with the
+digest-bound final train pack at `atol=rtol=2e-5`. Official query/gallery R@1 is
+recomputed from the digest-bound final packs and must exactly equal both checkpoint
+report and independent retrieval audit before those arrays are discarded; they serve
+only artifact binding and never candidate selection or scoring. The legacy pre-head
+query export has a documented batch-size-dependent tail and is descriptive only:
+`docs/pass159_prehead_batch_binding_defect_2026-08-08.md`.
 
 Because the pre-head packs contain labels but no example IDs or embedded digests, the
 diagnostic must also load the independently exported, digest-bound final train/query/
 gallery packs. It must verify exact label-row equality between each pre-head split and
-its final pack, equality between reconstructed and exported normalized embeddings,
+its final pack, equality between reconstructed and exported normalized **training** embeddings,
 the final packs' embedded checkpoint/report digests, and identical training example-ID
 order across all four seeds. The immutable paths and SHA-256 values are frozen in
 `docs/pass159_stage_a_manifest.json`; any mismatch fails closed before a statistic is
