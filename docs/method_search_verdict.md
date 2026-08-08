@@ -9722,3 +9722,17 @@ same non-scalar conflict and protected-projection operators. Proxy-confusion pai
 and complementary coupling change the estimator/policy, not the training object.
 No implementation or GPU run was spent. Full audit:
 `docs/pass197_argr_gate2_audit_2026-08-08.md`.
+
+## Pass120 implementation invalidation — derived-objective no-op
+
+The first fresh CIS control artifact is **INVALID**, not a method result. Its recipe
+delta declared `proxy_anchor_coalition`, but its executed config and method key were
+plain `proxy_anchor`; the base handler never consumed the coalition fields. After the
+CLI repair activated the derived objective, an indexed-loader unpack mismatch stopped
+before step 1 and was repaired separately. The invalid raw best `0.917288` and final
+`0.915037` must not be quoted as a coalition control. All affected artifacts and old
+source snapshots are recoverably quarantined, and a DGX-wide report metadata scan
+found no additional unquarantined mismatch with this exact signature. The corrected
+four-arm run was restarted only after focused CLI, objective, recipe, and two-step
+end-to-end integration tests passed. Full audit:
+`docs/pass120_noop_invalidation_2026-08-08.md`.
