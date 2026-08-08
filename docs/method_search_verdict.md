@@ -9181,3 +9181,12 @@ augmentation kernel is already occupied by InstaAug (ICML 2023) and AdaAug
 (ICLR 2022). A frozen response statistic changes the estimator, not the
 mechanism. No implementation or GPU run is authorized. Full record:
 `docs/pass156_response_adaptive_search_2026-08-08.md`.
+
+## Pass 157 — response sensitivity CPU falsifier (NO-GO at Gate 1)
+
+On the audited corrected response pack, adding image sensitivity to the
+centered-image ambiguity margin changed five-fold crop-view AUROC from
+`0.996462` to `0.996504` (incremental `+0.000041`) across 129,350 finite rows.
+The response-adaptive augmentation premise therefore fails its CPU falsifier;
+no policy, implementation, or GPU run is authorized. Full record:
+`docs/pass157_response_sensitivity_falsifier_2026-08-08.md`.
