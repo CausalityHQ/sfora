@@ -27,8 +27,13 @@ def test_bncorrect_ema_arms_are_registered_against_plain_proxy_anchor() -> None:
 
 
 def test_cis_control_arms_are_registered_against_plain_proxy_anchor() -> None:
-    """The CIS screen must include the union and its two controls."""
-    for arm in ("pa_coalition", "pa_coalition_single", "pa_coalition_dropout"):
+    """The CIS screen must include the union and all three controls."""
+    for arm in (
+        "pa_coalition",
+        "pa_coalition_single",
+        "pa_coalition_complementary",
+        "pa_coalition_dropout",
+    ):
         assert _module.ARMS[arm] == ("proxy_anchor", arm)
         assert _module.BASE_OF[arm] == "proxy_anchor"
 

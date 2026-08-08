@@ -65,6 +65,7 @@ ARMS: dict[str, tuple[BaseMethodName, str]] = {
     # the paired analysis cannot silently omit the active In-Shop screen.
     "pa_coalition": ("proxy_anchor", "pa_coalition"),
     "pa_coalition_single": ("proxy_anchor", "pa_coalition_single"),
+    "pa_coalition_complementary": ("proxy_anchor", "pa_coalition_complementary"),
     "pa_coalition_dropout": ("proxy_anchor", "pa_coalition_dropout"),
     # Capacity-weakened bases, each its own paired control.
     "narrow128": ("proxy_anchor", "narrow128"),
