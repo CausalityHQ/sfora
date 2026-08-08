@@ -9304,3 +9304,13 @@ candidate survives; the next fresh proposal must come from a supervision class
 not represented in the ledger and supply a new measurement-conditioned Gate-1
 artifact.
 Full audit: `docs/reopened_candidate_audit_2026-08-08.md`.
+
+## Pass 168 — persistent-homology supervision (NONE before GPU)
+
+Topology of class-conditioned embedding neighbourhoods was considered as a
+cross-field change to the training object. Gate 1 fails: no repository artifact
+links persistence lifetimes to the unseen-class retrieval errors or the
+`-0.04968` transfer gap. Gate 2 is also occupied by persistence-homology
+regularization of mini-batch representations and differentiable topological
+graph embedding. No CPU or GPU run occurred. Full record:
+`docs/pass168_topological_supervision_search_2026-08-08.md`.
