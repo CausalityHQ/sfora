@@ -240,6 +240,24 @@ def test_src_operator_contains_both_union_and_leave_one_out_terms() -> None:
     assert torch.allclose(src, union + residual)
 
 
+def test_src_accepts_balanced_batches_with_repeated_class_rows() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.randn(4, 6, generator=torch.Generator().manual_seed(30))
+    labels = torch.tensor([0, 0, 1, 1])
+    proxies = torch.randn(2, 6, generator=torch.Generator().manual_seed(31))
+    proxy_labels = torch.tensor([0, 1])
+    loss = image_end_to_end._stoichiometric_residual_coalition_loss(
+        embeddings,
+        labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+    )
+    assert torch.isfinite(loss)
+
+
 def test_src_dispatcher_uses_union_plus_residual_operator() -> None:
     torch: Any = pytest.importorskip("torch")
     import sfora.image_end_to_end as image_end_to_end
@@ -287,4 +305,3 @@ def test_src_dispatcher_uses_union_plus_residual_operator() -> None:
         torch_module=torch,
     )
     assert torch.allclose(dispatched, base + config.coalition_weight * src)
-
