@@ -9065,3 +9065,19 @@ nonlinear coupling contaminates owners or becomes compositional/routed prior
 art. The CPU transfer test is adverse (`rho_32 = 0.9312, 0.9287, 0.9345`, below
 the 1.15 floor). No implementation or GPU run is authorized. Full audit:
 `docs/pass142_sol_synthetic_transport_review_2026-08-08.md`.
+
+## Pass 143 — cross-field search (NONE at Gate 2, 2026-08-08)
+
+Sol found no candidate surviving repository provenance and mechanism-level
+prior-art screening. Owner-safe coalition credit reduces to ordinary proxy
+supervision for a linear sum (DCML and Cross-Image Attention cover the
+contextual escapes); disjoint-identity transport is occupied feature
+augmentation/variance transfer and is contradicted by the CPU `rho_32` test;
+and trunk discrepancy feedback is occupied by AdvRF and VAPNet. Potential-field,
+multi-centre, sampling/graph, and counterfactual routes are occupied or failed
+the In-Shop screen. No GPU work is authorized from this pass. Full audit:
+`docs/pass143_sol_crossfield_search_2026-08-08.md`.
+
+The historical In-Shop `0.9035` reference is retracted. The valid four-seed
+reference is raw-best `0.91815 ± 0.00126`, frozen-final `0.91539 ± 0.00132`;
+future screens require same-seed paired controls.
