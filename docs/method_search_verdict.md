@@ -9433,3 +9433,15 @@ Dropout/DropBlock and random-subspace regularization cover the erasure route.
 The Hadamard basis and soft-max aggregation are implementation choices, not a
 mechanism-level escape. No CPU or GPU work occurred. Full frozen proposal and
 audit: `docs/pass179_repa_proposal_2026-08-08.md`.
+
+## Pass 180 — Common-Axis Minimax Whitening (DEAD at Gate 1)
+
+CAMW used pooled-PCA common axes as a deterministic CPU approximation to the
+proposed class-covariance joint diagonalisation, then applied the frozen
+worst-class variance weights to corrected In-Shop seed-0 descriptors. On 158
+usable classes, the baseline gallery/query R@1 was `0.913701`; CAMW was
+`0.894852` (`−1.885` points). Held-out off-diagonal reduction was `−0.008801`
+and split-half axis stability was `0.625897`. The preregistered retrieval and
+covariance criteria fail, so no train-time implementation or GPU run is
+authorized. Full proposal: `docs/pass180_camw_proposal_2026-08-08.md`;
+diagnostic: `scripts/measure_camw_cpu.py`.
