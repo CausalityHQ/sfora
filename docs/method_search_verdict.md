@@ -9171,3 +9171,13 @@ too small (`+0.056` raw, `+0.042` final at one seed) and its mechanism family
 is closed. No CPU, implementation, or GPU work is authorized without a new
 measured signal. Full record:
 `docs/pass155_codex_fresh_search_2026-08-08.md`.
+
+## Pass 156 — response-channel cross-field search (NONE at Gate 2)
+
+The corrected response pack is a real, distance-independent intervention
+channel, but no unoccupied training object follows. Response-adaptive
+augmentation dosing is the strongest near miss; its input-conditioned
+augmentation kernel is already occupied by InstaAug (ICML 2023) and AdaAug
+(ICLR 2022). A frozen response statistic changes the estimator, not the
+mechanism. No implementation or GPU run is authorized. Full record:
+`docs/pass156_response_adaptive_search_2026-08-08.md`.
