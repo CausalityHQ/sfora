@@ -9467,3 +9467,19 @@ minimal-distance-separated hash centers already occupy algebraic class-code
 supervision. The null space and differentiable parity products are
 parameterization details, not a new data-derived supervision relation. No CPU
 or GPU work occurred. Full proposal: `docs/pass182_csml_proposal_2026-08-08.md`.
+### Pass 183 — Class-Excluded Batch Normalization (CE-BN), LIVE-NARROW pending GPU
+
+**Mechanism:** for each training example, compute BN moments from batch examples
+whose labels differ from its own, then apply the unchanged Proxy Anchor loss.
+This removes same-class batch-statistics coupling while preserving ordinary
+single-model inference. Gate 2 found adjacent work on ordinary BN, balanced
+batches, conditional affine parameters, statistic exchange, and cross-iteration
+moments, but no label-excluded per-example BN in supervised metric learning
+(`docs/pass183_cebn_prior_art_2026-08-08.md`).
+
+**CPU falsifier:** on corrected In-Shop seed-0 final descriptors, deterministic
+64-example leave-own-class-out normalization reached R@1 `0.927275` versus
+`0.913701` unchanged (+1.357 pt); ordinary batch normalization reached
+`0.913349` (−0.035 pt). This is only a mechanism probe, not benchmark evidence.
+The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
+with `< +0.15 pt` or non-positive raw delta falsifying the candidate.

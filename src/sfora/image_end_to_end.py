@@ -232,6 +232,11 @@ class ImageEndToEndConfig(BaseModel):
     # solution instead of dragging 5.3% of the initialisation along. One EMA cannot be
     # both. None keeps the historical behaviour of reusing the teacher.
     ema_eval_momentum: float | None = Field(default=None, gt=0.0, lt=1.0)
+    # Class-Excluded Batch Normalization: during training, normalize each row's
+    # embedding using batch moments from rows of other labels only.  Inference
+    # remains the ordinary single-model path.  This is an In-Shop-only candidate;
+    # CUB freezes BN and must not use it.
+    class_excluded_batch_norm: bool = False
     # Rival-signature positive graph. Zero preserves historical behavior.
     rspg_weight: float = Field(default=0.0, ge=0.0)
     rspg_warmup_epoch: int = Field(default=10, ge=1)
@@ -1409,7 +1414,12 @@ def run_image_end_to_end_benchmark(
                         embeddings = _normalize(clean_output, torch)
                     else:
                         feature_map = None
-                        embeddings = _normalize(model(images), torch)
+                        raw_embeddings = model(images)
+                        if config.class_excluded_batch_norm:
+                            raw_embeddings = _class_excluded_batch_norm(
+                                raw_embeddings, labels, torch_module=torch
+                            )
+                        embeddings = _normalize(raw_embeddings, torch)
                     if bgsi_state is not None:
                         bgsi_state.update(embeddings, labels)
                     teacher_embeddings = None
@@ -7766,6 +7776,29 @@ def _checkpoint_selection_score(
 
 def _normalize(tensor: Any, torch_module: Any) -> Any:
     return torch_module.nn.functional.normalize(tensor, p=2, dim=-1)
+
+
+def _class_excluded_batch_norm(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
+    """Normalize each row using only other-label rows in its minibatch.
+
+    This is deliberately a small, explicit operation so the candidate's
+    supervision change is auditable.  It is used only in the training forward;
+    the deployment encoder continues to use the ordinary model path.
+    """
+    if embeddings.ndim != 2 or labels.ndim != 1 or embeddings.shape[0] != labels.shape[0]:
+        raise ValueError("CE-BN expects [batch, dim] embeddings and [batch] labels")
+    rows = []
+    for index in range(int(embeddings.shape[0])):
+        other = labels != labels[index]
+        # A valid In-Shop batch has multiple classes.  Falling back to the full
+        # batch keeps the operation finite for a malformed one-class unit test.
+        if int(other.sum().item()) < 2:
+            other = torch_module.ones_like(labels, dtype=torch_module.bool)
+        reference = embeddings[other]
+        mean = reference.mean(dim=0)
+        variance = reference.var(dim=0, unbiased=False)
+        rows.append((embeddings[index] - mean) / torch_module.sqrt(variance + 1.0e-5))
+    return torch_module.stack(rows, dim=0)
 
 
 def _torchvision_model_factory(
