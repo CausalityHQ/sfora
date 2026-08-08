@@ -8,6 +8,10 @@ below are deliberately NumPy-only so their geometry can be tested in isolation.
 from __future__ import annotations
 
 import hashlib
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -15,6 +19,26 @@ import numpy as np
 _VECTOR_EPS = 1.0e-12
 _ANTIPODAL_EPS = 1.0e-6
 _PARTITION_DOMAIN = "pass159-stage-a-v1|"
+_OFFICIAL_PARTITION = {
+    "train": (25_882, 3_997),
+    "query": (14_218, 3_985),
+    "gallery": (12_612, 3_985),
+}
+
+
+@dataclass(frozen=True)
+class BoundSeed:
+    seed: int
+    train_embeddings: np.ndarray
+    train_raw_norms: np.ndarray
+    train_labels: np.ndarray
+    train_example_ids: np.ndarray
+    proxies: np.ndarray
+    proxy_labels: np.ndarray
+    alpha: float
+    delta: float
+    official_recall_at_1: float
+    artifact_binding: dict[str, Any]
 
 
 def _require_unit(vector: np.ndarray, *, name: str) -> np.ndarray:
@@ -159,3 +183,619 @@ def partition_identity(example_ids: np.ndarray) -> tuple[np.ndarray, np.ndarray]
         raise ValueError("Pass159 identity contains duplicate example IDs")
     order = sorted(range(len(ids)), key=lambda index: (_partition_hash(as_text[index]), as_text[index]))
     return np.asarray(order[:2], dtype=np.int64), np.asarray(order[2:], dtype=np.int64)
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _scalar(array: np.ndarray, *, name: str) -> Any:
+    value = np.asarray(array)
+    if value.shape != ():
+        raise ValueError(f"{name} must be a scalar")
+    return value.item()
+
+
+def _canonical_query_gallery_recall_at_1(
+    query: np.ndarray,
+    query_labels: np.ndarray,
+    gallery: np.ndarray,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 512,
+) -> float:
+    query64 = np.asarray(query, dtype=np.float64)
+    gallery64 = np.asarray(gallery, dtype=np.float64)
+    query_sq = np.sum(query64 * query64, axis=1)
+    gallery_sq = np.sum(gallery64 * gallery64, axis=1)
+    correct = 0
+    for start in range(0, len(query64), chunk_size):
+        stop = min(start + chunk_size, len(query64))
+        distances = (
+            query_sq[start:stop, None]
+            + gallery_sq[None, :]
+            - 2.0 * (query64[start:stop] @ gallery64.T)
+        )
+        nearest = np.argmin(distances, axis=1)
+        correct += int(np.sum(gallery_labels[nearest] == query_labels[start:stop]))
+    return correct / len(query64)
+
+
+def _manifest_paths(entry: dict[str, dict[str, str]]) -> dict[str, Path]:
+    required = {
+        "prehead_npz",
+        "checkpoint_pt",
+        "report_json",
+        "train_npz",
+        "query_npz",
+        "gallery_npz",
+        "retrieval_json",
+    }
+    if set(entry) != required:
+        raise ValueError(f"manifest entry keys differ: {set(entry)} != {required}")
+    paths: dict[str, Path] = {}
+    for name in sorted(required):
+        item = entry[name]
+        if set(item) != {"path", "sha256"}:
+            raise ValueError(f"manifest {name} must contain path and sha256")
+        path = Path(item["path"])
+        if not path.is_file():
+            raise ValueError(f"manifest artifact is missing: {path}")
+        observed = sha256_file(path)
+        if observed != item["sha256"]:
+            raise ValueError(
+                f"manifest SHA-256 mismatch for {name}: {observed} != {item['sha256']}"
+            )
+        paths[name] = path
+    return paths
+
+
+def _load_final_pack(
+    path: Path,
+    *,
+    split: str,
+    checkpoint_digest: str,
+    report_digest: str,
+) -> dict[str, np.ndarray]:
+    with np.load(path, allow_pickle=False) as archive:
+        required = {
+            "embeddings",
+            "labels",
+            "example_ids",
+            "source_paths",
+            "artifact_selection",
+            "split",
+            "checkpoint_sha256",
+            "report_sha256",
+        }
+        if set(archive.files) != required:
+            raise ValueError(f"{split} final-pack keys differ from the frozen schema")
+        result = {name: np.asarray(archive[name]) for name in archive.files}
+    if _scalar(result["artifact_selection"], name=f"{split} artifact_selection") != "final_training_state":
+        raise ValueError(f"{split} final pack is not a final training state")
+    if _scalar(result["split"], name=f"{split} split") != split:
+        raise ValueError(f"{split} final pack has the wrong split marker")
+    if _scalar(result["checkpoint_sha256"], name=f"{split} checkpoint_sha256") != checkpoint_digest:
+        raise ValueError(f"{split} final pack checkpoint digest differs")
+    if _scalar(result["report_sha256"], name=f"{split} report_sha256") != report_digest:
+        raise ValueError(f"{split} final pack report digest differs")
+    return result
+
+
+def _reconstruct_head(
+    prehead: np.ndarray,
+    weight: np.ndarray,
+    bias: np.ndarray,
+    *,
+    split: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    features = np.asarray(prehead, dtype=np.float32)
+    raw = features @ np.asarray(weight, dtype=np.float32).T + np.asarray(bias, dtype=np.float32)
+    norms = np.linalg.norm(raw, axis=1)
+    if not np.isfinite(raw).all() or np.any(norms <= _VECTOR_EPS):
+        raise ValueError(f"{split} reconstructed head has nonfinite or zero-norm rows")
+    return raw / norms[:, None], norms
+
+
+def load_bound_seed(
+    entry: dict[str, dict[str, str]],
+    *,
+    seed: int,
+    expected_partition: dict[str, tuple[int, int]] | None = None,
+) -> BoundSeed:
+    """Fail-closed artifact binding before any Pass159 training statistic."""
+    import torch
+
+    expected = _OFFICIAL_PARTITION if expected_partition is None else expected_partition
+    paths = _manifest_paths(entry)
+    report_digest = entry["report_json"]["sha256"]
+    checkpoint_digest = entry["checkpoint_pt"]["sha256"]
+    report = json.loads(paths["report_json"].read_text(encoding="utf-8"))
+    config = report.get("config")
+    if not isinstance(config, dict):
+        raise ValueError("report lacks a config object")
+    frozen_config = {
+        "dataset_name": "inshop",
+        "objectives": ["proxy_anchor"],
+        "seed": int(seed),
+        "proxy_anchor_alpha": 32.0,
+        "proxy_anchor_delta": 0.1,
+        "checkpoint_selection_interval": 0,
+        "backbone_name": "bn_inception",
+        "head_pooling": "avg_max",
+    }
+    for key, value in frozen_config.items():
+        if config.get(key) != value:
+            raise ValueError(f"report config {key}={config.get(key)!r} != {value!r}")
+
+    checkpoint = torch.load(paths["checkpoint_pt"], map_location="cpu", weights_only=False)
+    if checkpoint.get("artifact_selection") != "final_training_state":
+        raise ValueError("checkpoint is not a final training state")
+    if checkpoint.get("training_config") != config:
+        raise ValueError("checkpoint training_config differs from report config")
+    state = checkpoint.get("state_dict")
+    if not isinstance(state, dict):
+        raise ValueError("checkpoint lacks a state_dict")
+    required_state = {
+        "model.embedding.weight",
+        "model.embedding.bias",
+        "metric_proxies",
+        "metric_proxy_labels",
+    }
+    if not required_state.issubset(state):
+        raise ValueError("checkpoint lacks Pass159 head or proxy tensors")
+    weight = state["model.embedding.weight"].detach().cpu().numpy()
+    bias = state["model.embedding.bias"].detach().cpu().numpy()
+    proxies = _unit_rows(state["metric_proxies"].detach().cpu().numpy(), name="metric_proxies")
+    proxy_labels = state["metric_proxy_labels"].detach().cpu().numpy().astype(np.int64)
+    if len(np.unique(proxy_labels)) != len(proxy_labels):
+        raise ValueError("checkpoint does not have exactly one proxy per class")
+
+    packs = {
+        split: _load_final_pack(
+            paths[f"{split}_npz"],
+            split=split,
+            checkpoint_digest=checkpoint_digest,
+            report_digest=report_digest,
+        )
+        for split in ("train", "query", "gallery")
+    }
+    with np.load(paths["prehead_npz"], allow_pickle=False) as archive:
+        expected_prehead_keys = {
+            "train",
+            "train_labels",
+            "query",
+            "query_labels",
+            "gallery",
+            "gallery_labels",
+        }
+        if set(archive.files) != expected_prehead_keys:
+            raise ValueError("pre-head pack keys differ from the frozen schema")
+        prehead = {name: np.asarray(archive[name]) for name in archive.files}
+
+    reconstructed: dict[str, np.ndarray] = {}
+    raw_norms: dict[str, np.ndarray] = {}
+    all_ids: list[set[str]] = []
+    for split in ("train", "query", "gallery"):
+        labels = np.asarray(packs[split]["labels"], dtype=np.int64)
+        observed_partition = (len(labels), len(np.unique(labels)))
+        if observed_partition != expected[split]:
+            raise ValueError(
+                f"{split} partition {observed_partition} != expected {expected[split]}"
+            )
+        prehead_labels = np.asarray(prehead[f"{split}_labels"], dtype=np.int64)
+        if not np.array_equal(prehead_labels, labels):
+            raise ValueError(f"{split} labels differ between pre-head and final packs")
+        ids = np.asarray(packs[split]["example_ids"]).astype(str)
+        if len(set(ids.tolist())) != len(ids):
+            raise ValueError(f"{split} final pack has duplicate example IDs")
+        all_ids.append(set(ids.tolist()))
+        embeddings, norms = _reconstruct_head(prehead[split], weight, bias, split=split)
+        exported = np.asarray(packs[split]["embeddings"], dtype=np.float32)
+        if embeddings.shape != exported.shape or not np.allclose(
+            embeddings, exported, atol=2.0e-5, rtol=2.0e-5
+        ):
+            raise ValueError(f"{split} reconstructed embeddings differ from final pack")
+        reconstructed[split] = embeddings
+        raw_norms[split] = norms
+    if any(all_ids[left] & all_ids[right] for left, right in ((0, 1), (0, 2), (1, 2))):
+        raise ValueError("example IDs overlap across official splits")
+
+    official_r1 = _canonical_query_gallery_recall_at_1(
+        reconstructed["query"],
+        np.asarray(packs["query"]["labels"], dtype=np.int64),
+        reconstructed["gallery"],
+        np.asarray(packs["gallery"]["labels"], dtype=np.int64),
+    )
+    methods = report.get("methods")
+    if not isinstance(methods, dict) or len(methods) != 1:
+        raise ValueError("report must contain exactly one method")
+    reported_r1 = float(next(iter(methods.values()))["recall_at_1"])
+    retrieval = json.loads(paths["retrieval_json"].read_text(encoding="utf-8"))
+    if retrieval.get("artifact_selection") != "final_training_state":
+        raise ValueError("retrieval audit is not a final training state")
+    if retrieval.get("checkpoint_sha256") != checkpoint_digest or retrieval.get("report_sha256") != report_digest:
+        raise ValueError("retrieval audit artifact digests differ")
+    if retrieval.get("resolved_training_steps") != checkpoint.get("training_step"):
+        raise ValueError("retrieval audit training step differs from checkpoint")
+    bound_r1_values = [
+        reported_r1,
+        float(retrieval.get("reported_final_recall_at_1")),
+        float(retrieval.get("independent_recall_at_1")),
+        float(retrieval.get("canonical_float64_euclidean_recall_at_1")),
+    ]
+    if any(value != official_r1 for value in bound_r1_values):
+        raise ValueError(f"official R@1 mismatch: reconstructed={official_r1}, bound={bound_r1_values}")
+
+    return BoundSeed(
+        seed=int(seed),
+        train_embeddings=reconstructed["train"],
+        train_raw_norms=raw_norms["train"],
+        train_labels=np.asarray(packs["train"]["labels"], dtype=np.int64),
+        train_example_ids=np.asarray(packs["train"]["example_ids"]).astype(str),
+        proxies=proxies,
+        proxy_labels=proxy_labels,
+        alpha=float(config["proxy_anchor_alpha"]),
+        delta=float(config["proxy_anchor_delta"]),
+        official_recall_at_1=official_r1,
+        artifact_binding={
+            name: {"path": str(paths[name]), "sha256": entry[name]["sha256"]}
+            for name in sorted(paths)
+        },
+    )
+
+
+def _hash_hex(value: str) -> str:
+    return _partition_hash(str(value)).hex()
+
+
+def _select_extreme(
+    indices: np.ndarray,
+    values: np.ndarray,
+    example_ids: np.ndarray,
+    *,
+    largest: bool,
+) -> int:
+    if len(indices) == 0:
+        raise ValueError("cannot select from an empty controller set")
+    ordered = sorted(
+        (int(index) for index in indices),
+        key=lambda index: (
+            -float(values[index]) if largest else float(values[index]),
+            _hash_hex(str(example_ids[index])),
+            str(example_ids[index]),
+        ),
+    )
+    return ordered[0]
+
+
+def _batch_angular_cotangents(
+    descriptors: np.ndarray,
+    labels: np.ndarray,
+    proxies: np.ndarray,
+    proxy_labels: np.ndarray,
+    *,
+    alpha: float,
+    delta: float,
+    chunk_size: int = 64,
+) -> np.ndarray:
+    z = _unit_rows(descriptors, name="cotangent descriptors")
+    p = _unit_rows(proxies, name="cotangent proxies")
+    labels = np.asarray(labels, dtype=np.int64)
+    proxy_labels = np.asarray(proxy_labels, dtype=np.int64)
+    proxy_index = {int(label): index for index, label in enumerate(proxy_labels.tolist())}
+    if len(proxy_index) != len(proxy_labels):
+        raise ValueError("cotangent batch requires one proxy per class")
+    try:
+        own_indices = np.asarray([proxy_index[int(label)] for label in labels], dtype=np.int64)
+    except KeyError as error:
+        raise ValueError(f"descriptor label lacks a proxy: {error.args[0]}") from error
+    outputs = np.empty_like(z, dtype=np.float64)
+    foreign_count = len(proxy_labels) - 1
+    if foreign_count <= 0:
+        raise ValueError("cotangent batch requires at least two proxies")
+    for start in range(0, len(z), chunk_size):
+        stop = min(start + chunk_size, len(z))
+        rows = z[start:stop]
+        own = own_indices[start:stop]
+        similarities = rows @ p.T
+        coefficients = (
+            float(alpha)
+            * _sigmoid(float(alpha) * (similarities + float(delta)))
+            / foreign_count
+        )
+        coefficients[np.arange(stop - start), own] = 0.0
+        ambient = coefficients @ p
+        own_similarities = similarities[np.arange(stop - start), own]
+        own_coefficients = -float(alpha) * _sigmoid(
+            float(alpha) * (float(delta) - own_similarities)
+        )
+        ambient += own_coefficients[:, None] * p[own]
+        outputs[start:stop] = ambient - np.sum(ambient * rows, axis=1)[:, None] * rows
+    return outputs
+
+
+def _normalize_direction(vector: np.ndarray, *, name: str) -> np.ndarray:
+    array = np.asarray(vector, dtype=np.float64)
+    norm = float(np.linalg.norm(array))
+    if not np.isfinite(array).all() or norm <= _VECTOR_EPS:
+        raise ValueError(f"{name} has zero or nonfinite norm")
+    return array / norm
+
+
+def _alignment(left: np.ndarray, right: np.ndarray) -> float:
+    return float(
+        np.dot(
+            _normalize_direction(left, name="alignment left"),
+            _normalize_direction(right, name="alignment right"),
+        )
+    )
+
+
+def _top_foreign_supports(
+    receiver: np.ndarray,
+    label: int,
+    support_embeddings: np.ndarray,
+    support_labels: np.ndarray,
+    support_ids: np.ndarray,
+    *,
+    top_k: int,
+) -> np.ndarray:
+    eligible = np.flatnonzero(np.asarray(support_labels) != int(label))
+    if len(eligible) < top_k:
+        raise ValueError(f"only {len(eligible)} foreign supports are available for top-{top_k}")
+    scores = np.asarray(support_embeddings, dtype=np.float64) @ np.asarray(
+        receiver, dtype=np.float64
+    )
+    hashes = np.asarray([_hash_hex(str(value)) for value in support_ids[eligible]])
+    ids = np.asarray(support_ids[eligible]).astype(str)
+    order = np.lexsort((ids, hashes, -scores[eligible]))
+    return eligible[order[:top_k]]
+
+
+def compute_seed_rows(bound: BoundSeed, *, top_k: int = 32) -> dict[str, Any]:
+    """Compute one preregistered training-only Stage-A row per eligible identity."""
+    if top_k <= 0:
+        raise ValueError("top_k must be positive")
+    descriptors = np.asarray(bound.train_embeddings, dtype=np.float64)
+    norms = np.asarray(bound.train_raw_norms, dtype=np.float64)
+    labels = np.asarray(bound.train_labels, dtype=np.int64)
+    example_ids = np.asarray(bound.train_example_ids).astype(str)
+    if not (
+        descriptors.shape[0] == norms.shape[0] == labels.shape[0] == example_ids.shape[0]
+    ):
+        raise ValueError("bound training arrays are misaligned")
+    proxy_by_label = {
+        int(label): np.asarray(bound.proxies[index], dtype=np.float64)
+        for index, label in enumerate(bound.proxy_labels.tolist())
+    }
+
+    roles: dict[int, dict[str, Any]] = {}
+    for label in sorted(np.unique(labels).tolist()):
+        identity_indices = np.flatnonzero(labels == int(label))
+        if len(identity_indices) < 5:
+            continue
+        local_support, local_controllers = partition_identity(example_ids[identity_indices])
+        supports = identity_indices[local_support]
+        controllers = identity_indices[local_controllers]
+        receiver = _select_extreme(controllers, norms, example_ids, largest=False)
+        donor = _select_extreme(controllers, norms, example_ids, largest=True)
+        if receiver == donor:
+            raise ValueError("receiver and candidate donor unexpectedly coincide")
+        roles[int(label)] = {
+            "indices": identity_indices,
+            "supports": supports,
+            "controllers": controllers,
+            "receiver": receiver,
+            "donor": donor,
+        }
+    if not roles:
+        raise ValueError("no identity has the preregistered minimum of five images")
+
+    feature_rows: list[tuple[float, float]] = []
+    for label, role in roles.items():
+        receiver = int(role["receiver"])
+        own_proxy = proxy_by_label[label]
+        for index in role["controllers"]:
+            index = int(index)
+            if index == receiver:
+                continue
+            feature_rows.append(
+                (
+                    float(np.dot(descriptors[receiver], descriptors[index])),
+                    float(np.dot(descriptors[index], own_proxy)),
+                )
+            )
+    feature_scales = np.std(np.asarray(feature_rows, dtype=np.float64), axis=0)
+    feature_scales = np.maximum(feature_scales, _VECTOR_EPS)
+
+    random_matches_candidate = 0
+    singleton_match_alternatives = 0
+    for label, role in roles.items():
+        receiver = int(role["receiver"])
+        donor = int(role["donor"])
+        controllers = np.asarray(role["controllers"], dtype=np.int64)
+        alternatives = controllers[controllers != receiver]
+        fixed_hash = min(
+            (int(index) for index in alternatives),
+            key=lambda index: (_hash_hex(example_ids[index]), example_ids[index]),
+        )
+        random_matches_candidate += int(fixed_hash == donor)
+
+        ordered = sorted(
+            (int(index) for index in controllers),
+            key=lambda index: (_hash_hex(example_ids[index]), example_ids[index]),
+        )
+        observed_norms = np.asarray([norms[index] for index in ordered], dtype=np.float64)
+        shift_digest = hashlib.sha256(f"pass159-norm-permute-v1|{label}".encode("utf-8")).hexdigest()
+        shift = int(shift_digest[:8], 16) % len(ordered)
+        assigned_norms = np.roll(observed_norms, shift)
+        permuted_candidates = [position for position, index in enumerate(ordered) if index != receiver]
+        permuted_position = min(
+            permuted_candidates,
+            key=lambda position: (
+                -float(assigned_norms[position]),
+                _hash_hex(example_ids[ordered[position]]),
+                example_ids[ordered[position]],
+            ),
+        )
+        norm_permuted = ordered[permuted_position]
+
+        match_candidates = [
+            int(index) for index in controllers if int(index) not in {receiver, donor}
+        ]
+        if not match_candidates:
+            raise ValueError("cosine matching lacks an alternative controller")
+        singleton_match_alternatives += int(len(match_candidates) == 1)
+        own_proxy = proxy_by_label[label]
+        target_features = np.asarray(
+            [
+                np.dot(descriptors[receiver], descriptors[donor]),
+                np.dot(descriptors[donor], own_proxy),
+            ],
+            dtype=np.float64,
+        )
+
+        def match_key(index: int) -> tuple[float, str, str]:
+            features = np.asarray(
+                [
+                    np.dot(descriptors[receiver], descriptors[index]),
+                    np.dot(descriptors[index], own_proxy),
+                ],
+                dtype=np.float64,
+            )
+            distance = float(np.sum(((features - target_features) / feature_scales) ** 2))
+            return distance, _hash_hex(example_ids[index]), example_ids[index]
+
+        matched = min(match_candidates, key=match_key)
+        role.update(
+            {
+                "fixed_hash": fixed_hash,
+                "norm_permuted": norm_permuted,
+                "matched": matched,
+                "match_distance": match_key(matched)[0],
+            }
+        )
+
+    needed_indices = sorted(
+        {
+            int(role[key])
+            for role in roles.values()
+            for key in ("receiver", "donor", "fixed_hash", "norm_permuted", "matched")
+        }
+    )
+    needed_cotangents = _batch_angular_cotangents(
+        descriptors[needed_indices],
+        labels[needed_indices],
+        bound.proxies,
+        bound.proxy_labels,
+        alpha=bound.alpha,
+        delta=bound.delta,
+    )
+    cotangent_by_index = {
+        index: needed_cotangents[position] for position, index in enumerate(needed_indices)
+    }
+    role_labels = np.asarray(sorted(roles), dtype=np.int64)
+    proxy_origins = np.asarray([proxy_by_label[int(label)] for label in role_labels])
+    proxy_cotangents = _batch_angular_cotangents(
+        proxy_origins,
+        role_labels,
+        bound.proxies,
+        bound.proxy_labels,
+        alpha=bound.alpha,
+        delta=bound.delta,
+    )
+    proxy_cotangent_by_label = {
+        int(label): proxy_cotangents[position] for position, label in enumerate(role_labels)
+    }
+
+    support_indices = np.concatenate([role["supports"] for role in roles.values()])
+    support_embeddings = descriptors[support_indices]
+    support_labels = labels[support_indices]
+    support_ids = example_ids[support_indices]
+    rows: list[dict[str, Any]] = []
+    exclusion_reasons: dict[str, int] = {}
+    for label, role in roles.items():
+        try:
+            receiver = int(role["receiver"])
+            donor = int(role["donor"])
+            receiver_descriptor = descriptors[receiver]
+            foreign_local = _top_foreign_supports(
+                receiver_descriptor,
+                label,
+                support_embeddings,
+                support_labels,
+                support_ids,
+                top_k=top_k,
+            )
+            q = smooth_margin_gradient(
+                receiver_descriptor,
+                descriptors[np.asarray(role["supports"], dtype=np.int64)],
+                support_embeddings[foreign_local],
+                tau=0.05,
+            )
+
+            def transported(index: int) -> np.ndarray:
+                return parallel_transport(
+                    -cotangent_by_index[int(index)],
+                    descriptors[int(index)],
+                    receiver_descriptor,
+                )
+
+            candidate = transported(donor)
+            own = -cotangent_by_index[receiver]
+            projection = -cotangent_by_index[donor]
+            projection = projection - float(np.dot(projection, receiver_descriptor)) * receiver_descriptor
+            proxy_only = parallel_transport(
+                -proxy_cotangent_by_label[label],
+                proxy_by_label[label],
+                receiver_descriptor,
+            )
+            directions = {
+                "candidate": candidate,
+                "receiver_own": own,
+                "fixed_hash_donor": transported(int(role["fixed_hash"])),
+                "norm_permuted_donor": transported(int(role["norm_permuted"])),
+                "cosine_matched_donor": transported(int(role["matched"])),
+                "ambient_projection": projection,
+                "proxy_only": proxy_only,
+            }
+            unit_candidate = _normalize_direction(candidate, name="candidate")
+            unit_own = _normalize_direction(own, name="receiver own")
+            orthogonal = unit_candidate - float(np.dot(unit_candidate, unit_own)) * unit_own
+            row = {
+                "seed": int(bound.seed),
+                "label": int(label),
+                "support_ids": [str(example_ids[index]) for index in role["supports"]],
+                "controller_ids": [str(example_ids[index]) for index in role["controllers"]],
+                "receiver_id": str(example_ids[receiver]),
+                "candidate_donor_id": str(example_ids[donor]),
+                "fixed_hash_donor_id": str(example_ids[int(role["fixed_hash"])]),
+                "norm_permuted_donor_id": str(example_ids[int(role["norm_permuted"])]),
+                "cosine_matched_donor_id": str(example_ids[int(role["matched"])]),
+                "foreign_support_ids": [str(support_ids[index]) for index in foreign_local],
+                "receiver_norm": float(norms[receiver]),
+                "candidate_donor_norm": float(norms[donor]),
+                "cosine_match_standardized_squared_distance": float(role["match_distance"]),
+                "alignments": {name: _alignment(q, direction) for name, direction in directions.items()},
+                "orthogonal_fraction": float(np.linalg.norm(orthogonal)),
+            }
+            rows.append(row)
+        except ValueError as error:
+            reason = str(error)
+            exclusion_reasons[reason] = exclusion_reasons.get(reason, 0) + 1
+
+    return {
+        "seed": int(bound.seed),
+        "eligible_identities": len(roles),
+        "excluded_identities": len(roles) - len(rows),
+        "exclusion_reasons": exclusion_reasons,
+        "feature_scales": feature_scales.tolist(),
+        "fixed_hash_matches_candidate": random_matches_candidate,
+        "single_cosine_match_alternative": singleton_match_alternatives,
+        "identity_rows": rows,
+    }
