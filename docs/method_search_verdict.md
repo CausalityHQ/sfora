@@ -9127,3 +9127,16 @@ the corrected In-Shop corpus, its one-seed raw best was `0.9176` versus
 is far below the `+0.50` paired screening threshold and does not establish
 novelty or benefit; no follow-up GPU work is authorized.  Full record:
 `docs/pass151_cis_control_verdict_2026-08-08.md`.
+
+## Pass 152 — fresh independent Sol search (NONE at Gate 1/2, 2026-08-08)
+
+The cold fallback review (Fable/Claude were weekly-limit unavailable) found no
+new train-time object.  Gate 1 is unsupported after CIS dropout (`+0.056` raw,
+`+0.042` final), RGB/edge residual (`Delta AUC -0.000029`), HOG-like residual
+(`-0.000007`), and the one-to-one In-Shop label/product mapping.  Gate 2
+independently reduces opposing gradients to PCGrad/CAGrad, class-disjoint
+assessment to DML-ALA or weighting/mining, fragmentation to SoftTriple/graph/
+neighbourhood learning, cross-run consensus to distillation, and transport to
+Meta Variance Transfer (with an adverse local transport diagnostic).  No CPU or
+GPU work is authorized without a newly measured independent signal.  Full
+record: `docs/pass152_sol_fresh_search_2026-08-08.md`.
