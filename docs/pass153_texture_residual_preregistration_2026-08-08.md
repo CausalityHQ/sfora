@@ -17,3 +17,12 @@ adding the texture-signature distance.  Gate 1 passes only if held-out
 category incremental `Delta AUC >= 0.05`, bootstrap lower bound is positive,
 and at least 4/5 folds are positive.  Failure authorizes no objective,
 prior-art search, or GPU run.
+
+## Result
+
+The diagnostic failed Gate 1 despite all five folds being positive. Held-out
+category incremental AUC deltas were `+0.001134, +0.000932, +0.000922,
++0.001779, +0.001206`; mean `+0.001195`. This is far below the preregistered
+`+0.05` requirement, so the texture signal does not provide a transferable
+training referent. No texture-gated method, prior-art search, or GPU run is
+authorized.

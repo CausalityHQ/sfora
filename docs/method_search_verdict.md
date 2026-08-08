@@ -9140,3 +9140,13 @@ neighbourhood learning, cross-run consensus to distillation, and transport to
 Meta Variance Transfer (with an adverse local transport diagnostic).  No CPU or
 GPU work is authorized without a newly measured independent signal.  Full
 record: `docs/pass152_sol_fresh_search_2026-08-08.md`.
+
+## Pass 153 — pixel texture/autocorrelation residual (NO-GO at Gate 1, 2026-08-08)
+
+Motivated by the verified In-Shop series/colourway retrieval structure, a
+preregistered grayscale local-autocorrelation and local-variance signature was
+tested on the fixed category-disjoint sample.  Held-out incremental AUC deltas
+were `+0.001134, +0.000932, +0.000922, +0.001779, +0.001206` (mean
+`+0.001195`, 5/5 positive), far below the `+0.05` Gate-1 threshold.  The
+signal is too small to authorize a training object; no prior-art or GPU work
+was performed.  Full record: `docs/pass153_texture_residual_preregistration_2026-08-08.md`.
