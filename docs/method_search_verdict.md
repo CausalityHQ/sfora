@@ -9631,4 +9631,20 @@ self-distillation are adjacent. No exact benchmark-matched method was found
 that derives a target from label-excluded per-example cross-class moments
 without a teacher or external modality. The distinction is narrow and will be
 recorded as dead if judged cosmetic. The fixed-weight preregistration is in
-`docs/pass192_cegt_candidate.md`; no GPU run has started.
+`docs/pass192_cegt_candidate.md`; the subsequent single seed is recorded
+below.
+
+### Pass192 — CEGT: DEAD, Gate 5
+
+**Mechanism:** retain the ordinary deployed embedding and add a fixed `0.05`
+cosine target toward a stop-gradient CE-BN embedding computed from other-class
+rows in the labelled batch. This fixed the train/eval path mismatch enough to
+avoid CE-BN's collapse, but did not improve retrieval.
+
+**Result:** In-Shop seed 0 final R@1 `0.913701` exactly matched the paired
+control; raw best was `0.916374` versus `0.916303` (`+0.007 pt`), and the
+local-trend diagnostic was `0.914563` versus `0.913877` (`+0.068 pt`). The
+registered `+0.30 pt` corrected pass condition failed. CEGT is closed with no
+second seed. The measurement says the CE-BN descriptor signal is not useful as
+an auxiliary gradient target at this fixed weight, despite preserving the
+deployable path.
