@@ -8,11 +8,11 @@ descriptor `0.913701`; leave-own-class-out normalization gives `0.927275`
 testing whether the signal survives end-to-end learning.
 
 For the deciding In-Shop run, use the existing corrected Proxy Anchor recipe,
-one seed, matched compute, and trainable BN. Prediction: CE-BN will improve
+one seed, matched compute, and the embedding-head CE-BN operation (the
+backbone's trainable BN remains otherwise unchanged). Prediction: CE-BN will improve
 selection-corrected R@1 by **at least +0.30 percentage points** over the paired
 Proxy Anchor control. Falsification: corrected delta `< +0.15 pt` (or a raw
 delta ≤ 0) kills CE-BN; no second dataset or hyperparameter sweep follows.
 The raw best-over-training and selection-corrected values must both be reported.
 The method is In-Shop-only in this pass because CE-BN is inert when BN is
 frozen, as on CUB.
-

@@ -9469,10 +9469,11 @@ parameterization details, not a new data-derived supervision relation. No CPU
 or GPU work occurred. Full proposal: `docs/pass182_csml_proposal_2026-08-08.md`.
 ### Pass 183 — Class-Excluded Batch Normalization (CE-BN), LIVE-NARROW pending GPU
 
-**Mechanism:** for each training example, compute BN moments from batch examples
-whose labels differ from its own, then apply the unchanged Proxy Anchor loss.
-This removes same-class batch-statistics coupling while preserving ordinary
-single-model inference. Gate 2 found adjacent work on ordinary BN, balanced
+**Mechanism:** at the embedding head, compute normalization moments for each
+training example from batch examples whose labels differ from its own, then
+apply the unchanged Proxy Anchor loss. This removes same-class batch-statistics
+coupling while preserving ordinary single-model inference; backbone BN is
+otherwise unchanged. Gate 2 found adjacent work on ordinary BN, balanced
 batches, conditional affine parameters, statistic exchange, and cross-iteration
 moments, but no label-excluded per-example BN in supervised metric learning
 (`docs/pass183_cebn_prior_art_2026-08-08.md`).

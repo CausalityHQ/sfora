@@ -4,9 +4,9 @@
 
 Class-Excluded Batch Normalization (CE-BN) computes the training-time mean and
 variance for example `i` from batch examples whose labels differ from `y_i`.
-The Proxy Anchor loss, descriptor size, and deployment path are unchanged. At
-inference, ordinary running moments are used, so this remains a single-model,
-single-view descriptor.
+For the first matched screen it is inserted at the embedding head (the smallest
+auditable implementation); the existing backbone BN layers are otherwise
+unchanged. At inference, the ordinary single-model descriptor path is used.
 
 ## Gate 1 provenance
 
@@ -42,4 +42,3 @@ the training normalization in supervised metric learning. CE-BN is therefore
 **LIVE-NARROW at Gate 2**, with the distinction being label-excluded statistics,
 not class-conditioned affine parameters, statistic exchange, or balanced
 batches.
-
