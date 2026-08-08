@@ -9746,6 +9746,12 @@ weighting and Gradient Weighting modify a forward metric/predictor, not a
 label-derived backward-only preconditioner on learned DML coordinates. Both entries
 are therefore **LIVE-NARROW at Gate 2 and unresolved at Gate 1**, not established
 methods and not GPU-authorized. CIEB now has a committed four-seed, training-only,
-variance-matched coordinate-ablation falsifier. Pass159 awaits an equally exact
-causal estimand. Full correction:
+variance-matched coordinate-ablation necessary screen followed by a class-disjoint
+influence test. Pass159 now has an exact four-seed Stage-A causal screen with frozen
+angular PA cotangents, sphere transport, donor controls, joint identity bootstrap,
+artifact digests, and prospective thresholds. Stage A may kill or authorize bounded
+parameter-space VJPs, but cannot itself clear Gate 1. Full correction and current
+preregistrations:
 `docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.
+`docs/pass159_gradient_transplant_search_2026-08-08.md`.
+`docs/pass181_cieb_proposal_2026-08-08.md`.

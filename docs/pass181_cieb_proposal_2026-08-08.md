@@ -34,33 +34,56 @@ a backward-only preconditioner of learned DML coordinates. That difference must 
 forward-weighting and random-coordinate controls, but it is not an exact prior-art
 collision under the repaired rule.
 
-The Gate-1 diagnostic is frozen before execution. For each of corrected In-Shop PA
+The operator's previously omitted constants are frozen before any value is inspected:
+`alpha=1`, `epsilon=1e-6`, and
+`w_j=(h_j+epsilon)/mean_k(h_k+epsilon)`, with no clipping.
+
+The Gate-1 Stage-A diagnostic is frozen before execution. For each of corrected In-Shop PA
 model seeds 0–3, reconstruct normalized train descriptors from the retained pre-head
 pack and final checkpoint. The reconstruction must first reproduce that checkpoint's
 reported official final R@1 exactly; official query/gallery identities are used only
 for this artifact-binding equality and contribute no candidate statistic.
 
-Using training identities only, deterministically reserve 20% of identities for the
-diagnostic retrieval panel and estimate coordinate entropies from the other 80%.
-Within each reserved identity, deterministically split images into query and gallery.
-Set `epsilon=1e-6`, rank the 512 coordinates by the frozen entropy equation, and ablate
-the lowest-entropy 64 coordinates in both query and gallery before renormalization.
-Compare with 20 uniform-random 64-coordinate ablations, 20 coordinate-energy-decile-
-matched ablations, and the highest-entropy 64-coordinate ablation. Also compute the
-Spearman correlation between entropy and each coordinate's mean contribution to the
-nearest-positive-minus-nearest-foreign margin.
+Using training identities only, make five folds by fixed label hash. For each fold,
+estimate entropy on the other four folds; deterministically split held-out identity
+images into query and gallery; and ablate the bottom 10% entropy coordinates in both
+before renormalization. Compare with 1,000 masks matched jointly on coordinate
+variance and own-proxy alignment. The outcome is the `tau=0.05` smooth
+nearest-positive-minus-top-32-foreign margin, with R@1 descriptive only. Split the
+four estimator folds in half and recompute entropy to measure rank stability. Also
+record the coefficient of variation of the frozen weights; a near-constant
+preconditioner is a no-op.
 
-Gate 1 passes only if all conditions hold:
+Stage A passes onward only if all conditions hold:
 
-1. the entropy/contribution Spearman correlation is at least `+0.15` in the median
-   seed;
-2. low-entropy ablation improves R@1 over the unablated panel by at least `+0.15`
-   point in at least three of four seeds; and
-3. in those same seeds it exceeds both the uniform-random and energy-matched mean
-   ablations by at least `+0.10` point.
+1. split-half entropy-rank Spearman is at least `0.60` in every seed;
+2. weight coefficient of variation is at least `0.10`;
+3. bottom-decile removal improves standardized smooth margin over the matched-mask
+   mean by at least `0.05` standard deviation, with identity-bootstrap 95% lower
+   bound above zero; and
+4. every seed agrees in sign.
+
+Stage A fails if rank stability is below `0.30` in at least three of four seeds,
+weight coefficient of variation is below `0.05`, or the pooled matched-ablation
+advantage is nonpositive. Intermediate outcomes are unresolved.
 
 Any artifact-binding mismatch or threshold failure stops CIEB before implementation
-or GPU. A pass establishes only that the proposed statistic identifies harmful
-coordinates; it does not establish that backward preconditioning improves training.
+or GPU. A Stage-A pass establishes only that the statistic identifies harmful
+coordinates; it **cannot pass Gate 1**, because post-training forward ablation is a
+different intervention from backward preconditioning and the checkpoint already saw
+the held-out training identities.
+
+The decisive Stage B is a class-disjoint bounded head-training/influence experiment.
+Fit a frozen-trunk 512-D head and proxies to epoch 10 on 80% of In-Shop training
+identities only; neither images nor labels from the remaining 20% may enter fitting or
+entropy estimation. Compare equal-parameter-norm updates from CIEB with ordinary PA,
+coordinate-permuted entropy, variance-matched diagonal weights, forward weighted
+distance using the same entropy, and inverse entropy. On held-out identities, score
+alignment with a proxy-free supervised-retrieval gradient. CIEB must retain at least
+`0.20` update residual outside ordinary PA (`<0.10` fails), improve alignment over the
+strongest control by `>=0.02`, have a positive identity-clustered 95% lower bound and
+every seed positive, and match the sign and magnitude (within 20%) of a small stateless
+step. A nonpositive mean or at least three of four nonpositive seeds fails; otherwise
+the result is unresolved. No benchmark training run is authorized before Stage B.
 Full re-audit:
 `docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.

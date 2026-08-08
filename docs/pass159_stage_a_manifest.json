@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "seeds": {
+    "0": {
+      "checkpoint_pt": {"path": "/home/riomus/group-learning/reports/checkpoints/inshop_corrected_pa_seed0.pt", "sha256": "2b46a68a0364cd204e60068858198f1da699f043897fc93d0c22525b6f635546"},
+      "gallery_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_gallery_final.npz", "sha256": "6eb89ff57e7a6002f2ba71f9659e04dabd0cafdb1996be3d85f5211731ba861a"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed0.npz", "sha256": "9e94b448ebddd9db0889fad136eb32b53eab705f04ca23d736bad0e19d52f71a"},
+      "query_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_query_final.npz", "sha256": "ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761"},
+      "report_json": {"path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0.json", "sha256": "9121937b0ebd8cfbf57f52209eff7e8762795e4d05f77d963ca96ed03d708476"},
+      "retrieval_json": {"path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0_final_retrieval.json", "sha256": "7f35282d65466727b024a5259606fb1f5e3dd15dea3dc303cdf54daf42f4e41b"},
+      "train_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_train_final.npz", "sha256": "67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea"}
+    },
+    "1": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed1/reports/checkpoints/inshop_corrected_pa_seed1.pt", "sha256": "a25dc22691981e6ad7df899878f448d96d4ac41adbb8e346e10322e93883e580"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_gallery_final.npz", "sha256": "d1956f8f7a72490a06cf75fa39822bed4d499095e07d36af3f72a5cc4982754b"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed1.npz", "sha256": "ce7eca31d1592fb601b38e8bca258bf93d425eaec7d1bf97278fa43f1d4f40c9"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_query_final.npz", "sha256": "1a2fb03689b161c8a19bf379c362ef2e552151aa02dc942151faf611fd62be73"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1.json", "sha256": "3482d3f976e5184eb12a1ae250bed5a8e66ef458148e0cef4ab0afb9efbcc02a"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1_final_retrieval.json", "sha256": "59d5b15c4e3b6e5e0eac1649bce266b1d7a4e8bf036995f76e0b5b70e03c6f33"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_train_final.npz", "sha256": "5fd172cf7a69bcb1cf6b715793f8a81f12ecf7382a69416f6a3343ca301e3f4d"}
+    },
+    "2": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt", "sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_gallery_final.npz", "sha256": "6ba0c3a7191b876be88e88dfcdae911d03a0dd3311719d4f32956e50e25ab71c"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed2.npz", "sha256": "24eaaf21282da27b71d914934f25ffc907622217183c2596a1b155cc6a9e0628"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_query_final.npz", "sha256": "7fc6adae069eba35ce8942a76679a6f03b2638728995e2d999989fba224e3b02"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2.json", "sha256": "f84b5ddce57e468e858bdc5e97415466369793497993af11d1a9223222ace442"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2_final_retrieval.json", "sha256": "ff0619a255ffe56b90ca7f548ed671b914fbda8ac9f7287db8d94ec3733b9788"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_train_final.npz", "sha256": "98830a4d47c9314c82c58166b659c7d7a278aa660de842831e5ff081161ed549"}
+    },
+    "3": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed3/reports/checkpoints/inshop_corrected_pa_seed3.pt", "sha256": "2a1d675220cde9c8ef096597cc5f25e665d32e7634f50102ec5046c6ed4ac7ae"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_gallery_final.npz", "sha256": "160502f6eb8a66e8e6915db564c2e6e75e869b158fccd021a0f457c4aaf515d9"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed3.npz", "sha256": "6c475fa09015743af0a10c91747410af74c3144246e547e87fdc68a5ea97d2c6"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_query_final.npz", "sha256": "4c6e87b1d2ad13c8ce21129f972355ed5bc61d75544d6b4deae4b2ebc534aafe"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3.json", "sha256": "7eaf0fb10071ef11b4bddf957d9b66b9a0d70315dcc259628994f3da0d6df1de"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3_final_retrieval.json", "sha256": "32e8c0f93160465a71bab8f7a36b53817a387fc16f949b097e87a78528aebef2"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_train_final.npz", "sha256": "d53a88cfc12a8f0fb03be0f26cd21e159dc1a3805462cddc20900b2df2d133a3"}
+    }
+  }
+}
