@@ -9783,3 +9783,19 @@ gradient field; geodesic transport preserves its tangent geometry but not its lo
 utility. This separates a valid quality observable from an invalid cross-example
 update operator. No Stage B or benchmark run is authorized. Full result:
 `docs/pass159_stage_a_result_2026-08-08.md`.
+
+## Pass198 — Batch-Shape Invariant Retrieval: LIVE-NARROW, Gate 1 pending
+
+The Pass159 artifact gate found a deterministic eval-mode batch-shape defect in all
+four corrected In-Shop PA checkpoints: only the 138-row query tail changes between
+legacy batch 256 and canonical batch 128, with maximum coordinate drift
+`6.39e-4`–`8.45e-4`.  BSIR would train the same anchor's deployed descriptor to agree
+under the two tensor shapes while keeping ordinary PA and single-view inference.
+
+Batch Renormalization, Ghost/Virtual BN, R-Drop-style consistency, and internal
+Pass134 are adjacent but do not use the same eval-mode numerical perturbation and
+retrieval decision point, so the candidate is **LIVE-NARROW at Gate 2**.  The measured
+defect is not yet a measured retrieval failure.  Before any implementation, the
+committed four-seed diagnostic requires correctness changes, not merely coordinate or
+nearest-identity drift.  Full audit and prospective thresholds:
+`docs/pass198_bsir_gate2_and_stage_a_2026-08-08.md`.
