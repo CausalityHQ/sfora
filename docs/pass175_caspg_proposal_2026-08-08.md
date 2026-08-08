@@ -27,6 +27,13 @@ not to gate DML positives. Existing conformal retrieval work calibrates test
 candidate sets or uncertainty; it does not use overlap of two different
 images' target-excluded sets as a train-time eligibility predicate.
 
+The closest DML calibration antecedent found is Zhang et al., *Threshold-
+Consistent Margin Loss for Open-World Deep Metric Learning* (ICLR 2024). It
+adds a margin regularizer for threshold consistency and explicitly notes that
+ordinary conformal prediction assumes a closed label world; it does not make
+conformal sets a cross-image positive gate. This is an adjacent warning, not an
+exact match, and keeps CASPG LIVE-NARROW rather than claiming novelty.
+
 The distinction from RSPG/Liao is: CASPG uses calibrated finite prediction
 sets with a coverage-derived threshold, and the set-overlap predicate changes
 same-class positive eligibility. It is not a raw rival-distribution signature,
@@ -48,4 +55,3 @@ The candidate survives Gate 1 only if pair-gate AUC is **>0.70** and selected
 support-to-query R@1 improves the all-positive control by **at least 0.5
 points**. Either failure kills CASPG without GPU. Empty or near-universal sets
 are also reported as a diagnostic failure, not silently repaired by tuning.
-
