@@ -9484,6 +9484,18 @@ moments, but no label-excluded per-example BN in supervised metric learning
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
 
+## Pass 186 — Foreign-Gradient Fisher Preconditioning (DEAD at Gate 2)
+
+The candidate maintained a per-proxy covariance of foreign-negative gradients
+and preconditioned that proxy update by its inverse square root. Gate 1 used the
+epoch-10 acquisition-drift audit and the measured 17.94% opposing same-class
+gradient fraction. Gate 2 closes it: Pass 147's independent review already
+audited gradient/optimizer escapes, while K-FAC, Shampoo, AdaHessian,
+Riemannian DML, Proxy-ISA, and non-isotropy regularization occupy the mechanism
+class. Restricting the covariance to foreign negatives is an optimizer-estimator
+variant, not new supervision. No CPU or GPU work occurred. Full proposal:
+`docs/pass186_fgfp_proposal_2026-08-08.md`.
+
 ## Pass 184 — Pose/keypoint-factorized embedding head (DEAD at Gate 2)
 
 The proposer suggested splitting the descriptor into pose/part-aligned factors,
