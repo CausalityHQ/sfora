@@ -9678,3 +9678,16 @@ reverse propagation (ProxyGML, NeurIPS 2020). Proxy Synthesis (AAAI 2021) also
 already creates competitive synthetic classes between original classes. The
 mechanism-level distinction therefore fails at Gate 2; no implementation or GPU
 run was spent. Full audit: `docs/pass194_confusion_complement_audit_2026-08-08.md`.
+
+## Pass195 — Cross-Identity Displacement Transport: DEAD, Gate 2
+
+**Mechanism:** match same-class displacement-vector distributions across training
+identities, motivated by the corrected In-Shop positive-transfer deficit
+(`−0.04968`) and the measured warning that within-class variance is not purely
+nuisance.
+
+**Disposition:** variance-preserving DML, Deep Variational Metric Learning, and
+cross-instance relational/variation-transfer methods already occupy this
+training object. Distribution matching of displacements is a cosmetic variant of
+covariance/relational supervision, so no implementation or GPU run was spent.
+Full audit: `docs/pass195_cidt_gate2_audit_2026-08-08.md`.
