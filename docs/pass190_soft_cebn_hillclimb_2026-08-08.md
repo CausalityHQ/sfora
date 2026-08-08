@@ -2,8 +2,9 @@
 
 ## Motivation from the live failure
 
-Hard embedding-head CE-BN is currently running but collapses the train/eval
-trajectory (best epoch-5 R@1 `0.6728` versus ordinary Proxy Anchor `0.8333`).
+Hard embedding-head CE-BN collapsed the train/eval trajectory during its
+completed run (interim best epoch-5 R@1 `0.6728` versus the corrected ordinary
+Proxy Anchor reference `0.913701`).
 The corrected descriptor CPU probe separates the intervention from the
 optimization: blending the untouched normalized descriptor with the
 leave-own-class-out normalized descriptor improves monotonically:
@@ -37,4 +38,3 @@ Run one matched corrected In-Shop seed only after Pass183 closes. Prediction:
 selection-corrected R@1 delta `≥ +0.30 pt` versus paired Proxy Anchor. Falsify
 below `+0.15 pt` or any non-positive raw delta; do not tune λ or run a second
 seed after falsification. Report raw and corrected values.
-
