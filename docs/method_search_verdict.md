@@ -9250,3 +9250,13 @@ already occupied by Chen et al. ICML 2022 and Lee et al. AISTATS 2025.  The
 measurement does not identify a new editable signal or a defensible gain
 forecast.  No CPU or GPU run occurred.
 Full record: `docs/pass163_direct_gram_search_2026-08-08.md`.
+
+## Pass 164 — rejection-ledger re-audit (reopened non-evidence)
+
+Passes 58–72 that returned blind-proposer `NONE` had no executable method and
+could not satisfy measurement-required Gate 1 while blind to the measurements.
+They are therefore non-evidence, not failed experiments, and are reopened under
+the repaired two-lane protocol.  Artifact failures, correctly recomputed CPU
+falsifiers, exact prior-art reviews after concrete proposals, and matched GPU
+failures remain valid for their tested mechanisms only. Full audit:
+`docs/protocol_reopen_audit_2026-08-08.md`.
