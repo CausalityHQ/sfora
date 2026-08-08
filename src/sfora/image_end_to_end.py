@@ -601,6 +601,18 @@ _GROUP_CENTROID_OBJECTIVES = {
 }
 
 
+def _requires_training_sample_indices(config: ImageEndToEndConfig) -> bool:
+    """Whether the training dataset and loop must carry stable row identities."""
+    return (
+        "proxy_anchor_coalition" in config.objectives
+        or config.rspg_weight > 0.0
+        or config.arcg_weight > 0.0
+        or config.ipsr_weight > 0.0
+        or config.ectr_weight > 0.0
+        or config.cea_weight > 0.0
+    )
+
+
 def _export_cublas_workspace_config() -> None:
     """Export `CUBLAS_WORKSPACE_CONFIG`, which cuBLAS reads ONCE when its handle is
     created and ignores afterwards.
@@ -736,14 +748,7 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
-        if (
-            "proxy_anchor_coalition" in config.objectives
-            or config.rspg_weight > 0.0
-            or config.arcg_weight > 0.0
-            or config.ipsr_weight > 0.0
-            or config.ectr_weight > 0.0
-            or config.cea_weight > 0.0
-        )
+        if _requires_training_sample_indices(config)
         else _TorchImageDataset(optimization_examples, train_transform)
     )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
@@ -1108,7 +1113,7 @@ def run_image_end_to_end_benchmark(
                 train_batches,
                 strict=False,
             ):
-                if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0 or config.cea_weight > 0.0:
+                if _requires_training_sample_indices(config):
                     images, labels, sample_indices = batch
                     sample_indices = sample_indices.to(device, non_blocking=True)
                 else:

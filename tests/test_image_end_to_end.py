@@ -4032,6 +4032,56 @@ def test_proxy_anchor_objective_trains_proxies_end_to_end_and_loss_decreases() -
     assert result.methods["proxy_anchor_end_to_end:tiny"].display_name == "Proxy Anchor"
 
 
+def test_coalition_objective_runs_with_indexed_duplicate_class_batches() -> None:
+    torch: Any = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.embedding = torch.nn.Embedding(4, 2)
+
+        def forward(self, images: object) -> object:
+            return self.embedding(torch.as_tensor(images, dtype=torch.long))
+
+    def transform_factory(config: ImageEndToEndConfig, train: bool):  # type: ignore[no-untyped-def]
+        return lambda image: int(cast(int, image))
+
+    examples = [
+        ImageExample(example_id=f"{label}-{index}", image=label * 2 + index, label=label)
+        for label in (0, 1)
+        for index in range(2)
+    ]
+    result = run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="sota-resnet50-512",
+            objectives=("proxy_anchor_coalition",),
+            coalition_mode="union",
+            coalition_weight=0.1,
+            backbone_name="tiny",
+            embedding_dimensions=2,
+            batch_size=4,
+            samples_per_class=2,
+            eval_batch_size=4,
+            train_steps=2,
+            train_epochs=None,
+            warmup_epochs=0,
+            proxy_count_per_class=1,
+            progress_every=0,
+            num_workers=0,
+            seed=0,
+        ),
+        model_factory=lambda config: TinyModel(),
+        transform_factory=transform_factory,
+    )
+
+    method = result.methods["proxy_anchor_coalition_end_to_end:tiny"]
+    assert len(method.loss_history) == 2
+    assert all(math.isfinite(value) for value in method.loss_history)
+
+
 def test_pfml_potential_loss_matches_hand_computed_energy() -> None:
     # Paper kernel (arXiv 2405.18560 Eq. 1-2) with delta=0.5, alpha=2:
     #   attraction: -1/delta^2 = -4 inside the margin, -1/d^2 outside

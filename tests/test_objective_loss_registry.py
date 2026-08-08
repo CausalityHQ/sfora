@@ -3,6 +3,22 @@ from typing import Any
 import pytest
 
 
+def test_coalition_objective_requires_indexed_training_batches() -> None:
+    import sfora.image_end_to_end as image_end_to_end
+
+    coalition = image_end_to_end.ImageEndToEndConfig(
+        dataset_name="inshop",
+        objectives=("proxy_anchor_coalition",),
+    )
+    plain = image_end_to_end.ImageEndToEndConfig(
+        dataset_name="inshop",
+        objectives=("proxy_anchor",),
+    )
+
+    assert image_end_to_end._requires_training_sample_indices(coalition)
+    assert not image_end_to_end._requires_training_sample_indices(plain)
+
+
 def test_registry_dispatch_matches_hist_and_proxy_anchor_helpers() -> None:
     torch: Any = pytest.importorskip("torch")
 
