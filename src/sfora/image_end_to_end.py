@@ -5826,6 +5826,8 @@ def _stoichiometric_residual_coalition_loss(
     from silently collapsing to the single-image control for two-member
     bundles.
     """
+    if torch_module.unique(labels, sorted=True).numel() != labels.numel():
+        raise ValueError("SRC requires a bundle with distinct labels")
     kwargs = dict(
         embeddings=embeddings,
         labels=labels,

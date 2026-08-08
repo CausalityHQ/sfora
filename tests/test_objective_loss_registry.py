@@ -287,3 +287,21 @@ def test_src_dispatcher_uses_union_plus_residual_operator() -> None:
         torch_module=torch,
     )
     assert torch.allclose(dispatched, base + config.coalition_weight * src)
+
+
+def test_src_rejects_duplicate_labels_instead_of_dropping_a_member() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.randn(3, 6, generator=torch.Generator().manual_seed(31))
+    labels = torch.tensor([0, 0, 1])
+    proxies = torch.randn(2, 6, generator=torch.Generator().manual_seed(32))
+    proxy_labels = torch.tensor([0, 1])
+    with pytest.raises(ValueError, match="distinct labels"):
+        image_end_to_end._stoichiometric_residual_coalition_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxies,
+            proxy_labels=proxy_labels,
+            torch_module=torch,
+        )

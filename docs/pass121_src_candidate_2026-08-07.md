@@ -82,6 +82,41 @@ composition. This repairs the implementation mismatch only; the original
 SRC benchmark prediction is void and requires a fresh preregistration before
 any GPU screen.
 
+## Fresh preregistration after repair (2026-08-08)
+
+The repaired dispatcher is the deciding operator. The ordinary Proxy Anchor
+term remains unchanged; the coalition contribution is
+
+```
+L = L_PA + 0.10 * (L_union + L_leave_one_out_residual)
+```
+
+Both terms are unweighted internally (the union equation has coefficient 1 and
+the mean of the leave-one-out equations has coefficient 1). This is the exact
+configuration to be tested; changing either coefficient after the screen is
+not an SRC result.
+
+The paired corrected In-Shop Proxy Anchor reference is **0.9163033**. For a
+single seed-0 screen I preregister raw best-over-training R@1 **0.9192** and a
+frozen-checkpoint R@1 **0.9188**. The screen is falsified if either value is
+below its threshold (raw **0.9180**, frozen **0.9180**), or if SRC does not
+strictly exceed both `pa_coalition` (union-only) and
+`pa_coalition_complementary` (per-image complementary target) by **0.0010**
+on the same seed and split. A failure stops SRC; no second seed or second
+dataset is authorized. Report raw best and the selection-corrected/frozen
+value, with the correction method and checkpoint identity recorded.
+
+Before any GPU screen, the CPU gate must pass on bundles of two and three
+distinct labels: (1) finite scalar loss and finite, nonzero gradients for
+every selected member; (2) permutation invariance of the scalar and per-member
+gradient norms; (3) changing one label changes both the union target and the
+corresponding omitted-member target; (4) the two-member residual term is not
+equal to the ordinary single-image or per-image-complementary control; and
+(5) a duplicate-label input is rejected rather than silently discarding one
+image. These tests distinguish the claimed leave-one-out coalition mechanism
+from its controls; passing them is implementation readiness only, not
+benchmark evidence.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
