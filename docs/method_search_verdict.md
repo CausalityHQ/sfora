@@ -9567,3 +9567,22 @@ optimization/representation to density and intra-class variation. A
 variance-conditioned activation is therefore a parameterization variant of
 occupied variance/density-adaptive DML. No CPU or GPU work was performed. Full
 proposal: `docs/pass185_variance_activation_proposal_2026-08-08.md`.
+### Pass183 — class-excluded batch normalization (CE-BN): DEAD, Gate 5
+
+**Mechanism:** normalize each training embedding using per-feature moments of
+other-label rows in the minibatch, excluding same-class rows; the deployment
+encoder remains the ordinary BN-Inception path.  Primary-art prior-art audit
+found only adjacent BN/statistics methods, so this was LIVE-NARROW at Gate 2.
+
+**Result:** the preregistered matched In-Shop seed-0 run finished at final and
+best R@1 `0.684344`, versus paired Proxy Anchor raw best `0.916303` and final
+`0.913701`.  Raw best delta `-23.196 pt`; final delta `-22.936 pt`.  The
+leave-one-out local-neighbour selection diagnostic gives CE-BN `0.671402`
+versus control `0.913877`, delta `-24.247 pt`.  The CPU descriptor-only probe
+had suggested `+1.357 pt`, but that signal does not survive train-time use.
+
+**Mechanism of failure:** the batch-statistic transform is present in the loss
+forward but absent from the evaluation/deployment path, producing a severe
+optimization/representation mismatch.  No second seed or replication is
+justified.  Concurrent CPU wall-clock measurements are discarded as cost
+evidence; numerical diagnostic values remain valid.
