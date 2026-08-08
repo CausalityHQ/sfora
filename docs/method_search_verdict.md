@@ -8970,3 +8970,24 @@ this implementation it supplies detached positive targets alongside Proxy
 Anchor's negative term and causes retrieval collapse.  No ablations, extra
 seed, or second-dataset run is authorized.  Full record:
 `docs/pass132_cea_inshop_screen_2026-08-08.md`.
+
+## Pass 135 — SRC implementation audit and fresh design review (2026-08-08)
+
+The Codex Sol fallback review found a hard Gate-0 defect before any SRC GPU
+run.  The frozen SRC object requires the normalized union-labelled coalition
+**and** every leave-one-out residual.  The current dispatcher supplies only the
+residual term in addition to ordinary Proxy Anchor, omitting the required union
+term.  At bundle size two, the residual average is exactly the existing
+single-image control (`abs_diff=0` in a CPU scalar check).  The existing
+three-member test does not catch either condition.  Therefore the `0.9192`
+SRC expectation is void for this implementation; SRC is not queued until the
+operator and its tests are repaired and a new preregistration is written.
+
+The same review rejected three fresh constructions before GPU: class-shard
+functional interference collapses to class-disjoint meta-learning/gradient
+alignment; a cross-image token bottleneck is mechanism-equivalent to
+cross-image completion or local-to-global distillation; and ownership-coded
+coalitions are error-correcting/vector-symbolic binding or routed codebooks.
+No new candidate cleared provenance plus mechanism-level prior art.  This is a
+negative search result, not a claim that future mechanisms are impossible.
+Full audit: `docs/pass135_sol_design_review_2026-08-08.md`.
