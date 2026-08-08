@@ -9015,3 +9015,22 @@ similarity object; and cross-image same-class latent prediction is occupied by
 I-JEPA/data2vec/CroCo, correspondence, NNCLR, or SupCon. The result and
 collision list are recorded in `docs/pass137_sol_fresh_search_2026-08-08.md`.
 No CPU or GPU work is authorized from this pass.
+
+## Pass 140 — fresh Sol cross-field search (NONE at Gate 2)
+
+Codex Sol's adversarial search, run after the Pass 135–139 closures and while
+the CIS controls were running, found no defensible new mechanism.  Fable and
+its Claude fallback were weekly-limit unavailable; no claim is based on their
+silence.  Three strongest attempts were rejected before implementation:
+
+* apical/local target credit assignment is Difference Target Propagation,
+  Deep Feedback Control, or dendritic/error-feedback learning;
+* nonreciprocal proxy–encoder dynamics is an alternating or stop-gradient
+  proxy update, not new supervision; and
+* group-tested coalition ownership is deterministic ECOC/vector-symbolic
+  binding or the existing CIS/SRC/compositional family.
+
+The mechanism-level negative and primary collision list are recorded in
+`docs/pass140_sol_fresh_search_2026-08-08.md`.  No CPU or GPU work is
+authorized from this pass.  The live CIS controls remain the next source of
+measurement-grounded candidate generation.
