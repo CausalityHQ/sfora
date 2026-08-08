@@ -9419,3 +9419,17 @@ Gate-2 novelty distinction. The proposed routes reduce to audited
 potential-field/energy/ODE/symplectic, ranking/matching/coalition, or conformal
 selection families. No CPU or GPU work occurred. Full record:
 `docs/pass178_crossfield_supervision_search_2026-08-08.md`.
+
+## Pass 179 — Random-Projection Erasure-Coded Proxy Anchor (DEAD at Gate 2)
+
+The blind proposer supplied a concrete soft-worst Proxy Anchor objective over
+four freshly rotated 128-D Hadamard subspaces, with only the full 512-D
+descriptor deployed. Gate 2 closes it before CPU: BIER (Opitz et al., ICCV
+2017) partitions and diversifies embedding branches for CUB/Cars/In-Shop;
+Deep Randomized Ensembles for Metric Learning (Xuan et al., ECCV 2018) trains
+randomized embedding functions for the same benchmarks; and Yao et al.
+(IJCAI 2018) directly optimize similarity learning with random projections.
+Dropout/DropBlock and random-subspace regularization cover the erasure route.
+The Hadamard basis and soft-max aggregation are implementation choices, not a
+mechanism-level escape. No CPU or GPU work occurred. Full frozen proposal and
+audit: `docs/pass179_repa_proposal_2026-08-08.md`.
