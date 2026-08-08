@@ -9485,6 +9485,16 @@ moments, but no label-excluded per-example BN in supervised metric learning
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
 
+## Pass 189 — Chemistry-inspired proxy search (NONE before GPU)
+
+The blind search considered cross-fitted/leave-class-out proxies and higher-
+order or chiral/stoichiometric proxy relations. No candidate had a repository
+measurement isolating proxy leakage. Leave-class-out proxy targets are occupied
+by Proxy Synthesis (AAAI 2021), ZSML (IJCAI 2019), and ASAP DML; higher-order
+relations reduce to audited TIRD/relational KD, set-volume, ECOC, OT, graph, or
+topology mechanisms. No CPU or GPU work occurred. Full record:
+`docs/pass189_chem_proxy_search_2026-08-08.md`.
+
 ## Pass 188 — Biology/physics cross-field search (NONE before GPU)
 
 An independent blind search examined Hill/cooperative activations, spiking/rate
