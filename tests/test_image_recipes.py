@@ -60,6 +60,13 @@ def test_fiedler_recipe_has_matched_ipc4_control() -> None:
     assert candidate.config["fiedler_weight"] == pytest.approx(0.05)
 
 
+def test_cegt_recipe_keeps_ordinary_path_and_fixed_auxiliary_weight() -> None:
+    recipe = derive_recipe(reference_recipe("proxy_anchor", "inshop"), "pa_cegt")
+    assert recipe.config["class_excluded_gradient_target_weight"] == pytest.approx(0.05)
+    assert recipe.config.get("class_excluded_batch_norm", False) is False
+    assert recipe.config.get("class_excluded_batch_norm_blend") is None
+
+
 @pytest.mark.parametrize(
     ("dataset", "step"),
     [("cub", 5), ("cars", 10)],

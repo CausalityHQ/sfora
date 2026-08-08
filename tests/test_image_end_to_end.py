@@ -20,6 +20,7 @@ from sfora.image_end_to_end import (
     _backbone_warmup_parameters,
     _build_hist_module,
     _clip_gradients,
+    _class_excluded_gradient_target_loss,
     _default_transform_factory,
     _freeze_batch_norm_affine_parameters,
     _freeze_batch_norm_layers,
@@ -80,6 +81,17 @@ def test_tird_loss_matches_interactions_and_backpropagates() -> None:
     loss.backward()
     assert student.grad is not None
     assert torch.isfinite(student.grad).all()
+
+
+def test_class_excluded_gradient_target_loss_is_zero_only_at_target() -> None:
+    torch = pytest.importorskip("torch")
+    labels = torch.tensor([0, 0, 1, 1])
+    embeddings = torch.tensor([[1.0, 0.0], [0.8, 0.2], [0.0, 1.0], [0.2, 0.8]], requires_grad=True)
+    loss = _class_excluded_gradient_target_loss(embeddings, labels, torch_module=torch)
+    assert loss.item() > 0.0
+    loss.backward()
+    assert embeddings.grad is not None
+    assert torch.isfinite(embeddings.grad).all()
 
 
 def test_sota_protocol_uses_resnet50_512_adam_epochs() -> None:

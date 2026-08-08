@@ -238,6 +238,9 @@ class ImageEndToEndConfig(BaseModel):
     # CUB freezes BN and must not use it.
     class_excluded_batch_norm: bool = False
     class_excluded_batch_norm_blend: float | None = Field(default=None, ge=0.0, le=1.0)
+    # Auxiliary target only: retain the ordinary deployed embedding while
+    # attracting it toward a detached class-excluded target during training.
+    class_excluded_gradient_target_weight: float = Field(default=0.0, ge=0.0)
     # Rival-signature positive graph. Zero preserves historical behavior.
     rspg_weight: float = Field(default=0.0, ge=0.0)
     rspg_warmup_epoch: int = Field(default=10, ge=1)
@@ -1450,6 +1453,10 @@ def run_image_end_to_end_benchmark(
                         gsi_step_diagnostics=gsi_step_diagnostics,
                         **loss_kwargs,
                     )
+                    if config.class_excluded_gradient_target_weight > 0.0:
+                        loss = loss + config.class_excluded_gradient_target_weight * _class_excluded_gradient_target_loss(
+                            embeddings, labels, torch_module=torch
+                        )
                     if config.ectr_weight > 0.0 and ectr_state is not None:
                         if feature_map is None or sample_indices is None:
                             raise RuntimeError("ECT-R indexed batch is unavailable")
@@ -7806,6 +7813,14 @@ def _class_excluded_batch_norm(embeddings: Any, labels: Any, *, torch_module: An
         variance = reference.var(dim=0, unbiased=False)
         rows.append((embeddings[index] - mean) / torch_module.sqrt(variance + 1.0e-5))
     return torch_module.stack(rows, dim=0)
+
+
+def _class_excluded_gradient_target_loss(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
+    """Cosine loss to a detached class-excluded target, without changing deploy path."""
+    target = _class_excluded_batch_norm(embeddings.detach(), labels, torch_module=torch_module)
+    student = torch_module.nn.functional.normalize(embeddings, p=2, dim=-1)
+    target = torch_module.nn.functional.normalize(target, p=2, dim=-1)
+    return (1.0 - (student * target).sum(dim=-1)).mean()
 
 
 def _torchvision_model_factory(

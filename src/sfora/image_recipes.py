@@ -49,6 +49,7 @@ DerivedMethod = Literal[
     "pa_ema_avg_bnfix",
     "pa_cebn",
     "pa_cebn_soft",
+    "pa_cegt",
     "rspg",
     "rspg_soft_js",
     "rspg_distance_gate",
@@ -99,6 +100,7 @@ _DERIVED_BASE: dict[str, BaseMethod] = {
     "pa_ema_avg_bnfix": "proxy_anchor",
     "pa_cebn": "proxy_anchor",
     "pa_cebn_soft": "proxy_anchor",
+    "pa_cegt": "proxy_anchor",
     "rspg": "proxy_anchor",
     "rspg_soft_js": "proxy_anchor",
     "rspg_distance_gate": "proxy_anchor",
@@ -835,6 +837,18 @@ def derive_recipe(recipe: ImageRecipe, method: DerivedMethod) -> ImageRecipe:
             "class_excluded_batch_norm": method == "pa_cebn",
             "class_excluded_batch_norm_blend": 0.70 if method == "pa_cebn_soft" else None,
         }
+        return recipe.model_copy(
+            deep=True,
+            update={
+                "recipe_id": f"{recipe.recipe_id}.{method}",
+                "method_status": "sfora_derived",
+                "derived_from_recipe_id": recipe.recipe_id,
+                "delta": delta,
+                "config": {**recipe.config, **delta},
+            },
+        )
+    if method == "pa_cegt":
+        delta = {"class_excluded_gradient_target_weight": 0.05}
         return recipe.model_copy(
             deep=True,
             update={
