@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import sys
 from copy import deepcopy
@@ -211,23 +212,17 @@ def test_selection_builds_eight_exact_disjoint_support_free_batches() -> None:
         for value in values
     }
     assert selected_supports.isdisjoint(flat_distractors)
-    assert panel["batches"][0][:16] == [
-        "distractor-1303",
-        "distractor-0238",
-        "distractor-0217",
-        "distractor-0603",
-        "distractor-0351",
-        "distractor-0416",
-        "distractor-0171",
-        "distractor-0920",
-        "distractor-0321",
-        "distractor-1875",
-        "distractor-0258",
-        "distractor-1808",
-        "distractor-0025",
-        "distractor-0148",
-        "distractor-0950",
-        "distractor-1656",
+    assert [
+        hashlib.sha256("\n".join(batch).encode("utf-8")).hexdigest() for batch in panel["batches"]
+    ] == [
+        "5d5857b8297cb1710e32fb391c8b116bf903b1174bda87517798ab5ebae435ac",
+        "bfeeb106fe83bd4845ac886a99bb88f2124d7c9edf3d194ea0da84e4cd420f55",
+        "f7003ce532d508daa60d009869bdfd1ffc5398f119d2eaadb7dd40aa0ec0496c",
+        "96afdf22d3138e3022c63b15edee4814eb4b431fc818b561b5c818e1c8801567",
+        "c0052dcfa17ee6c71d10ecaf8b24d69a75d47c661e8c352993fdd88b510dff82",
+        "4223ba5b669d91edf05dd638a37b68d1e5abd6c6275e6491f7cc396b9fa46e07",
+        "60b271fe2a9b3192142f8fff55ba132f672b7df118ff7b4bc2ee3fd193a3a9c1",
+        "898a472c2b237d7cb7ccc64971871ce812cd63940d61e6c3c32acb00a612db0c",
     ]
 
 
@@ -252,6 +247,21 @@ def test_selection_alternate_regroups_positions_and_excludes_frozen_rows() -> No
         value for values in primary["support_ids_by_label"].values() for value in values
     }
     assert alternate_distractors.isdisjoint(all_eligible_supports)
+    assert [
+        hashlib.sha256("\n".join(block).encode("utf-8")).hexdigest()
+        for block in alternate["distractor_blocks"]
+    ] == [
+        "f923b403bc729b0d225396c00ad0d9539fb77e6f8525e5d6629a0cebcf53e2da",
+        "8ba9877f24a7b784689c867f4561054cc062bd5035d4a6072804192d1f0d938a",
+    ]
+    assert (
+        hashlib.sha256(
+            "\0".join(value for block in alternate["distractor_blocks"] for value in block).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        == "9489780df65bd81b031f4f4daaee96a0d71c35ee0b7b470e7db476121d42bb10"
+    )
 
 
 @pytest.mark.parametrize("defect", ["identity_order", "primary_distractor"])
@@ -298,6 +308,16 @@ def test_tangent_projection_removes_radial_component_and_rejects_zero() -> None:
     np.testing.assert_allclose(projected, np.asarray([0.0, 0.0, 5.0]), atol=1e-12)
     with pytest.raises(ValueError, match="zero"):
         _MODULE.tangent_projection(np.asarray([3.0, 4.0, 0.0]), receiver)
+
+
+def test_unit_validation_rejects_absolute_norm_error_above_two_e_minus_five() -> None:
+    with pytest.raises(ValueError, match="unit"):
+        _MODULE.tangent_projection(np.asarray([0.0, 1.0]), np.asarray([1.00003, 0.0]))
+    receivers = np.tile(np.asarray([[1.0, 0.0, 0.0]]), (8, 1))
+    receivers[0, 0] = 1.00003
+    targets = np.tile(np.asarray([[0.0, 1.0, 0.0]]), (8, 1))
+    with pytest.raises(ValueError, match="unit"):
+        _MODULE.deranged_tangent_targets(receivers, targets)
 
 
 def test_smooth_margin_gradient_matches_independent_central_difference() -> None:
@@ -464,6 +484,15 @@ def test_head_only_kernel_preserves_registered_model_arithmetic_dtype() -> None:
     assert self_motion.dtype == np.float32
 
 
+def test_cosine_rejects_either_tiny_norm_without_rejecting_small_valid_pair() -> None:
+    with pytest.raises(ValueError, match="nonzero"):
+        _MODULE.cosine_similarity(np.asarray([1.0e-13, 0.0]), np.asarray([1.0e13, 0.0]))
+
+    assert _MODULE.cosine_similarity(
+        np.asarray([1.0e-8, 0.0]), np.asarray([1.0e-8, 0.0])
+    ) == pytest.approx(1.0)
+
+
 def test_rotation_construction_fixes_qr_sign_and_checker_rejects_bad_rotation() -> None:
     rotation = _MODULE.construct_rotation(4)
 
@@ -542,6 +571,74 @@ def test_rotation_checker_requires_every_named_nonzero_gate_value() -> None:
 
     with pytest.raises(ValueError, match="registered names"):
         _MODULE.check_rotation({}, {}, {}, {}, rotation)
+
+
+_ROTATION_VECTOR_NAMES = ("z", "dbar", "b", "s", "q")
+_ROTATION_STATISTIC_NAMES = (
+    "A_self",
+    "A_batch",
+    "Delta",
+    "A_desc",
+    "rho",
+    "log_ratio",
+    "cos_b_s",
+)
+
+
+def _rotation_gate_fixture() -> tuple[
+    np.ndarray,
+    dict[str, np.ndarray],
+    dict[str, np.ndarray],
+    dict[str, float],
+    dict[str, float],
+]:
+    rotation = np.eye(3)
+    vectors = {name: np.asarray([1.0, 0.0, 0.0]) for name in _ROTATION_VECTOR_NAMES}
+    rotated_vectors = {name: value.copy() for name, value in vectors.items()}
+    statistics = {name: 0.25 for name in _ROTATION_STATISTIC_NAMES}
+    return rotation, vectors, rotated_vectors, statistics, dict(statistics)
+
+
+def test_rotation_checker_rejects_errors_just_above_registered_thresholds() -> None:
+    rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
+    rotated_vectors["z"] = np.asarray([1.0, 5.00001e-4, 0.0])
+    with pytest.raises(ValueError, match="vector gate"):
+        _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
+
+    rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
+    rotated_statistics["Delta"] += 2.00001e-4
+    with pytest.raises(ValueError, match="statistic gate"):
+        _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
+
+
+@pytest.mark.parametrize(
+    ("kind", "name"),
+    [
+        *(("vector", name) for name in _ROTATION_VECTOR_NAMES),
+        *(("statistic", name) for name in _ROTATION_STATISTIC_NAMES),
+    ],
+)
+def test_rotation_checker_rejects_each_missing_registered_name(kind: str, name: str) -> None:
+    rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
+    if kind == "vector":
+        vectors.pop(name)
+        rotated_vectors.pop(name)
+    else:
+        statistics.pop(name)
+        rotated_statistics.pop(name)
+
+    with pytest.raises(ValueError, match="registered names"):
+        _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
+
+
+@pytest.mark.parametrize("name", _ROTATION_VECTOR_NAMES)
+def test_rotation_checker_rejects_each_named_zero_vector(name: str) -> None:
+    rotation, vectors, rotated_vectors, statistics, rotated_statistics = _rotation_gate_fixture()
+    vectors[name] = np.zeros(3)
+    rotated_vectors[name] = np.zeros(3)
+
+    with pytest.raises(ValueError, match="nonzero"):
+        _MODULE.check_rotation(vectors, rotated_vectors, statistics, rotated_statistics, rotation)
 
 
 def _verdict_rows(
@@ -635,6 +732,31 @@ def test_decide_stage_a_passes_at_inclusive_registered_thresholds() -> None:
     assert all(result["criteria"].values())
 
 
+@pytest.mark.parametrize(
+    ("field", "high_value", "criterion"),
+    [
+        ("delta", 3.0, "bootstrap_delta_lower_positive"),
+        (
+            "self_minus_desc",
+            1.0,
+            "bootstrap_self_minus_desc_lower_positive",
+        ),
+    ],
+)
+def test_decide_stage_a_requires_each_bootstrap_lower_bound_independently(
+    field: str, high_value: float, criterion: str
+) -> None:
+    rows = _verdict_rows(delta_by_seed=(0.04, 0.04, 0.04, 0.04), self_desc=0.02)
+    for row in rows:
+        row[field] = high_value if int(row["label"]) == 7 else -0.01
+
+    result = _MODULE.decide_stage_a(rows, _alternate_rows())
+
+    assert result["stage_a"] == "UNRESOLVED"
+    assert result["criteria"][criterion] is False
+    assert all(value for name, value in result["criteria"].items() if name != criterion)
+
+
 def test_decide_stage_a_bootstrap_uses_canonical_identity_order() -> None:
     rows = _verdict_rows()
     for row in rows:
@@ -685,6 +807,47 @@ def test_decide_stage_a_rejects_nonregistered_alternate_subset() -> None:
     ],
 )
 def test_decide_stage_a_fail_clauses_take_precedence_in_registered_order(
+    primary: list[dict[str, float | int]],
+    alternate: list[dict[str, float | int]],
+    clause: str,
+) -> None:
+    result = _MODULE.decide_stage_a(primary, alternate)
+
+    assert result["stage_a"] == "FAIL"
+    assert result["first_decisive_clause"] == clause
+
+
+@pytest.mark.parametrize(
+    ("primary", "alternate", "clause"),
+    [
+        (
+            _verdict_rows(delta_by_seed=(0.0, 0.0, 0.0, 0.0), rho=0.05),
+            _alternate_rows((0.0, 0.0, 0.0, 0.0)),
+            "pooled_delta_nonpositive",
+        ),
+        (
+            _verdict_rows(delta_by_seed=(-0.01, -0.01, -0.01, 0.20), rho=0.05),
+            _alternate_rows((0.0, 0.0, 0.0, 0.0)),
+            "three_primary_seed_means_nonpositive",
+        ),
+        (
+            _verdict_rows(rho=0.05),
+            _alternate_rows((0.0, 0.0, 0.0, 0.0)),
+            "median_rho_below_0_10",
+        ),
+        (
+            _verdict_rows(),
+            _alternate_rows((0.0, 0.0, 0.0, 0.0)),
+            "alternate_pooled_delta_nonpositive",
+        ),
+        (
+            _verdict_rows(),
+            _alternate_rows((-0.01, -0.01, -0.01, 0.10)),
+            "three_alternate_seed_means_nonpositive",
+        ),
+    ],
+)
+def test_decide_stage_a_uses_first_triggered_clause_when_later_failures_also_hold(
     primary: list[dict[str, float | int]],
     alternate: list[dict[str, float | int]],
     clause: str,

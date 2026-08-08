@@ -200,7 +200,7 @@ def _unit_vector(vector: np.ndarray, *, name: str) -> np.ndarray:
     if value.ndim != 1 or not np.isfinite(value).all():
         raise ValueError(f"{name} must be a finite unit vector")
     norm = float(np.linalg.norm(value))
-    if norm <= _VECTOR_EPS or not np.isclose(norm, 1.0, atol=2.0e-5, rtol=2.0e-5):
+    if norm <= _VECTOR_EPS or abs(norm - 1.0) > 2.0e-5:
         raise ValueError(f"{name} must be a finite unit vector")
     return value / norm
 
@@ -210,7 +210,7 @@ def _unit_matrix(rows: np.ndarray, *, name: str) -> np.ndarray:
     if value.ndim != 2 or value.shape[0] == 0 or not np.isfinite(value).all():
         raise ValueError(f"{name} must be a nonempty finite matrix")
     norms = np.linalg.norm(value, axis=1)
-    if np.any(norms <= _VECTOR_EPS) or not np.allclose(norms, 1.0, atol=2.0e-5, rtol=2.0e-5):
+    if np.any(norms <= _VECTOR_EPS) or np.any(np.abs(norms - 1.0) > 2.0e-5):
         raise ValueError(f"{name} must contain finite unit rows")
     return value / norms[:, None]
 
@@ -343,9 +343,11 @@ def cosine_similarity(left: np.ndarray, right: np.ndarray) -> float:
         raise ValueError("cosine inputs must be aligned vectors")
     if not np.isfinite(first).all() or not np.isfinite(second).all():
         raise ValueError("cosine inputs must be finite")
-    denominator = float(np.linalg.norm(first) * np.linalg.norm(second))
-    if denominator <= _VECTOR_EPS:
+    first_norm = float(np.linalg.norm(first))
+    second_norm = float(np.linalg.norm(second))
+    if first_norm <= _VECTOR_EPS or second_norm <= _VECTOR_EPS:
         raise ValueError("cosine inputs must have nonzero norm")
+    denominator = first_norm * second_norm
     return float(np.dot(first, second) / denominator)
 
 
