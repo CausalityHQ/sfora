@@ -8991,3 +8991,16 @@ coalitions are error-correcting/vector-symbolic binding or routed codebooks.
 No new candidate cleared provenance plus mechanism-level prior art.  This is a
 negative search result, not a claim that future mechanisms are impossible.
 Full audit: `docs/pass135_sol_design_review_2026-08-08.md`.
+
+## Pass 136 — JEPA-style class-conditional latent prediction (DEAD at Gate 2)
+
+Predicting an EMA teacher descriptor for a different same-class image from a
+masked anchor is not a new training object.  With uniformly sampled peers it
+optimizes the class-conditional teacher mean (or distribution); peer selection
+turns it into NNCLR/positive mining, correspondence, or cross-image completion.
+The exact mechanism is already occupied by I-JEPA, data2vec, CroCo,
+CrossTransformers, NNCLR, SupCon, and the repository's Candidates 72/205/227/
+306–308 and Pass 134.  Repository measurements are adverse: donor exchange
+raised foreign similarity more than positive similarity, and 90.90% of
+accepted In-Shop edges shared an acquisition token. No CPU or GPU run is
+authorized. Full audit: `docs/pass136_jepa_classconditional_review_2026-08-08.md`.
