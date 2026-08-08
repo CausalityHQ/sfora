@@ -38,40 +38,112 @@ The operator's previously omitted constants are frozen before any value is inspe
 `alpha=1`, `epsilon=1e-6`, and
 `w_j=(h_j+epsilon)/mean_k(h_k+epsilon)`, with no clipping.
 
-The Gate-1 Stage-A diagnostic is frozen before execution. For each of corrected In-Shop PA
-model seeds 0–3, reconstruct normalized train descriptors from the retained pre-head
-pack and final checkpoint. The reconstruction must first reproduce that checkpoint's
-reported official final R@1 exactly; official query/gallery identities are used only
-for this artifact-binding equality and contribute no candidate statistic.
+### Exact Stage-A necessary-condition screen
 
-Using training identities only, make five folds by fixed label hash. For each fold,
-estimate entropy on the other four folds; deterministically split held-out identity
-images into query and gallery; and ablate the bottom 10% entropy coordinates in both
-before renormalization. Compare with 1,000 masks matched jointly on coordinate
-variance and own-proxy alignment. The outcome is the `tau=0.05` smooth
-nearest-positive-minus-top-32-foreign margin, with R@1 descriptive only. Split the
-four estimator folds in half and recompute entropy to measure rank stability. Also
-record the coefficient of variation of the frozen weights; a near-constant
-preconditioner is a no-op.
+The earlier prose was not executable: it left the ownership estimator, fold
+aggregation, split-half choice, bottom-decile rounding, matched-mask construction,
+standardizer, bootstrap unit, and four-seed CV rule to the analyst.  The following
+specification supersedes it before any CIEB statistic is inspected.
 
-Stage A passes onward only if all conditions hold:
+For every seed, use float64 and fail on any nonfinite value.  For an estimator class
+set `E`, define class-balanced quantities
 
-1. split-half entropy-rank Spearman is at least `0.60` in every seed;
-2. weight coefficient of variation is at least `0.10`;
-3. bottom-decile removal improves standardized smooth margin over the matched-mask
-   mean by at least `0.05` standard deviation, with identity-bootstrap 95% lower
-   bound above zero; and
-4. every seed agrees in sign.
+`mu_cj = mean_{i:y_i=c}(z_ij)`, `mu_j = mean_{c in E}(mu_cj)`, and
+`sigma2_cj = mean_{i:y_i=c}((z_ij-mu_cj)^2)`, using population denominator `n_c`.
+Singleton variance is therefore zero; no shrinkage is introduced.  Then
 
-Stage A fails if rank stability is below `0.30` in at least three of four seeds,
-weight coefficient of variation is below `0.05`, or the pooled matched-ablation
-advantage is nonpositive. Intermediate outcomes are unresolved.
+`a_cj = (mu_cj-mu_j)^2 / (sigma2_cj + 1e-6)`.
+
+For `A_j=sum_c a_cj > 0`, set `q_cj=a_cj/A_j`; when `A_j=0`, set
+`q_cj=1/|E|`.  With natural logarithms and `0 log 0 = 0`, define
+
+`h_j = -sum_c q_cj log(q_cj) / log(|E|)`.
+
+Require at least two estimator classes.  A constant coordinate is assigned `h_j=1`,
+not spuriously treated as class-owned.  Full-training weights remain
+`w_j=(h_j+1e-6)/mean_k(h_k+1e-6)` and use population
+`CV=std_ddof0(w)/mean(w)`.
+
+Use SHA-256 domains exactly as follows.  A class fold is the unsigned big-endian
+integer from the first eight bytes of
+`SHA256("pass181-cieb-stage-a-v1|fold|<canonical-int-label>")` modulo five.  Within a
+held-out identity, order rows by
+`(SHA256("pass181-cieb-stage-a-v1|split|<example_id>"), example_id)` and assign
+alternating rows gallery/query starting with gallery.  Exclude identities with fewer
+than two images.  Average queries within identity and identities equally.  Any zero
+post-ablation norm invalidates the seed rather than being silently excluded.
+
+For each of the five held-out folds, estimate a separate entropy vector from the
+other four folds.  Select exactly `ceil(0.10*512)=52` target coordinates ordered by
+`(entropy ascending, coordinate index ascending)`.  For stability, compute all three
+unique two-versus-two partitions of those four estimator folds.  Spearman uses average
+ranks; a constant vector gives correlation zero.  The seed statistic is the median of
+all `5*3=15` correlations, so no split may be chosen after inspection.
+
+For nuisance-matched masks define, on the same estimator set,
+
+`v_j = mean_c mean_{i:y_i=c}((z_ij-mu_j)^2)` and
+`r_j = mean_c (mu_cj * p_cj)`,
+
+where `p_c` is the unit own-class proxy.  Independently rank
+`(log(v_j+1e-6), r_j)` with coordinate-index tie breaks and divide each rank into
+eight equal-frequency bins.  The Cartesian product forms fixed 8-by-8 strata.  Every
+control mask contains exactly the target mask's count from each stratum.  Within a
+cell, select by
+`SHA256("pass181-cieb-stage-a-v1|mask|<seed>|<fold>|<replicate>|<cell>|<coordinate>")`.
+Scan replicate numbers from zero and retain the first 1,000 unique 52-coordinate masks
+that differ from the target.  No outcome enters matching.  Record covariate balance
+and the canonical SHA-256 of the `uint16[1000,52]` matrix.
+
+For every unablated held-out query, select its 32 highest-cosine foreign gallery rows
+once, with ties by split hash then example ID, and freeze them for target and all
+controls.  Use every same-identity gallery row as positives.  Mask both query and
+gallery, renormalize, and compute
+
+`m = tau*logmeanexp(s_pos/tau) - tau*logmeanexp(s_foreign32/tau)`, `tau=0.05`.
+
+For identity `i` and mask `b`, average `m_b-m_unablated` over its queries.  R@1 is
+descriptive only for unablated and target masks; control-mask R@1 is not computed or
+selected.
+
+For seed `s`, let `T_s` be the equal-identity target effect, `R_sb` the equal-identity
+effect of control mask `b`, `D_s=T_s-mean_b R_sb`, `S_s=sd_ddof1,b(R_sb)`, and
+`Z_s=D_s/S_s`.  `S_s<=1e-12` invalidates the diagnostic.  Pool seeds equally:
+`D_pooled=mean_s D_s`, `Z_pooled=mean_s Z_s`.
+
+Bootstrap complete eligible identity labels jointly across all four seeds with 10,000
+NumPy `PCG64` replicates and seed 181, recording the NumPy version.  Retain observed
+`S_s` as frozen nuisance standardizers; the statistic is the equal-seed mean of each
+resampled identity advantage divided by `S_s`.  The one-sided 95% lower bound is the
+ordinary 2.5th percentile.
+
+The screen **passes onward** only if stability is at least `0.60` in every seed, CV is
+at least `0.10` in every seed, `Z_pooled>=0.05`, the bootstrap lower bound is positive,
+and `D_s>0` in all four seeds.  A fail takes precedence if stability is below `0.30`
+in at least three seeds, CV is below `0.05` in at least three seeds, or
+`D_pooled<=0`.  Everything else is unresolved.
+
+Execution is staged without changing the verdict: entropy stability and CV are
+computed first and may trigger their registered early fail before constructing 1,000
+matched masks.  This avoids expensive arithmetic when the estimator is already
+unstable or effectively constant; no CPU wall-clock measurement enters the decision.
 
 Any artifact-binding mismatch or threshold failure stops CIEB before implementation
-or GPU. A Stage-A pass establishes only that the statistic identifies harmful
-coordinates; it **cannot pass Gate 1**, because post-training forward ablation is a
-different intervention from backward preconditioning and the checkpoint already saw
-the held-out training identities.
+or GPU.  Reconstructed **training** descriptors must match the digest-bound final
+training pack at `2e-5`.  The legacy pre-head query export is known to be batch-shape
+dependent and is not used.  Official R@1 is bound independently by recomputing it from
+the immutable final query/gallery packs and matching the report and retrieval audit,
+exactly as adjudicated before Pass159.  Query/gallery labels and IDs contribute no
+candidate statistic.  Require a 512-D head, one proxy for every and only training
+label, identical training example-ID order across seeds, and record hashes of the
+manifest, this proposal, diagnostic source, and output schema.
+
+A Stage-A pass establishes only that the statistic identifies harmful coordinates; it
+**cannot pass Gate 1**, because post-training forward ablation is a different
+intervention from backward preconditioning and the checkpoint already saw the held-out
+training identities.  Conversely a failure means the registered necessary-condition
+screen failed and implementation is unauthorized; it does not prove that every
+possible entropy preconditioner is mathematically impossible.
 
 The decisive Stage B is a class-disjoint bounded head-training/influence experiment.
 Fit a frozen-trunk 512-D head and proxies to epoch 10 on 80% of In-Shop training
