@@ -9364,3 +9364,12 @@ preregistered `0.20` threshold and weaker than nearest-neighbour similarity
 (`+0.119417`). The proposed graph signal therefore fails Gate 1; no GPU run.
 Full record: `docs/pass173_connectivity_provenance_2026-08-08.md` and
 `scripts/diagnose_class_connectivity.py`.
+
+## Pass 174 — Morphogenetic Embedding Head (DEAD at Gate 1)
+
+The NCA-inspired recurrent local head expanded participation ratio (`95.17`
+vs `86.84` for a matched linear control) but reduced held-out R@1 (`0.996667`
+vs `0.998333`, −0.167 points) on a deterministic 300-class In-Shop CPU proxy.
+Rank expansion without retrieval gain falsifies the preregistered Gate-1
+criterion; no GPU run. Full record:
+`docs/pass174_morphogenetic_embedding_head_2026-08-08.md`.
