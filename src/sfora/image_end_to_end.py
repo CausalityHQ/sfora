@@ -727,7 +727,13 @@ def run_image_end_to_end_benchmark(
     )
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
-        if config.rspg_weight > 0.0 or config.arcg_weight > 0.0 or config.ipsr_weight > 0.0 or config.ectr_weight > 0.0
+        if (
+            config.rspg_weight > 0.0
+            or config.arcg_weight > 0.0
+            or config.ipsr_weight > 0.0
+            or config.ectr_weight > 0.0
+            or config.cea_weight > 0.0
+        )
         else _TorchImageDataset(optimization_examples, train_transform)
     )
     test_dataset = _TorchImageDataset(test_examples, test_transform)
