@@ -9617,3 +9617,18 @@ are determined by batch composition and are not recoverable from one image's
 embedding.  ARSN is therefore dead before implementation/GPU.  This closes
 the natural amortization repair and is evidence that the CPU CE-BN gain is
 strictly transductive to labelled batch context.
+
+### Pass192 — CEGT: LIVE-NARROW at Gate 2, pre-registered
+
+**Mechanism:** retain the ordinary deployed embedding and add a small auxiliary
+cosine target toward the stop-gradient CE-BN descriptor computed from
+other-class rows in the current labelled batch. This is a gradient-only use of
+the measured signal; labels and batch context never enter inference.
+
+**Prior-art boundary:** LUPI, Yu et al. CVPR 2019 teacher metric distillation,
+privileged-information re-identification metric learning, and generic
+self-distillation are adjacent. No exact benchmark-matched method was found
+that derives a target from label-excluded per-example cross-class moments
+without a teacher or external modality. The distinction is narrow and will be
+recorded as dead if judged cosmetic. The fixed-weight preregistration is in
+`docs/pass192_cegt_candidate.md`; no GPU run has started.
