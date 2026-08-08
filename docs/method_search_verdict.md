@@ -5379,6 +5379,23 @@ within-identity covariance shapes proportional across identities. The mandatory
 independent review returned DEAD through the configured same-job Fable-to-Opus
 path.
 
+## Pass 193 — Rival-Centroid Deflation (DEAD at Gate 2)
+
+The corrected In-Shop CPU probe subtracted a weighted mean of the eight nearest
+foreign-class centroids from each descriptor. R@1 rose from `0.913701` at
+alpha 0 to `0.918273` at alpha 0.30, with a non-monotone fall to `0.902659` at
+alpha 1.0. This establishes a removable cross-class rival-field signal, but
+the probe is transductive and is not a benchmark result.
+
+Gate 2 closes the candidate: MIC (Roth, Brattoli, Ommer, ICCV 2019) explicitly
+learns and explains away visual characteristics shared across classes, which
+occupies the same mechanism-level object. RSPG/CASPG and contextual/residual
+distillation are additional repository-adjacent collisions. A centroid
+estimator or detached student imitation would be a parameterization of
+interclass-characteristic removal, not a novel supervision mechanism. No
+implementation or GPU run occurred. Full audit:
+`docs/pass193_rival_centroid_deflation_audit_2026-08-08.md`.
+
 Gate 1 has no eligible provenance. The verified packet explicitly says it does
 not support a shared cross-class nuisance basis. Nothing reliable measures
 per-identity covariance-shape dispersion, ties it to corrected official-query
