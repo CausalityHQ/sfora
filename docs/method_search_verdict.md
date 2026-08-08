@@ -9483,3 +9483,28 @@ moments, but no label-excluded per-example BN in supervised metric learning
 `0.913349` (−0.035 pt). This is only a mechanism probe, not benchmark evidence.
 The preregistered end-to-end threshold is selection-corrected delta ≥ +0.30 pt,
 with `< +0.15 pt` or non-positive raw delta falsifying the candidate.
+
+## Pass 184 — Pose/keypoint-factorized embedding head (DEAD at Gate 2)
+
+The proposer suggested splitting the descriptor into pose/part-aligned factors,
+motivated by fine-grained CUB variation and the failed unstructured head
+expansion in Pass 174. Moskvyak et al., *Keypoint-Aligned Embeddings for Image
+Retrieval and Re-identification* (arXiv:2008.11368), already learns keypoint-
+aligned subvectors with an auxiliary heatmap task and evaluates retrieval; its
+references include pose-aware metric learning and PAMTRI. A new spatial-factor
+head would therefore be an implementation variant, not a novel mechanism. No
+CPU or GPU work occurred. Full proposal:
+`docs/pass184_pose_factor_head_proposal_2026-08-08.md`.
+
+## Pass 185 — Variance-conditioned activation (DEAD at Gate 2)
+
+The proposer considered an activation or embedding transform conditioned on
+class variance, motivated by Pass 174's expanded participation ratio without a
+retrieval gain and by In-Shop fragmentation. Wang et al., *Variance-preserving
+deep metric learning for content-based image retrieval* (OpenReview 2019),
+explicitly preserves intra-class variance in a retrieval objective; Wu et al.,
+*Deep Metric Learning with Density Adaptivity* (arXiv:1909.03909), adapts the
+optimization/representation to density and intra-class variation. A
+variance-conditioned activation is therefore a parameterization variant of
+occupied variance/density-adaptive DML. No CPU or GPU work was performed. Full
+proposal: `docs/pass185_variance_activation_proposal_2026-08-08.md`.
