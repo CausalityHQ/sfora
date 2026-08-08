@@ -107,13 +107,15 @@ dataset is authorized. Report raw best and the selection-corrected/frozen
 value, with the correction method and checkpoint identity recorded.
 
 Before any GPU screen, the CPU gate must pass on bundles of two and three
-distinct labels: (1) finite scalar loss and finite, nonzero gradients for
+distinct representative labels (the balanced sampler may contain extra
+same-class rows): (1) finite scalar loss and finite, nonzero gradients for
 every selected member; (2) permutation invariance of the scalar and per-member
 gradient norms; (3) changing one label changes both the union target and the
 corresponding omitted-member target; (4) the two-member residual term is not
 equal to the ordinary single-image or per-image-complementary control; and
-(5) a duplicate-label input is rejected rather than silently discarding one
-image. These tests distinguish the claimed leave-one-out coalition mechanism
+(5) the sampler's representative selection is deterministic and documented,
+so extra same-class rows cannot silently change the target. These tests
+distinguish the claimed leave-one-out coalition mechanism
 from its controls; passing them is implementation readiness only, not
 benchmark evidence.
 
