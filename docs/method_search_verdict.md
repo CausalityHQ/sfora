@@ -9081,3 +9081,37 @@ the In-Shop screen. No GPU work is authorized from this pass. Full audit:
 The historical In-Shop `0.9035` reference is retracted. The valid four-seed
 reference is raw-best `0.91815 ± 0.00126`, frozen-final `0.91539 ± 0.00132`;
 future screens require same-seed paired controls.
+
+## Pass 147 — independent fresh invention review (NONE at Gate 2, 2026-08-08)
+
+The fresh Sol proposer found no defensible train-time object outside the
+occupied gradient-surgery/assessment, graph/neighbourhood, multi-centre,
+mining/weighting, transport, and distillation families.  The remaining escape
+requires a measured pixel-derived class-disjoint signal; none was available at
+the time of review.  No GPU candidate was authorized.  Full record:
+`docs/pass147_sol_fresh_invention_review_2026-08-08.md`.
+
+## Pass 148 — In-Shop label/identity semantic gate (NO-GO, 2026-08-08)
+
+The available operating pack has 3,997 labels and 3,997 product directories,
+with a one-to-one mapping.  It therefore contains no independent within-class
+identity for the originally registered residual diagnostic.  A first attempted
+pixel diagnostic produced zero valid same-label/different-identity negatives;
+the result was not treated as a candidate or a negative method result.  Full
+record: `docs/pass148_inshop_gate0_signal_semantics_2026-08-08.md`.
+
+## Pass 149 — low-level pixel appearance residual (NO-GO at Gate 1, 2026-08-08)
+
+Using the legitimate coarse path category as the held-out control and product
+directory as identity, RGB histograms plus edge statistics produced held-out
+incremental `Delta AUC = -0.000029` across five folds, with only 2/5 positive.
+It failed the preregistered `+0.05` signal requirement; no objective or GPU run
+was authorized.  Full record: `docs/pass149_inshop_pixel_residual_diagnostic_2026-08-08.md`.
+
+## Pass 150 — pixel geometry residual (NO-GO at Gate 1, 2026-08-08)
+
+A preregistered HOG-like gradient-orientation signature produced held-out
+incremental deltas `+0.000008, +0.000010, -0.000024, -0.000032, +0.000005`,
+mean `-0.000007`, with 3/5 positive folds.  It failed Gate 1 by a wide margin;
+no prior-art search or GPU run was authorized.  Full record:
+`docs/pass150_pixel_geometry_preregistration_2026-08-08.md`.
