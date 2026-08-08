@@ -16,3 +16,12 @@ category `Delta AUC >= 0.05`, bootstrap lower bound above zero, and at least 4/5
 positive folds.  If it fails, no training method or GPU run is authorized for
 this signal.  If it passes, perform a primary-literature collision audit before
 any implementation.
+
+## Result
+
+The diagnostic failed Gate 1. Held-out category incremental AUC deltas were
+`+0.000008, +0.000010, -0.000024, -0.000032, +0.000005`; mean `-0.000007`
+with only 3/5 positive folds, far below the `+0.05` threshold. No
+geometry-gated objective, prior-art search, or GPU run is authorized. This is a
+negative measurement of the preregistered signal, not evidence that every
+possible shape representation is useless.
