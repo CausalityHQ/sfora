@@ -9807,3 +9807,15 @@ observed decision effect lacks quality provenance and risks optimizing numerical
 noise. No implementation or GPU work is authorized. Full audit and result:
 `docs/pass198_bsir_gate2_and_stage_a_2026-08-08.md` and
 `docs/pass198_bsir_stage_a_result_2026-08-08.md`.
+
+## Pass199 — Error-budgeted factorized retrieval head: DEAD, Gate 2
+
+The near-even corrected CUB local/centroid failure split and In-Shop's `3.05`–`3.22`
+between/local ratio motivate separate pairwise-compactness and proxy-separation
+subspaces whose widths follow the measured error budget. This architecture is already
+occupied by Divide-and-Conquer embedding partitions, Deep Factorized Metric Learning,
+and especially Multi-Head DML's pairwise/proxy local/global heads with a concatenated
+retrieval descriptor. Internal Pass98/127/179 also cover the same fusion and routed
+subspace family. Error-conditioned block width is a policy change, not a new training
+mechanism. No implementation or GPU work was spent. Full audit:
+`docs/pass199_error_budgeted_factorized_head_gate2_2026-08-08.md`.
