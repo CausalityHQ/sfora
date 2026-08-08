@@ -9665,3 +9665,16 @@ registered `+0.30 pt` corrected pass condition failed. CEGT is closed with no
 second seed. The measurement says the CE-BN descriptor signal is not useful as
 an auxiliary gradient target at this fixed weight, despite preserving the
 deployable path.
+
+## Pass194 — Confusion-complement supervision: DEAD, Gate 2
+
+**Mechanism:** use the measured 51.9% CUB between-class-overlap failure share to
+build a detached proxy-confusion graph, then supervise a signed target that
+separates each true proxy from only its top confused foreign proxies.
+
+**Disposition:** the signed target is either sparse negative-proxy reweighting
+(Proxy Anchor/hard-negative mining) or a label-aware proxy confusion graph with
+reverse propagation (ProxyGML, NeurIPS 2020). Proxy Synthesis (AAAI 2021) also
+already creates competitive synthetic classes between original classes. The
+mechanism-level distinction therefore fails at Gate 2; no implementation or GPU
+run was spent. Full audit: `docs/pass194_confusion_complement_audit_2026-08-08.md`.
