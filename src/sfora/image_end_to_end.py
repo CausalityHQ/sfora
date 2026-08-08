@@ -737,7 +737,8 @@ def run_image_end_to_end_benchmark(
     train_dataset = (
         _IndexedTorchImageDataset(optimization_examples, train_transform)
         if (
-            config.rspg_weight > 0.0
+            "proxy_anchor_coalition" in config.objectives
+            or config.rspg_weight > 0.0
             or config.arcg_weight > 0.0
             or config.ipsr_weight > 0.0
             or config.ectr_weight > 0.0
@@ -1250,6 +1251,12 @@ def run_image_end_to_end_benchmark(
                     loss_kwargs["custom_losses"] = custom_losses
                 if rspg_state is not None:
                     loss_kwargs["rspg_state"] = rspg_state
+                    loss_kwargs["sample_indices"] = sample_indices
+                if objective == "proxy_anchor_coalition":
+                    if sample_indices is None:
+                        raise RuntimeError(
+                            "proxy_anchor_coalition requires stable training sample indices"
+                        )
                     loss_kwargs["sample_indices"] = sample_indices
                 if cea_state is not None:
                     loss_kwargs["cea_state"] = cea_state
@@ -3766,6 +3773,7 @@ def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
     labels = kwargs["labels"]
     proxy_embeddings = kwargs["proxy_embeddings"]
     proxy_labels = kwargs["proxy_labels"]
+    sample_indices = kwargs.get("sample_indices")
     config = cast(ImageEndToEndConfig, kwargs["config"])
     torch_module = kwargs["torch_module"]
     base = _proxy_anchor_loss(
@@ -3783,6 +3791,7 @@ def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
             labels,
             proxy_embeddings=proxy_embeddings,
             proxy_labels=proxy_labels,
+            sample_indices=sample_indices,
             torch_module=torch_module,
         )
     else:
@@ -3792,6 +3801,7 @@ def _proxy_anchor_coalition_objective_loss(**kwargs: Any) -> Any:
             proxy_embeddings=proxy_embeddings,
             proxy_labels=proxy_labels,
             mode=config.coalition_mode,
+            sample_indices=sample_indices,
             torch_module=torch_module,
         )
     return _apply_teacher_similarity_regularization(
@@ -5730,6 +5740,7 @@ def _coalition_proxy_loss(
     *,
     proxy_embeddings: Any | None,
     proxy_labels: Any | None,
+    sample_indices: Any | None = None,
     mode: Literal[
         "union", "single", "single_complementary", "dropout", "residual"
     ] = "union",
@@ -5748,7 +5759,21 @@ def _coalition_proxy_loss(
     unique_labels = torch_module.unique(labels, sorted=True)
     first_positions: list[int] = []
     for label in unique_labels:
-        first_positions.append(int(torch_module.nonzero(labels.eq(label), as_tuple=False)[0, 0]))
+        candidates = torch_module.nonzero(labels.eq(label), as_tuple=False)[:, 0]
+        if sample_indices is None:
+            if int(candidates.numel()) > 1:
+                raise RuntimeError(
+                    "coalition objectives require stable sample_indices when a batch "
+                    "contains duplicate class labels"
+                )
+            representative = candidates[0]
+        else:
+            if sample_indices.ndim != 1 or int(sample_indices.shape[0]) != int(labels.shape[0]):
+                raise ValueError("sample_indices must be a vector aligned with labels")
+            representative = candidates[
+                torch_module.argmin(sample_indices[candidates].to(torch_module.long))
+            ]
+        first_positions.append(int(representative))
     if len(first_positions) < (2 if mode != "single" else 1):
         return embeddings.sum() * 0.0
     members = _normalize(embeddings[first_positions], torch_module)
@@ -5818,6 +5843,7 @@ def _stoichiometric_residual_coalition_loss(
     *,
     proxy_embeddings: Any | None,
     proxy_labels: Any | None,
+    sample_indices: Any | None = None,
     torch_module: Any,
 ) -> Any:
     """SRC's union equation plus all leave-one-out residual equations.
@@ -5831,6 +5857,7 @@ def _stoichiometric_residual_coalition_loss(
         labels=labels,
         proxy_embeddings=proxy_embeddings,
         proxy_labels=proxy_labels,
+        sample_indices=sample_indices,
         torch_module=torch_module,
     )
     return _coalition_proxy_loss(**kwargs, mode="union") + _coalition_proxy_loss(

@@ -85,6 +85,7 @@ def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -
     config = image_end_to_end.ImageEndToEndConfig()
     embeddings = torch.randn(4, 8, generator=torch.Generator().manual_seed(3), requires_grad=True)
     labels = torch.tensor([0, 1, 2, 3])
+    sample_indices = torch.tensor([10, 11, 12, 13])
     proxies = torch.randn(4, 8, generator=torch.Generator().manual_seed(4))
     proxy_labels = torch.tensor([0, 1, 2, 3])
 
@@ -100,6 +101,7 @@ def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -
         proxy_labels=proxy_labels,
         config=config,
         torch_module=torch,
+        sample_indices=sample_indices,
     )
     loss.backward()
     assert torch.isfinite(loss)
@@ -116,9 +118,10 @@ def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -
         memory_embeddings=None,
         memory_labels=None,
         proxy_embeddings=proxies,
-        proxy_labels=proxy_labels,
-        config=config,
-        torch_module=torch,
+            proxy_labels=proxy_labels,
+            config=config,
+            torch_module=torch,
+            sample_indices=sample_indices[permutation],
     )
     assert torch.allclose(loss.detach(), permuted_loss)
 
@@ -133,9 +136,10 @@ def test_coalition_proxy_loss_is_permutation_invariant_and_uses_union_target() -
         memory_embeddings=None,
         memory_labels=None,
         proxy_embeddings=proxies,
-        proxy_labels=proxy_labels,
-        config=config,
-        torch_module=torch,
+            proxy_labels=proxy_labels,
+            config=config,
+            torch_module=torch,
+            sample_indices=sample_indices,
     )
     assert not torch.allclose(loss.detach(), changed_loss)
 
@@ -246,6 +250,7 @@ def test_src_accepts_balanced_batches_with_repeated_class_rows() -> None:
 
     embeddings = torch.randn(4, 6, generator=torch.Generator().manual_seed(30))
     labels = torch.tensor([0, 0, 1, 1])
+    sample_indices = torch.tensor([10, 11, 20, 21])
     proxies = torch.randn(2, 6, generator=torch.Generator().manual_seed(31))
     proxy_labels = torch.tensor([0, 1])
     loss = image_end_to_end._stoichiometric_residual_coalition_loss(
@@ -254,8 +259,39 @@ def test_src_accepts_balanced_batches_with_repeated_class_rows() -> None:
         proxy_embeddings=proxies,
         proxy_labels=proxy_labels,
         torch_module=torch,
+        sample_indices=sample_indices,
     )
     assert torch.isfinite(loss)
+
+
+def test_src_representatives_are_stable_under_duplicate_row_permutation() -> None:
+    torch: Any = pytest.importorskip("torch")
+    import sfora.image_end_to_end as image_end_to_end
+
+    embeddings = torch.randn(4, 6, generator=torch.Generator().manual_seed(32))
+    labels = torch.tensor([0, 0, 1, 1])
+    sample_indices = torch.tensor([10, 11, 20, 21])
+    proxies = torch.randn(2, 6, generator=torch.Generator().manual_seed(33))
+    proxy_labels = torch.tensor([0, 1])
+    kwargs = dict(
+        embeddings=embeddings,
+        labels=labels,
+        proxy_embeddings=proxies,
+        proxy_labels=proxy_labels,
+        torch_module=torch,
+        sample_indices=sample_indices,
+    )
+    loss = image_end_to_end._stoichiometric_residual_coalition_loss(**kwargs)
+    permutation = torch.tensor([1, 0, 3, 2])
+    permuted_loss = image_end_to_end._stoichiometric_residual_coalition_loss(
+        **{
+            **kwargs,
+            "embeddings": embeddings[permutation],
+            "labels": labels[permutation],
+            "sample_indices": sample_indices[permutation],
+        }
+    )
+    assert torch.allclose(loss, permuted_loss)
 
 
 def test_src_dispatcher_uses_union_plus_residual_operator() -> None:

@@ -119,6 +119,17 @@ distinguish the claimed leave-one-out coalition mechanism
 from its controls; passing them is implementation readiness only, not
 benchmark evidence.
 
+## Representative-selection repair (2026-08-08)
+
+The first implementation used the first row encountered for each repeated class.
+That made the objective depend on batch row order and changed which image received
+the coalition gradient. The trainer now uses the indexed dataset for coalition
+recipes and passes stable training row IDs into the loss; the representative is the
+minimum stable ID for each label. Duplicate-row permutation tests pass, while a
+duplicate-label call without IDs fails explicitly rather than silently selecting a
+different image. This repairs the deterministic-selection clause above; it does
+not authorize a benchmark run by itself.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
