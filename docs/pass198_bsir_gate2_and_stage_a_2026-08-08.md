@@ -100,3 +100,11 @@ Even a Stage-A pass would authorize only a bounded matched-control falsifier.  B
 would have to beat ordinary continuation, equal-compute duplicate shadows, Batch
 Renormalization, and Pass134-style semantic co-batch invariance on canonical R@1;
 robustness without a quality gain does not satisfy this project's objective.
+
+## Stage-A result
+
+**FAIL.** Across all four seeds and all 552 paired tail queries, the numerical
+perturbation changed zero nearest-gallery identities and zero correctness outcomes;
+R@1 changed by exactly `0.000` point in every seed. The maximum descriptor L2 drift
+was `0.006231`, but it was not retrieval-causal. No implementation or GPU work is
+authorized. Full result: `docs/pass198_bsir_stage_a_result_2026-08-08.md`.

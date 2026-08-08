@@ -9784,7 +9784,7 @@ utility. This separates a valid quality observable from an invalid cross-example
 update operator. No Stage B or benchmark run is authorized. Full result:
 `docs/pass159_stage_a_result_2026-08-08.md`.
 
-## Pass198 — Batch-Shape Invariant Retrieval: LIVE-NARROW, Gate 1 pending
+## Pass198 — Batch-Shape Invariant Retrieval: DEAD, Gate 1
 
 The Pass159 artifact gate found a deterministic eval-mode batch-shape defect in all
 four corrected In-Shop PA checkpoints: only the 138-row query tail changes between
@@ -9794,8 +9794,16 @@ under the two tensor shapes while keeping ordinary PA and single-view inference.
 
 Batch Renormalization, Ghost/Virtual BN, R-Drop-style consistency, and internal
 Pass134 are adjacent but do not use the same eval-mode numerical perturbation and
-retrieval decision point, so the candidate is **LIVE-NARROW at Gate 2**.  The measured
-defect is not yet a measured retrieval failure.  Before any implementation, the
-committed four-seed diagnostic requires correctness changes, not merely coordinate or
-nearest-identity drift.  Full audit and prospective thresholds:
-`docs/pass198_bsir_gate2_and_stage_a_2026-08-08.md`.
+retrieval decision point, so the candidate was **LIVE-NARROW at Gate 2**. Its Gate-1
+premise nevertheless failed decisively. Across all `4*138=552` affected query rows,
+the legacy descriptor changed zero nearest-gallery identities, zero correctness
+outcomes, and exactly `0.000` R@1 point in every seed, despite descriptor L2 drift up
+to `0.006231`.
+
+**Mechanism:** finite-precision tensor-shape dependence is a real artifact-integrity
+defect, but not every measurable representation perturbation reaches the retrieval
+decision boundary. Training an invariance penalty against a perturbation with no
+observed decision effect lacks quality provenance and risks optimizing numerical
+noise. No implementation or GPU work is authorized. Full audit and result:
+`docs/pass198_bsir_gate2_and_stage_a_2026-08-08.md` and
+`docs/pass198_bsir_stage_a_result_2026-08-08.md`.
