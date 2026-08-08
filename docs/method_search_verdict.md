@@ -9345,3 +9345,12 @@ and principal-direction augmentation were either already occupied (Pass 66,
 ESA, SEE, DRML, MemVir, Potential-Field DML) or lacked a mechanism-level
 distinction. No GPU run occurred. Full record:
 `docs/pass171_crossfield_nonselection_search_2026-08-08.md`.
+
+## Pass 172 — set-level/coalition supervision search (NONE before GPU)
+
+An independent set-supervision search found no unoccupied primitive. Ranked
+List Loss, Deep Wasserstein Metric Learning, set-to-set similarity, DeepEMD,
+DSLL, and DPP/log-det coverage occupy the candidate families; auction and
+submodular variants reduce to those mechanisms or selection/reweighting. No
+GPU run occurred. Full record:
+`docs/pass172_set_supervision_search_2026-08-08.md`.
