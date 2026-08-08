@@ -9691,3 +9691,18 @@ cross-instance relational/variation-transfer methods already occupy this
 training object. Distribution matching of displacements is a cosmetic variant of
 covariance/relational supervision, so no implementation or GPU run was spent.
 Full audit: `docs/pass195_cidt_gate2_audit_2026-08-08.md`.
+
+## Pass196 — Nearest-Positive Exclusion Supervision: DEAD, Gate 2
+
+**Mechanism:** the corrected partner-exclusion audit showed that removing each
+query's closest same-class partner reverses the fragmented-versus-connected
+gap from `+5.875` to `−3.910` R@1 points.  NPES would therefore mark the closest
+same-class pair positive-to-unknown while retaining other positives, testing
+whether nearest-positive coupling creates a spurious training advantage.
+
+**Disposition:** hard-positive/negative mining and sampling methods already
+occupy this positive-eligibility mechanism (Hardness-Aware DML, Sampling
+Matters, and nearest-positive/class-collapsing work), and it is the same gate
+family as RSPG.  A nearest-neighbour selector is not a defensible new
+supervised object.  No implementation or GPU run was spent.  Full audit:
+`docs/pass196_npes_gate2_audit_2026-08-08.md`.
