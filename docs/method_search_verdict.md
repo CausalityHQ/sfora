@@ -9268,3 +9268,11 @@ potential-field/PDE, information-bottleneck, and biological dynamics routes.
 Each reduced to an occupied family, and the measured `-0.04968` transfer gap did
 not identify a new editable signal. No CPU or GPU run occurred. Full record:
 `docs/pass165_crossfield_gram_search_2026-08-08.md`.
+
+## Pass 166 — cross-dataset error-ratio search (NONE before GPU)
+
+The corrected CUB/In-Shop error-ratio discrepancy reopens dataset-dependent
+headroom, but direct Gram responses reduce to General Pair Weighting/context/
+spectral families or occupied OLE/MCR²/SCoRe/DAML mechanisms. No defensible
+forecast or candidate-specific falsifier exists; no GPU run occurred. Full
+record: `docs/pass166_cross_dataset_error_ratio_search_2026-08-08.md`.
