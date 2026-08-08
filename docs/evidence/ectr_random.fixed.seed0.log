@@ -1,0 +1,164 @@
+{
+    'recipe_id': 'proxy_anchor.inshop.official-51db570.ectr_random',
+    'recipe_digest': 
+'d1dbc255b9fcc56c2e82a9dfeb854f21120b8472b1963b05078c54ff95450059',
+    'recipe_track': 'reference',
+    'recipe_source_revision': '51db57031e38f75c03f69bbdfad1a3233afd9787'
+}
+inshop proxy_anchor step 100/8580 loss=10.9606
+inshop proxy_anchor epoch 1 test R@1=0.2396 (best 0.2396 @ epoch 1)
+inshop proxy_anchor step 200/8580 loss=7.9420
+inshop proxy_anchor epoch 2 test R@1=0.6675 (best 0.6675 @ epoch 2)
+inshop proxy_anchor step 300/8580 loss=5.6785
+inshop proxy_anchor step 400/8580 loss=5.1186
+inshop proxy_anchor epoch 3 test R@1=0.7632 (best 0.7632 @ epoch 3)
+inshop proxy_anchor step 500/8580 loss=4.2054
+inshop proxy_anchor epoch 4 test R@1=0.8086 (best 0.8086 @ epoch 4)
+inshop proxy_anchor step 600/8580 loss=3.4874
+inshop proxy_anchor step 700/8580 loss=3.3476
+inshop proxy_anchor epoch 5 test R@1=0.8328 (best 0.8328 @ epoch 5)
+inshop proxy_anchor step 800/8580 loss=2.7204
+inshop proxy_anchor epoch 6 test R@1=0.8485 (best 0.8485 @ epoch 6)
+inshop proxy_anchor step 900/8580 loss=2.5823
+inshop proxy_anchor step 1000/8580 loss=2.7230
+inshop proxy_anchor epoch 7 test R@1=0.8588 (best 0.8588 @ epoch 7)
+inshop proxy_anchor step 1100/8580 loss=2.6714
+inshop proxy_anchor epoch 8 test R@1=0.8600 (best 0.8600 @ epoch 8)
+inshop proxy_anchor step 1200/8580 loss=2.0672
+inshop proxy_anchor epoch 9 test R@1=0.8716 (best 0.8716 @ epoch 9)
+inshop proxy_anchor step 1300/8580 loss=1.8305
+inshop proxy_anchor step 1400/8580 loss=2.0734
+inshop proxy_anchor epoch 10 test R@1=0.8738 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1500/8580 loss=1.8153
+inshop proxy_anchor epoch 11 test R@1=0.8458 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1600/8580 loss=1.9007
+inshop proxy_anchor step 1700/8580 loss=1.9196
+inshop proxy_anchor epoch 12 test R@1=0.8592 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1800/8580 loss=1.8436
+inshop proxy_anchor epoch 13 test R@1=0.8514 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 1900/8580 loss=1.6103
+inshop proxy_anchor step 2000/8580 loss=1.9201
+inshop proxy_anchor epoch 14 test R@1=0.8624 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2100/8580 loss=1.8134
+inshop proxy_anchor epoch 15 test R@1=0.8605 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2200/8580 loss=1.4934
+inshop proxy_anchor epoch 16 test R@1=0.8607 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2300/8580 loss=1.6237
+inshop proxy_anchor step 2400/8580 loss=1.7391
+inshop proxy_anchor epoch 17 test R@1=0.8564 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2500/8580 loss=1.5322
+inshop proxy_anchor epoch 18 test R@1=0.8594 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2600/8580 loss=1.3206
+inshop proxy_anchor step 2700/8580 loss=1.4708
+inshop proxy_anchor epoch 19 test R@1=0.8592 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2800/8580 loss=1.3601
+inshop proxy_anchor epoch 20 test R@1=0.8564 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 2900/8580 loss=1.1601
+inshop proxy_anchor step 3000/8580 loss=1.2155
+inshop proxy_anchor epoch 21 test R@1=0.8602 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3100/8580 loss=1.0467
+inshop proxy_anchor epoch 22 test R@1=0.8595 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3200/8580 loss=0.9458
+inshop proxy_anchor epoch 23 test R@1=0.8595 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3300/8580 loss=1.1437
+inshop proxy_anchor step 3400/8580 loss=1.4064
+inshop proxy_anchor epoch 24 test R@1=0.8563 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3500/8580 loss=0.9716
+inshop proxy_anchor epoch 25 test R@1=0.8410 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3600/8580 loss=1.0735
+inshop proxy_anchor step 3700/8580 loss=0.9371
+inshop proxy_anchor epoch 26 test R@1=0.8281 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3800/8580 loss=0.9389
+inshop proxy_anchor epoch 27 test R@1=0.8107 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 3900/8580 loss=0.9484
+inshop proxy_anchor step 4000/8580 loss=1.0606
+inshop proxy_anchor epoch 28 test R@1=0.7917 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4100/8580 loss=0.9972
+inshop proxy_anchor epoch 29 test R@1=0.7860 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4200/8580 loss=0.9465
+inshop proxy_anchor epoch 30 test R@1=0.7774 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4300/8580 loss=0.8494
+inshop proxy_anchor step 4400/8580 loss=0.8761
+inshop proxy_anchor epoch 31 test R@1=0.7236 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4500/8580 loss=0.9465
+inshop proxy_anchor epoch 32 test R@1=0.7371 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4600/8580 loss=0.8923
+inshop proxy_anchor step 4700/8580 loss=0.9853
+inshop proxy_anchor epoch 33 test R@1=0.7065 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4800/8580 loss=0.9364
+inshop proxy_anchor epoch 34 test R@1=0.6799 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 4900/8580 loss=0.9763
+inshop proxy_anchor step 5000/8580 loss=1.0630
+inshop proxy_anchor epoch 35 test R@1=0.7106 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5100/8580 loss=1.1374
+inshop proxy_anchor epoch 36 test R@1=0.6453 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5200/8580 loss=0.9618
+inshop proxy_anchor epoch 37 test R@1=0.7068 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5300/8580 loss=1.1153
+inshop proxy_anchor step 5400/8580 loss=1.1800
+inshop proxy_anchor epoch 38 test R@1=0.6856 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5500/8580 loss=1.0256
+inshop proxy_anchor epoch 39 test R@1=0.7026 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5600/8580 loss=0.8894
+inshop proxy_anchor step 5700/8580 loss=1.1230
+inshop proxy_anchor epoch 40 test R@1=0.6847 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5800/8580 loss=0.8512
+inshop proxy_anchor epoch 41 test R@1=0.6940 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 5900/8580 loss=0.9927
+inshop proxy_anchor step 6000/8580 loss=1.0516
+inshop proxy_anchor epoch 42 test R@1=0.6990 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6100/8580 loss=1.0215
+inshop proxy_anchor epoch 43 test R@1=0.6618 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6200/8580 loss=0.8475
+inshop proxy_anchor epoch 44 test R@1=0.6228 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6300/8580 loss=0.6882
+inshop proxy_anchor step 6400/8580 loss=0.7002
+inshop proxy_anchor epoch 45 test R@1=0.6047 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6500/8580 loss=0.7209
+inshop proxy_anchor epoch 46 test R@1=0.6140 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6600/8580 loss=0.8168
+inshop proxy_anchor step 6700/8580 loss=1.0025
+inshop proxy_anchor epoch 47 test R@1=0.6394 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6800/8580 loss=0.7656
+inshop proxy_anchor epoch 48 test R@1=0.6372 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 6900/8580 loss=0.7701
+inshop proxy_anchor step 7000/8580 loss=0.5976
+inshop proxy_anchor epoch 49 test R@1=0.6483 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7100/8580 loss=0.7037
+inshop proxy_anchor epoch 50 test R@1=0.6654 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7200/8580 loss=0.8132
+inshop proxy_anchor epoch 51 test R@1=0.6637 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7300/8580 loss=0.6432
+inshop proxy_anchor step 7400/8580 loss=0.7321
+inshop proxy_anchor epoch 52 test R@1=0.6628 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7500/8580 loss=0.8250
+inshop proxy_anchor epoch 53 test R@1=0.6707 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7600/8580 loss=0.7296
+inshop proxy_anchor step 7700/8580 loss=0.9785
+inshop proxy_anchor epoch 54 test R@1=0.6168 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7800/8580 loss=0.7682
+inshop proxy_anchor epoch 55 test R@1=0.5967 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 7900/8580 loss=0.8313
+inshop proxy_anchor step 8000/8580 loss=0.7009
+inshop proxy_anchor epoch 56 test R@1=0.5938 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 8100/8580 loss=0.7115
+inshop proxy_anchor epoch 57 test R@1=0.6492 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 8200/8580 loss=0.9533
+inshop proxy_anchor epoch 58 test R@1=0.6291 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 8300/8580 loss=0.7652
+inshop proxy_anchor step 8400/8580 loss=0.7471
+inshop proxy_anchor epoch 59 test R@1=0.6422 (best 0.8738 @ epoch 10)
+inshop proxy_anchor step 8500/8580 loss=0.7020
+inshop proxy_anchor epoch 60 test R@1=0.6564 (best 0.8738 @ epoch 10)
+{
+    'name': 'image-end-to-end-benchmark',
+    'dataset': 'inshop',
+    'protocol': 'proxy-anchor-resnet50-512',
+    'output': 
+'/home/riomus/emafactorial-cis-active/reports/generated/pass119_inshop.ectr_rand
+om.fixed.seed0.json',
+    'train_examples': 25882,
+    'test_examples': 14218,
+    'gallery_examples': 12612,
+    'methods': ['proxy_anchor_end_to_end:bn_inception']
+}

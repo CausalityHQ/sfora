@@ -8767,6 +8767,18 @@ control must be rerun after the dtype fix. The fix casts the mask to float at
 the compositor boundary and adds a regression test (`259e58a`). This is a
 reproducibility bug in the control implementation, not evidence about ECTR.
 
+### Pass 130 corrected random-control closeout (2026-08-08)
+
+The dtype-fixed random-area control completed all 60 epochs. Its raw
+best-over-training In-Shop R@1 was **0.8738** at epoch 10; the immutable epoch
+log gives a local-neighbour trend of **0.85915** and a descriptive peak gap of
+**+1.465 pt** (final epoch **0.6564**). The generated report omitted the
+recall-history field, so the generic script refused it rather than fabricating
+a correction; the log-based calculation is recorded in
+`docs/pass130_ectr_random_control_analysis_2026-08-08.md`. This control does
+not support ECTR, and the artifact-format defect must be fixed before future
+selection analyses. No ECTR or CIS claim is advanced from this run.
+
 ## Pass 120 — Coalition Interference Supervision (CIS), LIVE-NARROW at Gate 2
 
 Pass 67's corrected CUB failure decomposition attributed **51.9%** of failures
