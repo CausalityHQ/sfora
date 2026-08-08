@@ -1395,6 +1395,20 @@ queries gives a descriptive 0.794505, not a replacement benchmark score.
 
 This is one failed local interpretation, not a retraction of the PFML paper:
 author code is unavailable, key recipe fields remain undisclosed, and the main
-paper and supplement conflict on base learning rate. No tuning, extra seed,
+paper and supplement conflict on base learning rate. No tuning, extra seed, 
 train-pack field census, or candidate run follows. Full artifact and corpus
 audit: `docs/pfml_cars_fixed_interpretation_result_2026-08-03.md`.
+
+## In-Shop CIS coalition controls (Pass133, corrected corpus)
+
+The matched seed-0 `pa_coalition_dropout` control completed 60 epochs.  Raw
+best-over-training R@1 was **0.9176** versus **0.9170** for plain Proxy Anchor
+(paired difference **+0.056 points**); final-epoch R@1 was **0.9162** versus
+**0.9158** (**+0.042 points**).  The full coalition was 0.9170 raw / 0.9149
+final, and the single-image control was 0.9184 / 0.9172.  All are one-seed
+descriptive values and do not establish an effect.
+
+The local-neighbour selection diagnostic reported peak gaps of 0.097 points for
+dropout and 0.324 for the control.  These are explicitly **not** selection
+corrections; no identified corrected R@1 is claimed.  Full paired table and
+verdict: `docs/pass151_cis_control_verdict_2026-08-08.md`.

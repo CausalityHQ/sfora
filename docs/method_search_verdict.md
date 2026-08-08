@@ -9115,3 +9115,15 @@ incremental deltas `+0.000008, +0.000010, -0.000024, -0.000032, +0.000005`,
 mean `-0.000007`, with 3/5 positive folds.  It failed Gate 1 by a wide margin;
 no prior-art search or GPU run was authorized.  Full record:
 `docs/pass150_pixel_geometry_preregistration_2026-08-08.md`.
+
+## Pass 151 — CIS dropout control (UNRESOLVED/NO EFFECT ESTABLISHED at Gate 4, 2026-08-08)
+
+The class-dropout coalition control sums normalized one-per-class members and
+trains the union target after deterministically removing one member class.  On
+the corrected In-Shop corpus, its one-seed raw best was `0.9176` versus
+`0.9170` Proxy Anchor (`+0.056` points), and final epoch was `0.9162` versus
+`0.9158` (`+0.042`).  The local selection diagnostic is descriptive only
+(`0.097` versus `0.324` points for the control), not a correction.  The effect
+is far below the `+0.50` paired screening threshold and does not establish
+novelty or benefit; no follow-up GPU work is authorized.  Full record:
+`docs/pass151_cis_control_verdict_2026-08-08.md`.
