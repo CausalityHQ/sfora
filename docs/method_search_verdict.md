@@ -9160,3 +9160,14 @@ incremental AUC deltas were `+0.000551, -0.001052, +0.000255, +0.000051,
 zero and far below `+0.05`; no spectral training object, prior-art search, or
 GPU run is authorized.  Full record:
 `docs/pass154_spectral_residual_preregistration_2026-08-08.md`.
+
+## Pass 155 — independent Codex fresh invention review (NONE at Gate 1/2)
+
+The fallback review found no defensible candidate. Texture-residual relation
+matching is unsupported by provenance (`+0.001195` held-out incremental AUC,
+about 42 times below the `+0.05` threshold) and is occupied by Deep Metric
+Learning Beyond Binary Supervision and S2SD. The CIS dropout result remains
+too small (`+0.056` raw, `+0.042` final at one seed) and its mechanism family
+is closed. No CPU, implementation, or GPU work is authorized without a new
+measured signal. Full record:
+`docs/pass155_codex_fresh_search_2026-08-08.md`.
