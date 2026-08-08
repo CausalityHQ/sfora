@@ -9324,3 +9324,14 @@ mechanism-equivalent prior art in IRM, Deep Causal Metric Learning, and
 augmentation-consistency metric learning. Leave-one-out prototypes reduce to
 Prototypical Networks/ProxyNCA/XBM. No GPU run occurred. Full record:
 `docs/pass169_irm_augmentation_environment_search_2026-08-08.md`.
+
+## Pass 170 — Coalition-Marginal Retrieval (DEAD at Gate 1)
+
+CMR used Shapley-style marginal contributions of a same-class image to a
+random gallery coalition as a cross-image positive-eligibility signature. On
+the corrected In-Shop training pack, signature agreement had AUC `0.814993`,
+but cross-fitted support-to-query R@1 fell from `0.992133` to `0.982017`
+(`Δ=-0.010115`). The signature is predictive of a proxy utility scalar but
+selecting by it degrades retrieval, so Gate 1 fails. No GPU run occurred.
+Full record: `docs/pass170_cmr_proposal_2026-08-08.md` and
+`scripts/measure_cmr_gate.py`.
