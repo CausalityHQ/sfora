@@ -9296,8 +9296,11 @@ blind searches are non-evidence, while measured tail failures, exact prior-art
 reviews, and diagnostics remain scoped to their tested mechanisms.
 Confusion-graph label elasticity remains occupied by Confusion-Based Metric
 Learning (Chen et al., TNNLS 2022), Group Loss, and hierarchical metric
-learning. The only live-narrow fresh direction is cross-instance transport of
-the descriptor's controlled-augmentation Jacobian; it has no GPU authorization
-until a primary-art audit and CPU falsifier distinguish it from transformed
-attention consistency, AugSelf/equivariance, and cross-image disentanglement.
+learning. The apparent live-narrow direction—cross-instance transport of the
+descriptor's controlled-augmentation Jacobian—is already dead in the candidate
+312 audit (transformed-attention consistency, Self-Supervised Ranking,
+Embedding Expansion, EquiMod/AugSelf, and tangent/Fisher metrics). No reopened
+candidate survives; the next fresh proposal must come from a supervision class
+not represented in the ledger and supply a new measurement-conditioned Gate-1
+artifact.
 Full audit: `docs/reopened_candidate_audit_2026-08-08.md`.

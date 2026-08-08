@@ -20,8 +20,10 @@ reopened material against the corrected four-seed In-Shop reference
 1. **Augmentation-Jacobian cross-instance transport:** make two same-class
 images agree on the finite-difference Jacobian of the deployed descriptor under
 a controlled augmentation while retaining descriptor differences. This is
-`LIVE-NARROW` pending primary-art comparison against transformed-attention
-consistency (Li et al. 2020), AugSelf/equivariance, and class-pose decomposition.
+already dead in the repository's candidate-312 audit: transformed-attention
+consistency, Deep Metric Learning with Self-Supervised Ranking, Embedding
+Expansion, EquiMod/AugSelf, and local tangent/Fisher/Mahalanobis metrics occupy
+the mechanism. It is not a new candidate.
 
 2. **Confusion-graph label elasticity:** merge labels along a train-derived
 confusion graph and supervise both partitions. `DEAD` at Gate 2 (CML, Group
@@ -32,6 +34,7 @@ low-rank augmentation tangent from one image and apply it to another same-class
 image. NRQ, CoDiF, transformed-attention consistency, reconstruction, and
 cross-image disentanglement occupy the components; `DEAD` by mechanism.
 
-No GPU work is authorized. The only live-narrow item is (1), whose next gate is
-a primary-art audit plus a CPU falsifier that distinguishes cross-instance
-Jacobian transport from ordinary augmentation consistency.
+No GPU work is authorized. This re-audit found no surviving candidate: the
+apparent augmentation-Jacobian survivor was a duplicate of candidate 312.
+The next fresh proposal must come from a supervision class not represented in
+the ledger, with a new measurement-conditioned Gate-1 artifact.
