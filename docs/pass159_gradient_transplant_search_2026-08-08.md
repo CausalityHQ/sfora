@@ -35,3 +35,16 @@ therefore collapses into occupied families under every formulation.
 A CPU falsifier would have compared the first-order nearest-positive-minus-
 nearest-foreign margin change against random-donor, norm-permuted, and
 cosine-matched controls, but it cannot rescue the prior-art collision.
+
+## Repaired Gate-2 re-audit (2026-08-08)
+
+**Revised status: LIVE-NARROW at Gate 2; Gate 1 unresolved.** The original judgement
+treated every non-collinear gradient manipulation as mechanism-equivalent to
+task-level PCGrad/CAGrad. Those methods combine distinct objective gradients; they do
+not transport one example's cotangent into another example's sphere tangent space.
+Scalar pair weighting and forward variation transfer likewise differ in both data
+flow and decision point. The candidate is reopened only to a prospectively frozen
+training-only causal diagnostic with random-donor, norm-permuted, cosine-matched,
+receiver-own-gradient, and generic-surgery controls. No GPU is authorized by this
+correction. Full re-audit:
+`docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.

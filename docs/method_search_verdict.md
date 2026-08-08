@@ -9736,3 +9736,16 @@ found no additional unquarantined mismatch with this exact signature. The correc
 four-arm run was restarted only after focused CLI, objective, recipe, and two-step
 end-to-end integration tests passed. Full audit:
 `docs/pass120_noop_invalidation_2026-08-08.md`.
+
+## Repaired Gate-2 re-audit — Pass159 and Pass181 reopened narrowly
+
+The earlier Gate-2 deaths for norm-ranked cotangent transplant and CIEB were too
+broad. PCGrad/CAGrad manipulate task-objective gradients, not a donor example's
+cotangent transported into a receiver example's tangent space. Entropy feature
+weighting and Gradient Weighting modify a forward metric/predictor, not a
+label-derived backward-only preconditioner on learned DML coordinates. Both entries
+are therefore **LIVE-NARROW at Gate 2 and unresolved at Gate 1**, not established
+methods and not GPU-authorized. CIEB now has a committed four-seed, training-only,
+variance-matched coordinate-ablation falsifier. Pass159 awaits an equally exact
+causal estimand. Full correction:
+`docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.
