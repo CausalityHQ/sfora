@@ -130,6 +130,15 @@ duplicate-label call without IDs fails explicitly rather than silently selecting
 different image. This repairs the deterministic-selection clause above; it does
 not authorize a benchmark run by itself.
 
+## CPU gate after repair (2026-08-08)
+
+Bundles of two and three distinct labels were checked with stable row IDs. Both
+losses were finite, every selected member had a nonzero finite gradient, the
+leave-one-out residual differed from the per-image complementary control, and
+the dispatcher equaled the explicit union-plus-residual sum. The duplicate-row
+permutation test also passed. This clears implementation readiness only; the
+active DGX run is CIS, not SRC, and no SRC GPU screen has been launched.
+
 ## Gate 4–7
 
 Screen In-Shop first, one seed only if the controller authorizes it. A pass
