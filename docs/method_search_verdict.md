@@ -9602,3 +9602,18 @@ leave-one-out local-trend diagnostic is `0.887185` versus `0.913877`, delta
 the softened train-time intervention.  The entire CE-BN line is closed;
 ARSN must pass its CPU predictability and strict prior-art gate before any
 implementation or GPU use.
+
+### Pass191 — ARSN (Amortized Rival-Statistics Normalization): DEAD, Gate 1
+
+**Mechanism:** predict the label-excluded per-instance CE-BN moments from the
+ordinary embedding, then deploy the predicted normalization without labels or
+a minibatch.  This was motivated directly by the hard/soft CE-BN train/eval
+mismatch.
+
+**Gate-1 result:** on held-out moments from the trained In-Shop embedding pack,
+a linear predictor had aggregate R² `-0.0157`; a two-hidden-layer MLP had
+aggregate R² `-0.0306` (mean and log-variance R² both negative).  The moments
+are determined by batch composition and are not recoverable from one image's
+embedding.  ARSN is therefore dead before implementation/GPU.  This closes
+the natural amortization repair and is evidence that the CPU CE-BN gain is
+strictly transductive to labelled batch context.
