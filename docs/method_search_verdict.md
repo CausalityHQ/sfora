@@ -9389,3 +9389,13 @@ surrogate; CASPG is dead without GPU. This reinforces that a predictive pair
 statistic is not sufficient provenance for a useful supervision gate.
 Full proposal and audit: `docs/pass175_caspg_proposal_2026-08-08.md`;
 diagnostic: `scripts/measure_caspg_gate.py`.
+
+## Pass 176 — cross-field referent search (NONE before GPU)
+
+Reservoir/liquid-state, neural-ODE, Hamiltonian, coding, predictive-coding,
+and memory routes were checked against the repaired In-Shop measurements. No
+candidate had both executable provenance and a mechanism-level novelty gap;
+the concrete routes reduce to audited feature averaging, temporal consistency,
+symplectic heads, error-correcting/predictive coding, or EMA/proxy memory.
+No CPU or GPU work occurred. Full record:
+`docs/pass176_crossfield_referent_search_2026-08-08.md`.
