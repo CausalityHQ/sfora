@@ -9260,3 +9260,11 @@ the repaired two-lane protocol.  Artifact failures, correctly recomputed CPU
 falsifiers, exact prior-art reviews after concrete proposals, and matched GPU
 failures remain valid for their tested mechanisms only. Full audit:
 `docs/protocol_reopen_audit_2026-08-08.md`.
+
+## Pass 165 — cross-field direct-Gram search (NONE before GPU)
+
+The normalized-Gram gradient decomposition was audited across anti-collapse,
+potential-field/PDE, information-bottleneck, and biological dynamics routes.
+Each reduced to an occupied family, and the measured `-0.04968` transfer gap did
+not identify a new editable signal. No CPU or GPU run occurred. Full record:
+`docs/pass165_crossfield_gram_search_2026-08-08.md`.
