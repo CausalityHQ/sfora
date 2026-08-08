@@ -9399,3 +9399,14 @@ the concrete routes reduce to audited feature averaging, temporal consistency,
 symplectic heads, error-correcting/predictive coding, or EMA/proxy memory.
 No CPU or GPU work occurred. Full record:
 `docs/pass176_crossfield_referent_search_2026-08-08.md`.
+
+## Pass 177 — ECT-R closeout (DEAD at Gate 4)
+
+The previously CPU-cleared ECT-R screen was resumed after its random-area
+control's Boolean-mask dtype bug was corrected. On matched corrected In-Shop
+seed 0, full ECT-R reached raw best `0.896962` versus Proxy Anchor `0.918695`
+(`−2.173` points), while soft, random-area, and plateau controls also failed.
+The full arm misses its preregistered `0.9190` threshold and loses to both
+mechanism controls. The earlier invalid pre-fix random log is excluded; the
+dtype-fixed artifact is the retained control. ECT-R is dead and receives no
+additional GPU. Full closeout: `docs/pass177_ectr_closeout_2026-08-08.md`.
