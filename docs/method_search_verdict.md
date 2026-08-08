@@ -9819,3 +9819,19 @@ retrieval descriptor. Internal Pass98/127/179 also cover the same fusion and rou
 subspace family. Error-conditioned block width is a policy change, not a new training
 mechanism. No implementation or GPU work was spent. Full audit:
 `docs/pass199_error_budgeted_factorized_head_gate2_2026-08-08.md`.
+
+## Pass181 repaired closeout — CIEB: DEAD at Gate 1
+
+The repaired Gate-2 distinction survived, but the four-seed necessary premise did not.
+Class-ownership entropy rank stability was only `0.0663`, `0.0389`, `0.0355`, and
+`0.0864`; the frozen weight CV was `0.03849`, `0.03863`, `0.03905`, and `0.04074`.
+Thus every seed crossed both preregistered early-fail thresholds, and the diagnostic
+correctly stopped before its 1,000 matched masks.
+
+**Mechanism:** learned descriptor coordinates do not have stable class ownership under
+identity resampling. The proposed label-derived backward multiplier is also nearly
+scalar, so it would mostly inject estimator noise rather than reallocate useful
+optimization capacity. This closes the registered CIEB operator without claiming that
+all entropy preconditioners are mathematically impossible. No Stage B, implementation,
+or GPU run is authorized. Full result:
+`docs/pass181_cieb_stage_a_result_2026-08-09.md`.

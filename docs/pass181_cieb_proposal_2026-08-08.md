@@ -159,3 +159,10 @@ step. A nonpositive mean or at least three of four nonpositive seeds fails; othe
 the result is unresolved. No benchmark training run is authorized before Stage B.
 Full re-audit:
 `docs/repaired_gate2_reaudit_pass159_pass181_2026-08-08.md`.
+
+## Stage-A result
+
+**FAIL.** Split-half entropy-rank stability was only `0.0355`–`0.0864` across the
+four seeds, and weight CV was `0.0385`–`0.0407`; all four seeds crossed both registered
+early-fail thresholds. The matched-mask stage was not executed. No Stage B or GPU run
+is authorized. Full result: `docs/pass181_cieb_stage_a_result_2026-08-09.md`.
