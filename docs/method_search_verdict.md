@@ -9190,3 +9190,12 @@ centered-image ambiguity margin changed five-fold crop-view AUROC from
 The response-adaptive augmentation premise therefore fails its CPU falsifier;
 no policy, implementation, or GPU run is authorized. Full record:
 `docs/pass157_response_sensitivity_falsifier_2026-08-08.md`.
+
+## Pass 158 — positive-transfer cross-field search (NONE at Gate 2)
+
+The replicated `-0.0497` unseen-minus-seen positive gap and raw-magnitude
+quality signal yielded no unoccupied training object. Norm-homeostatic positive
+plasticity is detached positive-loss reweighting (HFC/RBPA) or differentiable
+magnitude-dependent quality regularization (MagFace/AdaFace), depending on
+whether the norm is detached. No CPU or GPU work is authorized. Full record:
+`docs/pass158_positive_transfer_crossfield_search_2026-08-08.md`.
