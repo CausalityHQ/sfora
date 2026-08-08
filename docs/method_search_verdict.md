@@ -9335,3 +9335,13 @@ but cross-fitted support-to-query R@1 fell from `0.992133` to `0.982017`
 selecting by it degrades retrieval, so Gate 1 fails. No GPU run occurred.
 Full record: `docs/pass170_cmr_proposal_2026-08-08.md` and
 `scripts/measure_cmr_gate.py`.
+
+## Pass 171 — cross-field non-selection mechanisms (NONE before GPU)
+
+An independent subagent searched for non-selection mechanisms using the
+In-Shop error-ratio and transfer-gap evidence. Symplectic/Hamiltonian heads,
+replica dynamics, variance expansion, relational supervision, virtual classes,
+and principal-direction augmentation were either already occupied (Pass 66,
+ESA, SEE, DRML, MemVir, Potential-Field DML) or lacked a mechanism-level
+distinction. No GPU run occurred. Full record:
+`docs/pass171_crossfield_nonselection_search_2026-08-08.md`.
