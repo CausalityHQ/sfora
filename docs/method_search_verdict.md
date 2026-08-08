@@ -9706,3 +9706,19 @@ Matters, and nearest-positive/class-collapsing work), and it is the same gate
 family as RSPG.  A nearest-neighbour selector is not a defensible new
 supervised object.  No implementation or GPU run was spent.  Full audit:
 `docs/pass196_npes_gate2_audit_2026-08-08.md`.
+
+## Pass197 — Antithetic Rival Gradient Routing: DEAD, Gate 2
+
+**Mechanism:** pair mutually proxy-confused different-class samples and route their
+embedding cotangents through complementary random half-projectors, scaled so each
+sample's marginal gradient remains unbiased.  This was conditioned on the `51.9%`
+CUB between-class failure share, the `3.05`–`3.22` corrected In-Shop between/local
+error ratio, and CIS's shared-gradient ownership defect.
+
+**Disposition:** the method changes only stochastic gradient covariance. Random
+Gradient Masking and GradDrop occupy backward masking; PCGrad and OGD occupy
+conflict/subspace projection. Internal candidates 223 and 186 already close the
+same non-scalar conflict and protected-projection operators. Proxy-confusion pairing
+and complementary coupling change the estimator/policy, not the training object.
+No implementation or GPU run was spent. Full audit:
+`docs/pass197_argr_gate2_audit_2026-08-08.md`.
