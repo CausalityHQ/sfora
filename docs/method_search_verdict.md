@@ -9004,3 +9004,14 @@ CrossTransformers, NNCLR, SupCon, and the repository's Candidates 72/205/227/
 raised foreign similarity more than positive similarity, and 90.90% of
 accepted In-Shop edges shared an acquisition token. No CPU or GPU run is
 authorized. Full audit: `docs/pass136_jepa_classconditional_review_2026-08-08.md`.
+
+## Pass 137 — fresh Sol search (NONE at Gate 2)
+
+A fresh read-only search over all train-time design axes found no mechanism
+that escaped the ledger. Conditional information bottleneck reduces to
+class-conditional compression/prototype learning; biological predictive
+coding/error routes change credit assignment rather than the supervised
+similarity object; and cross-image same-class latent prediction is occupied by
+I-JEPA/data2vec/CroCo, correspondence, NNCLR, or SupCon. The result and
+collision list are recorded in `docs/pass137_sol_fresh_search_2026-08-08.md`.
+No CPU or GPU work is authorized from this pass.
