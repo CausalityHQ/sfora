@@ -9276,3 +9276,14 @@ headroom, but direct Gram responses reduce to General Pair Weighting/context/
 spectral families or occupied OLE/MCR²/SCoRe/DAML mechanisms. No defensible
 forecast or candidate-specific falsifier exists; no GPU run occurred. Full
 record: `docs/pass166_cross_dataset_error_ratio_search_2026-08-08.md`.
+
+## Pass 167 — persistent spherical contrastive-divergence bath (NONE before GPU)
+
+Persistent spherical Langevin particles were motivated by the In-Shop
+between:local error ratio and unseen-minus-seen gap. Gate 2 kills the mechanism:
+detached particles have zero encoder gradient, while live particles reduce to
+synthetic-negative weighting/adversarial metric learning; a train-only energy
+head is an ordinary EBM. Tieleman (ICML 2008), Du et al. (ICML 2021), Grathwohl
+et al. (ICLR 2020), DAML, AdCo, LoOp, Proxy Synthesis, and MemVir establish the
+families. Forecast is `0.9154` (<5% chance above `0.9185`); no GPU run.
+Full record: `docs/pass167_persistent_spherical_cd_search_2026-08-08.md`.
