@@ -84,6 +84,18 @@ def test_parallel_transport_rejects_antipodal_or_zero_inputs() -> None:
         )
 
 
+def test_parallel_transport_accepts_and_renormalizes_float32_unit_roundoff() -> None:
+    origin = np.asarray([0.99999994, 0.0, 0.0], dtype=np.float32)
+    target = np.asarray([0.0, 1.0000001, 0.0], dtype=np.float32)
+
+    transported = _MODULE.parallel_transport(np.asarray([0.0, 0.0, 1.0]), origin, target)
+
+    assert np.linalg.norm(transported) == pytest.approx(1.0, abs=1e-12)
+    assert float(np.dot(transported, target / np.linalg.norm(target))) == pytest.approx(
+        0.0, abs=1e-12
+    )
+
+
 def test_smooth_margin_gradient_matches_autograd_with_frozen_foreign_set() -> None:
     receiver = _unit(np.asarray([[1.0, 0.3, -0.2]]))[0]
     positives = _unit(np.asarray([[0.9, 0.2, 0.1], [0.7, 0.4, -0.1]]))

@@ -36,3 +36,14 @@ number. Any historical claim that specifically used the legacy final pre-head **
 features should be treated as batch-shape-sensitive until regenerated; Pass159's
 provenance measurement used the separately frozen corrected pre-normalization
 query/norm artifacts, not these final pre-head packs.
+
+## Float32 unit-vector guard found on the second fail-closed attempt
+
+The next attempt also stopped before a pooled candidate verdict. The implementation
+required sphere inputs to have norm one within `1e-8`, although the immutable
+float32 final packs are validated at `2e-5`. This rejected 1,876–1,887 of 1,984
+eligible identities per seed as non-unit and left no four-seed complete cases. A
+regression test now proves that valid float32 roundoff is accepted and explicitly
+renormalized, while zero, nonfinite, and genuinely non-unit vectors still fail. No
+scientific threshold, donor choice, or outcome rule changed, and no partial alignment
+was inspected when diagnosing the exclusion counts.

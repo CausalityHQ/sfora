@@ -48,9 +48,9 @@ def _require_unit(vector: np.ndarray, *, name: str) -> np.ndarray:
     if array.ndim != 1 or not np.isfinite(array).all():
         raise ValueError(f"{name} must be a finite unit vector")
     norm = float(np.linalg.norm(array))
-    if norm <= _VECTOR_EPS or not np.isclose(norm, 1.0, atol=1.0e-8, rtol=1.0e-8):
+    if norm <= _VECTOR_EPS or not np.isclose(norm, 1.0, atol=2.0e-5, rtol=2.0e-5):
         raise ValueError(f"{name} must be a finite unit vector")
-    return array
+    return array / norm
 
 
 def _unit_rows(rows: np.ndarray, *, name: str) -> np.ndarray:
