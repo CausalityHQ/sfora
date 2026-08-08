@@ -9231,3 +9231,13 @@ requires mechanism equivalence (same training object, data flow, and decision
 point) before Gate 2 kills a candidate.  Adjacent prior art is `LIVE-NARROW` with
 component-removal controls.  No GPU work is authorized by this audit alone.
 Full record: `docs/protocol_audit_2026-08-08.md`.
+
+## Pass 162 — ICBC cross-image bottleneck completion (DEAD before GPU)
+
+The repaired measurement-conditioned lane proposed conditioning masked
+cross-image reconstruction on a deployed global descriptor and contrasting a
+foreign identity.  The independent review found a seed-0/four-seed comparator
+error, under-specified equations, fatal decodability-versus-cosine
+non-identifiability, and direct same-identity cross-image reconstruction prior
+art in Zheng et al. CVPR 2019.  No CPU or GPU run occurred. Full record:
+`docs/pass162_icbc_adversarial_review_2026-08-08.md`.
