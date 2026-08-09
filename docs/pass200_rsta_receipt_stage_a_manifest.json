@@ -14,6 +14,11 @@
     "sha256": "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361",
     "commit": "db29ab7bb6478cfef57eccbad142f93d2f805f7f"
   },
+  "zero_jacobian_classifier_amendment": {
+    "path": "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md",
+    "sha256": "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade",
+    "commit": "85e8f983053f3839e5bbb2bb11563380e6b77919"
+  },
   "binding_receipt": {
     "path": "docs/pass200_rsta_binding_receipt_d6270a9.json",
     "sha256": "e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300"
@@ -37,10 +42,10 @@
     }
   },
   "current_scientific_source": {
-    "git_revision": "b3e54319c7b866eac97538259498224e40ed1c74",
+    "git_revision": "e01797becaffef14242e646f0a8614051130182b",
     "files": {
       "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
-      "scripts/diagnose_pass200_rsta_stage_a.py": "6c28f3e6e8c57602be6cc9936931c8bd741ccd6bea0d6bf48ee2dfd39143cf58",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "b632514363495277296963239b0d18891e369ea229423d633d4794ae5b4509b2",
       "src/sfora/__init__.py": "5de45a3409573b0c914d7228021b1323ed4d46c2e66eaf960791f50417fef058",
       "src/sfora/ablation.py": "b936039fc44bf143fbffa1c4306ba3b61d101fc348b17800b6002ece08f55655",
       "src/sfora/api.py": "b45894fed86d371e3820aa12c2319f087068156f8bb16cf47ce06f29f461a4b4",
