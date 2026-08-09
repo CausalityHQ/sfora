@@ -7,10 +7,12 @@ import hashlib
 import importlib.util
 import json
 import random
+import subprocess
 import sys
 import weakref
 from collections.abc import Callable
 from copy import deepcopy
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -1170,6 +1172,8 @@ def test_load_and_bind_seed_rejects_proxy_descriptor_dimension_mismatch(tmp_path
         ("config", "batch_size"),
         ("id_order", "example-ID order"),
         ("label_order", "label order"),
+        ("fractional_label", "labels must use an integral dtype"),
+        ("float_label_dtype", "labels must use an integral dtype"),
         ("duplicate_index", "row indices"),
         ("source_membership", "source-path order"),
         ("descriptor", "descriptors differ"),
@@ -1196,6 +1200,11 @@ def test_load_and_bind_seed_fails_closed_on_every_binding_mismatch(
             exported["train"]["example_ids"][[0, 1]] = exported["train"]["example_ids"][[1, 0]]
         elif mutation == "label_order":
             exported["train"]["labels"][[2, 3]] = exported["train"]["labels"][[3, 2]]
+        elif mutation == "fractional_label":
+            exported["train"]["labels"] = exported["train"]["labels"].astype(np.float64)
+            exported["train"]["labels"][0] = 10.9
+        elif mutation == "float_label_dtype":
+            exported["train"]["labels"] = exported["train"]["labels"].astype(np.float64)
         elif mutation == "duplicate_index":
             exported["train"]["row_indices"][1] = 0
         elif mutation == "source_membership":
@@ -1339,6 +1348,110 @@ def test_training_only_input_is_constructed_after_query_gallery_arrays_are_relea
     assert bound.train_example_ids[0] == "train-0"
 
 
+def test_current_source_exporter_wires_real_loader_schema_around_only_forward_mock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sfora import image_end_to_end as image_module
+
+    entry, _ = _synthetic_rsta_bundle(tmp_path / "artifacts")
+    config = json.loads(Path(entry["report_json"]["path"]).read_text(encoding="utf-8"))["config"]
+    dataset_root = tmp_path / "inshop"
+    image_root = dataset_root / "Img" / "img"
+    image_root.mkdir(parents=True)
+    partition_rows = [
+        ("img/train-0.jpg", "train-item-0", "train"),
+        ("img/train-1.jpg", "train-item-1", "train"),
+        ("img/query-0.jpg", "eval-item-0", "query"),
+        ("img/query-1.jpg", "eval-item-1", "query"),
+        ("img/gallery-0.jpg", "eval-item-0", "gallery"),
+        ("img/gallery-1.jpg", "eval-item-1", "gallery"),
+    ]
+    for image_name, _, _ in partition_rows:
+        path = dataset_root / "Img" / image_name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"not-materialized-by-forward-mock")
+    partition = dataset_root / "Eval" / "list_eval_partition.txt"
+    partition.parent.mkdir(parents=True)
+    partition.write_text(
+        "6\nimage_name item_id evaluation_status\n"
+        + "\n".join(" ".join(row) for row in partition_rows)
+        + "\n",
+        encoding="utf-8",
+    )
+    config["dataset_root"] = str(dataset_root)
+    checkpoint = torch.load(entry["checkpoint_pt"]["path"], map_location="cpu", weights_only=False)
+
+    class FakeModel:
+        def __init__(self) -> None:
+            self.loaded: tuple[dict[str, torch.Tensor], bool] | None = None
+            self.device: torch.device | None = None
+            self.eval_called = False
+
+        def load_state_dict(self, state: dict[str, torch.Tensor], *, strict: bool) -> None:
+            self.loaded = (state, strict)
+
+        def to(self, device: torch.device) -> FakeModel:
+            self.device = device
+            return self
+
+        def eval(self) -> FakeModel:
+            self.eval_called = True
+            return self
+
+    model = FakeModel()
+    monkeypatch.setattr(image_module, "_torchvision_model_factory", lambda _: model)
+    traversed: list[list[str]] = []
+
+    def fake_encode(
+        observed_model: FakeModel,
+        loader: Any,
+        device: torch.device,
+        torch_module: Any,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        assert observed_model is model
+        assert observed_model.eval_called is True
+        assert device == model.device
+        assert torch_module is torch
+        assert loader.batch_size == 128
+        examples = loader.dataset._examples
+        traversed.append([example.example_id for example in examples])
+        rows = np.zeros((len(examples), 2), dtype=np.float32)
+        rows[:, 0] = 1.0
+        return rows, np.asarray([example.label for example in examples], dtype=np.int64)
+
+    monkeypatch.setattr(image_module, "_encode_model", fake_encode)
+
+    exported = _MODULE._export_current_source(
+        paths={name: Path(item["path"]) for name, item in entry.items()},
+        config=config,
+        checkpoint=checkpoint,
+    )
+
+    assert model.eval_called is True
+    assert model.device == torch.device("cpu")
+    assert model.loaded is not None
+    loaded_state, strict = model.loaded
+    assert strict is True
+    assert set(loaded_state) == {"model.embedding.weight", "model.embedding.bias"}
+    assert traversed == [
+        ["inshop-train-img/train-0.jpg", "inshop-train-img/train-1.jpg"],
+        ["inshop-query-img/query-0.jpg", "inshop-query-img/query-1.jpg"],
+        ["inshop-gallery-img/gallery-0.jpg", "inshop-gallery-img/gallery-1.jpg"],
+    ]
+    assert set(exported) == {"train", "query", "gallery"}
+    expected_labels = {"train": [2, 3], "query": [0, 1], "gallery": [0, 1]}
+    for split, expected_ids in zip(("train", "query", "gallery"), traversed, strict=True):
+        assert exported[split]["example_ids"].tolist() == expected_ids
+        assert exported[split]["labels"].tolist() == expected_labels[split]
+        assert exported[split]["source_paths"].tolist() == [
+            str((dataset_root / "Img" / example_id.split("-", 2)[2]).resolve())
+            for example_id in expected_ids
+        ]
+        assert exported[split]["row_indices"].tolist() == [0, 1]
+        assert exported[split]["embeddings"].shape == (2, 2)
+
+
 def _synthetic_rsta_manifest(
     root: Path,
 ) -> tuple[Path, dict[int, Callable[..., dict[str, dict[str, np.ndarray]]]]]:
@@ -1346,9 +1459,28 @@ def _synthetic_rsta_manifest(
     docs.mkdir(parents=True)
     preregistration = docs / "pass200.md"
     preregistration.write_text("frozen synthetic preregistration\n", encoding="utf-8")
-    source_file = root / "src" / "current_source.py"
-    source_file.parent.mkdir(parents=True)
-    source_file.write_text("SOURCE_SCHEMA = 1\n", encoding="utf-8")
+    source_paths = (
+        "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "scripts/export_final_inshop_embeddings.py",
+        "src/sfora/data.py",
+        "src/sfora/image_end_to_end.py",
+    )
+    for index, path_text in enumerate(source_paths):
+        source_file = root / path_text
+        source_file.parent.mkdir(parents=True, exist_ok=True)
+        source_file.write_text(f"SOURCE_SCHEMA = {index + 1}\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "rsta@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "RSTA Test"], cwd=root, check=True)
+    subprocess.run(["git", "add", *source_paths], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "pin synthetic source"], cwd=root, check=True)
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
     seeds: dict[str, dict[str, dict[str, str]]] = {}
     exporters: dict[int, Callable[..., dict[str, dict[str, np.ndarray]]]] = {}
     common_sources = root / "images"
@@ -1376,10 +1508,8 @@ def _synthetic_rsta_manifest(
             "sha256": _sha256_file(pass159_manifest),
         },
         "source": {
-            "git_revision": "1" * 40,
-            "files": {
-                "src/current_source.py": _sha256_file(source_file),
-            },
+            "git_revision": revision,
+            "files": {path_text: _sha256_file(root / path_text) for path_text in source_paths},
         },
         "seeds": seeds,
     }
@@ -1427,18 +1557,103 @@ def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_sche
     assert result["manifest"]["sha256"] == _sha256_file(manifest_path)
 
 
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("train_example_ids", "example-ID order"),
+        ("train_labels", "label order"),
+        ("train_source_paths", "source membership"),
+        ("train_row_indices", "row-index binding"),
+    ],
+)
+def test_cross_seed_training_binding_rejects_every_row_metadata_mismatch(
+    tmp_path: Path,
+    field: str,
+    message: str,
+) -> None:
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path)
+    bound = _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+    values = list(getattr(bound, field))
+    if field == "train_labels":
+        values[0] = 999
+    elif field == "train_row_indices":
+        values[0] = 99
+    else:
+        values[0] = f"changed-{values[0]}"
+    changed = replace(bound, seed=1, **{field: tuple(values)})
+
+    with pytest.raises(ValueError, match=message):
+        _MODULE.validate_cross_seed_training_binding([bound, changed])
+
+
 def test_manifest_validation_rejects_source_and_pass159_schema_drift(tmp_path: Path) -> None:
     manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    source_path = tmp_path / "src" / "current_source.py"
-    source_path.write_text("SOURCE_SCHEMA = 2\n", encoding="utf-8")
+    source_path = tmp_path / "src" / "sfora" / "data.py"
+    source_path.write_text("SOURCE_SCHEMA = changed\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="source SHA-256"):
         _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
 
-    source_path.write_text("SOURCE_SCHEMA = 1\n", encoding="utf-8")
+    source_path.write_text("SOURCE_SCHEMA = 3\n", encoding="utf-8")
     manifest["seeds"]["0"]["report_json"]["sha256"] = "0" * 64
     with pytest.raises(ValueError, match="Pass159 manifest seeds"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra"])
+def test_manifest_source_requires_exact_frozen_file_set(tmp_path: Path, mutation: str) -> None:
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if mutation == "missing":
+        manifest["source"]["files"].pop("src/sfora/data.py")
+    else:
+        extra = tmp_path / "src" / "unregistered.py"
+        extra.write_text("UNREGISTERED = True\n", encoding="utf-8")
+        manifest["source"]["files"]["src/unregistered.py"] = _sha256_file(extra)
+
+    with pytest.raises(ValueError, match="source file keys"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+def test_manifest_source_rejects_nonexistent_git_revision(tmp_path: Path) -> None:
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source"]["git_revision"] = "f" * 40
+
+    with pytest.raises(ValueError, match="does not resolve to a commit"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+def test_manifest_source_rejects_revision_blob_mismatch_even_when_worktree_matches(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source_path = tmp_path / "src" / "sfora" / "data.py"
+    original = source_path.read_text(encoding="utf-8")
+    source_path.write_text("SOURCE_SCHEMA = revision-drift\n", encoding="utf-8")
+    subprocess.run(["git", "add", "src/sfora/data.py"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "drift synthetic source"], cwd=tmp_path, check=True
+    )
+    drift_revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    source_path.write_text(original, encoding="utf-8")
+    manifest["source"]["git_revision"] = drift_revision
+
+    with pytest.raises(ValueError, match="revision blob SHA-256 mismatch"):
         _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
 
 
@@ -1466,6 +1681,19 @@ def test_deterministic_transform_cache_restores_rngs_when_transform_raises() -> 
     assert random.getstate() == python_before
     assert _numpy_rng_state_equal(np.random.get_state(), numpy_before)
     assert torch.equal(torch.get_rng_state(), torch_before)
+
+
+def test_deterministic_transform_cache_rejects_tensor_mutation_before_batch_use() -> None:
+    cache = _MODULE.cache_deterministic_transforms(
+        ["example-a"],
+        {"example-a": 1.0},
+        transform=lambda value: torch.tensor([value, 2.0]),
+    )
+
+    cache.tensors["example-a"].add_(5.0)
+
+    with pytest.raises(ValueError, match="cached tensor SHA-256 mismatch"):
+        cache.batch(["example-a"])
 
 
 def test_training_only_seed_routes_selected_sources_through_deterministic_cache(

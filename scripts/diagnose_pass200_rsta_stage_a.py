@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import random
+import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -59,6 +60,14 @@ _SOURCE_EXPORT_KEYS = {
     "source_paths",
     "row_indices",
 }
+_FROZEN_SOURCE_FILES = frozenset(
+    {
+        "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "scripts/export_final_inshop_embeddings.py",
+        "src/sfora/data.py",
+        "src/sfora/image_end_to_end.py",
+    }
+)
 
 
 def _readonly_array(values: Any, *, dtype: Any | None = None) -> np.ndarray:
@@ -126,6 +135,13 @@ class DeterministicTransformCache:
         missing = [value for value in ids if value not in self.tensors]
         if missing:
             raise ValueError(f"cached batch references unknown IDs: {missing}")
+        for value in ids:
+            observed = _tensor_sha256(self.tensors[value])
+            if observed != self.tensor_sha256[value]:
+                raise ValueError(
+                    f"cached tensor SHA-256 mismatch for {value}: "
+                    f"{observed} != {self.tensor_sha256[value]}"
+                )
         return torch.stack([self.tensors[value] for value in ids], dim=0)
 
 
@@ -297,7 +313,14 @@ def _validate_source_export(
         if set(current) != _SOURCE_EXPORT_KEYS:
             raise ValueError(f"{split} current-source export keys differ from schema")
         embeddings = np.asarray(current["embeddings"], dtype=np.float32)
-        labels = np.asarray(current["labels"], dtype=np.int64)
+        raw_labels = np.asarray(current["labels"])
+        if not np.issubdtype(raw_labels.dtype, np.integer):
+            raise ValueError(f"{split} current-source labels must use an integral dtype")
+        if raw_labels.size and (
+            np.any(raw_labels < 0) or int(raw_labels.max()) > int(np.iinfo(np.int64).max)
+        ):
+            raise ValueError(f"{split} current-source labels must be exact unsigned int64 values")
+        labels = raw_labels.astype(np.int64, copy=False)
         ids = np.asarray(current["example_ids"]).astype(str)
         sources = np.asarray(current["source_paths"]).astype(str)
         indices = np.asarray(current["row_indices"])
@@ -581,8 +604,17 @@ def validate_rsta_manifest(manifest: dict[str, Any], *, manifest_path: Path) -> 
     ):
         raise ValueError("RSTA manifest source git_revision must be a full lowercase hash")
     files = source["files"]
-    if not isinstance(files, dict) or not files:
-        raise ValueError("RSTA manifest source files must be nonempty")
+    if not isinstance(files, dict) or set(files) != _FROZEN_SOURCE_FILES:
+        observed_keys = set(files) if isinstance(files, dict) else files
+        raise ValueError(f"RSTA manifest source file keys differ: {observed_keys}")
+    repository = manifest_path.resolve().parent.parent
+    commit_check = subprocess.run(
+        ["git", "-C", str(repository), "cat-file", "-e", f"{revision}^{{commit}}"],
+        capture_output=True,
+        check=False,
+    )
+    if commit_check.returncode != 0:
+        raise ValueError(f"RSTA source git_revision does not resolve to a commit: {revision}")
     for path_text, expected_digest in sorted(files.items()):
         path = _manifest_reference_path(str(path_text), manifest_path=manifest_path)
         if not path.is_file():
@@ -590,6 +622,18 @@ def validate_rsta_manifest(manifest: dict[str, Any], *, manifest_path: Path) -> 
         observed = sha256_file(path)
         if observed != expected_digest:
             raise ValueError(f"RSTA source SHA-256 mismatch for {path_text}: {observed}")
+        blob = subprocess.run(
+            ["git", "-C", str(repository), "cat-file", "blob", f"{revision}:{path_text}"],
+            capture_output=True,
+            check=False,
+        )
+        if blob.returncode != 0:
+            raise ValueError(f"RSTA source revision lacks frozen blob: {revision}:{path_text}")
+        blob_digest = hashlib.sha256(blob.stdout).hexdigest()
+        if blob_digest != expected_digest:
+            raise ValueError(
+                f"RSTA source revision blob SHA-256 mismatch for {path_text}: {blob_digest}"
+            )
 
 
 def _ordered_text_sha256(values: Sequence[str]) -> str:
@@ -598,6 +642,22 @@ def _ordered_text_sha256(values: Sequence[str]) -> str:
 
 def _ordered_int64_sha256(values: Sequence[int]) -> str:
     return hashlib.sha256(np.asarray(values, dtype=np.int64).tobytes(order="C")).hexdigest()
+
+
+def validate_cross_seed_training_binding(bounds: Sequence[TrainingOnlySeedInput]) -> None:
+    """Require exact training row identity, label, source, and index binding across seeds."""
+    if not bounds:
+        raise ValueError("cross-seed training binding requires at least one seed")
+    reference = bounds[0]
+    for bound in bounds[1:]:
+        if bound.train_example_ids != reference.train_example_ids:
+            raise ValueError("training example-ID order differs across seeds")
+        if bound.train_labels != reference.train_labels:
+            raise ValueError("training label order differs across seeds")
+        if bound.train_source_paths != reference.train_source_paths:
+            raise ValueError("training source membership differs across seeds")
+        if bound.train_row_indices != reference.train_row_indices:
+            raise ValueError("training row-index binding differs across seeds")
 
 
 def binding_only_payload(
@@ -620,16 +680,7 @@ def binding_only_payload(
         )
         for seed in range(4)
     ]
-    reference = bounds[0]
-    for bound in bounds[1:]:
-        if bound.train_example_ids != reference.train_example_ids:
-            raise ValueError("training example-ID order differs across seeds")
-        if bound.train_labels != reference.train_labels:
-            raise ValueError("training label order differs across seeds")
-        if bound.train_source_paths != reference.train_source_paths:
-            raise ValueError("training source membership differs across seeds")
-        if bound.train_row_indices != reference.train_row_indices:
-            raise ValueError("training row-index binding differs across seeds")
+    validate_cross_seed_training_binding(bounds)
     seed_results = [
         {
             "seed": bound.seed,
