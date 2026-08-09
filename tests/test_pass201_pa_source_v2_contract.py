@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import zipfile
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -29,6 +30,39 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
 
 H64 = "a" * 64
 G40 = "b" * 40
+
+
+def mutable_json(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: mutable_json(child) for key, child in value.items()}
+    if isinstance(value, tuple):
+        return [mutable_json(child) for child in value]
+    return value
+
+
+def frozen_argv(python: str, checkpoint: str, report: str) -> list[str]:
+    return [
+        python,
+        "-m",
+        "sfora.cli",
+        "image-end-to-end",
+        "--dataset-name",
+        "inshop",
+        "--dataset-root",
+        "/home/riomus/datasets/inshop_official_standard",
+        "--objectives",
+        "proxy_anchor",
+        "--recipe",
+        "auto",
+        "--num-workers",
+        "8",
+        "--seed",
+        "0",
+        "--save-model-path",
+        checkpoint,
+        "--output",
+        report,
+    ]
 
 
 def file_binding(path: str = "scripts/controller.py") -> dict[str, Any]:
@@ -134,7 +168,11 @@ def valid_prelaunch() -> dict[str, Any]:
                 "PYTHONPATH": "/checkout/src",
             },
             "environment_policy": "replace",
-            "argv": ["python", "-m", "sfora.cli"],
+            "argv": frozen_argv(
+                "/usr/bin/python",
+                outputs["checkpoint"]["path"],
+                outputs["report"]["path"],
+            ),
             "objective": "proxy_anchor",
             "seed": 0,
             "expected_config_json": "{}\n",
@@ -266,6 +304,29 @@ def test_schema_accepts_complete_prelaunch(valid_prelaunch: dict[str, Any]) -> N
     assert authority.payload["status"] == "frozen"
 
 
+def test_schema_payload_is_recursively_immutable(valid_prelaunch: dict[str, Any]) -> None:
+    authority = validate_prelaunch(valid_prelaunch)
+    with pytest.raises(TypeError):
+        authority.payload["execution"]["schedule"]["resolved_train_steps"] = 11
+    with pytest.raises(AttributeError):
+        authority.payload["execution"]["argv"].append("--forbidden")
+
+
+@pytest.mark.parametrize("index", range(20))
+def test_schema_frozen_argv_rejects_every_element_substitution(
+    valid_prelaunch: dict[str, Any], index: int
+) -> None:
+    valid_prelaunch["execution"]["argv"][index] += "-forbidden"
+    with pytest.raises(ValueError, match="argv"):
+        validate_prelaunch(valid_prelaunch)
+
+
+def test_schema_frozen_argv_rejects_added_argument(valid_prelaunch: dict[str, Any]) -> None:
+    valid_prelaunch["execution"]["argv"].append("--forbidden")
+    with pytest.raises(ValueError, match="argv"):
+        validate_prelaunch(valid_prelaunch)
+
+
 def test_external_file_binds_open_descriptor(tmp_path: Path) -> None:
     path = tmp_path / "data"
     path.write_bytes(b"bound bytes")
@@ -329,6 +390,40 @@ def test_ordinary_merkle_rejects_symlink(tmp_path: Path) -> None:
         bind_merkle(tmp_path)
 
 
+def _swap_queued_directory_on_second_scan(
+    monkeypatch: pytest.MonkeyPatch, root: Path, outside: Path
+) -> None:
+    import pass201_pa_source_v2_contract as contract
+
+    real_scandir = os.scandir
+    calls = 0
+
+    def swapping_scandir(path: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            child = root / "child"
+            child.rename(root / "parked")
+            child.symlink_to(outside, target_is_directory=True)
+        return real_scandir(path)
+
+    monkeypatch.setattr(contract.os, "scandir", swapping_scandir)
+
+
+def test_ordinary_merkle_rejects_queued_directory_swap_escape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "root"
+    outside = tmp_path / "outside"
+    (root / "child").mkdir(parents=True)
+    outside.mkdir()
+    (root / "child" / "inside").write_bytes(b"inside")
+    (outside / "secret").write_bytes(b"secret")
+    _swap_queued_directory_on_second_scan(monkeypatch, root, outside)
+    with pytest.raises(ValueError, match="changed|symlink"):
+        bind_merkle(root)
+
+
 def _path_emitter(tmp_path: Path) -> Path:
     script = tmp_path / "python"
     script.write_text("#!/usr/bin/python3\nimport json,os\nprint(os.environ['BOUND_PATHS'])\n")
@@ -383,11 +478,33 @@ def test_import_root_rejects_external_symlink_cycle(tmp_path: Path) -> None:
         )
 
 
+def test_import_root_rejects_queued_directory_swap_escape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    root = tmp_path / "root"
+    outside = tmp_path / "outside"
+    (root / "child").mkdir(parents=True)
+    outside.mkdir()
+    (root / "child" / "inside.py").write_bytes(b"inside")
+    (outside / "secret.py").write_bytes(b"secret")
+    _swap_queued_directory_on_second_scan(monkeypatch, root, outside)
+    with pytest.raises(ValueError, match="changed|symlink"):
+        bind_import_roots(
+            _path_emitter(tmp_path), {"BOUND_PATHS": json.dumps([str(root)])}, checkout
+        )
+
+
 def output(path: str) -> dict[str, Any]:
     return {"path": path, "file_type": "regular", "mode": 0o100644, "bytes": 1, "sha256": H64}
 
 
 def valid_receipt(authority: Any) -> dict[str, Any]:
+    manifest = canonical_json_bytes(mutable_json(authority.payload))
+    manifest_blob = hashlib.sha1(
+        b"blob " + str(len(manifest)).encode("ascii") + b"\0" + manifest
+    ).hexdigest()
     source_tree = merkle()
     partition = external("/data/partition.txt")
     images = merkle("/home/riomus/datasets/inshop_official_standard/img/img")
@@ -400,9 +517,9 @@ def valid_receipt(authority: Any) -> dict[str, Any]:
             "authorization_commit": G40,
             "source_commit": authority.source_commit,
             "manifest_path": "docs/pass201_pa_source_v2_prelaunch.json",
-            "manifest_bytes": 1,
-            "manifest_sha256": H64,
-            "manifest_git_blob": G40,
+            "manifest_bytes": len(manifest),
+            "manifest_sha256": hashlib.sha256(manifest).hexdigest(),
+            "manifest_git_blob": manifest_blob,
             "parent_verified": True,
             "single_addition_verified": True,
             "detached_head_verified": True,
@@ -416,8 +533,8 @@ def valid_receipt(authority: Any) -> dict[str, Any]:
         },
         "command": {
             "cwd": "/checkout",
-            "environment": copy.deepcopy(authority.payload["execution"]["environment"]),
-            "argv": ["python", "-m", "sfora.cli"],
+            "environment": mutable_json(authority.payload["execution"]["environment"]),
+            "argv": mutable_json(authority.payload["execution"]["argv"]),
         },
         "preflight": {
             "started_utc": "now",
@@ -483,7 +600,13 @@ def valid_receipt(authority: Any) -> dict[str, Any]:
             "schedule_algorithm": "pass201-inshop-completed-epoch-v1",
             "source_files": [file_binding()],
             "input_hashes": {
-                k: authority.expected_config_sha256 if k == "expected_config" else H64
+                k: (
+                    authority.expected_config_sha256
+                    if k == "expected_config"
+                    else hashlib.sha256(manifest).hexdigest()
+                    if k == "manifest"
+                    else H64
+                )
                 for k in (
                     "manifest",
                     "source_tree",
@@ -557,6 +680,43 @@ def test_receipt_schema_accepts_complete_receipt(valid_prelaunch: dict[str, Any]
         "resolved_config",
         "train_manifest",
     }
+    with pytest.raises(TypeError):
+        result.payload["postflight"]["source_equal"] = False
+    with pytest.raises(AttributeError):
+        result.payload["sidecar_derivation"]["child_processes"].append({})
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [("manifest_bytes", 1), ("manifest_sha256", H64), ("manifest_git_blob", G40)],
+)
+def test_receipt_manifest_identity_rejects_unrelated_value(
+    valid_prelaunch: dict[str, Any], field: str, replacement: object
+) -> None:
+    authority = validate_prelaunch(valid_prelaunch)
+    receipt = valid_receipt(authority)
+    assert receipt["authorization"][field] != replacement
+    receipt["authorization"][field] = replacement
+    with pytest.raises(ValueError, match=field):
+        validate_complete_receipt(receipt, authority)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("embedding_dimensions", 512.0),
+        ("embedding_dimensions", True),
+        ("embedding_layer_norm", 0),
+    ],
+)
+def test_receipt_checkpoint_arch_rejects_equal_cross_type_value(
+    valid_prelaunch: dict[str, Any], field: str, replacement: object
+) -> None:
+    authority = validate_prelaunch(valid_prelaunch)
+    receipt = valid_receipt(authority)
+    receipt["checkpoint_metadata"]["arch"][field] = replacement
+    with pytest.raises(ValueError, match=field):
+        validate_complete_receipt(receipt, authority)
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -622,10 +782,38 @@ def test_git_topology_rejects_noncanonical_state(
         _git(repo, "checkout", "-q", authority.source_commit)
         manifest = repo / "docs/pass201_pa_source_v2_prelaunch.json"
         manifest.parent.mkdir(exist_ok=True)
-        manifest.write_bytes(canonical_json_bytes(dict(authority.payload)))
+        manifest.write_bytes(canonical_json_bytes(mutable_json(authority.payload)))
         (repo / "extra").write_text("x")
         _git(repo, "add", "extra", str(manifest.relative_to(repo)))
         _git(repo, "commit", "-qm", "bad")
         _git(repo, "checkout", "-q", "--detach", "HEAD")
     with pytest.raises(ValueError):
         validate_authorization_topology(repo, authority)
+
+
+def test_git_topology_uses_one_bound_git_despite_path_substitution(
+    tmp_path: Path,
+    valid_prelaunch: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pass201_pa_source_v2_contract as contract
+
+    repo, authority, head = authorization_repo(tmp_path, valid_prelaunch)
+    real_git = shutil.which("git")
+    assert real_git is not None
+    marker = tmp_path / "malicious-ran"
+    malicious = tmp_path / "git"
+    malicious.write_text(f"#!/bin/sh\n: > {marker}\nexit 1\n")
+    malicious.chmod(0o755)
+    calls = 0
+
+    def substituting_which(name: str) -> str:
+        nonlocal calls
+        assert name == "git"
+        calls += 1
+        return real_git if calls == 1 else str(malicious)
+
+    monkeypatch.setattr(contract.shutil, "which", substituting_which)
+    assert validate_authorization_topology(repo, authority) == head
+    assert calls == 1
+    assert not marker.exists()

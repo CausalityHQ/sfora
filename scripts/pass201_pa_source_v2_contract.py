@@ -188,6 +188,22 @@ def _validate_json_native(value: Any, where: str = "$") -> None:
     raise ValueError(f"{where}: not an exact JSON-native value")
 
 
+def _freeze_json(value: Any) -> Any:
+    if type(value) is dict:
+        return MappingProxyType({key: _freeze_json(child) for key, child in value.items()})
+    if type(value) is list:
+        return tuple(_freeze_json(child) for child in value)
+    return value
+
+
+def _thaw_json(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _thaw_json(child) for key, child in value.items()}
+    if type(value) is tuple:
+        return [_thaw_json(child) for child in value]
+    return value
+
+
 def canonical_json_bytes(value: Any) -> bytes:
     _validate_json_native(value)
     return (
@@ -441,6 +457,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _file(source["pyproject"], "source.pyproject")
     _file(source["lockfile"], "source.lockfile")
     _str(source["equivalence_test_id"], "source.equivalence_test_id")
+    _validate_outputs(top["outputs"])
     execution = _keys(
         top["execution"],
         {
@@ -499,10 +516,32 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     )
     _literal(execution["environment_policy"], "replace", "execution.environment_policy")
     argv = _list(execution["argv"], "execution.argv")
-    if not argv:
-        raise ValueError("execution.argv")
     for i, arg in enumerate(argv):
         _str(arg, f"execution.argv[{i}]")
+    expected_argv = [
+        execution["python"]["path"],
+        "-m",
+        "sfora.cli",
+        "image-end-to-end",
+        "--dataset-name",
+        "inshop",
+        "--dataset-root",
+        "/home/riomus/datasets/inshop_official_standard",
+        "--objectives",
+        "proxy_anchor",
+        "--recipe",
+        "auto",
+        "--num-workers",
+        "8",
+        "--seed",
+        "0",
+        "--save-model-path",
+        top["outputs"]["checkpoint"]["path"],
+        "--output",
+        top["outputs"]["report"]["path"],
+    ]
+    if argv != expected_argv:
+        raise ValueError("execution.argv must equal the frozen training command")
     _literal(execution["objective"], "proxy_anchor", "execution.objective")
     _int(execution["seed"], "execution.seed", literal=0)
     config_text = _str(execution["expected_config_json"], "execution.expected_config_json")
@@ -529,10 +568,9 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         raise ValueError("execution.schedule.resolved_train_steps must equal epoch schedule")
     _external(execution["pretrained_checkpoint"], "execution.pretrained_checkpoint")
     _validate_dataset(top["dataset"])
-    _validate_outputs(top["outputs"])
     _validate_sidecars(top["sidecars"])
     _validate_postconditions(top["postconditions"])
-    frozen = MappingProxyType(copy.deepcopy(top))
+    frozen = _freeze_json(copy.deepcopy(top))
     return PrelaunchAuthority(
         frozen, source_commit, Path(checkout), config_bytes, config_sha, steps, spe, epochs
     )
@@ -701,20 +739,84 @@ def _read_regular_file(path: Path) -> tuple[os.stat_result, bytes, str]:
             digest.update(chunk)
         after = os.fstat(fd)
 
-        def identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
-            return (
-                value.st_dev,
-                value.st_ino,
-                value.st_mode,
-                value.st_size,
-                value.st_mtime_ns,
-            )
-
-        if identity(before) != identity(after) or sum(map(len, chunks)) != before.st_size:
+        if (
+            _stat_identity(before) != _stat_identity(after)
+            or sum(map(len, chunks)) != before.st_size
+        ):
             raise ValueError(f"file changed during read: {path}")
         return before, b"".join(chunks), digest.hexdigest()
     finally:
         os.close(fd)
+
+
+def _stat_identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+    )
+
+
+def _read_regular_at(
+    directory_fd: int, name: str, expected: os.stat_result, display: str
+) -> tuple[bytes, str]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        raise ValueError(f"cannot safely open regular file: {display}") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or _stat_identity(before) != _stat_identity(expected):
+            raise ValueError(f"file changed before read: {display}")
+        digest = hashlib.sha256()
+        chunks: list[bytes] = []
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            digest.update(chunk)
+        after = os.fstat(fd)
+        if (
+            _stat_identity(before) != _stat_identity(after)
+            or sum(map(len, chunks)) != before.st_size
+        ):
+            raise ValueError(f"file changed during read: {display}")
+        current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if _stat_identity(current) != _stat_identity(before):
+            raise ValueError(f"file changed during read: {display}")
+        return b"".join(chunks), digest.hexdigest()
+    finally:
+        os.close(fd)
+
+
+def _open_directory(path: Path) -> tuple[int, os.stat_result]:
+    flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ValueError(f"cannot safely open directory: {path}") from exc
+    before = os.fstat(fd)
+    if not stat.S_ISDIR(before.st_mode):
+        os.close(fd)
+        raise ValueError(f"not a directory: {path}")
+    return fd, before
+
+
+def _open_child_directory(parent_fd: int, name: str, expected: os.stat_result, display: str) -> int:
+    flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(name, flags, dir_fd=parent_fd)
+    except OSError as exc:
+        raise ValueError(f"directory changed or became symlink: {display}") from exc
+    opened = os.fstat(fd)
+    if not stat.S_ISDIR(opened.st_mode) or _stat_identity(opened) != _stat_identity(expected):
+        os.close(fd)
+        raise ValueError(f"directory changed before traversal: {display}")
+    return fd
 
 
 def bind_external_file(path: Path) -> ExternalFileBinding:
@@ -744,33 +846,18 @@ def _reduce_merkle(hashes: list[bytes]) -> bytes:
 
 def bind_merkle(root: Path) -> MerkleBinding:
     resolved = root.resolve(strict=True)
-    if not resolved.is_dir():
-        raise ValueError(f"not a directory: {root}")
     leaves: list[tuple[bytes, int, dict[str, Any]]] = []
-    pending = [resolved]
-    while pending:
-        directory = pending.pop()
-        with os.scandir(directory) as entries:
-            for entry in entries:
-                name_bytes = entry.name.encode("utf-8")
-                relative = entry.path[len(str(resolved)) + 1 :]
-                relative_bytes = relative.encode("utf-8")
-                if entry.is_symlink():
-                    raise ValueError(f"symlink rejected: {entry.path}")
-                if entry.is_dir(follow_symlinks=False):
-                    pending.append(Path(entry.path))
-                    continue
-                if not entry.is_file(follow_symlinks=False):
-                    raise ValueError(f"unsupported file type: {entry.path}")
-                _, data, digest = _read_regular_file(Path(entry.path))
-                leaves.append(
-                    (
-                        relative_bytes,
-                        len(data),
-                        {"relative_path": relative, "bytes": len(data), "sha256": digest},
-                    )
-                )
-                del name_bytes
+    root_fd, root_before = _open_directory(resolved)
+    try:
+        _walk_ordinary_directory(root_fd, "", leaves)
+        root_after = os.fstat(root_fd)
+        named_after = os.stat(resolved, follow_symlinks=False)
+        if _stat_identity(root_before) != _stat_identity(root_after) or _stat_identity(
+            root_before
+        ) != _stat_identity(named_after):
+            raise ValueError(f"directory changed during traversal: {resolved}")
+    finally:
+        os.close(root_fd)
     leaves.sort(key=lambda item: item[0])
     if len({item[0] for item in leaves}) != len(leaves):
         raise ValueError("duplicate normalized names")
@@ -787,98 +874,66 @@ def bind_merkle(root: Path) -> MerkleBinding:
     )
 
 
+def _walk_ordinary_directory(
+    directory_fd: int,
+    prefix: str,
+    leaves: list[tuple[bytes, int, dict[str, Any]]],
+) -> None:
+    directory_before = os.fstat(directory_fd)
+    with os.scandir(directory_fd) as entries:
+        for entry in entries:
+            entry.name.encode("utf-8")
+            relative = f"{prefix}/{entry.name}" if prefix else entry.name
+            relative_bytes = relative.encode("utf-8")
+            before = entry.stat(follow_symlinks=False)
+            display = relative
+            if stat.S_ISLNK(before.st_mode):
+                raise ValueError(f"symlink rejected: {display}")
+            if stat.S_ISDIR(before.st_mode):
+                child_fd = _open_child_directory(directory_fd, entry.name, before, display)
+                try:
+                    _walk_ordinary_directory(child_fd, relative, leaves)
+                    child_after = os.fstat(child_fd)
+                    named_after = os.stat(entry.name, dir_fd=directory_fd, follow_symlinks=False)
+                    if _stat_identity(before) != _stat_identity(child_after) or _stat_identity(
+                        before
+                    ) != _stat_identity(named_after):
+                        raise ValueError(f"directory changed during traversal: {display}")
+                finally:
+                    os.close(child_fd)
+                continue
+            if not stat.S_ISREG(before.st_mode):
+                raise ValueError(f"unsupported file type: {display}")
+            data, digest = _read_regular_at(directory_fd, entry.name, before, display)
+            leaves.append(
+                (
+                    relative_bytes,
+                    len(data),
+                    {"relative_path": relative, "bytes": len(data), "sha256": digest},
+                )
+            )
+    if _stat_identity(directory_before) != _stat_identity(os.fstat(directory_fd)):
+        raise ValueError(f"directory changed during traversal: {prefix or '.'}")
+
+
 def _bind_import_directory(root: Path, active_realpaths: frozenset[Path]) -> ImportDirectoryBinding:
     resolved = root.resolve(strict=True)
     if resolved in active_realpaths:
         raise ValueError(f"external symlink cycle at {resolved}")
-    if not resolved.is_dir():
-        raise ValueError(f"not an import directory: {root}")
     active = active_realpaths | {resolved}
     leaves: list[tuple[bytes, str, int, dict[str, Any]]] = []
     targets: list[ExternalFileImportTarget | ExternalDirectoryImportTarget] = []
-    pending = [resolved]
-    while pending:
-        directory = pending.pop()
-        with os.scandir(directory) as entries:
-            for entry in entries:
-                relative_text = entry.path[len(str(resolved)) + 1 :]
-                relative = PurePosixPath(relative_text)
-                relative_bytes = relative_text.encode("utf-8")
-                before = os.lstat(entry.path)
-                if stat.S_ISLNK(before.st_mode):
-                    target_text = os.readlink(entry.path)
-                    after = os.lstat(entry.path)
-                    if (
-                        before.st_dev,
-                        before.st_ino,
-                        before.st_mode,
-                        before.st_mtime_ns,
-                        target_text,
-                    ) != (
-                        after.st_dev,
-                        after.st_ino,
-                        after.st_mode,
-                        after.st_mtime_ns,
-                        os.readlink(entry.path),
-                    ):
-                        raise ValueError(f"symlink changed during read: {entry.path}")
-                    target = (Path(entry.path).parent / target_text).resolve(strict=True)
-                    try:
-                        target.relative_to(resolved)
-                        scope = "internal"
-                    except ValueError:
-                        scope = "external"
-                    payload = {
-                        "kind": "symlink",
-                        "relative_path": relative_text,
-                        "target_text": target_text,
-                        "resolved_path": target.as_posix(),
-                        "resolved_scope": scope,
-                    }
-                    leaves.append((relative_bytes, "symlink", 0, payload))
-                    if scope == "external":
-                        target_st = target.stat()
-                        if stat.S_ISREG(target_st.st_mode):
-                            targets.append(
-                                ExternalFileImportTarget(
-                                    relative,
-                                    target_text,
-                                    target,
-                                    "file",
-                                    bind_external_file(target),
-                                )
-                            )
-                        elif stat.S_ISDIR(target_st.st_mode):
-                            targets.append(
-                                ExternalDirectoryImportTarget(
-                                    relative,
-                                    target_text,
-                                    target,
-                                    "directory",
-                                    _bind_import_directory(target, active),
-                                )
-                            )
-                        else:
-                            raise ValueError(f"unsupported external symlink target: {target}")
-                elif stat.S_ISDIR(before.st_mode):
-                    pending.append(Path(entry.path))
-                elif stat.S_ISREG(before.st_mode):
-                    _, data, digest = _read_regular_file(Path(entry.path))
-                    leaves.append(
-                        (
-                            relative_bytes,
-                            "file",
-                            len(data),
-                            {
-                                "kind": "file",
-                                "relative_path": relative_text,
-                                "bytes": len(data),
-                                "sha256": digest,
-                            },
-                        )
-                    )
-                else:
-                    raise ValueError(f"unsupported import entry: {entry.path}")
+    root_fd, root_before = _open_directory(resolved)
+    try:
+        _walk_import_directory(root_fd, "", resolved, active, leaves, targets)
+        root_after = os.fstat(root_fd)
+        named_after = os.stat(resolved, follow_symlinks=False)
+        if _stat_identity(root_before) != _stat_identity(root_after) or _stat_identity(
+            root_before
+        ) != _stat_identity(named_after):
+            raise ValueError(f"directory changed during traversal: {resolved}")
+    finally:
+        os.close(root_fd)
     leaves.sort(key=lambda item: (item[0], item[1]))
     if len({item[0] for item in leaves}) != len(leaves):
         raise ValueError("duplicate normalized names")
@@ -894,6 +949,100 @@ def _bind_import_directory(root: Path, active_realpaths: frozenset[Path]) -> Imp
     )
     targets.sort(key=lambda target: target.link_relative_path.as_posix().encode("utf-8"))
     return ImportDirectoryBinding(resolved, tree, tuple(targets))
+
+
+def _walk_import_directory(
+    directory_fd: int,
+    prefix: str,
+    root: Path,
+    active: frozenset[Path],
+    leaves: list[tuple[bytes, str, int, dict[str, Any]]],
+    targets: list[ExternalFileImportTarget | ExternalDirectoryImportTarget],
+) -> None:
+    directory_before = os.fstat(directory_fd)
+    with os.scandir(directory_fd) as entries:
+        for entry in entries:
+            entry.name.encode("utf-8")
+            relative_text = f"{prefix}/{entry.name}" if prefix else entry.name
+            relative = PurePosixPath(relative_text)
+            relative_bytes = relative_text.encode("utf-8")
+            before = entry.stat(follow_symlinks=False)
+            if stat.S_ISLNK(before.st_mode):
+                target_text = os.readlink(entry.name, dir_fd=directory_fd)
+                after = os.stat(entry.name, dir_fd=directory_fd, follow_symlinks=False)
+                second_target = os.readlink(entry.name, dir_fd=directory_fd)
+                if _stat_identity(before) != _stat_identity(after) or target_text != second_target:
+                    raise ValueError(f"symlink changed during read: {relative_text}")
+                target = (root / relative.parent / target_text).resolve(strict=True)
+                try:
+                    target.relative_to(root)
+                    scope = "internal"
+                except ValueError:
+                    scope = "external"
+                payload = {
+                    "kind": "symlink",
+                    "relative_path": relative_text,
+                    "target_text": target_text,
+                    "resolved_path": target.as_posix(),
+                    "resolved_scope": scope,
+                }
+                leaves.append((relative_bytes, "symlink", 0, payload))
+                if scope == "external":
+                    target_st = os.stat(target, follow_symlinks=False)
+                    if stat.S_ISREG(target_st.st_mode):
+                        targets.append(
+                            ExternalFileImportTarget(
+                                relative,
+                                target_text,
+                                target,
+                                "file",
+                                bind_external_file(target),
+                            )
+                        )
+                    elif stat.S_ISDIR(target_st.st_mode):
+                        targets.append(
+                            ExternalDirectoryImportTarget(
+                                relative,
+                                target_text,
+                                target,
+                                "directory",
+                                _bind_import_directory(target, active),
+                            )
+                        )
+                    else:
+                        raise ValueError(f"unsupported external symlink target: {target}")
+                continue
+            if stat.S_ISDIR(before.st_mode):
+                child_fd = _open_child_directory(directory_fd, entry.name, before, relative_text)
+                try:
+                    _walk_import_directory(child_fd, relative_text, root, active, leaves, targets)
+                    child_after = os.fstat(child_fd)
+                    named_after = os.stat(entry.name, dir_fd=directory_fd, follow_symlinks=False)
+                    if _stat_identity(before) != _stat_identity(child_after) or _stat_identity(
+                        before
+                    ) != _stat_identity(named_after):
+                        raise ValueError(f"directory changed during traversal: {relative_text}")
+                finally:
+                    os.close(child_fd)
+                continue
+            if not stat.S_ISREG(before.st_mode):
+                raise ValueError(f"unsupported import entry: {relative_text}")
+            data, digest = _read_regular_at(directory_fd, entry.name, before, relative_text)
+            leaves.append(
+                (
+                    relative_bytes,
+                    "file",
+                    len(data),
+                    {
+                        "kind": "file",
+                        "relative_path": relative_text,
+                        "bytes": len(data),
+                        "sha256": digest,
+                    },
+                )
+            )
+    if _stat_identity(directory_before) != _stat_identity(os.fstat(directory_fd)):
+        raise ValueError(f"directory changed during traversal: {prefix or '.'}")
 
 
 def bind_import_roots(
@@ -940,13 +1089,17 @@ def bind_import_roots(
     return tuple(bindings)
 
 
-def _git(repo: Path, *args: str, text: bool = False) -> bytes | str:
-    git_path = shutil.which("git")
-    if git_path is None:
+def _resolve_git() -> Path:
+    candidate = shutil.which("git")
+    if candidate is None:
         raise ValueError("Git executable not found")
+    return Path(candidate).resolve(strict=True)
+
+
+def _git(repo: Path, git_path: Path, *args: str, text: bool = False) -> bytes | str:
     try:
         completed = subprocess.run(
-            [str(Path(git_path).resolve(strict=True)), *args],
+            [str(git_path), *args],
             cwd=repo,
             check=True,
             capture_output=True,
@@ -958,9 +1111,18 @@ def _git(repo: Path, *args: str, text: bool = False) -> bytes | str:
 
 
 def bind_repo_blob(repo: Path, revision: str, path: PurePosixPath) -> RepoBlob:
+    git_path = _resolve_git()
+    initial_git = bind_external_file(git_path)
+    result = _bind_repo_blob(repo, revision, path, git_path)
+    if bind_external_file(git_path) != initial_git:
+        raise ValueError("Git executable changed during repository binding")
+    return result
+
+
+def _bind_repo_blob(repo: Path, revision: str, path: PurePosixPath, git_path: Path) -> RepoBlob:
     normalized = _repo_path(path.as_posix(), "repository blob path")
     _hash(revision, "revision", 40)
-    raw = _git(repo, "ls-tree", "-z", revision, "--", normalized)
+    raw = _git(repo, git_path, "ls-tree", "-z", revision, "--", normalized)
     assert isinstance(raw, bytes)
     records = [record for record in raw.split(b"\0") if record]
     if len(records) != 1:
@@ -972,7 +1134,7 @@ def bind_repo_blob(repo: Path, revision: str, path: PurePosixPath) -> RepoBlob:
         raise ValueError("invalid Git tree record") from exc
     if raw_path.decode("utf-8") != normalized or kind != "blob" or mode not in ("100644", "100755"):
         raise ValueError("invalid repository blob")
-    data = _git(repo, "cat-file", "blob", oid)
+    data = _git(repo, git_path, "cat-file", "blob", oid)
     assert isinstance(data, bytes)
     return RepoBlob(
         PurePosixPath(normalized), mode, len(data), hashlib.sha256(data).hexdigest(), oid
@@ -981,10 +1143,8 @@ def bind_repo_blob(repo: Path, revision: str, path: PurePosixPath) -> RepoBlob:
 
 def validate_authorization_topology(repo: Path, authority: PrelaunchAuthority) -> str:
     repo = repo.resolve(strict=True)
-    git_path = shutil.which("git")
-    if git_path is None:
-        raise ValueError("Git executable not found")
-    bound_git = bind_external_file(Path(git_path).resolve(strict=True))
+    git_path = _resolve_git()
+    bound_git = bind_external_file(git_path)
     expected_git = authority.payload["execution"]["git"]
     if (
         str(bound_git.path),
@@ -1002,12 +1162,12 @@ def validate_authorization_topology(repo: Path, authority: PrelaunchAuthority) -
         expected_git["sha256"],
     ):
         raise ValueError("Git executable binding mismatch")
-    head_raw = _git(repo, "rev-parse", "HEAD", text=True)
+    head_raw = _git(repo, git_path, "rev-parse", "HEAD", text=True)
     assert isinstance(head_raw, str)
     head = head_raw.strip()
     _hash(head, "HEAD", 40)
     symbolic = subprocess.run(
-        [str(Path(git_path).resolve(strict=True)), "symbolic-ref", "-q", "HEAD"],
+        [str(git_path), "symbolic-ref", "-q", "HEAD"],
         cwd=repo,
         stdout=subprocess.PIPE,
     )
@@ -1015,13 +1175,14 @@ def validate_authorization_topology(repo: Path, authority: PrelaunchAuthority) -
         raise ValueError("cannot establish detached HEAD state")
     if symbolic.returncode == 0:
         raise ValueError("HEAD must be detached")
-    parents_raw = _git(repo, "rev-list", "--parents", "-n", "1", head, text=True)
+    parents_raw = _git(repo, git_path, "rev-list", "--parents", "-n", "1", head, text=True)
     assert isinstance(parents_raw, str)
     if parents_raw.strip().split() != [head, authority.source_commit]:
         raise ValueError("authorization must have exactly source_commit as parent")
     manifest_path = authority.payload["authorization"]["manifest_path"]
     status_raw = _git(
         repo,
+        git_path,
         "diff-tree",
         "--no-commit-id",
         "--name-status",
@@ -1033,18 +1194,20 @@ def validate_authorization_topology(repo: Path, authority: PrelaunchAuthority) -
     assert isinstance(status_raw, str)
     if status_raw.splitlines() != [f"A\t{manifest_path}"]:
         raise ValueError("authorization must contain one manifest addition")
-    blob = bind_repo_blob(repo, head, PurePosixPath(manifest_path))
+    blob = _bind_repo_blob(repo, head, PurePosixPath(manifest_path), git_path)
     if blob.git_mode != "100644":
         raise ValueError("authorization manifest must be mode 100644")
-    expected = canonical_json_bytes(dict(authority.payload))
-    actual = _git(repo, "show", f"{head}:{manifest_path}")
+    expected = canonical_json_bytes(_thaw_json(authority.payload))
+    actual = _git(repo, git_path, "show", f"{head}:{manifest_path}")
     assert isinstance(actual, bytes)
     if actual != expected:
         raise ValueError("authorization manifest bytes differ from validated payload")
-    status = _git(repo, "status", "--porcelain=v1", "-z")
+    status = _git(repo, git_path, "status", "--porcelain=v1", "-z")
     assert isinstance(status, bytes)
     if status:
         raise ValueError("worktree is not clean")
+    if bind_external_file(git_path) != bound_git:
+        raise ValueError("Git executable changed during topology validation")
     return head
 
 
@@ -1117,6 +1280,18 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
         "clean_policy_verified",
     ):
         _true(auth[key], f"receipt.authorization.{key}")
+    authority_bytes = canonical_json_bytes(_thaw_json(authority.payload))
+    authority_sha256 = hashlib.sha256(authority_bytes).hexdigest()
+    authority_git_blob = hashlib.sha1(
+        b"blob " + str(len(authority_bytes)).encode("ascii") + b"\0" + authority_bytes
+    ).hexdigest()
+    for key, expected_value in (
+        ("manifest_bytes", len(authority_bytes)),
+        ("manifest_sha256", authority_sha256),
+        ("manifest_git_blob", authority_git_blob),
+    ):
+        if auth[key] != expected_value:
+            raise ValueError(f"receipt.authorization.{key} does not bind authority")
     controller = _keys(
         top["controller"],
         {"file", "python", "python_packages", "source_tree"},
@@ -1138,10 +1313,11 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
     argv = _list(command["argv"], "receipt.command.argv")
     for i, value in enumerate(argv):
         _str(value, f"receipt.command.argv[{i}]")
+    expected_execution = _thaw_json(authority.payload["execution"])
     if command != {
-        "cwd": authority.payload["execution"]["cwd"],
-        "environment": authority.payload["execution"]["environment"],
-        "argv": authority.payload["execution"]["argv"],
+        "cwd": expected_execution["cwd"],
+        "environment": expected_execution["environment"],
+        "argv": expected_execution["argv"],
     }:
         raise ValueError("receipt.command does not equal authority")
     _validate_flights(top["preflight"], top["postflight"])
@@ -1187,7 +1363,7 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
     )
     _literal(scope["authorized_action"], "source_binding_only", "receipt.scope.authorized_action")
     return CompleteReceipt(
-        MappingProxyType(copy.deepcopy(top)),
+        _freeze_json(copy.deepcopy(top)),
         authorization_commit,
         MappingProxyType(output_bindings),
     )
@@ -1198,7 +1374,7 @@ def _validate_receipt_authority_bindings(
     authority: PrelaunchAuthority,
     outputs: dict[str, OutputEvidence],
 ) -> None:
-    expected = authority.payload
+    expected = _thaw_json(authority.payload)
     controller = receipt["controller"]
     for receipt_key, expected_value in (
         ("file", expected["controller"]),
@@ -1359,7 +1535,9 @@ def _validate_checkpoint_metadata(value: object, authority: PrelaunchAuthority) 
         "embedding_head_init": "kaiming_normal",
         "embedding_layer_norm": False,
     }
-    _literal(obj["arch"], arch_expected, "receipt.checkpoint_metadata.arch")
+    arch = _keys(obj["arch"], set(arch_expected), "receipt.checkpoint_metadata.arch")
+    for key, expected_value in arch_expected.items():
+        _literal(arch[key], expected_value, f"receipt.checkpoint_metadata.arch.{key}")
     _int(
         obj["training_step"],
         "receipt.checkpoint_metadata.training_step",
