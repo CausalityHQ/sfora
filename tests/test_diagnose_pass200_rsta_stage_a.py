@@ -2868,7 +2868,10 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
             "proxy_anchor_alpha": 32.0,
             "proxy_anchor_delta": 0.1,
         },
-        artifact_binding={"checkpoint_sha256": "1" * 64},
+        artifact_binding={
+            "artifacts": {"checkpoint_pt": {"sha256": "1" * 64}},
+            "binding_revision": "realistic-nested-fixture",
+        },
     )
     calls: list[str] = []
 
@@ -2954,3 +2957,22 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
     assert len(result["binding"]["first_batch_id_sha256"]) == 64
     assert len(result["binding"]["transform_tensor_set_sha256"]) == 64
+    assert result["binding"]["checkpoint_sha256"] == "1" * 64
+
+
+@pytest.mark.parametrize(
+    "binding",
+    [
+        {},
+        {"checkpoint_sha256": "1" * 64},
+        {"artifacts": {}},
+        {"artifacts": {"checkpoint_pt": {}}},
+        {"artifacts": {"checkpoint_pt": {"sha256": "A" * 64}}},
+        {"artifacts": {"checkpoint_pt": {"sha256": "1" * 63}}},
+    ],
+)
+def test_smoke_checkpoint_digest_requires_exact_nested_lowercase_sha256(
+    binding: dict[str, Any],
+) -> None:
+    with pytest.raises(ValueError, match="nested checkpoint SHA-256"):
+        _MODULE._bound_checkpoint_sha256(binding)

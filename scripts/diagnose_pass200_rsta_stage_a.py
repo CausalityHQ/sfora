@@ -3144,6 +3144,20 @@ def run_scientific_diagnostic(
     return payload
 
 
+def _bound_checkpoint_sha256(artifact_binding: Mapping[str, Any]) -> str:
+    """Return the exact digest-bound checkpoint hash from the real artifact schema."""
+    artifacts = artifact_binding.get("artifacts")
+    checkpoint = artifacts.get("checkpoint_pt") if isinstance(artifacts, Mapping) else None
+    digest = checkpoint.get("sha256") if isinstance(checkpoint, Mapping) else None
+    if (
+        not isinstance(digest, str)
+        or len(digest) != 64
+        or any(character not in "0123456789abcdef" for character in digest)
+    ):
+        raise ValueError("artifact binding lacks exact nested checkpoint SHA-256")
+    return digest
+
+
 def run_integrity_smoke(
     manifest: Mapping[str, Any],
     *,
@@ -3276,7 +3290,7 @@ def run_integrity_smoke(
             "seed": seed,
             "artifact_binding_sha256": json_sha256(bound.artifact_binding),
             "config_sha256": json_sha256(bound.config),
-            "checkpoint_sha256": bound.artifact_binding.get("checkpoint_sha256"),
+            "checkpoint_sha256": _bound_checkpoint_sha256(bound.artifact_binding),
             "train_example_id_order_sha256": _ordered_text_sha256(bound.train_example_ids),
             "train_label_order_sha256": _ordered_int64_sha256(bound.train_labels),
             "train_source_order_sha256": _ordered_text_sha256(bound.train_source_paths),
