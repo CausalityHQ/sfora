@@ -1865,6 +1865,10 @@ def test_bufferless_train_clone_matches_preupdate_bn_forward_and_gradients() -> 
 def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
     """Catches analytic-head controls fed normalized outputs or the wrong linear layer."""
     model, images, _ = _dense_affine_fixture()
+    grad_modes: list[bool] = []
+    handle = model.register_forward_pre_hook(
+        lambda _module, _inputs: grad_modes.append(torch.is_grad_enabled())
+    )
     prehead, raw, output = _MODULE.capture_prehead_and_raw(
         model,
         images,
@@ -1872,11 +1876,36 @@ def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
         expected_in_features=2,
         expected_out_features=3,
     )
+    handle.remove()
     expected_raw = images @ model.projection.weight.T + model.projection.bias
 
     assert torch.equal(prehead, images)
     assert torch.equal(raw, expected_raw)
     assert torch.equal(output, expected_raw)
+    assert not prehead.requires_grad and prehead.grad_fn is None
+    assert not raw.requires_grad and raw.grad_fn is None
+    assert not output.requires_grad and output.grad_fn is None
+    assert grad_modes == [False]
+
+
+def test_first_batch_integrity_runs_before_scoring_and_failure_short_circuits() -> None:
+    events: list[str] = []
+
+    def record(name: str, result: Any) -> Any:
+        events.append(name)
+        return result
+
+    with pytest.raises(ValueError, match="rotation failed"):
+        _MODULE._integrity_then_score(
+            repeatability_runner=lambda: record("repeatability", {"z": {}}),
+            adjoint_runner=lambda: record("adjoint", 0.0),
+            rotation_runner=lambda: (_ for _ in ()).throw(
+                ValueError(record("rotation", "rotation failed"))
+            ),
+            score_runner=lambda: record("score", []),
+        )
+
+    assert events == ["repeatability", "adjoint", "rotation"]
 
 
 def test_contextual_pa_fields_use_full_batch_and_exclude_proxy_parameters() -> None:
@@ -2429,7 +2458,13 @@ def test_scientific_payload_rejects_every_mandatory_invalid_mutation(
         "seed_transform_hash",
         "parameter_order",
         "repeatability_hash",
+        "repeatability_nonhex",
         "rotation_scalar",
+        "rotation_negative",
+        "dense_residual",
+        "dense_tolerance",
+        "bn_residual",
+        "bn_buffers",
     ],
 )
 def test_scientific_payload_binds_ids_hashes_roles_and_integrity(defect: str) -> None:
@@ -2459,6 +2494,20 @@ def test_scientific_payload_binds_ids_hashes_roles_and_integrity(defect: str) ->
         arguments["seed_audits"][1]["parameter_names"].reverse()
     elif defect == "repeatability_hash":
         arguments["integrity"]["seeds"][0]["repeatability"]["z"]["repeat_sha256"] = "f" * 64
+    elif defect == "repeatability_nonhex":
+        hashes = arguments["integrity"]["seeds"][0]["repeatability"]["z"]
+        hashes["first_sha256"] = "g" * 64
+        hashes["repeat_sha256"] = "g" * 64
+    elif defect == "rotation_negative":
+        arguments["integrity"]["seeds"][0]["rotation"]["vector_residuals"]["z"] = -1.0e-9
+    elif defect == "dense_residual":
+        arguments["integrity"]["dense_fixture"]["max_jacobian_residual"] = 2.0e-8
+    elif defect == "dense_tolerance":
+        arguments["integrity"]["dense_fixture"]["jacobian_tolerance"] = 2.0e-8
+    elif defect == "bn_residual":
+        arguments["integrity"]["bn_fixture"]["max_gradient_residual"] = 2.0e-6
+    elif defect == "bn_buffers":
+        arguments["integrity"]["bn_fixture"]["buffers_unchanged"] = False
     else:
         arguments["integrity"]["seeds"][0]["rotation"]["statistic_differences"]["Delta"] = 3.0e-4
     with pytest.raises(ValueError):
