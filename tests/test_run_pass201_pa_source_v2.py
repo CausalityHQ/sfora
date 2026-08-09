@@ -1423,6 +1423,295 @@ def _fake_freeze_runtime(checkout: Path) -> dict[str, object]:
     }
 
 
+def _prelaunch_freeze_output(checkout: Path, ordinal: int) -> Path:
+    return checkout.parent / f"{checkout.name}.pass201-prelaunch-freeze-{ordinal}.tmp"
+
+
+def _freeze_args(checkout: Path, output: Path) -> controller.FreezeArgs:
+    return controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=controller.DATASET_ROOT,
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=output,
+    )
+
+
+@pytest.mark.parametrize("ordinal", [1, 2])
+def test_prelaunch_output_accepts_only_exact_normalized_sibling(
+    tmp_path: Path,
+    ordinal: int,
+) -> None:
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+
+    controller._require_frozen_absence(
+        _freeze_args(checkout, _prelaunch_freeze_output(checkout, ordinal))
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "canonical_manifest",
+        "relative",
+        "parent_alias",
+        "symlink_alias",
+        "other_sibling",
+        "inside_checkout",
+        "inside_dataset",
+        "inside_run_directory",
+        "inside_import_tree",
+    ],
+)
+def test_prelaunch_output_rejects_every_other_path_before_capture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    case: str,
+) -> None:
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+    selected = _prelaunch_freeze_output(checkout, 1)
+    if case == "canonical_manifest":
+        output = checkout / controller.PRELAUNCH_PATH
+    elif case == "relative":
+        output = Path(selected.name)
+    elif case == "parent_alias":
+        alias_component = checkout.parent / "existing-alias-component"
+        alias_component.mkdir()
+        output = alias_component / ".." / selected.name
+    elif case == "symlink_alias":
+        alias = tmp_path / "parent-link"
+        alias.symlink_to(checkout.parent, target_is_directory=True)
+        output = alias / selected.name
+    elif case == "other_sibling":
+        output = checkout.parent / f"{checkout.name}.pass201-prelaunch-freeze-3.tmp"
+    elif case == "inside_checkout":
+        output = checkout / selected.name
+    elif case == "inside_dataset":
+        output = controller.DATASET_ROOT / selected.name
+    elif case == "inside_run_directory":
+        output = checkout / controller.RUN_DIRECTORY / selected.name
+    elif case == "inside_import_tree":
+        output = Path(sys.base_prefix).resolve(strict=True) / "lib" / selected.name
+    else:  # pragma: no cover - parameter set is deliberately closed
+        raise AssertionError(case)
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        forbidden("freeze capture preparation"),
+    )
+
+    with pytest.raises(ValueError, match="prelaunch output path"):
+        controller.freeze_authority(_freeze_args(checkout, output))
+
+
+@pytest.mark.parametrize("existing_kind", ["regular", "symlink"])
+def test_prelaunch_output_rejects_existing_selected_sink_before_capture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    existing_kind: str,
+) -> None:
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+    selected = _prelaunch_freeze_output(checkout, 1)
+    if existing_kind == "regular":
+        selected.write_bytes(b"occupied\n")
+    else:
+        selected.symlink_to(tmp_path / "missing-target")
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        forbidden("freeze capture preparation"),
+    )
+
+    with pytest.raises(ValueError, match="selected prelaunch output already exists"):
+        controller.freeze_authority(_freeze_args(checkout, selected))
+
+
+def test_prelaunch_output_requires_canonical_manifest_absent_before_capture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = tmp_path / "checkout"
+    canonical = checkout / controller.PRELAUNCH_PATH
+    canonical.parent.mkdir(parents=True)
+    canonical.write_bytes(b"already published\n")
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        forbidden("freeze capture preparation"),
+    )
+
+    with pytest.raises(ValueError, match="canonical prelaunch manifest already exists"):
+        controller.freeze_authority(
+            _freeze_args(checkout, _prelaunch_freeze_output(checkout, 1))
+        )
+
+
+def test_prelaunch_output_ignores_other_permitted_sink(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+    first = _prelaunch_freeze_output(checkout, 1)
+    first.write_bytes(b"first authority bytes\n")
+
+    controller._require_frozen_absence(
+        _freeze_args(checkout, _prelaunch_freeze_output(checkout, 2))
+    )
+
+
+@pytest.mark.parametrize("parent_state", ["missing", "symlink"])
+def test_prelaunch_output_rejects_wrong_canonical_parent_semantics_before_capture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    parent_state: str,
+) -> None:
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    if parent_state == "symlink":
+        external_docs = tmp_path / "external-docs"
+        external_docs.mkdir()
+        (checkout / "docs").symlink_to(external_docs, target_is_directory=True)
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        forbidden("freeze capture preparation"),
+    )
+
+    with pytest.raises(ValueError, match="canonical manifest parent"):
+        controller.freeze_authority(
+            _freeze_args(checkout, _prelaunch_freeze_output(checkout, 1))
+        )
+
+
+def test_prelaunch_output_requires_same_filesystem_as_canonical_parent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = tmp_path / "checkout"
+    canonical_parent = checkout / "docs"
+    canonical_parent.mkdir(parents=True)
+    real_stat = os.stat
+
+    def mismatched_device(path: object, *args: object, **kwargs: object) -> os.stat_result:
+        result = real_stat(path, *args, **kwargs)  # type: ignore[arg-type]
+        if (
+            kwargs.get("follow_symlinks") is False
+            and isinstance(path, (str, os.PathLike))
+            and Path(path) == canonical_parent
+        ):
+            fields = list(result)
+            fields[2] = result.st_dev + 1
+            return os.stat_result(fields)
+        return result
+
+    monkeypatch.setattr(controller.os, "stat", mismatched_device)
+
+    with pytest.raises(ValueError, match="same filesystem"):
+        controller._require_frozen_absence(
+            _freeze_args(checkout, _prelaunch_freeze_output(checkout, 1))
+        )
+
+
+def _run_tiny_freeze_process(
+    checkout: Path,
+    inputs_path: Path,
+    output: Path,
+) -> subprocess.CompletedProcess[bytes]:
+    program = r"""
+import json
+import os
+import sys
+from pathlib import Path
+
+import run_pass201_pa_source_v2 as controller
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+runtime = payload["runtime"]
+capture_payload = payload["capture"]
+capture_payload["config_bytes"] = capture_payload["config_bytes"].encode("utf-8")
+capture_payload["rows"] = tuple(tuple(row) for row in capture_payload["rows"])
+capture = controller.CapturedAuthority(**capture_payload)
+controller._build_replacement_environment = lambda _args: runtime["environment"]
+controller._bind_freeze_runtime = lambda _args, _environment: runtime
+controller._run_freeze_capture_child = lambda _args, _argv, _environment: capture
+status = controller.main(
+    [
+        "freeze-authority",
+        "--frozen-absence-checked-utc",
+        "2026-08-09T00:00:00Z",
+        "--output",
+        sys.argv[2],
+    ]
+)
+print(os.getpid())
+raise SystemExit(status)
+"""
+    repo = Path(__file__).resolve().parents[1]
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = f"{repo / 'scripts'}:{repo / 'src'}"
+    return subprocess.run(
+        [sys.executable, "-c", program, str(inputs_path), str(output)],
+        cwd=checkout,
+        env=environment,
+        capture_output=True,
+        check=False,
+    )
+
+
+def test_prelaunch_output_two_fresh_top_level_processes_are_byte_identical(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "tiny-checkout"
+    (checkout / "docs").mkdir(parents=True)
+    (checkout / "tracked.txt").write_text("source checkout\n", encoding="utf-8")
+    _git(checkout, "init", "-q")
+    _git(checkout, "config", "user.name", "Pass201 Test")
+    _git(checkout, "config", "user.email", "pass201@example.invalid")
+    _git(checkout, "add", "tracked.txt")
+    _git(checkout, "commit", "-q", "-m", "source")
+    runtime = _fake_freeze_runtime(checkout)
+    capture_payload = {
+        "config_bytes": capture.config_bytes.decode("utf-8"),
+        "recipe_id": capture.recipe_id,
+        "recipe_digest": capture.recipe_digest,
+        "train_count": capture.train_count,
+        "query_count": capture.query_count,
+        "gallery_count": capture.gallery_count,
+        "protocol": capture.protocol,
+        "protocol_name": capture.protocol_name,
+        "rows": capture.rows,
+        "resolved_membership_sha256": capture.resolved_membership_sha256,
+        "resolved_train_steps": capture.resolved_train_steps,
+        "steps_per_epoch": capture.steps_per_epoch,
+        "total_epochs": capture.total_epochs,
+    }
+    inputs_path = tmp_path / "tiny-freeze-inputs.json"
+    inputs_path.write_text(
+        json.dumps({"runtime": runtime, "capture": capture_payload}),
+        encoding="utf-8",
+    )
+    first_output = _prelaunch_freeze_output(checkout, 1)
+    second_output = _prelaunch_freeze_output(checkout, 2)
+
+    first = _run_tiny_freeze_process(checkout, inputs_path, first_output)
+    assert first.returncode == 0, first.stderr.decode()
+    assert first_output.exists()
+    assert not (checkout / controller.PRELAUNCH_PATH).exists()
+    assert _git(checkout, "status", "--porcelain=v1") == ""
+    second = _run_tiny_freeze_process(checkout, inputs_path, second_output)
+    assert second.returncode == 0, second.stderr.decode()
+
+    assert int(first.stdout) != int(second.stdout)
+    assert first_output.read_bytes() == second_output.read_bytes()
+    assert not (checkout / controller.PRELAUNCH_PATH).exists()
+    assert _git(checkout, "status", "--porcelain=v1") == ""
+
+
 def test_freeze_authority_captures_twice_and_emits_canonical_strict_manifest(
     tmp_path: Path,
     sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
@@ -1431,7 +1720,7 @@ def test_freeze_authority_captures_twice_and_emits_canonical_strict_manifest(
     capture, _authority, _checkpoint = sidecar_inputs
     checkout = tmp_path / "checkout"
     checkout.mkdir()
-    output = checkout / "docs" / "pass201_pa_source_v2_prelaunch.json"
+    output = _prelaunch_freeze_output(checkout, 1)
     runtime = _fake_freeze_runtime(checkout)
     capture_calls: list[int] = []
     absence_calls: list[Path] = []
@@ -1499,14 +1788,8 @@ def test_freeze_authority_checks_first_capture_absence_before_second_child(
 ) -> None:
     capture, _authority, _checkpoint = sidecar_inputs
     checkout = tmp_path / "checkout"
-    checkout.mkdir()
-    args = controller.FreezeArgs(
-        checkout_root=checkout,
-        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
-        python_path=Path("/venv/bin/python"),
-        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
-        output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
-    )
+    (checkout / "docs").mkdir(parents=True)
+    args = _freeze_args(checkout, _prelaunch_freeze_output(checkout, 1))
     runtime = _fake_freeze_runtime(checkout)
     capture_calls = 0
     monkeypatch.setattr(
@@ -1542,14 +1825,8 @@ def test_freeze_authority_rejects_capture_child_disagreement(
 ) -> None:
     capture, _authority, _checkpoint = sidecar_inputs
     checkout = tmp_path / "checkout"
-    checkout.mkdir()
-    args = controller.FreezeArgs(
-        checkout_root=checkout,
-        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
-        python_path=Path("/venv/bin/python"),
-        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
-        output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
-    )
+    (checkout / "docs").mkdir(parents=True)
+    args = _freeze_args(checkout, _prelaunch_freeze_output(checkout, 1))
     runtime = _fake_freeze_runtime(checkout)
     captures = iter((capture, replace(capture, recipe_digest="0" * 64)))
     monkeypatch.setattr(
@@ -2443,12 +2720,14 @@ def test_postflight_sidecar_disagreement_leaves_receipt_absent(
     assert not (inputs.run_directory / "train_manifest.json").exists()
 
 
-def test_public_cli_freeze_authority_publishes_only_canonical_manifest(
+def test_public_cli_freeze_authority_publishes_only_selected_temporary_output(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    (tmp_path / "docs").mkdir()
-    monkeypatch.chdir(tmp_path)
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+    output = _prelaunch_freeze_output(checkout, 1)
+    monkeypatch.chdir(checkout)
     expected = b'{"authority":true}\n'
     observed: list[object] = []
 
@@ -2465,7 +2744,7 @@ def test_public_cli_freeze_authority_publishes_only_canonical_manifest(
                 "--frozen-absence-checked-utc",
                 "2026-08-09T00:00:00Z",
                 "--output",
-                "docs/pass201_pa_source_v2_prelaunch.json",
+                str(output),
             ]
         )
         == 0
@@ -2473,14 +2752,44 @@ def test_public_cli_freeze_authority_publishes_only_canonical_manifest(
 
     assert len(observed) == 1
     args = observed[0]
-    assert args.checkout_root == tmp_path
+    assert args.checkout_root == checkout
     assert args.dataset_root == controller.DATASET_ROOT
     assert args.python_path == Path(sys.executable).absolute()
     assert args.frozen_absence_checked_utc == "2026-08-09T00:00:00Z"
-    assert args.output_path == tmp_path / "docs" / "pass201_pa_source_v2_prelaunch.json"
-    output = args.output_path
+    assert args.output_path == output
     assert output.read_bytes() == expected
     assert stat.S_IMODE(output.stat().st_mode) == 0o644
+    assert not (checkout / controller.PRELAUNCH_PATH).exists()
+
+
+@pytest.mark.parametrize("spelling", ["relative", "dot_alias"])
+def test_public_cli_freeze_authority_rejects_non_normalized_output_spelling(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    spelling: str,
+) -> None:
+    checkout = tmp_path / "checkout"
+    (checkout / "docs").mkdir(parents=True)
+    output = _prelaunch_freeze_output(checkout, 1)
+    monkeypatch.chdir(checkout)
+    if spelling == "relative":
+        output_argument = f"../{output.name}"
+    else:
+        output_argument = f"{output.parent}/./{output.name}"
+    monkeypatch.setattr(controller, "freeze_authority", forbidden("freeze capture"))
+
+    with pytest.raises(ValueError, match="normalized absolute prelaunch output path"):
+        main(
+            [
+                "freeze-authority",
+                "--frozen-absence-checked-utc",
+                "2026-08-09T00:00:00Z",
+                "--output",
+                output_argument,
+            ]
+        )
+
+    assert not output.exists()
 
 
 def test_public_cli_run_dispatches_exact_manifest_path(

@@ -553,9 +553,46 @@ def _validate_rfc3339_utc(value: str) -> None:
 
 def _require_frozen_absence(args: FreezeArgs) -> None:
     checkout = args.checkout_root.resolve(strict=True)
-    expected_output = checkout / PRELAUNCH_PATH
-    _require(args.output_path.absolute() == expected_output, "alternative prelaunch output path")
-    _require(not os.path.lexists(expected_output), "prelaunch output already exists")
+    permitted_outputs = tuple(
+        checkout.parent / f"{checkout.name}.pass201-prelaunch-freeze-{ordinal}.tmp"
+        for ordinal in (1, 2)
+    )
+    _require(
+        args.output_path.is_absolute() and args.output_path in permitted_outputs,
+        "prelaunch output path must be an exact normalized permitted sibling",
+    )
+    try:
+        output_parent_status = os.stat(args.output_path.parent, follow_symlinks=False)
+    except OSError as exc:
+        raise ValueError("prelaunch output parent must be a real directory") from exc
+    _require(
+        stat.S_ISDIR(output_parent_status.st_mode),
+        "prelaunch output parent must be a real directory",
+    )
+    _require(
+        not os.path.lexists(args.output_path),
+        "selected prelaunch output already exists",
+    )
+    canonical_manifest = checkout / PRELAUNCH_PATH
+    try:
+        canonical_parent_status = os.stat(
+            canonical_manifest.parent,
+            follow_symlinks=False,
+        )
+    except OSError as exc:
+        raise ValueError("canonical manifest parent must be a real directory") from exc
+    _require(
+        stat.S_ISDIR(canonical_parent_status.st_mode),
+        "canonical manifest parent must be a real directory",
+    )
+    _require(
+        output_parent_status.st_dev == canonical_parent_status.st_dev,
+        "prelaunch output and canonical manifest must share the same filesystem",
+    )
+    _require(
+        not os.path.lexists(canonical_manifest),
+        "canonical prelaunch manifest already exists",
+    )
     run_directory = checkout / RUN_DIRECTORY
     _require(not os.path.lexists(run_directory), "private run directory already exists")
     for filename in (*OUTPUT_FILENAMES.values(), "report.json.tmp"):
@@ -2262,7 +2299,7 @@ def _parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     freeze = commands.add_parser("freeze-authority")
     freeze.add_argument("--frozen-absence-checked-utc", required=True)
-    freeze.add_argument("--output", required=True, type=Path)
+    freeze.add_argument("--output", required=True)
     run = commands.add_parser("run")
     run.add_argument("--manifest", required=True, type=Path)
     sidecars = commands.add_parser("derive-sidecars")
@@ -2278,17 +2315,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
     if args.command == "freeze-authority":
         checkout = Path.cwd().resolve(strict=True)
-        output = args.output if args.output.is_absolute() else checkout / args.output
+        output = Path(args.output)
+        _require(
+            output.is_absolute() and output.as_posix() == args.output,
+            "--output must be a normalized absolute prelaunch output path",
+        )
         frozen = freeze_authority(
             FreezeArgs(
                 checkout_root=checkout,
                 dataset_root=DATASET_ROOT,
                 python_path=Path(sys.executable).absolute(),
                 frozen_absence_checked_utc=args.frozen_absence_checked_utc,
-                output_path=output.absolute(),
+                output_path=output,
             )
         )
-        publish_new_file(output.absolute(), frozen, mode=0o644)
+        publish_new_file(output, frozen, mode=0o644)
         return 0
     if args.command == "run":
         manifest = args.manifest if args.manifest.is_absolute() else Path.cwd() / args.manifest
