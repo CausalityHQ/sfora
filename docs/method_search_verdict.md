@@ -9870,6 +9870,15 @@ falsification conditions were frozen after cold review and before values in
 `docs/pass200_rsta_candidate_2026-08-09.md`. No benchmark training is authorized
 until that screen and a later virtual-update Stage B pass.
 
+A second primary-source adversarial audit leaves the claim **LIVE-NARROW**, while
+adding DoCL, MGS, NINT v2, Charpiat et al., KAR, and DML direction regularization
+as explicit neighbours. Its load-bearing distinction is the differentiated
+receiver-specific `b_i -> stopgrad(s_i)` cosine-plus-log-norm action. If
+`K_ii dbar_i` collapses to the raw contextual cotangent, the method loses that
+distinction; consequently the preregistered positive `A_self - A_desc` lower
+bound is a mechanism gate, not supporting analysis. Full audit:
+`docs/pass200_rsta_gate2_primary_audit_2026-08-09.md`.
+
 ## Pass202 — measurement-conditioned hill-climb: NONE before GPU
 
 Three nearest moves were derived from the current CIS/RSTA/CE-BN measurements and
