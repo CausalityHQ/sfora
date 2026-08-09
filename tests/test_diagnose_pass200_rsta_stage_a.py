@@ -2068,6 +2068,50 @@ def test_training_only_seed_routes_selected_sources_through_deterministic_cache(
         )
 
 
+def test_training_only_seed_default_materializer_opens_bound_string_path(
+    tmp_path: Path,
+) -> None:
+    """Catches passing a bound string path directly into the official image transform."""
+    from PIL import Image
+
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path / "artifacts")
+    bound = _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+    image_path = tmp_path / "pixel.png"
+    Image.new("RGB", (2, 1), color=(17, 23, 31)).save(image_path)
+    paths = bound.train_source_paths.astype(str).tolist()
+    paths[0] = str(image_path)
+    frozen_paths = _MODULE._readonly_array(np.asarray(paths))
+    hashes = dict(bound.training_array_sha256)
+    hashes["train_source_paths"] = _MODULE._framed_array_sha256(
+        "train_source_paths", frozen_paths
+    )
+    rebound = replace(
+        bound,
+        train_source_paths=frozen_paths,
+        training_array_sha256=hashes,
+    )
+    observed: list[tuple[str, tuple[int, int, int]]] = []
+
+    def image_transform(image: Any) -> torch.Tensor:
+        observed.append((image.mode, image.getpixel((0, 0))))
+        return torch.tensor([float(image.width), float(image.height)])
+
+    cache = _MODULE.cache_seed_training_tensors(
+        rebound,
+        ["train-0"],
+        transform=image_transform,
+    )
+
+    assert observed == [("RGB", (17, 23, 31))]
+    assert torch.equal(cache.batch(["train-0"]), torch.tensor([[2.0, 1.0]]))
+
+
 class _TinyAffine(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()

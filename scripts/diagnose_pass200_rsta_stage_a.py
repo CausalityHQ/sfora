@@ -963,7 +963,10 @@ def cache_seed_training_tensors(
     if image_materializer is None:
         from sfora.data import materialize_image
 
-        image_materializer = materialize_image
+        def materialize_bound_path(value: Any) -> Any:
+            return materialize_image(Path(str(value)))
+
+        image_materializer = materialize_bound_path
     selected_sources = {value: source_by_id[value] for value in ids}
     return cache_deterministic_transforms(
         ids,
