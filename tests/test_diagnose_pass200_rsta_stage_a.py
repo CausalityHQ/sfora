@@ -6,6 +6,7 @@ import gc
 import hashlib
 import importlib.util
 import json
+import os
 import random
 import subprocess
 import sys
@@ -1187,8 +1188,8 @@ def test_load_and_bind_seed_returns_immutable_training_only_scientific_input(
     )
 
     assert isinstance(bound, _MODULE.TrainingOnlySeedInput)
-    assert bound.train_example_ids == tuple(f"train-{index}" for index in range(6))
-    assert bound.train_labels == (10, 10, 10, 20, 20, 20)
+    assert bound.train_example_ids.tolist() == [f"train-{index}" for index in range(6)]
+    assert bound.train_labels.tolist() == [10, 10, 10, 20, 20, 20]
     assert not hasattr(bound, "query_embeddings")
     assert not hasattr(bound, "gallery_embeddings")
     assert not hasattr(bound, "query_example_ids")
@@ -1293,11 +1294,40 @@ def test_atomic_json_rejects_nonfinite_without_replacing_existing_output(tmp_pat
     assert output.read_text(encoding="utf-8") == "sentinel\n"
     assert list(tmp_path.glob(".*.tmp")) == []
 
-    _MODULE.write_json_atomic(output, {"schema_version": 1, "finite": 2.0})
-    assert json.loads(output.read_text(encoding="utf-8")) == {
+    with pytest.raises(FileExistsError):
+        _MODULE.write_json_atomic(output, {"schema_version": 1, "finite": 2.0})
+    assert output.read_text(encoding="utf-8") == "sentinel\n"
+    fresh = tmp_path / "fresh.json"
+    _MODULE.write_json_atomic(fresh, {"schema_version": 1, "finite": 2.0})
+    assert json.loads(fresh.read_text(encoding="utf-8")) == {
         "finite": 2.0,
         "schema_version": 1,
     }
+
+
+def test_atomic_json_rolls_back_link_when_directory_fsync_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches leaving a requested result after publication durability failed."""
+    output = tmp_path / "result.json"
+    real_fsync = os.fsync
+    calls = 0
+
+    def fail_directory_fsync(fd: int) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("directory fsync failed")
+        real_fsync(fd)
+
+    monkeypatch.setattr(os, "fsync", fail_directory_fsync)
+
+    with pytest.raises(OSError, match="directory fsync failed"):
+        _MODULE.write_json_atomic(output, {"finite": 1.0})
+
+    assert not output.exists()
+    assert list(tmp_path.glob(".*.tmp")) == []
 
 
 def _numpy_rng_state_equal(left: tuple[Any, ...], right: tuple[Any, ...]) -> bool:
@@ -1651,11 +1681,10 @@ def _bind_synthetic_executing_diagnostic(
     )
 
 
-def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_schema(
+def test_binding_only_cli_is_no_longer_operational_after_receipt_freeze(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     manifest_path, exporters = _synthetic_rsta_manifest(tmp_path)
-    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
     output = tmp_path / "binding.json"
     calls: list[int] = []
 
@@ -1664,37 +1693,21 @@ def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_sche
         calls.append(seed)
         return exporters[seed](**kwargs)
 
-    _MODULE.main(
-        [
-            "--manifest",
-            str(manifest_path),
-            "--output",
-            str(output),
-            "--binding-only",
-        ],
-        source_exporter=source_exporter,
-        expected_partition=_TINY_PARTITION,
-        expected_dimension=2,
-    )
+    with pytest.raises(SystemExit):
+        _MODULE.main(
+            [
+                "--manifest",
+                str(manifest_path),
+                "--binding-receipt",
+                str(tmp_path / "receipt.json"),
+                "--output",
+                str(output),
+                "--binding-only",
+            ]
+        )
 
-    result = json.loads(output.read_text(encoding="utf-8"))
-    assert calls == [0, 1, 2, 3]
-    assert result["schema_version"] == 1
-    assert result["diagnostic"] == "pass200_rsta_stage_a"
-    assert result["mode"] == "binding_only"
-    assert result["candidate_values_computed"] is False
-    assert result["stage_a_verdict"] == "NOT_COMPUTED"
-    assert result["uses_test_data"] == "artifact_binding_only"
-    assert result["binding"]["cross_seed_training_rows_identical"] is True
-    assert [seed["seed"] for seed in result["binding"]["seeds"]] == [0, 1, 2, 3]
-    assert all(seed["train_row_count"] == 6 for seed in result["binding"]["seeds"])
-    assert result["manifest"]["sha256"] == _sha256_file(manifest_path)
-    assert result["execution_audit"]["diagnostic_path"] == (
-        "scripts/diagnose_pass200_rsta_stage_a.py"
-    )
-    assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
-        "files"
-    ]["scripts/diagnose_pass200_rsta_stage_a.py"]
+    assert calls == []
+    assert not output.exists()
 
 
 @pytest.mark.parametrize(
@@ -3028,6 +3041,73 @@ def test_exact_fields_and_registered_statistics_rotate_with_affine_head() -> Non
     assert max(audit["statistic_differences"].values()) < 1.0e-10
 
 
+def _tiny_scientific_bound(
+    *,
+    seed: int,
+    clean: np.ndarray,
+    labels: list[int],
+    example_ids: list[str],
+    source_paths: tuple[str, ...],
+    proxies: np.ndarray,
+    proxy_labels: tuple[int, ...],
+) -> Any:
+    arrays = {
+        "train_embeddings": _MODULE._readonly_array(clean, dtype=np.float32),
+        "train_labels": _MODULE._readonly_array(labels, dtype=np.int64),
+        "train_example_ids": _MODULE._readonly_array(np.asarray(example_ids)),
+        "train_source_paths": _MODULE._readonly_array(np.asarray(source_paths)),
+        "train_row_indices": _MODULE._readonly_array(range(len(example_ids)), dtype=np.int64),
+        "proxies": _MODULE._readonly_array(proxies, dtype=np.float32),
+        "proxy_labels": _MODULE._readonly_array(proxy_labels, dtype=np.int64),
+    }
+    checkpoint_bytes = f"synthetic-checkpoint-{seed}".encode()
+    return _MODULE.TrainingOnlySeedInput(
+        seed=seed,
+        **arrays,
+        alpha=32.0,
+        delta=0.1,
+        official_recall_at_1=0.9,
+        checkpoint_bytes=checkpoint_bytes,
+        checkpoint_sha256=hashlib.sha256(checkpoint_bytes).hexdigest(),
+        training_array_sha256={
+            name: _MODULE._framed_array_sha256(name, value) for name, value in arrays.items()
+        },
+        config={
+            "batch_size": 180,
+            "embedding_dimensions": 3,
+            "proxy_anchor_alpha": 32.0,
+            "proxy_anchor_delta": 0.1,
+        },
+        artifact_binding={
+            "artifacts": {"checkpoint_pt": {"sha256": f"{seed + 1}" * 64}}
+        },
+    )
+
+
+def _tiny_validated_receipt() -> Any:
+    return _MODULE.ValidatedBindingReceipt(
+        sha256=_MODULE._HISTORICAL_RECEIPT_SHA256,
+        producer_commit=_MODULE._HISTORICAL_PRODUCER_COMMIT,
+        historical_manifest_sha256=_MODULE._HISTORICAL_MANIFEST_SHA256,
+        historical_source_revision=_MODULE._HISTORICAL_SOURCE_REVISION,
+        historical_diagnostic_sha256=_MODULE._HISTORICAL_DIAGNOSTIC_SHA256,
+        seeds=tuple(
+            _MODULE.ReceiptSeed(
+                seed=seed,
+                artifacts={},
+                official_recall_at_1=0.9,
+                train_row_count=0,
+                train_identity_count=0,
+                train_example_id_order_sha256="0" * 64,
+                train_label_order_sha256="0" * 64,
+                train_source_order_sha256="0" * 64,
+                train_source_export_sha256="0" * 64,
+            )
+            for seed in range(4)
+        ),
+    )
+
+
 def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -3045,33 +3125,21 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
 
     def bound_for(seed: int) -> Any:
-        return _MODULE.TrainingOnlySeedInput(
+        return _tiny_scientific_bound(
             seed=seed,
-            train_embeddings=np.frombuffer(clean.tobytes(), dtype=np.float32).reshape(clean.shape),
-            train_labels=tuple(labels),
-            train_example_ids=tuple(example_ids),
-            train_source_paths=source_paths,
-            train_row_indices=tuple(range(len(example_ids))),
+            clean=clean,
+            labels=labels,
+            example_ids=example_ids,
+            source_paths=source_paths,
             proxies=np.frombuffer(proxies.tobytes(), dtype=np.float32).reshape(proxies.shape),
             proxy_labels=proxy_labels,
-            alpha=32.0,
-            delta=0.1,
-            official_recall_at_1=0.9,
-            checkpoint_path=tmp_path / f"seed-{seed}.pt",
-            config={
-                "batch_size": 180,
-                "embedding_dimensions": 3,
-                "proxy_anchor_alpha": 32.0,
-                "proxy_anchor_delta": 0.1,
-            },
-            artifact_binding={"checkpoint_sha256": f"{seed + 1}" * 64},
         )
 
     bound_calls: list[int] = []
 
-    def bound_loader(_entry: Any, *, seed: int, **_kwargs: Any) -> Any:
-        bound_calls.append(seed)
-        return bound_for(seed)
+    def bound_loader(_entry: Any, receipt_seed: Any, **_kwargs: Any) -> Any:
+        bound_calls.append(receipt_seed.seed)
+        return bound_for(receipt_seed.seed)
 
     def cache_builder(bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
         sources = {value: value for value in ordered_ids}
@@ -3096,13 +3164,18 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     rotation_calls: list[int] = []
     integrity_score_events: list[str] = []
 
-    original_execution_audit = _MODULE.build_execution_audit
+    original_configure = _MODULE.configure_deterministic_process
 
-    def audit_before_scoring(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    def configure_first() -> dict[str, Any]:
+        integrity_score_events.append("configure")
+        return original_configure()
+
+    monkeypatch.setattr(_MODULE, "configure_deterministic_process", configure_first)
+
+    def audit_before_scoring(path: Path) -> dict[str, Any]:
         integrity_score_events.append("execution-audit")
-        return original_execution_audit(*args, **kwargs)
-
-    monkeypatch.setattr(_MODULE, "build_execution_audit", audit_before_scoring)
+        manifest = _MODULE.load_strict_json(path)
+        return _MODULE.build_execution_audit(manifest, manifest_path=path)
 
     def rotation_auditor(*args: Any, seed: int, **kwargs: Any) -> dict[str, Any]:
         rotation_calls.append(seed)
@@ -3149,9 +3222,19 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     validated: list[Path] = []
 
     _MODULE.main(
-        ["--manifest", str(manifest_path), "--output", str(output), "--scientific"],
+        [
+            "--manifest",
+            str(manifest_path),
+            "--binding-receipt",
+            str(tmp_path / "receipt.json"),
+            "--output",
+            str(output),
+            "--scientific",
+        ],
         expected_dimension=3,
-        manifest_validator=lambda _manifest, *, manifest_path: validated.append(manifest_path),
+        receipt_validator=lambda manifest_path, _receipt_path: validated.append(manifest_path)
+        or _tiny_validated_receipt(),
+        execution_source_validator=audit_before_scoring,
         bound_loader=bound_loader,
         cache_builder=cache_builder,
         model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
@@ -3165,7 +3248,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
-    assert integrity_score_events[0] == "execution-audit"
+    assert integrity_score_events[:2] == ["configure", "execution-audit"]
     assert integrity_score_events.index("execution-audit") < integrity_score_events.index(
         "decision"
     )
@@ -3198,8 +3281,34 @@ def test_cli_requires_exactly_one_execution_mode(tmp_path: Path, modes: tuple[st
     manifest.write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit):
         _MODULE.main(
-            ["--manifest", str(manifest), "--output", str(tmp_path / "out.json"), *modes]
+            [
+                "--manifest",
+                str(manifest),
+                "--binding-receipt",
+                str(tmp_path / "receipt.json"),
+                "--output",
+                str(tmp_path / "out.json"),
+                *modes,
+            ]
         )
+
+
+def test_cli_rejects_removed_binding_mode_and_requires_exact_receipt_argument(
+    tmp_path: Path,
+) -> None:
+    """Catches exposing receipt creation or permitting an implicit receipt fallback."""
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    output = tmp_path / "out.json"
+    with pytest.raises(SystemExit):
+        _MODULE.main(
+            ["--manifest", str(manifest), "--output", str(output), "--binding-only"]
+        )
+    with pytest.raises(SystemExit):
+        _MODULE.main(
+            ["--manifest", str(manifest), "--output", str(output), "--smoke-only"]
+        )
+    assert not output.exists()
 
 
 def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
@@ -3216,35 +3325,20 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     proxy_labels = tuple(sorted(set(labels)))
     proxies = _unit_numpy(generator.standard_normal((len(proxy_labels), 3))).astype(np.float32)
     source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
-    bound = _MODULE.TrainingOnlySeedInput(
+    bound = _tiny_scientific_bound(
         seed=0,
-        train_embeddings=clean,
-        train_labels=tuple(labels),
-        train_example_ids=tuple(example_ids),
-        train_source_paths=source_paths,
-        train_row_indices=tuple(range(len(example_ids))),
+        clean=clean,
+        labels=labels,
+        example_ids=example_ids,
+        source_paths=source_paths,
         proxies=proxies,
         proxy_labels=proxy_labels,
-        alpha=32.0,
-        delta=0.1,
-        official_recall_at_1=0.9,
-        checkpoint_path=tmp_path / "seed-0.pt",
-        config={
-            "batch_size": 180,
-            "embedding_dimensions": 3,
-            "proxy_anchor_alpha": 32.0,
-            "proxy_anchor_delta": 0.1,
-        },
-        artifact_binding={
-            "artifacts": {"checkpoint_pt": {"sha256": "1" * 64}},
-            "binding_revision": "realistic-nested-fixture",
-        },
     )
     calls: list[str] = []
 
-    def bound_loader(_entry: Any, *, seed: int, **_kwargs: Any) -> Any:
-        calls.append(f"bind-{seed}")
-        assert seed == 0
+    def bound_loader(_entry: Any, receipt_seed: Any, **_kwargs: Any) -> Any:
+        calls.append(f"bind-{receipt_seed.seed}")
+        assert receipt_seed.seed == 0
         return bound
 
     def cache_builder(_bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
@@ -3301,9 +3395,21 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
         monkeypatch.setattr(_MODULE, name, forbidden)
 
     _MODULE.main(
-        ["--manifest", str(manifest_path), "--output", str(output), "--smoke-only"],
+        [
+            "--manifest",
+            str(manifest_path),
+            "--binding-receipt",
+            str(tmp_path / "receipt.json"),
+            "--output",
+            str(output),
+            "--smoke-only",
+        ],
         expected_dimension=3,
-        manifest_validator=lambda _manifest, *, manifest_path: calls.append("manifest"),
+        receipt_validator=lambda _manifest_path, _receipt_path: calls.append("manifest")
+        or _tiny_validated_receipt(),
+        execution_source_validator=lambda path: _MODULE.build_execution_audit(
+            _MODULE.load_strict_json(path), manifest_path=path
+        ),
         bound_loader=bound_loader,
         cache_builder=cache_builder,
         model_loader=lambda _bound: TinyOfficialHead().train(),
@@ -3347,3 +3453,283 @@ def test_smoke_checkpoint_digest_requires_exact_nested_lowercase_sha256(
 ) -> None:
     with pytest.raises(ValueError, match="nested checkpoint SHA-256"):
         _MODULE._bound_checkpoint_sha256(binding)
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        '{"schema": 1, "schema": 1}',
+        '{"schema": NaN}',
+        '{"schema": Infinity}',
+        '{"schema": 1e999}',
+    ],
+)
+def test_strict_receipt_json_rejects_ambiguous_or_nonfinite_bytes(
+    tmp_path: Path,
+    contents: str,
+) -> None:
+    """Catches accepting JSON whose meaning is not byte-unique and finite."""
+    path = tmp_path / "receipt.json"
+    path.write_text(contents, encoding="utf-8")
+
+    with pytest.raises(ValueError, match="duplicate|nonfinite"):
+        _MODULE.load_strict_json(path)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("extra_top", "receipt fields"),
+        ("boolean_batch", "source export batch size"),
+        ("float_seed", "seed"),
+        ("nonzero_difference", "descriptor difference"),
+        ("integer_tolerance", "descriptor atol"),
+        ("integer_difference", "descriptor difference"),
+        ("integer_recall", "official recall"),
+        ("integer_prehead_difference", "prehead difference"),
+        ("missing_artifact_key", "artifact keys"),
+    ],
+)
+def test_historical_receipt_schema_rejects_recursive_shape_and_exact_type_drift(
+    mutation: str,
+    message: str,
+) -> None:
+    """Catches schema drift that ordinary equality and isinstance(int) can miss."""
+    payload = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "docs"
+            / "pass200_rsta_binding_receipt_d6270a9.json"
+        ).read_text(encoding="utf-8")
+    )
+    if mutation == "extra_top":
+        payload["unchecked"] = True
+    elif mutation == "boolean_batch":
+        payload["binding"]["source_export_batch_size"] = True
+    elif mutation == "float_seed":
+        payload["binding"]["seeds"][0]["seed"] = 0.0
+    elif mutation == "nonzero_difference":
+        payload["binding"]["seeds"][0]["artifact_binding"]["current_source_export"][
+            "train"
+        ]["max_abs_descriptor_difference"] = 1.0e-12
+    elif mutation == "integer_tolerance":
+        payload["binding"]["descriptor_atol"] = 0
+    elif mutation == "integer_difference":
+        payload["binding"]["seeds"][0]["artifact_binding"]["current_source_export"][
+            "train"
+        ]["max_abs_descriptor_difference"] = 0
+    elif mutation == "integer_recall":
+        payload["binding"]["seeds"][0]["official_recall_at_1"] = 1
+    elif mutation == "integer_prehead_difference":
+        payload["binding"]["seeds"][0]["artifact_binding"]["prehead_reconstruction"][
+            "train"
+        ]["max_abs_difference"] = 0
+    else:
+        payload["binding"]["seeds"][0]["artifact_binding"]["artifacts"].pop(
+            "gallery_npz"
+        )
+
+    with pytest.raises(ValueError, match=message):
+        _MODULE._validate_historical_receipt_schema(payload)
+
+
+def test_historical_receipt_schema_returns_hash_only_immutable_seed_records() -> None:
+    """Catches leaking historical arrays or mutable receipt mappings into science."""
+    root = Path(__file__).resolve().parents[1]
+    payload = _MODULE.load_strict_json(
+        root / "docs" / "pass200_rsta_binding_receipt_d6270a9.json"
+    )
+
+    receipt = _MODULE._validate_historical_receipt_schema(payload)
+
+    assert tuple(seed.seed for seed in receipt.seeds) == (0, 1, 2, 3)
+    assert receipt.sha256 == _MODULE._HISTORICAL_RECEIPT_SHA256
+    assert receipt.producer_commit == "d6270a94f14f5e0b4f4a3eeaa23f3f66d9bfaa54"
+    assert receipt.seeds[0].train_source_export_sha256 == (
+        "5341f5a28fd6f105d8beaf022c336b16406f560e3db74fe79a0066da0ef409b7"
+    )
+    with pytest.raises(TypeError):
+        receipt.seeds[0].artifacts["unchecked"] = {"path": "x", "sha256": "0" * 64}
+    assert not any(
+        "embedding" in name or "query" in name or "gallery" in name or "prehead" in name
+        for name in receipt.seeds[0].__dataclass_fields__
+    )
+
+
+def test_historical_receipt_rejects_nonliteral_path_before_receipt_or_semantic_access(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches a manifest-selected fallback receipt reaching parsing or model state."""
+    calls: list[str] = []
+    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: calls.append("manifest") or {})
+    monkeypatch.setattr(
+        _MODULE,
+        "_validate_amended_manifest_schema",
+        lambda _manifest: calls.append("manifest-schema")
+        or {
+            "binding_receipt": {
+                "path": _MODULE._HISTORICAL_RECEIPT_PATH,
+                "sha256": _MODULE._HISTORICAL_RECEIPT_SHA256,
+            }
+        },
+    )
+    wrong_receipt = tmp_path / "receipt.json"
+    wrong_receipt.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="literal historical receipt path"):
+        _MODULE.validate_historical_binding_receipt(
+            tmp_path / "docs" / "manifest.json",
+            wrong_receipt,
+        )
+
+    assert calls == ["manifest", "manifest-schema"]
+
+
+def test_invalid_amended_manifest_fails_before_receipt_hash_or_git_access(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches touching historical authority before strict current manifest parsing."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    manifest = docs / "manifest.json"
+    manifest.write_text('{"schema_version": 1, "schema_version": 1}', encoding="utf-8")
+    receipt = docs / "pass200_rsta_binding_receipt_d6270a9.json"
+    receipt.write_text("{}", encoding="utf-8")
+    accesses: list[str] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "sha256_file",
+        lambda _path: accesses.append("hash") or "0" * 64,
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "_git_blob",
+        lambda *_args: accesses.append("git") or b"",
+    )
+
+    with pytest.raises(ValueError, match="duplicate"):
+        _MODULE.validate_historical_binding_receipt(manifest, receipt)
+
+    assert accesses == []
+
+
+def _tiny_receipt_seed(
+    entry: dict[str, dict[str, str]],
+    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]],
+) -> Any:
+    train = source_exporter()["train"]
+    digest = hashlib.sha256()
+    for name in ("row_indices", "labels", "example_ids", "source_paths", "embeddings"):
+        value = np.asarray(train[name])
+        digest.update(name.encode("ascii") + b"\0")
+        if name in {"example_ids", "source_paths"}:
+            for item in value.astype(str).tolist():
+                digest.update(item.encode("utf-8") + b"\0")
+        else:
+            contiguous = np.ascontiguousarray(value)
+            digest.update(contiguous.dtype.str.encode("ascii") + b"\0")
+            digest.update(str(contiguous.shape).encode("ascii") + b"\0")
+            digest.update(contiguous.tobytes())
+    ids = tuple(str(value) for value in train["example_ids"].tolist())
+    labels = tuple(int(value) for value in train["labels"].tolist())
+    sources = tuple(str(value) for value in train["source_paths"].tolist())
+    return _MODULE.ReceiptSeed(
+        seed=0,
+        artifacts={name: dict(record) for name, record in entry.items()},
+        official_recall_at_1=1.0,
+        train_row_count=6,
+        train_identity_count=2,
+        train_example_id_order_sha256=hashlib.sha256("\n".join(ids).encode()).hexdigest(),
+        train_label_order_sha256=hashlib.sha256(
+            np.asarray(labels, dtype=np.int64).tobytes(order="C")
+        ).hexdigest(),
+        train_source_order_sha256=hashlib.sha256("\n".join(sources).encode()).hexdigest(),
+        train_source_export_sha256=digest.hexdigest(),
+    )
+
+
+def test_training_only_loader_hashes_every_artifact_and_materializes_only_train(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches query/gallery/prehead materialization or a skipped immutable artifact hash."""
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path)
+    receipt_seed = _tiny_receipt_seed(entry, source_exporter)
+    hashed: list[Path] = []
+    loaded_npz_sources: list[str] = []
+    original_np_load = np.load
+
+    def artifact_hasher(path: Path) -> str:
+        hashed.append(path)
+        return _sha256_file(path)
+
+    def guarded_np_load(source: Any, *args: Any, **kwargs: Any) -> Any:
+        loaded_npz_sources.append(type(source).__name__)
+        assert not isinstance(source, (str, Path))
+        return original_np_load(source, *args, **kwargs)
+
+    monkeypatch.setattr(np, "load", guarded_np_load)
+    for name in ("_export_current_source", "_load_digest_bound_packs", "load_bound_seed"):
+        monkeypatch.setattr(
+            _MODULE,
+            name,
+            lambda *_args, _name=name, **_kwargs: (_ for _ in ()).throw(
+                AssertionError(f"legacy loader reached: {_name}")
+            ),
+        )
+
+    bound = _MODULE.load_training_only_seed(
+        entry,
+        receipt_seed,
+        artifact_hasher=artifact_hasher,
+        checkpoint_loader=lambda data: torch.load(
+            data,
+            map_location="cpu",
+            weights_only=False,
+        ),
+        expected_partition={"train": (6, 2)},
+        expected_dimension=2,
+    )
+
+    assert set(hashed) == {Path(record["path"]) for record in entry.values()}
+    assert loaded_npz_sources == ["BytesIO"]
+    assert bound.train_embeddings.shape == (6, 2)
+    assert bound.checkpoint_sha256 == entry["checkpoint_pt"]["sha256"]
+    assert not any(
+        hasattr(bound, name)
+        for name in (
+            "checkpoint_path",
+            "query_embeddings",
+            "gallery_embeddings",
+            "prehead",
+        )
+    )
+    for array in (
+        bound.train_embeddings,
+        bound.train_labels,
+        bound.train_example_ids,
+        bound.train_source_paths,
+        bound.train_row_indices,
+        bound.proxies,
+    ):
+        assert array.flags.writeable is False
+        with pytest.raises(ValueError):
+            array.setflags(write=True)
+
+
+def test_training_only_digest_gate_rejects_forged_array_before_cache() -> None:
+    """Catches a mutable or replaced retained array crossing into tensor caching."""
+    values = np.asarray([[1.0, 0.0]], dtype=np.float32)
+    hashes = {
+        "train_embeddings": _MODULE._framed_array_sha256("train_embeddings", values)
+    }
+    forged = values.copy()
+    forged[0, 0] = 0.5
+    bound = object.__new__(_MODULE.TrainingOnlySeedInput)
+    object.__setattr__(bound, "train_embeddings", forged)
+    object.__setattr__(bound, "training_array_sha256", hashes)
+
+    with pytest.raises(ValueError, match="retained training array SHA-256"):
+        _MODULE.validate_retained_training_arrays(bound)

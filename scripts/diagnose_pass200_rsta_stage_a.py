@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import io
 import json
 import os
 import random
@@ -78,6 +79,71 @@ _EXECUTION_AUDIT_FIELDS = frozenset(
         "diagnostic_path",
         "diagnostic_sha256",
         "frozen_source_revision",
+    }
+)
+_HISTORICAL_RECEIPT_PATH = "docs/pass200_rsta_binding_receipt_d6270a9.json"
+_HISTORICAL_RECEIPT_SHA256 = (
+    "e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300"
+)
+_HISTORICAL_PRODUCER_COMMIT = "d6270a94f14f5e0b4f4a3eeaa23f3f66d9bfaa54"
+_HISTORICAL_MANIFEST_PATH = "docs/pass200_rsta_stage_a_manifest.json"
+_HISTORICAL_MANIFEST_SHA256 = (
+    "aafab355a06667a9ca513cddeceb2a0129ea8ee09ce3dec0a19b6839fe15ffb1"
+)
+_BASE_PREREGISTRATION_PATH = "docs/pass200_rsta_candidate_2026-08-09.md"
+_BASE_PREREGISTRATION_SHA256 = (
+    "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857"
+)
+_HISTORICAL_SOURCE_REVISION = "0146f2d1200fec26fcd483005804dbe71ec72786"
+_HISTORICAL_DIAGNOSTIC_SHA256 = (
+    "78eeb3d0d3f92ad1a0b7e76708851e940a36a1ef260a2618dc58bf7f3fab7f1a"
+)
+_ARTIFACT_NAMES = frozenset(
+    {
+        "checkpoint_pt",
+        "gallery_npz",
+        "prehead_npz",
+        "query_npz",
+        "report_json",
+        "retrieval_json",
+        "train_npz",
+    }
+)
+_AMENDMENT_PATH = "docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md"
+_AMENDMENT_SHA256 = "691d786942c33cf8a943159280287bea08570114242854cdb7111795dc79e019"
+_AMENDMENT_COMMIT = "d1aeed63ade0e15d5f5a44be5981a4312e9a8df2"
+_CURRENT_SCIENTIFIC_SOURCE_FILES = frozenset(
+    {
+        "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "scripts/diagnose_pass200_rsta_stage_a.py",
+        "src/sfora/__init__.py",
+        "src/sfora/ablation.py",
+        "src/sfora/api.py",
+        "src/sfora/arcg.py",
+        "src/sfora/benchmark.py",
+        "src/sfora/bn_inception.py",
+        "src/sfora/catalog.py",
+        "src/sfora/cea.py",
+        "src/sfora/cem.py",
+        "src/sfora/cli.py",
+        "src/sfora/compose.py",
+        "src/sfora/data.py",
+        "src/sfora/encoder_ablation.py",
+        "src/sfora/encoder_training.py",
+        "src/sfora/evaluation.py",
+        "src/sfora/experiments.py",
+        "src/sfora/image_benchmark.py",
+        "src/sfora/image_end_to_end.py",
+        "src/sfora/image_recipes.py",
+        "src/sfora/ipsr.py",
+        "src/sfora/losses.py",
+        "src/sfora/method.py",
+        "src/sfora/oapf.py",
+        "src/sfora/publication.py",
+        "src/sfora/remote.py",
+        "src/sfora/report.py",
+        "src/sfora/text_baselines.py",
+        "src/sfora/training.py",
     }
 )
 RECEIVER_AUDIT_FIELDS = frozenset(
@@ -189,24 +255,608 @@ def _json_ready(value: Any) -> Any:
     return value
 
 
+def _load_strict_json_bytes(data: bytes, *, name: str) -> dict[str, Any]:
+    def reject_constant(value: str) -> Any:
+        raise ValueError(f"nonfinite JSON constant: {value}")
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            data,
+            parse_constant=reject_constant,
+            object_pairs_hook=unique_object,
+        )
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise ValueError(f"invalid strict JSON: {name}") from error
+    if not isinstance(value, dict):
+        raise ValueError("strict JSON root must be an object")
+
+    def require_finite(item: Any) -> None:
+        if isinstance(item, float) and not np.isfinite(item):
+            raise ValueError("nonfinite JSON number")
+        if isinstance(item, dict):
+            for nested in item.values():
+                require_finite(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                require_finite(nested)
+
+    require_finite(value)
+    return value
+
+
+def load_strict_json(path: Path) -> dict[str, Any]:
+    """Load finite JSON while rejecting duplicate object keys."""
+    return _load_strict_json_bytes(path.read_bytes(), name=str(path))
+
+
+def _require_exact_keys(
+    value: Any,
+    expected: set[str] | frozenset[str],
+    *,
+    name: str,
+) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != set(expected):
+        observed = set(value) if isinstance(value, dict) else None
+        raise ValueError(f"{name} fields differ: {observed}")
+    return value
+
+
+def _require_exact_int(value: Any, expected: int, *, name: str) -> None:
+    if type(value) is not int or value != expected:
+        raise ValueError(f"{name} must equal integer {expected}")
+
+
+def _require_exact_number(value: Any, expected: float, *, name: str) -> None:
+    if type(value) is not float or not np.isfinite(value) or value != expected:
+        raise ValueError(f"{name} must equal {expected}")
+
+
+def _require_sha256(value: Any, *, name: str) -> str:
+    if not _is_lowercase_hex(value, length=64):
+        raise ValueError(f"{name} must be an exact lowercase SHA-256")
+    return str(value)
+
+
+def _validate_historical_receipt_schema(payload: dict[str, Any]) -> ValidatedBindingReceipt:
+    """Validate the immutable historical receipt without opening any registered artifact."""
+    top = _require_exact_keys(
+        payload,
+        {
+            "schema_version",
+            "diagnostic",
+            "mode",
+            "candidate_values_computed",
+            "stage_a_verdict",
+            "uses_test_data",
+            "execution_audit",
+            "manifest",
+            "binding",
+        },
+        name="historical receipt",
+    )
+    _require_exact_int(top["schema_version"], 1, name="receipt schema version")
+    required_literals = {
+        "diagnostic": "pass200_rsta_stage_a",
+        "mode": "binding_only",
+        "stage_a_verdict": "NOT_COMPUTED",
+        "uses_test_data": "artifact_binding_only",
+    }
+    for name, expected in required_literals.items():
+        if top[name] != expected or type(top[name]) is not str:
+            raise ValueError(f"receipt {name} differs")
+    if top["candidate_values_computed"] is not False:
+        raise ValueError("receipt candidate_values_computed must be false")
+
+    execution = _require_exact_keys(
+        top["execution_audit"], _EXECUTION_AUDIT_FIELDS, name="receipt execution audit"
+    )
+    expected_execution = {
+        "executing_git_commit": _HISTORICAL_PRODUCER_COMMIT,
+        "diagnostic_path": _DIAGNOSTIC_PATH,
+        "diagnostic_sha256": _HISTORICAL_DIAGNOSTIC_SHA256,
+        "frozen_source_revision": _HISTORICAL_SOURCE_REVISION,
+    }
+    if execution != expected_execution:
+        raise ValueError("receipt execution audit provenance differs")
+
+    manifest = _require_exact_keys(
+        top["manifest"],
+        {"path", "sha256", "preregistration", "artifact_schema", "source"},
+        name="receipt historical manifest",
+    )
+    if manifest["sha256"] != _HISTORICAL_MANIFEST_SHA256:
+        raise ValueError("receipt historical manifest SHA-256 differs")
+    preregistration = _require_exact_keys(
+        manifest["preregistration"], {"path", "sha256"}, name="receipt preregistration"
+    )
+    if preregistration != {
+        "path": _BASE_PREREGISTRATION_PATH,
+        "sha256": _BASE_PREREGISTRATION_SHA256,
+    }:
+        raise ValueError("receipt base preregistration differs")
+    artifact_schema = _require_exact_keys(
+        manifest["artifact_schema"], {"path", "sha256"}, name="receipt artifact schema"
+    )
+    if artifact_schema != {
+        "path": "docs/pass159_stage_a_manifest.json",
+        "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da",
+    }:
+        raise ValueError("receipt artifact schema differs")
+    historical_source = _require_exact_keys(
+        manifest["source"], {"git_revision", "files"}, name="receipt historical source"
+    )
+    if historical_source["git_revision"] != _HISTORICAL_SOURCE_REVISION:
+        raise ValueError("receipt historical source revision differs")
+    source_files = _require_exact_keys(
+        historical_source["files"], _FROZEN_SOURCE_FILES, name="receipt historical source files"
+    )
+    for path_text, digest in source_files.items():
+        _require_sha256(digest, name=f"historical source {path_text}")
+    if source_files.get(_DIAGNOSTIC_PATH) != _HISTORICAL_DIAGNOSTIC_SHA256:
+        raise ValueError("receipt historical diagnostic SHA-256 differs")
+
+    binding = _require_exact_keys(
+        top["binding"],
+        {
+            "cross_seed_training_rows_identical",
+            "query_gallery_released_before_scientific_input",
+            "source_export_batch_size",
+            "descriptor_atol",
+            "descriptor_rtol",
+            "seeds",
+        },
+        name="receipt binding",
+    )
+    if binding["cross_seed_training_rows_identical"] is not True:
+        raise ValueError("receipt cross-seed training identity flag differs")
+    if binding["query_gallery_released_before_scientific_input"] is not True:
+        raise ValueError("receipt query/gallery release flag differs")
+    _require_exact_int(
+        binding["source_export_batch_size"], 128, name="receipt source export batch size"
+    )
+    _require_exact_number(binding["descriptor_atol"], 2.0e-5, name="receipt descriptor atol")
+    _require_exact_number(binding["descriptor_rtol"], 2.0e-5, name="receipt descriptor rtol")
+    raw_seeds = binding["seeds"]
+    if not isinstance(raw_seeds, list) or len(raw_seeds) != 4:
+        raise ValueError("receipt seeds must contain exactly four entries")
+    seeds: list[ReceiptSeed] = []
+    common_orders: tuple[str, str, str] | None = None
+    for expected_seed, raw_seed in enumerate(raw_seeds):
+        seed_value = _require_exact_keys(
+            raw_seed,
+            {
+                "seed",
+                "train_row_count",
+                "train_identity_count",
+                "train_example_id_order_sha256",
+                "train_label_order_sha256",
+                "train_source_order_sha256",
+                "official_recall_at_1",
+                "artifact_binding",
+            },
+            name="receipt seed",
+        )
+        _require_exact_int(seed_value["seed"], expected_seed, name="receipt seed")
+        _require_exact_int(seed_value["train_row_count"], 25_882, name="train row count")
+        _require_exact_int(
+            seed_value["train_identity_count"], 3_997, name="train identity count"
+        )
+        if type(seed_value["official_recall_at_1"]) is not float or not np.isfinite(
+            seed_value["official_recall_at_1"]
+        ):
+            raise ValueError("receipt official recall must be finite")
+        orders = tuple(
+            _require_sha256(seed_value[name], name=f"receipt {name}")
+            for name in (
+                "train_example_id_order_sha256",
+                "train_label_order_sha256",
+                "train_source_order_sha256",
+            )
+        )
+        if common_orders is None:
+            common_orders = orders
+        elif orders != common_orders:
+            raise ValueError("receipt cross-seed training row hashes differ")
+        artifact_binding = _require_exact_keys(
+            seed_value["artifact_binding"],
+            {
+                "artifacts",
+                "current_source_export",
+                "descriptor_atol",
+                "descriptor_rtol",
+                "official_r1_source",
+                "prehead_reconstruction",
+                "source_export_batch_size",
+            },
+            name="receipt artifact binding",
+        )
+        _require_exact_int(
+            artifact_binding["source_export_batch_size"],
+            128,
+            name="receipt source export batch size",
+        )
+        _require_exact_number(
+            artifact_binding["descriptor_atol"], 2.0e-5, name="receipt descriptor atol"
+        )
+        _require_exact_number(
+            artifact_binding["descriptor_rtol"], 2.0e-5, name="receipt descriptor rtol"
+        )
+        if artifact_binding["official_r1_source"] != (
+            "current_source_all_rows_and_digest_bound_final_packs"
+        ):
+            raise ValueError("receipt official R@1 source differs")
+        artifacts = _require_exact_keys(
+            artifact_binding["artifacts"], _ARTIFACT_NAMES, name="receipt artifact keys"
+        )
+        frozen_artifacts: dict[str, Mapping[str, str]] = {}
+        for name, raw_artifact in artifacts.items():
+            artifact = _require_exact_keys(
+                raw_artifact, {"path", "sha256"}, name=f"receipt artifact {name}"
+            )
+            if type(artifact["path"]) is not str or not artifact["path"]:
+                raise ValueError(f"receipt artifact {name} path differs")
+            _require_sha256(artifact["sha256"], name=f"receipt artifact {name}")
+            frozen_artifacts[name] = MappingProxyType(dict(artifact))
+        exports = _require_exact_keys(
+            artifact_binding["current_source_export"],
+            set(_SOURCE_SPLITS),
+            name="receipt current-source export",
+        )
+        for split in _SOURCE_SPLITS:
+            split_value = _require_exact_keys(
+                exports[split],
+                {
+                    "row_count",
+                    "identity_count",
+                    "max_abs_descriptor_difference",
+                    "atol",
+                    "rtol",
+                    "source_export_sha256",
+                },
+                name=f"receipt {split} export",
+            )
+            rows, identities = _OFFICIAL_PARTITION[split]
+            _require_exact_int(split_value["row_count"], rows, name=f"{split} row count")
+            _require_exact_int(
+                split_value["identity_count"], identities, name=f"{split} identity count"
+            )
+            _require_exact_number(
+                split_value["max_abs_descriptor_difference"],
+                0.0,
+                name=f"{split} descriptor difference",
+            )
+            _require_exact_number(split_value["atol"], 2.0e-5, name=f"{split} atol")
+            _require_exact_number(split_value["rtol"], 2.0e-5, name=f"{split} rtol")
+            _require_sha256(
+                split_value["source_export_sha256"], name=f"{split} source export"
+            )
+        prehead = _require_exact_keys(
+            artifact_binding["prehead_reconstruction"],
+            set(_SOURCE_SPLITS),
+            name="receipt prehead reconstruction",
+        )
+        for split in _SOURCE_SPLITS:
+            prehead_split = _require_exact_keys(
+                prehead[split],
+                {
+                    "max_abs_difference",
+                    "rows_above_2e_5",
+                    "used_for_official_r1",
+                    "within_tolerance",
+                },
+                name=f"receipt {split} prehead reconstruction",
+            )
+            if type(prehead_split["max_abs_difference"]) is not float or not np.isfinite(
+                prehead_split["max_abs_difference"]
+            ):
+                raise ValueError(f"receipt {split} prehead difference must be finite")
+            if type(prehead_split["rows_above_2e_5"]) is not int:
+                raise ValueError(f"receipt {split} prehead row count must be an integer")
+            if type(prehead_split["used_for_official_r1"]) is not bool or type(
+                prehead_split["within_tolerance"]
+            ) is not bool:
+                raise ValueError(f"receipt {split} prehead flags must be booleans")
+        seeds.append(
+            ReceiptSeed(
+                seed=expected_seed,
+                artifacts=MappingProxyType(frozen_artifacts),
+                official_recall_at_1=float(seed_value["official_recall_at_1"]),
+                train_row_count=25_882,
+                train_identity_count=3_997,
+                train_example_id_order_sha256=orders[0],
+                train_label_order_sha256=orders[1],
+                train_source_order_sha256=orders[2],
+                train_source_export_sha256=str(exports["train"]["source_export_sha256"]),
+            )
+        )
+    return ValidatedBindingReceipt(
+        sha256=_HISTORICAL_RECEIPT_SHA256,
+        producer_commit=_HISTORICAL_PRODUCER_COMMIT,
+        historical_manifest_sha256=_HISTORICAL_MANIFEST_SHA256,
+        historical_source_revision=_HISTORICAL_SOURCE_REVISION,
+        historical_diagnostic_sha256=_HISTORICAL_DIAGNOSTIC_SHA256,
+        seeds=tuple(seeds),
+    )
+
+
+def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any]:
+    value = _require_exact_keys(
+        manifest,
+        {
+            "schema_version",
+            "base_preregistration",
+            "amendment",
+            "binding_receipt",
+            "historical",
+            "current_scientific_source",
+            "artifact_schema",
+            "seeds",
+        },
+        name="amended RSTA manifest",
+    )
+    if value["schema_version"] != "pass200-rsta-receipt-manifest-v1":
+        raise ValueError("amended RSTA manifest schema version differs")
+    expected_references = {
+        "base_preregistration": {
+            "path": _BASE_PREREGISTRATION_PATH,
+            "sha256": _BASE_PREREGISTRATION_SHA256,
+        },
+        "binding_receipt": {
+            "path": _HISTORICAL_RECEIPT_PATH,
+            "sha256": _HISTORICAL_RECEIPT_SHA256,
+        },
+        "artifact_schema": {
+            "path": "docs/pass159_stage_a_manifest.json",
+            "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da",
+        },
+    }
+    for name, expected in expected_references.items():
+        reference = _require_exact_keys(value[name], {"path", "sha256"}, name=name)
+        if reference != expected:
+            raise ValueError(f"amended RSTA manifest {name} differs")
+    amendment = _require_exact_keys(
+        value["amendment"], {"path", "sha256", "commit"}, name="amendment"
+    )
+    if amendment != {
+        "path": _AMENDMENT_PATH,
+        "sha256": _AMENDMENT_SHA256,
+        "commit": _AMENDMENT_COMMIT,
+    }:
+        raise ValueError("amended RSTA manifest amendment differs")
+    historical = _require_exact_keys(
+        value["historical"], {"producer_commit", "manifest", "source"}, name="historical"
+    )
+    if historical["producer_commit"] != _HISTORICAL_PRODUCER_COMMIT:
+        raise ValueError("historical producer commit differs")
+    historical_manifest = _require_exact_keys(
+        historical["manifest"], {"path", "sha256"}, name="historical manifest"
+    )
+    if historical_manifest != {
+        "path": _HISTORICAL_MANIFEST_PATH,
+        "sha256": _HISTORICAL_MANIFEST_SHA256,
+    }:
+        raise ValueError("historical manifest reference differs")
+    historical_source = _require_exact_keys(
+        historical["source"], {"git_revision", "files"}, name="historical source"
+    )
+    if historical_source["git_revision"] != _HISTORICAL_SOURCE_REVISION:
+        raise ValueError("historical source revision differs")
+    historical_files = _require_exact_keys(
+        historical_source["files"], _FROZEN_SOURCE_FILES, name="historical source files"
+    )
+    for path_text, digest in historical_files.items():
+        _require_sha256(digest, name=f"historical source {path_text}")
+    current = _require_exact_keys(
+        value["current_scientific_source"],
+        {"git_revision", "files"},
+        name="current scientific source",
+    )
+    revision = current["git_revision"]
+    if not _is_lowercase_hex(revision, length=40):
+        raise ValueError("current scientific source revision must be a full commit")
+    current_files = _require_exact_keys(
+        current["files"], _CURRENT_SCIENTIFIC_SOURCE_FILES, name="current scientific source files"
+    )
+    for path_text, digest in current_files.items():
+        _require_sha256(digest, name=f"current scientific source {path_text}")
+    seeds = value["seeds"]
+    if not isinstance(seeds, dict) or list(seeds) != ["0", "1", "2", "3"]:
+        raise ValueError("amended RSTA manifest requires ordered seeds 0-3")
+    for seed, entry in seeds.items():
+        artifacts = _require_exact_keys(entry, _ARTIFACT_NAMES, name=f"manifest seed {seed}")
+        for name, artifact in artifacts.items():
+            record = _require_exact_keys(
+                artifact, {"path", "sha256"}, name=f"manifest seed {seed} artifact {name}"
+            )
+            if type(record["path"]) is not str or not record["path"]:
+                raise ValueError(f"manifest seed {seed} artifact {name} path differs")
+            _require_sha256(record["sha256"], name=f"manifest seed {seed} artifact {name}")
+    return value
+
+
+def _git_blob(repository: Path, revision: str, path_text: str) -> bytes:
+    result = subprocess.run(
+        ["git", "-C", str(repository), "cat-file", "blob", f"{revision}:{path_text}"],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"Git provenance lacks blob {revision}:{path_text}")
+    return result.stdout
+
+
+def validate_historical_binding_receipt(
+    manifest_path: Path,
+    receipt_path: Path,
+) -> ValidatedBindingReceipt:
+    """Authenticate the sole historical receipt and its independent Git provenance."""
+    repository = manifest_path.resolve().parent.parent
+    manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
+    literal_receipt = (repository / _HISTORICAL_RECEIPT_PATH).resolve()
+    if receipt_path.resolve() != literal_receipt:
+        raise ValueError("binding receipt must use the literal historical receipt path")
+    if not literal_receipt.is_file():
+        raise ValueError("literal historical receipt is missing")
+    observed_receipt_digest = sha256_file(literal_receipt)
+    if observed_receipt_digest != _HISTORICAL_RECEIPT_SHA256:
+        raise ValueError("literal historical receipt SHA-256 mismatch")
+    if manifest["binding_receipt"] != {
+        "path": _HISTORICAL_RECEIPT_PATH,
+        "sha256": _HISTORICAL_RECEIPT_SHA256,
+    }:
+        raise ValueError("manifest binding receipt differs from literal authority")
+    receipt_payload = load_strict_json(literal_receipt)
+    receipt = _validate_historical_receipt_schema(receipt_payload)
+    if manifest["historical"]["source"] != receipt_payload["manifest"]["source"]:
+        raise ValueError("manifest historical source differs from receipt")
+    for receipt_seed in receipt.seeds:
+        if manifest["seeds"][str(receipt_seed.seed)] != {
+            name: dict(record) for name, record in receipt_seed.artifacts.items()
+        }:
+            raise ValueError(f"manifest seed {receipt_seed.seed} artifacts differ from receipt")
+    historical_manifest_blob = _git_blob(
+        repository, _HISTORICAL_PRODUCER_COMMIT, _HISTORICAL_MANIFEST_PATH
+    )
+    if hashlib.sha256(historical_manifest_blob).hexdigest() != _HISTORICAL_MANIFEST_SHA256:
+        raise ValueError("historical manifest Git blob SHA-256 mismatch")
+    historical_manifest = _load_strict_json_bytes(
+        historical_manifest_blob,
+        name=f"{_HISTORICAL_PRODUCER_COMMIT}:{_HISTORICAL_MANIFEST_PATH}",
+    )
+    historical_manifest = _require_exact_keys(
+        historical_manifest,
+        {"schema_version", "preregistration", "artifact_schema", "source", "seeds"},
+        name="historical manifest blob",
+    )
+    _require_exact_int(
+        historical_manifest["schema_version"], 1, name="historical manifest schema version"
+    )
+    if historical_manifest["preregistration"] != manifest["base_preregistration"]:
+        raise ValueError("historical manifest preregistration differs")
+    if historical_manifest["artifact_schema"] != manifest["artifact_schema"]:
+        raise ValueError("historical manifest artifact schema differs")
+    if historical_manifest["source"] != manifest["historical"]["source"]:
+        raise ValueError("historical manifest source differs")
+    if historical_manifest["seeds"] != manifest["seeds"]:
+        raise ValueError("historical manifest seed artifacts differ")
+    base_blob = _git_blob(
+        repository, _HISTORICAL_PRODUCER_COMMIT, _BASE_PREREGISTRATION_PATH
+    )
+    if hashlib.sha256(base_blob).hexdigest() != _BASE_PREREGISTRATION_SHA256:
+        raise ValueError("historical preregistration Git blob SHA-256 mismatch")
+    diagnostic_blob = _git_blob(repository, _HISTORICAL_PRODUCER_COMMIT, _DIAGNOSTIC_PATH)
+    if hashlib.sha256(diagnostic_blob).hexdigest() != _HISTORICAL_DIAGNOSTIC_SHA256:
+        raise ValueError("historical producer diagnostic Git blob SHA-256 mismatch")
+    for path_text, expected_digest in manifest["historical"]["source"]["files"].items():
+        blob = _git_blob(repository, _HISTORICAL_SOURCE_REVISION, path_text)
+        if hashlib.sha256(blob).hexdigest() != expected_digest:
+            raise ValueError(f"historical source Git blob SHA-256 mismatch for {path_text}")
+    return receipt
+
+
+def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
+    """Validate the current source domain separately from historical receipt provenance."""
+    manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
+    repository = manifest_path.resolve().parent.parent
+    for name in ("base_preregistration", "amendment", "artifact_schema"):
+        reference = manifest[name]
+        path = (repository / reference["path"]).resolve()
+        if not path.is_file() or sha256_file(path) != reference["sha256"]:
+            raise ValueError(f"current scientific {name} worktree SHA-256 differs")
+    amendment_blob = _git_blob(repository, _AMENDMENT_COMMIT, _AMENDMENT_PATH)
+    if hashlib.sha256(amendment_blob).hexdigest() != _AMENDMENT_SHA256:
+        raise ValueError("prospective amendment Git blob SHA-256 mismatch")
+    current = manifest["current_scientific_source"]
+    revision = current["git_revision"]
+    head = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "--verify", "HEAD^{commit}"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    executing_commit = head.stdout.strip()
+    if head.returncode != 0 or not _is_lowercase_hex(executing_commit, length=40):
+        raise ValueError("current scientific repository HEAD does not resolve")
+    ancestry = subprocess.run(
+        ["git", "-C", str(repository), "merge-base", "--is-ancestor", revision, executing_commit],
+        capture_output=True,
+        check=False,
+    )
+    if ancestry.returncode != 0:
+        raise ValueError("current scientific source revision is not an ancestor of HEAD")
+    for path_text, expected_digest in current["files"].items():
+        blob = _git_blob(repository, revision, path_text)
+        if hashlib.sha256(blob).hexdigest() != expected_digest:
+            raise ValueError(f"current scientific source Git blob differs for {path_text}")
+        path = (repository / path_text).resolve()
+        if not path.is_file() or sha256_file(path) != expected_digest:
+            raise ValueError(f"current scientific source worktree differs for {path_text}")
+    executing_diagnostic = Path(__file__).resolve()
+    if executing_diagnostic != (repository / _DIAGNOSTIC_PATH).resolve():
+        raise ValueError("current scientific executing diagnostic path differs")
+    return {
+        "executing_git_commit": executing_commit,
+        "diagnostic_path": _DIAGNOSTIC_PATH,
+        "diagnostic_sha256": current["files"][_DIAGNOSTIC_PATH],
+        "frozen_source_revision": revision,
+    }
+
+
 @dataclass(frozen=True)
 class TrainingOnlySeedInput:
     """Digest/source-bound seed state with binding-only splits permanently absent."""
 
     seed: int
     train_embeddings: np.ndarray
-    train_labels: tuple[int, ...]
-    train_example_ids: tuple[str, ...]
-    train_source_paths: tuple[str, ...]
-    train_row_indices: tuple[int, ...]
+    train_labels: np.ndarray
+    train_example_ids: np.ndarray
+    train_source_paths: np.ndarray
+    train_row_indices: np.ndarray
     proxies: np.ndarray
-    proxy_labels: tuple[int, ...]
+    proxy_labels: np.ndarray
     alpha: float
     delta: float
     official_recall_at_1: float
-    checkpoint_path: Path
+    checkpoint_bytes: bytes
+    checkpoint_sha256: str
+    training_array_sha256: Mapping[str, str]
     config: Mapping[str, Any]
     artifact_binding: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class ReceiptSeed:
+    """Immutable scalar and digest authority for one historical seed."""
+
+    seed: int
+    artifacts: Mapping[str, Mapping[str, str]]
+    official_recall_at_1: float
+    train_row_count: int
+    train_identity_count: int
+    train_example_id_order_sha256: str
+    train_label_order_sha256: str
+    train_source_order_sha256: str
+    train_source_export_sha256: str
+
+
+@dataclass(frozen=True)
+class ValidatedBindingReceipt:
+    """Hash-only historical authority; never contains tensors or descriptor arrays."""
+
+    sha256: str
+    producer_commit: str
+    historical_manifest_sha256: str
+    historical_source_revision: str
+    historical_diagnostic_sha256: str
+    seeds: tuple[ReceiptSeed, ...]
 
 
 @dataclass(frozen=True)
@@ -297,6 +947,7 @@ def cache_seed_training_tensors(
     materialize: Callable[[Any], Any] | None = None,
 ) -> DeterministicTransformCache:
     """Cache selected training rows through the current official training transform."""
+    validate_retained_training_arrays(bound)
     ids = tuple(str(value) for value in ordered_ids)
     source_by_id = dict(zip(bound.train_example_ids, bound.train_source_paths, strict=True))
     unknown = [value for value in ids if value not in source_by_id]
@@ -602,38 +1253,353 @@ def load_and_bind_seed(
         "descriptor_atol": 2.0e-5,
         "descriptor_rtol": 2.0e-5,
     }
+    immutable_arrays = {
+        "train_embeddings": train_embeddings,
+        "train_labels": _readonly_array(train["labels"], dtype=np.int64),
+        "train_example_ids": _readonly_array(np.asarray(train["example_ids"]).astype(str)),
+        "train_source_paths": _readonly_array(np.asarray(train["source_paths"]).astype(str)),
+        "train_row_indices": _readonly_array(train["row_indices"], dtype=np.int64),
+        "proxies": proxies,
+        "proxy_labels": _readonly_array(proxy_labels, dtype=np.int64),
+    }
     return TrainingOnlySeedInput(
         seed=int(seed),
-        train_embeddings=train_embeddings,
-        train_labels=tuple(int(value) for value in np.asarray(train["labels"]).tolist()),
-        train_example_ids=tuple(str(value) for value in np.asarray(train["example_ids"]).tolist()),
-        train_source_paths=tuple(
-            str(value) for value in np.asarray(train["source_paths"]).tolist()
-        ),
-        train_row_indices=tuple(int(value) for value in np.asarray(train["row_indices"]).tolist()),
-        proxies=proxies,
-        proxy_labels=proxy_labels,
+        **immutable_arrays,
         alpha=float(bound.alpha),
         delta=float(bound.delta),
         official_recall_at_1=float(bound.official_recall_at_1),
-        checkpoint_path=paths["checkpoint_pt"],
+        checkpoint_bytes=paths["checkpoint_pt"].read_bytes(),
+        checkpoint_sha256=entry["checkpoint_pt"]["sha256"],
+        training_array_sha256=MappingProxyType(
+            {
+                name: _framed_array_sha256(name, value)
+                for name, value in immutable_arrays.items()
+            }
+        ),
         config=_deep_freeze(config),
         artifact_binding=_deep_freeze(metadata),
     )
 
 
+def _framed_array_sha256(name: str, value: np.ndarray) -> str:
+    array = np.ascontiguousarray(value)
+    digest = hashlib.sha256()
+    digest.update(name.encode("ascii") + b"\0")
+    digest.update(array.dtype.str.encode("ascii") + b"\0")
+    digest.update(str(array.shape).encode("ascii") + b"\0")
+    digest.update(array.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def validate_retained_training_arrays(bound: TrainingOnlySeedInput) -> None:
+    """Re-authenticate immutable retained arrays immediately before scientific use."""
+    hashes = bound.training_array_sha256
+    expected_names = {
+        "train_embeddings",
+        "train_labels",
+        "train_example_ids",
+        "train_source_paths",
+        "train_row_indices",
+        "proxies",
+        "proxy_labels",
+    }
+    if not isinstance(hashes, Mapping) or set(hashes) != expected_names:
+        raise ValueError("retained training array SHA-256 registry is absent")
+    for name, expected in hashes.items():
+        value = getattr(bound, name, None)
+        if not isinstance(value, np.ndarray) or value.flags.writeable:
+            raise ValueError(f"retained training array SHA-256 boundary failed for {name}")
+        if _framed_array_sha256(name, value) != expected:
+            raise ValueError(f"retained training array SHA-256 mismatch for {name}")
+
+
+def _np_scalar(value: Any, *, name: str) -> Any:
+    array = np.asarray(value)
+    if array.shape != ():
+        raise ValueError(f"{name} must be a scalar")
+    return array.item()
+
+
+def _validate_checkpoint_mapping(
+    checkpoint: Any,
+    *,
+    config: dict[str, Any],
+    train_labels: np.ndarray,
+    expected_dimension: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    if not isinstance(checkpoint, dict):
+        raise ValueError("checkpoint root must be a mapping")
+    if checkpoint.get("artifact_selection") != "final_training_state":
+        raise ValueError("checkpoint is not a final training state")
+    if checkpoint.get("evaluation_model_source") != "student":
+        raise ValueError("checkpoint evaluation_model_source is not student")
+    if checkpoint.get("training_config") != config:
+        raise ValueError("checkpoint training_config differs from report config")
+    state = checkpoint.get("state_dict")
+    if not isinstance(state, dict):
+        raise ValueError("checkpoint lacks a state_dict")
+    required = {
+        "model.embedding.weight",
+        "model.embedding.bias",
+        "metric_proxies",
+        "metric_proxy_labels",
+    }
+    if not required.issubset(state):
+        raise ValueError("checkpoint lacks embedding head or proxy tensors")
+    proxies = np.asarray(state["metric_proxies"].detach().cpu().numpy(), dtype=np.float32)
+    raw_proxy_labels = np.asarray(state["metric_proxy_labels"].detach().cpu().numpy())
+    if not np.issubdtype(raw_proxy_labels.dtype, np.integer):
+        raise ValueError("checkpoint proxy labels must be integral")
+    proxy_labels = raw_proxy_labels.astype(np.int64, copy=False)
+    identity_labels = set(int(value) for value in train_labels.tolist())
+    if (
+        proxies.shape != (len(identity_labels), expected_dimension)
+        or proxy_labels.shape != (len(identity_labels),)
+        or len(np.unique(proxy_labels)) != len(identity_labels)
+        or set(int(value) for value in proxy_labels.tolist()) != identity_labels
+    ):
+        raise ValueError("checkpoint must contain exactly one aligned proxy per train identity")
+    if not np.isfinite(proxies).all():
+        raise ValueError("checkpoint proxies are nonfinite")
+    norms = np.linalg.norm(proxies, axis=1)
+    if np.any(norms <= _VECTOR_EPS):
+        raise ValueError("checkpoint proxies contain a zero row")
+    proxies = proxies / norms[:, None]
+    return proxies, proxy_labels
+
+
+def load_training_only_seed(
+    entry: dict[str, Any],
+    receipt_seed: ReceiptSeed,
+    *,
+    artifact_hasher: Callable[[Path], str] = sha256_file,
+    checkpoint_loader: Callable[[io.BytesIO], Any] | None = None,
+    expected_partition: dict[str, tuple[int, int]] | None = None,
+    expected_dimension: int = 512,
+) -> TrainingOnlySeedInput:
+    """Load only receipt-bound training state after hashing every immutable artifact."""
+    if receipt_seed.seed < 0 or receipt_seed.seed > 3:
+        raise ValueError("receipt seed is outside the frozen set")
+    if not isinstance(entry, dict) or set(entry) != _ARTIFACT_NAMES:
+        raise ValueError("training-only manifest artifact keys differ")
+    if {
+        name: dict(record) for name, record in receipt_seed.artifacts.items()
+    } != entry:
+        raise ValueError("training-only manifest artifacts differ from receipt")
+    paths: dict[str, Path] = {}
+    for name in sorted(_ARTIFACT_NAMES):
+        record = _require_exact_keys(entry[name], {"path", "sha256"}, name=f"artifact {name}")
+        path = Path(record["path"])
+        observed = artifact_hasher(path)
+        if observed != record["sha256"]:
+            raise ValueError(f"artifact SHA-256 mismatch for {name}")
+        paths[name] = path
+
+    captured: dict[str, bytes] = {}
+    for name in ("report_json", "retrieval_json", "checkpoint_pt", "train_npz"):
+        data = paths[name].read_bytes()
+        if hashlib.sha256(data).hexdigest() != entry[name]["sha256"]:
+            raise ValueError(f"captured artifact SHA-256 mismatch for {name}")
+        captured[name] = data
+    report = _load_strict_json_bytes(captured["report_json"], name="receipt-bound report")
+    config = report.get("config")
+    if not isinstance(config, dict):
+        raise ValueError("report lacks a config object")
+    _validate_rsta_config(
+        config,
+        report,
+        seed=receipt_seed.seed,
+        expected_dimension=expected_dimension,
+    )
+    retrieval = _load_strict_json_bytes(
+        captured["retrieval_json"], name="receipt-bound retrieval audit"
+    )
+    if retrieval.get("artifact_selection") != "final_training_state":
+        raise ValueError("retrieval audit is not a final training state")
+    if (
+        retrieval.get("checkpoint_sha256") != entry["checkpoint_pt"]["sha256"]
+        or retrieval.get("report_sha256") != entry["report_json"]["sha256"]
+    ):
+        raise ValueError("retrieval audit artifact digests differ")
+    methods = report.get("methods")
+    method = (
+        next(iter(methods.values()))
+        if isinstance(methods, dict) and len(methods) == 1
+        else None
+    )
+    if not isinstance(method, dict):
+        raise ValueError("report must contain exactly one method")
+    recall_values = (
+        method.get("recall_at_1"),
+        retrieval.get("reported_final_recall_at_1"),
+        retrieval.get("independent_recall_at_1"),
+        retrieval.get("canonical_float64_euclidean_recall_at_1"),
+    )
+    if any(
+        type(value) is not float or value != receipt_seed.official_recall_at_1
+        for value in recall_values
+    ):
+        raise ValueError("report/retrieval recall differs from receipt")
+
+    with np.load(io.BytesIO(captured["train_npz"]), allow_pickle=False) as archive:
+        required = {
+            "embeddings",
+            "labels",
+            "example_ids",
+            "source_paths",
+            "artifact_selection",
+            "split",
+            "checkpoint_sha256",
+            "report_sha256",
+        }
+        if set(archive.files) != required:
+            raise ValueError("train final-pack keys differ from the frozen schema")
+        pack = {name: np.asarray(archive[name]) for name in archive.files}
+    if (
+        _np_scalar(pack["artifact_selection"], name="train artifact_selection")
+        != "final_training_state"
+    ):
+        raise ValueError("train final pack is not a final training state")
+    if _np_scalar(pack["split"], name="train split") != "train":
+        raise ValueError("train final pack has the wrong split marker")
+    if _np_scalar(pack["checkpoint_sha256"], name="train checkpoint_sha256") != entry[
+        "checkpoint_pt"
+    ]["sha256"]:
+        raise ValueError("train final pack checkpoint digest differs")
+    if _np_scalar(pack["report_sha256"], name="train report_sha256") != entry["report_json"][
+        "sha256"
+    ]:
+        raise ValueError("train final pack report digest differs")
+    raw_labels = np.asarray(pack["labels"])
+    if not np.issubdtype(raw_labels.dtype, np.integer):
+        raise ValueError("train labels must use an integral dtype")
+    if raw_labels.size and (
+        np.any(raw_labels < 0) or int(raw_labels.max()) > int(np.iinfo(np.int64).max)
+    ):
+        raise ValueError("train labels must be exact unsigned int64 values")
+    labels = raw_labels.astype(np.int64, copy=False)
+    embeddings = np.asarray(pack["embeddings"], dtype=np.float32)
+    example_ids = np.asarray(pack["example_ids"]).astype(str)
+    source_paths = np.asarray(pack["source_paths"]).astype(str)
+    expected = (
+        _OFFICIAL_PARTITION["train"]
+        if expected_partition is None
+        else expected_partition["train"]
+    )
+    if embeddings.shape != (expected[0], expected_dimension):
+        raise ValueError("train descriptor shape differs")
+    if labels.shape != (expected[0],) or len(np.unique(labels)) != expected[1]:
+        raise ValueError("train label partition differs")
+    if example_ids.shape != (expected[0],) or len(set(example_ids.tolist())) != expected[0]:
+        raise ValueError("train example-ID order contains duplicates or differs")
+    if source_paths.shape != (expected[0],) or len(set(source_paths.tolist())) != expected[0]:
+        raise ValueError("train source-path order contains duplicates or differs")
+    if not np.isfinite(embeddings).all() or np.any(
+        np.abs(np.linalg.norm(embeddings, axis=1) - 1.0) > 2.0e-5
+    ):
+        raise ValueError("train descriptors must contain finite unit rows")
+    row_indices = np.arange(expected[0], dtype=np.int64)
+    if _ordered_text_sha256(example_ids.tolist()) != receipt_seed.train_example_id_order_sha256:
+        raise ValueError("train example-ID order differs from receipt")
+    if _ordered_int64_sha256(labels.tolist()) != receipt_seed.train_label_order_sha256:
+        raise ValueError("train label order differs from receipt")
+    if _ordered_text_sha256(source_paths.tolist()) != receipt_seed.train_source_order_sha256:
+        raise ValueError("train source-path order differs from receipt")
+    source_export = {
+        "embeddings": embeddings,
+        "labels": labels,
+        "example_ids": example_ids,
+        "source_paths": source_paths,
+        "row_indices": row_indices,
+    }
+    if _source_export_hash(source_export) != receipt_seed.train_source_export_sha256:
+        raise ValueError("train source-export SHA-256 differs from receipt")
+    loader = checkpoint_loader
+    if loader is None:
+        _assert_deterministic_tf32_off()
+        import torch
+
+        def load_checkpoint(data: io.BytesIO) -> Any:
+            return torch.load(data, map_location="cpu", weights_only=False)
+
+        loader = load_checkpoint
+    checkpoint = loader(io.BytesIO(captured["checkpoint_pt"]))
+    if retrieval.get("resolved_training_steps") != checkpoint.get("training_step"):
+        raise ValueError("retrieval audit training step differs from checkpoint")
+    proxies, proxy_labels = _validate_checkpoint_mapping(
+        checkpoint,
+        config=config,
+        train_labels=labels,
+        expected_dimension=expected_dimension,
+    )
+    immutable_arrays = {
+        "train_embeddings": _readonly_array(embeddings, dtype=np.float32),
+        "train_labels": _readonly_array(labels, dtype=np.int64),
+        "train_example_ids": _readonly_array(example_ids),
+        "train_source_paths": _readonly_array(source_paths),
+        "train_row_indices": _readonly_array(row_indices, dtype=np.int64),
+        "proxies": _readonly_array(proxies, dtype=np.float32),
+        "proxy_labels": _readonly_array(proxy_labels, dtype=np.int64),
+    }
+    array_hashes = MappingProxyType(
+        {name: _framed_array_sha256(name, value) for name, value in immutable_arrays.items()}
+    )
+    artifact_binding = MappingProxyType(
+        {
+            "receipt_sha256": _HISTORICAL_RECEIPT_SHA256,
+            "producer_commit": _HISTORICAL_PRODUCER_COMMIT,
+            "historical_manifest_sha256": _HISTORICAL_MANIFEST_SHA256,
+            "artifacts": MappingProxyType(
+                {name: MappingProxyType(dict(record)) for name, record in entry.items()}
+            ),
+            "train_source_export_sha256": receipt_seed.train_source_export_sha256,
+        }
+    )
+    return TrainingOnlySeedInput(
+        seed=receipt_seed.seed,
+        **immutable_arrays,
+        alpha=float(config["proxy_anchor_alpha"]),
+        delta=float(config["proxy_anchor_delta"]),
+        official_recall_at_1=receipt_seed.official_recall_at_1,
+        checkpoint_bytes=bytes(captured["checkpoint_pt"]),
+        checkpoint_sha256=entry["checkpoint_pt"]["sha256"],
+        training_array_sha256=array_hashes,
+        config=_deep_freeze(config),
+        artifact_binding=artifact_binding,
+    )
+
+
 def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
-    """Write strict finite JSON atomically in the destination directory."""
-    path.parent.mkdir(parents=True, exist_ok=True)
+    """Publish finite JSON once without ever replacing an existing destination."""
+    encoded = (json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n").encode(
+        "utf-8"
+    )
+    if not path.parent.is_dir():
+        raise FileNotFoundError(f"output parent directory is missing: {path.parent}")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(f"output already exists: {path}")
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    linked = False
+    published = False
     try:
-        with temporary.open("x", encoding="utf-8") as stream:
-            stream.write(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n")
+        with temporary.open("xb") as stream:
+            stream.write(encoded)
             stream.flush()
             os.fsync(stream.fileno())
-        temporary.replace(path)
+        os.link(temporary, path, follow_symlinks=False)
+        linked = True
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+            temporary.unlink()
+            os.fsync(directory_fd)
+            published = True
+        finally:
+            os.close(directory_fd)
     finally:
         temporary.unlink(missing_ok=True)
+        if linked and not published:
+            path.unlink(missing_ok=True)
 
 
 def _manifest_reference_path(path_text: str, *, manifest_path: Path) -> Path:
@@ -871,13 +1837,13 @@ def validate_cross_seed_training_binding(bounds: Sequence[TrainingOnlySeedInput]
         raise ValueError("cross-seed training binding requires at least one seed")
     reference = bounds[0]
     for bound in bounds[1:]:
-        if bound.train_example_ids != reference.train_example_ids:
+        if not np.array_equal(bound.train_example_ids, reference.train_example_ids):
             raise ValueError("training example-ID order differs across seeds")
-        if bound.train_labels != reference.train_labels:
+        if not np.array_equal(bound.train_labels, reference.train_labels):
             raise ValueError("training label order differs across seeds")
-        if bound.train_source_paths != reference.train_source_paths:
+        if not np.array_equal(bound.train_source_paths, reference.train_source_paths):
             raise ValueError("training source membership differs across seeds")
-        if bound.train_row_indices != reference.train_row_indices:
+        if not np.array_equal(bound.train_row_indices, reference.train_row_indices):
             raise ValueError("training row-index binding differs across seeds")
 
 
@@ -1335,6 +2301,22 @@ def configure_deterministic_process() -> dict[str, Any]:
         "torch_version": torch.__version__,
         "numpy_version": np.__version__,
     }
+
+
+def _assert_deterministic_tf32_off() -> None:
+    """Fail closed if any fresh-process arithmetic gate changed after configuration."""
+    import torch
+
+    if (
+        not torch.are_deterministic_algorithms_enabled()
+        or torch.is_deterministic_algorithms_warn_only_enabled()
+        or torch.backends.cudnn.benchmark
+        or torch.backends.cuda.matmul.allow_tf32
+        or torch.backends.cudnn.allow_tf32
+        or torch.is_autocast_enabled()
+        or torch.is_autocast_enabled("cpu")
+    ):
+        raise ValueError("deterministic TF32-off runtime boundary failed")
 
 
 def project_and_validate_fields(
@@ -2639,9 +3621,22 @@ def _load_scientific_model(bound: TrainingOnlySeedInput) -> Any:
 
     from sfora.image_end_to_end import ImageEndToEndConfig, _torchvision_model_factory
 
-    config = ImageEndToEndConfig.model_validate(_json_ready(bound.config))
+    _assert_deterministic_tf32_off()
+    validate_retained_training_arrays(bound)
+    if hashlib.sha256(bound.checkpoint_bytes).hexdigest() != bound.checkpoint_sha256:
+        raise ValueError("retained checkpoint SHA-256 mismatch")
+    config_dict = _json_ready(bound.config)
+    checkpoint = torch.load(
+        io.BytesIO(bound.checkpoint_bytes), map_location="cpu", weights_only=False
+    )
+    _validate_checkpoint_mapping(
+        checkpoint,
+        config=config_dict,
+        train_labels=bound.train_labels,
+        expected_dimension=int(config_dict["embedding_dimensions"]),
+    )
+    config = ImageEndToEndConfig.model_validate(config_dict)
     model = _torchvision_model_factory(config)
-    checkpoint = torch.load(bound.checkpoint_path, map_location="cpu", weights_only=False)
     state = {
         name: value
         for name, value in checkpoint["state_dict"].items()
@@ -2932,6 +3927,7 @@ def _registered_first_batch_integrity(
     """Run the exact registered first batch once, repeat it, and audit its operators."""
     import torch
 
+    _assert_deterministic_tf32_off()
     prehead, raw_head, captured = capture_prehead_and_raw(
         model,
         images,
@@ -2960,6 +3956,7 @@ def _registered_first_batch_integrity(
     del fields
 
     def run_repeatability() -> dict[str, dict[str, str]]:
+        _assert_deterministic_tf32_off()
         repeated = exact_contextual_rsta_fields(
             model,
             images,
@@ -2987,6 +3984,7 @@ def _registered_first_batch_integrity(
         return result
 
     def run_adjoint() -> float:
+        _assert_deterministic_tf32_off()
         parameter = next(value for value in model.parameters() if value.requires_grad)
         u, v = registered_adjoint_directions(
             model,
@@ -3008,6 +4006,7 @@ def _registered_first_batch_integrity(
         return result
 
     def run_rotation() -> dict[str, Any]:
+        _assert_deterministic_tf32_off()
         result = rotation_auditor(
             model,
             context,
@@ -3052,15 +4051,20 @@ def _registered_first_batch_integrity(
 
 
 def run_scientific_diagnostic(
-    manifest: Mapping[str, Any],
+    manifest: Mapping[str, Any] | None,
     *,
     manifest_path: Path,
+    receipt_path: Path,
     output_path: Path,
     expected_dimension: int = 512,
     expected_partition: dict[str, tuple[int, int]] | None = None,
-    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
-    manifest_validator: Callable[..., None] = validate_rsta_manifest,
-    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    receipt_validator: Callable[[Path, Path], ValidatedBindingReceipt] = (
+        validate_historical_binding_receipt
+    ),
+    execution_source_validator: Callable[[Path], dict[str, Any]] = (
+        validate_scientific_execution_source
+    ),
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_training_only_seed,
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
@@ -3069,22 +4073,27 @@ def run_scientific_diagnostic(
     expected_head_in_features: int = 1024,
 ) -> dict[str, Any]:
     """Execute the complete frozen four-seed Stage-A path and atomically persist rows."""
-    import torch
-
     environment = configure_deterministic_process()
-    manifest_validator(dict(manifest), manifest_path=manifest_path)
-    execution_audit = build_execution_audit(manifest, manifest_path=manifest_path)
+    if output_path.exists() or output_path.is_symlink():
+        raise FileExistsError(f"output already exists: {output_path}")
+    receipt = receipt_validator(manifest_path, receipt_path)
+    execution_audit = execution_source_validator(manifest_path)
+    if manifest is None:
+        manifest = load_strict_json(manifest_path)
     bounds = [
         bound_loader(
             manifest["seeds"][str(seed)],
-            seed=seed,
-            source_exporter=source_exporter,
+            receipt.seeds[seed],
             expected_partition=expected_partition,
             expected_dimension=expected_dimension,
         )
         for seed in range(4)
     ]
+    import torch
+
     validate_cross_seed_training_binding(bounds)
+    for bound in bounds:
+        validate_retained_training_arrays(bound)
     reference = bounds[0]
     primary = select_primary_panel(reference.train_example_ids, reference.train_labels)
     alternate = select_alternate_panel(reference.train_example_ids, reference.train_labels, primary)
@@ -3108,6 +4117,7 @@ def run_scientific_diagnostic(
     seed_integrity: list[dict[str, Any]] = []
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
     for bound in bounds:
+        _assert_deterministic_tf32_off()
         model = make_bufferless_train_clone(model_loader(bound))
         parameter_items = [
             (name, value) for name, value in model.named_parameters() if value.requires_grad
@@ -3117,7 +4127,9 @@ def run_scientific_diagnostic(
         parameter = parameter_items[0][1]
         device, dtype = parameter.device, parameter.dtype
         proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
-        proxy_labels = torch.as_tensor(bound.proxy_labels, device=device, dtype=torch.long)
+        proxy_labels = torch.tensor(
+            np.array(bound.proxy_labels, copy=True), device=device, dtype=torch.long
+        )
         support_map = {
             label: (
                 tuple(primary["support_ids_by_label"][label]),
@@ -3276,9 +4288,14 @@ def run_scientific_diagnostic(
         manifest_audit={
             "path": str(manifest_path),
             "sha256": sha256_file(manifest_path),
-            "preregistration": manifest.get("preregistration"),
+            "base_preregistration": manifest.get(
+                "base_preregistration", manifest.get("preregistration")
+            ),
+            "amendment": manifest.get("amendment"),
+            "binding_receipt": manifest.get("binding_receipt"),
+            "historical": manifest.get("historical"),
             "artifact_schema": manifest.get("artifact_schema"),
-            "source": manifest.get("source"),
+            "source": manifest.get("current_scientific_source", manifest.get("source")),
         },
         execution_audit=execution_audit,
         environment=environment,
@@ -3314,16 +4331,20 @@ def _bound_checkpoint_sha256(artifact_binding: Mapping[str, Any]) -> str:
 
 
 def run_integrity_smoke(
-    manifest: Mapping[str, Any],
+    manifest: Mapping[str, Any] | None,
     *,
     manifest_path: Path,
+    receipt_path: Path,
     output_path: Path,
-    seed: int = 0,
     expected_dimension: int = 512,
     expected_partition: dict[str, tuple[int, int]] | None = None,
-    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
-    manifest_validator: Callable[..., None] = validate_rsta_manifest,
-    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    receipt_validator: Callable[[Path, Path], ValidatedBindingReceipt] = (
+        validate_historical_binding_receipt
+    ),
+    execution_source_validator: Callable[[Path], dict[str, Any]] = (
+        validate_scientific_execution_source
+    ),
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_training_only_seed,
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
@@ -3332,20 +4353,23 @@ def run_integrity_smoke(
     expected_head_in_features: int = 1024,
 ) -> dict[str, Any]:
     """Run the registered Step-7 first-batch integrity gates without candidate scoring."""
-    import torch
-
-    if seed != 0:
-        raise ValueError("Step-7 smoke seed is frozen to 0")
     environment = configure_deterministic_process()
-    manifest_validator(dict(manifest), manifest_path=manifest_path)
-    execution_audit = build_execution_audit(manifest, manifest_path=manifest_path)
+    if output_path.exists() or output_path.is_symlink():
+        raise FileExistsError(f"output already exists: {output_path}")
+    receipt = receipt_validator(manifest_path, receipt_path)
+    execution_audit = execution_source_validator(manifest_path)
+    if manifest is None:
+        manifest = load_strict_json(manifest_path)
+    seed = 0
     bound = bound_loader(
         manifest["seeds"][str(seed)],
-        seed=seed,
-        source_exporter=source_exporter,
+        receipt.seeds[seed],
         expected_partition=expected_partition,
         expected_dimension=expected_dimension,
     )
+    import torch
+
+    validate_retained_training_arrays(bound)
     fixtures = fixture_runner()
     _validate_fixture_integrity(fixtures)
     primary = select_primary_panel(bound.train_example_ids, bound.train_labels)
@@ -3357,6 +4381,7 @@ def run_integrity_smoke(
         raise ValueError("smoke transform cache differs from registered first batch")
     label_by_id = dict(zip(bound.train_example_ids, bound.train_labels, strict=True))
     index_by_id = {value: index for index, value in enumerate(bound.train_example_ids)}
+    _assert_deterministic_tf32_off()
     model = make_bufferless_train_clone(model_loader(bound))
     parameter_items = [
         (name, value) for name, value in model.named_parameters() if value.requires_grad
@@ -3366,7 +4391,9 @@ def run_integrity_smoke(
     parameter = parameter_items[0][1]
     device, dtype = parameter.device, parameter.dtype
     proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
-    proxy_labels = torch.as_tensor(bound.proxy_labels, device=device, dtype=torch.long)
+    proxy_labels = torch.tensor(
+        np.array(bound.proxy_labels, copy=True), device=device, dtype=torch.long
+    )
     support_map = {
         label: (
             tuple(primary["support_ids_by_label"][label]),
@@ -3438,13 +4465,22 @@ def run_integrity_smoke(
         "manifest": {
             "path": str(manifest_path),
             "sha256": sha256_file(manifest_path),
-            "preregistration": manifest.get("preregistration"),
+            "base_preregistration": manifest.get(
+                "base_preregistration", manifest.get("preregistration")
+            ),
+            "amendment": manifest.get("amendment"),
+            "binding_receipt": manifest.get("binding_receipt"),
+            "historical": manifest.get("historical"),
             "artifact_schema": manifest.get("artifact_schema"),
-            "source": manifest.get("source"),
+            "source": manifest.get("current_scientific_source", manifest.get("source")),
         },
         "environment": environment,
         "binding": {
             "seed": seed,
+            "receipt_sha256": receipt.sha256,
+            "receipt_producer_commit": receipt.producer_commit,
+            "historical_manifest_sha256": receipt.historical_manifest_sha256,
+            "train_source_export_sha256": receipt.seeds[0].train_source_export_sha256,
             "artifact_binding_sha256": json_sha256(bound.artifact_binding),
             "config_sha256": json_sha256(bound.config),
             "checkpoint_sha256": _bound_checkpoint_sha256(bound.artifact_binding),
@@ -3474,11 +4510,15 @@ def run_integrity_smoke(
 def main(
     argv: Sequence[str] | None = None,
     *,
-    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
     expected_partition: dict[str, tuple[int, int]] | None = None,
     expected_dimension: int = 512,
-    manifest_validator: Callable[..., None] = validate_rsta_manifest,
-    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    receipt_validator: Callable[[Path, Path], ValidatedBindingReceipt] = (
+        validate_historical_binding_receipt
+    ),
+    execution_source_validator: Callable[[Path], dict[str, Any]] = (
+        validate_scientific_execution_source
+    ),
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_training_only_seed,
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
@@ -3486,35 +4526,24 @@ def main(
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
 ) -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--binding-receipt", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     modes = parser.add_mutually_exclusive_group(required=True)
-    modes.add_argument("--binding-only", action="store_true")
     modes.add_argument("--smoke-only", action="store_true")
     modes.add_argument("--scientific", action="store_true")
-    parser.add_argument("--smoke-seed", type=int, choices=(0,), default=0)
     args = parser.parse_args(argv)
-    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    if args.binding_only:
-        payload = binding_only_payload(
-            manifest,
-            manifest_path=args.manifest,
-            source_exporter=source_exporter,
-            expected_partition=expected_partition,
-            expected_dimension=expected_dimension,
-        )
-        write_json_atomic(args.output, payload)
-    elif args.smoke_only:
+    if args.smoke_only:
         run_integrity_smoke(
-            manifest,
+            None,
             manifest_path=args.manifest,
+            receipt_path=args.binding_receipt,
             output_path=args.output,
-            seed=args.smoke_seed,
             expected_dimension=expected_dimension,
             expected_partition=expected_partition,
-            source_exporter=source_exporter,
-            manifest_validator=manifest_validator,
+            receipt_validator=receipt_validator,
+            execution_source_validator=execution_source_validator,
             bound_loader=bound_loader,
             cache_builder=cache_builder,
             model_loader=model_loader,
@@ -3525,13 +4554,14 @@ def main(
         )
     else:
         run_scientific_diagnostic(
-            manifest,
+            None,
             manifest_path=args.manifest,
+            receipt_path=args.binding_receipt,
             output_path=args.output,
             expected_dimension=expected_dimension,
             expected_partition=expected_partition,
-            source_exporter=source_exporter,
-            manifest_validator=manifest_validator,
+            receipt_validator=receipt_validator,
+            execution_source_validator=execution_source_validator,
             bound_loader=bound_loader,
             cache_builder=cache_builder,
             model_loader=model_loader,
