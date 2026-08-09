@@ -113,6 +113,9 @@ OUTPUT_FILENAMES = {
     "receipt": "receipt.json",
 }
 BN_INCEPTION_CHECKPOINT_FILENAME = "bn_inception-52deb4733.pth"
+REPORT_NAME = "image-end-to-end-benchmark"
+REPORT_DATASET_NAME = "inshop"
+REPORT_PROTOCOL = "proxy-anchor-resnet50-512"
 RFC3339_UTC = re.compile(r"\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z")
 EXPECTED_REPORT_KEYS = frozenset(
     {
@@ -786,12 +789,37 @@ def _expected_runtime_bindings(authority: PrelaunchAuthority) -> dict[str, objec
     }
 
 
+def _require_executing_python_identity(authority: PrelaunchAuthority) -> Path:
+    executable = sys.executable
+    _require(type(executable) is str and bool(executable), "executing controller Python path")
+    actual = Path(executable)
+    _require(actual.is_absolute(), "executing controller Python path")
+    execution = authority.payload["execution"]
+    _require(
+        actual.as_posix() == execution["python"]["path"],
+        "executing controller Python path drift",
+    )
+    resolved = actual.resolve(strict=True)
+    _require(
+        resolved.as_posix() == execution["python_realpath"],
+        "executing controller Python realpath drift",
+    )
+    measured = _external_file_payload(bind_external_file(resolved))
+    measured["path"] = actual.as_posix()
+    _require(
+        measured == _plain_json(execution["python"]),
+        "executing controller Python file binding drift",
+    )
+    return actual
+
+
 def _bind_runtime_after(authority: PrelaunchAuthority) -> dict[str, object]:
     execution = authority.payload["execution"]
+    executing_python = _require_executing_python_identity(authority)
     args = FreezeArgs(
         checkout_root=authority.checkout_root,
         dataset_root=Path(authority.payload["dataset"]["root"]),
-        python_path=Path(execution["python"]["path"]),
+        python_path=executing_python,
         frozen_absence_checked_utc=authority.payload["authorization"]["frozen_absence_checked_utc"],
         output_path=authority.checkout_root / authority.payload["authorization"]["manifest_path"],
     )
@@ -896,7 +924,8 @@ def create_and_lock_private_run_directory(
         if directory_fd >= 0:
             with contextlib.suppress(OSError):
                 fcntl.flock(directory_fd, fcntl.LOCK_UN)
-            os.close(directory_fd)
+            with contextlib.suppress(OSError):
+                os.close(directory_fd)
 
 
 def launch_once(authorized: AuthorizedSource, run_dir: Path) -> RunningChild:
@@ -1138,6 +1167,7 @@ def _build_complete_receipt(
         },
     )
     payload = _plain_json(authority.payload)
+    measured_runtime = _plain_json(authorized.runtime_bindings)
     source = payload["source"]
     execution = payload["execution"]
     dataset = payload["dataset"]
@@ -1167,10 +1197,10 @@ def _build_complete_receipt(
             "clean_policy_verified": True,
         },
         "controller": {
-            "file": payload["controller"],
-            "python": execution["python"],
-            "python_packages": execution["python_packages"],
-            "source_tree": source["python_tree"],
+            "file": measured_runtime["controller"],
+            "python": measured_runtime["python"],
+            "python_packages": measured_runtime["python_packages"],
+            "source_tree": measured_runtime["python_tree"],
         },
         "command": {
             "cwd": execution["cwd"],
@@ -1266,9 +1296,7 @@ def _publish_complete_receipt(
         / authorized.authority.payload["outputs"]["receipt"]["path"]
     )
     _require(path.parent == run_dir, "receipt escapes private run directory")
-    evidence = publish_new_file(path, data)
-    _require_run_entries(run_dir, set(OUTPUT_FILENAMES.values()))
-    return evidence
+    return publish_new_file(path, data)
 
 
 def publish_postflight(
@@ -1680,6 +1708,8 @@ def _capture_child_output() -> bytes:
 def _validate_operating_config(config: object) -> dict[str, Any]:
     _require(type(config) is dict, "resolved config must be an object")
     result = config
+    _require(result.get("dataset_name") == REPORT_DATASET_NAME, "resolved dataset drift")
+    _require(result.get("protocol") == REPORT_PROTOCOL, "resolved protocol drift")
     _require(result.get("objectives") == ["proxy_anchor"], "resolved objective drift")
     _require(type(result.get("seed")) is int and result["seed"] == 0, "resolved seed drift")
     _require(result.get("recipe_id") == RECIPE_ID, "resolved recipe ID drift")
@@ -1735,7 +1765,7 @@ def _scan_opaque_json_value(data: bytes, offset: int) -> int:
     return end
 
 
-def _extract_report_config(report_bytes: bytes) -> object:
+def _extract_report_config(report_bytes: bytes, authority: PrelaunchAuthority) -> object:
     _require(type(report_bytes) is bytes, "report bytes type")
     offset = _skip_json_whitespace(report_bytes, 0)
     _require(
@@ -1789,6 +1819,19 @@ def _extract_report_config(report_bytes: bytes) -> object:
         _require(type(parsed[key]) is str, f"report {key} type drift")
     for key in ("train_examples", "test_examples"):
         _require(type(parsed[key]) is int and parsed[key] >= 0, f"report {key} type drift")
+    expected_config = _validate_operating_config(
+        load_strict_json_bytes(authority.expected_config_bytes)
+    )
+    bundle = authority.payload["dataset"]["bundle"]
+    expected = {
+        "name": REPORT_NAME,
+        "dataset_name": expected_config["dataset_name"],
+        "protocol": expected_config["protocol"],
+        "train_examples": bundle["train"],
+        "test_examples": bundle["query"],
+    }
+    for key, value in expected.items():
+        _require(parsed[key] == value, f"report {key} drift")
     return parsed["config"]
 
 
@@ -1797,7 +1840,9 @@ def derive_resolved_config(
     checkpoint: CheckpointMetadata,
     authority: PrelaunchAuthority,
 ) -> bytes:
-    config = canonical_json_bytes(_validate_operating_config(_extract_report_config(report_bytes)))
+    config = canonical_json_bytes(
+        _validate_operating_config(_extract_report_config(report_bytes, authority))
+    )
     _require(config == authority.expected_config_bytes, "report config drift")
     _require(
         hashlib.sha256(config).hexdigest() == checkpoint.training_config_sha256,

@@ -20,6 +20,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+import pass201_pa_source_v2_contract as contract  # noqa: E402
 import run_pass201_pa_source_v2 as controller  # noqa: E402
 from pass201_pa_source_v2_contract import (  # noqa: E402
     BoundCheckpointMetadata,
@@ -145,7 +146,9 @@ def ordered_row_hash(rows: tuple[tuple[int, str, int], ...]) -> str:
 @pytest.fixture
 def sidecar_inputs() -> tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata]:
     config = {
+        "dataset_name": "inshop",
         "objectives": ["proxy_anchor"],
+        "protocol": "proxy-anchor-resnet50-512",
         "seed": 0,
         "recipe_id": controller.RECIPE_ID,
         "recipe_digest": controller.RECIPE_DIGEST,
@@ -477,8 +480,8 @@ def test_resolved_config_reads_only_exact_report_config(
     _capture, authority, checkpoint = sidecar_inputs
     config_text = authority.expected_config_bytes.decode().strip()
     report = (
-        '{"name":"image-end-to-end","dataset_name":"inshop",'
-        f'"protocol":"query_gallery","config":{config_text},'
+        '{"name":"image-end-to-end-benchmark","dataset_name":"inshop",'
+        f'"protocol":"proxy-anchor-resnet50-512","config":{config_text},'
         '"train_examples":2,"test_examples":2,'
         '"methods":{"score":NaN,"score":2,"payload":"}],\\"config\\":false"}}\n'
     ).encode()
@@ -514,8 +517,8 @@ def test_resolved_config_treats_method_values_as_opaque_raw_bytes(
     config = authority.expected_config_bytes.rstrip()
     report = b"".join(
         (
-            b'{"name":"image-end-to-end","dataset_name":"inshop",',
-            b'"protocol":"query_gallery","config":',
+            b'{"name":"image-end-to-end-benchmark","dataset_name":"inshop",',
+            b'"protocol":"proxy-anchor-resnet50-512","config":',
             config,
             b',"train_examples":2,"test_examples":2,"methods":',
             methods_raw,
@@ -523,6 +526,37 @@ def test_resolved_config_treats_method_values_as_opaque_raw_bytes(
         )
     )
     assert derive_resolved_config(report, checkpoint, authority) == authority.expected_config_bytes
+
+
+@pytest.mark.parametrize(
+    ("field", "drifted"),
+    [
+        ("name", "image-end-to-end"),
+        ("dataset_name", "cub"),
+        ("protocol", "hpl-resnet50-512"),
+        ("train_examples", 3),
+        ("test_examples", 3),
+    ],
+)
+def test_resolved_config_rejects_each_report_authority_scalar_drift(
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    field: str,
+    drifted: object,
+) -> None:
+    _capture, authority, checkpoint = sidecar_inputs
+    report = {
+        "name": "image-end-to-end-benchmark",
+        "dataset_name": "inshop",
+        "protocol": "proxy-anchor-resnet50-512",
+        "config": load_strict_json_bytes(authority.expected_config_bytes),
+        "train_examples": 2,
+        "test_examples": 2,
+        "methods": {},
+    }
+    report[field] = drifted
+
+    with pytest.raises(ValueError, match=f"report {field} drift"):
+        derive_resolved_config(canonical_json_bytes(report), checkpoint, authority)
 
 
 @pytest.mark.parametrize(
@@ -563,9 +597,9 @@ def test_resolved_config_rejects_report_or_checkpoint_drift(
         checkpoint = replace(checkpoint, training_config_sha256="0" * 64)
     report = canonical_json_bytes(
         {
-            "name": "image-end-to-end",
+            "name": "image-end-to-end-benchmark",
             "dataset_name": "inshop",
-            "protocol": "query_gallery",
+            "protocol": "proxy-anchor-resnet50-512",
             "config": config,
             "train_examples": 2,
             "test_examples": 2,
@@ -584,9 +618,9 @@ def test_resolved_config_rejects_equal_cross_type_seed(
     config["seed"] = False
     report = canonical_json_bytes(
         {
-            "name": "image-end-to-end",
+            "name": "image-end-to-end-benchmark",
             "dataset_name": "inshop",
-            "protocol": "query_gallery",
+            "protocol": "proxy-anchor-resnet50-512",
             "config": config,
             "train_examples": 2,
             "test_examples": 2,
@@ -741,8 +775,10 @@ def _derive_with_synchronized_checkpoint_handoff(
     checkpoint_path.write_bytes(b"original-checkpoint")
     config = {
         "batch_size": 180,
+        "dataset_name": "inshop",
         "drop_last_train_batch": True,
         "objectives": ["proxy_anchor"],
+        "protocol": "proxy-anchor-resnet50-512",
         "recipe_digest": controller.RECIPE_DIGEST,
         "recipe_id": controller.RECIPE_ID,
         "seed": 0,
@@ -751,9 +787,9 @@ def _derive_with_synchronized_checkpoint_handoff(
     report_path.write_bytes(
         canonical_json_bytes(
             {
-                "name": "image-end-to-end",
+                "name": "image-end-to-end-benchmark",
                 "dataset_name": "inshop",
-                "protocol": "query_gallery",
+                "protocol": "proxy-anchor-resnet50-512",
                 "config": config,
                 "train_examples": 2,
                 "test_examples": 2,
@@ -1092,8 +1128,10 @@ from pass201_pa_source_v2_contract import (
 
 config = {
     "batch_size": 180,
+    "dataset_name": "inshop",
     "drop_last_train_batch": True,
     "objectives": ["proxy_anchor"],
+    "protocol": "proxy-anchor-resnet50-512",
     "recipe_digest": c.RECIPE_DIGEST,
     "recipe_id": c.RECIPE_ID,
     "seed": 0,
@@ -1205,8 +1243,10 @@ def test_private_sidecar_orchestrator_never_opens_checkpoint(tmp_path: Path) -> 
     (tmp_path / "authority.json").write_bytes(b'{"bound":true}\n')
     config = {
         "batch_size": 180,
+        "dataset_name": "inshop",
         "drop_last_train_batch": True,
         "objectives": ["proxy_anchor"],
+        "protocol": "proxy-anchor-resnet50-512",
         "recipe_digest": controller.RECIPE_DIGEST,
         "recipe_id": controller.RECIPE_ID,
         "seed": 0,
@@ -1214,9 +1254,9 @@ def test_private_sidecar_orchestrator_never_opens_checkpoint(tmp_path: Path) -> 
     (run_dir / "report.json").write_bytes(
         canonical_json_bytes(
             {
-                "name": "image-end-to-end",
+                "name": "image-end-to-end-benchmark",
                 "dataset_name": "inshop",
-                "protocol": "query_gallery",
+                "protocol": "proxy-anchor-resnet50-512",
                 "config": config,
                 "train_examples": 2,
                 "test_examples": 2,
@@ -1240,8 +1280,10 @@ def test_two_fresh_private_sidecar_children_are_identical_and_fail_on_input_drif
     (tmp_path / "authority.json").write_bytes(b'{"bound":true}\n')
     config = {
         "batch_size": 180,
+        "dataset_name": "inshop",
         "drop_last_train_batch": True,
         "objectives": ["proxy_anchor"],
+        "protocol": "proxy-anchor-resnet50-512",
         "recipe_digest": controller.RECIPE_DIGEST,
         "recipe_id": controller.RECIPE_ID,
         "seed": 0,
@@ -1249,9 +1291,9 @@ def test_two_fresh_private_sidecar_children_are_identical_and_fail_on_input_drif
     (run_dir / "report.json").write_bytes(
         canonical_json_bytes(
             {
-                "name": "image-end-to-end",
+                "name": "image-end-to-end-benchmark",
                 "dataset_name": "inshop",
-                "protocol": "query_gallery",
+                "protocol": "proxy-anchor-resnet50-512",
                 "config": config,
                 "train_examples": 2,
                 "test_examples": 2,
@@ -1633,6 +1675,102 @@ def test_run_preflight_accepts_only_detached_sole_manifest_addition(
     assert authorized.authority.source_commit == fixture.source_commit
 
 
+def test_run_preflight_rejects_alternate_compatible_controller_runtime_before_side_effect(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture)
+    repo = Path(__file__).resolve().parents[1]
+    expected_python = Path(sys.executable).absolute()
+    alternate_python = expected_python.with_name("python3")
+    assert alternate_python.exists() and alternate_python != expected_python
+    payload = load_strict_json_bytes(fixture.manifest_bytes)
+    python_binding = controller._external_file_payload(
+        bind_external_file(expected_python.resolve(strict=True))
+    )
+    python_binding["path"] = expected_python.as_posix()
+    payload["execution"]["python"] = python_binding
+    payload["execution"]["python_realpath"] = expected_python.resolve(strict=True).as_posix()
+    payload["execution"]["argv"][0] = expected_python.as_posix()
+    payload["execution"]["environment"]["PATH"] = (
+        f"{expected_python.parent.as_posix()}:/usr/bin:/bin"
+    )
+    authority_bytes = canonical_json_bytes(payload)
+    authority_path = tmp_path / "alternate-runtime-authority.json"
+    authority_path.write_bytes(authority_bytes)
+    side_effect = tmp_path / "preflight-side-effect"
+    program = """
+import copy
+import sys
+from pathlib import Path
+
+import run_pass201_pa_source_v2 as controller
+
+authority_path = Path(sys.argv[1])
+side_effect = Path(sys.argv[2])
+authority_bytes = authority_path.read_bytes()
+authority = controller.validate_prelaunch(controller.load_strict_json_bytes(authority_bytes))
+expected = controller._expected_runtime_bindings(authority)
+expected_python = authority.payload["execution"]["python"]["path"]
+
+def bind_measured_runtime(args, _environment):
+    current = copy.deepcopy(expected)
+    actual_python = args.python_path.absolute().as_posix()
+    if actual_python != expected_python:
+        current["python"]["path"] = actual_python
+        current["python_realpath"] = args.python_path.resolve(strict=True).as_posix()
+        current["python_packages"]["sha256"] = "0" * 64
+        current["python_import_roots"] = [
+            *current["python_import_roots"],
+            {"entry": "/alternate-runtime", "status": "nonexistent"},
+        ]
+    return current
+
+def forbidden_side_effect(_authority):
+    side_effect.write_text("reached", encoding="utf-8")
+    raise RuntimeError("preflight reached a side effect")
+
+controller._load_manifest_authority = lambda _path: (
+    authority,
+    authority_path,
+    authority_bytes,
+)
+controller.validate_authorization_topology = lambda _checkout, _authority: "b" * 40
+controller._require_authority_scope = lambda _authority: None
+controller._require_replacement_environment = lambda _authority: None
+controller._bind_freeze_runtime = bind_measured_runtime
+controller._record_preflight_absence = forbidden_side_effect
+try:
+    controller.validate_runtime_preflight(authority_path)
+except ValueError as error:
+    if "executing controller Python" not in str(error):
+        raise
+    print("alternate controller runtime rejected")
+    raise SystemExit(0)
+except RuntimeError:
+    print("side effect reached")
+    raise SystemExit(8)
+raise SystemExit(9)
+"""
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = f"{repo / 'scripts'}{os.pathsep}{repo / 'src'}"
+
+    result = subprocess.run(
+        [str(alternate_python), "-c", program, str(authority_path), str(side_effect)],
+        cwd=repo,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    assert result.stdout == "alternate controller runtime rejected\n"
+    assert not side_effect.exists()
+    assert not (fixture.repo / controller.RUN_DIRECTORY).exists()
+
+
 @pytest.mark.parametrize("topology", ["branch_head", "extra_diff", "extra_parent"])
 def test_run_preflight_rejects_branch_extra_diff_or_parent(
     tmp_path: Path,
@@ -1986,6 +2124,150 @@ def test_complete_receipt_builds_exact_valid_authority(
     assert payload["candidate_values_computed"] is False
     assert "receipt" not in payload["outputs"]
     assert "metric" not in payload and "methods" not in payload
+
+
+def test_receipt_publication_is_terminal_after_final_directory_validation(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    receipt_bytes = controller._build_complete_receipt(
+        inputs.authorized,
+        inputs.process,
+        inputs.postflight,
+        inputs.scientific,
+        inputs.metadata,
+        inputs.frames,
+        inputs.config,
+        inputs.manifest,
+    )
+    receipt = inputs.run_directory / "receipt.json"
+    real_publish = controller.publish_new_file
+    real_require_entries = controller._require_run_entries
+    receipt_published = False
+
+    def observed_publish(path: Path, data: bytes, *, mode: int = 0o444) -> OutputEvidence:
+        nonlocal receipt_published
+        evidence = real_publish(path, data, mode=mode)
+        if path == receipt:
+            receipt_published = True
+        return evidence
+
+    def reject_post_publication_validation(run_dir: Path, expected: set[str]) -> None:
+        if receipt_published:
+            raise AssertionError("fallible validation ran after receipt publication")
+        real_require_entries(run_dir, expected)
+
+    monkeypatch.setattr(controller, "publish_new_file", observed_publish)
+    monkeypatch.setattr(controller, "_require_run_entries", reject_post_publication_validation)
+
+    controller._publish_complete_receipt(
+        inputs.authorized,
+        inputs.run_directory,
+        receipt_bytes,
+    )
+
+    validate_complete_receipt(load_strict_json_bytes(receipt.read_bytes()), inputs.authority)
+
+
+def test_receipt_post_link_failure_rolls_back_and_attempt_stays_nonreusable(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    receipt_bytes = controller._build_complete_receipt(
+        inputs.authorized,
+        inputs.process,
+        inputs.postflight,
+        inputs.scientific,
+        inputs.metadata,
+        inputs.frames,
+        inputs.config,
+        inputs.manifest,
+    )
+    receipt = inputs.run_directory / "receipt.json"
+    linked = threading.Event()
+    tampered = threading.Event()
+    real_link = contract.os.link
+    raced = False
+
+    def synchronized_link(
+        source: object, destination: object, *args: object, **kwargs: object
+    ) -> None:
+        nonlocal raced
+        real_link(source, destination, *args, **kwargs)
+        if destination == receipt.name and not raced:
+            raced = True
+            linked.set()
+            if not tampered.wait(timeout=5):
+                raise AssertionError("receipt tamper did not complete")
+
+    def tamper_linked_receipt() -> None:
+        if not linked.wait(timeout=5):
+            return
+        receipt.write_bytes(b"tampered after link\n")
+        tampered.set()
+
+    monkeypatch.setattr(contract.os, "link", synchronized_link)
+    racer = threading.Thread(target=tamper_linked_receipt)
+    racer.start()
+    try:
+        with pytest.raises(ValueError, match="publish"):
+            controller._publish_complete_receipt(
+                inputs.authorized,
+                inputs.run_directory,
+                receipt_bytes,
+            )
+    finally:
+        racer.join(timeout=5)
+
+    assert raced
+    assert not racer.is_alive()
+    assert not receipt.exists()
+    assert {path.name for path in inputs.run_directory.iterdir()} == {
+        "report.json",
+        "checkpoint.pt",
+        "training.log",
+        "resolved_config.json",
+        "train_manifest.json",
+    }
+    with pytest.raises(ValueError, match="private run directory already exists"):
+        controller._record_preflight_absence(inputs.authority)
+
+
+def test_terminal_receipt_is_not_invalidated_by_directory_lock_close_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    authority = SimpleNamespace(
+        checkout_root=tmp_path,
+        payload={"outputs": {"run_directory": "run-v2"}},
+    )
+    authorized = SimpleNamespace(authority=authority)
+    receipt = tmp_path / "run-v2" / "receipt.json"
+    real_close = controller.os.close
+    close_failed = False
+
+    def fail_closed_directory_descriptor(fd: int) -> None:
+        nonlocal close_failed
+        is_directory = stat.S_ISDIR(controller.os.fstat(fd).st_mode)
+        real_close(fd)
+        if is_directory and not close_failed:
+            close_failed = True
+            raise OSError("directory close failed after receipt")
+
+    monkeypatch.setattr(controller.os, "close", fail_closed_directory_descriptor)
+
+    with controller.create_and_lock_private_run_directory(authorized) as run_dir:
+        receipt.write_bytes(b'{"status":"complete"}\n')
+        assert run_dir == receipt.parent
+
+    assert close_failed
+    assert receipt.read_bytes() == b'{"status":"complete"}\n'
 
 
 @pytest.mark.parametrize(
