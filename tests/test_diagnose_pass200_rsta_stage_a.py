@@ -695,6 +695,15 @@ def _verdict_rows(
             "rho": rho,
             "log_ratio": log_ratio,
             "deranged_delta": deranged_delta,
+            "a_self": 0.4,
+            "a_batch": 0.4 - delta_by_seed[seed],
+            "a_desc": 0.4 - self_desc,
+            "cos_b_s": 0.7,
+            "random_a_self": 0.03,
+            "random_a_batch": 0.02,
+            "random_delta": 0.01,
+            "head_a_self": 0.2,
+            "head_a_batch": 0.1,
         }
         for seed in range(4)
         for label in range(64)
@@ -1779,6 +1788,8 @@ def test_exact_kernel_fields_match_independent_dense_jacobian_and_central_differ
         images,
         cotangents,
         receiver_indices=(0, 1, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
     )
 
     assert torch.allclose(observed["parameter_gradient_flat"], expected_g, atol=1e-8, rtol=1e-8)
@@ -1854,7 +1865,13 @@ def test_bufferless_train_clone_matches_preupdate_bn_forward_and_gradients() -> 
 def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
     """Catches analytic-head controls fed normalized outputs or the wrong linear layer."""
     model, images, _ = _dense_affine_fixture()
-    prehead, raw, output = _MODULE.capture_prehead_and_raw(model, images)
+    prehead, raw, output = _MODULE.capture_prehead_and_raw(
+        model,
+        images,
+        head_name="projection",
+        expected_in_features=2,
+        expected_out_features=3,
+    )
     expected_raw = images @ model.projection.weight.T + model.projection.bias
 
     assert torch.equal(prehead, images)
@@ -1882,6 +1899,8 @@ def test_contextual_pa_fields_use_full_batch_and_exclude_proxy_parameters() -> N
         alpha=32.0,
         delta=0.1,
         receiver_indices=(0, 1, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
     )
     raw = model(images)
     z = _normalize(raw, torch)
@@ -1914,6 +1933,110 @@ def test_contextual_pa_fields_use_full_batch_and_exclude_proxy_parameters() -> N
     assert all("proxy" not in name for name in observed["parameter_names"])
 
 
+@pytest.mark.parametrize(
+    ("defect", "message"),
+    [
+        ("eval", "train mode"),
+        ("batch", "batch size 180"),
+        ("dimension", "dimension 512"),
+        ("alpha", "alpha must equal 32"),
+        ("delta", "delta must equal 0.1"),
+    ],
+)
+def test_contextual_derivative_boundary_rejects_nonofficial_execution(
+    defect: str, message: str
+) -> None:
+    """Catches eval, microbatch, wrong descriptor, or altered Proxy Anchor constants."""
+    model, images, _ = _dense_affine_fixture()
+    labels = torch.tensor([0, 1, 0], dtype=torch.int64)
+    proxies = torch.tensor([[0.8, -0.2, 0.5], [-0.4, 0.7, 0.1]], dtype=torch.float64)
+    proxy_labels = torch.tensor([0, 1], dtype=torch.int64)
+    kwargs = {
+        "alpha": 32.0,
+        "delta": 0.1,
+        "receiver_indices": (0, 1, 2),
+        "expected_batch_size": 3,
+        "expected_dimension": 3,
+    }
+    if defect == "eval":
+        model.eval()
+    elif defect == "batch":
+        kwargs["expected_batch_size"] = 180
+    elif defect == "dimension":
+        kwargs["expected_dimension"] = 512
+    elif defect == "alpha":
+        kwargs["alpha"] = 31.0
+    else:
+        kwargs["delta"] = 0.2
+
+    with pytest.raises(ValueError, match=message):
+        _MODULE.exact_contextual_rsta_fields(
+            model,
+            images,
+            labels,
+            proxies,
+            proxy_labels,
+            **kwargs,
+        )
+
+
+def test_contextual_derivative_boundary_requires_every_bn_train_and_bufferless() -> None:
+    """Catches a mixed eval BN or running-stat mutation in the exact graph."""
+    model = _TinyBatchNorm().train()
+    images = torch.tensor([[0.4, -0.3], [1.2, 0.8]], dtype=torch.float64)
+    labels = torch.tensor([0, 1], dtype=torch.int64)
+    proxies = torch.eye(2, dtype=torch.float64)
+    proxy_labels = torch.tensor([0, 1], dtype=torch.int64)
+    for defect in ("tracked", "eval"):
+        candidate = deepcopy(model)
+        if defect == "tracked":
+            candidate.bn.track_running_stats = True
+        else:
+            candidate.bn.track_running_stats = False
+            candidate.bn.eval()
+        with pytest.raises(ValueError, match="BatchNorm.*train.*bufferless"):
+            _MODULE.exact_contextual_rsta_fields(
+                candidate,
+                images,
+                labels,
+                proxies,
+                proxy_labels,
+                alpha=32.0,
+                delta=0.1,
+                receiver_indices=(0, 1),
+                expected_batch_size=2,
+                expected_dimension=2,
+            )
+
+
+class _NamedHeadWithDecoy(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = torch.nn.Module()
+        self.model.embedding = torch.nn.Linear(2, 3, dtype=torch.float64)
+        self.decoy = torch.nn.Linear(3, 3, dtype=torch.float64)
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        embedded = self.model.embedding(values)
+        self.decoy(embedded)
+        return embedded
+
+
+def test_capture_prehead_is_bound_to_exact_named_embedding_not_last_matching_linear() -> None:
+    """Catches selecting an executed decoy merely because its output shape matches."""
+    model = _NamedHeadWithDecoy()
+    images = torch.tensor([[0.2, -0.8], [1.1, 0.4]], dtype=torch.float64)
+    prehead, raw, output = _MODULE.capture_prehead_and_raw(
+        model,
+        images,
+        head_name="model.embedding",
+        expected_in_features=2,
+        expected_out_features=3,
+    )
+    assert torch.equal(prehead, images)
+    assert torch.equal(raw, output)
+
+
 def test_adjoint_identity_and_repeatability_are_exact_on_tiny_model() -> None:
     """Catches inconsistent functional graphs or a nondeterministic derivative path."""
     model, images, cotangents = _dense_affine_fixture()
@@ -1921,13 +2044,29 @@ def test_adjoint_identity_and_repeatability_are_exact_on_tiny_model() -> None:
         name: torch.arange(value.numel(), dtype=value.dtype).reshape(value.shape) / 17.0
         for name, value in model.named_parameters()
     }
-    first = _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0, 2))
-    second = _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0, 2))
+    first = _MODULE.exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
+    )
+    second = _MODULE.exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
+    )
     error = _MODULE.adjoint_relative_error(
         model,
         images,
         cotangents,
         direction,
+        expected_batch_size=3,
+        expected_dimension=3,
     )
 
     assert error < 1.0e-12
@@ -1989,6 +2128,18 @@ def test_configure_deterministic_process_requires_preexported_cublas_and_records
         torch.backends.cudnn.allow_tf32 = previous[3]
 
 
+def test_default_integrity_fixtures_persist_measured_residuals_not_booleans() -> None:
+    """Catches a scientific CLI that marks dense/BN fixtures passed without executing them."""
+    audit = _MODULE._default_fixture_runner()
+    assert audit["dense_fixture"]["passed"] is True
+    assert audit["dense_fixture"]["max_jacobian_residual"] <= 1.0e-8
+    assert audit["dense_fixture"]["max_finite_difference_residual"] <= 1.0e-6
+    assert audit["bn_fixture"]["passed"] is True
+    assert audit["bn_fixture"]["max_output_residual"] <= 1.0e-6
+    assert audit["bn_fixture"]["max_gradient_residual"] <= 1.0e-6
+    assert audit["bn_fixture"]["buffers_unchanged"] is True
+
+
 class _UnusedParameterModel(torch.nn.Module):
     def __init__(self) -> None:
         super().__init__()
@@ -2005,7 +2156,14 @@ def test_exact_kernel_fields_fail_closed_on_disconnected_parameter() -> None:
     images = torch.tensor([[0.2, 0.3], [0.7, -0.4]], dtype=torch.float64)
     cotangents = torch.tensor([[0.1, -0.2, 0.4], [0.5, 0.3, -0.1]], dtype=torch.float64)
     with pytest.raises(ValueError, match="missing gradient.*unused"):
-        _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0,))
+        _MODULE.exact_kernel_fields(
+            model,
+            images,
+            cotangents,
+            receiver_indices=(0,),
+            expected_batch_size=2,
+            expected_dimension=3,
+        )
 
 
 @pytest.mark.parametrize("defect", ["zero", "radial", "nonfinite"])
@@ -2028,65 +2186,143 @@ def test_project_and_validate_fields_rejects_registered_vector_defects(defect: s
         _MODULE.project_and_validate_fields(z, **vectors)
 
 
-def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schema() -> None:
-    """Catches an aggregate-only result or omission of a registered audit field."""
-    required = _MODULE.RECEIVER_AUDIT_FIELDS
-    row = {name: 1.0 for name in required}
-    row.update(
-        {
-            "seed": 0,
-            "label": 7,
-            "batch_index": 0,
-            "receiver_index": 3,
-            "receiver_id": "receiver-7",
-            "support_ids": ["support-a", "support-b"],
-            "foreign_ids": [f"foreign-{index}" for index in range(32)],
-            "batch_ids": [f"batch-{index}" for index in range(180)],
-            "batch_tensor_sha256": [f"{index:064x}" for index in range(180)],
-            "batch_id_order_sha256": _MODULE._ordered_text_sha256(
-                [f"batch-{index}" for index in range(180)]
-            ),
-            "tensor_sha256": "a" * 64,
+def _valid_scientific_payload_arguments() -> dict[str, Any]:
+    example_ids, labels = _selection_fixture()
+    primary = _MODULE.select_primary_panel(example_ids, labels)
+    alternate = _MODULE.select_alternate_panel(example_ids, labels, primary)
+    tensor_hashes = {
+        example_id: hashlib.sha256(example_id.encode()).hexdigest() for example_id in example_ids
+    }
+    rank_zero = {
+        label: support_ids[0] for label, support_ids in primary["support_ids_by_label"].items()
+    }
+
+    def make_row(seed: int, panel: str, position: int) -> dict[str, Any]:
+        selected = primary if panel == "primary" else alternate
+        label = selected["labels"][position]
+        receiver_id = selected["receiver_ids"][position]
+        batch_index = position // 8
+        batch_ids = selected["batches"][batch_index]
+        receiver_index = batch_ids.index(receiver_id)
+        foreign_ids = [
+            rank_zero[other]
+            for other in primary["eligible_labels"]
+            if other != label and rank_zero[other] not in batch_ids
+        ][:32]
+        a_self = 0.20 if panel == "primary" else 0.19
+        a_batch = 0.175 if panel == "primary" else 0.18
+        a_desc = 0.18
+        return {
+            "panel": panel,
+            "seed": seed,
+            "label": label,
+            "batch_index": batch_index,
+            "receiver_index": receiver_index,
+            "receiver_id": receiver_id,
+            "support_ids": primary["support_ids_by_label"][label],
+            "foreign_ids": foreign_ids,
+            "batch_ids": batch_ids,
+            "batch_tensor_sha256": [tensor_hashes[value] for value in batch_ids],
+            "batch_id_order_sha256": _MODULE._ordered_text_sha256(batch_ids),
+            "tensor_sha256": tensor_hashes[receiver_id],
+            "a_self": a_self,
+            "a_batch": a_batch,
+            "delta": a_self - a_batch,
+            "a_desc": a_desc,
+            "self_minus_desc": a_self - a_desc,
+            "rho": 0.15,
+            "log_ratio": 0.05,
+            "cos_b_s": 0.7,
+            "random_a_self": 0.03,
+            "random_a_batch": 0.02,
+            "random_delta": 0.01,
+            "deranged_a_self": 0.04,
+            "deranged_a_batch": 0.04,
+            "deranged_delta": 0.0,
+            "norm_z": 1.0,
+            "norm_dbar": 0.4,
+            "norm_b": 0.3,
+            "norm_s": 0.25,
+            "norm_q": 0.2,
+            "norm_random_target": 0.25,
+            "norm_deranged_target": 1.0,
+            "radial_fraction_dbar": 0.0,
+            "radial_fraction_b": 0.0,
+            "radial_fraction_s": 0.0,
+            "head_a_batch": 0.1,
+            "head_a_self": 0.2,
+            "head_self_desc_gap": 0.0,
+            "norm_b_head": 0.3,
+            "norm_s_head": 0.2,
             "support_cosines": [0.25] * 34,
         }
-    )
-    row["panel"] = "primary"
-    primary_rows = []
-    alternate_rows = []
-    alternate_labels = [
-        label for index, label in enumerate(_SELECTED_LABELS) if index % 8 in (0, 1)
+
+    primary_rows = [
+        make_row(seed, "primary", position) for seed in range(4) for position in range(64)
     ]
+    alternate_rows = [
+        make_row(seed, "alternate", position) for seed in range(4) for position in range(16)
+    ]
+    aggregation = _MODULE.decide_stage_a(primary_rows, alternate_rows)
+    _, matrices = _MODULE._panel_matrices(
+        primary_rows,
+        identity_count=64,
+        value_names=("delta", "self_minus_desc"),
+        panel_name="primary",
+    )
+    delta_bootstrap = _MODULE.joint_bootstrap(matrices["delta"])
+    self_desc_bootstrap = _MODULE.joint_bootstrap(matrices["self_minus_desc"])
+    used_ids = {value for batch in [*primary["batches"], *alternate["batches"]] for value in batch}
+    seed_audits = []
     for seed in range(4):
-        for label in _SELECTED_LABELS:
-            current = deepcopy(row)
-            current.update(
-                seed=seed,
-                label=label,
-                receiver_id=f"primary-{seed}-{label}",
-                delta=0.025,
-                self_minus_desc=0.02,
-                rho=0.15,
-                log_ratio=0.05,
-                deranged_delta=0.0,
-            )
-            primary_rows.append(current)
-        for label in alternate_labels:
-            current = deepcopy(row)
-            current.update(
-                panel="alternate",
-                seed=seed,
-                label=label,
-                receiver_id=f"alternate-{seed}-{label}",
-                delta=0.01,
-            )
-            alternate_rows.append(current)
+        seed_audits.append(
+            {
+                "seed": seed,
+                "official_recall_at_1": 0.9,
+                "artifact_binding": {"checkpoint_sha256": "d" * 64},
+                "config": {
+                    "batch_size": 180,
+                    "embedding_dimensions": 512,
+                    "proxy_anchor_alpha": 32.0,
+                    "proxy_anchor_delta": 0.1,
+                },
+                "parameter_names": ["model.embedding.weight", "model.embedding.bias"],
+                "parameter_count": 1024 * 512 + 512,
+                "proxy_sha256": "e" * 64,
+                "proxy_label_sha256": "f" * 64,
+                "train_example_id_order_sha256": _MODULE._ordered_text_sha256(example_ids),
+                "train_label_order_sha256": _MODULE._ordered_int64_sha256(labels),
+                "train_source_order_sha256": "3" * 64,
+                "transform_cache_order_sha256": _MODULE._ordered_text_sha256(sorted(used_ids)),
+                "transform_tensor_sha256": {
+                    value: tensor_hashes[value] for value in sorted(used_ids)
+                },
+                "primary_batch_ids": primary["batches"],
+                "alternate_batch_ids": alternate["batches"],
+            }
+        )
     integrity = {
-        "dense_fixture": True,
-        "bn_fixture": True,
+        "dense_fixture": {
+            "passed": True,
+            "max_jacobian_residual": 1.0e-10,
+            "max_finite_difference_residual": 1.0e-8,
+            "jacobian_tolerance": 1.0e-8,
+            "finite_difference_tolerance": 1.0e-6,
+        },
+        "bn_fixture": {
+            "passed": True,
+            "max_output_residual": 1.0e-8,
+            "max_gradient_residual": 1.0e-8,
+            "tolerance": 1.0e-6,
+            "buffers_unchanged": True,
+        },
         "seeds": [
             {
                 "seed": seed,
-                "repeatability": True,
+                "repeatability": {
+                    name: {"first_sha256": str(seed) * 64, "repeat_sha256": str(seed) * 64}
+                    for name in ("z", "dbar", "b", "s")
+                },
                 "adjoint_relative_error": 0.0,
                 "rotation": {
                     "vector_residuals": {name: 0.0 for name in ("z", "dbar", "b", "s", "q")},
@@ -2107,85 +2343,126 @@ def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schem
             for seed in range(4)
         ],
     }
-    aggregation = _MODULE.decide_stage_a(primary_rows, alternate_rows)
-    _, primary_matrix = _MODULE._panel_matrices(
-        primary_rows,
-        identity_count=64,
-        value_names=("delta", "self_minus_desc"),
-        panel_name="primary",
-    )
-    bootstrap_delta = _MODULE.joint_bootstrap(primary_matrix["delta"])
-    bootstrap_self_desc = _MODULE.joint_bootstrap(primary_matrix["self_minus_desc"])
-    bootstrap = {
-        "delta_distribution": bootstrap_delta.tolist(),
-        "delta_sha256": _MODULE.float64_c_order_sha256(bootstrap_delta),
-        "self_minus_desc_distribution": bootstrap_self_desc.tolist(),
-        "self_minus_desc_sha256": _MODULE.float64_c_order_sha256(bootstrap_self_desc),
+    return {
+        "manifest_audit": {"sha256": "b" * 64},
+        "environment": {
+            "cublas_workspace_config": ":4096:8",
+            "deterministic_algorithms": True,
+            "deterministic_warn_only": False,
+            "cudnn_benchmark": False,
+            "cuda_matmul_tf32": False,
+            "cudnn_tf32": False,
+            "autocast": False,
+            "model_arithmetic": "float32",
+            "reduction_arithmetic": "float64",
+            "torch_version": torch.__version__,
+            "numpy_version": np.__version__,
+        },
+        "seed_audits": seed_audits,
+        "primary_rows": primary_rows,
+        "alternate_rows": alternate_rows,
+        "integrity": integrity,
+        "aggregation": aggregation,
+        "bootstrap": {
+            "delta_distribution": delta_bootstrap.tolist(),
+            "delta_sha256": _MODULE.float64_c_order_sha256(delta_bootstrap),
+            "self_minus_desc_distribution": self_desc_bootstrap.tolist(),
+            "self_minus_desc_sha256": _MODULE.float64_c_order_sha256(self_desc_bootstrap),
+        },
+        "panel_binding": {
+            "primary": primary,
+            "alternate": alternate,
+            "expected_dimension": 512,
+            "tensor_sha256": tensor_hashes,
+            "foreign_support_ids": sorted(rank_zero.values()),
+        },
     }
-    environment = {
-        "cublas_workspace_config": ":4096:8",
-        "deterministic_algorithms": True,
-        "deterministic_warn_only": False,
-        "cudnn_benchmark": False,
-        "cuda_matmul_tf32": False,
-        "cudnn_tf32": False,
-        "autocast": False,
-        "model_arithmetic": "float32",
-        "reduction_arithmetic": "float64",
-        "torch_version": torch.__version__,
-        "numpy_version": np.__version__,
-    }
-    batch_matrix = [[f"batch-{row}" for row in range(180)] for _ in range(8)]
-    alternate_batch_matrix = batch_matrix[:2]
-    seed_audits = [
-        {
-            "seed": seed,
-            "official_recall_at_1": 0.9,
-            "artifact_binding": {"checkpoint_sha256": "d" * 64},
-            "config": {"batch_size": 180},
-            "parameter_names": ["projection.weight"],
-            "parameter_count": 6,
-            "proxy_sha256": "e" * 64,
-            "proxy_label_sha256": "f" * 64,
-            "train_example_id_order_sha256": "1" * 64,
-            "train_label_order_sha256": "2" * 64,
-            "train_source_order_sha256": "3" * 64,
-            "transform_cache_order_sha256": "4" * 64,
-            "transform_tensor_sha256": {"example": "5" * 64},
-            "primary_batch_ids": batch_matrix,
-            "alternate_batch_ids": alternate_batch_matrix,
-        }
-        for seed in range(4)
-    ]
 
-    payload = _MODULE.scientific_payload(
-        manifest_audit={"sha256": "b" * 64},
-        environment=environment,
-        seed_audits=seed_audits,
-        primary_rows=primary_rows,
-        alternate_rows=alternate_rows,
-        integrity=integrity,
-        aggregation=aggregation,
-        bootstrap=bootstrap,
-    )
 
+def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schema() -> None:
+    """Catches an aggregate-only result or omission of a registered audit field."""
+    arguments = _valid_scientific_payload_arguments()
+    payload = _MODULE.scientific_payload(**arguments)
     assert payload["candidate_values_computed"] is True
-    assert payload["rows"]["primary"][0]["receiver_id"] == f"primary-0-{_SELECTED_LABELS[0]}"
-    assert len(payload["rows"]["primary"][0]["batch_ids"]) == 180
-    assert payload["aggregation"]["first_decisive_clause"] == "no_pass_or_fail_rule"
-    broken = deepcopy(primary_rows[0])
-    broken.pop(next(iter(required)))
-    with pytest.raises(ValueError, match="receiver audit fields"):
-        _MODULE.scientific_payload(
-            manifest_audit={"sha256": "b" * 64},
-            environment=environment,
-            seed_audits=seed_audits,
-            primary_rows=[broken, *primary_rows[1:]],
-            alternate_rows=alternate_rows,
-            integrity=integrity,
-            aggregation=aggregation,
-            bootstrap=bootstrap,
-        )
+    assert len(payload["rows"]["primary"]) == 4 * 64
+    assert len(payload["rows"]["alternate"]) == 4 * 16
+    assert "control_aggregates" in payload["aggregation"]
+
+
+@pytest.mark.parametrize(
+    ("target", "field", "value", "message"),
+    [
+        ("primary_rows", "norm_b", 0.0, "norm"),
+        ("primary_rows", "norm_z", 1.01, "unit"),
+        ("primary_rows", "radial_fraction_b", 0.002, "radial"),
+        ("primary_rows", "head_self_desc_gap", 0.001, "head"),
+        ("primary_rows", "a_self", 2.0, "cosine"),
+        ("primary_rows", "rho", 1.1, "rho"),
+        ("primary_rows", "receiver_id", "forged", "receiver|registered"),
+        ("primary_rows", "tensor_sha256", "not-a-sha", "SHA-256"),
+        ("integrity", "rotation_vector", 0.001, "rotation"),
+    ],
+)
+def test_scientific_payload_rejects_every_mandatory_invalid_mutation(
+    target: str, field: str, value: Any, message: str
+) -> None:
+    """Catches accepting an INVALID row, forged role, hash, or failed rotation gate."""
+    arguments = _valid_scientific_payload_arguments()
+    if target == "primary_rows":
+        arguments[target][0][field] = value
+    else:
+        arguments["integrity"]["seeds"][0]["rotation"]["vector_residuals"]["z"] = value
+    with pytest.raises(ValueError, match=message):
+        _MODULE.scientific_payload(**arguments)
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "duplicate_support",
+        "duplicate_foreign",
+        "support_in_batch",
+        "receiver_index",
+        "batch_tensor_hash",
+        "alternate_tensor",
+        "seed_batch_matrix",
+        "seed_transform_hash",
+        "parameter_order",
+        "repeatability_hash",
+        "rotation_scalar",
+    ],
+)
+def test_scientific_payload_binds_ids_hashes_roles_and_integrity(defect: str) -> None:
+    """Catches internally consistent-looking rows detached from the frozen panel/model audit."""
+    arguments = _valid_scientific_payload_arguments()
+    row = arguments["primary_rows"][0]
+    if defect == "duplicate_support":
+        row["support_ids"][1] = row["support_ids"][0]
+    elif defect == "duplicate_foreign":
+        row["foreign_ids"][1] = row["foreign_ids"][0]
+    elif defect == "support_in_batch":
+        row["support_ids"][0] = row["batch_ids"][1]
+    elif defect == "receiver_index":
+        row["receiver_index"] = (row["receiver_index"] + 1) % 180
+    elif defect == "batch_tensor_hash":
+        row["batch_tensor_sha256"][row["receiver_index"]] = "0" * 64
+    elif defect == "alternate_tensor":
+        alternate = arguments["alternate_rows"][0]
+        changed = "0" * 64
+        alternate["tensor_sha256"] = changed
+        alternate["batch_tensor_sha256"][alternate["receiver_index"]] = changed
+    elif defect == "seed_batch_matrix":
+        arguments["seed_audits"][0]["primary_batch_ids"][0] = list(reversed(row["batch_ids"]))
+    elif defect == "seed_transform_hash":
+        arguments["seed_audits"][0]["transform_tensor_sha256"][row["receiver_id"]] = "0" * 64
+    elif defect == "parameter_order":
+        arguments["seed_audits"][1]["parameter_names"].reverse()
+    elif defect == "repeatability_hash":
+        arguments["integrity"]["seeds"][0]["repeatability"]["z"]["repeat_sha256"] = "f" * 64
+    else:
+        arguments["integrity"]["seeds"][0]["rotation"]["statistic_differences"]["Delta"] = 3.0e-4
+    with pytest.raises(ValueError):
+        _MODULE.scientific_payload(**arguments)
 
 
 def _unit_numpy(values: np.ndarray) -> np.ndarray:
@@ -2280,6 +2557,8 @@ def test_exact_fields_and_registered_statistics_rotate_with_affine_head() -> Non
         alpha=32.0,
         delta=0.1,
         receiver_indices=(0, 1, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
     )
     rotated = _MODULE.exact_contextual_rsta_fields(
         rotated_model,
@@ -2290,6 +2569,8 @@ def test_exact_fields_and_registered_statistics_rotate_with_affine_head() -> Non
         alpha=32.0,
         delta=0.1,
         receiver_indices=(0, 1, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
     )
     receiver = 0
     generator = np.random.Generator(np.random.PCG64(18))
@@ -2355,3 +2636,121 @@ def test_exact_fields_and_registered_statistics_rotate_with_affine_head() -> Non
     )
     assert max(audit["vector_residuals"].values()) < 1.0e-10
     assert max(audit["statistic_differences"].values()) < 1.0e-10
+
+
+def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches a schema-only implementation with no executable four-seed scientific path."""
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    example_ids, raw_labels = _selection_fixture()
+    labels = [
+        label if index < 210 else 1_000 + (index - 210) // 2
+        for index, label in enumerate(raw_labels)
+    ]
+    generator = np.random.Generator(np.random.PCG64(991))
+    clean = _unit_numpy(generator.standard_normal((len(example_ids), 3))).astype(np.float32)
+    proxy_labels = tuple(sorted(set(labels)))
+    proxies = _unit_numpy(generator.standard_normal((len(proxy_labels), 3))).astype(np.float32)
+    source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
+
+    def bound_for(seed: int) -> Any:
+        return _MODULE.TrainingOnlySeedInput(
+            seed=seed,
+            train_embeddings=np.frombuffer(clean.tobytes(), dtype=np.float32).reshape(clean.shape),
+            train_labels=tuple(labels),
+            train_example_ids=tuple(example_ids),
+            train_source_paths=source_paths,
+            train_row_indices=tuple(range(len(example_ids))),
+            proxies=np.frombuffer(proxies.tobytes(), dtype=np.float32).reshape(proxies.shape),
+            proxy_labels=proxy_labels,
+            alpha=32.0,
+            delta=0.1,
+            official_recall_at_1=0.9,
+            checkpoint_path=tmp_path / f"seed-{seed}.pt",
+            config={
+                "batch_size": 180,
+                "embedding_dimensions": 3,
+                "proxy_anchor_alpha": 32.0,
+                "proxy_anchor_delta": 0.1,
+            },
+            artifact_binding={"checkpoint_sha256": f"{seed + 1}" * 64},
+        )
+
+    bound_calls: list[int] = []
+
+    def bound_loader(_entry: Any, *, seed: int, **_kwargs: Any) -> Any:
+        bound_calls.append(seed)
+        return bound_for(seed)
+
+    def cache_builder(bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
+        sources = {value: value for value in ordered_ids}
+
+        def transform(example_id: str) -> torch.Tensor:
+            seed = _MODULE.domain_seed("tiny-rsta-transform", example_id)
+            values = np.random.Generator(np.random.PCG64(seed)).standard_normal(2)
+            return torch.tensor(values, dtype=torch.float32)
+
+        return _MODULE.cache_deterministic_transforms(ordered_ids, sources, transform=transform)
+
+    class TinyOfficialHead(torch.nn.Module):
+        def __init__(self, seed: int) -> None:
+            super().__init__()
+            torch.manual_seed(seed + 20)
+            self.model = torch.nn.Module()
+            self.model.embedding = torch.nn.Linear(2, 3)
+
+        def forward(self, values: torch.Tensor) -> torch.Tensor:
+            return torch.nn.functional.normalize(self.model.embedding(values), dim=-1)
+
+    rotation_calls: list[int] = []
+
+    def rotation_auditor(*args: Any, seed: int, **kwargs: Any) -> dict[str, Any]:
+        rotation_calls.append(seed)
+        return _MODULE._default_rotation_auditor(*args, seed=seed, **kwargs)
+
+    fixture_audit = {
+        "dense_fixture": {
+            "passed": True,
+            "max_jacobian_residual": 0.0,
+            "max_finite_difference_residual": 0.0,
+            "jacobian_tolerance": 1.0e-8,
+            "finite_difference_tolerance": 1.0e-6,
+        },
+        "bn_fixture": {
+            "passed": True,
+            "max_output_residual": 0.0,
+            "max_gradient_residual": 0.0,
+            "tolerance": 1.0e-6,
+            "buffers_unchanged": True,
+        },
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps({"seeds": {str(seed): {} for seed in range(4)}}), encoding="utf-8"
+    )
+    output = tmp_path / "scientific.json"
+    validated: list[Path] = []
+
+    _MODULE.main(
+        ["--manifest", str(manifest_path), "--output", str(output), "--scientific"],
+        expected_dimension=3,
+        manifest_validator=lambda _manifest, *, manifest_path: validated.append(manifest_path),
+        bound_loader=bound_loader,
+        cache_builder=cache_builder,
+        model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
+        fixture_runner=lambda: fixture_audit,
+        rotation_auditor=rotation_auditor,
+        head_name="model.embedding",
+        expected_head_in_features=2,
+    )
+
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert validated == [manifest_path]
+    assert bound_calls == [0, 1, 2, 3]
+    assert rotation_calls == [0, 1, 2, 3]
+    assert result["mode"] == "scientific"
+    assert len(result["rows"]["primary"]) == 4 * 64
+    assert len(result["rows"]["alternate"]) == 4 * 16
+    assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
+    assert result["exclusions"] == []

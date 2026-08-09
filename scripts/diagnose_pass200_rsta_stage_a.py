@@ -812,66 +812,79 @@ def make_bufferless_train_clone(model: Any) -> Any:
     return clone
 
 
-def capture_prehead_and_raw(model: Any, images: Any) -> tuple[Any, Any, Any]:
-    """Capture the input/output of the executed final affine head in one full forward."""
+def capture_prehead_and_raw(
+    model: Any,
+    images: Any,
+    *,
+    head_name: str = "model.embedding",
+    expected_in_features: int = 1024,
+    expected_out_features: int = 512,
+) -> tuple[Any, Any, Any]:
+    """Capture the exact artifact-bound affine embedding head in one full forward."""
     import torch
 
-    captures: list[tuple[str, Any, Any]] = []
-    handles = []
-    for name, module in model.named_modules():
-        if isinstance(module, torch.nn.Linear):
+    try:
+        head = model.get_submodule(head_name)
+    except (AttributeError, KeyError) as error:
+        raise ValueError(f"encoder lacks exact affine head {head_name}") from error
+    if (
+        not isinstance(head, torch.nn.Linear)
+        or int(head.in_features) != int(expected_in_features)
+        or int(head.out_features) != int(expected_out_features)
+    ):
+        raise ValueError(
+            f"exact affine head {head_name} must be {expected_in_features}->{expected_out_features}"
+        )
+    captures: list[tuple[Any, Any]] = []
 
-            def capture(
-                _module: Any,
-                inputs: tuple[Any, ...],
-                output: Any,
-                *,
-                module_name: str = name,
-            ) -> None:
-                if len(inputs) != 1:
-                    raise ValueError("affine head must receive exactly one tensor")
-                captures.append((module_name, inputs[0], output))
+    def capture(_module: Any, inputs: tuple[Any, ...], output: Any) -> None:
+        if len(inputs) != 1:
+            raise ValueError("affine head must receive exactly one tensor")
+        captures.append((inputs[0], output))
 
-            handles.append(module.register_forward_hook(capture))
-    if not handles:
-        raise ValueError("encoder has no affine embedding head")
+    handle = head.register_forward_hook(capture)
     try:
         output = model(images)
     finally:
-        for handle in handles:
-            handle.remove()
-    aligned = [
-        capture
-        for capture in captures
-        if isinstance(capture[1], torch.Tensor)
-        and isinstance(capture[2], torch.Tensor)
-        and capture[1].ndim == 2
-        and capture[2].ndim == 2
-        and capture[2].shape == output.shape
-    ]
-    if not aligned:
-        raise ValueError("no executed affine head matches the encoder output shape")
-    _, prehead, raw_head = aligned[-1]
+        handle.remove()
+    if len(captures) != 1:
+        raise ValueError(f"exact affine head {head_name} must execute exactly once")
+    prehead, raw_head = captures[0]
+    if (
+        not isinstance(prehead, torch.Tensor)
+        or not isinstance(raw_head, torch.Tensor)
+        or prehead.shape != (images.shape[0], expected_in_features)
+        or raw_head.shape != (images.shape[0], expected_out_features)
+        or output.shape != raw_head.shape
+    ):
+        raise ValueError("exact affine head tensors differ from the artifact contract")
     return prehead, raw_head, output
 
 
 def _functional_encoder(
     model: Any,
     images: Any,
+    *,
+    expected_batch_size: int,
+    expected_dimension: int,
 ) -> tuple[Callable[[dict[str, Any]], Any], dict[str, Any], tuple[str, ...]]:
     import torch
 
-    if not isinstance(images, torch.Tensor) or images.ndim < 2 or images.shape[0] == 0:
-        raise ValueError("encoder images must be a nonempty tensor batch")
+    if not model.training:
+        raise ValueError("exact derivative encoder must be in train mode")
+    if (
+        not isinstance(images, torch.Tensor)
+        or images.ndim < 2
+        or images.shape[0] != int(expected_batch_size)
+    ):
+        raise ValueError(f"exact derivative batch size {expected_batch_size} is required")
     if not bool(torch.isfinite(images).all()):
         raise ValueError("encoder images must be finite")
     for module in model.modules():
-        if (
-            isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
-            and module.training
-            and module.track_running_stats
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm) and (
+            not module.training or module.track_running_stats
         ):
-            raise ValueError("train-mode BatchNorm must be bufferless before derivative work")
+            raise ValueError("every BatchNorm must be train mode and bufferless")
     parameters = {
         name: parameter for name, parameter in model.named_parameters() if parameter.requires_grad
     }
@@ -887,34 +900,16 @@ def _functional_encoder(
             (images,),
             strict=True,
         )
-        if not isinstance(raw, torch.Tensor) or raw.ndim != 2 or raw.shape[0] != images.shape[0]:
-            raise ValueError("encoder must return a [batch, dimension] tensor")
+        if not isinstance(raw, torch.Tensor) or raw.shape != (
+            int(expected_batch_size),
+            int(expected_dimension),
+        ):
+            raise ValueError(
+                f"exact derivative descriptor dimension {expected_dimension} is required"
+            )
         return torch.nn.functional.normalize(raw, p=2, dim=-1)
 
     return encoder, parameters, parameter_names
-
-
-def _reject_disconnected_parameters(
-    encoder: Callable[[dict[str, Any]], Any],
-    parameters: dict[str, Any],
-    parameter_names: Sequence[str],
-) -> None:
-    import torch
-
-    probe = encoder(parameters)
-    gradients = torch.autograd.grad(
-        probe,
-        tuple(parameters.values()),
-        grad_outputs=torch.ones_like(probe),
-        allow_unused=True,
-        retain_graph=False,
-        create_graph=False,
-    )
-    missing = [
-        name for name, gradient in zip(parameter_names, gradients, strict=True) if gradient is None
-    ]
-    if missing:
-        raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
 
 
 def _flatten_parameter_tree(tree: Mapping[str, Any], names: Sequence[str]) -> Any:
@@ -929,13 +924,38 @@ def exact_kernel_fields(
     cotangents: Any,
     *,
     receiver_indices: Sequence[int],
+    expected_batch_size: int = 180,
+    expected_dimension: int = 512,
+    _graph: tuple[Any, ...] | None = None,
 ) -> dict[str, Any]:
     """Compute exact ``J J^T dbar`` and serial ``J_i J_i^T dbar_i`` motions."""
     import torch
 
-    encoder, parameters, parameter_names = _functional_encoder(model, images)
-    _reject_disconnected_parameters(encoder, parameters, parameter_names)
-    z, vjp_function = torch.func.vjp(encoder, parameters)
+    if _graph is None:
+        encoder, parameters, parameter_names = _functional_encoder(
+            model,
+            images,
+            expected_batch_size=expected_batch_size,
+            expected_dimension=expected_dimension,
+        )
+        z, vjp_function = torch.func.vjp(encoder, parameters)
+        dependencies = torch.autograd.grad(
+            z,
+            tuple(parameters.values()),
+            grad_outputs=torch.ones_like(z),
+            allow_unused=True,
+            retain_graph=True,
+            create_graph=False,
+        )
+        missing = [
+            name
+            for name, gradient in zip(parameter_names, dependencies, strict=True)
+            if gradient is None
+        ]
+        if missing:
+            raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
+    else:
+        encoder, parameters, parameter_names, z, vjp_function = _graph
     directions = torch.as_tensor(cotangents, device=z.device, dtype=z.dtype)
     if directions.shape != z.shape or not bool(torch.isfinite(directions).all()):
         raise ValueError("cotangents must be a finite tensor aligned with descriptors")
@@ -1002,14 +1022,44 @@ def exact_contextual_rsta_fields(
     alpha: float,
     delta: float,
     receiver_indices: Sequence[int],
+    expected_batch_size: int = 180,
+    expected_dimension: int = 512,
 ) -> dict[str, Any]:
     """Construct the exact same-batch PA cotangent, then apply the encoder tangent kernel."""
     import torch
 
-    from sfora.image_end_to_end import _normalize, _proxy_anchor_loss
+    from sfora.image_end_to_end import _proxy_anchor_loss
 
-    raw = model(images)
-    z = _normalize(raw, torch)
+    if float(alpha) != 32.0:
+        raise ValueError("Proxy Anchor alpha must equal 32")
+    if float(delta) != 0.1:
+        raise ValueError("Proxy Anchor delta must equal 0.1")
+    encoder, parameters, parameter_names = _functional_encoder(
+        model,
+        images,
+        expected_batch_size=expected_batch_size,
+        expected_dimension=expected_dimension,
+    )
+    z, vjp_function = torch.func.vjp(encoder, parameters)
+    dependencies = torch.autograd.grad(
+        z,
+        tuple(parameters.values()),
+        grad_outputs=torch.ones_like(z),
+        allow_unused=True,
+        retain_graph=True,
+        create_graph=False,
+    )
+    missing = [
+        name
+        for name, gradient in zip(parameter_names, dependencies, strict=True)
+        if gradient is None
+    ]
+    if missing:
+        raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
+    if labels.shape != (expected_batch_size,):
+        raise ValueError("Proxy Anchor labels differ from exact batch size")
+    if proxies.ndim != 2 or proxies.shape[1] != expected_dimension:
+        raise ValueError("Proxy Anchor proxies differ from exact descriptor dimension")
     loss = _proxy_anchor_loss(
         z,
         labels,
@@ -1025,9 +1075,10 @@ def exact_contextual_rsta_fields(
         images,
         dbar,
         receiver_indices=receiver_indices,
+        expected_batch_size=expected_batch_size,
+        expected_dimension=expected_dimension,
+        _graph=(encoder, parameters, parameter_names, z, vjp_function),
     )
-    if not torch.equal(fields["z"], z):
-        raise ValueError("same-batch functional encoder did not reproduce the contextual PA graph")
     fields["loss"] = loss
     fields["dbar"] = dbar
     return fields
@@ -1038,11 +1089,19 @@ def adjoint_relative_error(
     images: Any,
     output_direction: Any,
     parameter_direction: Mapping[str, Any],
+    *,
+    expected_batch_size: int = 180,
+    expected_dimension: int = 512,
 ) -> float:
     """Return the registered relative error in ``<Jv,u> = <v,J^T u>``."""
     import torch
 
-    encoder, parameters, parameter_names = _functional_encoder(model, images)
+    encoder, parameters, parameter_names = _functional_encoder(
+        model,
+        images,
+        expected_batch_size=expected_batch_size,
+        expected_dimension=expected_dimension,
+    )
     if set(parameter_direction) != set(parameter_names):
         raise ValueError("adjoint direction must contain every encoder parameter exactly")
     tangents = {
@@ -1192,15 +1251,199 @@ def _validate_receiver_audit_row(row: Mapping[str, Any], *, expected_panel: str)
         raise ValueError("receiver audit requires exactly two support IDs")
     if len(row["foreign_ids"]) != 32:
         raise ValueError("receiver audit requires exactly 32 foreign IDs")
+    if (
+        len(set(row["support_ids"])) != 2
+        or len(set(row["foreign_ids"])) != 32
+        or set(row["support_ids"]) & set(row["foreign_ids"])
+    ):
+        raise ValueError("receiver support and foreign IDs must be unique and disjoint")
     if len(row["batch_ids"]) != 180 or len(set(row["batch_ids"])) != 180:
         raise ValueError("receiver audit requires 180 unique ordered batch IDs")
+    receiver_index = row["receiver_index"]
+    if (
+        isinstance(receiver_index, bool)
+        or not isinstance(receiver_index, (int, np.integer))
+        or int(receiver_index) < 0
+        or int(receiver_index) >= 180
+        or row["batch_ids"][int(receiver_index)] != row["receiver_id"]
+    ):
+        raise ValueError("receiver audit receiver index and batch membership differ")
+    if (
+        row["receiver_id"] in row["support_ids"]
+        or row["receiver_id"] in row["foreign_ids"]
+        or set(row["support_ids"]) & set(row["batch_ids"])
+        or set(row["foreign_ids"]) & set(row["batch_ids"])
+    ):
+        raise ValueError("receiver supports and foreign IDs must be absent from the batch")
     if len(row["batch_tensor_sha256"]) != 180:
         raise ValueError("receiver audit requires every ordered batch tensor hash")
     if row["batch_id_order_sha256"] != _ordered_text_sha256(row["batch_ids"]):
         raise ValueError("receiver audit batch-ID order hash differs")
     if len(row["support_cosines"]) != 34:
         raise ValueError("receiver audit requires every support cosine")
+    sha_fields = [row["tensor_sha256"], *row["batch_tensor_sha256"]]
+    if any(
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+        for value in sha_fields
+    ):
+        raise ValueError("receiver audit SHA-256 values must be lowercase hex")
+    if row["batch_tensor_sha256"][int(receiver_index)] != row["tensor_sha256"]:
+        raise ValueError("receiver tensor SHA-256 differs from its batch tensor hash")
+    scalar_names = RECEIVER_AUDIT_FIELDS - {
+        "panel",
+        "seed",
+        "label",
+        "batch_index",
+        "receiver_index",
+        "receiver_id",
+        "support_ids",
+        "foreign_ids",
+        "batch_ids",
+        "batch_tensor_sha256",
+        "batch_id_order_sha256",
+        "tensor_sha256",
+        "support_cosines",
+    }
+    if any(not np.isfinite(float(row[name])) for name in scalar_names) or any(
+        not np.isfinite(float(value)) for value in row["support_cosines"]
+    ):
+        raise ValueError("receiver audit scalar is nonfinite")
+    norm_names = (
+        "norm_dbar",
+        "norm_b",
+        "norm_s",
+        "norm_q",
+        "norm_random_target",
+        "norm_deranged_target",
+        "norm_b_head",
+        "norm_s_head",
+    )
+    if any(float(row[name]) <= _VECTOR_EPS for name in norm_names):
+        raise ValueError("receiver audit norm must be finite and positive")
+    if abs(float(row["norm_z"]) - 1.0) > 2.0e-5:
+        raise ValueError("receiver audit unit norm exceeds tolerance")
+    if any(
+        float(row[name]) < 0.0 or float(row[name]) > 1.0e-3
+        for name in ("radial_fraction_dbar", "radial_fraction_b", "radial_fraction_s")
+    ):
+        raise ValueError("receiver audit radial fraction exceeds tolerance")
+    if abs(float(row["head_self_desc_gap"])) > 1.0e-5:
+        raise ValueError("receiver audit head self-descriptor gap exceeds tolerance")
+    cosine_names = (
+        "a_self",
+        "a_batch",
+        "a_desc",
+        "cos_b_s",
+        "random_a_self",
+        "random_a_batch",
+        "deranged_a_self",
+        "deranged_a_batch",
+        "head_a_batch",
+        "head_a_self",
+    )
+    if any(abs(float(row[name])) > 1.0 + 1.0e-12 for name in cosine_names) or any(
+        abs(float(value)) > 1.0 + 1.0e-12 for value in row["support_cosines"]
+    ):
+        raise ValueError("receiver audit cosine lies outside [-1,1]")
+    if float(row["rho"]) < 0.0 or float(row["rho"]) > 1.0 + 1.0e-12:
+        raise ValueError("receiver audit rho lies outside [0,1]")
+    identities = (
+        ("delta", "a_self", "a_batch"),
+        ("self_minus_desc", "a_self", "a_desc"),
+        ("random_delta", "random_a_self", "random_a_batch"),
+        ("deranged_delta", "deranged_a_self", "deranged_a_batch"),
+    )
+    if any(
+        abs(float(row[result]) - (float(row[left]) - float(row[right]))) > 1.0e-12
+        for result, left, right in identities
+    ):
+        raise ValueError("receiver audit signed difference is inconsistent")
     json.dumps(_json_ready(dict(row)), allow_nan=False)
+
+
+def _validate_registered_rows(
+    primary_rows: Sequence[Mapping[str, Any]],
+    alternate_rows: Sequence[Mapping[str, Any]],
+    seed_audits: Sequence[Mapping[str, Any]],
+    panel_binding: Mapping[str, Any],
+) -> None:
+    primary = panel_binding.get("primary")
+    alternate = panel_binding.get("alternate")
+    tensor_hashes = panel_binding.get("tensor_sha256")
+    expected_dimension = panel_binding.get("expected_dimension")
+    foreign_support_ids = set(panel_binding.get("foreign_support_ids", ()))
+    if not all(isinstance(value, Mapping) for value in (primary, alternate, tensor_hashes)):
+        raise ValueError("registered panel binding is incomplete")
+    expected_panels = {"primary": primary, "alternate": alternate}
+    rows_by_panel = {"primary": primary_rows, "alternate": alternate_rows}
+    primary_tensors: dict[tuple[int, str], str] = {}
+    for panel_name, rows in rows_by_panel.items():
+        selected = expected_panels[panel_name]
+        expected_count = 64 if panel_name == "primary" else 16
+        by_seed = {seed: [] for seed in range(4)}
+        for row in rows:
+            by_seed[int(row["seed"])].append(row)
+        for seed in range(4):
+            if len(by_seed[seed]) != expected_count:
+                raise ValueError("registered panel row count differs")
+            ordered = sorted(by_seed[seed], key=lambda row: selected["labels"].index(row["label"]))
+            for position, row in enumerate(ordered):
+                expected_id = selected["receiver_ids"][position]
+                batch_index = position // 8
+                expected_batch = selected["batches"][batch_index]
+                if (
+                    row["receiver_id"] != expected_id
+                    or row["batch_index"] != batch_index
+                    or row["batch_ids"] != expected_batch
+                    or row["support_ids"] != primary["support_ids_by_label"][row["label"]]
+                ):
+                    raise ValueError("receiver row differs from registered roles or batches")
+                if not set(row["foreign_ids"]) <= foreign_support_ids:
+                    raise ValueError("receiver foreign IDs differ from registered rank-0 supports")
+                if row["tensor_sha256"] != tensor_hashes[expected_id]:
+                    raise ValueError("receiver SHA-256 differs from registered tensor")
+                if row["batch_tensor_sha256"] != [tensor_hashes[value] for value in expected_batch]:
+                    raise ValueError("batch tensor SHA-256 list differs from registered tensors")
+                if panel_name == "primary":
+                    primary_tensors[(seed, expected_id)] = row["tensor_sha256"]
+                elif row["tensor_sha256"] != primary_tensors[(seed, expected_id)]:
+                    raise ValueError("alternate receiver tensor differs from its primary tensor")
+    for audit in seed_audits:
+        config = audit["config"]
+        if (
+            config.get("batch_size") != 180
+            or config.get("embedding_dimensions") != expected_dimension
+            or config.get("proxy_anchor_alpha") != 32.0
+            or config.get("proxy_anchor_delta") != 0.1
+        ):
+            raise ValueError("seed audit config differs from registered scientific execution")
+        audit_hashes = (
+            "proxy_sha256",
+            "proxy_label_sha256",
+            "train_example_id_order_sha256",
+            "train_label_order_sha256",
+            "train_source_order_sha256",
+            "transform_cache_order_sha256",
+        )
+        if any(
+            not isinstance(audit[name], str)
+            or len(audit[name]) != 64
+            or any(character not in "0123456789abcdef" for character in audit[name])
+            for name in audit_hashes
+        ):
+            raise ValueError("seed audit SHA-256 must be lowercase hex")
+        if (
+            audit["primary_batch_ids"] != primary["batches"]
+            or audit["alternate_batch_ids"] != alternate["batches"]
+        ):
+            raise ValueError("seed audit batch matrices differ from registered panels")
+        observed = audit["transform_tensor_sha256"]
+        for batch in [*primary["batches"], *alternate["batches"]]:
+            for example_id in batch:
+                if observed.get(example_id) != tensor_hashes[example_id]:
+                    raise ValueError("seed audit transform/tensor SHA-256 differs")
 
 
 def scientific_payload(
@@ -1213,6 +1456,7 @@ def scientific_payload(
     integrity: Mapping[str, Any],
     aggregation: Mapping[str, Any],
     bootstrap: Mapping[str, Any],
+    panel_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build the non-lossy scientific result contract; aggregate-only output is forbidden."""
     if ENVIRONMENT_AUDIT_FIELDS - set(environment):
@@ -1236,16 +1480,33 @@ def scientific_payload(
     for row in alternate_rows:
         _validate_receiver_audit_row(row, expected_panel="alternate")
     for gate in ("dense_fixture", "bn_fixture"):
-        if integrity.get(gate) is not True:
+        fixture = integrity.get(gate)
+        if not isinstance(fixture, Mapping) or fixture.get("passed") is not True:
             raise ValueError(f"integrity gate failed: {gate}")
+        residuals = [
+            float(value)
+            for name, value in fixture.items()
+            if "residual" in name and not isinstance(value, bool)
+        ]
+        if not residuals or any(not np.isfinite(value) or value < 0.0 for value in residuals):
+            raise ValueError(f"integrity fixture residuals are incomplete: {gate}")
     integrity_seeds = integrity.get("seeds")
     if not isinstance(integrity_seeds, Sequence) or {
         audit.get("seed") for audit in integrity_seeds if isinstance(audit, Mapping)
     } != {0, 1, 2, 3}:
         raise ValueError("integrity requires exactly seeds 0-3")
     for audit in integrity_seeds:
-        if not isinstance(audit, Mapping) or audit.get("repeatability") is not True:
+        repeatability = audit.get("repeatability") if isinstance(audit, Mapping) else None
+        if not isinstance(repeatability, Mapping) or set(repeatability) != {"z", "dbar", "b", "s"}:
             raise ValueError("integrity repeatability gate failed")
+        for hashes in repeatability.values():
+            if (
+                not isinstance(hashes, Mapping)
+                or hashes.get("first_sha256") != hashes.get("repeat_sha256")
+                or not isinstance(hashes.get("first_sha256"), str)
+                or len(hashes["first_sha256"]) != 64
+            ):
+                raise ValueError("integrity repeatability hashes differ")
         adjoint = float(audit.get("adjoint_relative_error", float("inf")))
         if not np.isfinite(adjoint) or adjoint > 5.0e-4:
             raise ValueError("integrity gate failed: adjoint relative error")
@@ -1257,6 +1518,14 @@ def scientific_payload(
             or set(rotation.get("statistic_differences", {})) != _ROTATION_STATISTIC_NAMES
         ):
             raise ValueError("integrity rotation audit lacks every registered name")
+        if any(
+            not np.isfinite(float(value)) or float(value) > 5.0e-4
+            for value in rotation["vector_residuals"].values()
+        ) or any(
+            not np.isfinite(float(value)) or float(value) > 2.0e-4
+            for value in rotation["statistic_differences"].values()
+        ):
+            raise ValueError("integrity rotation residual exceeds registered tolerance")
     if {audit.get("seed") for audit in seed_audits} != {0, 1, 2, 3} or any(
         SEED_AUDIT_FIELDS - set(audit)
         or not audit.get("parameter_names")
@@ -1268,6 +1537,15 @@ def scientific_payload(
         for audit in seed_audits
     ):
         raise ValueError("scientific result requires ordered parameter names for every seed")
+    reference_names = tuple(seed_audits[0]["parameter_names"])
+    reference_count = int(seed_audits[0]["parameter_count"])
+    if any(
+        tuple(audit["parameter_names"]) != reference_names
+        or int(audit["parameter_count"]) != reference_count
+        for audit in seed_audits[1:]
+    ):
+        raise ValueError("ordered encoder parameter names/count differ across seeds")
+    _validate_registered_rows(primary_rows, alternate_rows, seed_audits, panel_binding)
     recomputed = decide_stage_a(primary_rows, alternate_rows)
     if _json_ready(aggregation) != _json_ready(recomputed):
         raise ValueError("scientific aggregation differs from the persisted receiver rows")
@@ -1302,6 +1580,7 @@ def scientific_payload(
         "environment": _json_ready(environment),
         "integrity": _json_ready(integrity),
         "seed_audits": _json_ready(seed_audits),
+        "panel_binding": _json_ready(panel_binding),
         "rows": {
             "primary": _json_ready(primary_rows),
             "alternate": _json_ready(alternate_rows),
@@ -2027,7 +2306,22 @@ def decide_stage_a(
     labels, primary = _panel_matrices(
         rows,
         identity_count=64,
-        value_names=("delta", "self_minus_desc", "rho", "log_ratio", "deranged_delta"),
+        value_names=(
+            "delta",
+            "self_minus_desc",
+            "rho",
+            "log_ratio",
+            "deranged_delta",
+            "a_self",
+            "a_batch",
+            "a_desc",
+            "cos_b_s",
+            "random_a_self",
+            "random_a_batch",
+            "random_delta",
+            "head_a_self",
+            "head_a_batch",
+        ),
         panel_name="primary",
     )
     registered_alternate_labels = [
@@ -2095,6 +2389,27 @@ def decide_stage_a(
         stage_a = "UNRESOLVED"
         first_decisive_clause = "no_pass_or_fail_rule"
 
+    control_names = (
+        "a_self",
+        "a_batch",
+        "a_desc",
+        "cos_b_s",
+        "random_a_self",
+        "random_a_batch",
+        "random_delta",
+        "deranged_delta",
+        "head_a_self",
+        "head_a_batch",
+    )
+    control_aggregates = {
+        name: {
+            "seed_means": {str(seed): float(primary[name][seed].mean()) for seed in range(4)},
+            "pooled_mean": float(primary[name].mean(axis=1).mean()),
+            "pooled_median": float(np.median(primary[name])),
+        }
+        for name in control_names
+    }
+
     return {
         "stage_a": stage_a,
         "first_decisive_clause": first_decisive_clause,
@@ -2123,7 +2438,575 @@ def decide_stage_a(
         "bootstrap_delta_sha256": float64_c_order_sha256(bootstrap_delta),
         "bootstrap_self_desc_sha256": float64_c_order_sha256(bootstrap_self_desc),
         "numpy_version": np.__version__,
+        "control_aggregates": control_aggregates,
     }
+
+
+def _torch_tensor_sha256(value: Any) -> str:
+    array = np.ascontiguousarray(value.detach().cpu().numpy())
+    return hashlib.sha256(array.tobytes(order="C")).hexdigest()
+
+
+def _numpy_array_sha256(value: Any) -> str:
+    array = np.ascontiguousarray(value)
+    return hashlib.sha256(array.tobytes(order="C")).hexdigest()
+
+
+def _load_scientific_model(bound: TrainingOnlySeedInput) -> Any:
+    import torch
+
+    from sfora.image_end_to_end import ImageEndToEndConfig, _torchvision_model_factory
+
+    config = ImageEndToEndConfig.model_validate(_json_ready(bound.config))
+    model = _torchvision_model_factory(config)
+    checkpoint = torch.load(bound.checkpoint_path, map_location="cpu", weights_only=False)
+    state = {
+        name: value
+        for name, value in checkpoint["state_dict"].items()
+        if name not in {"metric_proxies", "metric_proxy_labels"}
+    }
+    model.load_state_dict(state, strict=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return model.to(device=device, dtype=torch.float32).train()
+
+
+def _default_fixture_runner() -> dict[str, Any]:
+    """Execute the registered dense-Jacobian and two-sample BN fixtures."""
+    import torch
+
+    torch.manual_seed(200)
+    model = torch.nn.Linear(2, 3, dtype=torch.float64).train()
+    images = torch.tensor([[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float64)
+    cotangents = torch.tensor(
+        [[0.3, -0.5, 0.2], [-0.1, 0.4, 0.6], [0.7, 0.2, -0.3]],
+        dtype=torch.float64,
+    )
+    fields = exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0, 1, 2),
+        expected_batch_size=3,
+        expected_dimension=3,
+    )
+    parameters = torch.cat(
+        [value.detach().reshape(-1) for value in model.parameters()]
+    ).requires_grad_(True)
+
+    def dense_encoder(flat: Any) -> Any:
+        weight = flat[:6].reshape(3, 2)
+        bias = flat[6:]
+        raw = images @ weight.T + bias
+        return torch.nn.functional.normalize(raw, dim=-1)
+
+    dense = torch.autograd.functional.jacobian(dense_encoder, parameters).reshape(9, 9)
+    expected_g = dense.T @ cotangents.reshape(-1)
+    expected_b = (dense @ expected_g).reshape(3, 3)
+    expected_self = []
+    for receiver in range(3):
+        block = dense[receiver * 3 : (receiver + 1) * 3]
+        expected_self.append(block @ (block.T @ cotangents[receiver]))
+    expected_self_tensor = torch.stack(expected_self)
+    dense_residual = max(
+        float(torch.max(torch.abs(fields["parameter_gradient_flat"] - expected_g)).detach().cpu()),
+        float(torch.max(torch.abs(fields["batch_motion"] - expected_b)).detach().cpu()),
+        float(torch.max(torch.abs(fields["self_motion"] - expected_self_tensor)).detach().cpu()),
+    )
+    epsilon = 1.0e-5
+    finite = (
+        dense_encoder(parameters + epsilon * expected_g)
+        - dense_encoder(parameters - epsilon * expected_g)
+    ) / (2.0 * epsilon)
+    finite_residuals = [float(torch.max(torch.abs(fields["batch_motion"] - finite)).detach().cpu())]
+    for receiver in range(3):
+        block = dense[receiver * 3 : (receiver + 1) * 3]
+        receiver_gradient = block.T @ cotangents[receiver]
+        positive = dense_encoder(parameters + epsilon * receiver_gradient)[receiver]
+        negative = dense_encoder(parameters - epsilon * receiver_gradient)[receiver]
+        finite_self = (positive - negative) / (2.0 * epsilon)
+        finite_residuals.append(
+            float(
+                torch.max(torch.abs(fields["self_motion"][receiver] - finite_self)).detach().cpu()
+            )
+        )
+    finite_residual = max(finite_residuals)
+    if dense_residual > 1.0e-8 or finite_residual > 1.0e-6:
+        raise ValueError("registered dense-Jacobian fixture failed")
+
+    class TinyBN(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.bn = torch.nn.BatchNorm1d(2, dtype=torch.float64)
+            self.head = torch.nn.Linear(2, 2, dtype=torch.float64)
+
+        def forward(self, values: Any) -> Any:
+            return self.head(self.bn(values))
+
+    original = TinyBN().train()
+    reference = copy.deepcopy(original).train()
+    clone = make_bufferless_train_clone(original)
+    bn_images = torch.tensor([[0.4, -0.3], [1.2, 0.8]], dtype=torch.float64)
+    target = torch.tensor([[0.2, -0.5], [0.7, 0.1]], dtype=torch.float64)
+    before = {name: value.detach().clone() for name, value in original.named_buffers()}
+    reference_output = reference(bn_images)
+    reference_gradients = torch.autograd.grad(
+        (reference_output * target).sum(), tuple(reference.parameters())
+    )
+    clone_output = clone(bn_images)
+    clone_gradients = torch.autograd.grad((clone_output * target).sum(), tuple(clone.parameters()))
+    output_residual = float(torch.max(torch.abs(reference_output - clone_output)).detach().cpu())
+    gradient_residual = max(
+        float(torch.max(torch.abs(left - right)).detach().cpu())
+        for left, right in zip(reference_gradients, clone_gradients, strict=True)
+    )
+    buffers_unchanged = all(
+        torch.equal(value, before[name]) for name, value in original.named_buffers()
+    )
+    if output_residual > 1.0e-6 or gradient_residual > 1.0e-6 or not buffers_unchanged:
+        raise ValueError("registered train-BN fixture failed")
+    return {
+        "dense_fixture": {
+            "passed": True,
+            "max_jacobian_residual": dense_residual,
+            "max_finite_difference_residual": finite_residual,
+            "jacobian_tolerance": 1.0e-8,
+            "finite_difference_tolerance": 1.0e-6,
+        },
+        "bn_fixture": {
+            "passed": True,
+            "max_output_residual": output_residual,
+            "max_gradient_residual": gradient_residual,
+            "tolerance": 1.0e-6,
+            "buffers_unchanged": buffers_unchanged,
+        },
+    }
+
+
+def _rotation_vectors_and_statistics(
+    fields: Mapping[str, Any],
+    *,
+    receiver_position: int,
+    receiver_index: int,
+    q: np.ndarray,
+) -> tuple[dict[str, np.ndarray], dict[str, float]]:
+    z = np.asarray(fields["z"][receiver_index].detach().cpu(), dtype=np.float64)
+    dbar = tangent_projection(
+        np.asarray(fields["dbar"][receiver_index].detach().cpu(), dtype=np.float64), z
+    )
+    b = tangent_projection(
+        np.asarray(fields["batch_motion"][receiver_index].detach().cpu(), dtype=np.float64), z
+    )
+    s = tangent_projection(
+        np.asarray(fields["self_motion"][receiver_position].detach().cpu(), dtype=np.float64), z
+    )
+    a_self = cosine_similarity(s, q)
+    a_batch = cosine_similarity(b, q)
+    b_unit = b / np.linalg.norm(b)
+    s_unit = s / np.linalg.norm(s)
+    return (
+        {"z": z, "dbar": dbar, "b": b, "s": s, "q": q},
+        {
+            "A_self": a_self,
+            "A_batch": a_batch,
+            "Delta": a_self - a_batch,
+            "A_desc": cosine_similarity(dbar, q),
+            "rho": float(np.linalg.norm(b_unit - s_unit * np.dot(s_unit, b_unit))),
+            "log_ratio": float(
+                np.log((np.linalg.norm(b) + _VECTOR_EPS) / (np.linalg.norm(s) + _VECTOR_EPS))
+            ),
+            "cos_b_s": cosine_similarity(b, s),
+        },
+    )
+
+
+def _default_rotation_auditor(
+    model: Any,
+    context: Mapping[str, Any],
+    fields: Mapping[str, Any],
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    seed: int,
+    expected_dimension: int,
+    head_name: str,
+    expected_head_in_features: int,
+) -> dict[str, Any]:
+    """Execute the registered common descriptor rotation on the first batch/receiver."""
+    import torch
+
+    rotated_model = copy.deepcopy(model)
+    try:
+        head = rotated_model.get_submodule(head_name)
+    except (AttributeError, KeyError) as error:
+        raise ValueError(f"rotation model lacks exact affine head {head_name}") from error
+    if (
+        not isinstance(head, torch.nn.Linear)
+        or head.in_features != expected_head_in_features
+        or head.out_features != expected_dimension
+        or head.bias is None
+    ):
+        raise ValueError("rotation requires the exact registered affine embedding head")
+    rotation_numpy = construct_rotation(expected_dimension, seed=200, dtype=np.float64)
+    rotation = torch.as_tensor(rotation_numpy, dtype=head.weight.dtype, device=head.weight.device)
+    with torch.no_grad():
+        head.weight.copy_(rotation @ head.weight)
+        head.bias.copy_(rotation @ head.bias)
+    rotated_proxies = proxies @ rotation.T
+    receiver_indices = tuple(context["receiver_indices"])
+    rotated_fields = exact_contextual_rsta_fields(
+        rotated_model,
+        context["images"],
+        context["labels"],
+        rotated_proxies,
+        proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        receiver_indices=receiver_indices,
+        expected_batch_size=180,
+        expected_dimension=expected_dimension,
+    )
+    receiver_index = receiver_indices[0]
+    receiver_label = int(context["labels"][receiver_index].detach().cpu())
+    support_ids, supports = context["support_map"][receiver_label]
+    original_z = np.asarray(fields["z"][receiver_index].detach().cpu(), dtype=np.float64)
+    selected_ids, selected_foreign = select_foreign_supports(
+        original_z,
+        receiver_label=receiver_label,
+        support_ids=context["foreign_ids"],
+        support_labels=context["foreign_labels"],
+        support_descriptors=context["foreign_descriptors"],
+        current_batch_ids=set(context["batch_ids"]),
+    )
+    q = smooth_margin_gradient(original_z, supports, selected_foreign)
+    rotated_z = np.asarray(rotated_fields["z"][receiver_index].detach().cpu(), dtype=np.float64)
+    rotated_supports = np.asarray(supports, dtype=np.float64) @ rotation_numpy.T
+    rotated_foreign_pool = (
+        np.asarray(context["foreign_descriptors"], dtype=np.float64) @ rotation_numpy.T
+    )
+    rotated_ids, rotated_selected_foreign = select_foreign_supports(
+        rotated_z,
+        receiver_label=receiver_label,
+        support_ids=context["foreign_ids"],
+        support_labels=context["foreign_labels"],
+        support_descriptors=rotated_foreign_pool,
+        current_batch_ids=set(context["batch_ids"]),
+    )
+    if selected_ids != rotated_ids or len(support_ids) != 2:
+        raise ValueError("rotation changed frozen foreign-support selection")
+    rotated_q = smooth_margin_gradient(rotated_z, rotated_supports, rotated_selected_foreign)
+    vectors, statistics = _rotation_vectors_and_statistics(
+        fields,
+        receiver_position=0,
+        receiver_index=receiver_index,
+        q=q,
+    )
+    rotated_vectors, rotated_statistics = _rotation_vectors_and_statistics(
+        rotated_fields,
+        receiver_position=0,
+        receiver_index=receiver_index,
+        q=rotated_q,
+    )
+    audit = check_rotation(
+        vectors,
+        rotated_vectors,
+        statistics,
+        rotated_statistics,
+        np.asarray(rotation.detach().cpu()),
+    )
+    return {"seed": int(seed), **audit}
+
+
+def run_scientific_diagnostic(
+    manifest: Mapping[str, Any],
+    *,
+    manifest_path: Path,
+    output_path: Path,
+    expected_dimension: int = 512,
+    expected_partition: dict[str, tuple[int, int]] | None = None,
+    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
+    manifest_validator: Callable[..., None] = validate_rsta_manifest,
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
+    model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
+    fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    rotation_auditor: Callable[..., dict[str, Any]] | None = None,
+    head_name: str = "model.embedding",
+    expected_head_in_features: int = 1024,
+) -> dict[str, Any]:
+    """Execute the complete frozen four-seed Stage-A path and atomically persist rows."""
+    import torch
+
+    environment = configure_deterministic_process()
+    manifest_validator(dict(manifest), manifest_path=manifest_path)
+    bounds = [
+        bound_loader(
+            manifest["seeds"][str(seed)],
+            seed=seed,
+            source_exporter=source_exporter,
+            expected_partition=expected_partition,
+            expected_dimension=expected_dimension,
+        )
+        for seed in range(4)
+    ]
+    validate_cross_seed_training_binding(bounds)
+    reference = bounds[0]
+    primary = select_primary_panel(reference.train_example_ids, reference.train_labels)
+    alternate = select_alternate_panel(reference.train_example_ids, reference.train_labels, primary)
+    used_ids = sorted(
+        {
+            example_id
+            for batch in [*primary["batches"], *alternate["batches"]]
+            for example_id in batch
+        }
+    )
+    cache = cache_builder(reference, used_ids)
+    if set(cache.tensor_sha256) != set(used_ids):
+        raise ValueError("scientific transform cache differs from registered batch rows")
+    label_by_id = dict(zip(reference.train_example_ids, reference.train_labels, strict=True))
+    index_by_id = {value: index for index, value in enumerate(reference.train_example_ids)}
+    tensor_hashes = dict(cache.tensor_sha256)
+    fixture_integrity = fixture_runner()
+    primary_rows: list[dict[str, Any]] = []
+    alternate_rows: list[dict[str, Any]] = []
+    seed_audits: list[dict[str, Any]] = []
+    seed_integrity: list[dict[str, Any]] = []
+    rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
+    for bound in bounds:
+        model = make_bufferless_train_clone(model_loader(bound))
+        parameter_items = [
+            (name, value) for name, value in model.named_parameters() if value.requires_grad
+        ]
+        if not parameter_items:
+            raise ValueError("scientific encoder has no trainable parameters")
+        parameter = parameter_items[0][1]
+        device, dtype = parameter.device, parameter.dtype
+        proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
+        proxy_labels = torch.as_tensor(bound.proxy_labels, device=device, dtype=torch.long)
+        support_map = {
+            label: (
+                tuple(primary["support_ids_by_label"][label]),
+                np.asarray(
+                    [
+                        bound.train_embeddings[index_by_id[value]]
+                        for value in primary["support_ids_by_label"][label]
+                    ],
+                    dtype=np.float32,
+                ),
+            )
+            for label in primary["eligible_labels"]
+        }
+        foreign_ids = tuple(
+            primary["support_ids_by_label"][label][0] for label in primary["eligible_labels"]
+        )
+        foreign_labels = tuple(primary["eligible_labels"])
+        foreign_descriptors = np.asarray(
+            [bound.train_embeddings[index_by_id[value]] for value in foreign_ids],
+            dtype=np.float32,
+        )
+        first_fields: dict[str, Any] | None = None
+        first_context: dict[str, Any] | None = None
+        repeatability: dict[str, dict[str, str]] | None = None
+        for panel_name, selected in (("primary", primary), ("alternate", alternate)):
+            destination = primary_rows if panel_name == "primary" else alternate_rows
+            for batch_index, batch_ids in enumerate(selected["batches"]):
+                receiver_ids = tuple(
+                    selected["receiver_ids"][batch_index * 8 : (batch_index + 1) * 8]
+                )
+                receiver_labels = tuple(selected["labels"][batch_index * 8 : (batch_index + 1) * 8])
+                receiver_indices = tuple(batch_ids.index(value) for value in receiver_ids)
+                images = cache.batch(batch_ids).to(device=device, dtype=dtype)
+                labels = torch.as_tensor(
+                    [label_by_id[value] for value in batch_ids], device=device, dtype=torch.long
+                )
+                fields = exact_contextual_rsta_fields(
+                    model,
+                    images,
+                    labels,
+                    proxies,
+                    proxy_labels,
+                    alpha=bound.alpha,
+                    delta=bound.delta,
+                    receiver_indices=receiver_indices,
+                    expected_batch_size=180,
+                    expected_dimension=expected_dimension,
+                )
+                prehead, raw_head, captured = capture_prehead_and_raw(
+                    model,
+                    images,
+                    head_name=head_name,
+                    expected_in_features=expected_head_in_features,
+                    expected_out_features=expected_dimension,
+                )
+                captured_z = torch.nn.functional.normalize(captured, dim=-1)
+                if not torch.equal(captured_z, fields["z"]):
+                    raise ValueError("prehead control forward differs from exact field graph")
+                destination.extend(
+                    score_rsta_batch(
+                        seed=bound.seed,
+                        panel=panel_name,
+                        batch_index=batch_index,
+                        receiver_indices=receiver_indices,
+                        receiver_ids=receiver_ids,
+                        receiver_labels=receiver_labels,
+                        batch_ids=batch_ids,
+                        tensor_hashes=tensor_hashes,
+                        fields=fields,
+                        supports_by_label=support_map,
+                        foreign_ids=foreign_ids,
+                        foreign_labels=foreign_labels,
+                        foreign_descriptors=foreign_descriptors,
+                        prehead_features=np.asarray(prehead.detach().cpu()),
+                        raw_head_outputs=np.asarray(raw_head.detach().cpu()),
+                    )
+                )
+                if panel_name == "primary" and batch_index == 0:
+                    names = {
+                        "z": "z",
+                        "dbar": "dbar",
+                        "b": "batch_motion",
+                        "s": "self_motion",
+                    }
+                    detached_first = {key: fields[key].detach().clone() for key in names.values()}
+                    detached_first["receiver_indices"] = fields["receiver_indices"]
+                    first_hashes = {
+                        name: _torch_tensor_sha256(detached_first[key])
+                        for name, key in names.items()
+                    }
+                    del fields
+                    repeated = exact_contextual_rsta_fields(
+                        model,
+                        images,
+                        labels,
+                        proxies,
+                        proxy_labels,
+                        alpha=bound.alpha,
+                        delta=bound.delta,
+                        receiver_indices=receiver_indices,
+                        expected_batch_size=180,
+                        expected_dimension=expected_dimension,
+                    )
+                    repeatability = {
+                        name: {
+                            "first_sha256": first_hashes[name],
+                            "repeat_sha256": _torch_tensor_sha256(repeated[key]),
+                        }
+                        for name, key in names.items()
+                    }
+                    if any(
+                        hashes["first_sha256"] != hashes["repeat_sha256"]
+                        for hashes in repeatability.values()
+                    ):
+                        raise ValueError("first-batch exact field repeatability failed")
+                    first_fields = detached_first
+                    del repeated
+                    first_context = {
+                        "images": images,
+                        "labels": labels,
+                        "receiver_indices": receiver_indices,
+                        "batch_ids": tuple(batch_ids),
+                        "support_map": support_map,
+                        "foreign_ids": foreign_ids,
+                        "foreign_labels": foreign_labels,
+                        "foreign_descriptors": foreign_descriptors,
+                    }
+        if first_fields is None or first_context is None or repeatability is None:
+            raise ValueError("scientific primary first-batch integrity context is missing")
+        u, v = registered_adjoint_directions(
+            model,
+            first_fields["z"].shape,
+            seed=bound.seed,
+            dtype=dtype,
+            device=device,
+        )
+        adjoint = adjoint_relative_error(
+            model,
+            first_context["images"],
+            u,
+            v,
+            expected_batch_size=180,
+            expected_dimension=expected_dimension,
+        )
+        rotation = rotate(
+            model,
+            first_context,
+            first_fields,
+            proxies,
+            proxy_labels,
+            seed=bound.seed,
+            expected_dimension=expected_dimension,
+            head_name=head_name,
+            expected_head_in_features=expected_head_in_features,
+        )
+        seed_integrity.append(
+            {
+                "seed": bound.seed,
+                "repeatability": repeatability,
+                "adjoint_relative_error": adjoint,
+                "rotation": rotation,
+            }
+        )
+        seed_audits.append(
+            {
+                "seed": bound.seed,
+                "official_recall_at_1": bound.official_recall_at_1,
+                "artifact_binding": _json_ready(bound.artifact_binding),
+                "config": _json_ready(bound.config),
+                "parameter_names": [name for name, _ in parameter_items],
+                "parameter_count": int(sum(value.numel() for _, value in parameter_items)),
+                "proxy_sha256": _numpy_array_sha256(bound.proxies),
+                "proxy_label_sha256": _ordered_int64_sha256(bound.proxy_labels),
+                "train_example_id_order_sha256": _ordered_text_sha256(bound.train_example_ids),
+                "train_label_order_sha256": _ordered_int64_sha256(bound.train_labels),
+                "train_source_order_sha256": _ordered_text_sha256(bound.train_source_paths),
+                "transform_cache_order_sha256": cache.ordered_id_sha256,
+                "transform_tensor_sha256": tensor_hashes,
+                "primary_batch_ids": primary["batches"],
+                "alternate_batch_ids": alternate["batches"],
+            }
+        )
+    aggregation = decide_stage_a(primary_rows, alternate_rows)
+    _, matrices = _panel_matrices(
+        primary_rows,
+        identity_count=64,
+        value_names=("delta", "self_minus_desc"),
+        panel_name="primary",
+    )
+    delta_distribution = joint_bootstrap(matrices["delta"])
+    self_desc_distribution = joint_bootstrap(matrices["self_minus_desc"])
+    integrity = {**fixture_integrity, "seeds": seed_integrity}
+    panel_binding = {
+        "primary": primary,
+        "alternate": alternate,
+        "expected_dimension": int(expected_dimension),
+        "tensor_sha256": tensor_hashes,
+        "foreign_support_ids": sorted(
+            primary["support_ids_by_label"][label][0] for label in primary["eligible_labels"]
+        ),
+    }
+    payload = scientific_payload(
+        manifest_audit={
+            "path": str(manifest_path),
+            "sha256": sha256_file(manifest_path),
+            "preregistration": manifest.get("preregistration"),
+            "artifact_schema": manifest.get("artifact_schema"),
+            "source": manifest.get("source"),
+        },
+        environment=environment,
+        seed_audits=seed_audits,
+        primary_rows=primary_rows,
+        alternate_rows=alternate_rows,
+        integrity=integrity,
+        aggregation=aggregation,
+        bootstrap={
+            "delta_distribution": delta_distribution.tolist(),
+            "delta_sha256": float64_c_order_sha256(delta_distribution),
+            "self_minus_desc_distribution": self_desc_distribution.tolist(),
+            "self_minus_desc_sha256": float64_c_order_sha256(self_desc_distribution),
+        },
+        panel_binding=panel_binding,
+    )
+    write_json_atomic(output_path, payload)
+    return payload
 
 
 def main(
@@ -2132,23 +3015,50 @@ def main(
     source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
     expected_partition: dict[str, tuple[int, int]] | None = None,
     expected_dimension: int = 512,
+    manifest_validator: Callable[..., None] = validate_rsta_manifest,
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
+    model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
+    fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    rotation_auditor: Callable[..., dict[str, Any]] | None = None,
+    head_name: str = "model.embedding",
+    expected_head_in_features: int = 1024,
 ) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--binding-only", action="store_true")
+    parser.add_argument("--scientific", action="store_true")
     args = parser.parse_args(argv)
-    if not args.binding_only:
-        parser.error("Task 2 supports only --binding-only; scientific execution is not implemented")
+    if args.binding_only == args.scientific:
+        parser.error("choose exactly one of --binding-only or --scientific")
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    payload = binding_only_payload(
-        manifest,
-        manifest_path=args.manifest,
-        source_exporter=source_exporter,
-        expected_partition=expected_partition,
-        expected_dimension=expected_dimension,
-    )
-    write_json_atomic(args.output, payload)
+    if args.binding_only:
+        payload = binding_only_payload(
+            manifest,
+            manifest_path=args.manifest,
+            source_exporter=source_exporter,
+            expected_partition=expected_partition,
+            expected_dimension=expected_dimension,
+        )
+        write_json_atomic(args.output, payload)
+    else:
+        run_scientific_diagnostic(
+            manifest,
+            manifest_path=args.manifest,
+            output_path=args.output,
+            expected_dimension=expected_dimension,
+            expected_partition=expected_partition,
+            source_exporter=source_exporter,
+            manifest_validator=manifest_validator,
+            bound_loader=bound_loader,
+            cache_builder=cache_builder,
+            model_loader=model_loader,
+            fixture_runner=fixture_runner,
+            rotation_auditor=rotation_auditor,
+            head_name=head_name,
+            expected_head_in_features=expected_head_in_features,
+        )
 
 
 if __name__ == "__main__":
