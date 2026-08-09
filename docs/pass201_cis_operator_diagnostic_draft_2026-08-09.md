@@ -2,9 +2,10 @@
 
 > **PENDING_SOURCE / NOT YET A PREREGISTRATION / NO COMPUTATION AUTHORIZED**
 >
-> The fresh current-code ordinary Proxy Anchor checkpoint, its report, its
-> resolved source revision, and its integrity digests have not landed.  Every
-> source-dependent field in this draft therefore remains locked.  This document
+> The fresh current-code ordinary Proxy Anchor checkpoint, report, resolved
+> configuration, and post-run integrity digests have not landed. Its prelaunch
+> source identity is frozen separately, but every artifact-dependent field in
+> this draft remains locked. This document
 > cannot authorize artifact inspection, diagnostic computation, training, or a
 > GPU run.
 
@@ -14,6 +15,10 @@ This is a proposed train-split-only, checkpoint-bound local operator diagnostic.
 It cannot change, reinterpret, rescue, or retune the running Pass 120 experiment,
 regardless of any Pass 120 outcome.  No CIS report, result, log, table, checkpoint,
 or benchmark metric may be read while activating or executing this design.
+The result must declare `uses_test_data="artifact_binding_only"`. Query/gallery
+metrics may authenticate the PA report/checkpoint pair, but no query/gallery
+image, label, descriptor, metric, or curve may enter contexts, constants,
+thresholds, outcomes, control choice, aggregation, or the decision.
 
 If eventually activated and passed, this diagnostic may authorize only the
 writing of a separate prospective preregistration for at most one
@@ -25,7 +30,7 @@ does not permit a sweep or revised Pass 120 interpretation.
 ## Source activation gate
 
 The sole admissible source is the fresh current-code, seed-0, ordinary Proxy
-Anchor control produced by the matched corrected In-Shop controller.  The
+Anchor control produced by the separately source-bound In-Shop controller. The
 trainer report and checkpoint format do not record the executing Git revision,
 so they cannot be their own source authority.  The prelaunch authority is the
 committed `docs/pass201_pa_source_prelaunch_manifest.json`, frozen while the
@@ -102,7 +107,8 @@ bootstrap_seed = 2010811
 model_forward_seed = 2010812
 ```
 
-All other runtime values, including source revision, worker count, transform
+All other runtime values, except the already frozen source revision, including
+worker count, transform
 configuration, learning rate, coalition weight, proxy learning-rate multiplier,
 and proxy count, must come literally from the activated, digested resolved
 configuration.  They may not be inferred from this draft or from the current
@@ -146,8 +152,24 @@ cross-pair reuse must be reported.  The bootstrap unit remains the complete
 180-row context pair and its uncertainty interval is a stability interval, not
 a claim that overlapping class identities are statistically independent.
 
-If the first epoch yields fewer than 32 feasible context pairs, return
-`UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS`.  Do not inspect a later epoch,
+`cross_context_reuse` is causal-prefix metadata so context 0 never depends on a
+future context. It has exactly
+`prior_context_indices_sharing_s_ids`,
+`prior_context_indices_sharing_s_prime_ids`,
+`prior_context_indices_sharing_any_ids`, `reused_s_image_count`,
+`reused_s_prime_image_count`, `reused_any_image_count`, and
+`reused_label_count`. The three index fields are ascending lists of accepted
+context indices `< b` whose corresponding ID set has nonempty intersection
+with the named current set. The four counts are cardinalities of the current
+context's `S` IDs, `S_prime` IDs, union of both, and label set respectively that
+also appeared in the union of accepted contexts `0..b-1`. Context 0 therefore
+has three empty lists and four zeros in every process. Future-context reuse is
+reported when that future context is emitted; no symmetric look-ahead field is
+permitted.
+
+If the first epoch yields fewer than 32 feasible context pairs, return status
+`UNRESOLVED` with reason code
+`UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS`. Do not inspect a later epoch,
 reduce the context count, change the batch size, prefilter the sampler, or use a
 second augmentation of the same image as an alternative.
 
@@ -173,10 +195,29 @@ exact production DataLoader and its worker-seeding behavior.  Independently
 reseeding or calling the transform per image is forbidden.
 
 Before any operator scoring, persist the 32 accepted transformed batches and
-record a SHA-256 over each contiguous CPU tensor's bytes, dtype, shape, example
-ID, and stable index.  A second preparation pass in a fresh process must
-reproduce every batch membership and tensor hash.  Failure is
+record the exact `input-context-digest-v1` below for each. The
+`integrity_replay_a` preparation pass in a fresh
+process must reproduce every one of the 32 batch memberships and tensor hashes;
+it scores the operator panel only for context 0.  The independent
+`integrity_replay_b` process independently reproduces all 32 input contexts but
+also scores only context 0.  Failure is
 `INVALID_NONDETERMINISTIC_TRAIN_INPUT`.
+
+`input-context-digest-v1` has exactly `context_index`, `s_tensor_sha256`,
+`s_prime_tensor_sha256`, `metadata_sha256`, and `combined_sha256`.
+For either tensor digest, convert the tensor to CPU C-contiguous storage without
+changing dtype and hash this frame: little-endian `uint32` length of the exact
+NumPy dtype string, its UTF-8 bytes, little-endian `uint32` rank, every dimension
+as little-endian `int64`, little-endian `uint64` payload-byte length, and the
+literal C-order payload bytes. `metadata_sha256` hashes canonical JSON of
+exactly `context_index`, `production_epoch`, `production_batch_index`,
+`row_example_ids`, `row_sample_indices`, `row_labels`,
+`class_multiplicities`, `representative_row_indices`,
+`representative_sample_indices`, `s_prime_example_ids`,
+`s_prime_sample_indices`, and `cross_context_reuse`, using the canonical JSON
+function frozen below. `combined_sha256` hashes canonical JSON of exactly the
+other four fields. Each process record stores an ordered list of these complete
+digest records, not a bare digest string or an implementation-specific pickle.
 
 `S_prime[b]` uses the activated deterministic clean evaluation transform.  Its
 input tensors and metadata receive the same hashing and replay check.  The
@@ -185,6 +226,50 @@ declared transfer question is therefore:
 > Does one production-train-mode virtual update on augmented `S` improve clean,
 > eval-mode outcomes on disjoint images `S_prime` having the same 180-row label
 > sequence?
+
+## Deterministic process and first-context replay
+
+The runner must start in a fresh process with
+`CUBLAS_WORKSPACE_CONFIG=:4096:8` set before Python imports torch or initializes
+CUDA. It must enable `torch.use_deterministic_algorithms(True)`, set cuDNN
+benchmarking off and deterministic mode on, disable TF32 for both matmul and
+cuDNN, use FP32 with autocast disabled, and fail rather than warn when an
+executed operation lacks a deterministic implementation. Record all settings,
+the accelerator model, CUDA/cuDNN versions, and every initial RNG-state hash.
+
+Before hashing any initial RNG state, every process must execute exactly
+`random.seed(2010812)`, `numpy.random.seed(2010812)`,
+`torch.manual_seed(2010812)`, and `torch.cuda.manual_seed_all(2010812)` after
+visible-device enumeration. The legacy NumPy global RNG is initialized only for
+integrity and is forbidden for the null/bootstrap algorithms, which must use
+their separately frozen `PCG64` generators. CUDA RNG hashes are recorded as a
+mapping from visible integer device index to state SHA-256 in ascending index
+order; the visible PCI-bus/device identity list is also frozen in that order.
+
+The first fresh integrity-only child, `integrity_replay_a`, must start from the
+frozen initial RNG state, prepare and hash every accepted input context 0–31 in
+order, and compute the complete operator panel only for context 0.  The second
+fresh integrity-only child, `integrity_replay_b`, starts from the same frozen
+initial state, independently prepares and hashes all 32 input contexts in the
+same order, and likewise scores only context 0. Requiring both integrity
+processes to perform the complete preparation keeps the model-forward RNG state
+identical even if input construction consumes a main-process RNG stream. After
+their input lists and context-0 records agree, a third fresh `scientific`
+process starts from that same frozen initial state, reconstructs and verifies
+all 32 input-context hashes against both integrity processes, and executes
+contexts 0–31 sequentially without rewinding RNG. Its context-0 record must
+agree with both integrity-only records before it
+is retained in the aggregate; neither integrity-only record enters the
+scientific aggregate.  This is exactly three processes: no fourth input-replay
+process and no in-process replay is allowed.
+
+Require identical row IDs, stable indices, labels, transformed-tensor hashes,
+representative rows, `S_prime` rows, and null streams across all three records.
+For every gradient/update tensor, require maximum absolute difference `<=2e-6`;
+for every norm, cosine, directional derivative, and outcome scalar, require
+`abs(a-b)/max(abs(a),abs(b),1e-12) <=1e-5`. A failure is
+`INVALID_NONDETERMINISTIC_OPERATOR_REPLAY` and no remaining context may be
+scored. Persist process role and PID with every replay record.
 
 ## Bufferless train-mode gradient graph
 
@@ -196,9 +281,10 @@ For every `S[b]`:
    and counters.
 3. Put the functional model in training mode without freezing BN affine
    parameters.
-4. Before the first scored context, seed the CPU and every available accelerator
-   generator once with `2010812`.  Before and after each context, capture the
-   resulting RNG states in the integrity record.
+4. The process-start initialization above is the sole RNG reset.  Before and
+   after each scored context, capture the resulting CPU and every visible
+   accelerator RNG state in the integrity record.  Do not reseed or rewind
+   after input preparation or before the first scored context.
 5. Execute exactly one shared functional forward of all 180 transformed rows
    using checkpoint parameters and the disposable cloned buffers.
 6. Allow BN to use current-batch statistics and to mutate only the disposable
@@ -277,13 +363,15 @@ the same autograd results:
 
 - `network_only`: every trainable model parameter except `metric_proxies`; proxy
   values participate in logits but their update component is set to zero.
-- `joint_faithful`: the same network parameters plus the learnable proxy table.
+- `joint_including_proxies`: the same network parameters plus the learnable
+  proxy table.
 
 `network_only` is the primary causal panel because transfer to disjoint images
 must pass through shared network parameters.  A joint-only success is classified
 as proxy-table regularization and cannot rescue a network-only failure.
-`joint_faithful` remains mandatory because the production operator does update
-proxies.
+`joint_including_proxies` remains mandatory because the production operator
+does update proxies; the name claims parameter membership only, not optimizer
+faithfulness.
 
 Define the stateless update multiplier `A` from the activated resolved config:
 
@@ -351,7 +439,7 @@ R_F = (F_before - F_after) / max(F_before, 1e-6)
 Delta_M = M_after - M_before
 ```
 
-## Configured and equal-norm stateless virtual updates
+## Configured-loss and equal-norm stateless virtual updates
 
 At activation, freeze literal values
 
@@ -363,7 +451,7 @@ lambda = resolved coalition_weight
 from the authenticated diagnostic config.  They cannot be selected from any
 diagnostic result.
 
-Configured directions are
+Configured-loss stateless directions are
 
 ```text
 g_cfg[PA] = g_PA
@@ -374,21 +462,24 @@ Delta_cfg[o] = -eta*A*g_cfg[o]
 where PA uses all 180 rows and every auxiliary uses the production-selected
 `m_b` representatives from the shared 180-row train graph.
 
-For equal-norm operator isolation, define the same-context reference norm
+For equal-norm operator isolation, define a separate same-context reference norm
+for each parameter panel `j in {network_only, joint_including_proxies}`:
 
 ```text
-rho_b = ||-eta*A*g_PA||_2
-Delta_eq[o] = -rho_b * (A*g_o) / ||A*g_o||_2
+rho[b,j] = ||-eta*A_j*g_PA[b,j]||_2
+Delta_eq[o,b,j]
+  = -rho[b,j] * (A_j*g_o[b,j]) / ||A_j*g_o[b,j]||_2
 ```
 
-for every pure operator, including pure PA.  Thus every equal-norm operator has
-exactly the PA parameter-update norm for that production context.  No global
-norm target, adaptive step, line search, optimizer-state reconstruction, or
-post-outcome step-size change is permitted.
+for every pure operator, including pure PA. Thus every equal-norm operator has
+exactly the PA parameter-update norm for the same production context and the
+same parameter panel. A network-only update may never use the joint PA norm or
+vice versa. No global norm target, adaptive step, line search, optimizer-state
+reconstruction, or post-outcome step-size change is permitted.
 
 Use a stateless functional parameter call; never mutate the checkpoint.  For
-each configured and equal-norm update, report the actual `R_F` and `Delta_M` plus
-the first-order predictions
+each configured-loss stateless and equal-norm update, report the actual `R_F`
+and `Delta_M` plus the first-order predictions
 
 ```text
 D_F = -(grad(F) dot Delta) / max(F, 1e-6)
@@ -447,7 +538,7 @@ A_F = R_F[summed_union] - R_F[atomic_full_union]
 A_M = Delta_M[summed_union] - Delta_M[atomic_full_union]
 ```
 
-Configured-weight differences are reported identically but cannot rescue an
+Configured-loss stateless differences are reported identically but cannot rescue an
 equal-norm failure.
 
 ## Frozen PASS / FAIL / UNRESOLVED thresholds
@@ -477,7 +568,8 @@ reason codes:
   superiority UCB is `<= 0`.
 - `FAIL_NOT_VIABLE` if union foreign suppression has `UCB <= 0` or union
   owner-margin change has `UCB < 0`.
-- `FAIL_SCALE_SUFFICIENT` if configured joint union beats full-union on both
+- `FAIL_SCALE_SUFFICIENT` if configured-loss stateless joint union beats
+  full-union on both
   outcomes with `LCB >= 0`, but either corresponding joint equal-norm advantage
   has `UCB <= 0`.
 - `FAIL_PROXY_ONLY` if the joint panel clears its thresholds but the
@@ -496,17 +588,18 @@ Only `PASS` may set the next action to
 ## Theoretical complexity
 
 Let `P` be trainable parameter count, `K` proxy rows, `Q=32` context pairs,
-`N=180` rows, `O=6` operators, `R=256` null replicates, and `m_b <= 180` the
-context-specific representative count.
+`N=180` rows, `O=6` operators, `J=2` parameter panels, `R=256` null
+replicates, and `m_b <= 180` the context-specific representative count.
 
 Each context requires one shared 180-row train forward, six loss-gradient
 reverse passes, one clean 180-row outcome graph with two outcome-gradient
-reverse passes, and at most `2*O` stateless clean forwards for configured and
-equal-norm updates.  The permutation null is streamed.
+reverse passes, and exactly `2*J*O = 24` stateless clean forwards for the two
+update regimes, two parameter panels, and six operators. The permutation null
+is streamed.
 
 ```text
-time = O(Q * [O*C_backward(N,P)
-              + 2*O*C_forward(N,P)
+time = O(Q * [(O+2)*C_backward(N,P)
+              + (2+2*J*O)*C_forward(N,P)
               + R*m_b*(K-m_b)])
 memory = O(one 180-row train graph + P + m_b*K)
 ```
@@ -516,6 +609,101 @@ is a bounded local diagnostic, not an epoch-scale training arm.
 
 ## Output schema
 
+The following reusable records are part of the frozen schema. `$ref` below is
+specification notation and must not appear in the emitted result.
+
+`operator-record-v1` has exactly:
+
+- `name`: one of the six frozen operator names;
+- `loss`: one finite float;
+- `representative_count`: integer `m_b`;
+- `panels`: exactly `network_only` and `joint_including_proxies`.
+
+Each panel has exactly `parameter_count`, `gradient_sha256`,
+`raw_gradient_norm`, `update_space_norm`, `auxiliary_to_pa_norm_ratio`,
+`cosine_with_pa`, `cosine_with_atomic_full_union`,
+`cosine_with_summed_dropout`, `scale_residual_to_summed_union`, and `updates`.
+`parameter_count` is the integer scalar-element count and
+`representative_count` is an integer row count; all other numeric fields are
+finite floats. `scale_residual_to_summed_union` is a
+finite float only for `atomic_one_hot`, `atomic_complementary`, and
+`atomic_full_union`; it is literal JSON `null` for the other three operators.
+`gradient_sha256` is the digest of the ordered float64-flattened gradient after
+panel membership is applied but before `A`: panel-member parameters are ordered
+lexicographically by the UTF-8 bytes of their exact checkpoint state-dict keys,
+and each parameter contributes the following unambiguous byte frame: little-
+endian `uint32` UTF-8 name-byte length, exact UTF-8 name bytes, little-endian
+`uint32` rank, each dimension as little-endian `int64`, little-endian `uint64`
+payload-byte length, then the C-contiguous little-endian float64 tensor bytes.
+The SHA-256 input is the concatenation of those frames in the frozen parameter
+order. Excluded parameters are absent, not zero filled. `update_sha256` uses
+the identical framed panel-only order and encoding after `A` and regime
+scaling.
+
+`updates` has exactly `configured_loss_stateless` and `equal_norm`. Each update
+has exactly `update_sha256`, `parameter_update_norm`, `R_F`, `Delta_M`, `D_F`,
+and `D_M`. `equal_norm` additionally has `reference_pa_norm` and
+`norm_match_absolute_error`; `configured_loss_stateless` has those two fields
+set to literal JSON `null`. The equal-norm error must be `<=1e-10 *
+max(reference_pa_norm,1e-12)`.
+
+`summary-record-v1` has exactly `n`, `mean`, `median`, `sample_sd`, `q25`,
+`q75`, `lcb_0_005`, and `ucb_0_995`. Every regime/panel/operator combination
+must contain one such record for each of `R_F`, `Delta_M`, `D_F`, and `D_M`.
+Every regime/panel must also contain paired `A_F` and `A_M` summary records.
+`m_unique` and `E_shared` use the same summary record. The bootstrap record has
+exactly `seed`, `replicates`, `quantile_method`, `joint_context_index_sha256`,
+and `distribution_sha256_by_metric`. Missing, extra, duplicate, nonfinite, or
+wrong-null fields invalidate the whole artifact; the validator must have a
+mutation test for every field family.
+
+`joint_context_index_sha256` hashes the complete `(20000,32)` resample-index
+matrix encoded as little-endian int64, C-contiguous, in replicate order.
+Every `distribution_sha256_by_metric` value hashes its complete length-20,000
+bootstrap-mean vector encoded as little-endian float64, C-contiguous, in that
+same replicate order. NaN canonicalization is irrelevant because any nonfinite
+value invalidates the artifact before hashing.
+
+`regime-aggregate-v1` has exactly the two panel keys. Each panel has exactly
+`operators` and `paired_advantages`. `operators` has exactly the six frozen
+operator keys, each containing exactly four `summary-record-v1` values named
+`R_F`, `Delta_M`, `D_F`, and `D_M`. `paired_advantages` has exactly `A_F` and
+`A_M`, each one `summary-record-v1`.
+
+`frozen-thresholds-v1` has exactly these eleven machine keys with the literal
+values in the PASS table above:
+
+```text
+shared_confuser_excess
+network_equal_union_advantage_foreign
+network_equal_union_advantage_margin
+network_equal_union_foreign_suppression
+network_equal_union_margin_change
+network_equal_union_predicted_suppression
+network_equal_union_predicted_margin_change
+joint_equal_union_advantage_foreign
+joint_equal_union_advantage_margin
+joint_equal_union_foreign_suppression
+joint_equal_union_margin_change
+```
+
+`component-decisions-v1` has exactly those eleven threshold keys; every value
+is one of `PASS`, `FAIL`, or `UNRESOLVED`. The six frozen failure predicates
+`FAIL_NO_SHARED_CONFOUNDER`, `FAIL_NO_COALITION_SPECIFIC_ACTION`,
+`FAIL_NOT_VIABLE`, `FAIL_SCALE_SUFFICIENT`, `FAIL_PROXY_ONLY`, and
+`FAIL_OWNER_DAMAGE` are reason codes only and may appear only in the top-level
+`reason_codes` list when their documented predicate holds. The overall decision
+must be recomputed from the eleven component decisions, summaries, and reason
+predicates with the documented failure precedence and must reject an
+inconsistent supplied status or reason-code set.
+
+`distribution_sha256_by_metric` has exactly the canonical dot-path keys from
+the cross-product of the two regimes, two panels, six operators, and four
+metrics (`R_F`, `Delta_M`, `D_F`, `D_M`), plus both paired advantages for each
+regime/panel and the two roots `m_unique` and `shared_confuser.E_shared`.
+Canonical keys are sorted by UTF-8 bytes before JSON serialization; no alias,
+missing key, or extra key is accepted.
+
 An activated runner must emit exactly one JSON artifact with this top-level
 shape:
 
@@ -524,7 +712,11 @@ shape:
   "schema_version": "pass201-cis-operator-v1",
   "status": "PASS|FAIL|UNRESOLVED|BLOCKED|INVALID",
   "reason_codes": [],
+  "candidate_values_computed": true,
+  "uses_test_data": "artifact_binding_only",
   "source": {
+    "prelaunch_source_manifest_path": "docs/pass201_pa_source_prelaunch_manifest.json",
+    "prelaunch_source_manifest_sha256": "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803",
     "source_report_path": null,
     "source_report_sha256": null,
     "source_revision": null,
@@ -532,10 +724,17 @@ shape:
     "checkpoint_sha256": null,
     "checkpoint_bytes": null,
     "checkpoint_epoch": null,
+    "resolved_config_path": null,
     "resolved_config_sha256": null,
+    "train_manifest_path": null,
     "train_manifest_sha256": null,
     "diagnostic_source_sha256": null,
-    "activated_preregistration_sha256": null
+    "activated_preregistration_sha256": null,
+    "python_version": null,
+    "torch_version": null,
+    "numpy_version": null,
+    "cuda_version": null,
+    "cudnn_version": null
   },
   "constants": {
     "batch_size": 180,
@@ -570,27 +769,32 @@ shape:
       "s_prime_tensor_sha256": null,
       "cross_context_reuse": {},
       "foreign_proxy_rows": 0,
-      "shared_confuser": {},
+      "shared_confuser": {
+        "A_aligned": null,
+        "null_mean": null,
+        "E_shared": null,
+        "null_distribution_sha256": null
+      },
       "operators": {
-        "proxy_anchor": {},
-        "atomic_one_hot": {},
-        "atomic_complementary": {},
-        "atomic_full_union": {},
-        "summed_union": {},
-        "summed_dropout": {}
+        "proxy_anchor": {"$ref": "operator-record-v1"},
+        "atomic_one_hot": {"$ref": "operator-record-v1"},
+        "atomic_complementary": {"$ref": "operator-record-v1"},
+        "atomic_full_union": {"$ref": "operator-record-v1"},
+        "summed_union": {"$ref": "operator-record-v1"},
+        "summed_dropout": {"$ref": "operator-record-v1"}
       }
     }
   ],
   "aggregates": {
-    "m_unique": {},
-    "configured": {},
-    "equal_norm": {},
-    "shared_confuser": {},
-    "bootstrap": {}
+    "m_unique": {"$ref": "summary-record-v1"},
+    "configured_loss_stateless": {"$ref": "regime-aggregate-v1"},
+    "equal_norm": {"$ref": "regime-aggregate-v1"},
+    "shared_confuser": {"$ref": "summary-record-v1"},
+    "bootstrap": {"$ref": "bootstrap-record-v1"}
   },
   "decision": {
-    "thresholds": {},
-    "component_decisions": {},
+    "thresholds": {"$ref": "frozen-thresholds-v1"},
+    "component_decisions": {"$ref": "component-decisions-v1"},
     "overall": null,
     "authorized_next_action": "none|write_separate_gpu_preregistration"
   },
@@ -604,21 +808,167 @@ shape:
     "buffer_hash_before": null,
     "buffer_hash_after": null,
     "training_flags_restored": false,
+    "deterministic_process_verified": false,
+    "first_context_operator_replay_verified": false,
+    "deterministic_settings": {
+      "cublas_workspace_config": ":4096:8",
+      "deterministic_algorithms": true,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": true,
+      "matmul_tf32": false,
+      "cudnn_tf32": false,
+      "autocast": false,
+      "dtype": "float32"
+    },
+    "process_records": [
+      {
+        "role": "integrity_replay_a|integrity_replay_b|scientific",
+        "pid": null,
+        "accelerator": null,
+        "python_version": null,
+        "torch_version": null,
+        "cuda_version": null,
+        "cudnn_version": null,
+        "visible_cuda_devices": [],
+        "initial_python_rng_sha256": null,
+        "initial_numpy_rng_sha256": null,
+        "initial_torch_cpu_rng_sha256": null,
+        "initial_torch_cuda_rng_sha256_by_device": {},
+        "prepared_context_count": null,
+        "input_context_digest_records": [],
+        "context0_record_sha256": null
+      }
+    ],
+    "replay_residuals": {
+      "pair_count": 3,
+      "tensor_max_absolute": null,
+      "scalar_max_relative": null,
+      "tensor_tolerance": 0.000002,
+      "scalar_tolerance": 0.00001,
+      "scalar_denominator": "max(abs(a),abs(b),1e-12)"
+    },
     "all_finite": false
   }
 }
 ```
 
+The shape above is the **scored** payload. Conditional payloads are frozen as
+follows:
+
+- Scored `PASS`, `FAIL`, or ordinary `UNRESOLVED` must set
+  `candidate_values_computed=true`, contain exactly 32 complete contexts, and
+  include every aggregate, bootstrap, component decision, and integrity field.
+  Every per-context `shared_confuser` value and every operator-record value must
+  be finite and non-null except the explicitly allowed scale/reference nulls.
+- Early `UNRESOLVED` is permitted only for
+  `UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS`. It must set
+  `candidate_values_computed=false`, contain only the partial
+  context-construction audit described below (no tensors, operators, outcomes,
+  or candidate scores), and omit `aggregates` entirely (the bootstrap record is
+  nested inside `aggregates` and therefore is also absent).
+- `BLOCKED` or `INVALID` must set `candidate_values_computed=false`, contain no
+  `contexts`, `aggregates`, or scientific component decisions, and
+  include only the common provenance/constants, binding/integrity evidence,
+  exact reason codes, `overall`, and `authorized_next_action="none"`.
+
+Every early-`UNRESOLVED` partial `contexts` entry has exactly
+`context_index`, `production_epoch`, `production_batch_index`, `status`,
+`rejection_code`, `row_example_ids`, `row_sample_indices`, `row_labels`,
+`class_multiplicities`, `representative_row_indices`,
+`representative_sample_indices`, `s_prime_example_ids`, and
+`s_prime_sample_indices`. `status` is exactly `accepted` or `rejected`.
+`rejection_code` is literal JSON `null` for an accepted entry and exactly
+`INSUFFICIENT_DISJOINT_S_PRIME` for a rejected entry. Rejected entries retain
+the original 180-row IDs, indices, labels, multiplicities, and representative
+indices but have empty `s_prime_example_ids` and `s_prime_sample_indices`.
+Accepted entries contain the complete 180-row `S_prime` IDs and indices. No
+other rejection code or partial-context field is legal. The list contains every
+production batch consumed in epoch 0 through the end of that epoch, in sampler
+order; `context_index` is the zero-based consumed-batch index, not the accepted
+pair rank.
+
+The full scored `decision` record has exactly `thresholds`,
+`component_decisions`, `overall`, and `authorized_next_action`. For early
+`UNRESOLVED`, `BLOCKED`, and `INVALID`, the reduced `decision` record has
+exactly `thresholds`, `overall`, and `authorized_next_action`; `thresholds` is
+still the literal `frozen-thresholds-v1`, `overall` must equal the top-level
+status, and `authorized_next_action` must be `none`. A reduced payload may not
+smuggle in `component_decisions`.
+
+The displayed `integrity` object is `scored-integrity-v1` and is legal only for
+a scored 32-context payload. Non-scored payloads instead use exactly
+`reduced-integrity-v1`, with keys `stage`, `accepted_context_count`,
+`rejected_context_count`, `invalid_context_count`, `input_replay_verified`,
+`deterministic_process_verified`, `process_records`,
+`failure_evidence_sha256`, and `all_finite`. `stage` is one of
+`source_activation`, `context_construction`, `integrity_replay_a`,
+`integrity_replay_b`, or `scientific`. Counts are nonnegative integers;
+`failure_evidence_sha256` is the 64-lowercase-hex SHA-256 of canonical JSON
+containing exactly the top-level status, sorted reason-code list, stage, counts,
+and the last reached process record. When no process launched, that last
+record is literal JSON `null`. The two verification fields and `all_finite` are
+literal booleans, never null.
+
+Every reduced process entry uses the same exact `process-record-v1` fields shown
+in the scored schema and audits a launched process even if that process is the
+one that fails. It may set `context0_record_sha256` to literal JSON `null`
+if and only if no complete context-0 operator panel was produced. For every
+launched process, `pid` is a positive integer; `accelerator`, all four version
+fields, and every visible-device identity are nonempty strings;
+`visible_cuda_devices` is a nonempty ascending list; all three scalar initial RNG
+digest fields and every CUDA-state mapping value are 64-lowercase-hex;
+`prepared_context_count` is a nonnegative integer equal to the length of
+`input_context_digest_records`; and every digest record validates exactly.
+No other process field may be null. The process list
+is always the launched prefix of
+`[integrity_replay_a, integrity_replay_b, scientific]`, never a subset or a
+reordered list. Stage `source_activation` requires zero process records and all
+three counts zero. Early `UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS` requires
+stage `context_construction`, exactly one `integrity_replay_a` process record,
+`accepted_context_count` in `0..31`,
+`rejected_context_count >= 1`, `invalid_context_count=0`, both verification
+booleans false, and `all_finite=true`; that process record contains exactly the
+accepted input digest records and no context-0 operator digest. For `INVALID`,
+the process-record count is exactly 0 for `source_activation`, exactly 1 for
+`context_construction` or `integrity_replay_a`, exactly 2 for
+`integrity_replay_b`, and exactly 3 for `scientific`;
+`invalid_context_count=0` at `source_activation` because no context exists, and
+`invalid_context_count >= 1` at every later stage. A `BLOCKED` payload is legal only at
+`source_activation`, with zero process records/counts and all three booleans
+false. Any other null, process count, stage/status combination, or extra scored
+integrity field is invalid.
+
+The common top-level key set is exactly `schema_version`, `status`,
+`reason_codes`, `candidate_values_computed`, `uses_test_data`, `source`,
+`constants`, `decision`, and `integrity`, plus only the conditionally authorized
+keys above. Validators must mutate each status family to prove that fabricated
+numeric fields and missing required fields both fail closed.
+
 The `null` source-dependent fields shown in this draft schema must be literal
 frozen values in any activated output.  A runner that emits a scored result
 while any such field is null is invalid.
+
+`process_records` must contain exactly three entries in this order:
+`integrity_replay_a`, `integrity_replay_b`, and `scientific`.
+Every one of the three records has `prepared_context_count=32` and the same
+complete ordered list of exactly 32 `input-context-digest-v1` records. The
+first two score only context 0 and never contribute an aggregate row. The
+scientific record owns the retained context 0 and then the uninterrupted
+contexts 1–31. `context0_record_sha256` hashes the complete operator-containing
+scientific-context object at conceptual path `contexts[0]`, constructed with
+the exact same schema in all three processes. It includes no process metadata
+and excludes no field from that context object. Hash UTF-8 of
+`json.dumps(context_object, sort_keys=True, separators=(",",":"),
+ensure_ascii=False, allow_nan=False)` under the bound Python version. This
+canonicalization is used for all three records.
 
 ## Invalidation conditions
 
 Return `INVALID_OPERATING_POINT_MISMATCH` for any of the following:
 
-- a source revision inferred from the current checkout rather than authenticated
-  from the fresh PA report;
+- a source identity inferred from the post-run checkout/report rather than
+  authenticated by the committed prelaunch source manifest and post-run digest
+  replay;
 - any CIS artifact read before or during activation or execution;
 - a batch size other than 180;
 - balanced, P-K, class-filtered, or diagnostic-specific sampling;
@@ -627,6 +977,9 @@ Return `INVALID_OPERATING_POINT_MISMATCH` for any of the following:
 - eval-mode BN or an eval transform on `S`;
 - persistent BN-buffer mutation;
 - microbatching or different train forwards across operators;
+- missing deterministic settings, a deterministic-operation warning, or a
+  context-0 replay residual above its frozen tolerance;
+- any query/gallery value used outside artifact binding;
 - non-disjoint `S` and `S_prime` images within a context;
 - a production or recipe edit made to supply the diagnostic full-union formula;
 - adaptive step size, threshold, bundle count, source, proxy treatment, or null
