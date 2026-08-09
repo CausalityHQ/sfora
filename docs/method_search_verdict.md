@@ -9888,3 +9888,22 @@ panel or Pass 200's exact B=180 self-versus-batch tangent result. Inventing a lo
 before either lands would convert an unverified premise into another random-walk
 candidate. No code or GPU was spent. Full audit:
 `docs/pass202_measurement_hillclimb_2026-08-09.md`.
+
+## Pass203 — current SOTA mechanism map: NONE before GPU
+
+A primary-source map separated absolute transformer/2048-D horizons from the
+controlled BN-Inception/512 lane and audited ten load-bearing mechanisms: PFML
+potential fields, AdvRF reconstruction feedback, VAPNet latent attributes, CRT coded
+prototype residuals, DADA proxy-domain alignment, HIST hypergraphs, GSP+LIBC spatial
+pooling/message passing, CCP chance constraints, Metrix synthetic relations, and
+Proxy Anchor batch aggregation. Every mechanism is already an external prior-art
+occupant, internally tested/closed, or lacks a matching local causal measurement.
+
+The only residual exact object is the already registered RSTA self-versus-batch
+functional field, and its contextual B=180 premise is still unmeasured. Existing CIS
+arms likewise cannot ground a derivative until the `sqrt(m)` scale confound and
+missing full-union control are isolated. **Mechanism lesson:** a larger headline
+number from a transformer, external generative teacher, multiview system, or
+different descriptor lane is a horizon—not provenance for modifying the controlled
+model. No new candidate or GPU run follows. Full map:
+`docs/pass203_sota_gap_map_2026-08-09.md`.
