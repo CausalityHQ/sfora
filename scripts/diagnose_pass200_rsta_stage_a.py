@@ -2469,6 +2469,16 @@ def _functional_encoder(
     parameters = {
         name: parameter for name, parameter in model.named_parameters() if parameter.requires_grad
     }
+    constant_parameters = {
+        name: parameter
+        for name, parameter in model.named_parameters()
+        if not parameter.requires_grad
+    }
+    constant_parameter_names = tuple(constant_parameters)
+    if constant_parameter_names and constant_parameter_names != _ZERO_JACOBIAN_CLASSIFIER_NAMES:
+        raise ValueError(
+            "frozen encoder parameter names differ: " + ", ".join(constant_parameter_names)
+        )
     if not parameters:
         raise ValueError("encoder has no trainable parameters")
     parameter_names = tuple(parameters)
@@ -2477,7 +2487,7 @@ def _functional_encoder(
     def encoder(current_parameters: dict[str, Any]) -> Any:
         raw = torch.func.functional_call(
             model,
-            (current_parameters, buffers),
+            (current_parameters, constant_parameters, buffers),
             (images,),
             strict=True,
         )

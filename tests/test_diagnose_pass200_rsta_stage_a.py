@@ -2777,6 +2777,56 @@ class _UnusedParameterModel(torch.nn.Module):
         return self.used(values)
 
 
+class _FrozenClassifierParameterModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = torch.nn.Module()
+        self.model.last_linear = torch.nn.Linear(2, 2, dtype=torch.float64)
+        self.used = torch.nn.Linear(2, 3, dtype=torch.float64)
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.used(values)
+
+
+def test_exact_kernel_fields_supply_frozen_unused_parameters_as_constants() -> None:
+    """Catches omission of frozen model state from strict functional calls."""
+    model = _FrozenClassifierParameterModel()
+    for parameter in model.model.last_linear.parameters():
+        parameter.requires_grad_(False)
+    images = torch.tensor([[0.2, 0.3], [0.7, -0.4]], dtype=torch.float64)
+    cotangents = torch.tensor([[0.1, -0.2, 0.4], [0.5, 0.3, -0.1]], dtype=torch.float64)
+
+    observed = _MODULE.exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0,),
+        expected_batch_size=2,
+        expected_dimension=3,
+    )
+
+    assert observed["parameter_names"] == ("used.weight", "used.bias")
+    assert torch.equal(observed["z"], torch.nn.functional.normalize(model(images), dim=-1))
+
+
+def test_exact_kernel_fields_reject_unregistered_frozen_parameter() -> None:
+    """Catches unrelated frozen parameters bypassing the missing-gradient gate."""
+    model = _UnusedParameterModel()
+    model.unused.requires_grad_(False)
+    images = torch.tensor([[0.2, 0.3], [0.7, -0.4]], dtype=torch.float64)
+    cotangents = torch.tensor([[0.1, -0.2, 0.4], [0.5, 0.3, -0.1]], dtype=torch.float64)
+
+    with pytest.raises(ValueError, match="frozen encoder parameter.*unused"):
+        _MODULE.exact_kernel_fields(
+            model,
+            images,
+            cotangents,
+            receiver_indices=(0,),
+            expected_batch_size=2,
+            expected_dimension=3,
+        )
+
+
 def test_exact_kernel_fields_fail_closed_on_disconnected_parameter() -> None:
     """Catches silent materialization of a missing encoder gradient as zero."""
     model = _UnusedParameterModel()
