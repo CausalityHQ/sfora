@@ -13,7 +13,7 @@ import math
 import struct
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 
 import numpy as np
 
@@ -46,6 +46,759 @@ THRESHOLDS = {
     "joint_equal_union_foreign_suppression": 0.000,
     "joint_equal_union_margin_change": 0.000,
 }
+
+
+class PanelGradient(NamedTuple):
+    parameter_names: tuple[str, ...]
+    named_gradients: tuple[tuple[str, Any], ...]
+    named_update_gradients: tuple[tuple[str, Any], ...]
+    parameter_count: int
+    gradient_sha256: str
+    raw_gradient_norm: float
+    update_space_norm: float
+    auxiliary_to_pa_norm_ratio: float
+    cosine_with_pa: float
+    cosine_with_atomic_full_union: float
+    cosine_with_summed_dropout: float
+    scale_residual_to_summed_union: float | None
+
+
+class StatelessUpdate(NamedTuple):
+    parameter_names: tuple[str, ...]
+    named_updates: tuple[tuple[str, Any], ...]
+    update_sha256: str
+    parameter_update_norm: float
+    reference_pa_norm: float | None
+    norm_match_absolute_error: float | None
+
+
+class OutcomeFields(NamedTuple):
+    R_F: float
+    Delta_M: float
+    D_F: float
+    D_M: float
+
+
+class TrainGraph(NamedTuple):
+    embeddings: Any
+    disposable_buffers_before: tuple[tuple[str, Any], ...]
+    disposable_buffers_after: tuple[tuple[str, Any], ...]
+    changed_buffer_names: tuple[str, ...]
+
+
+class _OutcomeBaseline(NamedTuple):
+    parameters: dict[str, Any]
+    buffers: dict[str, Any]
+    before_f: float
+    before_m: float
+    foreign_gradients: dict[str, Any]
+    margin_gradients: dict[str, Any]
+
+
+def _representative_tensor_indices(labels: Any, sample_indices: Any, torch: Any) -> Any:
+    unique_labels = torch.unique(labels, sorted=True)
+    if int(unique_labels.numel()) == 0:
+        raise ValueError("at least one represented class is required")
+    positions = []
+    for label in unique_labels:
+        candidates = torch.nonzero(labels.eq(label), as_tuple=False)[:, 0]
+        local_position = torch.argmin(sample_indices[candidates].to(torch.long))
+        positions.append(candidates[local_position])
+    return unique_labels, torch.stack(positions)
+
+
+def _named_tensor_norm(named_tensors: Iterable[tuple[str, Any]]) -> float:
+    import torch
+
+    total = torch.zeros((), dtype=torch.float64)
+    for _, value in named_tensors:
+        tensor = value.detach().to(device="cpu", dtype=torch.float64)
+        total = total + torch.sum(tensor * tensor)
+    return float(torch.sqrt(total).item())
+
+
+def _named_tensor_cosine(
+    left: tuple[tuple[str, Any], ...], right: tuple[tuple[str, Any], ...]
+) -> float:
+    import torch
+
+    if tuple(name for name, _ in left) != tuple(name for name, _ in right):
+        raise ValueError("cosine parameter membership mismatch")
+    dot = torch.zeros((), dtype=torch.float64)
+    for (_, left_value), (_, right_value) in zip(left, right, strict=True):
+        dot = dot + torch.sum(
+            left_value.detach().to(device="cpu", dtype=torch.float64)
+            * right_value.detach().to(device="cpu", dtype=torch.float64)
+        )
+    denominator = _named_tensor_norm(left) * _named_tensor_norm(right)
+    if denominator == 0.0:
+        raise ValueError("cosine requires nonzero vectors")
+    return float(dot.item() / denominator)
+
+
+def coalition_losses(
+    embeddings: Any,
+    labels: Any,
+    sample_indices: Any,
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    alpha: float,
+    delta: float,
+) -> dict[str, Any]:
+    """Build the six frozen operator losses from one shared embedding graph."""
+
+    import torch
+
+    from sfora.image_end_to_end import _normalize, _proxy_anchor_loss
+
+    if embeddings.ndim != 2 or proxies.ndim != 2 or embeddings.shape[1] != proxies.shape[1]:
+        raise ValueError("embeddings and proxies must be aligned matrices")
+    if labels.ndim != 1 or sample_indices.ndim != 1:
+        raise ValueError("labels and sample_indices must be vectors")
+    if labels.shape[0] != embeddings.shape[0] or sample_indices.shape[0] != labels.shape[0]:
+        raise ValueError("row metadata must align with embeddings")
+    if proxy_labels.ndim != 1 or proxy_labels.shape[0] != proxies.shape[0]:
+        raise ValueError("proxy_labels must align with proxies")
+
+    unique_labels, representative_indices = _representative_tensor_indices(
+        labels, sample_indices, torch
+    )
+
+    members = _normalize(embeddings[representative_indices], torch)
+    normalized_proxies = _normalize(proxies, torch)
+    atomic_logits = members @ normalized_proxies.T
+    bundle_target = proxy_labels.unsqueeze(0).eq(unique_labels.unsqueeze(1)).any(dim=0)
+    one_hot_target = unique_labels.unsqueeze(1).eq(proxy_labels.unsqueeze(0))
+    complementary_target = bundle_target.unsqueeze(0) & ~one_hot_target
+    full_union_target = bundle_target.unsqueeze(0).expand_as(atomic_logits)
+    bce = torch.nn.functional.binary_cross_entropy_with_logits
+
+    coalition = members.sum(dim=0) / math.sqrt(int(unique_labels.numel()))
+    summed_logits = (coalition @ normalized_proxies.T).unsqueeze(0)
+    dropout_labels = unique_labels[:-1]
+    dropout_target = proxy_labels.unsqueeze(0).eq(dropout_labels.unsqueeze(1)).any(dim=0)
+
+    losses = {
+        "proxy_anchor": _proxy_anchor_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxies,
+            proxy_labels=proxy_labels,
+            alpha=alpha,
+            delta=delta,
+            torch_module=torch,
+        ),
+        "atomic_one_hot": bce(
+            atomic_logits, one_hot_target.to(atomic_logits.dtype), reduction="mean"
+        ),
+        "atomic_complementary": bce(
+            atomic_logits, complementary_target.to(atomic_logits.dtype), reduction="mean"
+        ),
+        "atomic_full_union": bce(
+            atomic_logits, full_union_target.to(atomic_logits.dtype), reduction="mean"
+        ),
+        "summed_union": bce(
+            summed_logits, bundle_target.to(summed_logits.dtype).unsqueeze(0), reduction="mean"
+        ),
+        "summed_dropout": bce(
+            summed_logits, dropout_target.to(summed_logits.dtype).unsqueeze(0), reduction="mean"
+        ),
+    }
+    return {name: losses[name] for name in OPERATORS}
+
+
+def operator_gradients(
+    losses: Mapping[str, Any],
+    named_parameters: Mapping[str, Any],
+    *,
+    expected_trainable_parameter_names: Sequence[str],
+    proxy_parameter_name: str,
+    proxy_learning_rate_multiplier: float,
+    representative_count: int | None = None,
+) -> dict[str, PanelGradient]:
+    """Differentiate each operator once and derive the two frozen panels."""
+
+    import torch
+
+    expected_names = tuple(expected_trainable_parameter_names)
+    if len(expected_names) != len(set(expected_names)):
+        raise ValueError("duplicate expected trainable parameter name")
+    lexical_names = tuple(sorted(expected_names, key=lambda name: name.encode("utf-8")))
+    if expected_names != lexical_names:
+        raise ValueError("expected trainable parameter names must be lexicographic")
+    actual = {name: value for name, value in named_parameters.items() if value.requires_grad}
+    actual_names = set(actual)
+    expected_set = set(expected_names)
+    missing = expected_set - actual_names
+    unexpected = actual_names - expected_set
+    if missing:
+        raise ValueError(f"missing trainable parameter: {min(missing)}")
+    if unexpected:
+        raise ValueError(f"unexpected trainable parameter: {min(unexpected)}")
+    if proxy_parameter_name not in expected_set:
+        raise ValueError("missing trainable proxy parameter")
+    if tuple(losses) != OPERATORS:
+        raise ValueError("losses must contain the exact ordered operator panel")
+    if not math.isfinite(proxy_learning_rate_multiplier):
+        raise ValueError("proxy learning-rate multiplier must be finite")
+    if representative_count is not None and representative_count <= 0:
+        raise ValueError("representative_count must be positive")
+
+    parameters = tuple(actual[name] for name in expected_names)
+    output: dict[str, PanelGradient] = {}
+    for operator in OPERATORS:
+        values = torch.autograd.grad(
+            losses[operator], parameters, retain_graph=True, allow_unused=True
+        )
+        disconnected = [
+            name
+            for name, value in zip(expected_names, values, strict=True)
+            if value is None
+        ]
+        if disconnected:
+            raise ValueError(f"disconnected required parameter: {disconnected[0]}")
+        gradients_by_name = {
+            name: value.detach().clone()
+            for name, value in zip(expected_names, values, strict=True)
+        }
+        for panel in PANELS:
+            panel_names = tuple(
+                name
+                for name in expected_names
+                if panel == "joint_including_proxies" or name != proxy_parameter_name
+            )
+            if not panel_names:
+                raise ValueError(f"{panel} has no parameters")
+            named_gradients = tuple((name, gradients_by_name[name]) for name in panel_names)
+            named_update_gradients = tuple(
+                (
+                    name,
+                    gradients_by_name[name]
+                    * (
+                        float(proxy_learning_rate_multiplier)
+                        if name == proxy_parameter_name
+                        else 1.0
+                    ),
+                )
+                for name in panel_names
+            )
+            raw_norm = _named_tensor_norm(named_gradients)
+            update_norm = _named_tensor_norm(named_update_gradients)
+            if not math.isfinite(raw_norm) or raw_norm == 0.0:
+                raise ValueError(f"zero or nonfinite required gradient: {operator}.{panel}")
+            if not math.isfinite(update_norm) or update_norm == 0.0:
+                raise ValueError(f"zero or nonfinite update-space gradient: {operator}.{panel}")
+            output[f"{operator}.{panel}"] = PanelGradient(
+                parameter_names=panel_names,
+                named_gradients=named_gradients,
+                named_update_gradients=named_update_gradients,
+                parameter_count=sum(int(grad.numel()) for _, grad in named_gradients),
+                gradient_sha256=sha256_named_tensors(named_gradients),
+                raw_gradient_norm=raw_norm,
+                update_space_norm=update_norm,
+                auxiliary_to_pa_norm_ratio=0.0,
+                cosine_with_pa=0.0,
+                cosine_with_atomic_full_union=0.0,
+                cosine_with_summed_dropout=0.0,
+                scale_residual_to_summed_union=None,
+            )
+    for panel in PANELS:
+        pa = output[f"proxy_anchor.{panel}"]
+        full_union = output[f"atomic_full_union.{panel}"]
+        dropout = output[f"summed_dropout.{panel}"]
+        summed_union = output[f"summed_union.{panel}"]
+        for operator in OPERATORS:
+            key = f"{operator}.{panel}"
+            record = output[key]
+            scale_residual = None
+            if representative_count is not None and operator.startswith("atomic_"):
+                scale_residual = summed_union.update_space_norm / (
+                    math.sqrt(representative_count) * record.update_space_norm
+                )
+            output[key] = record._replace(
+                auxiliary_to_pa_norm_ratio=record.update_space_norm / pa.update_space_norm,
+                cosine_with_pa=_named_tensor_cosine(
+                    record.named_update_gradients, pa.named_update_gradients
+                ),
+                cosine_with_atomic_full_union=_named_tensor_cosine(
+                    record.named_update_gradients, full_union.named_update_gradients
+                ),
+                cosine_with_summed_dropout=_named_tensor_cosine(
+                    record.named_update_gradients, dropout.named_update_gradients
+                ),
+                scale_residual_to_summed_union=scale_residual,
+            )
+    return output
+
+
+def _scaled_named_tensors(
+    named_tensors: tuple[tuple[str, Any], ...], scale: float
+) -> tuple[tuple[str, Any], ...]:
+    return tuple((name, value * scale) for name, value in named_tensors)
+
+
+def _combine_named_tensors(
+    left: tuple[tuple[str, Any], ...],
+    right: tuple[tuple[str, Any], ...],
+    right_scale: float,
+) -> tuple[tuple[str, Any], ...]:
+    if tuple(name for name, _ in left) != tuple(name for name, _ in right):
+        raise ValueError("gradient panel membership mismatch")
+    return tuple(
+        (left_name, left_value + right_scale * right_value)
+        for (left_name, left_value), (_, right_value) in zip(left, right, strict=True)
+    )
+
+
+def make_stateless_updates(
+    gradients: Mapping[str, PanelGradient],
+    *,
+    learning_rate: float,
+    coalition_weight: float,
+) -> dict[str, Any]:
+    """Construct configured and panel-specific equal-norm virtual updates."""
+
+    if not math.isfinite(learning_rate) or learning_rate <= 0.0:
+        raise ValueError("learning_rate must be positive and finite")
+    if not math.isfinite(coalition_weight):
+        raise ValueError("coalition_weight must be finite")
+    expected_keys = {f"{operator}.{panel}" for operator in OPERATORS for panel in PANELS}
+    if set(gradients) != expected_keys:
+        raise ValueError("gradient records must contain the exact operator panels")
+
+    updates: dict[str, Any] = {
+        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
+    }
+    for panel in PANELS:
+        pa = gradients[f"proxy_anchor.{panel}"]
+        reference_pa_norm = float(learning_rate) * pa.update_space_norm
+        for operator in OPERATORS:
+            pure = gradients[f"{operator}.{panel}"]
+            configured_direction = (
+                pa.named_update_gradients
+                if operator == "proxy_anchor"
+                else _combine_named_tensors(
+                    pa.named_update_gradients,
+                    pure.named_update_gradients,
+                    float(coalition_weight),
+                )
+            )
+            configured_update = _scaled_named_tensors(
+                configured_direction, -float(learning_rate)
+            )
+            updates["configured_loss_stateless"][operator][panel] = StatelessUpdate(
+                parameter_names=pure.parameter_names,
+                named_updates=configured_update,
+                update_sha256=sha256_named_tensors(configured_update),
+                parameter_update_norm=_named_tensor_norm(configured_update),
+                reference_pa_norm=None,
+                norm_match_absolute_error=None,
+            )
+
+            equal_scale = -reference_pa_norm / pure.update_space_norm
+            equal_update = _scaled_named_tensors(pure.named_update_gradients, equal_scale)
+            equal_norm = _named_tensor_norm(equal_update)
+            error = abs(equal_norm - reference_pa_norm)
+            if error > 1e-10 * max(reference_pa_norm, 1e-12):
+                raise ValueError(f"equal-norm mismatch: {operator}.{panel}")
+            updates["equal_norm"][operator][panel] = StatelessUpdate(
+                parameter_names=pure.parameter_names,
+                named_updates=equal_update,
+                update_sha256=sha256_named_tensors(equal_update),
+                parameter_update_norm=equal_norm,
+                reference_pa_norm=reference_pa_norm,
+                norm_match_absolute_error=error,
+            )
+    return updates
+
+
+def _outcome_scalars(
+    embeddings: Any,
+    labels: Any,
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    temperature: float,
+    torch: Any,
+) -> tuple[Any, Any]:
+    from sfora.image_end_to_end import _normalize
+
+    normalized_embeddings = _normalize(embeddings, torch)
+    normalized_proxies = _normalize(proxies, torch)
+    logits = normalized_embeddings @ normalized_proxies.T
+    bundle_labels = torch.unique(labels, sorted=True)
+    foreign_mask = ~torch.isin(proxy_labels, bundle_labels)
+    if not bool(foreign_mask.any()):
+        raise ValueError("at least one foreign proxy row is required")
+    foreign_mass = torch.sigmoid(logits[:, foreign_mask]).mean()
+    margins = []
+    for row, label in enumerate(labels):
+        owner_mask = proxy_labels.eq(label)
+        if not bool(owner_mask.any()):
+            raise ValueError(f"represented class lacks owning proxy: {int(label)}")
+        hard_mask = ~owner_mask
+        if not bool(hard_mask.any()):
+            raise ValueError("owner margin requires a non-owner proxy")
+        owner_logits = logits[row, owner_mask] / float(temperature)
+        hard_logits = logits[row, hard_mask] / float(temperature)
+        owner = float(temperature) * (
+            torch.logsumexp(owner_logits, dim=0) - math.log(int(owner_logits.numel()))
+        )
+        hard = float(temperature) * (
+            torch.logsumexp(hard_logits, dim=0) - math.log(int(hard_logits.numel()))
+        )
+        margins.append(owner - hard)
+    return foreign_mass, torch.stack(margins).mean()
+
+
+def _module_training_flags(model: Any) -> tuple[tuple[Any, bool], ...]:
+    return tuple((module, bool(module.training)) for module in model.modules())
+
+
+def _restore_module_training_flags(flags: Iterable[tuple[Any, bool]]) -> None:
+    for module, training in flags:
+        module.training = training
+
+
+def bufferless_train_embeddings(model: Any, inputs: Any) -> TrainGraph:
+    """Run one train-mode functional forward with cloned disposable buffers."""
+
+    import torch
+
+    parameters = dict(model.named_parameters())
+    before = {name: value.detach().clone() for name, value in model.named_buffers()}
+    disposable = {name: value.clone() for name, value in before.items()}
+    flags = _module_training_flags(model)
+    try:
+        model.train()
+        embeddings = torch.func.functional_call(
+            model, (parameters, disposable), (inputs,), strict=True
+        )
+        after = {name: value.detach().clone() for name, value in disposable.items()}
+    finally:
+        _restore_module_training_flags(flags)
+    names = tuple(sorted(before, key=lambda name: name.encode("utf-8")))
+    changed = tuple(name for name in names if not torch.equal(before[name], after[name]))
+    return TrainGraph(
+        embeddings=embeddings,
+        disposable_buffers_before=tuple((name, before[name]) for name in names),
+        disposable_buffers_after=tuple((name, after[name]) for name in names),
+        changed_buffer_names=changed,
+    )
+
+
+def _prepare_outcome_baseline(
+    *,
+    model: Any,
+    clean_inputs: Any,
+    labels: Any,
+    proxy_labels: Any,
+    parameter_names: Sequence[str],
+    proxy_parameter_name: str,
+    temperature: float,
+) -> _OutcomeBaseline:
+    import torch
+
+    parameters = dict(model.named_parameters())
+    missing = set(parameter_names) - set(parameters)
+    if missing:
+        raise ValueError(f"outcome parameter is absent from model: {min(missing)}")
+    if proxy_parameter_name not in parameters:
+        raise ValueError("proxy parameter is absent from model")
+    buffers = {name: value.detach().clone() for name, value in model.named_buffers()}
+    flags = _module_training_flags(model)
+    try:
+        model.eval()
+        embeddings = torch.func.functional_call(
+            model,
+            (parameters, {name: value.clone() for name, value in buffers.items()}),
+            (clean_inputs,),
+            strict=True,
+        )
+        before_f, before_m = _outcome_scalars(
+            embeddings,
+            labels,
+            parameters[proxy_parameter_name],
+            proxy_labels,
+            temperature=temperature,
+            torch=torch,
+        )
+        selected_parameters = tuple(parameters[name] for name in parameter_names)
+        foreign_values = torch.autograd.grad(
+            before_f, selected_parameters, retain_graph=True, allow_unused=True
+        )
+        margin_values = torch.autograd.grad(
+            before_m, selected_parameters, retain_graph=False, allow_unused=True
+        )
+    finally:
+        _restore_module_training_flags(flags)
+    if any(value is None for value in foreign_values + margin_values):
+        raise ValueError("outcome gradient is disconnected from a required parameter")
+    return _OutcomeBaseline(
+        parameters=parameters,
+        buffers=buffers,
+        before_f=float(before_f.detach().to(torch.float64).item()),
+        before_m=float(before_m.detach().to(torch.float64).item()),
+        foreign_gradients={
+            name: value.detach().clone()
+            for name, value in zip(parameter_names, foreign_values, strict=True)
+        },
+        margin_gradients={
+            name: value.detach().clone()
+            for name, value in zip(parameter_names, margin_values, strict=True)
+        },
+    )
+
+
+def _outcome_after_update(
+    *,
+    baseline: _OutcomeBaseline,
+    model: Any,
+    clean_inputs: Any,
+    labels: Any,
+    proxy_labels: Any,
+    named_updates: Mapping[str, Any],
+    proxy_parameter_name: str,
+    temperature: float,
+) -> OutcomeFields:
+    import torch
+
+    update_names = tuple(sorted(named_updates, key=lambda name: name.encode("utf-8")))
+    missing_gradients = set(update_names) - set(baseline.foreign_gradients)
+    if missing_gradients:
+        raise ValueError(f"outcome gradient missing parameter: {min(missing_gradients)}")
+    foreign_dot = sum(
+        torch.sum(
+            baseline.foreign_gradients[name].to(torch.float64)
+            * named_updates[name].to(torch.float64)
+        )
+        for name in update_names
+    )
+    margin_dot = sum(
+        torch.sum(
+            baseline.margin_gradients[name].to(torch.float64)
+            * named_updates[name].to(torch.float64)
+        )
+        for name in update_names
+    )
+    after_parameters = dict(baseline.parameters)
+    after_parameters.update(
+        {name: baseline.parameters[name] + named_updates[name] for name in update_names}
+    )
+    flags = _module_training_flags(model)
+    try:
+        model.eval()
+        with torch.no_grad():
+            after_embeddings = torch.func.functional_call(
+                model,
+                (
+                    after_parameters,
+                    {name: value.clone() for name, value in baseline.buffers.items()},
+                ),
+                (clean_inputs,),
+                strict=True,
+            )
+            after_f, after_m = _outcome_scalars(
+                after_embeddings,
+                labels,
+                after_parameters[proxy_parameter_name],
+                proxy_labels,
+                temperature=temperature,
+                torch=torch,
+            )
+    finally:
+        _restore_module_training_flags(flags)
+    return OutcomeFields(
+        R_F=float((baseline.before_f - float(after_f.item())) / max(baseline.before_f, 1e-6)),
+        Delta_M=float(after_m.item()) - baseline.before_m,
+        D_F=float((-foreign_dot / max(baseline.before_f, 1e-6)).item()),
+        D_M=float(margin_dot.item()),
+    )
+
+
+def owner_outcomes(
+    *,
+    model: Any,
+    clean_inputs: Any,
+    labels: Any,
+    proxy_labels: Any,
+    named_updates: Mapping[str, Any],
+    proxy_parameter_name: str,
+    temperature: float = 0.05,
+) -> OutcomeFields:
+    """Evaluate an immutable stateless update on clean eval-mode support rows."""
+
+    if not math.isfinite(temperature) or temperature <= 0.0:
+        raise ValueError("temperature must be positive and finite")
+    update_names = tuple(sorted(named_updates, key=lambda name: name.encode("utf-8")))
+    baseline = _prepare_outcome_baseline(
+        model=model,
+        clean_inputs=clean_inputs,
+        labels=labels,
+        proxy_labels=proxy_labels,
+        parameter_names=update_names,
+        proxy_parameter_name=proxy_parameter_name,
+        temperature=temperature,
+    )
+    return _outcome_after_update(
+        baseline=baseline,
+        model=model,
+        clean_inputs=clean_inputs,
+        labels=labels,
+        proxy_labels=proxy_labels,
+        named_updates=named_updates,
+        proxy_parameter_name=proxy_parameter_name,
+        temperature=temperature,
+    )
+
+
+def shared_confuser_statistic(
+    embeddings: Any,
+    labels: Any,
+    sample_indices: Any,
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    context_index: int,
+    null_replicates: int = 256,
+    null_seed: int = 2010810,
+) -> dict[str, Any]:
+    """Compute the frozen aligned geometric mean and streamed row-wise null."""
+
+    import torch
+
+    from sfora.image_end_to_end import _normalize
+
+    if context_index < 0 or null_replicates <= 0:
+        raise ValueError("context index and null replicate count must be valid")
+    unique_labels, representative_indices = _representative_tensor_indices(
+        labels, sample_indices, torch
+    )
+    members = _normalize(embeddings[representative_indices], torch)
+    normalized_proxies = _normalize(proxies, torch)
+    foreign_mask = ~torch.isin(proxy_labels, unique_labels)
+    if not bool(foreign_mask.any()):
+        raise ValueError("at least one proxy outside the bundle is required")
+    q = (
+        torch.sigmoid(members @ normalized_proxies[foreign_mask].T)
+        .clamp(min=1e-12, max=1.0)
+        .detach()
+        .to(device="cpu", dtype=torch.float64)
+        .numpy()
+    )
+    aligned = float(np.exp(np.log(q).mean(axis=0)).mean())
+    null_values = np.empty(null_replicates, dtype="<f8")
+    for replicate in range(null_replicates):
+        generator = np.random.Generator(
+            np.random.PCG64(null_seed + 100_000 * context_index + replicate)
+        )
+        permuted = np.stack(
+            [row[generator.permutation(q.shape[1])] for row in q], axis=0
+        )
+        null_values[replicate] = np.exp(np.log(permuted).mean(axis=0)).mean()
+    null_mean = float(null_values.mean())
+    return {
+        "foreign_proxy_rows": int(q.shape[1]),
+        "A_aligned": aligned,
+        "null_mean": null_mean,
+        "E_shared": (aligned - null_mean) / max(null_mean, 1e-12),
+        "null_distribution": null_values,
+        "null_distribution_sha256": hashlib.sha256(
+            null_values.tobytes(order="C")
+        ).hexdigest(),
+    }
+
+
+def score_context(
+    *,
+    model: Any,
+    train_inputs: Any,
+    clean_inputs: Any,
+    labels: Any,
+    sample_indices: Any,
+    proxy_labels: Any,
+    expected_trainable_parameter_names: Sequence[str],
+    proxy_parameter_name: str,
+    alpha: float,
+    delta: float,
+    learning_rate: float,
+    coalition_weight: float,
+    proxy_learning_rate_multiplier: float,
+    context_index: int,
+    temperature: float = 0.05,
+) -> dict[str, Any]:
+    """Score one context while preserving checkpoint state and shared graphs."""
+
+    parameters = dict(model.named_parameters())
+    if proxy_parameter_name not in parameters:
+        raise ValueError("proxy parameter is absent from model")
+    train_graph = bufferless_train_embeddings(model, train_inputs)
+    losses = coalition_losses(
+        train_graph.embeddings,
+        labels,
+        sample_indices,
+        parameters[proxy_parameter_name],
+        proxy_labels,
+        alpha=alpha,
+        delta=delta,
+    )
+    gradients = operator_gradients(
+        losses,
+        parameters,
+        expected_trainable_parameter_names=expected_trainable_parameter_names,
+        proxy_parameter_name=proxy_parameter_name,
+        proxy_learning_rate_multiplier=proxy_learning_rate_multiplier,
+        representative_count=int(labels.unique().numel()),
+    )
+    updates = make_stateless_updates(
+        gradients,
+        learning_rate=learning_rate,
+        coalition_weight=coalition_weight,
+    )
+    shared_confuser = shared_confuser_statistic(
+        train_graph.embeddings,
+        labels,
+        sample_indices,
+        parameters[proxy_parameter_name],
+        proxy_labels,
+        context_index=context_index,
+    )
+    baseline = _prepare_outcome_baseline(
+        model=model,
+        clean_inputs=clean_inputs,
+        labels=labels,
+        proxy_labels=proxy_labels,
+        parameter_names=tuple(expected_trainable_parameter_names),
+        proxy_parameter_name=proxy_parameter_name,
+        temperature=temperature,
+    )
+    outcomes: dict[str, Any] = {
+        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
+    }
+    for regime in REGIMES:
+        for operator in OPERATORS:
+            for panel in PANELS:
+                update = updates[regime][operator][panel]
+                outcomes[regime][operator][panel] = _outcome_after_update(
+                    baseline=baseline,
+                    model=model,
+                    clean_inputs=clean_inputs,
+                    labels=labels,
+                    proxy_labels=proxy_labels,
+                    named_updates=dict(update.named_updates),
+                    proxy_parameter_name=proxy_parameter_name,
+                    temperature=temperature,
+                )
+    detached_train_graph = train_graph._replace(embeddings=train_graph.embeddings.detach())
+    return {
+        "losses": {name: loss.detach() for name, loss in losses.items()},
+        "gradients": gradients,
+        "updates": updates,
+        "outcomes": outcomes,
+        "shared_confuser": shared_confuser,
+        "train_graph": detached_train_graph,
+    }
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -91,6 +844,8 @@ def sha256_named_tensors(named_tensors: Iterable[tuple[str, Any]]) -> str:
         raise ValueError("tensor names must be unique")
     for name, value in tensors:
         name_bytes = name.encode("utf-8")
+        if hasattr(value, "detach") and hasattr(value, "cpu"):
+            value = value.detach().cpu().numpy()
         array = np.ascontiguousarray(np.asarray(value, dtype="<f8"))
         payload = array.tobytes(order="C")
         digest.update(struct.pack("<I", len(name_bytes)))
