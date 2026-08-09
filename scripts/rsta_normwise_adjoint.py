@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -139,6 +140,144 @@ def fixture_metadata(fixture_id: str) -> dict[str, object]:
             "scales": scales,
         }
     )
+
+
+@dataclass(frozen=True)
+class FixtureSpec:
+    fixture_id: str
+    metadata: dict[str, object]
+
+    @property
+    def kind(self) -> str:
+        return str(self.metadata["kind"])
+
+
+def correct_fixture_specs() -> tuple[FixtureSpec, ...]:
+    return tuple(FixtureSpec(name, fixture_metadata(name)) for name in CORRECT_FIXTURE_IDS)
+
+
+def _draw(seed: str, shape: tuple[int, ...], *, scale: float = 1.0) -> torch.Tensor:
+    array = np.random.Generator(np.random.PCG64(int(seed, 16))).standard_normal(shape)
+    return torch.as_tensor(np.ascontiguousarray(array * scale), dtype=torch.float32)
+
+
+def _construct_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
+    if spec.fixture_id not in CORRECT_FIXTURE_IDS or not _literal_equal(
+        spec.metadata, fixture_metadata(spec.fixture_id)
+    ):
+        raise ValueError("correct fixture metadata differs from protocol")
+    seeds = spec.metadata["seeds"]
+    tensors: dict[str, torch.Tensor]
+    if spec.fixture_id == "zero_corner":
+        tensors = {
+            "x": _draw(seeds["x"], (17,)),
+            "u": _draw(seeds["output_direction"], (17,)),
+            "v": _draw(seeds["parameter_direction"], (17,)),
+        }
+    elif spec.kind == "affine_linear":
+        tensors = {
+            "matrix": _draw(seeds["matrix"], (257, 193)),
+            "x": _draw(seeds["input"], (193,)),
+            "u": _draw(seeds["output_direction"], (257,)),
+            "v": _draw(seeds["parameter_direction"], (193,)),
+        }
+    elif spec.fixture_id == "smooth_parameter_tree":
+        shapes = {"w1": (23, 11), "b1": (23,), "w2": (19, 23), "b2": (19,)}
+        tensors = {
+            name: _draw(seeds[name], shape, scale=2**-3 if name.startswith("w") else 2**-4)
+            for name, shape in shapes.items()
+        }
+        tensors["input"] = _draw(seeds["input"], (17, 11), scale=2**-2)
+        flat = _draw(seeds["parameter_direction"], (732,))
+        start = 0
+        for name, shape in shapes.items():
+            count = math.prod(shape)
+            tensors[f"v_{name}"] = flat[start : start + count].reshape(shape)
+            start += count
+        tensors["u"] = _draw(seeds["output_direction"], (17, 19))
+    else:
+        q = _draw(seeds["output_pair_base"], (4096,))
+        p = _draw(seeds["parameter_pair_base"], (4096,))
+        tensors = {
+            "x": _draw(seeds["input"], (8193,)),
+            "u": torch.cat((q.repeat_interleave(2), torch.ones(1, dtype=torch.float32))),
+            "v": torch.cat((p.repeat_interleave(2), torch.ones(1, dtype=torch.float32))),
+            "diagonal": torch.cat(
+                (
+                    torch.tensor([2**10, -(2**10)], dtype=torch.float32).repeat(4096),
+                    torch.tensor([2**-10], dtype=torch.float32),
+                )
+            ),
+        }
+    return {"spec": spec, "tensors": tensors}
+
+
+def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
+    """Execute one frozen correct fixture through real torch.func actions."""
+    built = _construct_correct_fixture(spec)
+    tensors = built["tensors"]
+    if spec.fixture_id == "smooth_parameter_tree":
+        names = ("w1", "b1", "w2", "b2")
+        primal = {name: tensors[name] for name in names}
+        tangent = {name: tensors[f"v_{name}"] for name in names}
+        fixed_input = tensors["input"]
+
+        def function(parameters: Mapping[str, torch.Tensor]) -> torch.Tensor:
+            hidden = torch.tanh(fixed_input @ parameters["w1"].T + parameters["b1"])
+            output = hidden @ parameters["w2"].T + parameters["b2"]
+            return torch.nn.functional.normalize(output, dim=1, eps=1.0e-12)
+
+        _, pullback = torch.func.vjp(function, primal)
+        _, jvp_action = torch.func.jvp(function, (primal,), (tangent,))
+        (vjp_action,) = pullback(tensors["u"])
+        parameter_direction = tangent
+    else:
+        names = ("x",)
+        primal = tensors["x"]
+        tangent_tensor = tensors["v"]
+        if spec.fixture_id == "zero_corner":
+
+            def function(value: torch.Tensor) -> torch.Tensor:
+                return value * torch.tensor(0.0, dtype=torch.float32)
+
+        elif spec.kind == "affine_linear":
+            scale = {
+                "affine_scale_2m12": 2**-12,
+                "affine_scale_1": 1.0,
+                "affine_scale_2p12": 2**12,
+            }[spec.fixture_id]
+            matrix = tensors["matrix"]
+
+            def function(value: torch.Tensor) -> torch.Tensor:
+                return torch.tensor(scale, dtype=torch.float32) * (matrix @ value)
+
+        else:
+            diagonal = tensors["diagonal"]
+
+            def function(value: torch.Tensor) -> torch.Tensor:
+                return diagonal * value
+
+        _, pullback = torch.func.vjp(function, primal)
+        _, jvp_action = torch.func.jvp(function, (primal,), (tangent_tensor,))
+        (vjp_tensor,) = pullback(tensors["u"])
+        parameter_direction = {"x": tangent_tensor}
+        vjp_action = {"x": vjp_tensor}
+
+    metrics = normwise_adjoint_metrics(
+        tensors["u"], jvp_action, parameter_direction, vjp_action, names
+    )
+    threshold = metrics.pop("threshold")
+    metrics.pop("passed")
+    return {
+        **fixture_metadata(spec.fixture_id),
+        **metrics,
+        "jvp_sha256": tensor_sha256(jvp_action),
+        "vjp_sha256": parameter_tree_sha256(vjp_action, names),
+        "controls": {},
+        "threshold": threshold,
+        "passed": type(metrics["beta_norm"]) is float
+        and metrics["beta_norm"] <= CORRECT_FIXTURE_CEILING,
+    }
 
 
 def _tensor(value: Any, *, name: str) -> torch.Tensor:

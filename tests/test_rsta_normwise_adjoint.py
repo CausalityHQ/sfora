@@ -603,3 +603,114 @@ def test_calibration_schema_exhaustively_rejects_recursive_mutations() -> None:
     assert {tuple(path) for kind, *path in covered if kind == "remove"} >= {
         (*path, key) for path in dict_paths for key in parent_at(base, path)
     }
+
+
+def _pcg(seed: str, shape: tuple[int, ...], scale: float = 1.0) -> torch.Tensor:
+    values = np.random.Generator(np.random.PCG64(int(seed, 16))).standard_normal(shape)
+    return torch.tensor(np.ascontiguousarray(values * scale), dtype=torch.float32)
+
+
+def test_correct_fixture_construction_is_byte_exact() -> None:
+    specs = normwise.correct_fixture_specs()
+    assert tuple(spec.fixture_id for spec in specs) == normwise.CORRECT_FIXTURE_IDS
+    for spec in specs:
+        assert spec.metadata == normwise.fixture_metadata(spec.fixture_id)
+        built = normwise._construct_correct_fixture(spec)
+        tensors = built["tensors"]
+        seeds = spec.metadata["seeds"]
+        if spec.fixture_id == "zero_corner":
+            expected = {
+                "x": _pcg(seeds["x"], (17,)),
+                "u": _pcg(seeds["output_direction"], (17,)),
+                "v": _pcg(seeds["parameter_direction"], (17,)),
+            }
+        elif spec.kind == "affine_linear":
+            expected = {
+                "matrix": _pcg(seeds["matrix"], (257, 193)),
+                "x": _pcg(seeds["input"], (193,)),
+                "u": _pcg(seeds["output_direction"], (257,)),
+                "v": _pcg(seeds["parameter_direction"], (193,)),
+            }
+        elif spec.fixture_id == "smooth_parameter_tree":
+            shapes = {"w1": (23, 11), "b1": (23,), "w2": (19, 23), "b2": (19,)}
+            expected = {
+                name: _pcg(seeds[name], shape, 2**-3 if name.startswith("w") else 2**-4)
+                for name, shape in shapes.items()
+            }
+            expected["input"] = _pcg(seeds["input"], (17, 11), 2**-2)
+            flat = _pcg(seeds["parameter_direction"], (732,))
+            start = 0
+            for name, shape in shapes.items():
+                count = int(np.prod(shape))
+                expected[f"v_{name}"] = flat[start : start + count].reshape(shape)
+                start += count
+            expected["u"] = _pcg(seeds["output_direction"], (17, 19))
+        else:
+            expected = {"x": _pcg(seeds["input"], (8193,))}
+            q = _pcg(seeds["output_pair_base"], (4096,))
+            p = _pcg(seeds["parameter_pair_base"], (4096,))
+            expected["u"] = torch.cat((q.repeat_interleave(2), torch.ones(1)))
+            expected["v"] = torch.cat((p.repeat_interleave(2), torch.ones(1)))
+            expected["diagonal"] = torch.cat(
+                (torch.tensor([2**10, -(2**10)]).repeat(4096), torch.tensor([2**-10]))
+            ).to(torch.float32)
+        assert list(tensors) == list(expected)
+        for name, wanted in expected.items():
+            assert tensors[name].dtype == torch.float32
+            assert tensors[name].device.type == "cpu"
+            assert tensors[name].is_contiguous()
+            assert tensors[name].numpy().tobytes(order="C") == wanted.numpy().tobytes(order="C")
+
+    affine = specs[1]
+    for mutation in ("scale", "seed", "seed_order", "dimension_type", "extra"):
+        metadata = deepcopy(affine.metadata)
+        if mutation == "scale":
+            metadata["scales"]["operator"] = "0.000244140625"
+        elif mutation == "seed":
+            metadata["seeds"]["matrix"] = "0X4E4F524D00000101"
+        elif mutation == "seed_order":
+            metadata["seeds"] = dict(reversed(tuple(metadata["seeds"].items())))
+        elif mutation == "dimension_type":
+            metadata["dimensions"]["input"] = 193.0
+        else:
+            metadata["scales"]["extra"] = "1"
+        with pytest.raises(ValueError, match="metadata"):
+            normwise._construct_correct_fixture(normwise.FixtureSpec(affine.fixture_id, metadata))
+
+
+def test_correct_fixture_uses_torch_func_and_exact_action_hashes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_jvp, original_vjp = torch.func.jvp, torch.func.vjp
+    calls = {"jvp": 0, "vjp": 0}
+
+    def jvp(*args: Any, **kwargs: Any) -> Any:
+        calls["jvp"] += 1
+        return original_jvp(*args, **kwargs)
+
+    def vjp(*args: Any, **kwargs: Any) -> Any:
+        calls["vjp"] += 1
+        return original_vjp(*args, **kwargs)
+
+    monkeypatch.setattr(torch.func, "jvp", jvp)
+    monkeypatch.setattr(torch.func, "vjp", vjp)
+    results = [normwise.run_correct_fixture(spec) for spec in normwise.correct_fixture_specs()]
+    assert calls == {"jvp": 6, "vjp": 6}
+    for result in results:
+        assert result["beta_norm"] <= normwise.CORRECT_FIXTURE_CEILING
+        assert result["passed"] is True
+        assert len(result["jvp_sha256"]) == len(result["vjp_sha256"]) == 64
+
+
+def test_correct_fixture_calibration_band_and_paired_cancellation() -> None:
+    results = {
+        spec.fixture_id: normwise.run_correct_fixture(spec)
+        for spec in normwise.correct_fixture_specs()
+    }
+    assert all(
+        result["beta_norm"] <= 6.25e-5 and result["passed"] is True for result in results.values()
+    )
+    paired = results["paired_cancellation"]
+    assert paired["lhs"] == paired["rhs"] == 2**-10
+    assert paired["lhs_absolute_product_sum"] > 1.0
+    assert paired["rhs_absolute_product_sum"] > 1.0
