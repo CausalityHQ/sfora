@@ -9857,3 +9857,22 @@ screen, its data roles, rotation test, controls, expected `Delta>=0.03`, and
 falsification conditions were frozen after cold review and before values in
 `docs/pass200_rsta_candidate_2026-08-09.md`. No benchmark training is authorized
 until that screen and a later virtual-update Stage B pass.
+
+## Pass202 — measurement-conditioned hill-climb: NONE before GPU
+
+Three nearest moves were derived from the current CIS/RSTA/CE-BN measurements and
+screened before implementation. Atomic full-union supervision is the missing CIS
+no-coalition control, not a separate method; its apparent distinction is an exact
+`sqrt(m)` reduction-scale difference and an artificial co-batch multi-label target.
+A shared-confuser intersection penalty reduces algebraically to context-dependent
+negative-pair weighting, already occupied by General Pair Weighting. Backward-only
+class-excluded normalization lacks positive provenance after hard CE-BN (`-22.936`
+final pt), soft CE-BN (`-2.469`), and CEGT (`0.000` final, `+0.007` raw-best), and is
+adjacent to backward gradient normalization and BN preconditioning.
+
+**Mechanism lesson:** pending contextual observables are not measurements. The next
+defensible hill-climb must be conditioned on Pass 201's equal-update-norm coalition
+panel or Pass 200's exact B=180 self-versus-batch tangent result. Inventing a loss
+before either lands would convert an unverified premise into another random-walk
+candidate. No code or GPU was spent. Full audit:
+`docs/pass202_measurement_hillclimb_2026-08-09.md`.
