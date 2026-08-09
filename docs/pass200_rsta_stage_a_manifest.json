@@ -2,17 +2,19 @@
   "schema_version": 1,
   "preregistration": {
     "path": "docs/pass200_rsta_candidate_2026-08-09.md",
-    "sha256": "f7462c085b4f606c1fd0312825ed960f5b449aba471aaf71ff344865b582e52a"
+    "sha256": "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857"
   },
   "artifact_schema": {
     "path": "docs/pass159_stage_a_manifest.json",
     "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da"
   },
   "source": {
-    "git_revision": "313bd0b0fbc628f99387b4c31a7595bc3cf13ce6",
+    "git_revision": "4b33076f7d7fd8da78987eb4d04664bde14452c6",
     "files": {
       "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "7a48becaae1f59e413601924eb83d4f708d35e354bc83ef701cc650a6fbc1dd1",
       "scripts/export_final_inshop_embeddings.py": "268d874e07ba1643cb3b6eea099ddd2fa2c86233bb34c4c0d2c80ddf5e864981",
+      "src/sfora/bn_inception.py": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
       "src/sfora/data.py": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
       "src/sfora/image_end_to_end.py": "28ccedf6d85efa2e8b8b870c0aa62400dec2858f5e0a987fa4c6a23123122a62"
     }
