@@ -1,0 +1,111 @@
+{
+  "schema_version": "pass200-rsta-receipt-manifest-v1",
+  "base_preregistration": {
+    "path": "docs/pass200_rsta_candidate_2026-08-09.md",
+    "sha256": "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857"
+  },
+  "amendment": {
+    "path": "docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md",
+    "sha256": "691d786942c33cf8a943159280287bea08570114242854cdb7111795dc79e019",
+    "commit": "d1aeed63ade0e15d5f5a44be5981a4312e9a8df2"
+  },
+  "binding_receipt": {
+    "path": "docs/pass200_rsta_binding_receipt_d6270a9.json",
+    "sha256": "e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300"
+  },
+  "historical": {
+    "producer_commit": "d6270a94f14f5e0b4f4a3eeaa23f3f66d9bfaa54",
+    "manifest": {
+      "path": "docs/pass200_rsta_stage_a_manifest.json",
+      "sha256": "aafab355a06667a9ca513cddeceb2a0129ea8ee09ce3dec0a19b6839fe15ffb1"
+    },
+    "source": {
+      "git_revision": "0146f2d1200fec26fcd483005804dbe71ec72786",
+      "files": {
+        "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
+        "scripts/diagnose_pass200_rsta_stage_a.py": "78eeb3d0d3f92ad1a0b7e76708851e940a36a1ef260a2618dc58bf7f3fab7f1a",
+        "scripts/export_final_inshop_embeddings.py": "268d874e07ba1643cb3b6eea099ddd2fa2c86233bb34c4c0d2c80ddf5e864981",
+        "src/sfora/bn_inception.py": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
+        "src/sfora/data.py": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
+        "src/sfora/image_end_to_end.py": "28ccedf6d85efa2e8b8b870c0aa62400dec2858f5e0a987fa4c6a23123122a62"
+      }
+    }
+  },
+  "current_scientific_source": {
+    "git_revision": "9580fb46c6d71190a46914adcfd5ddd0230ef0e3",
+    "files": {
+      "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "95e63c50d5e79f4aad74e86a0b03219204f1102a75ea75a4127293e3636c5d51",
+      "src/sfora/__init__.py": "5de45a3409573b0c914d7228021b1323ed4d46c2e66eaf960791f50417fef058",
+      "src/sfora/ablation.py": "b936039fc44bf143fbffa1c4306ba3b61d101fc348b17800b6002ece08f55655",
+      "src/sfora/api.py": "b45894fed86d371e3820aa12c2319f087068156f8bb16cf47ce06f29f461a4b4",
+      "src/sfora/arcg.py": "b64b4e6f968213bd9479f9f822cf83fdb92663e11cb9f3fbca307a68949cf3a1",
+      "src/sfora/benchmark.py": "bd1bd3281501611a69d9633f565d3ff85154672a9a572c20b144e1a6d5677005",
+      "src/sfora/bn_inception.py": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
+      "src/sfora/catalog.py": "4f8e94f164e0f23a0f5b47e7d5cbab2f309786f6e25141997699d566a0406ad1",
+      "src/sfora/cea.py": "162166a7e7abb3cf4a98b37ae3d0e6edb2405054e317f99cca1a30fad13bf13b",
+      "src/sfora/cem.py": "1ba78625e941d95cbf6b0e24958a27017b2f4d23eb47bfc3808eb400e46fbbbb",
+      "src/sfora/cli.py": "cf7f9249e24fc1f09dbef6c618120a8460b972afff8a4aaf71304e4bd1e9e759",
+      "src/sfora/compose.py": "37cd5b2cc2173709e6092b307d7b3ad98f7428c3657f6727f30356b38cc9d394",
+      "src/sfora/data.py": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
+      "src/sfora/encoder_ablation.py": "d853bee8e3a15cbacc2bdf145206b9e041aef07fa3cc677bb014b013f55bc07c",
+      "src/sfora/encoder_training.py": "3a13624b317a6b60d444fc253b9c0a9845545d4da7eceab8b9f63a09d8aecf17",
+      "src/sfora/evaluation.py": "63ebcb917eaf877e7763708fc6a2550182d8027be889ce10c739f41463d69c3a",
+      "src/sfora/experiments.py": "4d0ed9e31b255dd48b90066a1bf6385f58bbca3314126d756231e05a4fa007bd",
+      "src/sfora/image_benchmark.py": "5f0f46e6fcea45452ee0a990eef690358cf13bdc29740f82040e3c1730f3f698",
+      "src/sfora/image_end_to_end.py": "28ccedf6d85efa2e8b8b870c0aa62400dec2858f5e0a987fa4c6a23123122a62",
+      "src/sfora/image_recipes.py": "e19f0c8de7e4e6938fed765341aebcb72de9d8a2dc3c6151afac58ce8d31bc5e",
+      "src/sfora/ipsr.py": "01ff1b06807b80cd81d0dac66dc53b46be943645c7e03d61ca21778255ca6c6a",
+      "src/sfora/losses.py": "02f0b0046ad319bc5cd12ef656fe8e46ef9d9c907301741582bf65b356e4f9b5",
+      "src/sfora/method.py": "85c9b43adf68d949229429c0d834701f06ae429c352c81a1a7353bc11a7414cf",
+      "src/sfora/oapf.py": "4f6fc319ea2a12355fef0366c8308ba03fca74025758c4ea3096d87e2028a3ed",
+      "src/sfora/publication.py": "f9384658a5a342c05ebc2b82a7f5b75a6540f8929cd33f5af8a853f8c4565885",
+      "src/sfora/remote.py": "9d81bd193a8fd95f58dac1c7859b2e805b9b18959253ab8b1e7dcbf9482fc231",
+      "src/sfora/report.py": "8b71503804f9c9a8f2d6eecf25c154b24c80a22dd4c7bdd18f5c570d5c24bafa",
+      "src/sfora/text_baselines.py": "e0173fad843fa7f124db3aa0d8a04c9e27f8d55f1b0c0446b1c3547c62d46d84",
+      "src/sfora/training.py": "d31551841cbb468a69a6988d6c352ea4c7aee4c3368bdaf8713e343ed5db4078"
+    }
+  },
+  "artifact_schema": {
+    "path": "docs/pass159_stage_a_manifest.json",
+    "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da"
+  },
+  "seeds": {
+    "0": {
+      "checkpoint_pt": {"path": "/home/riomus/group-learning/reports/checkpoints/inshop_corrected_pa_seed0.pt", "sha256": "2b46a68a0364cd204e60068858198f1da699f043897fc93d0c22525b6f635546"},
+      "gallery_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_gallery_final.npz", "sha256": "6eb89ff57e7a6002f2ba71f9659e04dabd0cafdb1996be3d85f5211731ba861a"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed0.npz", "sha256": "9e94b448ebddd9db0889fad136eb32b53eab705f04ca23d736bad0e19d52f71a"},
+      "query_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_query_final.npz", "sha256": "ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761"},
+      "report_json": {"path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0.json", "sha256": "9121937b0ebd8cfbf57f52209eff7e8762795e4d05f77d963ca96ed03d708476"},
+      "retrieval_json": {"path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0_final_retrieval.json", "sha256": "7f35282d65466727b024a5259606fb1f5e3dd15dea3dc303cdf54daf42f4e41b"},
+      "train_npz": {"path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_train_final.npz", "sha256": "67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea"}
+    },
+    "1": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed1/reports/checkpoints/inshop_corrected_pa_seed1.pt", "sha256": "a25dc22691981e6ad7df899878f448d96d4ac41adbb8e346e10322e93883e580"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_gallery_final.npz", "sha256": "d1956f8f7a72490a06cf75fa39822bed4d499095e07d36af3f72a5cc4982754b"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed1.npz", "sha256": "ce7eca31d1592fb601b38e8bca258bf93d425eaec7d1bf97278fa43f1d4f40c9"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_query_final.npz", "sha256": "1a2fb03689b161c8a19bf379c362ef2e552151aa02dc942151faf611fd62be73"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1.json", "sha256": "3482d3f976e5184eb12a1ae250bed5a8e66ef458148e0cef4ab0afb9efbcc02a"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1_final_retrieval.json", "sha256": "59d5b15c4e3b6e5e0eac1649bce266b1d7a4e8bf036995f76e0b5b70e03c6f33"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_train_final.npz", "sha256": "5fd172cf7a69bcb1cf6b715793f8a81f12ecf7382a69416f6a3343ca301e3f4d"}
+    },
+    "2": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt", "sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_gallery_final.npz", "sha256": "6ba0c3a7191b876be88e88dfcdae911d03a0dd3311719d4f32956e50e25ab71c"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed2.npz", "sha256": "24eaaf21282da27b71d914934f25ffc907622217183c2596a1b155cc6a9e0628"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_query_final.npz", "sha256": "7fc6adae069eba35ce8942a76679a6f03b2638728995e2d999989fba224e3b02"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2.json", "sha256": "f84b5ddce57e468e858bdc5e97415466369793497993af11d1a9223222ace442"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2_final_retrieval.json", "sha256": "ff0619a255ffe56b90ca7f548ed671b914fbda8ac9f7287db8d94ec3733b9788"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_train_final.npz", "sha256": "98830a4d47c9314c82c58166b659c7d7a278aa660de842831e5ff081161ed549"}
+    },
+    "3": {
+      "checkpoint_pt": {"path": "/home/riomus/sfora-inshop-seed3/reports/checkpoints/inshop_corrected_pa_seed3.pt", "sha256": "2a1d675220cde9c8ef096597cc5f25e665d32e7634f50102ec5046c6ed4ac7ae"},
+      "gallery_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_gallery_final.npz", "sha256": "160502f6eb8a66e8e6915db564c2e6e75e869b158fccd021a0f457c4aaf515d9"},
+      "prehead_npz": {"path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed3.npz", "sha256": "6c475fa09015743af0a10c91747410af74c3144246e547e87fdc68a5ea97d2c6"},
+      "query_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_query_final.npz", "sha256": "4c6e87b1d2ad13c8ce21129f972355ed5bc61d75544d6b4deae4b2ebc534aafe"},
+      "report_json": {"path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3.json", "sha256": "7eaf0fb10071ef11b4bddf957d9b66b9a0d70315dcc259628994f3da0d6df1de"},
+      "retrieval_json": {"path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3_final_retrieval.json", "sha256": "32e8c0f93160465a71bab8f7a36b53817a387fc16f949b097e87a78528aebef2"},
+      "train_npz": {"path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_train_final.npz", "sha256": "d53a88cfc12a8f0fb03be0f26cd21e159dc1a3805462cddc20900b2df2d133a3"}
+    }
+  }
+}
