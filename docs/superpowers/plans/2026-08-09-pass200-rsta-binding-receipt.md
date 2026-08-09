@@ -50,7 +50,9 @@ Every validator accepts `manifest_path: Path`, derives the repository root from 
 resolved manifest location, and resolves repo-relative paths from that root. The
 production receipt wrapper requires the literal receipt path and SHA from Global
 Constraints *before* independently requiring the manifest entry to equal them; a
-substituted manifest cannot nominate a different receipt.
+substituted manifest cannot nominate a different receipt. Both provenance validators
+begin with `manifest = load_strict_json(manifest_path)`; no ordinary `json.load` or
+`json.loads` path is permitted for the amended manifest.
 
 ---
 
@@ -90,7 +92,7 @@ substituted manifest cannot nominate a different receipt.
 
 - [ ] **Step 4: Write independent current-source provenance RED tests**
 
-  In a tiny real Git repository, prove current scientific source drift fails even when historical receipt provenance is intact, and historical blob drift fails even when current source is intact. Require the amended manifest to bind the base preregistration, amendment, receipt, historical source domain, and current scientific source domain with no self-cycle.
+  In a tiny real Git repository, prove current scientific source drift fails even when historical receipt provenance is intact, and historical blob drift fails even when current source is intact. Require the amended manifest to bind the base preregistration, amendment, receipt, historical source domain, and current scientific source domain with no self-cycle. Independently inject duplicate manifest keys, `NaN`, booleans/floats in integer fields, and missing/extra keys at every recursive manifest object; require failure inside `load_strict_json` before any Git command, artifact open, checkpoint access, or model call.
 
 - [ ] **Step 5: Implement dual-provenance validation and verify GREEN**
 
@@ -128,14 +130,28 @@ substituted manifest cannot nominate a different receipt.
   and `np.load(io.BytesIO(train_bytes))`. Query/gallery/prehead are stream-hashed and
   never captured or loaded. Validate the final train NPZ literally, synthesize
   canonical row indices, recompute train order/source-export hashes, and return a
-  frozen training-only object containing the in-memory checkpoint state and its
-  expected digest plus receipt provenance. Model construction consumes that in-memory
-  state and never reloads its path. Explicitly release bytes/objects not required by
-  the returned object.
+  frozen training-only object containing immutable checkpoint `bytes` plus its
+  expected digest, C-contiguous training arrays with `writeable=False`, their
+  canonical framed digests, and receipt provenance. Discard the checkpoint mapping
+  used for semantic validation. At model construction, re-hash the retained immutable
+  bytes, reload via `torch.load(io.BytesIO(checkpoint_bytes))`, revalidate the
+  checkpoint state/proxy invariants, construct the model, and discard the mapping;
+  never reload its path. Immediately before tensor caching/model work, re-hash every
+  retained training array and compare its frozen digest. Explicitly release all other
+  bytes/objects.
 
 - [ ] **Step 4: Add seed-set and immutability tests**
 
-  Smoke must load seed 0 only after global four-seed receipt validation. Scientific must load seeds `0..3` exactly and require identical cross-seed train ID/label/source order. Mutate checkpoint/train files between manifest validation and byte capture and prove digest failure; mutate paths after the training object returns and prove model construction uses only captured bound state. The returned type must expose no query/gallery/prehead field.
+  Smoke must load seed 0 only after global four-seed receipt validation. Scientific
+  must load seeds `0..3` exactly and require identical cross-seed train ID/label/
+  source order. Mutate checkpoint/train files between manifest validation and byte
+  capture and prove digest failure; mutate paths after the training object returns
+  and prove model construction uses only captured bound bytes. Attempt mutation of
+  every returned train/label/ID/path/index array and require read-only failure; use a
+  forged mutable test object to prove the pre-cache digest gate catches any changed
+  array. Mutate a checkpoint tensor during first semantic validation and prove that
+  later model construction reloads the original immutable bytes rather than retaining
+  that mapping. The returned type must expose no query/gallery/prehead field.
 
 - [ ] **Step 5: Verify and commit Task 2**
 
