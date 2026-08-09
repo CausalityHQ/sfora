@@ -554,8 +554,8 @@ def load_and_bind_seed(
         raise ValueError("report lacks a config object")
     _validate_rsta_config(config, report, seed=seed, expected_dimension=expected_dimension)
     checkpoint = torch.load(paths["checkpoint_pt"], map_location="cpu", weights_only=False)
-    if checkpoint.get("evaluation_model_source") != "trained_model":
-        raise ValueError("checkpoint evaluation_model_source is not trained_model")
+    if checkpoint.get("evaluation_model_source") != "student":
+        raise ValueError("checkpoint evaluation_model_source is not student")
     bound = load_bound_seed(entry, seed=seed, expected_partition=expected)
     if bound.train_embeddings.shape[1] != expected_dimension:
         raise ValueError(f"train descriptor dimension must equal {expected_dimension}")

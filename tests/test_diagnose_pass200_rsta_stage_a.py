@@ -976,6 +976,7 @@ def _synthetic_rsta_bundle(
     proxy_dimension: int = 2,
     reported_r1: float = 1.0,
     embedded_checkpoint_digest: str | None = None,
+    evaluation_model_source: str = "student",
 ) -> tuple[
     dict[str, dict[str, str]],
     Callable[..., dict[str, dict[str, np.ndarray]]],
@@ -1047,7 +1048,7 @@ def _synthetic_rsta_bundle(
                 "metric_proxy_labels": torch.tensor([10, 20]),
             },
             "artifact_selection": "final_training_state",
-            "evaluation_model_source": "trained_model",
+            "evaluation_model_source": evaluation_model_source,
             "training_config": config,
             "training_step": 10,
         },
@@ -1120,6 +1121,56 @@ def _synthetic_rsta_bundle(
 
 
 _TINY_PARTITION = {"train": (6, 2), "query": (2, 2), "gallery": (2, 2)}
+
+
+def test_load_and_bind_seed_accepts_exact_student_evaluation_source(tmp_path: Path) -> None:
+    """Catches rejecting the production checkpoint source before its source export."""
+    entry, base_exporter = _synthetic_rsta_bundle(tmp_path)
+    export_calls = 0
+
+    def source_exporter(**kwargs: Any) -> dict[str, dict[str, np.ndarray]]:
+        nonlocal export_calls
+        export_calls += 1
+        return base_exporter(**kwargs)
+
+    _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+
+    assert export_calls == 1
+
+
+@pytest.mark.parametrize("evaluation_model_source", ["trained_model", "ema_weight_average"])
+def test_load_and_bind_seed_rejects_nonstudent_source_before_export(
+    tmp_path: Path,
+    evaluation_model_source: str,
+) -> None:
+    """Catches accepting a synthetic alias or EMA checkpoint for RSTA execution."""
+    entry, _ = _synthetic_rsta_bundle(
+        tmp_path,
+        evaluation_model_source=evaluation_model_source,
+    )
+    export_calls = 0
+
+    def forbidden_exporter(**_kwargs: Any) -> dict[str, dict[str, np.ndarray]]:
+        nonlocal export_calls
+        export_calls += 1
+        raise AssertionError("invalid evaluation source reached source export")
+
+    with pytest.raises(ValueError, match="evaluation_model_source is not student"):
+        _MODULE.load_and_bind_seed(
+            entry,
+            seed=0,
+            source_exporter=forbidden_exporter,
+            expected_partition=_TINY_PARTITION,
+            expected_dimension=2,
+        )
+
+    assert export_calls == 0
 
 
 def test_load_and_bind_seed_returns_immutable_training_only_scientific_input(
