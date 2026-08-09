@@ -135,16 +135,42 @@ _ADJOINT_INTEGRITY_AMENDMENT_SHA256 = (
     "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c"
 )
 _ADJOINT_INTEGRITY_AMENDMENT_COMMIT = "4c6886997b4116dcdb4ee5057e9544852695b42d"
+_NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_PATH = (
+    "docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md"
+)
+_NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256 = (
+    "2f4d52fd6c69588248f1b27acbcd5503b0e53dc3c5bd6b5e0755564017dc21db"
+)
+_NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_COMMIT = (
+    "171a3fe24386dbab4eb361c04cbf252da4f4e0bb"
+)
+_NORMWISE_ADJOINT_CALIBRATION_RESULT_PATH = (
+    "reports/generated/pass200_rsta_receipt/"
+    "0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2-normwise-adjoint-calibration.json"
+)
+_NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256 = (
+    "5fcb09a1e3a6eedddd05ef49bd22bc9920656089aa401a5aae2c5704a9d9dc50"
+)
+_NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT = (
+    "95525af61d66b063983dc55a6015168d9aafd12b"
+)
+_NORMWISE_ADJOINT_AMENDMENT_PATH = (
+    "docs/pass200_rsta_normwise_adjoint_amendment_2026-08-09.md"
+)
+_NORMWISE_ADJOINT_AMENDMENT_SHA256 = (
+    "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4"
+)
+_NORMWISE_ADJOINT_AMENDMENT_COMMIT = "6ddf1db20e75a47e40726d223827cd3f1a8968e3"
 _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
     "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
     "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
     "zeros": "16d0edc8b7ad7705b23a14058f366ff1c0dfa16a0ad14f741924c308754cf8d1",
     "tie": "55688cd7f3585fc5402d755dde3f30ac70701bea80c44b8a2e13d5dfa394d5b5",
 }
-_CURRENT_SCIENTIFIC_SOURCE_FILES = frozenset(
-    {
+_CURRENT_SCIENTIFIC_SOURCE_FILES = (
         "scripts/diagnose_pass159_cotangent_stage_a.py",
         "scripts/diagnose_pass200_rsta_stage_a.py",
+        "scripts/rsta_normwise_adjoint.py",
         "src/sfora/__init__.py",
         "src/sfora/ablation.py",
         "src/sfora/api.py",
@@ -173,7 +199,6 @@ _CURRENT_SCIENTIFIC_SOURCE_FILES = frozenset(
         "src/sfora/report.py",
         "src/sfora/text_baselines.py",
         "src/sfora/training.py",
-    }
 )
 RECEIVER_AUDIT_FIELDS = frozenset(
     {
@@ -617,23 +642,29 @@ def _validate_historical_receipt_schema(payload: dict[str, Any]) -> ValidatedBin
 
 
 def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any]:
+    top_order = (
+        "schema_version",
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+        "binding_receipt",
+        "historical",
+        "current_scientific_source",
+        "artifact_schema",
+        "seeds",
+    )
     value = _require_exact_keys(
         manifest,
-        {
-            "schema_version",
-            "base_preregistration",
-            "amendment",
-            "deterministic_pool_amendment",
-            "zero_jacobian_classifier_amendment",
-            "adjoint_integrity_amendment",
-            "binding_receipt",
-            "historical",
-            "current_scientific_source",
-            "artifact_schema",
-            "seeds",
-        },
+        set(top_order),
         name="amended RSTA manifest",
     )
+    if list(value) != list(top_order):
+        raise ValueError("amended RSTA manifest field order differs")
     if value["schema_version"] != "pass200-rsta-receipt-manifest-v1":
         raise ValueError("amended RSTA manifest schema version differs")
     expected_references = {
@@ -698,6 +729,29 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         "commit": _ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
     }:
         raise ValueError("amended RSTA manifest adjoint_integrity_amendment differs")
+    normwise_references = {
+        "normwise_adjoint_calibration_protocol": {
+            "path": _NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_PATH,
+            "sha256": _NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256,
+            "commit": _NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_COMMIT,
+        },
+        "normwise_adjoint_calibration_result": {
+            "path": _NORMWISE_ADJOINT_CALIBRATION_RESULT_PATH,
+            "sha256": _NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256,
+            "commit": _NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT,
+        },
+        "normwise_adjoint_amendment": {
+            "path": _NORMWISE_ADJOINT_AMENDMENT_PATH,
+            "sha256": _NORMWISE_ADJOINT_AMENDMENT_SHA256,
+            "commit": _NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+        },
+    }
+    for name, expected in normwise_references.items():
+        reference = _require_exact_keys(
+            value[name], {"path", "sha256", "commit"}, name=name
+        )
+        if list(reference) != ["path", "sha256", "commit"] or reference != expected:
+            raise ValueError(f"amended RSTA manifest {name} differs")
     historical = _require_exact_keys(
         value["historical"], {"producer_commit", "manifest", "source"}, name="historical"
     )
@@ -730,8 +784,12 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
     if not _is_lowercase_hex(revision, length=40):
         raise ValueError("current scientific source revision must be a full commit")
     current_files = _require_exact_keys(
-        current["files"], _CURRENT_SCIENTIFIC_SOURCE_FILES, name="current scientific source files"
+        current["files"],
+        set(_CURRENT_SCIENTIFIC_SOURCE_FILES),
+        name="current scientific source files",
     )
+    if list(current_files) != list(_CURRENT_SCIENTIFIC_SOURCE_FILES):
+        raise ValueError("current scientific source file order differs")
     for path_text, digest in current_files.items():
         _require_sha256(digest, name=f"current scientific source {path_text}")
     seeds = value["seeds"]
@@ -850,6 +908,9 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "deterministic_pool_amendment",
         "zero_jacobian_classifier_amendment",
         "adjoint_integrity_amendment",
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
         "artifact_schema",
     ):
         reference = manifest[name]
@@ -889,6 +950,18 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         != _ADJOINT_INTEGRITY_AMENDMENT_SHA256
     ):
         raise ValueError("adjoint integrity amendment Git blob SHA-256 mismatch")
+    for name in (
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+    ):
+        reference = manifest[name]
+        blob = _git_blob(repository, reference["commit"], reference["path"])
+        if hashlib.sha256(blob).hexdigest() != reference["sha256"]:
+            raise ValueError(f"{name} Git blob SHA-256 mismatch")
+    calibration_result = load_strict_json(
+        repository / manifest["normwise_adjoint_calibration_result"]["path"]
+    )
     current = manifest["current_scientific_source"]
     revision = current["git_revision"]
     head = subprocess.run(
@@ -900,13 +973,34 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
     executing_commit = head.stdout.strip()
     if head.returncode != 0 or not _is_lowercase_hex(executing_commit, length=40):
         raise ValueError("current scientific repository HEAD does not resolve")
-    ancestry = subprocess.run(
-        ["git", "-C", str(repository), "merge-base", "--is-ancestor", revision, executing_commit],
-        capture_output=True,
-        check=False,
+    ancestry_edges = (
+        (
+            manifest["normwise_adjoint_calibration_protocol"]["commit"],
+            manifest["normwise_adjoint_calibration_result"]["commit"],
+        ),
+        (
+            manifest["normwise_adjoint_calibration_result"]["commit"],
+            manifest["normwise_adjoint_amendment"]["commit"],
+        ),
+        (manifest["normwise_adjoint_amendment"]["commit"], revision),
+        (revision, executing_commit),
     )
-    if ancestry.returncode != 0:
-        raise ValueError("current scientific source revision is not an ancestor of HEAD")
+    for ancestor, descendant in ancestry_edges:
+        ancestry = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repository),
+                "merge-base",
+                "--is-ancestor",
+                ancestor,
+                descendant,
+            ],
+            capture_output=True,
+            check=False,
+        )
+        if ancestry.returncode != 0:
+            raise ValueError("current scientific authority is not an ancestor")
     for path_text, expected_digest in current["files"].items():
         blob = _git_blob(repository, revision, path_text)
         if hashlib.sha256(blob).hexdigest() != expected_digest:
@@ -914,6 +1008,11 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         path = (repository / path_text).resolve()
         if not path.is_file() or sha256_file(path) != expected_digest:
             raise ValueError(f"current scientific source worktree differs for {path_text}")
+    from rsta_normwise_adjoint import validate_calibration_result
+
+    validate_calibration_result(calibration_result)
+    if calibration_result.get("all_passed") is not True:
+        raise ValueError("normwise adjoint calibration result did not pass")
     executing_diagnostic = Path(__file__).resolve()
     if executing_diagnostic != (repository / _DIAGNOSTIC_PATH).resolve():
         raise ValueError("current scientific executing diagnostic path differs")
@@ -2939,33 +3038,195 @@ def adjoint_integrity_audit(
     )
     if not isinstance(images, torch.Tensor) or images.dtype != torch.float32:
         raise ValueError("adjoint model inputs must be torch.float32")
-    encoder, parameters, parameter_names = _functional_encoder(
-        model,
-        images,
-        expected_batch_size=expected_batch_size,
-        expected_dimension=expected_dimension,
+    def run_trial(
+        *,
+        parameter_sign: int = 1,
+        output_sign: int = 1,
+        reversed_action_order: bool = False,
+    ) -> tuple[Any, Any, dict[str, Any], dict[str, Any], tuple[str, ...]]:
+        encoder, parameters, parameter_names = _functional_encoder(
+            model,
+            images,
+            expected_batch_size=expected_batch_size,
+            expected_dimension=expected_dimension,
+        )
+        if any(
+            parameter_direction[name].device != parameters[name].device
+            for name in parameter_names
+        ):
+            raise ValueError("adjoint parameter direction device differs from model")
+        tangents = {
+            name: parameter_direction[name]
+            if parameter_sign == 1
+            else -parameter_direction[name]
+            for name in parameter_names
+        }
+        trial_output = output_direction if output_sign == 1 else -output_direction
+        z, vjp_function = torch.func.vjp(encoder, parameters)
+        if trial_output.shape != z.shape:
+            raise ValueError("adjoint output direction differs from descriptor shape")
+        if trial_output.device != z.device:
+            raise ValueError("adjoint output direction device differs from descriptor")
+        if reversed_action_order:
+            jtu = vjp_function(trial_output)[0]
+            _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
+        else:
+            _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
+            jtu = vjp_function(trial_output)[0]
+        cpu_output = trial_output.detach().to(device="cpu").contiguous()
+        cpu_jvp = jv.detach().to(device="cpu").contiguous()
+        cpu_tangents = {
+            name: tangents[name].detach().to(device="cpu").contiguous()
+            for name in parameter_names
+        }
+        cpu_vjp = {
+            name: jtu[name].detach().to(device="cpu").contiguous()
+            for name in parameter_names
+        }
+        del jtu, jv, vjp_function, z, parameters, encoder, tangents, trial_output
+        return cpu_output, cpu_jvp, cpu_tangents, cpu_vjp, tuple(parameter_names)
+
+    baseline_actions = run_trial()
+    rebuild_actions = run_trial()
+    reversed_actions = run_trial(
+        reversed_action_order=True
     )
+    parameter_actions = run_trial(
+        parameter_sign=-1
+    )
+    output_actions = run_trial(output_sign=-1)
+    parameter_names = baseline_actions[-1]
     if any(
-        parameter_direction[name].device != parameters[name].device
-        for name in parameter_names
+        actions[-1] != parameter_names
+        for actions in (rebuild_actions, reversed_actions, parameter_actions, output_actions)
     ):
-        raise ValueError("adjoint parameter direction device differs from model")
-    z, vjp_function = torch.func.vjp(encoder, parameters)
-    if output_direction.shape != z.shape:
-        raise ValueError("adjoint output direction differs from descriptor shape")
-    if output_direction.device != z.device:
-        raise ValueError("adjoint output direction device differs from descriptor")
-    tangents = {name: parameter_direction[name] for name in parameter_names}
-    _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
-    jtu = vjp_function(output_direction)[0]
-    lhs, rhs = _float64_adjoint_inner_products(
-        jv,
-        output_direction,
-        parameter_direction,
-        jtu,
-        parameter_names,
+        raise ValueError("adjoint parameter order changed across fresh graphs")
+
+    from rsta_normwise_adjoint import (
+        normwise_adjoint_metrics,
+        parameter_tree_sha256,
+        tensor_sha256,
     )
-    return {**metadata, **_finalize_adjoint_scalars(lhs, rhs)}
+
+    def metrics(
+        actions: tuple[Any, Any, dict[str, Any], dict[str, Any], tuple[str, ...]],
+    ) -> dict[str, object]:
+        output, jvp, tangents, vjp, names = actions
+        return normwise_adjoint_metrics(output, jvp, tangents, vjp, names)
+
+    baseline = metrics(baseline_actions)
+    rebuild = metrics(rebuild_actions)
+    reversed_trial = metrics(reversed_actions)
+    parameter_trial = metrics(parameter_actions)
+    output_trial = metrics(output_actions)
+    _, baseline_jvp, _, baseline_vjp, _ = baseline_actions
+    _, rebuild_jvp, _, rebuild_vjp, _ = rebuild_actions
+    _, reversed_jvp, _, reversed_vjp, _ = reversed_actions
+    _, parameter_jvp, _, parameter_vjp, _ = parameter_actions
+    _, output_jvp, _, output_vjp, _ = output_actions
+
+    baseline_jvp_hash = tensor_sha256(baseline_jvp)
+    baseline_vjp_hash = parameter_tree_sha256(baseline_vjp, parameter_names)
+
+    def hash_control(
+        trial: Mapping[str, object],
+        jvp: Any,
+        vjp: Mapping[str, Any],
+    ) -> dict[str, object]:
+        jvp_hash = tensor_sha256(jvp)
+        vjp_hash = parameter_tree_sha256(vjp, parameter_names)
+        exact = jvp_hash == baseline_jvp_hash and vjp_hash == baseline_vjp_hash
+        beta = trial["beta_norm"]
+        return {
+            "jvp_sha256": jvp_hash,
+            "vjp_sha256": vjp_hash,
+            "beta_norm": beta,
+            "exact_action_hash_match": exact,
+            "passed": type(exact) is bool
+            and exact is True
+            and type(beta) is float
+            and beta <= 5.0e-4,
+        }
+
+    def sign_control(
+        trial: Mapping[str, object],
+        jvp: Any,
+        vjp: Mapping[str, Any],
+        *,
+        exact_relation: bool,
+    ) -> dict[str, object]:
+        beta = trial["beta_norm"]
+        return {
+            "jvp_sha256": tensor_sha256(jvp),
+            "vjp_sha256": parameter_tree_sha256(vjp, parameter_names),
+            "beta_norm": beta,
+            "exact_relation": exact_relation,
+            "passed": type(exact_relation) is bool
+            and exact_relation is True
+            and type(beta) is float
+            and beta <= 5.0e-4,
+        }
+
+    controls = {
+        "rebuild": hash_control(rebuild, rebuild_jvp, rebuild_vjp),
+        "reversed_action_order": hash_control(
+            reversed_trial, reversed_jvp, reversed_vjp
+        ),
+        "parameter_sign": sign_control(
+            parameter_trial,
+            parameter_jvp,
+            parameter_vjp,
+            exact_relation=torch.equal(parameter_jvp, -baseline_jvp)
+            and all(
+                torch.equal(parameter_vjp[name], baseline_vjp[name])
+                for name in parameter_names
+            ),
+        ),
+        "output_sign": sign_control(
+            output_trial,
+            output_jvp,
+            output_vjp,
+            exact_relation=torch.equal(output_jvp, baseline_jvp)
+            and all(
+                torch.equal(output_vjp[name], -baseline_vjp[name])
+                for name in parameter_names
+            ),
+        ),
+    }
+    beta_norm = baseline["beta_norm"]
+    normwise_passed = type(beta_norm) is float and beta_norm <= 5.0e-4
+    integrity_passed = type(normwise_passed) is bool and normwise_passed is True and all(
+        type(control["passed"]) is bool and control["passed"] is True
+        for control in controls.values()
+    )
+    return {
+        **metadata,
+        "lhs": baseline["lhs"],
+        "rhs": baseline["rhs"],
+        "absolute_error": baseline["absolute_error"],
+        "denominator": baseline["legacy_denominator"],
+        "relative_error": baseline["legacy_relative_error"],
+        "tolerance": 5.0e-4,
+        "passed": type(baseline["legacy_relative_error"]) is float
+        and baseline["legacy_relative_error"] <= 5.0e-4,
+        "output_direction_l2": baseline["output_direction_l2"],
+        "parameter_direction_l2": baseline["parameter_direction_l2"],
+        "jvp_l2": baseline["jvp_l2"],
+        "vjp_l2": baseline["vjp_l2"],
+        "normwise_denominator": baseline["normwise_denominator"],
+        "eta_norm": baseline["eta_norm"],
+        "beta_norm": beta_norm,
+        "lhs_absolute_product_sum": baseline["lhs_absolute_product_sum"],
+        "rhs_absolute_product_sum": baseline["rhs_absolute_product_sum"],
+        "lhs_cancellation_factor": baseline["lhs_cancellation_factor"],
+        "rhs_cancellation_factor": baseline["rhs_cancellation_factor"],
+        "jvp_sha256": baseline_jvp_hash,
+        "vjp_sha256": baseline_vjp_hash,
+        "controls": controls,
+        "normwise_tolerance": 5.0e-4,
+        "normwise_passed": normwise_passed,
+        "integrity_passed": integrity_passed,
+    }
 
 
 def registered_adjoint_directions(
@@ -3429,7 +3690,7 @@ def scientific_payload(
             != domain_seed("rsta-stage-a-v1|adjoint-u|", seed_key)
             or adjoint["parameter_direction_seed"]
             != domain_seed("rsta-stage-a-v1|adjoint-v|", seed_key)
-            or adjoint["passed"] is not True
+            or adjoint["integrity_passed"] is not True
         ):
             raise ValueError("integrity gate failed: adjoint audit")
         if not isinstance(audit.get("rotation"), Mapping):
@@ -4790,7 +5051,7 @@ def _registered_first_batch_integrity(
             expected_metadata=metadata,
             expected_output_shape=(180, expected_dimension),
         )
-        if result["passed"] is not True:
+        if result["integrity_passed"] is not True:
             raise ValueError("first-batch adjoint integrity failed")
         return result
 
@@ -4908,9 +5169,6 @@ def run_scientific_diagnostic(
     index_by_id = {value: index for index, value in enumerate(reference.train_example_ids)}
     tensor_hashes = dict(cache.tensor_sha256)
     fixture_integrity = fixture_runner()
-    primary_rows: list[dict[str, Any]] = []
-    alternate_rows: list[dict[str, Any]] = []
-    seed_audits: list[dict[str, Any]] = []
     seed_integrity: list[dict[str, Any]] = []
     zero_jacobian_integrity: dict[str, dict[str, Any]] = {}
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
@@ -4987,7 +5245,7 @@ def run_scientific_diagnostic(
             head_name=head_name, expected_head_in_features=expected_head_in_features,
         )
         adjoint = first.get("adjoint")
-        if not isinstance(adjoint, Mapping) or adjoint.get("passed") is not True:
+        if not isinstance(adjoint, Mapping) or adjoint.get("integrity_passed") is not True:
             raise ValueError("first-batch adjoint integrity failed")
         seed_integrity.append({
             "seed": bound.seed, "repeatability": first["repeatability"],
@@ -4996,6 +5254,9 @@ def run_scientific_diagnostic(
         del first, images, labels, values, model
 
     # Phase two recreates every model and every candidate graph from scratch.
+    primary_rows: list[dict[str, Any]] = []
+    alternate_rows: list[dict[str, Any]] = []
+    seed_audits: list[dict[str, Any]] = []
     for bound in bounds:
         _assert_deterministic_tf32_off()
         model = make_rsta_diagnostic_clone(model_loader(bound))
@@ -5226,6 +5487,23 @@ _ADJOINT_AUDIT_FIELDS = (
     "relative_error",
     "tolerance",
     "passed",
+    "output_direction_l2",
+    "parameter_direction_l2",
+    "jvp_l2",
+    "vjp_l2",
+    "normwise_denominator",
+    "eta_norm",
+    "beta_norm",
+    "lhs_absolute_product_sum",
+    "rhs_absolute_product_sum",
+    "lhs_cancellation_factor",
+    "rhs_cancellation_factor",
+    "jvp_sha256",
+    "vjp_sha256",
+    "controls",
+    "normwise_tolerance",
+    "normwise_passed",
+    "integrity_passed",
 )
 
 
@@ -5288,6 +5566,147 @@ def _validate_adjoint_integrity_audit(
         or value["passed"] is not (expected_relative <= 5.0e-4)
     ):
         raise ValueError("adjoint finalized scalar contract differs")
+    nonnegative_names = (
+        "output_direction_l2",
+        "parameter_direction_l2",
+        "jvp_l2",
+        "vjp_l2",
+        "normwise_denominator",
+        "lhs_absolute_product_sum",
+        "rhs_absolute_product_sum",
+    )
+    if any(
+        type(value[name]) is not float
+        or not np.isfinite(value[name])
+        or value[name] < 0.0
+        for name in nonnegative_names
+    ):
+        raise ValueError("adjoint normwise scalar must be a finite nonnegative float")
+    expected_normwise_denominator = (
+        value["output_direction_l2"] * value["jvp_l2"]
+        + value["parameter_direction_l2"] * value["vjp_l2"]
+    )
+    if value["normwise_denominator"] != expected_normwise_denominator:
+        raise ValueError("adjoint normwise denominator differs")
+
+    def expected_ratio(numerator: float, denominator: float) -> float | str:
+        if denominator != 0.0:
+            return numerator / denominator
+        return 0.0 if numerator == 0.0 else "infinity"
+
+    expected_eta = expected_ratio(value["absolute_error"], value["normwise_denominator"])
+    expected_beta = (
+        2.0 * expected_eta if type(expected_eta) is float else "infinity"
+    )
+    if value["eta_norm"] != expected_eta or type(value["eta_norm"]) is not type(expected_eta):
+        raise ValueError("adjoint normwise eta differs")
+    if value["beta_norm"] != expected_beta or type(value["beta_norm"]) is not type(expected_beta):
+        raise ValueError("adjoint normwise beta differs")
+
+    def expected_cancellation(product_sum: float, scalar: float) -> float | str:
+        if scalar != 0.0:
+            return product_sum / abs(scalar)
+        return 1.0 if product_sum == 0.0 else "infinity"
+
+    for prefix in ("lhs", "rhs"):
+        observed = value[f"{prefix}_cancellation_factor"]
+        expected = expected_cancellation(
+            value[f"{prefix}_absolute_product_sum"], value[prefix]
+        )
+        if observed != expected or type(observed) is not type(expected):
+            raise ValueError(f"adjoint {prefix} cancellation factor differs")
+    for name in ("jvp_sha256", "vjp_sha256"):
+        _require_sha256(value[name], name=f"adjoint {name}")
+
+    controls = _require_exact_keys(
+        value["controls"],
+        {"rebuild", "reversed_action_order", "parameter_sign", "output_sign"},
+        name="adjoint controls",
+    )
+    if list(controls) != [
+        "rebuild",
+        "reversed_action_order",
+        "parameter_sign",
+        "output_sign",
+    ]:
+        raise ValueError("adjoint control order differs")
+    for name, control in controls.items():
+        relation_name = (
+            "exact_action_hash_match"
+            if name in {"rebuild", "reversed_action_order"}
+            else "exact_relation"
+        )
+        record = _require_exact_keys(
+            control,
+            {"jvp_sha256", "vjp_sha256", "beta_norm", relation_name, "passed"},
+            name=f"adjoint {name} control",
+        )
+        if list(record) != [
+            "jvp_sha256",
+            "vjp_sha256",
+            "beta_norm",
+            relation_name,
+            "passed",
+        ]:
+            raise ValueError(f"adjoint {name} control field order differs")
+        _require_sha256(record["jvp_sha256"], name=f"adjoint {name} JVP")
+        _require_sha256(record["vjp_sha256"], name=f"adjoint {name} VJP")
+        beta = record["beta_norm"]
+        if not (
+            (type(beta) is float and np.isfinite(beta) and beta >= 0.0)
+            or beta == "infinity"
+        ):
+            raise ValueError(f"adjoint {name} control beta_norm differs")
+        relation = record[relation_name]
+        if name in {"rebuild", "reversed_action_order"}:
+            expected_hash_match = (
+                record["jvp_sha256"] == value["jvp_sha256"]
+                and record["vjp_sha256"] == value["vjp_sha256"]
+            )
+            if relation is not expected_hash_match:
+                raise ValueError(f"adjoint {name} exact action hash predicate differs")
+        elif (
+            name == "parameter_sign"
+            and record["vjp_sha256"] != value["vjp_sha256"]
+        ) or (
+            name == "output_sign"
+            and record["jvp_sha256"] != value["jvp_sha256"]
+        ):
+            raise ValueError(f"adjoint {name} exact relation action hash differs")
+        expected_passed = (
+            type(relation) is bool
+            and relation is True
+            and type(beta) is float
+            and beta <= 5.0e-4
+        )
+        if (
+            type(relation) is not bool
+            or type(record["passed"]) is not bool
+            or record["passed"] is not expected_passed
+        ):
+            raise ValueError(f"adjoint {name} control predicate differs")
+    if type(value["normwise_tolerance"]) is not float or value[
+        "normwise_tolerance"
+    ] != 5.0e-4:
+        raise ValueError("adjoint normwise tolerance differs")
+    expected_normwise_passed = (
+        type(value["beta_norm"]) is float
+        and value["beta_norm"] <= value["normwise_tolerance"]
+    )
+    if (
+        type(value["normwise_passed"]) is not bool
+        or value["normwise_passed"] is not expected_normwise_passed
+    ):
+        raise ValueError("adjoint normwise passed predicate differs")
+    expected_integrity_passed = value["normwise_passed"] is True and all(
+        type(control["passed"]) is bool and control["passed"] is True
+        for control in controls.values()
+    )
+    if (
+        type(value["integrity_passed"]) is not bool
+        or value["integrity_passed"] is not expected_integrity_passed
+    ):
+        raise ValueError("adjoint integrity passed predicate differs")
     if expected_metadata is not None and {
         name: value[name] for name in _ADJOINT_AUDIT_FIELDS[:10]
     } != dict(expected_metadata):
@@ -5364,6 +5783,9 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             "deterministic_pool_amendment",
             "zero_jacobian_classifier_amendment",
             "adjoint_integrity_amendment",
+            "normwise_adjoint_calibration_protocol",
+            "normwise_adjoint_calibration_result",
+            "normwise_adjoint_amendment",
             "binding_receipt",
             "historical",
             "artifact_schema",
@@ -5371,6 +5793,24 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         },
         name="all-seed adjoint manifest audit",
     )
+    expected_manifest_order = (
+        "path",
+        "sha256",
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+        "binding_receipt",
+        "historical",
+        "artifact_schema",
+        "source",
+    )
+    if list(manifest_audit) != list(expected_manifest_order):
+        raise ValueError("all-seed adjoint manifest projection order differs")
     if type(manifest_audit["path"]) is not str or not manifest_audit["path"]:
         raise ValueError("all-seed adjoint manifest path differs")
     _require_sha256(manifest_audit["sha256"], name="all-seed adjoint manifest")
@@ -5388,6 +5828,13 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             "zero_jacobian_classifier_amendment"
         ],
         "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+        "normwise_adjoint_calibration_protocol": manifest[
+            "normwise_adjoint_calibration_protocol"
+        ],
+        "normwise_adjoint_calibration_result": manifest[
+            "normwise_adjoint_calibration_result"
+        ],
+        "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
         "binding_receipt": manifest["binding_receipt"],
         "historical": manifest["historical"],
         "artifact_schema": manifest["artifact_schema"],
@@ -5507,7 +5954,7 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             raise ValueError(f"integrity seed {seed} adjoint parameter direction seed differs")
         if adjoint["output_shape"] != [180, 512]:
             raise ValueError(f"integrity seed {seed} adjoint output shape differs")
-        passed.append(record["adjoint"]["passed"])
+        passed.append(record["adjoint"]["integrity_passed"])
     if type(integrity["all_passed"]) is not bool or integrity["all_passed"] is not all(passed):
         raise ValueError("all-seed adjoint all_passed differs")
 
@@ -5656,6 +6103,13 @@ def run_all_seed_adjoint_integrity(
                 "zero_jacobian_classifier_amendment"
             ],
             "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+            "normwise_adjoint_calibration_protocol": manifest[
+                "normwise_adjoint_calibration_protocol"
+            ],
+            "normwise_adjoint_calibration_result": manifest[
+                "normwise_adjoint_calibration_result"
+            ],
+            "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
             "binding_receipt": manifest["binding_receipt"],
             "historical": manifest["historical"],
             "artifact_schema": manifest["artifact_schema"],
@@ -5672,7 +6126,11 @@ def run_all_seed_adjoint_integrity(
             **fixtures,
             "deterministic_global_max": deterministic_global_max,
             "seeds": integrity_seeds,
-            "all_passed": all(record["adjoint"]["passed"] for record in integrity_seeds.values()),
+            "all_passed": all(
+                type(record["adjoint"]["integrity_passed"]) is bool
+                and record["adjoint"]["integrity_passed"] is True
+                for record in integrity_seeds.values()
+            ),
         },
     }
     validate_all_seed_adjoint_integrity_payload(payload)

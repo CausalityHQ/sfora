@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import builtins
 import gc
 import hashlib
 import importlib.util
+import inspect
 import json
 import os
 import random
@@ -27,6 +29,26 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
+
+
+def test_normwise_helper_preserves_diagnostic_import_without_torch_side_effect() -> None:
+    """Catches importing torch before an explicit integrity or scientific entrypoint."""
+    code = (
+        "import importlib.util,sys;"
+        f"p={str(_SCRIPT)!r};"
+        "s=importlib.util.spec_from_file_location('isolated_rsta_diagnostic',p);"
+        "m=importlib.util.module_from_spec(s);"
+        "sys.modules[s.name]=m;"
+        "s.loader.exec_module(m);"
+        "print('torch' in sys.modules)"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout.strip() == "False"
 
 
 _SELECTED_LABELS = [
@@ -3122,10 +3144,8 @@ def test_adjoint_float64_reduction_matches_independent_cancellation_reference(
     assert observed_rhs_terms == [expected_rhs_terms]
 
 
-def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Catches FP64 operator drift or an incomplete/inconsistent persisted audit."""
+def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract() -> None:
+    """Catches formula duplication, factor-two drift, or changed action bytes/order."""
     model = torch.nn.Linear(2, 3, bias=True, dtype=torch.float32).train()
     images = torch.tensor(
         [[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float32
@@ -3144,46 +3164,13 @@ def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
         hashlib.sha256(b"rsta-stage-a-v1|adjoint-v|\0" + b"2").digest()[:8], "big"
     )
     parameter_names = tuple(name for name, _ in model.named_parameters())
-    captured: dict[str, Any] = {}
-    real_jvp = torch.func.jvp
-    real_vjp = torch.func.vjp
-
-    def checked_jvp(
-        func: Callable[..., Any],
-        primals: tuple[dict[str, torch.Tensor]],
-        tangents: tuple[dict[str, torch.Tensor]],
-        **kwargs: Any,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        assert all(value.dtype == torch.float32 for value in primals[0].values())
-        assert all(value.dtype == torch.float32 for value in tangents[0].values())
-        primal, tangent = real_jvp(func, primals, tangents, **kwargs)
-        assert primal.dtype == torch.float32
-        assert tangent.dtype == torch.float32
-        captured["jv"] = tangent.detach().clone()
-        return primal, tangent
-
-    def checked_vjp(
-        func: Callable[..., Any],
-        *primals: dict[str, torch.Tensor],
-        **kwargs: Any,
-    ) -> tuple[torch.Tensor, Callable[..., Any]]:
-        assert all(value.dtype == torch.float32 for value in primals[0].values())
-        primal, vjp_function = real_vjp(func, *primals, **kwargs)
-        assert primal.dtype == torch.float32
-
-        def checked_vjp_function(cotangent: torch.Tensor) -> tuple[dict[str, torch.Tensor]]:
-            assert cotangent.dtype == torch.float32
-            result = vjp_function(cotangent)
-            assert all(value.dtype == torch.float32 for value in result[0].values())
-            captured["jtu"] = {
-                name: value.detach().clone() for name, value in result[0].items()
-            }
-            return result
-
-        return primal, checked_vjp_function
-
-    monkeypatch.setattr(torch.func, "jvp", checked_jvp)
-    monkeypatch.setattr(torch.func, "vjp", checked_vjp)
+    encoder, parameters, reference_names = _MODULE._functional_encoder(
+        model, images, expected_batch_size=3, expected_dimension=3
+    )
+    assert tuple(reference_names) == parameter_names
+    _, pullback = torch.func.vjp(encoder, parameters)
+    _, reference_jvp = torch.func.jvp(encoder, (parameters,), (directions,))
+    reference_vjp = pullback(output)[0]
     audit = _MODULE.adjoint_integrity_audit(
         model,
         images,
@@ -3195,46 +3182,69 @@ def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
         expected_dimension=3,
     )
 
-    expected_lhs = float(
-        (captured["jv"].double() * output.double()).sum(dtype=torch.float64)
-    )
+    output64 = output.numpy().astype(np.float64)
+    jvp64 = reference_jvp.detach().numpy().astype(np.float64)
+    direction64 = {
+        name: directions[name].numpy().astype(np.float64) for name in parameter_names
+    }
+    vjp64 = {
+        name: reference_vjp[name].detach().numpy().astype(np.float64)
+        for name in parameter_names
+    }
+    expected_lhs = float(np.sum(output64 * jvp64, dtype=np.float64))
     expected_rhs = float(
-        torch.stack(
-        [
-            (directions[name].double() * captured["jtu"][name].double()).sum(
-                dtype=torch.float64
-            )
-            for name in parameter_names
-        ]
-        ).sum(dtype=torch.float64)
+        np.stack(
+            [
+                np.sum(direction64[name] * vjp64[name], dtype=np.float64)
+                for name in parameter_names
+            ]
+        ).sum(dtype=np.float64)
     )
     expected_error = abs(expected_lhs - expected_rhs)
     expected_denominator = max(abs(expected_lhs), abs(expected_rhs), np.float64(1.0e-12))
     expected_relative = expected_error / expected_denominator
+    output_l2 = float(np.sqrt(np.sum(output64 * output64, dtype=np.float64)))
+    parameter_l2 = float(
+        np.sqrt(
+            np.stack(
+                [np.sum(direction64[name] ** 2, dtype=np.float64) for name in parameter_names]
+            ).sum(dtype=np.float64)
+        )
+    )
+    jvp_l2 = float(np.sqrt(np.sum(jvp64 * jvp64, dtype=np.float64)))
+    vjp_l2 = float(
+        np.sqrt(
+            np.stack(
+                [np.sum(vjp64[name] ** 2, dtype=np.float64) for name in parameter_names]
+            ).sum(dtype=np.float64)
+        )
+    )
+    normwise_denominator = output_l2 * jvp_l2 + parameter_l2 * vjp_l2
+    eta_norm = expected_error / normwise_denominator
+    beta_norm = 2.0 * eta_norm
+    lhs_absolute = float(np.sum(np.abs(output64 * jvp64), dtype=np.float64))
+    rhs_absolute = float(
+        np.stack(
+            [
+                np.sum(np.abs(direction64[name] * vjp64[name]), dtype=np.float64)
+                for name in parameter_names
+            ]
+        ).sum(dtype=np.float64)
+    )
     expected_parameter_bytes = b"".join(
         directions[name].numpy().tobytes(order="C") for name in parameter_names
     )
+    expected_jvp_hash = hashlib.sha256(
+        reference_jvp.detach().contiguous().numpy().tobytes(order="C")
+    ).hexdigest()
+    expected_vjp_hash = hashlib.sha256(
+        b"".join(
+            reference_vjp[name].detach().contiguous().numpy().tobytes(order="C")
+            for name in parameter_names
+        )
+    ).hexdigest()
 
-    assert list(audit) == [
-        "direction_domain",
-        "output_direction_seed",
-        "parameter_direction_seed",
-        "output_direction_sha256",
-        "parameter_direction_sha256",
-        "output_shape",
-        "parameter_name_order_sha256",
-        "parameter_count",
-        "model_dtype",
-        "reduction_dtype",
-        "lhs",
-        "rhs",
-        "absolute_error",
-        "denominator",
-        "relative_error",
-        "tolerance",
-        "passed",
-    ]
-    assert audit == {
+    expected = {
         "direction_domain": "rsta-stage-a-v1",
         "output_direction_seed": output_seed,
         "parameter_direction_seed": parameter_seed,
@@ -3256,7 +3266,64 @@ def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
         "relative_error": expected_relative,
         "tolerance": 5.0e-4,
         "passed": expected_relative <= 5.0e-4,
+        "output_direction_l2": output_l2,
+        "parameter_direction_l2": parameter_l2,
+        "jvp_l2": jvp_l2,
+        "vjp_l2": vjp_l2,
+        "normwise_denominator": normwise_denominator,
+        "eta_norm": eta_norm,
+        "beta_norm": beta_norm,
+        "lhs_absolute_product_sum": lhs_absolute,
+        "rhs_absolute_product_sum": rhs_absolute,
+        "lhs_cancellation_factor": lhs_absolute / abs(expected_lhs),
+        "rhs_cancellation_factor": rhs_absolute / abs(expected_rhs),
+        "jvp_sha256": expected_jvp_hash,
+        "vjp_sha256": expected_vjp_hash,
+        "controls": {
+            "rebuild": {
+                "jvp_sha256": expected_jvp_hash,
+                "vjp_sha256": expected_vjp_hash,
+                "beta_norm": beta_norm,
+                "exact_action_hash_match": True,
+                "passed": beta_norm <= 5.0e-4,
+            },
+            "reversed_action_order": {
+                "jvp_sha256": expected_jvp_hash,
+                "vjp_sha256": expected_vjp_hash,
+                "beta_norm": beta_norm,
+                "exact_action_hash_match": True,
+                "passed": beta_norm <= 5.0e-4,
+            },
+            "parameter_sign": {
+                "jvp_sha256": hashlib.sha256(
+                    (-reference_jvp).detach().contiguous().numpy().tobytes(order="C")
+                ).hexdigest(),
+                "vjp_sha256": expected_vjp_hash,
+                "beta_norm": beta_norm,
+                "exact_relation": True,
+                "passed": beta_norm <= 5.0e-4,
+            },
+            "output_sign": {
+                "jvp_sha256": expected_jvp_hash,
+                "vjp_sha256": hashlib.sha256(
+                    b"".join(
+                        (-reference_vjp[name]).detach().contiguous().numpy().tobytes(order="C")
+                        for name in parameter_names
+                    )
+                ).hexdigest(),
+                "beta_norm": beta_norm,
+                "exact_relation": True,
+                "passed": beta_norm <= 5.0e-4,
+            },
+        },
+        "normwise_tolerance": 5.0e-4,
+        "normwise_passed": beta_norm <= 5.0e-4,
+        "integrity_passed": beta_norm <= 5.0e-4,
     }
+    assert list(audit) == list(_MODULE._ADJOINT_AUDIT_FIELDS)
+    assert audit == expected
+    assert audit["beta_norm"] == 2.0 * audit["eta_norm"]
+    assert "rsta_normwise_adjoint" in sys.modules
 
     with pytest.raises(ValueError, match="every encoder parameter"):
         _MODULE.adjoint_integrity_audit(
@@ -3295,6 +3362,134 @@ def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
         )
 
 
+def test_normwise_adjoint_validator_accepts_only_authorized_zero_denominator_corner() -> None:
+    """Catches rejecting the frozen infinity corner or accepting other string/nonfinite drift."""
+    model = torch.nn.Linear(1, 1, bias=False, dtype=torch.float32)
+    images = torch.ones((1, 1), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (1, 1), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+    audit = _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "0"),
+        expected_batch_size=1,
+        expected_dimension=1,
+    )
+    corner = deepcopy(audit)
+    corner.update(
+        {
+            "lhs": 1.0,
+            "rhs": 0.0,
+            "absolute_error": 1.0,
+            "denominator": 1.0,
+            "relative_error": 1.0,
+            "passed": False,
+            "output_direction_l2": 0.0,
+            "parameter_direction_l2": 0.0,
+            "jvp_l2": 0.0,
+            "vjp_l2": 0.0,
+            "normwise_denominator": 0.0,
+            "eta_norm": "infinity",
+            "beta_norm": "infinity",
+            "lhs_absolute_product_sum": 1.0,
+            "rhs_absolute_product_sum": 0.0,
+            "lhs_cancellation_factor": 1.0,
+            "rhs_cancellation_factor": 1.0,
+            "normwise_passed": False,
+            "integrity_passed": False,
+        }
+    )
+    for control in corner["controls"].values():
+        control["beta_norm"] = "infinity"
+        control["passed"] = False
+    _MODULE._validate_adjoint_integrity_audit(corner, expected_output_shape=(1, 1))
+
+    for field, replacement in (
+        ("eta_norm", "Infinity"),
+        ("beta_norm", float("inf")),
+        ("normwise_passed", 0),
+        ("integrity_passed", 1),
+    ):
+        changed = deepcopy(corner)
+        changed[field] = replacement
+        with pytest.raises(ValueError, match="adjoint|normwise|integrity"):
+            _MODULE._validate_adjoint_integrity_audit(changed, expected_output_shape=(1, 1))
+
+
+@pytest.mark.parametrize(
+    ("control_name", "hash_name"),
+    (("parameter_sign", "vjp_sha256"), ("output_sign", "jvp_sha256")),
+)
+def test_normwise_adjoint_validator_rejects_forged_sign_relation_hash_consequences(
+    control_name: str, hash_name: str
+) -> None:
+    """Catches trusting a sign relation boolean whose unchanged action hash differs."""
+    model = torch.nn.Linear(1, 1, bias=False, dtype=torch.float32)
+    images = torch.ones((1, 1), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (1, 1), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+    audit = _task2_adjoint_auditor(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "0"),
+        expected_batch_size=1,
+        expected_dimension=1,
+    )
+    _MODULE._validate_adjoint_integrity_audit(audit, expected_output_shape=(1, 1))
+    audit["controls"][control_name][hash_name] = "f" * 64
+
+    with pytest.raises(ValueError, match="sign|relation|hash|adjoint"):
+        _MODULE._validate_adjoint_integrity_audit(audit, expected_output_shape=(1, 1))
+
+
+def test_normwise_helper_is_loaded_only_after_all_fresh_graph_actions_are_captured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches helper import or metric execution interleaved with the five FP32 graphs."""
+    model = torch.nn.Linear(2, 2, dtype=torch.float32)
+    images = torch.ones((2, 2), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (2, 2), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+    graph_count = 0
+    helper_import_counts: list[int] = []
+    original_functional_encoder = _MODULE._functional_encoder
+    original_import = builtins.__import__
+
+    def tracked_functional_encoder(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph_count
+        graph_count += 1
+        return original_functional_encoder(*args, **kwargs)
+
+    def tracked_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "rsta_normwise_adjoint":
+            helper_import_counts.append(graph_count)
+            assert graph_count == 5
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "_functional_encoder", tracked_functional_encoder)
+    monkeypatch.setattr(builtins, "__import__", tracked_import)
+    _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "0"),
+        expected_batch_size=2,
+        expected_dimension=2,
+    )
+
+    assert graph_count == 5
+    assert helper_import_counts == [5]
 def test_configure_deterministic_process_requires_preexported_cublas_and_records_gates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3460,6 +3655,63 @@ def test_project_and_validate_fields_rejects_registered_vector_defects(defect: s
         _MODULE.project_and_validate_fields(z, **vectors)
 
 
+def _extended_normwise_adjoint(legacy: dict[str, Any]) -> dict[str, Any]:
+    """Extend a valid frozen legacy adjoint fixture with passing normwise evidence."""
+    result = dict(legacy)
+    action_hash = "c" * 64
+    result.update(
+        {
+            "output_direction_l2": 1.0,
+            "parameter_direction_l2": 1.0,
+            "jvp_l2": 1.0,
+            "vjp_l2": 1.0,
+            "normwise_denominator": 2.0,
+            "eta_norm": 0.0,
+            "beta_norm": 0.0,
+            "lhs_absolute_product_sum": abs(result["lhs"]),
+            "rhs_absolute_product_sum": abs(result["rhs"]),
+            "lhs_cancellation_factor": 1.0,
+            "rhs_cancellation_factor": 1.0,
+            "jvp_sha256": action_hash,
+            "vjp_sha256": action_hash,
+            "controls": {
+                "rebuild": {
+                    "jvp_sha256": action_hash,
+                    "vjp_sha256": action_hash,
+                    "beta_norm": 0.0,
+                    "exact_action_hash_match": True,
+                    "passed": True,
+                },
+                "reversed_action_order": {
+                    "jvp_sha256": action_hash,
+                    "vjp_sha256": action_hash,
+                    "beta_norm": 0.0,
+                    "exact_action_hash_match": True,
+                    "passed": True,
+                },
+                "parameter_sign": {
+                    "jvp_sha256": "d" * 64,
+                    "vjp_sha256": action_hash,
+                    "beta_norm": 0.0,
+                    "exact_relation": True,
+                    "passed": True,
+                },
+                "output_sign": {
+                    "jvp_sha256": action_hash,
+                    "vjp_sha256": "d" * 64,
+                    "beta_norm": 0.0,
+                    "exact_relation": True,
+                    "passed": True,
+                },
+            },
+            "normwise_tolerance": 5.0e-4,
+            "normwise_passed": True,
+            "integrity_passed": True,
+        }
+    )
+    return result
+
+
 def _valid_scientific_payload_arguments(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> dict[str, Any]:
@@ -3602,7 +3854,7 @@ def _valid_scientific_payload_arguments(
                     name: {"first_sha256": str(seed) * 64, "repeat_sha256": str(seed) * 64}
                     for name in ("z", "dbar", "b", "s")
                 },
-                "adjoint": {
+                "adjoint": _extended_normwise_adjoint({
                     "direction_domain": "rsta-stage-a-v1",
                     "output_direction_seed": _MODULE.domain_seed(
                         "rsta-stage-a-v1|adjoint-u|", str(seed)
@@ -3626,7 +3878,7 @@ def _valid_scientific_payload_arguments(
                     "relative_error": 0.0,
                     "tolerance": 5.0e-4,
                     "passed": True,
-                },
+                }),
                 "rotation": {
                     "vector_residuals": {name: 0.0 for name in ("z", "dbar", "b", "s", "q")},
                     "statistic_differences": {
@@ -4164,14 +4416,344 @@ def _task2_fixture_audit() -> dict[str, Any]:
     }
 
 
-def _task2_manifest(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
-    source = _SCRIPT.parents[1] / "docs" / "pass200_rsta_receipt_stage_a_manifest.json"
-    manifest = json.loads(source.read_text(encoding="utf-8"))
-    manifest["adjoint_integrity_amendment"] = {
-        "path": "docs/pass200_rsta_adjoint_integrity_amendment_2026-08-09.md",
-        "sha256": "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c",
-        "commit": "4c6886997b4116dcdb4ee5057e9544852695b42d",
+_NORMWISE_SOURCE_ORDER = (
+    "scripts/diagnose_pass159_cotangent_stage_a.py",
+    "scripts/diagnose_pass200_rsta_stage_a.py",
+    "scripts/rsta_normwise_adjoint.py",
+    "src/sfora/__init__.py",
+    "src/sfora/ablation.py",
+    "src/sfora/api.py",
+    "src/sfora/arcg.py",
+    "src/sfora/benchmark.py",
+    "src/sfora/bn_inception.py",
+    "src/sfora/catalog.py",
+    "src/sfora/cea.py",
+    "src/sfora/cem.py",
+    "src/sfora/cli.py",
+    "src/sfora/compose.py",
+    "src/sfora/data.py",
+    "src/sfora/encoder_ablation.py",
+    "src/sfora/encoder_training.py",
+    "src/sfora/evaluation.py",
+    "src/sfora/experiments.py",
+    "src/sfora/image_benchmark.py",
+    "src/sfora/image_end_to_end.py",
+    "src/sfora/image_recipes.py",
+    "src/sfora/ipsr.py",
+    "src/sfora/losses.py",
+    "src/sfora/method.py",
+    "src/sfora/oapf.py",
+    "src/sfora/publication.py",
+    "src/sfora/remote.py",
+    "src/sfora/report.py",
+    "src/sfora/text_baselines.py",
+    "src/sfora/training.py",
+)
+
+
+def _future_normwise_manifest() -> dict[str, Any]:
+    root = _SCRIPT.parents[1]
+    prior = json.loads(
+        (root / "docs" / "pass200_rsta_receipt_stage_a_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    source_files = dict(prior["current_scientific_source"]["files"])
+    diagnostic_hash = source_files.pop("scripts/diagnose_pass200_rsta_stage_a.py")
+    ordered_source = {
+        "scripts/diagnose_pass159_cotangent_stage_a.py": source_files.pop(
+            "scripts/diagnose_pass159_cotangent_stage_a.py"
+        ),
+        "scripts/diagnose_pass200_rsta_stage_a.py": diagnostic_hash,
+        "scripts/rsta_normwise_adjoint.py": _sha256_file(
+            root / "scripts" / "rsta_normwise_adjoint.py"
+        ),
+        **source_files,
     }
+    return {
+        "schema_version": prior["schema_version"],
+        "base_preregistration": prior["base_preregistration"],
+        "amendment": prior["amendment"],
+        "deterministic_pool_amendment": prior["deterministic_pool_amendment"],
+        "zero_jacobian_classifier_amendment": prior[
+            "zero_jacobian_classifier_amendment"
+        ],
+        "adjoint_integrity_amendment": prior["adjoint_integrity_amendment"],
+        "normwise_adjoint_calibration_protocol": {
+            "path": "docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md",
+            "sha256": "2f4d52fd6c69588248f1b27acbcd5503b0e53dc3c5bd6b5e0755564017dc21db",
+            "commit": "171a3fe24386dbab4eb361c04cbf252da4f4e0bb",
+        },
+        "normwise_adjoint_calibration_result": {
+            "path": (
+                "reports/generated/pass200_rsta_receipt/"
+                "0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2-"
+                "normwise-adjoint-calibration.json"
+            ),
+            "sha256": "5fcb09a1e3a6eedddd05ef49bd22bc9920656089aa401a5aae2c5704a9d9dc50",
+            "commit": "95525af61d66b063983dc55a6015168d9aafd12b",
+        },
+        "normwise_adjoint_amendment": {
+            "path": "docs/pass200_rsta_normwise_adjoint_amendment_2026-08-09.md",
+            "sha256": "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4",
+            "commit": "6ddf1db20e75a47e40726d223827cd3f1a8968e3",
+        },
+        "binding_receipt": prior["binding_receipt"],
+        "historical": prior["historical"],
+        "current_scientific_source": {
+            "git_revision": prior["current_scientific_source"]["git_revision"],
+            "files": ordered_source,
+        },
+        "artifact_schema": prior["artifact_schema"],
+        "seeds": prior["seeds"],
+    }
+
+
+def test_normwise_manifest_freezes_exact_authorities_projection_and_source_order() -> None:
+    """Catches omitted authorities, projection drift, or helper/source reordering."""
+    manifest = _future_normwise_manifest()
+    validated = _MODULE._validate_amended_manifest_schema(manifest)
+
+    assert list(validated) == [
+        "schema_version",
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+        "binding_receipt",
+        "historical",
+        "current_scientific_source",
+        "artifact_schema",
+        "seeds",
+    ]
+    assert list(validated["current_scientific_source"]["files"]) == list(
+        _NORMWISE_SOURCE_ORDER
+    )
+    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _NORMWISE_SOURCE_ORDER
+    assert (
+        _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256
+        == "2f4d52fd6c69588248f1b27acbcd5503b0e53dc3c5bd6b5e0755564017dc21db"
+    )
+    assert (
+        _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256
+        == "5fcb09a1e3a6eedddd05ef49bd22bc9920656089aa401a5aae2c5704a9d9dc50"
+    )
+    assert (
+        _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256
+        == "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4"
+    )
+
+
+def test_normwise_manifest_rejects_every_new_authority_leaf_and_order_mutation() -> None:
+    """Catches partial authentication or order-insensitive future manifest validation."""
+    authority_names = (
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+    )
+    for authority in authority_names:
+        for mutation in ("remove_object", "extra", "path", "sha256", "commit"):
+            changed = deepcopy(_future_normwise_manifest())
+            if mutation == "remove_object":
+                changed.pop(authority)
+            elif mutation == "extra":
+                changed[authority]["unchecked"] = True
+            else:
+                changed[authority][mutation] = {
+                    "path": "docs/substituted",
+                    "sha256": "0" * 64,
+                    "commit": "0" * 40,
+                }[mutation]
+            with pytest.raises(ValueError, match="normwise|manifest|calibration"):
+                _MODULE._validate_amended_manifest_schema(changed)
+
+    changed = _future_normwise_manifest()
+    changed["unchecked"] = True
+    with pytest.raises(ValueError, match="manifest"):
+        _MODULE._validate_amended_manifest_schema(changed)
+    changed = _future_normwise_manifest()
+    reordered = dict(changed)
+    value = reordered.pop("normwise_adjoint_calibration_protocol")
+    reordered["normwise_adjoint_calibration_protocol"] = value
+    with pytest.raises(ValueError, match="order|manifest"):
+        _MODULE._validate_amended_manifest_schema(reordered)
+    for mutation in ("missing", "extra", "reordered"):
+        changed = _future_normwise_manifest()
+        files = changed["current_scientific_source"]["files"]
+        if mutation == "missing":
+            files.pop("scripts/rsta_normwise_adjoint.py")
+        elif mutation == "extra":
+            files["scripts/unreviewed.py"] = "0" * 64
+        else:
+            helper = files.pop("scripts/rsta_normwise_adjoint.py")
+            files["scripts/rsta_normwise_adjoint.py"] = helper
+        with pytest.raises(ValueError, match="source|order|files"):
+            _MODULE._validate_amended_manifest_schema(changed)
+
+
+def test_normwise_source_provenance_authenticates_authority_bytes_result_and_ancestry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches unvalidated authority blobs, a false calibration verdict, or ancestry drift."""
+    source_root = _SCRIPT.parents[1]
+    repository = tmp_path
+    manifest = _future_normwise_manifest()
+    revision = "c" * 40
+    executing = "d" * 40
+    manifest["current_scientific_source"]["git_revision"] = revision
+    for path_text in _NORMWISE_SOURCE_ORDER:
+        destination = repository / path_text
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((source_root / path_text).read_bytes())
+        manifest["current_scientific_source"]["files"][path_text] = _sha256_file(
+            destination
+        )
+    reference_names = (
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+        "artifact_schema",
+    )
+    for name in reference_names:
+        path_text = manifest[name]["path"]
+        destination = repository / path_text
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((source_root / path_text).read_bytes())
+    manifest_path = repository / "docs" / "future-manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(
+        _MODULE,
+        "__file__",
+        str(repository / "scripts" / "diagnose_pass200_rsta_stage_a.py"),
+    )
+    bad_blob: str | None = None
+
+    def git_blob(_repository: Path, _revision: str, path_text: str) -> bytes:
+        if path_text == bad_blob:
+            return b"substituted Git blob"
+        return (repository / path_text).read_bytes()
+
+    monkeypatch.setattr(_MODULE, "_git_blob", git_blob)
+    failed_ancestry_edge: tuple[str, str] | None = None
+    ancestry_edges: list[tuple[str, str]] = []
+
+    def fake_run(args: Any, **_kwargs: Any) -> subprocess.CompletedProcess[Any]:
+        if "rev-parse" in args:
+            return subprocess.CompletedProcess(args, 0, stdout=executing + "\n", stderr="")
+        if "merge-base" in args:
+            edge = (args[-2], args[-1])
+            ancestry_edges.append(edge)
+            return subprocess.CompletedProcess(
+                args, 1 if edge == failed_ancestry_edge else 0, stdout="", stderr=""
+            )
+        raise AssertionError(f"unexpected subprocess call: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    audit = _MODULE.validate_scientific_execution_source(manifest_path)
+    assert audit["frozen_source_revision"] == revision
+    expected_ancestry_edges = [
+        (
+            manifest["normwise_adjoint_calibration_protocol"]["commit"],
+            manifest["normwise_adjoint_calibration_result"]["commit"],
+        ),
+        (
+            manifest["normwise_adjoint_calibration_result"]["commit"],
+            manifest["normwise_adjoint_amendment"]["commit"],
+        ),
+        (manifest["normwise_adjoint_amendment"]["commit"], revision),
+        (revision, executing),
+    ]
+    assert ancestry_edges == expected_ancestry_edges
+
+    for name in (
+        "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result",
+        "normwise_adjoint_amendment",
+    ):
+        path = repository / manifest[name]["path"]
+        original = path.read_bytes()
+        path.write_bytes(b"dirty normwise authority")
+        with pytest.raises(ValueError, match="normwise|calibration|amendment|worktree"):
+            _MODULE.validate_scientific_execution_source(manifest_path)
+        path.write_bytes(original)
+        bad_blob = manifest[name]["path"]
+        with pytest.raises(ValueError, match="normwise|calibration|amendment|blob"):
+            _MODULE.validate_scientific_execution_source(manifest_path)
+        bad_blob = None
+
+    bad_blob = "scripts/rsta_normwise_adjoint.py"
+    with pytest.raises(ValueError, match="source|blob"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+    bad_blob = None
+    for edge_to_fail in expected_ancestry_edges:
+        failed_ancestry_edge = edge_to_fail
+        with pytest.raises(ValueError, match="ancestor"):
+            _MODULE.validate_scientific_execution_source(manifest_path)
+    failed_ancestry_edge = None
+
+    helper_path = repository / "scripts" / "rsta_normwise_adjoint.py"
+    helper_bytes = helper_path.read_bytes()
+    helper_imports: list[str] = []
+    original_import = builtins.__import__
+
+    def tracked_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "rsta_normwise_adjoint":
+            helper_imports.append(name)
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", tracked_import)
+    helper_path.write_bytes(b"dirty helper must not execute")
+    with pytest.raises(ValueError, match="source|worktree"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+    assert helper_imports == []
+    helper_path.write_bytes(helper_bytes)
+
+    result_path = repository / manifest["normwise_adjoint_calibration_result"]["path"]
+    failed_result = json.loads(result_path.read_text(encoding="utf-8"))
+    failed_result["all_passed"] = False
+    result_path.write_text(json.dumps(failed_result), encoding="utf-8")
+    failed_digest = _sha256_file(result_path)
+    manifest["normwise_adjoint_calibration_result"]["sha256"] = failed_digest
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(
+        _MODULE, "_NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256", failed_digest
+    )
+    with pytest.raises(ValueError, match="calibration|passed|result"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+
+    semantically_failed = json.loads(
+        (
+            source_root
+            / manifest["normwise_adjoint_calibration_result"]["path"]
+        ).read_text(encoding="utf-8")
+    )
+    failed_fixture = semantically_failed["correct_fixtures"]["zero_corner"]
+    failed_fixture["controls"]["parameter_sign"]["exact_relation"] = False
+    failed_fixture["controls"]["parameter_sign"]["passed"] = False
+    failed_fixture["passed"] = False
+    semantically_failed["all_passed"] = False
+    result_path.write_text(json.dumps(semantically_failed), encoding="utf-8")
+    failed_digest = _sha256_file(result_path)
+    manifest["normwise_adjoint_calibration_result"]["sha256"] = failed_digest
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr(
+        _MODULE, "_NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256", failed_digest
+    )
+    with pytest.raises(ValueError, match="calibration|passed|result"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+
+
+def _task2_manifest(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
+    manifest = _future_normwise_manifest()
     path = tmp_path / "manifest.json"
     path.write_text(json.dumps(manifest), encoding="utf-8")
     return path, manifest
@@ -4249,6 +4831,9 @@ def _task2_adjoint_auditor(
     output_direction_seed: int,
     parameter_direction_seed: int,
     passed: bool = True,
+    legacy_passed: bool | None = None,
+    integrity_passed: bool | None = None,
+    control_failure: str | None = None,
     **_kwargs: Any,
 ) -> dict[str, Any]:
     metadata = _MODULE._adjoint_direction_metadata(
@@ -4258,11 +4843,80 @@ def _task2_adjoint_auditor(
         output_direction_seed=output_direction_seed,
         parameter_direction_seed=parameter_direction_seed,
     )
-    scalars = _MODULE._finalize_adjoint_scalars(
-        torch.tensor(1.0, dtype=torch.float64),
-        torch.tensor(1.0 if passed else 0.999, dtype=torch.float64),
+    legacy_ok = passed if legacy_passed is None else legacy_passed
+    integrity_ok = passed if integrity_passed is None else integrity_passed
+    rhs = 1.0 if legacy_ok and integrity_ok else (0.9999 if legacy_ok else 0.999)
+    absolute_error = abs(1.0 - rhs)
+    beta_norm = 0.0 if absolute_error == 0.0 else (2.0e-4 if integrity_ok else 1.0e-3)
+    normwise_denominator = (
+        2.0 if absolute_error == 0.0 else 2.0 * absolute_error / beta_norm
     )
-    return {**metadata, **scalars}
+    action_hash = "a" * 64
+    controls: dict[str, dict[str, Any]] = {
+        "rebuild": {
+            "jvp_sha256": action_hash,
+            "vjp_sha256": action_hash,
+            "beta_norm": 0.0,
+            "exact_action_hash_match": True,
+            "passed": True,
+        },
+        "reversed_action_order": {
+            "jvp_sha256": action_hash,
+            "vjp_sha256": action_hash,
+            "beta_norm": 0.0,
+            "exact_action_hash_match": True,
+            "passed": True,
+        },
+        "parameter_sign": {
+            "jvp_sha256": "b" * 64,
+            "vjp_sha256": action_hash,
+            "beta_norm": 0.0,
+            "exact_relation": True,
+            "passed": True,
+        },
+        "output_sign": {
+            "jvp_sha256": action_hash,
+            "vjp_sha256": "b" * 64,
+            "beta_norm": 0.0,
+            "exact_relation": True,
+            "passed": True,
+        },
+    }
+    if control_failure in {"rebuild", "reversed_action_order"}:
+        controls[control_failure]["jvp_sha256"] = "c" * 64
+        controls[control_failure]["exact_action_hash_match"] = False
+        controls[control_failure]["passed"] = False
+    elif control_failure in {"parameter_sign", "output_sign"}:
+        controls[control_failure]["exact_relation"] = False
+        controls[control_failure]["passed"] = False
+    control_passed = all(control["passed"] is True for control in controls.values())
+    return {
+        **metadata,
+        "lhs": 1.0,
+        "rhs": rhs,
+        "absolute_error": absolute_error,
+        "denominator": 1.0,
+        "relative_error": absolute_error,
+        "tolerance": 5.0e-4,
+        "passed": legacy_ok,
+        "output_direction_l2": 1.0,
+        "parameter_direction_l2": 1.0,
+        "jvp_l2": normwise_denominator / 2.0,
+        "vjp_l2": normwise_denominator / 2.0,
+        "normwise_denominator": normwise_denominator,
+        "eta_norm": beta_norm / 2.0,
+        "beta_norm": beta_norm,
+        "lhs_absolute_product_sum": 1.0,
+        "rhs_absolute_product_sum": abs(rhs),
+        "lhs_cancellation_factor": 1.0,
+        "rhs_cancellation_factor": 1.0,
+        "jvp_sha256": action_hash,
+        "vjp_sha256": action_hash,
+        "controls": controls,
+        "normwise_tolerance": 5.0e-4,
+        "normwise_passed": integrity_ok,
+        "integrity_passed": integrity_ok and control_passed,
+    }
 
 
 def _run_task2_cli(
@@ -4355,7 +5009,9 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
     assert list(payload["manifest"]) == [
         "path", "sha256", "base_preregistration", "amendment",
         "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
-        "adjoint_integrity_amendment", "binding_receipt", "historical",
+        "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
+        "binding_receipt", "historical",
         "artifact_schema", "source",
     ]
     assert set(payload["environment"]) == _MODULE.ENVIRONMENT_AUDIT_FIELDS
@@ -4376,13 +5032,7 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
     assert list(payload["integrity"]["seeds"]) == ["0", "1", "2", "3"]
     assert all(
         set(value) == {"zero_jacobian_classifier", "adjoint"}
-        and list(value["adjoint"]) == [
-            "direction_domain", "output_direction_seed", "parameter_direction_seed",
-            "output_direction_sha256", "parameter_direction_sha256", "output_shape",
-            "parameter_name_order_sha256", "parameter_count", "model_dtype",
-            "reduction_dtype", "lhs", "rhs", "absolute_error", "denominator",
-            "relative_error", "tolerance", "passed",
-        ]
+        and list(value["adjoint"]) == list(_MODULE._ADJOINT_AUDIT_FIELDS)
         for value in payload["integrity"]["seeds"].values()
     )
     assert all(
@@ -4422,10 +5072,17 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
         "deterministic_pool_amendment": manifest["deterministic_pool_amendment"],
         "zero_jacobian_classifier_amendment": manifest["zero_jacobian_classifier_amendment"],
         "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+        "normwise_adjoint_calibration_protocol": manifest[
+            "normwise_adjoint_calibration_protocol"
+        ],
+        "normwise_adjoint_calibration_result": manifest[
+            "normwise_adjoint_calibration_result"
+        ],
+        "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
         "binding_receipt": manifest["binding_receipt"], "historical": manifest["historical"],
         "artifact_schema": manifest["artifact_schema"], "source": source,
     }
-    adjoint = {
+    adjoint = _extended_normwise_adjoint({
         "direction_domain": "rsta-stage-a-v1", "output_direction_seed": 1,
         "parameter_direction_seed": 2, "output_direction_sha256": "1" * 64,
         "parameter_direction_sha256": "2" * 64, "output_shape": [180, 512],
@@ -4433,7 +5090,7 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
         "model_dtype": "torch.float32", "reduction_dtype": "torch.float64",
         "lhs": 1.0, "rhs": 1.0, "absolute_error": 0.0, "denominator": 1.0,
         "relative_error": 0.0, "tolerance": 0.0005, "passed": True,
-    }
+    })
     payload = {
         "schema_version": 1, "diagnostic": "pass200-rsta-adjoint-integrity",
         "mode": "integrity_all_seeds", "candidate_values_computed": False,
@@ -4616,6 +5273,116 @@ def test_integrity_all_seeds_records_all_finite_adjoint_failures_without_candida
     assert publications == [output]
 
 
+def test_normwise_integrity_all_seeds_uses_integrity_verdict_not_legacy_passed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches retaining the legacy scalar verdict as the prospective global gate."""
+    seed_by_output_seed = {
+        _MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", str(seed)): seed
+        for seed in range(4)
+    }
+
+    def adjoint(*args: Any, output_direction_seed: int, **kwargs: Any) -> dict[str, Any]:
+        seed = seed_by_output_seed[output_direction_seed]
+        return _task2_adjoint_auditor(
+            *args,
+            output_direction_seed=output_direction_seed,
+            legacy_passed=seed != 1,
+            integrity_passed=True,
+            **kwargs,
+        )
+
+    output, _ = _run_task2_cli(tmp_path, monkeypatch, adjoint_auditor=adjoint)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["integrity"]["seeds"]["1"]["adjoint"]["passed"] is False
+    assert payload["integrity"]["seeds"]["1"]["adjoint"]["integrity_passed"] is True
+    assert payload["integrity"]["all_passed"] is True
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "normwise",
+        "rebuild",
+        "reversed_action_order",
+        "parameter_sign",
+        "output_sign",
+        "zero_denominator",
+    ],
+)
+def test_normwise_candidate_free_records_complete_four_seed_finite_failure_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: str,
+) -> None:
+    """Catches fail-fast or candidate reachability for every authorized finite gate failure."""
+    seed_by_output_seed = {
+        _MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", str(seed)): seed
+        for seed in range(4)
+    }
+    calls: list[int] = []
+
+    def adjoint(*args: Any, output_direction_seed: int, **kwargs: Any) -> dict[str, Any]:
+        seed = seed_by_output_seed[output_direction_seed]
+        calls.append(seed)
+        audit = _task2_adjoint_auditor(
+            *args,
+            output_direction_seed=output_direction_seed,
+            integrity_passed=not (seed == 2 and failure in {"normwise", "zero_denominator"}),
+            control_failure=(
+                failure
+                if seed == 2 and failure not in {"normwise", "zero_denominator"}
+                else None
+            ),
+            **kwargs,
+        )
+        if seed == 2 and failure == "zero_denominator":
+            audit.update(
+                {
+                    "lhs": 1.0,
+                    "rhs": 0.0,
+                    "absolute_error": 1.0,
+                    "denominator": 1.0,
+                    "relative_error": 1.0,
+                    "passed": False,
+                    "output_direction_l2": 0.0,
+                    "parameter_direction_l2": 0.0,
+                    "jvp_l2": 0.0,
+                    "vjp_l2": 0.0,
+                    "normwise_denominator": 0.0,
+                    "eta_norm": "infinity",
+                    "beta_norm": "infinity",
+                    "lhs_absolute_product_sum": 1.0,
+                    "rhs_absolute_product_sum": 0.0,
+                    "normwise_passed": False,
+                    "integrity_passed": False,
+                }
+            )
+            for control in audit["controls"].values():
+                control["beta_norm"] = "infinity"
+                control["passed"] = False
+        return audit
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("candidate code reached from candidate-free normwise failure")
+
+    for name in (
+        "exact_contextual_rsta_fields",
+        "score_rsta_batch",
+        "decide_stage_a",
+        "joint_bootstrap",
+        "scientific_payload",
+        "_validate_receiver_audit_row",
+    ):
+        monkeypatch.setattr(_MODULE, name, forbidden)
+    output, _ = _run_task2_cli(tmp_path, monkeypatch, adjoint_auditor=adjoint)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert calls == [0, 1, 2, 3]
+    assert list(payload["integrity"]["seeds"]) == ["0", "1", "2", "3"]
+    assert payload["integrity"]["seeds"]["2"]["adjoint"]["integrity_passed"] is False
+    assert payload["integrity"]["all_passed"] is False
+
+
 @pytest.mark.parametrize(
     "failure",
     [
@@ -4761,6 +5528,30 @@ def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_b
             "path": path_text,
             "sha256": hashlib.sha256(data).hexdigest(),
         }
+    for name, path_text, digest, commit in (
+        (
+            "normwise_adjoint_calibration_protocol",
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_PATH,
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256,
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_COMMIT,
+        ),
+        (
+            "normwise_adjoint_calibration_result",
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_PATH,
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256,
+            _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT,
+        ),
+        (
+            "normwise_adjoint_amendment",
+            _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
+            _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
+            _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+        ),
+    ):
+        destination = repository / path_text
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((_SCRIPT.parents[1] / path_text).read_bytes())
+        references[name] = {"path": path_text, "sha256": digest, "commit": commit}
     diagnostic_path = repository / "scripts" / "diagnose_pass200_rsta_stage_a.py"
     diagnostic_path.parent.mkdir(parents=True)
     diagnostic_path.write_text("EXECUTION = 1\n", encoding="utf-8")
@@ -5108,6 +5899,18 @@ def test_scientific_integrity_graphs_are_released_before_next_seed_and_scoring_g
     )
 
 
+def test_scientific_candidate_state_is_declared_only_after_the_all_seed_prefix() -> None:
+    """Catches initializing candidate rows or scoring audits before integrity seed four."""
+    source = inspect.getsource(_MODULE.run_scientific_diagnostic)
+    phase_two = source.index("# Phase two recreates every model")
+    for declaration in (
+        "primary_rows: list[dict[str, Any]] = []",
+        "alternate_rows: list[dict[str, Any]] = []",
+        "seed_audits: list[dict[str, Any]] = []",
+    ):
+        assert source.index(declaration) > phase_two
+
+
 def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -5138,7 +5941,20 @@ def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output
 
 
 @pytest.mark.parametrize("failing_seed", [1, 2, 3])
-@pytest.mark.parametrize("gate", ["zero_jacobian", "repeatability", "adjoint", "rotation"])
+@pytest.mark.parametrize(
+    "gate",
+    [
+        "zero_jacobian",
+        "repeatability",
+        "adjoint",
+        "rotation",
+        "normwise",
+        "rebuild",
+        "reversed_action_order",
+        "parameter_sign",
+        "output_sign",
+    ],
+)
 def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -5175,37 +5991,48 @@ def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
 
     def integrity(model: Any, *_args: Any, seed: int, **_kwargs: Any) -> dict[str, Any]:
         assert model.audit_seed == seed
-        if gate != "zero_jacobian" and seed == failing_seed:
+        if gate in {"repeatability", "adjoint", "rotation"} and seed == failing_seed:
             raise ValueError(f"{gate}-{failing_seed}")
+        adjoint = _task2_adjoint_auditor(
+            model,
+            None,
+            *_MODULE.registered_adjoint_directions(
+                model,
+                (180, 512),
+                seed=seed,
+                dtype=torch.float32,
+                device=torch.device("cpu"),
+            ),
+            output_direction_seed=_MODULE.domain_seed(
+                "rsta-stage-a-v1|adjoint-u|", str(seed)
+            ),
+            parameter_direction_seed=_MODULE.domain_seed(
+                "rsta-stage-a-v1|adjoint-v|", str(seed)
+            ),
+            integrity_passed=not (seed == failing_seed and gate == "normwise"),
+            control_failure=gate
+            if seed == failing_seed
+            and gate in {"rebuild", "reversed_action_order", "parameter_sign", "output_sign"}
+            else None,
+        )
         return {
             "fields": {"sentinel": torch.tensor(float(seed), requires_grad=True)},
             "prehead": torch.zeros(180, 2),
             "raw_head": torch.zeros(180, 512),
             "repeatability": {},
-            "adjoint": _task2_adjoint_auditor(
-                model,
-                None,
-                *_MODULE.registered_adjoint_directions(
-                    model,
-                    (180, 512),
-                    seed=seed,
-                    dtype=torch.float32,
-                    device=torch.device("cpu"),
-                ),
-                output_direction_seed=_MODULE.domain_seed(
-                    "rsta-stage-a-v1|adjoint-u|", str(seed)
-                ),
-                parameter_direction_seed=_MODULE.domain_seed(
-                    "rsta-stage-a-v1|adjoint-v|", str(seed)
-                ),
-            ),
+            "adjoint": adjoint,
             "adjoint_relative_error": 0.0,
             "rotation": {},
         }
 
     monkeypatch.setattr(_MODULE, "_registered_first_batch_integrity", integrity)
     output = tmp_path / "scientific-failure.json"
-    with pytest.raises(ValueError, match=f"{gate}-{failing_seed}"):
+    expected_message = (
+        f"{gate}-{failing_seed}"
+        if gate in {"zero_jacobian", "repeatability", "adjoint", "rotation"}
+        else "first-batch adjoint integrity failed"
+    )
+    with pytest.raises(ValueError, match=expected_message):
         _MODULE.run_scientific_diagnostic(
             manifest,
             manifest_path=manifest_path,
@@ -5705,6 +6532,21 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             "sha256": _MODULE._ADJOINT_INTEGRITY_AMENDMENT_SHA256,
             "commit": _MODULE._ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
         },
+        "normwise_adjoint_calibration_protocol": {
+            "path": _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_PATH,
+            "sha256": _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256,
+            "commit": _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_COMMIT,
+        },
+        "normwise_adjoint_calibration_result": {
+            "path": _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_PATH,
+            "sha256": _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256,
+            "commit": _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT,
+        },
+        "normwise_adjoint_amendment": {
+            "path": _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
+            "sha256": _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
+            "commit": _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+        },
         "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
     }
     for reference in references.values():
@@ -5720,7 +6562,20 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             },
         },
     }
-    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: manifest)
+    calibration_result_path = (
+        repository / references["normwise_adjoint_calibration_result"]["path"]
+    ).resolve()
+
+    def load_json(path: Path) -> dict[str, Any]:
+        if path.resolve() == manifest_path.resolve():
+            return manifest
+        if path.resolve() == calibration_result_path:
+            return {"all_passed": True}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(_MODULE, "load_strict_json", load_json)
+    normwise_helper = importlib.import_module("rsta_normwise_adjoint")
+    monkeypatch.setattr(normwise_helper, "validate_calibration_result", lambda _value: None)
     monkeypatch.setattr(_MODULE, "_validate_amended_manifest_schema", lambda value: value)
     monkeypatch.setattr(_MODULE, "__file__", str(diagnostic))
     hashed_paths: list[Path] = []
@@ -5738,17 +6593,12 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
 
     def fake_blob(_repository: Path, revision: str, path_text: str) -> bytes:
         blobs.append((revision, path_text))
-        digest = (
-            _MODULE._ADJOINT_INTEGRITY_AMENDMENT_SHA256
-            if revision == _MODULE._ADJOINT_INTEGRITY_AMENDMENT_COMMIT
-            else "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade"
-            if revision == "85e8f983053f3839e5bbb2bb11563380e6b77919"
-            else _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256
-            if revision == _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT
-            else _MODULE._AMENDMENT_SHA256
-            if revision == _MODULE._AMENDMENT_COMMIT
-            else "4" * 64
-        )
+        digest_by_commit = {
+            str(reference["commit"]): str(reference["sha256"])
+            for reference in references.values()
+            if "commit" in reference
+        }
+        digest = digest_by_commit.get(revision, "4" * 64)
         return b"blob-" + digest.encode("ascii")
 
     monkeypatch.setattr(_MODULE, "sha256_file", fake_sha)
