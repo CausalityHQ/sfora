@@ -9,10 +9,10 @@
     "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da"
   },
   "source": {
-    "git_revision": "4b33076f7d7fd8da78987eb4d04664bde14452c6",
+    "git_revision": "e3813b6a0c70981c4b38f406c9533ebbf6f7958b",
     "files": {
       "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
-      "scripts/diagnose_pass200_rsta_stage_a.py": "7a48becaae1f59e413601924eb83d4f708d35e354bc83ef701cc650a6fbc1dd1",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "91aa7acc54724c1d93243e554609833c2ea0818f1cf2d963f2c4fe82097459e7",
       "scripts/export_final_inshop_embeddings.py": "268d874e07ba1643cb3b6eea099ddd2fa2c86233bb34c4c0d2c80ddf5e864981",
       "src/sfora/bn_inception.py": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
       "src/sfora/data.py": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
