@@ -318,6 +318,26 @@
 - Consumes: reviewed Tasks 1–4 and the committed protocol.
 - Produces: one complete calibration artifact and an authenticated pass/falsifier decision.
 
+**Pre-fixture invocation erratum:** The first attempted Task-5 invocation used
+reviewed calibration source
+`0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2` and the then-registered relative
+plan construction:
+
+```bash
+calibration_source_commit=$(git rev-parse HEAD)
+calibration_output="reports/generated/pass200_rsta_receipt/${calibration_source_commit}-normwise-adjoint-calibration.json"
+test ! -e "$calibration_output"
+CUDA_VISIBLE_DEVICES='' .venv/bin/python scripts/calibrate_pass200_rsta_normwise_adjoint.py --output "$calibration_output"
+```
+
+It exited exactly `2` with `output must be absolute`. Source authentication
+rejects a relative `--output` before `_configure_cpu`; therefore that attempt
+performed no CPU configuration, fixture construction or execution, artifact or
+temporary-file creation, and produced no calibration value. It does not consume
+the one registered calibration execution. The defect was in this plan command,
+not in the reviewed source or protocol. This erratum changes no protocol byte,
+source byte, seed, dimension, scale, formula, threshold, fault, or result rule.
+
 - [ ] **Step 1: Obtain independent adversarial source review**
 
   Give the reviewer the protocol and full calibration source/test diff. Require
@@ -329,17 +349,50 @@
 
 - [ ] **Step 2: Freeze reviewed calibration source and run exactly once**
 
-  From a clean checkout, set and record:
+  Use a fresh clean checkout at the full executing commit that contains this
+  plan erratum. Keep the reviewed calibration source fixed at
+  `0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2`. Authenticate that source as an
+  ancestor and prove its exact helper, CLI, and test blobs equal both the
+  executing-commit blobs and worktree bytes. Then derive the registered output
+  from the absolute normalized repository root and run:
 
   ```bash
-  calibration_source_commit=$(git rev-parse HEAD)
-  calibration_output="reports/generated/pass200_rsta_receipt/${calibration_source_commit}-normwise-adjoint-calibration.json"
+  repo_root=$(git rev-parse --show-toplevel)
+  test "$(pwd -P)" = "$repo_root"
+  test -z "$(git status --porcelain --untracked-files=all)"
+  executing_plan_fix_commit=$(git rev-parse HEAD)
+  calibration_source_commit=0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2
+  git merge-base --is-ancestor "$calibration_source_commit" "$executing_plan_fix_commit"
+  for source_path in \
+    scripts/rsta_normwise_adjoint.py \
+    scripts/calibrate_pass200_rsta_normwise_adjoint.py \
+    tests/test_rsta_normwise_adjoint.py
+  do
+    source_blob=$(git rev-parse "${calibration_source_commit}:${source_path}")
+    test "$(git rev-parse "${executing_plan_fix_commit}:${source_path}")" = "$source_blob"
+    test "$(git hash-object "${repo_root}/${source_path}")" = "$source_blob"
+  done
+  calibration_output="${repo_root}/reports/generated/pass200_rsta_receipt/${calibration_source_commit}-normwise-adjoint-calibration.json"
   test ! -e "$calibration_output"
-  CUDA_VISIBLE_DEVICES='' .venv/bin/python scripts/calibrate_pass200_rsta_normwise_adjoint.py --output "$calibration_output"
+  test ! -L "$calibration_output"
+  (
+    calibration_pid=$BASHPID
+    calibration_temp="${repo_root}/reports/generated/pass200_rsta_receipt/.${calibration_source_commit}-normwise-adjoint-calibration.json.tmp.${calibration_pid}"
+    test ! -e "$calibration_temp"
+    test ! -L "$calibration_temp"
+    exec env CUDA_VISIBLE_DEVICES='' "${repo_root}/.venv/bin/python" \
+      "${repo_root}/scripts/calibrate_pass200_rsta_normwise_adjoint.py" \
+      --output "$calibration_output"
+  )
+  calibration_exit=$?
   sha256sum "$calibration_output"
   ```
 
-  Capture the original exit code. Do not rerun to seek a different value.
+  Record `executing_plan_fix_commit`, the three equal blob IDs,
+  `calibration_exit`, and the artifact SHA-256. The subshell `exec` preserves
+  `BASHPID` as the Python PID, so the absent path checked immediately before
+  `exec` is the exact protocol-registered temporary path. Do not rerun to seek
+  a different value.
 
 - [ ] **Step 3: Independently validate and apply the frozen decision**
 
