@@ -99,18 +99,33 @@ def _reference(
 def test_normwise_metrics_cast_every_factor_before_product_and_norm(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    u = torch.tensor([2**20, 2**20, 1.0, -3.0], dtype=torch.float32)
-    a = torch.tensor([2**20, -(2**20), 0.25, 0.5], dtype=torch.float32)
-    names = ("second", "first")
+    u = torch.tensor([1.000000119], dtype=torch.float32)
+    a = torch.tensor([0.99999994], dtype=torch.float32)
+    names = ("residual", "large_positive", "large_negative")
     v = {
-        "second": torch.tensor([2**18, 2**18, 2.0], dtype=torch.float32),
-        "first": torch.tensor([1.0, -4.0], dtype=torch.float32),
+        "residual": torch.tensor([1.000000119], dtype=torch.float32),
+        "large_positive": torch.tensor([100000008.0], dtype=torch.float32),
+        "large_negative": torch.tensor([100000008.0], dtype=torch.float32),
     }
     b = {
-        "second": torch.tensor([2**18, -(2**18), 0.125], dtype=torch.float32),
-        "first": torch.tensor([-0.5, 0.25], dtype=torch.float32),
+        "residual": torch.tensor([0.99999994], dtype=torch.float32),
+        "large_positive": torch.tensor([99999992.0], dtype=torch.float32),
+        "large_negative": torch.tensor([-99999992.0], dtype=torch.float32),
     }
     expected = _reference(u, a, v, b, names)
+    fp32_lhs = float((u * a).sum(dtype=torch.float32).double())
+    fp32_rhs = float(
+        torch.stack([(v[name] * b[name]).sum(dtype=torch.float32) for name in names])
+        .sum(dtype=torch.float32)
+        .double()
+    )
+    assert (fp32_lhs, fp32_rhs) != (expected["lhs"], expected["rhs"])
+    rhs_terms = [
+        float((v[name].double() * b[name].double()).sum(dtype=torch.float64)) for name in names
+    ]
+    forward_order = (rhs_terms[0] + rhs_terms[1]) + rhs_terms[2]
+    reverse_order = (rhs_terms[1] + rhs_terms[2]) + rhs_terms[0]
+    assert forward_order != reverse_order
     original_sum = torch.Tensor.sum
 
     def guarded_sum(self: torch.Tensor, *args: Any, **kwargs: Any) -> torch.Tensor:
@@ -377,3 +392,75 @@ def test_calibration_schema_rejects_every_recursive_mutation() -> None:
 
     encoded = json.dumps(value, allow_nan=False)
     assert json.loads(encoded) == value
+
+
+def test_calibration_schema_rejects_impossible_scalar_and_control_payloads() -> None:
+    base = _valid_result()
+    fixture_id = normwise.CORRECT_FIXTURE_IDS[0]
+    scalar_names = (
+        "lhs",
+        "rhs",
+        "absolute_error",
+        "legacy_denominator",
+        "legacy_relative_error",
+        "output_direction_l2",
+        "parameter_direction_l2",
+        "jvp_l2",
+        "vjp_l2",
+        "normwise_denominator",
+        "eta_norm",
+        "beta_norm",
+        "lhs_absolute_product_sum",
+        "rhs_absolute_product_sum",
+        "lhs_cancellation_factor",
+        "rhs_cancellation_factor",
+        "threshold",
+    )
+    for name in scalar_names:
+        changed = deepcopy(base)
+        changed["correct_fixtures"][fixture_id][name] = 0
+        with pytest.raises(ValueError):
+            normwise.validate_calibration_result(changed)
+
+    for name in (
+        "absolute_error",
+        "legacy_denominator",
+        "legacy_relative_error",
+        "output_direction_l2",
+        "parameter_direction_l2",
+        "jvp_l2",
+        "vjp_l2",
+        "normwise_denominator",
+        "eta_norm",
+        "beta_norm",
+        "lhs_absolute_product_sum",
+        "rhs_absolute_product_sum",
+        "lhs_cancellation_factor",
+        "rhs_cancellation_factor",
+    ):
+        changed = deepcopy(base)
+        changed["correct_fixtures"][fixture_id][name] = -1.0
+        with pytest.raises(ValueError):
+            normwise.validate_calibration_result(changed)
+
+    for control_name in ("rebuild", "reversed_action_order", "parameter_sign", "output_sign"):
+        changed = deepcopy(base)
+        control = changed["correct_fixtures"][fixture_id]["controls"][control_name]
+        control["beta_norm"] = -1.0
+        control["passed"] = True
+        with pytest.raises(ValueError):
+            normwise.validate_calibration_result(changed)
+
+    reviewer_example = deepcopy(base)
+    entry = reviewer_example["correct_fixtures"][fixture_id]
+    entry.update(
+        {
+            "output_direction_l2": -1.0,
+            "parameter_direction_l2": -1.0,
+            "jvp_l2": -1.0,
+            "vjp_l2": -1.0,
+            "normwise_denominator": 2.0,
+        }
+    )
+    with pytest.raises(ValueError):
+        normwise.validate_calibration_result(reviewer_example)

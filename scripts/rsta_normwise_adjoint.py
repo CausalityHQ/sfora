@@ -438,7 +438,11 @@ def _validate_control(value: object, *, relation: str | None) -> bool:
     control = _exact_mapping(value, keys, name="fixture control")
     _hex(control["jvp_sha256"], 64, name="control JVP hash")
     _hex(control["vjp_sha256"], 64, name="control VJP hash")
-    if type(control["beta_norm"]) is not float or not math.isfinite(control["beta_norm"]):
+    if (
+        type(control["beta_norm"]) is not float
+        or not math.isfinite(control["beta_norm"])
+        or control["beta_norm"] < 0.0
+    ):
         raise ValueError("control beta_norm differs")
     if relation and type(control[relation]) is not bool:
         raise ValueError("control relation differs")
@@ -486,14 +490,33 @@ def _validate_entry(value: object, *, fixture_id: str, fault: bool) -> bool:
     metadata = fixture_metadata(fixture_id)
     if any(not _literal_equal(entry[name], metadata[name]) for name in metadata):
         raise ValueError("fixture metadata differs")
-    numeric = [
-        name
-        for name in metric_keys
-        if name
-        not in ("eta_norm", "beta_norm", "lhs_cancellation_factor", "rhs_cancellation_factor")
-    ]
-    if any(type(entry[name]) is not float or not math.isfinite(entry[name]) for name in numeric):
+    if any(
+        type(entry[name]) is not float or not math.isfinite(entry[name]) for name in ("lhs", "rhs")
+    ):
         raise ValueError("fixture scalar differs")
+    nonnegative = (
+        "absolute_error",
+        "legacy_denominator",
+        "legacy_relative_error",
+        "output_direction_l2",
+        "parameter_direction_l2",
+        "jvp_l2",
+        "vjp_l2",
+        "normwise_denominator",
+        "lhs_absolute_product_sum",
+        "rhs_absolute_product_sum",
+    )
+    if any(
+        type(entry[name]) is not float or not math.isfinite(entry[name]) or entry[name] < 0.0
+        for name in nonnegative
+    ):
+        raise ValueError("fixture nonnegative scalar differs")
+    for name in ("eta_norm", "beta_norm", "lhs_cancellation_factor", "rhs_cancellation_factor"):
+        scalar = entry[name]
+        if scalar != "infinity" and (
+            type(scalar) is not float or not math.isfinite(scalar) or scalar < 0.0
+        ):
+            raise ValueError("fixture derived scalar type/sign differs")
     expected_error = abs(entry["lhs"] - entry["rhs"])
     expected_legacy = max(abs(entry["lhs"]), abs(entry["rhs"]), 1.0e-12)
     expected_normwise = (
