@@ -2238,6 +2238,149 @@ def test_bufferless_train_clone_matches_preupdate_bn_forward_and_gradients() -> 
         assert torch.equal(value, before[name])
 
 
+class _ExactGlobalMaxRoot(torch.nn.Module):
+    def __init__(self, *, output_size: Any = 1) -> None:
+        super().__init__()
+        self.model = torch.nn.Module()
+        self.model.gmp = torch.nn.AdaptiveMaxPool2d(output_size)
+
+
+def test_diagnostic_clone_replaces_only_exact_global_max_and_preserves_original() -> None:
+    original = _ExactGlobalMaxRoot()
+
+    clone = _MODULE.make_rsta_diagnostic_clone(original)
+
+    assert type(original.model.gmp) is torch.nn.AdaptiveMaxPool2d
+    assert type(clone.model.gmp) is _MODULE._DeterministicGlobalMaxPool2d
+    assert list(clone.model.gmp.parameters()) == []
+    assert list(clone.model.gmp.buffers()) == []
+    assert original.state_dict().keys() == clone.state_dict().keys()
+    values = torch.tensor(
+        [[[[100.0, 100.0, -1.0], [2.0, 3.0, 4.0]]]], requires_grad=True
+    )
+    expected_values = values.detach().clone().requires_grad_(True)
+    observed = clone.model.gmp(values)
+    expected = original.model.gmp(expected_values)
+    observed.sum().backward()
+    expected.sum().backward()
+    assert torch.equal(observed, expected)
+    assert torch.equal(values.grad, expected_values.grad)
+    assert values.grad.flatten().tolist() == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+
+@pytest.mark.parametrize("defect", ["missing", "subclass", "tuple", "two"])
+def test_diagnostic_clone_rejects_nonexact_global_max_contract(defect: str) -> None:
+    model = _ExactGlobalMaxRoot()
+    if defect == "missing":
+        del model.model.gmp
+    elif defect == "subclass":
+        class PoolSubclass(torch.nn.AdaptiveMaxPool2d):
+            pass
+
+        model.model.gmp = PoolSubclass(1)
+    elif defect == "tuple":
+        model.model.gmp = torch.nn.AdaptiveMaxPool2d((1, 1))
+    else:
+        model.model.gmp = torch.nn.AdaptiveMaxPool2d(2)
+
+    with pytest.raises(ValueError, match="model.gmp"):
+        _MODULE.make_rsta_diagnostic_clone(model)
+
+
+_GLOBAL_MAX_INPUT_SHA256 = {
+    "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
+    "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
+    "zeros": "16d0edc8b7ad7705b23a14058f366ff1c0dfa16a0ad14f741924c308754cf8d1",
+    "tie": "55688cd7f3585fc5402d755dde3f30ac70701bea80c44b8a2e13d5dfa394d5b5",
+}
+
+
+def _valid_global_max_audit() -> dict[str, Any]:
+    cpu = _MODULE._audit_deterministic_global_max_cpu(
+        _MODULE._deterministic_global_max_inputs()
+    )
+    cuda = {
+        name: {
+            "output_equal": True,
+            "index_equal": True,
+            "replacement_gradient_equal_expected": True,
+            "max_abs_output_difference": 0.0,
+            "max_abs_replacement_gradient_difference": 0.0,
+        }
+        for name in ("random", "relu", "zeros", "tie")
+    }
+    return {
+        "replacement_id": "pass200-global-max-flatten-first-v1",
+        "module_path": "model.gmp",
+        "reference_type": "torch.nn.modules.pooling.AdaptiveMaxPool2d",
+        "reference_output_size": 1,
+        "fixture_seed": 200,
+        "fixture_generator": "numpy.PCG64",
+        "fixture_shape": [2, 3, 5, 7],
+        "fixture_dtype": "float32",
+        "derivative": "output.sum()",
+        "input_sha256": dict(_GLOBAL_MAX_INPUT_SHA256),
+        "cases": {"cpu": cpu, "cuda": cuda},
+        "deterministic_cuda_backward": {
+            "enabled": True,
+            "warn_only": False,
+            "completed": True,
+        },
+    }
+
+
+def test_deterministic_global_max_fixture_has_exact_inputs_and_cpu_equivalence() -> None:
+    cases = _MODULE._deterministic_global_max_inputs()
+
+    assert list(cases) == ["random", "relu", "zeros", "tie"]
+    assert all(value.dtype == np.float32 and value.flags.c_contiguous for value in cases.values())
+    assert {
+        name: hashlib.sha256(value.tobytes(order="C")).hexdigest()
+        for name, value in cases.items()
+    } == _GLOBAL_MAX_INPUT_SHA256
+    assert _MODULE._audit_deterministic_global_max_cpu(cases) == {
+        name: {
+            "output_equal": True,
+            "gradient_equal": True,
+            "max_abs_output_difference": 0.0,
+            "max_abs_gradient_difference": 0.0,
+        }
+        for name in ("random", "relu", "zeros", "tie")
+    }
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "false", "int_zero", "nonzero", "wrong_type"],
+)
+def test_deterministic_global_max_audit_rejects_exact_schema_drift(mutation: str) -> None:
+    audit = _valid_global_max_audit()
+    if mutation == "missing":
+        audit.pop("derivative")
+    elif mutation == "extra":
+        audit["unchecked"] = True
+    elif mutation == "false":
+        audit["cases"]["cuda"]["tie"]["index_equal"] = False
+    elif mutation == "int_zero":
+        audit["cases"]["cpu"]["random"]["max_abs_output_difference"] = 0
+    elif mutation == "nonzero":
+        audit["cases"]["cpu"]["random"]["max_abs_output_difference"] = 1.0e-12
+    else:
+        audit["reference_output_size"] = 1.0
+
+    with pytest.raises(ValueError, match="deterministic global max"):
+        _MODULE._validate_deterministic_global_max_audit(audit)
+
+
+def test_deterministic_global_max_audit_requires_cuda(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    _MODULE.configure_deterministic_process()
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+
+    with pytest.raises(ValueError, match="CUDA"):
+        _MODULE.audit_deterministic_global_max()
+
+
 def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
     """Catches analytic-head controls fed normalized outputs or the wrong linear layer."""
     model, images, _ = _dense_affine_fixture()
@@ -3214,6 +3357,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
             super().__init__()
             torch.manual_seed(seed + 20)
             self.model = torch.nn.Module()
+            self.model.gmp = torch.nn.AdaptiveMaxPool2d(1)
             self.model.embedding = torch.nn.Linear(2, 3)
 
         def forward(self, values: torch.Tensor) -> torch.Tensor:
@@ -3418,6 +3562,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
             super().__init__()
             torch.manual_seed(1201)
             self.model = torch.nn.Module()
+            self.model.gmp = torch.nn.AdaptiveMaxPool2d(1)
             self.model.embedding = torch.nn.Linear(2, 3)
 
         def forward(self, values: torch.Tensor) -> torch.Tensor:
@@ -3472,6 +3617,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
         cache_builder=cache_builder,
         model_loader=lambda _bound: TinyOfficialHead().train(),
         fixture_runner=lambda: fixture_audit,
+        deterministic_pool_auditor=_valid_global_max_audit,
         head_name="model.embedding",
         expected_head_in_features=2,
     )
@@ -3484,6 +3630,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert result["uses_test_data"] == "artifact_binding_only"
     assert "rows" not in result and "aggregation" not in result and "bootstrap" not in result
     assert result["integrity"]["seed"] == 0
+    assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
     assert set(result["integrity"]["repeatability"]) == {"z", "dbar", "b", "s"}
     assert result["integrity"]["adjoint_relative_error"] <= 5.0e-4
     assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
@@ -3614,6 +3761,37 @@ def test_historical_receipt_schema_returns_hash_only_immutable_seed_records() ->
     )
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "path", "sha256", "commit"],
+)
+def test_amended_manifest_requires_exact_deterministic_pool_amendment(
+    mutation: str,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    manifest = json.loads(
+        (root / "docs" / "pass200_rsta_receipt_stage_a_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    manifest["deterministic_pool_amendment"] = {
+        "path": "docs/pass200_rsta_deterministic_global_max_amendment_2026-08-09.md",
+        "sha256": "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361",
+        "commit": "db29ab7bb6478cfef57eccbad142f93d2f805f7f",
+    }
+    if mutation == "missing":
+        manifest.pop("deterministic_pool_amendment")
+    elif mutation == "extra":
+        manifest["deterministic_pool_amendment"]["unchecked"] = True
+    else:
+        manifest["deterministic_pool_amendment"][mutation] = "0" * (
+            64 if mutation == "sha256" else 40
+        )
+
+    with pytest.raises(ValueError, match="deterministic_pool_amendment|manifest fields"):
+        _MODULE._validate_amended_manifest_schema(manifest)
+
+
 def test_historical_receipt_rejects_nonliteral_path_before_receipt_or_semantic_access(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3687,6 +3865,96 @@ def test_invalid_amended_manifest_fails_before_receipt_hash_or_git_access(
         _MODULE.validate_historical_binding_receipt(manifest, receipt)
 
     assert accesses == ["hash"]
+
+
+def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_blob(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = tmp_path
+    docs = repository / "docs"
+    scripts = repository / "scripts"
+    docs.mkdir()
+    scripts.mkdir()
+    manifest_path = docs / "manifest.json"
+    manifest_path.write_text("{}", encoding="utf-8")
+    diagnostic = scripts / "diagnose_pass200_rsta_stage_a.py"
+    diagnostic.write_text("BOUND = True\n", encoding="utf-8")
+    references = {
+        "base_preregistration": {"path": "docs/base.md", "sha256": "1" * 64},
+        "amendment": {
+            "path": _MODULE._AMENDMENT_PATH,
+            "sha256": _MODULE._AMENDMENT_SHA256,
+            "commit": _MODULE._AMENDMENT_COMMIT,
+        },
+        "deterministic_pool_amendment": {
+            "path": _MODULE._DETERMINISTIC_POOL_AMENDMENT_PATH,
+            "sha256": _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256,
+            "commit": _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT,
+        },
+        "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
+    }
+    for reference in references.values():
+        path = repository / reference["path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("bound", encoding="utf-8")
+    manifest = {
+        **references,
+        "current_scientific_source": {
+            "git_revision": "3" * 40,
+            "files": {
+                "scripts/diagnose_pass200_rsta_stage_a.py": "4" * 64,
+            },
+        },
+    }
+    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: manifest)
+    monkeypatch.setattr(_MODULE, "_validate_amended_manifest_schema", lambda value: value)
+    monkeypatch.setattr(_MODULE, "__file__", str(diagnostic))
+    hashed_paths: list[Path] = []
+
+    def fake_sha(path: Path) -> str:
+        hashed_paths.append(path.resolve())
+        if path.resolve() == diagnostic.resolve():
+            return "4" * 64
+        for reference in references.values():
+            if path.resolve() == (repository / reference["path"]).resolve():
+                return str(reference["sha256"])
+        raise AssertionError(path)
+
+    blobs: list[tuple[str, str]] = []
+
+    def fake_blob(_repository: Path, revision: str, path_text: str) -> bytes:
+        blobs.append((revision, path_text))
+        digest = (
+            _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256
+            if revision == _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT
+            else _MODULE._AMENDMENT_SHA256
+            if revision == _MODULE._AMENDMENT_COMMIT
+            else "4" * 64
+        )
+        return b"blob-" + digest.encode("ascii")
+
+    monkeypatch.setattr(_MODULE, "sha256_file", fake_sha)
+    monkeypatch.setattr(_MODULE, "_git_blob", fake_blob)
+    monkeypatch.setattr(
+        _MODULE.hashlib,
+        "sha256",
+        lambda value=b"": type("Digest", (), {"hexdigest": lambda self: value[5:].decode()})(),
+    )
+
+    class Result:
+        returncode = 0
+        stdout = "5" * 40 + "\n"
+
+    monkeypatch.setattr(_MODULE.subprocess, "run", lambda *_args, **_kwargs: Result())
+
+    _MODULE.validate_scientific_execution_source(manifest_path)
+
+    assert (repository / _MODULE._DETERMINISTIC_POOL_AMENDMENT_PATH).resolve() in hashed_paths
+    assert (
+        _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT,
+        _MODULE._DETERMINISTIC_POOL_AMENDMENT_PATH,
+    ) in blobs
 
 
 def _tiny_receipt_seed(

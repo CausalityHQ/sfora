@@ -112,6 +112,19 @@ _ARTIFACT_NAMES = frozenset(
 _AMENDMENT_PATH = "docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md"
 _AMENDMENT_SHA256 = "691d786942c33cf8a943159280287bea08570114242854cdb7111795dc79e019"
 _AMENDMENT_COMMIT = "d1aeed63ade0e15d5f5a44be5981a4312e9a8df2"
+_DETERMINISTIC_POOL_AMENDMENT_PATH = (
+    "docs/pass200_rsta_deterministic_global_max_amendment_2026-08-09.md"
+)
+_DETERMINISTIC_POOL_AMENDMENT_SHA256 = (
+    "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361"
+)
+_DETERMINISTIC_POOL_AMENDMENT_COMMIT = "db29ab7bb6478cfef57eccbad142f93d2f805f7f"
+_DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
+    "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
+    "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
+    "zeros": "16d0edc8b7ad7705b23a14058f366ff1c0dfa16a0ad14f741924c308754cf8d1",
+    "tie": "55688cd7f3585fc5402d755dde3f30ac70701bea80c44b8a2e13d5dfa394d5b5",
+}
 _CURRENT_SCIENTIFIC_SOURCE_FILES = frozenset(
     {
         "scripts/diagnose_pass159_cotangent_stage_a.py",
@@ -594,6 +607,7 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
             "schema_version",
             "base_preregistration",
             "amendment",
+            "deterministic_pool_amendment",
             "binding_receipt",
             "historical",
             "current_scientific_source",
@@ -631,6 +645,17 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         "commit": _AMENDMENT_COMMIT,
     }:
         raise ValueError("amended RSTA manifest amendment differs")
+    deterministic_pool_amendment = _require_exact_keys(
+        value["deterministic_pool_amendment"],
+        {"path", "sha256", "commit"},
+        name="deterministic_pool_amendment",
+    )
+    if deterministic_pool_amendment != {
+        "path": _DETERMINISTIC_POOL_AMENDMENT_PATH,
+        "sha256": _DETERMINISTIC_POOL_AMENDMENT_SHA256,
+        "commit": _DETERMINISTIC_POOL_AMENDMENT_COMMIT,
+    }:
+        raise ValueError("amended RSTA manifest deterministic_pool_amendment differs")
     historical = _require_exact_keys(
         value["historical"], {"producer_commit", "manifest", "source"}, name="historical"
     )
@@ -766,7 +791,12 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
     """Validate the current source domain separately from historical receipt provenance."""
     manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
     repository = manifest_path.resolve().parent.parent
-    for name in ("base_preregistration", "amendment", "artifact_schema"):
+    for name in (
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "artifact_schema",
+    ):
         reference = manifest[name]
         path = (repository / reference["path"]).resolve()
         if not path.is_file() or sha256_file(path) != reference["sha256"]:
@@ -774,6 +804,16 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
     amendment_blob = _git_blob(repository, _AMENDMENT_COMMIT, _AMENDMENT_PATH)
     if hashlib.sha256(amendment_blob).hexdigest() != _AMENDMENT_SHA256:
         raise ValueError("prospective amendment Git blob SHA-256 mismatch")
+    pool_amendment_blob = _git_blob(
+        repository,
+        _DETERMINISTIC_POOL_AMENDMENT_COMMIT,
+        _DETERMINISTIC_POOL_AMENDMENT_PATH,
+    )
+    if (
+        hashlib.sha256(pool_amendment_blob).hexdigest()
+        != _DETERMINISTIC_POOL_AMENDMENT_SHA256
+    ):
+        raise ValueError("deterministic pool amendment Git blob SHA-256 mismatch")
     current = manifest["current_scientific_source"]
     revision = current["git_revision"]
     head = subprocess.run(
@@ -1924,6 +1964,261 @@ def make_bufferless_train_clone(model: Any) -> Any:
         if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
             module.track_running_stats = False
     return clone
+
+
+def _new_deterministic_global_max_pool() -> Any:
+    import torch
+
+    pool_type = globals().get("_DeterministicGlobalMaxPool2d")
+    if pool_type is None:
+        class _DeterministicGlobalMaxPool2d(torch.nn.Module):
+            def forward(self, x: Any) -> Any:
+                return x.flatten(-2).max(dim=-1, keepdim=True).values.unsqueeze(-1)
+
+        globals()["_DeterministicGlobalMaxPool2d"] = _DeterministicGlobalMaxPool2d
+        pool_type = _DeterministicGlobalMaxPool2d
+    return pool_type()
+
+
+def make_rsta_diagnostic_clone(model: Any) -> Any:
+    """Clone the bound model and replace only its exact final global-max operator."""
+    import torch
+
+    clone = make_bufferless_train_clone(model)
+    try:
+        pool = clone.get_submodule("model.gmp")
+        parent = clone.get_submodule("model")
+    except (AttributeError, KeyError) as error:
+        raise ValueError("diagnostic model lacks exact model.gmp") from error
+    if type(pool) is not torch.nn.AdaptiveMaxPool2d or type(pool.output_size) is not int:
+        raise ValueError("diagnostic model.gmp must be exact AdaptiveMaxPool2d integer 1")
+    if pool.output_size != 1:
+        raise ValueError("diagnostic model.gmp output_size must equal integer 1")
+
+    parent.gmp = _new_deterministic_global_max_pool()
+    return clone
+
+
+def _deterministic_global_max_inputs() -> dict[str, np.ndarray]:
+    generator = np.random.Generator(np.random.PCG64(200))
+    random_values = np.ascontiguousarray(
+        generator.standard_normal((2, 3, 5, 7)).astype(np.float32)
+    )
+    tie = random_values.copy(order="C")
+    tie[:, :, 0, 0] = np.float32(100.0)
+    tie[:, :, 0, 1] = np.float32(100.0)
+    return {
+        "random": random_values,
+        "relu": np.ascontiguousarray(np.maximum(random_values, np.float32(0.0))),
+        "zeros": np.zeros_like(random_values, dtype=np.float32, order="C"),
+        "tie": tie,
+    }
+
+
+def _max_abs_difference(left: Any, right: Any) -> float:
+    import torch
+
+    return float(torch.max(torch.abs(left - right)).detach().cpu())
+
+
+def _audit_deterministic_global_max_cpu(
+    cases: Mapping[str, np.ndarray],
+) -> dict[str, dict[str, Any]]:
+    import torch
+
+    results: dict[str, dict[str, Any]] = {}
+    for name in ("random", "relu", "zeros", "tie"):
+        raw = np.ascontiguousarray(cases[name], dtype=np.float32).tobytes(order="C")
+        reference_input = torch.from_numpy(
+            np.frombuffer(raw, dtype=np.float32).copy().reshape(2, 3, 5, 7)
+        ).requires_grad_(True)
+        replacement_input = torch.from_numpy(
+            np.frombuffer(raw, dtype=np.float32).copy().reshape(2, 3, 5, 7)
+        ).requires_grad_(True)
+        reference_output = torch.nn.AdaptiveMaxPool2d(1)(reference_input)
+        replacement_output = _new_deterministic_global_max_pool()(replacement_input)
+        reference_output.sum().backward()
+        replacement_output.sum().backward()
+        output_equal = torch.equal(reference_output, replacement_output)
+        gradient_equal = torch.equal(reference_input.grad, replacement_input.grad)
+        results[name] = {
+            "output_equal": output_equal,
+            "gradient_equal": gradient_equal,
+            "max_abs_output_difference": _max_abs_difference(
+                reference_output, replacement_output
+            ),
+            "max_abs_gradient_difference": _max_abs_difference(
+                reference_input.grad, replacement_input.grad
+            ),
+        }
+    return results
+
+
+def _audit_deterministic_global_max_cuda(
+    cases: Mapping[str, np.ndarray],
+) -> dict[str, dict[str, Any]]:
+    import torch
+
+    results: dict[str, dict[str, Any]] = {}
+    for name in ("random", "relu", "zeros", "tie"):
+        raw = np.ascontiguousarray(cases[name], dtype=np.float32).tobytes(order="C")
+        replacement_input = torch.from_numpy(
+            np.frombuffer(raw, dtype=np.float32).copy().reshape(2, 3, 5, 7)
+        ).to(device="cuda").requires_grad_(True)
+        reference_output, reference_indices = torch.nn.functional.adaptive_max_pool2d(
+            replacement_input.detach(), (1, 1), return_indices=True
+        )
+        flattened = replacement_input.flatten(-2)
+        replacement_indices = flattened.max(dim=-1, keepdim=True).indices
+        replacement_output = _new_deterministic_global_max_pool()(replacement_input)
+        expected_gradient = torch.zeros_like(flattened)
+        expected_gradient.scatter_(-1, reference_indices.flatten(-2), 1.0)
+        replacement_output.sum().backward()
+        actual_gradient = replacement_input.grad.flatten(-2)
+        results[name] = {
+            "output_equal": torch.equal(reference_output, replacement_output),
+            "index_equal": torch.equal(
+                reference_indices.flatten(-2), replacement_indices
+            ),
+            "replacement_gradient_equal_expected": torch.equal(
+                actual_gradient, expected_gradient
+            ),
+            "max_abs_output_difference": _max_abs_difference(
+                reference_output, replacement_output
+            ),
+            "max_abs_replacement_gradient_difference": _max_abs_difference(
+                actual_gradient, expected_gradient
+            ),
+        }
+    return results
+
+
+def _validate_deterministic_global_max_audit(audit: Mapping[str, Any]) -> None:
+    top = _require_exact_keys(
+        audit,
+        {
+            "replacement_id",
+            "module_path",
+            "reference_type",
+            "reference_output_size",
+            "fixture_seed",
+            "fixture_generator",
+            "fixture_shape",
+            "fixture_dtype",
+            "derivative",
+            "input_sha256",
+            "cases",
+            "deterministic_cuda_backward",
+        },
+        name="deterministic global max audit",
+    )
+    scalar_expected = {
+        "replacement_id": "pass200-global-max-flatten-first-v1",
+        "module_path": "model.gmp",
+        "reference_type": "torch.nn.modules.pooling.AdaptiveMaxPool2d",
+        "fixture_generator": "numpy.PCG64",
+        "fixture_dtype": "float32",
+        "derivative": "output.sum()",
+    }
+    if any(
+        type(top[name]) is not str or top[name] != expected
+        for name, expected in scalar_expected.items()
+    ):
+        raise ValueError("deterministic global max scalar contract differs")
+    if type(top["reference_output_size"]) is not int or top["reference_output_size"] != 1:
+        raise ValueError("deterministic global max reference output size differs")
+    if type(top["fixture_seed"]) is not int or top["fixture_seed"] != 200:
+        raise ValueError("deterministic global max fixture seed differs")
+    if top["fixture_shape"] != [2, 3, 5, 7] or any(
+        type(value) is not int for value in top["fixture_shape"]
+    ):
+        raise ValueError("deterministic global max fixture shape differs")
+    input_sha = _require_exact_keys(
+        top["input_sha256"],
+        _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256,
+        name="deterministic global max input SHA-256",
+    )
+    if input_sha != _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256:
+        raise ValueError("deterministic global max input SHA-256 differs")
+    cases = _require_exact_keys(
+        top["cases"], {"cpu", "cuda"}, name="deterministic global max devices"
+    )
+    case_names = {"random", "relu", "zeros", "tie"}
+    schemas = {
+        "cpu": {
+            "output_equal",
+            "gradient_equal",
+            "max_abs_output_difference",
+            "max_abs_gradient_difference",
+        },
+        "cuda": {
+            "output_equal",
+            "index_equal",
+            "replacement_gradient_equal_expected",
+            "max_abs_output_difference",
+            "max_abs_replacement_gradient_difference",
+        },
+    }
+    for device, schema in schemas.items():
+        device_cases = _require_exact_keys(
+            cases[device], case_names, name=f"deterministic global max {device} cases"
+        )
+        for name, result in device_cases.items():
+            result = _require_exact_keys(
+                result, schema, name=f"deterministic global max {device} {name}"
+            )
+            for key, value in result.items():
+                if key.endswith("equal") or key.endswith("expected"):
+                    if type(value) is not bool or value is not True:
+                        raise ValueError("deterministic global max equality gate failed")
+                elif type(value) is not float or value != 0.0:
+                    raise ValueError("deterministic global max difference must be float 0.0")
+    deterministic = _require_exact_keys(
+        top["deterministic_cuda_backward"],
+        {"enabled", "warn_only", "completed"},
+        name="deterministic global max CUDA backward",
+    )
+    if deterministic != {"enabled": True, "warn_only": False, "completed": True} or any(
+        type(value) is not bool for value in deterministic.values()
+    ):
+        raise ValueError("deterministic global max CUDA backward audit differs")
+
+
+def audit_deterministic_global_max() -> dict[str, Any]:
+    import torch
+
+    _assert_deterministic_tf32_off()
+    if not torch.cuda.is_available():
+        raise ValueError("deterministic global max fixture requires CUDA")
+    cases = _deterministic_global_max_inputs()
+    input_sha256 = {
+        name: hashlib.sha256(value.tobytes(order="C")).hexdigest()
+        for name, value in cases.items()
+    }
+    audit = {
+        "replacement_id": "pass200-global-max-flatten-first-v1",
+        "module_path": "model.gmp",
+        "reference_type": "torch.nn.modules.pooling.AdaptiveMaxPool2d",
+        "reference_output_size": 1,
+        "fixture_seed": 200,
+        "fixture_generator": "numpy.PCG64",
+        "fixture_shape": [2, 3, 5, 7],
+        "fixture_dtype": "float32",
+        "derivative": "output.sum()",
+        "input_sha256": input_sha256,
+        "cases": {
+            "cpu": _audit_deterministic_global_max_cpu(cases),
+            "cuda": _audit_deterministic_global_max_cuda(cases),
+        },
+        "deterministic_cuda_backward": {
+            "enabled": torch.are_deterministic_algorithms_enabled(),
+            "warn_only": torch.is_deterministic_algorithms_warn_only_enabled(),
+            "completed": True,
+        },
+    }
+    _assert_deterministic_tf32_off()
+    _validate_deterministic_global_max_audit(audit)
+    return audit
 
 
 def capture_prehead_and_raw(
@@ -4124,7 +4419,7 @@ def run_scientific_diagnostic(
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
     for bound in bounds:
         _assert_deterministic_tf32_off()
-        model = make_bufferless_train_clone(model_loader(bound))
+        model = make_rsta_diagnostic_clone(model_loader(bound))
         parameter_items = [
             (name, value) for name, value in model.named_parameters() if value.requires_grad
         ]
@@ -4354,6 +4649,9 @@ def run_integrity_smoke(
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
+        audit_deterministic_global_max
+    ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -4388,7 +4686,9 @@ def run_integrity_smoke(
     label_by_id = dict(zip(bound.train_example_ids, bound.train_labels, strict=True))
     index_by_id = {value: index for index, value in enumerate(bound.train_example_ids)}
     _assert_deterministic_tf32_off()
-    model = make_bufferless_train_clone(model_loader(bound))
+    model = make_rsta_diagnostic_clone(model_loader(bound))
+    deterministic_global_max = deterministic_pool_auditor()
+    _validate_deterministic_global_max_audit(deterministic_global_max)
     parameter_items = [
         (name, value) for name, value in model.named_parameters() if value.requires_grad
     ]
@@ -4475,6 +4775,9 @@ def run_integrity_smoke(
                 "base_preregistration", manifest.get("preregistration")
             ),
             "amendment": manifest.get("amendment"),
+            "deterministic_pool_amendment": manifest.get(
+                "deterministic_pool_amendment"
+            ),
             "binding_receipt": manifest.get("binding_receipt"),
             "historical": manifest.get("historical"),
             "artifact_schema": manifest.get("artifact_schema"),
@@ -4507,7 +4810,12 @@ def run_integrity_smoke(
                 [f"{example_id}\0{tensor_hashes[example_id]}" for example_id in batch_ids]
             ),
         },
-        "integrity": {"seed": seed, **fixtures, **first},
+        "integrity": {
+            "seed": seed,
+            **fixtures,
+            "deterministic_global_max": deterministic_global_max,
+            **first,
+        },
     }
     write_json_atomic(output_path, payload)
     return payload
@@ -4528,6 +4836,9 @@ def main(
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
+        audit_deterministic_global_max
+    ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -4554,6 +4865,7 @@ def main(
             cache_builder=cache_builder,
             model_loader=model_loader,
             fixture_runner=fixture_runner,
+            deterministic_pool_auditor=deterministic_pool_auditor,
             rotation_auditor=rotation_auditor,
             head_name=head_name,
             expected_head_in_features=expected_head_in_features,
