@@ -9879,6 +9879,22 @@ distinction; consequently the preregistered positive `A_self - A_desc` lower
 bound is a mechanism gate, not supporting analysis. Full audit:
 `docs/pass200_rsta_gate2_primary_audit_2026-08-09.md`.
 
+The first source-bound integrity smoke exposed a preregistration/data-flow defect
+before any RSTA value: historical final packs reproduce bit-for-bit with cuDNN TF32
+enabled, while changing only cuDNN TF32 to the Stage-A-required disabled state moves
+train/query/gallery descriptors by maxima `0.0005712025`, `0.0008309260`, and
+`0.0004441738`, all above the frozen `2e-5` tolerance. This is not stochastic noise
+and not evidence against RSTA. The prospective repair freezes the already-completed
+binding-only export as immutable receipt SHA
+`e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300`, then requires
+a separate fresh TF32-off smoke/scientific process that validates the receipt,
+loads only final-train state, and never re-exports or materializes query/gallery.
+No threshold or candidate statistic changes. **Process lesson:** artifact
+reproduction and scientific arithmetic can be different authenticated domains; a
+single-process gate that silently changes global arithmetic before re-export tests
+the arithmetic mismatch, not the method. Full prospective amendment:
+`docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md`.
+
 ## Pass202 — measurement-conditioned hill-climb: NONE before GPU
 
 Three nearest moves were derived from the current CIS/RSTA/CE-BN measurements and
