@@ -1,0 +1,410 @@
+{
+  "binding": {
+    "cross_seed_training_rows_identical": true,
+    "descriptor_atol": 2e-05,
+    "descriptor_rtol": 2e-05,
+    "query_gallery_released_before_scientific_input": true,
+    "seeds": [
+      {
+        "artifact_binding": {
+          "artifacts": {
+            "checkpoint_pt": {
+              "path": "/home/riomus/group-learning/reports/checkpoints/inshop_corrected_pa_seed0.pt",
+              "sha256": "2b46a68a0364cd204e60068858198f1da699f043897fc93d0c22525b6f635546"
+            },
+            "gallery_npz": {
+              "path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_gallery_final.npz",
+              "sha256": "6eb89ff57e7a6002f2ba71f9659e04dabd0cafdb1996be3d85f5211731ba861a"
+            },
+            "prehead_npz": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed0.npz",
+              "sha256": "9e94b448ebddd9db0889fad136eb32b53eab705f04ca23d736bad0e19d52f71a"
+            },
+            "query_npz": {
+              "path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_query_final.npz",
+              "sha256": "ef5278fd9aae7a6398a6c74133e6acc0ded05e39647087bdf78459223b9eb761"
+            },
+            "report_json": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0.json",
+              "sha256": "9121937b0ebd8cfbf57f52209eff7e8762795e4d05f77d963ca96ed03d708476"
+            },
+            "retrieval_json": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0_final_retrieval.json",
+              "sha256": "7f35282d65466727b024a5259606fb1f5e3dd15dea3dc303cdf54daf42f4e41b"
+            },
+            "train_npz": {
+              "path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_train_final.npz",
+              "sha256": "67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea"
+            }
+          },
+          "current_source_export": {
+            "gallery": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 12612,
+              "rtol": 2e-05,
+              "source_export_sha256": "d3472ba2b943406c25a1817efb6136f265610182e39bdb21b850cb81fb4164e8"
+            },
+            "query": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 14218,
+              "rtol": 2e-05,
+              "source_export_sha256": "58722cb82ef4cd351df20c80cc58b6bbdca37bceb26083573895bde2bbbf5f72"
+            },
+            "train": {
+              "atol": 2e-05,
+              "identity_count": 3997,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 25882,
+              "rtol": 2e-05,
+              "source_export_sha256": "5341f5a28fd6f105d8beaf022c336b16406f560e3db74fe79a0066da0ef409b7"
+            }
+          },
+          "descriptor_atol": 2e-05,
+          "descriptor_rtol": 2e-05,
+          "official_r1_source": "current_source_all_rows_and_digest_bound_final_packs",
+          "prehead_reconstruction": {
+            "gallery": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            },
+            "query": {
+              "max_abs_difference": 0.0007078200578689575,
+              "rows_above_2e_5": 10,
+              "used_for_official_r1": false,
+              "within_tolerance": false
+            },
+            "train": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            }
+          },
+          "source_export_batch_size": 128
+        },
+        "official_recall_at_1": 0.9137009424672949,
+        "seed": 0,
+        "train_example_id_order_sha256": "0e5311c14d2532a28e323a5e222fea5613f1c2d250e2d1496bbc3ad60605d56b",
+        "train_identity_count": 3997,
+        "train_label_order_sha256": "35fe712c8b45a6125c4861657a646f772159d2963d9190f13aae43bf391639ab",
+        "train_row_count": 25882,
+        "train_source_order_sha256": "f564e46ce0e0731143e3a143f02f4a59c3e358917d0cdaa6bebcb4e2d97c91dd"
+      },
+      {
+        "artifact_binding": {
+          "artifacts": {
+            "checkpoint_pt": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/checkpoints/inshop_corrected_pa_seed1.pt",
+              "sha256": "a25dc22691981e6ad7df899878f448d96d4ac41adbb8e346e10322e93883e580"
+            },
+            "gallery_npz": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_gallery_final.npz",
+              "sha256": "d1956f8f7a72490a06cf75fa39822bed4d499095e07d36af3f72a5cc4982754b"
+            },
+            "prehead_npz": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed1.npz",
+              "sha256": "ce7eca31d1592fb601b38e8bca258bf93d425eaec7d1bf97278fa43f1d4f40c9"
+            },
+            "query_npz": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_query_final.npz",
+              "sha256": "1a2fb03689b161c8a19bf379c362ef2e552151aa02dc942151faf611fd62be73"
+            },
+            "report_json": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1.json",
+              "sha256": "3482d3f976e5184eb12a1ae250bed5a8e66ef458148e0cef4ab0afb9efbcc02a"
+            },
+            "retrieval_json": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1_final_retrieval.json",
+              "sha256": "59d5b15c4e3b6e5e0eac1649bce266b1d7a4e8bf036995f76e0b5b70e03c6f33"
+            },
+            "train_npz": {
+              "path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_train_final.npz",
+              "sha256": "5fd172cf7a69bcb1cf6b715793f8a81f12ecf7382a69416f6a3343ca301e3f4d"
+            }
+          },
+          "current_source_export": {
+            "gallery": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 12612,
+              "rtol": 2e-05,
+              "source_export_sha256": "5761604ad2b011b658a7950c7ff4f21d37b6de05cf6642632ab851306368f33d"
+            },
+            "query": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 14218,
+              "rtol": 2e-05,
+              "source_export_sha256": "6a661343bee45f9254302fe3aa2603da4b01fa87cbbf09858a5bd8d106a2fc5d"
+            },
+            "train": {
+              "atol": 2e-05,
+              "identity_count": 3997,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 25882,
+              "rtol": 2e-05,
+              "source_export_sha256": "686b05f3054e6d5c06c66c223cc4bbde68ea25913176bc8a25ab09959bfde8e2"
+            }
+          },
+          "descriptor_atol": 2e-05,
+          "descriptor_rtol": 2e-05,
+          "official_r1_source": "current_source_all_rows_and_digest_bound_final_packs",
+          "prehead_reconstruction": {
+            "gallery": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            },
+            "query": {
+              "max_abs_difference": 0.0006615035235881805,
+              "rows_above_2e_5": 10,
+              "used_for_official_r1": false,
+              "within_tolerance": false
+            },
+            "train": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            }
+          },
+          "source_export_batch_size": 128
+        },
+        "official_recall_at_1": 0.9167956111970741,
+        "seed": 1,
+        "train_example_id_order_sha256": "0e5311c14d2532a28e323a5e222fea5613f1c2d250e2d1496bbc3ad60605d56b",
+        "train_identity_count": 3997,
+        "train_label_order_sha256": "35fe712c8b45a6125c4861657a646f772159d2963d9190f13aae43bf391639ab",
+        "train_row_count": 25882,
+        "train_source_order_sha256": "f564e46ce0e0731143e3a143f02f4a59c3e358917d0cdaa6bebcb4e2d97c91dd"
+      },
+      {
+        "artifact_binding": {
+          "artifacts": {
+            "checkpoint_pt": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt",
+              "sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f"
+            },
+            "gallery_npz": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_gallery_final.npz",
+              "sha256": "6ba0c3a7191b876be88e88dfcdae911d03a0dd3311719d4f32956e50e25ab71c"
+            },
+            "prehead_npz": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed2.npz",
+              "sha256": "24eaaf21282da27b71d914934f25ffc907622217183c2596a1b155cc6a9e0628"
+            },
+            "query_npz": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_query_final.npz",
+              "sha256": "7fc6adae069eba35ce8942a76679a6f03b2638728995e2d999989fba224e3b02"
+            },
+            "report_json": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2.json",
+              "sha256": "f84b5ddce57e468e858bdc5e97415466369793497993af11d1a9223222ace442"
+            },
+            "retrieval_json": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2_final_retrieval.json",
+              "sha256": "ff0619a255ffe56b90ca7f548ed671b914fbda8ac9f7287db8d94ec3733b9788"
+            },
+            "train_npz": {
+              "path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_train_final.npz",
+              "sha256": "98830a4d47c9314c82c58166b659c7d7a278aa660de842831e5ff081161ed549"
+            }
+          },
+          "current_source_export": {
+            "gallery": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 12612,
+              "rtol": 2e-05,
+              "source_export_sha256": "6eb1f88afd9a12c78724998575885428c83f5331f1666a1d9c2f758d4e9225c6"
+            },
+            "query": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 14218,
+              "rtol": 2e-05,
+              "source_export_sha256": "b1d5e042ffcda685c8fcd503d4eebea1ca7e383332ac9738d72c2e3422b41b0d"
+            },
+            "train": {
+              "atol": 2e-05,
+              "identity_count": 3997,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 25882,
+              "rtol": 2e-05,
+              "source_export_sha256": "a52a17c3e71ae5e846d0de49076af44cfda7fa558047192c249829f5053fcbdb"
+            }
+          },
+          "descriptor_atol": 2e-05,
+          "descriptor_rtol": 2e-05,
+          "official_r1_source": "current_source_all_rows_and_digest_bound_final_packs",
+          "prehead_reconstruction": {
+            "gallery": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            },
+            "query": {
+              "max_abs_difference": 0.0006390251219272614,
+              "rows_above_2e_5": 10,
+              "used_for_official_r1": false,
+              "within_tolerance": false
+            },
+            "train": {
+              "max_abs_difference": 1.30385160446167e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            }
+          },
+          "source_export_batch_size": 128
+        },
+        "official_recall_at_1": 0.91510761007174,
+        "seed": 2,
+        "train_example_id_order_sha256": "0e5311c14d2532a28e323a5e222fea5613f1c2d250e2d1496bbc3ad60605d56b",
+        "train_identity_count": 3997,
+        "train_label_order_sha256": "35fe712c8b45a6125c4861657a646f772159d2963d9190f13aae43bf391639ab",
+        "train_row_count": 25882,
+        "train_source_order_sha256": "f564e46ce0e0731143e3a143f02f4a59c3e358917d0cdaa6bebcb4e2d97c91dd"
+      },
+      {
+        "artifact_binding": {
+          "artifacts": {
+            "checkpoint_pt": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/checkpoints/inshop_corrected_pa_seed3.pt",
+              "sha256": "2a1d675220cde9c8ef096597cc5f25e665d32e7634f50102ec5046c6ed4ac7ae"
+            },
+            "gallery_npz": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_gallery_final.npz",
+              "sha256": "160502f6eb8a66e8e6915db564c2e6e75e869b158fccd021a0f457c4aaf515d9"
+            },
+            "prehead_npz": {
+              "path": "/home/riomus/group-learning/reports/generated/inshop_trained_prehead_seed3.npz",
+              "sha256": "6c475fa09015743af0a10c91747410af74c3144246e547e87fdc68a5ea97d2c6"
+            },
+            "query_npz": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_query_final.npz",
+              "sha256": "4c6e87b1d2ad13c8ce21129f972355ed5bc61d75544d6b4deae4b2ebc534aafe"
+            },
+            "report_json": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3.json",
+              "sha256": "7eaf0fb10071ef11b4bddf957d9b66b9a0d70315dcc259628994f3da0d6df1de"
+            },
+            "retrieval_json": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3_final_retrieval.json",
+              "sha256": "32e8c0f93160465a71bab8f7a36b53817a387fc16f949b097e87a78528aebef2"
+            },
+            "train_npz": {
+              "path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_train_final.npz",
+              "sha256": "d53a88cfc12a8f0fb03be0f26cd21e159dc1a3805462cddc20900b2df2d133a3"
+            }
+          },
+          "current_source_export": {
+            "gallery": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 12612,
+              "rtol": 2e-05,
+              "source_export_sha256": "aede5db29c8cb1cbf1e25f404c04e4c4fdc2b56a7800b296c324d0d8dd857fda"
+            },
+            "query": {
+              "atol": 2e-05,
+              "identity_count": 3985,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 14218,
+              "rtol": 2e-05,
+              "source_export_sha256": "1d2c220d9494d0144e3da4f43f04579fd243f62a436a9814bd946197cbf0dc8c"
+            },
+            "train": {
+              "atol": 2e-05,
+              "identity_count": 3997,
+              "max_abs_descriptor_difference": 0.0,
+              "row_count": 25882,
+              "rtol": 2e-05,
+              "source_export_sha256": "fbd92eb777d220c45fa4770f8b31fab3d276bd0d0c7e1dc00f5ea7eb175f70b5"
+            }
+          },
+          "descriptor_atol": 2e-05,
+          "descriptor_rtol": 2e-05,
+          "official_r1_source": "current_source_all_rows_and_digest_bound_final_packs",
+          "prehead_reconstruction": {
+            "gallery": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            },
+            "query": {
+              "max_abs_difference": 0.0008446834981441498,
+              "rows_above_2e_5": 10,
+              "used_for_official_r1": false,
+              "within_tolerance": false
+            },
+            "train": {
+              "max_abs_difference": 1.341104507446289e-07,
+              "rows_above_2e_5": 0,
+              "used_for_official_r1": false,
+              "within_tolerance": true
+            }
+          },
+          "source_export_batch_size": 128
+        },
+        "official_recall_at_1": 0.9159516106344071,
+        "seed": 3,
+        "train_example_id_order_sha256": "0e5311c14d2532a28e323a5e222fea5613f1c2d250e2d1496bbc3ad60605d56b",
+        "train_identity_count": 3997,
+        "train_label_order_sha256": "35fe712c8b45a6125c4861657a646f772159d2963d9190f13aae43bf391639ab",
+        "train_row_count": 25882,
+        "train_source_order_sha256": "f564e46ce0e0731143e3a143f02f4a59c3e358917d0cdaa6bebcb4e2d97c91dd"
+      }
+    ],
+    "source_export_batch_size": 128
+  },
+  "candidate_values_computed": false,
+  "diagnostic": "pass200_rsta_stage_a",
+  "execution_audit": {
+    "diagnostic_path": "scripts/diagnose_pass200_rsta_stage_a.py",
+    "diagnostic_sha256": "78eeb3d0d3f92ad1a0b7e76708851e940a36a1ef260a2618dc58bf7f3fab7f1a",
+    "executing_git_commit": "d6270a94f14f5e0b4f4a3eeaa23f3f66d9bfaa54",
+    "frozen_source_revision": "0146f2d1200fec26fcd483005804dbe71ec72786"
+  },
+  "manifest": {
+    "artifact_schema": {
+      "path": "docs/pass159_stage_a_manifest.json",
+      "sha256": "8323d0543979edd5331a3294601c508ea0b9787b7a8c0b111cef65562a7225da"
+    },
+    "path": "/home/riomus/sfora-rsta-pass200/docs/pass200_rsta_stage_a_manifest.json",
+    "preregistration": {
+      "path": "docs/pass200_rsta_candidate_2026-08-09.md",
+      "sha256": "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857"
+    },
+    "sha256": "aafab355a06667a9ca513cddeceb2a0129ea8ee09ce3dec0a19b6839fe15ffb1",
+    "source": {
+      "files": {
+        "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
+        "scripts/diagnose_pass200_rsta_stage_a.py": "78eeb3d0d3f92ad1a0b7e76708851e940a36a1ef260a2618dc58bf7f3fab7f1a",
+        "scripts/export_final_inshop_embeddings.py": "268d874e07ba1643cb3b6eea099ddd2fa2c86233bb34c4c0d2c80ddf5e864981",
+        "src/sfora/bn_inception.py": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
+        "src/sfora/data.py": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
+        "src/sfora/image_end_to_end.py": "28ccedf6d85efa2e8b8b870c0aa62400dec2858f5e0a987fa4c6a23123122a62"
+      },
+      "git_revision": "0146f2d1200fec26fcd483005804dbe71ec72786"
+    }
+  },
+  "mode": "binding_only",
+  "schema_version": 1,
+  "stage_a_verdict": "NOT_COMPUTED",
+  "uses_test_data": "artifact_binding_only"
+}
