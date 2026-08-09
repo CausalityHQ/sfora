@@ -354,7 +354,11 @@ source byte, seed, dimension, scale, formula, threshold, fault, or result rule.
   `0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2`. Authenticate that source as an
   ancestor and prove its exact helper, CLI, and test blobs equal both the
   executing-commit blobs and worktree bytes. Then derive the registered output
-  from the absolute normalized repository root and run:
+  from the absolute normalized repository root. `reports/generated` must
+  already be a real non-symlink directory. Create only its
+  `pass200_rsta_receipt` child if absent; if present, require that child to be a
+  real non-symlink directory, and verify it again before destination and
+  temporary-path checks. Run:
 
   ```bash
   repo_root=$(git rev-parse --show-toplevel)
@@ -372,6 +376,21 @@ source byte, seed, dimension, scale, formula, threshold, fault, or result rule.
     test "$(git rev-parse "${executing_plan_fix_commit}:${source_path}")" = "$source_blob"
     test "$(git hash-object "${repo_root}/${source_path}")" = "$source_blob"
   done
+  generated_directory="${repo_root}/reports/generated"
+  test -d "$generated_directory" || exit 2
+  test ! -L "$generated_directory" || exit 2
+  test "$(cd "$generated_directory" && pwd -P)" = "$generated_directory" || exit 2
+  calibration_directory="${generated_directory}/pass200_rsta_receipt"
+  if test -e "$calibration_directory" || test -L "$calibration_directory"
+  then
+    test -d "$calibration_directory" || exit 2
+    test ! -L "$calibration_directory" || exit 2
+  else
+    mkdir -- "$calibration_directory" || exit 2
+  fi
+  test -d "$calibration_directory" || exit 2
+  test ! -L "$calibration_directory" || exit 2
+  test "$(cd "$calibration_directory" && pwd -P)" = "$calibration_directory" || exit 2
   calibration_output="${repo_root}/reports/generated/pass200_rsta_receipt/${calibration_source_commit}-normwise-adjoint-calibration.json"
   test ! -e "$calibration_output"
   test ! -L "$calibration_output"
