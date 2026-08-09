@@ -4,26 +4,43 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import fcntl
 import hashlib
 import io
 import os
+import re
+import shutil
 import stat
 import struct
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, NoReturn
+from datetime import UTC, datetime
+from pathlib import Path, PurePosixPath
+from typing import Any, Literal, NoReturn
 from unittest.mock import patch
 
 from pass201_pa_source_v2_contract import (
     TRAIN_MANIFEST_CALL_GRAPH,
     BoundCheckpointMetadata,
     CheckpointMetadata,
+    DirectoryImportRoot,
+    ExternalDirectoryImportTarget,
     ExternalFileBinding,
+    ExternalFileImportTarget,
+    ImportDirectoryBinding,
+    MerkleBinding,
+    NonexistentImportRoot,
+    OutputEvidence,
     PrelaunchAuthority,
     PrivateChildFrame,
+    RepoBlob,
+    ZipImportRoot,
+    bind_external_file,
+    bind_import_roots,
+    bind_merkle,
+    bind_repo_blob,
     canonical_json_bytes,
     decode_checkpoint_binding_response,
     decode_checkpoint_metadata_response,
@@ -31,8 +48,12 @@ from pass201_pa_source_v2_contract import (
     encode_checkpoint_binding_request,
     encode_checkpoint_metadata_request,
     encode_private_child_frame,
+    hash_open_regular,
     load_strict_json_bytes,
     load_strict_json_value_bytes,
+    publish_new_file,
+    validate_authorization_topology,
+    validate_complete_receipt,
     validate_prelaunch,
     validate_train_manifest,
 )
@@ -45,6 +66,54 @@ from sfora.image_end_to_end import ImageEndToEndConfig
 
 RECIPE_ID = "proxy_anchor.inshop.official-51db570"
 RECIPE_DIGEST = "97c0fe91ae527b5d3fb3be643e139524584981f5124d706f11341506be547361"
+DATASET_ROOT = Path("/home/riomus/datasets/inshop_official_standard")
+PRELAUNCH_PATH = PurePosixPath("docs/pass201_pa_source_v2_prelaunch.json")
+RUN_DIRECTORY = PurePosixPath("reports/generated/pass201_source_v2/run-v2")
+CONTROLLER_PATH = PurePosixPath("scripts/run_pass201_pa_source_v2.py")
+SOURCE_PATHS = tuple(
+    PurePosixPath(path)
+    for path in (
+        "scripts/pass201_pa_source_v2_contract.py",
+        "src/sfora/__init__.py",
+        "src/sfora/ablation.py",
+        "src/sfora/api.py",
+        "src/sfora/arcg.py",
+        "src/sfora/benchmark.py",
+        "src/sfora/bn_inception.py",
+        "src/sfora/catalog.py",
+        "src/sfora/cea.py",
+        "src/sfora/cem.py",
+        "src/sfora/cli.py",
+        "src/sfora/compose.py",
+        "src/sfora/data.py",
+        "src/sfora/encoder_ablation.py",
+        "src/sfora/encoder_training.py",
+        "src/sfora/evaluation.py",
+        "src/sfora/experiments.py",
+        "src/sfora/image_benchmark.py",
+        "src/sfora/image_end_to_end.py",
+        "src/sfora/image_recipes.py",
+        "src/sfora/ipsr.py",
+        "src/sfora/losses.py",
+        "src/sfora/method.py",
+        "src/sfora/oapf.py",
+        "src/sfora/publication.py",
+        "src/sfora/remote.py",
+        "src/sfora/report.py",
+        "src/sfora/text_baselines.py",
+        "src/sfora/training.py",
+    )
+)
+OUTPUT_FILENAMES = {
+    "report": "report.json",
+    "checkpoint": "checkpoint.pt",
+    "log": "training.log",
+    "resolved_config": "resolved_config.json",
+    "train_manifest": "train_manifest.json",
+    "receipt": "receipt.json",
+}
+BN_INCEPTION_CHECKPOINT_FILENAME = "bn_inception-52deb4733.pth"
+RFC3339_UTC = re.compile(r"\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\Z")
 EXPECTED_REPORT_KEYS = frozenset(
     {
         "name",
@@ -85,6 +154,58 @@ class SidecarFrame:
     manifest_sha256: str
 
 
+@dataclass(frozen=True)
+class FreezeArgs:
+    checkout_root: Path
+    dataset_root: Path
+    python_path: Path
+    frozen_absence_checked_utc: str
+    output_path: Path
+
+
+@dataclass(frozen=True)
+class AuthorizedSource:
+    authority: PrelaunchAuthority
+    authorization_commit: str
+    manifest_path: Path
+    manifest_bytes: bytes
+    manifest_sha256: str
+    manifest_git_blob: str
+    runtime_bindings: Mapping[str, object]
+    preflight_started_utc: str
+
+
+@dataclass(frozen=True)
+class RunningChild:
+    process: subprocess.Popen[bytes]
+    started_utc: str
+
+    @property
+    def pid(self) -> int:
+        return self.process.pid
+
+
+@dataclass(frozen=True)
+class CompletedChild:
+    pid: int
+    started_utc: str
+    ended_utc: str
+    returncode: Literal[0]
+
+
+@dataclass(frozen=True)
+class PostflightEvidence:
+    bindings: Mapping[str, object]
+    ended_utc: str
+
+
+@dataclass(frozen=True)
+class ScientificOutputs:
+    report: OutputEvidence
+    checkpoint: OutputEvidence
+    log: OutputEvidence
+
+
 class _CaptureComplete(BaseException):
     """Controller-only unwind that bypasses the production CLI exception handlers."""
 
@@ -98,6 +219,1094 @@ def _require(predicate: bool, message: str) -> None:
         raise ValueError(message)
 
 
+def _repo_blob_payload(binding: RepoBlob) -> dict[str, object]:
+    return {
+        "path": binding.path.as_posix(),
+        "git_mode": binding.git_mode,
+        "bytes": binding.byte_count,
+        "sha256": binding.sha256,
+        "git_blob": binding.git_blob,
+    }
+
+
+def _external_file_payload(binding: ExternalFileBinding) -> dict[str, object]:
+    return {
+        "path": binding.path.as_posix(),
+        "mode": binding.mode,
+        "device": binding.device,
+        "inode": binding.inode,
+        "bytes": binding.byte_count,
+        "sha256": binding.sha256,
+    }
+
+
+def _merkle_payload(binding: MerkleBinding, *, root: str | None = None) -> dict[str, object]:
+    return {
+        "root": root if root is not None else binding.root.as_posix(),
+        "algorithm": binding.algorithm,
+        "count": binding.count,
+        "bytes": binding.byte_count,
+        "root_sha256": binding.root_sha256,
+    }
+
+
+def _import_directory_payload(binding: ImportDirectoryBinding) -> dict[str, object]:
+    targets: list[dict[str, object]] = []
+    for target in binding.external_symlink_targets:
+        base: dict[str, object] = {
+            "link_relative_path": target.link_relative_path.as_posix(),
+            "target_text": target.target_text,
+            "resolved_path": target.resolved_path.as_posix(),
+            "kind": target.kind,
+        }
+        if isinstance(target, ExternalFileImportTarget):
+            base["file"] = _external_file_payload(target.file)
+        elif isinstance(target, ExternalDirectoryImportTarget):
+            base["directory"] = _import_directory_payload(target.directory)
+        else:  # pragma: no cover - closed dataclass union
+            raise TypeError("unknown import target")
+        targets.append(base)
+    return {
+        "root": binding.root.as_posix(),
+        "tree": {
+            "algorithm": binding.tree.algorithm,
+            "regular_count": binding.tree.regular_count,
+            "symlink_count": binding.tree.symlink_count,
+            "bytes": binding.tree.byte_count,
+            "root_sha256": binding.tree.root_sha256,
+        },
+        "external_symlink_targets": targets,
+    }
+
+
+def _import_root_payload(binding: object) -> dict[str, object]:
+    if isinstance(binding, NonexistentImportRoot):
+        return {"entry": binding.entry, "status": binding.status}
+    if isinstance(binding, ZipImportRoot):
+        return {
+            "entry": binding.entry,
+            "status": binding.status,
+            "file": _external_file_payload(binding.file),
+        }
+    if isinstance(binding, DirectoryImportRoot):
+        return {
+            "entry": binding.entry,
+            "status": binding.status,
+            "directory": _import_directory_payload(binding.directory),
+        }
+    raise TypeError("unknown import root")
+
+
+def _run_checked(
+    argv: Sequence[str],
+    *,
+    cwd: Path,
+    environment: Mapping[str, str] | None = None,
+) -> bytes:
+    try:
+        result = subprocess.run(
+            list(argv),
+            cwd=cwd,
+            env=None if environment is None else dict(environment),
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"command failed to start: {argv[0]}") from exc
+    _require(result.returncode == 0, f"command failed: {argv[0]}")
+    _require(not result.stderr, f"command emitted stderr: {argv[0]}")
+    return result.stdout
+
+
+def _git_path(environment: Mapping[str, str]) -> Path:
+    candidate = shutil.which("git", path=environment["PATH"])
+    _require(candidate is not None, "Git executable not found")
+    return Path(candidate).resolve(strict=True)
+
+
+def _source_commit(checkout: Path, git_path: Path) -> str:
+    raw = _run_checked((str(git_path), "rev-parse", "HEAD"), cwd=checkout)
+    try:
+        revision = raw.decode("ascii").strip()
+    except UnicodeDecodeError as exc:
+        raise ValueError("Git HEAD is not ASCII") from exc
+    _require(
+        len(revision) == 40 and all(character in "0123456789abcdef" for character in revision),
+        "invalid source commit",
+    )
+    status = _run_checked((str(git_path), "status", "--porcelain=v1", "-z"), cwd=checkout)
+    _require(not status, "source checkout must be clean")
+    return revision
+
+
+def _bind_python_executable(path: Path) -> tuple[dict[str, object], str]:
+    absolute = path.absolute()
+    _require(absolute.is_absolute(), "Python path must be absolute")
+    resolved = absolute.resolve(strict=True)
+    binding = bind_external_file(resolved)
+    payload = _external_file_payload(binding)
+    payload["path"] = absolute.as_posix()
+    return payload, resolved.as_posix()
+
+
+def _canonical_package_bytes(
+    interpreter: Path, checkout: Path, environment: Mapping[str, str]
+) -> bytes:
+    raw = _run_checked(
+        (str(interpreter), "-m", "pip", "freeze", "--all"),
+        cwd=checkout,
+        environment=environment,
+    )
+    try:
+        lines = raw.decode("utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        raise ValueError("pip freeze output is not UTF-8") from exc
+    _require(bool(lines), "pip freeze returned an empty package authority")
+    _require(all(line and "\x00" not in line for line in lines), "invalid package authority")
+    _require(len(lines) == len(set(lines)), "duplicate package authority line")
+    return ("\n".join(sorted(lines, key=lambda value: value.encode("utf-8"))) + "\n").encode(
+        "utf-8"
+    )
+
+
+def _python_version(interpreter: Path, checkout: Path, environment: Mapping[str, str]) -> str:
+    raw = _run_checked(
+        (
+            str(interpreter),
+            "-c",
+            "import platform;print(platform.python_version())",
+        ),
+        cwd=checkout,
+        environment=environment,
+    )
+    try:
+        version = raw.decode("ascii").strip()
+    except UnicodeDecodeError as exc:
+        raise ValueError("Python version is not ASCII") from exc
+    _require(bool(re.fullmatch(r"\d+\.\d+\.\d+(?:[^\s]*)?", version)), "Python version drift")
+    return version
+
+
+def _partition_line_count(path: Path, expected: dict[str, object]) -> int:
+    data = _read_immutable_regular(path)
+    _require(len(data) == expected["bytes"], "partition byte count drift")
+    _require(hashlib.sha256(data).hexdigest() == expected["sha256"], "partition hash drift")
+    return len(data.splitlines())
+
+
+def _bind_image_root_link(dataset_root: Path) -> dict[str, object]:
+    link = dataset_root / "Img"
+    before = os.lstat(link)
+    _require(stat.S_ISLNK(before.st_mode), "In-Shop Img must be a symlink")
+    target = os.readlink(link)
+    after = os.lstat(link)
+    _require(_stat_identity(before) == _stat_identity(after), "In-Shop Img symlink drift")
+    _require(target == "img", "In-Shop Img symlink target drift")
+    return {"path": link.as_posix(), "target": target, "lstat_mode": before.st_mode}
+
+
+def _build_replacement_environment(args: FreezeArgs) -> dict[str, str]:
+    home = os.environ.get("HOME") or "/home/riomus"
+    xdg_cache = os.environ.get("XDG_CACHE_HOME") or f"{home}/.cache"
+    torch_home = os.environ.get("TORCH_HOME") or f"{xdg_cache}/torch"
+    values = {
+        "HOME": home,
+        "PATH": f"{args.python_path.absolute().parent.as_posix()}:/usr/bin:/bin",
+        "PYTHONPATH": f"{args.checkout_root.resolve(strict=True).as_posix()}/src",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LD_LIBRARY_PATH": os.environ.get("LD_LIBRARY_PATH") or "/usr/local/cuda/lib64",
+        "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES") or "0",
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "PYTHONHASHSEED": "0",
+        "LC_ALL": os.environ.get("LC_ALL") or "C.UTF-8",
+        "LANG": os.environ.get("LANG") or "C.UTF-8",
+        "TZ": "UTC",
+        "OMP_NUM_THREADS": os.environ.get("OMP_NUM_THREADS") or "1",
+        "MKL_NUM_THREADS": os.environ.get("MKL_NUM_THREADS") or "1",
+        "XDG_CACHE_HOME": xdg_cache,
+        "TORCH_HOME": torch_home,
+    }
+    _require(all(type(value) is str and bool(value) for value in values.values()), "environment")
+    return values
+
+
+def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> dict[str, object]:
+    checkout = args.checkout_root.resolve(strict=True)
+    _require(checkout == args.checkout_root.absolute(), "checkout root contains a symlink")
+    git_path = _git_path(environment)
+    source_commit = _source_commit(checkout, git_path)
+    python_payload, python_realpath = _bind_python_executable(args.python_path)
+    packages = _canonical_package_bytes(args.python_path.absolute(), checkout, environment)
+    source_tree = bind_merkle(checkout / "src" / "sfora")
+    partition_path = args.dataset_root / "Eval" / "list_eval_partition.txt"
+    partition = _external_file_payload(bind_external_file(partition_path))
+    declared_image_root = args.dataset_root / "Img" / "img"
+    resolved_image_root = args.dataset_root / "img" / "img"
+    _require(
+        declared_image_root.resolve(strict=True) == resolved_image_root.resolve(strict=True),
+        "resolved image root drift",
+    )
+    pretrained_path = (
+        Path(environment["TORCH_HOME"]) / "hub" / "checkpoints" / BN_INCEPTION_CHECKPOINT_FILENAME
+    )
+    return {
+        "source_commit": source_commit,
+        "controller": _repo_blob_payload(bind_repo_blob(checkout, source_commit, CONTROLLER_PATH)),
+        "source_files": [
+            _repo_blob_payload(bind_repo_blob(checkout, source_commit, path))
+            for path in SOURCE_PATHS
+        ],
+        "python_tree": _merkle_payload(source_tree, root="src/sfora"),
+        "pyproject": _repo_blob_payload(
+            bind_repo_blob(checkout, source_commit, PurePosixPath("pyproject.toml"))
+        ),
+        "lockfile": _repo_blob_payload(
+            bind_repo_blob(checkout, source_commit, PurePosixPath("uv.lock"))
+        ),
+        "python": python_payload,
+        "python_realpath": python_realpath,
+        "python_version": _python_version(args.python_path.absolute(), checkout, environment),
+        "git": _external_file_payload(bind_external_file(git_path)),
+        "python_packages": {
+            "bytes": len(packages),
+            "sha256": hashlib.sha256(packages).hexdigest(),
+        },
+        "python_import_roots": [
+            _import_root_payload(value)
+            for value in bind_import_roots(args.python_path.absolute(), environment, checkout)
+        ],
+        "environment": dict(environment),
+        "pretrained_checkpoint": _external_file_payload(bind_external_file(pretrained_path)),
+        "partition": partition,
+        "partition_lines": _partition_line_count(partition_path, partition),
+        "image_root_link": _bind_image_root_link(args.dataset_root),
+        "image_tree": _merkle_payload(bind_merkle(resolved_image_root)),
+    }
+
+
+def _frozen_argv(runtime: Mapping[str, object]) -> list[str]:
+    return [
+        str(runtime["python"]["path"]),  # type: ignore[index]
+        "-m",
+        "sfora.cli",
+        "image-end-to-end",
+        "--dataset-name",
+        "inshop",
+        "--dataset-root",
+        DATASET_ROOT.as_posix(),
+        "--objectives",
+        "proxy_anchor",
+        "--recipe",
+        "auto",
+        "--num-workers",
+        "8",
+        "--seed",
+        "0",
+        "--save-model-path",
+        f"{RUN_DIRECTORY.as_posix()}/{OUTPUT_FILENAMES['checkpoint']}",
+        "--output",
+        f"{RUN_DIRECTORY.as_posix()}/{OUTPUT_FILENAMES['report']}",
+    ]
+
+
+def _run_freeze_capture_child(
+    args: FreezeArgs,
+    argv: list[str],
+    environment: Mapping[str, str],
+) -> CapturedAuthority:
+    request = encode_capture_request(argv, args.dataset_root)
+    try:
+        result = subprocess.run(
+            [
+                str(args.python_path.absolute()),
+                str(args.checkout_root / CONTROLLER_PATH),
+                "capture-authority-child",
+            ],
+            cwd=args.checkout_root,
+            env=dict(environment),
+            input=request,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError("capture authority child failed to start") from exc
+    _require(result.returncode == 0, "capture authority child failed")
+    _require(not result.stderr, "capture authority child emitted stderr")
+    return decode_capture_response(result.stdout)
+
+
+def _validate_rfc3339_utc(value: str) -> None:
+    _require(type(value) is str and RFC3339_UTC.fullmatch(value) is not None, "timestamp")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise ValueError("invalid RFC3339 UTC timestamp") from exc
+    _require(
+        parsed.utcoffset() is not None and parsed.utcoffset().total_seconds() == 0,
+        "timestamp",
+    )
+
+
+def _require_frozen_absence(args: FreezeArgs) -> None:
+    checkout = args.checkout_root.resolve(strict=True)
+    expected_output = checkout / PRELAUNCH_PATH
+    _require(args.output_path.absolute() == expected_output, "alternative prelaunch output path")
+    _require(not os.path.lexists(expected_output), "prelaunch output already exists")
+    run_directory = checkout / RUN_DIRECTORY
+    _require(not os.path.lexists(run_directory), "private run directory already exists")
+    for filename in (*OUTPUT_FILENAMES.values(), "report.json.tmp"):
+        _require(
+            not os.path.lexists(run_directory / filename),
+            f"frozen output already exists: {filename}",
+        )
+
+
+def _validate_freeze_capture(capture: CapturedAuthority) -> None:
+    _require(capture.recipe_id == RECIPE_ID, "capture recipe ID drift")
+    _require(capture.recipe_digest == RECIPE_DIGEST, "capture recipe digest drift")
+    _require(capture.protocol == "query_gallery", "capture protocol drift")
+    _require(capture.protocol_name == "deepfashion-inshop-official", "protocol name drift")
+    _require(capture.train_count > 0, "empty training authority")
+    _require(capture.query_count > 0 and capture.gallery_count > 0, "false query/gallery scope")
+    _require(len(capture.rows) == capture.train_count, "optimization row count drift")
+    _require(len({row[2] for row in capture.rows}) > 0, "empty identity authority")
+    config = load_strict_json_bytes(capture.config_bytes)
+    _require(canonical_json_bytes(config) == capture.config_bytes, "capture config encoding drift")
+    _validate_operating_config(config)
+
+
+def _build_prelaunch_payload(
+    args: FreezeArgs,
+    capture: CapturedAuthority,
+    runtime: Mapping[str, object],
+) -> dict[str, object]:
+    _validate_freeze_capture(capture)
+    output_paths = {
+        key: f"{RUN_DIRECTORY.as_posix()}/{filename}" for key, filename in OUTPUT_FILENAMES.items()
+    }
+    outputs = {key: {"path": path, "required_absent": True} for key, path in output_paths.items()}
+    row_records = _capture_rows(capture)
+    return {
+        "schema_version": "pass201-pa-source-v2-prelaunch-v1",
+        "status": "frozen",
+        "purpose": "prospective ordinary Proxy Anchor seed-0 source authority",
+        "source_commit": runtime["source_commit"],
+        "authorization": {
+            "manifest_path": PRELAUNCH_PATH.as_posix(),
+            "required_parent_commit": runtime["source_commit"],
+            "required_diff_paths": [PRELAUNCH_PATH.as_posix()],
+            "required_diff_status": ["A"],
+            "required_diff_modes": ["100644"],
+            "clean_policy": "empty-porcelain-v1-z",
+            "frozen_absence_checked_utc": args.frozen_absence_checked_utc,
+            "frozen_absence": {key: "ENOENT" for key in ("run_directory", *OUTPUT_FILENAMES)},
+        },
+        "controller": runtime["controller"],
+        "source": {
+            "files": runtime["source_files"],
+            "python_tree": runtime["python_tree"],
+            "pyproject": runtime["pyproject"],
+            "lockfile": runtime["lockfile"],
+            "equivalence_test_id": (
+                "tests/test_run_pass201_pa_source_v2.py::"
+                "test_production_capture_uses_real_cli_boundary_without_training"
+            ),
+        },
+        "execution": {
+            "checkout_root": args.checkout_root.resolve(strict=True).as_posix(),
+            "cwd": args.checkout_root.resolve(strict=True).as_posix(),
+            "python": runtime["python"],
+            "python_realpath": runtime["python_realpath"],
+            "python_version": runtime["python_version"],
+            "git": runtime["git"],
+            "python_packages": runtime["python_packages"],
+            "python_import_roots": runtime["python_import_roots"],
+            "environment": runtime["environment"],
+            "environment_policy": "replace",
+            "argv": _frozen_argv(runtime),
+            "objective": "proxy_anchor",
+            "seed": 0,
+            "expected_config_json": capture.config_bytes.decode("utf-8"),
+            "expected_config_sha256": hashlib.sha256(capture.config_bytes).hexdigest(),
+            "recipe_id": capture.recipe_id,
+            "recipe_digest": capture.recipe_digest,
+            "schedule": {
+                "resolved_train_steps": capture.resolved_train_steps,
+                "steps_per_epoch": capture.steps_per_epoch,
+                "total_epochs": capture.total_epochs,
+            },
+            "pretrained_checkpoint": runtime["pretrained_checkpoint"],
+        },
+        "dataset": {
+            "root": DATASET_ROOT.as_posix(),
+            "partition": runtime["partition"],
+            "partition_lines": runtime["partition_lines"],
+            "bundle": {
+                "train": capture.train_count,
+                "query": capture.query_count,
+                "gallery": capture.gallery_count,
+                "protocol": capture.protocol,
+                "protocol_name": capture.protocol_name,
+            },
+            "declared_image_root": f"{DATASET_ROOT.as_posix()}/Img/img",
+            "resolved_image_root": f"{DATASET_ROOT.as_posix()}/img/img",
+            "image_root_link": runtime["image_root_link"],
+            "image_tree": runtime["image_tree"],
+            "image_tree_leaf_base": "resolved_image_root",
+            "image_tree_leaf_schema": "relative_path,size,sha256",
+            "selection_policy": "full_official_partition",
+            "optimization_authority": {
+                "algorithm_id": "pass201-production-invocation-capture-v1",
+                "row_count": len(row_records),
+                "identity_count": len({row["label"] for row in row_records}),
+                "ordered_row_sha256": _ordered_hash(row_records),
+                "resolved_membership_sha256": capture.resolved_membership_sha256,
+            },
+        },
+        "outputs": {
+            "run_directory": RUN_DIRECTORY.as_posix(),
+            "run_directory_required_absent": True,
+            **outputs,
+        },
+        "sidecars": {
+            "config_algorithm": "pass201-resolved-config-v2",
+            "manifest_algorithm": "pass201-inshop-benchmark-row-suffix-v2",
+            "schedule_algorithm": "pass201-inshop-completed-epoch-v1",
+            "config_schema": "canonical-json-object-v1",
+            "manifest_schema": "pass201-train-manifest-v1",
+        },
+        "postconditions": {
+            "required_exit_code": 0,
+            "require_source_equal": True,
+            "require_partition_equal": True,
+            "require_image_tree_equal": True,
+            "require_two_process_sidecar_identity": True,
+            "require_restricted_checkpoint_metadata": True,
+            "require_complete_receipt": True,
+        },
+    }
+
+
+def freeze_authority(args: FreezeArgs) -> bytes:
+    _require(isinstance(args, FreezeArgs), "freeze arguments")
+    _validate_rfc3339_utc(args.frozen_absence_checked_utc)
+    _require(
+        args.dataset_root.absolute() == DATASET_ROOT,
+        "alternative dataset root",
+    )
+    _require_frozen_absence(args)
+    environment = _build_replacement_environment(args)
+    runtime = _bind_freeze_runtime(args, environment)
+    argv = _frozen_argv(runtime)
+    first = _run_freeze_capture_child(args, argv, environment)
+    _require_frozen_absence(args)
+    second = _run_freeze_capture_child(args, argv, environment)
+    _require(first == second, "capture children disagree")
+    _require_frozen_absence(args)
+    payload = _build_prelaunch_payload(args, first, runtime)
+    validate_prelaunch(payload)
+    return canonical_json_bytes(payload)
+
+
+def utc_now_rfc3339() -> str:
+    return datetime.now(UTC).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def _ambient_environment() -> dict[str, str]:
+    return dict(os.environ)
+
+
+def _load_manifest_authority(
+    manifest_path: Path,
+) -> tuple[PrelaunchAuthority, Path, bytes]:
+    exact_path = _exact_regular_path(manifest_path)
+    manifest_bytes = _read_immutable_regular(exact_path)
+    payload = load_strict_json_bytes(manifest_bytes)
+    authority = validate_prelaunch(payload)
+    _require(canonical_json_bytes(payload) == manifest_bytes, "manifest is not canonical")
+    checkout = authority.checkout_root
+    _require(
+        checkout.is_absolute() and checkout.resolve(strict=True) == checkout.absolute(),
+        "checkout root binding drift",
+    )
+    expected_path = checkout / authority.payload["authorization"]["manifest_path"]
+    _require(exact_path == expected_path, "alternative manifest path")
+    return authority, exact_path, manifest_bytes
+
+
+def _require_authority_scope(authority: PrelaunchAuthority) -> None:
+    execution = authority.payload["execution"]
+    dataset = authority.payload["dataset"]
+    bundle = dataset["bundle"]
+    _require(
+        type(bundle["query"]) is int
+        and bundle["query"] > 0
+        and type(bundle["gallery"]) is int
+        and bundle["gallery"] > 0,
+        "false query/gallery scope",
+    )
+    config = _validate_operating_config(load_strict_json_bytes(authority.expected_config_bytes))
+    _require(config["recipe_id"] == execution["recipe_id"], "recipe ID authority drift")
+    _require(
+        config["recipe_digest"] == execution["recipe_digest"],
+        "recipe digest authority drift",
+    )
+
+
+def _require_replacement_environment(authority: PrelaunchAuthority) -> None:
+    expected = dict(authority.payload["execution"]["environment"])
+    _require(_ambient_environment() == expected, "controller environment drift")
+
+
+def _expected_runtime_bindings(authority: PrelaunchAuthority) -> dict[str, object]:
+    payload = authority.payload
+    execution = payload["execution"]
+    source = payload["source"]
+    dataset = payload["dataset"]
+    return {
+        "source_commit": authority.source_commit,
+        "controller": _plain_json(payload["controller"]),
+        "source_files": _plain_json(source["files"]),
+        "python_tree": _plain_json(source["python_tree"]),
+        "pyproject": _plain_json(source["pyproject"]),
+        "lockfile": _plain_json(source["lockfile"]),
+        "python": _plain_json(execution["python"]),
+        "python_realpath": execution["python_realpath"],
+        "python_version": execution["python_version"],
+        "git": _plain_json(execution["git"]),
+        "python_packages": _plain_json(execution["python_packages"]),
+        "python_import_roots": _plain_json(execution["python_import_roots"]),
+        "environment": _plain_json(execution["environment"]),
+        "pretrained_checkpoint": _plain_json(execution["pretrained_checkpoint"]),
+        "partition": _plain_json(dataset["partition"]),
+        "partition_lines": dataset["partition_lines"],
+        "image_root_link": _plain_json(dataset["image_root_link"]),
+        "image_tree": _plain_json(dataset["image_tree"]),
+    }
+
+
+def _bind_runtime_after(authority: PrelaunchAuthority) -> dict[str, object]:
+    execution = authority.payload["execution"]
+    args = FreezeArgs(
+        checkout_root=authority.checkout_root,
+        dataset_root=Path(authority.payload["dataset"]["root"]),
+        python_path=Path(execution["python"]["path"]),
+        frozen_absence_checked_utc=authority.payload["authorization"]["frozen_absence_checked_utc"],
+        output_path=authority.checkout_root / authority.payload["authorization"]["manifest_path"],
+    )
+    current = _bind_freeze_runtime(args, dict(execution["environment"]))
+    current["source_commit"] = authority.source_commit
+    return current
+
+
+def _require_runtime_matches_authority(authority: PrelaunchAuthority, bindings: object) -> None:
+    _require(
+        type(bindings) is dict and bindings == _expected_runtime_bindings(authority),
+        "runtime binding drift",
+    )
+
+
+def _record_preflight_absence(authority: PrelaunchAuthority) -> None:
+    checkout = authority.checkout_root
+    run_directory = checkout / authority.payload["outputs"]["run_directory"]
+    try:
+        parent_relative = run_directory.parent.relative_to(checkout)
+    except ValueError as exc:
+        raise ValueError("run directory escapes checkout") from exc
+    current = checkout
+    missing_parent = False
+    for component in parent_relative.parts:
+        current /= component
+        if missing_parent or not os.path.lexists(current):
+            missing_parent = True
+            continue
+        mode = os.lstat(current).st_mode
+        _require(stat.S_ISDIR(mode) and not stat.S_ISLNK(mode), "run parent path drift")
+    _require(not os.path.lexists(run_directory), "private run directory already exists")
+    for key, filename in OUTPUT_FILENAMES.items():
+        path = checkout / authority.payload["outputs"][key]["path"]
+        _require(path.parent == run_directory, f"output escapes private run directory: {key}")
+        _require(not os.path.lexists(path), f"output already exists: {filename}")
+    _require(
+        not os.path.lexists(run_directory / "report.json.tmp"),
+        "report temporary already exists",
+    )
+
+
+def validate_runtime_preflight(manifest_path: Path) -> AuthorizedSource:
+    authority, exact_path, manifest_bytes = _load_manifest_authority(manifest_path)
+    authorization_commit = validate_authorization_topology(authority.checkout_root, authority)
+    _require_authority_scope(authority)
+    _require_replacement_environment(authority)
+    runtime = _bind_runtime_after(authority)
+    _require_runtime_matches_authority(authority, runtime)
+    started_utc = utc_now_rfc3339()
+    _record_preflight_absence(authority)
+    manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+    manifest_git_blob = hashlib.sha1(
+        b"blob " + str(len(manifest_bytes)).encode("ascii") + b"\0" + manifest_bytes
+    ).hexdigest()
+    return AuthorizedSource(
+        authority,
+        authorization_commit,
+        exact_path,
+        manifest_bytes,
+        manifest_sha256,
+        manifest_git_blob,
+        runtime,
+        started_utc,
+    )
+
+
+@contextlib.contextmanager
+def create_and_lock_private_run_directory(
+    authorized: AuthorizedSource,
+):
+    authority = authorized.authority
+    run_directory = authority.checkout_root / authority.payload["outputs"]["run_directory"]
+    try:
+        run_directory.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        _require(
+            run_directory.parent.resolve(strict=True) == run_directory.parent.absolute(),
+            "run directory parent contains a symlink",
+        )
+        os.mkdir(run_directory, 0o700)
+    except OSError as exc:
+        raise ValueError("cannot create private run directory") from exc
+    directory_fd = -1
+    try:
+        flags = os.O_RDONLY | os.O_DIRECTORY | getattr(os, "O_NOFOLLOW", 0)
+        directory_fd = os.open(run_directory, flags)
+        opened = os.fstat(directory_fd)
+        named = os.stat(run_directory, follow_symlinks=False)
+        _require(
+            stat.S_ISDIR(opened.st_mode)
+            and (opened.st_dev, opened.st_ino) == (named.st_dev, named.st_ino),
+            "private run directory identity drift",
+        )
+        _require(stat.S_IMODE(opened.st_mode) == 0o700, "private run directory mode drift")
+        try:
+            fcntl.flock(directory_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            raise ValueError("private run directory lock unavailable") from exc
+        _require(not os.listdir(directory_fd), "private run directory is not empty")
+        yield run_directory
+    finally:
+        if directory_fd >= 0:
+            with contextlib.suppress(OSError):
+                fcntl.flock(directory_fd, fcntl.LOCK_UN)
+            os.close(directory_fd)
+
+
+def launch_once(authorized: AuthorizedSource, run_dir: Path) -> RunningChild:
+    authority = authorized.authority
+    execution = authority.payload["execution"]
+    argv = list(execution["argv"])
+    _require(
+        argv and argv[0] == execution["python"]["path"],
+        "training interpreter/argv drift",
+    )
+    log_path = authority.checkout_root / authority.payload["outputs"]["log"]["path"]
+    _require(log_path.parent == run_dir, "training log escapes private run directory")
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        log_fd = os.open(log_path, flags, 0o600)
+    except OSError as exc:
+        raise ValueError("training log already exists or cannot be created") from exc
+    started_utc = utc_now_rfc3339()
+    try:
+        os.fchmod(log_fd, 0o600)
+        process = subprocess.Popen(
+            argv,
+            cwd=authority.checkout_root,
+            env=dict(execution["environment"]),
+            stdin=subprocess.DEVNULL,
+            stdout=log_fd,
+            stderr=subprocess.STDOUT,
+            shell=False,
+            close_fds=True,
+        )
+    except OSError as exc:
+        raise ValueError("ordinary PA child failed to start") from exc
+    finally:
+        os.close(log_fd)
+    return RunningChild(process, started_utc)
+
+
+def _complete_child(running: RunningChild) -> CompletedChild:
+    returncode = running.process.wait()
+    _require(returncode == 0, "ordinary PA child failed")
+    return CompletedChild(
+        pid=running.pid,
+        started_utc=running.started_utc,
+        ended_utc=utc_now_rfc3339(),
+        returncode=0,
+    )
+
+
+def _require_pre_post_identity(authorized: AuthorizedSource) -> PostflightEvidence:
+    _require_replacement_environment(authorized.authority)
+    current = _bind_runtime_after(authorized.authority)
+    _require_runtime_matches_authority(authorized.authority, current)
+    _require(
+        current == authorized.runtime_bindings,
+        "postflight runtime binding differs from preflight",
+    )
+    return PostflightEvidence(current, utc_now_rfc3339())
+
+
+def _require_run_entries(run_dir: Path, expected: set[str]) -> None:
+    _require(
+        run_dir.resolve(strict=True) == run_dir.absolute(),
+        "private run directory path drift",
+    )
+    entries = list(os.scandir(run_dir))
+    names = {entry.name for entry in entries}
+    _require(len(entries) == len(names) and names == expected, "private run outputs drift")
+    for entry in entries:
+        _require(entry.is_file(follow_symlinks=False), f"non-regular run output: {entry.name}")
+
+
+def _freeze_scientific_outputs(authorized: AuthorizedSource, run_dir: Path) -> ScientificOutputs:
+    authority = authorized.authority
+    _require_run_entries(run_dir, {"report.json", "checkpoint.pt", "training.log"})
+    evidence: dict[str, OutputEvidence] = {}
+    for key in ("report", "checkpoint", "log"):
+        path = authority.checkout_root / authority.payload["outputs"][key]["path"]
+        _require(path.parent == run_dir, f"{key} output escapes private run directory")
+        evidence[key] = hash_open_regular(path)
+    _require_run_entries(run_dir, {"report.json", "checkpoint.pt", "training.log"})
+    return ScientificOutputs(
+        evidence["report"],
+        evidence["checkpoint"],
+        evidence["log"],
+    )
+
+
+def _binding_matches_output(binding: ExternalFileBinding, evidence: OutputEvidence) -> bool:
+    return (
+        binding.path == Path(evidence.path)
+        and binding.mode == evidence.mode
+        and binding.byte_count == evidence.byte_count
+        and binding.sha256 == evidence.sha256
+    )
+
+
+def _read_restricted_metadata(
+    authorized: AuthorizedSource, scientific: ScientificOutputs
+) -> BoundCheckpointMetadata:
+    checkpoint_path = Path(scientific.checkpoint.path)
+    result = _run_metadata_child(authorized.authority, checkpoint_path)
+    _require(
+        _binding_matches_output(result.binding, scientific.checkpoint),
+        "restricted checkpoint binding differs from frozen output",
+    )
+    return result
+
+
+def _run_sidecar_child(
+    authorized: AuthorizedSource,
+    scientific: ScientificOutputs,
+    run_dir: Path,
+) -> SidecarFrame:
+    response = _run_private_child(
+        authorized.authority,
+        "run_pass201_pa_source_v2.py",
+        (
+            "derive-sidecars",
+            "--manifest",
+            str(authorized.manifest_path),
+            "--report",
+            str(scientific.report.path),
+            "--checkpoint",
+            str(scientific.checkpoint.path),
+            "--output-dir",
+            str(run_dir),
+        ),
+        b"",
+    )
+    return decode_sidecar_frame(response)
+
+
+def _publish_sidecar_output(
+    authorized: AuthorizedSource,
+    run_dir: Path,
+    output_name: str,
+    data: bytes,
+) -> OutputEvidence:
+    _require(output_name in ("resolved_config", "train_manifest"), "sidecar output name")
+    path = (
+        authorized.authority.checkout_root
+        / authorized.authority.payload["outputs"][output_name]["path"]
+    )
+    _require(path.parent == run_dir, "sidecar output escapes private run directory")
+    return publish_new_file(path, data)
+
+
+def _output_evidence_payload(evidence: OutputEvidence, checkout: Path) -> dict[str, object]:
+    try:
+        relative = Path(evidence.path).relative_to(checkout)
+    except ValueError as exc:
+        raise ValueError("output evidence escapes checkout") from exc
+    return {
+        "path": relative.as_posix(),
+        "file_type": evidence.file_type,
+        "mode": evidence.mode,
+        "bytes": evidence.byte_count,
+        "sha256": evidence.sha256,
+    }
+
+
+def _checkpoint_metadata_payload(metadata: CheckpointMetadata) -> dict[str, object]:
+    arch = metadata.arch
+    return {
+        "literal_top_keys": list(metadata.top_keys),
+        "artifact_selection": metadata.artifact_selection,
+        "evaluation_model_source": metadata.evaluation_model_source,
+        "arch": {
+            "backbone_name": arch.backbone_name,
+            "pretrained_weights": arch.pretrained_weights,
+            "head_pooling": arch.head_pooling,
+            "embedding_dimensions": arch.embedding_dimensions,
+            "embedding_head_init": arch.embedding_head_init,
+            "embedding_layer_norm": arch.embedding_layer_norm,
+        },
+        "training_step": metadata.training_step,
+        "training_config_sha256": metadata.training_config_sha256,
+        "state_dict_storage_materialized": metadata.state_dict_storage_materialized,
+    }
+
+
+def _require_unchanged_output(evidence: OutputEvidence) -> None:
+    _require(
+        hash_open_regular(Path(evidence.path)) == evidence,
+        f"immutable output changed: {evidence.path}",
+    )
+
+
+def _build_complete_receipt(
+    authorized: AuthorizedSource,
+    process: CompletedChild,
+    postflight: PostflightEvidence,
+    scientific: ScientificOutputs,
+    metadata: BoundCheckpointMetadata,
+    frames: tuple[SidecarFrame, SidecarFrame],
+    config_evidence: OutputEvidence,
+    manifest_evidence: OutputEvidence,
+) -> bytes:
+    authority = authorized.authority
+    _require(process.returncode == 0, "receipt process is not successful")
+    _require_runtime_matches_authority(authority, dict(postflight.bindings))
+    _require(
+        dict(postflight.bindings) == authorized.runtime_bindings,
+        "receipt postflight differs from preflight",
+    )
+    _require(
+        _binding_matches_output(metadata.binding, scientific.checkpoint),
+        "receipt checkpoint metadata binding drift",
+    )
+    first, second = frames
+    config_bytes, manifest_bytes = validate_sidecar_identity(first, second)
+    _require(
+        config_evidence.byte_count == len(config_bytes)
+        and config_evidence.sha256 == hashlib.sha256(config_bytes).hexdigest(),
+        "published resolved config differs from sidecar",
+    )
+    _require(
+        manifest_evidence.byte_count == len(manifest_bytes)
+        and manifest_evidence.sha256 == hashlib.sha256(manifest_bytes).hexdigest(),
+        "published train manifest differs from sidecar",
+    )
+    for evidence in (
+        scientific.report,
+        scientific.checkpoint,
+        scientific.log,
+        config_evidence,
+        manifest_evidence,
+    ):
+        _require_unchanged_output(evidence)
+    run_dir = authority.checkout_root / authority.payload["outputs"]["run_directory"]
+    _require_run_entries(
+        run_dir,
+        {
+            "report.json",
+            "checkpoint.pt",
+            "training.log",
+            "resolved_config.json",
+            "train_manifest.json",
+        },
+    )
+    payload = _plain_json(authority.payload)
+    source = payload["source"]
+    execution = payload["execution"]
+    dataset = payload["dataset"]
+    sidecars = payload["sidecars"]
+    optimization = dataset["optimization_authority"]
+    outputs = {
+        "report": _output_evidence_payload(scientific.report, authority.checkout_root),
+        "checkpoint": _output_evidence_payload(scientific.checkpoint, authority.checkout_root),
+        "log": _output_evidence_payload(scientific.log, authority.checkout_root),
+        "resolved_config": _output_evidence_payload(config_evidence, authority.checkout_root),
+        "train_manifest": _output_evidence_payload(manifest_evidence, authority.checkout_root),
+    }
+    receipt = {
+        "schema_version": "pass201-pa-source-v2-receipt-v1",
+        "status": "complete",
+        "candidate_values_computed": False,
+        "authorization": {
+            "authorization_commit": authorized.authorization_commit,
+            "source_commit": authority.source_commit,
+            "manifest_path": payload["authorization"]["manifest_path"],
+            "manifest_bytes": len(authorized.manifest_bytes),
+            "manifest_sha256": authorized.manifest_sha256,
+            "manifest_git_blob": authorized.manifest_git_blob,
+            "parent_verified": True,
+            "single_addition_verified": True,
+            "detached_head_verified": True,
+            "clean_policy_verified": True,
+        },
+        "controller": {
+            "file": payload["controller"],
+            "python": execution["python"],
+            "python_packages": execution["python_packages"],
+            "source_tree": source["python_tree"],
+        },
+        "command": {
+            "cwd": execution["cwd"],
+            "environment": execution["environment"],
+            "argv": execution["argv"],
+        },
+        "preflight": {
+            "started_utc": authorized.preflight_started_utc,
+            "run_directory_absent": True,
+            "source_tree": source["python_tree"],
+            "partition": dataset["partition"],
+            "image_tree": dataset["image_tree"],
+            "pretrained_checkpoint": execution["pretrained_checkpoint"],
+            "outputs_absent": {key: True for key in OUTPUT_FILENAMES},
+        },
+        "process": {
+            "pid": process.pid,
+            "started_utc": process.started_utc,
+            "ended_utc": process.ended_utc,
+            "exit_code": process.returncode,
+        },
+        "postflight": {
+            "ended_utc": postflight.ended_utc,
+            "source_tree": source["python_tree"],
+            "partition": dataset["partition"],
+            "image_tree": dataset["image_tree"],
+            "pretrained_checkpoint": execution["pretrained_checkpoint"],
+            "source_equal": True,
+            "partition_equal": True,
+            "image_tree_equal": True,
+            "pretrained_checkpoint_equal": True,
+        },
+        "outputs": outputs,
+        "checkpoint_metadata": _checkpoint_metadata_payload(metadata.metadata),
+        "sidecar_derivation": {
+            "config_algorithm": sidecars["config_algorithm"],
+            "manifest_algorithm": sidecars["manifest_algorithm"],
+            "schedule_algorithm": sidecars["schedule_algorithm"],
+            "source_files": source["files"],
+            "input_hashes": {
+                "manifest": authorized.manifest_sha256,
+                "source_tree": source["python_tree"]["root_sha256"],
+                "partition": dataset["partition"]["sha256"],
+                "image_tree": dataset["image_tree"]["root_sha256"],
+                "pretrained_checkpoint": execution["pretrained_checkpoint"]["sha256"],
+                "report": scientific.report.sha256,
+                "checkpoint": scientific.checkpoint.sha256,
+                "expected_config": authority.expected_config_sha256,
+            },
+            "child_processes": [
+                {
+                    "ordinal": index,
+                    "pid": frame.pid,
+                    "config_sha256": frame.config_sha256,
+                    "manifest_sha256": frame.manifest_sha256,
+                }
+                for index, frame in enumerate(frames, start=1)
+            ],
+            "row_count": optimization["row_count"],
+            "identity_count": optimization["identity_count"],
+            "ordered_row_sha256": optimization["ordered_row_sha256"],
+            "resolved_membership_count": optimization["row_count"],
+            "resolved_membership_sha256": optimization["resolved_membership_sha256"],
+            "membership_covered_by_preflight": True,
+            "membership_covered_by_postflight": True,
+        },
+        "scope": {
+            "ordinary_source_uses_official_query_gallery": True,
+            "uses_pass201_operator_data": False,
+            "pass201_candidate_paths_read": False,
+            "authorized_action": "source_binding_only",
+        },
+    }
+    validate_complete_receipt(receipt, authority)
+    return canonical_json_bytes(receipt)
+
+
+def _publish_complete_receipt(
+    authorized: AuthorizedSource, run_dir: Path, data: bytes
+) -> OutputEvidence:
+    _require_run_entries(
+        run_dir,
+        {
+            "report.json",
+            "checkpoint.pt",
+            "training.log",
+            "resolved_config.json",
+            "train_manifest.json",
+        },
+    )
+    path = (
+        authorized.authority.checkout_root
+        / authorized.authority.payload["outputs"]["receipt"]["path"]
+    )
+    _require(path.parent == run_dir, "receipt escapes private run directory")
+    evidence = publish_new_file(path, data)
+    _require_run_entries(run_dir, set(OUTPUT_FILENAMES.values()))
+    return evidence
+
+
+def publish_postflight(
+    authorized: AuthorizedSource,
+    process: CompletedChild,
+    run_dir: Path,
+) -> None:
+    postflight = _require_pre_post_identity(authorized)
+    scientific = _freeze_scientific_outputs(authorized, run_dir)
+    metadata = _read_restricted_metadata(authorized, scientific)
+    first = _run_sidecar_child(authorized, scientific, run_dir)
+    second = _run_sidecar_child(authorized, scientific, run_dir)
+    config_bytes, manifest_bytes = validate_sidecar_identity(first, second)
+    config_evidence = _publish_sidecar_output(authorized, run_dir, "resolved_config", config_bytes)
+    manifest_evidence = _publish_sidecar_output(
+        authorized, run_dir, "train_manifest", manifest_bytes
+    )
+    receipt_bytes = _build_complete_receipt(
+        authorized,
+        process,
+        postflight,
+        scientific,
+        metadata,
+        (first, second),
+        config_evidence,
+        manifest_evidence,
+    )
+    _publish_complete_receipt(authorized, run_dir, receipt_bytes)
+
+
+def run_authorized_source(manifest_path: Path) -> None:
+    authorized = validate_runtime_preflight(manifest_path)
+    with create_and_lock_private_run_directory(authorized) as run_dir:
+        running = launch_once(authorized, run_dir)
+        completed = _complete_child(running)
+        publish_postflight(authorized, completed, run_dir)
+
+
 def _stat_identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
     return (
         value.st_dev,
@@ -108,9 +1317,7 @@ def _stat_identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
     )
 
 
-def _read_bound_image(
-    path: Path, declared_root: Path, resolved_root: Path
-) -> dict[str, object]:
+def _read_bound_image(path: Path, declared_root: Path, resolved_root: Path) -> dict[str, object]:
     _require(isinstance(path, Path), "optimization image must be a Path")
     lexical = Path(os.path.abspath(path))
     try:
@@ -559,8 +1766,7 @@ def _extract_report_config(report_bytes: bytes) -> object:
         value_end = _scan_opaque_json_value(report_bytes, value_start)
         if key == "methods":
             _require(
-                report_bytes[value_start] == ord("{")
-                and report_bytes[value_end - 1] == ord("}"),
+                report_bytes[value_start] == ord("{") and report_bytes[value_end - 1] == ord("}"),
                 "report methods must be an opaque object",
             )
         else:
@@ -681,8 +1887,7 @@ def _validate_capture_authority(
         "ordered row drift",
     )
     _require(
-        capture.resolved_membership_sha256
-        == expected_optimization["resolved_membership_sha256"],
+        capture.resolved_membership_sha256 == expected_optimization["resolved_membership_sha256"],
         "resolved membership drift",
     )
     _require(capture.resolved_train_steps == authority.expected_train_steps, "schedule drift")
@@ -804,9 +2009,7 @@ def decode_sidecar_frame(data: bytes) -> SidecarFrame:
     return frame
 
 
-def validate_sidecar_identity(
-    first: SidecarFrame, second: SidecarFrame
-) -> tuple[bytes, bytes]:
+def validate_sidecar_identity(first: SidecarFrame, second: SidecarFrame) -> tuple[bytes, bytes]:
     encode_sidecar_frame(first)
     encode_sidecar_frame(second)
     _require(first.pid != second.pid, "sidecar child PIDs must be distinct")
@@ -890,6 +2093,30 @@ def _run_private_child(
     return result.stdout
 
 
+def _run_restricted_checkpoint_child(
+    authority: PrelaunchAuthority,
+    command: Sequence[str],
+    request: bytes,
+) -> bytes:
+    execution = authority.payload["execution"]
+    interpreter = str(execution["python"]["path"])
+    script = authority.checkout_root / "scripts" / "pass201_pa_source_v2_contract.py"
+    try:
+        result = subprocess.run(
+            [interpreter, "-I", "-S", str(script), *command],
+            cwd=authority.checkout_root,
+            env=dict(execution["environment"]),
+            input=request,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"{command[0]} failed to start") from exc
+    _require(result.returncode == 0, f"{command[0]} failed")
+    _require(not result.stderr, f"{command[0]} emitted stderr")
+    return result.stdout
+
+
 def _run_capture_child(authority: PrelaunchAuthority) -> CapturedAuthority:
     request = encode_capture_request(
         tuple(authority.payload["execution"]["argv"]),
@@ -904,9 +2131,8 @@ def _run_capture_child(authority: PrelaunchAuthority) -> CapturedAuthority:
 def _run_metadata_child(
     authority: PrelaunchAuthority, checkpoint_path: Path
 ) -> BoundCheckpointMetadata:
-    response = _run_private_child(
+    response = _run_restricted_checkpoint_child(
         authority,
-        "pass201_pa_source_v2_contract.py",
         ("restricted-metadata-child", "--checkpoint", str(checkpoint_path)),
         encode_checkpoint_metadata_request(authority),
     )
@@ -918,9 +2144,8 @@ def _run_binding_child(
     checkpoint_path: Path,
     expected: ExternalFileBinding,
 ) -> ExternalFileBinding:
-    response = _run_private_child(
+    response = _run_restricted_checkpoint_child(
         authority,
-        "pass201_pa_source_v2_contract.py",
         ("restricted-binding-child", "--checkpoint", str(checkpoint_path)),
         encode_checkpoint_binding_request(expected),
     )
@@ -990,6 +2215,11 @@ def derive_sidecars_from_files(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="run_pass201_pa_source_v2.py")
     commands = parser.add_subparsers(dest="command", required=True)
+    freeze = commands.add_parser("freeze-authority")
+    freeze.add_argument("--frozen-absence-checked-utc", required=True)
+    freeze.add_argument("--output", required=True, type=Path)
+    run = commands.add_parser("run")
+    run.add_argument("--manifest", required=True, type=Path)
     sidecars = commands.add_parser("derive-sidecars")
     sidecars.add_argument("--manifest", required=True, type=Path)
     sidecars.add_argument("--report", required=True, type=Path)
@@ -1001,11 +2231,29 @@ def _parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
+    if args.command == "freeze-authority":
+        checkout = Path.cwd().resolve(strict=True)
+        output = args.output if args.output.is_absolute() else checkout / args.output
+        frozen = freeze_authority(
+            FreezeArgs(
+                checkout_root=checkout,
+                dataset_root=DATASET_ROOT,
+                python_path=Path(sys.executable).absolute(),
+                frozen_absence_checked_utc=args.frozen_absence_checked_utc,
+                output_path=output.absolute(),
+            )
+        )
+        publish_new_file(output.absolute(), frozen, mode=0o644)
+        return 0
+    if args.command == "run":
+        manifest = args.manifest if args.manifest.is_absolute() else Path.cwd() / args.manifest
+        run_authorized_source(manifest.absolute())
+        return 0
     if args.command == "capture-authority-child":
         sys.stdout.buffer.write(_capture_child_output())
         sys.stdout.buffer.flush()
         return 0
-    _require(args.command == "derive-sidecars", "private command drift")
+    _require(args.command == "derive-sidecars", "command drift")
     frame = derive_sidecars_from_files(
         args.manifest,
         args.report,

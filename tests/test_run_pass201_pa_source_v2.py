@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
+import shutil
+import stat
 import struct
 import subprocess
 import sys
 import threading
+from contextlib import contextmanager
 from dataclasses import replace
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
 from typing import NoReturn
 
 import pytest
@@ -21,6 +26,7 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
     CheckpointArch,
     CheckpointMetadata,
     ExternalFileBinding,
+    OutputEvidence,
     PrelaunchAuthority,
     bind_external_file,
     canonical_json_bytes,
@@ -28,6 +34,7 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
     encode_checkpoint_binding_request,
     load_strict_json_bytes,
     load_strict_json_value_bytes,
+    validate_complete_receipt,
 )
 from run_pass201_pa_source_v2 import (  # noqa: E402
     CapturedAuthority,
@@ -310,9 +317,7 @@ def test_production_capture_is_identical_in_two_fresh_processes(tiny_inshop: Pat
     assert first["capture"] == second["capture"]
 
 
-def test_capture_child_never_opens_produced_checkpoint(
-    tiny_inshop: Path, tmp_path: Path
-) -> None:
+def test_capture_child_never_opens_produced_checkpoint(tiny_inshop: Path, tmp_path: Path) -> None:
     checkpoint = tiny_inshop / "out" / "checkpoint.pt"
     guard_dir = tmp_path / "open-guard"
     guard_dir.mkdir()
@@ -475,7 +480,7 @@ def test_resolved_config_reads_only_exact_report_config(
         '{"name":"image-end-to-end","dataset_name":"inshop",'
         f'"protocol":"query_gallery","config":{config_text},'
         '"train_examples":2,"test_examples":2,'
-        '"methods":{"score":NaN,"score":2,"payload":"}],\\\"config\\\":false"}}\n'
+        '"methods":{"score":NaN,"score":2,"payload":"}],\\"config\\":false"}}\n'
     ).encode()
     real_load = load_strict_json_value_bytes
     parsed_slices: list[bytes] = []
@@ -497,7 +502,7 @@ def test_resolved_config_reads_only_exact_report_config(
     [
         b'{"score":NaN}',
         b'{"score":1,"score":2}',
-        b'{"payload":"}],\\\"config\\\":false","nested":{"x":Infinity}}',
+        b'{"payload":"}],\\"config\\":false","nested":{"x":Infinity}}',
         b'{"payload":"\xff"}',
     ],
 )
@@ -798,9 +803,7 @@ def _derive_with_synchronized_checkpoint_handoff(
     def metadata_child(
         _authority: PrelaunchAuthority, _checkpoint_path: Path
     ) -> BoundCheckpointMetadata:
-        result = BoundCheckpointMetadata(
-            bind_external_file(checkpoint_path), checkpoint_metadata
-        )
+        result = BoundCheckpointMetadata(bind_external_file(checkpoint_path), checkpoint_metadata)
         metadata_complete.set()
         return result
 
@@ -1028,9 +1031,7 @@ def test_private_sidecar_rejects_alternative_report_before_reading_it(
     monkeypatch.setattr(controller, "_read_immutable_regular", record_read)
 
     with pytest.raises(ValueError, match="alternative report path"):
-        controller.derive_sidecars_from_files(
-            manifest, alternative_report, checkpoint, run_dir
-        )
+        controller.derive_sidecars_from_files(manifest, alternative_report, checkpoint, run_dir)
 
     assert reads == [manifest]
 
@@ -1066,7 +1067,7 @@ def test_two_sidecar_children_must_be_distinct_and_byte_identical() -> None:
 
 
 def _run_mocked_external_sidecar_child(checkout: Path) -> subprocess.CompletedProcess[bytes]:
-    program = r'''
+    program = r"""
 import hashlib, json, os, struct, sys
 from pathlib import Path
 
@@ -1184,7 +1185,7 @@ raise SystemExit(c.main([
     "--checkpoint", str(root / "run" / "checkpoint.pt"),
     "--output-dir", str(root / "run"),
 ]))
-'''
+"""
     repo = Path(__file__).resolve().parents[1]
     env = dict(os.environ)
     env["PYTHONPATH"] = f"{repo / 'src'}:{repo / 'scripts'}"
@@ -1271,3 +1272,1165 @@ def test_two_fresh_private_sidecar_children_are_identical_and_fail_on_input_drif
     rejected = _run_mocked_external_sidecar_child(tmp_path)
     assert rejected.returncode != 0
     assert rejected.stdout == b""
+
+
+EXPECTED_CONTROLLER_ORDER = [
+    "strict_manifest",
+    "detached_exact_git_topology",
+    "replacement_runtime_bindings",
+    "frozen_preflight_absence",
+    "private_run_directory_lock",
+    "one_training_child",
+    "training_exit_zero",
+    "postflight_equality",
+    "freeze_scientific_outputs",
+    "restricted_checkpoint_metadata",
+    "sidecar_child_1",
+    "sidecar_child_2",
+    "publish_resolved_config",
+    "publish_train_manifest",
+    "publish_receipt",
+]
+
+
+def _freeze_test_environment(checkout: Path) -> dict[str, str]:
+    return {
+        "HOME": "/operator",
+        "PATH": "/venv/bin:/usr/bin:/bin",
+        "PYTHONPATH": f"{checkout}/src",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "LD_LIBRARY_PATH": "/cuda/lib64",
+        "CUDA_VISIBLE_DEVICES": "0",
+        "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+        "PYTHONHASHSEED": "0",
+        "LC_ALL": "C.UTF-8",
+        "LANG": "C.UTF-8",
+        "TZ": "UTC",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "XDG_CACHE_HOME": "/operator/.cache",
+        "TORCH_HOME": "/operator/.cache/torch",
+    }
+
+
+def _repo_binding(path: str, fill: str) -> dict[str, object]:
+    return {
+        "path": path,
+        "git_mode": "100644",
+        "bytes": 10,
+        "sha256": fill * 64,
+        "git_blob": fill * 40,
+    }
+
+
+def _external_binding(path: str, fill: str) -> dict[str, object]:
+    return {
+        "path": path,
+        "mode": stat.S_IFREG | 0o755,
+        "device": 1,
+        "inode": 2,
+        "bytes": 10,
+        "sha256": fill * 64,
+    }
+
+
+def _fake_freeze_runtime(checkout: Path) -> dict[str, object]:
+    environment = _freeze_test_environment(checkout)
+    return {
+        "source_commit": "a" * 40,
+        "controller": _repo_binding("scripts/run_pass201_pa_source_v2.py", "a"),
+        "source_files": [
+            _repo_binding("scripts/pass201_pa_source_v2_contract.py", "b"),
+            _repo_binding("src/sfora/cli.py", "c"),
+        ],
+        "python_tree": {
+            "root": "src/sfora",
+            "algorithm": "pass201-length-framed-merkle-v1",
+            "count": 2,
+            "bytes": 20,
+            "root_sha256": "d" * 64,
+        },
+        "pyproject": _repo_binding("pyproject.toml", "e"),
+        "lockfile": _repo_binding("uv.lock", "f"),
+        "python": _external_binding("/venv/bin/python", "1"),
+        "python_realpath": "/usr/bin/python3",
+        "python_version": "3.12.11",
+        "git": _external_binding("/usr/bin/git", "2"),
+        "python_packages": {"bytes": 12, "sha256": "3" * 64},
+        "python_import_roots": [{"entry": "/missing", "status": "nonexistent"}],
+        "environment": environment,
+        "pretrained_checkpoint": _external_binding("/models/pretrained.pt", "4"),
+        "partition": _external_binding(
+            "/home/riomus/datasets/inshop_official_standard/Eval/list_eval_partition.txt",
+            "5",
+        ),
+        "partition_lines": 7,
+        "image_root_link": {
+            "path": "/home/riomus/datasets/inshop_official_standard/Img",
+            "target": "img",
+            "lstat_mode": stat.S_IFLNK | 0o777,
+        },
+        "image_tree": {
+            "root": "/home/riomus/datasets/inshop_official_standard/img/img",
+            "algorithm": "pass201-length-framed-merkle-v1",
+            "count": 6,
+            "bytes": 60,
+            "root_sha256": "6" * 64,
+        },
+    }
+
+
+def test_freeze_authority_captures_twice_and_emits_canonical_strict_manifest(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    output = checkout / "docs" / "pass201_pa_source_v2_prelaunch.json"
+    runtime = _fake_freeze_runtime(checkout)
+    capture_calls: list[int] = []
+    absence_calls: list[Path] = []
+
+    monkeypatch.setattr(
+        controller,
+        "_bind_freeze_runtime",
+        lambda _args, _environment: runtime,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        lambda _args: runtime["environment"],
+        raising=False,
+    )
+
+    def capture_child(_args: object, argv: list[str], environment: dict[str, str]):
+        capture_calls.append(len(capture_calls) + 1)
+        assert argv[0] == "/venv/bin/python"
+        assert environment == runtime["environment"]
+        return capture
+
+    monkeypatch.setattr(controller, "_run_freeze_capture_child", capture_child, raising=False)
+
+    def absence(args: object) -> None:
+        absence_calls.append(args.checkout_root)
+
+    monkeypatch.setattr(controller, "_require_frozen_absence", absence, raising=False)
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=output,
+    )
+
+    manifest_bytes = controller.freeze_authority(args)
+
+    payload = load_strict_json_bytes(manifest_bytes)
+    authority = controller.validate_prelaunch(payload)
+    assert canonical_json_bytes(payload) == manifest_bytes
+    assert authority.source_commit == "a" * 40
+    assert payload["execution"]["environment"] == runtime["environment"]
+    assert payload["execution"]["recipe_id"] == capture.recipe_id
+    assert payload["execution"]["recipe_digest"] == capture.recipe_digest
+    assert payload["dataset"]["bundle"] == {
+        "train": 2,
+        "query": 2,
+        "gallery": 2,
+        "protocol": "query_gallery",
+        "protocol_name": "deepfashion-inshop-official",
+    }
+    assert payload["authorization"]["frozen_absence_checked_utc"] == ("2026-08-09T00:00:00Z")
+    assert set(payload["authorization"]["frozen_absence"].values()) == {"ENOENT"}
+    assert capture_calls == [1, 2]
+    assert absence_calls == [checkout, checkout, checkout]
+    assert not output.exists()
+
+
+def test_freeze_authority_checks_first_capture_absence_before_second_child(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
+    )
+    runtime = _fake_freeze_runtime(checkout)
+    capture_calls = 0
+    monkeypatch.setattr(
+        controller,
+        "_bind_freeze_runtime",
+        lambda _args, _environment: runtime,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        lambda _args: runtime["environment"],
+    )
+
+    def dirty_capture(*_args: object) -> CapturedAuthority:
+        nonlocal capture_calls
+        capture_calls += 1
+        if capture_calls == 1:
+            (checkout / controller.RUN_DIRECTORY).mkdir(parents=True)
+        return capture
+
+    monkeypatch.setattr(controller, "_run_freeze_capture_child", dirty_capture)
+
+    with pytest.raises(ValueError, match="private run directory already exists"):
+        controller.freeze_authority(args)
+
+    assert capture_calls == 1
+
+
+def test_freeze_authority_rejects_capture_child_disagreement(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
+    )
+    runtime = _fake_freeze_runtime(checkout)
+    captures = iter((capture, replace(capture, recipe_digest="0" * 64)))
+    monkeypatch.setattr(
+        controller,
+        "_bind_freeze_runtime",
+        lambda _args, _environment: runtime,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_build_replacement_environment",
+        lambda _args: runtime["environment"],
+        raising=False,
+    )
+    monkeypatch.setattr(
+        controller,
+        "_run_freeze_capture_child",
+        lambda *_args: next(captures),
+        raising=False,
+    )
+    monkeypatch.setattr(controller, "_require_frozen_absence", lambda _args: None, raising=False)
+
+    with pytest.raises(ValueError, match="capture children disagree"):
+        controller.freeze_authority(args)
+
+    assert not args.output_path.exists()
+
+
+def _git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def _make_authorized_git_fixture(
+    tmp_path: Path,
+    capture: CapturedAuthority,
+    *,
+    topology: str = "valid",
+    payload_mutation: tuple[str, object] | None = None,
+) -> SimpleNamespace:
+    repo = tmp_path / "authorized-checkout"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.name", "Pass201 Test")
+    _git(repo, "config", "user.email", "pass201@example.invalid")
+    (repo / ".gitignore").write_text("reports/generated/\n", encoding="utf-8")
+    (repo / "source-marker.txt").write_text("source C\n", encoding="utf-8")
+    _git(repo, "add", ".gitignore", "source-marker.txt")
+    _git(repo, "commit", "-q", "-m", "source C")
+    source_commit = _git(repo, "rev-parse", "HEAD")
+
+    environment = _freeze_test_environment(repo)
+    runtime = _fake_freeze_runtime(repo)
+    runtime["source_commit"] = source_commit
+    git_executable = Path(shutil.which("git") or "").resolve(strict=True)
+    runtime["git"] = controller._external_file_payload(bind_external_file(git_executable))
+    args = controller.FreezeArgs(
+        checkout_root=repo,
+        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=repo / "docs" / "pass201_pa_source_v2_prelaunch.json",
+    )
+    payload = controller._build_prelaunch_payload(args, capture, runtime)
+    if payload_mutation is not None:
+        mutation, value = payload_mutation
+        if mutation == "query_count":
+            payload["dataset"]["bundle"]["query"] = value
+        elif mutation == "recipe_id":
+            payload["execution"]["recipe_id"] = value
+        else:  # pragma: no cover - test fixture is deliberately closed
+            raise AssertionError(mutation)
+    controller.validate_prelaunch(payload)
+
+    if topology == "extra_parent":
+        (repo / "intermediate.txt").write_text("not authorized\n", encoding="utf-8")
+        _git(repo, "add", "intermediate.txt")
+        _git(repo, "commit", "-q", "-m", "intermediate")
+    manifest = args.output_path
+    manifest.parent.mkdir()
+    manifest.write_bytes(canonical_json_bytes(payload))
+    _git(repo, "add", manifest.relative_to(repo).as_posix())
+    if topology == "extra_diff":
+        (repo / "extra.txt").write_text("extra\n", encoding="utf-8")
+        _git(repo, "add", "extra.txt")
+    _git(repo, "commit", "-q", "-m", "authorization A")
+    authorization_commit = _git(repo, "rev-parse", "HEAD")
+    if topology != "branch_head":
+        _git(repo, "checkout", "-q", "--detach", authorization_commit)
+    authority = controller.validate_prelaunch(payload)
+    return SimpleNamespace(
+        repo=repo,
+        manifest=manifest,
+        manifest_bytes=canonical_json_bytes(payload),
+        authority=authority,
+        runtime=runtime,
+        environment=environment,
+        source_commit=source_commit,
+        authorization_commit=authorization_commit,
+    )
+
+
+def test_run_preflight_accepts_only_detached_sole_manifest_addition(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture)
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: fixture.runtime)
+
+    authorized = controller.validate_runtime_preflight(fixture.manifest)
+
+    assert authorized.authorization_commit == fixture.authorization_commit
+    assert authorized.manifest_bytes == fixture.manifest_bytes
+    assert authorized.authority.source_commit == fixture.source_commit
+
+
+@pytest.mark.parametrize("topology", ["branch_head", "extra_diff", "extra_parent"])
+def test_run_preflight_rejects_branch_extra_diff_or_parent(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+    topology: str,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture, topology=topology)
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    monkeypatch.setattr(
+        controller,
+        "_bind_runtime_after",
+        forbidden("runtime binding after invalid Git topology"),
+    )
+
+    with pytest.raises(ValueError):
+        controller.validate_runtime_preflight(fixture.manifest)
+
+
+def test_replacement_environment_rejects_ambient_leak_before_runtime_binding(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture)
+    monkeypatch.setattr(
+        controller,
+        "_ambient_environment",
+        lambda: {**fixture.environment, "AMBIENT_SECRET": "must-not-leak"},
+    )
+    monkeypatch.setattr(
+        controller,
+        "_bind_runtime_after",
+        forbidden("runtime binding after ambient environment leak"),
+    )
+
+    with pytest.raises(ValueError, match="environment"):
+        controller.validate_runtime_preflight(fixture.manifest)
+
+
+@pytest.mark.parametrize(
+    "binding_name",
+    [
+        "controller",
+        "source_files",
+        "python_tree",
+        "python",
+        "python_realpath",
+        "python_version",
+        "git",
+        "python_packages",
+        "python_import_roots",
+        "pretrained_checkpoint",
+        "partition",
+        "partition_lines",
+        "image_root_link",
+        "image_tree",
+    ],
+)
+def test_run_preflight_rejects_changed_runtime_source_pretrained_or_data_binding(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+    binding_name: str,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture)
+    drifted = copy.deepcopy(fixture.runtime)
+    value = drifted[binding_name]
+    if type(value) is str:
+        drifted[binding_name] = f"{value}-drift"
+    elif type(value) is int:
+        drifted[binding_name] = value + 1
+    elif type(value) is list:
+        drifted[binding_name] = [*value, {"status": "nonexistent", "entry": "/drift"}]
+    else:
+        value["sha256" if "sha256" in value else "root_sha256"] = "0" * 64
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: drifted)
+
+    with pytest.raises(ValueError, match="runtime binding"):
+        controller.validate_runtime_preflight(fixture.manifest)
+
+
+@pytest.mark.parametrize(
+    ("payload_mutation", "match"),
+    [
+        (("query_count", 0), "query/gallery"),
+        (("recipe_id", "drifted-recipe"), "recipe"),
+    ],
+)
+def test_run_preflight_rejects_false_scope_or_recipe_authority_drift(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+    payload_mutation: tuple[str, object],
+    match: str,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(
+        tmp_path,
+        capture,
+        payload_mutation=payload_mutation,
+    )
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    monkeypatch.setattr(
+        controller,
+        "_bind_runtime_after",
+        forbidden("runtime binding after invalid scientific scope"),
+    )
+
+    with pytest.raises(ValueError, match=match):
+        controller.validate_runtime_preflight(fixture.manifest)
+
+
+@pytest.mark.parametrize("collision", ["run_directory", "report", "report_temp"])
+def test_run_preflight_rejects_existing_run_directory_output_or_temporary(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+    collision: str,
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    fixture = _make_authorized_git_fixture(tmp_path, capture)
+    run_directory = fixture.repo / controller.RUN_DIRECTORY
+    run_directory.mkdir(parents=True)
+    if collision == "report":
+        (run_directory / "report.json").write_bytes(b"collision")
+    elif collision == "report_temp":
+        (run_directory / "report.json.tmp").write_bytes(b"collision")
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: fixture.runtime)
+
+    with pytest.raises(ValueError, match="run directory|output"):
+        controller.validate_runtime_preflight(fixture.manifest)
+
+
+def test_replacement_environment_launches_exact_argv_once_without_ambient_leak(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_directory = tmp_path / "run-v2"
+    run_directory.mkdir(mode=0o700)
+    child = tmp_path / "bound-python"
+    ledger = tmp_path / "child-ledger.json"
+    child.write_text(
+        "#!/usr/bin/python3\n"
+        "import json, os, pathlib, sys\n"
+        "path = pathlib.Path(os.environ['PASS201_TEST_LEDGER'])\n"
+        "path.write_text(json.dumps({'argv': sys.argv, 'environment': dict(os.environ)}, "
+        "sort_keys=True), encoding='utf-8')\n"
+        "print('ordinary child complete')\n",
+        encoding="utf-8",
+    )
+    child.chmod(0o755)
+    environment = {
+        **_freeze_test_environment(tmp_path),
+        "PATH": f"{tmp_path}:/usr/bin:/bin",
+        "PYTHONPATH": f"{tmp_path}/src",
+        "TORCH_HOME": str(ledger),
+    }
+    child.write_text(
+        child.read_text(encoding="utf-8").replace(
+            "os.environ['PASS201_TEST_LEDGER']", "os.environ['TORCH_HOME']"
+        ),
+        encoding="utf-8",
+    )
+    argv = [str(child), "-m", "sfora.cli", "image-end-to-end", "--seed", "0"]
+    authority = SimpleNamespace(
+        checkout_root=tmp_path,
+        payload={
+            "execution": {"python": {"path": str(child)}, "argv": argv, "environment": environment},
+            "outputs": {"log": {"path": "run-v2/training.log"}},
+        },
+    )
+    authorized = SimpleNamespace(authority=authority)
+    monkeypatch.setenv("AMBIENT_SECRET", "must-not-leak")
+
+    running = controller.launch_once(authorized, run_directory)
+    completed = controller._complete_child(running)
+
+    assert completed.returncode == 0
+    observed = json.loads(ledger.read_text(encoding="utf-8"))
+    assert observed["argv"] == argv
+    assert observed["environment"] == environment
+    assert "AMBIENT_SECRET" not in observed["environment"]
+    assert (run_directory / "training.log").read_text(encoding="utf-8") == (
+        "ordinary child complete\n"
+    )
+    with pytest.raises(ValueError, match="log|exists"):
+        controller.launch_once(authorized, run_directory)
+
+
+def test_restricted_checkpoint_child_skips_python_startup_import_hooks(tmp_path: Path) -> None:
+    repo = Path(__file__).resolve().parents[1]
+    guard = tmp_path / "import-guard"
+    guard.mkdir()
+    torch_imported = tmp_path / "torch-imported"
+    (guard / "torch.py").write_text(
+        "from pathlib import Path\n"
+        f"Path({str(torch_imported)!r}).write_text('imported', encoding='utf-8')\n",
+        encoding="utf-8",
+    )
+    (guard / "sitecustomize.py").write_text("import torch\n", encoding="utf-8")
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"binding-only checkpoint")
+    expected = bind_external_file(checkpoint)
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(guard)
+    authority = SimpleNamespace(
+        checkout_root=repo,
+        payload={
+            "execution": {
+                "python": {"path": sys.executable},
+                "environment": environment,
+            }
+        },
+    )
+
+    assert controller._run_binding_child(authority, checkpoint, expected) == expected
+    assert not torch_imported.exists()
+
+
+def _immutable_output_evidence(path: Path, data: bytes) -> OutputEvidence:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    path.chmod(0o444)
+    current = os.stat(path, follow_symlinks=False)
+    return OutputEvidence(
+        PurePosixPath(path.as_posix()),
+        "regular",
+        current.st_mode,
+        len(data),
+        hashlib.sha256(data).hexdigest(),
+    )
+
+
+def _make_complete_receipt_inputs(
+    tmp_path: Path,
+    capture: CapturedAuthority,
+    checkpoint_metadata: CheckpointMetadata,
+) -> SimpleNamespace:
+    checkout = tmp_path / "receipt-checkout"
+    checkout.mkdir()
+    runtime = _fake_freeze_runtime(checkout)
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-09T00:00:00Z",
+        output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
+    )
+    payload = controller._build_prelaunch_payload(args, capture, runtime)
+    authority = controller.validate_prelaunch(payload)
+    manifest_bytes = canonical_json_bytes(payload)
+    run_directory = checkout / controller.RUN_DIRECTORY
+    report = _immutable_output_evidence(
+        run_directory / "report.json",
+        b'{"methods":{"opaque":NaN}}\n',
+    )
+    checkpoint = _immutable_output_evidence(
+        run_directory / "checkpoint.pt",
+        b"tiny-restricted-checkpoint",
+    )
+    log = _immutable_output_evidence(
+        run_directory / "training.log",
+        b"ordinary child complete\n",
+    )
+    config = _immutable_output_evidence(
+        run_directory / "resolved_config.json",
+        capture.config_bytes,
+    )
+    manifest = _immutable_output_evidence(
+        run_directory / "train_manifest.json",
+        b'{"rows":[]}\n',
+    )
+    run_directory.chmod(0o700)
+    checkpoint_binding = bind_external_file(run_directory / "checkpoint.pt")
+    metadata = BoundCheckpointMetadata(checkpoint_binding, checkpoint_metadata)
+    first = SidecarFrame(
+        101,
+        capture.config_bytes,
+        b'{"rows":[]}\n',
+        config.sha256,
+        manifest.sha256,
+    )
+    second = replace(first, pid=102)
+    authorized = SimpleNamespace(
+        authority=authority,
+        authorization_commit="b" * 40,
+        manifest_path=args.output_path,
+        manifest_bytes=manifest_bytes,
+        manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+        manifest_git_blob=hashlib.sha1(
+            b"blob " + str(len(manifest_bytes)).encode("ascii") + b"\0" + manifest_bytes
+        ).hexdigest(),
+        runtime_bindings=runtime,
+        preflight_started_utc="2026-08-09T00:00:01Z",
+    )
+    process = controller.CompletedChild(
+        77,
+        "2026-08-09T00:00:02Z",
+        "2026-08-09T00:00:03Z",
+        0,
+    )
+    postflight = SimpleNamespace(
+        bindings=runtime,
+        ended_utc="2026-08-09T00:00:04Z",
+    )
+    scientific = SimpleNamespace(report=report, checkpoint=checkpoint, log=log)
+    return SimpleNamespace(
+        checkout=checkout,
+        run_directory=run_directory,
+        authority=authority,
+        authorized=authorized,
+        process=process,
+        postflight=postflight,
+        scientific=scientific,
+        metadata=metadata,
+        frames=(first, second),
+        config=config,
+        manifest=manifest,
+    )
+
+
+def test_complete_receipt_builds_exact_valid_authority(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+
+    receipt_bytes = controller._build_complete_receipt(
+        inputs.authorized,
+        inputs.process,
+        inputs.postflight,
+        inputs.scientific,
+        inputs.metadata,
+        inputs.frames,
+        inputs.config,
+        inputs.manifest,
+    )
+
+    payload = load_strict_json_bytes(receipt_bytes)
+    complete = validate_complete_receipt(payload, inputs.authority)
+    assert canonical_json_bytes(payload) == receipt_bytes
+    assert complete.authorization_commit == "b" * 40
+    assert payload["status"] == "complete"
+    assert payload["candidate_values_computed"] is False
+    assert "receipt" not in payload["outputs"]
+    assert "metric" not in payload and "methods" not in payload
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "source_binding",
+        "data_binding",
+        "runtime_binding",
+        "pretrained_binding",
+        "report_hash",
+        "config_hash",
+        "checkpoint_hash",
+        "output_type",
+        "checkpoint_scalar",
+        "child_sidecar",
+        "membership",
+        "algorithm",
+        "success_flag",
+        "candidate_flag",
+        "scope_flag",
+    ],
+)
+def test_complete_receipt_rejects_every_mutated_success_predicate(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    mutation: str,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    receipt = load_strict_json_bytes(
+        controller._build_complete_receipt(
+            inputs.authorized,
+            inputs.process,
+            inputs.postflight,
+            inputs.scientific,
+            inputs.metadata,
+            inputs.frames,
+            inputs.config,
+            inputs.manifest,
+        )
+    )
+    if mutation == "source_binding":
+        receipt["controller"]["source_tree"]["root_sha256"] = "0" * 64
+    elif mutation == "data_binding":
+        receipt["postflight"]["partition"]["sha256"] = "0" * 64
+    elif mutation == "runtime_binding":
+        receipt["controller"]["python"]["sha256"] = "0" * 64
+    elif mutation == "pretrained_binding":
+        receipt["preflight"]["pretrained_checkpoint"]["sha256"] = "0" * 64
+    elif mutation == "report_hash":
+        receipt["outputs"]["report"]["sha256"] = "0" * 64
+    elif mutation == "config_hash":
+        receipt["outputs"]["resolved_config"]["sha256"] = "0" * 64
+    elif mutation == "checkpoint_hash":
+        receipt["outputs"]["checkpoint"]["sha256"] = "0" * 64
+    elif mutation == "output_type":
+        receipt["outputs"]["log"]["file_type"] = "directory"
+    elif mutation == "checkpoint_scalar":
+        receipt["checkpoint_metadata"]["training_step"] += 1
+    elif mutation == "child_sidecar":
+        receipt["sidecar_derivation"]["child_processes"][1]["pid"] = 101
+    elif mutation == "membership":
+        receipt["sidecar_derivation"]["membership_covered_by_postflight"] = False
+    elif mutation == "algorithm":
+        receipt["sidecar_derivation"]["config_algorithm"] = "drift"
+    elif mutation == "success_flag":
+        receipt["status"] = "incomplete"
+    elif mutation == "candidate_flag":
+        receipt["candidate_values_computed"] = True
+    elif mutation == "scope_flag":
+        receipt["scope"]["pass201_candidate_paths_read"] = True
+    else:  # pragma: no cover - closed mutation table
+        raise AssertionError(mutation)
+
+    with pytest.raises(ValueError):
+        validate_complete_receipt(receipt, inputs.authority)
+
+
+def test_postflight_rejects_runtime_drift_before_hashing_outputs(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    drifted = copy.deepcopy(inputs.authorized.runtime_bindings)
+    drifted["partition"]["sha256"] = "0" * 64
+    monkeypatch.setattr(controller, "_ambient_environment", lambda: drifted["environment"])
+    monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: drifted)
+    monkeypatch.setattr(
+        controller,
+        "_freeze_scientific_outputs",
+        forbidden("output hashing after postflight drift"),
+    )
+
+    with pytest.raises(ValueError, match="postflight|runtime binding"):
+        controller.publish_postflight(inputs.authorized, inputs.process, inputs.run_directory)
+
+    assert not (inputs.run_directory / "receipt.json").exists()
+
+
+def test_postflight_publishes_immutable_complete_receipt_without_methods_access(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    (inputs.run_directory / "resolved_config.json").unlink()
+    (inputs.run_directory / "train_manifest.json").unlink()
+    frames = iter(inputs.frames)
+    method_accesses = 0
+
+    def forbidden_methods_access(_data: bytes) -> object:
+        nonlocal method_accesses
+        method_accesses += 1
+        raise AssertionError("ordinary report methods were parsed")
+
+    def metadata_child(_authorized: object, scientific: object) -> BoundCheckpointMetadata:
+        return BoundCheckpointMetadata(
+            bind_external_file(Path(scientific.checkpoint.path)),
+            checkpoint_metadata,
+        )
+
+    monkeypatch.setattr(controller, "_require_pre_post_identity", lambda _a: inputs.postflight)
+    monkeypatch.setattr(controller, "_read_restricted_metadata", metadata_child)
+    monkeypatch.setattr(controller, "_run_sidecar_child", lambda *_args: next(frames))
+    monkeypatch.setattr(controller, "load_strict_json_value_bytes", forbidden_methods_access)
+
+    controller.publish_postflight(inputs.authorized, inputs.process, inputs.run_directory)
+
+    receipt_path = inputs.run_directory / "receipt.json"
+    receipt = load_strict_json_bytes(receipt_path.read_bytes())
+    validate_complete_receipt(receipt, inputs.authority)
+    assert method_accesses == 0
+    assert sorted(path.name for path in inputs.run_directory.iterdir()) == sorted(
+        controller.OUTPUT_FILENAMES.values()
+    )
+    assert stat.S_IMODE(inputs.run_directory.stat().st_mode) == 0o700
+    for filename in controller.OUTPUT_FILENAMES.values():
+        assert stat.S_IMODE((inputs.run_directory / filename).stat().st_mode) == 0o444
+
+
+def test_postflight_sidecar_disagreement_leaves_receipt_absent(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
+    (inputs.run_directory / "resolved_config.json").unlink()
+    (inputs.run_directory / "train_manifest.json").unlink()
+    first, second = inputs.frames
+    drifted = replace(
+        second,
+        config_bytes=b'{"drift":true}\n',
+        config_sha256=hashlib.sha256(b'{"drift":true}\n').hexdigest(),
+    )
+    frames = iter((first, drifted))
+    monkeypatch.setattr(controller, "_require_pre_post_identity", lambda _a: inputs.postflight)
+    monkeypatch.setattr(
+        controller,
+        "_read_restricted_metadata",
+        lambda *_args: inputs.metadata,
+    )
+    monkeypatch.setattr(controller, "_run_sidecar_child", lambda *_args: next(frames))
+
+    with pytest.raises(ValueError, match="sidecar config"):
+        controller.publish_postflight(inputs.authorized, inputs.process, inputs.run_directory)
+
+    assert not (inputs.run_directory / "receipt.json").exists()
+    assert not (inputs.run_directory / "resolved_config.json").exists()
+    assert not (inputs.run_directory / "train_manifest.json").exists()
+
+
+def test_public_cli_freeze_authority_publishes_only_canonical_manifest(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "docs").mkdir()
+    monkeypatch.chdir(tmp_path)
+    expected = b'{"authority":true}\n'
+    observed: list[object] = []
+
+    def freeze(args: object) -> bytes:
+        observed.append(args)
+        return expected
+
+    monkeypatch.setattr(controller, "freeze_authority", freeze)
+
+    assert (
+        main(
+            [
+                "freeze-authority",
+                "--frozen-absence-checked-utc",
+                "2026-08-09T00:00:00Z",
+                "--output",
+                "docs/pass201_pa_source_v2_prelaunch.json",
+            ]
+        )
+        == 0
+    )
+
+    assert len(observed) == 1
+    args = observed[0]
+    assert args.checkout_root == tmp_path
+    assert args.dataset_root == controller.DATASET_ROOT
+    assert args.python_path == Path(sys.executable).absolute()
+    assert args.frozen_absence_checked_utc == "2026-08-09T00:00:00Z"
+    assert args.output_path == tmp_path / "docs" / "pass201_pa_source_v2_prelaunch.json"
+    output = args.output_path
+    assert output.read_bytes() == expected
+    assert stat.S_IMODE(output.stat().st_mode) == 0o644
+
+
+def test_public_cli_run_dispatches_exact_manifest_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    observed: list[Path] = []
+    monkeypatch.setattr(controller, "run_authorized_source", observed.append)
+
+    assert main(["run", "--manifest", "docs/pass201_pa_source_v2_prelaunch.json"]) == 0
+
+    assert observed == [tmp_path / "docs" / "pass201_pa_source_v2_prelaunch.json"]
+
+
+class ControllerOrderFixture:
+    def __init__(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        self.events: list[str] = []
+        self.publish_order: list[str] = []
+        self.failure_event: str | None = None
+        self.run_directory = tmp_path / "run-v2"
+        self.receipt = self.run_directory / "receipt.json"
+        self.manifest = tmp_path / "prelaunch.json"
+        self.manifest.write_bytes(b"{}\n")
+        child = tmp_path / "ordinary_child.py"
+        child.write_text("raise SystemExit(0)\n", encoding="utf-8")
+        self.child = child
+        self.authority = SimpleNamespace(
+            checkout_root=tmp_path,
+            payload={
+                "outputs": {
+                    "run_directory": "run-v2",
+                    "report": {"path": "run-v2/report.json"},
+                    "checkpoint": {"path": "run-v2/checkpoint.pt"},
+                    "log": {"path": "run-v2/training.log"},
+                    "resolved_config": {"path": "run-v2/resolved_config.json"},
+                    "train_manifest": {"path": "run-v2/train_manifest.json"},
+                    "receipt": {"path": "run-v2/receipt.json"},
+                }
+            },
+        )
+
+        def event(name: str) -> None:
+            self.events.append(name)
+            if self.failure_event == name:
+                raise RuntimeError(f"injected failure at {name}")
+
+        def load_manifest(_path: Path):
+            event("strict_manifest")
+            return self.authority, self.manifest, b"{}\n"
+
+        def topology(_root: Path, _authority: object) -> str:
+            event("detached_exact_git_topology")
+            return "a" * 40
+
+        def runtime_bindings(_authority: object) -> object:
+            event("replacement_runtime_bindings")
+            return {"bound": True}
+
+        def require_bindings(_authority: object, bindings: object) -> None:
+            assert bindings == {"bound": True}
+
+        def absence(_authority: object) -> None:
+            event("frozen_preflight_absence")
+
+        @contextmanager
+        def private_directory(_authorized: object):
+            event("private_run_directory_lock")
+            self.run_directory.mkdir(mode=0o700)
+            yield self.run_directory
+
+        def launch(_authorized: object, _run_dir: Path):
+            event("one_training_child")
+            process = subprocess.Popen(
+                [sys.executable, str(self.child)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            return SimpleNamespace(
+                process=process,
+                pid=process.pid,
+                started_utc="2026-08-09T00:00:01Z",
+            )
+
+        def complete(running: object):
+            stdout, stderr = running.process.communicate(timeout=5)
+            assert stdout == stderr == b""
+            assert running.process.returncode == 0
+            event("training_exit_zero")
+            return SimpleNamespace(
+                pid=running.pid,
+                started_utc=running.started_utc,
+                ended_utc="2026-08-09T00:00:02Z",
+                returncode=0,
+            )
+
+        def post_identity(_authorized: object) -> object:
+            event("postflight_equality")
+            return {"bound": True}
+
+        def freeze_outputs(_authorized: object, _run_dir: Path) -> object:
+            event("freeze_scientific_outputs")
+            return SimpleNamespace()
+
+        def restricted_metadata(_authorized: object, _scientific: object) -> object:
+            event("restricted_checkpoint_metadata")
+            return SimpleNamespace()
+
+        sidecar_calls = 0
+
+        def sidecar_child(
+            _authorized: object,
+            _scientific: object,
+            _run_dir: Path,
+        ) -> SidecarFrame:
+            nonlocal sidecar_calls
+            sidecar_calls += 1
+            event(f"sidecar_child_{sidecar_calls}")
+            config = b"{}\n"
+            manifest = b'{"rows":[]}\n'
+            return SidecarFrame(
+                100 + sidecar_calls,
+                config,
+                manifest,
+                hashlib.sha256(config).hexdigest(),
+                hashlib.sha256(manifest).hexdigest(),
+            )
+
+        def publish_sidecar(
+            _authorized: object,
+            _run_dir: Path,
+            output_name: str,
+            data: bytes,
+        ) -> object:
+            event(f"publish_{output_name}")
+            filename = {
+                "resolved_config": "resolved_config.json",
+                "train_manifest": "train_manifest.json",
+            }[output_name]
+            self.publish_order.append(filename)
+            path = self.run_directory / filename
+            path.write_bytes(data)
+            return SimpleNamespace(sha256=hashlib.sha256(data).hexdigest())
+
+        def build_receipt(*_args: object) -> bytes:
+            return b'{"status":"complete"}\n'
+
+        def publish_receipt(_authorized: object, _run_dir: Path, data: bytes) -> object:
+            event("publish_receipt")
+            self.publish_order.append("receipt.json")
+            self.receipt.write_bytes(data)
+            return SimpleNamespace(sha256=hashlib.sha256(data).hexdigest())
+
+        monkeypatch.setattr(controller, "_load_manifest_authority", load_manifest, raising=False)
+        monkeypatch.setattr(controller, "validate_authorization_topology", topology, raising=False)
+        monkeypatch.setattr(
+            controller, "_require_authority_scope", lambda _authority: None, raising=False
+        )
+        monkeypatch.setattr(
+            controller,
+            "_require_replacement_environment",
+            lambda _authority: None,
+            raising=False,
+        )
+        monkeypatch.setattr(controller, "_bind_runtime_after", runtime_bindings, raising=False)
+        monkeypatch.setattr(
+            controller,
+            "_require_runtime_matches_authority",
+            require_bindings,
+            raising=False,
+        )
+        monkeypatch.setattr(controller, "_record_preflight_absence", absence, raising=False)
+        monkeypatch.setattr(
+            controller,
+            "create_and_lock_private_run_directory",
+            private_directory,
+            raising=False,
+        )
+        monkeypatch.setattr(controller, "launch_once", launch, raising=False)
+        monkeypatch.setattr(controller, "_complete_child", complete, raising=False)
+        monkeypatch.setattr(controller, "_require_pre_post_identity", post_identity, raising=False)
+        monkeypatch.setattr(controller, "_freeze_scientific_outputs", freeze_outputs, raising=False)
+        monkeypatch.setattr(
+            controller, "_read_restricted_metadata", restricted_metadata, raising=False
+        )
+        monkeypatch.setattr(controller, "_run_sidecar_child", sidecar_child, raising=False)
+        monkeypatch.setattr(controller, "_publish_sidecar_output", publish_sidecar, raising=False)
+        monkeypatch.setattr(controller, "_build_complete_receipt", build_receipt, raising=False)
+        monkeypatch.setattr(controller, "_publish_complete_receipt", publish_receipt, raising=False)
+
+    def fail_at(self, event: str) -> None:
+        self.failure_event = event
+
+    def run(self) -> None:
+        controller.run_authorized_source(self.manifest)
+
+
+@pytest.fixture
+def controller_order_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> ControllerOrderFixture:
+    return ControllerOrderFixture(tmp_path, monkeypatch)
+
+
+def test_controller_order_publishes_receipt_last(
+    controller_order_fixture: ControllerOrderFixture,
+) -> None:
+    controller_order_fixture.run()
+
+    assert controller_order_fixture.events == EXPECTED_CONTROLLER_ORDER
+    assert controller_order_fixture.publish_order == [
+        "resolved_config.json",
+        "train_manifest.json",
+        "receipt.json",
+    ]
+
+
+@pytest.mark.parametrize("failure_event", EXPECTED_CONTROLLER_ORDER[:-1])
+def test_controller_order_failure_never_publishes_receipt(
+    controller_order_fixture: ControllerOrderFixture,
+    failure_event: str,
+) -> None:
+    controller_order_fixture.fail_at(failure_event)
+
+    with pytest.raises(RuntimeError, match="injected failure"):
+        controller_order_fixture.run()
+
+    failure_index = EXPECTED_CONTROLLER_ORDER.index(failure_event)
+    assert controller_order_fixture.events == EXPECTED_CONTROLLER_ORDER[: failure_index + 1]
+    assert not controller_order_fixture.receipt.exists()
