@@ -735,7 +735,23 @@ def test_accepted_partial_requires_180_integer_s_prime_indices():
         MODULE.validate_payload_structure(payload)
 
 
-def test_accepted_partial_requires_distinct_disjoint_s_prime_ids():
+def test_accepted_partial_requires_integer_s_prime_index_elements():
+    payload = literal_valid_early_unresolved_payload()
+    payload["contexts"][0]["s_prime_sample_indices"][10] = False
+    with pytest.raises(ValueError, match="s_prime_sample_indices"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_accepted_partial_requires_distinct_s_prime_ids():
+    payload = literal_valid_early_unresolved_payload()
+    payload["contexts"][0]["s_prime_example_ids"][1] = payload["contexts"][0][
+        "s_prime_example_ids"
+    ][0]
+    with pytest.raises(ValueError, match="s_prime_example_ids"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_accepted_partial_requires_s_prime_ids_disjoint_from_s():
     payload = literal_valid_early_unresolved_payload()
     payload["contexts"][0]["s_prime_example_ids"][0] = payload["contexts"][0]["row_example_ids"][0]
     with pytest.raises(ValueError, match="s_prime_example_ids"):
@@ -816,12 +832,19 @@ def _source_activation_invalid_count(payload):
     payload.clear()
     payload.update(blocked)
     payload["status"] = "INVALID"
-    payload["reason_codes"] = ["INVALID_SOURCE_BINDING"]
+    payload["reason_codes"] = ["INVALID_OPERATING_POINT_MISMATCH"]
     payload["decision"]["overall"] = "INVALID"
     payload["integrity"]["invalid_context_count"] = 1
     payload["integrity"]["failure_evidence_sha256"] = _failure_digest(
         "INVALID", payload["reason_codes"], payload["integrity"]
     )
+
+
+def test_source_activation_invalid_count_mutation_reaches_count_rule():
+    payload = literal_valid_scored_payload()
+    _source_activation_invalid_count(payload)
+    with pytest.raises(ValueError, match="source activation counts"):
+        MODULE.validate_payload_structure(payload)
 
 
 def _component_reason_mixing(payload):
@@ -878,6 +901,15 @@ def _rehash_input_context(payload: dict, context_index: int) -> None:
     digest_record = _digest_record(payload["contexts"][context_index])
     for record in payload["integrity"]["process_records"]:
         record["input_context_digest_records"][context_index] = deepcopy(digest_record)
+
+
+def test_scored_production_batch_indices_are_strictly_increasing():
+    payload = literal_valid_scored_payload()
+    payload["contexts"][1]["production_batch_index"] = 100
+    _rehash_input_context(payload, 1)
+    assert [context["production_batch_index"] for context in payload["contexts"][:3]] == [0, 100, 2]
+    with pytest.raises(ValueError, match="production_batch_index"):
+        MODULE.validate_payload_structure(payload)
 
 
 def _integer_in_float_field(payload):
@@ -1039,6 +1071,26 @@ def test_proxy_only_predicate_includes_network_predicted_components():
     payload = literal_valid_scored_payload()
     _set_network_predicted_suppression_failure(payload)
     payload["reason_codes"] = ["FAIL_PROXY_ONLY"]
+    MODULE.validate_payload_structure(payload)
+
+
+def test_proxy_only_includes_network_d_m_without_owner_damage():
+    payload = literal_valid_scored_payload()
+    network_union = payload["aggregates"]["equal_norm"]["network_only"]["operators"]["summed_union"]
+    network_union["D_F"]["lcb_0_005"] = -0.1
+    network_union["D_F"]["ucb_0_995"] = 0.1
+    network_union["D_M"]["lcb_0_005"] = -0.1
+    network_union["D_M"]["ucb_0_995"] = float(np.nextafter(0.0, -np.inf))
+    payload["status"] = "FAIL"
+    payload["reason_codes"] = ["FAIL_PROXY_ONLY"]
+    payload["decision"]["overall"] = "FAIL"
+    payload["decision"]["authorized_next_action"] = "none"
+    payload["decision"]["component_decisions"]["network_equal_union_predicted_suppression"] = (
+        "UNRESOLVED"
+    )
+    payload["decision"]["component_decisions"]["network_equal_union_predicted_margin_change"] = (
+        "FAIL"
+    )
     MODULE.validate_payload_structure(payload)
 
 

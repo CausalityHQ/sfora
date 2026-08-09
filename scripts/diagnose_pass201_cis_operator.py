@@ -709,6 +709,11 @@ def _validate_context(
         and context["production_batch_index"] >= expected_index,
         f"{path}.production_batch_index",
     )
+    if prior_contexts:
+        _require(
+            context["production_batch_index"] > prior_contexts[-1]["production_batch_index"],
+            f"{path}.production_batch_index must be strictly increasing",
+        )
     _require(
         _is_int(context["batch_size"]) and context["batch_size"] == 180,
         f"{path}.batch_size",
