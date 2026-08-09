@@ -3399,6 +3399,10 @@ def scientific_payload(
     } != {0, 1, 2, 3}:
         raise ValueError("integrity requires exactly seeds 0-3")
     for audit in integrity_seeds:
+        if not isinstance(audit, Mapping) or set(audit) != {
+            "seed", "repeatability", "adjoint", "rotation"
+        }:
+            raise ValueError("integrity adjoint audit schema differs")
         repeatability = audit.get("repeatability") if isinstance(audit, Mapping) else None
         if not isinstance(repeatability, Mapping) or set(repeatability) != {"z", "dbar", "b", "s"}:
             raise ValueError("integrity repeatability gate failed")
@@ -3411,9 +3415,20 @@ def scientific_payload(
                 or any(character not in "0123456789abcdef" for character in hashes["first_sha256"])
             ):
                 raise ValueError("integrity repeatability hashes differ")
-        adjoint = float(audit.get("adjoint_relative_error", float("inf")))
-        if not np.isfinite(adjoint) or adjoint > 5.0e-4:
-            raise ValueError("integrity gate failed: adjoint relative error")
+        adjoint = audit["adjoint"]
+        _validate_adjoint_integrity_audit(
+            adjoint,
+            expected_output_shape=(180, int(panel_binding.get("expected_dimension", -1))),
+        )
+        seed_key = str(audit["seed"])
+        if (
+            adjoint["output_direction_seed"]
+            != domain_seed("rsta-stage-a-v1|adjoint-u|", seed_key)
+            or adjoint["parameter_direction_seed"]
+            != domain_seed("rsta-stage-a-v1|adjoint-v|", seed_key)
+            or adjoint["passed"] is not True
+        ):
+            raise ValueError("integrity gate failed: adjoint audit")
         if not isinstance(audit.get("rotation"), Mapping):
             raise ValueError("integrity rotation gate is missing")
         rotation = audit["rotation"]
@@ -4724,7 +4739,7 @@ def _registered_first_batch_integrity(
             raise ValueError("first-batch exact field repeatability failed")
         return result
 
-    def run_adjoint() -> float:
+    def run_adjoint() -> dict[str, Any]:
         _assert_deterministic_tf32_off()
         parameter = next(value for value in model.parameters() if value.requires_grad)
         u, v = registered_adjoint_directions(
@@ -4734,15 +4749,31 @@ def _registered_first_batch_integrity(
             dtype=parameter.dtype,
             device=parameter.device,
         )
-        result = adjoint_relative_error(
+        output_seed = domain_seed("rsta-stage-a-v1|adjoint-u|", str(seed))
+        parameter_seed = domain_seed("rsta-stage-a-v1|adjoint-v|", str(seed))
+        metadata = _adjoint_direction_metadata(
+            model,
+            u,
+            v,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+        )
+        result = adjoint_integrity_audit(
             model,
             images,
             u,
             v,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
             expected_batch_size=180,
             expected_dimension=expected_dimension,
         )
-        if not np.isfinite(result) or result < 0.0 or result > 5.0e-4:
+        _validate_adjoint_integrity_audit(
+            result,
+            expected_metadata=metadata,
+            expected_output_shape=(180, expected_dimension),
+        )
+        if result["passed"] is not True:
             raise ValueError("first-batch adjoint integrity failed")
         return result
 
@@ -4786,7 +4817,7 @@ def _registered_first_batch_integrity(
         "prehead": prehead,
         "raw_head": raw_head,
         "repeatability": repeatability,
-        "adjoint_relative_error": adjoint,
+        "adjoint": adjoint,
         "rotation": rotation,
     }
 
@@ -4866,6 +4897,88 @@ def run_scientific_diagnostic(
     seed_integrity: list[dict[str, Any]] = []
     zero_jacobian_integrity: dict[str, dict[str, Any]] = {}
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
+
+    def seed_context(bound: TrainingOnlySeedInput, model: Any) -> dict[str, Any]:
+        first_parameter = next(iter(model.parameters()), None)
+        if first_parameter is None:
+            raise ValueError("scientific encoder has no parameters")
+        device, dtype = first_parameter.device, first_parameter.dtype
+        proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
+        proxy_labels = torch.tensor(
+            np.array(bound.proxy_labels, copy=True), device=device, dtype=torch.long
+        )
+        support_map = {
+            label: (
+                tuple(primary["support_ids_by_label"][label]),
+                np.asarray(
+                    [
+                        bound.train_embeddings[index_by_id[value]]
+                        for value in primary["support_ids_by_label"][label]
+                    ],
+                    dtype=np.float32,
+                ),
+            )
+            for label in primary["eligible_labels"]
+        }
+        foreign_ids = tuple(
+            primary["support_ids_by_label"][label][0]
+            for label in primary["eligible_labels"]
+        )
+        return {
+            "device": device,
+            "dtype": dtype,
+            "proxies": proxies,
+            "proxy_labels": proxy_labels,
+            "support_map": support_map,
+            "foreign_ids": foreign_ids,
+            "foreign_labels": tuple(primary["eligible_labels"]),
+            "foreign_descriptors": np.asarray(
+                [bound.train_embeddings[index_by_id[value]] for value in foreign_ids],
+                dtype=np.float32,
+            ),
+        }
+
+    # Phase one is a global integrity prefix.  No candidate field or score is
+    # retained past a seed boundary, and all four seeds must pass first.
+    for bound in bounds:
+        _assert_deterministic_tf32_off()
+        model = make_rsta_diagnostic_clone(model_loader(bound))
+        values = seed_context(bound, model)
+        batch_ids = primary["batches"][0]
+        receiver_ids = tuple(primary["receiver_ids"][:8])
+        receiver_indices = tuple(batch_ids.index(value) for value in receiver_ids)
+        images = cache.batch(batch_ids).to(device=values["device"], dtype=values["dtype"])
+        labels = torch.as_tensor(
+            [label_by_id[value] for value in batch_ids],
+            device=values["device"],
+            dtype=torch.long,
+        )
+        zero_jacobian = zero_jacobian_auditor(model, images)
+        _validate_zero_jacobian_classifier_audit(zero_jacobian)
+        zero_jacobian_integrity[str(bound.seed)] = zero_jacobian
+        first = _registered_first_batch_integrity(
+            model, images, labels, values["proxies"], values["proxy_labels"],
+            seed=bound.seed, alpha=bound.alpha, delta=bound.delta,
+            receiver_indices=receiver_indices,
+            context={
+                "images": images, "labels": labels, "receiver_indices": receiver_indices,
+                "batch_ids": tuple(batch_ids), "support_map": values["support_map"],
+                "foreign_ids": values["foreign_ids"], "foreign_labels": values["foreign_labels"],
+                "foreign_descriptors": values["foreign_descriptors"],
+            },
+            expected_dimension=expected_dimension, rotation_auditor=rotate,
+            head_name=head_name, expected_head_in_features=expected_head_in_features,
+        )
+        adjoint = first.get("adjoint")
+        if not isinstance(adjoint, Mapping) or adjoint.get("passed") is not True:
+            raise ValueError("first-batch adjoint integrity failed")
+        seed_integrity.append({
+            "seed": bound.seed, "repeatability": first["repeatability"],
+            "adjoint": adjoint, "rotation": first["rotation"],
+        })
+        del first, images, labels, values, model
+
+    # Phase two recreates every model and every candidate graph from scratch.
     for bound in bounds:
         _assert_deterministic_tf32_off()
         model = make_rsta_diagnostic_clone(model_loader(bound))
@@ -4876,7 +4989,8 @@ def run_scientific_diagnostic(
         audit_images = cache.batch(primary["batches"][0]).to(device=device, dtype=dtype)
         zero_jacobian = zero_jacobian_auditor(model, audit_images)
         _validate_zero_jacobian_classifier_audit(zero_jacobian)
-        zero_jacobian_integrity[str(bound.seed)] = zero_jacobian
+        if zero_jacobian != zero_jacobian_integrity[str(bound.seed)]:
+            raise ValueError("fresh scoring clone changed zero-Jacobian exclusion")
         parameter_items = [
             (name, value) for name, value in model.named_parameters() if value.requires_grad
         ]
@@ -4907,7 +5021,6 @@ def run_scientific_diagnostic(
             [bound.train_embeddings[index_by_id[value]] for value in foreign_ids],
             dtype=np.float32,
         )
-        first_integrity: dict[str, Any] | None = None
         for panel_name, selected in (("primary", primary), ("alternate", alternate)):
             destination = primary_rows if panel_name == "primary" else alternate_rows
             for batch_index, batch_ids in enumerate(selected["batches"]):
@@ -4920,50 +5033,14 @@ def run_scientific_diagnostic(
                 labels = torch.as_tensor(
                     [label_by_id[value] for value in batch_ids], device=device, dtype=torch.long
                 )
-                context = {
-                    "images": images,
-                    "labels": labels,
-                    "receiver_indices": receiver_indices,
-                    "batch_ids": tuple(batch_ids),
-                    "support_map": support_map,
-                    "foreign_ids": foreign_ids,
-                    "foreign_labels": foreign_labels,
-                    "foreign_descriptors": foreign_descriptors,
-                }
-                if panel_name == "primary" and batch_index == 0:
-                    first = _registered_first_batch_integrity(
-                        model,
-                        images,
-                        labels,
-                        proxies,
-                        proxy_labels,
-                        seed=bound.seed,
-                        alpha=bound.alpha,
-                        delta=bound.delta,
-                        receiver_indices=receiver_indices,
-                        context=context,
-                        expected_dimension=expected_dimension,
-                        rotation_auditor=rotate,
-                        head_name=head_name,
-                        expected_head_in_features=expected_head_in_features,
-                    )
-                    fields = first["fields"]
-                    prehead, raw_head = first["prehead"], first["raw_head"]
-                    first_integrity = {
-                        "seed": bound.seed,
-                        "repeatability": first["repeatability"],
-                        "adjoint_relative_error": first["adjoint_relative_error"],
-                        "rotation": first["rotation"],
-                    }
-                else:
-                    prehead, raw_head, captured = capture_prehead_and_raw(
+                prehead, raw_head, captured = capture_prehead_and_raw(
                         model,
                         images,
                         head_name=head_name,
                         expected_in_features=expected_head_in_features,
                         expected_out_features=expected_dimension,
                     )
-                    fields = exact_contextual_rsta_fields(
+                fields = exact_contextual_rsta_fields(
                         model,
                         images,
                         labels,
@@ -4975,10 +5052,8 @@ def run_scientific_diagnostic(
                         expected_batch_size=180,
                         expected_dimension=expected_dimension,
                     )
-                    if not torch.equal(
-                        torch.nn.functional.normalize(captured, dim=-1), fields["z"]
-                    ):
-                        raise ValueError("prehead control forward differs from exact field graph")
+                if not torch.equal(torch.nn.functional.normalize(captured, dim=-1), fields["z"]):
+                    raise ValueError("prehead control forward differs from exact field graph")
                 destination.extend(
                     score_rsta_batch(
                         seed=bound.seed,
@@ -4999,9 +5074,6 @@ def run_scientific_diagnostic(
                     )
                 )
                 del fields
-        if first_integrity is None:
-            raise ValueError("scientific primary first-batch integrity context is missing")
-        seed_integrity.append(first_integrity)
         seed_audits.append(
             {
                 "seed": bound.seed,
@@ -5131,6 +5203,7 @@ def _validate_adjoint_integrity_audit(
     audit: Mapping[str, Any],
     *,
     expected_metadata: Mapping[str, Any] | None = None,
+    expected_output_shape: Sequence[int] = (180, 512),
 ) -> None:
     value = _require_exact_keys(audit, set(_ADJOINT_AUDIT_FIELDS), name="adjoint audit")
     if list(value) != list(_ADJOINT_AUDIT_FIELDS):
@@ -5152,7 +5225,7 @@ def _validate_adjoint_integrity_audit(
     if (
         not isinstance(shape, list)
         or len(shape) != 2
-        or shape != [180, 512]
+        or shape != list(expected_output_shape)
         or any(type(dimension) is not int or dimension <= 0 for dimension in shape)
     ):
         raise ValueError("adjoint output shape differs")

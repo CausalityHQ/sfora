@@ -3562,7 +3562,29 @@ def _valid_scientific_payload_arguments(
                     name: {"first_sha256": str(seed) * 64, "repeat_sha256": str(seed) * 64}
                     for name in ("z", "dbar", "b", "s")
                 },
-                "adjoint_relative_error": 0.0,
+                "adjoint": {
+                    "direction_domain": "rsta-stage-a-v1",
+                    "output_direction_seed": _MODULE.domain_seed(
+                        "rsta-stage-a-v1|adjoint-u|", str(seed)
+                    ),
+                    "parameter_direction_seed": _MODULE.domain_seed(
+                        "rsta-stage-a-v1|adjoint-v|", str(seed)
+                    ),
+                    "output_direction_sha256": "a" * 64,
+                    "parameter_direction_sha256": "b" * 64,
+                    "output_shape": [180, 512],
+                    "parameter_name_order_sha256": "c" * 64,
+                    "parameter_count": 1,
+                    "model_dtype": "torch.float32",
+                    "reduction_dtype": "torch.float64",
+                    "lhs": 1.0,
+                    "rhs": 1.0,
+                    "absolute_error": 0.0,
+                    "denominator": 1.0,
+                    "relative_error": 0.0,
+                    "tolerance": 5.0e-4,
+                    "passed": True,
+                },
                 "rotation": {
                     "vector_residuals": {name: 0.0 for name in ("z", "dbar", "b", "s", "q")},
                     "statistic_differences": {
@@ -3633,6 +3655,47 @@ def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schem
     arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
     payload = _MODULE.scientific_payload(**arguments)
     assert payload["candidate_values_computed"] is True
+
+
+def test_scientific_payload_requires_exact_structured_adjoint_audits(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches scalar substitution or lossy/malformed structured adjoint persistence."""
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    expected = deepcopy(arguments["integrity"]["seeds"])
+    payload = _MODULE.scientific_payload(**arguments)
+    assert payload["integrity"]["seeds"] == expected
+
+    mutations = {
+        "direction_domain": "wrong",
+        "output_direction_seed": 0,
+        "parameter_direction_seed": 0,
+        "output_direction_sha256": "g" * 64,
+        "parameter_direction_sha256": "g" * 64,
+        "output_shape": [180, 511],
+        "parameter_name_order_sha256": "g" * 64,
+        "parameter_count": 0,
+        "model_dtype": "torch.float64",
+        "reduction_dtype": "torch.float32",
+        "lhs": float("nan"),
+        "rhs": float("nan"),
+        "absolute_error": 1.0,
+        "denominator": 2.0,
+        "relative_error": 1.0,
+        "tolerance": 1.0,
+        "passed": False,
+    }
+    for mutation in ("missing", "extra", *mutations):
+        changed = deepcopy(arguments)
+        audit = changed["integrity"]["seeds"][2]["adjoint"]
+        if mutation == "missing":
+            audit.pop("lhs")
+        elif mutation == "extra":
+            audit["unexpected"] = 0
+        else:
+            audit[mutation] = mutations[mutation]
+        with pytest.raises(ValueError, match="adjoint"):
+            _MODULE.scientific_payload(**changed)
     assert len(payload["rows"]["primary"]) == 4 * 64
     assert len(payload["rows"]["alternate"]) == 4 * 16
     assert "control_aggregates" in payload["aggregation"]
@@ -4761,6 +4824,8 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
 
     rotation_calls: list[int] = []
     integrity_score_events: list[str] = []
+    field_phases: list[str] = []
+    integrity_field_refs: list[weakref.ReferenceType[torch.Tensor]] = []
 
     original_configure = _MODULE.configure_deterministic_process
 
@@ -4769,6 +4834,25 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         return original_configure()
 
     monkeypatch.setattr(_MODULE, "configure_deterministic_process", configure_first)
+    original_fields = _MODULE.exact_contextual_rsta_fields
+
+    def record_field_construction(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        field_phases.append(
+            "scoring" if "integrity-3" in integrity_score_events else "integrity"
+        )
+        return original_fields(*args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "exact_contextual_rsta_fields", record_field_construction)
+    original_integrity = _MODULE._registered_first_batch_integrity
+
+    def record_integrity_fields(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        gc.collect()
+        assert all(reference() is None for reference in integrity_field_refs)
+        result = original_integrity(*args, **kwargs)
+        integrity_field_refs.append(weakref.ref(result["fields"]["z"]))
+        return result
+
+    monkeypatch.setattr(_MODULE, "_registered_first_batch_integrity", record_integrity_fields)
 
     def audit_before_scoring(path: Path) -> dict[str, Any]:
         integrity_score_events.append("execution-audit")
@@ -4777,7 +4861,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
 
     def rotation_auditor(*args: Any, seed: int, **kwargs: Any) -> dict[str, Any]:
         rotation_calls.append(seed)
-        integrity_score_events.append(f"rotation-{seed}")
+        integrity_score_events.append(f"integrity-{seed}")
         return _MODULE._default_rotation_auditor(*args, seed=seed, **kwargs)
 
     original_score = _MODULE.score_rsta_batch
@@ -4785,6 +4869,8 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
 
     def score_after_integrity(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
         integrity_score_events.append(f"score-{kwargs['seed']}")
+        gc.collect()
+        assert all(reference() is None for reference in integrity_field_refs)
         return original_score(*args, **kwargs)
 
     monkeypatch.setattr(_MODULE, "score_rsta_batch", score_after_integrity)
@@ -4885,15 +4971,23 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
-    assert zero_jacobian_calls == [180, 180, 180, 180]
+    assert zero_jacobian_calls == [180] * 8
     assert integrity_score_events[:2] == ["configure", "execution-audit"]
     assert integrity_score_events.index("execution-audit") < integrity_score_events.index(
         "decision"
     )
-    for seed in range(4):
-        assert integrity_score_events.index(f"rotation-{seed}") < integrity_score_events.index(
-            f"score-{seed}"
-        )
+    integrity_events = [
+        event for event in integrity_score_events if event.startswith("integrity-")
+    ]
+    score_events = [event for event in integrity_score_events if event.startswith("score-")]
+    assert integrity_events == ["integrity-0", "integrity-1", "integrity-2", "integrity-3"]
+    assert integrity_score_events.index("integrity-3") < integrity_score_events.index(
+        score_events[0]
+    )
+    assert integrity_score_events.index(score_events[-1]) < integrity_score_events.index(
+        "decision"
+    )
+    assert "integrity" in field_phases and "scoring" in field_phases
     assert result["mode"] == "scientific"
     assert len(result["rows"]["primary"]) == 4 * 64
     assert len(result["rows"]["alternate"]) == 4 * 16
@@ -4906,6 +5000,14 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
         "files"
     ]["scripts/diagnose_pass200_rsta_stage_a.py"]
+
+
+def test_scientific_integrity_graphs_are_released_before_next_seed_and_scoring_graphs_are_fresh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows(
+        tmp_path, monkeypatch
+    )
 
 
 def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output(
@@ -4935,6 +5037,96 @@ def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output
 
     assert downstream_calls == []
     assert not output.exists()
+
+
+@pytest.mark.parametrize("failing_seed", [1, 2, 3])
+@pytest.mark.parametrize("gate", ["zero_jacobian", "repeatability", "adjoint", "rotation"])
+def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failing_seed: int,
+    gate: str,
+) -> None:
+    """Catches any candidate work before every later-seed integrity gate passes."""
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    manifest_path, manifest = _task2_manifest(tmp_path)
+    bounds, cache_builder, model_type = _task2_inputs(manifest)
+    candidate_calls = {name: 0 for name in (
+        "score_rsta_batch", "decide_stage_a", "joint_bootstrap", "scientific_payload"
+    )}
+
+    def forbidden(name: str) -> Callable[..., Any]:
+        def call(*_args: Any, **_kwargs: Any) -> Any:
+            candidate_calls[name] += 1
+            raise AssertionError(f"candidate {name} reached before {gate}-{failing_seed}")
+
+        return call
+
+    for name in candidate_calls:
+        monkeypatch.setattr(_MODULE, name, forbidden(name))
+
+    def model_loader(bound: Any) -> Any:
+        model = model_type(bound.seed).train()
+        model.audit_seed = bound.seed
+        return model
+
+    def zero_jacobian(model: Any, _images: Any) -> dict[str, Any]:
+        if gate == "zero_jacobian" and model.audit_seed == failing_seed:
+            raise ValueError(f"zero_jacobian-{failing_seed}")
+        return _valid_zero_jacobian_audit()
+
+    def integrity(model: Any, *_args: Any, seed: int, **_kwargs: Any) -> dict[str, Any]:
+        assert model.audit_seed == seed
+        if gate != "zero_jacobian" and seed == failing_seed:
+            raise ValueError(f"{gate}-{failing_seed}")
+        return {
+            "fields": {"sentinel": torch.tensor(float(seed), requires_grad=True)},
+            "prehead": torch.zeros(180, 2),
+            "raw_head": torch.zeros(180, 512),
+            "repeatability": {},
+            "adjoint": _task2_adjoint_auditor(
+                model,
+                None,
+                *_MODULE.registered_adjoint_directions(
+                    model,
+                    (180, 512),
+                    seed=seed,
+                    dtype=torch.float32,
+                    device=torch.device("cpu"),
+                ),
+                output_direction_seed=_MODULE.domain_seed(
+                    "rsta-stage-a-v1|adjoint-u|", str(seed)
+                ),
+                parameter_direction_seed=_MODULE.domain_seed(
+                    "rsta-stage-a-v1|adjoint-v|", str(seed)
+                ),
+            ),
+            "adjoint_relative_error": 0.0,
+            "rotation": {},
+        }
+
+    monkeypatch.setattr(_MODULE, "_registered_first_batch_integrity", integrity)
+    output = tmp_path / "scientific-failure.json"
+    with pytest.raises(ValueError, match=f"{gate}-{failing_seed}"):
+        _MODULE.run_scientific_diagnostic(
+            manifest,
+            manifest_path=manifest_path,
+            receipt_path=tmp_path / "receipt.json",
+            output_path=output,
+            expected_dimension=512,
+            receipt_validator=lambda *_args: _tiny_validated_receipt(),
+            execution_source_validator=lambda _path: {"validated": True},
+            bound_loader=lambda _entry, receipt_seed, **_kwargs: bounds[receipt_seed.seed],
+            cache_builder=cache_builder,
+            model_loader=model_loader,
+            fixture_runner=_task2_fixture_audit,
+            deterministic_pool_auditor=_valid_global_max_audit,
+            zero_jacobian_auditor=zero_jacobian,
+        )
+
+    assert candidate_calls == {name: 0 for name in candidate_calls}
+    assert not output.exists()
+    assert list(tmp_path.glob(f".{output.name}.*.tmp")) == []
 
 
 @pytest.mark.parametrize(
@@ -5103,7 +5295,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
     assert result["integrity"]["zero_jacobian_classifier"] == _valid_zero_jacobian_audit()
     assert set(result["integrity"]["repeatability"]) == {"z", "dbar", "b", "s"}
-    assert result["integrity"]["adjoint_relative_error"] <= 5.0e-4
+    assert result["integrity"]["adjoint"]["passed"] is True
     assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
     assert len(result["binding"]["first_batch_id_sha256"]) == 64
     assert len(result["binding"]["transform_tensor_set_sha256"]) == 64
