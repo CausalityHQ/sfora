@@ -4,8 +4,11 @@ import hashlib
 import importlib.util
 import json
 import struct
+import subprocess
+import sys
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -56,6 +59,963 @@ THRESHOLDS = {
     "joint_equal_union_foreign_suppression": 0.000,
     "joint_equal_union_margin_change": 0.000,
 }
+
+FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f402ef8066"
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _literal_tree_digest(root: Path, relative_root: str) -> tuple[int, str]:
+    paths = sorted(
+        (path for path in (root / relative_root).rglob("*.py") if path.is_file()),
+        key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
+    )
+    framed = b"".join(
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
+        for path in paths
+    )
+    return len(paths), hashlib.sha256(framed).hexdigest()
+
+
+def _literal_data_tree_digest(root: Path, relative_root: str) -> tuple[int, int, str]:
+    paths = sorted(
+        (path for path in (root / relative_root).rglob("*") if path.is_file()),
+        key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
+    )
+    framed = b"".join(
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
+        for path in paths
+    )
+    return (
+        len(paths),
+        sum(path.stat().st_size for path in paths),
+        hashlib.sha256(framed).hexdigest(),
+    )
+
+
+def _write_json(path: Path, value: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _source_binding_fixture(tmp_path: Path) -> SimpleNamespace:
+    root = tmp_path / "source"
+    (root / "src/sfora").mkdir(parents=True)
+    (root / "scripts").mkdir()
+    (root / "docs").mkdir()
+    (root / "artifacts").mkdir()
+    (root / "dataset/img/a").mkdir(parents=True)
+    (root / "src/sfora/core.py").write_text("BOUND = True\n", encoding="utf-8")
+    (root / "scripts/launch.sh").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    diagnostic = root / "scripts/diagnostic.py"
+    diagnostic.write_bytes(MODULE_PATH.read_bytes())
+    partition = root / "dataset/partition.txt"
+    partition.write_text("train a/one.jpg 0\ntrain a/two.jpg 0\n", encoding="utf-8")
+    (root / "dataset/img/a/one.jpg").write_bytes(b"one")
+    (root / "dataset/img/a/two.jpg").write_bytes(b"two")
+
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "Pass201 Test"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "bound source"], cwd=root, check=True)
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    source_count, source_tree = _literal_tree_digest(root, "src/sfora")
+    data_count, data_bytes, data_tree = _literal_data_tree_digest(root / "dataset", "img")
+    argv = [
+        ".venv/bin/sfora",
+        "image-end-to-end",
+        "--dataset-name",
+        "inshop",
+        "--objectives",
+        "proxy_anchor",
+        "--seed",
+        "0",
+    ]
+    bind_output_postcondition = (
+        "bind_output_hashes_in_separate_activation_manifest_before_any_"
+        "pass201_tensor_or_gradient"
+    )
+    prelaunch = {
+        "schema_version": "pass201-pa-source-prelaunch-v1",
+        "status": "frozen_before_training",
+        "local_source_revision": revision,
+        "source": {
+            "python_tree_root": "src/sfora",
+            "python_file_count": source_count,
+            "python_tree_merkle_sha256": source_tree,
+            "files": {
+                "scripts/launch.sh": {
+                    "bytes": (root / "scripts/launch.sh").stat().st_size,
+                    "sha256": _sha256_file(root / "scripts/launch.sh"),
+                }
+            },
+        },
+        "environment": {
+            "python": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "numpy": np.__version__,
+            "torch": torch.__version__,
+        },
+        "dataset": {
+            "root": str((root / "dataset").resolve()),
+            "partition_path": "partition.txt",
+            "partition_bytes": partition.stat().st_size,
+            "partition_sha256": _sha256_file(partition),
+            "partition_line_count": 2,
+            "image_root": "img",
+            "image_file_count": data_count,
+            "image_total_bytes": data_bytes,
+            "image_tree_merkle_sha256": data_tree,
+        },
+        "execution": {
+            "working_directory": str(root.resolve()),
+            "environment": {"PYTHONPATH": "src"},
+            "argv": argv,
+        },
+        "outputs": {
+            "report": "artifacts/report.json",
+            "checkpoint": "artifacts/checkpoint.json",
+            "all_absent_when_frozen": True,
+        },
+        "postconditions": {
+            "recompute_every_source_and_dataset_digest_before_launch": True,
+            "recompute_every_source_and_dataset_digest_after_exit": True,
+            "require_report_checkpoint_config_identity": True,
+            "require_ordinary_proxy_anchor_seed0_final_training_state_8580_steps": True,
+            bind_output_postcondition: True,
+        },
+    }
+    prelaunch_path = root / "docs/pass201_pa_source_prelaunch_manifest.json"
+    _write_json(prelaunch_path, prelaunch)
+
+    config = {
+        "dataset_name": "inshop",
+        "objectives": ["proxy_anchor"],
+        "seed": 0,
+        "batch_size": 180,
+        "samples_per_class": 0,
+        "hard_class_fraction": 0.0,
+        "drop_last_train_batch": True,
+        "freeze_batch_norm": False,
+        "freeze_batch_norm_affine": False,
+        "checkpoint_selection_interval": 0,
+        "learning_rate": 0.001,
+        "coalition_weight": 0.2,
+        "proxy_learning_rate_multiplier": 10.0,
+        "proxy_count_per_class": 1,
+        "num_workers": 0,
+    }
+    config_path = root / "artifacts/config.json"
+    _write_json(config_path, config)
+    train_manifest_path = root / "artifacts/train.json"
+    _write_json(
+        train_manifest_path,
+        {
+            "schema_version": "pass201-train-manifest-v1",
+            "rows": [
+                {"example_id": "a/one.jpg", "sample_index": 0, "label": 0},
+                {"example_id": "a/two.jpg", "sample_index": 1, "label": 0},
+            ],
+        },
+    )
+    checkpoint_path = root / "artifacts/checkpoint.json"
+    checkpoint = {
+        "artifact_selection": "final_training_state",
+        "evaluation_model_source": "student",
+        "training_step": 8580,
+        "checkpoint_epoch": 30,
+        "objective": "proxy_anchor",
+        "seed": 0,
+        "training_config": config,
+        "resolved_config_sha256": _sha256_file(config_path),
+        "train_manifest_sha256": _sha256_file(train_manifest_path),
+    }
+    _write_json(checkpoint_path, checkpoint)
+    report_path = root / "artifacts/report.json"
+    report = {
+        "config": config,
+        "methods": {
+            "proxy_anchor_end_to_end:bn_inception": {
+                "objective": "proxy_anchor",
+                "executed_train_steps": 8580,
+            }
+        },
+        "source_binding": {
+            "prelaunch_source_manifest_sha256": _sha256_file(prelaunch_path),
+            "source_revision": revision,
+            "source_python_tree_sha256_before": source_tree,
+            "source_python_tree_sha256_after": source_tree,
+            "dataset_image_tree_sha256_before": data_tree,
+            "dataset_image_tree_sha256_after": data_tree,
+            "argv": argv,
+            "checkpoint_sha256": _sha256_file(checkpoint_path),
+            "resolved_config_sha256": _sha256_file(config_path),
+            "train_manifest_sha256": _sha256_file(train_manifest_path),
+        },
+    }
+    _write_json(report_path, report)
+    return SimpleNamespace(
+        root=root,
+        git_root=root,
+        prelaunch_manifest=prelaunch_path,
+        expected_prelaunch_sha256=_sha256_file(prelaunch_path),
+        source_report=report_path,
+        checkpoint=checkpoint_path,
+        resolved_config=config_path,
+        train_manifest=train_manifest_path,
+        dataset_root=root / "dataset",
+        diagnostic_path=diagnostic,
+        activated_preregistration=root / "docs/pass201_cis_operator_activated_preregistration.json",
+        source_manifest=root / "docs/pass201_cis_operator_source_manifest.json",
+    )
+
+
+def test_source_activation_emits_two_atomic_acyclic_artifacts_in_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    writes: list[Path] = []
+    real_write = MODULE._atomic_write_json
+
+    def recording_write(path: Path, payload: object) -> bytes:
+        writes.append(path)
+        return real_write(path, payload)
+
+    monkeypatch.setattr(MODULE, "_atomic_write_json", recording_write)
+    preregistration, manifest = MODULE.activate_source(args)
+
+    assert writes == [args.activated_preregistration, args.source_manifest]
+    assert set(preregistration) == {
+        "schema_version",
+        "frozen_draft_path",
+        "frozen_draft_sha256",
+        "result_path",
+        "source",
+        "constants",
+        "thresholds",
+        "authorized_action",
+    }
+    assert preregistration["schema_version"] == "pass201-cis-activated-preregistration-v1"
+    assert preregistration["frozen_draft_path"] == (
+        "docs/pass201_cis_operator_diagnostic_draft_2026-08-09.md"
+    )
+    assert preregistration["frozen_draft_sha256"] == FROZEN_DRAFT_SHA256
+    assert preregistration["result_path"] == (
+        "reports/generated/pass201_cis_operator/pass201_inshop_seed0.json"
+    )
+    assert preregistration["authorized_action"] == (
+        "binding_and_integrity_smoke_then_scientific_if_green"
+    )
+    assert set(manifest) == {
+        "schema_version",
+        "status",
+        "prelaunch_source_manifest_path",
+        "prelaunch_source_manifest_sha256",
+        "source_report_path",
+        "source_report_sha256",
+        "source_revision",
+        "checkpoint_path",
+        "checkpoint_sha256",
+        "checkpoint_bytes",
+        "checkpoint_epoch",
+        "objective",
+        "seed",
+        "resolved_config_path",
+        "resolved_config_sha256",
+        "train_manifest_path",
+        "train_manifest_sha256",
+        "diagnostic_source_sha256",
+        "activated_preregistration_sha256",
+        "torch_version",
+        "numpy_version",
+    }
+    assert manifest["schema_version"] == "pass201-source-v1"
+    assert manifest["status"] == "frozen"
+    assert manifest["activated_preregistration_sha256"] == _sha256_file(
+        args.activated_preregistration
+    )
+    assert all(value is not None for value in manifest.values())
+    assert "activated_preregistration_sha256" not in preregistration["source"]
+    assert "source_manifest_sha256" not in preregistration["source"]
+    assert not list(args.activated_preregistration.parent.glob("*.tmp-*"))
+    assert json.loads(args.activated_preregistration.read_text(encoding="utf-8")) == preregistration
+    assert json.loads(args.source_manifest.read_text(encoding="utf-8")) == manifest
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "prelaunch_digest",
+        "source_tree",
+        "source_revision",
+        "source_revision_tree",
+        "run_command",
+        "prelaunch_output_path",
+        "dataset_tree",
+        "report_checkpoint_digest",
+        "checkpoint_config_digest",
+        "seed",
+        "objective",
+        "batch_size",
+        "bn_mode",
+        "proxy_count",
+        "post_source_replay",
+        "post_data_replay",
+    ],
+)
+def test_source_binding_mutations_fail_before_torch_model_or_scoring(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    prelaunch = json.loads(args.prelaunch_manifest.read_text(encoding="utf-8"))
+    report = json.loads(args.source_report.read_text(encoding="utf-8"))
+    checkpoint = json.loads(args.checkpoint.read_text(encoding="utf-8"))
+    config = json.loads(args.resolved_config.read_text(encoding="utf-8"))
+    if mutation == "prelaunch_digest":
+        args.expected_prelaunch_sha256 = "0" * 64
+    elif mutation == "source_tree":
+        (args.root / "src/sfora/core.py").write_text("DRIFT = True\n", encoding="utf-8")
+    elif mutation == "source_revision":
+        report["source_binding"]["source_revision"] = "0" * 40
+        _write_json(args.source_report, report)
+    elif mutation == "source_revision_tree":
+        source_path = args.root / "src/sfora/core.py"
+        original = source_path.read_text(encoding="utf-8")
+        source_path.write_text("REVISION_DRIFT = True\n", encoding="utf-8")
+        subprocess.run(["git", "add", "src/sfora/core.py"], cwd=args.root, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "revision drift"], cwd=args.root, check=True
+        )
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=args.root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        source_path.write_text(original, encoding="utf-8")
+        prelaunch["local_source_revision"] = revision
+        _write_json(args.prelaunch_manifest, prelaunch)
+        args.expected_prelaunch_sha256 = _sha256_file(args.prelaunch_manifest)
+        report["source_binding"]["prelaunch_source_manifest_sha256"] = (
+            args.expected_prelaunch_sha256
+        )
+        report["source_binding"]["source_revision"] = revision
+        _write_json(args.source_report, report)
+    elif mutation == "run_command":
+        report["source_binding"]["argv"][-1] = "1"
+        _write_json(args.source_report, report)
+    elif mutation == "prelaunch_output_path":
+        prelaunch["outputs"]["report"] = "artifacts/substitute.json"
+        _write_json(args.prelaunch_manifest, prelaunch)
+        args.expected_prelaunch_sha256 = _sha256_file(args.prelaunch_manifest)
+        report["source_binding"]["prelaunch_source_manifest_sha256"] = (
+            args.expected_prelaunch_sha256
+        )
+        _write_json(args.source_report, report)
+    elif mutation == "dataset_tree":
+        (args.dataset_root / "img/a/one.jpg").write_bytes(b"changed")
+    elif mutation == "report_checkpoint_digest":
+        report["source_binding"]["checkpoint_sha256"] = "0" * 64
+        _write_json(args.source_report, report)
+    elif mutation == "checkpoint_config_digest":
+        checkpoint["resolved_config_sha256"] = "0" * 64
+        _write_json(args.checkpoint, checkpoint)
+    elif mutation in {"seed", "objective", "batch_size", "bn_mode", "proxy_count"}:
+        key, value = {
+            "seed": ("seed", 1),
+            "objective": ("objectives", ["proxy_anchor_coalition"]),
+            "batch_size": ("batch_size", 179),
+            "bn_mode": ("freeze_batch_norm", True),
+            "proxy_count": ("proxy_count_per_class", 2),
+        }[mutation]
+        config[key] = value
+        _write_json(args.resolved_config, config)
+    elif mutation == "post_source_replay":
+        report["source_binding"]["source_python_tree_sha256_after"] = "0" * 64
+        _write_json(args.source_report, report)
+    elif mutation == "post_data_replay":
+        report["source_binding"]["dataset_image_tree_sha256_after"] = "0" * 64
+        _write_json(args.source_report, report)
+    else:  # pragma: no cover
+        raise AssertionError(mutation)
+
+    touched: list[str] = []
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: touched.append("torch"))
+    monkeypatch.setattr(MODULE, "_load_process_runtime", lambda *args: touched.append("model"))
+    monkeypatch.setattr(MODULE, "score_context", lambda **kwargs: touched.append("score"))
+    with pytest.raises(ValueError):
+        MODULE.activate_source(args)
+    assert touched == []
+    assert not args.activated_preregistration.exists()
+    assert not args.source_manifest.exists()
+
+
+def test_activation_failure_preserves_prior_committed_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    MODULE.activate_source(args)
+    before_preregistration = args.activated_preregistration.read_bytes()
+    before_manifest = args.source_manifest.read_bytes()
+
+    def fail_second_write(path: Path, payload: object) -> bytes:
+        if path == args.source_manifest:
+            raise OSError("injected source manifest write failure")
+        return MODULE.canonical_json_bytes(payload) + b"\n"
+
+    monkeypatch.setattr(MODULE, "_atomic_write_json", fail_second_write)
+    with pytest.raises(OSError, match="injected"):
+        MODULE.activate_source(args)
+    assert args.activated_preregistration.read_bytes() == before_preregistration
+    assert args.source_manifest.read_bytes() == before_manifest
+
+
+def test_source_activation_reads_bound_torch_checkpoint_metadata_without_import_hook(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    metadata = json.loads(args.checkpoint.read_text(encoding="utf-8"))
+    metadata["state_dict"] = {"weight": torch.tensor([1.0])}
+    torch.save(metadata, args.checkpoint)
+    report = json.loads(args.source_report.read_text(encoding="utf-8"))
+    report["source_binding"]["checkpoint_sha256"] = _sha256_file(args.checkpoint)
+    _write_json(args.source_report, report)
+    touched: list[str] = []
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: touched.append("torch"))
+
+    _, manifest = MODULE.activate_source(args)
+
+    assert touched == []
+    assert manifest["checkpoint_sha256"] == _sha256_file(args.checkpoint)
+
+
+class _FakeCuda:
+    def __init__(self, events: list[str]):
+        self.events = events
+
+    def device_count(self) -> int:
+        self.events.append("enumerate")
+        return 1
+
+    def get_device_properties(self, index: int) -> SimpleNamespace:
+        assert index == 0
+        return SimpleNamespace(name="fake-gpu", pci_bus_id="0000:01:00.0")
+
+    def manual_seed_all(self, seed: int) -> None:
+        assert seed == 2010812
+        self.events.append("cuda_seed")
+
+    def get_rng_state(self, index: int) -> np.ndarray:
+        assert index == 0
+        return np.asarray([4, 5, 6], dtype=np.uint8)
+
+
+class _FakeBackendFlags:
+    benchmark = True
+    deterministic = False
+    allow_tf32 = True
+
+
+class _FakeTorch:
+    __version__ = "test-torch"
+    version = SimpleNamespace(cuda="test-cuda")
+
+    def __init__(self, events: list[str]):
+        self.events = events
+        self.cuda = _FakeCuda(events)
+        self.backends = SimpleNamespace(
+            cudnn=_FakeBackendFlags(),
+            cuda=SimpleNamespace(matmul=_FakeBackendFlags()),
+        )
+
+    def use_deterministic_algorithms(self, enabled: bool, *, warn_only: bool) -> None:
+        assert enabled is True and warn_only is False
+        self.events.append("deterministic")
+
+    def manual_seed(self, seed: int) -> None:
+        assert seed == 2010812
+        self.events.append("torch_seed")
+
+    def get_rng_state(self) -> np.ndarray:
+        return np.asarray([1, 2, 3], dtype=np.uint8)
+
+
+def _process_digest(index: int) -> dict:
+    record = {
+        "context_index": index,
+        "s_tensor_sha256": hashlib.sha256(f"s-{index}".encode()).hexdigest(),
+        "s_prime_tensor_sha256": hashlib.sha256(f"sp-{index}".encode()).hexdigest(),
+        "metadata_sha256": hashlib.sha256(f"m-{index}".encode()).hexdigest(),
+    }
+    record["combined_sha256"] = hashlib.sha256(
+        json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return record
+
+
+class _FakeProcessRuntime:
+    def __init__(self, events: list[str], role: str):
+        self.events = events
+        self.role = role
+
+    def prepare_contexts(self) -> list[dict]:
+        self.events.append("prepare")
+        return [
+            {
+                "digest_record": _process_digest(index),
+                "context": {"context_index": index, "operator_value": float(index)},
+            }
+            for index in range(32)
+        ]
+
+    def score_context(self, index: int, prepared: dict) -> dict:
+        self.events.append(f"score:{index}")
+        return {
+            "context": prepared["context"],
+            "replay_tensors": {"gradient": [float(index), 1.0]},
+            "replay_scalars": {"loss": float(index)},
+        }
+
+    def finalize(self, contexts: list[dict]) -> None:
+        self.events.append(f"finalize:{len(contexts)}")
+        return None
+
+
+def _synthetic_task2_score() -> dict:
+    gradients = {}
+    updates = {
+        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
+    }
+    outcomes = {
+        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
+    }
+    for operator in OPERATORS:
+        for panel in PANELS:
+            gradients[f"{operator}.{panel}"] = MODULE.PanelGradient(
+                parameter_names=("weight",),
+                named_gradients=(("weight", np.asarray([0.1])),),
+                named_update_gradients=(("weight", np.asarray([0.1])),),
+                parameter_count=2,
+                gradient_sha256=HEX_A,
+                raw_gradient_norm=0.1,
+                update_space_norm=0.1,
+                auxiliary_to_pa_norm_ratio=1.0,
+                cosine_with_pa=1.0,
+                cosine_with_atomic_full_union=1.0,
+                cosine_with_summed_dropout=1.0,
+                scale_residual_to_summed_union=(
+                    1.0 if operator.startswith("atomic_") else None
+                ),
+            )
+            for regime in REGIMES:
+                equal = regime == "equal_norm"
+                updates[regime][operator][panel] = MODULE.StatelessUpdate(
+                    parameter_names=("weight",),
+                    named_updates=(("weight", np.asarray([-0.01])),),
+                    update_sha256=HEX_B,
+                    parameter_update_norm=0.1,
+                    reference_pa_norm=0.1 if equal else None,
+                    norm_match_absolute_error=0.0 if equal else None,
+                )
+                outcomes[regime][operator][panel] = MODULE.OutcomeFields(
+                    R_F=0.02,
+                    Delta_M=0.02,
+                    D_F=0.02,
+                    D_M=0.02,
+                )
+    return {
+        "losses": {operator: np.float64(0.5) for operator in OPERATORS},
+        "gradients": gradients,
+        "updates": updates,
+        "outcomes": outcomes,
+        "shared_confuser": {
+            "foreign_proxy_rows": 3,
+            "A_aligned": 0.2,
+            "null_mean": 0.1,
+            "E_shared": 1.0,
+            "null_distribution": np.zeros(256, dtype="<f8"),
+            "null_distribution_sha256": HEX_A,
+        },
+    }
+
+
+def test_process_role_materializes_the_complete_task2_context_schema() -> None:
+    expected = _context(0)
+    base = {
+        key: deepcopy(value)
+        for key, value in expected.items()
+        if key
+        not in {
+            "foreign_proxy_rows",
+            "shared_confuser",
+            "operators",
+        }
+    }
+    score = _synthetic_task2_score()
+    score["train_graph"] = object()
+    actual = MODULE.materialize_scored_context(base, score)
+    MODULE._validate_context(actual, 0, [])
+    assert actual == expected
+
+
+def test_process_role_uses_the_bound_in_module_runtime_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sentinel = object()
+    monkeypatch.delenv("PASS201_RUNTIME_FACTORY", raising=False)
+    monkeypatch.setattr(
+        MODULE,
+        "_ProductionRuntime",
+        lambda source_manifest, torch_module: sentinel,
+    )
+    assert MODULE._load_process_runtime({"schema_version": "pass201-source-v1"}, object()) is (
+        sentinel
+    )
+
+
+def test_process_role_sets_determinism_before_model_and_seeds_once_without_rewind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    events: list[str] = []
+    fake_torch = _FakeTorch(events)
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setenv("PASS201_PROCESS_MODE", "smoke")
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: fake_torch)
+
+    def load_runtime(source_manifest: dict, torch_module: object) -> _FakeProcessRuntime:
+        assert source_manifest == {"bound": True}
+        assert torch_module is fake_torch
+        assert events[:2] == ["enumerate", "deterministic"]
+        events.append("model")
+        return _FakeProcessRuntime(events, "scientific")
+
+    monkeypatch.setattr(MODULE, "_load_process_runtime", load_runtime)
+    output = tmp_path / "scientific.json"
+    MODULE.run_process_role("scientific", {"bound": True}, output)
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert events.count("enumerate") == 1
+    assert events.count("torch_seed") == 1
+    assert events.count("cuda_seed") == 1
+    assert events.index("deterministic") < events.index("model")
+    assert events.index("prepare") < events.index("score:0")
+    assert [event for event in events if event.startswith("score:")] == [
+        f"score:{index}" for index in range(32)
+    ]
+    assert payload["process_record"]["prepared_context_count"] == 32
+    assert payload["aggregate_context_indices"] == list(range(32))
+    assert len(payload["contexts"]) == 32
+
+
+@pytest.mark.parametrize(
+    ("role", "expected_scores"),
+    [
+        ("integrity_replay_a", [0]),
+        ("integrity_replay_b", [0]),
+        ("scientific", list(range(32))),
+    ],
+)
+def test_process_role_scores_only_the_role_authorized_contexts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    role: str,
+    expected_scores: list[int],
+) -> None:
+    events: list[str] = []
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setenv("PASS201_PROCESS_MODE", "smoke")
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: _FakeTorch(events))
+    monkeypatch.setattr(
+        MODULE,
+        "_load_process_runtime",
+        lambda source, torch_module: _FakeProcessRuntime(events, role),
+    )
+    output = tmp_path / f"{role}.json"
+    MODULE.run_process_role(role, {"bound": True}, output)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert [int(event.split(":")[1]) for event in events if event.startswith("score:")] == (
+        expected_scores
+    )
+    assert payload["aggregate_context_indices"] == (
+        expected_scores if role == "scientific" else []
+    )
+
+
+def _comparison_process(
+    role: str, *, tensor: float = 0.0, scalar: float = 1.0
+) -> dict:
+    context = {"context_index": 0, "operator_value": 1.0}
+    contexts = (
+        [context]
+        + [{"context_index": index, "operator_value": float(index)} for index in range(1, 32)]
+        if role == "scientific"
+        else [context]
+    )
+    return {
+        "schema_version": "pass201-process-v1",
+        "status": "ok",
+        "role": role,
+        "process_record": {
+            "role": role,
+            "pid": 1,
+            "accelerator": "fake-gpu",
+            "python_version": "3.13.9",
+            "torch_version": "2.12.1",
+            "cuda_version": "13.0",
+            "cudnn_version": "9",
+            "visible_cuda_devices": ["0000:01:00.0 fake-gpu"],
+            "initial_python_rng_sha256": HEX_A,
+            "initial_numpy_rng_sha256": HEX_A,
+            "initial_torch_cpu_rng_sha256": HEX_A,
+            "initial_torch_cuda_rng_sha256_by_device": {"0": HEX_A},
+            "prepared_context_count": 32,
+            "input_context_digest_records": [_process_digest(i) for i in range(32)],
+            "context0_record_sha256": hashlib.sha256(
+                json.dumps(context, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+        },
+        "contexts": contexts,
+        "aggregate_context_indices": [] if role != "scientific" else list(range(32)),
+        "replay_tensors": {"gradient": [tensor]},
+        "replay_scalars": {"loss": scalar},
+        "result": None,
+    }
+
+
+def test_replay_tensor_and_scalar_tolerances_are_exact() -> None:
+    a = _comparison_process("integrity_replay_a")
+    b = _comparison_process("integrity_replay_b", tensor=2e-6)
+    scalar_at_limit = 1.0 / (1.0 - 1e-5)
+    scientific = _comparison_process("scientific", scalar=scalar_at_limit)
+    MODULE.compare_integrity_records(a, b, scientific)
+
+    b["replay_tensors"]["gradient"][0] = float(np.nextafter(2e-6, np.inf))
+    with pytest.raises(ValueError, match="tensor replay tolerance"):
+        MODULE.compare_integrity_records(a, b, scientific)
+    b["replay_tensors"]["gradient"][0] = 0.0
+    scientific["replay_scalars"]["loss"] = float(np.nextafter(scalar_at_limit, np.inf))
+    with pytest.raises(ValueError, match="scalar replay tolerance"):
+        MODULE.compare_integrity_records(a, b, scientific)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "message"),
+    [
+        ("accelerator", "other-gpu", "environment replay"),
+        ("initial_python_rng_sha256", HEX_B, "RNG replay"),
+    ],
+)
+def test_replay_rejects_environment_and_initial_rng_drift(
+    field: str, replacement: str, message: str
+) -> None:
+    a = _comparison_process("integrity_replay_a")
+    b = _comparison_process("integrity_replay_b")
+    scientific = _comparison_process("scientific")
+    b["process_record"][field] = replacement
+    with pytest.raises(ValueError, match=message):
+        MODULE.compare_integrity_records(a, b, scientific)
+
+
+def test_process_role_output_rejects_a_self_inconsistent_context0_hash() -> None:
+    payload = _comparison_process("integrity_replay_a")
+    payload["contexts"][0]["operator_value"] = 2.0
+    with pytest.raises(ValueError, match="context-0 record digest"):
+        MODULE._validate_process_output(payload, "integrity_replay_a")
+
+
+def test_process_role_failure_preserves_atomic_prior_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class FailingRuntime(_FakeProcessRuntime):
+        def score_context(self, index: int, prepared: dict) -> dict:
+            if index == 3:
+                raise RuntimeError("injected scorer failure")
+            return super().score_context(index, prepared)
+
+    events: list[str] = []
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setenv("PASS201_PROCESS_MODE", "smoke")
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: _FakeTorch(events))
+    monkeypatch.setattr(
+        MODULE,
+        "_load_process_runtime",
+        lambda source, torch_module: FailingRuntime(events, "scientific"),
+    )
+    output = tmp_path / "scientific.json"
+    output.write_bytes(b"prior-committed-output\n")
+    with pytest.raises(RuntimeError, match="injected"):
+        MODULE.run_process_role("scientific", {"bound": True}, output)
+    assert output.read_bytes() == b"prior-committed-output\n"
+    assert not list(tmp_path.glob("*.tmp-*"))
+
+
+def _write_fake_runtime_module(path: Path) -> None:
+    path.write_text(
+        """
+import hashlib
+import json
+import os
+
+def _digest(index):
+    record = {
+        "context_index": index,
+        "s_tensor_sha256": hashlib.sha256(f"s-{index}".encode()).hexdigest(),
+        "s_prime_tensor_sha256": hashlib.sha256(f"sp-{index}".encode()).hexdigest(),
+        "metadata_sha256": hashlib.sha256(f"m-{index}".encode()).hexdigest(),
+    }
+    record["combined_sha256"] = hashlib.sha256(
+        json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    return record
+
+class Runtime:
+    def __init__(self, torch):
+        assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
+        assert torch.are_deterministic_algorithms_enabled()
+        assert torch.backends.cudnn.benchmark is False
+        assert torch.backends.cudnn.deterministic is True
+        assert torch.backends.cuda.matmul.allow_tf32 is False
+        assert torch.backends.cudnn.allow_tf32 is False
+        self.role = os.environ["PASS201_PROCESS_ROLE"]
+
+    def prepare_contexts(self):
+        return [
+            {
+                "digest_record": _digest(index),
+                "context": {"context_index": index, "operator_value": float(index)},
+            }
+            for index in range(32)
+        ]
+
+    def score_context(self, index, prepared):
+        if self.role == "scientific":
+            assert os.environ.get("PASS201_BINDING_AUTHORIZED_SHA256")
+            assert os.environ.get("PASS201_REPLAY_AUTHORIZED_SHA256")
+        return {
+            "context": prepared["context"],
+            "replay_tensors": {"gradient": [float(index), 1.0]},
+            "replay_scalars": {"loss": float(index)},
+        }
+
+    def finalize(self, contexts):
+        return None
+
+def build_runtime(source_manifest, torch):
+    assert source_manifest["schema_version"] == "pass201-source-v1"
+    return Runtime(torch)
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+
+def test_process_role_controller_uses_exactly_three_fresh_ordered_children(
+    tmp_path: Path,
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    MODULE.activate_source(args)
+    runtime_path = tmp_path / "fake_runtime.py"
+    _write_fake_runtime_module(runtime_path)
+    output = tmp_path / "smoke.json"
+    args.smoke_only = True
+    args.scientific = False
+    args.binding_only = False
+    args.output = output
+    args.runtime_factory = runtime_path
+
+    MODULE.run_controller(args)
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "pass201-controller-smoke-v1"
+    assert [process["role"] for process in payload["processes"]] == [
+        "integrity_replay_a",
+        "integrity_replay_b",
+        "scientific",
+    ]
+    assert len({process["process_record"]["pid"] for process in payload["processes"]}) == 3
+    records = [
+        process["process_record"]["input_context_digest_records"]
+        for process in payload["processes"]
+    ]
+    assert records[0] == records[1] == records[2]
+    assert [len(process["contexts"]) for process in payload["processes"]] == [1, 1, 32]
+    assert payload["processes"][0]["aggregate_context_indices"] == []
+    assert payload["processes"][1]["aggregate_context_indices"] == []
+    assert payload["processes"][2]["aggregate_context_indices"] == list(range(32))
+    assert not list(output.parent.glob(".pass201-process-*"))
+
+
+def test_replay_controller_failure_emits_only_the_launched_process_prefix(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args = _source_binding_fixture(tmp_path)
+    MODULE.activate_source(args)
+    output = tmp_path / "invalid.json"
+    args.smoke_only = True
+    args.scientific = False
+    args.binding_only = False
+    args.output = output
+    args.runtime_factory = None
+    bound_manifest = json.loads(args.source_manifest.read_text(encoding="utf-8"))
+    bound_manifest["prelaunch_source_manifest_sha256"] = (
+        "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_validate_controller_binding",
+        lambda controller_args: (bound_manifest, _constants()),
+    )
+    a = _comparison_process("integrity_replay_a")
+    b = _comparison_process("integrity_replay_b")
+    a["process_record"]["pid"] = 101
+    b["process_record"]["pid"] = 102
+    b["process_record"]["input_context_digest_records"][1]["metadata_sha256"] = HEX_B
+    combined = {
+        key: b["process_record"]["input_context_digest_records"][1][key]
+        for key in (
+            "context_index",
+            "s_tensor_sha256",
+            "s_prime_tensor_sha256",
+            "metadata_sha256",
+        )
+    }
+    b["process_record"]["input_context_digest_records"][1]["combined_sha256"] = (
+        hashlib.sha256(
+            json.dumps(combined, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+    )
+    launched: list[str] = []
+
+    def spawn(role: str, **kwargs: object) -> dict:
+        launched.append(role)
+        return {"integrity_replay_a": a, "integrity_replay_b": b}[role]
+
+    monkeypatch.setattr(MODULE, "_spawn_process_role", spawn)
+    MODULE.run_controller(args)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    MODULE.validate_payload_structure(payload)
+    assert launched == ["integrity_replay_a", "integrity_replay_b"]
+    assert payload["status"] == "INVALID"
+    assert payload["integrity"]["stage"] == "integrity_replay_b"
+    assert [record["role"] for record in payload["integrity"]["process_records"]] == launched
+    assert "contexts" not in payload
+    assert "aggregates" not in payload
+
+
+def test_cli_parser_exposes_only_the_frozen_execution_modes() -> None:
+    parser = MODULE._build_cli_parser()
+    actions = {option for action in parser._actions for option in action.option_strings}
+    assert {
+        "--activate-source",
+        "--process-role",
+        "--binding-only",
+        "--smoke-only",
+        "--scientific",
+    } <= actions
 
 
 def _literal_tensor_frame(array: np.ndarray) -> bytes:
@@ -363,6 +1323,17 @@ def _digest_record(context: dict) -> dict:
         ).encode()
     ).hexdigest()
     return record
+
+
+def test_process_role_scientific_aggregation_uses_the_32_retained_contexts() -> None:
+    contexts = [_context(index) for index in range(32)]
+    aggregates, distributions = MODULE.aggregate_scored_contexts(contexts)
+    MODULE._validate_aggregates(aggregates)
+    assert aggregates["m_unique"]["n"] == 32
+    assert aggregates["equal_norm"]["network_only"]["operators"]["summed_union"][
+        "R_F"
+    ]["mean"] == 0.02
+    assert set(distributions) == set(aggregates["bootstrap"]["distribution_sha256_by_metric"])
 
 
 def test_named_tensor_digest_enforces_lexicographic_utf8_name_order():

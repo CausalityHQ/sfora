@@ -1,18 +1,30 @@
-"""Prospectively frozen Pass201 CIS operator diagnostic.
+"""Prospectively frozen, source-bound Pass201 CIS operator diagnostic.
 
-The module stays import-side-effect-free.  Dataset/model activation belongs to
-the command layer added by later implementation tasks; this foundation contains
-only deterministic codecs and pure record construction.
+The module stays import-side-effect-free; torch and model/data code load only in
+an authenticated child process.
 """
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import hashlib
+import importlib.util
+import io
 import json
 import math
+import os
+import pickle
+import platform
+import random
 import struct
-from collections import Counter, defaultdict
+import subprocess
+import sys
+import tempfile
+import zipfile
+from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
 from typing import Any, NamedTuple
 
 import numpy as np
@@ -21,6 +33,15 @@ S_PRIME_RANK_SEED = 2010809
 BOOTSTRAP_SEED = 2010811
 BOOTSTRAP_REPLICATES = 20_000
 CONTEXT_PAIRS = 32
+PRELAUNCH_SOURCE_MANIFEST_PATH = "docs/pass201_pa_source_prelaunch_manifest.json"
+PRELAUNCH_SOURCE_MANIFEST_SHA256 = (
+    "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
+)
+FROZEN_DRAFT_PATH = "docs/pass201_cis_operator_diagnostic_draft_2026-08-09.md"
+FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f402ef8066"
+RESULT_PATH = "reports/generated/pass201_cis_operator/pass201_inshop_seed0.json"
+ACTIVATED_PREREGISTRATION_PATH = "docs/pass201_cis_operator_activated_preregistration.json"
+SOURCE_MANIFEST_PATH = "docs/pass201_cis_operator_source_manifest.json"
 
 OPERATORS = (
     "proxy_anchor",
@@ -1229,6 +1250,1636 @@ def _digest(value: Any, path: str) -> None:
         and all(character in "0123456789abcdef" for character in value),
         f"{path} must be a lowercase SHA-256",
     )
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_json_object(path: Path, name: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"unable to read {name}") from error
+    _require(isinstance(value, dict), f"{name} must be an object")
+    return value
+
+
+class _CheckpointMetadataUnpickler(pickle.Unpickler):
+    """Decode torch-save metadata without importing torch or materializing tensors."""
+
+    def find_class(self, module: str, name: str) -> Any:
+        if module == "collections" and name == "OrderedDict":
+            return OrderedDict
+        if module == "torch._utils" and name.startswith("_rebuild"):
+            return lambda *args: None
+        if module == "torch" and name.endswith("Storage"):
+            return object
+        raise pickle.UnpicklingError(f"forbidden checkpoint global: {module}.{name}")
+
+    def persistent_load(self, persistent_id: Any) -> None:
+        return None
+
+
+def _read_checkpoint_metadata(path: Path) -> dict[str, Any]:
+    try:
+        return _read_json_object(path, "checkpoint binding metadata")
+    except ValueError:
+        try:
+            with zipfile.ZipFile(path) as archive:
+                pickle_names = [name for name in archive.namelist() if name.endswith("/data.pkl")]
+                _require(len(pickle_names) == 1, "checkpoint metadata pickle")
+                value = _CheckpointMetadataUnpickler(
+                    io.BytesIO(archive.read(pickle_names[0]))
+                ).load()
+        except (OSError, ValueError, zipfile.BadZipFile, pickle.UnpicklingError) as error:
+            raise ValueError("unable to read checkpoint binding metadata") from error
+        _require(isinstance(value, dict), "checkpoint binding metadata must be an object")
+        return value
+
+
+def _repo_relative(path: Path, root: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError as error:
+        raise ValueError(f"bound path is outside source root: {path}") from error
+
+
+def _path_tree_digest(
+    root: Path, relative_root: str, *, python_only: bool
+) -> tuple[int, int, str]:
+    tree_root = root / relative_root
+    _require(tree_root.is_dir(), f"missing bound tree: {relative_root}")
+    paths = sorted(
+        (
+            path
+            for path in tree_root.rglob("*")
+            if path.is_file() and (not python_only or path.suffix == ".py")
+        ),
+        key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
+    )
+    framed = b"".join(
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
+        for path in paths
+    )
+    return (
+        len(paths),
+        sum(path.stat().st_size for path in paths),
+        hashlib.sha256(framed).hexdigest(),
+    )
+
+
+def _git_output(root: Path, *arguments: str) -> bytes:
+    try:
+        return subprocess.run(
+            ["git", *arguments],
+            cwd=root,
+            check=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise ValueError("unable to authenticate executing source revision") from error
+
+
+def _git_python_tree_digest(
+    root: Path, revision: str, relative_root: str
+) -> tuple[int, str]:
+    names = _git_output(
+        root, "ls-tree", "-r", "--name-only", revision, "--", relative_root
+    ).decode("utf-8").splitlines()
+    paths = sorted(
+        (name for name in names if name.endswith(".py")),
+        key=lambda name: name.encode("utf-8"),
+    )
+    framed = b"".join(
+        (
+            f"{hashlib.sha256(_git_output(root, 'show', f'{revision}:{path}')).hexdigest()}"
+            f"  {path}\n"
+        ).encode()
+        for path in paths
+    )
+    return len(paths), hashlib.sha256(framed).hexdigest()
+
+
+def _validate_prelaunch_source(
+    prelaunch: Mapping[str, Any], *, git_root: Path, dataset_root: Path
+) -> tuple[str, str]:
+    _require(
+        prelaunch.get("schema_version") == "pass201-pa-source-prelaunch-v1",
+        "prelaunch schema_version",
+    )
+    _require(prelaunch.get("status") == "frozen_before_training", "prelaunch status")
+    revision = prelaunch.get("local_source_revision")
+    _require(
+        isinstance(revision, str)
+        and len(revision) == 40
+        and all(character in "0123456789abcdef" for character in revision),
+        "prelaunch source revision",
+    )
+    source = prelaunch.get("source")
+    _require(isinstance(source, dict), "prelaunch source")
+    relative_source_root = source.get("python_tree_root")
+    _require(isinstance(relative_source_root, str) and relative_source_root, "python tree root")
+    source_count, _, source_digest = _path_tree_digest(
+        git_root, relative_source_root, python_only=True
+    )
+    _require(source_count == source.get("python_file_count"), "python file count mismatch")
+    _require(
+        source_digest == source.get("python_tree_merkle_sha256"),
+        "executing source tree mismatch",
+    )
+    committed_revision = _git_output(git_root, "rev-parse", revision).decode("ascii").strip()
+    _require(committed_revision == revision, "executing source revision mismatch")
+    revision_count, revision_digest = _git_python_tree_digest(
+        git_root, revision, relative_source_root
+    )
+    _require(
+        revision_count == source_count and revision_digest == source_digest,
+        "executing source revision tree mismatch",
+    )
+    for relative_path, expected in source.get("files", {}).items():
+        _require(isinstance(relative_path, str) and isinstance(expected, dict), "source files")
+        path = git_root / relative_path
+        _require(path.is_file(), f"missing bound source file: {relative_path}")
+        _require(
+            path.stat().st_size == expected.get("bytes")
+            and _sha256_file(path) == expected.get("sha256"),
+            f"bound source file mismatch: {relative_path}",
+        )
+
+    dataset = prelaunch.get("dataset")
+    _require(isinstance(dataset, dict), "prelaunch dataset")
+    _require(Path(str(dataset.get("root"))).resolve() == dataset_root.resolve(), "dataset root")
+    partition_path = dataset_root / str(dataset.get("partition_path"))
+    _require(partition_path.is_file(), "dataset partition path")
+    partition_bytes = partition_path.read_bytes()
+    _require(len(partition_bytes) == dataset.get("partition_bytes"), "partition bytes")
+    _require(
+        hashlib.sha256(partition_bytes).hexdigest() == dataset.get("partition_sha256"),
+        "partition digest",
+    )
+    _require(
+        len(partition_bytes.splitlines()) == dataset.get("partition_line_count"),
+        "partition line count",
+    )
+    image_root = dataset.get("image_root")
+    _require(isinstance(image_root, str) and image_root, "dataset image root")
+    image_count, image_bytes, image_digest = _path_tree_digest(
+        dataset_root, image_root, python_only=False
+    )
+    _require(image_count == dataset.get("image_file_count"), "image file count")
+    _require(image_bytes == dataset.get("image_total_bytes"), "image total bytes")
+    _require(image_digest == dataset.get("image_tree_merkle_sha256"), "dataset tree mismatch")
+    return source_digest, image_digest
+
+
+def _validate_activation_config(config: Mapping[str, Any]) -> None:
+    expected = {
+        "dataset_name": "inshop",
+        "objectives": ["proxy_anchor"],
+        "seed": 0,
+        "batch_size": 180,
+        "samples_per_class": 0,
+        "hard_class_fraction": 0.0,
+        "drop_last_train_batch": True,
+        "freeze_batch_norm": False,
+        "freeze_batch_norm_affine": False,
+        "checkpoint_selection_interval": 0,
+        "proxy_count_per_class": 1,
+    }
+    for key, expected_value in expected.items():
+        _require(
+            key in config
+            and type(config[key]) is type(expected_value)
+            and config[key] == expected_value,
+            f"resolved config {key} mismatch",
+        )
+    for key in ("learning_rate", "coalition_weight", "proxy_learning_rate_multiplier"):
+        _finite_float(config.get(key), f"resolved config {key}")
+        _require(config[key] > 0.0, f"resolved config {key} must be positive")
+
+
+def _validate_train_manifest(manifest: Mapping[str, Any]) -> None:
+    _require(manifest.get("schema_version") == "pass201-train-manifest-v1", "train manifest")
+    rows = manifest.get("rows")
+    _require(isinstance(rows, list) and bool(rows), "train manifest rows")
+    ids: list[str] = []
+    indices: list[int] = []
+    for row in rows:
+        _require(isinstance(row, dict), "train manifest row")
+        _exact_keys(row, {"example_id", "sample_index", "label"}, "train manifest row")
+        _require(isinstance(row["example_id"], str) and row["example_id"], "train example id")
+        _require(_is_int(row["sample_index"]) and row["sample_index"] >= 0, "train index")
+        _require(_is_int(row["label"]), "train label")
+        ids.append(row["example_id"])
+        indices.append(row["sample_index"])
+    _require(len(ids) == len(set(ids)), "duplicate train example id")
+    _require(len(indices) == len(set(indices)), "duplicate train sample index")
+
+
+def _validate_source_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    root = Path(args.root)
+    git_root = Path(args.git_root)
+    prelaunch_path = Path(args.prelaunch_manifest)
+    report_path = Path(args.source_report)
+    checkpoint_path = Path(args.checkpoint)
+    config_path = Path(args.resolved_config)
+    train_manifest_path = Path(args.train_manifest)
+    dataset_root = Path(args.dataset_root)
+    diagnostic_path = Path(args.diagnostic_path)
+    paths = (prelaunch_path, report_path, checkpoint_path, config_path, train_manifest_path)
+    _require(all(path.is_file() for path in paths), "source artifact unavailable")
+    expected_prelaunch = getattr(
+        args, "expected_prelaunch_sha256", PRELAUNCH_SOURCE_MANIFEST_SHA256
+    )
+    prelaunch_digest = _sha256_file(prelaunch_path)
+    _require(prelaunch_digest == expected_prelaunch, "prelaunch manifest SHA-256 mismatch")
+    prelaunch = _read_json_object(prelaunch_path, "prelaunch source manifest")
+    outputs = prelaunch.get("outputs")
+    _require(isinstance(outputs, dict), "prelaunch outputs")
+    _require(
+        outputs.get("report") == _repo_relative(report_path, root)
+        and outputs.get("checkpoint") == _repo_relative(checkpoint_path, root),
+        "source artifact path differs from prelaunch output",
+    )
+    source_tree_digest, data_tree_digest = _validate_prelaunch_source(
+        prelaunch, git_root=git_root, dataset_root=dataset_root
+    )
+    report = _read_json_object(report_path, "source report")
+    checkpoint = _read_checkpoint_metadata(checkpoint_path)
+    config = _read_json_object(config_path, "resolved config")
+    train_manifest = _read_json_object(train_manifest_path, "train manifest")
+    _validate_activation_config(config)
+    _validate_train_manifest(train_manifest)
+
+    binding = report.get("source_binding")
+    _require(isinstance(binding, dict), "report source binding")
+    execution = prelaunch.get("execution")
+    _require(isinstance(execution, dict), "prelaunch execution")
+    expected_argv = execution.get("argv")
+    _require(
+        isinstance(expected_argv, list)
+        and all(isinstance(value, str) for value in expected_argv)
+        and binding.get("argv") == expected_argv,
+        "run command mismatch",
+    )
+    revision = prelaunch["local_source_revision"]
+    expected_binding = {
+        "prelaunch_source_manifest_sha256": prelaunch_digest,
+        "source_revision": revision,
+        "source_python_tree_sha256_before": source_tree_digest,
+        "source_python_tree_sha256_after": source_tree_digest,
+        "dataset_image_tree_sha256_before": data_tree_digest,
+        "dataset_image_tree_sha256_after": data_tree_digest,
+        "checkpoint_sha256": _sha256_file(checkpoint_path),
+        "resolved_config_sha256": _sha256_file(config_path),
+        "train_manifest_sha256": _sha256_file(train_manifest_path),
+    }
+    for key, expected_value in expected_binding.items():
+        _require(binding.get(key) == expected_value, f"report binding mismatch: {key}")
+    _require(report.get("config") == config, "report resolved config mismatch")
+    methods = report.get("methods")
+    _require(isinstance(methods, dict) and len(methods) == 1, "ordinary PA report methods")
+    method = next(iter(methods.values()))
+    _require(
+        isinstance(method, dict)
+        and method.get("objective") == "proxy_anchor"
+        and method.get("executed_train_steps") == 8580,
+        "ordinary PA report identity",
+    )
+    _require(checkpoint.get("training_config") == config, "checkpoint config mismatch")
+    _require(
+        checkpoint.get("artifact_selection") == "final_training_state"
+        and checkpoint.get("evaluation_model_source") == "student"
+        and checkpoint.get("training_step") == 8580
+        and checkpoint.get("objective") == "proxy_anchor"
+        and checkpoint.get("seed") == 0,
+        "ordinary PA checkpoint identity",
+    )
+    _require(
+        checkpoint.get("resolved_config_sha256") == expected_binding["resolved_config_sha256"]
+        and checkpoint.get("train_manifest_sha256") == expected_binding["train_manifest_sha256"],
+        "checkpoint embedded digest mismatch",
+    )
+    checkpoint_epoch = checkpoint.get("checkpoint_epoch")
+    _require(_is_int(checkpoint_epoch) and checkpoint_epoch >= 0, "checkpoint epoch")
+    _require(diagnostic_path.is_file(), "diagnostic source unavailable")
+    environment = prelaunch.get("environment")
+    _require(isinstance(environment, dict), "prelaunch environment")
+    for key in ("python", "torch", "numpy"):
+        _require(isinstance(environment.get(key), str) and environment[key], f"environment {key}")
+
+    source_manifest = {
+        "schema_version": "pass201-source-v1",
+        "status": "frozen",
+        "prelaunch_source_manifest_path": PRELAUNCH_SOURCE_MANIFEST_PATH,
+        "prelaunch_source_manifest_sha256": prelaunch_digest,
+        "source_report_path": _repo_relative(report_path, root),
+        "source_report_sha256": _sha256_file(report_path),
+        "source_revision": revision,
+        "checkpoint_path": _repo_relative(checkpoint_path, root),
+        "checkpoint_sha256": expected_binding["checkpoint_sha256"],
+        "checkpoint_bytes": checkpoint_path.stat().st_size,
+        "checkpoint_epoch": checkpoint_epoch,
+        "objective": "proxy_anchor",
+        "seed": 0,
+        "resolved_config_path": _repo_relative(config_path, root),
+        "resolved_config_sha256": expected_binding["resolved_config_sha256"],
+        "train_manifest_path": _repo_relative(train_manifest_path, root),
+        "train_manifest_sha256": expected_binding["train_manifest_sha256"],
+        "diagnostic_source_sha256": _sha256_file(diagnostic_path),
+        "activated_preregistration_sha256": "",
+        "torch_version": environment["torch"],
+        "numpy_version": environment["numpy"],
+    }
+    constants = {
+        "batch_size": 180,
+        "context_pairs": 32,
+        "null_replicates": 256,
+        "bootstrap_replicates": 20000,
+        "s_prime_rank_seed": 2010809,
+        "null_seed": 2010810,
+        "bootstrap_seed": 2010811,
+        "model_forward_seed": 2010812,
+        "learning_rate": float(config["learning_rate"]),
+        "coalition_weight": float(config["coalition_weight"]),
+        "proxy_learning_rate_multiplier": float(config["proxy_learning_rate_multiplier"]),
+        "owner_margin_temperature": 0.05,
+    }
+    return source_manifest, constants
+
+
+SOURCE_MANIFEST_KEYS = {
+    "schema_version",
+    "status",
+    "prelaunch_source_manifest_path",
+    "prelaunch_source_manifest_sha256",
+    "source_report_path",
+    "source_report_sha256",
+    "source_revision",
+    "checkpoint_path",
+    "checkpoint_sha256",
+    "checkpoint_bytes",
+    "checkpoint_epoch",
+    "objective",
+    "seed",
+    "resolved_config_path",
+    "resolved_config_sha256",
+    "train_manifest_path",
+    "train_manifest_sha256",
+    "diagnostic_source_sha256",
+    "activated_preregistration_sha256",
+    "torch_version",
+    "numpy_version",
+}
+
+
+def _validate_source_manifest_artifact(manifest: Any) -> None:
+    _exact_keys(manifest, SOURCE_MANIFEST_KEYS, "source manifest")
+    _require(manifest["schema_version"] == "pass201-source-v1", "source manifest schema")
+    _require(manifest["status"] == "frozen", "source manifest status")
+    _require(
+        manifest["prelaunch_source_manifest_path"] == PRELAUNCH_SOURCE_MANIFEST_PATH,
+        "source manifest prelaunch path",
+    )
+    for key in (
+        "prelaunch_source_manifest_sha256",
+        "source_report_sha256",
+        "checkpoint_sha256",
+        "resolved_config_sha256",
+        "train_manifest_sha256",
+        "diagnostic_source_sha256",
+        "activated_preregistration_sha256",
+    ):
+        _digest(manifest[key], f"source manifest {key}")
+    for key in (
+        "source_report_path",
+        "source_revision",
+        "checkpoint_path",
+        "resolved_config_path",
+        "train_manifest_path",
+        "torch_version",
+        "numpy_version",
+    ):
+        _require(isinstance(manifest[key], str) and manifest[key], f"source manifest {key}")
+    _require(
+        _is_int(manifest["checkpoint_bytes"]) and manifest["checkpoint_bytes"] > 0,
+        "source manifest checkpoint_bytes",
+    )
+    _require(
+        _is_int(manifest["checkpoint_epoch"]) and manifest["checkpoint_epoch"] >= 0,
+        "source manifest checkpoint_epoch",
+    )
+    _require(manifest["objective"] == "proxy_anchor", "source manifest objective")
+    _require(manifest["seed"] == 0 and _is_int(manifest["seed"]), "source manifest seed")
+
+
+def _validate_activated_preregistration(payload: Any) -> None:
+    keys = {
+        "schema_version",
+        "frozen_draft_path",
+        "frozen_draft_sha256",
+        "result_path",
+        "source",
+        "constants",
+        "thresholds",
+        "authorized_action",
+    }
+    _exact_keys(payload, keys, "activated preregistration")
+    _require(
+        payload["schema_version"] == "pass201-cis-activated-preregistration-v1",
+        "activated preregistration schema",
+    )
+    _require(payload["frozen_draft_path"] == FROZEN_DRAFT_PATH, "frozen draft path")
+    _require(payload["frozen_draft_sha256"] == FROZEN_DRAFT_SHA256, "frozen draft digest")
+    _require(payload["result_path"] == RESULT_PATH, "activated result path")
+    _require(
+        payload["authorized_action"]
+        == "binding_and_integrity_smoke_then_scientific_if_green",
+        "activated authorized action",
+    )
+    source_keys = SOURCE_MANIFEST_KEYS - {
+        "schema_version",
+        "status",
+        "activated_preregistration_sha256",
+    }
+    _exact_keys(payload["source"], source_keys, "activated source")
+    source_for_validation = {
+        **payload["source"],
+        "schema_version": "pass201-source-v1",
+        "status": "frozen",
+        "activated_preregistration_sha256": "0" * 64,
+    }
+    _validate_source_manifest_artifact(source_for_validation)
+    _validate_constants(payload["constants"], activated=True)
+    _exact_keys(payload["thresholds"], THRESHOLDS, "activated thresholds")
+    _require(payload["thresholds"] == THRESHOLDS, "activated thresholds mismatch")
+
+
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=path.parent)
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, path)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except BaseException:
+        with contextlib.suppress(FileNotFoundError):
+            temporary_path.unlink()
+        raise
+
+
+def _atomic_write_json(path: Path, payload: object) -> bytes:
+    data = canonical_json_bytes(payload) + b"\n"
+    _atomic_write_bytes(path, data)
+    return data
+
+
+def _restore_atomic_file(path: Path, prior: bytes | None) -> None:
+    if prior is None:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            return
+        directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    else:
+        _atomic_write_bytes(path, prior)
+
+
+def activate_source(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Authenticate source artifacts before importing torch and freeze activation."""
+
+    source_manifest, constants = _validate_source_binding(args)
+    preregistration_source = {
+        key: value
+        for key, value in source_manifest.items()
+        if key not in {"schema_version", "status", "activated_preregistration_sha256"}
+    }
+    preregistration = {
+        "schema_version": "pass201-cis-activated-preregistration-v1",
+        "frozen_draft_path": FROZEN_DRAFT_PATH,
+        "frozen_draft_sha256": FROZEN_DRAFT_SHA256,
+        "result_path": RESULT_PATH,
+        "source": preregistration_source,
+        "constants": constants,
+        "thresholds": dict(THRESHOLDS),
+        "authorized_action": "binding_and_integrity_smoke_then_scientific_if_green",
+    }
+    _validate_activated_preregistration(preregistration)
+    preregistration_path = Path(
+        getattr(
+            args,
+            "activated_preregistration",
+            Path(args.root) / ACTIVATED_PREREGISTRATION_PATH,
+        )
+    )
+    source_manifest_path = Path(
+        getattr(args, "source_manifest", Path(args.root) / SOURCE_MANIFEST_PATH)
+    )
+    prior_preregistration = (
+        preregistration_path.read_bytes() if preregistration_path.exists() else None
+    )
+    prior_manifest = source_manifest_path.read_bytes() if source_manifest_path.exists() else None
+    try:
+        preregistration_bytes = _atomic_write_json(preregistration_path, preregistration)
+        source_manifest["activated_preregistration_sha256"] = hashlib.sha256(
+            preregistration_bytes
+        ).hexdigest()
+        _validate_source_manifest_artifact(source_manifest)
+        _atomic_write_json(source_manifest_path, source_manifest)
+        persisted_preregistration = _read_json_object(
+            preregistration_path, "activated preregistration"
+        )
+        persisted_manifest = _read_json_object(source_manifest_path, "source manifest")
+        _validate_activated_preregistration(persisted_preregistration)
+        _validate_source_manifest_artifact(persisted_manifest)
+        _require(
+            persisted_manifest["activated_preregistration_sha256"]
+            == hashlib.sha256(preregistration_path.read_bytes()).hexdigest(),
+            "activated preregistration byte digest mismatch",
+        )
+    except BaseException:
+        _restore_atomic_file(preregistration_path, prior_preregistration)
+        _restore_atomic_file(source_manifest_path, prior_manifest)
+        raise
+    return preregistration, source_manifest
+
+
+def _import_torch() -> Any:
+    import torch
+
+    return torch
+
+
+def _load_process_runtime(source_manifest: Mapping[str, Any], torch: Any) -> Any:
+    factory_path = os.environ.get("PASS201_RUNTIME_FACTORY")
+    if not factory_path:
+        return _ProductionRuntime(source_manifest, torch)
+    path = Path(factory_path)
+    _require(path.is_file(), "PASS201 runtime factory is unavailable")
+    module_name = f"_pass201_runtime_{hashlib.sha256(str(path).encode()).hexdigest()}"
+    specification = importlib.util.spec_from_file_location(module_name, path)
+    _require(
+        specification is not None and specification.loader is not None,
+        "unable to load PASS201 runtime factory",
+    )
+    module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(module)
+    factory = getattr(module, "build_runtime", None)
+    _require(callable(factory), "PASS201 runtime factory lacks build_runtime")
+    return factory(dict(source_manifest), torch)
+
+
+class _ProductionRuntime:
+    """Bound production adapter; imports model/data code only inside a child."""
+
+    def __init__(self, source_manifest: Mapping[str, Any], torch: Any):
+        from sfora.data import ImageExample
+        from sfora.image_end_to_end import (
+            ImageEndToEndConfig,
+            _default_transform_factory,
+            _metric_proxy_labels,
+            _torchvision_model_factory,
+        )
+
+        self.torch = torch
+        self.root = Path(os.environ.get("PASS201_SOURCE_ROOT", ".")).resolve()
+        config_path = self.root / str(source_manifest["resolved_config_path"])
+        train_manifest_path = self.root / str(source_manifest["train_manifest_path"])
+        checkpoint_path = self.root / str(source_manifest["checkpoint_path"])
+        config_payload = _read_json_object(config_path, "resolved config")
+        manifest_payload = _read_json_object(train_manifest_path, "train manifest")
+        _validate_activation_config(config_payload)
+        _validate_train_manifest(manifest_payload)
+        self.config = ImageEndToEndConfig(**config_payload)
+        dataset_root = Path(self.config.dataset_root or "")
+        _require(dataset_root.is_dir(), "activated dataset root is unavailable")
+        rows = manifest_payload["rows"]
+        _require(
+            [row["sample_index"] for row in rows] == list(range(len(rows))),
+            "train manifest stable indices must be contiguous and ordered",
+        )
+        self.train_manifest = rows
+        self.examples = []
+        for row in rows:
+            relative = Path(row["example_id"])
+            image_path = dataset_root / relative
+            if not image_path.is_file():
+                image_path = dataset_root / "img" / relative
+            _require(image_path.is_file(), f"missing train image: {row['example_id']}")
+            self.examples.append(
+                ImageExample(
+                    example_id=row["example_id"],
+                    image=image_path,
+                    label=row["label"],
+                )
+            )
+        self.train_transform = _default_transform_factory(self.config, True)
+        self.clean_transform = _default_transform_factory(self.config, False)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+        _require(
+            isinstance(checkpoint, dict) and checkpoint.get("training_config") == config_payload,
+            "checkpoint training config replay mismatch",
+        )
+        self.model = _torchvision_model_factory(self.config).to(device)
+        self.model.load_state_dict(checkpoint["state_dict"], strict=True)
+        proxy_names = [
+            name for name, _ in self.model.named_parameters() if name.endswith("metric_proxies")
+        ]
+        _require(len(proxy_names) == 1, "checkpoint must expose one metric proxy parameter")
+        self.proxy_parameter_name = proxy_names[0]
+        proxy_labels = _metric_proxy_labels(self.model)
+        _require(proxy_labels is not None, "checkpoint metric proxy labels unavailable")
+        self.proxy_labels = proxy_labels.to(device=device)
+        self.parameter_names = tuple(
+            sorted(
+                (
+                    name
+                    for name, parameter in self.model.named_parameters()
+                    if parameter.requires_grad
+                ),
+                key=lambda name: name.encode("utf-8"),
+            )
+        )
+        self.parameter_hash_before = sha256_named_tensors(self.model.named_parameters())
+        self.buffer_hash_before = sha256_named_tensors(self.model.named_buffers())
+        self.prepared: list[dict[str, Any]] = []
+        self.scored: list[dict[str, Any]] = []
+        self.rejected_context_count = 0
+
+    def prepare_contexts(self) -> list[dict[str, Any]]:
+        from torch.utils.data import DataLoader
+
+        from sfora.image_end_to_end import _IndexedTorchImageDataset, _TorchImageDataset
+
+        train_dataset = _IndexedTorchImageDataset(self.examples, self.train_transform)
+        clean_dataset = _TorchImageDataset(self.examples, self.clean_transform)
+        generator = self.torch.Generator()
+        generator.manual_seed(int(self.config.seed))
+        loader = DataLoader(
+            train_dataset,
+            batch_size=int(self.config.batch_size),
+            shuffle=True,
+            generator=generator,
+            num_workers=int(self.config.num_workers),
+            pin_memory=self.torch.cuda.is_available(),
+            drop_last=bool(self.config.drop_last_train_batch),
+        )
+        accepted: list[dict[str, Any]] = []
+        for production_batch_index, (train_tensor, labels, sample_indices) in enumerate(loader):
+            rows = [self.train_manifest[int(index)] for index in sample_indices.tolist()]
+            try:
+                metadata = construct_one_context(
+                    rows=rows,
+                    train_manifest=self.train_manifest,
+                    context_index=len(accepted),
+                    production_epoch=0,
+                    production_batch_index=production_batch_index,
+                    prior_contexts=[entry["context"] for entry in accepted],
+                )
+            except ValueError as error:
+                if str(error) == "INSUFFICIENT_DISJOINT_S_PRIME":
+                    self.rejected_context_count += 1
+                    continue
+                raise
+            clean_rows = [
+                clean_dataset[index][0] for index in metadata["s_prime_sample_indices"]
+            ]
+            clean_tensor = self.torch.stack(clean_rows, dim=0)
+            context = {
+                **metadata,
+                "batch_size": 180,
+                "m_unique": len(metadata["class_multiplicities"]),
+                "s_tensor_sha256": sha256_tensor_frame(train_tensor),
+                "s_prime_tensor_sha256": sha256_tensor_frame(clean_tensor),
+            }
+            digest_source = {
+                **context,
+                "s_tensor": train_tensor,
+                "s_prime_tensor": clean_tensor,
+            }
+            accepted.append(
+                {
+                    "digest_record": build_input_context_digest(digest_source),
+                    "context": context,
+                    "train_tensor": train_tensor,
+                    "clean_tensor": clean_tensor,
+                    "labels": labels,
+                    "sample_indices": sample_indices,
+                }
+            )
+            if len(accepted) == 32:
+                break
+        _require(len(accepted) == 32, "UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS")
+        self.prepared = accepted
+        return [
+            {"digest_record": entry["digest_record"], "context": entry["context"]}
+            for entry in accepted
+        ]
+
+    def score_context(self, index: int, prepared: Mapping[str, Any]) -> dict[str, Any]:
+        _require(prepared["digest_record"] == self.prepared[index]["digest_record"], "context")
+        entry = self.prepared[index]
+        device = next(self.model.parameters()).device
+        score = score_context(
+            model=self.model,
+            train_inputs=entry["train_tensor"].to(device=device, dtype=self.torch.float32),
+            clean_inputs=entry["clean_tensor"].to(device=device, dtype=self.torch.float32),
+            labels=entry["labels"].to(device=device, dtype=self.torch.long),
+            sample_indices=entry["sample_indices"].to(device=device, dtype=self.torch.long),
+            proxy_labels=self.proxy_labels,
+            expected_trainable_parameter_names=self.parameter_names,
+            proxy_parameter_name=self.proxy_parameter_name,
+            alpha=float(self.config.proxy_anchor_alpha),
+            delta=float(self.config.proxy_anchor_delta),
+            learning_rate=float(self.config.learning_rate),
+            coalition_weight=float(self.config.coalition_weight),
+            proxy_learning_rate_multiplier=float(
+                self.config.proxy_learning_rate_multiplier
+            ),
+            context_index=index,
+        )
+        context = materialize_scored_context(entry["context"], score)
+        scalar_replay: dict[str, float] = {}
+        for operator in OPERATORS:
+            scalar_replay[f"{operator}.loss"] = context["operators"][operator]["loss"]
+            for panel in PANELS:
+                panel_record = context["operators"][operator]["panels"][panel]
+                for key in (
+                    "raw_gradient_norm",
+                    "update_space_norm",
+                    "auxiliary_to_pa_norm_ratio",
+                    "cosine_with_pa",
+                    "cosine_with_atomic_full_union",
+                    "cosine_with_summed_dropout",
+                ):
+                    scalar_replay[f"{operator}.{panel}.{key}"] = panel_record[key]
+                for regime in REGIMES:
+                    update = panel_record["updates"][regime]
+                    for metric in ("parameter_update_norm", *OUTCOME_METRICS):
+                        scalar_replay[f"{operator}.{panel}.{regime}.{metric}"] = update[
+                            metric
+                        ]
+        self.scored.append({"context": context, "score": score})
+        return {
+            "context": context,
+            "replay_tensors": {},
+            "replay_scalars": scalar_replay,
+        }
+
+    def finalize(self, contexts: list[dict[str, Any]]) -> dict[str, Any]:
+        aggregates, _ = aggregate_scored_contexts(contexts)
+        parameter_hash_after = sha256_named_tensors(self.model.named_parameters())
+        buffer_hash_after = sha256_named_tensors(self.model.named_buffers())
+        _require(
+            parameter_hash_after == self.parameter_hash_before,
+            "scientific process mutated checkpoint parameters",
+        )
+        _require(
+            buffer_hash_after == self.buffer_hash_before,
+            "scientific process mutated checkpoint buffers",
+        )
+        return {
+            "schema_version": "pass201-scientific-core-v1",
+            "contexts": contexts,
+            "aggregates": aggregates,
+            "parameter_hash_before": self.parameter_hash_before,
+            "parameter_hash_after": parameter_hash_after,
+            "buffer_hash_before": self.buffer_hash_before,
+            "buffer_hash_after": buffer_hash_after,
+            "training_flags_restored": True,
+            "rejected_context_count": self.rejected_context_count,
+            "all_finite": True,
+        }
+
+
+PROCESS_ROLES = ("integrity_replay_a", "integrity_replay_b", "scientific")
+PROCESS_OUTPUT_KEYS = {
+    "schema_version",
+    "status",
+    "role",
+    "process_record",
+    "contexts",
+    "aggregate_context_indices",
+    "replay_tensors",
+    "replay_scalars",
+    "result",
+}
+
+
+def _rng_sha256(value: Any) -> str:
+    if hasattr(value, "detach"):
+        data = value.detach().to(device="cpu").contiguous().numpy().tobytes(order="C")
+    else:
+        array = np.ascontiguousarray(np.asarray(value))
+        data = array.tobytes(order="C")
+    return hashlib.sha256(data).hexdigest()
+
+
+def _initialize_deterministic_process(torch: Any) -> dict[str, Any]:
+    _require(
+        os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8",
+        "CUBLAS_WORKSPACE_CONFIG must be set before torch import",
+    )
+    cuda_count = int(torch.cuda.device_count())
+    visible_devices = []
+    for index in range(cuda_count):
+        properties = torch.cuda.get_device_properties(index)
+        pci_identity = str(getattr(properties, "pci_bus_id", f"device-{index}"))
+        visible_devices.append(f"{pci_identity} {properties.name}")
+    torch.use_deterministic_algorithms(True, warn_only=False)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+
+    random.seed(2010812)
+    np.random.seed(2010812)
+    torch.manual_seed(2010812)
+    torch.cuda.manual_seed_all(2010812)
+    python_digest = hashlib.sha256(pickle.dumps(random.getstate(), protocol=4)).hexdigest()
+    numpy_digest = hashlib.sha256(pickle.dumps(np.random.get_state(), protocol=4)).hexdigest()
+    torch_cpu_digest = _rng_sha256(torch.get_rng_state())
+    cuda_digests = {
+        str(index): _rng_sha256(torch.cuda.get_rng_state(index)) for index in range(cuda_count)
+    }
+    if not visible_devices:
+        visible_devices = ["cpu"]
+        cuda_digests = {"0": torch_cpu_digest}
+    cudnn_version_function = getattr(torch.backends.cudnn, "version", None)
+    cudnn_version = cudnn_version_function() if callable(cudnn_version_function) else None
+    accelerator = ", ".join(visible_devices)
+    return {
+        "accelerator": accelerator,
+        "python_version": platform.python_version(),
+        "torch_version": str(torch.__version__),
+        "cuda_version": str(getattr(torch.version, "cuda", None) or "unavailable"),
+        "cudnn_version": str(cudnn_version or "unavailable"),
+        "visible_cuda_devices": visible_devices,
+        "initial_python_rng_sha256": python_digest,
+        "initial_numpy_rng_sha256": numpy_digest,
+        "initial_torch_cpu_rng_sha256": torch_cpu_digest,
+        "initial_torch_cuda_rng_sha256_by_device": cuda_digests,
+    }
+
+
+def _validate_process_output(payload: Any, role: str) -> None:
+    _exact_keys(payload, PROCESS_OUTPUT_KEYS, "process output")
+    _require(payload["schema_version"] == "pass201-process-v1", "process schema")
+    _require(payload["status"] == "ok", "process status")
+    _require(payload["role"] == role, "process role")
+    _validate_process_record(
+        payload["process_record"], role, "process_record", context0_required=True
+    )
+    expected_contexts = 32 if role == "scientific" else 1
+    _require(
+        isinstance(payload["contexts"], list) and len(payload["contexts"]) == expected_contexts,
+        "process scored context count",
+    )
+    _require(
+        payload["aggregate_context_indices"] == (list(range(32)) if role == "scientific" else []),
+        "process aggregate ownership",
+    )
+    _require(
+        payload["process_record"]["context0_record_sha256"]
+        == hashlib.sha256(canonical_json_bytes(payload["contexts"][0])).hexdigest(),
+        "context-0 record digest mismatch",
+    )
+    for key in ("replay_tensors", "replay_scalars"):
+        _require(isinstance(payload[key], dict), f"process {key}")
+    if role != "scientific":
+        _require(payload["result"] is None, "integrity process cannot emit aggregate result")
+
+
+def run_process_role(
+    role: str, source_manifest: Mapping[str, Any], output_path: Path
+) -> None:
+    """Run one fresh deterministic replay role and atomically publish its record."""
+
+    _require(role in PROCESS_ROLES, "unknown process role")
+    _require(
+        os.environ.get("PASS201_PROCESS_ROLE", role) == role,
+        "process role environment mismatch",
+    )
+    torch = _import_torch()
+    environment = _initialize_deterministic_process(torch)
+    runtime = _load_process_runtime(source_manifest, torch)
+    prepared_contexts = runtime.prepare_contexts()
+    _require(
+        isinstance(prepared_contexts, list) and len(prepared_contexts) == 32,
+        "process must prepare exactly 32 contexts",
+    )
+    digest_records = []
+    for index, prepared in enumerate(prepared_contexts):
+        _require(isinstance(prepared, dict), "prepared context")
+        digest_record = prepared.get("digest_record")
+        _validate_input_digest(digest_record, index, f"prepared_contexts[{index}].digest_record")
+        digest_records.append(digest_record)
+
+    score_indices = range(32) if role == "scientific" else (0,)
+    contexts = []
+    context_zero_tensors: dict[str, Any] | None = None
+    context_zero_scalars: dict[str, Any] | None = None
+    for index in score_indices:
+        score = runtime.score_context(index, prepared_contexts[index])
+        _require(isinstance(score, dict), "runtime score record")
+        _exact_keys(
+            score,
+            {"context", "replay_tensors", "replay_scalars"},
+            "runtime score record",
+        )
+        context = score["context"]
+        _require(isinstance(context, dict), "scored context")
+        contexts.append(context)
+        if index == 0:
+            context_zero_tensors = score["replay_tensors"]
+            context_zero_scalars = score["replay_scalars"]
+    _require(context_zero_tensors is not None and context_zero_scalars is not None, "context 0")
+    context_zero_sha256 = hashlib.sha256(canonical_json_bytes(contexts[0])).hexdigest()
+    process_record = {
+        "role": role,
+        "pid": os.getpid(),
+        **environment,
+        "prepared_context_count": 32,
+        "input_context_digest_records": digest_records,
+        "context0_record_sha256": context_zero_sha256,
+    }
+    result = runtime.finalize(contexts) if role == "scientific" else None
+    payload = {
+        "schema_version": "pass201-process-v1",
+        "status": "ok",
+        "role": role,
+        "process_record": process_record,
+        "contexts": contexts,
+        "aggregate_context_indices": list(range(32)) if role == "scientific" else [],
+        "replay_tensors": context_zero_tensors,
+        "replay_scalars": context_zero_scalars,
+        "result": result,
+    }
+    _validate_process_output(payload, role)
+    _atomic_write_json(Path(output_path), payload)
+
+
+def materialize_scored_context(
+    base_context: Mapping[str, Any], score: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Convert Task 2's pure scientific records to the frozen context schema."""
+
+    required = {
+        "losses",
+        "gradients",
+        "updates",
+        "outcomes",
+        "shared_confuser",
+        "train_graph",
+    }
+    _exact_keys(score, required, "Task 2 score")
+    representative_count = base_context.get("m_unique")
+    _require(
+        _is_int(representative_count) and representative_count > 0,
+        "scored context m_unique",
+    )
+    operators: dict[str, Any] = {}
+    for operator in OPERATORS:
+        panels: dict[str, Any] = {}
+        for panel in PANELS:
+            gradient = score["gradients"][f"{operator}.{panel}"]
+            update_records: dict[str, Any] = {}
+            for regime in REGIMES:
+                update = score["updates"][regime][operator][panel]
+                outcome = score["outcomes"][regime][operator][panel]
+                update_records[regime] = {
+                    "update_sha256": update.update_sha256,
+                    "parameter_update_norm": float(update.parameter_update_norm),
+                    "R_F": float(outcome.R_F),
+                    "Delta_M": float(outcome.Delta_M),
+                    "D_F": float(outcome.D_F),
+                    "D_M": float(outcome.D_M),
+                    "reference_pa_norm": (
+                        None
+                        if update.reference_pa_norm is None
+                        else float(update.reference_pa_norm)
+                    ),
+                    "norm_match_absolute_error": (
+                        None
+                        if update.norm_match_absolute_error is None
+                        else float(update.norm_match_absolute_error)
+                    ),
+                }
+            panels[panel] = {
+                "parameter_count": int(gradient.parameter_count),
+                "gradient_sha256": gradient.gradient_sha256,
+                "raw_gradient_norm": float(gradient.raw_gradient_norm),
+                "update_space_norm": float(gradient.update_space_norm),
+                "auxiliary_to_pa_norm_ratio": float(
+                    gradient.auxiliary_to_pa_norm_ratio
+                ),
+                "cosine_with_pa": float(gradient.cosine_with_pa),
+                "cosine_with_atomic_full_union": float(
+                    gradient.cosine_with_atomic_full_union
+                ),
+                "cosine_with_summed_dropout": float(
+                    gradient.cosine_with_summed_dropout
+                ),
+                "scale_residual_to_summed_union": (
+                    None
+                    if gradient.scale_residual_to_summed_union is None
+                    else float(gradient.scale_residual_to_summed_union)
+                ),
+                "updates": update_records,
+            }
+        loss = score["losses"][operator]
+        loss_value = loss.item() if hasattr(loss, "item") else loss
+        operators[operator] = {
+            "name": operator,
+            "loss": float(loss_value),
+            "representative_count": representative_count,
+            "panels": panels,
+        }
+    shared = score["shared_confuser"]
+    context = {
+        **dict(base_context),
+        "foreign_proxy_rows": int(shared["foreign_proxy_rows"]),
+        "shared_confuser": {
+            "A_aligned": float(shared["A_aligned"]),
+            "null_mean": float(shared["null_mean"]),
+            "E_shared": float(shared["E_shared"]),
+            "null_distribution_sha256": shared["null_distribution_sha256"],
+        },
+        "operators": operators,
+    }
+    return context
+
+
+def aggregate_scored_contexts(
+    contexts: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
+    """Aggregate only the scientific process's 32 retained context records."""
+
+    _require(len(contexts) == 32, "scientific aggregate requires 32 contexts")
+    indices = bootstrap_indices()
+    distributions: dict[str, np.ndarray] = {}
+
+    def add_summary(path: str, values: Sequence[float | int]) -> dict[str, Any]:
+        vector = np.asarray(values, dtype="<f8")
+        summary = summarize_metric(vector, indices)
+        distributions[path] = bootstrap_mean_distribution(vector, indices)
+        return summary
+
+    aggregates: dict[str, Any] = {
+        "m_unique": add_summary("m_unique", [context["m_unique"] for context in contexts]),
+        "shared_confuser": add_summary(
+            "shared_confuser.E_shared",
+            [context["shared_confuser"]["E_shared"] for context in contexts],
+        ),
+    }
+    for regime in REGIMES:
+        regime_record: dict[str, Any] = {}
+        for panel in PANELS:
+            operator_records: dict[str, Any] = {}
+            for operator in OPERATORS:
+                metrics: dict[str, Any] = {}
+                for metric in OUTCOME_METRICS:
+                    path = f"{regime}.{panel}.operators.{operator}.{metric}"
+                    values = [
+                        context["operators"][operator]["panels"][panel]["updates"][regime][
+                            metric
+                        ]
+                        for context in contexts
+                    ]
+                    metrics[metric] = add_summary(path, values)
+                operator_records[operator] = metrics
+            advantages: dict[str, Any] = {}
+            for advantage, metric in (("A_F", "R_F"), ("A_M", "Delta_M")):
+                path = f"{regime}.{panel}.paired_advantages.{advantage}"
+                values = [
+                    context["operators"]["summed_union"]["panels"][panel]["updates"][
+                        regime
+                    ][metric]
+                    - context["operators"]["atomic_full_union"]["panels"][panel][
+                        "updates"
+                    ][regime][metric]
+                    for context in contexts
+                ]
+                advantages[advantage] = add_summary(path, values)
+            regime_record[panel] = {
+                "operators": operator_records,
+                "paired_advantages": advantages,
+            }
+        aggregates[regime] = regime_record
+    aggregates["bootstrap"] = {
+        "seed": BOOTSTRAP_SEED,
+        "replicates": BOOTSTRAP_REPLICATES,
+        "quantile_method": "linear",
+        "joint_context_index_sha256": sha256_bootstrap_indices(indices),
+        "distribution_sha256_by_metric": {
+            path: sha256_bootstrap_distribution(distributions[path])
+            for path in sorted(distributions, key=lambda value: value.encode("utf-8"))
+        },
+    }
+    return aggregates, distributions
+
+
+def _flatten_finite_numbers(value: Any, path: str) -> np.ndarray:
+    try:
+        array = np.asarray(value, dtype=np.float64)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{path} must be numeric") from error
+    _require(array.size > 0 and np.isfinite(array).all(), f"{path} must be finite")
+    return array.reshape(-1)
+
+
+def _replay_maxima(
+    a: Mapping[str, Any], b: Mapping[str, Any], scientific: Mapping[str, Any]
+) -> tuple[float, float]:
+    payloads = (a, b, scientific)
+    tensor_keys = set(a["replay_tensors"])
+    scalar_keys = set(a["replay_scalars"])
+    _require(
+        all(set(payload["replay_tensors"]) == tensor_keys for payload in payloads),
+        "tensor replay keys",
+    )
+    _require(
+        all(set(payload["replay_scalars"]) == scalar_keys for payload in payloads),
+        "scalar replay keys",
+    )
+    tensor_max = 0.0
+    scalar_max = 0.0
+    pairs = ((a, b), (a, scientific), (b, scientific))
+    for left, right in pairs:
+        for key in tensor_keys:
+            left_values = _flatten_finite_numbers(left["replay_tensors"][key], key)
+            right_values = _flatten_finite_numbers(right["replay_tensors"][key], key)
+            _require(left_values.shape == right_values.shape, "tensor replay shape")
+            tensor_max = max(
+                tensor_max, float(np.max(np.abs(left_values - right_values), initial=0.0))
+            )
+        for key in scalar_keys:
+            left_value = float(left["replay_scalars"][key])
+            right_value = float(right["replay_scalars"][key])
+            _require(math.isfinite(left_value) and math.isfinite(right_value), "scalar replay")
+            residual = abs(left_value - right_value) / max(
+                abs(left_value), abs(right_value), 1e-12
+            )
+            scalar_max = max(scalar_max, residual)
+    return tensor_max, scalar_max
+
+
+def compare_integrity_records(
+    a: Mapping[str, Any], b: Mapping[str, Any], scientific: Mapping[str, Any]
+) -> None:
+    """Reject any input, context-0, tensor, or scalar replay mismatch."""
+
+    for payload, role in zip((a, b, scientific), PROCESS_ROLES, strict=True):
+        _validate_process_output(payload, role)
+    records = [payload["process_record"] for payload in (a, b, scientific)]
+    environment_keys = (
+        "accelerator",
+        "python_version",
+        "torch_version",
+        "cuda_version",
+        "cudnn_version",
+        "visible_cuda_devices",
+    )
+    _require(
+        all(
+            all(record[key] == records[0][key] for key in environment_keys)
+            for record in records[1:]
+        ),
+        "environment replay mismatch",
+    )
+    rng_keys = (
+        "initial_python_rng_sha256",
+        "initial_numpy_rng_sha256",
+        "initial_torch_cpu_rng_sha256",
+        "initial_torch_cuda_rng_sha256_by_device",
+    )
+    _require(
+        all(
+            all(record[key] == records[0][key] for key in rng_keys)
+            for record in records[1:]
+        ),
+        "RNG replay mismatch",
+    )
+    _require(
+        records[0]["input_context_digest_records"]
+        == records[1]["input_context_digest_records"]
+        == records[2]["input_context_digest_records"],
+        "input context replay mismatch",
+    )
+    _require(
+        records[0]["context0_record_sha256"]
+        == records[1]["context0_record_sha256"]
+        == records[2]["context0_record_sha256"],
+        "context-0 replay mismatch",
+    )
+    tensor_max, scalar_max = _replay_maxima(a, b, scientific)
+    _require(tensor_max <= 2e-6, "tensor replay tolerance exceeded")
+    _require(scalar_max <= 1e-5, "scalar replay tolerance exceeded")
+
+
+def _validate_controller_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    source_manifest, constants = _validate_source_binding(args)
+    preregistration_path = Path(args.activated_preregistration)
+    source_manifest_path = Path(args.source_manifest)
+    persisted_preregistration = _read_json_object(
+        preregistration_path, "activated preregistration"
+    )
+    persisted_manifest = _read_json_object(source_manifest_path, "source manifest")
+    _validate_activated_preregistration(persisted_preregistration)
+    _validate_source_manifest_artifact(persisted_manifest)
+    source_manifest["activated_preregistration_sha256"] = hashlib.sha256(
+        preregistration_path.read_bytes()
+    ).hexdigest()
+    _require(source_manifest == persisted_manifest, "activated source binding replay mismatch")
+    expected_source = {
+        key: value
+        for key, value in source_manifest.items()
+        if key not in {"schema_version", "status", "activated_preregistration_sha256"}
+    }
+    _require(persisted_preregistration["source"] == expected_source, "activated source mismatch")
+    _require(persisted_preregistration["constants"] == constants, "activated constants mismatch")
+    return persisted_manifest, constants
+
+
+def _spawn_process_role(
+    role: str,
+    *,
+    source_manifest_path: Path,
+    output_path: Path,
+    environment: Mapping[str, str],
+) -> dict[str, Any]:
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--process-role",
+        role,
+        "--source-manifest",
+        str(source_manifest_path),
+        "--process-output",
+        str(output_path),
+    ]
+    completed = subprocess.run(
+        command,
+        env=dict(environment),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"{role} failed with exit {completed.returncode}: {completed.stderr.strip()}"
+        )
+    payload = _read_json_object(output_path, f"{role} output")
+    _validate_process_output(payload, role)
+    return payload
+
+
+def _result_source_from_manifest(
+    source_manifest: Mapping[str, Any], process_records: Sequence[Mapping[str, Any]]
+) -> dict[str, Any]:
+    last_record = process_records[-1]
+    return {
+        "prelaunch_source_manifest_path": source_manifest["prelaunch_source_manifest_path"],
+        "prelaunch_source_manifest_sha256": source_manifest[
+            "prelaunch_source_manifest_sha256"
+        ],
+        "source_report_path": source_manifest["source_report_path"],
+        "source_report_sha256": source_manifest["source_report_sha256"],
+        "source_revision": source_manifest["source_revision"],
+        "checkpoint_path": source_manifest["checkpoint_path"],
+        "checkpoint_sha256": source_manifest["checkpoint_sha256"],
+        "checkpoint_bytes": source_manifest["checkpoint_bytes"],
+        "checkpoint_epoch": source_manifest["checkpoint_epoch"],
+        "resolved_config_path": source_manifest["resolved_config_path"],
+        "resolved_config_sha256": source_manifest["resolved_config_sha256"],
+        "train_manifest_path": source_manifest["train_manifest_path"],
+        "train_manifest_sha256": source_manifest["train_manifest_sha256"],
+        "diagnostic_source_sha256": source_manifest["diagnostic_source_sha256"],
+        "activated_preregistration_sha256": source_manifest[
+            "activated_preregistration_sha256"
+        ],
+        "python_version": last_record["python_version"],
+        "torch_version": source_manifest["torch_version"],
+        "numpy_version": source_manifest["numpy_version"],
+        "cuda_version": last_record["cuda_version"],
+        "cudnn_version": last_record["cudnn_version"],
+    }
+
+
+def _reduced_replay_failure(
+    source_manifest: Mapping[str, Any],
+    constants: Mapping[str, Any],
+    process_payloads: Sequence[Mapping[str, Any]],
+    error: Exception,
+) -> dict[str, Any]:
+    records = [dict(payload["process_record"]) for payload in process_payloads]
+    _require(records, "replay failure requires a launched process record")
+    stage = PROCESS_ROLES[len(records) - 1]
+    reason = (
+        "INVALID_NONDETERMINISTIC_TRAIN_INPUT"
+        if "input context" in str(error)
+        else "INVALID_NONDETERMINISTIC_OPERATOR_REPLAY"
+    )
+    integrity = {
+        "stage": stage,
+        "accepted_context_count": min(
+            record["prepared_context_count"] for record in records
+        ),
+        "rejected_context_count": 0,
+        "invalid_context_count": 1,
+        "input_replay_verified": False,
+        "deterministic_process_verified": False,
+        "process_records": records,
+        "failure_evidence_sha256": "",
+        "all_finite": False,
+    }
+    integrity["failure_evidence_sha256"] = _failure_evidence_digest(
+        "INVALID", [reason], integrity
+    )
+    payload = {
+        "schema_version": "pass201-cis-operator-v1",
+        "status": "INVALID",
+        "reason_codes": [reason],
+        "candidate_values_computed": False,
+        "uses_test_data": "artifact_binding_only",
+        "source": _result_source_from_manifest(source_manifest, records),
+        "constants": dict(constants),
+        "decision": {
+            "thresholds": dict(THRESHOLDS),
+            "overall": "INVALID",
+            "authorized_next_action": "none",
+        },
+        "integrity": integrity,
+    }
+    validate_payload_structure(payload)
+    return payload
+
+
+def _finalize_scientific_payload(
+    source_manifest: Mapping[str, Any],
+    constants: Mapping[str, Any],
+    processes: Sequence[Mapping[str, Any]],
+    tensor_max: float,
+    scalar_max: float,
+) -> dict[str, Any]:
+    core = processes[2]["result"]
+    _exact_keys(
+        core,
+        {
+            "schema_version",
+            "contexts",
+            "aggregates",
+            "parameter_hash_before",
+            "parameter_hash_after",
+            "buffer_hash_before",
+            "buffer_hash_after",
+            "training_flags_restored",
+            "rejected_context_count",
+            "all_finite",
+        },
+        "scientific core",
+    )
+    _require(core["schema_version"] == "pass201-scientific-core-v1", "scientific core")
+    decisions = _component_decisions(core["aggregates"])
+    reasons = _failure_reasons(core["aggregates"], decisions)
+    if reasons or "FAIL" in decisions.values():
+        status = "FAIL"
+    elif all(value == "PASS" for value in decisions.values()):
+        status = "PASS"
+    else:
+        status = "UNRESOLVED"
+    records = [process["process_record"] for process in processes]
+    payload = {
+        "schema_version": "pass201-cis-operator-v1",
+        "status": status,
+        "reason_codes": reasons,
+        "candidate_values_computed": True,
+        "uses_test_data": "artifact_binding_only",
+        "source": _result_source_from_manifest(source_manifest, records),
+        "constants": dict(constants),
+        "contexts": core["contexts"],
+        "aggregates": core["aggregates"],
+        "decision": {
+            "thresholds": dict(THRESHOLDS),
+            "component_decisions": decisions,
+            "overall": status,
+            "authorized_next_action": (
+                "write_separate_gpu_preregistration" if status == "PASS" else "none"
+            ),
+        },
+        "integrity": {
+            "accepted_context_count": 32,
+            "rejected_context_count": core["rejected_context_count"],
+            "invalid_context_count": 0,
+            "input_replay_verified": True,
+            "parameter_hash_before": core["parameter_hash_before"],
+            "parameter_hash_after": core["parameter_hash_after"],
+            "buffer_hash_before": core["buffer_hash_before"],
+            "buffer_hash_after": core["buffer_hash_after"],
+            "training_flags_restored": core["training_flags_restored"],
+            "deterministic_process_verified": True,
+            "first_context_operator_replay_verified": True,
+            "deterministic_settings": {
+                "cublas_workspace_config": ":4096:8",
+                "deterministic_algorithms": True,
+                "cudnn_benchmark": False,
+                "cudnn_deterministic": True,
+                "matmul_tf32": False,
+                "cudnn_tf32": False,
+                "autocast": False,
+                "dtype": "float32",
+            },
+            "process_records": records,
+            "replay_residuals": {
+                "pair_count": 3,
+                "tensor_max_absolute": float(tensor_max),
+                "scalar_max_relative": float(scalar_max),
+                "tensor_tolerance": 2e-6,
+                "scalar_tolerance": 1e-5,
+                "scalar_denominator": "max(abs(a),abs(b),1e-12)",
+            },
+            "all_finite": core["all_finite"],
+        },
+    }
+    validate_payload_structure(payload)
+    return payload
+
+
+def run_controller(args: Any) -> None:
+    """Validate bindings, then launch exactly A, B, and scientific in order."""
+
+    source_manifest, constants = _validate_controller_binding(args)
+    if bool(getattr(args, "binding_only", False)):
+        return
+    mode = "scientific" if bool(getattr(args, "scientific", False)) else "smoke"
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    child_environment = dict(os.environ)
+    child_environment["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    child_environment["PASS201_PROCESS_MODE"] = mode
+    child_environment["PASS201_SOURCE_ROOT"] = str(Path(args.root).resolve())
+    child_environment["PASS201_BINDING_AUTHORIZED_SHA256"] = _sha256_file(
+        Path(args.source_manifest)
+    )
+    runtime_factory = getattr(args, "runtime_factory", None)
+    if runtime_factory is not None:
+        _require(
+            getattr(args, "expected_prelaunch_sha256", PRELAUNCH_SOURCE_MANIFEST_SHA256)
+            != PRELAUNCH_SOURCE_MANIFEST_SHA256,
+            "external runtime factories are forbidden for the frozen source",
+        )
+        child_environment["PASS201_RUNTIME_FACTORY"] = str(Path(runtime_factory).resolve())
+    processes = []
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix=".pass201-process-", dir=output_path.parent
+        ) as name:
+            temporary_root = Path(name)
+            for role in PROCESS_ROLES[:2]:
+                child_environment["PASS201_PROCESS_ROLE"] = role
+                process = _spawn_process_role(
+                    role,
+                    source_manifest_path=Path(args.source_manifest),
+                    output_path=temporary_root / f"{role}.json",
+                    environment=child_environment,
+                )
+                processes.append(process)
+                if len(processes) == 2:
+                    _require(
+                        processes[0]["process_record"]["input_context_digest_records"]
+                        == processes[1]["process_record"]["input_context_digest_records"],
+                        "input context replay mismatch before scientific",
+                    )
+                    _require(
+                        processes[0]["process_record"]["context0_record_sha256"]
+                        == processes[1]["process_record"]["context0_record_sha256"],
+                        "context-0 replay mismatch before scientific",
+                    )
+            child_environment["PASS201_REPLAY_AUTHORIZED_SHA256"] = hashlib.sha256(
+                canonical_json_bytes(
+                    [process["process_record"] for process in processes]
+                )
+            ).hexdigest()
+            child_environment["PASS201_PROCESS_ROLE"] = "scientific"
+            scientific = _spawn_process_role(
+                "scientific",
+                source_manifest_path=Path(args.source_manifest),
+                output_path=temporary_root / "scientific.json",
+                environment=child_environment,
+            )
+            processes.append(scientific)
+            compare_integrity_records(*processes)
+    except (RuntimeError, ValueError) as error:
+        if processes:
+            invalid = _reduced_replay_failure(
+                source_manifest, constants, processes, error
+            )
+            _atomic_write_json(output_path, invalid)
+            return
+        raise
+    tensor_max, scalar_max = _replay_maxima(*processes)
+    if mode == "smoke":
+        payload = {
+            "schema_version": "pass201-controller-smoke-v1",
+            "source_manifest_sha256": _sha256_file(Path(args.source_manifest)),
+            "processes": processes,
+            "replay_residuals": {
+                "pair_count": 3,
+                "tensor_max_absolute": tensor_max,
+                "scalar_max_relative": scalar_max,
+                "tensor_tolerance": 2e-6,
+                "scalar_tolerance": 1e-5,
+                "scalar_denominator": "max(abs(a),abs(b),1e-12)",
+            },
+        }
+    else:
+        payload = _finalize_scientific_payload(
+            source_manifest,
+            constants,
+            processes,
+            tensor_max,
+            scalar_max,
+        )
+    _atomic_write_json(output_path, payload)
+
+
+def _build_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Bound Pass201 CIS operator diagnostic")
+    modes = parser.add_mutually_exclusive_group(required=True)
+    modes.add_argument("--activate-source", action="store_true")
+    modes.add_argument("--process-role", choices=PROCESS_ROLES)
+    modes.add_argument("--binding-only", action="store_true")
+    modes.add_argument("--smoke-only", action="store_true")
+    modes.add_argument("--scientific", action="store_true")
+    parser.add_argument("--root", type=Path, default=Path("."))
+    parser.add_argument("--git-root", type=Path)
+    parser.add_argument("--prelaunch-manifest", type=Path)
+    parser.add_argument("--source-report", type=Path)
+    parser.add_argument("--checkpoint", type=Path)
+    parser.add_argument("--resolved-config", type=Path)
+    parser.add_argument("--train-manifest", type=Path)
+    parser.add_argument("--dataset-root", type=Path)
+    parser.add_argument("--diagnostic-path", type=Path)
+    parser.add_argument("--activated-preregistration", type=Path)
+    parser.add_argument("--source-manifest", type=Path)
+    parser.add_argument("--process-output", type=Path)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--runtime-factory", type=Path)
+    return parser
+
+
+def _default_cli_paths(args: Any) -> None:
+    root = Path(args.root)
+    defaults = {
+        "git_root": root,
+        "prelaunch_manifest": root / PRELAUNCH_SOURCE_MANIFEST_PATH,
+        "activated_preregistration": root / ACTIVATED_PREREGISTRATION_PATH,
+        "source_manifest": root / SOURCE_MANIFEST_PATH,
+        "diagnostic_path": Path(__file__).resolve(),
+        "output": root / RESULT_PATH,
+    }
+    for key, value in defaults.items():
+        if getattr(args, key) is None:
+            setattr(args, key, value)
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    args = _build_cli_parser().parse_args(argv)
+    _default_cli_paths(args)
+    if args.activate_source:
+        activate_source(args)
+    elif args.process_role:
+        _require(args.process_output is not None, "--process-output is required")
+        manifest = _read_json_object(args.source_manifest, "source manifest")
+        _validate_source_manifest_artifact(manifest)
+        _require(
+            _sha256_file(Path(__file__).resolve()) == manifest["diagnostic_source_sha256"],
+            "executing diagnostic source mismatch",
+        )
+        if args.runtime_factory is not None:
+            os.environ["PASS201_RUNTIME_FACTORY"] = str(args.runtime_factory.resolve())
+        run_process_role(args.process_role, manifest, args.process_output)
+    else:
+        run_controller(args)
 
 
 def _metric_paths() -> set[str]:
@@ -2475,3 +4126,7 @@ def validate_construction_evidence(
     for metric_path, expected_digest in expected_distribution_digests.items():
         actual = _sha256_float64_vector(distributions[metric_path], 20000, metric_path)
         _require(actual == expected_digest, f"distribution_sha256 mismatch at {metric_path}")
+
+
+if __name__ == "__main__":
+    main()
