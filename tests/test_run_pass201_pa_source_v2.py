@@ -6,6 +6,7 @@ import os
 import struct
 import subprocess
 import sys
+import threading
 from dataclasses import replace
 from pathlib import Path
 from typing import NoReturn
@@ -16,9 +17,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import run_pass201_pa_source_v2 as controller  # noqa: E402
 from pass201_pa_source_v2_contract import (  # noqa: E402
+    BoundCheckpointMetadata,
     CheckpointArch,
     CheckpointMetadata,
     PrelaunchAuthority,
+    bind_external_file,
     canonical_json_bytes,
     load_strict_json_bytes,
     load_strict_json_value_bytes,
@@ -713,6 +716,133 @@ def test_private_sidecar_rejects_recipe_drift_before_checkpoint_child(
         controller.derive_sidecars_from_files(manifest, report, checkpoint, run_dir)
 
 
+def _derive_with_synchronized_checkpoint_handoff(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    replace_checkpoint: bool,
+) -> SidecarFrame:
+    capture, authority, checkpoint_metadata = sidecar_inputs
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    manifest_path = tmp_path / "authority.json"
+    report_path = run_dir / "report.json"
+    checkpoint_path = run_dir / "checkpoint.pt"
+    manifest_path.write_bytes(b"{}\n")
+    checkpoint_path.write_bytes(b"original-checkpoint")
+    config = {
+        "batch_size": 180,
+        "drop_last_train_batch": True,
+        "objectives": ["proxy_anchor"],
+        "recipe_digest": controller.RECIPE_DIGEST,
+        "recipe_id": controller.RECIPE_ID,
+        "seed": 0,
+    }
+    config_bytes = canonical_json_bytes(config)
+    report_path.write_bytes(
+        canonical_json_bytes(
+            {
+                "name": "image-end-to-end",
+                "dataset_name": "inshop",
+                "protocol": "query_gallery",
+                "config": config,
+                "train_examples": 2,
+                "test_examples": 2,
+                "methods": {},
+            }
+        )
+    )
+    capture = replace(
+        capture,
+        config_bytes=config_bytes,
+        resolved_train_steps=60,
+        steps_per_epoch=1,
+        total_epochs=60,
+    )
+    checkpoint_metadata = replace(
+        checkpoint_metadata,
+        training_step=60,
+        training_config_sha256=hashlib.sha256(config_bytes).hexdigest(),
+    )
+    execution = {
+        **authority.payload["execution"],
+        "environment": dict(os.environ),
+        "argv": [],
+    }
+    payload = {
+        **authority.payload,
+        "authorization": {"manifest_path": "authority.json"},
+        "execution": execution,
+        "outputs": {
+            "run_directory": "run",
+            "report": {"path": "run/report.json"},
+            "checkpoint": {"path": "run/checkpoint.pt"},
+        },
+    }
+    authority = replace(
+        authority,
+        payload=payload,
+        checkout_root=tmp_path,
+        expected_config_bytes=config_bytes,
+        expected_config_sha256=hashlib.sha256(config_bytes).hexdigest(),
+        expected_train_steps=60,
+        steps_per_epoch=1,
+        total_epochs=60,
+    )
+    metadata_complete = threading.Event()
+
+    def metadata_child(
+        _authority: PrelaunchAuthority, _checkpoint_path: Path
+    ) -> BoundCheckpointMetadata:
+        result = BoundCheckpointMetadata(
+            bind_external_file(checkpoint_path), checkpoint_metadata
+        )
+        metadata_complete.set()
+        return result
+
+    real_validate_completed_epoch = controller.validate_completed_epoch
+
+    def after_metadata(*args: object, **kwargs: object) -> int:
+        assert metadata_complete.wait(timeout=1)
+        if replace_checkpoint:
+            replacement = run_dir / "replacement.pt"
+            replacement.write_bytes(b"replacement-checkpoint")
+            os.replace(replacement, checkpoint_path)
+        return real_validate_completed_epoch(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
+    monkeypatch.setattr(controller, "_run_capture_child", lambda _authority: capture)
+    monkeypatch.setattr(controller, "_run_metadata_child", metadata_child)
+    monkeypatch.setattr(controller, "validate_completed_epoch", after_metadata)
+    return controller.derive_sidecars_from_files(
+        manifest_path, report_path, checkpoint_path, run_dir
+    )
+
+
+def test_private_sidecar_rejects_checkpoint_replaced_after_metadata_child(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with pytest.raises(ValueError, match="checkpoint input drift"):
+        _derive_with_synchronized_checkpoint_handoff(
+            tmp_path, sidecar_inputs, monkeypatch, replace_checkpoint=True
+        )
+
+
+def test_private_sidecar_accepts_unchanged_checkpoint_after_metadata_child(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    frame = _derive_with_synchronized_checkpoint_handoff(
+        tmp_path, sidecar_inputs, monkeypatch, replace_checkpoint=False
+    )
+    assert frame.config_bytes
+    assert frame.manifest_bytes
+
+
 def test_schedule_validates_completed_epoch(
     sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
 ) -> None:
@@ -915,7 +1045,10 @@ import hashlib, json, os, struct, sys
 from pathlib import Path
 
 import run_pass201_pa_source_v2 as c
-from pass201_pa_source_v2_contract import CheckpointArch, CheckpointMetadata, PrelaunchAuthority
+from pass201_pa_source_v2_contract import (
+    BoundCheckpointMetadata, CheckpointArch, CheckpointMetadata, PrelaunchAuthority,
+    bind_external_file,
+)
 
 root = Path(sys.argv[1])
 config = {
@@ -997,7 +1130,9 @@ def validate_manifest(value):
     return authority
 c.validate_prelaunch = validate_manifest
 c._run_capture_child = lambda *_args: capture
-c._run_metadata_child = lambda *_args: checkpoint
+c._run_metadata_child = lambda *_args: BoundCheckpointMetadata(
+    bind_external_file(root / "run" / "checkpoint.pt"), checkpoint
+)
 raise SystemExit(c.main([
     "derive-sidecars", "--manifest", str(root / "authority.json"),
     "--report", str(root / "run" / "report.json"),

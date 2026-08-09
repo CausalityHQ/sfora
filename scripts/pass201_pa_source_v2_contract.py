@@ -180,6 +180,12 @@ class CheckpointMetadata:
 
 
 @dataclass(frozen=True)
+class BoundCheckpointMetadata:
+    binding: ExternalFileBinding
+    metadata: CheckpointMetadata
+
+
+@dataclass(frozen=True)
 class PrivateChildFrame:
     role: str
     pid: int
@@ -1531,7 +1537,7 @@ def _metadata_from_payload(
 
 def decode_checkpoint_metadata_response(
     data: bytes, authority: PrelaunchAuthority, checkpoint_path: Path
-) -> CheckpointMetadata:
+) -> BoundCheckpointMetadata:
     frame = decode_private_child_frame(data)
     if frame.role != "metadata-response":
         raise ValueError("metadata child response role")
@@ -1545,7 +1551,17 @@ def decode_checkpoint_metadata_response(
     binding = _dict(binding_obj, "metadata_response.checkpoint_binding")
     if binding["path"] != checkpoint_path.absolute().as_posix():
         raise ValueError("metadata child checkpoint path drift")
-    return _metadata_from_payload(payload["metadata"], authority)
+    external = ExternalFileBinding(
+        Path(binding["path"]),
+        binding["mode"],
+        binding["device"],
+        binding["inode"],
+        binding["bytes"],
+        binding["sha256"],
+    )
+    return BoundCheckpointMetadata(
+        external, _metadata_from_payload(payload["metadata"], authority)
+    )
 
 
 def _restricted_metadata_child(checkpoint_path: Path) -> bytes:

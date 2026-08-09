@@ -19,9 +19,11 @@ from unittest.mock import patch
 
 from pass201_pa_source_v2_contract import (
     TRAIN_MANIFEST_CALL_GRAPH,
+    BoundCheckpointMetadata,
     CheckpointMetadata,
     PrelaunchAuthority,
     PrivateChildFrame,
+    bind_external_file,
     canonical_json_bytes,
     decode_checkpoint_metadata_response,
     decode_private_child_frame,
@@ -899,7 +901,7 @@ def _run_capture_child(authority: PrelaunchAuthority) -> CapturedAuthority:
 
 def _run_metadata_child(
     authority: PrelaunchAuthority, checkpoint_path: Path
-) -> CheckpointMetadata:
+) -> BoundCheckpointMetadata:
     response = _run_private_child(
         authority,
         "pass201_pa_source_v2_contract.py",
@@ -947,7 +949,8 @@ def derive_sidecars_from_files(
     report_bytes = _read_immutable_regular(report_path)
     capture = _run_capture_child(authority)
     _validate_capture_authority(capture, authority)
-    checkpoint = _run_metadata_child(authority, checkpoint_path)
+    bound_checkpoint = _run_metadata_child(authority, checkpoint_path)
+    checkpoint = bound_checkpoint.metadata
     expected_config = load_strict_json_bytes(authority.expected_config_bytes)
     _require(expected_config.get("drop_last_train_batch") is True, "drop-last config drift")
     batch_size = expected_config.get("batch_size")
@@ -955,15 +958,20 @@ def derive_sidecars_from_files(
     validate_completed_epoch(capture, checkpoint.training_step, len(capture.rows), batch_size)
     config = derive_resolved_config(report_bytes, checkpoint, authority)
     manifest = derive_train_manifest(capture, authority)
-    _require(_read_immutable_regular(manifest_path) == manifest_bytes, "manifest input drift")
-    _require(_read_immutable_regular(report_path) == report_bytes, "report input drift")
-    return SidecarFrame(
+    frame = SidecarFrame(
         os.getpid(),
         config,
         manifest,
         hashlib.sha256(config).hexdigest(),
         hashlib.sha256(manifest).hexdigest(),
     )
+    _require(_read_immutable_regular(manifest_path) == manifest_bytes, "manifest input drift")
+    _require(_read_immutable_regular(report_path) == report_bytes, "report input drift")
+    _require(
+        bind_external_file(checkpoint_path) == bound_checkpoint.binding,
+        "checkpoint input drift",
+    )
+    return frame
 
 
 def _parser() -> argparse.ArgumentParser:

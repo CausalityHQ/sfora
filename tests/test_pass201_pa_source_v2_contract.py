@@ -515,11 +515,12 @@ builtins.__import__ = guarded
     )
 
     assert result.returncode == 0, result.stderr.decode()
-    metadata = contract.decode_checkpoint_metadata_response(
+    bound = contract.decode_checkpoint_metadata_response(
         result.stdout, checkpoint_authority, valid_checkpoint_zip
     )
-    assert metadata.training_step == checkpoint_authority.expected_train_steps
-    assert metadata.state_dict_storage_materialized is False
+    assert bound.binding == contract.bind_external_file(valid_checkpoint_zip)
+    assert bound.metadata.training_step == checkpoint_authority.expected_train_steps
+    assert bound.metadata.state_dict_storage_materialized is False
 
 
 @pytest.mark.parametrize(
