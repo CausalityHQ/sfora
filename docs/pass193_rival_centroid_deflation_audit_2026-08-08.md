@@ -6,9 +6,12 @@ On the corrected In-Shop Proxy Anchor seed-0 final train/query/gallery
 embeddings, I formed normalized centroids for every train identity. For each
 query or gallery descriptor, I computed the weighted mean of its eight highest
 cosine train-class centroids, subtracted `alpha` times that rival field, and
-renormalized. This is a CPU mechanism probe only; the train identities are
-disjoint from the retrieval identities, so the transformation is transductive
-and is not an allowed deployment method.
+renormalized. This is a CPU mechanism probe only. The historical description
+called it transductive, but that was inaccurate: the bank is fitted only on
+training identities and each unseen item is transformed independently. It is an
+**inductive memory-based postprocessor**. It is still outside the registered
+single-model, fixed-descriptor deployment lane because it requires a training
+centroid bank and an extra `O(Cd)` lookup at inference.
 
 The fixed single-view baseline was R@1 **0.913701**. The response curve was:
 
@@ -25,8 +28,8 @@ The fixed single-view baseline was R@1 **0.913701**. The response curve was:
 
 The positive, non-monotone probe is useful evidence that cross-class rival
 fields contain a removable nuisance component. It does **not** authorize a
-GPU run: the probe uses train-identity centroids at test time and has no
-deployable student operator yet.
+GPU run: alpha was selected on query/gallery, so the curve is descriptive rather
+than prospective, and the probe has no allowed pointwise student operator.
 
 ## Gate 2 adversarial prior-art audit
 
@@ -48,9 +51,25 @@ imitate the deflated descriptor would therefore be MIC/interclass nuisance
 removal with a different statistic. Candidate 193 is **DEAD at Gate 2**; no
 implementation, GPU screen, or SOTA claim is authorized.
 
+### Repaired terminology does not reopen Gate 2
+
+An adversarial re-audit considered a cross-fitted amortizer
+`z -> normalize(z-alpha*r(z)) -> g_theta(z)`. Cross-fitting would repair the
+test-selected alpha and a residual head would remove the inference bank, but the
+training mechanism is still occupied. MIC estimates cross-class shared
+characteristics and explains them away; [Data-Efficient Ranking
+Distillation](https://arxiv.org/abs/2007.05299) transfers retrieval-output/rank
+geometry to a student; and [Backward induction-based deep image
+search](https://pmc.ncbi.nlm.nih.gov/articles/PMC11383237/) explicitly distills
+an iterative embedding postprocessor into a one-pass autoencoder. Identity
+cross-fitting is likewise an estimator/protocol device already covered by
+cross-fitted knowledge distillation. The top-8 centroid statistic and nested
+alpha are a new estimator and combination, not a new supervision object,
+information source, or decision point.
+
 ## Mechanism-level lesson
 
-The +0.457-point CPU gain is a real measurement of rival-field nuisance, but
+The +0.457-point descriptive gain is real evidence of rival-field nuisance, but
 it cannot be credited as a novel method. Future candidates must change what
 supervision exists beyond removing or distilling cross-class characteristics;
 they cannot merely make the rival statistic smoother, cross-fitted, or

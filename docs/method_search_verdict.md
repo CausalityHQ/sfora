@@ -5385,7 +5385,11 @@ The corrected In-Shop CPU probe subtracted a weighted mean of the eight nearest
 foreign-class centroids from each descriptor. R@1 rose from `0.913701` at
 alpha 0 to `0.918273` at alpha 0.30, with a non-monotone fall to `0.902659` at
 alpha 1.0. This establishes a removable cross-class rival-field signal, but
-the probe is transductive and is not a benchmark result.
+alpha was selected on query/gallery and the probe is not a benchmark result.
+The historical word “transductive” was wrong: a bank fitted only on training
+identities is an inductive memory-based postprocessor. It nevertheless violates
+the registered pointwise fixed-descriptor deployment lane through its centroid
+bank and `O(Cd)` lookup.
 
 Gate 2 closes the candidate: MIC (Roth, Brattoli, Ommer, ICCV 2019) explicitly
 learns and explains away visual characteristics shared across classes, which
@@ -5395,6 +5399,14 @@ estimator or detached student imitation would be a parameterization of
 interclass-characteristic removal, not a novel supervision mechanism. No
 implementation or GPU run occurred. Full audit:
 `docs/pass193_rival_centroid_deflation_audit_2026-08-08.md`.
+
+A repaired re-audit reached the same Gate-2 verdict. Cross-fitting and a residual
+head could repair test-set alpha selection and amortize the bank, but MIC already
+occupies cross-class nuisance explanation; retrieval ranking distillation occupies
+student transfer of output geometry; and PLOS ONE 2024 Backward Search explicitly
+distills iterative embedding postprocessing into a one-pass autoencoder. The
+top-eight centroid statistic is a new estimator/combination, not a new training
+mechanism. The terminology correction therefore does not authorize computation.
 
 Gate 1 has no eligible provenance. The verified packet explicitly says it does
 not support a shared cross-class nuisance basis. Nothing reliable measures
