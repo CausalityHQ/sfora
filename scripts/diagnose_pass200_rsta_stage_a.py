@@ -128,6 +128,13 @@ _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256 = (
 _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_COMMIT = (
     "85e8f983053f3839e5bbb2bb11563380e6b77919"
 )
+_ADJOINT_INTEGRITY_AMENDMENT_PATH = (
+    "docs/pass200_rsta_adjoint_integrity_amendment_2026-08-09.md"
+)
+_ADJOINT_INTEGRITY_AMENDMENT_SHA256 = (
+    "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c"
+)
+_ADJOINT_INTEGRITY_AMENDMENT_COMMIT = "4c6886997b4116dcdb4ee5057e9544852695b42d"
 _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
     "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
     "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
@@ -618,6 +625,7 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
             "amendment",
             "deterministic_pool_amendment",
             "zero_jacobian_classifier_amendment",
+            "adjoint_integrity_amendment",
             "binding_receipt",
             "historical",
             "current_scientific_source",
@@ -679,6 +687,17 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         raise ValueError(
             "amended RSTA manifest zero_jacobian_classifier_amendment differs"
         )
+    adjoint_integrity_amendment = _require_exact_keys(
+        value["adjoint_integrity_amendment"],
+        {"path", "sha256", "commit"},
+        name="adjoint_integrity_amendment",
+    )
+    if adjoint_integrity_amendment != {
+        "path": _ADJOINT_INTEGRITY_AMENDMENT_PATH,
+        "sha256": _ADJOINT_INTEGRITY_AMENDMENT_SHA256,
+        "commit": _ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
+    }:
+        raise ValueError("amended RSTA manifest adjoint_integrity_amendment differs")
     historical = _require_exact_keys(
         value["historical"], {"producer_commit", "manifest", "source"}, name="historical"
     )
@@ -813,12 +832,24 @@ def validate_historical_binding_receipt(
 def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
     """Validate the current source domain separately from historical receipt provenance."""
     manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
+    adjoint_integrity_amendment = _require_exact_keys(
+        manifest.get("adjoint_integrity_amendment"),
+        {"path", "sha256", "commit"},
+        name="adjoint integrity amendment",
+    )
+    if adjoint_integrity_amendment != {
+        "path": _ADJOINT_INTEGRITY_AMENDMENT_PATH,
+        "sha256": _ADJOINT_INTEGRITY_AMENDMENT_SHA256,
+        "commit": _ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
+    }:
+        raise ValueError("current scientific adjoint integrity amendment differs")
     repository = manifest_path.resolve().parent.parent
     for name in (
         "base_preregistration",
         "amendment",
         "deterministic_pool_amendment",
         "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
         "artifact_schema",
     ):
         reference = manifest[name]
@@ -848,6 +879,16 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         != _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256
     ):
         raise ValueError("zero-Jacobian classifier amendment Git blob SHA-256 mismatch")
+    adjoint_integrity_blob = _git_blob(
+        repository,
+        _ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
+        _ADJOINT_INTEGRITY_AMENDMENT_PATH,
+    )
+    if (
+        hashlib.sha256(adjoint_integrity_blob).hexdigest()
+        != _ADJOINT_INTEGRITY_AMENDMENT_SHA256
+    ):
+        raise ValueError("adjoint integrity amendment Git blob SHA-256 mismatch")
     current = manifest["current_scientific_source"]
     revision = current["git_revision"]
     head = subprocess.run(
@@ -1646,11 +1687,13 @@ def load_training_only_seed(
     )
 
 
-def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+def write_json_atomic(
+    path: Path, payload: dict[str, Any], *, sort_keys: bool = True
+) -> None:
     """Publish finite JSON once without ever replacing an existing destination."""
-    encoded = (json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n").encode(
-        "utf-8"
-    )
+    encoded = (
+        json.dumps(payload, indent=2, sort_keys=sort_keys, allow_nan=False) + "\n"
+    ).encode("utf-8")
     if not path.parent.is_dir():
         raise FileNotFoundError(f"output parent directory is missing: {path.parent}")
     if path.exists() or path.is_symlink():
@@ -5054,6 +5097,451 @@ def _bound_checkpoint_sha256(artifact_binding: Mapping[str, Any]) -> str:
     return digest
 
 
+def _bound_train_pack_sha256(artifact_binding: Mapping[str, Any]) -> str:
+    artifacts = artifact_binding.get("artifacts")
+    train_pack = artifacts.get("train_npz") if isinstance(artifacts, Mapping) else None
+    digest = train_pack.get("sha256") if isinstance(train_pack, Mapping) else None
+    if not _is_lowercase_hex(digest, length=64):
+        raise ValueError("artifact binding lacks exact nested training-pack SHA-256")
+    return str(digest)
+
+
+_ADJOINT_AUDIT_FIELDS = (
+    "direction_domain",
+    "output_direction_seed",
+    "parameter_direction_seed",
+    "output_direction_sha256",
+    "parameter_direction_sha256",
+    "output_shape",
+    "parameter_name_order_sha256",
+    "parameter_count",
+    "model_dtype",
+    "reduction_dtype",
+    "lhs",
+    "rhs",
+    "absolute_error",
+    "denominator",
+    "relative_error",
+    "tolerance",
+    "passed",
+)
+
+
+def _validate_adjoint_integrity_audit(
+    audit: Mapping[str, Any],
+    *,
+    expected_metadata: Mapping[str, Any] | None = None,
+) -> None:
+    value = _require_exact_keys(audit, set(_ADJOINT_AUDIT_FIELDS), name="adjoint audit")
+    if list(value) != list(_ADJOINT_AUDIT_FIELDS):
+        raise ValueError("adjoint audit field order differs")
+    if value["direction_domain"] != "rsta-stage-a-v1":
+        raise ValueError("adjoint direction domain differs")
+    for name in ("output_direction_seed", "parameter_direction_seed", "parameter_count"):
+        if type(value[name]) is not int or value[name] < 0:
+            raise ValueError(f"adjoint {name} must be an unsigned integer")
+    if value["parameter_count"] == 0:
+        raise ValueError("adjoint parameter count must be positive")
+    for name in (
+        "output_direction_sha256",
+        "parameter_direction_sha256",
+        "parameter_name_order_sha256",
+    ):
+        _require_sha256(value[name], name=f"adjoint {name}")
+    shape = value["output_shape"]
+    if (
+        not isinstance(shape, list)
+        or len(shape) != 2
+        or shape[0] != 180
+        or any(type(dimension) is not int or dimension <= 0 for dimension in shape)
+    ):
+        raise ValueError("adjoint output shape differs")
+    if value["model_dtype"] != "torch.float32" or type(value["model_dtype"]) is not str:
+        raise ValueError("adjoint model dtype differs")
+    if (
+        value["reduction_dtype"] != "torch.float64"
+        or type(value["reduction_dtype"]) is not str
+    ):
+        raise ValueError("adjoint reduction dtype differs")
+    scalar_names = (
+        "lhs",
+        "rhs",
+        "absolute_error",
+        "denominator",
+        "relative_error",
+        "tolerance",
+    )
+    if any(type(value[name]) is not float or not np.isfinite(value[name]) for name in scalar_names):
+        raise ValueError("adjoint scalar must be a finite JSON number")
+    expected_error = abs(value["lhs"] - value["rhs"])
+    expected_denominator = max(abs(value["lhs"]), abs(value["rhs"]), np.float64(1.0e-12))
+    expected_relative = expected_error / expected_denominator
+    if (
+        value["absolute_error"] != expected_error
+        or value["denominator"] != expected_denominator
+        or value["relative_error"] != expected_relative
+        or value["tolerance"] != 5.0e-4
+        or type(value["passed"]) is not bool
+        or value["passed"] is not (expected_relative <= 5.0e-4)
+    ):
+        raise ValueError("adjoint finalized scalar contract differs")
+    if expected_metadata is not None and {
+        name: value[name] for name in _ADJOINT_AUDIT_FIELDS[:10]
+    } != dict(expected_metadata):
+        raise ValueError("adjoint direction metadata differs from consumed tensors")
+
+
+def _validate_environment_audit(environment: Mapping[str, Any]) -> None:
+    import torch
+
+    value = _require_exact_keys(
+        environment, ENVIRONMENT_AUDIT_FIELDS, name="integrity environment audit"
+    )
+    expected = {
+        "cublas_workspace_config": ":4096:8",
+        "deterministic_algorithms": True,
+        "deterministic_warn_only": False,
+        "cudnn_benchmark": False,
+        "cuda_matmul_tf32": False,
+        "cudnn_tf32": False,
+        "autocast": False,
+        "model_arithmetic": "float32",
+        "reduction_arithmetic": "float64",
+        "torch_version": torch.__version__,
+        "numpy_version": np.__version__,
+    }
+    if dict(value) != expected or any(
+        type(value[name]) is not type(expected_value)
+        for name, expected_value in expected.items()
+    ):
+        raise ValueError("integrity environment audit differs from configured runtime")
+
+
+def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> None:
+    """Recursively validate the exact candidate-free publication contract."""
+    top = _require_exact_keys(
+        payload,
+        {
+            "schema_version",
+            "diagnostic",
+            "mode",
+            "candidate_values_computed",
+            "stage_a_verdict",
+            "uses_test_data",
+            "execution_audit",
+            "manifest",
+            "environment",
+            "binding",
+            "integrity",
+        },
+        name="all-seed adjoint integrity payload",
+    )
+    _require_exact_int(top["schema_version"], 1, name="integrity schema version")
+    literals = {
+        "diagnostic": "pass200-rsta-adjoint-integrity",
+        "mode": "integrity_all_seeds",
+        "stage_a_verdict": "NOT_COMPUTED",
+        "uses_test_data": "artifact_binding_only",
+    }
+    if any(
+        type(top[name]) is not str or top[name] != expected
+        for name, expected in literals.items()
+    ):
+        raise ValueError("all-seed adjoint integrity scalar contract differs")
+    if top["candidate_values_computed"] is not False:
+        raise ValueError("all-seed adjoint integrity must be candidate-free")
+
+    manifest_audit = _require_exact_keys(
+        top["manifest"],
+        {
+            "path",
+            "sha256",
+            "base_preregistration",
+            "amendment",
+            "deterministic_pool_amendment",
+            "zero_jacobian_classifier_amendment",
+            "adjoint_integrity_amendment",
+            "binding_receipt",
+            "historical",
+            "artifact_schema",
+            "source",
+        },
+        name="all-seed adjoint manifest audit",
+    )
+    if type(manifest_audit["path"]) is not str or not manifest_audit["path"]:
+        raise ValueError("all-seed adjoint manifest path differs")
+    _require_sha256(manifest_audit["sha256"], name="all-seed adjoint manifest")
+    manifest_path = Path(manifest_audit["path"])
+    if not manifest_path.is_file() or sha256_file(manifest_path) != manifest_audit["sha256"]:
+        raise ValueError("all-seed adjoint manifest bytes differ")
+    manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
+    projection = {
+        "path": str(manifest_path),
+        "sha256": sha256_file(manifest_path),
+        "base_preregistration": manifest["base_preregistration"],
+        "amendment": manifest["amendment"],
+        "deterministic_pool_amendment": manifest["deterministic_pool_amendment"],
+        "zero_jacobian_classifier_amendment": manifest[
+            "zero_jacobian_classifier_amendment"
+        ],
+        "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+        "binding_receipt": manifest["binding_receipt"],
+        "historical": manifest["historical"],
+        "artifact_schema": manifest["artifact_schema"],
+        "source": manifest["current_scientific_source"],
+    }
+    if manifest_audit != projection:
+        raise ValueError("all-seed adjoint manifest projection differs")
+    validate_execution_audit(
+        top["execution_audit"],
+        manifest_source=manifest["current_scientific_source"],
+        manifest_path=manifest_path,
+    )
+    _validate_environment_audit(top["environment"])
+
+    binding = _require_exact_keys(
+        top["binding"],
+        {"receipt_sha256", "receipt_producer_commit", "historical_manifest_sha256", "seeds"},
+        name="all-seed adjoint binding",
+    )
+    _require_sha256(binding["receipt_sha256"], name="integrity receipt")
+    _require_sha256(binding["historical_manifest_sha256"], name="integrity historical manifest")
+    if not _is_lowercase_hex(binding["receipt_producer_commit"], length=40):
+        raise ValueError("integrity receipt producer commit differs")
+    binding_seeds = binding["seeds"]
+    if not isinstance(binding_seeds, dict) or list(binding_seeds) != ["0", "1", "2", "3"]:
+        raise ValueError("integrity binding requires ordered seeds 0-3")
+    binding_seed_fields = {
+        "checkpoint_sha256",
+        "train_pack_sha256",
+        "first_batch_ordered_id_sha256",
+        "transform_cache_order_sha256",
+        "transform_tensor_set_sha256",
+    }
+    for seed, record in binding_seeds.items():
+        record = _require_exact_keys(
+            record, binding_seed_fields, name=f"integrity binding seed {seed}"
+        )
+        for name, digest in record.items():
+            _require_sha256(digest, name=f"integrity binding seed {seed} {name}")
+
+    integrity = _require_exact_keys(
+        top["integrity"],
+        {"dense_fixture", "bn_fixture", "deterministic_global_max", "seeds", "all_passed"},
+        name="all-seed adjoint integrity",
+    )
+    if set(integrity["dense_fixture"]) != {
+        "passed", "max_jacobian_residual", "max_finite_difference_residual",
+        "jacobian_tolerance", "finite_difference_tolerance",
+    } or set(integrity["bn_fixture"]) != {
+        "passed", "max_output_residual", "max_gradient_residual", "tolerance",
+        "buffers_unchanged",
+    }:
+        raise ValueError("fixture integrity fields differ")
+    dense = integrity["dense_fixture"]
+    bn = integrity["bn_fixture"]
+    if (
+        dense["passed"] is not True
+        or any(
+            type(dense[name]) is not float
+            for name in (
+                "max_jacobian_residual",
+                "max_finite_difference_residual",
+                "jacobian_tolerance",
+                "finite_difference_tolerance",
+            )
+        )
+        or bn["passed"] is not True
+        or bn["buffers_unchanged"] is not True
+        or any(
+            type(bn[name]) is not float
+            for name in ("max_output_residual", "max_gradient_residual", "tolerance")
+        )
+    ):
+        raise ValueError("fixture integrity scalar types differ")
+    _validate_fixture_integrity(integrity)
+    _validate_deterministic_global_max_audit(integrity["deterministic_global_max"])
+    seed_integrity = integrity["seeds"]
+    if not isinstance(seed_integrity, dict) or list(seed_integrity) != ["0", "1", "2", "3"]:
+        raise ValueError("integrity audits require ordered seeds 0-3")
+    passed: list[bool] = []
+    for seed, record in seed_integrity.items():
+        record = _require_exact_keys(
+            record, {"zero_jacobian_classifier", "adjoint"}, name=f"integrity seed {seed}"
+        )
+        _validate_zero_jacobian_classifier_audit(record["zero_jacobian_classifier"])
+        _validate_adjoint_integrity_audit(record["adjoint"])
+        passed.append(record["adjoint"]["passed"])
+    if type(integrity["all_passed"]) is not bool or integrity["all_passed"] is not all(passed):
+        raise ValueError("all-seed adjoint all_passed differs")
+
+    forbidden = {"rows", "fields", "scores", "decision", "aggregation", "bootstrap"}
+
+    def reject_candidate_keys(value: Any) -> None:
+        if isinstance(value, Mapping):
+            if set(value) & forbidden:
+                raise ValueError("candidate field occurs in candidate-free integrity payload")
+            for item in value.values():
+                reject_candidate_keys(item)
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                reject_candidate_keys(item)
+
+    reject_candidate_keys(top)
+
+
+def run_all_seed_adjoint_integrity(
+    manifest: Mapping[str, Any] | None,
+    *,
+    manifest_path: Path,
+    receipt_path: Path,
+    output_path: Path,
+    expected_dimension: int = 512,
+    expected_partition: dict[str, tuple[int, int]] | None = None,
+    receipt_validator: Callable[[Path, Path], ValidatedBindingReceipt] = (
+        validate_historical_binding_receipt
+    ),
+    execution_source_validator: Callable[[Path], dict[str, Any]] = (
+        validate_scientific_execution_source
+    ),
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_training_only_seed,
+    cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
+    model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
+    fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    deterministic_pool_auditor: Callable[[], dict[str, Any]] = audit_deterministic_global_max,
+    zero_jacobian_auditor: Callable[[Any, Any], dict[str, Any]] = audit_zero_jacobian_classifier,
+    adjoint_auditor: Callable[..., dict[str, Any]] = adjoint_integrity_audit,
+) -> dict[str, Any]:
+    """Run candidate-free structured adjoint integrity for all four seeds."""
+    environment = configure_deterministic_process()
+    if output_path.exists() or output_path.is_symlink():
+        raise FileExistsError(f"output already exists: {output_path}")
+    receipt = receipt_validator(manifest_path, receipt_path)
+    execution_audit = execution_source_validator(manifest_path)
+    if manifest is None:
+        manifest = load_strict_json(manifest_path)
+    deterministic_global_max = deterministic_pool_auditor()
+    _validate_deterministic_global_max_audit(deterministic_global_max)
+    bounds = [
+        bound_loader(
+            manifest["seeds"][str(seed)],
+            receipt.seeds[seed],
+            expected_partition=expected_partition,
+            expected_dimension=expected_dimension,
+        )
+        for seed in range(4)
+    ]
+    validate_cross_seed_training_binding(bounds)
+    for bound in bounds:
+        validate_retained_training_arrays(bound)
+    reference = bounds[0]
+    primary = select_primary_panel(reference.train_example_ids, reference.train_labels)
+    batch_ids = tuple(primary["batches"][0])
+    cache = cache_builder(reference, batch_ids)
+    if tuple(cache.example_ids) != batch_ids or set(cache.tensor_sha256) != set(batch_ids):
+        raise ValueError("all-seed integrity transform cache differs from first batch")
+    fixtures = fixture_runner()
+    _validate_fixture_integrity(fixtures)
+
+    import torch
+
+    tensor_hashes = dict(cache.tensor_sha256)
+    binding_seeds: dict[str, dict[str, Any]] = {}
+    integrity_seeds: dict[str, dict[str, Any]] = {}
+    for bound in bounds:
+        _assert_deterministic_tf32_off()
+        model = make_rsta_diagnostic_clone(model_loader(bound))
+        parameter = next(iter(model.parameters()), None)
+        if parameter is None or parameter.dtype != torch.float32:
+            raise ValueError("all-seed integrity encoder must have FP32 parameters")
+        images = cache.batch(batch_ids).to(device=parameter.device, dtype=parameter.dtype)
+        zero_jacobian = zero_jacobian_auditor(model, images)
+        _validate_zero_jacobian_classifier_audit(zero_jacobian)
+        output_seed = domain_seed("rsta-stage-a-v1|adjoint-u|", str(bound.seed))
+        parameter_seed = domain_seed("rsta-stage-a-v1|adjoint-v|", str(bound.seed))
+        output_direction, parameter_direction = registered_adjoint_directions(
+            model,
+            (180, expected_dimension),
+            seed=bound.seed,
+            dtype=torch.float32,
+            device=parameter.device,
+        )
+        metadata = _adjoint_direction_metadata(
+            model,
+            output_direction,
+            parameter_direction,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+        )
+        adjoint = adjoint_auditor(
+            model,
+            images,
+            output_direction,
+            parameter_direction,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+            expected_batch_size=180,
+            expected_dimension=expected_dimension,
+        )
+        _validate_adjoint_integrity_audit(adjoint, expected_metadata=metadata)
+        seed_key = str(bound.seed)
+        integrity_seeds[seed_key] = {
+            "zero_jacobian_classifier": zero_jacobian,
+            "adjoint": adjoint,
+        }
+        binding_seeds[seed_key] = {
+            "checkpoint_sha256": _bound_checkpoint_sha256(bound.artifact_binding),
+            "train_pack_sha256": _bound_train_pack_sha256(bound.artifact_binding),
+            "first_batch_ordered_id_sha256": _ordered_text_sha256(batch_ids),
+            "transform_cache_order_sha256": cache.ordered_id_sha256,
+            "transform_tensor_set_sha256": _ordered_text_sha256(
+                [f"{example_id}\0{tensor_hashes[example_id]}" for example_id in batch_ids]
+            ),
+        }
+        del adjoint, metadata, output_direction, parameter_direction, images, model
+
+    payload = {
+        "schema_version": 1,
+        "diagnostic": "pass200-rsta-adjoint-integrity",
+        "mode": "integrity_all_seeds",
+        "candidate_values_computed": False,
+        "stage_a_verdict": "NOT_COMPUTED",
+        "uses_test_data": "artifact_binding_only",
+        "execution_audit": execution_audit,
+        "manifest": {
+            "path": str(manifest_path),
+            "sha256": sha256_file(manifest_path),
+            "base_preregistration": manifest["base_preregistration"],
+            "amendment": manifest["amendment"],
+            "deterministic_pool_amendment": manifest["deterministic_pool_amendment"],
+            "zero_jacobian_classifier_amendment": manifest[
+                "zero_jacobian_classifier_amendment"
+            ],
+            "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+            "binding_receipt": manifest["binding_receipt"],
+            "historical": manifest["historical"],
+            "artifact_schema": manifest["artifact_schema"],
+            "source": manifest["current_scientific_source"],
+        },
+        "environment": environment,
+        "binding": {
+            "receipt_sha256": receipt.sha256,
+            "receipt_producer_commit": receipt.producer_commit,
+            "historical_manifest_sha256": receipt.historical_manifest_sha256,
+            "seeds": binding_seeds,
+        },
+        "integrity": {
+            **fixtures,
+            "deterministic_global_max": deterministic_global_max,
+            "seeds": integrity_seeds,
+            "all_passed": all(record["adjoint"]["passed"] for record in integrity_seeds.values()),
+        },
+    }
+    validate_all_seed_adjoint_integrity_payload(payload)
+    write_json_atomic(output_path, payload, sort_keys=False)
+    return payload
+
+
 def run_integrity_smoke(
     manifest: Mapping[str, Any] | None,
     *,
@@ -5276,6 +5764,7 @@ def main(
     zero_jacobian_auditor: Callable[[Any, Any], dict[str, Any]] = (
         audit_zero_jacobian_classifier
     ),
+    adjoint_auditor: Callable[..., dict[str, Any]] = adjoint_integrity_audit,
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -5286,6 +5775,7 @@ def main(
     parser.add_argument("--output", type=Path, required=True)
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument("--smoke-only", action="store_true")
+    modes.add_argument("--integrity-all-seeds-only", action="store_true")
     modes.add_argument("--scientific", action="store_true")
     args = parser.parse_args(argv)
     if args.smoke_only:
@@ -5307,6 +5797,24 @@ def main(
             rotation_auditor=rotation_auditor,
             head_name=head_name,
             expected_head_in_features=expected_head_in_features,
+        )
+    elif args.integrity_all_seeds_only:
+        run_all_seed_adjoint_integrity(
+            None,
+            manifest_path=args.manifest,
+            receipt_path=args.binding_receipt,
+            output_path=args.output,
+            expected_dimension=expected_dimension,
+            expected_partition=expected_partition,
+            receipt_validator=receipt_validator,
+            execution_source_validator=execution_source_validator,
+            bound_loader=bound_loader,
+            cache_builder=cache_builder,
+            model_loader=model_loader,
+            fixture_runner=fixture_runner,
+            deterministic_pool_auditor=deterministic_pool_auditor,
+            zero_jacobian_auditor=zero_jacobian_auditor,
+            adjoint_auditor=adjoint_auditor,
         )
     else:
         run_scientific_diagnostic(

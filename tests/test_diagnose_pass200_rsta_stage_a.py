@@ -3989,7 +3989,10 @@ def _tiny_scientific_bound(
             "proxy_anchor_delta": 0.1,
         },
         artifact_binding={
-            "artifacts": {"checkpoint_pt": {"sha256": f"{seed + 1}" * 64}}
+            "artifacts": {
+                "checkpoint_pt": {"sha256": f"{seed + 1}" * 64},
+                "train_npz": {"sha256": f"{seed + 5}" * 64},
+            }
         },
     )
 
@@ -4016,6 +4019,613 @@ def _tiny_validated_receipt() -> Any:
             for seed in range(4)
         ),
     )
+
+
+def _task2_fixture_audit() -> dict[str, Any]:
+    return {
+        "dense_fixture": {
+            "passed": True,
+            "max_jacobian_residual": 0.0,
+            "max_finite_difference_residual": 0.0,
+            "jacobian_tolerance": 1.0e-8,
+            "finite_difference_tolerance": 1.0e-6,
+        },
+        "bn_fixture": {
+            "passed": True,
+            "max_output_residual": 0.0,
+            "max_gradient_residual": 0.0,
+            "tolerance": 1.0e-6,
+            "buffers_unchanged": True,
+        },
+    }
+
+
+def _task2_manifest(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
+    source = _SCRIPT.parents[1] / "docs" / "pass200_rsta_receipt_stage_a_manifest.json"
+    manifest = json.loads(source.read_text(encoding="utf-8"))
+    manifest["adjoint_integrity_amendment"] = {
+        "path": "docs/pass200_rsta_adjoint_integrity_amendment_2026-08-09.md",
+        "sha256": "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c",
+        "commit": "4c6886997b4116dcdb4ee5057e9544852695b42d",
+    }
+    path = tmp_path / "manifest.json"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    return path, manifest
+
+
+def _task2_inputs() -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module]]:
+    example_ids, raw_labels = _selection_fixture()
+    labels = [
+        label if index < 210 else 1_000 + (index - 210) // 2
+        for index, label in enumerate(raw_labels)
+    ]
+    generator = np.random.Generator(np.random.PCG64(2200))
+    clean = _unit_numpy(generator.standard_normal((len(example_ids), 3))).astype(np.float32)
+    proxy_labels = tuple(sorted(set(labels)))
+    proxies = _unit_numpy(generator.standard_normal((len(proxy_labels), 3))).astype(np.float32)
+    source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
+    bounds = [
+        _tiny_scientific_bound(
+            seed=seed,
+            clean=clean,
+            labels=labels,
+            example_ids=example_ids,
+            source_paths=source_paths,
+            proxies=proxies,
+            proxy_labels=proxy_labels,
+        )
+        for seed in range(4)
+    ]
+
+    def cache_builder(_bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
+        sources = {value: value for value in ordered_ids}
+        return _MODULE.cache_deterministic_transforms(
+            ordered_ids,
+            sources,
+            transform=lambda example_id: torch.tensor(
+                np.random.Generator(
+                    np.random.PCG64(_MODULE.domain_seed("task2-transform", example_id))
+                ).standard_normal(2),
+                dtype=torch.float32,
+            ),
+        )
+
+    class TinyOfficialHead(torch.nn.Module):
+        def __init__(self, seed: int) -> None:
+            super().__init__()
+            torch.manual_seed(seed + 2200)
+            self.model = torch.nn.Module()
+            self.model.gmp = torch.nn.AdaptiveMaxPool2d(1)
+            self.model.embedding = torch.nn.Linear(2, 3)
+
+        def forward(self, values: torch.Tensor) -> torch.Tensor:
+            return torch.nn.functional.normalize(self.model.embedding(values), dim=-1)
+
+    return bounds, cache_builder, TinyOfficialHead
+
+
+def _task2_adjoint_auditor(
+    model: Any,
+    _images: Any,
+    output_direction: Any,
+    parameter_direction: Any,
+    *,
+    output_direction_seed: int,
+    parameter_direction_seed: int,
+    passed: bool = True,
+    **_kwargs: Any,
+) -> dict[str, Any]:
+    metadata = _MODULE._adjoint_direction_metadata(
+        model,
+        output_direction,
+        parameter_direction,
+        output_direction_seed=output_direction_seed,
+        parameter_direction_seed=parameter_direction_seed,
+    )
+    scalars = _MODULE._finalize_adjoint_scalars(
+        torch.tensor(1.0, dtype=torch.float64),
+        torch.tensor(1.0 if passed else 0.999, dtype=torch.float64),
+    )
+    return {**metadata, **scalars}
+
+
+def _run_task2_cli(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    adjoint_auditor: Callable[..., dict[str, Any]] = _task2_adjoint_auditor,
+    zero_jacobian_auditor: Callable[..., dict[str, Any]] | None = None,
+    receipt_validator: Callable[..., Any] | None = None,
+) -> tuple[Path, list[int]]:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    manifest_path, manifest = _task2_manifest(tmp_path)
+    bounds, cache_builder, model_type = _task2_inputs()
+    calls: list[int] = []
+
+    def bound_loader(_entry: Any, receipt_seed: Any, **_kwargs: Any) -> Any:
+        calls.append(receipt_seed.seed)
+        return bounds[receipt_seed.seed]
+
+    output = tmp_path / "all-seeds.json"
+    source = manifest["current_scientific_source"]
+    execution = {
+        "executing_git_commit": "a" * 40,
+        "diagnostic_path": "scripts/diagnose_pass200_rsta_stage_a.py",
+        "diagnostic_sha256": source["files"]["scripts/diagnose_pass200_rsta_stage_a.py"],
+        "frozen_source_revision": source["git_revision"],
+    }
+    monkeypatch.setattr(_MODULE, "validate_execution_audit", lambda *_args, **_kwargs: None)
+    _MODULE.main(
+        [
+            "--manifest",
+            str(manifest_path),
+            "--binding-receipt",
+            str(tmp_path / "receipt.json"),
+            "--output",
+            str(output),
+            "--integrity-all-seeds-only",
+        ],
+        expected_dimension=3,
+        receipt_validator=receipt_validator or (lambda *_args: _tiny_validated_receipt()),
+        execution_source_validator=lambda _path: execution,
+        bound_loader=bound_loader,
+        cache_builder=cache_builder,
+        model_loader=lambda bound: model_type(bound.seed).train(),
+        fixture_runner=_task2_fixture_audit,
+        deterministic_pool_auditor=_valid_global_max_audit,
+        zero_jacobian_auditor=zero_jacobian_auditor
+        or (lambda *_args: _valid_zero_jacobian_audit()),
+        adjoint_auditor=adjoint_auditor,
+    )
+    return output, calls
+
+
+def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches candidate reachability or any widening of the frozen audit schema."""
+    forbidden_calls: list[str] = []
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        forbidden_calls.append("candidate")
+        raise AssertionError("candidate code reached from all-seed integrity")
+
+    for name in (
+        "exact_contextual_rsta_fields",
+        "score_rsta_batch",
+        "decide_stage_a",
+        "joint_bootstrap",
+        "scientific_payload",
+        "_validate_receiver_audit_row",
+    ):
+        monkeypatch.setattr(_MODULE, name, forbidden)
+    output, calls = _run_task2_cli(tmp_path, monkeypatch)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+
+    assert calls == [0, 1, 2, 3]
+    assert forbidden_calls == []
+    assert list(payload) == [
+        "schema_version", "diagnostic", "mode", "candidate_values_computed",
+        "stage_a_verdict", "uses_test_data", "execution_audit", "manifest",
+        "environment", "binding", "integrity",
+    ]
+    assert payload["schema_version"] == 1
+    assert payload["diagnostic"] == "pass200-rsta-adjoint-integrity"
+    assert payload["mode"] == "integrity_all_seeds"
+    assert payload["candidate_values_computed"] is False
+    assert payload["stage_a_verdict"] == "NOT_COMPUTED"
+    assert payload["uses_test_data"] == "artifact_binding_only"
+    assert set(payload["execution_audit"]) == _MODULE._EXECUTION_AUDIT_FIELDS
+    assert list(payload["manifest"]) == [
+        "path", "sha256", "base_preregistration", "amendment",
+        "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment", "binding_receipt", "historical",
+        "artifact_schema", "source",
+    ]
+    assert set(payload["environment"]) == _MODULE.ENVIRONMENT_AUDIT_FIELDS
+    assert set(payload["binding"]) == {
+        "receipt_sha256", "receipt_producer_commit", "historical_manifest_sha256", "seeds"
+    }
+    assert list(payload["binding"]["seeds"]) == ["0", "1", "2", "3"]
+    assert all(
+        set(value) == {
+            "checkpoint_sha256", "train_pack_sha256", "first_batch_ordered_id_sha256",
+            "transform_cache_order_sha256", "transform_tensor_set_sha256",
+        }
+        for value in payload["binding"]["seeds"].values()
+    )
+    assert set(payload["integrity"]) == {
+        "dense_fixture", "bn_fixture", "deterministic_global_max", "seeds", "all_passed"
+    }
+    assert list(payload["integrity"]["seeds"]) == ["0", "1", "2", "3"]
+    assert all(
+        set(value) == {"zero_jacobian_classifier", "adjoint"}
+        and list(value["adjoint"]) == [
+            "direction_domain", "output_direction_seed", "parameter_direction_seed",
+            "output_direction_sha256", "parameter_direction_sha256", "output_shape",
+            "parameter_name_order_sha256", "parameter_count", "model_dtype",
+            "reduction_dtype", "lhs", "rhs", "absolute_error", "denominator",
+            "relative_error", "tolerance", "passed",
+        ]
+        for value in payload["integrity"]["seeds"].values()
+    )
+    assert payload["integrity"]["all_passed"] is True
+
+    def keys(value: Any) -> set[str]:
+        if isinstance(value, dict):
+            return set(value) | set().union(*(keys(item) for item in value.values()))
+        if isinstance(value, list):
+            return set().union(*(keys(item) for item in value))
+        return set()
+
+    assert not keys(payload) & {"rows", "fields", "scores", "decision", "aggregation", "bootstrap"}
+
+
+def test_integrity_all_seeds_recursively_validates_execution_manifest_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches trusting copied provenance/environment objects or accepting nested drift."""
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    manifest_path, manifest = _task2_manifest(tmp_path)
+    environment = _MODULE.configure_deterministic_process()
+    source = manifest["current_scientific_source"]
+    execution = {
+        "executing_git_commit": "a" * 40,
+        "diagnostic_path": "scripts/diagnose_pass200_rsta_stage_a.py",
+        "diagnostic_sha256": source["files"]["scripts/diagnose_pass200_rsta_stage_a.py"],
+        "frozen_source_revision": source["git_revision"],
+    }
+    manifest_audit = {
+        "path": str(manifest_path), "sha256": _sha256_file(manifest_path),
+        "base_preregistration": manifest["base_preregistration"],
+        "amendment": manifest["amendment"],
+        "deterministic_pool_amendment": manifest["deterministic_pool_amendment"],
+        "zero_jacobian_classifier_amendment": manifest["zero_jacobian_classifier_amendment"],
+        "adjoint_integrity_amendment": manifest["adjoint_integrity_amendment"],
+        "binding_receipt": manifest["binding_receipt"], "historical": manifest["historical"],
+        "artifact_schema": manifest["artifact_schema"], "source": source,
+    }
+    adjoint = {
+        "direction_domain": "rsta-stage-a-v1", "output_direction_seed": 1,
+        "parameter_direction_seed": 2, "output_direction_sha256": "1" * 64,
+        "parameter_direction_sha256": "2" * 64, "output_shape": [180, 3],
+        "parameter_name_order_sha256": "3" * 64, "parameter_count": 9,
+        "model_dtype": "torch.float32", "reduction_dtype": "torch.float64",
+        "lhs": 1.0, "rhs": 1.0, "absolute_error": 0.0, "denominator": 1.0,
+        "relative_error": 0.0, "tolerance": 0.0005, "passed": True,
+    }
+    payload = {
+        "schema_version": 1, "diagnostic": "pass200-rsta-adjoint-integrity",
+        "mode": "integrity_all_seeds", "candidate_values_computed": False,
+        "stage_a_verdict": "NOT_COMPUTED", "uses_test_data": "artifact_binding_only",
+        "execution_audit": execution, "manifest": manifest_audit, "environment": environment,
+        "binding": {
+            "receipt_sha256": "4" * 64, "receipt_producer_commit": "5" * 40,
+            "historical_manifest_sha256": "6" * 64,
+            "seeds": {str(seed): {
+                "checkpoint_sha256": "7" * 64, "train_pack_sha256": "8" * 64,
+                "first_batch_ordered_id_sha256": "9" * 64,
+                "transform_cache_order_sha256": "a" * 64,
+                "transform_tensor_set_sha256": "b" * 64,
+            } for seed in range(4)},
+        },
+        "integrity": {
+            **_task2_fixture_audit(),
+            "deterministic_global_max": _valid_global_max_audit(),
+            "seeds": {
+                str(seed): {
+                    "zero_jacobian_classifier": _valid_zero_jacobian_audit(),
+                    "adjoint": deepcopy(adjoint),
+                }
+                for seed in range(4)
+            },
+            "all_passed": True,
+        },
+    }
+    calls: list[dict[str, Any]] = []
+
+    def execution_validator(value: Any, *, manifest_source: Any, manifest_path: Any) -> None:
+        calls.append(dict(value))
+        if (
+            value != execution
+            or manifest_source != source
+            or manifest_path != Path(manifest_audit["path"])
+        ):
+            raise ValueError("execution audit differs")
+
+    monkeypatch.setattr(_MODULE, "validate_execution_audit", execution_validator)
+    _MODULE.validate_all_seed_adjoint_integrity_payload(payload)
+    assert calls and set(environment) == _MODULE.ENVIRONMENT_AUDIT_FIELDS
+
+    def paths(value: Any, prefix: tuple[Any, ...] = ()) -> list[tuple[Any, ...]]:
+        found = [prefix]
+        if isinstance(value, dict):
+            for key, item in value.items():
+                found.extend(paths(item, (*prefix, key)))
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                found.extend(paths(item, (*prefix, index)))
+        return found
+
+    for root_name in ("execution_audit", "manifest", "environment"):
+        root = payload[root_name]
+        for path in paths(root):
+            changed = deepcopy(payload)
+            target = changed[root_name]
+            for part in path[:-1]:
+                target = target[part]
+            if not path:
+                changed[root_name] = None
+            elif isinstance(target[path[-1]], dict):
+                target[path[-1]]["unexpected"] = True
+            elif isinstance(target[path[-1]], list):
+                target[path[-1]].append(None)
+            else:
+                target[path[-1]] = None
+            with pytest.raises((ValueError, TypeError, FileNotFoundError)):
+                _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+
+
+def test_integrity_all_seeds_records_all_finite_adjoint_failures_without_candidate_calls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches fail-fast treatment of a finite tolerance failure in candidate-free mode."""
+    seed_by_output_seed = {
+        _MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", str(seed)): seed
+        for seed in range(4)
+    }
+    adjoint_calls: list[int] = []
+    candidate_calls: list[str] = []
+    publications: list[Path] = []
+
+    def adjoint(*args: Any, output_direction_seed: int, **kwargs: Any) -> dict[str, Any]:
+        seed = seed_by_output_seed[output_direction_seed]
+        adjoint_calls.append(seed)
+        return _task2_adjoint_auditor(
+            *args,
+            output_direction_seed=output_direction_seed,
+            passed=seed != 1,
+            **kwargs,
+        )
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        candidate_calls.append("candidate")
+        raise AssertionError("candidate code reached")
+
+    for name in (
+        "exact_contextual_rsta_fields", "score_rsta_batch", "decide_stage_a",
+        "joint_bootstrap", "scientific_payload", "_validate_receiver_audit_row",
+    ):
+        monkeypatch.setattr(_MODULE, name, forbidden)
+    real_write = _MODULE.write_json_atomic
+
+    def write_once(path: Path, payload: dict[str, Any], **kwargs: Any) -> None:
+        publications.append(path)
+        real_write(path, payload, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "write_json_atomic", write_once)
+    output, _ = _run_task2_cli(tmp_path, monkeypatch, adjoint_auditor=adjoint)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+
+    assert adjoint_calls == [0, 1, 2, 3]
+    assert list(payload["integrity"]["seeds"]) == ["0", "1", "2", "3"]
+    assert payload["integrity"]["seeds"]["1"]["adjoint"]["passed"] is False
+    assert payload["integrity"]["all_passed"] is False
+    assert candidate_calls == []
+    assert publications == [output]
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "structural_provenance",
+        "nonfinite_direction",
+        "nonfinite_reduction",
+        "zero_jacobian",
+        "serialization",
+        "atomic_publication",
+    ],
+)
+def test_integrity_all_seeds_fail_fast_without_destination_or_sibling_temp(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: str,
+) -> None:
+    """Catches continuation/publication after any structural candidate-free failure."""
+    adjoint_calls: list[int] = []
+    seed_by_output_seed = {
+        _MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", str(seed)): seed
+        for seed in range(4)
+    }
+
+    def adjoint(*args: Any, output_direction_seed: int, **kwargs: Any) -> dict[str, Any]:
+        seed = seed_by_output_seed[output_direction_seed]
+        adjoint_calls.append(seed)
+        if failure == "nonfinite_direction" and seed == 1:
+            raise ValueError("adjoint direction is nonfinite")
+        if failure == "nonfinite_reduction" and seed == 1:
+            raise ValueError("adjoint reduction is nonfinite")
+        return _task2_adjoint_auditor(
+            *args, output_direction_seed=output_direction_seed, **kwargs
+        )
+
+    def fail_receipt(*_args: Any) -> Any:
+        raise ValueError("structural provenance failed")
+
+    receipt_validator = fail_receipt if failure == "structural_provenance" else None
+
+    def invalid_zero_jacobian(*_args: Any) -> dict[str, Any]:
+        return {}
+
+    zero = invalid_zero_jacobian if failure == "zero_jacobian" else None
+    if failure == "serialization":
+        real_dumps = json.dumps
+
+        def fail_payload_json(value: Any, *args: Any, **kwargs: Any) -> str:
+            if isinstance(value, dict) and value.get("diagnostic") == (
+                "pass200-rsta-adjoint-integrity"
+            ):
+                raise TypeError("serialization failed")
+            return real_dumps(value, *args, **kwargs)
+
+        monkeypatch.setattr(json, "dumps", fail_payload_json)
+    if failure == "atomic_publication":
+        monkeypatch.setattr(
+            os,
+            "link",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("publication failed")),
+        )
+
+    expected_message = {
+        "structural_provenance": "structural provenance failed",
+        "nonfinite_direction": "adjoint direction is nonfinite",
+        "nonfinite_reduction": "adjoint reduction is nonfinite",
+        "zero_jacobian": "zero-Jacobian classifier",
+        "serialization": "serialization failed",
+        "atomic_publication": "publication failed",
+    }[failure]
+    with pytest.raises((ValueError, TypeError, OSError), match=expected_message):
+        _run_task2_cli(
+            tmp_path,
+            monkeypatch,
+            adjoint_auditor=adjoint,
+            zero_jacobian_auditor=zero,
+            receipt_validator=receipt_validator,
+        )
+
+    output = tmp_path / "all-seeds.json"
+    assert not output.exists()
+    assert list(tmp_path.glob(f".{output.name}.*.tmp")) == []
+    if failure == "structural_provenance":
+        assert adjoint_calls == []
+    elif failure in {"nonfinite_direction", "nonfinite_reduction"}:
+        assert adjoint_calls == [0, 1]
+
+
+def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_blob(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches an absent, substituted, dirty, or Git-unbound prospective amendment."""
+    expected_path = "docs/pass200_rsta_adjoint_integrity_amendment_2026-08-09.md"
+    expected_sha = "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c"
+    expected_commit = "4c6886997b4116dcdb4ee5057e9544852695b42d"
+    assert expected_path == _MODULE._ADJOINT_INTEGRITY_AMENDMENT_PATH
+    assert expected_sha == _MODULE._ADJOINT_INTEGRITY_AMENDMENT_SHA256
+    assert expected_commit == _MODULE._ADJOINT_INTEGRITY_AMENDMENT_COMMIT
+
+    repository = tmp_path
+    source_amendment = (
+        _SCRIPT.parents[1]
+        / "docs"
+        / "pass200_rsta_adjoint_integrity_amendment_2026-08-09.md"
+    )
+    amendment_path = repository / expected_path
+    amendment_path.parent.mkdir(parents=True)
+    amendment_bytes = source_amendment.read_bytes()
+    amendment_path.write_bytes(amendment_bytes)
+    references: dict[str, dict[str, str]] = {}
+    old_bindings = (
+        ("amendment", "_AMENDMENT_PATH", "_AMENDMENT_SHA256", "_AMENDMENT_COMMIT"),
+        (
+            "deterministic_pool_amendment",
+            "_DETERMINISTIC_POOL_AMENDMENT_PATH",
+            "_DETERMINISTIC_POOL_AMENDMENT_SHA256",
+            "_DETERMINISTIC_POOL_AMENDMENT_COMMIT",
+        ),
+        (
+            "zero_jacobian_classifier_amendment",
+            "_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_PATH",
+            "_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256",
+            "_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_COMMIT",
+        ),
+    )
+    for index, (name, path_constant, sha_constant, commit_constant) in enumerate(
+        old_bindings
+    ):
+        path_text = f"docs/{name}.md"
+        data = f"{name}\n".encode()
+        path = repository / path_text
+        path.write_bytes(data)
+        digest = hashlib.sha256(data).hexdigest()
+        commit = f"{index + 1}" * 40
+        monkeypatch.setattr(_MODULE, path_constant, path_text)
+        monkeypatch.setattr(_MODULE, sha_constant, digest)
+        monkeypatch.setattr(_MODULE, commit_constant, commit)
+        references[name] = {"path": path_text, "sha256": digest, "commit": commit}
+    for name in ("base_preregistration", "artifact_schema"):
+        path_text = f"docs/{name}.json"
+        data = f"{name}\n".encode()
+        (repository / path_text).write_bytes(data)
+        references[name] = {
+            "path": path_text,
+            "sha256": hashlib.sha256(data).hexdigest(),
+        }
+    diagnostic_path = repository / "scripts" / "diagnose_pass200_rsta_stage_a.py"
+    diagnostic_path.parent.mkdir(parents=True)
+    diagnostic_path.write_text("EXECUTION = 1\n", encoding="utf-8")
+    revision = "c" * 40
+    manifest = {
+        **references,
+        "adjoint_integrity_amendment": {
+            "path": expected_path,
+            "sha256": expected_sha,
+            "commit": expected_commit,
+        },
+        "current_scientific_source": {
+            "git_revision": revision,
+            "files": {
+                "scripts/diagnose_pass200_rsta_stage_a.py": _sha256_file(diagnostic_path)
+            },
+        },
+    }
+    manifest_path = repository / "docs" / "manifest.json"
+    monkeypatch.setattr(_MODULE, "_validate_amended_manifest_schema", lambda value: value)
+    monkeypatch.setattr(_MODULE, "__file__", str(diagnostic_path))
+    bad_adjoint_blob = False
+
+    def git_blob(_repository: Path, _revision: str, path_text: str) -> bytes:
+        if path_text == expected_path and bad_adjoint_blob:
+            return b"substituted amendment blob"
+        return (repository / path_text).read_bytes()
+
+    monkeypatch.setattr(_MODULE, "_git_blob", git_blob)
+
+    def fake_run(args: Any, **_kwargs: Any) -> subprocess.CompletedProcess[Any]:
+        if "rev-parse" in args:
+            return subprocess.CompletedProcess(args, 0, stdout=revision + "\n", stderr="")
+        return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def write(value: dict[str, Any]) -> None:
+        manifest_path.write_text(json.dumps(value), encoding="utf-8")
+
+    write(manifest)
+    audit = _MODULE.validate_scientific_execution_source(manifest_path)
+    assert audit["frozen_source_revision"] == revision
+
+    for mutation in ("missing", "extra", "path", "sha256", "commit"):
+        changed = deepcopy(manifest)
+        if mutation == "missing":
+            changed.pop("adjoint_integrity_amendment")
+        elif mutation == "extra":
+            changed["adjoint_integrity_amendment"]["extra"] = True
+        else:
+            changed["adjoint_integrity_amendment"][mutation] = "0" * (
+                64 if mutation == "sha256" else 40
+            )
+        write(changed)
+        with pytest.raises((KeyError, ValueError), match="adjoint|amendment"):
+            _MODULE.validate_scientific_execution_source(manifest_path)
+
+    write(manifest)
+    amendment_path.write_bytes(b"dirty worktree amendment")
+    with pytest.raises(ValueError, match="adjoint|amendment"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+    amendment_path.write_bytes(amendment_bytes)
+    bad_adjoint_blob = True
+    with pytest.raises(ValueError, match="adjoint|amendment"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
 
 
 def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows(
@@ -4719,6 +5329,11 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             "sha256": "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade",
             "commit": "85e8f983053f3839e5bbb2bb11563380e6b77919",
         },
+        "adjoint_integrity_amendment": {
+            "path": _MODULE._ADJOINT_INTEGRITY_AMENDMENT_PATH,
+            "sha256": _MODULE._ADJOINT_INTEGRITY_AMENDMENT_SHA256,
+            "commit": _MODULE._ADJOINT_INTEGRITY_AMENDMENT_COMMIT,
+        },
         "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
     }
     for reference in references.values():
@@ -4753,7 +5368,9 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
     def fake_blob(_repository: Path, revision: str, path_text: str) -> bytes:
         blobs.append((revision, path_text))
         digest = (
-            "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade"
+            _MODULE._ADJOINT_INTEGRITY_AMENDMENT_SHA256
+            if revision == _MODULE._ADJOINT_INTEGRITY_AMENDMENT_COMMIT
+            else "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade"
             if revision == "85e8f983053f3839e5bbb2bb11563380e6b77919"
             else _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256
             if revision == _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT
