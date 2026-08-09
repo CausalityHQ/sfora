@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import hashlib
+import io
 import json
 import math
 import os
+import pickle
+import pickletools
+import secrets
 import shutil
 import stat
 import subprocess
 import zipfile
+from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -137,6 +143,30 @@ class PrelaunchAuthority:
     expected_train_steps: int
     steps_per_epoch: int
     total_epochs: int
+
+
+@dataclass(frozen=True)
+class CheckpointArch:
+    backbone_name: Literal["bn_inception"]
+    pretrained_weights: Literal["bn_inception_52deb4733"]
+    head_pooling: Literal["avg_max"]
+    embedding_dimensions: Literal[512]
+    embedding_head_init: Literal["kaiming_normal"]
+    embedding_layer_norm: Literal[False]
+
+
+@dataclass(frozen=True)
+class CheckpointMetadata:
+    data_pickle_sha256: str
+    top_keys: tuple[str, ...]
+    artifact_selection: Literal["final_training_state"]
+    evaluation_model_source: Literal["student"]
+    training_step: int
+    arch: CheckpointArch
+    arch_sha256: str
+    training_config_sha256: str
+    state_dict_key_count: int
+    state_dict_storage_materialized: Literal[False] = False
 
 
 @dataclass(frozen=True)
@@ -749,14 +779,496 @@ def _read_regular_file(path: Path) -> tuple[os.stat_result, bytes, str]:
         os.close(fd)
 
 
-def _stat_identity(value: os.stat_result) -> tuple[int, int, int, int, int]:
+def _stat_identity(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
     return (
         value.st_dev,
         value.st_ino,
         value.st_mode,
         value.st_size,
         value.st_mtime_ns,
+        value.st_ctime_ns,
     )
+
+
+def _same_inode(left: os.stat_result, right: os.stat_result) -> bool:
+    return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
+
+
+@dataclass(frozen=True)
+class _StorageClassStub:
+    global_name: str
+
+
+@dataclass(frozen=True)
+class _StorageStub:
+    storage_class: _StorageClassStub
+    key: str
+    location: str
+    size: int
+
+
+@dataclass(frozen=True)
+class _TensorStub:
+    storage: _StorageStub
+    storage_offset: int
+    size: tuple[int, ...]
+    stride: tuple[int, ...]
+
+
+class _RebuildTensorStub:
+    def __init__(self, version: int) -> None:
+        self.version = version
+
+    def __call__(self, *args: object) -> _TensorStub:
+        expected_lengths = {1: {4}, 2: {6, 7}, 3: {7, 8}}[self.version]
+        if len(args) not in expected_lengths:
+            raise pickle.UnpicklingError("malformed tensor rebuild")
+        storage, offset, size, stride = args[:4]
+        if type(storage) is not _StorageStub or type(offset) is not int or offset < 0:
+            raise pickle.UnpicklingError("malformed tensor rebuild")
+        if (
+            type(size) is not tuple
+            or type(stride) is not tuple
+            or len(size) != len(stride)
+            or any(type(value) is not int or value < 0 for value in size)
+            or any(type(value) is not int for value in stride)
+        ):
+            raise pickle.UnpicklingError("malformed tensor rebuild")
+        if self.version >= 2:
+            requires_grad, backward_hooks = args[4:6]
+            if type(requires_grad) is not bool or not (
+                backward_hooks is None or type(backward_hooks) is OrderedDict
+            ):
+                raise pickle.UnpicklingError("malformed tensor rebuild")
+        if self.version == 2 and len(args) == 7 and not (args[6] is None or type(args[6]) is dict):
+            raise pickle.UnpicklingError("malformed tensor rebuild")
+        if self.version == 3:
+            dtype = args[6]
+            if type(dtype) not in (str, _StorageClassStub):
+                raise pickle.UnpicklingError("malformed tensor rebuild")
+            if len(args) == 8 and not (args[7] is None or type(args[7]) is dict):
+                raise pickle.UnpicklingError("malformed tensor rebuild")
+        return _TensorStub(storage, offset, size, stride)
+
+
+_STORAGE_GLOBALS = tuple(
+    f"torch.{name}"
+    for name in (
+        "ByteStorage",
+        "CharStorage",
+        "ShortStorage",
+        "IntStorage",
+        "LongStorage",
+        "HalfStorage",
+        "FloatStorage",
+        "DoubleStorage",
+        "BoolStorage",
+        "BFloat16Storage",
+        "ComplexFloatStorage",
+        "ComplexDoubleStorage",
+    )
+) + ("torch.storage.TypedStorage", "torch.storage.UntypedStorage")
+_STORAGE_STUBS = {name: _StorageClassStub(name) for name in _STORAGE_GLOBALS}
+_REBUILD_STUBS = {
+    "torch._utils._rebuild_tensor": _RebuildTensorStub(1),
+    "torch._utils._rebuild_tensor_v2": _RebuildTensorStub(2),
+    "torch._utils._rebuild_tensor_v3": _RebuildTensorStub(3),
+}
+
+
+class _RestrictedMetadataUnpickler(pickle.Unpickler):
+    def find_class(self, module: str, name: str) -> object:
+        global_name = f"{module}.{name}"
+        if global_name == "collections.OrderedDict":
+            return OrderedDict
+        if global_name in _REBUILD_STUBS:
+            return _REBUILD_STUBS[global_name]
+        if global_name in _STORAGE_STUBS:
+            return _STORAGE_STUBS[global_name]
+        raise pickle.UnpicklingError(f"forbidden pickle global: {global_name}")
+
+    def persistent_load(self, persistent_id: object) -> _StorageStub:
+        if type(persistent_id) is not tuple or len(persistent_id) != 5:
+            raise pickle.UnpicklingError("malformed persistent ID")
+        kind, storage_class, key, location, size = persistent_id
+        if (
+            kind != "storage"
+            or type(kind) is not str
+            or type(storage_class) is not _StorageClassStub
+            or storage_class not in _STORAGE_STUBS.values()
+            or type(key) is not str
+            or not key
+            or not key.isascii()
+            or type(location) is not str
+            or not location
+            or not location.isascii()
+            or type(size) is not int
+            or size < 0
+        ):
+            raise pickle.UnpicklingError("malformed persistent ID")
+        return _StorageStub(storage_class, key, location, size)
+
+
+def _load_restricted_pickle(data: bytes) -> object:
+    try:
+        operations = list(pickletools.genops(data))
+    except (ValueError, pickle.UnpicklingError) as exc:
+        raise ValueError("invalid restricted pickle") from exc
+    if not operations or operations[-1][0].name != "STOP" or operations[-1][2] + 1 != len(data):
+        raise ValueError("trailing pickle data")
+    if any(opcode.name in {"EXT1", "EXT2", "EXT4"} for opcode, _, _ in operations):
+        raise ValueError("extension opcode is forbidden")
+    if any(
+        opcode.name in {"BUILD", "INST", "NEWOBJ", "NEWOBJ_EX", "OBJ"}
+        for opcode, _, _ in operations
+    ):
+        raise ValueError("stateful pickle opcode is forbidden")
+    try:
+        return _RestrictedMetadataUnpickler(io.BytesIO(data)).load()
+    except (
+        AttributeError,
+        EOFError,
+        IndexError,
+        TypeError,
+        ValueError,
+        pickle.UnpicklingError,
+    ) as exc:
+        message = str(exc)
+        if "forbidden pickle global" in message:
+            raise ValueError(message) from exc
+        if "persistent ID" in message:
+            raise ValueError("malformed persistent ID") from exc
+        if "tensor rebuild" in message:
+            raise ValueError("malformed tensor rebuild") from exc
+        raise ValueError("invalid restricted pickle") from exc
+
+
+def _safe_zip_member_name(name: str) -> bool:
+    if not name or "\\" in name or "\x00" in name:
+        return False
+    path = PurePosixPath(name)
+    return (
+        not path.is_absolute()
+        and path.as_posix() == name
+        and all(part not in ("", ".", "..") for part in path.parts)
+    )
+
+
+def _read_checkpoint_data_pickle(path: Path) -> bytes:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as exc:
+        raise ValueError(f"cannot safely open checkpoint: {path}") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError("checkpoint is not a regular file")
+        if before.st_size > 2 << 30:
+            raise ValueError("checkpoint archive exceeds 2 GiB")
+        try:
+            with (
+                os.fdopen(os.dup(fd), "rb") as checkpoint,
+                zipfile.ZipFile(checkpoint) as archive,
+            ):
+                members = archive.infolist()
+                if len(members) > 100_000:
+                    raise ValueError("too many ZIP members")
+                names = [member.filename for member in members]
+                if len(names) != len(set(names)):
+                    raise ValueError("duplicate ZIP member")
+                for member in members:
+                    if not _safe_zip_member_name(member.filename):
+                        raise ValueError("unsafe ZIP member name")
+                    if member.flag_bits & 1:
+                        raise ValueError("encrypted ZIP member")
+                    member_type = stat.S_IFMT(member.external_attr >> 16)
+                    if member_type not in (0, stat.S_IFREG):
+                        raise ValueError("non-regular ZIP member")
+                metadata = [
+                    member
+                    for member in members
+                    if member.filename == "data.pkl" or member.filename.endswith("/data.pkl")
+                ]
+                if len(metadata) != 1:
+                    raise ValueError("checkpoint must contain exactly one data.pkl")
+                info = metadata[0]
+                if info.file_size > 64 << 20:
+                    raise ValueError("data.pkl exceeds 64 MiB")
+                with archive.open(info, "r") as source:
+                    data = source.read((64 << 20) + 1)
+                if len(data) != info.file_size or len(data) > 64 << 20:
+                    raise ValueError("invalid data.pkl size")
+        except ValueError:
+            raise
+        except (
+            EOFError,
+            NotImplementedError,
+            OSError,
+            RuntimeError,
+            zipfile.BadZipFile,
+            zipfile.LargeZipFile,
+        ) as exc:
+            raise ValueError("invalid checkpoint ZIP") from exc
+        after = os.fstat(fd)
+        try:
+            named_after = os.stat(path, follow_symlinks=False)
+        except OSError as exc:
+            raise ValueError("checkpoint changed during metadata read") from exc
+        if _stat_identity(before) != _stat_identity(after) or _stat_identity(
+            before
+        ) != _stat_identity(named_after):
+            raise ValueError("checkpoint changed during metadata read")
+        return data
+    finally:
+        os.close(fd)
+
+
+def read_restricted_checkpoint_metadata(
+    path: Path, authority: PrelaunchAuthority
+) -> CheckpointMetadata:
+    data_pickle = _read_checkpoint_data_pickle(path)
+    root = _load_restricted_pickle(data_pickle)
+    expected_keys = (
+        "arch",
+        "artifact_selection",
+        "evaluation_model_source",
+        "state_dict",
+        "training_config",
+        "training_step",
+    )
+    if type(root) is not dict or any(type(key) is not str for key in root):
+        raise ValueError("checkpoint root must have exactly the six bound keys")
+    if tuple(sorted(root, key=lambda key: key.encode("utf-8"))) != expected_keys:
+        raise ValueError("checkpoint root must have exactly the six bound keys")
+    state_dict = root["state_dict"]
+    if type(state_dict) is not OrderedDict:
+        raise ValueError("checkpoint state_dict must be an OrderedDict")
+    for key, tensor in state_dict.items():
+        if type(key) is not str or not key or type(tensor) is not _TensorStub:
+            raise ValueError("checkpoint state_dict contains invalid metadata")
+    _literal(root["artifact_selection"], "final_training_state", "artifact_selection")
+    _literal(root["evaluation_model_source"], "student", "evaluation_model_source")
+    _int(root["training_step"], "training_step", literal=authority.expected_train_steps)
+    arch_expected = {
+        "backbone_name": "bn_inception",
+        "pretrained_weights": "bn_inception_52deb4733",
+        "head_pooling": "avg_max",
+        "embedding_dimensions": 512,
+        "embedding_head_init": "kaiming_normal",
+        "embedding_layer_norm": False,
+    }
+    arch_obj = _keys(root["arch"], set(arch_expected), "arch")
+    for key, expected in arch_expected.items():
+        _literal(arch_obj[key], expected, f"arch.{key}")
+    training_config = _dict(root["training_config"], "training_config")
+    try:
+        training_config_bytes = canonical_json_bytes(training_config)
+    except (RecursionError, ValueError) as exc:
+        raise ValueError("training_config is not canonical JSON data") from exc
+    if training_config_bytes != authority.expected_config_bytes:
+        raise ValueError("training_config does not equal prelaunch authority")
+    arch = CheckpointArch(**arch_obj)  # type: ignore[arg-type]
+    return CheckpointMetadata(
+        hashlib.sha256(data_pickle).hexdigest(),
+        expected_keys,
+        "final_training_state",
+        "student",
+        authority.expected_train_steps,
+        arch,
+        hashlib.sha256(canonical_json_bytes(arch_obj)).hexdigest(),
+        hashlib.sha256(training_config_bytes).hexdigest(),
+        len(state_dict),
+    )
+
+
+def _hash_regular_at(
+    directory_fd: int,
+    name: str,
+    path: Path,
+    expected: os.stat_result | None = None,
+    *,
+    chmod_mode: int | None = None,
+) -> tuple[os.stat_result, str]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(name, flags, dir_fd=directory_fd)
+    except OSError as exc:
+        raise ValueError(f"cannot safely open output: {path}") from exc
+    try:
+        before = os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or (
+            expected is not None and not _same_inode(before, expected)
+        ):
+            raise ValueError(f"output is not the expected regular file: {path}")
+        digest = hashlib.sha256()
+        byte_count = 0
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+            byte_count += len(chunk)
+        after = os.fstat(fd)
+        named_after = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if (
+            _stat_identity(before) != _stat_identity(after)
+            or _stat_identity(before) != _stat_identity(named_after)
+            or byte_count != before.st_size
+        ):
+            raise ValueError(f"output changed during read: {path}")
+        result_digest = digest.hexdigest()
+        if chmod_mode is None:
+            return before, result_digest
+        os.fchmod(fd, chmod_mode)
+        os.fsync(fd)
+        chmodded = os.fstat(fd)
+        if (
+            not _same_inode(before, chmodded)
+            or chmodded.st_size != before.st_size
+            or chmodded.st_mtime_ns != before.st_mtime_ns
+            or stat.S_IMODE(chmodded.st_mode) != chmod_mode
+        ):
+            raise ValueError(f"output changed before chmod completed: {path}")
+        os.lseek(fd, 0, os.SEEK_SET)
+        final_digest = hashlib.sha256()
+        final_byte_count = 0
+        while True:
+            chunk = os.read(fd, 1024 * 1024)
+            if not chunk:
+                break
+            final_digest.update(chunk)
+            final_byte_count += len(chunk)
+        final = os.fstat(fd)
+        named_final = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if (
+            _stat_identity(chmodded) != _stat_identity(final)
+            or _stat_identity(chmodded) != _stat_identity(named_final)
+            or final_byte_count != chmodded.st_size
+            or final_digest.hexdigest() != result_digest
+        ):
+            raise ValueError(f"output changed after chmod: {path}")
+        return chmodded, result_digest
+    finally:
+        os.close(fd)
+
+
+def hash_open_regular(path: Path) -> OutputEvidence:
+    parent_fd, parent_before = _open_directory(path.parent)
+    try:
+        before, digest = _hash_regular_at(parent_fd, path.name, path, chmod_mode=0o444)
+        parent_after = os.fstat(parent_fd)
+        named_parent = os.stat(path.parent, follow_symlinks=False)
+        if not _same_inode(parent_before, parent_after) or not _same_inode(
+            parent_before, named_parent
+        ):
+            raise ValueError(f"output parent changed during read: {path.parent}")
+        return OutputEvidence(
+            PurePosixPath(path.as_posix()), "regular", before.st_mode, before.st_size, digest
+        )
+    finally:
+        os.close(parent_fd)
+
+
+def _unlink_if_same(directory_fd: int, name: str, expected: os.stat_result) -> bool:
+    try:
+        current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+        if _same_inode(current, expected):
+            os.unlink(name, dir_fd=directory_fd)
+            return True
+    except FileNotFoundError:
+        pass
+    return False
+
+
+def publish_new_file(path: Path, data: bytes, *, mode: int = 0o444) -> OutputEvidence:
+    if type(data) is not bytes or type(mode) is not int or mode < 0 or mode > 0o777:
+        raise ValueError("invalid publication data or mode")
+    if path.name in ("", ".", ".."):
+        raise ValueError("invalid publication path")
+    parent_fd, parent_before = _open_directory(path.parent)
+    temp_name = ""
+    temp_fd = -1
+    linked: os.stat_result | None = None
+    try:
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        for _ in range(128):
+            temp_name = f".{path.name}.{secrets.token_hex(12)}.tmp"
+            try:
+                temp_fd = os.open(temp_name, flags, 0o600, dir_fd=parent_fd)
+                break
+            except FileExistsError:
+                continue
+        if temp_fd < 0:
+            raise OSError("cannot allocate exclusive sibling temporary")
+        os.fchmod(temp_fd, 0o600)
+        offset = 0
+        while offset < len(data):
+            written = os.write(temp_fd, data[offset:])
+            if written <= 0:
+                raise OSError("short publication write")
+            offset += written
+        os.fsync(temp_fd)
+        temporary = os.fstat(temp_fd)
+        if not stat.S_ISREG(temporary.st_mode) or temporary.st_size != len(data):
+            raise ValueError("temporary publication file changed")
+        os.link(
+            temp_name,
+            path.name,
+            src_dir_fd=parent_fd,
+            dst_dir_fd=parent_fd,
+            follow_symlinks=False,
+        )
+        linked = temporary
+        published = os.stat(path.name, dir_fd=parent_fd, follow_symlinks=False)
+        if not _same_inode(temporary, published):
+            raise ValueError("published output identity mismatch")
+        os.fsync(parent_fd)
+        hashed, digest = _hash_regular_at(parent_fd, path.name, path, temporary)
+        if hashed.st_size != len(data) or digest != hashlib.sha256(data).hexdigest():
+            raise ValueError("published output content mismatch")
+        os.fchmod(temp_fd, mode)
+        os.fsync(temp_fd)
+        os.fsync(parent_fd)
+        os.close(temp_fd)
+        temp_fd = -1
+        os.unlink(temp_name, dir_fd=parent_fd)
+        temp_name = ""
+        os.fsync(parent_fd)
+        final_stat, final_digest = _hash_regular_at(parent_fd, path.name, path, linked)
+        named_parent = os.stat(path.parent, follow_symlinks=False)
+        if not _same_inode(parent_before, named_parent):
+            raise ValueError("publication parent changed")
+        evidence = OutputEvidence(
+            PurePosixPath(path.as_posix()),
+            "regular",
+            final_stat.st_mode,
+            final_stat.st_size,
+            final_digest,
+        )
+        if (
+            evidence.sha256 != digest
+            or evidence.byte_count != len(data)
+            or stat.S_IMODE(evidence.mode) != mode
+        ):
+            raise ValueError("published output changed after chmod")
+        return evidence
+    except Exception as exc:
+        if linked is not None and _unlink_if_same(parent_fd, path.name, linked):
+            with contextlib.suppress(OSError):
+                os.fsync(parent_fd)
+        if isinstance(exc, ValueError) and str(exc).startswith("cannot safely open directory"):
+            raise
+        raise ValueError(f"cannot publish new file: {path}") from exc
+    finally:
+        if temp_fd >= 0:
+            os.close(temp_fd)
+        if temp_name:
+            with contextlib.suppress(FileNotFoundError):
+                os.unlink(temp_name, dir_fd=parent_fd)
+                with contextlib.suppress(OSError):
+                    os.fsync(parent_fd)
+        os.close(parent_fd)
 
 
 def _read_regular_at(

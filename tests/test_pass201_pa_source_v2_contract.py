@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import builtins
 import copy
 import hashlib
 import json
 import os
+import pickle
 import shutil
+import stat
 import subprocess
 import sys
+import types
 import zipfile
+from collections import OrderedDict
 from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -16,6 +21,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+import pass201_pa_source_v2_contract as contract  # noqa: E402
 from pass201_pa_source_v2_contract import (  # noqa: E402
     bind_external_file,
     bind_import_roots,
@@ -310,6 +316,566 @@ def test_schema_payload_is_recursively_immutable(valid_prelaunch: dict[str, Any]
         authority.payload["execution"]["schedule"]["resolved_train_steps"] = 11
     with pytest.raises(AttributeError):
         authority.payload["execution"]["argv"].append("--forbidden")
+
+
+def _checkpoint_pickle(
+    root_update: Mapping[str, Any] | None = None,
+    *,
+    persistent_id: object | None = None,
+    rebuild_arguments: tuple[object, ...] | None = None,
+) -> bytes:
+    previous = {name: sys.modules.get(name) for name in ("torch", "torch._utils")}
+    torch_module = types.ModuleType("torch")
+    utils_module = types.ModuleType("torch._utils")
+
+    def rebuild_tensor_v2(*args: object) -> object:
+        return args
+
+    rebuild_tensor_v2.__module__ = "torch._utils"
+    rebuild_tensor_v2.__name__ = "_rebuild_tensor_v2"
+    rebuild_tensor_v2.__qualname__ = "_rebuild_tensor_v2"
+    storage_type = type("FloatStorage", (), {"__module__": "torch"})
+    utils_module._rebuild_tensor_v2 = rebuild_tensor_v2  # type: ignore[attr-defined]
+    torch_module._utils = utils_module  # type: ignore[attr-defined]
+    torch_module.FloatStorage = storage_type  # type: ignore[attr-defined]
+    sys.modules["torch"] = torch_module
+    sys.modules["torch._utils"] = utils_module
+
+    storage = storage_type()
+    pid = ("storage", storage_type, "0", "cpu", 1) if persistent_id is None else persistent_id
+    arguments = (
+        (storage, 0, (1,), (1,), False, OrderedDict())
+        if rebuild_arguments is None
+        else (storage, 0, (1,), (1,))
+        if rebuild_arguments == ("short",)
+        else rebuild_arguments
+    )
+
+    class Tensor:
+        def __reduce__(self) -> tuple[object, tuple[object, ...]]:
+            return rebuild_tensor_v2, arguments
+
+    root: dict[str, Any] = {
+        "state_dict": OrderedDict((("weight", Tensor()),)),
+        "arch": {
+            "backbone_name": "bn_inception",
+            "pretrained_weights": "bn_inception_52deb4733",
+            "head_pooling": "avg_max",
+            "embedding_dimensions": 512,
+            "embedding_head_init": "kaiming_normal",
+            "embedding_layer_norm": False,
+        },
+        "artifact_selection": "final_training_state",
+        "training_step": 10,
+        "evaluation_model_source": "student",
+        "training_config": {},
+    }
+    if root_update:
+        root.update(root_update)
+
+    class TorchPickler(pickle.Pickler):
+        def persistent_id(self, obj: object) -> object | None:
+            return pid if obj is storage else None
+
+    try:
+        buffer = __import__("io").BytesIO()
+        TorchPickler(buffer, protocol=2).dump(root)
+        return buffer.getvalue()
+    finally:
+        for name, old in previous.items():
+            if old is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = old
+
+
+def _write_checkpoint_zip(
+    tmp_path: Path,
+    data_pickle: bytes,
+    *,
+    names: tuple[str, ...] = ("checkpoint/data.pkl", "checkpoint/data/0"),
+) -> Path:
+    path = tmp_path / "checkpoint.pt"
+    with zipfile.ZipFile(path, "w") as archive:
+        for name in names:
+            archive.writestr(name, data_pickle if name.endswith("/data.pkl") else b"storage")
+    return path
+
+
+@pytest.fixture
+def checkpoint_authority(valid_prelaunch: dict[str, Any]) -> Any:
+    return validate_prelaunch(valid_prelaunch)
+
+
+@pytest.fixture
+def valid_checkpoint_zip(tmp_path: Path) -> Path:
+    return _write_checkpoint_zip(tmp_path, _checkpoint_pickle())
+
+
+def test_checkpoint_reader_accepts_metadata_without_opening_storage(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    opened: list[str] = []
+    real_open = zipfile.ZipFile.open
+
+    def recording_open(self: zipfile.ZipFile, name: Any, *args: Any, **kwargs: Any) -> Any:
+        opened.append(name.filename if isinstance(name, zipfile.ZipInfo) else str(name))
+        return real_open(self, name, *args, **kwargs)
+
+    monkeypatch.setattr(zipfile.ZipFile, "open", recording_open)
+    metadata = contract.read_restricted_checkpoint_metadata(
+        valid_checkpoint_zip, checkpoint_authority
+    )
+    assert metadata.top_keys == (
+        "arch",
+        "artifact_selection",
+        "evaluation_model_source",
+        "state_dict",
+        "training_config",
+        "training_step",
+    )
+    assert metadata.state_dict_key_count == 1
+    assert metadata.training_config_sha256 == hashlib.sha256(b"{}\n").hexdigest()
+    assert metadata.state_dict_storage_materialized is False
+    assert opened == ["checkpoint/data.pkl"]
+
+
+def test_checkpoint_reader_does_not_import_torch(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_import = builtins.__import__
+
+    def rejecting_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "torch" or name.startswith("torch."):
+            raise AssertionError("torch import attempted")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", rejecting_import)
+    contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
+    ("names", "message"),
+    [
+        (("checkpoint/data/0",), "exactly one data.pkl"),
+        (("a/data.pkl", "b/data.pkl"), "exactly one data.pkl"),
+        (("../escape", "checkpoint/data.pkl"), "unsafe ZIP member"),
+    ],
+)
+def test_checkpoint_rejects_invalid_member_topology(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    names: tuple[str, ...],
+    message: str,
+) -> None:
+    path = _write_checkpoint_zip(tmp_path, _checkpoint_pickle(), names=names)
+    with pytest.raises(ValueError, match=message):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_duplicate_members(tmp_path: Path, checkpoint_authority: Any) -> None:
+    path = tmp_path / "checkpoint.pt"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("checkpoint/data.pkl", _checkpoint_pickle())
+        with pytest.warns(UserWarning, match="Duplicate name"):
+            archive.writestr("checkpoint/data.pkl", _checkpoint_pickle())
+    with pytest.raises(ValueError, match="duplicate ZIP member"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_encrypted_member_declaration(
+    valid_checkpoint_zip: Path, checkpoint_authority: Any
+) -> None:
+    raw = bytearray(valid_checkpoint_zip.read_bytes())
+    local = raw.index(b"PK\x03\x04")
+    central = raw.index(b"PK\x01\x02")
+    raw[local + 6 : local + 8] = (1).to_bytes(2, "little")
+    raw[central + 8 : central + 10] = (1).to_bytes(2, "little")
+    valid_checkpoint_zip.write_bytes(raw)
+    with pytest.raises(ValueError, match="encrypted ZIP member"):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+def test_checkpoint_rejects_member_count_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_infolist = zipfile.ZipFile.infolist
+
+    def too_many(self: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
+        return real_infolist(self)[:1] * 100_001
+
+    monkeypatch.setattr(zipfile.ZipFile, "infolist", too_many)
+    with pytest.raises(ValueError, match="too many ZIP members"):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+def test_checkpoint_rejects_oversized_archive_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_fstat = contract.os.fstat
+    first = True
+
+    def oversized(fd: int) -> Any:
+        nonlocal first
+        result = real_fstat(fd)
+        if first:
+            first = False
+            values = {name: getattr(result, name) for name in dir(result) if name.startswith("st_")}
+            values["st_size"] = (2 << 30) + 1
+            return types.SimpleNamespace(**values)
+        return result
+
+    monkeypatch.setattr(contract.os, "fstat", oversized)
+    with pytest.raises(ValueError, match="archive exceeds"):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+def test_checkpoint_rejects_oversized_metadata_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_infolist = zipfile.ZipFile.infolist
+
+    def oversized(self: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
+        result = real_infolist(self)
+        next(info for info in result if info.filename.endswith("/data.pkl")).file_size = (
+            64 << 20
+        ) + 1
+        return result
+
+    monkeypatch.setattr(zipfile.ZipFile, "infolist", oversized)
+    with pytest.raises(ValueError, match="data.pkl exceeds"):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
+    ("data_pickle", "message"),
+    [
+        (pickle.dumps(eval, protocol=2), "forbidden pickle global"),
+        (b"\x80\x02\x82\x01.", "extension opcode"),
+        (_checkpoint_pickle() + b"N.", "trailing pickle data"),
+        (_checkpoint_pickle(persistent_id=("wrong",)), "persistent ID"),
+        (_checkpoint_pickle(rebuild_arguments=(None,)), "tensor rebuild"),
+    ],
+)
+def test_checkpoint_rejects_unsafe_pickle_constructs(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    data_pickle: bytes,
+    message: str,
+) -> None:
+    path = _write_checkpoint_zip(tmp_path, data_pickle, names=("checkpoint/data.pkl",))
+    with pytest.raises(ValueError, match=message):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
+    ("root_update", "message"),
+    [
+        ({"extra": None}, "checkpoint root"),
+        ({"training_config": []}, "training_config"),
+        ({"artifact_selection": "best"}, "artifact_selection"),
+        ({"evaluation_model_source": "ema_weight_average"}, "evaluation_model_source"),
+        ({"training_step": 9}, "training_step"),
+        ({"arch": {}}, "arch"),
+    ],
+)
+def test_checkpoint_rejects_unbound_metadata(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    root_update: Mapping[str, Any],
+    message: str,
+) -> None:
+    path = _write_checkpoint_zip(tmp_path, _checkpoint_pickle(root_update))
+    with pytest.raises(ValueError, match=message):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_recursive_training_config(
+    tmp_path: Path, checkpoint_authority: Any
+) -> None:
+    recursive: dict[str, Any] = {}
+    recursive["self"] = recursive
+    path = _write_checkpoint_zip(tmp_path, _checkpoint_pickle({"training_config": recursive}))
+    with pytest.raises(ValueError, match="training_config"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_pickle_build_that_poisoned_shared_rebuild_stub(
+    tmp_path: Path, checkpoint_authority: Any
+) -> None:
+    valid = _checkpoint_pickle(rebuild_arguments=("short",))
+    poison = b"\x80\x02ctorch._utils\n_rebuild_tensor_v2\n}X\x07\x00\x00\x00versionK\x01sb0"
+    path = _write_checkpoint_zip(
+        tmp_path,
+        poison + valid[2:],
+        names=("checkpoint/data.pkl",),
+    )
+    rebuild = contract._REBUILD_STUBS["torch._utils._rebuild_tensor_v2"]
+    try:
+        with pytest.raises(ValueError, match="pickle opcode"):
+            contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+    finally:
+        rebuild.version = 2
+
+
+def test_checkpoint_rejects_symlink_input(
+    valid_checkpoint_zip: Path, checkpoint_authority: Any
+) -> None:
+    link = valid_checkpoint_zip.with_name("link.pt")
+    link.symlink_to(valid_checkpoint_zip)
+    with pytest.raises(ValueError, match="checkpoint"):
+        contract.read_restricted_checkpoint_metadata(link, checkpoint_authority)
+
+
+def test_publication_is_exclusive_fsynced_and_read_only(tmp_path: Path) -> None:
+    path = tmp_path / "result.json"
+    evidence = contract.publish_new_file(path, b"bound\n")
+    assert path.read_bytes() == b"bound\n"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o444
+    assert evidence.path == PurePosixPath(path.as_posix())
+    assert evidence.mode == path.stat().st_mode
+    assert evidence.byte_count == 6
+    assert evidence.sha256 == hashlib.sha256(b"bound\n").hexdigest()
+    assert sorted(child.name for child in tmp_path.iterdir()) == ["result.json"]
+
+
+@pytest.mark.parametrize("kind", ["regular", "symlink"])
+def test_publication_rejects_preexisting_destination(tmp_path: Path, kind: str) -> None:
+    path = tmp_path / "result"
+    target = tmp_path / "target"
+    target.write_bytes(b"target")
+    if kind == "regular":
+        path.write_bytes(b"old")
+    else:
+        path.symlink_to(target)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"new")
+    assert (target if kind == "symlink" else path).read_bytes() == (
+        b"target" if kind == "symlink" else b"old"
+    )
+
+
+def test_publication_rejects_symlink_parent(tmp_path: Path) -> None:
+    real_parent = tmp_path / "real"
+    real_parent.mkdir()
+    link_parent = tmp_path / "link"
+    link_parent.symlink_to(real_parent, target_is_directory=True)
+    with pytest.raises(ValueError, match="directory"):
+        contract.publish_new_file(link_parent / "result", b"new")
+    assert not (real_parent / "result").exists()
+
+
+@pytest.mark.parametrize("fault", ["write", "file_fsync", "link", "directory_fsync"])
+def test_publication_failure_never_leaves_accepted_partial_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
+) -> None:
+    path = tmp_path / "result"
+    real_fsync = contract.os.fsync
+
+    if fault == "write":
+
+        def fail_write(*args: Any, **kwargs: Any) -> int:
+            raise OSError("write")
+
+        monkeypatch.setattr(contract.os, "write", fail_write)
+    elif fault == "file_fsync":
+
+        def fail_file_fsync(fd: int) -> None:
+            if stat.S_ISREG(contract.os.fstat(fd).st_mode):
+                raise OSError("file fsync")
+            real_fsync(fd)
+
+        monkeypatch.setattr(contract.os, "fsync", fail_file_fsync)
+    elif fault == "link":
+
+        def fail_link(*args: Any, **kwargs: Any) -> None:
+            raise OSError("link")
+
+        monkeypatch.setattr(contract.os, "link", fail_link)
+    else:
+
+        def fail_directory_fsync(fd: int) -> None:
+            if stat.S_ISDIR(contract.os.fstat(fd).st_mode):
+                raise OSError("directory fsync")
+            real_fsync(fd)
+
+        monkeypatch.setattr(contract.os, "fsync", fail_directory_fsync)
+
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"new")
+    assert not path.exists()
+    assert not any(child.name.startswith(".result.") for child in tmp_path.iterdir())
+
+
+def test_publication_loses_concurrent_creation_without_clobbering(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_link = contract.os.link
+
+    def racing_link(*args: Any, **kwargs: Any) -> None:
+        path.write_bytes(b"racer")
+        real_link(*args, **kwargs)
+
+    monkeypatch.setattr(contract.os, "link", racing_link)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert path.read_bytes() == b"racer"
+
+
+def test_publication_rolls_back_when_post_link_stat_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_stat = contract.os.stat
+    failed = False
+
+    def failing_stat(name: Any, *args: Any, **kwargs: Any) -> Any:
+        nonlocal failed
+        if name == path.name and kwargs.get("dir_fd") is not None and not failed:
+            failed = True
+            raise OSError("post-link stat")
+        return real_stat(name, *args, **kwargs)
+
+    monkeypatch.setattr(contract.os, "stat", failing_stat)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert not path.exists()
+
+
+def test_publication_does_not_chmod_replacement_after_preliminary_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_hash = contract._hash_regular_at
+    swapped = False
+
+    def swapping_hash(*args: Any, **kwargs: Any) -> Any:
+        nonlocal swapped
+        result = real_hash(*args, **kwargs)
+        expected = args[3] if len(args) > 3 else kwargs.get("expected")
+        if expected is not None and not swapped:
+            swapped = True
+            path.unlink()
+            path.write_bytes(b"racer")
+            path.chmod(0o600)
+        return result
+
+    monkeypatch.setattr(contract, "_hash_regular_at", swapping_hash)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert path.read_bytes() == b"racer"
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_publication_rejects_parent_swap_before_final_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    path = parent / "result"
+    parked = tmp_path / "parked"
+    real_link = contract.os.link
+
+    def swapping_link(*args: Any, **kwargs: Any) -> None:
+        real_link(*args, **kwargs)
+        parent.rename(parked)
+        parent.mkdir()
+        (parent / "result").write_bytes(b"ours")
+        (parent / "result").chmod(0o444)
+
+    monkeypatch.setattr(contract.os, "link", swapping_link)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+
+
+def test_output_evidence_rejects_mutation_without_changing_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    path.write_bytes(b"old")
+    path.chmod(0o600)
+    real_read = contract.os.read
+    changed = False
+
+    def mutating_read(fd: int, size: int) -> bytes:
+        nonlocal changed
+        data = real_read(fd, size)
+        if data and not changed:
+            changed = True
+            path.write_bytes(b"new value")
+        return data
+
+    monkeypatch.setattr(contract.os, "read", mutating_read)
+    with pytest.raises(ValueError, match="changed"):
+        contract.hash_open_regular(path)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_output_evidence_makes_successfully_hashed_file_read_only(tmp_path: Path) -> None:
+    path = tmp_path / "result"
+    path.write_bytes(b"bound")
+    path.chmod(0o600)
+    evidence = contract.hash_open_regular(path)
+    assert evidence.sha256 == hashlib.sha256(b"bound").hexdigest()
+    assert stat.S_IMODE(evidence.mode) == 0o444
+    assert stat.S_IMODE(path.stat().st_mode) == 0o444
+
+
+def test_output_evidence_rejects_same_size_mtime_restored_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    path.write_bytes(b"old")
+    path.chmod(0o600)
+    original = path.stat()
+    real_read = contract.os.read
+    changed = False
+
+    def mutating_read(fd: int, size: int) -> bytes:
+        nonlocal changed
+        data = real_read(fd, size)
+        if data and not changed:
+            changed = True
+            path.write_bytes(b"new")
+            os.utime(path, ns=(original.st_atime_ns, original.st_mtime_ns))
+        return data
+
+    monkeypatch.setattr(contract.os, "read", mutating_read)
+    with pytest.raises(ValueError, match="changed"):
+        contract.hash_open_regular(path)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_publication_mutation_is_not_accepted_or_made_read_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_read = contract.os.read
+    changed = False
+
+    def mutating_read(fd: int, size: int) -> bytes:
+        nonlocal changed
+        data = real_read(fd, size)
+        if data and not changed:
+            changed = True
+            path.write_bytes(b"attacker")
+        return data
+
+    monkeypatch.setattr(contract.os, "read", mutating_read)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert not path.exists()
 
 
 @pytest.mark.parametrize("index", range(20))
