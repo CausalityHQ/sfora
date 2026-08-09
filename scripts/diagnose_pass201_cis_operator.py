@@ -461,13 +461,27 @@ def _restore_module_training_flags(flags: Iterable[tuple[Any, bool]]) -> None:
         module.training = training
 
 
+def _tensor_byte_identity(value: Any) -> tuple[str, tuple[int, ...], bytes]:
+    array = value.detach().cpu().contiguous().numpy()
+    return str(value.dtype), tuple(value.shape), array.tobytes(order="C")
+
+
 def bufferless_train_embeddings(model: Any, inputs: Any) -> TrainGraph:
     """Run one train-mode functional forward with cloned disposable buffers."""
 
     import torch
 
     parameters = dict(model.named_parameters())
+    parameter_values = {
+        name: value.detach().clone() for name, value in parameters.items()
+    }
+    parameter_identities = {
+        name: _tensor_byte_identity(value) for name, value in parameters.items()
+    }
     before = {name: value.detach().clone() for name, value in model.named_buffers()}
+    buffer_identities = {
+        name: _tensor_byte_identity(value) for name, value in before.items()
+    }
     disposable = {name: value.clone() for name, value in before.items()}
     flags = _module_training_flags(model)
     try:
@@ -478,6 +492,34 @@ def bufferless_train_embeddings(model: Any, inputs: Any) -> TrainGraph:
         after = {name: value.detach().clone() for name, value in disposable.items()}
     finally:
         _restore_module_training_flags(flags)
+    current_parameters = dict(model.named_parameters())
+    current_buffers = dict(model.named_buffers())
+    changed_parameters = tuple(
+        name
+        for name, identity in parameter_identities.items()
+        if name not in current_parameters
+        or _tensor_byte_identity(current_parameters[name]) != identity
+    )
+    changed_persistent_buffers = tuple(
+        name
+        for name, identity in buffer_identities.items()
+        if name not in current_buffers or _tensor_byte_identity(current_buffers[name]) != identity
+    )
+    if changed_parameters or changed_persistent_buffers:
+        with torch.no_grad():
+            for name, original in parameter_values.items():
+                current_parameters[name].copy_(original)
+            for name, original in before.items():
+                current_buffers[name].copy_(original)
+        if changed_parameters:
+            raise ValueError(
+                f"checkpoint parameter is not byte-identical after train graph: "
+                f"{changed_parameters[0]}"
+            )
+        raise ValueError(
+            f"checkpoint buffer is not byte-identical after train graph: "
+            f"{changed_persistent_buffers[0]}"
+        )
     names = tuple(sorted(before, key=lambda name: name.encode("utf-8")))
     changed = tuple(name for name in names if not torch.equal(before[name], after[name]))
     return TrainGraph(
@@ -689,10 +731,8 @@ def shared_confuser_statistic(
     )
     aligned = float(np.exp(np.log(q).mean(axis=0)).mean())
     null_values = np.empty(null_replicates, dtype="<f8")
+    generator = np.random.Generator(np.random.PCG64(null_seed))
     for replicate in range(null_replicates):
-        generator = np.random.Generator(
-            np.random.PCG64(null_seed + 100_000 * context_index + replicate)
-        )
         permuted = np.stack(
             [row[generator.permutation(q.shape[1])] for row in q], axis=0
         )

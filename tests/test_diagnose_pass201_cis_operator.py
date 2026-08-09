@@ -1664,12 +1664,35 @@ def test_shared_confuser_uses_exact_independent_row_null_stream():
         proxy_labels=torch.tensor([10, 20, 30, 40, 50, 60, 70]),
         context_index=0,
     )
+    representative_rows = np.array([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]])
+    normalized_foreign = foreign.numpy().copy()
+    normalized_foreign /= np.linalg.norm(normalized_foreign, axis=1, keepdims=True)
+    q = 1.0 / (1.0 + np.exp(-(representative_rows @ normalized_foreign.T)))
+
+    continuous_generator = np.random.Generator(np.random.PCG64(2010810))
+    continuous = np.empty(256, dtype="<f8")
+    for replicate in range(256):
+        permuted = np.stack(
+            [row[continuous_generator.permutation(q.shape[1])] for row in q], axis=0
+        )
+        continuous[replicate] = np.exp(np.log(permuted).mean(axis=0)).mean()
+
+    legacy_reseeded = np.empty(256, dtype="<f8")
+    for replicate in range(256):
+        legacy_generator = np.random.Generator(np.random.PCG64(2010810 + replicate))
+        permuted = np.stack(
+            [row[legacy_generator.permutation(q.shape[1])] for row in q], axis=0
+        )
+        legacy_reseeded[replicate] = np.exp(np.log(permuted).mean(axis=0)).mean()
+
     assert result["A_aligned"] == pytest.approx(0.4718767931766301, abs=1e-12)
-    assert result["null_mean"] == pytest.approx(0.47945320724050533, abs=1e-12)
-    assert result["E_shared"] == pytest.approx(-0.015802197064195885, abs=1e-12)
+    assert result["null_mean"] == pytest.approx(0.48001819844444316, abs=1e-12)
+    assert result["E_shared"] == pytest.approx(-0.016960617939478638, abs=1e-12)
     assert result["null_distribution"][:3].tolist() == pytest.approx(
-        [0.4826049207350477, 0.4710643669784868, 0.4994381423564024], abs=1e-12
+        [0.4826049207350477, 0.47584428019889907, 0.47672352362500003], abs=1e-12
     )
+    assert np.array_equal(result["null_distribution"], continuous)
+    assert not np.array_equal(result["null_distribution"], legacy_reseeded)
     assert result["null_distribution"][0] != pytest.approx(
         0.4718767931766301, abs=1e-12
     )
@@ -1706,10 +1729,42 @@ def _tiny_bn_rows():
     )
 
 
+def _tensor_byte_identity(value):
+    array = value.detach().cpu().contiguous().numpy()
+    return str(value.dtype), tuple(value.shape), array.tobytes(order="C")
+
+
+class _SignedZeroMutatingModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.sentinel = torch.nn.Parameter(torch.tensor([0.0], dtype=torch.float64))
+
+    def forward(self, values):
+        with torch.no_grad():
+            self.sentinel[0] = -0.0
+        return values + self.sentinel * 0.0
+
+
+def test_train_graph_rejects_signed_zero_parameter_bit_mutation():
+    model = _SignedZeroMutatingModel()
+    before = _tensor_byte_identity(model.sentinel)
+    negative_zero = torch.tensor([-0.0], dtype=torch.float64)
+    assert torch.equal(model.sentinel, negative_zero)
+    assert _tensor_byte_identity(negative_zero) != before
+    with pytest.raises(ValueError, match="parameter.*byte-identical"):
+        MODULE.bufferless_train_embeddings(model, torch.ones((2, 1), dtype=torch.float64))
+    assert _tensor_byte_identity(model.sentinel) == before
+
+
 def test_train_bn_forward_uses_disposable_buffers_and_restores_flags():
     model = _TinyBatchNormOperatorModel().train()
     inputs = _tiny_bn_rows()
-    before_buffers = {name: value.detach().clone() for name, value in model.named_buffers()}
+    before_parameters = {
+        name: _tensor_byte_identity(value) for name, value in model.named_parameters()
+    }
+    before_buffers = {
+        name: _tensor_byte_identity(value) for name, value in model.named_buffers()
+    }
     before_flags = tuple(module.training for module in model.modules())
     graph = MODULE.bufferless_train_embeddings(model, inputs)
     assert graph.changed_buffer_names == (
@@ -1717,8 +1772,10 @@ def test_train_bn_forward_uses_disposable_buffers_and_restores_flags():
         "bn.running_mean",
         "bn.running_var",
     )
+    for name, value in model.named_parameters():
+        assert _tensor_byte_identity(value) == before_parameters[name]
     for name, value in model.named_buffers():
-        assert torch.equal(value, before_buffers[name])
+        assert _tensor_byte_identity(value) == before_buffers[name]
     assert tuple(module.training for module in model.modules()) == before_flags
     model.eval()
     with torch.no_grad():
@@ -1729,8 +1786,12 @@ def test_train_bn_forward_uses_disposable_buffers_and_restores_flags():
 
 def test_score_context_uses_one_shared_train_graph_and_one_clean_baseline():
     model = _TinyBatchNormOperatorModel().train()
-    before_parameters = {name: value.detach().clone() for name, value in model.named_parameters()}
-    before_buffers = {name: value.detach().clone() for name, value in model.named_buffers()}
+    before_parameters = {
+        name: _tensor_byte_identity(value) for name, value in model.named_parameters()
+    }
+    before_buffers = {
+        name: _tensor_byte_identity(value) for name, value in model.named_buffers()
+    }
     before_flags = tuple(module.training for module in model.modules())
     result = MODULE.score_context(
         model=model,
@@ -1771,7 +1832,7 @@ def test_score_context_uses_one_shared_train_graph_and_one_clean_baseline():
     assert all(loss.requires_grad is False for loss in result["losses"].values())
     assert result["shared_confuser"]["null_distribution"].shape == (256,)
     for name, value in model.named_parameters():
-        assert torch.equal(value, before_parameters[name])
+        assert _tensor_byte_identity(value) == before_parameters[name]
     for name, value in model.named_buffers():
-        assert torch.equal(value, before_buffers[name])
+        assert _tensor_byte_identity(value) == before_buffers[name]
     assert tuple(module.training for module in model.modules()) == before_flags
