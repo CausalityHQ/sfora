@@ -3441,6 +3441,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         cache_builder=cache_builder,
         model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
         fixture_runner=lambda: fixture_audit,
+        deterministic_pool_auditor=_valid_global_max_audit,
         rotation_auditor=rotation_auditor,
         head_name="model.embedding",
         expected_head_in_features=2,
@@ -3463,9 +3464,39 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert len(result["rows"]["alternate"]) == 4 * 16
     assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
     assert result["exclusions"] == []
+    assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
     assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
         "files"
     ]["scripts/diagnose_pass200_rsta_stage_a.py"]
+
+
+def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    output = tmp_path / "scientific.json"
+    downstream_calls: list[str] = []
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        downstream_calls.append("downstream")
+        raise AssertionError("invalid deterministic pool audit reached science")
+
+    monkeypatch.setattr(_MODULE, "score_rsta_batch", forbidden)
+    with pytest.raises(ValueError, match="deterministic global max"):
+        _MODULE.run_scientific_diagnostic(
+            {"seeds": {str(seed): {} for seed in range(4)}},
+            manifest_path=tmp_path / "manifest.json",
+            receipt_path=tmp_path / "receipt.json",
+            output_path=output,
+            receipt_validator=lambda *_args: _tiny_validated_receipt(),
+            execution_source_validator=lambda _path: {"validated": True},
+            deterministic_pool_auditor=lambda: {},
+            bound_loader=forbidden,
+        )
+
+    assert downstream_calls == []
+    assert not output.exists()
 
 
 @pytest.mark.parametrize(

@@ -4369,6 +4369,9 @@ def run_scientific_diagnostic(
     cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
     model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
+        audit_deterministic_global_max
+    ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -4381,6 +4384,8 @@ def run_scientific_diagnostic(
     execution_audit = execution_source_validator(manifest_path)
     if manifest is None:
         manifest = load_strict_json(manifest_path)
+    deterministic_global_max = deterministic_pool_auditor()
+    _validate_deterministic_global_max_audit(deterministic_global_max)
     bounds = [
         bound_loader(
             manifest["seeds"][str(seed)],
@@ -4575,7 +4580,11 @@ def run_scientific_diagnostic(
     )
     delta_distribution = joint_bootstrap(matrices["delta"])
     self_desc_distribution = joint_bootstrap(matrices["self_minus_desc"])
-    integrity = {**fixture_integrity, "seeds": seed_integrity}
+    integrity = {
+        **fixture_integrity,
+        "deterministic_global_max": deterministic_global_max,
+        "seeds": seed_integrity,
+    }
     panel_binding = {
         "primary": primary,
         "alternate": alternate,
@@ -4593,6 +4602,9 @@ def run_scientific_diagnostic(
                 "base_preregistration", manifest.get("preregistration")
             ),
             "amendment": manifest.get("amendment"),
+            "deterministic_pool_amendment": manifest.get(
+                "deterministic_pool_amendment"
+            ),
             "binding_receipt": manifest.get("binding_receipt"),
             "historical": manifest.get("historical"),
             "artifact_schema": manifest.get("artifact_schema"),
@@ -4884,6 +4896,7 @@ def main(
             cache_builder=cache_builder,
             model_loader=model_loader,
             fixture_runner=fixture_runner,
+            deterministic_pool_auditor=deterministic_pool_auditor,
             rotation_auditor=rotation_auditor,
             head_name=head_name,
             expected_head_in_features=expected_head_in_features,
