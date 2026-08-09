@@ -3573,8 +3573,10 @@ def _valid_scientific_payload_arguments(
                     "output_direction_sha256": "a" * 64,
                     "parameter_direction_sha256": "b" * 64,
                     "output_shape": [180, 512],
-                    "parameter_name_order_sha256": "c" * 64,
-                    "parameter_count": 1,
+                    "parameter_name_order_sha256": _MODULE._ordered_text_sha256(
+                        ["model.embedding.weight", "model.embedding.bias"]
+                    ),
+                    "parameter_count": 1024 * 512 + 512,
                     "model_dtype": "torch.float32",
                     "reduction_dtype": "torch.float64",
                     "lhs": 1.0,
@@ -3695,6 +3697,25 @@ def test_scientific_payload_requires_exact_structured_adjoint_audits(
         else:
             audit[mutation] = mutations[mutation]
         with pytest.raises(ValueError, match="adjoint"):
+            _MODULE.scientific_payload(**changed)
+
+    for mutation in ("wrong_parameter_hash", "wrong_parameter_count", "duplicate", "permutation"):
+        changed = deepcopy(arguments)
+        if mutation == "wrong_parameter_hash":
+            changed["integrity"]["seeds"][1]["adjoint"][
+                "parameter_name_order_sha256"
+            ] = "d" * 64
+        elif mutation == "wrong_parameter_count":
+            changed["integrity"]["seeds"][1]["adjoint"]["parameter_count"] += 1
+        elif mutation == "duplicate":
+            changed["integrity"]["seeds"][2] = deepcopy(
+                changed["integrity"]["seeds"][1]
+            )
+        else:
+            changed["integrity"]["seeds"][1:3] = reversed(
+                changed["integrity"]["seeds"][1:3]
+            )
+        with pytest.raises(ValueError, match="seed|parameter|adjoint"):
             _MODULE.scientific_payload(**changed)
     assert len(payload["rows"]["primary"]) == 4 * 64
     assert len(payload["rows"]["alternate"]) == 4 * 16
@@ -4826,6 +4847,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     integrity_score_events: list[str] = []
     field_phases: list[str] = []
     integrity_field_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    scoring_tensor_refs: list[weakref.ReferenceType[torch.Tensor]] = []
 
     original_configure = _MODULE.configure_deterministic_process
 
@@ -4837,10 +4859,14 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     original_fields = _MODULE.exact_contextual_rsta_fields
 
     def record_field_construction(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        field_phases.append(
-            "scoring" if "integrity-3" in integrity_score_events else "integrity"
-        )
-        return original_fields(*args, **kwargs)
+        phase = "scoring" if "integrity-3" in integrity_score_events else "integrity"
+        field_phases.append(phase)
+        result = original_fields(*args, **kwargs)
+        if phase == "scoring":
+            scoring_tensor_refs.extend(
+                weakref.ref(value) for value in result.values() if torch.is_tensor(value)
+            )
+        return result
 
     monkeypatch.setattr(_MODULE, "exact_contextual_rsta_fields", record_field_construction)
     original_integrity = _MODULE._registered_first_batch_integrity
@@ -4942,6 +4968,33 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     bound_calls.clear()
     integrity_score_events.clear()
 
+    scoring_model_refs: list[weakref.ReferenceType[torch.nn.Module]] = []
+    scoring_parameter_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    loader_calls = 0
+    clone_calls = 0
+    original_clone = _MODULE.make_rsta_diagnostic_clone
+
+    def track_clone(model: torch.nn.Module) -> torch.nn.Module:
+        nonlocal clone_calls
+        clone = original_clone(model)
+        clone_calls += 1
+        if clone_calls > 4:
+            scoring_model_refs.append(weakref.ref(clone))
+            scoring_parameter_refs.extend(weakref.ref(value) for value in clone.parameters())
+        return clone
+
+    def tracked_model_loader(bound: Any) -> torch.nn.Module:
+        nonlocal loader_calls
+        loader_calls += 1
+        if loader_calls > 5:
+            gc.collect()
+            assert all(reference() is None for reference in scoring_model_refs)
+            assert all(reference() is None for reference in scoring_parameter_refs)
+            assert all(reference() is None for reference in scoring_tensor_refs)
+        return TinyOfficialHead(bound.seed).train()
+
+    monkeypatch.setattr(_MODULE, "make_rsta_diagnostic_clone", track_clone)
+
     _MODULE.main(
         [
             "--manifest",
@@ -4958,7 +5011,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         execution_source_validator=audit_before_scoring,
         bound_loader=bound_loader,
         cache_builder=cache_builder,
-        model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
+        model_loader=tracked_model_loader,
         fixture_runner=lambda: fixture_audit,
         deterministic_pool_auditor=_valid_global_max_audit,
         zero_jacobian_auditor=zero_jacobian_auditor,

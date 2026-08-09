@@ -3394,10 +3394,13 @@ def scientific_payload(
     for seed in ("0", "1", "2", "3"):
         _validate_zero_jacobian_classifier_audit(zero_jacobian[seed])
     integrity_seeds = integrity.get("seeds")
-    if not isinstance(integrity_seeds, Sequence) or {
-        audit.get("seed") for audit in integrity_seeds if isinstance(audit, Mapping)
-    } != {0, 1, 2, 3}:
-        raise ValueError("integrity requires exactly seeds 0-3")
+    if (
+        not isinstance(integrity_seeds, list)
+        or len(integrity_seeds) != 4
+        or [audit.get("seed") if isinstance(audit, Mapping) else None for audit in integrity_seeds]
+        != [0, 1, 2, 3]
+    ):
+        raise ValueError("integrity requires exactly ordered seeds 0-3")
     for audit in integrity_seeds:
         if not isinstance(audit, Mapping) or set(audit) != {
             "seed", "repeatability", "adjoint", "rotation"
@@ -3445,7 +3448,12 @@ def scientific_payload(
             for value in rotation["statistic_differences"].values()
         ):
             raise ValueError("integrity rotation residual exceeds registered tolerance")
-    if {audit.get("seed") for audit in seed_audits} != {0, 1, 2, 3} or any(
+    if (
+        not isinstance(seed_audits, list)
+        or len(seed_audits) != 4
+        or [audit.get("seed") if isinstance(audit, Mapping) else None for audit in seed_audits]
+        != [0, 1, 2, 3]
+        or any(
         SEED_AUDIT_FIELDS - set(audit)
         or not audit.get("parameter_names")
         or int(audit.get("parameter_count", 0)) <= 0
@@ -3454,6 +3462,7 @@ def scientific_payload(
         or len(audit.get("alternate_batch_ids", ())) != 2
         or any(len(batch) != 180 for batch in audit.get("alternate_batch_ids", ()))
         for audit in seed_audits
+        )
     ):
         raise ValueError("scientific result requires ordered parameter names for every seed")
     reference_names = tuple(seed_audits[0]["parameter_names"])
@@ -3464,6 +3473,14 @@ def scientific_payload(
         for audit in seed_audits[1:]
     ):
         raise ValueError("ordered encoder parameter names/count differ across seeds")
+    for integrity_audit, scoring_audit in zip(integrity_seeds, seed_audits, strict=True):
+        adjoint = integrity_audit["adjoint"]
+        if (
+            adjoint["parameter_name_order_sha256"]
+            != _ordered_text_sha256(scoring_audit["parameter_names"])
+            or adjoint["parameter_count"] != scoring_audit["parameter_count"]
+        ):
+            raise ValueError("adjoint parameter metadata differs from scoring seed audit")
     _validate_registered_rows(primary_rows, alternate_rows, seed_audits, panel_binding)
     recomputed = decide_stage_a(primary_rows, alternate_rows)
     if _json_ready(aggregation) != _json_ready(recomputed):
@@ -5092,6 +5109,19 @@ def run_scientific_diagnostic(
                 "primary_batch_ids": primary["batches"],
                 "alternate_batch_ids": alternate["batches"],
             }
+        )
+        del (
+            captured,
+            prehead,
+            raw_head,
+            images,
+            labels,
+            audit_images,
+            proxies,
+            proxy_labels,
+            parameter_items,
+            first_parameter,
+            model,
         )
     aggregation = decide_stage_a(primary_rows, alternate_rows)
     _, matrices = _panel_matrices(
