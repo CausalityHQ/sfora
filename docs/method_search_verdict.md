@@ -5379,7 +5379,7 @@ within-identity covariance shapes proportional across identities. The mandatory
 independent review returned DEAD through the configured same-job Fable-to-Opus
 path.
 
-## Pass 193 — Rival-Centroid Deflation (DEAD at Gate 2)
+## Pass 193 — Rival-Centroid Deflation (LIVE-NARROW at Gate 2; outside deployment lane)
 
 The corrected In-Shop CPU probe subtracted a weighted mean of the eight nearest
 foreign-class centroids from each descriptor. R@1 rose from `0.913701` at
@@ -5391,13 +5391,21 @@ identities is an inductive memory-based postprocessor. It nevertheless violates
 the registered pointwise fixed-descriptor deployment lane through its centroid
 bank and `O(Cd)` lookup.
 
-Gate 2 closes the candidate: MIC (Roth, Brattoli, Ommer, ICCV 2019) explicitly
-learns and explains away visual characteristics shared across classes, which
-occupies the same mechanism-level object. RSPG/CASPG and contextual/residual
-distillation are additional repository-adjacent collisions. A centroid
-estimator or detached student imitation would be a parameterization of
-interclass-characteristic removal, not a novel supervision mechanism. No
-implementation or GPU run occurred. Full audit:
+The original Gate-2 death was too broad.  MIC jointly trains discriminative and
+shared-characteristic encoders; it does not implement RCD's frozen-descriptor,
+empirical train-centroid bank, top-eight rival-field subtraction, and per-item
+pre-retrieval decision.  Coded Residual Transform (NeurIPS 2022) and ProNet
+(arXiv:2308.10717) are closer prototype-residual/prototype-similarity neighbours,
+but neither matches that complete tuple.  Under the repaired exact-object/data-flow/
+decision rule, the original inference operator is therefore **LIVE-NARROW at Gate
+2**, not established novel.
+
+This correction does not authorize implementation or GPU work.  `alpha` was selected
+on query/gallery, and the centroid bank plus `O(Cd)` inference lookup violates the
+registered pointwise fixed-descriptor deployment lane.  A detached/amortized student
+remains occupied by retrieval-output/ranking distillation and iterative-postprocessor
+distillation.  If the deployment lane ever changes, RCD must restart with nested
+identity-disjoint alpha selection and generic prototype-residual controls.  Full audit:
 `docs/pass193_rival_centroid_deflation_audit_2026-08-08.md`.
 
 A repaired re-audit reached the same Gate-2 verdict. Cross-fitting and a residual

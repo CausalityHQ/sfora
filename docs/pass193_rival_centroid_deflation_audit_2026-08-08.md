@@ -1,4 +1,26 @@
-# Pass 193 — Rival-Centroid Deflation (DEAD at Gate 2)
+# Pass 193 — Rival-Centroid Deflation (LIVE-NARROW at Gate 2; outside deployment lane)
+
+## 2026-08-09 repaired Gate-2 correction
+
+The original Gate-2 death was too broad.  MIC shares the purpose of removing
+cross-class characteristics, but not RCD's training object, information source,
+data flow, or decision point: MIC jointly trains discriminative and nuisance
+encoders, whereas RCD fits an empirical train-identity centroid bank to frozen
+descriptors and applies a pointwise top-eight rival-field subtraction immediately
+before retrieval.  Coded Residual Transform (NeurIPS 2022) and ProNet
+(arXiv:2308.10717) are closer prototype-based neighbours, but respectively learn a
+spatial residual head and retain prototype similarities as the representation;
+neither implements the frozen-global-descriptor, empirical-centroid subtraction
+operator.  RCD is therefore **LIVE-NARROW at Gate 2**, not established novel.
+
+This correction does not authorize computation.  The observed `+0.004572` R@1
+used query/gallery-selected `alpha`, and the centroid bank plus `O(Cd)` inference
+lookup remains outside the registered pointwise fixed-descriptor deployment lane.
+The amortized-student repair remains occupied by ranking/output-geometry
+distillation.  A future change to the deployment constraint would require a new,
+nested identity-disjoint preregistration with no query/gallery tuning and controls
+for global-mean subtraction, all-prototype residualization, and norm-matched random
+centroids.
 
 ## Gate 1 measurement
 
@@ -33,7 +55,7 @@ than prospective, and the probe has no allowed pointwise student operator.
 
 ## Gate 2 adversarial prior-art audit
 
-The mechanism is not unoccupied. MIC, Roth, Brattoli, and Ommer, *Mining
+The original audit treated the mechanism as occupied. MIC, Roth, Brattoli, and Ommer, *Mining
 Interclass Characteristics for Improved Metric Learning* (ICCV 2019), trains a
 separate encoder to model visual characteristics shared across classes and
 explicitly explains them away from the class-discriminative encoder; its
@@ -45,13 +67,14 @@ encoder. [Primary paper](https://openaccess.thecvf.com/content_ICCV_2019/html/Ro
 RSPG/CASPG already occupy target-excluded rival signatures and contextual
 positive selection in this repository, while contextual-similarity distillation
 and cross-fitted residual distillation occupy the teacher-only training escape.
-Replacing the rival encoder with a weighted centroid average is an estimator
-and deployment change, not a new supervision primitive. A student trained to
-imitate the deflated descriptor would therefore be MIC/interclass nuisance
-removal with a different statistic. Candidate 193 is **DEAD at Gate 2**; no
-implementation, GPU screen, or SOTA claim is authorized.
+Replacing the rival encoder with a weighted centroid average is not enough to
+identify a train-time supervision primitive.  The repaired audit above nevertheless
+finds the inference operator tuple distinct enough to remain **LIVE-NARROW** at
+Gate 2.  No implementation, GPU screen, or SOTA claim is authorized because the
+operator remains outside the deployment lane and its only response curve is
+test-selected.
 
-### Repaired terminology does not reopen Gate 2
+### The amortized repair remains dead
 
 An adversarial re-audit considered a cross-fitted amortizer
 `z -> normalize(z-alpha*r(z)) -> g_theta(z)`. Cross-fitting would repair the
