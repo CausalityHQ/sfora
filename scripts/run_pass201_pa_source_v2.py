@@ -21,12 +21,14 @@ from pass201_pa_source_v2_contract import (
     TRAIN_MANIFEST_CALL_GRAPH,
     BoundCheckpointMetadata,
     CheckpointMetadata,
+    ExternalFileBinding,
     PrelaunchAuthority,
     PrivateChildFrame,
-    bind_external_file,
     canonical_json_bytes,
+    decode_checkpoint_binding_response,
     decode_checkpoint_metadata_response,
     decode_private_child_frame,
+    encode_checkpoint_binding_request,
     encode_checkpoint_metadata_request,
     encode_private_child_frame,
     load_strict_json_bytes,
@@ -911,6 +913,20 @@ def _run_metadata_child(
     return decode_checkpoint_metadata_response(response, authority, checkpoint_path)
 
 
+def _run_binding_child(
+    authority: PrelaunchAuthority,
+    checkpoint_path: Path,
+    expected: ExternalFileBinding,
+) -> ExternalFileBinding:
+    response = _run_private_child(
+        authority,
+        "pass201_pa_source_v2_contract.py",
+        ("restricted-binding-child", "--checkpoint", str(checkpoint_path)),
+        encode_checkpoint_binding_request(expected),
+    )
+    return decode_checkpoint_binding_response(response, expected, checkpoint_path)
+
+
 def derive_sidecars_from_files(
     manifest_path: Path,
     report_path: Path,
@@ -967,10 +983,7 @@ def derive_sidecars_from_files(
     )
     _require(_read_immutable_regular(manifest_path) == manifest_bytes, "manifest input drift")
     _require(_read_immutable_regular(report_path) == report_bytes, "report input drift")
-    _require(
-        bind_external_file(checkpoint_path) == bound_checkpoint.binding,
-        "checkpoint input drift",
-    )
+    _run_binding_child(authority, checkpoint_path, bound_checkpoint.binding)
     return frame
 
 

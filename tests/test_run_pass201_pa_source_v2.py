@@ -20,9 +20,12 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
     BoundCheckpointMetadata,
     CheckpointArch,
     CheckpointMetadata,
+    ExternalFileBinding,
     PrelaunchAuthority,
     bind_external_file,
     canonical_json_bytes,
+    decode_checkpoint_binding_response,
+    encode_checkpoint_binding_request,
     load_strict_json_bytes,
     load_strict_json_value_bytes,
 )
@@ -811,9 +814,32 @@ def _derive_with_synchronized_checkpoint_handoff(
             os.replace(replacement, checkpoint_path)
         return real_validate_completed_epoch(*args, **kwargs)  # type: ignore[arg-type]
 
+    def binding_child(
+        _authority: PrelaunchAuthority, path: Path, expected: ExternalFileBinding
+    ) -> ExternalFileBinding:
+        repo = Path(__file__).resolve().parents[1]
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(repo / "scripts" / "pass201_pa_source_v2_contract.py"),
+                "restricted-binding-child",
+                "--checkpoint",
+                str(path),
+            ],
+            cwd=repo,
+            env=dict(os.environ),
+            input=encode_checkpoint_binding_request(expected),
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise ValueError("checkpoint input drift")
+        return decode_checkpoint_binding_response(result.stdout, expected, path)
+
     monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
     monkeypatch.setattr(controller, "_run_capture_child", lambda _authority: capture)
     monkeypatch.setattr(controller, "_run_metadata_child", metadata_child)
+    monkeypatch.setattr(controller, "_run_binding_child", binding_child)
     monkeypatch.setattr(controller, "validate_completed_epoch", after_metadata)
     return controller.derive_sidecars_from_files(
         manifest_path, report_path, checkpoint_path, run_dir
@@ -1044,13 +1070,25 @@ def _run_mocked_external_sidecar_child(checkout: Path) -> subprocess.CompletedPr
 import hashlib, json, os, struct, sys
 from pathlib import Path
 
+root = Path(sys.argv[1])
+checkpoint_path = (root / "run" / "checkpoint.pt").absolute()
+def forbid_checkpoint_open(event, args):
+    if event != "open" or not args:
+        return
+    try:
+        opened = Path(os.path.abspath(os.fspath(args[0])))
+    except TypeError:
+        return
+    if opened == checkpoint_path:
+        raise RuntimeError("orchestrator opened produced checkpoint")
+sys.addaudithook(forbid_checkpoint_open)
+
 import run_pass201_pa_source_v2 as c
 from pass201_pa_source_v2_contract import (
     BoundCheckpointMetadata, CheckpointArch, CheckpointMetadata, PrelaunchAuthority,
-    bind_external_file,
+    ExternalFileBinding,
 )
 
-root = Path(sys.argv[1])
 config = {
     "batch_size": 180,
     "drop_last_train_batch": True,
@@ -1130,9 +1168,16 @@ def validate_manifest(value):
     return authority
 c.validate_prelaunch = validate_manifest
 c._run_capture_child = lambda *_args: capture
-c._run_metadata_child = lambda *_args: BoundCheckpointMetadata(
-    bind_external_file(root / "run" / "checkpoint.pt"), checkpoint
+checkpoint_stat = os.stat(checkpoint_path, follow_symlinks=False)
+checkpoint_binding = ExternalFileBinding(
+    checkpoint_path, checkpoint_stat.st_mode, checkpoint_stat.st_dev,
+    checkpoint_stat.st_ino, len(b"restricted-checkpoint-placeholder"),
+    hashlib.sha256(b"restricted-checkpoint-placeholder").hexdigest(),
 )
+c._run_metadata_child = lambda *_args: BoundCheckpointMetadata(
+    checkpoint_binding, checkpoint
+)
+c._run_binding_child = lambda _authority, _path, binding: binding
 raise SystemExit(c.main([
     "derive-sidecars", "--manifest", str(root / "authority.json"),
     "--report", str(root / "run" / "report.json"),
@@ -1150,6 +1195,39 @@ raise SystemExit(c.main([
         check=False,
         capture_output=True,
     )
+
+
+def test_private_sidecar_orchestrator_never_opens_checkpoint(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (tmp_path / "dataset").mkdir()
+    (tmp_path / "authority.json").write_bytes(b'{"bound":true}\n')
+    config = {
+        "batch_size": 180,
+        "drop_last_train_batch": True,
+        "objectives": ["proxy_anchor"],
+        "recipe_digest": controller.RECIPE_DIGEST,
+        "recipe_id": controller.RECIPE_ID,
+        "seed": 0,
+    }
+    (run_dir / "report.json").write_bytes(
+        canonical_json_bytes(
+            {
+                "name": "image-end-to-end",
+                "dataset_name": "inshop",
+                "protocol": "query_gallery",
+                "config": config,
+                "train_examples": 2,
+                "test_examples": 2,
+                "methods": {},
+            }
+        )
+    )
+    (run_dir / "checkpoint.pt").write_bytes(b"restricted-checkpoint-placeholder")
+
+    result = _run_mocked_external_sidecar_child(tmp_path)
+
+    assert result.returncode == 0, result.stderr.decode()
 
 
 def test_two_fresh_private_sidecar_children_are_identical_and_fail_on_input_drift(

@@ -522,6 +522,29 @@ builtins.__import__ = guarded
     assert bound.metadata.training_step == checkpoint_authority.expected_train_steps
     assert bound.metadata.state_dict_storage_materialized is False
 
+    binding_result = subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "pass201_pa_source_v2_contract.py"),
+            "restricted-binding-child",
+            "--checkpoint",
+            str(valid_checkpoint_zip),
+        ],
+        cwd=repo,
+        env=env,
+        input=contract.encode_checkpoint_binding_request(bound.binding),
+        capture_output=True,
+        check=False,
+    )
+
+    assert binding_result.returncode == 0, binding_result.stderr.decode()
+    assert (
+        contract.decode_checkpoint_binding_response(
+            binding_result.stdout, bound.binding, valid_checkpoint_zip
+        )
+        == bound.binding
+    )
+
 
 @pytest.mark.parametrize(
     ("names", "message"),

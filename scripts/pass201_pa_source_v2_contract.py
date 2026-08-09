@@ -53,6 +53,8 @@ PRIVATE_CHILD_ROLES = {
     "capture-response": 2,
     "metadata-request": 3,
     "metadata-response": 4,
+    "binding-request": 5,
+    "binding-response": 6,
 }
 
 
@@ -1436,6 +1438,30 @@ def _checkpoint_metadata_payload(
     )
 
 
+def _external_binding_payload(binding: ExternalFileBinding) -> dict[str, object]:
+    return {
+        "path": binding.path.as_posix(),
+        "mode": binding.mode,
+        "device": binding.device,
+        "inode": binding.inode,
+        "bytes": binding.byte_count,
+        "sha256": binding.sha256,
+    }
+
+
+def _external_binding_from_payload(value: object, where: str) -> ExternalFileBinding:
+    _external(value, where)
+    binding = _dict(value, where)
+    return ExternalFileBinding(
+        Path(binding["path"]),
+        binding["mode"],
+        binding["device"],
+        binding["inode"],
+        binding["bytes"],
+        binding["sha256"],
+    )
+
+
 def _metadata_from_payload(
     value: object, authority: PrelaunchAuthority
 ) -> CheckpointMetadata:
@@ -1547,18 +1573,11 @@ def decode_checkpoint_metadata_response(
         "metadata_response",
     )
     binding_obj = payload["checkpoint_binding"]
-    _external(binding_obj, "metadata_response.checkpoint_binding")
-    binding = _dict(binding_obj, "metadata_response.checkpoint_binding")
-    if binding["path"] != checkpoint_path.absolute().as_posix():
-        raise ValueError("metadata child checkpoint path drift")
-    external = ExternalFileBinding(
-        Path(binding["path"]),
-        binding["mode"],
-        binding["device"],
-        binding["inode"],
-        binding["bytes"],
-        binding["sha256"],
+    external = _external_binding_from_payload(
+        binding_obj, "metadata_response.checkpoint_binding"
     )
+    if external.path != checkpoint_path.absolute():
+        raise ValueError("metadata child checkpoint path drift")
     return BoundCheckpointMetadata(
         external, _metadata_from_payload(payload["metadata"], authority)
     )
@@ -1574,6 +1593,62 @@ def _restricted_metadata_child(checkpoint_path: Path) -> bytes:
     payload = _checkpoint_metadata_payload(metadata, after)
     return encode_private_child_frame(
         PrivateChildFrame("metadata-response", os.getpid(), payload)
+    )
+
+
+def encode_checkpoint_binding_request(binding: ExternalFileBinding) -> bytes:
+    payload = canonical_json_bytes({"expected_binding": _external_binding_payload(binding)})
+    return encode_private_child_frame(PrivateChildFrame("binding-request", os.getpid(), payload))
+
+
+def _decode_checkpoint_binding_request(data: bytes) -> ExternalFileBinding:
+    frame = decode_private_child_frame(data)
+    if frame.role != "binding-request":
+        raise ValueError("binding child request role")
+    payload = _keys(
+        load_strict_json_bytes(frame.payload),
+        {"expected_binding"},
+        "binding_request",
+    )
+    return _external_binding_from_payload(
+        payload["expected_binding"], "binding_request.expected_binding"
+    )
+
+
+def _checkpoint_binding_payload(binding: ExternalFileBinding) -> bytes:
+    return canonical_json_bytes({"checkpoint_binding": _external_binding_payload(binding)})
+
+
+def decode_checkpoint_binding_response(
+    data: bytes, expected: ExternalFileBinding, checkpoint_path: Path
+) -> ExternalFileBinding:
+    frame = decode_private_child_frame(data)
+    if frame.role != "binding-response":
+        raise ValueError("binding child response role")
+    payload = _keys(
+        load_strict_json_bytes(frame.payload),
+        {"checkpoint_binding"},
+        "binding_response",
+    )
+    binding = _external_binding_from_payload(
+        payload["checkpoint_binding"], "binding_response.checkpoint_binding"
+    )
+    if binding.path != checkpoint_path.absolute():
+        raise ValueError("binding child checkpoint path drift")
+    if binding != expected:
+        raise ValueError("checkpoint input drift")
+    return binding
+
+
+def _restricted_binding_child(checkpoint_path: Path) -> bytes:
+    expected = _decode_checkpoint_binding_request(sys.stdin.buffer.read())
+    current = bind_external_file(checkpoint_path)
+    if current != expected:
+        raise ValueError("checkpoint input drift")
+    return encode_private_child_frame(
+        PrivateChildFrame(
+            "binding-response", os.getpid(), _checkpoint_binding_payload(current)
+        )
     )
 
 
@@ -2684,14 +2759,20 @@ def _private_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
     metadata = commands.add_parser("restricted-metadata-child")
     metadata.add_argument("--checkpoint", required=True, type=Path)
+    binding = commands.add_parser("restricted-binding-child")
+    binding.add_argument("--checkpoint", required=True, type=Path)
     return parser
 
 
 def _private_main(argv: list[str] | None = None) -> int:
     args = _private_parser().parse_args(argv)
-    if args.command != "restricted-metadata-child":
+    if args.command == "restricted-metadata-child":
+        output = _restricted_metadata_child(args.checkpoint)
+    elif args.command == "restricted-binding-child":
+        output = _restricted_binding_child(args.checkpoint)
+    else:
         raise ValueError("private contract command drift")
-    sys.stdout.buffer.write(_restricted_metadata_child(args.checkpoint))
+    sys.stdout.buffer.write(output)
     sys.stdout.buffer.flush()
     return 0
 
