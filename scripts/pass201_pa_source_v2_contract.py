@@ -1194,13 +1194,6 @@ def _restore_quarantined_name(directory_fd: int, quarantine: str, name: str) -> 
     except FileExistsError:
         return
     except OSError:
-        with contextlib.suppress(OSError):
-            os.rename(
-                quarantine,
-                name,
-                src_dir_fd=directory_fd,
-                dst_dir_fd=directory_fd,
-            )
         return
     with contextlib.suppress(OSError):
         os.unlink(quarantine, dir_fd=directory_fd)

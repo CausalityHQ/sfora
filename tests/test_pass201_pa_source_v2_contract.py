@@ -950,7 +950,7 @@ def test_publication_rollback_preserves_replacement_between_check_and_removal(
 
 
 @pytest.mark.parametrize("fault", ["quarantine_stat", "restore_link"])
-def test_publication_rollback_restores_racer_when_quarantine_operation_fails(
+def test_publication_rollback_preserves_racer_when_quarantine_operation_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
 ) -> None:
     path = tmp_path / "result"
@@ -985,7 +985,52 @@ def test_publication_rollback_restores_racer_when_quarantine_operation_fails(
         contract._unlink_if_same(directory_fd, path.name, expected)
     finally:
         os.close(directory_fd)
-    assert path.read_bytes() == b"racer"
+    if fault == "quarantine_stat":
+        assert path.read_bytes() == b"racer"
+    else:
+        assert not path.exists()
+        quarantined = list(tmp_path.glob(".result.*.rollback"))
+        assert len(quarantined) == 1
+        assert quarantined[0].read_bytes() == b"racer"
+
+
+def test_publication_rollback_never_overwrites_newer_creator_after_restore_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_rename = contract.os.rename
+    real_link = contract.os.link
+    real_fsync = contract.os.fsync
+    directory_fsync_failed = False
+
+    def racing_rename(source: Any, destination: Any, *args: Any, **kwargs: Any) -> None:
+        if source == path.name:
+            path.unlink()
+            path.write_bytes(b"racer")
+        real_rename(source, destination, *args, **kwargs)
+
+    def occupied_link(source: Any, destination: Any, *args: Any, **kwargs: Any) -> None:
+        if str(source).endswith(".rollback"):
+            path.write_bytes(b"newer")
+            raise OSError("non-clobber restore failure")
+        real_link(source, destination, *args, **kwargs)
+
+    def failing_first_directory_fsync(fd: int) -> None:
+        nonlocal directory_fsync_failed
+        if stat.S_ISDIR(contract.os.fstat(fd).st_mode) and not directory_fsync_failed:
+            directory_fsync_failed = True
+            raise OSError("directory fsync")
+        real_fsync(fd)
+
+    monkeypatch.setattr(contract.os, "rename", racing_rename)
+    monkeypatch.setattr(contract.os, "link", occupied_link)
+    monkeypatch.setattr(contract.os, "fsync", failing_first_directory_fsync)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert path.read_bytes() == b"newer"
+    quarantined = list(tmp_path.glob(".result.*.rollback"))
+    assert len(quarantined) == 1
+    assert quarantined[0].read_bytes() == b"racer"
 
 
 def test_publication_does_not_chmod_replacement_after_preliminary_hash(
