@@ -18,7 +18,7 @@
 - Change only adjoint multiplication/reduction to float64: cast both factors before multiplication, sum each inner product in float64, then stack and sum RHS parameter terms in exact named-parameter order.
 - `--integrity-all-seeds-only` is candidate-free and must never call `exact_contextual_rsta_fields`, `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, `scientific_payload`, or receiver-row serialization.
 - Scientific execution completes zero-Jacobian, repeatability, adjoint, and rotation integrity for seeds `0,1,2,3` before any score, then recomputes fields for scoring with one full derivative graph at peak.
-- Any scientific integrity failure makes zero candidate/decision/bootstrap calls and creates no output. The candidate-free mode alone may persist all four finite adjoint tolerance outcomes with `all_passed=false`.
+- Any scientific integrity failure makes zero calls to `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, or `scientific_payload` and leaves no destination or sibling temp. The candidate-free mode alone may persist all four finite adjoint tolerance outcomes with `all_passed=false`.
 - Local tests are tiny/mocked and serial. B=180 BN-Inception CUDA processes run only on DGX `spark-2751` from a clean detached checkout.
 - Authorized implementation files are `scripts/diagnose_pass200_rsta_stage_a.py`, `tests/test_diagnose_pass200_rsta_stage_a.py`, and `docs/pass200_rsta_receipt_stage_a_manifest.json`. DGX outputs are new uniquely addressed files under `reports/generated/pass200_rsta_receipt/`. Do not edit trainer or recipe code.
 - `S7` denotes the full commit returned by `git rev-parse HEAD` after the final reviewed source/test commit; `H7` denotes the full commit returned after the subsequent manifest-only commit. Angle-bracketed `<H7>` in output filenames means that exact 40-character H7 value, not an unresolved design choice.
@@ -39,22 +39,47 @@
 
 **Interfaces:**
 - Produces: `adjoint_integrity_audit(model: Any, images: Any, output_direction: Any, parameter_direction: Mapping[str, Any], *, output_direction_seed: int, parameter_direction_seed: int, expected_batch_size: int = 180, expected_dimension: int = 512) -> dict[str, Any]`.
+- Produces: `_adjoint_direction_metadata(...) -> dict[str, Any]`, `_finalize_adjoint_scalars(lhs: Any, rhs: Any) -> dict[str, Any]`, and `_float64_adjoint_inner_products(...) -> tuple[Any, Any]`; the public audit composes these focused units.
 - Preserves: `registered_adjoint_directions(...)` draws and exact trainable named-parameter order.
 - Replaces: scalar `adjoint_relative_error(...)` use in production integrity with the exact seventeen-field audit object.
 
-- [ ] **Step 1: Write the FP32-input/float64-reduction RED test**
+- [ ] **Step 1: Write and run the direction/hash RED test**
 
-  Add `test_adjoint_audit_keeps_fp32_operators_and_uses_float64_reductions`. Patch `torch.func.jvp` and `torch.func.vjp` wrappers to assert every primal, tangent, output direction, `Jv`, and `J^T u` tensor is `torch.float32`. Use a tiny normalized affine model and compare `lhs`, `rhs`, `absolute_error`, `denominator`, and `relative_error` to independent NumPy float64 reductions of the captured FP32 arrays. Require `model_dtype == 'torch.float32'`, `reduction_dtype == 'torch.float64'`, and the exact seventeen-key list from the amendment.
+  Add `test_adjoint_direction_metadata_binds_registered_fp32_tensors_without_resampling`. For every seed `0..3`, independently reproduce the two `domain_seed` values, assert the actual FP32 tensors equal `registered_adjoint_directions`, hash output C-order bytes, and hash the ordered concatenation of parameter-direction C-order bytes. Require exact domain/seeds/hashes, output shape, `_ordered_text_sha256(parameter_names)`, count, and dtype fields.
 
-- [ ] **Step 2: Run the focused test and capture RED**
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_adjoint_direction_metadata_binds_registered_fp32_tensors_without_resampling`
 
-  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'adjoint_audit_keeps_fp32_operators'`
+  Expected: FAIL because `_adjoint_direction_metadata` does not exist.
 
-  Expected: FAIL because the structured helper does not exist and current inner products reduce in FP32.
+- [ ] **Step 2: Implement only direction metadata and verify GREEN**
 
-- [ ] **Step 3: Implement the minimal structured reduction**
+  Implement `_adjoint_direction_metadata` without changing direction generation or casting. Hash C-contiguous bytes copied from the actual consumed FP32 tensors; concatenate parameter tensor bytes in exact `model.named_parameters()` trainable order. Return only the ten frozen metadata fields. Rerun the exact Step-1 test and require PASS.
 
-  Keep `_functional_encoder`, `torch.func.vjp`, and `torch.func.jvp` unchanged. Implement the numerical core literally as:
+- [ ] **Step 3: Write and run denominator/threshold RED tests**
+
+  Add `test_finalize_adjoint_scalars_uses_exact_float64_denominator_and_boundary`. Parameterize float64 `lhs,rhs` values that exercise the `1e-12` floor and finite relative errors immediately below, equal to, and immediately above `5e-4`; require `passed` values `true,true,false`. Add nonfinite `lhs`, `rhs`, difference, denominator, and quotient cases and require rejection.
+
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_finalize_adjoint_scalars_uses_exact_float64_denominator_and_boundary`
+
+  Expected: FAIL because `_finalize_adjoint_scalars` does not exist.
+
+- [ ] **Step 4: Implement only scalar finalization and verify GREEN**
+
+  Implement `_finalize_adjoint_scalars` with finite float64 inputs, `absolute_error=abs(lhs-rhs)`, denominator `max(abs(lhs),abs(rhs),float64(1e-12))`, relative error, tolerance `0.0005`, and inclusive `<=`. Rerun the exact Step-3 test and require PASS.
+
+- [ ] **Step 5: Write and run FP32-operator/float64-cancellation RED tests**
+
+  Add `test_adjoint_inner_products_keep_fp32_operators_and_cast_before_multiply`. Feed captured FP32 `Jv`, `u`, ordered tangents, and `J^T u`; compare both reductions to independent NumPy float64 results and require float64 output tensors.
+
+  Add `test_adjoint_float64_reduction_matches_independent_cancellation_reference`. Use deterministic FP32 factors with large alternating products plus small residual products. Prove a local FP32 multiply/sum crosses the registered decision relative to the independent float64 reference, then require production `lhs,rhs` to equal that float64 reference. The test must fail if multiplication occurs before either factor is cast or RHS terms are not stacked and summed in named-parameter order.
+
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'adjoint_inner_products_keep or adjoint_float64_reduction_matches'`
+
+  Expected: both tests FAIL because `_float64_adjoint_inner_products` does not exist.
+
+- [ ] **Step 6: Implement only the float64 inner products and verify GREEN**
+
+  Keep model, primals, directions, JVP, and VJP FP32. Keep `_functional_encoder`, `torch.func.vjp`, and `torch.func.jvp` unchanged. Implement only the inner products:
 
   ```python
   lhs_tensor = (jv.double() * u.double()).sum(dtype=torch.float64)
@@ -63,27 +88,21 @@
       for name in parameter_names
   ]
   rhs_tensor = torch.stack(rhs_terms).sum(dtype=torch.float64)
-  floor = torch.tensor(1.0e-12, dtype=torch.float64, device=lhs_tensor.device)
-  absolute_error_tensor = torch.abs(lhs_tensor - rhs_tensor)
-  denominator_tensor = torch.maximum(
-      torch.maximum(torch.abs(lhs_tensor), torch.abs(rhs_tensor)), floor
-  )
-  relative_error_tensor = absolute_error_tensor / denominator_tensor
   ```
 
-  Reject nonfinite directions, products, reductions, and derived scalars. Construct `passed` only after converting the finite relative error and exact `0.0005` tolerance to JSON scalars.
+  The pure inner-product helper returns only `lhs_tensor,rhs_tensor`; scalar finalization remains the Step-4 unit. Rerun the two exact Step-5 tests and require PASS.
 
-- [ ] **Step 4: Write direction, hash, denominator, and threshold preservation tests**
+- [ ] **Step 7: Write and run the composed exact-audit RED test**
 
-  Add `test_adjoint_audit_binds_registered_directions_without_resampling`. For every seed `0..3`, independently reproduce the two `domain_seed` values, assert the actual FP32 tensors equal `registered_adjoint_directions`, hash output C-order bytes, hash the ordered concatenation of parameter-direction C-order bytes, and assert the audit hashes match. Assert `parameter_name_order_sha256 == _ordered_text_sha256(parameter_names)`, exact output shape/count, exact `direction_domain`, exact seed integers, and exact denominator formula.
+  Add `test_adjoint_integrity_audit_composes_exact_seventeen_field_contract`. Patch `torch.func.jvp` and `torch.func.vjp` wrappers to assert all operator inputs/outputs remain FP32, then require exact field order, exact metadata from Step 2, exact scalars from Steps 4/6, and rejection of direction/parameter topology drift.
 
-  Add a boundary parameterization with finite relative errors immediately below, equal to, and immediately above `5e-4`; require `passed` values `true,true,false` without changing `relative_error`.
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_adjoint_integrity_audit_composes_exact_seventeen_field_contract`
 
-- [ ] **Step 5: Write the cancellation RED test**
+  Expected: FAIL because `adjoint_integrity_audit` does not exist.
 
-  Add `test_adjoint_float64_reduction_matches_independent_cancellation_reference`. Feed deterministic FP32 factor arrays containing large alternating products plus small residual products. Prove a locally reproduced FP32 multiply/sum crosses the `5e-4` decision relative to the independent NumPy float64 reference, then require the production audit to equal the independent float64 `lhs`, `rhs`, denominator, and relative error exactly. This test must fail if either factor is multiplied in FP32 before conversion or if RHS parameter terms are accumulated in Python/FP32 order.
+- [ ] **Step 8: Compose the minimal public audit and verify Task 1 GREEN**
 
-- [ ] **Step 6: Verify Task 1 GREEN and commit**
+  Implement `adjoint_integrity_audit` only as frozen validation, unchanged FP32 JVP/VJP calls, and composition of the three GREEN helpers. Run the exact Step-7 test, then:
 
   Run the three focused adjoint tests, then:
 
@@ -109,17 +128,35 @@
 - Consumes: the existing receipt/source validators, training-only loader, deterministic cache, model loader, fixtures, deterministic-pool audit, zero-Jacobian audit, and `adjoint_integrity_audit`.
 - Produces exact top-level, binding, integrity, per-seed, and adjoint key sets frozen by the amendment.
 
-- [ ] **Step 1: Write the candidate-free reachability RED test**
+- [ ] **Step 1: Write and run exact-schema/reachability RED tests**
 
-  Add `test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema`. Replace `exact_contextual_rsta_fields`, `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, `scientific_payload`, and receiver-row serialization with raising sentinels. Execute the new CLI on four tiny bound seeds. Assert none is called; assert fixed scalar values and exact top keys; recursively assert exact binding/integrity/seed/adjoint key sets; assert no `rows`, `fields`, `scores`, `decision`, `aggregation`, or `bootstrap` key occurs anywhere in the JSON tree.
+  Add `test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema`. Replace `exact_contextual_rsta_fields`, `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, `scientific_payload`, and receiver-row serialization with raising sentinels. Execute the new CLI on four tiny bound seeds. Assert none is called; assert fixed scalar values and every exact top/binding/integrity/seed/adjoint key set; assert no `rows`, `fields`, `scores`, `decision`, `aggregation`, or `bootstrap` key occurs anywhere.
 
-- [ ] **Step 2: Run the mode test and capture RED**
+  Add `test_integrity_all_seeds_recursively_validates_execution_manifest_environment`. Start with exact valid nested objects, then recursively mutate every container and leaf: missing/extra keys, wrong exact scalar types/values, malformed hashes/commits, changed manifest references/source files, empty/wrong version strings, and mismatched execution/source provenance. Require the candidate-free payload validator to reject every mutation before publication. Explicitly prove byte/key-exact reuse of `_EXECUTION_AUDIT_FIELDS`, `validate_execution_audit`, the existing strict amended-manifest nested schemas, `ENVIRONMENT_AUDIT_FIELDS`, and `configure_deterministic_process` output.
 
-  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'integrity_all_seeds_mode_is_candidate_free'`
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'integrity_all_seeds_mode_is_candidate_free or recursively_validates_execution'`
 
-  Expected: FAIL because the CLI rejects `--integrity-all-seeds-only`.
+  Expected: both tests FAIL because the CLI and exact payload validator do not exist.
 
-- [ ] **Step 3: Implement the exact all-seed controller**
+- [ ] **Step 2: Write and run finite-continuation/fail-fast RED tests**
+
+  Add `test_integrity_all_seeds_records_all_finite_adjoint_failures_without_candidate_calls`. Inject a finite above-tolerance error at seed 1, return finite passing objects at seeds 0, 2, and 3, and assert adjoint call order `[0,1,2,3]`, exact four seed keys, seed-1 `passed=false`, global `all_passed=false`, zero candidate calls, and one atomic output.
+
+  Parameterize structural/provenance, nonfinite direction, nonfinite reduction, zero-Jacobian, serialization, and atomic-publication failures. Assert immediate exception, no later forbidden access appropriate to the failure boundary, no destination, and sibling-temp cleanup.
+
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'records_all_finite_adjoint_failures or integrity_all_seeds_fail_fast'`
+
+  Expected: FAIL because no all-seed controller implements continuation or fail-fast publication.
+
+- [ ] **Step 3: Write and run amendment-provenance RED tests**
+
+  Add `test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_blob`. Require exact manifest key `adjoint_integrity_amendment` with only `path`, `sha256`, and `commit`; independently mutate path, digest, commit, worktree bytes, Git blob, and top-level presence and require failure before artifact/model access.
+
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_blob`
+
+  Expected: FAIL because the strict manifest schema rejects or ignores the new binding.
+
+- [ ] **Step 4: Implement the minimal exact controller/schema behavior**
 
   Add the mutually exclusive CLI flag. Reuse the frozen order:
 
@@ -135,19 +172,9 @@
   atomically publish exact audit JSON
   ```
 
-  Build each binding record from the digest-bound checkpoint and final-training-pack entries plus the actual first-batch/cache/tensor hashes. Do not route through `_registered_first_batch_integrity`, because that path calls `exact_contextual_rsta_fields`.
+  Build each binding record from digest-bound checkpoint/final-training-pack entries plus actual first-batch/cache/tensor hashes. Add a dedicated exact payload validator that reruns the existing execution, strict manifest, and environment validators and exact recursive key/type/value checks before `write_json_atomic`. Add committed amendment path/SHA/commit constants and strict source validation. Do not route through `_registered_first_batch_integrity`.
 
-- [ ] **Step 4: Bind the prospective amendment in the strict manifest schema**
-
-  Add `test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_blob`. Require exact manifest key `adjoint_integrity_amendment` with only `path`, `sha256`, and `commit`; authenticate the committed amendment's worktree bytes, Git blob, digest, and commit independently before any artifact/model access. Independently mutate its path, digest, commit, worktree bytes, Git blob, and top-level presence; require immediate failure. Add the committed path/SHA/commit constants and exact-key validation to the source only after the test is RED.
-
-- [ ] **Step 5: Write complete finite-failure and fail-fast RED tests**
-
-  Add `test_integrity_all_seeds_records_all_finite_adjoint_failures_without_candidate_calls`. Inject a finite above-tolerance error at seed 1, return finite passing objects at seeds 0, 2, and 3, and assert adjoint call order `[0,1,2,3]`, exact four seed keys, seed-1 `passed=false`, global `all_passed=false`, zero candidate calls, and one atomic output.
-
-  Parameterize structural/provenance, nonfinite direction, nonfinite reduction, zero-Jacobian, serialization, and atomic-publication failures. Assert immediate exception, no later forbidden access appropriate to the failure boundary, no destination, and temp-file cleanup.
-
-- [ ] **Step 6: Verify Task 2 GREEN and commit**
+- [ ] **Step 5: Verify every Task 2 RED is GREEN and commit**
 
   Run:
 
@@ -173,7 +200,7 @@
 - Refactors: `run_scientific_diagnostic(...) -> dict[str, Any]` into integrity and scoring phases without changing its external arguments or scientific result fields except replacing each scalar adjoint error with the exact adjoint object.
 - Produces: one in-memory integrity record for every seed before scoring; scoring recomputes every field and retains one full derivative graph at peak.
 
-- [ ] **Step 1: Replace the defective seed-local ordering test with a global-prefix RED test**
+- [ ] **Step 1: Replace and run the defective seed-local ordering test as a global-prefix RED**
 
   Replace the assertion that each seed's rotation merely precedes its own score in `test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows`. Record events and require the prefix exactly:
 
@@ -187,29 +214,37 @@
 
   Count first-batch field construction separately in both phases and require a fresh scoring-phase call rather than reuse of an audit field.
 
-- [ ] **Step 2: Run the ordering test and capture RED**
-
   Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows`
 
   Expected: FAIL because H6 emits seed-0 score events before seed-1 integrity.
 
-- [ ] **Step 3: Write the later-seed failure RED test**
+- [ ] **Step 2: Write and run all later-seed gate-failure RED tests**
 
-  Add `test_scientific_seed1_integrity_failure_prevents_all_scoring_and_output`. Make seed 0 pass and seed 1 return a finite adjoint audit with `passed=false`; install raising/counting sentinels for `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, and `scientific_payload`. Require integrity events only for seeds 0 and 1, zero sentinel calls, no primary/alternate row append, and no output or temp file.
+  Add `test_scientific_later_seed_integrity_failure_prevents_all_candidate_work`, parameterized by `failing_seed in (1,2,3)` and `gate in ('zero_jacobian','repeatability','adjoint','rotation')`. Make every earlier seed pass and inject the exact failure at the selected gate. Install independent raising/counting sentinels for `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, and `scientific_payload`. For all twelve cases require zero calls to every sentinel, no primary/alternate row append or aggregate construction, and absence of both the requested destination and every sibling temp file.
 
-- [ ] **Step 4: Implement the integrity phase**
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_later_seed_integrity_failure_prevents_all_candidate_work`
+
+  Expected: FAIL because H6 scores earlier seeds before each injected later-seed failure.
+
+- [ ] **Step 3: Write and run graph-lifetime/payload RED tests**
+
+  Add `test_scientific_integrity_graphs_are_released_before_next_seed_and_scoring_graphs_are_fresh`. Use weak references around every derivative closure/output to require each audit graph is unreachable before the next seed and every scoring first-batch field is newly computed after the four-seed prefix.
+
+  Add `test_scientific_payload_requires_exact_structured_adjoint_audits`. Mutate each of the seventeen adjoint fields by removal, addition, wrong type/value, direction/hash drift, parameter name/count mismatch, nonfinite scalar, denominator mismatch, or inconsistent `passed`; require rejection. Require four exact seed audit objects and unchanged literal tiny-fixture rows, aggregates, bootstrap hashes, and verdict.
+
+  Run: `.venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'integrity_graphs_are_released or payload_requires_exact_structured_adjoint'`
+
+  Expected: both tests FAIL because H6 reuses first-batch fields in scoring and accepts only scalar adjoint errors.
+
+- [ ] **Step 4: Implement the minimal two-phase controller**
 
   Extract the model/context setup needed by `_registered_first_batch_integrity` without moving any candidate score into that helper. For each seed in order, execute zero-Jacobian, repeatability, structured adjoint, and rotation. Reject `passed=false` as scientific `INVALID`. Store only detached audit objects and hashes; delete first-batch fields, prehead/raw captures, derivative closures, images, proxies, model, and CUDA references before advancing. Do not initialize primary/alternate receiver-row accumulation until all four records exist and pass.
 
-- [ ] **Step 5: Implement fresh serial scoring**
+  After the global prefix, recreate one seed model from its immutable checkpoint bytes, restore and verify the exact zero-Jacobian exclusion, and recompute all primary and alternate fields. Never pass integrity-phase fields/captures into `score_rsta_batch`. Delete each batch graph after its eight detached rows and each model before the next seed. Preserve original row order, controls, aggregation, 10,000 PCG64(200) bootstrap, thresholds, decision precedence, and payload schema outside the structured adjoint substitution. Add exact structured-adjoint payload validation.
 
-  After the global prefix, recreate one seed model from its immutable checkpoint bytes, restore and verify the exact zero-Jacobian exclusion, and recompute all primary and alternate fields. Never pass the integrity-phase `fields`, `prehead`, or `raw_head` into `score_rsta_batch`. Delete each batch's fields immediately after its eight receiver rows are detached. Delete each model before loading the next seed. Preserve original row order, controls, aggregation, 10,000 PCG64(200) bootstrap, thresholds, decision precedence, and payload schema outside the structured adjoint substitution.
+  Rerun every exact Step-1 through Step-3 test and require the global order, all twelve failure cases, fresh graphs, and exact payload contract to pass.
 
-- [ ] **Step 6: Add graph-peak and scientific-payload tests**
-
-  Use weak references around every derivative closure/output to prove the preceding integrity or scoring graph is unreachable before the next graph starts. Mutate each of the seventeen adjoint fields in scientific payload fixtures and require exact-schema or semantic rejection. Require four exact seed adjoint objects, parameter name/count consistency with each seed audit, and unchanged literal tiny-fixture receiver rows, aggregates, bootstrap digests, and verdict.
-
-- [ ] **Step 7: Verify Task 3 GREEN and commit**
+- [ ] **Step 5: Verify every Task 3 RED is GREEN and commit**
 
   Run:
 

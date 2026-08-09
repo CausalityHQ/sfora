@@ -136,6 +136,78 @@ Their fixed scalar values are `schema_version=1`,
 `uses_test_data='artifact_binding_only'`. There are no `rows`, `fields`,
 `scores`, `decision`, `aggregation`, or `bootstrap` keys at any depth.
 
+`execution_audit` is the byte/key-exact existing current-source execution audit
+produced by `validate_scientific_execution_source` and accepted by
+`validate_execution_audit`. It has exactly:
+
+```text
+executing_git_commit
+diagnostic_path
+diagnostic_sha256
+frozen_source_revision
+```
+
+The two revisions are full lowercase 40-hex commits. `diagnostic_path` is exactly
+`scripts/diagnose_pass200_rsta_stage_a.py`. `diagnostic_sha256` is lowercase
+64-hex and equals both the executing worktree file and the diagnostic entry in
+`manifest.source.files`. `frozen_source_revision` equals
+`manifest.source.git_revision`; `executing_git_commit` equals repository HEAD,
+and the frozen revision is its validated ancestor. No new execution-audit field
+or relaxed validation is permitted.
+
+`manifest` is the existing smoke manifest projection plus the new prospective
+amendment. It has exactly:
+
+```text
+path
+sha256
+base_preregistration
+amendment
+deterministic_pool_amendment
+zero_jacobian_classifier_amendment
+adjoint_integrity_amendment
+binding_receipt
+historical
+artifact_schema
+source
+```
+
+`path` is the exact CLI manifest-path string and `sha256` is the lowercase
+SHA-256 of those bytes. `base_preregistration`, `binding_receipt`, and
+`artifact_schema` are byte/key-exact copies of their already-validated manifest
+objects with exactly `path` and `sha256`. Each amendment object is its
+byte/key-exact validated manifest object with exactly `path`, `sha256`, and
+`commit`. `historical` is the byte/key-exact object already accepted by
+`_validate_amended_manifest_schema`, including its exact recursive key sets.
+`source` is the byte/key-exact `current_scientific_source` object, with exactly
+`git_revision` and `files`; its file mapping is the complete validated
+`_CURRENT_SCIENTIFIC_SOURCE_FILES` mapping. The output validator reruns the
+existing recursive manifest/source validations; it does not trust caller-supplied
+copies.
+
+`environment` is the byte/key-exact existing object returned by
+`configure_deterministic_process` and has exactly:
+
+```text
+cublas_workspace_config
+deterministic_algorithms
+deterministic_warn_only
+cudnn_benchmark
+cuda_matmul_tf32
+cudnn_tf32
+autocast
+model_arithmetic
+reduction_arithmetic
+torch_version
+numpy_version
+```
+
+The values are exactly `':4096:8'`, `true`, `false`, `false`, `false`, `false`,
+`false`, `'float32'`, and `'float64'` in that order for the first nine fields;
+the version fields are the nonempty exact runtime strings from PyTorch and NumPy.
+The validator requires the exact `ENVIRONMENT_AUDIT_FIELDS` key set and these
+types/values, not merely a required-field subset.
+
 `binding` has exactly these keys:
 
 ```text
@@ -187,8 +259,10 @@ cache, dense-fixture, BN-fixture, and deterministic-pool validation:
    B=180 context; complete that seed's zero-Jacobian audit, exact field
    repeatability, exact adjoint object, and rotation audit. Persist the audit in
    memory, then release all field tensors and derivative graphs before the next
-   seed. Any failure exits `INVALID`, makes zero calls to candidate scoring or
-   decision/bootstrap code, and creates no output.
+   seed. A zero-Jacobian, repeatability, adjoint, or rotation failure at any seed,
+   including seeds 1--3 after earlier seeds passed, exits `INVALID`, makes zero
+   calls to candidate scoring, decision, bootstrap, or scientific payload code,
+   and leaves neither the requested destination nor a sibling temporary file.
 2. Only after all four seeds pass, enter scoring. Reconstruct each seed model
    from the same immutable checkpoint bytes, restore the exact zero-Jacobian
    exclusion, and recompute every contextual field used by scoring. Never reuse
