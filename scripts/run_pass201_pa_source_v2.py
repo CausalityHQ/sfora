@@ -9,6 +9,7 @@ import io
 import os
 import stat
 import struct
+import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -20,10 +21,14 @@ from pass201_pa_source_v2_contract import (
     TRAIN_MANIFEST_CALL_GRAPH,
     CheckpointMetadata,
     PrelaunchAuthority,
-    bind_external_file,
+    PrivateChildFrame,
     canonical_json_bytes,
+    decode_checkpoint_metadata_response,
+    decode_private_child_frame,
+    encode_checkpoint_metadata_request,
+    encode_private_child_frame,
     load_strict_json_bytes,
-    read_restricted_checkpoint_metadata,
+    load_strict_json_value_bytes,
     validate_prelaunch,
     validate_train_manifest,
 )
@@ -332,6 +337,135 @@ def capture_authority(argv: Sequence[str], dataset_root: Path) -> CapturedAuthor
     return captured[0]
 
 
+def encode_capture_request(argv: Sequence[str], dataset_root: Path) -> bytes:
+    _require(type(argv) in (list, tuple), "capture request argv type")
+    values = list(argv)
+    _require(all(type(value) is str for value in values), "capture request argument type")
+    payload = canonical_json_bytes(
+        {"argv": values, "dataset_root": dataset_root.absolute().as_posix()}
+    )
+    return encode_private_child_frame(PrivateChildFrame("capture-request", os.getpid(), payload))
+
+
+def _decode_capture_request(data: bytes) -> tuple[list[str], Path]:
+    frame = decode_private_child_frame(data)
+    _require(frame.role == "capture-request", "capture child request role")
+    payload = load_strict_json_bytes(frame.payload)
+    _require(set(payload) == {"argv", "dataset_root"}, "capture request keys")
+    argv = payload["argv"]
+    dataset_root = payload["dataset_root"]
+    _require(
+        type(argv) is list and all(type(value) is str for value in argv),
+        "capture request argv type",
+    )
+    _require(type(dataset_root) is str and Path(dataset_root).is_absolute(), "dataset root type")
+    return argv, Path(dataset_root)
+
+
+def _capture_payload(capture: CapturedAuthority) -> bytes:
+    return canonical_json_bytes(
+        {
+            "config_json": capture.config_bytes.decode("utf-8"),
+            "recipe_id": capture.recipe_id,
+            "recipe_digest": capture.recipe_digest,
+            "train_count": capture.train_count,
+            "query_count": capture.query_count,
+            "gallery_count": capture.gallery_count,
+            "protocol": capture.protocol,
+            "protocol_name": capture.protocol_name,
+            "rows": [list(row) for row in capture.rows],
+            "resolved_membership_sha256": capture.resolved_membership_sha256,
+            "resolved_train_steps": capture.resolved_train_steps,
+            "steps_per_epoch": capture.steps_per_epoch,
+            "total_epochs": capture.total_epochs,
+        }
+    )
+
+
+def decode_capture_response(data: bytes) -> CapturedAuthority:
+    frame = decode_private_child_frame(data)
+    _require(frame.role == "capture-response", "capture child response role")
+    payload = load_strict_json_bytes(frame.payload)
+    expected_keys = {
+        "config_json",
+        "recipe_id",
+        "recipe_digest",
+        "train_count",
+        "query_count",
+        "gallery_count",
+        "protocol",
+        "protocol_name",
+        "rows",
+        "resolved_membership_sha256",
+        "resolved_train_steps",
+        "steps_per_epoch",
+        "total_epochs",
+    }
+    _require(set(payload) == expected_keys, "capture response keys")
+    config_text = payload["config_json"]
+    _require(type(config_text) is str, "capture response config type")
+    config_bytes = config_text.encode("utf-8")
+    _require(
+        canonical_json_bytes(load_strict_json_bytes(config_bytes)) == config_bytes,
+        "capture response config is not canonical",
+    )
+    for key in (
+        "recipe_id",
+        "recipe_digest",
+        "protocol",
+        "protocol_name",
+        "resolved_membership_sha256",
+    ):
+        _require(type(payload[key]) is str and bool(payload[key]), f"capture response {key} type")
+    for key in (
+        "train_count",
+        "query_count",
+        "gallery_count",
+        "resolved_train_steps",
+        "steps_per_epoch",
+        "total_epochs",
+    ):
+        _require(type(payload[key]) is int and payload[key] >= 0, f"capture response {key} type")
+    raw_rows = payload["rows"]
+    _require(type(raw_rows) is list, "capture response rows type")
+    rows: list[tuple[int, str, int]] = []
+    for index, row in enumerate(raw_rows):
+        _require(
+            type(row) is list
+            and len(row) == 3
+            and type(row[0]) is int
+            and row[0] == index
+            and type(row[1]) is str
+            and bool(row[1])
+            and type(row[2]) is int,
+            "capture response row type",
+        )
+        rows.append((row[0], row[1], row[2]))
+    return CapturedAuthority(
+        config_bytes,
+        payload["recipe_id"],
+        payload["recipe_digest"],
+        payload["train_count"],
+        payload["query_count"],
+        payload["gallery_count"],
+        payload["protocol"],
+        payload["protocol_name"],
+        tuple(rows),
+        payload["resolved_membership_sha256"],
+        payload["resolved_train_steps"],
+        payload["steps_per_epoch"],
+        payload["total_epochs"],
+    )
+
+
+def _capture_child_output() -> bytes:
+    argv, dataset_root = _decode_capture_request(sys.stdin.buffer.read())
+    capture = capture_authority(argv, dataset_root)
+    return encode_private_child_frame(
+        PrivateChildFrame("capture-response", os.getpid(), _capture_payload(capture))
+    )
+
+
 def _validate_operating_config(config: object) -> dict[str, Any]:
     _require(type(config) is dict, "resolved config must be an object")
     result = config
@@ -342,14 +476,118 @@ def _validate_operating_config(config: object) -> dict[str, Any]:
     return result
 
 
+def _skip_json_whitespace(data: bytes, offset: int) -> int:
+    while offset < len(data) and data[offset] in b" \t\r\n":
+        offset += 1
+    return offset
+
+
+def _scan_json_string(data: bytes, offset: int) -> int:
+    _require(offset < len(data) and data[offset] == ord('"'), "expected JSON string")
+    offset += 1
+    while offset < len(data):
+        character = data[offset]
+        if character == ord('"'):
+            return offset + 1
+        if character == ord("\\"):
+            offset += 2
+            continue
+        _require(character >= 0x20, "control byte in JSON string")
+        offset += 1
+    raise ValueError("unterminated JSON string")
+
+
+def _scan_opaque_json_value(data: bytes, offset: int) -> int:
+    offset = _skip_json_whitespace(data, offset)
+    _require(offset < len(data), "missing JSON value")
+    if data[offset] == ord('"'):
+        return _scan_json_string(data, offset)
+    if data[offset] in b"{[":
+        closers = [ord("}") if data[offset] == ord("{") else ord("]")]
+        offset += 1
+        while offset < len(data) and closers:
+            character = data[offset]
+            if character == ord('"'):
+                offset = _scan_json_string(data, offset)
+                continue
+            if character in b"{[":
+                closers.append(ord("}") if character == ord("{") else ord("]"))
+            elif character in b"}]":
+                _require(character == closers.pop(), "mismatched JSON container")
+            offset += 1
+        _require(not closers, "unterminated JSON container")
+        return offset
+    end = offset
+    while end < len(data) and data[end] not in b",}":
+        end += 1
+    _require(bool(data[offset:end].strip()), "missing JSON scalar")
+    return end
+
+
+def _extract_report_config(report_bytes: bytes) -> object:
+    _require(type(report_bytes) is bytes, "report bytes type")
+    offset = _skip_json_whitespace(report_bytes, 0)
+    _require(
+        offset < len(report_bytes) and report_bytes[offset] == ord("{"),
+        "report must be an object",
+    )
+    offset += 1
+    seen_keys: set[str] = set()
+    raw_values: dict[str, bytes] = {}
+    while True:
+        offset = _skip_json_whitespace(report_bytes, offset)
+        _require(offset < len(report_bytes), "unterminated report object")
+        if report_bytes[offset] == ord("}"):
+            offset += 1
+            break
+        key_start = offset
+        key_end = _scan_json_string(report_bytes, key_start)
+        key = load_strict_json_value_bytes(report_bytes[key_start:key_end])
+        _require(type(key) is str, "report key type")
+        _require(key not in seen_keys, f"duplicate report key: {key}")
+        seen_keys.add(key)
+        offset = _skip_json_whitespace(report_bytes, key_end)
+        _require(
+            offset < len(report_bytes) and report_bytes[offset] == ord(":"),
+            "report key missing colon",
+        )
+        value_start = _skip_json_whitespace(report_bytes, offset + 1)
+        value_end = _scan_opaque_json_value(report_bytes, value_start)
+        if key == "methods":
+            _require(
+                report_bytes[value_start] == ord("{")
+                and report_bytes[value_end - 1] == ord("}"),
+                "report methods must be an opaque object",
+            )
+        else:
+            raw_values[key] = report_bytes[value_start:value_end]
+        offset = _skip_json_whitespace(report_bytes, value_end)
+        _require(offset < len(report_bytes), "unterminated report object")
+        if report_bytes[offset] == ord(","):
+            offset += 1
+            continue
+        _require(report_bytes[offset] == ord("}"), "invalid report member delimiter")
+        offset += 1
+        break
+    _require(
+        not report_bytes[_skip_json_whitespace(report_bytes, offset) :],
+        "trailing report bytes",
+    )
+    _require(seen_keys == EXPECTED_REPORT_KEYS, "report keys drift")
+    parsed = {key: load_strict_json_value_bytes(raw) for key, raw in raw_values.items()}
+    for key in ("name", "dataset_name", "protocol"):
+        _require(type(parsed[key]) is str, f"report {key} type drift")
+    for key in ("train_examples", "test_examples"):
+        _require(type(parsed[key]) is int and parsed[key] >= 0, f"report {key} type drift")
+    return parsed["config"]
+
+
 def derive_resolved_config(
     report_bytes: bytes,
     checkpoint: CheckpointMetadata,
     authority: PrelaunchAuthority,
 ) -> bytes:
-    report = load_strict_json_bytes(report_bytes)
-    _require(set(report) == EXPECTED_REPORT_KEYS, "report keys drift")
-    config = canonical_json_bytes(_validate_operating_config(report["config"]))
+    config = canonical_json_bytes(_validate_operating_config(_extract_report_config(report_bytes)))
     _require(config == authority.expected_config_bytes, "report config drift")
     _require(
         hashlib.sha256(config).hexdigest() == checkpoint.training_config_sha256,
@@ -411,9 +649,18 @@ def _validate_capture_authority(
     expected_dataset = authority.payload["dataset"]
     expected_bundle = expected_dataset["bundle"]
     expected_optimization = expected_dataset["optimization_authority"]
+    expected_execution = authority.payload["execution"]
     _require(capture.config_bytes == authority.expected_config_bytes, "config drift")
     _require(capture.recipe_id == RECIPE_ID, "recipe ID drift")
     _require(capture.recipe_digest == RECIPE_DIGEST, "recipe digest drift")
+    _require(
+        capture.recipe_id == expected_execution["recipe_id"],
+        "authority recipe ID drift",
+    )
+    _require(
+        capture.recipe_digest == expected_execution["recipe_digest"],
+        "authority recipe digest drift",
+    )
     _require(capture.train_count == expected_bundle["train"], "train count drift")
     _require(capture.query_count == expected_bundle["query"], "query count drift")
     _require(capture.gallery_count == expected_bundle["gallery"], "gallery count drift")
@@ -614,6 +861,54 @@ def _validate_bound_environment(authority: PrelaunchAuthority) -> None:
     _require(dict(os.environ) == expected, "sidecar environment drift")
 
 
+def _run_private_child(
+    authority: PrelaunchAuthority,
+    script_name: str,
+    command: Sequence[str],
+    request: bytes,
+) -> bytes:
+    execution = authority.payload["execution"]
+    interpreter = str(execution["python"]["path"])
+    script = authority.checkout_root / "scripts" / script_name
+    try:
+        result = subprocess.run(
+            [interpreter, str(script), *command],
+            cwd=authority.checkout_root,
+            env=dict(execution["environment"]),
+            input=request,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ValueError(f"{command[0]} failed to start") from exc
+    _require(result.returncode == 0, f"{command[0]} failed")
+    _require(not result.stderr, f"{command[0]} emitted stderr")
+    return result.stdout
+
+
+def _run_capture_child(authority: PrelaunchAuthority) -> CapturedAuthority:
+    request = encode_capture_request(
+        tuple(authority.payload["execution"]["argv"]),
+        Path(authority.payload["dataset"]["root"]),
+    )
+    response = _run_private_child(
+        authority, "run_pass201_pa_source_v2.py", ("capture-authority-child",), request
+    )
+    return decode_capture_response(response)
+
+
+def _run_metadata_child(
+    authority: PrelaunchAuthority, checkpoint_path: Path
+) -> CheckpointMetadata:
+    response = _run_private_child(
+        authority,
+        "pass201_pa_source_v2_contract.py",
+        ("restricted-metadata-child", "--checkpoint", str(checkpoint_path)),
+        encode_checkpoint_metadata_request(authority),
+    )
+    return decode_checkpoint_metadata_response(response, authority, checkpoint_path)
+
+
 def derive_sidecars_from_files(
     manifest_path: Path,
     report_path: Path,
@@ -650,12 +945,9 @@ def derive_sidecars_from_files(
         "alternative checkpoint path",
     )
     report_bytes = _read_immutable_regular(report_path)
-    checkpoint_binding = bind_external_file(checkpoint_path)
-    capture = capture_authority(
-        tuple(authority.payload["execution"]["argv"]),
-        Path(authority.payload["dataset"]["root"]),
-    )
-    checkpoint = read_restricted_checkpoint_metadata(checkpoint_path, authority)
+    capture = _run_capture_child(authority)
+    _validate_capture_authority(capture, authority)
+    checkpoint = _run_metadata_child(authority, checkpoint_path)
     expected_config = load_strict_json_bytes(authority.expected_config_bytes)
     _require(expected_config.get("drop_last_train_batch") is True, "drop-last config drift")
     batch_size = expected_config.get("batch_size")
@@ -665,7 +957,6 @@ def derive_sidecars_from_files(
     manifest = derive_train_manifest(capture, authority)
     _require(_read_immutable_regular(manifest_path) == manifest_bytes, "manifest input drift")
     _require(_read_immutable_regular(report_path) == report_bytes, "report input drift")
-    _require(bind_external_file(checkpoint_path) == checkpoint_binding, "checkpoint input drift")
     return SidecarFrame(
         os.getpid(),
         config,
@@ -683,11 +974,16 @@ def _parser() -> argparse.ArgumentParser:
     sidecars.add_argument("--report", required=True, type=Path)
     sidecars.add_argument("--checkpoint", required=True, type=Path)
     sidecars.add_argument("--output-dir", required=True, type=Path)
+    commands.add_parser("capture-authority-child")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
+    if args.command == "capture-authority-child":
+        sys.stdout.buffer.write(_capture_child_output())
+        sys.stdout.buffer.flush()
+        return 0
     _require(args.command == "derive-sidecars", "private command drift")
     frame = derive_sidecars_from_files(
         args.manifest,

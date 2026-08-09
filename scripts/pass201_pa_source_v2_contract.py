@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import copy
 import hashlib
@@ -14,7 +15,9 @@ import pickletools
 import secrets
 import shutil
 import stat
+import struct
 import subprocess
+import sys
 import zipfile
 from collections import OrderedDict
 from collections.abc import Mapping
@@ -44,6 +47,13 @@ ENVIRONMENT_KEYS = frozenset(
         "TORCH_HOME",
     )
 )
+PRIVATE_CHILD_FRAME_MAGIC = b"pass201-private-child-v1\0"
+PRIVATE_CHILD_ROLES = {
+    "capture-request": 1,
+    "capture-response": 2,
+    "metadata-request": 3,
+    "metadata-response": 4,
+}
 
 
 @dataclass(frozen=True)
@@ -170,6 +180,13 @@ class CheckpointMetadata:
 
 
 @dataclass(frozen=True)
+class PrivateChildFrame:
+    role: str
+    pid: int
+    payload: bytes
+
+
+@dataclass(frozen=True)
 class OutputEvidence:
     path: PurePosixPath
     file_type: Literal["regular"]
@@ -244,14 +261,69 @@ def canonical_json_bytes(value: Any) -> bytes:
     ).encode("utf-8")
 
 
-def load_strict_json_bytes(data: bytes) -> dict[str, Any]:
+def load_strict_json_value_bytes(data: bytes) -> Any:
     try:
         text = data.decode("utf-8")
         value = json.loads(text, parse_constant=_reject_constant, object_pairs_hook=_unique_object)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("invalid UTF-8 JSON") from exc
     _validate_json_native(value)
+    return value
+
+
+def load_strict_json_bytes(data: bytes) -> dict[str, Any]:
+    value = load_strict_json_value_bytes(data)
     return _dict(value, "$")
+
+
+def encode_private_child_frame(frame: PrivateChildFrame) -> bytes:
+    if frame.role not in PRIVATE_CHILD_ROLES:
+        raise ValueError("unknown private child role")
+    if type(frame.pid) is not int or frame.pid <= 0:
+        raise ValueError("invalid private child PID")
+    if type(frame.payload) is not bytes:
+        raise ValueError("invalid private child payload")
+    return b"".join(
+        (
+            PRIVATE_CHILD_FRAME_MAGIC,
+            bytes((PRIVATE_CHILD_ROLES[frame.role],)),
+            struct.pack(">Q", frame.pid),
+            struct.pack(">Q", len(frame.payload)),
+            frame.payload,
+            hashlib.sha256(frame.payload).digest(),
+        )
+    )
+
+
+def decode_private_child_frame(data: bytes) -> PrivateChildFrame:
+    if type(data) is not bytes or not data.startswith(PRIVATE_CHILD_FRAME_MAGIC):
+        raise ValueError("private child frame magic")
+    offset = len(PRIVATE_CHILD_FRAME_MAGIC)
+
+    def take(count: int) -> bytes:
+        nonlocal offset
+        if count < 0 or count > len(data) - offset:
+            raise ValueError("truncated private child frame")
+        result = data[offset : offset + count]
+        offset += count
+        return result
+
+    role_id = take(1)[0]
+    roles = {value: key for key, value in PRIVATE_CHILD_ROLES.items()}
+    if role_id not in roles:
+        raise ValueError("unknown private child role")
+    pid = struct.unpack(">Q", take(8))[0]
+    payload_size = struct.unpack(">Q", take(8))[0]
+    payload = take(payload_size)
+    payload_sha256 = take(32)
+    if offset != len(data):
+        raise ValueError("trailing private child frame bytes")
+    if hashlib.sha256(payload).digest() != payload_sha256:
+        raise ValueError("private child payload hash drift")
+    frame = PrivateChildFrame(roles[role_id], pid, payload)
+    if encode_private_child_frame(frame) != data:
+        raise ValueError("noncanonical private child frame")
+    return frame
 
 
 def _dict(value: object, where: str) -> dict[str, Any]:
@@ -1279,6 +1351,213 @@ def read_restricted_checkpoint_metadata(
         hashlib.sha256(canonical_json_bytes(arch_obj)).hexdigest(),
         hashlib.sha256(training_config_bytes).hexdigest(),
         len(state_dict),
+    )
+
+
+def encode_checkpoint_metadata_request(authority: PrelaunchAuthority) -> bytes:
+    payload = canonical_json_bytes(
+        {
+            "expected_config_json": authority.expected_config_bytes.decode("utf-8"),
+            "expected_config_sha256": authority.expected_config_sha256,
+            "expected_train_steps": authority.expected_train_steps,
+        }
+    )
+    return encode_private_child_frame(PrivateChildFrame("metadata-request", os.getpid(), payload))
+
+
+def _decode_checkpoint_metadata_request(data: bytes) -> PrelaunchAuthority:
+    frame = decode_private_child_frame(data)
+    if frame.role != "metadata-request":
+        raise ValueError("metadata child request role")
+    payload = _keys(
+        load_strict_json_bytes(frame.payload),
+        {"expected_config_json", "expected_config_sha256", "expected_train_steps"},
+        "metadata_request",
+    )
+    config_text = _str(payload["expected_config_json"], "metadata_request.expected_config_json")
+    config_bytes = config_text.encode("utf-8")
+    config = load_strict_json_bytes(config_bytes)
+    if canonical_json_bytes(config) != config_bytes:
+        raise ValueError("metadata request config is not canonical")
+    config_sha256 = _hash(
+        payload["expected_config_sha256"], "metadata_request.expected_config_sha256"
+    )
+    if hashlib.sha256(config_bytes).hexdigest() != config_sha256:
+        raise ValueError("metadata request config hash drift")
+    train_steps = _int(
+        payload["expected_train_steps"],
+        "metadata_request.expected_train_steps",
+        minimum=1,
+    )
+    return PrelaunchAuthority(
+        {}, "0" * 40, Path("/"), config_bytes, config_sha256, train_steps, 1, train_steps
+    )
+
+
+def _checkpoint_metadata_payload(
+    metadata: CheckpointMetadata, binding: ExternalFileBinding
+) -> bytes:
+    return canonical_json_bytes(
+        {
+            "checkpoint_binding": {
+                "path": binding.path.as_posix(),
+                "mode": binding.mode,
+                "device": binding.device,
+                "inode": binding.inode,
+                "bytes": binding.byte_count,
+                "sha256": binding.sha256,
+            },
+            "metadata": {
+                "data_pickle_sha256": metadata.data_pickle_sha256,
+                "top_keys": list(metadata.top_keys),
+                "artifact_selection": metadata.artifact_selection,
+                "evaluation_model_source": metadata.evaluation_model_source,
+                "training_step": metadata.training_step,
+                "arch": {
+                    "backbone_name": metadata.arch.backbone_name,
+                    "pretrained_weights": metadata.arch.pretrained_weights,
+                    "head_pooling": metadata.arch.head_pooling,
+                    "embedding_dimensions": metadata.arch.embedding_dimensions,
+                    "embedding_head_init": metadata.arch.embedding_head_init,
+                    "embedding_layer_norm": metadata.arch.embedding_layer_norm,
+                },
+                "arch_sha256": metadata.arch_sha256,
+                "training_config_sha256": metadata.training_config_sha256,
+                "state_dict_key_count": metadata.state_dict_key_count,
+                "state_dict_storage_materialized": metadata.state_dict_storage_materialized,
+            },
+        }
+    )
+
+
+def _metadata_from_payload(
+    value: object, authority: PrelaunchAuthority
+) -> CheckpointMetadata:
+    obj = _keys(
+        value,
+        {
+            "data_pickle_sha256",
+            "top_keys",
+            "artifact_selection",
+            "evaluation_model_source",
+            "training_step",
+            "arch",
+            "arch_sha256",
+            "training_config_sha256",
+            "state_dict_key_count",
+            "state_dict_storage_materialized",
+        },
+        "metadata_response.metadata",
+    )
+    data_pickle_sha256 = _hash(
+        obj["data_pickle_sha256"], "metadata_response.metadata.data_pickle_sha256"
+    )
+    expected_keys = (
+        "arch",
+        "artifact_selection",
+        "evaluation_model_source",
+        "state_dict",
+        "training_config",
+        "training_step",
+    )
+    _literal(obj["top_keys"], list(expected_keys), "metadata_response.metadata.top_keys")
+    _literal(
+        obj["artifact_selection"],
+        "final_training_state",
+        "metadata_response.metadata.artifact_selection",
+    )
+    _literal(
+        obj["evaluation_model_source"],
+        "student",
+        "metadata_response.metadata.evaluation_model_source",
+    )
+    training_step = _int(
+        obj["training_step"],
+        "metadata_response.metadata.training_step",
+        literal=authority.expected_train_steps,
+    )
+    arch_obj = _keys(
+        obj["arch"],
+        {
+            "backbone_name",
+            "pretrained_weights",
+            "head_pooling",
+            "embedding_dimensions",
+            "embedding_head_init",
+            "embedding_layer_norm",
+        },
+        "metadata_response.metadata.arch",
+    )
+    expected_arch = {
+        "backbone_name": "bn_inception",
+        "pretrained_weights": "bn_inception_52deb4733",
+        "head_pooling": "avg_max",
+        "embedding_dimensions": 512,
+        "embedding_head_init": "kaiming_normal",
+        "embedding_layer_norm": False,
+    }
+    for key, expected in expected_arch.items():
+        _literal(arch_obj[key], expected, f"metadata_response.metadata.arch.{key}")
+    arch_sha256 = _hash(obj["arch_sha256"], "metadata_response.metadata.arch_sha256")
+    if arch_sha256 != hashlib.sha256(canonical_json_bytes(arch_obj)).hexdigest():
+        raise ValueError("metadata response arch hash drift")
+    training_config_sha256 = _hash(
+        obj["training_config_sha256"],
+        "metadata_response.metadata.training_config_sha256",
+    )
+    if training_config_sha256 != authority.expected_config_sha256:
+        raise ValueError("metadata response config hash drift")
+    state_dict_key_count = _int(
+        obj["state_dict_key_count"], "metadata_response.metadata.state_dict_key_count"
+    )
+    _literal(
+        obj["state_dict_storage_materialized"],
+        False,
+        "metadata_response.metadata.state_dict_storage_materialized",
+    )
+    arch = CheckpointArch(**arch_obj)  # type: ignore[arg-type]
+    return CheckpointMetadata(
+        data_pickle_sha256,
+        expected_keys,
+        "final_training_state",
+        "student",
+        training_step,
+        arch,
+        arch_sha256,
+        training_config_sha256,
+        state_dict_key_count,
+    )
+
+
+def decode_checkpoint_metadata_response(
+    data: bytes, authority: PrelaunchAuthority, checkpoint_path: Path
+) -> CheckpointMetadata:
+    frame = decode_private_child_frame(data)
+    if frame.role != "metadata-response":
+        raise ValueError("metadata child response role")
+    payload = _keys(
+        load_strict_json_bytes(frame.payload),
+        {"checkpoint_binding", "metadata"},
+        "metadata_response",
+    )
+    binding_obj = payload["checkpoint_binding"]
+    _external(binding_obj, "metadata_response.checkpoint_binding")
+    binding = _dict(binding_obj, "metadata_response.checkpoint_binding")
+    if binding["path"] != checkpoint_path.absolute().as_posix():
+        raise ValueError("metadata child checkpoint path drift")
+    return _metadata_from_payload(payload["metadata"], authority)
+
+
+def _restricted_metadata_child(checkpoint_path: Path) -> bytes:
+    authority = _decode_checkpoint_metadata_request(sys.stdin.buffer.read())
+    before = bind_external_file(checkpoint_path)
+    metadata = read_restricted_checkpoint_metadata(checkpoint_path, authority)
+    after = bind_external_file(checkpoint_path)
+    if before != after:
+        raise ValueError("checkpoint changed across metadata child")
+    payload = _checkpoint_metadata_payload(metadata, after)
+    return encode_private_child_frame(
+        PrivateChildFrame("metadata-response", os.getpid(), payload)
     )
 
 
@@ -2382,3 +2661,24 @@ def _validate_sidecar_derivation(value: object, authority: PrelaunchAuthority) -
         obj["membership_covered_by_postflight"],
         "receipt.sidecar_derivation.membership_covered_by_postflight",
     )
+
+
+def _private_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="pass201_pa_source_v2_contract.py")
+    commands = parser.add_subparsers(dest="command", required=True)
+    metadata = commands.add_parser("restricted-metadata-child")
+    metadata.add_argument("--checkpoint", required=True, type=Path)
+    return parser
+
+
+def _private_main(argv: list[str] | None = None) -> int:
+    args = _private_parser().parse_args(argv)
+    if args.command != "restricted-metadata-child":
+        raise ValueError("private contract command drift")
+    sys.stdout.buffer.write(_restricted_metadata_child(args.checkpoint))
+    sys.stdout.buffer.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_private_main())

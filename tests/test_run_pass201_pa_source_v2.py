@@ -21,6 +21,7 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
     PrelaunchAuthority,
     canonical_json_bytes,
     load_strict_json_bytes,
+    load_strict_json_value_bytes,
 )
 from run_pass201_pa_source_v2 import (  # noqa: E402
     CapturedAuthority,
@@ -158,6 +159,10 @@ def sidecar_inputs() -> tuple[CapturedAuthority, PrelaunchAuthority, CheckpointM
         "git_blob": "e" * 40,
     }
     payload = {
+        "execution": {
+            "recipe_id": controller.RECIPE_ID,
+            "recipe_digest": controller.RECIPE_DIGEST,
+        },
         "source": {"files": [file_a, file_b]},
         "dataset": {
             "root": "/home/riomus/datasets/inshop_official_standard",
@@ -299,6 +304,57 @@ def test_production_capture_is_identical_in_two_fresh_processes(tiny_inshop: Pat
     assert first["capture"] == second["capture"]
 
 
+def test_capture_child_never_opens_produced_checkpoint(
+    tiny_inshop: Path, tmp_path: Path
+) -> None:
+    checkpoint = tiny_inshop / "out" / "checkpoint.pt"
+    guard_dir = tmp_path / "open-guard"
+    guard_dir.mkdir()
+    (guard_dir / "sitecustomize.py").write_text(
+        """
+import os, sys
+target = os.environ["PASS201_TEST_FORBIDDEN_OPEN"]
+def guard(event, args):
+    if event != "open" or not args:
+        return
+    try:
+        candidate = os.path.abspath(os.fspath(args[0]))
+    except TypeError:
+        return
+    if candidate == target:
+        raise RuntimeError("capture child opened produced checkpoint")
+sys.addaudithook(guard)
+""",
+        encoding="utf-8",
+    )
+    repo = Path(__file__).resolve().parents[1]
+    env = dict(os.environ)
+    env["PYTHONPATH"] = f"{guard_dir}:{repo / 'src'}:{repo / 'scripts'}"
+    env["PASS201_TEST_FORBIDDEN_OPEN"] = str(checkpoint.absolute())
+    request = controller.encode_capture_request(frozen_test_argv(tiny_inshop), tiny_inshop)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "run_pass201_pa_source_v2.py"),
+            "capture-authority-child",
+        ],
+        cwd=repo,
+        env=env,
+        input=request,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr.decode()
+    captured = controller.decode_capture_response(result.stdout)
+    assert captured.rows == tuple(
+        (index, row.example_id, int(row.label))
+        for index, row in enumerate(expected_optimization_rows(tiny_inshop))
+    )
+    assert not checkpoint.exists()
+
+
 def test_production_capture_calls_exact_split_noise_schedule_suffix(
     tiny_inshop: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -408,27 +464,79 @@ def test_resolved_config_reads_only_exact_report_config(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _capture, authority, checkpoint = sidecar_inputs
+    config_text = authority.expected_config_bytes.decode().strip()
+    report = (
+        '{"name":"image-end-to-end","dataset_name":"inshop",'
+        f'"protocol":"query_gallery","config":{config_text},'
+        '"train_examples":2,"test_examples":2,'
+        '"methods":{"score":NaN,"score":2,"payload":"}],\\\"config\\\":false"}}\n'
+    ).encode()
+    real_load = load_strict_json_value_bytes
+    parsed_slices: list[bytes] = []
 
-    class MetricsTrap(dict[str, object]):
-        def __getitem__(self, key: str) -> object:
-            if key == "methods":
-                raise AssertionError("report methods are forbidden before activation")
-            return super().__getitem__(key)
+    def reject_metric_parse(raw: bytes) -> object:
+        if b'"score"' in raw or b"NaN" in raw:
+            raise AssertionError("report methods are forbidden before activation")
+        parsed_slices.append(raw)
+        return real_load(raw)
 
-    report = MetricsTrap(
-        name="image-end-to-end",
-        dataset_name="inshop",
-        protocol="query_gallery",
-        config=json.loads(authority.expected_config_bytes),
-        train_examples=2,
-        test_examples=2,
-        methods={"forbidden": {"executed_train_steps": 120, "recall_at_1": 1.0}},
+    monkeypatch.setattr(controller, "load_strict_json_value_bytes", reject_metric_parse)
+
+    assert derive_resolved_config(report, checkpoint, authority) == authority.expected_config_bytes
+    assert authority.expected_config_bytes.rstrip() in parsed_slices
+
+
+@pytest.mark.parametrize(
+    "methods_raw",
+    [
+        b'{"score":NaN}',
+        b'{"score":1,"score":2}',
+        b'{"payload":"}],\\\"config\\\":false","nested":{"x":Infinity}}',
+        b'{"payload":"\xff"}',
+    ],
+)
+def test_resolved_config_treats_method_values_as_opaque_raw_bytes(
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    methods_raw: bytes,
+) -> None:
+    _capture, authority, checkpoint = sidecar_inputs
+    config = authority.expected_config_bytes.rstrip()
+    report = b"".join(
+        (
+            b'{"name":"image-end-to-end","dataset_name":"inshop",',
+            b'"protocol":"query_gallery","config":',
+            config,
+            b',"train_examples":2,"test_examples":2,"methods":',
+            methods_raw,
+            b"}\n",
+        )
     )
-    monkeypatch.setattr(controller, "load_strict_json_bytes", lambda _raw: report)
+    assert derive_resolved_config(report, checkpoint, authority) == authority.expected_config_bytes
 
-    assert derive_resolved_config(b"ignored", checkpoint, authority) == (
-        authority.expected_config_bytes
-    )
+
+@pytest.mark.parametrize(
+    "report",
+    [
+        b'{"name":"x","name":"y","dataset_name":"inshop","protocol":"query_gallery",'
+        b'"config":{},"train_examples":2,"test_examples":2,"methods":{}}',
+        b'{"name":"x","dataset_name":"inshop","protocol":"query_gallery",'
+        b'"config":{"seed":0,"seed":1},"train_examples":2,"test_examples":2,'
+        b'"methods":{}}',
+        b'{"name":"x","dataset_name":"inshop","protocol":"query_gallery",'
+        b'"config":[],"train_examples":2,"test_examples":2,"methods":{}}',
+        b'{"name":"x","dataset_name":"inshop","protocol":"query_gallery",'
+        b'"config":{},"train_examples":true,"test_examples":2,"methods":{}}',
+        b'{"name":"x","dataset_name":"inshop","protocol":"query_gallery",'
+        b'"config":{},"train_examples":2,"test_examples":2,"methods":[]}',
+    ],
+)
+def test_resolved_config_rejects_top_level_or_config_structure_drift(
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    report: bytes,
+) -> None:
+    _capture, authority, checkpoint = sidecar_inputs
+    with pytest.raises(ValueError):
+        derive_resolved_config(report, checkpoint, authority)
 
 
 @pytest.mark.parametrize("drift", ["report", "checkpoint"])
@@ -543,6 +651,66 @@ def test_train_manifest_rejects_capture_drift(
     capture, authority, _checkpoint = sidecar_inputs
     with pytest.raises(ValueError, match="drift"):
         derive_train_manifest(replace(capture, **{field: replacement}), authority)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [("recipe_id", "different-recipe"), ("recipe_digest", "0" * 64)],
+)
+def test_train_manifest_rejects_recipe_authority_drift(
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    field: str,
+    replacement: str,
+) -> None:
+    capture, authority, _checkpoint = sidecar_inputs
+    execution = {**authority.payload["execution"], field: replacement}
+    authority = replace(authority, payload={**authority.payload, "execution": execution})
+
+    with pytest.raises(ValueError, match="authority recipe"):
+        derive_train_manifest(capture, authority)
+
+
+def test_private_sidecar_rejects_recipe_drift_before_checkpoint_child(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture, authority, _checkpoint_metadata = sidecar_inputs
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    manifest = tmp_path / "authority.json"
+    report = run_dir / "report.json"
+    checkpoint = run_dir / "checkpoint.pt"
+    manifest.write_bytes(b"{}\n")
+    report.write_bytes(b"{}\n")
+    checkpoint.write_bytes(b"checkpoint")
+    execution = {
+        **authority.payload["execution"],
+        "environment": dict(os.environ),
+        "argv": [],
+        "recipe_id": "different-recipe",
+    }
+    payload = {
+        **authority.payload,
+        "authorization": {"manifest_path": "authority.json"},
+        "execution": execution,
+        "outputs": {
+            "run_directory": "run",
+            "report": {"path": "run/report.json"},
+            "checkpoint": {"path": "run/checkpoint.pt"},
+        },
+    }
+    authority = replace(authority, payload=payload, checkout_root=tmp_path)
+    monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
+    monkeypatch.setattr(controller, "_run_capture_child", lambda _authority: capture)
+    monkeypatch.setattr(
+        controller,
+        "_run_metadata_child",
+        forbidden("checkpoint metadata before recipe validation"),
+    )
+
+    with pytest.raises(ValueError, match="authority recipe ID drift"):
+        controller.derive_sidecars_from_files(manifest, report, checkpoint, run_dir)
 
 
 def test_schedule_validates_completed_epoch(
@@ -773,7 +941,12 @@ payload = {
         "report": {"path": "run/report.json"},
         "checkpoint": {"path": "run/checkpoint.pt"},
     },
-    "execution": {"environment": dict(os.environ), "argv": []},
+    "execution": {
+        "environment": dict(os.environ),
+        "argv": [],
+        "recipe_id": c.RECIPE_ID,
+        "recipe_digest": c.RECIPE_DIGEST,
+    },
     "dataset": {
         "root": str(root / "dataset"),
         "partition": {"sha256": "f" * 64},
@@ -823,8 +996,8 @@ def validate_manifest(value):
         raise ValueError("manifest algorithm drift")
     return authority
 c.validate_prelaunch = validate_manifest
-c.capture_authority = lambda *_args: capture
-c.read_restricted_checkpoint_metadata = lambda *_args: checkpoint
+c._run_capture_child = lambda *_args: capture
+c._run_metadata_child = lambda *_args: checkpoint
 raise SystemExit(c.main([
     "derive-sidecars", "--manifest", str(root / "authority.json"),
     "--report", str(root / "run" / "report.json"),

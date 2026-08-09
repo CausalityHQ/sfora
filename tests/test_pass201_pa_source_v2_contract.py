@@ -475,6 +475,53 @@ def test_checkpoint_reader_does_not_import_torch(
     contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
 
 
+def test_restricted_metadata_child_imports_no_torch_or_sfora(
+    tmp_path: Path,
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+) -> None:
+    guard_dir = tmp_path / "import-guard"
+    guard_dir.mkdir()
+    (guard_dir / "sitecustomize.py").write_text(
+        """
+import builtins
+real_import = builtins.__import__
+def guarded(name, *args, **kwargs):
+    if name == "torch" or name.startswith("torch.") or name == "sfora" or name.startswith("sfora."):
+        raise RuntimeError(f"forbidden production import: {name}")
+    return real_import(name, *args, **kwargs)
+builtins.__import__ = guarded
+""",
+        encoding="utf-8",
+    )
+    request = contract.encode_checkpoint_metadata_request(checkpoint_authority)
+    repo = Path(__file__).resolve().parents[1]
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(guard_dir)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(repo / "scripts" / "pass201_pa_source_v2_contract.py"),
+            "restricted-metadata-child",
+            "--checkpoint",
+            str(valid_checkpoint_zip),
+        ],
+        cwd=repo,
+        env=env,
+        input=request,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr.decode()
+    metadata = contract.decode_checkpoint_metadata_response(
+        result.stdout, checkpoint_authority, valid_checkpoint_zip
+    )
+    assert metadata.training_step == checkpoint_authority.expected_train_steps
+    assert metadata.state_dict_storage_materialized is False
+
+
 @pytest.mark.parametrize(
     ("names", "message"),
     [
