@@ -902,6 +902,16 @@ def _validate_entry(value: object, *, fixture_id: str, fault: bool) -> bool:
                 _validate_control(controls["output_sign"], relation="exact_relation"),
             )
         )
+        if (
+            any(
+                controls[name][hash_name] != entry[hash_name]
+                for name in ("rebuild", "reversed_action_order")
+                for hash_name in ("jvp_sha256", "vjp_sha256")
+            )
+            or controls["parameter_sign"]["vjp_sha256"] != entry["vjp_sha256"]
+            or controls["output_sign"]["jvp_sha256"] != entry["jvp_sha256"]
+        ):
+            raise ValueError("control action hash differs from baseline")
     if fault:
         expected_passed = (
             type(beta) is float

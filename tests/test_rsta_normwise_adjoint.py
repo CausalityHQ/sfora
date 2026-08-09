@@ -293,20 +293,6 @@ def _metric_entry() -> dict[str, Any]:
 
 def _valid_result() -> dict[str, Any]:
     entry = _metric_entry()
-    correct_controls = {
-        name: {
-            "jvp_sha256": "3" * 64,
-            "vjp_sha256": "4" * 64,
-            "beta_norm": 0.0,
-            (
-                "exact_action_hash_match"
-                if name in ("rebuild", "reversed_action_order")
-                else "exact_relation"
-            ): True,
-            "passed": True,
-        }
-        for name in ("rebuild", "reversed_action_order", "parameter_sign", "output_sign")
-    }
     fault_controls = {
         "unmodified": {
             "jvp_sha256": "3" * 64,
@@ -327,7 +313,25 @@ def _valid_result() -> dict[str, Any]:
                 if key not in ("fixture_id", "kind", "seeds", "dimensions", "scales")
             },
         }
-        item["controls"] = deepcopy(correct_controls)
+        item["controls"] = {
+            control_name: {
+                "jvp_sha256": item["jvp_sha256"],
+                "vjp_sha256": item["vjp_sha256"],
+                "beta_norm": 0.0,
+                (
+                    "exact_action_hash_match"
+                    if control_name in ("rebuild", "reversed_action_order")
+                    else "exact_relation"
+                ): True,
+                "passed": True,
+            }
+            for control_name in (
+                "rebuild",
+                "reversed_action_order",
+                "parameter_sign",
+                "output_sign",
+            )
+        }
         correct[name] = item
     faults = {}
     for name in normwise.REGISTERED_FAULT_IDS:
@@ -406,6 +410,29 @@ def _valid_result() -> dict[str, Any]:
         "registered_faults": faults,
         "all_passed": True,
     }
+
+
+@pytest.mark.parametrize(
+    ("control_name", "hash_name"),
+    (
+        ("rebuild", "jvp_sha256"),
+        ("rebuild", "vjp_sha256"),
+        ("reversed_action_order", "jvp_sha256"),
+        ("reversed_action_order", "vjp_sha256"),
+        ("parameter_sign", "vjp_sha256"),
+        ("output_sign", "jvp_sha256"),
+    ),
+)
+def test_calibration_schema_rejects_valid_hex_control_hash_not_bound_to_baseline(
+    control_name: str, hash_name: str
+) -> None:
+    value = _valid_result()
+    entry = value["correct_fixtures"]["zero_corner"]
+    assert entry["controls"][control_name][hash_name] == entry[hash_name]
+    entry["controls"][control_name][hash_name] = "f" * 64
+
+    with pytest.raises(ValueError, match="control.*hash"):
+        normwise.validate_calibration_result(value)
 
 
 def test_calibration_schema_rejects_every_recursive_mutation() -> None:
