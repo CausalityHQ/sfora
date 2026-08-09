@@ -5152,7 +5152,7 @@ def _validate_adjoint_integrity_audit(
     if (
         not isinstance(shape, list)
         or len(shape) != 2
-        or shape[0] != 180
+        or shape != [180, 512]
         or any(type(dimension) is not int or dimension <= 0 for dimension in shape)
     ):
         raise ValueError("adjoint output shape differs")
@@ -5304,6 +5304,12 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         {"receipt_sha256", "receipt_producer_commit", "historical_manifest_sha256", "seeds"},
         name="all-seed adjoint binding",
     )
+    if binding["receipt_sha256"] != _HISTORICAL_RECEIPT_SHA256:
+        raise ValueError("integrity binding receipt SHA-256 differs from authority")
+    if binding["receipt_producer_commit"] != _HISTORICAL_PRODUCER_COMMIT:
+        raise ValueError("integrity binding receipt producer differs from authority")
+    if binding["historical_manifest_sha256"] != _HISTORICAL_MANIFEST_SHA256:
+        raise ValueError("integrity binding historical manifest differs from authority")
     _require_sha256(binding["receipt_sha256"], name="integrity receipt")
     _require_sha256(binding["historical_manifest_sha256"], name="integrity historical manifest")
     if not _is_lowercase_hex(binding["receipt_producer_commit"], length=40):
@@ -5318,12 +5324,28 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         "transform_cache_order_sha256",
         "transform_tensor_set_sha256",
     }
+    common_binding: dict[str, str] | None = None
+    common_fields = (
+        "first_batch_ordered_id_sha256",
+        "transform_cache_order_sha256",
+        "transform_tensor_set_sha256",
+    )
     for seed, record in binding_seeds.items():
         record = _require_exact_keys(
             record, binding_seed_fields, name=f"integrity binding seed {seed}"
         )
         for name, digest in record.items():
             _require_sha256(digest, name=f"integrity binding seed {seed} {name}")
+        manifest_seed = manifest["seeds"][seed]
+        if record["checkpoint_sha256"] != manifest_seed["checkpoint_pt"]["sha256"]:
+            raise ValueError(f"integrity binding seed {seed} checkpoint differs from manifest")
+        if record["train_pack_sha256"] != manifest_seed["train_npz"]["sha256"]:
+            raise ValueError(f"integrity binding seed {seed} training pack differs from manifest")
+        observed_common = {name: record[name] for name in common_fields}
+        if common_binding is None:
+            common_binding = observed_common
+        elif observed_common != common_binding:
+            raise ValueError("integrity binding common first-batch cache hashes differ")
 
     integrity = _require_exact_keys(
         top["integrity"],
@@ -5371,6 +5393,17 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         )
         _validate_zero_jacobian_classifier_audit(record["zero_jacobian_classifier"])
         _validate_adjoint_integrity_audit(record["adjoint"])
+        adjoint = record["adjoint"]
+        if adjoint["output_direction_seed"] != domain_seed(
+            "rsta-stage-a-v1|adjoint-u|", seed
+        ):
+            raise ValueError(f"integrity seed {seed} adjoint output direction seed differs")
+        if adjoint["parameter_direction_seed"] != domain_seed(
+            "rsta-stage-a-v1|adjoint-v|", seed
+        ):
+            raise ValueError(f"integrity seed {seed} adjoint parameter direction seed differs")
+        if adjoint["output_shape"] != [180, 512]:
+            raise ValueError(f"integrity seed {seed} adjoint output shape differs")
         passed.append(record["adjoint"]["passed"])
     if type(integrity["all_passed"]) is not bool or integrity["all_passed"] is not all(passed):
         raise ValueError("all-seed adjoint all_passed differs")
@@ -5413,6 +5446,8 @@ def run_all_seed_adjoint_integrity(
     adjoint_auditor: Callable[..., dict[str, Any]] = adjoint_integrity_audit,
 ) -> dict[str, Any]:
     """Run candidate-free structured adjoint integrity for all four seeds."""
+    if type(expected_dimension) is not int or expected_dimension != 512:
+        raise ValueError("all-seed adjoint integrity requires exact dimension 512")
     environment = configure_deterministic_process()
     if output_path.exists() or output_path.is_symlink():
         raise FileExistsError(f"output already exists: {output_path}")

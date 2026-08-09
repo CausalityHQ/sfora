@@ -4053,7 +4053,9 @@ def _task2_manifest(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     return path, manifest
 
 
-def _task2_inputs() -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module]]:
+def _task2_inputs(
+    manifest: dict[str, Any],
+) -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module]]:
     example_ids, raw_labels = _selection_fixture()
     labels = [
         label if index < 210 else 1_000 + (index - 210) // 2
@@ -4064,8 +4066,9 @@ def _task2_inputs() -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module
     proxy_labels = tuple(sorted(set(labels)))
     proxies = _unit_numpy(generator.standard_normal((len(proxy_labels), 3))).astype(np.float32)
     source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
-    bounds = [
-        _tiny_scientific_bound(
+    bounds = []
+    for seed in range(4):
+        bound = _tiny_scientific_bound(
             seed=seed,
             clean=clean,
             labels=labels,
@@ -4074,8 +4077,17 @@ def _task2_inputs() -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module
             proxies=proxies,
             proxy_labels=proxy_labels,
         )
-        for seed in range(4)
-    ]
+        bounds.append(
+            replace(
+                bound,
+                artifact_binding={
+                    "artifacts": {
+                        "checkpoint_pt": manifest["seeds"][str(seed)]["checkpoint_pt"],
+                        "train_npz": manifest["seeds"][str(seed)]["train_npz"],
+                    }
+                },
+            )
+        )
 
     def cache_builder(_bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
         sources = {value: value for value in ordered_ids}
@@ -4096,7 +4108,7 @@ def _task2_inputs() -> tuple[list[Any], Callable[..., Any], type[torch.nn.Module
             torch.manual_seed(seed + 2200)
             self.model = torch.nn.Module()
             self.model.gmp = torch.nn.AdaptiveMaxPool2d(1)
-            self.model.embedding = torch.nn.Linear(2, 3)
+            self.model.embedding = torch.nn.Linear(2, 512)
 
         def forward(self, values: torch.Tensor) -> torch.Tensor:
             return torch.nn.functional.normalize(self.model.embedding(values), dim=-1)
@@ -4139,7 +4151,7 @@ def _run_task2_cli(
 ) -> tuple[Path, list[int]]:
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     manifest_path, manifest = _task2_manifest(tmp_path)
-    bounds, cache_builder, model_type = _task2_inputs()
+    bounds, cache_builder, model_type = _task2_inputs(manifest)
     calls: list[int] = []
 
     def bound_loader(_entry: Any, receipt_seed: Any, **_kwargs: Any) -> Any:
@@ -4165,7 +4177,7 @@ def _run_task2_cli(
             str(output),
             "--integrity-all-seeds-only",
         ],
-        expected_dimension=3,
+        expected_dimension=512,
         receipt_validator=receipt_validator or (lambda *_args: _tiny_validated_receipt()),
         execution_source_validator=lambda _path: execution,
         bound_loader=bound_loader,
@@ -4249,6 +4261,10 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
         ]
         for value in payload["integrity"]["seeds"].values()
     )
+    assert all(
+        value["adjoint"]["output_shape"] == [180, 512]
+        for value in payload["integrity"]["seeds"].values()
+    )
     assert payload["integrity"]["all_passed"] is True
 
     def keys(value: Any) -> set[str]:
@@ -4288,7 +4304,7 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
     adjoint = {
         "direction_domain": "rsta-stage-a-v1", "output_direction_seed": 1,
         "parameter_direction_seed": 2, "output_direction_sha256": "1" * 64,
-        "parameter_direction_sha256": "2" * 64, "output_shape": [180, 3],
+        "parameter_direction_sha256": "2" * 64, "output_shape": [180, 512],
         "parameter_name_order_sha256": "3" * 64, "parameter_count": 9,
         "model_dtype": "torch.float32", "reduction_dtype": "torch.float64",
         "lhs": 1.0, "rhs": 1.0, "absolute_error": 0.0, "denominator": 1.0,
@@ -4300,10 +4316,12 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
         "stage_a_verdict": "NOT_COMPUTED", "uses_test_data": "artifact_binding_only",
         "execution_audit": execution, "manifest": manifest_audit, "environment": environment,
         "binding": {
-            "receipt_sha256": "4" * 64, "receipt_producer_commit": "5" * 40,
-            "historical_manifest_sha256": "6" * 64,
+            "receipt_sha256": _MODULE._HISTORICAL_RECEIPT_SHA256,
+            "receipt_producer_commit": _MODULE._HISTORICAL_PRODUCER_COMMIT,
+            "historical_manifest_sha256": _MODULE._HISTORICAL_MANIFEST_SHA256,
             "seeds": {str(seed): {
-                "checkpoint_sha256": "7" * 64, "train_pack_sha256": "8" * 64,
+                "checkpoint_sha256": manifest["seeds"][str(seed)]["checkpoint_pt"]["sha256"],
+                "train_pack_sha256": manifest["seeds"][str(seed)]["train_npz"]["sha256"],
                 "first_batch_ordered_id_sha256": "9" * 64,
                 "transform_cache_order_sha256": "a" * 64,
                 "transform_tensor_set_sha256": "b" * 64,
@@ -4315,7 +4333,15 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
             "seeds": {
                 str(seed): {
                     "zero_jacobian_classifier": _valid_zero_jacobian_audit(),
-                    "adjoint": deepcopy(adjoint),
+                    "adjoint": {
+                        **deepcopy(adjoint),
+                        "output_direction_seed": _MODULE.domain_seed(
+                            "rsta-stage-a-v1|adjoint-u|", str(seed)
+                        ),
+                        "parameter_direction_seed": _MODULE.domain_seed(
+                            "rsta-stage-a-v1|adjoint-v|", str(seed)
+                        ),
+                    },
                 }
                 for seed in range(4)
             },
@@ -4363,6 +4389,57 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
             else:
                 target[path[-1]] = None
             with pytest.raises((ValueError, TypeError, FileNotFoundError)):
+                _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+
+    authority_mutations = (
+        ("receipt_sha256", "0" * 64),
+        ("receipt_producer_commit", "0" * 40),
+        ("historical_manifest_sha256", "0" * 64),
+    )
+    for name, replacement in authority_mutations:
+        changed = deepcopy(payload)
+        changed["binding"][name] = replacement
+        with pytest.raises(ValueError, match="authority|binding|receipt|historical"):
+            _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+
+    fabricated = deepcopy(payload)
+    fabricated["binding"]["receipt_sha256"] = "4" * 64
+    fabricated["binding"]["receipt_producer_commit"] = "5" * 40
+    fabricated["binding"]["historical_manifest_sha256"] = "6" * 64
+    with pytest.raises(ValueError, match="authority|binding|receipt|historical"):
+        _MODULE.validate_all_seed_adjoint_integrity_payload(fabricated)
+
+    for seed in range(4):
+        for field in ("checkpoint_sha256", "train_pack_sha256"):
+            changed = deepcopy(payload)
+            changed["binding"]["seeds"][str(seed)][field] = "f" * 64
+            with pytest.raises(ValueError, match="manifest|binding"):
+                _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+    for field in (
+        "first_batch_ordered_id_sha256",
+        "transform_cache_order_sha256",
+        "transform_tensor_set_sha256",
+    ):
+        changed = deepcopy(payload)
+        changed["binding"]["seeds"]["2"][field] = "f" * 64
+        with pytest.raises(ValueError, match="common|cache|binding"):
+            _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+
+    for seed in range(4):
+        for field, domain in (
+            ("output_direction_seed", "rsta-stage-a-v1|adjoint-u|"),
+            ("parameter_direction_seed", "rsta-stage-a-v1|adjoint-v|"),
+        ):
+            changed = deepcopy(payload)
+            changed["integrity"]["seeds"][str(seed)]["adjoint"][field] = (
+                _MODULE.domain_seed(domain, str((seed + 1) % 4))
+            )
+            with pytest.raises(ValueError, match="seed|adjoint"):
+                _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+        for wrong_shape in ([180, 511], [179, 512], [180, 512, 1]):
+            changed = deepcopy(payload)
+            changed["integrity"]["seeds"][str(seed)]["adjoint"]["output_shape"] = wrong_shape
+            with pytest.raises(ValueError, match="shape|adjoint"):
                 _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
 
 
