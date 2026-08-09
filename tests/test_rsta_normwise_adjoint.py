@@ -1090,6 +1090,175 @@ def test_candidate_free_cli_import_and_argument_isolation(
     assert error.value.code == 2
 
 
+def test_candidate_free_fresh_process_import_closure_and_runtime_isolation() -> None:
+    repository = Path(__file__).resolve().parents[1]
+    script = r"""
+import ast
+import importlib.abc
+import importlib.util
+import sys
+from pathlib import Path
+
+repo = Path(sys.argv[1])
+helper_path = repo / "scripts/rsta_normwise_adjoint.py"
+cli_path = repo / "scripts/calibrate_pass200_rsta_normwise_adjoint.py"
+forbidden_modules = (
+    "diagnose_pass200_rsta_stage_a",
+    "diagnose_pass159_cotangent_stage_a",
+    "export_final_inshop_embeddings",
+    "sfora.bn_inception",
+    "sfora.data",
+    "sfora.image_end_to_end",
+)
+forbidden_symbols = {
+    "exact_contextual_rsta_fields", "score_rsta_batch", "decide_stage_a",
+    "joint_bootstrap", "scientific_payload", "binding_only_payload",
+    "_validate_receiver_audit_row", "_load_scientific_model",
+    "_load_digest_bound_packs", "load_and_bind_seed", "load_training_only_seed",
+    "load_checkpoint", "load_manifest", "load_data", "load_model", "DataLoader",
+}
+allowed_import_roots = {
+    "__future__", "argparse", "collections", "contextlib", "copy", "dataclasses",
+    "hashlib", "json", "math", "numpy", "os", "pathlib", "platform", "re",
+    "rsta_normwise_adjoint", "stat", "subprocess", "sys", "torch", "typing",
+}
+
+class BlockForbidden(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if any(fullname == name or fullname.startswith(name + ".") for name in forbidden_modules):
+            raise AssertionError("forbidden module import: " + fullname)
+        return None
+
+sys.meta_path.insert(0, BlockForbidden())
+for source_path in (helper_path, cli_path):
+    tree = ast.parse(source_path.read_text(), filename=str(source_path))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            roots = {alias.name.split(".", 1)[0] for alias in node.names}
+            assert roots <= allowed_import_roots, (source_path, roots)
+        elif isinstance(node, ast.ImportFrom):
+            assert node.module is not None
+            assert node.module.split(".", 1)[0] in allowed_import_roots, (source_path, node.module)
+        elif isinstance(node, (ast.Name, ast.Attribute)):
+            symbol = node.id if isinstance(node, ast.Name) else node.attr
+            assert symbol not in forbidden_symbols, (source_path, symbol)
+    text = source_path.read_text()
+    assert "torch.load" not in text
+
+sys.path.insert(0, str(repo / "scripts"))
+import rsta_normwise_adjoint as core
+spec = importlib.util.spec_from_file_location("fresh_calibration_cli", cli_path)
+assert spec is not None and spec.loader is not None
+cli = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = cli
+spec.loader.exec_module(cli)
+provenance = {
+    "protocol": {"path": str(cli.PROTOCOL_RELATIVE_PATH), "sha256": "a" * 64, "commit": "b" * 40},
+    "execution_audit": {
+        "executing_git_commit": "c" * 40,
+        "calibration_source_commit": "d" * 40,
+        "calibration_cli_path": cli.SOURCE_PATHS[1],
+        "calibration_cli_sha256": "e" * 64,
+    },
+    "source": {
+        "git_revision": "d" * 40,
+        "files": {
+            path: ("e" * 64 if path == cli.SOURCE_PATHS[1] else "f" * 64)
+            for path in cli.SOURCE_PATHS
+        },
+    },
+}
+cli.authenticate_current_source = lambda path: provenance
+payload = cli.calibration_payload(repo / cli.PROTOCOL_RELATIVE_PATH)
+assert payload["candidate_values_computed"] is False
+assert payload["stage_a_verdict"] == "NOT_COMPUTED"
+assert not any(
+    any(name == forbidden or name.startswith(forbidden + ".") for forbidden in forbidden_modules)
+    for name in sys.modules
+)
+"""
+    completed = subprocess.run(
+        (sys.executable, "-I", "-c", script, str(repository)),
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
+@pytest.mark.parametrize(
+    ("phase", "exception_type"),
+    (
+        ("deterministic setup", RuntimeError),
+        ("fixture construction", TypeError),
+        ("payload validation", RuntimeError),
+    ),
+)
+def test_cli_boundary_converts_ordinary_exception_to_structural_exit_without_output(
+    phase: str,
+    exception_type: type[Exception],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    cli = _load_calibration_cli()
+    output = tmp_path / "result.json"
+    temporary = tmp_path / f".{output.name}.tmp.{os.getpid()}"
+    base = _valid_result()
+    provenance = {name: deepcopy(base[name]) for name in ("protocol", "execution_audit", "source")}
+    monkeypatch.setattr(cli, "authenticate_source", lambda *args: provenance)
+    if phase == "deterministic setup":
+        monkeypatch.setattr(
+            cli,
+            "_configure_cpu",
+            lambda: (_ for _ in ()).throw(exception_type(f"injected {phase}")),
+        )
+    else:
+        monkeypatch.setattr(cli, "_configure_cpu", lambda: None)
+        monkeypatch.setattr(
+            cli,
+            "_build_payload",
+            lambda value: (_ for _ in ()).throw(exception_type(f"injected {phase}")),
+        )
+    assert cli.run_cli(["--output", str(output)]) == 2
+    assert capsys.readouterr().err == f"structural failure: injected {phase}\n"
+    assert not output.exists()
+    assert not temporary.exists()
+
+
+def test_cli_boundary_does_not_catch_base_exception(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    monkeypatch.setattr(
+        cli,
+        "authenticate_source",
+        lambda *args: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+    with pytest.raises(KeyboardInterrupt):
+        cli.run_cli(["--output", str(tmp_path / "result.json")])
+
+
+def test_cli_boundary_publishes_valid_failed_payload_and_returns_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    output = tmp_path / "result.json"
+    payload = _valid_result()
+    control = payload["correct_fixtures"]["zero_corner"]["controls"]["parameter_sign"]
+    control["exact_relation"] = False
+    control["passed"] = False
+    payload["correct_fixtures"]["zero_corner"]["passed"] = False
+    payload["all_passed"] = False
+    normwise.validate_calibration_result(payload)
+    monkeypatch.setattr(cli, "authenticate_source", lambda *args: object())
+    monkeypatch.setattr(cli, "_configure_cpu", lambda: None)
+    monkeypatch.setattr(cli, "_build_payload", lambda value: payload)
+    assert cli.run_cli(["--output", str(output)]) == 1
+    assert json.loads(output.read_text()) == payload
+    assert not (tmp_path / f".{output.name}.tmp.{os.getpid()}").exists()
+
+
 def test_cli_source_authentication_binds_destination_git_and_worktree(tmp_path: Path) -> None:
     cli = _load_calibration_cli()
     repo, output, source = _make_calibration_source_repo(tmp_path)

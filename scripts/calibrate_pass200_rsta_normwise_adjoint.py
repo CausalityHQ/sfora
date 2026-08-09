@@ -321,7 +321,7 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
         payload = _build_payload(provenance)
         publish_json_no_clobber(arguments.output, payload)
         return calibration_exit_code(payload)
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except Exception as error:
         print(f"structural failure: {error}", file=sys.stderr)
         return 2
 
