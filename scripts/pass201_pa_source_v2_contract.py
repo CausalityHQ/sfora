@@ -1156,7 +1156,24 @@ _REBUILD_STUBS = {
 }
 
 
-class _RestrictedMetadataUnpickler(pickle.Unpickler):
+def _valid_state_dict_metadata(value: object) -> bool:
+    if type(value) is not OrderedDict or not value or next(iter(value)) != "":
+        return False
+    for module_path, local_metadata in value.items():
+        if (
+            type(module_path) is not str
+            or type(local_metadata) is not dict
+            or set(local_metadata) != {"version"}
+            or type(local_metadata["version"]) is not int
+            or local_metadata["version"] < 0
+        ):
+            return False
+    return True
+
+
+class _RestrictedMetadataUnpickler(pickle._Unpickler):  # type: ignore[attr-defined]
+    metadata_build_target: OrderedDict[object, object] | None = None
+
     def find_class(self, module: str, name: str) -> object:
         global_name = f"{module}.{name}"
         if global_name == "collections.OrderedDict":
@@ -1188,8 +1205,40 @@ class _RestrictedMetadataUnpickler(pickle.Unpickler):
             raise pickle.UnpicklingError("malformed persistent ID")
         return _StorageStub(storage_class, key, location, size)
 
+    def load_build(self) -> None:
+        if len(self.stack) < 2 or self.metadata_build_target is not None:
+            raise pickle.UnpicklingError("forbidden BUILD stateful pickle opcode")
+        state = self.stack.pop()
+        instance = self.stack[-1]
+        if (
+            type(instance) is not OrderedDict
+            or type(state) is not dict
+            or set(state) != {"_metadata"}
+            or not _valid_state_dict_metadata(state["_metadata"])
+        ):
+            raise pickle.UnpicklingError("forbidden BUILD stateful pickle opcode")
+        instance.__dict__["_metadata"] = state["_metadata"]
+        self.metadata_build_target = instance
+
+    # The C Unpickler does not expose an overridable opcode dispatch table.  The
+    # pure-Python implementation does, so BUILD cannot fall through to pickle's
+    # generic __dict__/slot mutation path after the checks above.
+    dispatch = pickle._Unpickler.dispatch.copy()  # type: ignore[attr-defined]
+    dispatch[pickle.BUILD[0]] = load_build
+
 
 def _load_restricted_pickle(data: bytes) -> object:
+    """Load checkpoint metadata with one narrowly defined protocol-2 BUILD.
+
+    Accepted BUILD grammar:
+      target := the exact collections.OrderedDict stored at root["state_dict"]
+      state := {"_metadata": OrderedDict(module_path -> {"version": version})}
+      module_path := str, with the root entry "" first
+      version := exact non-negative int (bool is not accepted)
+
+    There may be at most one BUILD.  Every other target/state shape and every
+    other stateful construction opcode remains forbidden.
+    """
     try:
         operations = list(pickletools.genops(data))
     except (ValueError, pickle.UnpicklingError) as exc:
@@ -1198,13 +1247,28 @@ def _load_restricted_pickle(data: bytes) -> object:
         raise ValueError("trailing pickle data")
     if any(opcode.name in {"EXT1", "EXT2", "EXT4"} for opcode, _, _ in operations):
         raise ValueError("extension opcode is forbidden")
+    build_count = sum(opcode.name == "BUILD" for opcode, _, _ in operations)
+    if build_count > 1:
+        raise ValueError("forbidden BUILD stateful pickle opcode")
     if any(
-        opcode.name in {"BUILD", "INST", "NEWOBJ", "NEWOBJ_EX", "OBJ"}
+        opcode.name in {"INST", "NEWOBJ", "NEWOBJ_EX", "OBJ"}
         for opcode, _, _ in operations
     ):
         raise ValueError("stateful pickle opcode is forbidden")
     try:
-        return _RestrictedMetadataUnpickler(io.BytesIO(data)).load()
+        unpickler = _RestrictedMetadataUnpickler(io.BytesIO(data))
+        root = unpickler.load()
+        if build_count:
+            target = unpickler.metadata_build_target
+            if (
+                type(root) is not dict
+                or target is None
+                or root.get("state_dict") is not target
+                or set(target.__dict__) != {"_metadata"}
+                or not _valid_state_dict_metadata(target.__dict__["_metadata"])
+            ):
+                raise ValueError("forbidden BUILD stateful pickle opcode")
+        return root
     except (
         AttributeError,
         EOFError,
@@ -1220,6 +1284,8 @@ def _load_restricted_pickle(data: bytes) -> object:
             raise ValueError("malformed persistent ID") from exc
         if "tensor rebuild" in message:
             raise ValueError("malformed tensor rebuild") from exc
+        if "BUILD state" in message:
+            raise ValueError("forbidden BUILD stateful pickle opcode") from exc
         raise ValueError("invalid restricted pickle") from exc
 
 

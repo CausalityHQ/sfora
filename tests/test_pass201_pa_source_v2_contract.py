@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pickle
+import pickletools
 import shutil
 import stat
 import struct
@@ -325,6 +326,8 @@ def _checkpoint_pickle(
     *,
     persistent_id: object | None = None,
     rebuild_arguments: tuple[object, ...] | None = None,
+    state_dict_state: Mapping[str, Any] | None = None,
+    tensor_build_state: object | None = None,
     storage_size: int = 1,
     storage_offset: int = 0,
     tensor_size: tuple[int, ...] = (1,),
@@ -369,11 +372,24 @@ def _checkpoint_pickle(
     )
 
     class Tensor:
-        def __reduce__(self) -> tuple[object, tuple[object, ...]]:
-            return rebuild_tensor_v2, arguments
+        def __reduce__(self) -> Any:
+            reduction = (rebuild_tensor_v2, arguments)
+            if tensor_build_state is None:
+                return reduction
+            return (*reduction, tensor_build_state)
 
+    state_dict = OrderedDict((("weight", Tensor()),))
+    # Module.state_dict() attaches exactly this OrderedDict instance state; keeping
+    # the tensor fake makes the restricted-child fixture production-shaped but torch-free.
+    attributes = (
+        {"_metadata": OrderedDict((("", {"version": 1}),))}
+        if state_dict_state is None
+        else state_dict_state
+    )
+    for name, value in attributes.items():
+        setattr(state_dict, name, value)
     root: dict[str, Any] = {
-        "state_dict": OrderedDict((("weight", Tensor()),)),
+        "state_dict": state_dict,
         "arch": {
             "backbone_name": "bn_inception",
             "pretrained_weights": "bn_inception_52deb4733",
@@ -434,6 +450,8 @@ def test_checkpoint_reader_accepts_metadata_without_opening_storage(
     checkpoint_authority: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    data_pickle = _checkpoint_pickle()
+    assert [opcode.name for opcode, _, _ in pickletools.genops(data_pickle)].count("BUILD") == 1
     opened: list[str] = []
     real_open = zipfile.ZipFile.open
 
@@ -742,6 +760,111 @@ def test_checkpoint_rejects_unsafe_pickle_constructs(
 
 
 @pytest.mark.parametrize(
+    "state_dict_state",
+    [
+        {"unexpected": OrderedDict()},
+        {"_metadata": {}},
+        {"_metadata": OrderedDict()},
+        {"_metadata": OrderedDict((("child", {"version": 1}),))},
+        {"_metadata": OrderedDict(((0, {"version": 1}),))},
+        {"_metadata": OrderedDict((("", {"version": True}),))},
+        {"_metadata": OrderedDict((("", {"version": -1}),))},
+        {"_metadata": OrderedDict((("", {"version": 1, "unexpected": None}),))},
+        {
+            "_metadata": OrderedDict((("", {"version": 1}),)),
+            "unexpected": None,
+        },
+    ],
+    ids=(
+        "wrong-attribute",
+        "plain-dict-metadata",
+        "empty-metadata",
+        "missing-root-metadata",
+        "non-string-module-path",
+        "boolean-version",
+        "negative-version",
+        "extra-local-metadata",
+        "extra-instance-state",
+    ),
+)
+def test_checkpoint_rejects_noncanonical_ordered_dict_build_state(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    state_dict_state: Mapping[str, Any],
+) -> None:
+    data_pickle = _checkpoint_pickle(state_dict_state=state_dict_state)
+    assert [opcode.name for opcode, _, _ in pickletools.genops(data_pickle)].count("BUILD") == 1
+    path = _write_checkpoint_zip(tmp_path, data_pickle, names=("checkpoint/data.pkl",))
+    with pytest.raises(ValueError, match="forbidden BUILD state"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_build_targeting_tensor_stub(
+    tmp_path: Path, checkpoint_authority: Any
+) -> None:
+    data_pickle = _checkpoint_pickle(
+        state_dict_state={},
+        tensor_build_state={"storage_offset": 0},
+    )
+    assert [opcode.name for opcode, _, _ in pickletools.genops(data_pickle)].count("BUILD") == 1
+    path = _write_checkpoint_zip(tmp_path, data_pickle, names=("checkpoint/data.pkl",))
+    with pytest.raises(ValueError, match="forbidden BUILD state"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_metadata_build_on_non_state_dict_ordered_dict(
+    tmp_path: Path, checkpoint_authority: Any
+) -> None:
+    arch = OrderedDict(
+        (
+            ("backbone_name", "bn_inception"),
+            ("pretrained_weights", "bn_inception_52deb4733"),
+            ("head_pooling", "avg_max"),
+            ("embedding_dimensions", 512),
+            ("embedding_head_init", "kaiming_normal"),
+            ("embedding_layer_norm", False),
+        )
+    )
+    arch._metadata = OrderedDict((("", {"version": 1}),))  # type: ignore[attr-defined]
+    data_pickle = _checkpoint_pickle(
+        {"arch": arch},
+        state_dict_state={},
+    )
+    assert [opcode.name for opcode, _, _ in pickletools.genops(data_pickle)].count("BUILD") == 1
+    path = _write_checkpoint_zip(tmp_path, data_pickle, names=("checkpoint/data.pkl",))
+    with pytest.raises(ValueError, match="forbidden BUILD state"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+def test_checkpoint_rejects_metadata_mutated_after_valid_build(
+    tmp_path: Path, checkpoint_authority: Any
+) -> None:
+    data_pickle = _checkpoint_pickle()
+    operations = list(pickletools.genops(data_pickle))
+    metadata_key_index = next(
+        index
+        for index, (opcode, argument, _) in enumerate(operations)
+        if opcode.name == "BINUNICODE" and argument == "_metadata"
+    )
+    metadata_reduce_index = next(
+        index
+        for index in range(metadata_key_index + 1, len(operations))
+        if operations[index][0].name == "REDUCE"
+    )
+    memo_opcode, metadata_memo, _ = operations[metadata_reduce_index + 1]
+    assert memo_opcode.name == "BINPUT"
+    assert type(metadata_memo) is int and metadata_memo < 256
+    build_end = next(
+        position + 1 for opcode, _, position in operations if opcode.name == "BUILD"
+    )
+    mutation = b"h" + bytes((metadata_memo,)) + b"X\x05\x00\x00\x00child}s0"
+    data_pickle = data_pickle[:build_end] + mutation + data_pickle[build_end:]
+    path = _write_checkpoint_zip(tmp_path, data_pickle, names=("checkpoint/data.pkl",))
+    with pytest.raises(ValueError, match="forbidden BUILD state"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
     ("root_update", "message"),
     [
         ({"extra": None}, "checkpoint root"),
@@ -834,7 +957,7 @@ def test_checkpoint_accepts_zero_size_and_exact_boundary_tensor_spans(
 def test_checkpoint_rejects_pickle_build_that_poisoned_shared_rebuild_stub(
     tmp_path: Path, checkpoint_authority: Any
 ) -> None:
-    valid = _checkpoint_pickle(rebuild_arguments=("short",))
+    valid = _checkpoint_pickle(rebuild_arguments=("short",), state_dict_state={})
     poison = b"\x80\x02ctorch._utils\n_rebuild_tensor_v2\n}X\x07\x00\x00\x00versionK\x01sb0"
     path = _write_checkpoint_zip(
         tmp_path,
@@ -845,6 +968,7 @@ def test_checkpoint_rejects_pickle_build_that_poisoned_shared_rebuild_stub(
     try:
         with pytest.raises(ValueError, match="pickle opcode"):
             contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+        assert rebuild.version == 2
     finally:
         rebuild.version = 2
 
