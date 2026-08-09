@@ -18,6 +18,7 @@
 - Retain the complete legacy adjoint object and metric in all future production evidence. This work may add evidence but must not erase H8 or rewrite it as passing.
 - Calibration is CPU-only, single-threaded, synthetic-only, and candidate-free. It must not load manifests, checkpoints, data, or models and must not import or call any field, scoring, bootstrap, decision, payload, or receiver-row function.
 - Calibration failure keeps RSTA blocked and ends this plan before amendment or production work. No calibration retry with changed constants is permitted.
+- Commit and authenticate every complete structurally valid calibration artifact, including `all_passed=false`; a negative artifact stops before amendment but remains durable evidence.
 - No DGX or real-data execution occurs before a passing calibration artifact, independent reviews, prospective amendment, reviewed production source, and manifest-only refreeze.
 
 ## File structure
@@ -111,8 +112,12 @@
   Add one parameterized test over the exact six fixture keys
   `zero_corner`, the three affine scales, `smooth_parameter_tree`, and
   `paired_cancellation`. Independently reconstruct every PCG64 array and assert
-  exact C-order FP32 bytes, dimensions, binary scales, named-parameter order,
-  pair duplication, cancellation diagonal, and final `1.0` direction entries.
+  exact C-order FP32 bytes and recursive equality with every literal ordered
+  `fixture_id`, `kind`, `seeds`, `dimensions`, and `scales` JSON object in the
+  protocol. Also assert named-parameter order, pair duplication, cancellation
+  diagonal, and final `1.0` direction entries. Reject numerically equivalent
+  scale encodings, reordered keys, extra keys, wrong string/integer types, and
+  any seed string not matching lowercase `0x` plus sixteen hex digits.
 
   Run:
 
@@ -194,7 +199,8 @@
 
 - [ ] **Step 3: Write and run fault-construction REDs before fault code**
 
-  Independently construct all three fault action pairs. Assert the zero-map
+  Independently require recursive equality with all three literal ordered fault
+  metadata objects, then construct all three fault action pairs. Assert the zero-map
   injection has mathematical `beta_norm=2`, the reverse scale fault has
   `beta_norm=2/511`, and the paired-sign fault has `beta_norm=1`. Require their
   unmodified controls to meet `6.25e-5`, each observed fault to be at least
@@ -240,11 +246,18 @@
 
   Import the CLI with raising sentinels for all forbidden RSTA functions and
   loaders. Require only `--output`, CPU/single-thread configuration before
-  tensor work, exact fixture/fault order, exact recursive schema, protocol Git
-  blob/worktree/SHA binding, `candidate_values_computed=false`, and
-  `stage_a_verdict="NOT_COMPUTED"`. Inject a structural failure and require no
-  destination or sibling temp; inject one finite fixture-band failure and
-  require the complete atomic artifact with `all_passed=false`.
+  tensor work, exact fixture/fault order and metadata, exact recursive schema,
+  protocol Git blob/worktree/SHA binding, and fixed candidate-free values.
+  Require exact `execution_audit` and `source` keys: full commits, source commit
+  ancestor-or-equal to executing HEAD, the exact helper/CLI/test path order and
+  SHA-256 values, equality among worktree bytes and Git blobs at both the
+  reviewed source and executing commits, and executing CLI equality with its
+  source entry. Mutate every path, digest,
+  revision, ancestry relation, worktree byte, and Git blob and require failure
+  before fixture construction. Require the normalized destination to be exactly
+  `reports/generated/pass200_rsta_receipt/${calibration_source_commit}-normwise-adjoint-calibration.json`
+  below repository root and parse the reviewed source commit only from that
+  40-hex basename prefix.
 
   Run:
 
@@ -252,17 +265,38 @@
   .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py -k 'cli or candidate_free or atomic'
   ```
 
-  Expected: FAIL because the CLI does not exist.
+  Expected: FAIL because the CLI and source authenticator do not exist.
 
-- [ ] **Step 2: Implement the minimal isolated CLI and validator**
+- [ ] **Step 2: Write and run exact no-clobber publication REDs**
 
-  Configure CPU determinism, authenticate the committed protocol bytes, run the
-  exact matrix once, validate a freshly reconstructed payload, serialize strict
-  JSON with sorted-free registered insertion order, fsync a same-directory
-  temporary file, and atomically rename it. Refuse an existing destination.
-  Rerun Step 1 and require PASS.
+  Use the protocol's exact same-directory
+  `.${destination.name}.tmp.${decimal_pid}` path. Test pre-existing destination,
+  pre-existing exact temp, a destination race immediately before `os.link`,
+  short write, file `fsync`, hard-link, both directory `fsync` points, and temp
+  unlink failures. Require `xb`, mode `0o600`, no symlink following,
+  hard-link/no-replace publication, inode-checked rollback, deletion of only a
+  process-owned temp/link, unchanged foreign files, and no successful output
+  unless its bytes equal the validated buffer plus one LF.
 
-- [ ] **Step 3: Run the complete local source gate and commit**
+  Run:
+
+  ```bash
+  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py -k 'no_clobber or publication_rollback'
+  ```
+
+  Expected: FAIL because exact hard-link publication is absent.
+
+- [ ] **Step 3: Implement the minimal isolated CLI and validator**
+
+  Configure CPU determinism; authenticate the protocol plus exact reviewed
+  helper/CLI/test worktree and Git bytes; run the exact matrix once; validate a
+  freshly reconstructed payload; serialize strict JSON in registered insertion
+  order; and implement only the protocol's `xb`/file-fsync/hard-link/directory-
+  fsync/unlink/directory-fsync protocol with owned-inode rollback. Never rename,
+  replace, overwrite, or clean a foreign path. Rerun Steps 1 and 2 and require
+  PASS.
+
+- [ ] **Step 4: Run the complete local source gate and commit**
 
   ```bash
   .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py
@@ -309,20 +343,27 @@
 
 - [ ] **Step 3: Independently validate and apply the frozen decision**
 
-  Validate protocol binding, exact schema, all hashes, six correct fixtures,
+  Validate protocol binding, exact execution/source provenance and ancestry,
+  helper/CLI/test worktree/Git-blob hashes, exact schema, all hashes, six correct fixtures,
   every rebuild/order/sign control, three registered faults, thresholds, and
-  recomputed derived values. If `all_passed=false` or validation fails, retain
-  the complete candidate-free artifact, declare the protocol falsified, keep
-  RSTA blocked, and stop before Task 6. Do not change a constant.
+  recomputed derived values. If validation fails, preserve the external
+  execution log, commit no invalid artifact, keep RSTA blocked, and stop. If the
+  artifact is structurally valid with `all_passed=false`, retain it, declare the
+  calibration falsified, and proceed only to its durable commit in Step 4. Do
+  not change a constant.
 
-- [ ] **Step 4: Commit only a passing validated result**
+- [ ] **Step 4: Commit every complete valid result, then branch only on its verdict**
 
-  If and only if the independently validated result has `all_passed=true`:
+  For either `all_passed=true` or `all_passed=false`, commit the one complete,
+  independently validated artifact unchanged:
 
   ```bash
   git add "$calibration_output"
   git commit -m "record RSTA normwise adjoint calibration"
   ```
+
+  Record the artifact SHA-256 and result commit. If `all_passed=false`, stop the
+  plan before Task 6. Only `all_passed=true` permits Task 6.
 
 ---
 
@@ -390,7 +431,35 @@
   four seeds only for finite candidate-free tolerance failures; preserve
   structural fail-fast and the scientific no-output prefix.
 
-- [ ] **Step 5: Run assurance, commit, and obtain independent review**
+- [ ] **Step 5: Write manifest/source-validator REDs before changing validators**
+
+  In `tests/test_diagnose_pass200_rsta_stage_a.py`, build an in-memory future
+  manifest fixture containing exact protocol, passing calibration result, and
+  normwise amendment objects with only `path`, `sha256`, and `commit`; the exact
+  reviewed-source revision; and the complete exact source-file mapping including
+  the shared helper. Recursively remove/add/mutate every new leaf, mutate the
+  result verdict to false, alter Git blob/worktree bytes and ancestry, and
+  require rejection before artifact/model access. Require byte-semantic equality
+  of every H8 receipt, historical, artifact, seed, base, and prior-amendment
+  domain.
+
+  Run:
+
+  ```bash
+  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'normwise and (manifest or source or provenance)'
+  ```
+
+  Expected: FAIL because production validators do not recognize or authenticate
+  the three new authorities or helper source file.
+
+- [ ] **Step 6: Implement only manifest/source validation and verify GREEN**
+
+  Add exact constants and strict recursive validators for the protocol, passing
+  calibration artifact, amendment, reviewed source revision/files, Git
+  blob/worktree equality, and ancestry. Do not edit the real manifest. Rerun
+  Step 5 plus all Task 7 tests and require PASS.
+
+- [ ] **Step 7: Run assurance, commit, and obtain independent review**
 
   ```bash
   .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py tests/test_diagnose_pass200_rsta_stage_a.py
@@ -418,18 +487,21 @@
 - Consumes: passing calibration, committed amendment, and reviewed Task 7 source.
 - Produces: one manifest-only handoff and one candidate-free real-data audit.
 
-- [ ] **Step 1: Write/run manifest provenance REDs and make minimal GREEN**
+- [ ] **Step 1: Modify only the manifest using already-GREEN validators**
 
-  Require exact protocol, passing calibration result, and normwise amendment
-  path/SHA/commit objects; exact reviewed source revision and file hashes; and
-  byte-semantic preservation of every H8 receipt, historical, artifact, seed,
-  base, and prior-amendment domain. Recursively mutate every new provenance leaf
-  and require rejection before artifact/model access. Then make only the
-  manifest/source-validator changes authorized by the amendment.
+  Modify only `docs/pass200_rsta_receipt_stage_a_manifest.json`: add the exact
+  already-validated protocol, passing calibration result, and normwise amendment
+  path/SHA/commit objects; set the exact reviewed source revision and file
+  hashes; and preserve every H8 receipt, historical, artifact, seed, base, and
+  prior-amendment domain byte-semantically. Run the already-GREEN Task 7
+  production validators and focused provenance tests against the real manifest.
+  If they fail, do not edit source or tests in Task 8: return to Task 7, create a
+  newly reviewed source commit, and restart the manifest-only handoff.
 
 - [ ] **Step 2: Commit the manifest-only handoff**
 
-  Run focused provenance tests, the full two test files, Ruff, py_compile, and
+  Confirm `git diff --name-only` lists only the manifest. Run the already-GREEN
+  focused provenance tests, the full two test files, Ruff, py_compile, and
   `git diff --check`. Commit only
   `docs/pass200_rsta_receipt_stage_a_manifest.json` with message
   `refreeze RSTA normwise adjoint handoff`, then set

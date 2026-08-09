@@ -113,7 +113,56 @@ The calibration executable must be unable to import or call
 `exact_contextual_rsta_fields`, `score_rsta_batch`, `decide_stage_a`,
 `joint_bootstrap`, `scientific_payload`, any receiver-row serializer, any model
 loader, or any checkpoint/data/manifest loader. It accepts only `--output` and
-refuses an existing destination. It writes one strict JSON object atomically.
+refuses an existing destination.
+
+The reviewed calibration source revision is a full lowercase 40-hex commit.
+At process start, record repository HEAD as `executing_git_commit`. Require the
+reviewed calibration source revision to be an ancestor of or equal to the
+executing commit. The normalized destination must equal repository-root path
+`reports/generated/pass200_rsta_receipt/<source>-normwise-adjoint-calibration.json`,
+where `<source>` is exactly the 40-hex reviewed source revision parsed from the
+basename; there is no separate source-revision argument or inference from file
+contents. The worktree bytes and Git blob at the reviewed source
+revision must be byte-identical for exactly these paths, in this order:
+
+```text
+scripts/rsta_normwise_adjoint.py
+scripts/calibrate_pass200_rsta_normwise_adjoint.py
+tests/test_rsta_normwise_adjoint.py
+```
+
+Independently SHA-256 each byte string and require equality with the result's
+source mapping. For all three paths, the Git blob at `executing_git_commit` must
+also equal the reviewed-source blob and worktree bytes. The executing CLI path
+and digest must equal the second source entry. Dirty, missing, extra, symlinked,
+differently hashed, non-ancestor, or non-Git source is a structural failure
+before fixture construction.
+
+Publication is exact no-clobber. Let `destination` be the absolute normalized
+`--output` path and let the sole temporary path be
+`destination.parent / ("." + destination.name + ".tmp." + decimal_pid)`.
+`decimal_pid` is the process ID encoded as unsigned base-10 ASCII with no leading
+zero.
+Reject a missing parent directory, non-regular pre-existing destination, any
+pre-existing destination, or any pre-existing temporary path. Open the temporary
+path with binary exclusive creation (`xb`), mode `0o600`, and no symlink
+following; the process owns it only after that open succeeds. Write the complete
+validated UTF-8 JSON bytes plus one LF, flush, and `fsync` the file. Publish with
+`os.link(temp, destination)`, which must fail rather than replace if a race
+created the destination. `fsync` the parent directory, unlink the owned temp,
+and `fsync` the parent directory again. Success requires the destination bytes
+to equal the validated buffer and the temp to be absent.
+
+On any error before the hard link, remove only a temp successfully created by
+this process and `fsync` the directory; never remove a pre-existing temp or
+destination. On any error after the hard link, first verify destination and temp
+refer to the same inode, unlink that owned destination link, then unlink the
+owned temp and `fsync` the directory. If inode identity cannot be proved, do not
+unlink the destination. Report structural failure and preserve evidence. Tests
+must cover a pre-existing destination, pre-existing exact temp, destination
+creation between the initial check and `os.link`, short write, file-fsync,
+hard-link, directory-fsync, and temp-unlink failures. No `rename`, `replace`, or
+overwrite fallback is permitted.
 
 ## Correct-fixture matrix
 
@@ -207,6 +256,98 @@ control by at least `7*threshold/8 = 4.375e-4`. A fault that does not cross the
 threshold falsifies the calibration; its amplitude, seed, dimension, or
 construction must not be tuned.
 
+## Exact fixture metadata objects
+
+The `fixture_id` and `kind` values are JSON strings. Every `seeds` value is a
+JSON object whose values are lowercase strings consisting of `0x` followed by
+exactly sixteen hexadecimal digits; they are decoded as unsigned 64-bit
+integers. Every `dimensions` value is the literal JSON object below, using only
+positive JSON integers and integer arrays. Every `scales` value is the literal
+JSON object below; scale values are exact ASCII strings interpreted only by the
+fixture-specific constructor, never parsed as decimal floating-point. Object
+key order is normative.
+
+```json
+{
+  "zero_corner": {
+    "fixture_id": "zero_corner",
+    "kind": "zero_linear",
+    "seeds": {"x": "0x4e4f524d00000001", "output_direction": "0x4e4f524d00000002", "parameter_direction": "0x4e4f524d00000003"},
+    "dimensions": {"input": 17, "output": 17},
+    "scales": {"operator": "0"}
+  },
+  "affine_scale_2m12": {
+    "fixture_id": "affine_scale_2m12",
+    "kind": "affine_linear",
+    "seeds": {"matrix": "0x4e4f524d00000101", "input": "0x4e4f524d00000102", "output_direction": "0x4e4f524d00000103", "parameter_direction": "0x4e4f524d00000104"},
+    "dimensions": {"input": 193, "output": 257},
+    "scales": {"operator": "2**-12"}
+  },
+  "affine_scale_1": {
+    "fixture_id": "affine_scale_1",
+    "kind": "affine_linear",
+    "seeds": {"matrix": "0x4e4f524d00000101", "input": "0x4e4f524d00000102", "output_direction": "0x4e4f524d00000103", "parameter_direction": "0x4e4f524d00000104"},
+    "dimensions": {"input": 193, "output": 257},
+    "scales": {"operator": "1"}
+  },
+  "affine_scale_2p12": {
+    "fixture_id": "affine_scale_2p12",
+    "kind": "affine_linear",
+    "seeds": {"matrix": "0x4e4f524d00000101", "input": "0x4e4f524d00000102", "output_direction": "0x4e4f524d00000103", "parameter_direction": "0x4e4f524d00000104"},
+    "dimensions": {"input": 193, "output": 257},
+    "scales": {"operator": "2**12"}
+  },
+  "smooth_parameter_tree": {
+    "fixture_id": "smooth_parameter_tree",
+    "kind": "smooth_parameter_tree",
+    "seeds": {"w1": "0x4e4f524d00000201", "b1": "0x4e4f524d00000202", "w2": "0x4e4f524d00000203", "b2": "0x4e4f524d00000204", "input": "0x4e4f524d00000205", "parameter_direction": "0x4e4f524d00000206", "output_direction": "0x4e4f524d00000207"},
+    "dimensions": {"batch": 17, "input": 11, "hidden": 23, "output": 19, "parameter_shapes": {"w1": [23, 11], "b1": [23], "w2": [19, 23], "b2": [19]}},
+    "scales": {"weight": "2**-3", "bias": "2**-4", "input": "2**-2", "normalization_eps": "1e-12"}
+  },
+  "paired_cancellation": {
+    "fixture_id": "paired_cancellation",
+    "kind": "paired_cancellation_linear",
+    "seeds": {"input": "0x4e4f524d00000301", "output_pair_base": "0x4e4f524d00000302", "parameter_pair_base": "0x4e4f524d00000303"},
+    "dimensions": {"input": 8193, "output": 8193, "pairs": 4096},
+    "scales": {"positive_pair": "2**10", "negative_pair": "-2**10", "final": "2**-10"}
+  }
+}
+```
+
+`correct_fixtures` has exactly the six keys above in that order. The fault
+metadata objects are exactly:
+
+```json
+{
+  "zero_map_forward_injection": {
+    "fixture_id": "zero_map_forward_injection",
+    "kind": "injected_forward_action",
+    "seeds": {"x": "0x4e4f524d00000001", "output_direction": "0x4e4f524d00000002", "parameter_direction": "0x4e4f524d00000003"},
+    "dimensions": {"input": 17, "output": 17},
+    "scales": {"operator": "0", "forward_injection": "2**-10"}
+  },
+  "identity_reverse_scale_fault": {
+    "fixture_id": "identity_reverse_scale_fault",
+    "kind": "injected_reverse_scale",
+    "seeds": {"shared_direction": "0x4e4f524d00000401"},
+    "dimensions": {"input": 4096, "output": 4096},
+    "scales": {"operator": "1", "reverse_action": "255/256"}
+  },
+  "identity_reverse_pair_sign_fault": {
+    "fixture_id": "identity_reverse_pair_sign_fault",
+    "kind": "injected_reverse_pair_sign",
+    "seeds": {"pair_base": "0x4e4f524d00000402"},
+    "dimensions": {"input": 4096, "output": 4096, "pairs": 2048},
+    "scales": {"operator": "1", "forward_pair": "[1,1]", "reverse_pair": "[1,-1]"}
+  }
+}
+```
+
+`registered_faults` has exactly those three keys in that order. The result
+validator requires recursive equality with these literal metadata objects; it
+does not accept equivalent numeric encodings, reordered keys, extra metadata,
+or constructor-supplied substitutions.
+
 ## Result contract and decision
 
 The JSON result has these top-level keys in this order and no others:
@@ -219,6 +360,8 @@ candidate_values_computed
 stage_a_verdict
 uses_test_data
 protocol
+execution_audit
+source
 environment
 correct_fixtures
 registered_faults
@@ -230,7 +373,31 @@ Fixed values are `schema_version=1`,
 `mode="cpu_synthetic_calibration"`, `candidate_values_computed=false`,
 `stage_a_verdict="NOT_COMPUTED"`, and `uses_test_data="synthetic_only"`.
 `protocol` has exactly `path`, `sha256`, and `commit`, binding this document's
-committed bytes. `environment` has exactly `device`, `torch_threads`,
+committed bytes and Git blob. Its path is exactly
+`docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md`, its
+digest is lowercase 64-hex, and its commit is full lowercase 40-hex. The commit
+must be an ancestor of or equal to `source.git_revision`; the protocol bytes in
+that Git commit, the executing worktree, and the recorded digest must agree.
+`execution_audit` has exactly these keys in order:
+
+```text
+executing_git_commit
+calibration_source_commit
+calibration_cli_path
+calibration_cli_sha256
+```
+
+The commits are full lowercase 40-hex strings with the ancestor relationship
+defined above. `calibration_cli_path` is exactly
+`scripts/calibrate_pass200_rsta_normwise_adjoint.py`; its digest is lowercase
+64-hex and equals the executing worktree, executing Git blob, and source entry.
+`source` has exactly `git_revision` and `files`. `git_revision` equals
+`execution_audit.calibration_source_commit`; `files` has exactly the three
+ordered path keys listed in **Frozen CPU process**, each mapped directly to its
+lowercase 64-hex SHA-256 string. No path wrapper object or alternate encoding is
+permitted.
+
+`environment` has exactly `device`, `torch_threads`,
 `torch_interop_threads`, `deterministic_algorithms`, `autocast`, `model_dtype`,
 `reduction_dtype`, `python_version`, `torch_version`, and `numpy_version`, with
 fixed values `cpu`, `1`, `1`, `true`, `false`, `torch.float32`, and
@@ -269,7 +436,7 @@ threshold
 passed
 ```
 
-`seeds`, `dimensions`, and `scales` reproduce the literal construction above.
+`seeds`, `dimensions`, and `scales` equal the literal objects above recursively.
 For faults, hashes and norms bind the substituted action tensors and `controls`
 has the single exact key `unmodified`, whose value has exactly
 `jvp_sha256`, `vjp_sha256`, `beta_norm`, and `passed`. For correct fixtures,
@@ -284,10 +451,19 @@ and `passed`. `threshold` is always `0.0005`.
 every registered fault is at least `5e-4` and has the required separation, and
 every schema/provenance/finite check passes.
 
-If any condition fails, calibration is falsified. Publish the complete atomic
-candidate-free result with `all_passed=false`, keep RSTA blocked, and make no
-threshold, seed, scale, dimension, fixture, or fault adjustment. A new theory
-and new prospective protocol would be required.
+After successful publication, exit code is exactly `0` when `all_passed=true`
+and exactly `1` when `all_passed=false`. Structural, provenance, validation, or
+publication failure exits exactly `2`; it must not fabricate an `all_passed`
+value or overwrite any destination.
+
+If any numerical condition fails, calibration is falsified. Publish and commit
+the complete structurally valid candidate-free result with `all_passed=false`,
+record its SHA-256 and commit, keep RSTA blocked, and make no threshold, seed,
+scale, dimension, fixture, or fault adjustment. This durable negative artifact
+is evidence and must not be deleted or replaced. A new theory and new
+prospective protocol would be required. A structural/provenance/publication
+failure may have no valid result to commit; preserve its external execution log
+and stop without a rerun that changes any registered constant.
 
 ## Permitted transition after calibration
 
