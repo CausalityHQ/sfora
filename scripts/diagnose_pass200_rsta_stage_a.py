@@ -1447,39 +1447,8 @@ def _validate_registered_rows(
                     raise ValueError("seed audit transform/tensor SHA-256 differs")
 
 
-def scientific_payload(
-    *,
-    manifest_audit: Mapping[str, Any],
-    environment: Mapping[str, Any],
-    seed_audits: Sequence[Mapping[str, Any]],
-    primary_rows: Sequence[Mapping[str, Any]],
-    alternate_rows: Sequence[Mapping[str, Any]],
-    integrity: Mapping[str, Any],
-    aggregation: Mapping[str, Any],
-    bootstrap: Mapping[str, Any],
-    panel_binding: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Build the non-lossy scientific result contract; aggregate-only output is forbidden."""
-    if ENVIRONMENT_AUDIT_FIELDS - set(environment):
-        raise ValueError("scientific environment audit is incomplete")
-    if (
-        environment.get("cublas_workspace_config") != ":4096:8"
-        or environment.get("deterministic_algorithms") is not True
-        or environment.get("deterministic_warn_only") is not False
-        or environment.get("cudnn_benchmark") is not False
-        or environment.get("cuda_matmul_tf32") is not False
-        or environment.get("cudnn_tf32") is not False
-        or environment.get("autocast") is not False
-        or environment.get("model_arithmetic") != "float32"
-        or environment.get("reduction_arithmetic") != "float64"
-    ):
-        raise ValueError("scientific environment differs from the frozen deterministic gates")
-    if not primary_rows or not alternate_rows:
-        raise ValueError("scientific result requires primary and alternate receiver rows")
-    for row in primary_rows:
-        _validate_receiver_audit_row(row, expected_panel="primary")
-    for row in alternate_rows:
-        _validate_receiver_audit_row(row, expected_panel="alternate")
+def _validate_fixture_integrity(integrity: Mapping[str, Any]) -> None:
+    """Enforce the frozen dense-Jacobian and bufferless-BN fixture gates."""
     dense = integrity.get("dense_fixture")
     if not isinstance(dense, Mapping) or dense.get("passed") is not True:
         raise ValueError("integrity gate failed: dense_fixture")
@@ -1513,6 +1482,42 @@ def scientific_payload(
         for value in (bn.get("max_output_residual"), bn.get("max_gradient_residual"))
     ):
         raise ValueError("BN fixture residual or buffer audit failed")
+
+
+def scientific_payload(
+    *,
+    manifest_audit: Mapping[str, Any],
+    environment: Mapping[str, Any],
+    seed_audits: Sequence[Mapping[str, Any]],
+    primary_rows: Sequence[Mapping[str, Any]],
+    alternate_rows: Sequence[Mapping[str, Any]],
+    integrity: Mapping[str, Any],
+    aggregation: Mapping[str, Any],
+    bootstrap: Mapping[str, Any],
+    panel_binding: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the non-lossy scientific result contract; aggregate-only output is forbidden."""
+    if ENVIRONMENT_AUDIT_FIELDS - set(environment):
+        raise ValueError("scientific environment audit is incomplete")
+    if (
+        environment.get("cublas_workspace_config") != ":4096:8"
+        or environment.get("deterministic_algorithms") is not True
+        or environment.get("deterministic_warn_only") is not False
+        or environment.get("cudnn_benchmark") is not False
+        or environment.get("cuda_matmul_tf32") is not False
+        or environment.get("cudnn_tf32") is not False
+        or environment.get("autocast") is not False
+        or environment.get("model_arithmetic") != "float32"
+        or environment.get("reduction_arithmetic") != "float64"
+    ):
+        raise ValueError("scientific environment differs from the frozen deterministic gates")
+    if not primary_rows or not alternate_rows:
+        raise ValueError("scientific result requires primary and alternate receiver rows")
+    for row in primary_rows:
+        _validate_receiver_audit_row(row, expected_panel="primary")
+    for row in alternate_rows:
+        _validate_receiver_audit_row(row, expected_panel="alternate")
+    _validate_fixture_integrity(integrity)
     integrity_seeds = integrity.get("seeds")
     if not isinstance(integrity_seeds, Sequence) or {
         audit.get("seed") for audit in integrity_seeds if isinstance(audit, Mapping)
@@ -2741,19 +2746,156 @@ def _default_rotation_auditor(
     return {"seed": int(seed), **audit}
 
 
-def _integrity_then_score(
+def _integrity_only(
     *,
     repeatability_runner: Callable[[], Any],
     adjoint_runner: Callable[[], Any],
     rotation_runner: Callable[[], Any],
-    score_runner: Callable[[], Any],
-) -> tuple[Any, Any, Any, Any]:
-    """Run every first-batch integrity gate before exposing a candidate score."""
+) -> tuple[Any, Any, Any]:
+    """Run the ordered first-batch integrity gates without candidate scoring."""
     repeatability = repeatability_runner()
     adjoint = adjoint_runner()
     rotation = rotation_runner()
-    scores = score_runner()
-    return repeatability, adjoint, rotation, scores
+    return repeatability, adjoint, rotation
+
+
+def _registered_first_batch_integrity(
+    model: Any,
+    images: Any,
+    labels: Any,
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    seed: int,
+    alpha: float,
+    delta: float,
+    receiver_indices: Sequence[int],
+    context: Mapping[str, Any],
+    expected_dimension: int,
+    rotation_auditor: Callable[..., dict[str, Any]],
+    head_name: str,
+    expected_head_in_features: int,
+) -> dict[str, Any]:
+    """Run the exact registered first batch once, repeat it, and audit its operators."""
+    import torch
+
+    prehead, raw_head, captured = capture_prehead_and_raw(
+        model,
+        images,
+        head_name=head_name,
+        expected_in_features=expected_head_in_features,
+        expected_out_features=expected_dimension,
+    )
+    fields = exact_contextual_rsta_fields(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        alpha=alpha,
+        delta=delta,
+        receiver_indices=receiver_indices,
+        expected_batch_size=180,
+        expected_dimension=expected_dimension,
+    )
+    if not torch.equal(torch.nn.functional.normalize(captured, dim=-1), fields["z"]):
+        raise ValueError("prehead control forward differs from exact field graph")
+    names = {"z": "z", "dbar": "dbar", "b": "batch_motion", "s": "self_motion"}
+    detached = {key: fields[key].detach().clone() for key in names.values()}
+    detached["receiver_indices"] = fields["receiver_indices"]
+    first_hashes = {name: _torch_tensor_sha256(detached[key]) for name, key in names.items()}
+    del fields
+
+    def run_repeatability() -> dict[str, dict[str, str]]:
+        repeated = exact_contextual_rsta_fields(
+            model,
+            images,
+            labels,
+            proxies,
+            proxy_labels,
+            alpha=alpha,
+            delta=delta,
+            receiver_indices=receiver_indices,
+            expected_batch_size=180,
+            expected_dimension=expected_dimension,
+        )
+        result = {
+            name: {
+                "first_sha256": first_hashes[name],
+                "repeat_sha256": _torch_tensor_sha256(repeated[key]),
+            }
+            for name, key in names.items()
+        }
+        del repeated
+        if any(
+            hashes["first_sha256"] != hashes["repeat_sha256"] for hashes in result.values()
+        ):
+            raise ValueError("first-batch exact field repeatability failed")
+        return result
+
+    def run_adjoint() -> float:
+        parameter = next(value for value in model.parameters() if value.requires_grad)
+        u, v = registered_adjoint_directions(
+            model,
+            detached["z"].shape,
+            seed=seed,
+            dtype=parameter.dtype,
+            device=parameter.device,
+        )
+        result = adjoint_relative_error(
+            model,
+            images,
+            u,
+            v,
+            expected_batch_size=180,
+            expected_dimension=expected_dimension,
+        )
+        if not np.isfinite(result) or result < 0.0 or result > 5.0e-4:
+            raise ValueError("first-batch adjoint integrity failed")
+        return result
+
+    def run_rotation() -> dict[str, Any]:
+        result = rotation_auditor(
+            model,
+            context,
+            detached,
+            proxies,
+            proxy_labels,
+            seed=seed,
+            expected_dimension=expected_dimension,
+            head_name=head_name,
+            expected_head_in_features=expected_head_in_features,
+        )
+        vectors = result.get("vector_residuals", {})
+        scalars = result.get("statistic_differences", {})
+        if (
+            set(vectors) != _ROTATION_VECTOR_NAMES
+            or set(scalars) != _ROTATION_STATISTIC_NAMES
+            or any(
+                not np.isfinite(float(value)) or float(value) < 0.0 or float(value) > 5.0e-4
+                for value in vectors.values()
+            )
+            or any(
+                not np.isfinite(float(value)) or float(value) < 0.0 or float(value) > 2.0e-4
+                for value in scalars.values()
+            )
+        ):
+            raise ValueError("first-batch rotation integrity failed")
+        return result
+
+    repeatability, adjoint, rotation = _integrity_only(
+        repeatability_runner=run_repeatability,
+        adjoint_runner=run_adjoint,
+        rotation_runner=run_rotation,
+    )
+    return {
+        "fields": detached,
+        "prehead": prehead,
+        "raw_head": raw_head,
+        "repeatability": repeatability,
+        "adjoint_relative_error": adjoint,
+        "rotation": rotation,
+    }
 
 
 def run_scientific_diagnostic(
@@ -2856,211 +2998,85 @@ def run_scientific_diagnostic(
                 labels = torch.as_tensor(
                     [label_by_id[value] for value in batch_ids], device=device, dtype=torch.long
                 )
-                prehead, raw_head, captured = capture_prehead_and_raw(
-                    model,
-                    images,
-                    head_name=head_name,
-                    expected_in_features=expected_head_in_features,
-                    expected_out_features=expected_dimension,
-                )
-                fields = exact_contextual_rsta_fields(
-                    model,
-                    images,
-                    labels,
-                    proxies,
-                    proxy_labels,
-                    alpha=bound.alpha,
-                    delta=bound.delta,
-                    receiver_indices=receiver_indices,
-                    expected_batch_size=180,
-                    expected_dimension=expected_dimension,
-                )
-                captured_z = torch.nn.functional.normalize(captured, dim=-1)
-                if not torch.equal(captured_z, fields["z"]):
-                    raise ValueError("prehead control forward differs from exact field graph")
-
-                score_state = {
-                    "seed": bound.seed,
-                    "panel": panel_name,
-                    "batch_index": batch_index,
+                context = {
+                    "images": images,
+                    "labels": labels,
                     "receiver_indices": receiver_indices,
-                    "receiver_ids": receiver_ids,
-                    "receiver_labels": receiver_labels,
-                    "batch_ids": batch_ids,
+                    "batch_ids": tuple(batch_ids),
                     "support_map": support_map,
                     "foreign_ids": foreign_ids,
                     "foreign_labels": foreign_labels,
                     "foreign_descriptors": foreign_descriptors,
-                    "prehead": np.asarray(prehead.cpu()),
-                    "raw_head": np.asarray(raw_head.cpu()),
                 }
-
-                def score_current(
-                    score_fields: Mapping[str, Any], state: Mapping[str, Any] = score_state
-                ) -> list[dict[str, Any]]:
-                    return score_rsta_batch(
-                        seed=state["seed"],
-                        panel=state["panel"],
-                        batch_index=state["batch_index"],
-                        receiver_indices=state["receiver_indices"],
-                        receiver_ids=state["receiver_ids"],
-                        receiver_labels=state["receiver_labels"],
-                        batch_ids=state["batch_ids"],
-                        tensor_hashes=tensor_hashes,
-                        fields=score_fields,
-                        supports_by_label=state["support_map"],
-                        foreign_ids=state["foreign_ids"],
-                        foreign_labels=state["foreign_labels"],
-                        foreign_descriptors=state["foreign_descriptors"],
-                        prehead_features=state["prehead"],
-                        raw_head_outputs=state["raw_head"],
-                    )
-
                 if panel_name == "primary" and batch_index == 0:
-                    names = {
-                        "z": "z",
-                        "dbar": "dbar",
-                        "b": "batch_motion",
-                        "s": "self_motion",
-                    }
-                    detached_first = {key: fields[key].detach().clone() for key in names.values()}
-                    detached_first["receiver_indices"] = fields["receiver_indices"]
-                    first_hashes = {
-                        name: _torch_tensor_sha256(detached_first[key])
-                        for name, key in names.items()
-                    }
-                    del fields
-                    context = {
-                        "images": images,
-                        "labels": labels,
-                        "receiver_indices": receiver_indices,
-                        "batch_ids": tuple(batch_ids),
-                        "support_map": support_map,
-                        "foreign_ids": foreign_ids,
-                        "foreign_labels": foreign_labels,
-                        "foreign_descriptors": foreign_descriptors,
-                    }
-                    integrity_state = {
-                        "model": model,
-                        "images": images,
-                        "labels": labels,
-                        "proxies": proxies,
-                        "proxy_labels": proxy_labels,
-                        "alpha": bound.alpha,
-                        "delta": bound.delta,
-                        "receiver_indices": receiver_indices,
-                        "dimension": expected_dimension,
-                        "names": names,
-                        "first_hashes": first_hashes,
-                        "detached_first": detached_first,
-                        "seed": bound.seed,
-                        "dtype": dtype,
-                        "device": device,
-                        "rotate": rotate,
-                        "context": context,
-                    }
-
-                    def run_repeatability(
-                        state: Mapping[str, Any] = integrity_state,
-                    ) -> dict[str, dict[str, str]]:
-                        repeated = exact_contextual_rsta_fields(
-                            state["model"],
-                            state["images"],
-                            state["labels"],
-                            state["proxies"],
-                            state["proxy_labels"],
-                            alpha=state["alpha"],
-                            delta=state["delta"],
-                            receiver_indices=state["receiver_indices"],
-                            expected_batch_size=180,
-                            expected_dimension=state["dimension"],
-                        )
-                        result = {
-                            name: {
-                                "first_sha256": state["first_hashes"][name],
-                                "repeat_sha256": _torch_tensor_sha256(repeated[key]),
-                            }
-                            for name, key in state["names"].items()
-                        }
-                        del repeated
-                        if any(
-                            hashes["first_sha256"] != hashes["repeat_sha256"]
-                            for hashes in result.values()
-                        ):
-                            raise ValueError("first-batch exact field repeatability failed")
-                        return result
-
-                    def run_adjoint(state: Mapping[str, Any] = integrity_state) -> float:
-                        u, v = registered_adjoint_directions(
-                            state["model"],
-                            state["detached_first"]["z"].shape,
-                            seed=state["seed"],
-                            dtype=state["dtype"],
-                            device=state["device"],
-                        )
-                        result = adjoint_relative_error(
-                            state["model"],
-                            state["images"],
-                            u,
-                            v,
-                            expected_batch_size=180,
-                            expected_dimension=state["dimension"],
-                        )
-                        if not np.isfinite(result) or result < 0.0 or result > 5.0e-4:
-                            raise ValueError("first-batch adjoint integrity failed")
-                        return result
-
-                    def run_rotation(
-                        state: Mapping[str, Any] = integrity_state,
-                    ) -> dict[str, Any]:
-                        result = state["rotate"](
-                            state["model"],
-                            state["context"],
-                            state["detached_first"],
-                            state["proxies"],
-                            state["proxy_labels"],
-                            seed=state["seed"],
-                            expected_dimension=state["dimension"],
-                            head_name=head_name,
-                            expected_head_in_features=expected_head_in_features,
-                        )
-                        vector_values = result.get("vector_residuals", {})
-                        scalar_values = result.get("statistic_differences", {})
-                        if (
-                            set(vector_values) != _ROTATION_VECTOR_NAMES
-                            or set(scalar_values) != _ROTATION_STATISTIC_NAMES
-                            or any(
-                                not np.isfinite(float(value))
-                                or float(value) < 0.0
-                                or float(value) > 5.0e-4
-                                for value in vector_values.values()
-                            )
-                            or any(
-                                not np.isfinite(float(value))
-                                or float(value) < 0.0
-                                or float(value) > 2.0e-4
-                                for value in scalar_values.values()
-                            )
-                        ):
-                            raise ValueError("first-batch rotation integrity failed")
-                        return result
-
-                    repeatability, adjoint, rotation, rows = _integrity_then_score(
-                        repeatability_runner=run_repeatability,
-                        adjoint_runner=run_adjoint,
-                        rotation_runner=run_rotation,
-                        score_runner=lambda fields=detached_first: score_current(fields),
+                    first = _registered_first_batch_integrity(
+                        model,
+                        images,
+                        labels,
+                        proxies,
+                        proxy_labels,
+                        seed=bound.seed,
+                        alpha=bound.alpha,
+                        delta=bound.delta,
+                        receiver_indices=receiver_indices,
+                        context=context,
+                        expected_dimension=expected_dimension,
+                        rotation_auditor=rotate,
+                        head_name=head_name,
+                        expected_head_in_features=expected_head_in_features,
                     )
-                    destination.extend(rows)
+                    fields = first["fields"]
+                    prehead, raw_head = first["prehead"], first["raw_head"]
                     first_integrity = {
                         "seed": bound.seed,
-                        "repeatability": repeatability,
-                        "adjoint_relative_error": adjoint,
-                        "rotation": rotation,
+                        "repeatability": first["repeatability"],
+                        "adjoint_relative_error": first["adjoint_relative_error"],
+                        "rotation": first["rotation"],
                     }
                 else:
-                    destination.extend(score_current(fields))
-                    del fields
+                    prehead, raw_head, captured = capture_prehead_and_raw(
+                        model,
+                        images,
+                        head_name=head_name,
+                        expected_in_features=expected_head_in_features,
+                        expected_out_features=expected_dimension,
+                    )
+                    fields = exact_contextual_rsta_fields(
+                        model,
+                        images,
+                        labels,
+                        proxies,
+                        proxy_labels,
+                        alpha=bound.alpha,
+                        delta=bound.delta,
+                        receiver_indices=receiver_indices,
+                        expected_batch_size=180,
+                        expected_dimension=expected_dimension,
+                    )
+                    if not torch.equal(
+                        torch.nn.functional.normalize(captured, dim=-1), fields["z"]
+                    ):
+                        raise ValueError("prehead control forward differs from exact field graph")
+                destination.extend(
+                    score_rsta_batch(
+                        seed=bound.seed,
+                        panel=panel_name,
+                        batch_index=batch_index,
+                        receiver_indices=receiver_indices,
+                        receiver_ids=receiver_ids,
+                        receiver_labels=receiver_labels,
+                        batch_ids=batch_ids,
+                        tensor_hashes=tensor_hashes,
+                        fields=fields,
+                        supports_by_label=support_map,
+                        foreign_ids=foreign_ids,
+                        foreign_labels=foreign_labels,
+                        foreign_descriptors=foreign_descriptors,
+                        prehead_features=np.asarray(prehead.cpu()),
+                        raw_head_outputs=np.asarray(raw_head.cpu()),
+                    )
+                )
+                del fields
         if first_integrity is None:
             raise ValueError("scientific primary first-batch integrity context is missing")
         seed_integrity.append(first_integrity)
@@ -3128,6 +3144,162 @@ def run_scientific_diagnostic(
     return payload
 
 
+def run_integrity_smoke(
+    manifest: Mapping[str, Any],
+    *,
+    manifest_path: Path,
+    output_path: Path,
+    seed: int = 0,
+    expected_dimension: int = 512,
+    expected_partition: dict[str, tuple[int, int]] | None = None,
+    source_exporter: Callable[..., dict[str, dict[str, np.ndarray]]] | None = None,
+    manifest_validator: Callable[..., None] = validate_rsta_manifest,
+    bound_loader: Callable[..., TrainingOnlySeedInput] = load_and_bind_seed,
+    cache_builder: Callable[..., DeterministicTransformCache] = cache_seed_training_tensors,
+    model_loader: Callable[[TrainingOnlySeedInput], Any] = _load_scientific_model,
+    fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
+    rotation_auditor: Callable[..., dict[str, Any]] | None = None,
+    head_name: str = "model.embedding",
+    expected_head_in_features: int = 1024,
+) -> dict[str, Any]:
+    """Run the registered Step-7 first-batch integrity gates without candidate scoring."""
+    import torch
+
+    if seed != 0:
+        raise ValueError("Step-7 smoke seed is frozen to 0")
+    environment = configure_deterministic_process()
+    manifest_validator(dict(manifest), manifest_path=manifest_path)
+    bound = bound_loader(
+        manifest["seeds"][str(seed)],
+        seed=seed,
+        source_exporter=source_exporter,
+        expected_partition=expected_partition,
+        expected_dimension=expected_dimension,
+    )
+    fixtures = fixture_runner()
+    _validate_fixture_integrity(fixtures)
+    primary = select_primary_panel(bound.train_example_ids, bound.train_labels)
+    batch_ids = tuple(primary["batches"][0])
+    receiver_ids = tuple(primary["receiver_ids"][:8])
+    receiver_indices = tuple(batch_ids.index(value) for value in receiver_ids)
+    cache = cache_builder(bound, batch_ids)
+    if set(cache.tensor_sha256) != set(batch_ids):
+        raise ValueError("smoke transform cache differs from registered first batch")
+    label_by_id = dict(zip(bound.train_example_ids, bound.train_labels, strict=True))
+    index_by_id = {value: index for index, value in enumerate(bound.train_example_ids)}
+    model = make_bufferless_train_clone(model_loader(bound))
+    parameter_items = [
+        (name, value) for name, value in model.named_parameters() if value.requires_grad
+    ]
+    if not parameter_items:
+        raise ValueError("smoke encoder has no trainable parameters")
+    parameter = parameter_items[0][1]
+    device, dtype = parameter.device, parameter.dtype
+    proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
+    proxy_labels = torch.as_tensor(bound.proxy_labels, device=device, dtype=torch.long)
+    support_map = {
+        label: (
+            tuple(primary["support_ids_by_label"][label]),
+            np.asarray(
+                [
+                    bound.train_embeddings[index_by_id[value]]
+                    for value in primary["support_ids_by_label"][label]
+                ],
+                dtype=np.float32,
+            ),
+        )
+        for label in primary["eligible_labels"]
+    }
+    foreign_ids = tuple(
+        primary["support_ids_by_label"][label][0] for label in primary["eligible_labels"]
+    )
+    foreign_labels = tuple(primary["eligible_labels"])
+    foreign_descriptors = np.asarray(
+        [bound.train_embeddings[index_by_id[value]] for value in foreign_ids], dtype=np.float32
+    )
+    images = cache.batch(batch_ids).to(device=device, dtype=dtype)
+    labels = torch.as_tensor(
+        [label_by_id[value] for value in batch_ids], device=device, dtype=torch.long
+    )
+    context = {
+        "images": images,
+        "labels": labels,
+        "receiver_indices": receiver_indices,
+        "batch_ids": batch_ids,
+        "support_map": support_map,
+        "foreign_ids": foreign_ids,
+        "foreign_labels": foreign_labels,
+        "foreign_descriptors": foreign_descriptors,
+    }
+    rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
+    first = _registered_first_batch_integrity(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        seed=seed,
+        alpha=bound.alpha,
+        delta=bound.delta,
+        receiver_indices=receiver_indices,
+        context=context,
+        expected_dimension=expected_dimension,
+        rotation_auditor=rotate,
+        head_name=head_name,
+        expected_head_in_features=expected_head_in_features,
+    )
+    del first["fields"], first["prehead"], first["raw_head"]
+
+    def json_sha256(value: Any) -> str:
+        encoded = json.dumps(
+            _json_ready(value), sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    tensor_hashes = dict(cache.tensor_sha256)
+    payload = {
+        "schema_version": 1,
+        "diagnostic": "pass200_rsta_stage_a",
+        "mode": "integrity_smoke",
+        "candidate_values_computed": False,
+        "stage_a_verdict": "NOT_COMPUTED",
+        "uses_test_data": "artifact_binding_only",
+        "manifest": {
+            "path": str(manifest_path),
+            "sha256": sha256_file(manifest_path),
+            "preregistration": manifest.get("preregistration"),
+            "artifact_schema": manifest.get("artifact_schema"),
+            "source": manifest.get("source"),
+        },
+        "environment": environment,
+        "binding": {
+            "seed": seed,
+            "artifact_binding_sha256": json_sha256(bound.artifact_binding),
+            "config_sha256": json_sha256(bound.config),
+            "checkpoint_sha256": bound.artifact_binding.get("checkpoint_sha256"),
+            "train_example_id_order_sha256": _ordered_text_sha256(bound.train_example_ids),
+            "train_label_order_sha256": _ordered_int64_sha256(bound.train_labels),
+            "train_source_order_sha256": _ordered_text_sha256(bound.train_source_paths),
+            "proxy_sha256": _numpy_array_sha256(bound.proxies),
+            "proxy_label_sha256": _ordered_int64_sha256(bound.proxy_labels),
+            "parameter_name_order_sha256": _ordered_text_sha256(
+                [name for name, _ in parameter_items]
+            ),
+            "parameter_count": int(sum(value.numel() for _, value in parameter_items)),
+            "first_batch_size": len(batch_ids),
+            "first_batch_id_sha256": _ordered_text_sha256(batch_ids),
+            "receiver_id_sha256": _ordered_text_sha256(receiver_ids),
+            "transform_cache_order_sha256": cache.ordered_id_sha256,
+            "transform_tensor_set_sha256": _ordered_text_sha256(
+                [f"{example_id}\0{tensor_hashes[example_id]}" for example_id in batch_ids]
+            ),
+        },
+        "integrity": {"seed": seed, **fixtures, **first},
+    }
+    write_json_atomic(output_path, payload)
+    return payload
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -3146,11 +3318,12 @@ def main(
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--binding-only", action="store_true")
-    parser.add_argument("--scientific", action="store_true")
+    modes = parser.add_mutually_exclusive_group(required=True)
+    modes.add_argument("--binding-only", action="store_true")
+    modes.add_argument("--smoke-only", action="store_true")
+    modes.add_argument("--scientific", action="store_true")
+    parser.add_argument("--smoke-seed", type=int, choices=(0,), default=0)
     args = parser.parse_args(argv)
-    if args.binding_only == args.scientific:
-        parser.error("choose exactly one of --binding-only or --scientific")
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     if args.binding_only:
         payload = binding_only_payload(
@@ -3161,6 +3334,24 @@ def main(
             expected_dimension=expected_dimension,
         )
         write_json_atomic(args.output, payload)
+    elif args.smoke_only:
+        run_integrity_smoke(
+            manifest,
+            manifest_path=args.manifest,
+            output_path=args.output,
+            seed=args.smoke_seed,
+            expected_dimension=expected_dimension,
+            expected_partition=expected_partition,
+            source_exporter=source_exporter,
+            manifest_validator=manifest_validator,
+            bound_loader=bound_loader,
+            cache_builder=cache_builder,
+            model_loader=model_loader,
+            fixture_runner=fixture_runner,
+            rotation_auditor=rotation_auditor,
+            head_name=head_name,
+            expected_head_in_features=expected_head_in_features,
+        )
     else:
         run_scientific_diagnostic(
             manifest,

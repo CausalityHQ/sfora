@@ -1888,24 +1888,21 @@ def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
     assert grad_modes == [False]
 
 
-def test_first_batch_integrity_runs_before_scoring_and_failure_short_circuits() -> None:
+def test_integrity_only_gate_short_circuits_on_adjoint_failure() -> None:
     events: list[str] = []
 
-    def record(name: str, result: Any) -> Any:
-        events.append(name)
-        return result
+    def fail_adjoint() -> float:
+        events.append("adjoint")
+        raise ValueError("adjoint failed")
 
-    with pytest.raises(ValueError, match="rotation failed"):
-        _MODULE._integrity_then_score(
-            repeatability_runner=lambda: record("repeatability", {"z": {}}),
-            adjoint_runner=lambda: record("adjoint", 0.0),
-            rotation_runner=lambda: (_ for _ in ()).throw(
-                ValueError(record("rotation", "rotation failed"))
-            ),
-            score_runner=lambda: record("score", []),
+    with pytest.raises(ValueError, match="adjoint failed"):
+        _MODULE._integrity_only(
+            repeatability_runner=lambda: events.append("repeatability") or {},
+            adjoint_runner=fail_adjoint,
+            rotation_runner=lambda: events.append("rotation") or {},
         )
 
-    assert events == ["repeatability", "adjoint", "rotation"]
+    assert events == ["repeatability", "adjoint"]
 
 
 def test_contextual_pa_fields_use_full_batch_and_exclude_proxy_parameters() -> None:
@@ -2753,10 +2750,20 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
             return torch.nn.functional.normalize(self.model.embedding(values), dim=-1)
 
     rotation_calls: list[int] = []
+    integrity_score_events: list[str] = []
 
     def rotation_auditor(*args: Any, seed: int, **kwargs: Any) -> dict[str, Any]:
         rotation_calls.append(seed)
+        integrity_score_events.append(f"rotation-{seed}")
         return _MODULE._default_rotation_auditor(*args, seed=seed, **kwargs)
+
+    original_score = _MODULE.score_rsta_batch
+
+    def score_after_integrity(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        integrity_score_events.append(f"score-{kwargs['seed']}")
+        return original_score(*args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "score_rsta_batch", score_after_integrity)
 
     fixture_audit = {
         "dense_fixture": {
@@ -2798,8 +2805,152 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
+    for seed in range(4):
+        assert integrity_score_events.index(f"rotation-{seed}") < integrity_score_events.index(
+            f"score-{seed}"
+        )
     assert result["mode"] == "scientific"
     assert len(result["rows"]["primary"]) == 4 * 64
     assert len(result["rows"]["alternate"]) == 4 * 16
     assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
     assert result["exclusions"] == []
+
+
+@pytest.mark.parametrize(
+    "modes",
+    [
+        (),
+        ("--binding-only", "--smoke-only"),
+        ("--binding-only", "--scientific"),
+        ("--smoke-only", "--scientific"),
+        ("--binding-only", "--smoke-only", "--scientific"),
+    ],
+)
+def test_cli_requires_exactly_one_execution_mode(tmp_path: Path, modes: tuple[str, ...]) -> None:
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    with pytest.raises(SystemExit):
+        _MODULE.main(
+            ["--manifest", str(manifest), "--output", str(tmp_path / "out.json"), *modes]
+        )
+
+
+def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    example_ids, raw_labels = _selection_fixture()
+    labels = [
+        label if index < 210 else 1_000 + (index - 210) // 2
+        for index, label in enumerate(raw_labels)
+    ]
+    generator = np.random.Generator(np.random.PCG64(1200))
+    clean = _unit_numpy(generator.standard_normal((len(example_ids), 3))).astype(np.float32)
+    proxy_labels = tuple(sorted(set(labels)))
+    proxies = _unit_numpy(generator.standard_normal((len(proxy_labels), 3))).astype(np.float32)
+    source_paths = tuple(f"/synthetic/{example_id}.jpg" for example_id in example_ids)
+    bound = _MODULE.TrainingOnlySeedInput(
+        seed=0,
+        train_embeddings=clean,
+        train_labels=tuple(labels),
+        train_example_ids=tuple(example_ids),
+        train_source_paths=source_paths,
+        train_row_indices=tuple(range(len(example_ids))),
+        proxies=proxies,
+        proxy_labels=proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        official_recall_at_1=0.9,
+        checkpoint_path=tmp_path / "seed-0.pt",
+        config={
+            "batch_size": 180,
+            "embedding_dimensions": 3,
+            "proxy_anchor_alpha": 32.0,
+            "proxy_anchor_delta": 0.1,
+        },
+        artifact_binding={"checkpoint_sha256": "1" * 64},
+    )
+    calls: list[str] = []
+
+    def bound_loader(_entry: Any, *, seed: int, **_kwargs: Any) -> Any:
+        calls.append(f"bind-{seed}")
+        assert seed == 0
+        return bound
+
+    def cache_builder(_bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
+        calls.append("cache")
+        sources = {value: value for value in ordered_ids}
+        return _MODULE.cache_deterministic_transforms(
+            ordered_ids,
+            sources,
+            transform=lambda example_id: torch.tensor(
+                np.random.Generator(
+                    np.random.PCG64(_MODULE.domain_seed("tiny-smoke-transform", example_id))
+                ).standard_normal(2),
+                dtype=torch.float32,
+            ),
+        )
+
+    class TinyOfficialHead(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            torch.manual_seed(1201)
+            self.model = torch.nn.Module()
+            self.model.embedding = torch.nn.Linear(2, 3)
+
+        def forward(self, values: torch.Tensor) -> torch.Tensor:
+            return torch.nn.functional.normalize(self.model.embedding(values), dim=-1)
+
+    fixture_audit = {
+        "dense_fixture": {
+            "passed": True,
+            "max_jacobian_residual": 0.0,
+            "max_finite_difference_residual": 0.0,
+            "jacobian_tolerance": 1.0e-8,
+            "finite_difference_tolerance": 1.0e-6,
+        },
+        "bn_fixture": {
+            "passed": True,
+            "max_output_residual": 0.0,
+            "max_gradient_residual": 0.0,
+            "tolerance": 1.0e-6,
+            "buffers_unchanged": True,
+        },
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps({"seeds": {str(seed): {} for seed in range(4)}}), encoding="utf-8"
+    )
+    output = tmp_path / "smoke.json"
+
+    def forbidden(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("smoke touched candidate scoring")
+
+    for name in ("score_rsta_batch", "decide_stage_a", "joint_bootstrap", "scientific_payload"):
+        monkeypatch.setattr(_MODULE, name, forbidden)
+
+    _MODULE.main(
+        ["--manifest", str(manifest_path), "--output", str(output), "--smoke-only"],
+        expected_dimension=3,
+        manifest_validator=lambda _manifest, *, manifest_path: calls.append("manifest"),
+        bound_loader=bound_loader,
+        cache_builder=cache_builder,
+        model_loader=lambda _bound: TinyOfficialHead().train(),
+        fixture_runner=lambda: fixture_audit,
+        head_name="model.embedding",
+        expected_head_in_features=2,
+    )
+
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert calls == ["manifest", "bind-0", "cache"]
+    assert result["mode"] == "integrity_smoke"
+    assert result["candidate_values_computed"] is False
+    assert result["stage_a_verdict"] == "NOT_COMPUTED"
+    assert result["uses_test_data"] == "artifact_binding_only"
+    assert "rows" not in result and "aggregation" not in result and "bootstrap" not in result
+    assert result["integrity"]["seed"] == 0
+    assert set(result["integrity"]["repeatability"]) == {"z", "dbar", "b", "s"}
+    assert result["integrity"]["adjoint_relative_error"] <= 5.0e-4
+    assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
+    assert len(result["binding"]["first_batch_id_sha256"]) == 64
+    assert len(result["binding"]["transform_tensor_set_sha256"]) == 64
