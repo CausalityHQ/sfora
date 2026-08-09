@@ -64,9 +64,20 @@ _SOURCE_EXPORT_KEYS = {
 _FROZEN_SOURCE_FILES = frozenset(
     {
         "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "scripts/diagnose_pass200_rsta_stage_a.py",
         "scripts/export_final_inshop_embeddings.py",
+        "src/sfora/bn_inception.py",
         "src/sfora/data.py",
         "src/sfora/image_end_to_end.py",
+    }
+)
+_DIAGNOSTIC_PATH = "scripts/diagnose_pass200_rsta_stage_a.py"
+_EXECUTION_AUDIT_FIELDS = frozenset(
+    {
+        "executing_git_commit",
+        "diagnostic_path",
+        "diagnostic_sha256",
+        "frozen_source_revision",
     }
 )
 RECEIVER_AUDIT_FIELDS = frozenset(
@@ -717,6 +728,137 @@ def validate_rsta_manifest(manifest: dict[str, Any], *, manifest_path: Path) -> 
             )
 
 
+def _is_lowercase_hex(value: Any, *, length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == length
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def validate_execution_audit(
+    execution_audit: Mapping[str, Any],
+    *,
+    manifest_source: Mapping[str, Any],
+    manifest_path: Path,
+) -> None:
+    """Fail closed unless execution is bound to the frozen diagnostic source."""
+    if not isinstance(execution_audit, Mapping) or set(execution_audit) != (
+        _EXECUTION_AUDIT_FIELDS
+    ):
+        observed = set(execution_audit) if isinstance(execution_audit, Mapping) else None
+        raise ValueError(f"execution audit fields differ: {observed}")
+    executing_commit = execution_audit["executing_git_commit"]
+    if not _is_lowercase_hex(executing_commit, length=40):
+        raise ValueError("execution audit executing Git commit must be a full lowercase hash")
+    diagnostic_path = execution_audit["diagnostic_path"]
+    if diagnostic_path != _DIAGNOSTIC_PATH:
+        raise ValueError(f"execution audit diagnostic path differs: {diagnostic_path}")
+    diagnostic_sha256 = execution_audit["diagnostic_sha256"]
+    if not _is_lowercase_hex(diagnostic_sha256, length=64):
+        raise ValueError("execution audit diagnostic SHA-256 must be lowercase hex")
+    frozen_revision = execution_audit["frozen_source_revision"]
+    if not _is_lowercase_hex(frozen_revision, length=40):
+        raise ValueError("execution audit frozen source revision must be a full lowercase hash")
+    if not isinstance(manifest_source, Mapping):
+        raise ValueError("execution audit requires manifest source metadata")
+    files = manifest_source.get("files")
+    if not isinstance(files, Mapping) or diagnostic_path not in files:
+        raise ValueError("execution audit diagnostic path is not a frozen manifest file")
+    if frozen_revision != manifest_source.get("git_revision"):
+        raise ValueError("execution audit frozen source revision differs from manifest")
+    if diagnostic_sha256 != files[diagnostic_path]:
+        raise ValueError("execution audit diagnostic SHA-256 differs from frozen manifest")
+    repository = manifest_path.resolve().parent.parent
+    diagnostic = (repository / diagnostic_path).resolve()
+    executing_diagnostic = Path(__file__).resolve()
+    if executing_diagnostic != diagnostic:
+        raise ValueError(
+            "execution audit executing diagnostic path differs from manifest repository: "
+            f"{executing_diagnostic} != {diagnostic}"
+        )
+    if not executing_diagnostic.is_file():
+        raise ValueError(
+            f"execution audit executing diagnostic path is missing: {executing_diagnostic}"
+        )
+    observed_sha256 = sha256_file(executing_diagnostic)
+    if observed_sha256 != diagnostic_sha256:
+        raise ValueError(
+            "execution audit diagnostic SHA-256 differs from observed worktree: "
+            f"{observed_sha256}"
+        )
+    commit_check = subprocess.run(
+        ["git", "-C", str(repository), "cat-file", "-e", f"{executing_commit}^{{commit}}"],
+        capture_output=True,
+        check=False,
+    )
+    if commit_check.returncode != 0:
+        raise ValueError(
+            f"execution audit executing Git commit does not resolve: {executing_commit}"
+        )
+    head = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "--verify", "HEAD^{commit}"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    observed_commit = head.stdout.strip()
+    if head.returncode != 0 or not _is_lowercase_hex(observed_commit, length=40):
+        raise ValueError("execution audit repository HEAD does not resolve to a commit")
+    if executing_commit != observed_commit:
+        raise ValueError(
+            "execution audit executing Git commit differs from repository HEAD: "
+            f"{observed_commit}"
+        )
+
+
+def build_execution_audit(
+    manifest: Mapping[str, Any],
+    *,
+    manifest_path: Path,
+) -> dict[str, Any]:
+    """Derive deterministic executing-source provenance from the manifest repository."""
+    source = manifest.get("source")
+    files = source.get("files") if isinstance(source, Mapping) else None
+    if not isinstance(source, Mapping) or not isinstance(files, Mapping):
+        raise ValueError("execution audit requires manifest source metadata")
+    if _DIAGNOSTIC_PATH not in files:
+        raise ValueError("execution audit diagnostic path is not a frozen manifest file")
+    repository = manifest_path.resolve().parent.parent
+    head = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "--verify", "HEAD^{commit}"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    executing_commit = head.stdout.strip()
+    if head.returncode != 0 or not _is_lowercase_hex(executing_commit, length=40):
+        raise ValueError("execution audit repository HEAD does not resolve to a commit")
+    diagnostic = (repository / _DIAGNOSTIC_PATH).resolve()
+    executing_diagnostic = Path(__file__).resolve()
+    if executing_diagnostic != diagnostic:
+        raise ValueError(
+            "execution audit executing diagnostic path differs from manifest repository: "
+            f"{executing_diagnostic} != {diagnostic}"
+        )
+    if not executing_diagnostic.is_file():
+        raise ValueError(
+            f"execution audit executing diagnostic path is missing: {executing_diagnostic}"
+        )
+    audit = {
+        "executing_git_commit": executing_commit,
+        "diagnostic_path": _DIAGNOSTIC_PATH,
+        "diagnostic_sha256": sha256_file(executing_diagnostic),
+        "frozen_source_revision": source.get("git_revision"),
+    }
+    validate_execution_audit(
+        audit,
+        manifest_source=source,
+        manifest_path=manifest_path,
+    )
+    return audit
+
+
 def _ordered_text_sha256(values: Sequence[str]) -> str:
     return hashlib.sha256("\n".join(str(value) for value in values).encode("utf-8")).hexdigest()
 
@@ -751,6 +893,7 @@ def binding_only_payload(
 ) -> dict[str, Any]:
     """Run only immutable artifact/source gates and return a non-scientific audit."""
     validate_rsta_manifest(manifest, manifest_path=manifest_path)
+    execution_audit = build_execution_audit(manifest, manifest_path=manifest_path)
     bounds = [
         load_and_bind_seed(
             manifest["seeds"][str(seed)],
@@ -782,6 +925,7 @@ def binding_only_payload(
         "candidate_values_computed": False,
         "stage_a_verdict": "NOT_COMPUTED",
         "uses_test_data": "artifact_binding_only",
+        "execution_audit": execution_audit,
         "manifest": {
             "path": str(manifest_path),
             "sha256": sha256_file(manifest_path),
@@ -1487,6 +1631,7 @@ def _validate_fixture_integrity(integrity: Mapping[str, Any]) -> None:
 def scientific_payload(
     *,
     manifest_audit: Mapping[str, Any],
+    execution_audit: Mapping[str, Any],
     environment: Mapping[str, Any],
     seed_audits: Sequence[Mapping[str, Any]],
     primary_rows: Sequence[Mapping[str, Any]],
@@ -1497,6 +1642,15 @@ def scientific_payload(
     panel_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build the non-lossy scientific result contract; aggregate-only output is forbidden."""
+    manifest_path = manifest_audit.get("path")
+    manifest_source = manifest_audit.get("source")
+    if not isinstance(manifest_path, str) or not isinstance(manifest_source, Mapping):
+        raise ValueError("scientific manifest audit lacks execution-binding metadata")
+    validate_execution_audit(
+        execution_audit,
+        manifest_source=manifest_source,
+        manifest_path=Path(manifest_path),
+    )
     if ENVIRONMENT_AUDIT_FIELDS - set(environment):
         raise ValueError("scientific environment audit is incomplete")
     if (
@@ -1606,6 +1760,7 @@ def scientific_payload(
             "rotation, not hidden-layer rescaling or AdamW preconditioning"
         ),
         "manifest": _json_ready(manifest_audit),
+        "execution_audit": _json_ready(execution_audit),
         "environment": _json_ready(environment),
         "integrity": _json_ready(integrity),
         "seed_audits": _json_ready(seed_audits),
@@ -2920,6 +3075,7 @@ def run_scientific_diagnostic(
 
     environment = configure_deterministic_process()
     manifest_validator(dict(manifest), manifest_path=manifest_path)
+    execution_audit = build_execution_audit(manifest, manifest_path=manifest_path)
     bounds = [
         bound_loader(
             manifest["seeds"][str(seed)],
@@ -3126,6 +3282,7 @@ def run_scientific_diagnostic(
             "artifact_schema": manifest.get("artifact_schema"),
             "source": manifest.get("source"),
         },
+        execution_audit=execution_audit,
         environment=environment,
         seed_audits=seed_audits,
         primary_rows=primary_rows,
@@ -3183,6 +3340,7 @@ def run_integrity_smoke(
         raise ValueError("Step-7 smoke seed is frozen to 0")
     environment = configure_deterministic_process()
     manifest_validator(dict(manifest), manifest_path=manifest_path)
+    execution_audit = build_execution_audit(manifest, manifest_path=manifest_path)
     bound = bound_loader(
         manifest["seeds"][str(seed)],
         seed=seed,
@@ -3278,6 +3436,7 @@ def run_integrity_smoke(
         "candidate_values_computed": False,
         "stage_a_verdict": "NOT_COMPUTED",
         "uses_test_data": "artifact_binding_only",
+        "execution_audit": execution_audit,
         "manifest": {
             "path": str(manifest_path),
             "sha256": sha256_file(manifest_path),

@@ -86,9 +86,21 @@ and decision point:
 - [DML-ALA](https://openaccess.thecvf.com/content_CVPR_2020/html/Zheng_Deep_Metric_Learning_via_Adaptive_Learnable_Assessment_CVPR_2020_paper.html)
   learns scalar sample weights from a validation objective. RSTA changes the
   empirical tangent field rather than sample eligibility or weight.
-- NINT (arXiv:2511.15487) uses NTK-mediated influence to select coordinates, but
-  does not target `K_ii dbar_i` or train a batch-versus-self receiver alignment.
-  Semantic Granularity Alignment (arXiv:2603.10785) analyzes self/off-diagonal NTK
+- [DoCL, AISTATS 2021](https://proceedings.mlr.press/v130/zhou21a.html) scores a
+  receiver/sample using its raw residual/cotangent aligned with the total functional
+  velocity and uses that score for curriculum sampling. It occupies the raw-cotangent
+  target and eligibility mechanism, not RSTA's receiver-self target.
+- [MGS, NeurIPS 2022](https://papers.nips.cc/paper_files/paper/2022/hash/67b0579a7298d9cf39c59404d867bdd7-Abstract-Conference.html)
+  explicitly derives self motion `K_ii d_i` and batch motion `sum_j K_ij d_j`, and
+  regularizes global empirical-NTK trace/determinant. It does not align those two
+  receiver-specific fields.
+- NINT (arXiv:2511.15487) intends a score exactly `||b_i||^2` (up to sign and
+  domain) and uses it for coordinate selection, without `s_i` or field alignment.
+- NINT implementation disclosure: official commit `293bcd2` unpacks
+  `torch.func.jvp` as `w_flat, _`, selecting the primal rather than the JVP; the
+  paper's intended object is therefore treated here as conceptual prior art, not as
+  evidence that the released implementation computes that object.
+- Semantic Granularity Alignment (arXiv:2603.10785) analyzes self/off-diagonal NTK
   terms but executes hierarchical sampling and reweighting rather than a direct
   receiver-velocity intervention.
 - Internal candidate 223 covers generic component-gradient projection, candidate
@@ -98,10 +110,14 @@ and decision point:
   `J_i`-mapped self target. Treating all non-collinear gradient methods as identical
   was the repaired Gate-2 error documented for Pass159.
 
-Therefore the exact conjunction `K_iB dbar_B` aligned to `K_ii dbar_i` remains
-**LIVE-NARROW**, not established novel/SOTA. A singleton PA surrogate is forbidden:
-PA's proxy-level log-sum-exp and present-proxy reductions make its cotangent differ
-from the executed contextual batch cotangent.
+Therefore the narrowest defensible proposition is the exact conjunction of a
+contextual receiver velocity, a receiver-self target, and a differentiated
+receiver-specific cosine-plus-norm penalty. It leaves sample eligibility unchanged.
+Broader ingredients are occupied, and collision risk is high under any looser
+combination standard. This exact conjunction remains **LIVE-NARROW**, not established
+novel/SOTA. A singleton PA surrogate is forbidden: PA's proxy-level log-sum-exp and
+present-proxy reductions make its cotangent differ from the executed contextual batch
+cotangent.
 
 ## Gate 3 — Stage-A preregistration
 
@@ -236,6 +252,10 @@ For every receiver record
   `1-cos(s_head,dbar_i) <=1e-5`. This cannot kill or pass full RSTA because the
   backbone/BN kernel can change the result.
 
+The already-frozen Stage-A receiver schema does not contain `cos(b_i,dbar_i)`, so it
+is not added retrospectively. A matched raw-cotangent control is mandatory in Stage B
+to compare RSTA's receiver-self target directly with DoCL's occupied target.
+
 For an alternate-context check, take identity-order positions 0 and 1 **before final
 batch-row hashing** from every primary group. Retain primary identity order and chunk
 the resulting 16 labels as positions 0--7 and 8--15. Combine each with 172
@@ -281,8 +301,10 @@ receiver-margin alignment by at least 0.03 cosine relative to receiver-self moti
 
 1. pooled `Delta >=0.03`, bootstrap lower bound `>0`, and at least three of four
    seed means `>=0.02`;
-2. pooled `A_self-A_desc >0` with bootstrap lower bound `>0`, identifying self-NTK
-   action rather than merely reusing the raw descriptor cotangent;
+2. pooled `A_self-A_desc >0` with bootstrap lower bound `>0`; this is the load-bearing
+   prior-art non-collapse gate distinguishing RSTA's receiver-self target from DoCL's
+   occupied raw-cotangent target, rather than merely reusing that descriptor
+   cotangent;
 3. pooled median `rho >=0.20` and median `|log_ratio| >= log(1.10)`, identifying both
    directional and magnitude defects needed by the registered two-term penalty;
 4. absolute deranged-q pooled Delta `<=0.01`; and

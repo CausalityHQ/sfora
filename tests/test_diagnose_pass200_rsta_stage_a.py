@@ -1470,7 +1470,9 @@ def _synthetic_rsta_manifest(
     preregistration.write_text("frozen synthetic preregistration\n", encoding="utf-8")
     source_paths = (
         "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "scripts/diagnose_pass200_rsta_stage_a.py",
         "scripts/export_final_inshop_embeddings.py",
+        "src/sfora/bn_inception.py",
         "src/sfora/data.py",
         "src/sfora/image_end_to_end.py",
     )
@@ -1524,13 +1526,77 @@ def _synthetic_rsta_manifest(
     }
     manifest_path = docs / "pass200_rsta_stage_a_manifest.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    subprocess.run(
+        [
+            "git",
+            "add",
+            "docs/pass200.md",
+            "docs/pass159_stage_a_manifest.json",
+            "docs/pass200_rsta_stage_a_manifest.json",
+        ],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "commit synthetic manifest"], cwd=root, check=True
+    )
     return manifest_path, exporters
 
 
+def _synthetic_execution_manifest(
+    root: Path,
+    *,
+    seeds: dict[str, Any] | None = None,
+) -> tuple[Path, dict[str, Any]]:
+    diagnostic_path = "scripts/diagnose_pass200_rsta_stage_a.py"
+    diagnostic = root / diagnostic_path
+    diagnostic.parent.mkdir(parents=True, exist_ok=True)
+    diagnostic.write_text("EXECUTION_SCHEMA = 1\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "rsta@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "RSTA Test"], cwd=root, check=True)
+    subprocess.run(["git", "add", diagnostic_path], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "freeze diagnostic"], cwd=root, check=True)
+    frozen_revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    manifest = {
+        "source": {
+            "git_revision": frozen_revision,
+            "files": {diagnostic_path: _sha256_file(diagnostic)},
+        },
+        "seeds": seeds or {str(seed): {} for seed in range(4)},
+    }
+    manifest_path = root / "docs" / "manifest.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    subprocess.run(["git", "add", "docs/manifest.json"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "commit manifest"], cwd=root, check=True)
+    return manifest_path, manifest
+
+
+def _bind_synthetic_executing_diagnostic(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    manifest_path: Path,
+) -> None:
+    repository = manifest_path.resolve().parent.parent
+    monkeypatch.setattr(
+        _MODULE,
+        "__file__",
+        str(repository / "scripts" / "diagnose_pass200_rsta_stage_a.py"),
+    )
+
+
 def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_schema(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     manifest_path, exporters = _synthetic_rsta_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
     output = tmp_path / "binding.json"
     calls: list[int] = []
 
@@ -1564,6 +1630,12 @@ def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_sche
     assert [seed["seed"] for seed in result["binding"]["seeds"]] == [0, 1, 2, 3]
     assert all(seed["train_row_count"] == 6 for seed in result["binding"]["seeds"])
     assert result["manifest"]["sha256"] == _sha256_file(manifest_path)
+    assert result["execution_audit"]["diagnostic_path"] == (
+        "scripts/diagnose_pass200_rsta_stage_a.py"
+    )
+    assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
+        "files"
+    ]["scripts/diagnose_pass200_rsta_stage_a.py"]
 
 
 @pytest.mark.parametrize(
@@ -1629,6 +1701,180 @@ def test_manifest_source_requires_exact_frozen_file_set(tmp_path: Path, mutation
 
     with pytest.raises(ValueError, match="source file keys"):
         _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize(
+    "path_text",
+    ["scripts/diagnose_pass200_rsta_stage_a.py", "src/sfora/bn_inception.py"],
+)
+def test_manifest_source_requires_each_executing_source(tmp_path: Path, path_text: str) -> None:
+    """Catches omission of either source that directly executes the scientific field."""
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["source"]["files"].pop(path_text)
+
+    with pytest.raises(ValueError, match="source file keys"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize(
+    "path_text",
+    ["scripts/diagnose_pass200_rsta_stage_a.py", "src/sfora/bn_inception.py"],
+)
+def test_manifest_source_rejects_executing_source_worktree_drift(
+    tmp_path: Path, path_text: str
+) -> None:
+    """Catches executing a diagnostic/model source differing from the frozen digest."""
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    (tmp_path / path_text).write_text("EXECUTION_SOURCE = 'drifted'\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=f"source SHA-256 mismatch for {path_text}"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize(
+    "path_text",
+    ["scripts/diagnose_pass200_rsta_stage_a.py", "src/sfora/bn_inception.py"],
+)
+def test_manifest_source_rejects_executing_source_revision_drift(
+    tmp_path: Path, path_text: str
+) -> None:
+    """Catches a frozen revision whose executing source blob differs from the worktree."""
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source_path = tmp_path / path_text
+    original = source_path.read_text(encoding="utf-8")
+    source_path.write_text("EXECUTION_SOURCE = 'revision-drift'\n", encoding="utf-8")
+    subprocess.run(["git", "add", path_text], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "drift executing source"], cwd=tmp_path, check=True
+    )
+    drift_revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    source_path.write_text(original, encoding="utf-8")
+    manifest["source"]["git_revision"] = drift_revision
+
+    with pytest.raises(
+        ValueError, match=f"revision blob SHA-256 mismatch for {path_text}"
+    ):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+def test_execution_audit_accepts_manifest_commit_descended_from_frozen_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches requiring executing HEAD to equal, rather than bind, the source revision."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+
+    audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+    _MODULE.validate_execution_audit(
+        audit,
+        manifest_source=manifest["source"],
+        manifest_path=manifest_path,
+    )
+
+    assert set(audit) == {
+        "executing_git_commit",
+        "diagnostic_path",
+        "diagnostic_sha256",
+        "frozen_source_revision",
+    }
+    assert audit["executing_git_commit"] != audit["frozen_source_revision"]
+    assert len(audit["executing_git_commit"]) == 40
+    assert audit["diagnostic_path"] == "scripts/diagnose_pass200_rsta_stage_a.py"
+    assert audit["diagnostic_sha256"] == manifest["source"]["files"][
+        audit["diagnostic_path"]
+    ]
+
+
+def test_execution_audit_rejects_manifest_repository_other_than_executing_module(
+    tmp_path: Path,
+) -> None:
+    """Catches repo-A code falsely reporting the frozen diagnostic found in repo B."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+
+    with pytest.raises(ValueError, match="executing diagnostic path"):
+        _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra"])
+def test_execution_audit_rejects_missing_or_extra_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    """Catches partial or caller-extended execution provenance."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+    audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+    if mutation == "missing":
+        audit.pop("diagnostic_sha256")
+    else:
+        audit["unchecked"] = True
+
+    with pytest.raises(ValueError, match="execution audit fields"):
+        _MODULE.validate_execution_audit(
+            audit,
+            manifest_source=manifest["source"],
+            manifest_path=manifest_path,
+        )
+
+
+@pytest.mark.parametrize("commit", ["HEAD", "f" * 40])
+def test_execution_audit_rejects_malformed_or_unresolvable_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, commit: str
+) -> None:
+    """Catches recording a symbolic, abbreviated, or nonexistent executing revision."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+    audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+    audit["executing_git_commit"] = commit
+
+    with pytest.raises(ValueError, match="executing Git commit"):
+        _MODULE.validate_execution_audit(
+            audit,
+            manifest_source=manifest["source"],
+            manifest_path=manifest_path,
+        )
+
+
+def test_execution_audit_rejects_wrong_diagnostic_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches binding a different frozen file in place of the executed diagnostic."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+    audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+    audit["diagnostic_path"] = "scripts/other.py"
+
+    with pytest.raises(ValueError, match="diagnostic path"):
+        _MODULE.validate_execution_audit(
+            audit,
+            manifest_source=manifest["source"],
+            manifest_path=manifest_path,
+        )
+
+
+def test_execution_audit_rejects_mismatched_script_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches an observed diagnostic hash detached from the manifest's frozen file hash."""
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path)
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+    audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
+    audit["diagnostic_sha256"] = "0" * 64
+
+    with pytest.raises(ValueError, match="diagnostic SHA-256"):
+        _MODULE.validate_execution_audit(
+            audit,
+            manifest_source=manifest["source"],
+            manifest_path=manifest_path,
+        )
 
 
 def test_manifest_source_rejects_nonexistent_git_revision(tmp_path: Path) -> None:
@@ -2212,7 +2458,9 @@ def test_project_and_validate_fields_rejects_registered_vector_defects(defect: s
         _MODULE.project_and_validate_fields(z, **vectors)
 
 
-def _valid_scientific_payload_arguments() -> dict[str, Any]:
+def _valid_scientific_payload_arguments(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> dict[str, Any]:
     example_ids, labels = _selection_fixture()
     primary = _MODULE.select_primary_panel(example_ids, labels)
     alternate = _MODULE.select_alternate_panel(example_ids, labels, primary)
@@ -2369,8 +2617,16 @@ def _valid_scientific_payload_arguments() -> dict[str, Any]:
             for seed in range(4)
         ],
     }
+    manifest_path, manifest = _synthetic_execution_manifest(tmp_path / "execution-binding")
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
+    execution_audit = _MODULE.build_execution_audit(manifest, manifest_path=manifest_path)
     return {
-        "manifest_audit": {"sha256": "b" * 64},
+        "manifest_audit": {
+            "path": str(manifest_path),
+            "sha256": _sha256_file(manifest_path),
+            "source": manifest["source"],
+        },
+        "execution_audit": execution_audit,
         "environment": {
             "cublas_workspace_config": ":4096:8",
             "deterministic_algorithms": True,
@@ -2405,14 +2661,36 @@ def _valid_scientific_payload_arguments() -> dict[str, Any]:
     }
 
 
-def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schema() -> None:
+def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schema(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Catches an aggregate-only result or omission of a registered audit field."""
-    arguments = _valid_scientific_payload_arguments()
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
     payload = _MODULE.scientific_payload(**arguments)
     assert payload["candidate_values_computed"] is True
     assert len(payload["rows"]["primary"]) == 4 * 64
     assert len(payload["rows"]["alternate"]) == 4 * 16
     assert "control_aggregates" in payload["aggregation"]
+    assert payload["execution_audit"] == arguments["execution_audit"]
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "digest_relationship"])
+def test_scientific_payload_independently_rejects_unbound_execution_audit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    """Catches scientific serialization of unchecked caller-supplied execution metadata."""
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    if mutation == "missing":
+        arguments["execution_audit"].pop("diagnostic_sha256")
+    elif mutation == "extra":
+        arguments["execution_audit"]["unchecked"] = True
+    else:
+        arguments["manifest_audit"]["source"]["files"][
+            "scripts/diagnose_pass200_rsta_stage_a.py"
+        ] = "0" * 64
+
+    with pytest.raises(ValueError, match="execution audit fields|diagnostic SHA-256"):
+        _MODULE.scientific_payload(**arguments)
 
 
 @pytest.mark.parametrize(
@@ -2430,10 +2708,15 @@ def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schem
     ],
 )
 def test_scientific_payload_rejects_every_mandatory_invalid_mutation(
-    target: str, field: str, value: Any, message: str
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    target: str,
+    field: str,
+    value: Any,
+    message: str,
 ) -> None:
     """Catches accepting an INVALID row, forged role, hash, or failed rotation gate."""
-    arguments = _valid_scientific_payload_arguments()
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
     if target == "primary_rows":
         arguments[target][0][field] = value
     else:
@@ -2464,9 +2747,11 @@ def test_scientific_payload_rejects_every_mandatory_invalid_mutation(
         "bn_buffers",
     ],
 )
-def test_scientific_payload_binds_ids_hashes_roles_and_integrity(defect: str) -> None:
+def test_scientific_payload_binds_ids_hashes_roles_and_integrity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, defect: str
+) -> None:
     """Catches internally consistent-looking rows detached from the frozen panel/model audit."""
-    arguments = _valid_scientific_payload_arguments()
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
     row = arguments["primary_rows"][0]
     if defect == "duplicate_support":
         row["support_ids"][1] = row["support_ids"][0]
@@ -2752,18 +3037,33 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     rotation_calls: list[int] = []
     integrity_score_events: list[str] = []
 
+    original_execution_audit = _MODULE.build_execution_audit
+
+    def audit_before_scoring(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        integrity_score_events.append("execution-audit")
+        return original_execution_audit(*args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "build_execution_audit", audit_before_scoring)
+
     def rotation_auditor(*args: Any, seed: int, **kwargs: Any) -> dict[str, Any]:
         rotation_calls.append(seed)
         integrity_score_events.append(f"rotation-{seed}")
         return _MODULE._default_rotation_auditor(*args, seed=seed, **kwargs)
 
     original_score = _MODULE.score_rsta_batch
+    original_decide = _MODULE.decide_stage_a
 
     def score_after_integrity(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
         integrity_score_events.append(f"score-{kwargs['seed']}")
         return original_score(*args, **kwargs)
 
     monkeypatch.setattr(_MODULE, "score_rsta_batch", score_after_integrity)
+
+    def decide_after_execution(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        integrity_score_events.append("decision")
+        return original_decide(*args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "decide_stage_a", decide_after_execution)
 
     fixture_audit = {
         "dense_fixture": {
@@ -2781,10 +3081,11 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
             "buffers_unchanged": True,
         },
     }
-    manifest_path = tmp_path / "manifest.json"
-    manifest_path.write_text(
-        json.dumps({"seeds": {str(seed): {} for seed in range(4)}}), encoding="utf-8"
+    manifest_path, _ = _synthetic_execution_manifest(
+        tmp_path,
+        seeds={str(seed): {} for seed in range(4)},
     )
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
     output = tmp_path / "scientific.json"
     validated: list[Path] = []
 
@@ -2805,6 +3106,10 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
+    assert integrity_score_events[0] == "execution-audit"
+    assert integrity_score_events.index("execution-audit") < integrity_score_events.index(
+        "decision"
+    )
     for seed in range(4):
         assert integrity_score_events.index(f"rotation-{seed}") < integrity_score_events.index(
             f"score-{seed}"
@@ -2814,6 +3119,9 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert len(result["rows"]["alternate"]) == 4 * 16
     assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
     assert result["exclusions"] == []
+    assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
+        "files"
+    ]["scripts/diagnose_pass200_rsta_stage_a.py"]
 
 
 @pytest.mark.parametrize(
@@ -2920,10 +3228,11 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
             "buffers_unchanged": True,
         },
     }
-    manifest_path = tmp_path / "manifest.json"
-    manifest_path.write_text(
-        json.dumps({"seeds": {str(seed): {} for seed in range(4)}}), encoding="utf-8"
+    manifest_path, _ = _synthetic_execution_manifest(
+        tmp_path,
+        seeds={str(seed): {} for seed in range(4)},
     )
+    _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
     output = tmp_path / "smoke.json"
 
     def forbidden(*_args: Any, **_kwargs: Any) -> Any:
@@ -2958,6 +3267,9 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert len(result["binding"]["first_batch_id_sha256"]) == 64
     assert len(result["binding"]["transform_tensor_set_sha256"]) == 64
     assert result["binding"]["checkpoint_sha256"] == "1" * 64
+    assert result["execution_audit"]["diagnostic_path"] == (
+        "scripts/diagnose_pass200_rsta_stage_a.py"
+    )
 
 
 @pytest.mark.parametrize(
