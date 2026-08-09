@@ -2136,6 +2136,155 @@ def _dense_affine_fixture() -> tuple[_TinyAffine, torch.Tensor, torch.Tensor]:
     return model, images, cotangents
 
 
+def _legacy_graphful_contextual_fields(
+    model: torch.nn.Module,
+    images: torch.Tensor,
+    labels: torch.Tensor,
+    proxies: torch.Tensor,
+    proxy_labels: torch.Tensor,
+    *,
+    receiver_indices: tuple[int, ...],
+) -> dict[str, torch.Tensor]:
+    """Reproduce the pre-repair field schedule as an exact-value oracle."""
+    from sfora.image_end_to_end import _proxy_anchor_loss
+
+    expected_batch_size = int(images.shape[0])
+    expected_dimension = int(proxies.shape[1])
+    encoder, parameters, parameter_names = _MODULE._functional_encoder(
+        model,
+        images,
+        expected_batch_size=expected_batch_size,
+        expected_dimension=expected_dimension,
+    )
+    z, vjp_function = torch.func.vjp(encoder, parameters)
+    loss = _proxy_anchor_loss(
+        z,
+        labels,
+        proxy_embeddings=proxies.detach(),
+        proxy_labels=proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        torch_module=torch,
+    )
+    dbar = -torch.autograd.grad(loss, z, create_graph=True)[0]
+    global_gradient = vjp_function(dbar)[0]
+    _, batch_motion = torch.func.jvp(
+        encoder,
+        (parameters,),
+        (global_gradient,),
+    )
+    self_rows = []
+    for receiver in receiver_indices:
+        receiver_cotangent = torch.zeros_like(dbar)
+        receiver_cotangent[receiver] = dbar[receiver]
+        receiver_gradient = vjp_function(receiver_cotangent)[0]
+        _, receiver_motion = torch.func.jvp(
+            encoder,
+            (parameters,),
+            (receiver_gradient,),
+        )
+        self_rows.append(receiver_motion[receiver])
+    return {
+        "z": z,
+        "dbar": dbar,
+        "batch_motion": batch_motion,
+        "self_motion": torch.stack(self_rows),
+        "parameter_gradient_flat": _MODULE._flatten_parameter_tree(
+            global_gradient, parameter_names
+        ),
+        "loss": loss,
+    }
+
+
+@pytest.mark.parametrize("fixture", ["dense", "train_bn"])
+def test_exact_contextual_fields_preserve_bits_while_releasing_autograd_graphs(
+    fixture: str,
+) -> None:
+    """Catches detaching too early, numeric rewrites, or returning retained field graphs."""
+    if fixture == "dense":
+        model, images, _ = _dense_affine_fixture()
+        labels = torch.tensor([0, 1, 0], dtype=torch.int64)
+        proxies = torch.tensor(
+            [[0.8, -0.2, 0.5], [-0.4, 0.7, 0.1]], dtype=torch.float64
+        )
+    else:
+        model = _MODULE.make_bufferless_train_clone(_TinyBatchNorm().train())
+        images = torch.tensor([[0.4, -0.3], [1.2, 0.8]], dtype=torch.float64)
+        labels = torch.tensor([0, 1], dtype=torch.int64)
+        proxies = torch.eye(2, dtype=torch.float64)
+    proxy_labels = torch.tensor([0, 1], dtype=torch.int64)
+    receivers = tuple(range(int(images.shape[0])))
+    legacy = _legacy_graphful_contextual_fields(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        receiver_indices=receivers,
+    )
+
+    observed = _MODULE.exact_contextual_rsta_fields(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        receiver_indices=receivers,
+        expected_batch_size=int(images.shape[0]),
+        expected_dimension=int(proxies.shape[1]),
+    )
+
+    for name, legacy_value in legacy.items():
+        assert legacy_value.requires_grad
+        assert legacy_value.grad_fn is not None
+        assert torch.equal(observed[name], legacy_value)
+        assert not observed[name].requires_grad
+        assert observed[name].grad_fn is None
+
+
+class _ForwardLifetimeModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.projection = torch.nn.Linear(2, 3, dtype=torch.float64)
+        self.forward_outputs: list[weakref.ReferenceType[torch.Tensor]] = []
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        output = self.projection(values)
+        self.forward_outputs.append(weakref.ref(output))
+        return output
+
+
+def test_dependency_audit_forward_is_released_before_vjp_construction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches reusing or retaining the allow-unused audit graph for field construction."""
+    model = _ForwardLifetimeModel()
+    images = torch.tensor([[0.2, 0.3], [0.7, -0.4]], dtype=torch.float64)
+    cotangents = torch.tensor([[0.1, -0.2, 0.4], [0.5, 0.3, -0.1]], dtype=torch.float64)
+    original_vjp = torch.func.vjp
+
+    def checked_vjp(function: Callable[..., Any], *primals: Any, **kwargs: Any) -> Any:
+        gc.collect()
+        assert len(model.forward_outputs) == 1
+        assert model.forward_outputs[0]() is None
+        return original_vjp(function, *primals, **kwargs)
+
+    monkeypatch.setattr(torch.func, "vjp", checked_vjp)
+
+    observed = _MODULE.exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0,),
+        expected_batch_size=2,
+        expected_dimension=3,
+    )
+
+    assert observed["parameter_names"] == ("projection.weight", "projection.bias")
+
+
 def test_exact_kernel_fields_match_independent_dense_jacobian_and_central_difference() -> None:
     """Catches transposed VJPs, mixed receivers, or rescaling a JVP without undoing it."""
     model, images, cotangents = _dense_affine_fixture()

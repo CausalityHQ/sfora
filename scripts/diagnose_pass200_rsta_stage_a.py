@@ -2509,6 +2509,33 @@ def _flatten_parameter_tree(tree: Mapping[str, Any], names: Sequence[str]) -> An
     return torch.cat([tree[name].reshape(-1) for name in names])
 
 
+def _validate_encoder_parameter_dependencies(
+    encoder: Callable[[dict[str, Any]], Any],
+    parameters: dict[str, Any],
+    parameter_names: Sequence[str],
+) -> None:
+    """Audit a disposable forward before constructing the retained VJP graph."""
+    import torch
+
+    audit_z = encoder(parameters)
+    dependencies = torch.autograd.grad(
+        audit_z,
+        tuple(parameters.values()),
+        grad_outputs=torch.ones_like(audit_z),
+        allow_unused=True,
+        retain_graph=False,
+        create_graph=False,
+    )
+    missing = [
+        name
+        for name, gradient in zip(parameter_names, dependencies, strict=True)
+        if gradient is None
+    ]
+    del dependencies, audit_z
+    if missing:
+        raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
+
+
 def exact_kernel_fields(
     model: Any,
     images: Any,
@@ -2529,22 +2556,8 @@ def exact_kernel_fields(
             expected_batch_size=expected_batch_size,
             expected_dimension=expected_dimension,
         )
+        _validate_encoder_parameter_dependencies(encoder, parameters, parameter_names)
         z, vjp_function = torch.func.vjp(encoder, parameters)
-        dependencies = torch.autograd.grad(
-            z,
-            tuple(parameters.values()),
-            grad_outputs=torch.ones_like(z),
-            allow_unused=True,
-            retain_graph=True,
-            create_graph=False,
-        )
-        missing = [
-            name
-            for name, gradient in zip(parameter_names, dependencies, strict=True)
-            if gradient is None
-        ]
-        if missing:
-            raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
     else:
         encoder, parameters, parameter_names, z, vjp_function = _graph
     directions = torch.as_tensor(cotangents, device=z.device, dtype=z.dtype)
@@ -2557,30 +2570,48 @@ def exact_kernel_fields(
         or any(value < 0 or value >= int(z.shape[0]) for value in receivers)
     ):
         raise ValueError("receiver indices must be unique in-range batch rows")
-    global_gradient = vjp_function(directions)[0]
-    if set(global_gradient) != set(parameter_names):
+    graphful_global_gradient = vjp_function(directions)[0]
+    if set(graphful_global_gradient) != set(parameter_names):
         raise ValueError("VJP parameter tree differs from the encoder parameter tree")
+    global_gradient = {
+        name: graphful_global_gradient[name].detach().clone() for name in parameter_names
+    }
+    del graphful_global_gradient
     if any(not bool(torch.isfinite(value).all()) for value in global_gradient.values()):
         raise ValueError("global parameter gradient is nonfinite")
-    _, batch_motion = torch.func.jvp(
-        encoder,
-        (parameters,),
-        (global_gradient,),
+    with torch.no_grad():
+        batch_primal, full_batch_motion = torch.func.jvp(
+            encoder,
+            (parameters,),
+            (global_gradient,),
+        )
+    batch_motion = full_batch_motion.detach().clone()
+    parameter_gradient_flat = (
+        _flatten_parameter_tree(global_gradient, parameter_names).detach().clone()
     )
+    del batch_primal, full_batch_motion, global_gradient
     self_rows: list[Any] = []
     self_parameter_norms: list[float] = []
     for receiver in receivers:
         receiver_cotangent = torch.zeros_like(directions)
         receiver_cotangent[receiver] = directions[receiver]
-        receiver_gradient = vjp_function(receiver_cotangent)[0]
-        if any(not bool(torch.isfinite(value).all()) for value in receiver_gradient.values()):
+        graphful_receiver_gradient = vjp_function(receiver_cotangent)[0]
+        receiver_gradient = {
+            name: graphful_receiver_gradient[name].detach().clone()
+            for name in parameter_names
+        }
+        del graphful_receiver_gradient
+        if any(
+            not bool(torch.isfinite(value).all()) for value in receiver_gradient.values()
+        ):
             raise ValueError(f"receiver {receiver} parameter gradient is nonfinite")
-        _, receiver_motion = torch.func.jvp(
-            encoder,
-            (parameters,),
-            (receiver_gradient,),
-        )
-        self_rows.append(receiver_motion[receiver])
+        with torch.no_grad():
+            receiver_primal, full_receiver_motion = torch.func.jvp(
+                encoder,
+                (parameters,),
+                (receiver_gradient,),
+            )
+        self_rows.append(full_receiver_motion[receiver].detach().clone())
         self_parameter_norms.append(
             float(
                 torch.linalg.vector_norm(
@@ -2590,15 +2621,16 @@ def exact_kernel_fields(
                 .cpu()
             )
         )
+        del receiver_cotangent, receiver_gradient, receiver_primal, full_receiver_motion
     return {
-        "z": z,
-        "dbar": directions,
+        "z": z.detach().clone(),
+        "dbar": directions.detach().clone(),
         "batch_motion": batch_motion,
         "self_motion": torch.stack(self_rows),
         "receiver_indices": receivers,
         "parameter_names": parameter_names,
         "parameter_count": int(sum(value.numel() for value in parameters.values())),
-        "parameter_gradient_flat": _flatten_parameter_tree(global_gradient, parameter_names),
+        "parameter_gradient_flat": parameter_gradient_flat,
         "self_parameter_norms": tuple(self_parameter_norms),
     }
 
@@ -2631,22 +2663,8 @@ def exact_contextual_rsta_fields(
         expected_batch_size=expected_batch_size,
         expected_dimension=expected_dimension,
     )
+    _validate_encoder_parameter_dependencies(encoder, parameters, parameter_names)
     z, vjp_function = torch.func.vjp(encoder, parameters)
-    dependencies = torch.autograd.grad(
-        z,
-        tuple(parameters.values()),
-        grad_outputs=torch.ones_like(z),
-        allow_unused=True,
-        retain_graph=True,
-        create_graph=False,
-    )
-    missing = [
-        name
-        for name, gradient in zip(parameter_names, dependencies, strict=True)
-        if gradient is None
-    ]
-    if missing:
-        raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
     if labels.shape != (expected_batch_size,):
         raise ValueError("Proxy Anchor labels differ from exact batch size")
     if proxies.ndim != 2 or proxies.shape[1] != expected_dimension:
@@ -2670,8 +2688,7 @@ def exact_contextual_rsta_fields(
         expected_dimension=expected_dimension,
         _graph=(encoder, parameters, parameter_names, z, vjp_function),
     )
-    fields["loss"] = loss
-    fields["dbar"] = dbar
+    fields["loss"] = loss.detach().clone()
     return fields
 
 
