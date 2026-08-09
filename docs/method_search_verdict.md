@@ -9907,3 +9907,34 @@ number from a transformer, external generative teacher, multiview system, or
 different descriptor lane is a horizon—not provenance for modifying the controlled
 model. No new candidate or GPU run follows. Full map:
 `docs/pass203_sota_gap_map_2026-08-09.md`.
+
+## Pass204 — configured CIS: notable observation, invalid for a method claim
+
+The corrected full summed-union CIS arm reached raw-best In-Shop R@1
+`0.919327613` and immutable-final `0.917428612`. This clears the raw analogue of
+its `0.9180` headline floor and lands close to the registered `0.9195` prediction.
+The configured controls were atomic one-hot `0.916725278/0.913278942`, atomic complementary
+`0.918413279/0.915037277`, and summed dropout `0.916514278/0.914755943`
+(raw-best/final).
+
+The two raw registered-arm deltas (`+0.260234` versus one-hot and `+0.281334`
+versus dropout) clear `+0.10`. The post hoc closest configured control, atomic
+complementary, is `+0.091433` lower but cannot retrospectively fail the threshold.
+The formal screen is non-adjudicable because it erroneously registered a
+“selection-corrected” metric four days after that estimator had already been
+retracted; raw best cannot silently replace it. Independently, the frozen source audit proves that the required
+per-image full-union control is absent, summed versus atomic auxiliary coefficients
+differ by exactly `sqrt(m)` before realized-gradient effects, the complementary arm
+has no cross-image embedding interaction, and the learnable proxy update is not isolated.
+
+**Mechanism lesson:** a raw headline can look positive while its formal metric and
+causal attribution remain invalid. The result is retained as a notable one-seed
+observation with no effect established; it does not establish that a
+summed cross-image coalition—not ordinary multi-label/proxy regularization or update
+scale—caused the gain. Historical “selection-corrected” reporting is forbidden after
+the estimator retraction; raw best, immutable final, and clearly labelled descriptive
+local peak gaps are reported instead. The configured experiment is closed for a CIS
+method, novelty, or SOTA claim and receives no extra training or replication. Only
+the prospectively frozen Pass201 equal-update-norm
+operator diagnostic may hill-climb on this measurement. Full closeout:
+`docs/pass204_cis_closeout_2026-08-09.md`.
