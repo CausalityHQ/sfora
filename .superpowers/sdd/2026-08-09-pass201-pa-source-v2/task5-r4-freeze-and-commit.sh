@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-R=/home/riomus/sfora-pass201-pa-source-v2-r3
-C3="$1"
+R=/home/riomus/sfora-pass201-pa-source-v2-r4
+C4="$1"
 PY=/home/riomus/group-learning/.venv/bin/python
-OUT1=/home/riomus/sfora-pass201-pa-source-v2-r3.pass201-prelaunch-freeze-1.tmp
-OUT2=/home/riomus/sfora-pass201-pa-source-v2-r3.pass201-prelaunch-freeze-2.tmp
+OUT1=/home/riomus/sfora-pass201-pa-source-v2-r4.pass201-prelaunch-freeze-1.tmp
+OUT2=/home/riomus/sfora-pass201-pa-source-v2-r4.pass201-prelaunch-freeze-2.tmp
 CANON="$R/docs/pass201_pa_source_v2_prelaunch.json"
 RUN="$R/reports/generated/pass201_source_v2/run-v2"
 
@@ -42,18 +42,18 @@ test ! -e "$OUT1" && test ! -L "$OUT1"
 test ! -e "$OUT2" && test ! -L "$OUT2"
 test -x "$PY" && test -f "$PY"
 require_idle_queue
-test "$(git ls-remote https://github.com/CausalityHQ/sfora.git refs/heads/devbox/emafactorial | cut -f1)" = "$C3"
+test "$(git ls-remote https://github.com/CausalityHQ/sfora.git refs/heads/devbox/emafactorial | cut -f1)" = "$C4"
 git clone --no-checkout --single-branch --branch devbox/emafactorial \
   https://github.com/CausalityHQ/sfora.git "$R"
 cd "$R"
-git checkout --detach "$C3"
+git checkout --detach "$C4"
 test "$(pwd -P)" = "$R"
-test "$(git rev-parse HEAD)" = "$C3"
+test "$(git rev-parse HEAD)" = "$C4"
 test "$(git cat-file -t HEAD)" = commit
 PARENT_FIELDS=()
 read -r -a PARENT_FIELDS <<< "$(git rev-list --parents -n 1 HEAD)"
 test "${#PARENT_FIELDS[@]}" -eq 2
-test "${PARENT_FIELDS[0]}" = "$C3"
+test "${PARENT_FIELDS[0]}" = "$C4"
 test -z "$(git symbolic-ref -q HEAD || true)"
 require_clean_status
 test ! -e "$OUT1" && test ! -L "$OUT1"
@@ -65,7 +65,6 @@ AUTHOR_IDENT=$(git var GIT_AUTHOR_IDENT)
 COMMITTER_IDENT=$(git var GIT_COMMITTER_IDENT)
 test -n "$AUTHOR_IDENT"
 test -n "$COMMITTER_IDENT"
-git push --dry-run origin "$C3:refs/heads/devbox/emafactorial"
 
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
@@ -240,14 +239,14 @@ test "$(git diff --cached --name-status)" = $'A\tdocs/pass201_pa_source_v2_prela
 test "$(git diff --cached --summary)" = " create mode 100644 docs/pass201_pa_source_v2_prelaunch.json"
 git -c commit.gpgsign=false commit -m "freeze Pass201 PA source v2 launch"
 
-A3=$(git rev-parse HEAD)
+A4=$(git rev-parse HEAD)
 PARENT_FIELDS=()
 read -r -a PARENT_FIELDS <<< "$(git rev-list --parents -n 1 HEAD)"
 test "${#PARENT_FIELDS[@]}" -eq 2
-test "${PARENT_FIELDS[0]}" = "$A3"
-test "${PARENT_FIELDS[1]}" = "$C3"
-test "$(git diff-tree --no-commit-id --name-status -r "$C3" "$A3")" = $'A\tdocs/pass201_pa_source_v2_prelaunch.json'
-test "$(git ls-tree "$A3" docs/pass201_pa_source_v2_prelaunch.json)" = "100644 blob $(git hash-object "$CANON")"$'\t'"docs/pass201_pa_source_v2_prelaunch.json"
+test "${PARENT_FIELDS[0]}" = "$A4"
+test "${PARENT_FIELDS[1]}" = "$C4"
+test "$(git diff-tree --no-commit-id --name-status -r "$C4" "$A4")" = $'A\tdocs/pass201_pa_source_v2_prelaunch.json'
+test "$(git ls-tree "$A4" docs/pass201_pa_source_v2_prelaunch.json)" = "100644 blob $(git hash-object "$CANON")"$'\t'"docs/pass201_pa_source_v2_prelaunch.json"
 test "$(pwd -P)" = "$R"
 test -z "$(git symbolic-ref -q HEAD || true)"
 require_clean_status
@@ -257,7 +256,7 @@ printf 'freeze_timestamp=%s\n' "$TS"
 printf 'freeze_pid_1=%s\n' "$PID1"
 printf 'freeze_pid_2=%s\n' "$PID2"
 printf '%s\n' "$MANIFEST_EVIDENCE"
-printf 'source_commit=%s\n' "$C3"
-printf 'authorization_commit=%s\n' "$A3"
+printf 'source_commit=%s\n' "$C4"
+printf 'authorization_commit=%s\n' "$A4"
 printf 'checkout=%s\n' "$R"
-printf 'push_status=WITHHELD_PENDING_INDEPENDENT_REVIEW\n'
+printf 'transport_status=WITHHELD_PENDING_SSH_FETCH_AND_INDEPENDENT_REVIEW\n'
