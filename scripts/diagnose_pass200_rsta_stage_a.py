@@ -2733,6 +2733,198 @@ def adjoint_relative_error(
     return float((torch.abs(left - right) / denominator).detach().cpu())
 
 
+def _adjoint_direction_metadata(
+    model: Any,
+    output_direction: Any,
+    parameter_direction: Mapping[str, Any],
+    *,
+    output_direction_seed: int,
+    parameter_direction_seed: int,
+) -> dict[str, Any]:
+    """Bind the exact consumed FP32 adjoint directions and parameter topology."""
+    import torch
+
+    parameter_items = [
+        (name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad
+    ]
+    parameter_names = tuple(name for name, _ in parameter_items)
+    if not parameter_names or set(parameter_direction) != set(parameter_names):
+        raise ValueError("adjoint direction must contain every encoder parameter exactly")
+    if any(parameter.dtype != torch.float32 for _, parameter in parameter_items):
+        raise ValueError("adjoint model arithmetic must be torch.float32")
+    if not isinstance(output_direction, torch.Tensor) or output_direction.dtype != torch.float32:
+        raise ValueError("adjoint output direction must be torch.float32")
+    if not bool(torch.isfinite(output_direction).all()):
+        raise ValueError("adjoint output direction must be finite")
+    for name, parameter in parameter_items:
+        direction = parameter_direction[name]
+        if (
+            not isinstance(direction, torch.Tensor)
+            or direction.dtype != torch.float32
+            or direction.shape != parameter.shape
+            or not bool(torch.isfinite(direction).all())
+        ):
+            raise ValueError("adjoint parameter direction differs from model topology")
+    for value in (output_direction_seed, parameter_direction_seed):
+        if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or int(value) < 0:
+            raise ValueError("adjoint direction seed must be an unsigned integer")
+
+    output_bytes = output_direction.detach().cpu().contiguous().numpy().tobytes(order="C")
+    parameter_bytes = b"".join(
+        parameter_direction[name].detach().cpu().contiguous().numpy().tobytes(order="C")
+        for name in parameter_names
+    )
+    return {
+        "direction_domain": "rsta-stage-a-v1",
+        "output_direction_seed": int(output_direction_seed),
+        "parameter_direction_seed": int(parameter_direction_seed),
+        "output_direction_sha256": hashlib.sha256(output_bytes).hexdigest(),
+        "parameter_direction_sha256": hashlib.sha256(parameter_bytes).hexdigest(),
+        "output_shape": [int(value) for value in output_direction.shape],
+        "parameter_name_order_sha256": _ordered_text_sha256(parameter_names),
+        "parameter_count": int(sum(parameter.numel() for _, parameter in parameter_items)),
+        "model_dtype": "torch.float32",
+        "reduction_dtype": "torch.float64",
+    }
+
+
+def _finalize_adjoint_scalars(lhs: Any, rhs: Any) -> dict[str, Any]:
+    """Validate and finalize the frozen float64 adjoint scalar contract."""
+    import torch
+
+    if (
+        not isinstance(lhs, torch.Tensor)
+        or not isinstance(rhs, torch.Tensor)
+        or lhs.dtype != torch.float64
+        or rhs.dtype != torch.float64
+        or lhs.numel() != 1
+        or rhs.numel() != 1
+    ):
+        raise ValueError("adjoint scalars must be scalar float64 tensors")
+    absolute_error = torch.abs(lhs - rhs)
+    denominator = torch.maximum(
+        torch.maximum(torch.abs(lhs), torch.abs(rhs)),
+        torch.as_tensor(1.0e-12, dtype=torch.float64, device=lhs.device),
+    )
+    relative_error = absolute_error / denominator
+    scalars = (lhs, rhs, absolute_error, denominator, relative_error)
+    if any(not bool(torch.isfinite(value).all()) for value in scalars):
+        raise ValueError("adjoint scalar or derived value is nonfinite")
+    lhs_value, rhs_value, error_value, denominator_value, relative_value = (
+        float(value.detach().cpu()) for value in scalars
+    )
+    tolerance = 5.0e-4
+    return {
+        "lhs": lhs_value,
+        "rhs": rhs_value,
+        "absolute_error": error_value,
+        "denominator": denominator_value,
+        "relative_error": relative_value,
+        "tolerance": tolerance,
+        "passed": relative_value <= tolerance,
+    }
+
+
+def _float64_adjoint_inner_products(
+    jv: Any,
+    output_direction: Any,
+    tangents: Mapping[str, Any],
+    jtu: Mapping[str, Any],
+    parameter_names: Sequence[str],
+) -> tuple[Any, Any]:
+    """Form only the adjoint products and reductions in float64."""
+    import torch
+
+    names = tuple(parameter_names)
+    if not names or set(tangents) != set(names) or set(jtu) != set(names):
+        raise ValueError("adjoint parameter trees differ from named-parameter order")
+    if (
+        not isinstance(jv, torch.Tensor)
+        or not isinstance(output_direction, torch.Tensor)
+        or jv.dtype != torch.float32
+        or output_direction.dtype != torch.float32
+        or jv.shape != output_direction.shape
+    ):
+        raise ValueError("adjoint output factors must be aligned FP32 tensors")
+    factors = [jv, output_direction]
+    for name in names:
+        tangent = tangents[name]
+        transpose_product = jtu[name]
+        if (
+            not isinstance(tangent, torch.Tensor)
+            or not isinstance(transpose_product, torch.Tensor)
+            or tangent.dtype != torch.float32
+            or transpose_product.dtype != torch.float32
+            or tangent.shape != transpose_product.shape
+        ):
+            raise ValueError("adjoint parameter factors must be aligned FP32 tensors")
+        factors.extend((tangent, transpose_product))
+    if any(not bool(torch.isfinite(value).all()) for value in factors):
+        raise ValueError("adjoint inner-product factor is nonfinite")
+
+    lhs_tensor = (jv.double() * output_direction.double()).sum(dtype=torch.float64)
+    rhs_terms = [
+        (tangents[name].double() * jtu[name].double()).sum(dtype=torch.float64)
+        for name in names
+    ]
+    rhs_tensor = torch.stack(rhs_terms).sum(dtype=torch.float64)
+    if not bool(torch.isfinite(lhs_tensor)) or not bool(torch.isfinite(rhs_tensor)):
+        raise ValueError("adjoint inner-product reduction is nonfinite")
+    return lhs_tensor, rhs_tensor
+
+
+def adjoint_integrity_audit(
+    model: Any,
+    images: Any,
+    output_direction: Any,
+    parameter_direction: Mapping[str, Any],
+    *,
+    output_direction_seed: int,
+    parameter_direction_seed: int,
+    expected_batch_size: int = 180,
+    expected_dimension: int = 512,
+) -> dict[str, Any]:
+    """Return the exact structured FP32-operator/FP64-reduction adjoint audit."""
+    import torch
+
+    metadata = _adjoint_direction_metadata(
+        model,
+        output_direction,
+        parameter_direction,
+        output_direction_seed=output_direction_seed,
+        parameter_direction_seed=parameter_direction_seed,
+    )
+    if not isinstance(images, torch.Tensor) or images.dtype != torch.float32:
+        raise ValueError("adjoint model inputs must be torch.float32")
+    encoder, parameters, parameter_names = _functional_encoder(
+        model,
+        images,
+        expected_batch_size=expected_batch_size,
+        expected_dimension=expected_dimension,
+    )
+    if any(
+        parameter_direction[name].device != parameters[name].device
+        for name in parameter_names
+    ):
+        raise ValueError("adjoint parameter direction device differs from model")
+    z, vjp_function = torch.func.vjp(encoder, parameters)
+    if output_direction.shape != z.shape:
+        raise ValueError("adjoint output direction differs from descriptor shape")
+    if output_direction.device != z.device:
+        raise ValueError("adjoint output direction device differs from descriptor")
+    tangents = {name: parameter_direction[name] for name in parameter_names}
+    _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
+    jtu = vjp_function(output_direction)[0]
+    lhs, rhs = _float64_adjoint_inner_products(
+        jv,
+        output_direction,
+        parameter_direction,
+        jtu,
+        parameter_names,
+    )
+    return {**metadata, **_finalize_adjoint_scalars(lhs, rhs)}
+
+
 def registered_adjoint_directions(
     model: Any,
     output_shape: Sequence[int],

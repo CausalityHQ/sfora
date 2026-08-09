@@ -2873,6 +2873,414 @@ def test_registered_adjoint_directions_use_separate_exact_pcg64_streams() -> Non
     assert images.shape == (3, 2)
 
 
+def test_adjoint_direction_metadata_binds_registered_fp32_tensors_without_resampling() -> None:
+    """Catches hashing regenerated directions or changing their dtype/order/topology."""
+    model = torch.nn.Linear(2, 3, bias=True, dtype=torch.float32).train()
+    parameter_names = tuple(name for name, _ in model.named_parameters())
+    expected_name_hash = hashlib.sha256(
+        "\n".join(parameter_names).encode("utf-8")
+    ).hexdigest()
+
+    for seed in range(4):
+        output, parameters = _MODULE.registered_adjoint_directions(
+            model,
+            (3, 3),
+            seed=seed,
+            dtype=torch.float32,
+            device=torch.device("cpu"),
+        )
+        output_seed = int.from_bytes(
+            hashlib.sha256(
+                b"rsta-stage-a-v1|adjoint-u|\0" + str(seed).encode("utf-8")
+            ).digest()[:8],
+            "big",
+        )
+        parameter_seed = int.from_bytes(
+            hashlib.sha256(
+                b"rsta-stage-a-v1|adjoint-v|\0" + str(seed).encode("utf-8")
+            ).digest()[:8],
+            "big",
+        )
+        expected_output = np.random.Generator(np.random.PCG64(output_seed)).standard_normal(
+            (3, 3)
+        ).astype(np.float32)
+        expected_parameter_flat = np.random.Generator(
+            np.random.PCG64(parameter_seed)
+        ).standard_normal(9).astype(np.float32)
+
+        assert np.array_equal(output.numpy(), expected_output)
+        assert np.array_equal(
+            torch.cat([parameters[name].reshape(-1) for name in parameter_names]).numpy(),
+            expected_parameter_flat,
+        )
+        metadata = _MODULE._adjoint_direction_metadata(
+            model,
+            output,
+            parameters,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+        )
+
+        assert list(metadata) == [
+            "direction_domain",
+            "output_direction_seed",
+            "parameter_direction_seed",
+            "output_direction_sha256",
+            "parameter_direction_sha256",
+            "output_shape",
+            "parameter_name_order_sha256",
+            "parameter_count",
+            "model_dtype",
+            "reduction_dtype",
+        ]
+        assert metadata == {
+            "direction_domain": "rsta-stage-a-v1",
+            "output_direction_seed": output_seed,
+            "parameter_direction_seed": parameter_seed,
+            "output_direction_sha256": hashlib.sha256(
+                expected_output.tobytes(order="C")
+            ).hexdigest(),
+            "parameter_direction_sha256": hashlib.sha256(
+                expected_parameter_flat.tobytes(order="C")
+            ).hexdigest(),
+            "output_shape": [3, 3],
+            "parameter_name_order_sha256": expected_name_hash,
+            "parameter_count": 9,
+            "model_dtype": "torch.float32",
+            "reduction_dtype": "torch.float64",
+        }
+
+
+@pytest.mark.parametrize(
+    ("rhs_value", "expected_passed"),
+    [
+        (np.nextafter(5.0e-16, 0.0), True),
+        (5.0e-16, True),
+        (np.nextafter(5.0e-16, np.inf), False),
+    ],
+)
+def test_finalize_adjoint_scalars_uses_exact_float64_denominator_and_boundary(
+    rhs_value: float,
+    expected_passed: bool,
+) -> None:
+    """Catches a changed denominator, tolerance, boundary, dtype, or finite gate."""
+    result = _MODULE._finalize_adjoint_scalars(
+        torch.tensor(0.0, dtype=torch.float64),
+        torch.tensor(rhs_value, dtype=torch.float64),
+    )
+
+    assert list(result) == [
+        "lhs",
+        "rhs",
+        "absolute_error",
+        "denominator",
+        "relative_error",
+        "tolerance",
+        "passed",
+    ]
+    assert result["lhs"] == 0.0
+    assert result["rhs"] == rhs_value
+    assert result["absolute_error"] == abs(rhs_value)
+    assert result["denominator"] == 1.0e-12
+    assert result["relative_error"] == abs(rhs_value) / np.float64(1.0e-12)
+    assert result["tolerance"] == 5.0e-4
+    assert result["passed"] is expected_passed
+
+    with pytest.raises(ValueError, match="float64"):
+        _MODULE._finalize_adjoint_scalars(
+            torch.tensor(0.0, dtype=torch.float32),
+            torch.tensor(0.0, dtype=torch.float64),
+        )
+    for lhs, rhs in (
+        (float("nan"), 0.0),
+        (0.0, float("inf")),
+        (np.finfo(np.float64).max, -np.finfo(np.float64).max),
+    ):
+        with pytest.raises(ValueError, match="nonfinite"):
+            _MODULE._finalize_adjoint_scalars(
+                torch.tensor(lhs, dtype=torch.float64),
+                torch.tensor(rhs, dtype=torch.float64),
+            )
+
+
+def test_adjoint_inner_products_keep_fp32_operators_and_cast_before_multiply() -> None:
+    """Catches casting after FP32 multiplication or returning FP32 reductions."""
+    jv = torch.tensor([4097.0], dtype=torch.float32)
+    output_direction = torch.tensor([4097.0], dtype=torch.float32)
+    parameter_names = ("second", "first")
+    tangents = {
+        "second": torch.tensor([4097.0], dtype=torch.float32),
+        "first": torch.tensor([-8193.0], dtype=torch.float32),
+    }
+    jtu = {
+        "second": torch.tensor([4097.0], dtype=torch.float32),
+        "first": torch.tensor([4097.0], dtype=torch.float32),
+    }
+    expected_lhs = np.sum(
+        jv.numpy().astype(np.float64)
+        * output_direction.numpy().astype(np.float64),
+        dtype=np.float64,
+    )
+    expected_rhs = np.stack(
+        [
+            np.sum(
+                tangents[name].numpy().astype(np.float64)
+                * jtu[name].numpy().astype(np.float64),
+                dtype=np.float64,
+            )
+            for name in parameter_names
+        ]
+    ).sum(dtype=np.float64)
+
+    lhs, rhs = _MODULE._float64_adjoint_inner_products(
+        jv,
+        output_direction,
+        tangents,
+        jtu,
+        parameter_names,
+    )
+
+    assert lhs.dtype == torch.float64
+    assert rhs.dtype == torch.float64
+    assert lhs.item() == expected_lhs
+    assert rhs.item() == expected_rhs
+    assert all(value.dtype == torch.float32 for value in (jv, output_direction))
+    assert all(value.dtype == torch.float32 for value in (*tangents.values(), *jtu.values()))
+    assert lhs.item() != float((jv * output_direction).sum(dtype=torch.float32))
+
+
+def test_adjoint_float64_reduction_matches_independent_cancellation_reference(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches FP32 cancellation and RHS reduction outside named-parameter order."""
+    jv = torch.tensor([1.0e8, -1.0e8, 1.0, 3.0, 2.0], dtype=torch.float32)
+    output_direction = torch.ones(5, dtype=torch.float32)
+    parameter_names = ("zeta", "alpha", "mu", "beta", "gamma")
+    tangents = {
+        "zeta": torch.tensor([1.0e16], dtype=torch.float32),
+        "alpha": torch.tensor([-1.0e16], dtype=torch.float32),
+        "mu": torch.tensor([1.0], dtype=torch.float32),
+        "beta": torch.tensor([3.0], dtype=torch.float32),
+        "gamma": torch.tensor([2.0], dtype=torch.float32),
+    }
+    jtu = {name: torch.ones(1, dtype=torch.float32) for name in parameter_names}
+    expected_lhs = np.sum(
+        jv.numpy().astype(np.float64)
+        * output_direction.numpy().astype(np.float64),
+        dtype=np.float64,
+    )
+    expected_rhs_terms = [
+        np.sum(
+            tangents[name].numpy().astype(np.float64)
+            * jtu[name].numpy().astype(np.float64),
+            dtype=np.float64,
+        )
+        for name in parameter_names
+    ]
+    expected_rhs = np.stack(expected_rhs_terms).sum(dtype=np.float64)
+    fp32_lhs = float((jv * output_direction).sum(dtype=torch.float32))
+    fp32_relative_error = abs(fp32_lhs - expected_rhs) / max(
+        abs(fp32_lhs), abs(expected_rhs), 1.0e-12
+    )
+    reference_relative_error = abs(expected_lhs - expected_rhs) / max(
+        abs(expected_lhs), abs(expected_rhs), 1.0e-12
+    )
+    real_stack = torch.stack
+    observed_rhs_terms: list[list[float]] = []
+
+    def ordered_stack(values: list[torch.Tensor]) -> torch.Tensor:
+        observed_rhs_terms.append([float(value) for value in values])
+        return real_stack(values)
+
+    monkeypatch.setattr(torch, "stack", ordered_stack)
+    lhs, rhs = _MODULE._float64_adjoint_inner_products(
+        jv,
+        output_direction,
+        tangents,
+        jtu,
+        parameter_names,
+    )
+
+    assert reference_relative_error <= 5.0e-4
+    assert fp32_relative_error > 5.0e-4
+    assert lhs.item() == expected_lhs == 6.0
+    assert rhs.item() == expected_rhs == 6.0
+    assert observed_rhs_terms == [expected_rhs_terms]
+
+
+def test_adjoint_integrity_audit_composes_exact_seventeen_field_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches FP64 operator drift or an incomplete/inconsistent persisted audit."""
+    model = torch.nn.Linear(2, 3, bias=True, dtype=torch.float32).train()
+    images = torch.tensor(
+        [[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float32
+    )
+    output, directions = _MODULE.registered_adjoint_directions(
+        model,
+        (3, 3),
+        seed=2,
+        dtype=torch.float32,
+        device=torch.device("cpu"),
+    )
+    output_seed = int.from_bytes(
+        hashlib.sha256(b"rsta-stage-a-v1|adjoint-u|\0" + b"2").digest()[:8], "big"
+    )
+    parameter_seed = int.from_bytes(
+        hashlib.sha256(b"rsta-stage-a-v1|adjoint-v|\0" + b"2").digest()[:8], "big"
+    )
+    parameter_names = tuple(name for name, _ in model.named_parameters())
+    captured: dict[str, Any] = {}
+    real_jvp = torch.func.jvp
+    real_vjp = torch.func.vjp
+
+    def checked_jvp(
+        func: Callable[..., Any],
+        primals: tuple[dict[str, torch.Tensor]],
+        tangents: tuple[dict[str, torch.Tensor]],
+        **kwargs: Any,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        assert all(value.dtype == torch.float32 for value in primals[0].values())
+        assert all(value.dtype == torch.float32 for value in tangents[0].values())
+        primal, tangent = real_jvp(func, primals, tangents, **kwargs)
+        assert primal.dtype == torch.float32
+        assert tangent.dtype == torch.float32
+        captured["jv"] = tangent.detach().clone()
+        return primal, tangent
+
+    def checked_vjp(
+        func: Callable[..., Any],
+        *primals: dict[str, torch.Tensor],
+        **kwargs: Any,
+    ) -> tuple[torch.Tensor, Callable[..., Any]]:
+        assert all(value.dtype == torch.float32 for value in primals[0].values())
+        primal, vjp_function = real_vjp(func, *primals, **kwargs)
+        assert primal.dtype == torch.float32
+
+        def checked_vjp_function(cotangent: torch.Tensor) -> tuple[dict[str, torch.Tensor]]:
+            assert cotangent.dtype == torch.float32
+            result = vjp_function(cotangent)
+            assert all(value.dtype == torch.float32 for value in result[0].values())
+            captured["jtu"] = {
+                name: value.detach().clone() for name, value in result[0].items()
+            }
+            return result
+
+        return primal, checked_vjp_function
+
+    monkeypatch.setattr(torch.func, "jvp", checked_jvp)
+    monkeypatch.setattr(torch.func, "vjp", checked_vjp)
+    audit = _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=output_seed,
+        parameter_direction_seed=parameter_seed,
+        expected_batch_size=3,
+        expected_dimension=3,
+    )
+
+    expected_lhs = float(
+        (captured["jv"].double() * output.double()).sum(dtype=torch.float64)
+    )
+    expected_rhs = float(
+        torch.stack(
+        [
+            (directions[name].double() * captured["jtu"][name].double()).sum(
+                dtype=torch.float64
+            )
+            for name in parameter_names
+        ]
+        ).sum(dtype=torch.float64)
+    )
+    expected_error = abs(expected_lhs - expected_rhs)
+    expected_denominator = max(abs(expected_lhs), abs(expected_rhs), np.float64(1.0e-12))
+    expected_relative = expected_error / expected_denominator
+    expected_parameter_bytes = b"".join(
+        directions[name].numpy().tobytes(order="C") for name in parameter_names
+    )
+
+    assert list(audit) == [
+        "direction_domain",
+        "output_direction_seed",
+        "parameter_direction_seed",
+        "output_direction_sha256",
+        "parameter_direction_sha256",
+        "output_shape",
+        "parameter_name_order_sha256",
+        "parameter_count",
+        "model_dtype",
+        "reduction_dtype",
+        "lhs",
+        "rhs",
+        "absolute_error",
+        "denominator",
+        "relative_error",
+        "tolerance",
+        "passed",
+    ]
+    assert audit == {
+        "direction_domain": "rsta-stage-a-v1",
+        "output_direction_seed": output_seed,
+        "parameter_direction_seed": parameter_seed,
+        "output_direction_sha256": hashlib.sha256(
+            output.numpy().tobytes(order="C")
+        ).hexdigest(),
+        "parameter_direction_sha256": hashlib.sha256(expected_parameter_bytes).hexdigest(),
+        "output_shape": [3, 3],
+        "parameter_name_order_sha256": hashlib.sha256(
+            "\n".join(parameter_names).encode("utf-8")
+        ).hexdigest(),
+        "parameter_count": 9,
+        "model_dtype": "torch.float32",
+        "reduction_dtype": "torch.float64",
+        "lhs": expected_lhs,
+        "rhs": expected_rhs,
+        "absolute_error": expected_error,
+        "denominator": expected_denominator,
+        "relative_error": expected_relative,
+        "tolerance": 5.0e-4,
+        "passed": expected_relative <= 5.0e-4,
+    }
+
+    with pytest.raises(ValueError, match="every encoder parameter"):
+        _MODULE.adjoint_integrity_audit(
+            model,
+            images,
+            output,
+            {"weight": directions["weight"]},
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+            expected_batch_size=3,
+            expected_dimension=3,
+        )
+    wrong_shape = dict(directions)
+    wrong_shape["bias"] = torch.zeros(4, dtype=torch.float32)
+    with pytest.raises(ValueError, match="topology"):
+        _MODULE.adjoint_integrity_audit(
+            model,
+            images,
+            output,
+            wrong_shape,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+            expected_batch_size=3,
+            expected_dimension=3,
+        )
+    with pytest.raises(ValueError, match="descriptor shape"):
+        _MODULE.adjoint_integrity_audit(
+            model,
+            images,
+            output[:2],
+            directions,
+            output_direction_seed=output_seed,
+            parameter_direction_seed=parameter_seed,
+            expected_batch_size=3,
+            expected_dimension=3,
+        )
+
+
 def test_configure_deterministic_process_requires_preexported_cublas_and_records_gates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
