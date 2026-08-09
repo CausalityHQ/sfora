@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import gc
 import hashlib
 import importlib.util
+import json
+import random
 import sys
+import weakref
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
+import torch
 
 _SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "diagnose_pass200_rsta_stage_a.py"
 _SPEC = importlib.util.spec_from_file_location("diagnose_pass200_rsta_stage_a", _SCRIPT)
@@ -919,3 +926,574 @@ def test_decide_stage_a_requires_all_64_and_all_16_rows_in_every_seed(panel: str
 
     with pytest.raises(ValueError, match="complete"):
         _MODULE.decide_stage_a(primary, alternate)
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_rsta_final_pack(
+    path: Path,
+    *,
+    split: str,
+    embeddings: np.ndarray,
+    labels: np.ndarray,
+    example_ids: list[str],
+    source_paths: list[str],
+    checkpoint_sha256: str,
+    report_sha256: str,
+) -> None:
+    np.savez_compressed(
+        path,
+        embeddings=np.asarray(embeddings, dtype=np.float32),
+        labels=np.asarray(labels, dtype=np.int64),
+        example_ids=np.asarray(example_ids),
+        source_paths=np.asarray(source_paths),
+        artifact_selection=np.asarray("final_training_state"),
+        split=np.asarray(split),
+        checkpoint_sha256=np.asarray(checkpoint_sha256),
+        report_sha256=np.asarray(report_sha256),
+    )
+
+
+def _synthetic_rsta_bundle(
+    root: Path,
+    *,
+    seed: int = 0,
+    source_root: Path | None = None,
+    batch_size: int = 180,
+    proxy_dimension: int = 2,
+    reported_r1: float = 1.0,
+    embedded_checkpoint_digest: str | None = None,
+) -> tuple[
+    dict[str, dict[str, str]],
+    Callable[..., dict[str, dict[str, np.ndarray]]],
+]:
+    root.mkdir(parents=True, exist_ok=True)
+    config = {
+        "dataset_name": "inshop",
+        "objectives": ["proxy_anchor"],
+        "seed": seed,
+        "proxy_anchor_alpha": 32.0,
+        "proxy_anchor_delta": 0.1,
+        "checkpoint_selection_interval": 0,
+        "backbone_name": "bn_inception",
+        "head_pooling": "avg_max",
+        "batch_size": batch_size,
+        "drop_last_train_batch": True,
+        "freeze_batch_norm": False,
+        "freeze_batch_norm_affine": False,
+        "embedding_dimensions": 2,
+    }
+    prehead = {
+        "train": np.asarray(
+            [[1.0, 0.0], [0.9, 0.1], [0.8, 0.2], [0.0, 1.0], [0.1, 0.9], [0.2, 0.8]],
+            dtype=np.float32,
+        ),
+        "query": np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32),
+        "gallery": np.asarray([[0.9, 0.1], [0.1, 0.9]], dtype=np.float32),
+    }
+    labels = {
+        "train": np.asarray([10, 10, 10, 20, 20, 20], dtype=np.int64),
+        "query": np.asarray([30, 40], dtype=np.int64),
+        "gallery": np.asarray([30, 40], dtype=np.int64),
+    }
+    ids = {
+        split: [f"{split}-{index}" for index in range(len(rows))] for split, rows in prehead.items()
+    }
+    sources: dict[str, list[str]] = {}
+    image_root = root / "images" if source_root is None else source_root
+    for split, split_ids in ids.items():
+        sources[split] = []
+        for example_id in split_ids:
+            source = image_root / split / f"{example_id}.jpg"
+            source.parent.mkdir(parents=True, exist_ok=True)
+            source.write_bytes(example_id.encode("ascii"))
+            sources[split].append(str(source.resolve()))
+
+    def normalize(rows: np.ndarray) -> np.ndarray:
+        return rows / np.linalg.norm(rows, axis=1, keepdims=True)
+
+    embeddings = {split: normalize(rows) for split, rows in prehead.items()}
+    report = {
+        "config": config,
+        "methods": {
+            "proxy_anchor_end_to_end:bn_inception": {
+                "dimensions": 2,
+                "recall_at_1": reported_r1,
+            }
+        },
+    }
+    report_path = root / "report.json"
+    report_path.write_text(json.dumps(report), encoding="utf-8")
+    checkpoint_path = root / "checkpoint.pt"
+    torch.save(
+        {
+            "state_dict": {
+                "model.embedding.weight": torch.eye(2),
+                "model.embedding.bias": torch.zeros(2),
+                "metric_proxies": torch.eye(2, proxy_dimension),
+                "metric_proxy_labels": torch.tensor([10, 20]),
+            },
+            "artifact_selection": "final_training_state",
+            "evaluation_model_source": "trained_model",
+            "training_config": config,
+            "training_step": 10,
+        },
+        checkpoint_path,
+    )
+    checkpoint_digest = _sha256_file(checkpoint_path)
+    report_digest = _sha256_file(report_path)
+    np.savez_compressed(
+        root / "prehead.npz",
+        train=prehead["train"],
+        train_labels=labels["train"],
+        query=prehead["query"],
+        query_labels=labels["query"],
+        gallery=prehead["gallery"],
+        gallery_labels=labels["gallery"],
+    )
+    bound_checkpoint_digest = embedded_checkpoint_digest or checkpoint_digest
+    for split in ("train", "query", "gallery"):
+        _write_rsta_final_pack(
+            root / f"{split}.npz",
+            split=split,
+            embeddings=embeddings[split],
+            labels=labels[split],
+            example_ids=ids[split],
+            source_paths=sources[split],
+            checkpoint_sha256=bound_checkpoint_digest,
+            report_sha256=report_digest,
+        )
+    retrieval_path = root / "retrieval.json"
+    retrieval_path.write_text(
+        json.dumps(
+            {
+                "artifact_selection": "final_training_state",
+                "checkpoint_sha256": checkpoint_digest,
+                "report_sha256": report_digest,
+                "resolved_training_steps": 10,
+                "reported_final_recall_at_1": reported_r1,
+                "independent_recall_at_1": 1.0,
+                "canonical_float64_euclidean_recall_at_1": 1.0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    paths = {
+        "prehead_npz": root / "prehead.npz",
+        "checkpoint_pt": checkpoint_path,
+        "report_json": report_path,
+        "train_npz": root / "train.npz",
+        "query_npz": root / "query.npz",
+        "gallery_npz": root / "gallery.npz",
+        "retrieval_json": retrieval_path,
+    }
+    entry = {
+        name: {"path": str(path), "sha256": _sha256_file(path)} for name, path in paths.items()
+    }
+
+    def source_exporter(**_: Any) -> dict[str, dict[str, np.ndarray]]:
+        return {
+            split: {
+                "embeddings": embeddings[split].copy(),
+                "labels": labels[split].copy(),
+                "example_ids": np.asarray(ids[split]),
+                "source_paths": np.asarray(sources[split]),
+                "row_indices": np.arange(len(ids[split]), dtype=np.int64),
+            }
+            for split in ("train", "query", "gallery")
+        }
+
+    return entry, source_exporter
+
+
+_TINY_PARTITION = {"train": (6, 2), "query": (2, 2), "gallery": (2, 2)}
+
+
+def test_load_and_bind_seed_returns_immutable_training_only_scientific_input(
+    tmp_path: Path,
+) -> None:
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path)
+
+    bound = _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+
+    assert isinstance(bound, _MODULE.TrainingOnlySeedInput)
+    assert bound.train_example_ids == tuple(f"train-{index}" for index in range(6))
+    assert bound.train_labels == (10, 10, 10, 20, 20, 20)
+    assert not hasattr(bound, "query_embeddings")
+    assert not hasattr(bound, "gallery_embeddings")
+    assert not hasattr(bound, "query_example_ids")
+    assert not hasattr(bound, "gallery_example_ids")
+    assert bound.train_embeddings.flags.writeable is False
+    with pytest.raises(ValueError, match="cannot set WRITEABLE flag"):
+        bound.train_embeddings.setflags(write=True)
+    with pytest.raises(TypeError):
+        bound.config["objectives"][0] = "tampered"
+    assert set(bound.artifact_binding["current_source_export"]) == {
+        "train",
+        "query",
+        "gallery",
+    }
+    assert all(
+        check["max_abs_descriptor_difference"] == 0.0
+        for check in bound.artifact_binding["current_source_export"].values()
+    )
+    with pytest.raises((AttributeError, TypeError)):
+        bound.seed = 9
+
+
+def test_load_and_bind_seed_rejects_proxy_descriptor_dimension_mismatch(tmp_path: Path) -> None:
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path, proxy_dimension=3)
+
+    with pytest.raises(ValueError, match="proxy descriptor dimension"):
+        _MODULE.load_and_bind_seed(
+            entry,
+            seed=0,
+            source_exporter=source_exporter,
+            expected_partition=_TINY_PARTITION,
+            expected_dimension=2,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("manifest_sha", "manifest SHA-256"),
+        ("embedded_digest", "checkpoint digest"),
+        ("config", "batch_size"),
+        ("id_order", "example-ID order"),
+        ("label_order", "label order"),
+        ("duplicate_index", "row indices"),
+        ("source_membership", "source-path order"),
+        ("descriptor", "descriptors differ"),
+        ("r1", "official R@1"),
+    ],
+)
+def test_load_and_bind_seed_fails_closed_on_every_binding_mismatch(
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    entry, base_exporter = _synthetic_rsta_bundle(
+        tmp_path,
+        batch_size=179 if mutation == "config" else 180,
+        reported_r1=0.5 if mutation == "r1" else 1.0,
+        embedded_checkpoint_digest="f" * 64 if mutation == "embedded_digest" else None,
+    )
+    if mutation == "manifest_sha":
+        entry["prehead_npz"]["sha256"] = "0" * 64
+
+    def source_exporter(**kwargs: Any) -> dict[str, dict[str, np.ndarray]]:
+        exported = base_exporter(**kwargs)
+        if mutation == "id_order":
+            exported["train"]["example_ids"][[0, 1]] = exported["train"]["example_ids"][[1, 0]]
+        elif mutation == "label_order":
+            exported["train"]["labels"][[2, 3]] = exported["train"]["labels"][[3, 2]]
+        elif mutation == "duplicate_index":
+            exported["train"]["row_indices"][1] = 0
+        elif mutation == "source_membership":
+            exported["train"]["source_paths"][[0, 1]] = exported["train"]["source_paths"][[1, 0]]
+        elif mutation == "descriptor":
+            exported["gallery"]["embeddings"][0] = np.asarray([0.0, 1.0])
+        return exported
+
+    with pytest.raises(ValueError, match=message):
+        _MODULE.load_and_bind_seed(
+            entry,
+            seed=0,
+            source_exporter=source_exporter,
+            expected_partition=_TINY_PARTITION,
+            expected_dimension=2,
+        )
+
+
+def test_atomic_json_rejects_nonfinite_without_replacing_existing_output(tmp_path: Path) -> None:
+    output = tmp_path / "binding.json"
+    output.write_text("sentinel\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Out of range float"):
+        _MODULE.write_json_atomic(output, {"value": float("nan")})
+
+    assert output.read_text(encoding="utf-8") == "sentinel\n"
+    assert list(tmp_path.glob(".*.tmp")) == []
+
+    _MODULE.write_json_atomic(output, {"schema_version": 1, "finite": 2.0})
+    assert json.loads(output.read_text(encoding="utf-8")) == {
+        "finite": 2.0,
+        "schema_version": 1,
+    }
+
+
+def _numpy_rng_state_equal(left: tuple[Any, ...], right: tuple[Any, ...]) -> bool:
+    return left[0] == right[0] and np.array_equal(left[1], right[1]) and left[2:] == right[2:]
+
+
+def test_deterministic_transform_cache_is_order_invariant_and_restores_global_rngs() -> None:
+    source_values = {"example-a": 1.0, "example-b": 2.0}
+    materialized: list[str] = []
+
+    def materialize(value: tuple[str, float]) -> float:
+        materialized.append(value[0])
+        return value[1]
+
+    def transform(value: float) -> torch.Tensor:
+        return torch.tensor(
+            [value, random.random(), np.random.random(), torch.rand(()).item()],
+            dtype=torch.float64,
+        )
+
+    random.seed(987)
+    np.random.seed(654)
+    torch.manual_seed(321)
+    python_before = random.getstate()
+    numpy_before = np.random.get_state()
+    torch_before = torch.get_rng_state().clone()
+    ordered_ids = ["example-b", "example-a"]
+
+    cache = _MODULE.cache_deterministic_transforms(
+        ordered_ids,
+        {example_id: (example_id, source_values[example_id]) for example_id in ordered_ids},
+        transform=transform,
+        materialize=materialize,
+    )
+
+    assert random.getstate() == python_before
+    assert _numpy_rng_state_equal(np.random.get_state(), numpy_before)
+    assert torch.equal(torch.get_rng_state(), torch_before)
+
+    assert materialized == ordered_ids
+    assert cache.tensor_sha256 == {
+        "example-b": "dbe836c839ad351099072a4ab66575ea9c2f5e8b82a85cfbeb06dc855e5fa72b",
+        "example-a": "caef1ad2711c486e37f78fbdffc0db895987a9c765f9dc14bea6a9300760e9cd",
+    }
+    assert (
+        cache.ordered_id_sha256
+        == "57da9971203ef92ea031227063af78449810ddf937b48e3f7bb6f3067f76f5eb"
+    )
+    expected_batch = torch.stack(
+        [
+            torch.tensor(
+                [2.0, 0.8618200168998673, 0.880922787539386, 0.8161659836769104],
+                dtype=torch.float64,
+            ),
+            torch.tensor(
+                [1.0, 0.38632329357109396, 0.5420103737595127, 0.11299240589141846],
+                dtype=torch.float64,
+            ),
+        ]
+    )
+    assert torch.equal(cache.batch(ordered_ids), expected_batch)
+
+    reversed_cache = _MODULE.cache_deterministic_transforms(
+        list(reversed(ordered_ids)),
+        {example_id: (example_id, source_values[example_id]) for example_id in ordered_ids},
+        transform=transform,
+        materialize=lambda value: value[1],
+    )
+    for example_id in ordered_ids:
+        assert torch.equal(cache.tensors[example_id], reversed_cache.tensors[example_id])
+        assert cache.tensor_sha256[example_id] == reversed_cache.tensor_sha256[example_id]
+    assert random.getstate() == python_before
+    assert _numpy_rng_state_equal(np.random.get_state(), numpy_before)
+    assert torch.equal(torch.get_rng_state(), torch_before)
+
+
+def test_training_only_input_is_constructed_after_query_gallery_arrays_are_released(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry, base_exporter = _synthetic_rsta_bundle(tmp_path)
+    binding_only_refs: list[weakref.ReferenceType[np.ndarray]] = []
+
+    def source_exporter(**kwargs: Any) -> dict[str, dict[str, np.ndarray]]:
+        exported = base_exporter(**kwargs)
+        for split in ("query", "gallery"):
+            for name in exported[split]:
+                binding_only_refs.append(weakref.ref(exported[split][name]))
+        return exported
+
+    original_type = _MODULE.TrainingOnlySeedInput
+
+    def guarded_constructor(**kwargs: Any) -> object:
+        gc.collect()
+        assert all(reference() is None for reference in binding_only_refs)
+        return original_type(**kwargs)
+
+    monkeypatch.setattr(_MODULE, "TrainingOnlySeedInput", guarded_constructor)
+
+    bound = _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+
+    assert bound.train_example_ids[0] == "train-0"
+
+
+def _synthetic_rsta_manifest(
+    root: Path,
+) -> tuple[Path, dict[int, Callable[..., dict[str, dict[str, np.ndarray]]]]]:
+    docs = root / "docs"
+    docs.mkdir(parents=True)
+    preregistration = docs / "pass200.md"
+    preregistration.write_text("frozen synthetic preregistration\n", encoding="utf-8")
+    source_file = root / "src" / "current_source.py"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text("SOURCE_SCHEMA = 1\n", encoding="utf-8")
+    seeds: dict[str, dict[str, dict[str, str]]] = {}
+    exporters: dict[int, Callable[..., dict[str, dict[str, np.ndarray]]]] = {}
+    common_sources = root / "images"
+    for seed in range(4):
+        entry, exporter = _synthetic_rsta_bundle(
+            root / f"seed-{seed}",
+            seed=seed,
+            source_root=common_sources,
+        )
+        seeds[str(seed)] = entry
+        exporters[seed] = exporter
+    pass159_manifest = docs / "pass159_stage_a_manifest.json"
+    pass159_manifest.write_text(
+        json.dumps({"schema_version": 1, "seeds": seeds}),
+        encoding="utf-8",
+    )
+    manifest = {
+        "schema_version": 1,
+        "preregistration": {
+            "path": "docs/pass200.md",
+            "sha256": _sha256_file(preregistration),
+        },
+        "artifact_schema": {
+            "path": "docs/pass159_stage_a_manifest.json",
+            "sha256": _sha256_file(pass159_manifest),
+        },
+        "source": {
+            "git_revision": "1" * 40,
+            "files": {
+                "src/current_source.py": _sha256_file(source_file),
+            },
+        },
+        "seeds": seeds,
+    }
+    manifest_path = docs / "pass200_rsta_stage_a_manifest.json"
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest_path, exporters
+
+
+def test_binding_only_cli_validates_manifest_and_writes_full_non_scientific_schema(
+    tmp_path: Path,
+) -> None:
+    manifest_path, exporters = _synthetic_rsta_manifest(tmp_path)
+    output = tmp_path / "binding.json"
+    calls: list[int] = []
+
+    def source_exporter(**kwargs: Any) -> dict[str, dict[str, np.ndarray]]:
+        seed = int(kwargs["config"]["seed"])
+        calls.append(seed)
+        return exporters[seed](**kwargs)
+
+    _MODULE.main(
+        [
+            "--manifest",
+            str(manifest_path),
+            "--output",
+            str(output),
+            "--binding-only",
+        ],
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert calls == [0, 1, 2, 3]
+    assert result["schema_version"] == 1
+    assert result["diagnostic"] == "pass200_rsta_stage_a"
+    assert result["mode"] == "binding_only"
+    assert result["candidate_values_computed"] is False
+    assert result["stage_a_verdict"] == "NOT_COMPUTED"
+    assert result["uses_test_data"] == "artifact_binding_only"
+    assert result["binding"]["cross_seed_training_rows_identical"] is True
+    assert [seed["seed"] for seed in result["binding"]["seeds"]] == [0, 1, 2, 3]
+    assert all(seed["train_row_count"] == 6 for seed in result["binding"]["seeds"])
+    assert result["manifest"]["sha256"] == _sha256_file(manifest_path)
+
+
+def test_manifest_validation_rejects_source_and_pass159_schema_drift(tmp_path: Path) -> None:
+    manifest_path, _ = _synthetic_rsta_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source_path = tmp_path / "src" / "current_source.py"
+    source_path.write_text("SOURCE_SCHEMA = 2\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="source SHA-256"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+    source_path.write_text("SOURCE_SCHEMA = 1\n", encoding="utf-8")
+    manifest["seeds"]["0"]["report_json"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="Pass159 manifest seeds"):
+        _MODULE.validate_rsta_manifest(manifest, manifest_path=manifest_path)
+
+
+def test_deterministic_transform_cache_restores_rngs_when_transform_raises() -> None:
+    random.seed(12)
+    np.random.seed(34)
+    torch.manual_seed(56)
+    python_before = random.getstate()
+    numpy_before = np.random.get_state()
+    torch_before = torch.get_rng_state().clone()
+
+    def exploding_transform(_: object) -> torch.Tensor:
+        random.random()
+        np.random.random()
+        torch.rand(())
+        raise RuntimeError("synthetic transform failure")
+
+    with pytest.raises(RuntimeError, match="synthetic transform failure"):
+        _MODULE.cache_deterministic_transforms(
+            ["example-a"],
+            {"example-a": object()},
+            transform=exploding_transform,
+        )
+
+    assert random.getstate() == python_before
+    assert _numpy_rng_state_equal(np.random.get_state(), numpy_before)
+    assert torch.equal(torch.get_rng_state(), torch_before)
+
+
+def test_training_only_seed_routes_selected_sources_through_deterministic_cache(
+    tmp_path: Path,
+) -> None:
+    entry, source_exporter = _synthetic_rsta_bundle(tmp_path)
+    bound = _MODULE.load_and_bind_seed(
+        entry,
+        seed=0,
+        source_exporter=source_exporter,
+        expected_partition=_TINY_PARTITION,
+        expected_dimension=2,
+    )
+    selected = ["train-3", "train-0"]
+
+    cache = _MODULE.cache_seed_training_tensors(
+        bound,
+        selected,
+        transform=lambda value: torch.tensor([float(len(value))]),
+        materialize=lambda path: Path(path).read_bytes(),
+    )
+
+    assert cache.example_ids == tuple(selected)
+    assert torch.equal(cache.batch(selected), torch.tensor([[7.0], [7.0]]))
+    with pytest.raises(ValueError, match="unknown training example IDs"):
+        _MODULE.cache_seed_training_tensors(
+            bound,
+            ["not-a-training-row"],
+            transform=lambda value: torch.tensor([float(len(value))]),
+            materialize=lambda path: Path(path).read_bytes(),
+        )
