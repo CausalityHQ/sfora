@@ -1,0 +1,98 @@
+{
+  "schema_version": "pass201-pa-source-prelaunch-v1",
+  "status": "frozen_before_training",
+  "frozen_at_utc": "2026-08-09T03:29:47Z",
+  "purpose": "Bind the fresh current-code In-Shop Proxy Anchor seed-0 source artifact before it exists; this sidecar is source authority for Pass201 only and cannot reinterpret Pass120.",
+  "local_source_revision": "f42ba573aa86080fd13b62ed19b4669eca1af5f7",
+  "remote_checkout": {
+    "path": "/home/riomus/group-learning",
+    "git_head": "3a1ae1562feb15e89c3a8860f517fbb935b08be6",
+    "git_status_porcelain_v1_z_sha256": "4b07c68f859a404afe16a6a9955d2f5fd566fb5da4c9078479e67cf267472b20",
+    "note": "The remote checkout has unrelated legacy dirt. The complete executed sfora Python source tree, launcher, entry point, dependency files, environment, command, and data are bound independently below."
+  },
+  "source": {
+    "python_tree_root": "src/sfora",
+    "python_file_glob": "*.py recursively",
+    "python_file_count": 28,
+    "python_tree_merkle_sha256": "4e29bd261361ff3a136459e49573179b3a4ab04c2a9a7103bf70ea044a67d431",
+    "python_tree_merkle_algorithm": "From the checkout root: find src/sfora -type f -name '*.py' -print0 | sort -z | xargs -0 sha256sum | sha256sum. The digest binds each relative path and file-content SHA-256 in bytewise path order.",
+    "matches_local_source_revision_tree": true,
+    "files": {
+      ".venv/bin/sfora": {
+        "bytes": 318,
+        "sha256": "5c2290a67f1b7e6727bdcd1c1a7da579e8bf17312f57f314b0de92ce7a289ebe"
+      },
+      "pyproject.toml": {
+        "bytes": 2033,
+        "sha256": "383f0d48117c7fd94fa854a417e4a590a1a52ca01bd7043bf93298e801d9c156"
+      },
+      "scripts/run_pass120_current_pa_control.sh": {
+        "bytes": 1207,
+        "sha256": "068c28c4343bb6da54f3ab952a34b5f43d0f0ef6b7516cde3fb5951dc90769fc"
+      },
+      "uv.lock": {
+        "bytes": 715100,
+        "sha256": "cd59243f29aee529d97ffaf82104183df3a0d921e0dfccea3fe23bc11b095565"
+      }
+    }
+  },
+  "environment": {
+    "python": "3.13.9",
+    "numpy": "2.5.0",
+    "torch": "2.12.1+cu130",
+    "torchvision": "0.27.1+cu130",
+    "cuda_runtime_reported_by_torch": "13.0"
+  },
+  "dataset": {
+    "root": "/home/riomus/datasets/inshop_official_standard",
+    "partition_path": "Eval/list_eval_partition.txt",
+    "partition_bytes": 5007683,
+    "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+    "partition_line_count": 52714,
+    "image_root": "img",
+    "image_file_count": 52712,
+    "image_total_bytes": 842962844,
+    "image_tree_merkle_sha256": "317731ce83fc87d5ee67bf6d301084ef85f01eda8b384cfe110e55fcdc868f5e",
+    "image_tree_merkle_algorithm": "From the dataset root: find img -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum. The digest binds each relative path and file-content SHA-256 in bytewise path order."
+  },
+  "execution": {
+    "working_directory": "/home/riomus/group-learning",
+    "environment": {
+      "PYTHONPATH": "src"
+    },
+    "argv": [
+      ".venv/bin/sfora",
+      "image-end-to-end",
+      "--dataset-name",
+      "inshop",
+      "--dataset-root",
+      "/home/riomus/datasets/inshop_official_standard",
+      "--objectives",
+      "proxy_anchor",
+      "--recipe",
+      "auto",
+      "--num-workers",
+      "8",
+      "--seed",
+      "0",
+      "--save-model-path",
+      "reports/checkpoints/pass120_inshop.proxy_anchor.seed0.current.pt",
+      "--output",
+      "reports/generated/pass120_cis/pass120_inshop.proxy_anchor.seed0.current.json"
+    ],
+    "stdout_stderr_log": "logs/pass120_cis/proxy_anchor.seed0.current.log"
+  },
+  "outputs": {
+    "report": "reports/generated/pass120_cis/pass120_inshop.proxy_anchor.seed0.current.json",
+    "checkpoint": "reports/checkpoints/pass120_inshop.proxy_anchor.seed0.current.pt",
+    "log": "logs/pass120_cis/proxy_anchor.seed0.current.log",
+    "all_absent_when_frozen": true
+  },
+  "postconditions": {
+    "recompute_every_source_and_dataset_digest_before_launch": true,
+    "recompute_every_source_and_dataset_digest_after_exit": true,
+    "require_report_checkpoint_config_identity": true,
+    "require_ordinary_proxy_anchor_seed0_final_training_state_8580_steps": true,
+    "bind_output_hashes_in_separate_activation_manifest_before_any_pass201_tensor_or_gradient": true
+  }
+}

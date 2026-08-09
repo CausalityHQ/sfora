@@ -25,10 +25,20 @@ does not permit a sweep or revised Pass 120 interpretation.
 ## Source activation gate
 
 The sole admissible source is the fresh current-code, seed-0, ordinary Proxy
-Anchor control produced by the matched corrected In-Shop controller.  Its
-actual source revision must be read from that control's report after it lands.
-This draft deliberately does not assume that the source revision is the current
-repository HEAD.
+Anchor control produced by the matched corrected In-Shop controller.  The
+trainer report and checkpoint format do not record the executing Git revision,
+so they cannot be their own source authority.  The prelaunch authority is the
+committed `docs/pass201_pa_source_prelaunch_manifest.json`, frozen while the
+report, checkpoint, and log were all absent.  It binds the complete executed
+`src/sfora` Python tree, launcher, entry point, dependency files, environment,
+exact argv, official partition, and the path/content Merkle root of all 52,712
+dataset images.  Its source tree is byte-identical to local revision
+`f42ba573aa86080fd13b62ed19b4669eca1af5f7`; the unrelated dirty legacy Git
+state of the remote checkout is recorded but is not treated as authority.
+
+The launcher must recompute every prelaunch source and dataset digest before
+training and after process exit.  A mismatch invalidates the PA artifact.  This
+is a repair made before the PA artifact existed, not a post-result choice.
 
 Before this draft can become a preregistration, a separate activation revision
 must commit a `pass201-source-v1` manifest whose values were obtained without
@@ -38,6 +48,8 @@ reading any CIS output:
 {
   "schema_version": "pass201-source-v1",
   "status": "frozen",
+  "prelaunch_source_manifest_path": "docs/pass201_pa_source_prelaunch_manifest.json",
+  "prelaunch_source_manifest_sha256": "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803",
   "source_report_path": null,
   "source_report_sha256": null,
   "source_revision": null,
@@ -65,7 +77,10 @@ and be committed before any checkpoint tensor, transformed input, gradient, or
 outcome is computed.  The runner must recompute all digests and abort on any
 mismatch.
 
-The source checkpoint must be an ordinary-PA checkpoint.  Any coalition,
+The activation revision must verify that the prelaunch manifest itself was
+committed before the report, checkpoint, and log were created, then bind their
+post-run hashes and resolved configuration.  The source checkpoint must be an
+ordinary-PA checkpoint.  Any coalition,
 single, complementary, dropout, residual, selected-on-CIS, older-code, or
 externally published checkpoint is forbidden as a substitute.  If the fresh
 ordinary-PA report/checkpoint pair never lands or cannot be authenticated, the
