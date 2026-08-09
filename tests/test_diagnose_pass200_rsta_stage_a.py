@@ -1330,6 +1330,20 @@ def test_atomic_json_rolls_back_link_when_directory_fsync_fails(
     assert list(tmp_path.glob(".*.tmp")) == []
 
 
+def test_atomic_json_does_not_delete_preexisting_exact_temporary_file(tmp_path: Path) -> None:
+    """Catches cleanup claiming a PID temp file that this call did not create."""
+    output = tmp_path / "result.json"
+    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    sentinel = b"preexisting unowned temporary bytes\n"
+    temporary.write_bytes(sentinel)
+
+    with pytest.raises(FileExistsError):
+        _MODULE.write_json_atomic(output, {"finite": 1.0})
+
+    assert not output.exists()
+    assert temporary.read_bytes() == sentinel
+
+
 def _numpy_rng_state_equal(left: tuple[Any, ...], right: tuple[Any, ...]) -> bool:
     return left[0] == right[0] and np.array_equal(left[1], right[1]) and left[2:] == right[2:]
 
@@ -3562,18 +3576,8 @@ def test_historical_receipt_rejects_nonliteral_path_before_receipt_or_semantic_a
 ) -> None:
     """Catches a manifest-selected fallback receipt reaching parsing or model state."""
     calls: list[str] = []
-    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: calls.append("manifest") or {})
-    monkeypatch.setattr(
-        _MODULE,
-        "_validate_amended_manifest_schema",
-        lambda _manifest: calls.append("manifest-schema")
-        or {
-            "binding_receipt": {
-                "path": _MODULE._HISTORICAL_RECEIPT_PATH,
-                "sha256": _MODULE._HISTORICAL_RECEIPT_SHA256,
-            }
-        },
-    )
+    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: calls.append("json") or {})
+    monkeypatch.setattr(_MODULE, "_git_blob", lambda *_args: calls.append("git") or b"")
     wrong_receipt = tmp_path / "receipt.json"
     wrong_receipt.write_text("{}", encoding="utf-8")
 
@@ -3583,7 +3587,33 @@ def test_historical_receipt_rejects_nonliteral_path_before_receipt_or_semantic_a
             wrong_receipt,
         )
 
-    assert calls == ["manifest", "manifest-schema"]
+    assert calls == []
+
+
+def test_historical_receipt_rejects_digest_before_manifest_or_git_access(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches parsing a manifest before authenticating the sole receipt bytes."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    manifest = docs / "manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    receipt = docs / "pass200_rsta_binding_receipt_d6270a9.json"
+    receipt.write_text("{}", encoding="utf-8")
+    calls: list[str] = []
+    monkeypatch.setattr(
+        _MODULE,
+        "sha256_file",
+        lambda _path: calls.append("hash") or "0" * 64,
+    )
+    monkeypatch.setattr(_MODULE, "load_strict_json", lambda _path: calls.append("json") or {})
+    monkeypatch.setattr(_MODULE, "_git_blob", lambda *_args: calls.append("git") or b"")
+
+    with pytest.raises(ValueError, match="receipt SHA-256 mismatch"):
+        _MODULE.validate_historical_binding_receipt(manifest, receipt)
+
+    assert calls == ["hash"]
 
 
 def test_invalid_amended_manifest_fails_before_receipt_hash_or_git_access(
@@ -3601,7 +3631,7 @@ def test_invalid_amended_manifest_fails_before_receipt_hash_or_git_access(
     monkeypatch.setattr(
         _MODULE,
         "sha256_file",
-        lambda _path: accesses.append("hash") or "0" * 64,
+        lambda _path: accesses.append("hash") or _MODULE._HISTORICAL_RECEIPT_SHA256,
     )
     monkeypatch.setattr(
         _MODULE,
@@ -3612,7 +3642,7 @@ def test_invalid_amended_manifest_fails_before_receipt_hash_or_git_access(
     with pytest.raises(ValueError, match="duplicate"):
         _MODULE.validate_historical_binding_receipt(manifest, receipt)
 
-    assert accesses == []
+    assert accesses == ["hash"]
 
 
 def _tiny_receipt_seed(

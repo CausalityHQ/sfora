@@ -699,7 +699,6 @@ def validate_historical_binding_receipt(
 ) -> ValidatedBindingReceipt:
     """Authenticate the sole historical receipt and its independent Git provenance."""
     repository = manifest_path.resolve().parent.parent
-    manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
     literal_receipt = (repository / _HISTORICAL_RECEIPT_PATH).resolve()
     if receipt_path.resolve() != literal_receipt:
         raise ValueError("binding receipt must use the literal historical receipt path")
@@ -708,6 +707,7 @@ def validate_historical_binding_receipt(
     observed_receipt_digest = sha256_file(literal_receipt)
     if observed_receipt_digest != _HISTORICAL_RECEIPT_SHA256:
         raise ValueError("literal historical receipt SHA-256 mismatch")
+    manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
     if manifest["binding_receipt"] != {
         "path": _HISTORICAL_RECEIPT_PATH,
         "sha256": _HISTORICAL_RECEIPT_SHA256,
@@ -1579,10 +1579,12 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     if path.exists() or path.is_symlink():
         raise FileExistsError(f"output already exists: {path}")
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary_owned = False
     linked = False
     published = False
     try:
         with temporary.open("xb") as stream:
+            temporary_owned = True
             stream.write(encoded)
             stream.flush()
             os.fsync(stream.fileno())
@@ -1597,7 +1599,8 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         finally:
             os.close(directory_fd)
     finally:
-        temporary.unlink(missing_ok=True)
+        if temporary_owned:
+            temporary.unlink(missing_ok=True)
         if linked and not published:
             path.unlink(missing_ok=True)
 
