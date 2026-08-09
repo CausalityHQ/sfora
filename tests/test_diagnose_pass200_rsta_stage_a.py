@@ -1408,7 +1408,7 @@ def test_training_only_input_is_constructed_after_query_gallery_arrays_are_relea
     assert bound.train_example_ids[0] == "train-0"
 
 
-def test_current_source_exporter_wires_real_loader_schema_around_only_forward_mock(
+def test_current_source_exporter_preserves_literal_symlinked_loader_paths(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1417,6 +1417,10 @@ def test_current_source_exporter_wires_real_loader_schema_around_only_forward_mo
     entry, _ = _synthetic_rsta_bundle(tmp_path / "artifacts")
     config = json.loads(Path(entry["report_json"]["path"]).read_text(encoding="utf-8"))["config"]
     dataset_root = tmp_path / "inshop"
+    dataset_root.mkdir()
+    physical_image_root = dataset_root / "img"
+    physical_image_root.mkdir()
+    (dataset_root / "Img").symlink_to(physical_image_root, target_is_directory=True)
     image_root = dataset_root / "Img" / "img"
     image_root.mkdir(parents=True)
     partition_rows = [
@@ -1504,10 +1508,14 @@ def test_current_source_exporter_wires_real_loader_schema_around_only_forward_mo
     for split, expected_ids in zip(("train", "query", "gallery"), traversed, strict=True):
         assert exported[split]["example_ids"].tolist() == expected_ids
         assert exported[split]["labels"].tolist() == expected_labels[split]
-        assert exported[split]["source_paths"].tolist() == [
-            str((dataset_root / "Img" / example_id.split("-", 2)[2]).resolve())
+        expected_literal_paths = [
+            str(dataset_root / "Img" / example_id.split("-", 2)[2])
             for example_id in expected_ids
         ]
+        assert expected_literal_paths != [
+            str(Path(path).resolve()) for path in expected_literal_paths
+        ]
+        assert exported[split]["source_paths"].tolist() == expected_literal_paths
         assert exported[split]["row_indices"].tolist() == [0, 1]
         assert exported[split]["embeddings"].shape == (2, 2)
 

@@ -527,9 +527,7 @@ def _export_current_source(
             "embeddings": np.asarray(embeddings, dtype=np.float32),
             "labels": np.asarray(labels, dtype=np.int64),
             "example_ids": np.asarray([str(example.example_id) for example in examples]),
-            "source_paths": np.asarray(
-                [str(Path(example.image).resolve()) for example in examples]
-            ),
+            "source_paths": np.asarray([str(Path(example.image)) for example in examples]),
             "row_indices": np.arange(len(examples), dtype=np.int64),
         }
     return result
