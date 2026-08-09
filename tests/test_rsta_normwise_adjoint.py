@@ -25,6 +25,12 @@ _PROTOCOL_CORRECT_METADATA = json.loads(r"""{
   "paired_cancellation":{"fixture_id":"paired_cancellation","kind":"paired_cancellation_linear","seeds":{"input":"0x4e4f524d00000301","output_pair_base":"0x4e4f524d00000302","parameter_pair_base":"0x4e4f524d00000303"},"dimensions":{"input":8193,"output":8193,"pairs":4096},"scales":{"positive_pair":"2**10","negative_pair":"-2**10","final":"2**-10"}}
 }""")
 
+_PROTOCOL_FAULT_METADATA = json.loads(r"""{
+  "zero_map_forward_injection":{"fixture_id":"zero_map_forward_injection","kind":"injected_forward_action","seeds":{"x":"0x4e4f524d00000001","output_direction":"0x4e4f524d00000002","parameter_direction":"0x4e4f524d00000003"},"dimensions":{"input":17,"output":17},"scales":{"operator":"0","forward_injection":"2**-10"}},
+  "identity_reverse_scale_fault":{"fixture_id":"identity_reverse_scale_fault","kind":"injected_reverse_scale","seeds":{"shared_direction":"0x4e4f524d00000401"},"dimensions":{"input":4096,"output":4096},"scales":{"operator":"1","reverse_action":"255/256"}},
+  "identity_reverse_pair_sign_fault":{"fixture_id":"identity_reverse_pair_sign_fault","kind":"injected_reverse_pair_sign","seeds":{"pair_base":"0x4e4f524d00000402"},"dimensions":{"input":4096,"output":4096,"pairs":2048},"scales":{"operator":"1","forward_pair":"[1,1]","reverse_pair":"[1,-1]"}}
+}""")
+
 
 def _protocol_literal_equal(actual: Any, expected: Any) -> bool:
     if type(actual) is not type(expected):
@@ -840,3 +846,133 @@ def test_correct_fixture_calibration_band_and_paired_cancellation() -> None:
     assert paired["lhs"] == paired["rhs"] == 2**-10
     assert paired["lhs_absolute_product_sum"] > 1.0
     assert paired["rhs_absolute_product_sum"] > 1.0
+
+
+def test_rebuild_action_order_and_sign_controls_are_exact() -> None:
+    for spec in normwise.correct_fixture_specs():
+        result = normwise.run_fixture_controls(spec)
+        controls = result["controls"]
+        assert list(controls) == [
+            "rebuild",
+            "reversed_action_order",
+            "parameter_sign",
+            "output_sign",
+        ]
+        for name in ("rebuild", "reversed_action_order"):
+            assert controls[name]["exact_action_hash_match"] is True
+            assert controls[name]["jvp_sha256"] == result["jvp_sha256"]
+            assert controls[name]["vjp_sha256"] == result["vjp_sha256"]
+            assert controls[name]["beta_norm"] <= 6.25e-5
+            assert controls[name]["passed"] is True
+        for name in ("parameter_sign", "output_sign"):
+            assert controls[name]["exact_relation"] is True
+            assert controls[name]["beta_norm"] <= 6.25e-5
+            assert controls[name]["passed"] is True
+        assert result["passed"] is True
+
+
+def test_rebuild_control_rejects_altered_later_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original = torch.func.jvp
+    calls = 0
+
+    def altered(*args: Any, **kwargs: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        output, action = original(*args, **kwargs)
+        if calls == 2:
+            action = action + torch.ones_like(action)
+        return output, action
+
+    monkeypatch.setattr(torch.func, "jvp", altered)
+    result = normwise.run_fixture_controls(normwise.correct_fixture_specs()[1])
+    assert result["controls"]["rebuild"]["exact_action_hash_match"] is False
+    assert result["controls"]["rebuild"]["passed"] is False
+    assert result["passed"] is False
+
+
+def test_action_order_control_rejects_order_dependent_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_jvp = torch.func.jvp
+    original_vjp = torch.func.vjp
+    pullback_called = False
+
+    def tracked_vjp(*args: Any, **kwargs: Any) -> Any:
+        nonlocal pullback_called
+        pullback_called = False
+        output, pullback = original_vjp(*args, **kwargs)
+
+        def tracked_pullback(*pullback_args: Any, **pullback_kwargs: Any) -> Any:
+            nonlocal pullback_called
+            pullback_called = True
+            return pullback(*pullback_args, **pullback_kwargs)
+
+        return output, tracked_pullback
+
+    def order_dependent_jvp(*args: Any, **kwargs: Any) -> Any:
+        output, action = original_jvp(*args, **kwargs)
+        if pullback_called:
+            action = action + torch.ones_like(action)
+        return output, action
+
+    monkeypatch.setattr(torch.func, "vjp", tracked_vjp)
+    monkeypatch.setattr(torch.func, "jvp", order_dependent_jvp)
+    result = normwise.run_fixture_controls(normwise.correct_fixture_specs()[1])
+    assert result["controls"]["reversed_action_order"]["exact_action_hash_match"] is False
+    assert result["controls"]["reversed_action_order"]["passed"] is False
+    assert result["passed"] is False
+
+
+def test_registered_fault_construction_and_separation_are_frozen() -> None:
+    specs = normwise.registered_fault_specs()
+    assert tuple(spec.fixture_id for spec in specs) == tuple(_PROTOCOL_FAULT_METADATA)
+    expected_beta = {
+        "zero_map_forward_injection": 2.0,
+        "identity_reverse_scale_fault": 2.0 / 511.0,
+        "identity_reverse_pair_sign_fault": 1.0,
+    }
+    for spec in specs:
+        assert _protocol_literal_equal(spec.metadata, _PROTOCOL_FAULT_METADATA[spec.fixture_id])
+        result = normwise.run_registered_fault(spec)
+        seeds = _PROTOCOL_FAULT_METADATA[spec.fixture_id]["seeds"]
+        if spec.fixture_id == "zero_map_forward_injection":
+            u = _pcg(seeds["output_direction"], (17,))
+            expected_jvp = torch.tensor(2**-10, dtype=torch.float32) * u
+            expected_vjp = torch.tensor(0.0, dtype=torch.float32) * u
+        elif spec.fixture_id == "identity_reverse_scale_fault":
+            q = _pcg(seeds["shared_direction"], (4096,))
+            expected_jvp = q
+            expected_vjp = torch.tensor(255 / 256, dtype=torch.float32) * q
+        else:
+            base = _pcg(seeds["pair_base"], (2048,))
+            expected_jvp = base.repeat_interleave(2)
+            expected_vjp = torch.stack((base, -base), dim=1).reshape(-1)
+        assert (
+            result["jvp_sha256"]
+            == hashlib.sha256(np.ascontiguousarray(expected_jvp.numpy()).tobytes()).hexdigest()
+        )
+        assert (
+            result["vjp_sha256"]
+            == hashlib.sha256(np.ascontiguousarray(expected_vjp.numpy()).tobytes()).hexdigest()
+        )
+        assert result["beta_norm"] == pytest.approx(
+            expected_beta[spec.fixture_id], rel=2.0e-7, abs=2.0e-7
+        )
+        assert result["controls"]["unmodified"]["beta_norm"] <= 6.25e-5
+        assert result["controls"]["unmodified"]["passed"] is True
+        assert result["beta_norm"] >= 5.0e-4
+        assert result["beta_norm"] - result["controls"]["unmodified"]["beta_norm"] >= 4.375e-4
+        assert result["passed"] is True
+
+
+def test_registered_fault_metadata_rejects_any_amplitude_seed_dimension_or_pair_drift() -> None:
+    for fixture_id, literal in _PROTOCOL_FAULT_METADATA.items():
+        for field in ("seeds", "dimensions", "scales"):
+            for key in literal[field]:
+                changed = deepcopy(literal)
+                value = changed[field][key]
+                changed[field][key] = value + 1 if type(value) is int else f"{value}-drift"
+                with pytest.raises(ValueError, match="metadata"):
+                    normwise.run_registered_fault(normwise.FaultSpec(fixture_id, changed))

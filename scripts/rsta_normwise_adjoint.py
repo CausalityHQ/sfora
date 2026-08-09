@@ -152,8 +152,22 @@ class FixtureSpec:
         return str(self.metadata["kind"])
 
 
+@dataclass(frozen=True)
+class FaultSpec:
+    fixture_id: str
+    metadata: dict[str, object]
+
+    @property
+    def kind(self) -> str:
+        return str(self.metadata["kind"])
+
+
 def correct_fixture_specs() -> tuple[FixtureSpec, ...]:
     return tuple(FixtureSpec(name, fixture_metadata(name)) for name in CORRECT_FIXTURE_IDS)
+
+
+def registered_fault_specs() -> tuple[FaultSpec, ...]:
+    return tuple(FaultSpec(name, fixture_metadata(name)) for name in REGISTERED_FAULT_IDS)
 
 
 def _draw(seed: str, shape: tuple[int, ...], *, scale: float = 1.0) -> torch.Tensor:
@@ -212,14 +226,19 @@ def _construct_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
     return {"spec": spec, "tensors": tensors}
 
 
-def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
-    """Execute one frozen correct fixture through real torch.func actions."""
+def _run_fixture_trial(
+    spec: FixtureSpec,
+    *,
+    parameter_sign: int = 1,
+    output_sign: int = 1,
+    reversed_action_order: bool = False,
+) -> tuple[dict[str, object], torch.Tensor, Mapping[str, torch.Tensor], tuple[str, ...]]:
     built = _construct_correct_fixture(spec)
     tensors = built["tensors"]
     if spec.fixture_id == "smooth_parameter_tree":
         names = ("w1", "b1", "w2", "b2")
         primal = {name: tensors[name] for name in names}
-        tangent = {name: tensors[f"v_{name}"] for name in names}
+        tangent = {name: parameter_sign * tensors[f"v_{name}"] for name in names}
         fixed_input = tensors["input"]
 
         def function(parameters: Mapping[str, torch.Tensor]) -> torch.Tensor:
@@ -228,13 +247,17 @@ def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
             return torch.nn.functional.normalize(output, dim=1, eps=1.0e-12)
 
         _, pullback = torch.func.vjp(function, primal)
-        _, jvp_action = torch.func.jvp(function, (primal,), (tangent,))
-        (vjp_action,) = pullback(tensors["u"])
+        if reversed_action_order:
+            (vjp_action,) = pullback(output_sign * tensors["u"])
+            _, jvp_action = torch.func.jvp(function, (primal,), (tangent,))
+        else:
+            _, jvp_action = torch.func.jvp(function, (primal,), (tangent,))
+            (vjp_action,) = pullback(output_sign * tensors["u"])
         parameter_direction = tangent
     else:
         names = ("x",)
         primal = tensors["x"]
-        tangent_tensor = tensors["v"]
+        tangent_tensor = parameter_sign * tensors["v"]
         if spec.fixture_id == "zero_corner":
 
             def function(value: torch.Tensor) -> torch.Tensor:
@@ -258,17 +281,21 @@ def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
                 return diagonal * value
 
         _, pullback = torch.func.vjp(function, primal)
-        _, jvp_action = torch.func.jvp(function, (primal,), (tangent_tensor,))
-        (vjp_tensor,) = pullback(tensors["u"])
+        if reversed_action_order:
+            (vjp_tensor,) = pullback(output_sign * tensors["u"])
+            _, jvp_action = torch.func.jvp(function, (primal,), (tangent_tensor,))
+        else:
+            _, jvp_action = torch.func.jvp(function, (primal,), (tangent_tensor,))
+            (vjp_tensor,) = pullback(output_sign * tensors["u"])
         parameter_direction = {"x": tangent_tensor}
         vjp_action = {"x": vjp_tensor}
 
     metrics = normwise_adjoint_metrics(
-        tensors["u"], jvp_action, parameter_direction, vjp_action, names
+        output_sign * tensors["u"], jvp_action, parameter_direction, vjp_action, names
     )
     threshold = metrics.pop("threshold")
     metrics.pop("passed")
-    return {
+    result = {
         **fixture_metadata(spec.fixture_id),
         **metrics,
         "jvp_sha256": tensor_sha256(jvp_action),
@@ -278,6 +305,171 @@ def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
         "passed": type(metrics["beta_norm"]) is float
         and metrics["beta_norm"] <= CORRECT_FIXTURE_CEILING,
     }
+    return result, jvp_action, vjp_action, names
+
+
+def run_correct_fixture(spec: FixtureSpec) -> dict[str, object]:
+    """Execute one frozen correct fixture through real torch.func actions."""
+    result, _, _, _ = _run_fixture_trial(spec)
+    return result
+
+
+def _tree_equal(
+    left: Mapping[str, torch.Tensor], right: Mapping[str, torch.Tensor], names: Sequence[str]
+) -> bool:
+    return all(torch.equal(left[name], right[name]) for name in names)
+
+
+def run_fixture_controls(spec: FixtureSpec) -> dict[str, object]:
+    """Run the frozen rebuild, action-order, and sign controls on fresh graphs."""
+    baseline, baseline_jvp, baseline_vjp, names = _run_fixture_trial(spec)
+    rebuild, rebuild_jvp, rebuild_vjp, _ = _run_fixture_trial(spec)
+    reversed_trial, reversed_jvp, reversed_vjp, _ = _run_fixture_trial(
+        spec, reversed_action_order=True
+    )
+    parameter_trial, parameter_jvp, parameter_vjp, _ = _run_fixture_trial(spec, parameter_sign=-1)
+    output_trial, output_jvp, output_vjp, _ = _run_fixture_trial(spec, output_sign=-1)
+
+    baseline_jvp_hash = tensor_sha256(baseline_jvp)
+    baseline_vjp_hash = parameter_tree_sha256(baseline_vjp, names)
+
+    def hash_control(
+        trial: Mapping[str, object],
+        jvp: torch.Tensor,
+        vjp: Mapping[str, torch.Tensor],
+    ) -> dict[str, object]:
+        jvp_hash = tensor_sha256(jvp)
+        vjp_hash = parameter_tree_sha256(vjp, names)
+        exact = jvp_hash == baseline_jvp_hash and vjp_hash == baseline_vjp_hash
+        return {
+            "jvp_sha256": jvp_hash,
+            "vjp_sha256": vjp_hash,
+            "beta_norm": trial["beta_norm"],
+            "exact_action_hash_match": exact,
+            "passed": exact
+            and type(trial["beta_norm"]) is float
+            and trial["beta_norm"] <= CORRECT_FIXTURE_CEILING,
+        }
+
+    def sign_control(
+        trial: Mapping[str, object],
+        jvp: torch.Tensor,
+        vjp: Mapping[str, torch.Tensor],
+        *,
+        relation: bool,
+    ) -> dict[str, object]:
+        return {
+            "jvp_sha256": tensor_sha256(jvp),
+            "vjp_sha256": parameter_tree_sha256(vjp, names),
+            "beta_norm": trial["beta_norm"],
+            "exact_relation": relation,
+            "passed": relation
+            and type(trial["beta_norm"]) is float
+            and trial["beta_norm"] <= CORRECT_FIXTURE_CEILING,
+        }
+
+    controls = {
+        "rebuild": hash_control(rebuild, rebuild_jvp, rebuild_vjp),
+        "reversed_action_order": hash_control(reversed_trial, reversed_jvp, reversed_vjp),
+        "parameter_sign": sign_control(
+            parameter_trial,
+            parameter_jvp,
+            parameter_vjp,
+            relation=torch.equal(parameter_jvp, -baseline_jvp)
+            and _tree_equal(parameter_vjp, baseline_vjp, names),
+        ),
+        "output_sign": sign_control(
+            output_trial,
+            output_jvp,
+            output_vjp,
+            relation=torch.equal(output_jvp, baseline_jvp)
+            and all(torch.equal(output_vjp[name], -baseline_vjp[name]) for name in names),
+        ),
+    }
+    baseline["controls"] = controls
+    baseline["passed"] = baseline["passed"] is True and all(
+        control["passed"] is True for control in controls.values()
+    )
+    return baseline
+
+
+def run_registered_fault(spec: FaultSpec) -> dict[str, object]:
+    """Run one frozen fault after proving its unmodified action is adjoint-correct."""
+    if spec.fixture_id not in REGISTERED_FAULT_IDS or not _literal_equal(
+        spec.metadata, fixture_metadata(spec.fixture_id)
+    ):
+        raise ValueError("registered fault metadata differs from protocol")
+    seeds = spec.metadata["seeds"]
+    names = ("x",)
+
+    if spec.fixture_id == "zero_map_forward_injection":
+        primal = _draw(seeds["x"], (17,))
+        u = _draw(seeds["output_direction"], (17,))
+        v = _draw(seeds["parameter_direction"], (17,))
+
+        def function(value: torch.Tensor) -> torch.Tensor:
+            return value * torch.tensor(0.0, dtype=torch.float32)
+
+        _, correct_jvp = torch.func.jvp(function, (primal,), (v,))
+        _, pullback = torch.func.vjp(function, primal)
+        (correct_vjp_tensor,) = pullback(u)
+        fault_jvp = torch.tensor(2**-10, dtype=torch.float32) * u
+        fault_vjp_tensor = correct_vjp_tensor
+    else:
+        q = _draw(
+            seeds["shared_direction"]
+            if spec.fixture_id == "identity_reverse_scale_fault"
+            else seeds["pair_base"],
+            (4096 if spec.fixture_id == "identity_reverse_scale_fault" else 2048,),
+        )
+        if spec.fixture_id == "identity_reverse_pair_sign_fault":
+            q = q.repeat_interleave(2)
+        primal = torch.zeros_like(q)
+        u = q
+        v = q
+
+        def function(value: torch.Tensor) -> torch.Tensor:
+            return value
+
+        _, correct_jvp = torch.func.jvp(function, (primal,), (v,))
+        _, pullback = torch.func.vjp(function, primal)
+        (correct_vjp_tensor,) = pullback(u)
+        fault_jvp = correct_jvp
+        if spec.fixture_id == "identity_reverse_scale_fault":
+            fault_vjp_tensor = torch.tensor(255 / 256, dtype=torch.float32) * q
+        else:
+            base = q[::2]
+            fault_vjp_tensor = torch.stack((base, -base), dim=1).reshape(-1)
+
+    direction = {"x": v}
+    correct_vjp = {"x": correct_vjp_tensor}
+    fault_vjp = {"x": fault_vjp_tensor}
+    correct = normwise_adjoint_metrics(u, correct_jvp, direction, correct_vjp, names)
+    fault = normwise_adjoint_metrics(u, fault_jvp, direction, fault_vjp, names)
+    threshold = fault.pop("threshold")
+    fault.pop("passed")
+    control_beta = correct["beta_norm"]
+    control_passed = type(control_beta) is float and control_beta <= CORRECT_FIXTURE_CEILING
+    result = {
+        **fixture_metadata(spec.fixture_id),
+        **fault,
+        "jvp_sha256": tensor_sha256(fault_jvp),
+        "vjp_sha256": parameter_tree_sha256(fault_vjp, names),
+        "controls": {
+            "unmodified": {
+                "jvp_sha256": tensor_sha256(correct_jvp),
+                "vjp_sha256": parameter_tree_sha256(correct_vjp, names),
+                "beta_norm": control_beta,
+                "passed": control_passed,
+            }
+        },
+        "threshold": threshold,
+        "passed": type(fault["beta_norm"]) is float
+        and fault["beta_norm"] >= THRESHOLD
+        and fault["beta_norm"] - control_beta >= 7.0 * THRESHOLD / 8.0
+        and control_passed,
+    }
+    return result
 
 
 def _tensor(value: Any, *, name: str) -> torch.Tensor:
