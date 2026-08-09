@@ -420,10 +420,10 @@ def _is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _finite(value: Any, path: str) -> None:
+def _finite_float(value: Any, path: str) -> None:
     _require(
-        isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value),
-        f"{path} must be finite",
+        type(value) is float and math.isfinite(value),
+        f"{path} must be a finite float",
     )
 
 
@@ -539,11 +539,16 @@ def _validate_constants(constants: Any, *, activated: bool) -> None:
         "constants",
     )
     for key, expected_value in expected.items():
-        _require(constants[key] == expected_value, f"constants.{key}")
+        type_is_exact = (
+            _is_int(constants[key])
+            if type(expected_value) is int
+            else type(constants[key]) is float
+        )
+        _require(type_is_exact and constants[key] == expected_value, f"constants.{key}")
     for key in ("learning_rate", "coalition_weight", "proxy_learning_rate_multiplier"):
         if not activated and constants[key] is None:
             continue
-        _finite(constants[key], f"constants.{key}")
+        _finite_float(constants[key], f"constants.{key}")
 
 
 SUMMARY_KEYS = {
@@ -562,7 +567,7 @@ def _validate_summary(summary: Any, path: str) -> None:
     _exact_keys(summary, SUMMARY_KEYS, path)
     _require(_is_int(summary["n"]) and summary["n"] == 32, f"{path}.n")
     for key in SUMMARY_KEYS - {"n"}:
-        _finite(summary[key], f"{path}.{key}")
+        _finite_float(summary[key], f"{path}.{key}")
     _require(summary["lcb_0_005"] <= summary["ucb_0_995"], f"{path} bounds")
 
 
@@ -580,10 +585,10 @@ def _validate_update(update: Any, *, equal_norm: bool, path: str) -> None:
     _exact_keys(update, keys, path)
     _digest(update["update_sha256"], f"{path}.update_sha256")
     for key in ("parameter_update_norm", *OUTCOME_METRICS):
-        _finite(update[key], f"{path}.{key}")
+        _finite_float(update[key], f"{path}.{key}")
     if equal_norm:
-        _finite(update["reference_pa_norm"], f"{path}.reference_pa_norm")
-        _finite(update["norm_match_absolute_error"], f"{path}.norm_match_absolute_error")
+        _finite_float(update["reference_pa_norm"], f"{path}.reference_pa_norm")
+        _finite_float(update["norm_match_absolute_error"], f"{path}.norm_match_absolute_error")
         _require(update["reference_pa_norm"] >= 0, f"{path}.reference_pa_norm")
         _require(
             0
@@ -599,9 +604,11 @@ def _validate_update(update: Any, *, equal_norm: bool, path: str) -> None:
 def _validate_operator(operator: Any, name: str, representative_count: int, path: str) -> None:
     _exact_keys(operator, {"name", "loss", "representative_count", "panels"}, path)
     _require(operator["name"] == name, f"{path}.name")
-    _finite(operator["loss"], f"{path}.loss")
+    _finite_float(operator["loss"], f"{path}.loss")
     _require(
-        operator["representative_count"] == representative_count, f"{path}.representative_count"
+        _is_int(operator["representative_count"])
+        and operator["representative_count"] == representative_count,
+        f"{path}.representative_count",
     )
     _exact_keys(operator["panels"], PANELS, f"{path}.panels")
     for panel_name, panel in operator["panels"].items():
@@ -632,9 +639,9 @@ def _validate_operator(operator: Any, name: str, representative_count: int, path
             "cosine_with_atomic_full_union",
             "cosine_with_summed_dropout",
         ):
-            _finite(panel[key], f"{panel_path}.{key}")
+            _finite_float(panel[key], f"{panel_path}.{key}")
         if name in {"atomic_one_hot", "atomic_complementary", "atomic_full_union"}:
-            _finite(
+            _finite_float(
                 panel["scale_residual_to_summed_union"],
                 f"{panel_path}.scale_residual_to_summed_union",
             )
@@ -663,7 +670,9 @@ CROSS_REUSE_KEYS = {
 }
 
 
-def _validate_context(context: Any, expected_index: int) -> None:
+def _validate_context(
+    context: Any, expected_index: int, prior_contexts: Sequence[Mapping[str, Any]]
+) -> None:
     keys = {
         "context_index",
         "production_epoch",
@@ -687,23 +696,38 @@ def _validate_context(context: Any, expected_index: int) -> None:
     }
     path = f"contexts[{expected_index}]"
     _exact_keys(context, keys, path)
-    _require(context["context_index"] == expected_index, f"{path}.context_index")
-    _require(context["production_epoch"] == 0, f"{path}.production_epoch")
+    _require(
+        _is_int(context["context_index"]) and context["context_index"] == expected_index,
+        f"{path}.context_index",
+    )
+    _require(
+        _is_int(context["production_epoch"]) and context["production_epoch"] == 0,
+        f"{path}.production_epoch",
+    )
     _require(
         _is_int(context["production_batch_index"])
         and context["production_batch_index"] >= expected_index,
         f"{path}.production_batch_index",
     )
-    _require(context["batch_size"] == 180, f"{path}.batch_size")
+    _require(
+        _is_int(context["batch_size"]) and context["batch_size"] == 180,
+        f"{path}.batch_size",
+    )
     _require(_is_int(context["m_unique"]) and context["m_unique"] > 0, f"{path}.m_unique")
-    for key in (
-        "row_example_ids",
-        "row_sample_indices",
-        "row_labels",
-        "s_prime_example_ids",
-        "s_prime_sample_indices",
-    ):
-        _require(isinstance(context[key], list) and len(context[key]) == 180, f"{path}.{key}")
+    for key in ("row_example_ids", "s_prime_example_ids"):
+        _require(
+            isinstance(context[key], list)
+            and len(context[key]) == 180
+            and all(isinstance(value, str) and value for value in context[key]),
+            f"{path}.{key}",
+        )
+    for key in ("row_sample_indices", "row_labels", "s_prime_sample_indices"):
+        _require(
+            isinstance(context[key], list)
+            and len(context[key]) == 180
+            and all(_is_int(value) for value in context[key]),
+            f"{path}.{key}",
+        )
     _require(len(set(context["s_prime_example_ids"])) == 180, f"{path}.s_prime_example_ids")
     _require(
         set(context["row_example_ids"]).isdisjoint(context["s_prime_example_ids"]),
@@ -717,16 +741,21 @@ def _validate_context(context: Any, expected_index: int) -> None:
         str(label): count for label, count in context["class_multiplicities"].items()
     }
     _require(
-        len(actual_multiplicities) == len(context["class_multiplicities"])
+        all(_is_int(count) and count > 0 for count in context["class_multiplicities"].values())
+        and len(actual_multiplicities) == len(context["class_multiplicities"])
         and actual_multiplicities == expected_multiplicities,
         f"{path}.class_multiplicities",
     )
     _require(
-        len(context["representative_row_indices"]) == context["m_unique"],
+        isinstance(context["representative_row_indices"], list)
+        and len(context["representative_row_indices"]) == context["m_unique"]
+        and all(_is_int(value) for value in context["representative_row_indices"]),
         f"{path}.representative_row_indices",
     )
     _require(
-        len(context["representative_sample_indices"]) == context["m_unique"],
+        isinstance(context["representative_sample_indices"], list)
+        and len(context["representative_sample_indices"]) == context["m_unique"]
+        and all(_is_int(value) for value in context["representative_sample_indices"]),
         f"{path}.representative_sample_indices",
     )
     expected_representative_rows = []
@@ -760,6 +789,16 @@ def _validate_context(context: Any, expected_index: int) -> None:
             )
         else:
             _require(_is_int(value) and value >= 0, f"{path}.cross_context_reuse.{key}")
+    expected_reuse = _cross_context_reuse(
+        set(context["row_example_ids"]),
+        set(context["s_prime_example_ids"]),
+        set(context["row_labels"]),
+        prior_contexts,
+    )
+    _require(
+        context["cross_context_reuse"] == expected_reuse,
+        f"{path}.cross_context_reuse does not match causal prefix",
+    )
     _require(
         _is_int(context["foreign_proxy_rows"]) and context["foreign_proxy_rows"] > 0,
         f"{path}.foreign_proxy_rows",
@@ -771,7 +810,7 @@ def _validate_context(context: Any, expected_index: int) -> None:
         f"{path}.shared_confuser",
     )
     for key in ("A_aligned", "null_mean", "E_shared"):
-        _finite(shared[key], f"{path}.shared_confuser.{key}")
+        _finite_float(shared[key], f"{path}.shared_confuser.{key}")
     _digest(shared["null_distribution_sha256"], f"{path}.shared_confuser.null_distribution_sha256")
     _exact_keys(context["operators"], OPERATORS, f"{path}.operators")
     for name in OPERATORS:
@@ -813,8 +852,14 @@ def _validate_aggregates(aggregates: Any) -> None:
         },
         "aggregates.bootstrap",
     )
-    _require(bootstrap["seed"] == BOOTSTRAP_SEED, "aggregates.bootstrap.seed")
-    _require(bootstrap["replicates"] == BOOTSTRAP_REPLICATES, "aggregates.bootstrap.replicates")
+    _require(
+        _is_int(bootstrap["seed"]) and bootstrap["seed"] == BOOTSTRAP_SEED,
+        "aggregates.bootstrap.seed",
+    )
+    _require(
+        _is_int(bootstrap["replicates"]) and bootstrap["replicates"] == BOOTSTRAP_REPLICATES,
+        "aggregates.bootstrap.replicates",
+    )
     _require(bootstrap["quantile_method"] == "linear", "aggregates.bootstrap.quantile_method")
     _digest(
         bootstrap["joint_context_index_sha256"], "aggregates.bootstrap.joint_context_index_sha256"
@@ -855,7 +900,10 @@ INPUT_DIGEST_KEYS = {
 
 def _validate_input_digest(record: Any, expected_index: int, path: str) -> None:
     _exact_keys(record, INPUT_DIGEST_KEYS, path)
-    _require(record["context_index"] == expected_index, f"{path}.context_index")
+    _require(
+        _is_int(record["context_index"]) and record["context_index"] == expected_index,
+        f"{path}.context_index",
+    )
     for key in INPUT_DIGEST_KEYS - {"context_index"}:
         _digest(record[key], f"{path}.{key}")
     combined = {key: record[key] for key in INPUT_DIGEST_KEYS - {"combined_sha256"}}
@@ -944,12 +992,18 @@ def _validate_scored_integrity(integrity: Any, contexts: list[dict[str, Any]]) -
         "all_finite",
     }
     _exact_keys(integrity, keys, "integrity")
-    _require(integrity["accepted_context_count"] == 32, "integrity.accepted_context_count")
+    _require(
+        _is_int(integrity["accepted_context_count"]) and integrity["accepted_context_count"] == 32,
+        "integrity.accepted_context_count",
+    )
     _require(
         _is_int(integrity["rejected_context_count"]) and integrity["rejected_context_count"] >= 0,
         "integrity.rejected_context_count",
     )
-    _require(integrity["invalid_context_count"] == 0, "integrity.invalid_context_count")
+    _require(
+        _is_int(integrity["invalid_context_count"]) and integrity["invalid_context_count"] == 0,
+        "integrity.invalid_context_count",
+    )
     for key in (
         "input_replay_verified",
         "training_flags_restored",
@@ -984,7 +1038,13 @@ def _validate_scored_integrity(integrity: Any, contexts: list[dict[str, Any]]) -
         "dtype": "float32",
     }
     _exact_keys(settings, expected_settings, "integrity.deterministic_settings")
-    _require(settings == expected_settings, "deterministic settings mismatch")
+    _require(
+        all(
+            type(settings[key]) is type(expected_value) and settings[key] == expected_value
+            for key, expected_value in expected_settings.items()
+        ),
+        "deterministic settings mismatch",
+    )
     records = integrity["process_records"]
     roles = ("integrity_replay_a", "integrity_replay_b", "scientific")
     _require(isinstance(records, list) and len(records) == 3, "integrity.process_records")
@@ -1040,14 +1100,17 @@ def _validate_scored_integrity(integrity: Any, contexts: list[dict[str, Any]]) -
         },
         "integrity.replay_residuals",
     )
-    _require(residuals["pair_count"] == 3, "integrity.replay_residuals.pair_count")
+    _require(
+        _is_int(residuals["pair_count"]) and residuals["pair_count"] == 3,
+        "integrity.replay_residuals.pair_count",
+    )
     for key in (
         "tensor_max_absolute",
         "scalar_max_relative",
         "tensor_tolerance",
         "scalar_tolerance",
     ):
-        _finite(residuals[key], f"integrity.replay_residuals.{key}")
+        _finite_float(residuals[key], f"integrity.replay_residuals.{key}")
     _require(
         residuals["tensor_tolerance"] == 2e-6 and residuals["tensor_max_absolute"] <= 2e-6,
         "tensor replay tolerance",
@@ -1077,11 +1140,30 @@ def _validate_partial_context(context: Any, expected_index: int) -> None:
     }
     path = f"contexts[{expected_index}]"
     _exact_keys(context, keys, path)
-    _require(context["context_index"] == expected_index, f"{path}.context_index")
-    _require(context["production_epoch"] == 0, f"{path}.production_epoch")
-    for key in ("row_example_ids", "row_sample_indices", "row_labels"):
+    _require(
+        _is_int(context["context_index"]) and context["context_index"] == expected_index,
+        f"{path}.context_index",
+    )
+    _require(
+        _is_int(context["production_epoch"]) and context["production_epoch"] == 0,
+        f"{path}.production_epoch",
+    )
+    _require(
+        _is_int(context["production_batch_index"])
+        and context["production_batch_index"] == expected_index,
+        f"{path}.production_batch_index",
+    )
+    _require(
+        isinstance(context["row_example_ids"], list)
+        and len(context["row_example_ids"]) == 180
+        and all(isinstance(value, str) and value for value in context["row_example_ids"]),
+        f"{path}.row_example_ids",
+    )
+    for key in ("row_sample_indices", "row_labels"):
         _require(
-            isinstance(context[key], list) and len(context[key]) == 180,
+            isinstance(context[key], list)
+            and len(context[key]) == 180
+            and all(_is_int(value) for value in context[key]),
             f"{path}.{key}",
         )
     expected_multiplicities = {
@@ -1091,7 +1173,8 @@ def _validate_partial_context(context: Any, expected_index: int) -> None:
         str(label): count for label, count in context["class_multiplicities"].items()
     }
     _require(
-        len(actual_multiplicities) == len(context["class_multiplicities"])
+        all(_is_int(count) and count > 0 for count in context["class_multiplicities"].values())
+        and len(actual_multiplicities) == len(context["class_multiplicities"])
         and actual_multiplicities == expected_multiplicities,
         f"{path}.class_multiplicities",
     )
@@ -1105,19 +1188,34 @@ def _validate_partial_context(context: Any, expected_index: int) -> None:
         expected_rows.append(row_index)
         expected_samples.append(context["row_sample_indices"][row_index])
     _require(
-        context["representative_row_indices"] == expected_rows,
+        isinstance(context["representative_row_indices"], list)
+        and all(_is_int(value) for value in context["representative_row_indices"])
+        and context["representative_row_indices"] == expected_rows,
         f"{path}.representative_row_indices",
     )
     _require(
-        context["representative_sample_indices"] == expected_samples,
+        isinstance(context["representative_sample_indices"], list)
+        and all(_is_int(value) for value in context["representative_sample_indices"])
+        and context["representative_sample_indices"] == expected_samples,
         f"{path}.representative_sample_indices",
     )
     _require(context["status"] in {"accepted", "rejected"}, f"{path}.status")
     if context["status"] == "accepted":
         _require(context["rejection_code"] is None, f"{path}.rejection_code")
         _require(
-            len(context["s_prime_example_ids"]) == len(context["row_example_ids"]),
+            isinstance(context["s_prime_example_ids"], list)
+            and len(context["s_prime_example_ids"]) == 180
+            and all(isinstance(value, str) and value for value in context["s_prime_example_ids"])
+            and len(set(context["s_prime_example_ids"])) == 180
+            and set(context["row_example_ids"]).isdisjoint(context["s_prime_example_ids"]),
             f"{path}.s_prime_example_ids",
+        )
+        _require(
+            isinstance(context["s_prime_sample_indices"], list)
+            and len(context["s_prime_sample_indices"]) == 180
+            and all(_is_int(value) for value in context["s_prime_sample_indices"])
+            and len(set(context["s_prime_sample_indices"])) == 180,
+            f"{path}.s_prime_sample_indices",
         )
     else:
         _require(
@@ -1313,7 +1411,6 @@ def _failure_reasons(aggregates: Mapping[str, Any], decisions: Mapping[str, str]
         for key in (
             "network_equal_union_foreign_suppression",
             "network_equal_union_margin_change",
-            "network_equal_union_predicted_suppression",
         )
     ):
         reasons.append("FAIL_NOT_VIABLE")
@@ -1336,6 +1433,8 @@ def _failure_reasons(aggregates: Mapping[str, Any], decisions: Mapping[str, str]
         "network_equal_union_advantage_margin",
         "network_equal_union_foreign_suppression",
         "network_equal_union_margin_change",
+        "network_equal_union_predicted_suppression",
+        "network_equal_union_predicted_margin_change",
     )
     if all(decisions[key] == "PASS" for key in joint_keys) and any(
         decisions[key] == "FAIL" for key in network_keys
@@ -1378,7 +1477,11 @@ def _validate_decision(decision: Any, status: str, aggregates: Mapping[str, Any]
             decision["authorized_next_action"] == expected_action, "decision.authorized_next_action"
         )
     _exact_keys(decision["thresholds"], THRESHOLDS, "decision.thresholds")
-    _require(decision["thresholds"] == THRESHOLDS, "decision.thresholds mismatch")
+    _require(
+        all(type(value) is float for value in decision["thresholds"].values())
+        and decision["thresholds"] == THRESHOLDS,
+        "decision.thresholds mismatch",
+    )
 
 
 def validate_payload_structure(payload: Mapping[str, Any]) -> None:
@@ -1407,6 +1510,16 @@ def validate_payload_structure(payload: Mapping[str, Any]) -> None:
     _require(payload["schema_version"] == "pass201-cis-operator-v1", "schema_version")
     _require(payload["uses_test_data"] == "artifact_binding_only", "uses_test_data")
     _require(
+        payload["candidate_values_computed"] is True
+        or payload["candidate_values_computed"] is False,
+        "candidate_values_computed must be a literal boolean",
+    )
+    if not scored:
+        _require(
+            payload["candidate_values_computed"] is False,
+            "candidate_values_computed must be literal false",
+        )
+    _require(
         isinstance(payload["reason_codes"], list)
         and len(payload["reason_codes"]) == len(set(payload["reason_codes"]))
         and all(isinstance(code, str) and code for code in payload["reason_codes"]),
@@ -1422,7 +1535,7 @@ def validate_payload_structure(payload: Mapping[str, Any]) -> None:
         contexts = payload["contexts"]
         _require(isinstance(contexts, list) and len(contexts) == 32, "contexts")
         for index, context in enumerate(contexts):
-            _validate_context(context, index)
+            _validate_context(context, index, contexts[:index])
         _validate_aggregates(payload["aggregates"])
         _validate_decision(payload["decision"], status, payload["aggregates"])
         expected_reasons = _failure_reasons(
@@ -1455,6 +1568,28 @@ def validate_payload_structure(payload: Mapping[str, Any]) -> None:
         )
     else:
         _require(status in {"BLOCKED", "INVALID"}, "non-scored status")
+        if status == "BLOCKED":
+            _require(
+                payload["reason_codes"] == ["BLOCKED_SOURCE_ARTIFACT_UNAVAILABLE"],
+                "BLOCKED reason_codes",
+            )
+        else:
+            invalid_codes = {
+                "INVALID_OPERATING_POINT_MISMATCH",
+                "INVALID_NONDETERMINISTIC_TRAIN_INPUT",
+                "INVALID_NONDETERMINISTIC_OPERATOR_REPLAY",
+            }
+            _require(
+                bool(payload["reason_codes"])
+                and payload["reason_codes"] == sorted(payload["reason_codes"])
+                and set(payload["reason_codes"]) <= invalid_codes,
+                "INVALID reason_codes",
+            )
+            if payload["integrity"].get("stage") == "source_activation":
+                _require(
+                    payload["reason_codes"] == ["INVALID_OPERATING_POINT_MISMATCH"],
+                    "source_activation INVALID reason_codes",
+                )
         _validate_decision(payload["decision"], status, None)
         _validate_reduced_integrity(
             payload["integrity"], status, payload["reason_codes"], early=False

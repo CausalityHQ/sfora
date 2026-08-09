@@ -302,7 +302,7 @@ def _context(context_index: int) -> dict:
             "reused_s_image_count": 0,
             "reused_s_prime_image_count": 0,
             "reused_any_image_count": 0,
-            "reused_label_count": 0,
+            "reused_label_count": 0 if context_index == 0 else 2,
         },
         "foreign_proxy_rows": 3,
         "shared_confuser": {
@@ -555,7 +555,7 @@ def _failure_digest(status: str, reason_codes: list[str], integrity: dict) -> st
 
 
 def literal_valid_blocked_payload() -> dict:
-    reason_codes = ["BLOCKED_SOURCE_UNAVAILABLE"]
+    reason_codes = ["BLOCKED_SOURCE_ARTIFACT_UNAVAILABLE"]
     integrity = {
         "stage": "source_activation",
         "accepted_context_count": 0,
@@ -596,6 +596,17 @@ def literal_valid_blocked_payload() -> dict:
         },
         "integrity": integrity,
     }
+
+
+def literal_valid_invalid_payload() -> dict:
+    payload = literal_valid_blocked_payload()
+    payload["status"] = "INVALID"
+    payload["reason_codes"] = ["INVALID_OPERATING_POINT_MISMATCH"]
+    payload["decision"]["overall"] = "INVALID"
+    payload["integrity"]["failure_evidence_sha256"] = _failure_digest(
+        "INVALID", payload["reason_codes"], payload["integrity"]
+    )
+    return payload
 
 
 def literal_valid_early_unresolved_payload() -> dict:
@@ -703,6 +714,7 @@ def test_summary_uses_sample_sd_and_frozen_bootstrap_bounds():
         literal_valid_scored_payload,
         literal_valid_early_unresolved_payload,
         literal_valid_blocked_payload,
+        literal_valid_invalid_payload,
     ],
 )
 def test_payload_validator_accepts_each_conditional_family(payload_factory):
@@ -713,6 +725,57 @@ def test_early_payload_rejects_internally_wrong_partial_audit_metadata():
     payload = literal_valid_early_unresolved_payload()
     payload["contexts"][0]["class_multiplicities"] = {"3": 2, "5": 1, "7": 1}
     with pytest.raises(ValueError, match="class_multiplicities"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_accepted_partial_requires_180_integer_s_prime_indices():
+    payload = literal_valid_early_unresolved_payload()
+    payload["contexts"][0]["s_prime_sample_indices"].pop()
+    with pytest.raises(ValueError, match="s_prime_sample_indices"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_accepted_partial_requires_distinct_disjoint_s_prime_ids():
+    payload = literal_valid_early_unresolved_payload()
+    payload["contexts"][0]["s_prime_example_ids"][0] = payload["contexts"][0]["row_example_ids"][0]
+    with pytest.raises(ValueError, match="s_prime_example_ids"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_partial_audit_production_batches_are_strictly_ordered():
+    payload = literal_valid_early_unresolved_payload()
+    payload["contexts"][1]["production_batch_index"] = 0
+    with pytest.raises(ValueError, match="production_batch_index"):
+        MODULE.validate_payload_structure(payload)
+
+
+@pytest.mark.parametrize(
+    "payload_factory", [literal_valid_blocked_payload, literal_valid_invalid_payload]
+)
+def test_reduced_payload_requires_literal_false_candidate_flag(payload_factory):
+    payload = payload_factory()
+    payload["candidate_values_computed"] = 0
+    with pytest.raises(ValueError, match="candidate_values_computed"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_reduced_payload_rejects_arbitrary_reason_code():
+    payload = literal_valid_blocked_payload()
+    payload["reason_codes"] = ["BLOCKED_SOURCE_UNAVAILABLE"]
+    payload["integrity"]["failure_evidence_sha256"] = _failure_digest(
+        payload["status"], payload["reason_codes"], payload["integrity"]
+    )
+    with pytest.raises(ValueError, match="reason_codes"):
+        MODULE.validate_payload_structure(payload)
+
+
+def test_source_activation_invalid_allows_only_operating_point_mismatch():
+    payload = literal_valid_invalid_payload()
+    payload["reason_codes"] = ["INVALID_NONDETERMINISTIC_TRAIN_INPUT"]
+    payload["integrity"]["failure_evidence_sha256"] = _failure_digest(
+        payload["status"], payload["reason_codes"], payload["integrity"]
+    )
+    with pytest.raises(ValueError, match="reason_codes"):
         MODULE.validate_payload_structure(payload)
 
 
@@ -802,6 +865,87 @@ def _self_consistent_wrong_class_multiplicities(payload):
         record["context0_record_sha256"] = context_sha256
 
 
+def _self_consistent_false_causal_reuse(payload):
+    context = payload["contexts"][1]
+    context["cross_context_reuse"]["prior_context_indices_sharing_any_ids"] = [0]
+    context["cross_context_reuse"]["reused_any_image_count"] = 1
+    digest_record = _digest_record(context)
+    for record in payload["integrity"]["process_records"]:
+        record["input_context_digest_records"][1] = deepcopy(digest_record)
+
+
+def _rehash_input_context(payload: dict, context_index: int) -> None:
+    digest_record = _digest_record(payload["contexts"][context_index])
+    for record in payload["integrity"]["process_records"]:
+        record["input_context_digest_records"][context_index] = deepcopy(digest_record)
+
+
+def _integer_in_float_field(payload):
+    payload["contexts"][1]["shared_confuser"]["E_shared"] = 1
+
+
+def _integer_in_summary_float_field(payload):
+    payload["aggregates"]["m_unique"]["mean"] = 2
+
+
+def _float_representative_count(payload):
+    payload["contexts"][1]["operators"]["proxy_anchor"]["representative_count"] = 2.0
+
+
+def _bool_row_sample_index(payload):
+    payload["contexts"][1]["row_sample_indices"][10] = False
+    _rehash_input_context(payload, 1)
+
+
+def _bool_row_label(payload):
+    payload["contexts"][1]["row_labels"][10] = True
+    _rehash_input_context(payload, 1)
+
+
+def _non_string_row_id(payload):
+    payload["contexts"][1]["row_example_ids"][10] = 10
+    _rehash_input_context(payload, 1)
+
+
+def _integer_threshold_float(payload):
+    payload["decision"]["thresholds"]["joint_equal_union_margin_change"] = 0
+
+
+def _bool_production_epoch(payload):
+    payload["contexts"][1]["production_epoch"] = False
+    _rehash_input_context(payload, 1)
+
+
+def _integer_operator_loss(payload):
+    payload["contexts"][1]["operators"]["proxy_anchor"]["loss"] = 1
+
+
+def _float_bootstrap_seed(payload):
+    payload["aggregates"]["bootstrap"]["seed"] = 2010811.0
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        _integer_in_float_field,
+        _integer_in_summary_float_field,
+        _float_representative_count,
+        _bool_row_sample_index,
+        _bool_row_label,
+        _non_string_row_id,
+        _integer_threshold_float,
+        _bool_production_epoch,
+        _integer_operator_loss,
+        _float_bootstrap_seed,
+    ],
+)
+def test_payload_validator_enforces_strict_numeric_and_element_types(mutation):
+    payload = literal_valid_scored_payload()
+    mutation(payload)
+    with pytest.raises(ValueError):
+        MODULE.validate_payload_structure(payload)
+
+
 @pytest.mark.parametrize(
     "mutation",
     [
@@ -818,6 +962,7 @@ def _self_consistent_wrong_class_multiplicities(payload):
         _wrong_prelaunch_digest,
         _context0_hash_includes_process_metadata,
         _self_consistent_wrong_class_multiplicities,
+        _self_consistent_false_causal_reuse,
     ],
 )
 def test_payload_validator_fails_closed(mutation):
@@ -862,6 +1007,38 @@ def test_any_failed_component_makes_overall_fail_even_without_a_reason_predicate
     payload["decision"]["overall"] = "FAIL"
     payload["decision"]["authorized_next_action"] = "none"
     payload["decision"]["component_decisions"]["joint_equal_union_advantage_foreign"] = "FAIL"
+    MODULE.validate_payload_structure(payload)
+
+
+def _set_network_predicted_suppression_failure(payload: dict) -> None:
+    summary = payload["aggregates"]["equal_norm"]["network_only"]["operators"]["summed_union"][
+        "D_F"
+    ]
+    summary["lcb_0_005"] = -0.1
+    summary["ucb_0_995"] = 0.0
+    payload["status"] = "FAIL"
+    payload["decision"]["overall"] = "FAIL"
+    payload["decision"]["authorized_next_action"] = "none"
+    payload["decision"]["component_decisions"]["network_equal_union_predicted_suppression"] = "FAIL"
+
+
+def test_predicted_suppression_failure_is_not_fail_not_viable():
+    payload = literal_valid_scored_payload()
+    _set_network_predicted_suppression_failure(payload)
+    joint_advantage = payload["aggregates"]["equal_norm"]["joint_including_proxies"][
+        "paired_advantages"
+    ]["A_F"]
+    joint_advantage["lcb_0_005"] = -0.1
+    joint_advantage["ucb_0_995"] = 0.1
+    payload["decision"]["component_decisions"]["joint_equal_union_advantage_foreign"] = "UNRESOLVED"
+    payload["reason_codes"] = []
+    MODULE.validate_payload_structure(payload)
+
+
+def test_proxy_only_predicate_includes_network_predicted_components():
+    payload = literal_valid_scored_payload()
+    _set_network_predicted_suppression_failure(payload)
+    payload["reason_codes"] = ["FAIL_PROXY_ONLY"]
     MODULE.validate_payload_structure(payload)
 
 
@@ -914,7 +1091,7 @@ def test_owner_margin_next_float_below_zero_is_fail():
     summary["lcb_0_005"] = -0.1
     summary["ucb_0_995"] = float(np.nextafter(0.0, -np.inf))
     payload["status"] = "FAIL"
-    payload["reason_codes"] = ["FAIL_OWNER_DAMAGE"]
+    payload["reason_codes"] = ["FAIL_PROXY_ONLY", "FAIL_OWNER_DAMAGE"]
     payload["decision"]["overall"] = "FAIL"
     payload["decision"]["authorized_next_action"] = "none"
     payload["decision"]["component_decisions"]["network_equal_union_predicted_margin_change"] = (
