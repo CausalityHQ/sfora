@@ -1725,3 +1725,633 @@ def test_training_only_seed_routes_selected_sources_through_deterministic_cache(
             transform=lambda value: torch.tensor([float(len(value))]),
             materialize=lambda path: Path(path).read_bytes(),
         )
+
+
+class _TinyAffine(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.projection = torch.nn.Linear(2, 3, bias=True, dtype=torch.float64)
+        with torch.no_grad():
+            self.projection.weight.copy_(
+                torch.tensor([[0.7, -0.2], [0.1, 0.9], [-0.4, 0.3]], dtype=torch.float64)
+            )
+            self.projection.bias.copy_(torch.tensor([0.2, -0.1, 0.4], dtype=torch.float64))
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.projection(values)
+
+
+def _dense_affine_fixture() -> tuple[_TinyAffine, torch.Tensor, torch.Tensor]:
+    model = _TinyAffine()
+    images = torch.tensor([[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float64)
+    cotangents = torch.tensor(
+        [[0.3, -0.5, 0.2], [-0.1, 0.4, 0.6], [0.7, 0.2, -0.3]],
+        dtype=torch.float64,
+    )
+    return model, images, cotangents
+
+
+def test_exact_kernel_fields_match_independent_dense_jacobian_and_central_difference() -> None:
+    """Catches transposed VJPs, mixed receivers, or rescaling a JVP without undoing it."""
+    model, images, cotangents = _dense_affine_fixture()
+    initial = torch.cat(
+        [model.projection.weight.detach().reshape(-1), model.projection.bias.detach()]
+    ).requires_grad_(True)
+
+    def literal_encoder(flat: torch.Tensor) -> torch.Tensor:
+        weight = flat[:6].reshape(3, 2)
+        bias = flat[6:]
+        raw = images @ weight.T + bias
+        return raw / torch.linalg.vector_norm(raw, dim=1, keepdim=True)
+
+    dense = torch.autograd.functional.jacobian(literal_encoder, initial).reshape(9, 9)
+    flat_cotangent = cotangents.reshape(-1)
+    expected_g = dense.T @ flat_cotangent
+    expected_b = (dense @ expected_g).reshape(3, 3)
+    expected_s = []
+    for receiver in range(3):
+        block = dense[receiver * 3 : (receiver + 1) * 3]
+        expected_s.append(block @ (block.T @ cotangents[receiver]))
+    expected_s_tensor = torch.stack(expected_s)
+
+    observed = _MODULE.exact_kernel_fields(
+        model,
+        images,
+        cotangents,
+        receiver_indices=(0, 1, 2),
+    )
+
+    assert torch.allclose(observed["parameter_gradient_flat"], expected_g, atol=1e-8, rtol=1e-8)
+    assert torch.allclose(observed["batch_motion"], expected_b, atol=1e-8, rtol=1e-8)
+    assert torch.allclose(observed["self_motion"], expected_s_tensor, atol=1e-8, rtol=1e-8)
+    epsilon = 1.0e-5
+    positive = literal_encoder(initial + epsilon * expected_g)
+    negative = literal_encoder(initial - epsilon * expected_g)
+    finite_difference = (positive - negative) / (2.0 * epsilon)
+    assert torch.allclose(observed["batch_motion"], finite_difference, atol=1e-6, rtol=1e-6)
+    for receiver in range(3):
+        block = dense[receiver * 3 : (receiver + 1) * 3]
+        receiver_gradient = block.T @ cotangents[receiver]
+        positive = literal_encoder(initial + epsilon * receiver_gradient)[receiver]
+        negative = literal_encoder(initial - epsilon * receiver_gradient)[receiver]
+        finite_difference = (positive - negative) / (2.0 * epsilon)
+        assert torch.allclose(
+            observed["self_motion"][receiver],
+            finite_difference,
+            atol=1e-6,
+            rtol=1e-6,
+        )
+
+
+class _TinyBatchNorm(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.bn = torch.nn.BatchNorm1d(2, dtype=torch.float64)
+        self.projection = torch.nn.Linear(2, 2, dtype=torch.float64)
+        with torch.no_grad():
+            self.bn.weight.copy_(torch.tensor([1.2, 0.7], dtype=torch.float64))
+            self.bn.bias.copy_(torch.tensor([-0.1, 0.2], dtype=torch.float64))
+            self.projection.weight.copy_(
+                torch.tensor([[0.8, -0.4], [0.3, 0.9]], dtype=torch.float64)
+            )
+            self.projection.bias.copy_(torch.tensor([0.05, -0.02], dtype=torch.float64))
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.projection(self.bn(values))
+
+
+def test_bufferless_train_clone_matches_preupdate_bn_forward_and_gradients() -> None:
+    """Catches eval-mode substitution, BN-buffer mutation, or dropping affine gradients."""
+    original = _TinyBatchNorm().train()
+    reference = deepcopy(original).train()
+    before = {name: value.detach().clone() for name, value in original.named_buffers()}
+    values = torch.tensor([[0.4, -0.3], [1.2, 0.8]], dtype=torch.float64)
+    target = torch.tensor([[0.2, -0.5], [0.7, 0.1]], dtype=torch.float64)
+
+    reference_output = reference(values)
+    reference_gradient = torch.autograd.grad(
+        (reference_output * target).sum(), tuple(reference.parameters())
+    )
+    clone = _MODULE.make_bufferless_train_clone(original)
+    observed_output = clone(values)
+    observed_gradient = torch.autograd.grad(
+        (observed_output * target).sum(), tuple(clone.parameters())
+    )
+
+    assert torch.allclose(observed_output, reference_output, atol=1e-6, rtol=1e-6)
+    for observed, expected in zip(observed_gradient, reference_gradient, strict=True):
+        assert torch.allclose(observed, expected, atol=1e-6, rtol=1e-6)
+    assert clone.training
+    assert all(
+        not module.track_running_stats
+        for module in clone.modules()
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
+    )
+    for name, value in original.named_buffers():
+        assert torch.equal(value, before[name])
+
+
+def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
+    """Catches analytic-head controls fed normalized outputs or the wrong linear layer."""
+    model, images, _ = _dense_affine_fixture()
+    prehead, raw, output = _MODULE.capture_prehead_and_raw(model, images)
+    expected_raw = images @ model.projection.weight.T + model.projection.bias
+
+    assert torch.equal(prehead, images)
+    assert torch.equal(raw, expected_raw)
+    assert torch.equal(output, expected_raw)
+
+
+def test_contextual_pa_fields_use_full_batch_and_exclude_proxy_parameters() -> None:
+    """Catches singleton cotangents or an accidental gradient path through proxies."""
+    from sfora.image_end_to_end import _normalize, _proxy_anchor_loss
+
+    model, images, _ = _dense_affine_fixture()
+    labels = torch.tensor([0, 1, 0], dtype=torch.int64)
+    proxies = torch.tensor(
+        [[0.8, -0.2, 0.5], [-0.4, 0.7, 0.1]], dtype=torch.float64, requires_grad=True
+    )
+    proxy_labels = torch.tensor([0, 1], dtype=torch.int64)
+
+    observed = _MODULE.exact_contextual_rsta_fields(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        receiver_indices=(0, 1, 2),
+    )
+    raw = model(images)
+    z = _normalize(raw, torch)
+    full_loss = _proxy_anchor_loss(
+        z,
+        labels,
+        proxy_embeddings=proxies.detach(),
+        proxy_labels=proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        torch_module=torch,
+    )
+    expected = -torch.autograd.grad(full_loss, z)[0]
+    singleton = []
+    for row in range(3):
+        one_loss = _proxy_anchor_loss(
+            z[row : row + 1],
+            labels[row : row + 1],
+            proxy_embeddings=proxies.detach(),
+            proxy_labels=proxy_labels,
+            alpha=32.0,
+            delta=0.1,
+            torch_module=torch,
+        )
+        singleton.append(-torch.autograd.grad(one_loss, z, retain_graph=True)[0][row])
+
+    assert torch.allclose(observed["dbar"], expected, atol=1e-12, rtol=1e-12)
+    assert not torch.allclose(observed["dbar"], torch.stack(singleton))
+    assert proxies.grad is None
+    assert all("proxy" not in name for name in observed["parameter_names"])
+
+
+def test_adjoint_identity_and_repeatability_are_exact_on_tiny_model() -> None:
+    """Catches inconsistent functional graphs or a nondeterministic derivative path."""
+    model, images, cotangents = _dense_affine_fixture()
+    direction = {
+        name: torch.arange(value.numel(), dtype=value.dtype).reshape(value.shape) / 17.0
+        for name, value in model.named_parameters()
+    }
+    first = _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0, 2))
+    second = _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0, 2))
+    error = _MODULE.adjoint_relative_error(
+        model,
+        images,
+        cotangents,
+        direction,
+    )
+
+    assert error < 1.0e-12
+    for name in ("z", "batch_motion", "self_motion", "dbar"):
+        assert torch.equal(first[name], second[name])
+
+
+def test_registered_adjoint_directions_use_separate_exact_pcg64_streams() -> None:
+    """Catches shared RNG state, hex seeds, or non-C-order parameter filling."""
+    model, images, cotangents = _dense_affine_fixture()
+    output, parameters = _MODULE.registered_adjoint_directions(
+        model, cotangents.shape, seed=2, dtype=torch.float64, device=torch.device("cpu")
+    )
+    u_seed = int.from_bytes(
+        hashlib.sha256(b"rsta-stage-a-v1|adjoint-u|\0" + b"2").digest()[:8], "big"
+    )
+    v_seed = int.from_bytes(
+        hashlib.sha256(b"rsta-stage-a-v1|adjoint-v|\0" + b"2").digest()[:8], "big"
+    )
+    expected_u = np.random.Generator(np.random.PCG64(u_seed)).standard_normal((3, 3))
+    expected_v = np.random.Generator(np.random.PCG64(v_seed)).standard_normal(9)
+
+    assert np.array_equal(output.numpy(), expected_u)
+    assert np.array_equal(
+        torch.cat([parameters[name].reshape(-1) for name, _ in model.named_parameters()]).numpy(),
+        expected_v,
+    )
+    assert images.shape == (3, 2)
+
+
+def test_configure_deterministic_process_requires_preexported_cublas_and_records_gates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches late CUBLAS setup, warn-only determinism, TF32, or cuDNN benchmarking."""
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
+    with pytest.raises(ValueError, match="CUBLAS_WORKSPACE_CONFIG"):
+        _MODULE.configure_deterministic_process()
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    previous = (
+        torch.are_deterministic_algorithms_enabled(),
+        torch.backends.cudnn.benchmark,
+        torch.backends.cuda.matmul.allow_tf32,
+        torch.backends.cudnn.allow_tf32,
+    )
+    try:
+        audit = _MODULE.configure_deterministic_process()
+        assert torch.are_deterministic_algorithms_enabled()
+        assert not torch.backends.cudnn.benchmark
+        assert not torch.backends.cuda.matmul.allow_tf32
+        assert not torch.backends.cudnn.allow_tf32
+        assert audit["cublas_workspace_config"] == ":4096:8"
+        assert audit["deterministic_warn_only"] is False
+        assert audit["autocast"] is False
+        assert audit["model_arithmetic"] == "float32"
+    finally:
+        torch.use_deterministic_algorithms(previous[0])
+        torch.backends.cudnn.benchmark = previous[1]
+        torch.backends.cuda.matmul.allow_tf32 = previous[2]
+        torch.backends.cudnn.allow_tf32 = previous[3]
+
+
+class _UnusedParameterModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.used = torch.nn.Linear(2, 3, dtype=torch.float64)
+        self.unused = torch.nn.Parameter(torch.ones(2, dtype=torch.float64))
+
+    def forward(self, values: torch.Tensor) -> torch.Tensor:
+        return self.used(values)
+
+
+def test_exact_kernel_fields_fail_closed_on_disconnected_parameter() -> None:
+    """Catches silent materialization of a missing encoder gradient as zero."""
+    model = _UnusedParameterModel()
+    images = torch.tensor([[0.2, 0.3], [0.7, -0.4]], dtype=torch.float64)
+    cotangents = torch.tensor([[0.1, -0.2, 0.4], [0.5, 0.3, -0.1]], dtype=torch.float64)
+    with pytest.raises(ValueError, match="missing gradient.*unused"):
+        _MODULE.exact_kernel_fields(model, images, cotangents, receiver_indices=(0,))
+
+
+@pytest.mark.parametrize("defect", ["zero", "radial", "nonfinite"])
+def test_project_and_validate_fields_rejects_registered_vector_defects(defect: str) -> None:
+    """Catches row dropping or accepting zero, radial, or nonfinite diagnostic vectors."""
+    z = torch.tensor([[1.0, 0.0, 0.0]], dtype=torch.float64)
+    vectors = {
+        "dbar": torch.tensor([[0.0, 1.0, 0.0]], dtype=torch.float64),
+        "b": torch.tensor([[0.0, 0.4, 0.2]], dtype=torch.float64),
+        "s": torch.tensor([[0.0, 0.3, -0.1]], dtype=torch.float64),
+    }
+    if defect == "zero":
+        vectors["s"].zero_()
+    elif defect == "radial":
+        vectors["b"] = torch.tensor([[0.01, 1.0e-6, 0.0]], dtype=torch.float64)
+    else:
+        vectors["dbar"][0, 1] = float("nan")
+
+    with pytest.raises(ValueError, match="nonzero|radial|nonfinite"):
+        _MODULE.project_and_validate_fields(z, **vectors)
+
+
+def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schema() -> None:
+    """Catches an aggregate-only result or omission of a registered audit field."""
+    required = _MODULE.RECEIVER_AUDIT_FIELDS
+    row = {name: 1.0 for name in required}
+    row.update(
+        {
+            "seed": 0,
+            "label": 7,
+            "batch_index": 0,
+            "receiver_index": 3,
+            "receiver_id": "receiver-7",
+            "support_ids": ["support-a", "support-b"],
+            "foreign_ids": [f"foreign-{index}" for index in range(32)],
+            "batch_ids": [f"batch-{index}" for index in range(180)],
+            "batch_tensor_sha256": [f"{index:064x}" for index in range(180)],
+            "batch_id_order_sha256": _MODULE._ordered_text_sha256(
+                [f"batch-{index}" for index in range(180)]
+            ),
+            "tensor_sha256": "a" * 64,
+            "support_cosines": [0.25] * 34,
+        }
+    )
+    row["panel"] = "primary"
+    primary_rows = []
+    alternate_rows = []
+    alternate_labels = [
+        label for index, label in enumerate(_SELECTED_LABELS) if index % 8 in (0, 1)
+    ]
+    for seed in range(4):
+        for label in _SELECTED_LABELS:
+            current = deepcopy(row)
+            current.update(
+                seed=seed,
+                label=label,
+                receiver_id=f"primary-{seed}-{label}",
+                delta=0.025,
+                self_minus_desc=0.02,
+                rho=0.15,
+                log_ratio=0.05,
+                deranged_delta=0.0,
+            )
+            primary_rows.append(current)
+        for label in alternate_labels:
+            current = deepcopy(row)
+            current.update(
+                panel="alternate",
+                seed=seed,
+                label=label,
+                receiver_id=f"alternate-{seed}-{label}",
+                delta=0.01,
+            )
+            alternate_rows.append(current)
+    integrity = {
+        "dense_fixture": True,
+        "bn_fixture": True,
+        "seeds": [
+            {
+                "seed": seed,
+                "repeatability": True,
+                "adjoint_relative_error": 0.0,
+                "rotation": {
+                    "vector_residuals": {name: 0.0 for name in ("z", "dbar", "b", "s", "q")},
+                    "statistic_differences": {
+                        name: 0.0
+                        for name in (
+                            "A_self",
+                            "A_batch",
+                            "Delta",
+                            "A_desc",
+                            "rho",
+                            "log_ratio",
+                            "cos_b_s",
+                        )
+                    },
+                },
+            }
+            for seed in range(4)
+        ],
+    }
+    aggregation = _MODULE.decide_stage_a(primary_rows, alternate_rows)
+    _, primary_matrix = _MODULE._panel_matrices(
+        primary_rows,
+        identity_count=64,
+        value_names=("delta", "self_minus_desc"),
+        panel_name="primary",
+    )
+    bootstrap_delta = _MODULE.joint_bootstrap(primary_matrix["delta"])
+    bootstrap_self_desc = _MODULE.joint_bootstrap(primary_matrix["self_minus_desc"])
+    bootstrap = {
+        "delta_distribution": bootstrap_delta.tolist(),
+        "delta_sha256": _MODULE.float64_c_order_sha256(bootstrap_delta),
+        "self_minus_desc_distribution": bootstrap_self_desc.tolist(),
+        "self_minus_desc_sha256": _MODULE.float64_c_order_sha256(bootstrap_self_desc),
+    }
+    environment = {
+        "cublas_workspace_config": ":4096:8",
+        "deterministic_algorithms": True,
+        "deterministic_warn_only": False,
+        "cudnn_benchmark": False,
+        "cuda_matmul_tf32": False,
+        "cudnn_tf32": False,
+        "autocast": False,
+        "model_arithmetic": "float32",
+        "reduction_arithmetic": "float64",
+        "torch_version": torch.__version__,
+        "numpy_version": np.__version__,
+    }
+    batch_matrix = [[f"batch-{row}" for row in range(180)] for _ in range(8)]
+    alternate_batch_matrix = batch_matrix[:2]
+    seed_audits = [
+        {
+            "seed": seed,
+            "official_recall_at_1": 0.9,
+            "artifact_binding": {"checkpoint_sha256": "d" * 64},
+            "config": {"batch_size": 180},
+            "parameter_names": ["projection.weight"],
+            "parameter_count": 6,
+            "proxy_sha256": "e" * 64,
+            "proxy_label_sha256": "f" * 64,
+            "train_example_id_order_sha256": "1" * 64,
+            "train_label_order_sha256": "2" * 64,
+            "train_source_order_sha256": "3" * 64,
+            "transform_cache_order_sha256": "4" * 64,
+            "transform_tensor_sha256": {"example": "5" * 64},
+            "primary_batch_ids": batch_matrix,
+            "alternate_batch_ids": alternate_batch_matrix,
+        }
+        for seed in range(4)
+    ]
+
+    payload = _MODULE.scientific_payload(
+        manifest_audit={"sha256": "b" * 64},
+        environment=environment,
+        seed_audits=seed_audits,
+        primary_rows=primary_rows,
+        alternate_rows=alternate_rows,
+        integrity=integrity,
+        aggregation=aggregation,
+        bootstrap=bootstrap,
+    )
+
+    assert payload["candidate_values_computed"] is True
+    assert payload["rows"]["primary"][0]["receiver_id"] == f"primary-0-{_SELECTED_LABELS[0]}"
+    assert len(payload["rows"]["primary"][0]["batch_ids"]) == 180
+    assert payload["aggregation"]["first_decisive_clause"] == "no_pass_or_fail_rule"
+    broken = deepcopy(primary_rows[0])
+    broken.pop(next(iter(required)))
+    with pytest.raises(ValueError, match="receiver audit fields"):
+        _MODULE.scientific_payload(
+            manifest_audit={"sha256": "b" * 64},
+            environment=environment,
+            seed_audits=seed_audits,
+            primary_rows=[broken, *primary_rows[1:]],
+            alternate_rows=alternate_rows,
+            integrity=integrity,
+            aggregation=aggregation,
+            bootstrap=bootstrap,
+        )
+
+
+def _unit_numpy(values: np.ndarray) -> np.ndarray:
+    return values / np.linalg.norm(values, axis=1, keepdims=True)
+
+
+def test_score_rsta_batch_computes_all_controls_and_complete_receiver_audits() -> None:
+    """Catches a scientific loop that omits rows, controls, IDs, or head-kernel evidence."""
+    generator = np.random.Generator(np.random.PCG64(314))
+    batch_size = 180
+    dimension = 3
+    receiver_indices = tuple(range(8))
+    z = _unit_numpy(generator.standard_normal((batch_size, dimension)))
+
+    def tangent(values: np.ndarray) -> np.ndarray:
+        return values - z * np.sum(z * values, axis=1, keepdims=True)
+
+    dbar = tangent(generator.standard_normal((batch_size, dimension)))
+    b = tangent(generator.standard_normal((batch_size, dimension)))
+    s = tangent(generator.standard_normal((batch_size, dimension)))[:8]
+    raw_norms = np.linspace(0.8, 1.5, batch_size)
+    raw_head = z * raw_norms[:, None]
+    prehead = generator.standard_normal((batch_size, 2))
+    fields = {
+        "z": torch.tensor(z, dtype=torch.float64),
+        "dbar": torch.tensor(dbar, dtype=torch.float64),
+        "batch_motion": torch.tensor(b, dtype=torch.float64),
+        "self_motion": torch.tensor(s, dtype=torch.float64),
+        "receiver_indices": receiver_indices,
+    }
+    labels = tuple(range(8))
+    receiver_ids = tuple(f"receiver-{index}" for index in range(8))
+    supports_by_label = {
+        label: (
+            (f"support-{label}-a", f"support-{label}-b"),
+            _unit_numpy(generator.standard_normal((2, dimension))),
+        )
+        for label in labels
+    }
+    foreign_ids = tuple(f"foreign-{index}" for index in range(40))
+    foreign_labels = tuple(range(100, 140))
+    foreign_descriptors = _unit_numpy(generator.standard_normal((40, dimension)))
+    batch_ids = tuple(receiver_ids) + tuple(f"distractor-{index}" for index in range(172))
+    tensor_hashes = {example_id: f"{index:064x}" for index, example_id in enumerate(batch_ids)}
+
+    rows = _MODULE.score_rsta_batch(
+        seed=0,
+        panel="primary",
+        batch_index=0,
+        receiver_indices=receiver_indices,
+        receiver_ids=receiver_ids,
+        receiver_labels=labels,
+        batch_ids=batch_ids,
+        tensor_hashes=tensor_hashes,
+        fields=fields,
+        supports_by_label=supports_by_label,
+        foreign_ids=foreign_ids,
+        foreign_labels=foreign_labels,
+        foreign_descriptors=foreign_descriptors,
+        prehead_features=prehead,
+        raw_head_outputs=raw_head,
+    )
+
+    assert len(rows) == 8
+    assert [row["receiver_id"] for row in rows] == list(receiver_ids)
+    assert all(set(row) >= _MODULE.RECEIVER_AUDIT_FIELDS for row in rows)
+    assert all(len(row["foreign_ids"]) == 32 for row in rows)
+    assert all(len(row["support_cosines"]) == 34 for row in rows)
+    assert all(abs(row["head_self_desc_gap"]) <= 1.0e-5 for row in rows)
+    assert rows[0]["delta"] == pytest.approx(rows[0]["a_self"] - rows[0]["a_batch"])
+    assert rows[0]["self_minus_desc"] == pytest.approx(rows[0]["a_self"] - rows[0]["a_desc"])
+
+
+def test_exact_fields_and_registered_statistics_rotate_with_affine_head() -> None:
+    """Catches a wrong Q convention for head weights or field cotangents."""
+    model, images, _ = _dense_affine_fixture()
+    rotation = torch.tensor(_MODULE.construct_rotation(3, seed=200), dtype=torch.float64)
+    rotated_model = deepcopy(model)
+    with torch.no_grad():
+        rotated_model.projection.weight.copy_(rotation @ model.projection.weight)
+        rotated_model.projection.bias.copy_(rotation @ model.projection.bias)
+    labels = torch.tensor([0, 1, 0], dtype=torch.int64)
+    proxy_labels = torch.tensor([0, 1], dtype=torch.int64)
+    proxies = torch.tensor([[0.8, -0.2, 0.5], [-0.4, 0.7, 0.1]], dtype=torch.float64)
+    rotated_proxies = proxies @ rotation.T
+    original = _MODULE.exact_contextual_rsta_fields(
+        model,
+        images,
+        labels,
+        proxies,
+        proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        receiver_indices=(0, 1, 2),
+    )
+    rotated = _MODULE.exact_contextual_rsta_fields(
+        rotated_model,
+        images,
+        labels,
+        rotated_proxies,
+        proxy_labels,
+        alpha=32.0,
+        delta=0.1,
+        receiver_indices=(0, 1, 2),
+    )
+    receiver = 0
+    generator = np.random.Generator(np.random.PCG64(18))
+    positive_supports = _unit_numpy(generator.standard_normal((2, 3)))
+    foreign_supports = _unit_numpy(generator.standard_normal((32, 3)))
+    q = _MODULE.smooth_margin_gradient(
+        original["z"][receiver].detach().numpy(), positive_supports, foreign_supports
+    )
+    rotated_q = _MODULE.smooth_margin_gradient(
+        rotated["z"][receiver].detach().numpy(),
+        positive_supports @ rotation.numpy().T,
+        foreign_supports @ rotation.numpy().T,
+    )
+
+    def statistics(fields: dict[str, Any], target: np.ndarray) -> dict[str, float]:
+        z_value = fields["z"][receiver].detach().numpy()
+        dbar_value = _MODULE.tangent_projection(fields["dbar"][receiver].detach().numpy(), z_value)
+        b_value = _MODULE.tangent_projection(
+            fields["batch_motion"][receiver].detach().numpy(), z_value
+        )
+        s_value = _MODULE.tangent_projection(
+            fields["self_motion"][receiver].detach().numpy(), z_value
+        )
+        a_self = _MODULE.cosine_similarity(s_value, target)
+        a_batch = _MODULE.cosine_similarity(b_value, target)
+        return {
+            "A_self": a_self,
+            "A_batch": a_batch,
+            "Delta": a_self - a_batch,
+            "A_desc": _MODULE.cosine_similarity(dbar_value, target),
+            "rho": float(
+                np.linalg.norm(
+                    b_value / np.linalg.norm(b_value)
+                    - s_value
+                    / np.linalg.norm(s_value)
+                    * np.dot(b_value / np.linalg.norm(b_value), s_value / np.linalg.norm(s_value))
+                )
+            ),
+            "log_ratio": float(np.log(np.linalg.norm(b_value) / np.linalg.norm(s_value))),
+            "cos_b_s": _MODULE.cosine_similarity(b_value, s_value),
+        }
+
+    original_vectors = {
+        "z": original["z"][receiver].detach().numpy(),
+        "dbar": original["dbar"][receiver].detach().numpy(),
+        "b": original["batch_motion"][receiver].detach().numpy(),
+        "s": original["self_motion"][receiver].detach().numpy(),
+        "q": q,
+    }
+    rotated_vectors = {
+        "z": rotated["z"][receiver].detach().numpy(),
+        "dbar": rotated["dbar"][receiver].detach().numpy(),
+        "b": rotated["batch_motion"][receiver].detach().numpy(),
+        "s": rotated["self_motion"][receiver].detach().numpy(),
+        "q": rotated_q,
+    }
+    audit = _MODULE.check_rotation(
+        original_vectors,
+        rotated_vectors,
+        statistics(original, q),
+        statistics(rotated, rotated_q),
+        rotation.numpy(),
+    )
+    assert max(audit["vector_residuals"].values()) < 1.0e-10
+    assert max(audit["statistic_differences"].values()) < 1.0e-10

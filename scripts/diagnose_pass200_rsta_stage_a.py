@@ -8,6 +8,7 @@ only through explicit binding/cache/CLI calls.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -66,6 +67,86 @@ _FROZEN_SOURCE_FILES = frozenset(
         "scripts/export_final_inshop_embeddings.py",
         "src/sfora/data.py",
         "src/sfora/image_end_to_end.py",
+    }
+)
+RECEIVER_AUDIT_FIELDS = frozenset(
+    {
+        "panel",
+        "seed",
+        "label",
+        "batch_index",
+        "receiver_index",
+        "receiver_id",
+        "support_ids",
+        "foreign_ids",
+        "batch_ids",
+        "batch_tensor_sha256",
+        "batch_id_order_sha256",
+        "tensor_sha256",
+        "a_self",
+        "a_batch",
+        "delta",
+        "a_desc",
+        "self_minus_desc",
+        "rho",
+        "log_ratio",
+        "cos_b_s",
+        "random_a_self",
+        "random_a_batch",
+        "random_delta",
+        "deranged_a_self",
+        "deranged_a_batch",
+        "deranged_delta",
+        "norm_z",
+        "norm_dbar",
+        "norm_b",
+        "norm_s",
+        "norm_q",
+        "norm_random_target",
+        "norm_deranged_target",
+        "radial_fraction_dbar",
+        "radial_fraction_b",
+        "radial_fraction_s",
+        "head_a_batch",
+        "head_a_self",
+        "head_self_desc_gap",
+        "norm_b_head",
+        "norm_s_head",
+        "support_cosines",
+    }
+)
+SEED_AUDIT_FIELDS = frozenset(
+    {
+        "seed",
+        "official_recall_at_1",
+        "artifact_binding",
+        "config",
+        "parameter_names",
+        "parameter_count",
+        "proxy_sha256",
+        "proxy_label_sha256",
+        "train_example_id_order_sha256",
+        "train_label_order_sha256",
+        "train_source_order_sha256",
+        "transform_cache_order_sha256",
+        "transform_tensor_sha256",
+        "primary_batch_ids",
+        "alternate_batch_ids",
+    }
+)
+ENVIRONMENT_AUDIT_FIELDS = frozenset(
+    {
+        "cublas_workspace_config",
+        "deterministic_algorithms",
+        "deterministic_warn_only",
+        "cudnn_benchmark",
+        "cuda_matmul_tf32",
+        "cudnn_tf32",
+        "autocast",
+        "model_arithmetic",
+        "reduction_arithmetic",
+        "torch_version",
+        "numpy_version",
     }
 )
 
@@ -719,6 +800,520 @@ def binding_only_payload(
     }
 
 
+def make_bufferless_train_clone(model: Any) -> Any:
+    """Clone a train-mode model while making BN use batch statistics without mutation."""
+    import torch
+
+    clone = copy.deepcopy(model)
+    clone.train()
+    for module in clone.modules():
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+            module.track_running_stats = False
+    return clone
+
+
+def capture_prehead_and_raw(model: Any, images: Any) -> tuple[Any, Any, Any]:
+    """Capture the input/output of the executed final affine head in one full forward."""
+    import torch
+
+    captures: list[tuple[str, Any, Any]] = []
+    handles = []
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Linear):
+
+            def capture(
+                _module: Any,
+                inputs: tuple[Any, ...],
+                output: Any,
+                *,
+                module_name: str = name,
+            ) -> None:
+                if len(inputs) != 1:
+                    raise ValueError("affine head must receive exactly one tensor")
+                captures.append((module_name, inputs[0], output))
+
+            handles.append(module.register_forward_hook(capture))
+    if not handles:
+        raise ValueError("encoder has no affine embedding head")
+    try:
+        output = model(images)
+    finally:
+        for handle in handles:
+            handle.remove()
+    aligned = [
+        capture
+        for capture in captures
+        if isinstance(capture[1], torch.Tensor)
+        and isinstance(capture[2], torch.Tensor)
+        and capture[1].ndim == 2
+        and capture[2].ndim == 2
+        and capture[2].shape == output.shape
+    ]
+    if not aligned:
+        raise ValueError("no executed affine head matches the encoder output shape")
+    _, prehead, raw_head = aligned[-1]
+    return prehead, raw_head, output
+
+
+def _functional_encoder(
+    model: Any,
+    images: Any,
+) -> tuple[Callable[[dict[str, Any]], Any], dict[str, Any], tuple[str, ...]]:
+    import torch
+
+    if not isinstance(images, torch.Tensor) or images.ndim < 2 or images.shape[0] == 0:
+        raise ValueError("encoder images must be a nonempty tensor batch")
+    if not bool(torch.isfinite(images).all()):
+        raise ValueError("encoder images must be finite")
+    for module in model.modules():
+        if (
+            isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
+            and module.training
+            and module.track_running_stats
+        ):
+            raise ValueError("train-mode BatchNorm must be bufferless before derivative work")
+    parameters = {
+        name: parameter for name, parameter in model.named_parameters() if parameter.requires_grad
+    }
+    if not parameters:
+        raise ValueError("encoder has no trainable parameters")
+    parameter_names = tuple(parameters)
+    buffers = {name: buffer for name, buffer in model.named_buffers()}
+
+    def encoder(current_parameters: dict[str, Any]) -> Any:
+        raw = torch.func.functional_call(
+            model,
+            (current_parameters, buffers),
+            (images,),
+            strict=True,
+        )
+        if not isinstance(raw, torch.Tensor) or raw.ndim != 2 or raw.shape[0] != images.shape[0]:
+            raise ValueError("encoder must return a [batch, dimension] tensor")
+        return torch.nn.functional.normalize(raw, p=2, dim=-1)
+
+    return encoder, parameters, parameter_names
+
+
+def _reject_disconnected_parameters(
+    encoder: Callable[[dict[str, Any]], Any],
+    parameters: dict[str, Any],
+    parameter_names: Sequence[str],
+) -> None:
+    import torch
+
+    probe = encoder(parameters)
+    gradients = torch.autograd.grad(
+        probe,
+        tuple(parameters.values()),
+        grad_outputs=torch.ones_like(probe),
+        allow_unused=True,
+        retain_graph=False,
+        create_graph=False,
+    )
+    missing = [
+        name for name, gradient in zip(parameter_names, gradients, strict=True) if gradient is None
+    ]
+    if missing:
+        raise ValueError(f"missing gradient for encoder parameter(s): {', '.join(missing)}")
+
+
+def _flatten_parameter_tree(tree: Mapping[str, Any], names: Sequence[str]) -> Any:
+    import torch
+
+    return torch.cat([tree[name].reshape(-1) for name in names])
+
+
+def exact_kernel_fields(
+    model: Any,
+    images: Any,
+    cotangents: Any,
+    *,
+    receiver_indices: Sequence[int],
+) -> dict[str, Any]:
+    """Compute exact ``J J^T dbar`` and serial ``J_i J_i^T dbar_i`` motions."""
+    import torch
+
+    encoder, parameters, parameter_names = _functional_encoder(model, images)
+    _reject_disconnected_parameters(encoder, parameters, parameter_names)
+    z, vjp_function = torch.func.vjp(encoder, parameters)
+    directions = torch.as_tensor(cotangents, device=z.device, dtype=z.dtype)
+    if directions.shape != z.shape or not bool(torch.isfinite(directions).all()):
+        raise ValueError("cotangents must be a finite tensor aligned with descriptors")
+    receivers = tuple(int(value) for value in receiver_indices)
+    if (
+        not receivers
+        or len(set(receivers)) != len(receivers)
+        or any(value < 0 or value >= int(z.shape[0]) for value in receivers)
+    ):
+        raise ValueError("receiver indices must be unique in-range batch rows")
+    global_gradient = vjp_function(directions)[0]
+    if set(global_gradient) != set(parameter_names):
+        raise ValueError("VJP parameter tree differs from the encoder parameter tree")
+    if any(not bool(torch.isfinite(value).all()) for value in global_gradient.values()):
+        raise ValueError("global parameter gradient is nonfinite")
+    _, batch_motion = torch.func.jvp(
+        encoder,
+        (parameters,),
+        (global_gradient,),
+    )
+    self_rows: list[Any] = []
+    self_parameter_norms: list[float] = []
+    for receiver in receivers:
+        receiver_cotangent = torch.zeros_like(directions)
+        receiver_cotangent[receiver] = directions[receiver]
+        receiver_gradient = vjp_function(receiver_cotangent)[0]
+        if any(not bool(torch.isfinite(value).all()) for value in receiver_gradient.values()):
+            raise ValueError(f"receiver {receiver} parameter gradient is nonfinite")
+        _, receiver_motion = torch.func.jvp(
+            encoder,
+            (parameters,),
+            (receiver_gradient,),
+        )
+        self_rows.append(receiver_motion[receiver])
+        self_parameter_norms.append(
+            float(
+                torch.linalg.vector_norm(
+                    _flatten_parameter_tree(receiver_gradient, parameter_names)
+                )
+                .detach()
+                .cpu()
+            )
+        )
+    return {
+        "z": z,
+        "dbar": directions,
+        "batch_motion": batch_motion,
+        "self_motion": torch.stack(self_rows),
+        "receiver_indices": receivers,
+        "parameter_names": parameter_names,
+        "parameter_count": int(sum(value.numel() for value in parameters.values())),
+        "parameter_gradient_flat": _flatten_parameter_tree(global_gradient, parameter_names),
+        "self_parameter_norms": tuple(self_parameter_norms),
+    }
+
+
+def exact_contextual_rsta_fields(
+    model: Any,
+    images: Any,
+    labels: Any,
+    proxies: Any,
+    proxy_labels: Any,
+    *,
+    alpha: float,
+    delta: float,
+    receiver_indices: Sequence[int],
+) -> dict[str, Any]:
+    """Construct the exact same-batch PA cotangent, then apply the encoder tangent kernel."""
+    import torch
+
+    from sfora.image_end_to_end import _normalize, _proxy_anchor_loss
+
+    raw = model(images)
+    z = _normalize(raw, torch)
+    loss = _proxy_anchor_loss(
+        z,
+        labels,
+        proxy_embeddings=proxies.detach(),
+        proxy_labels=proxy_labels,
+        alpha=float(alpha),
+        delta=float(delta),
+        torch_module=torch,
+    )
+    dbar = -torch.autograd.grad(loss, z, create_graph=True)[0]
+    fields = exact_kernel_fields(
+        model,
+        images,
+        dbar,
+        receiver_indices=receiver_indices,
+    )
+    if not torch.equal(fields["z"], z):
+        raise ValueError("same-batch functional encoder did not reproduce the contextual PA graph")
+    fields["loss"] = loss
+    fields["dbar"] = dbar
+    return fields
+
+
+def adjoint_relative_error(
+    model: Any,
+    images: Any,
+    output_direction: Any,
+    parameter_direction: Mapping[str, Any],
+) -> float:
+    """Return the registered relative error in ``<Jv,u> = <v,J^T u>``."""
+    import torch
+
+    encoder, parameters, parameter_names = _functional_encoder(model, images)
+    if set(parameter_direction) != set(parameter_names):
+        raise ValueError("adjoint direction must contain every encoder parameter exactly")
+    tangents = {
+        name: torch.as_tensor(parameter_direction[name], device=value.device, dtype=value.dtype)
+        for name, value in parameters.items()
+    }
+    if any(tangents[name].shape != parameters[name].shape for name in parameter_names):
+        raise ValueError("adjoint parameter direction shape differs")
+    z, vjp_function = torch.func.vjp(encoder, parameters)
+    u = torch.as_tensor(output_direction, device=z.device, dtype=z.dtype)
+    if u.shape != z.shape or not bool(torch.isfinite(u).all()):
+        raise ValueError("adjoint output direction differs from descriptor shape")
+    _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
+    jtu = vjp_function(u)[0]
+    left = torch.sum(jv * u)
+    right = sum(torch.sum(tangents[name] * jtu[name]) for name in parameter_names)
+    denominator = torch.maximum(
+        torch.maximum(torch.abs(left), torch.abs(right)),
+        torch.as_tensor(1.0e-12, dtype=left.dtype, device=left.device),
+    )
+    return float((torch.abs(left - right) / denominator).detach().cpu())
+
+
+def registered_adjoint_directions(
+    model: Any,
+    output_shape: Sequence[int],
+    *,
+    seed: int,
+    dtype: Any,
+    device: Any,
+) -> tuple[Any, dict[str, Any]]:
+    """Draw registered C-order output/parameter directions from independent PCG64 streams."""
+    import torch
+
+    if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)) or int(seed) < 0:
+        raise ValueError("adjoint seed must be an unsigned integer")
+    shape = tuple(int(value) for value in output_shape)
+    if not shape or any(value <= 0 for value in shape):
+        raise ValueError("adjoint output shape must be nonempty and positive")
+    parameter_items = [
+        (name, parameter) for name, parameter in model.named_parameters() if parameter.requires_grad
+    ]
+    if not parameter_items:
+        raise ValueError("adjoint model has no trainable parameters")
+    u_rng = np.random.Generator(
+        np.random.PCG64(domain_seed("rsta-stage-a-v1|adjoint-u|", str(int(seed))))
+    )
+    v_rng = np.random.Generator(
+        np.random.PCG64(domain_seed("rsta-stage-a-v1|adjoint-v|", str(int(seed))))
+    )
+    output_array = np.ascontiguousarray(u_rng.standard_normal(shape), dtype=np.float64)
+    total = sum(parameter.numel() for _, parameter in parameter_items)
+    flat_parameter = np.ascontiguousarray(v_rng.standard_normal(total), dtype=np.float64)
+    output = torch.as_tensor(output_array, dtype=dtype, device=device)
+    parameters: dict[str, Any] = {}
+    start = 0
+    for name, parameter in parameter_items:
+        end = start + parameter.numel()
+        parameters[name] = torch.as_tensor(
+            flat_parameter[start:end].reshape(tuple(parameter.shape), order="C"),
+            dtype=dtype,
+            device=device,
+        )
+        start = end
+    return output, parameters
+
+
+def configure_deterministic_process() -> dict[str, Any]:
+    """Activate and report every frozen deterministic-process gate before CUDA work."""
+    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+        raise ValueError("CUBLAS_WORKSPACE_CONFIG=:4096:8 must be exported before CUDA init")
+    import torch
+
+    torch.use_deterministic_algorithms(True, warn_only=False)
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    return {
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        "deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
+        "deterministic_warn_only": bool(torch.is_deterministic_algorithms_warn_only_enabled()),
+        "cudnn_benchmark": bool(torch.backends.cudnn.benchmark),
+        "cuda_matmul_tf32": bool(torch.backends.cuda.matmul.allow_tf32),
+        "cudnn_tf32": bool(torch.backends.cudnn.allow_tf32),
+        "autocast": False,
+        "model_arithmetic": "float32",
+        "reduction_arithmetic": "float64",
+        "torch_version": torch.__version__,
+        "numpy_version": np.__version__,
+    }
+
+
+def project_and_validate_fields(
+    z: Any,
+    *,
+    dbar: Any,
+    b: Any,
+    s: Any,
+) -> dict[str, Any]:
+    """Project measured vectors once into the receiver tangent and enforce INVALID gates."""
+    import torch
+
+    descriptors = torch.as_tensor(z)
+    if descriptors.ndim != 2 or descriptors.shape[0] == 0:
+        raise ValueError("descriptors must be a nonempty matrix")
+    if not bool(torch.isfinite(descriptors).all()):
+        raise ValueError("descriptors are nonfinite")
+    unit_error = torch.abs(torch.linalg.vector_norm(descriptors, dim=1) - 1.0)
+    if bool(torch.any(unit_error > 2.0e-5)):
+        raise ValueError("descriptor unit-row error exceeds 2e-5")
+    projected: dict[str, Any] = {}
+    radial_fractions: dict[str, Any] = {}
+    for name, raw in (("dbar", dbar), ("b", b), ("s", s)):
+        value = torch.as_tensor(raw, device=descriptors.device, dtype=descriptors.dtype)
+        if value.shape != descriptors.shape:
+            raise ValueError(f"{name} shape differs from descriptors")
+        if not bool(torch.isfinite(value).all()):
+            raise ValueError(f"{name} is nonfinite")
+        norms = torch.linalg.vector_norm(value, dim=1)
+        if bool(torch.any(norms <= _VECTOR_EPS)):
+            raise ValueError(f"{name} must have nonzero row norms")
+        radial = descriptors * torch.sum(descriptors * value, dim=1, keepdim=True)
+        tangent = value - radial
+        tangent_norms = torch.linalg.vector_norm(tangent, dim=1)
+        radial_fraction = torch.linalg.vector_norm(radial, dim=1) / norms
+        if bool(torch.any(radial_fraction > 1.0e-3)):
+            raise ValueError(f"{name} radial fraction exceeds 1e-3")
+        if bool(torch.any(tangent_norms <= _VECTOR_EPS)):
+            raise ValueError(f"{name} tangent projection must have nonzero row norms")
+        projected[name] = tangent
+        radial_fractions[name] = radial_fraction
+    return {
+        "z": descriptors,
+        **projected,
+        "unit_error": unit_error,
+        "radial_fractions": radial_fractions,
+    }
+
+
+def _validate_receiver_audit_row(row: Mapping[str, Any], *, expected_panel: str) -> None:
+    missing = RECEIVER_AUDIT_FIELDS - set(row)
+    if missing:
+        raise ValueError(f"receiver audit fields missing: {sorted(missing)}")
+    if row["panel"] != expected_panel:
+        raise ValueError(f"receiver audit panel must equal {expected_panel}")
+    if len(row["support_ids"]) != 2:
+        raise ValueError("receiver audit requires exactly two support IDs")
+    if len(row["foreign_ids"]) != 32:
+        raise ValueError("receiver audit requires exactly 32 foreign IDs")
+    if len(row["batch_ids"]) != 180 or len(set(row["batch_ids"])) != 180:
+        raise ValueError("receiver audit requires 180 unique ordered batch IDs")
+    if len(row["batch_tensor_sha256"]) != 180:
+        raise ValueError("receiver audit requires every ordered batch tensor hash")
+    if row["batch_id_order_sha256"] != _ordered_text_sha256(row["batch_ids"]):
+        raise ValueError("receiver audit batch-ID order hash differs")
+    if len(row["support_cosines"]) != 34:
+        raise ValueError("receiver audit requires every support cosine")
+    json.dumps(_json_ready(dict(row)), allow_nan=False)
+
+
+def scientific_payload(
+    *,
+    manifest_audit: Mapping[str, Any],
+    environment: Mapping[str, Any],
+    seed_audits: Sequence[Mapping[str, Any]],
+    primary_rows: Sequence[Mapping[str, Any]],
+    alternate_rows: Sequence[Mapping[str, Any]],
+    integrity: Mapping[str, Any],
+    aggregation: Mapping[str, Any],
+    bootstrap: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the non-lossy scientific result contract; aggregate-only output is forbidden."""
+    if ENVIRONMENT_AUDIT_FIELDS - set(environment):
+        raise ValueError("scientific environment audit is incomplete")
+    if (
+        environment.get("cublas_workspace_config") != ":4096:8"
+        or environment.get("deterministic_algorithms") is not True
+        or environment.get("deterministic_warn_only") is not False
+        or environment.get("cudnn_benchmark") is not False
+        or environment.get("cuda_matmul_tf32") is not False
+        or environment.get("cudnn_tf32") is not False
+        or environment.get("autocast") is not False
+        or environment.get("model_arithmetic") != "float32"
+        or environment.get("reduction_arithmetic") != "float64"
+    ):
+        raise ValueError("scientific environment differs from the frozen deterministic gates")
+    if not primary_rows or not alternate_rows:
+        raise ValueError("scientific result requires primary and alternate receiver rows")
+    for row in primary_rows:
+        _validate_receiver_audit_row(row, expected_panel="primary")
+    for row in alternate_rows:
+        _validate_receiver_audit_row(row, expected_panel="alternate")
+    for gate in ("dense_fixture", "bn_fixture"):
+        if integrity.get(gate) is not True:
+            raise ValueError(f"integrity gate failed: {gate}")
+    integrity_seeds = integrity.get("seeds")
+    if not isinstance(integrity_seeds, Sequence) or {
+        audit.get("seed") for audit in integrity_seeds if isinstance(audit, Mapping)
+    } != {0, 1, 2, 3}:
+        raise ValueError("integrity requires exactly seeds 0-3")
+    for audit in integrity_seeds:
+        if not isinstance(audit, Mapping) or audit.get("repeatability") is not True:
+            raise ValueError("integrity repeatability gate failed")
+        adjoint = float(audit.get("adjoint_relative_error", float("inf")))
+        if not np.isfinite(adjoint) or adjoint > 5.0e-4:
+            raise ValueError("integrity gate failed: adjoint relative error")
+        if not isinstance(audit.get("rotation"), Mapping):
+            raise ValueError("integrity rotation gate is missing")
+        rotation = audit["rotation"]
+        if (
+            set(rotation.get("vector_residuals", {})) != _ROTATION_VECTOR_NAMES
+            or set(rotation.get("statistic_differences", {})) != _ROTATION_STATISTIC_NAMES
+        ):
+            raise ValueError("integrity rotation audit lacks every registered name")
+    if {audit.get("seed") for audit in seed_audits} != {0, 1, 2, 3} or any(
+        SEED_AUDIT_FIELDS - set(audit)
+        or not audit.get("parameter_names")
+        or int(audit.get("parameter_count", 0)) <= 0
+        or len(audit.get("primary_batch_ids", ())) != 8
+        or any(len(batch) != 180 for batch in audit.get("primary_batch_ids", ()))
+        or len(audit.get("alternate_batch_ids", ())) != 2
+        or any(len(batch) != 180 for batch in audit.get("alternate_batch_ids", ()))
+        for audit in seed_audits
+    ):
+        raise ValueError("scientific result requires ordered parameter names for every seed")
+    recomputed = decide_stage_a(primary_rows, alternate_rows)
+    if _json_ready(aggregation) != _json_ready(recomputed):
+        raise ValueError("scientific aggregation differs from the persisted receiver rows")
+    delta_distribution = np.asarray(bootstrap.get("delta_distribution"), dtype=np.float64)
+    self_desc_distribution = np.asarray(
+        bootstrap.get("self_minus_desc_distribution"), dtype=np.float64
+    )
+    if delta_distribution.shape != (10_000,) or self_desc_distribution.shape != (10_000,):
+        raise ValueError("scientific bootstrap must persist both 10,000-replicate distributions")
+    if (
+        float64_c_order_sha256(delta_distribution) != bootstrap.get("delta_sha256")
+        or float64_c_order_sha256(self_desc_distribution) != bootstrap.get("self_minus_desc_sha256")
+        or bootstrap.get("delta_sha256") != recomputed["bootstrap_delta_sha256"]
+        or bootstrap.get("self_minus_desc_sha256") != recomputed["bootstrap_self_desc_sha256"]
+    ):
+        raise ValueError("scientific bootstrap distribution hash differs from aggregation")
+    stage_a = recomputed["stage_a"]
+    clause = recomputed["first_decisive_clause"]
+    payload = {
+        "schema_version": 1,
+        "diagnostic": "pass200_rsta_stage_a",
+        "mode": "scientific",
+        "candidate_values_computed": True,
+        "stage_a_verdict": stage_a,
+        "first_decisive_clause": clause,
+        "uses_test_data": False,
+        "scope_limitation": (
+            "Euclidean tangent kernel; invariant only to the registered common descriptor "
+            "rotation, not hidden-layer rescaling or AdamW preconditioning"
+        ),
+        "manifest": _json_ready(manifest_audit),
+        "environment": _json_ready(environment),
+        "integrity": _json_ready(integrity),
+        "seed_audits": _json_ready(seed_audits),
+        "rows": {
+            "primary": _json_ready(primary_rows),
+            "alternate": _json_ready(alternate_rows),
+        },
+        "exclusions": [],
+        "bootstrap": _json_ready(bootstrap),
+        "aggregation": _json_ready(aggregation),
+    }
+    json.dumps(payload, allow_nan=False)
+    return payload
+
+
 def domain_hash(domain: str, text: str) -> bytes:
     """Return ``SHA256(domain.encode('ascii') + NUL + text.encode('utf-8'))``."""
     if not isinstance(domain, str) or not isinstance(text, str):
@@ -1084,6 +1679,173 @@ def head_only_kernel_motion(
         if cosine_similarity(self_motion[receiver], directions[receiver]) < 1.0 - 1.0e-5:
             raise ValueError("head-self motion is not positively collinear with cotangent")
     return batch_motion, self_motion
+
+
+def score_rsta_batch(
+    *,
+    seed: int,
+    panel: str,
+    batch_index: int,
+    receiver_indices: Sequence[int],
+    receiver_ids: Sequence[str],
+    receiver_labels: Sequence[int],
+    batch_ids: Sequence[str],
+    tensor_hashes: Mapping[str, str],
+    fields: Mapping[str, Any],
+    supports_by_label: Mapping[int, tuple[Sequence[str], np.ndarray]],
+    foreign_ids: Sequence[str],
+    foreign_labels: Sequence[int],
+    foreign_descriptors: np.ndarray,
+    prehead_features: np.ndarray,
+    raw_head_outputs: np.ndarray,
+) -> list[dict[str, Any]]:
+    """Score one registered eight-receiver context and retain every audit input/output."""
+    if panel not in {"primary", "alternate"}:
+        raise ValueError("RSTA panel must be primary or alternate")
+    receivers = tuple(int(value) for value in receiver_indices)
+    ids = tuple(str(value) for value in receiver_ids)
+    labels = tuple(int(value) for value in receiver_labels)
+    ordered_batch_ids = tuple(str(value) for value in batch_ids)
+    if len(receivers) != 8 or len(ids) != 8 or len(labels) != 8:
+        raise ValueError("RSTA scoring requires exactly eight aligned receivers")
+    if fields.get("receiver_indices") != receivers:
+        raise ValueError("field receiver order differs from registered receiver order")
+    if len(ordered_batch_ids) != 180 or len(set(ordered_batch_ids)) != 180:
+        raise ValueError("RSTA scoring requires one unique ordered B=180 batch")
+    z_all = np.asarray(fields["z"].detach().cpu(), dtype=np.float64)
+    dbar_all = np.asarray(fields["dbar"].detach().cpu(), dtype=np.float64)
+    b_all = np.asarray(fields["batch_motion"].detach().cpu(), dtype=np.float64)
+    s_rows = np.asarray(fields["self_motion"].detach().cpu(), dtype=np.float64)
+    if s_rows.shape != (8, z_all.shape[1]):
+        raise ValueError("self-motion rows differ from the registered receivers")
+    selected = np.asarray(receivers, dtype=np.int64)
+    validated = project_and_validate_fields(
+        z_all[selected],
+        dbar=dbar_all[selected],
+        b=b_all[selected],
+        s=s_rows,
+    )
+    z_rows = np.asarray(validated["z"].detach().cpu(), dtype=np.float64)
+    dbar_rows = np.asarray(validated["dbar"].detach().cpu(), dtype=np.float64)
+    b_rows = np.asarray(validated["b"].detach().cpu(), dtype=np.float64)
+    s_rows = np.asarray(validated["s"].detach().cpu(), dtype=np.float64)
+    radial = {
+        name: np.asarray(value.detach().cpu(), dtype=np.float64)
+        for name, value in validated["radial_fractions"].items()
+    }
+    q_rows: list[np.ndarray] = []
+    chosen_foreign_ids: list[list[str]] = []
+    chosen_foreign_rows: list[np.ndarray] = []
+    positive_ids: list[tuple[str, str]] = []
+    positive_rows: list[np.ndarray] = []
+    current_batch = set(ordered_batch_ids)
+    for position, label in enumerate(labels):
+        if label not in supports_by_label:
+            raise ValueError(f"missing clean supports for receiver label {label}")
+        raw_support_ids, raw_positive = supports_by_label[label]
+        support_ids = tuple(str(value) for value in raw_support_ids)
+        positives = _unit_matrix(raw_positive, name="positive supports")
+        if len(support_ids) != 2 or positives.shape != (2, z_rows.shape[1]):
+            raise ValueError("each receiver requires exactly two aligned clean supports")
+        selected_ids, selected_foreign = select_foreign_supports(
+            z_rows[position],
+            receiver_label=label,
+            support_ids=foreign_ids,
+            support_labels=foreign_labels,
+            support_descriptors=foreign_descriptors,
+            current_batch_ids=current_batch,
+        )
+        q_rows.append(smooth_margin_gradient(z_rows[position], positives, selected_foreign))
+        positive_ids.append((support_ids[0], support_ids[1]))
+        positive_rows.append(positives)
+        chosen_foreign_ids.append(selected_ids)
+        chosen_foreign_rows.append(selected_foreign)
+    q_matrix = np.stack(q_rows)
+    deranged = deranged_tangent_targets(z_rows, q_matrix)
+    head_batch, head_self = head_only_kernel_motion(
+        np.asarray(prehead_features),
+        np.asarray(raw_head_outputs),
+        np.asarray(fields["dbar"].detach().cpu()),
+    )
+    rows: list[dict[str, Any]] = []
+    for position, receiver in enumerate(receivers):
+        q = q_matrix[position]
+        z = z_rows[position]
+        dbar = dbar_rows[position]
+        b = b_rows[position]
+        s = s_rows[position]
+        b_norm = float(np.linalg.norm(b))
+        s_norm = float(np.linalg.norm(s))
+        b_unit = b / b_norm
+        s_unit = s / s_norm
+        a_self = cosine_similarity(s, q)
+        a_batch = cosine_similarity(b, q)
+        a_desc = cosine_similarity(dbar, q)
+        random_target = random_tangent_target(
+            z,
+            seed=int(seed),
+            example_id=ids[position],
+            target_norm=s_norm,
+        )
+        random_a_self = cosine_similarity(s, random_target)
+        random_a_batch = cosine_similarity(b, random_target)
+        deranged_a_self = cosine_similarity(s, deranged[position])
+        deranged_a_batch = cosine_similarity(b, deranged[position])
+        b_head = head_batch[receiver]
+        s_head = head_self[receiver]
+        head_a_self = cosine_similarity(s_head, q)
+        head_a_batch = cosine_similarity(b_head, q)
+        head_self_desc_gap = 1.0 - cosine_similarity(s_head, dbar)
+        if head_self_desc_gap > 1.0e-5:
+            raise ValueError("head-only self motion failed positive-collinearity gate")
+        supports = np.concatenate((positive_rows[position], chosen_foreign_rows[position]), axis=0)
+        row = {
+            "panel": panel,
+            "seed": int(seed),
+            "label": labels[position],
+            "batch_index": int(batch_index),
+            "receiver_index": receiver,
+            "receiver_id": ids[position],
+            "support_ids": list(positive_ids[position]),
+            "foreign_ids": chosen_foreign_ids[position],
+            "batch_ids": list(ordered_batch_ids),
+            "batch_tensor_sha256": [str(tensor_hashes[value]) for value in ordered_batch_ids],
+            "batch_id_order_sha256": _ordered_text_sha256(ordered_batch_ids),
+            "tensor_sha256": str(tensor_hashes[ids[position]]),
+            "a_self": a_self,
+            "a_batch": a_batch,
+            "delta": a_self - a_batch,
+            "a_desc": a_desc,
+            "self_minus_desc": a_self - a_desc,
+            "rho": float(np.linalg.norm(b_unit - s_unit * float(np.dot(s_unit, b_unit)))),
+            "log_ratio": float(np.log((b_norm + _VECTOR_EPS) / (s_norm + _VECTOR_EPS))),
+            "cos_b_s": cosine_similarity(b, s),
+            "random_a_self": random_a_self,
+            "random_a_batch": random_a_batch,
+            "random_delta": random_a_self - random_a_batch,
+            "deranged_a_self": deranged_a_self,
+            "deranged_a_batch": deranged_a_batch,
+            "deranged_delta": deranged_a_self - deranged_a_batch,
+            "norm_z": float(np.linalg.norm(z)),
+            "norm_dbar": float(np.linalg.norm(dbar)),
+            "norm_b": b_norm,
+            "norm_s": s_norm,
+            "norm_q": float(np.linalg.norm(q)),
+            "norm_random_target": float(np.linalg.norm(random_target)),
+            "norm_deranged_target": float(np.linalg.norm(deranged[position])),
+            "radial_fraction_dbar": float(radial["dbar"][position]),
+            "radial_fraction_b": float(radial["b"][position]),
+            "radial_fraction_s": float(radial["s"][position]),
+            "head_a_batch": head_a_batch,
+            "head_a_self": head_a_self,
+            "head_self_desc_gap": head_self_desc_gap,
+            "norm_b_head": float(np.linalg.norm(b_head)),
+            "norm_s_head": float(np.linalg.norm(s_head)),
+            "support_cosines": [float(value) for value in supports @ z],
+        }
+        _validate_receiver_audit_row(row, expected_panel=panel)
+        rows.append(row)
+    return rows
 
 
 def construct_rotation(
