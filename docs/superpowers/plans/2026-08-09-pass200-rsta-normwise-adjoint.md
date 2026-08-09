@@ -487,17 +487,21 @@ PY
   ```bash
   artifact_relative=reports/generated/pass200_rsta_receipt/0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2-normwise-adjoint-calibration.json
   artifact_absolute="${repo_root}/${artifact_relative}"
+  expected_artifact_sha256=5fcb09a1e3a6eedddd05ef49bd22bc9920656089aa401a5aae2c5704a9d9dc50
   test "$calibration_source_commit" = 0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2
   test "$calibration_output" = "$artifact_absolute"
   test "$calibration_exit" -eq 0
   test -f "$artifact_absolute"
   test ! -L "$artifact_absolute"
-  test "$(sha256sum "$artifact_absolute" | cut -d ' ' -f 1)" = "$calibration_artifact_sha256"
-  PINNED_VENV="$pinned_venv" \
-  REPO_ROOT="$repo_root" \
-  ARTIFACT_ABSOLUTE="$artifact_absolute" \
-  ARTIFACT_NAME="$(basename "$artifact_relative")" \
-  "${pinned_venv}/bin/python" - <<'PY'
+  test "$(stat -c '%a' "$artifact_absolute")" = 600
+  test "$calibration_artifact_sha256" = "$expected_artifact_sha256"
+  test "$(sha256sum "$artifact_absolute" | cut -d ' ' -f 1)" = "$expected_artifact_sha256"
+  validate_staged_calibration_artifact() {
+    PINNED_VENV="$pinned_venv" \
+    REPO_ROOT="$repo_root" \
+    ARTIFACT_ABSOLUTE="$artifact_absolute" \
+    ARTIFACT_NAME="$(basename "$artifact_relative")" \
+    "${pinned_venv}/bin/python" - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -522,6 +526,8 @@ assert payload["execution_audit"]["executing_git_commit"] == "6e2bf99b443fd24320
 temporary_prefix = "." + artifact_name + ".tmp."
 assert not any(entry.name.startswith(temporary_prefix) for entry in artifact.parent.iterdir())
 PY
+  }
+  validate_staged_calibration_artifact
   test -z "$(git diff --cached --name-only)"
   git diff --quiet -- .gitignore
   git diff --cached --quiet -- .gitignore
@@ -535,11 +541,21 @@ PY
   test "$cached_blob" = "$(git hash-object "$artifact_absolute")"
   git show ":${artifact_relative}" | cmp - "$artifact_absolute"
   result_parent_commit=$(git rev-parse HEAD)
-  test "$(git show -s --format=%s "$result_parent_commit")" = "authorize RSTA calibration result staging"
+  test "$(git show -s --format=%s "$result_parent_commit")" = "bind RSTA calibration artifact staging"
   git commit -m "record RSTA normwise adjoint calibration"
   result_commit=$(git rev-parse HEAD)
   test "$(git rev-parse "${result_commit}^")" = "$result_parent_commit"
   test "$(git diff-tree --no-commit-id --name-only -r "$result_commit")" = "$artifact_relative"
+  test "$(git diff-tree --no-commit-id --name-status -r "$result_commit")" = "$(printf 'A\t%s' "$artifact_relative")"
+  read -r committed_mode committed_type committed_blob committed_path < <(git ls-tree "$result_commit" -- "$artifact_relative")
+  test "$committed_mode" = 100644
+  test "$committed_type" = blob
+  test "$committed_blob" = "$cached_blob"
+  test "$committed_path" = "$artifact_relative"
+  test "$(sha256sum "$artifact_absolute" | cut -d ' ' -f 1)" = "$expected_artifact_sha256"
+  test "$(git show "${result_commit}:${artifact_relative}" | sha256sum | cut -d ' ' -f 1)" = "$expected_artifact_sha256"
+  git show "${result_commit}:${artifact_relative}" | cmp - "$artifact_absolute"
+  validate_staged_calibration_artifact
   ```
 
   Record the artifact SHA-256 and result commit. The repeated exact
