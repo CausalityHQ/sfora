@@ -177,7 +177,7 @@ normwise_denominator = ||u||_2 * ||a||_2 + ||v||_2 * ||b||_2
 eta_norm = absolute_error / normwise_denominator
 beta_norm = 2 * absolute_error / normwise_denominator
 normwise_tolerance = 0.0005
-normwise_passed = beta_norm <= normwise_tolerance
+normwise_passed = type(beta_norm) is float and beta_norm <= normwise_tolerance
 ```
 
 The factor two makes `beta_norm` coincide with the legacy relative error in the
@@ -192,9 +192,16 @@ direction tensors; they do not promote the model, primal, JVP, or VJP.
 
 For `normwise_denominator==0` and `absolute_error==0`, define
 `eta_norm=beta_norm=0`. For zero denominator and positive error, encode both as
-JSON string `"infinity"` and fail. Cancellation factors use `1.0` for zero
-absolute-product sum and zero scalar, and `"infinity"` for positive sum and
-zero scalar. Every other scalar must be a finite JSON number.
+JSON string `"infinity"`. In that authorized corner,
+`normwise_passed=false`; any affected control whose `beta_norm` is
+`"infinity"` has `passed=false`; and `integrity_passed=false`. This is a
+complete finite-input numerical failure, not a structural failure: the
+candidate-free audit records the complete object and continues through all four
+seeds, while the scientific prefix returns `INVALID` with no output and no
+candidate work. Cancellation factors use `1.0` for zero absolute-product sum
+and zero scalar, and `"infinity"` for positive sum and zero scalar. Every other
+scalar must be a finite JSON number. Any other nonfinite value, unauthorized
+string, or invalid JSON/Python type remains structural and fail-fast.
 
 ## Exact production adjoint object
 
@@ -276,8 +283,11 @@ passed
 
 Their hash fields use the same actual-action encodings as the baseline.
 `exact_action_hash_match` is true exactly when both hashes equal their baseline
-hashes. Their `passed` is true exactly when the hash match is true and their
-`beta_norm <= 0.0005`.
+hashes. It and `passed` must each have exact Python/JSON boolean type: no integer,
+string, or truthy substitute is accepted. Their `passed` predicate is exactly
+`type(exact_action_hash_match) is bool and exact_action_hash_match is True and
+type(beta_norm) is float and beta_norm <= 0.0005`. An authorized
+`beta_norm="infinity"` therefore makes `passed=false`.
 
 `parameter_sign` and `output_sign` each have exactly:
 
@@ -294,13 +304,19 @@ require the JVP action to equal elementwise `-a` and the VJP action to equal
 baseline `b` under `torch.equal`. For `output_sign`, rerun with `-u` and
 unchanged `v`; require the JVP action to equal baseline `a` and the VJP action to
 equal elementwise `-b`. `exact_relation` is that exact tensor relation. Sign
-control `passed` is true exactly when the relation is exact and
-`beta_norm <= 0.0005`.
+control `passed` uses exactly `type(exact_relation) is bool and exact_relation
+is True and type(beta_norm) is float and beta_norm <= 0.0005`.
+`exact_relation` and `passed` must each have exact Python/JSON boolean type. An
+authorized `beta_norm="infinity"` makes `passed=false` even if the tensor
+relation is exact.
 
-`normwise_tolerance` is exactly `0.0005` and `normwise_passed` is exactly the
-inclusive comparison `beta_norm <= normwise_tolerance`. `integrity_passed` is
-true exactly when `normwise_passed` and all four control `passed` values are
-true. The legacy `passed` value is evidence but is not an input to prospective
+`normwise_tolerance` has exact float type and value `0.0005`, and
+`normwise_passed` is exactly the type-aware predicate `type(beta_norm) is float
+and beta_norm <= normwise_tolerance`. `normwise_passed`, every control `passed`, and
+`integrity_passed` must have exact Python/JSON boolean type. `integrity_passed`
+is true exactly when `normwise_passed is True`, each of the four control
+`passed` values `is True`, and every one has exact boolean type. The legacy
+`passed` value is evidence but is not an input to prospective
 `integrity_passed`.
 
 ## Frozen graph schedule and directions
@@ -333,14 +349,18 @@ The existing candidate-free `--integrity-all-seeds-only` top-level schema,
 fixed values, provenance, bindings, fixtures, zero-Jacobian evidence, and
 candidate-forbidden call set remain unchanged. Each seed's `adjoint` value is
 the exact extended object above. Its global `all_passed` is true exactly when
-every seed `0,1,2,3` has `integrity_passed=true` and every preceding registered
-integrity audit passed. It deliberately does not use the legacy adjoint
-`passed` boolean.
+every seed `0,1,2,3` satisfies `type(integrity_passed) is bool and
+integrity_passed is True`, and every preceding registered integrity audit has
+exact boolean type and value `True`. It deliberately does not use the legacy
+adjoint `passed` boolean.
 
 A finite normwise or control failure records the complete seed object,
 continues candidate-free execution through the remaining seeds, and produces
-`all_passed=false`. Nonfinite data, provenance, topology, shape, dtype,
-serialization, or publication failure remains structural and fail-fast. The
+`all_passed=false`. The authorized finite-input zero-denominator/positive-error
+corner with `eta_norm=beta_norm="infinity"` follows this same record-and-
+continue rule; it is not structural. Any other nonfinite value, unauthorized
+string, invalid type, provenance, topology, shape, dtype, serialization, or
+publication failure remains structural and fail-fast. The
 candidate-free mode still never calls `exact_contextual_rsta_fields`,
 `score_rsta_batch`, `decide_stage_a`, `joint_bootstrap`, `scientific_payload`,
 or a receiver-row serializer and contains no candidate field at any depth.
@@ -356,21 +376,103 @@ candidate.
 
 ## Provenance transition and implementation authority
 
-The receipt-backed manifest must add exact objects with only `path`, `sha256`,
-and `commit` for:
+The receipt-backed manifest's future exact top-level key order is:
 
 ```text
+schema_version
+base_preregistration
+amendment
+deterministic_pool_amendment
+zero_jacobian_classifier_amendment
+adjoint_integrity_amendment
 normwise_adjoint_calibration_protocol
 normwise_adjoint_calibration_result
 normwise_adjoint_amendment
+binding_receipt
+historical
+current_scientific_source
+artifact_schema
+seeds
+```
+
+Thus the three new objects are inserted in exactly the shown order immediately
+after `adjoint_integrity_amendment` and before `binding_receipt`. Each has
+exactly these keys in this order and no others:
+
+```text
+path
+sha256
+commit
 ```
 
 The protocol and result objects bind the exact authorities above. The amendment
-object binds this document's eventual committed bytes. The existing
+object binds this document's committed bytes. The existing
 `adjoint_integrity_amendment` remains present and authenticated because its
-legacy object and all-seed prefix remain historical authority. The future
-reviewed scientific-source mapping must include the shared normwise helper and
-every modified validator/source file.
+legacy object and all-seed prefix remain historical authority.
+
+The candidate-free projected `manifest` audit inserts the same three objects in
+the same position. Its complete exact key order is:
+
+```text
+path
+sha256
+base_preregistration
+amendment
+deterministic_pool_amendment
+zero_jacobian_classifier_amendment
+adjoint_integrity_amendment
+normwise_adjoint_calibration_protocol
+normwise_adjoint_calibration_result
+normwise_adjoint_amendment
+binding_receipt
+historical
+artifact_schema
+source
+```
+
+The future `current_scientific_source.files` mapping has exactly the following
+ordered membership:
+
+```text
+scripts/diagnose_pass159_cotangent_stage_a.py
+scripts/diagnose_pass200_rsta_stage_a.py
+scripts/rsta_normwise_adjoint.py
+src/sfora/__init__.py
+src/sfora/ablation.py
+src/sfora/api.py
+src/sfora/arcg.py
+src/sfora/benchmark.py
+src/sfora/bn_inception.py
+src/sfora/catalog.py
+src/sfora/cea.py
+src/sfora/cem.py
+src/sfora/cli.py
+src/sfora/compose.py
+src/sfora/data.py
+src/sfora/encoder_ablation.py
+src/sfora/encoder_training.py
+src/sfora/evaluation.py
+src/sfora/experiments.py
+src/sfora/image_benchmark.py
+src/sfora/image_end_to_end.py
+src/sfora/image_recipes.py
+src/sfora/ipsr.py
+src/sfora/losses.py
+src/sfora/method.py
+src/sfora/oapf.py
+src/sfora/publication.py
+src/sfora/remote.py
+src/sfora/report.py
+src/sfora/text_baselines.py
+src/sfora/training.py
+```
+
+No test path and no calibration-CLI path is part of
+`current_scientific_source.files`. The post-review source revision and hashes
+bind exactly the files above. Every prior manifest, receipt, historical,
+artifact, seed, base-preregistration, and amendment domain remains
+byte-semantically unchanged except for this exact insertion and reviewed-source
+revision/hash transition.
 
 Implementation is authorized only test-first under the committed plan. Every
 manifest/source-validator RED and GREEN must land before the reviewed source
