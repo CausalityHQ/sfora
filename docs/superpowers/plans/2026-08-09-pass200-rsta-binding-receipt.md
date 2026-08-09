@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - Authoritative base preregistration: `docs/pass200_rsta_candidate_2026-08-09.md`, exact SHA-256 `a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857`.
-- Authoritative prospective amendment: `docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md` at commit `d1aeed6`; implement it literally without changing any candidate statistic, threshold, role, support, control, or decision.
+- Authoritative prospective amendment: `docs/pass200_rsta_binding_receipt_amendment_2026-08-09.md`, exact SHA-256 `691d786942c33cf8a943159280287bea08570114242854cdb7111795dc79e019`, at full commit `d1aeed63ade0e15d5f5a44be5981a4312e9a8df2`; implement it literally without changing any candidate statistic, threshold, role, support, control, or decision.
 - Immutable receipt: `docs/pass200_rsta_binding_receipt_d6270a9.json`, exact SHA-256 `e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300`.
 - Historical producer commit is full `d6270a94f14f5e0b4f4a3eeaa23f3f66d9bfaa54`; historical manifest SHA-256 is `aafab355a06667a9ca513cddeceb2a0129ea8ee09ce3dec0a19b6839fe15ffb1`.
 - The receipt is binding-only: `candidate_values_computed=false`, verdict `NOT_COMPUTED`, and `uses_test_data=artifact_binding_only`. No RSTA value has been observed.
@@ -22,7 +22,35 @@
 - Receipt, manifest, artifact, source, or deterministic mismatch is `INVALID` before scoring; no fallback receipt, selective seed, tolerance widening, or output on pre-model failure.
 - Local tests are tiny/mocked and serial. Full data, BN-Inception, B=180, smoke, and scientific execution run only on DGX `spark-2751` in an isolated clean checkout.
 - Use strict TDD: focused missing-behavior RED, minimal GREEN, fresh verification. Do not overlap tests.
-- Modify only `scripts/diagnose_pass200_rsta_stage_a.py`, `tests/test_diagnose_pass200_rsta_stage_a.py`, the new receipt manifest, and the implementation report/plan artifacts. Never edit trainer/recipes or protected untracked root files.
+- Authorized tracked changes are only `scripts/diagnose_pass200_rsta_stage_a.py`, `tests/test_diagnose_pass200_rsta_stage_a.py`, `docs/pass200_rsta_receipt_stage_a_manifest.json`, and the final `docs/method_search_verdict.md` result entry. Authorized DGX outputs are uniquely addressed files under `reports/generated/pass200_rsta_receipt/`; they are never source inputs. Never edit trainer/recipes or protected untracked root files.
+
+## Frozen amended-manifest topology
+
+`docs/pass200_rsta_receipt_stage_a_manifest.json` has exactly these top-level keys:
+`schema_version`, `base_preregistration`, `amendment`, `binding_receipt`,
+`historical`, `current_scientific_source`, `artifact_schema`, and `seeds`.
+`schema_version` is exactly `pass200-rsta-receipt-manifest-v1`.
+
+- `base_preregistration`, `binding_receipt`, and `artifact_schema` each have exactly
+  `path` and `sha256`.
+- `amendment` has exactly `path`, `sha256`, and `commit` and must equal the literal
+  amendment constants above.
+- `historical` has exactly `producer_commit`, `manifest`, and `source`.
+  `producer_commit` is the literal d6270a9 full commit. `manifest` has exact `path`
+  and `sha256`; its blob is read from that producer commit. `source` has exact
+  `git_revision` and `files`, matching the historical receipt and validating every
+  file against that historical revision, never against the executing file.
+- `current_scientific_source` has exactly `git_revision` and `files`. Its revision
+  is the reviewed source commit `S`; `files` covers the diagnostic and every imported
+  model/data/loss helper with exact lowercase SHA-256 values.
+- `seeds` is the unchanged four-entry artifact list from the historical manifest,
+  in seed order `0,1,2,3`, with exact nested key sets validated recursively.
+
+Every validator accepts `manifest_path: Path`, derives the repository root from the
+resolved manifest location, and resolves repo-relative paths from that root. The
+production receipt wrapper requires the literal receipt path and SHA from Global
+Constraints *before* independently requiring the manifest entry to equal them; a
+substituted manifest cannot nominate a different receipt.
 
 ---
 
@@ -33,12 +61,12 @@
 - Modify: `tests/test_diagnose_pass200_rsta_stage_a.py`
 
 **Interfaces:**
-- Produces: `load_strict_json(path: Path) -> dict[str, Any]`, `validate_historical_binding_receipt(manifest: dict[str, Any], receipt_path: Path) -> ValidatedBindingReceipt`, and `validate_scientific_execution_source(manifest: dict[str, Any]) -> dict[str, Any]`.
+- Produces: `load_strict_json(path: Path) -> dict[str, Any]`, `validate_historical_binding_receipt(manifest_path: Path, receipt_path: Path) -> ValidatedBindingReceipt`, and `validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]`.
 - `ValidatedBindingReceipt` is immutable and contains only hashes, scalar bindings, per-seed artifact metadata, per-split row/count/order/source-export records, and producer provenance; it contains no checkpoint, tensor, or NPZ array.
 
 - [ ] **Step 1: Write strict receipt parser RED tests**
 
-  Copy the committed 18,911-byte receipt into a temporary fixture. Independently mutate its byte digest, duplicate one JSON key, add `NaN`, remove and add every top-level/binding/seed/split key, reorder or duplicate seeds, change each fixed status/mode/flag/tolerance/count, set any recorded descriptor difference nonzero, and alter R@1/source-export/artifact/source hashes. Assert failure before any checkpoint, `np.load`, model factory, or torch sentinel.
+  Test two layers independently. For the private strict parser/schema validator, build synthetic trusted JSON bytes and independently inject duplicate keys, `NaN`, `true` where integer `1` is required, `128.0` where integer `128` is required, and missing/extra keys at every nested object including `execution_audit`, `manifest.source`, artifact records, `prehead_reconstruction`, and each split record. For the production wrapper, mutate only receipt bytes/path or manifest receipt entry and require the immutable literal path/SHA gate to fail before schema parsing, checkpoint, `np.load`, model factory, or torch sentinel.
 
 - [ ] **Step 2: Run parser tests and capture RED**
 
@@ -48,7 +76,17 @@
 
 - [ ] **Step 3: Implement exact receipt validation**
 
-  Parse with `json.loads(..., parse_constant=reject, object_pairs_hook=reject_duplicate_keys)`, reject nonfinite values recursively, compare exact key sets, and first compare receipt bytes to the manifest-pinned SHA. Require the exact schema/status fields, four seeds `0..3` once each, batch `128`, both tolerances `2e-5`, zero recorded max descriptor differences, frozen counts, common train ID/label/source-order hashes, exact artifact maps, and exact report/retrieval scalars. Verify the historical producer, historical manifest blob, base preregistration blob, receipt diagnostic blob, frozen source revision, and every historical source-file blob without requiring the old diagnostic to equal the executing file.
+  First require the literal receipt repo-relative path and SHA from Global Constraints,
+  then independently require the manifest receipt entry to equal both. Parse with
+  `json.loads(..., parse_constant=reject, object_pairs_hook=reject_duplicate_keys)`,
+  reject nonfinite values recursively, require exact JSON scalar types (booleans are
+  not integers), and compare every recursive key set. Require the exact schema/status
+  fields, four seeds `0..3` once each, batch `128`, both tolerances `2e-5`, zero
+  recorded max descriptor differences, frozen counts, common train ID/label/source-
+  order hashes, exact artifact maps, and exact report/retrieval scalars. Verify
+  `d6270a9:docs/pass200_rsta_stage_a_manifest.json`, the base preregistration at
+  d6270a9, the receipt diagnostic at d6270a9, and every historical source file at
+  `0146f2d`, without requiring the old diagnostic to equal the executing file.
 
 - [ ] **Step 4: Write independent current-source provenance RED tests**
 
@@ -71,8 +109,8 @@
 - Modify: `tests/test_diagnose_pass200_rsta_stage_a.py`
 
 **Interfaces:**
-- Produces: `load_training_only_seed(entry: dict[str, Any], receipt_seed: ReceiptSeed, *, artifact_hasher=sha256_file, checkpoint_loader=torch.load) -> TrainingOnlySeedInput`.
-- Removes `source_exporter` and `load_and_bind_seed` from smoke/scientific data flow; historical binding creation may retain them only behind a mutually exclusive binding-only command.
+- Produces: `load_training_only_seed(entry: dict[str, Any], receipt_seed: ReceiptSeed, *, artifact_hasher: Callable[..., str] = sha256_file, checkpoint_loader: Callable[..., Any] | None = None) -> TrainingOnlySeedInput`. Resolve `torch.load` only inside the call, after deterministic configuration has succeeded.
+- Removes `source_exporter` and `load_and_bind_seed` from smoke/scientific data flow. The amended operational CLI removes `--binding-only` entirely; the immutable receipt already exists, so no receipt-creation controller is reachable.
 
 - [ ] **Step 1: Write training-only access-boundary RED tests**
 
@@ -84,11 +122,20 @@
 
 - [ ] **Step 3: Implement the training-only loader**
 
-  Stream-hash all immutable artifacts first. Load report/retrieval JSON scalars and the checkpoint only after receipt/provenance validation. Load only the final train NPZ, validate it literally, synthesize canonical row indices, recompute train order/source-export hashes, and return a frozen training-only object with receipt provenance. Explicitly release temporary file/JSON/checkpoint objects not part of the returned object.
+  Stream-hash all immutable artifacts first. For semantically consumed report,
+  retrieval, checkpoint, and train artifacts, load from the exact bytes that were
+  hashed: strict JSON from captured bytes, `torch.load(io.BytesIO(checkpoint_bytes))`,
+  and `np.load(io.BytesIO(train_bytes))`. Query/gallery/prehead are stream-hashed and
+  never captured or loaded. Validate the final train NPZ literally, synthesize
+  canonical row indices, recompute train order/source-export hashes, and return a
+  frozen training-only object containing the in-memory checkpoint state and its
+  expected digest plus receipt provenance. Model construction consumes that in-memory
+  state and never reloads its path. Explicitly release bytes/objects not required by
+  the returned object.
 
 - [ ] **Step 4: Add seed-set and immutability tests**
 
-  Smoke must load seed 0 only after global four-seed receipt validation. Scientific must load seeds `0..3` exactly and require identical cross-seed train ID/label/source order. Mutation after validation must fail re-hashing before model use. The returned type must expose no query/gallery/prehead field.
+  Smoke must load seed 0 only after global four-seed receipt validation. Scientific must load seeds `0..3` exactly and require identical cross-seed train ID/label/source order. Mutate checkpoint/train files between manifest validation and byte capture and prove digest failure; mutate paths after the training object returns and prove model construction uses only captured bound state. The returned type must expose no query/gallery/prehead field.
 
 - [ ] **Step 5: Verify and commit Task 2**
 
@@ -104,11 +151,21 @@
 
 **Interfaces:**
 - Produces CLI `--manifest PATH --binding-receipt PATH --output PATH (--smoke-only | --scientific)`; both modes consume `ValidatedBindingReceipt` and `load_training_only_seed`.
-- Binding creation, if retained, is `--binding-only` and cannot share a process or controller path with smoke/scientific.
+- `--binding-only` is rejected/absent in the amended CLI; receipt creation is completed historical provenance, not an operational mode.
 
 - [ ] **Step 1: Write process-order and unreachable-path RED tests**
 
-  In fresh subprocess fixtures, assert exact event order `configure -> receipt/manifest validation -> training-only load -> cache -> model -> integrity -> score`. Assert `CUBLAS_WORKSPACE_CONFIG=:4096:8` exists before torch import, deterministic algorithms are fail-closed, benchmark/autocast/both TF32 flags are false at model factory, forward, VJP, and JVP boundaries, and remain false on exception paths. Patch descriptor export, legacy full loaders, candidate scoring, and query/gallery/prehead loading; invalid receipt must touch none and create no output.
+  In fresh subprocess fixtures, assert separate exact traces. Smoke is `configure ->
+  receipt/manifest validation -> seed-0 training-only load -> cache -> model ->
+  integrity -> atomic smoke output`; its candidate-scoring sentinel remains zero.
+  Scientific is `configure -> receipt/manifest validation -> four-seed training-only
+  load -> cache -> model -> integrity -> score -> atomic scientific output`. Assert
+  `torch` is absent from `sys.modules` before configuration and
+  `CUBLAS_WORKSPACE_CONFIG=:4096:8` exists before torch import. Deterministic
+  algorithms are fail-closed, benchmark/autocast/both TF32 flags are false at model
+  factory, forward, VJP, and JVP boundaries, and remain false on exception paths.
+  Patch descriptor export, legacy full loaders, old binding CLI, and
+  query/gallery/prehead loading; invalid receipt must touch none and create no output.
 
 - [ ] **Step 2: Run process tests and capture RED**
 
@@ -116,17 +173,36 @@
 
 - [ ] **Step 3: Refactor smoke and scientific entry points**
 
-  Remove pre-configuration torch imports from runner paths. Make deterministic configuration the first torch action, then validate manifest/receipt, then load training-only state. Remove `source_exporter` from smoke/scientific signatures. Keep the registered first-batch integrity helper and scientific scorer unchanged after their input boundary.
+  Remove pre-configuration torch imports and torch-valued default arguments from
+  runner/loader paths. Make deterministic configuration the first torch action, then
+  validate manifest/receipt, then load training-only state. Remove `source_exporter`
+  from smoke/scientific signatures and remove the operational `--binding-only` mode.
+  Keep the registered first-batch integrity helper and scientific scorer unchanged
+  after their input boundary.
 
-- [ ] **Step 4: Persist the receipt audit without candidate leakage**
+- [ ] **Step 4: Add frozen-science characterization tests**
+
+  Pin literal tiny-fixture outputs for role/batch selection, `A_self/A_batch/Delta`,
+  all named controls, equal-seed aggregation, the 10,000-replicate bootstrap digest,
+  PASS/FAIL/UNRESOLVED precedence, and scope-limitation fields. These must remain
+  unchanged across the boundary refactor. Review the task diff and reject edits to
+  field mathematics, role construction, statistics, controls, or thresholds.
+
+- [ ] **Step 5: Persist the receipt audit without candidate leakage**
 
   Smoke output records receipt SHA, producer commit, historical manifest SHA, seed-0 train-pack/source-export hashes, current execution audit, and integrity residuals only. Scientific output records the same global provenance plus all four per-seed training bindings. No query/gallery array, path-derived candidate statistic, alternative receipt, or binding output is accepted.
 
-- [ ] **Step 5: Add atomic-output and CLI exclusivity tests**
+- [ ] **Step 6: Add atomic-output and CLI exclusivity tests**
 
-  Require `--binding-receipt` for smoke/scientific, reject mode combinations and unpinned paths, use temporary sibling + file fsync + `os.replace` + parent-directory fsync, and prove every pre-output failure leaves no new or partial file.
+  Require `--binding-receipt` for smoke/scientific and reject mode combinations,
+  unpinned paths, removed `--binding-only`, and any pre-existing destination. Publish
+  to a unique run-addressed, initially absent path by writing/fsyncing a sibling temp,
+  atomically hard-linking it to the absent destination (no clobber), fsyncing the
+  parent directory, and unlinking the temp. Test serialization, file-fsync,
+  publication, and directory-fsync failures; each cleans its temp and never replaces
+  or leaves a stale requested result.
 
-- [ ] **Step 6: Verify and commit Task 3**
+- [ ] **Step 7: Verify and commit Task 3**
 
   Run the complete focused local file serially, Ruff, `py_compile`, and `git diff --check`. Commit only script/test with message `separate RSTA binding and scientific processes` and write the ignored report.
 
@@ -137,10 +213,13 @@
 **Files:**
 - Create: `docs/pass200_rsta_receipt_stage_a_manifest.json`
 - Modify only if review requires: `scripts/diagnose_pass200_rsta_stage_a.py`, `tests/test_diagnose_pass200_rsta_stage_a.py`
+- Produce on DGX: `reports/generated/pass200_rsta_receipt/<H>-smoke-seed0.json`
+- Produce conditionally on DGX: `reports/generated/pass200_rsta_receipt/<H>-stage-a.json`
+- Modify after adjudication: `docs/method_search_verdict.md`
 
 **Interfaces:**
 - Consumes reviewed Tasks 1--3 and immutable receipt.
-- Produces one committed dual-provenance manifest, one binding-receipt validation record, one integrity-smoke record, and only if smoke is green one scientific Stage-A result.
+- Produces one committed dual-provenance manifest, one integrity-smoke record containing the complete receipt audit, and only if smoke is green one scientific Stage-A result. There is no separate validation-only output.
 
 - [ ] **Step 1: Run independent whole-repair review**
 
@@ -148,11 +227,24 @@
 
 - [ ] **Step 2: Freeze the final source manifest**
 
-  After review, commit the source code first. Create `pass200-rsta-receipt-manifest-v1` with exact base-preregistration path/hash, amendment path/hash, receipt path/hash, historical producer/manifest/source files, current full source commit and Git-blob hashes for the diagnostic plus all imported model/data/loss helpers, unchanged Pass159 artifact schema, and seeds `0..3`. Validate every path, byte hash, Git blob, and acyclic relationship before commit.
+  Use an explicit two-commit freeze. First commit all reviewed source/test fixes as
+  source commit `S`. Create the exact frozen-topology manifest with
+  `current_scientific_source.git_revision=S`, source Git-blob hashes for the
+  diagnostic plus every imported model/data/loss helper, and the exact historical/
+  amendment/receipt/artifact/seed domains. Commit only that manifest as handoff
+  commit `H`, with no source change. Verify the worktree manifest equals `H:path`,
+  `S` is the declared ancestor/source revision, and every current source file equals
+  both its declared digest and `S:path`. Independently review `S..H`; any manifest
+  fix creates a new `H` and repeats that scoped review.
 
 - [ ] **Step 3: Prepare isolated DGX checkout**
 
-  Bundle the exact reviewed local commit, verify bundle SHA after transfer, create a new detached clean checkout, validate all artifact/data paths and Git objects, and reuse only the pinned DGX environment. Do not pull into the dirty group-learning checkout. Confirm no active compute process before launch; CPU/GPU wall time is operational only, never scientific evidence.
+  Bundle the independently approved handoff commit `H`, verify bundle SHA after
+  transfer, create a new detached clean checkout exactly at `H`, verify the manifest
+  equals `H:path` and every declared source equals `S:path`, validate artifact/data
+  paths and Git objects, and reuse only the pinned DGX environment. Do not pull into
+  the dirty group-learning checkout. Confirm no active compute process before launch;
+  CPU/GPU wall time is operational only, never scientific evidence.
 
 - [ ] **Step 4: Run binding-receipt validation and integrity smoke**
 
