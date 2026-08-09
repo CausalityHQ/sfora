@@ -354,8 +354,8 @@ source byte, seed, dimension, scale, formula, threshold, fault, or result rule.
   `0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2`. Authenticate that source as an
   ancestor and prove its exact helper, CLI, and test blobs equal both the
   executing-commit blobs and worktree bytes. Before source authentication,
-  bind the fresh checkout's ignored `.venv` symlink to the literal reviewed
-  runtime and repeat every runtime check through that link. Then derive the
+  verify the literal reviewed runtime and retain its path in `pinned_venv` for
+  direct use by the calibration subshell. Then derive the
   registered output from the absolute normalized repository root.
   `reports/generated` must
   already be a real non-symlink directory. Create only its
@@ -368,14 +368,12 @@ source byte, seed, dimension, scale, formula, threshold, fault, or result rule.
   test "$(pwd -P)" = "$repo_root"
   test -z "$(git status --porcelain --untracked-files=all)"
   pinned_venv=/home/rb/worktrees/sfora-emafactorial/.venv
-  repo_venv="${repo_root}/.venv"
-  test ! -e "$repo_venv"
-  test ! -L "$repo_venv"
   test "$pinned_venv" = /home/rb/worktrees/sfora-emafactorial/.venv
   test -d "$pinned_venv"
   test ! -L "$pinned_venv"
   test "$(cd "$pinned_venv" && pwd -P)" = "$pinned_venv"
   test "$(sha256sum "${pinned_venv}/pyvenv.cfg" | cut -d ' ' -f 1)" = 37c4098131a586cddac2548c8c4b64d47c51614454367bee9f83fdd0f9b3a8fb
+  test -x "${pinned_venv}/bin/python"
   test -f /usr/bin/python3.12
   test ! -L /usr/bin/python3.12
   test -x /usr/bin/python3.12
@@ -405,17 +403,6 @@ assert Path(numpy.__file__).resolve().is_relative_to(site_packages)
 PY
   }
   verify_calibration_runtime "${pinned_venv}/bin/python"
-  ln -s -- "$pinned_venv" "$repo_venv"
-  test -L "$repo_venv"
-  test "$(readlink "$repo_venv")" = "$pinned_venv"
-  test "$(readlink -f "$repo_venv")" = "$pinned_venv"
-  test -d "$repo_venv"
-  test "$(sha256sum "${repo_venv}/pyvenv.cfg" | cut -d ' ' -f 1)" = 37c4098131a586cddac2548c8c4b64d47c51614454367bee9f83fdd0f9b3a8fb
-  test -x "${repo_venv}/bin/python"
-  test "$(readlink -f "${repo_venv}/bin/python")" = /usr/bin/python3.12
-  test "$(sha256sum "$(readlink -f "${repo_venv}/bin/python")" | cut -d ' ' -f 1)" = a7d56a8a764faf7bbf5c164055a48fd072be52287bdeb523a9e07b2042f4e7e1
-  verify_calibration_runtime "${repo_venv}/bin/python"
-  git check-ignore -q -- .venv
   test -z "$(git status --porcelain --untracked-files=all)"
   executing_plan_fix_commit=$(git rev-parse HEAD)
   calibration_source_commit=0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2
@@ -452,7 +439,7 @@ PY
     calibration_temp="${repo_root}/reports/generated/pass200_rsta_receipt/.${calibration_source_commit}-normwise-adjoint-calibration.json.tmp.${calibration_pid}"
     test ! -e "$calibration_temp"
     test ! -L "$calibration_temp"
-    exec env CUDA_VISIBLE_DEVICES='' "${repo_root}/.venv/bin/python" \
+    exec env CUDA_VISIBLE_DEVICES='' "${pinned_venv}/bin/python" \
       "${repo_root}/scripts/calibrate_pass200_rsta_normwise_adjoint.py" \
       --output "$calibration_output"
   )
