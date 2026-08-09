@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -14,6 +15,15 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import rsta_normwise_adjoint as normwise
+
+_PROTOCOL_CORRECT_METADATA = json.loads(r"""{
+  "zero_corner":{"fixture_id":"zero_corner","kind":"zero_linear","seeds":{"x":"0x4e4f524d00000001","output_direction":"0x4e4f524d00000002","parameter_direction":"0x4e4f524d00000003"},"dimensions":{"input":17,"output":17},"scales":{"operator":"0"}},
+  "affine_scale_2m12":{"fixture_id":"affine_scale_2m12","kind":"affine_linear","seeds":{"matrix":"0x4e4f524d00000101","input":"0x4e4f524d00000102","output_direction":"0x4e4f524d00000103","parameter_direction":"0x4e4f524d00000104"},"dimensions":{"input":193,"output":257},"scales":{"operator":"2**-12"}},
+  "affine_scale_1":{"fixture_id":"affine_scale_1","kind":"affine_linear","seeds":{"matrix":"0x4e4f524d00000101","input":"0x4e4f524d00000102","output_direction":"0x4e4f524d00000103","parameter_direction":"0x4e4f524d00000104"},"dimensions":{"input":193,"output":257},"scales":{"operator":"1"}},
+  "affine_scale_2p12":{"fixture_id":"affine_scale_2p12","kind":"affine_linear","seeds":{"matrix":"0x4e4f524d00000101","input":"0x4e4f524d00000102","output_direction":"0x4e4f524d00000103","parameter_direction":"0x4e4f524d00000104"},"dimensions":{"input":193,"output":257},"scales":{"operator":"2**12"}},
+  "smooth_parameter_tree":{"fixture_id":"smooth_parameter_tree","kind":"smooth_parameter_tree","seeds":{"w1":"0x4e4f524d00000201","b1":"0x4e4f524d00000202","w2":"0x4e4f524d00000203","b2":"0x4e4f524d00000204","input":"0x4e4f524d00000205","parameter_direction":"0x4e4f524d00000206","output_direction":"0x4e4f524d00000207"},"dimensions":{"batch":17,"input":11,"hidden":23,"output":19,"parameter_shapes":{"w1":[23,11],"b1":[23],"w2":[19,23],"b2":[19]}},"scales":{"weight":"2**-3","bias":"2**-4","input":"2**-2","normalization_eps":"1e-12"}},
+  "paired_cancellation":{"fixture_id":"paired_cancellation","kind":"paired_cancellation_linear","seeds":{"input":"0x4e4f524d00000301","output_pair_base":"0x4e4f524d00000302","parameter_pair_base":"0x4e4f524d00000303"},"dimensions":{"input":8193,"output":8193,"pairs":4096},"scales":{"positive_pair":"2**10","negative_pair":"-2**10","final":"2**-10"}}
+}""")
 
 
 def _reference(
@@ -63,6 +73,7 @@ def _reference(
     )
     error = abs(lhs - rhs)
     denominator = un * an + vn * bn
+    eta = 0.0 if denominator == 0.0 and error == 0.0 else error / denominator
     return {
         "lhs": lhs,
         "rhs": rhs,
@@ -73,8 +84,8 @@ def _reference(
         "jvp_l2": an,
         "vjp_l2": bn,
         "normwise_denominator": denominator,
-        "eta_norm": error / denominator,
-        "beta_norm": 2.0 * error / denominator,
+        "eta_norm": eta,
+        "beta_norm": 2.0 * eta,
         "lhs_absolute_product_sum": float(np.sum(np.abs(ud * ad), dtype=np.float64)),
         "rhs_absolute_product_sum": float(
             np.sum(
@@ -612,19 +623,21 @@ def _pcg(seed: str, shape: tuple[int, ...], scale: float = 1.0) -> torch.Tensor:
 
 def test_correct_fixture_construction_is_byte_exact() -> None:
     specs = normwise.correct_fixture_specs()
-    assert tuple(spec.fixture_id for spec in specs) == normwise.CORRECT_FIXTURE_IDS
+    assert tuple(spec.fixture_id for spec in specs) == tuple(_PROTOCOL_CORRECT_METADATA)
     for spec in specs:
-        assert spec.metadata == normwise.fixture_metadata(spec.fixture_id)
+        literal = _PROTOCOL_CORRECT_METADATA[spec.fixture_id]
+        assert spec.metadata == literal
+        assert list(spec.metadata) == list(literal)
         built = normwise._construct_correct_fixture(spec)
         tensors = built["tensors"]
-        seeds = spec.metadata["seeds"]
+        seeds = literal["seeds"]
         if spec.fixture_id == "zero_corner":
             expected = {
                 "x": _pcg(seeds["x"], (17,)),
                 "u": _pcg(seeds["output_direction"], (17,)),
                 "v": _pcg(seeds["parameter_direction"], (17,)),
             }
-        elif spec.kind == "affine_linear":
+        elif literal["kind"] == "affine_linear":
             expected = {
                 "matrix": _pcg(seeds["matrix"], (257, 193)),
                 "x": _pcg(seeds["input"], (193,)),
@@ -683,23 +696,95 @@ def test_correct_fixture_uses_torch_func_and_exact_action_hashes(
 ) -> None:
     original_jvp, original_vjp = torch.func.jvp, torch.func.vjp
     calls = {"jvp": 0, "vjp": 0}
+    actual_jvp: list[torch.Tensor] = []
+    actual_vjp: list[torch.Tensor | dict[str, torch.Tensor]] = []
 
     def jvp(*args: Any, **kwargs: Any) -> Any:
         calls["jvp"] += 1
-        return original_jvp(*args, **kwargs)
+        result = original_jvp(*args, **kwargs)
+        actual_jvp.append(result[1].detach().clone())
+        return result
 
     def vjp(*args: Any, **kwargs: Any) -> Any:
         calls["vjp"] += 1
-        return original_vjp(*args, **kwargs)
+        output, pullback = original_vjp(*args, **kwargs)
+
+        def captured_pullback(*cotangents: Any) -> Any:
+            result = pullback(*cotangents)
+            action = result[0]
+            actual_vjp.append(
+                {name: value.detach().clone() for name, value in action.items()}
+                if isinstance(action, dict)
+                else action.detach().clone()
+            )
+            return result
+
+        return output, captured_pullback
 
     monkeypatch.setattr(torch.func, "jvp", jvp)
     monkeypatch.setattr(torch.func, "vjp", vjp)
     results = [normwise.run_correct_fixture(spec) for spec in normwise.correct_fixture_specs()]
     assert calls == {"jvp": 6, "vjp": 6}
-    for result in results:
+    for index, result in enumerate(results):
+        fixture_id = tuple(_PROTOCOL_CORRECT_METADATA)[index]
+        literal = _PROTOCOL_CORRECT_METADATA[fixture_id]
+        seeds = literal["seeds"]
         assert result["beta_norm"] <= normwise.CORRECT_FIXTURE_CEILING
         assert result["passed"] is True
-        assert len(result["jvp_sha256"]) == len(result["vjp_sha256"]) == 64
+        jvp_bytes = np.ascontiguousarray(actual_jvp[index].numpy()).tobytes()
+        assert result["jvp_sha256"] == hashlib.sha256(jvp_bytes).hexdigest()
+        vjp = actual_vjp[index]
+        if isinstance(vjp, dict):
+            names = ("w1", "b1", "w2", "b2")
+            shapes = ((23, 11), (23,), (19, 23), (19,))
+            flat = _pcg(seeds["parameter_direction"], (732,))
+            start = 0
+            direction = {}
+            for name, shape in zip(names, shapes, strict=True):
+                count = math.prod(shape)
+                direction[name] = flat[start : start + count].reshape(shape)
+                start += count
+            u = _pcg(seeds["output_direction"], (17, 19))
+            vjp_bytes = b"".join(
+                np.ascontiguousarray(vjp[name].numpy()).tobytes() for name in names
+            )
+        else:
+            names = ("x",)
+            if fixture_id == "zero_corner":
+                direction = {"x": _pcg(seeds["parameter_direction"], (17,))}
+                u = _pcg(seeds["output_direction"], (17,))
+            elif literal["kind"] == "affine_linear":
+                direction = {"x": _pcg(seeds["parameter_direction"], (193,))}
+                u = _pcg(seeds["output_direction"], (257,))
+            else:
+                p = _pcg(seeds["parameter_pair_base"], (4096,))
+                q = _pcg(seeds["output_pair_base"], (4096,))
+                direction = {"x": torch.cat((p.repeat_interleave(2), torch.ones(1)))}
+                u = torch.cat((q.repeat_interleave(2), torch.ones(1)))
+            vjp_bytes = np.ascontiguousarray(vjp.numpy()).tobytes()
+        assert result["vjp_sha256"] == hashlib.sha256(vjp_bytes).hexdigest()
+        vjp_tree = vjp if isinstance(vjp, dict) else {"x": vjp}
+        reference = _reference(u, actual_jvp[index], direction, vjp_tree, names)
+        for name, expected in reference.items():
+            assert result[name] == pytest.approx(expected, rel=1.0e-9, abs=1.0e-9)
+
+
+def test_correct_fixture_oracle_rejects_fabricated_action_after_real_torch_func_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_jvp = torch.func.jvp
+    captured: list[torch.Tensor] = []
+
+    def substituted_jvp(*args: Any, **kwargs: Any) -> Any:
+        output, action = original_jvp(*args, **kwargs)
+        captured.append(action.detach().clone())
+        return output, action + torch.ones_like(action)
+
+    monkeypatch.setattr(torch.func, "jvp", substituted_jvp)
+    result = normwise.run_correct_fixture(normwise.correct_fixture_specs()[1])
+    actual_hash = hashlib.sha256(np.ascontiguousarray(captured[0].numpy()).tobytes()).hexdigest()
+    with pytest.raises(AssertionError):
+        assert result["jvp_sha256"] == actual_hash
 
 
 def test_correct_fixture_calibration_band_and_paired_cancellation() -> None:
