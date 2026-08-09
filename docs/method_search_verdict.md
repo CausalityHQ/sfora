@@ -9963,3 +9963,40 @@ method, novelty, or SOTA claim and receives no extra training or replication. On
 the prospectively frozen Pass201 equal-update-norm
 operator diagnostic may hill-climb on this measurement. Full closeout:
 `docs/pass204_cis_closeout_2026-08-09.md`.
+
+## Pass205 — Cross-Fitted Centroid Proxy Projection: DEAD at Gate 2
+
+The strongest remaining non-RSTA/CIS measurement is a training-induced
+positive-transfer failure.  Cardinality-matched In-Shop nearest-positive
+unseen-minus-seen gaps are `-0.049281`, `-0.050450`, `-0.049061`, and
+`-0.049930` across the four corrected seeds (mean `-0.04968`), whereas the
+untrained gap is only `-0.000788`; only about `44.7%` of the learned
+within-class contraction transfers.  A second diagnostic localizes an
+actionable proxy-state mismatch: cross-fitted class-centroid margins exceed
+learned-proxy margins by `+0.7244`, `+0.6614`, and `+0.6892` in three
+epoch-10 seeds.
+
+The closest direct repair was Cross-Fitted Centroid Proxy Projection (CFCP):
+accumulate per-class EMA centroids from detached, past training embeddings and,
+after each ordinary Proxy Anchor optimizer step, project each learned proxy
+toward its cross-fitted centroid.  This changes the proxy-state update rather
+than pair weights or the forward loss; the full proxy remains active for both
+positive and negative PA terms, and all centroid state is discarded at
+deployment.
+
+CFCP is nevertheless **DEAD at Gate 2**.  Ren et al. (ICLR 2024) already
+construct and accumulate embedding-derived class proxies with EMA/GRU and use
+them with Proxy Anchor; Robust Calibrate Proxy (arXiv:2304.09162) maintains
+real-sample queues/global centers and calibrates proxies toward class-feature
+centers; Deep Metric Learning with Chance Constraints (arXiv:2209.09060)
+repeatedly reinitializes proxies from selected sample embeddings.  Cross-fitting
+repairs estimator hygiene, and a hard post-step projection changes the optimizer
+parameterization, but neither creates a new supervision object, information
+source, data flow, or proxy-update decision point.  Theoretical added work is
+`Theta(TBD)` and state `Theta(CD)` on top of PA's existing
+`Theta(T(F_theta(B)+BCD))`; no wall-time argument and no GPU run were used.
+
+**Mechanism lesson:** the proxy mismatch is real and useful provenance, but the
+obvious state-space repair is an occupied proxy-calibration family.  A future
+candidate must exploit a different measured object rather than rename the
+centroid estimator.
