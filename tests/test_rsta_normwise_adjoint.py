@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import math
+import os
+import stat
+import subprocess
 import sys
 from copy import deepcopy
 from pathlib import Path
@@ -15,6 +19,21 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import rsta_normwise_adjoint as normwise
+
+_CALIBRATION_CLI_PATH = (
+    Path(__file__).resolve().parents[1] / "scripts/calibrate_pass200_rsta_normwise_adjoint.py"
+)
+
+
+def _load_calibration_cli() -> Any:
+    name = f"calibrate_pass200_rsta_normwise_adjoint_test_{os.urandom(4).hex()}"
+    spec = importlib.util.spec_from_file_location(name, _CALIBRATION_CLI_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
 
 _PROTOCOL_CORRECT_METADATA = json.loads(r"""{
   "zero_corner":{"fixture_id":"zero_corner","kind":"zero_linear","seeds":{"x":"0x4e4f524d00000001","output_direction":"0x4e4f524d00000002","parameter_direction":"0x4e4f524d00000003"},"dimensions":{"input":17,"output":17},"scales":{"operator":"0"}},
@@ -1003,3 +1022,421 @@ def test_registered_fault_metadata_rejects_any_amplitude_seed_dimension_or_pair_
                 changed[field][key] = value + 1 if type(value) is int else f"{value}-drift"
                 with pytest.raises(ValueError, match="metadata"):
                     normwise.run_registered_fault(normwise.FaultSpec(fixture_id, changed))
+
+
+def _run_git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ("git", *args), cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def _make_calibration_source_repo(tmp_path: Path) -> tuple[Path, Path, str]:
+    repo = tmp_path / "source"
+    protocol = repo / "docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md"
+    paths = (
+        repo / "scripts/rsta_normwise_adjoint.py",
+        repo / "scripts/calibrate_pass200_rsta_normwise_adjoint.py",
+        repo / "tests/test_rsta_normwise_adjoint.py",
+    )
+    protocol.parent.mkdir(parents=True)
+    (repo / "scripts").mkdir()
+    (repo / "tests").mkdir()
+    protocol.write_bytes(b"frozen protocol\n")
+    for index, path in enumerate(paths):
+        path.write_bytes(f"source-{index}\n".encode())
+    _run_git(repo, "init", "-q")
+    _run_git(repo, "config", "user.email", "test@example.invalid")
+    _run_git(repo, "config", "user.name", "Test")
+    _run_git(repo, "add", ".")
+    _run_git(repo, "commit", "-qm", "source")
+    source = _run_git(repo, "rev-parse", "HEAD")
+    output = (
+        repo
+        / "reports/generated/pass200_rsta_receipt"
+        / f"{source}-normwise-adjoint-calibration.json"
+    )
+    output.parent.mkdir(parents=True)
+    return repo, output, source
+
+
+def test_candidate_free_cli_import_and_argument_isolation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    forbidden = {
+        "exact_contextual_rsta_fields",
+        "score_rsta_batch",
+        "decide_stage_a",
+        "joint_bootstrap",
+        "scientific_payload",
+        "serialize_receiver_rows",
+        "load_model",
+        "load_checkpoint",
+        "load_data",
+        "load_manifest",
+    }
+
+    class ForbiddenModule:
+        def __getattr__(self, name: str) -> Any:
+            if name in forbidden:
+                raise AssertionError(f"forbidden candidate reachability: {name}")
+            raise AttributeError(name)
+
+    monkeypatch.setitem(sys.modules, "diagnose_pass200_rsta_stage_a", ForbiddenModule())
+    cli = _load_calibration_cli()
+    assert forbidden.isdisjoint(vars(cli))
+    assert cli._parse_args(["--output", "/tmp/out"]).output == Path("/tmp/out")
+    with pytest.raises(SystemExit) as error:
+        cli._parse_args(["--output", "/tmp/out", "--seed", "0"])
+    assert error.value.code == 2
+
+
+def test_cli_source_authentication_binds_destination_git_and_worktree(tmp_path: Path) -> None:
+    cli = _load_calibration_cli()
+    repo, output, source = _make_calibration_source_repo(tmp_path)
+    authenticated = cli.authenticate_source(repo, output)
+    assert authenticated["execution_audit"]["executing_git_commit"] == source
+    assert authenticated["execution_audit"]["calibration_source_commit"] == source
+    assert list(authenticated["source"]["files"]) == [
+        "scripts/rsta_normwise_adjoint.py",
+        "scripts/calibrate_pass200_rsta_normwise_adjoint.py",
+        "tests/test_rsta_normwise_adjoint.py",
+    ]
+    assert authenticated["protocol"]["commit"] == source
+    assert (
+        authenticated["execution_audit"]["calibration_cli_sha256"]
+        == authenticated["source"]["files"]["scripts/calibrate_pass200_rsta_normwise_adjoint.py"]
+    )
+
+    wrong_outputs = (
+        output.with_name(f"{'a' * 40}-normwise-adjoint-calibration.json"),
+        output.with_name(f"x{source}-normwise-adjoint-calibration.json"),
+        output.with_name(f"{source.upper()}-normwise-adjoint-calibration.json"),
+        output.parent.parent / output.name,
+        repo.parent / output.name,
+    )
+    for wrong in wrong_outputs:
+        with pytest.raises(ValueError, match="output|source|commit"):
+            cli.authenticate_source(repo, wrong)
+
+    helper = repo / "scripts/rsta_normwise_adjoint.py"
+    helper.write_bytes(b"dirty worktree\n")
+    constructed = False
+    with pytest.raises(ValueError, match="worktree|blob|source"):
+        cli.authenticate_source(repo, output)
+        constructed = True
+    assert constructed is False
+
+
+def test_cli_source_authentication_rejects_executing_blob_and_ancestry_drift(
+    tmp_path: Path,
+) -> None:
+    cli = _load_calibration_cli()
+    repo, output, source = _make_calibration_source_repo(tmp_path)
+    helper = repo / "scripts/rsta_normwise_adjoint.py"
+    original = helper.read_bytes()
+    helper.write_bytes(b"later committed bytes\n")
+    _run_git(repo, "add", str(helper.relative_to(repo)))
+    _run_git(repo, "commit", "-qm", "later")
+    helper.write_bytes(original)
+    with pytest.raises(ValueError, match="executing|blob|source"):
+        cli.authenticate_source(repo, output)
+
+    unrelated = "f" * 40
+    unrelated_output = output.with_name(f"{unrelated}-normwise-adjoint-calibration.json")
+    with pytest.raises(ValueError, match="ancestor|commit|source"):
+        cli.authenticate_source(repo, unrelated_output)
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    (
+        "scripts/rsta_normwise_adjoint.py",
+        "scripts/calibrate_pass200_rsta_normwise_adjoint.py",
+        "tests/test_rsta_normwise_adjoint.py",
+        "docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md",
+    ),
+)
+def test_cli_source_authentication_rejects_each_worktree_byte_drift(
+    relative_path: str, tmp_path: Path
+) -> None:
+    cli = _load_calibration_cli()
+    repo, output, _ = _make_calibration_source_repo(tmp_path)
+    (repo / relative_path).write_bytes(b"independently drifted bytes\n")
+    with pytest.raises(ValueError, match="worktree|blob|source|protocol"):
+        cli.authenticate_source(repo, output)
+
+
+def test_cli_authentication_failure_precedes_cpu_and_fixture_work(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    calls: list[str] = []
+    monkeypatch.setattr(
+        cli,
+        "authenticate_source",
+        lambda *args: (_ for _ in ()).throw(ValueError("source provenance")),
+    )
+    monkeypatch.setattr(cli, "_configure_cpu", lambda: calls.append("configured"))
+    monkeypatch.setattr(cli.core, "correct_fixture_specs", lambda: calls.append("fixture"))
+    assert cli.run_cli(["--output", str(tmp_path / "out.json")]) == 2
+    assert calls == []
+
+
+def test_cli_configures_cpu_before_fixture_construction_and_builds_exact_schema(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    base = _valid_result()
+    calls: list[str] = []
+    monkeypatch.setattr(
+        cli.torch, "set_num_threads", lambda value: calls.append(f"threads:{value}")
+    )
+    monkeypatch.setattr(
+        cli.torch, "set_num_interop_threads", lambda value: calls.append(f"interop:{value}")
+    )
+    monkeypatch.setattr(
+        cli.torch,
+        "use_deterministic_algorithms",
+        lambda enabled, warn_only=False: calls.append(f"deterministic:{enabled}:{warn_only}"),
+    )
+    monkeypatch.setattr(
+        cli.torch,
+        "set_autocast_enabled",
+        lambda device, enabled: calls.append(f"autocast:{device}:{enabled}"),
+    )
+    monkeypatch.setattr(cli.torch, "get_num_threads", lambda: 1)
+    monkeypatch.setattr(cli.torch, "get_num_interop_threads", lambda: 1)
+    monkeypatch.setattr(cli.torch, "are_deterministic_algorithms_enabled", lambda: True)
+    monkeypatch.setattr(cli.torch, "is_autocast_enabled", lambda *args: False)
+    monkeypatch.setattr(
+        cli,
+        "authenticate_current_source",
+        lambda path: {
+            "protocol": deepcopy(base["protocol"]),
+            "execution_audit": deepcopy(base["execution_audit"]),
+            "source": deepcopy(base["source"]),
+        },
+    )
+
+    real_correct_specs = normwise.correct_fixture_specs
+
+    def correct_specs() -> tuple[Any, ...]:
+        assert calls[:4] == [
+            "threads:1",
+            "interop:1",
+            "deterministic:True:False",
+            "autocast:cpu:False",
+        ]
+        return real_correct_specs()
+
+    monkeypatch.setattr(cli.core, "correct_fixture_specs", correct_specs)
+    monkeypatch.setattr(
+        cli.core,
+        "run_fixture_controls",
+        lambda spec: deepcopy(base["correct_fixtures"][spec.fixture_id]),
+    )
+    monkeypatch.setattr(cli.core, "registered_fault_specs", normwise.registered_fault_specs)
+    monkeypatch.setattr(
+        cli.core,
+        "run_registered_fault",
+        lambda spec: deepcopy(base["registered_faults"][spec.fixture_id]),
+    )
+    payload = cli.calibration_payload(tmp_path / "protocol.md")
+    normwise.validate_calibration_result(payload)
+    assert list(payload) == list(base)
+    assert list(payload["correct_fixtures"]) == list(normwise.CORRECT_FIXTURE_IDS)
+    assert list(payload["registered_faults"]) == list(normwise.REGISTERED_FAULT_IDS)
+    assert payload["candidate_values_computed"] is False
+    assert payload["stage_a_verdict"] == "NOT_COMPUTED"
+
+
+def test_cli_publishes_finite_failed_calibration_artifact(tmp_path: Path) -> None:
+    cli = _load_calibration_cli()
+    payload = _valid_result()
+    control = payload["correct_fixtures"]["zero_corner"]["controls"]["parameter_sign"]
+    control["exact_relation"] = False
+    control["passed"] = False
+    payload["correct_fixtures"]["zero_corner"]["passed"] = False
+    payload["all_passed"] = False
+    normwise.validate_calibration_result(payload)
+    destination = tmp_path / "failed.json"
+    cli.publish_json_no_clobber(destination, payload)
+    assert json.loads(destination.read_text()) == payload
+    assert destination.read_bytes().endswith(b"\n")
+    assert cli.calibration_exit_code(payload) == 1
+
+
+def test_atomic_no_clobber_publication_exact_protocol(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    payload = _valid_result()
+    expected = json.dumps(payload, indent=2, allow_nan=False).encode() + b"\n"
+    real_link = cli.os.link
+    real_fsync = cli.os.fsync
+    links: list[tuple[Path, Path, bool]] = []
+    fsync_kinds: list[str] = []
+
+    def tracked_link(source: Any, target: Any, *, follow_symlinks: bool = True) -> None:
+        links.append((Path(source), Path(target), follow_symlinks))
+        real_link(source, target, follow_symlinks=follow_symlinks)
+
+    def tracked_fsync(fd: int) -> None:
+        mode = os.fstat(fd).st_mode
+        fsync_kinds.append("directory" if stat.S_ISDIR(mode) else "file")
+        real_fsync(fd)
+
+    monkeypatch.setattr(cli.os, "link", tracked_link)
+    monkeypatch.setattr(cli.os, "fsync", tracked_fsync)
+    cli.publish_json_no_clobber(destination, payload)
+    temporary = tmp_path / f".{destination.name}.tmp.{os.getpid()}"
+    assert links == [(temporary, destination, False)]
+    assert fsync_kinds == ["file", "directory", "directory"]
+    assert destination.read_bytes() == expected
+    assert destination.stat().st_mode & 0o777 == 0o600
+    assert not temporary.exists()
+
+    with pytest.raises(FileExistsError):
+        cli.publish_json_no_clobber(destination, payload)
+    assert destination.read_bytes() == expected
+
+
+def test_atomic_no_clobber_rejects_foreign_exact_temp(tmp_path: Path) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    temporary = tmp_path / f".{destination.name}.tmp.{os.getpid()}"
+    temporary.write_bytes(b"foreign")
+    with pytest.raises(FileExistsError):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert temporary.read_bytes() == b"foreign"
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("foreign_name", ("destination", "temporary"))
+def test_atomic_no_clobber_never_follows_foreign_symlink(foreign_name: str, tmp_path: Path) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    temporary = tmp_path / f".{destination.name}.tmp.{os.getpid()}"
+    target = tmp_path / "foreign"
+    target.write_bytes(b"foreign")
+    (destination if foreign_name == "destination" else temporary).symlink_to(target)
+    with pytest.raises(FileExistsError):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert target.read_bytes() == b"foreign"
+
+
+def test_publication_rollback_preserves_replaced_destination_inode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    real_fsync = cli.os.fsync
+    fsync_count = 0
+
+    def replace_then_fail(fd: int) -> None:
+        nonlocal fsync_count
+        fsync_count += 1
+        if fsync_count == 2:
+            destination.unlink()
+            destination.write_bytes(b"foreign replacement")
+            raise OSError("first_directory_fsync")
+        real_fsync(fd)
+
+    monkeypatch.setattr(cli.os, "fsync", replace_then_fail)
+    with pytest.raises(OSError, match="first_directory_fsync"):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert destination.read_bytes() == b"foreign replacement"
+    assert not (tmp_path / f".{destination.name}.tmp.{os.getpid()}").exists()
+
+
+def test_atomic_no_clobber_preserves_destination_racer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+
+    def racing_link(source: Any, target: Any, **kwargs: Any) -> None:
+        Path(target).write_bytes(b"foreign destination")
+        raise FileExistsError(target)
+
+    monkeypatch.setattr(cli.os, "link", racing_link)
+    with pytest.raises(FileExistsError):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert destination.read_bytes() == b"foreign destination"
+    assert not (tmp_path / f".{destination.name}.tmp.{os.getpid()}").exists()
+
+
+def test_publication_rollback_after_owned_open_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    temporary = tmp_path / f".{destination.name}.tmp.{os.getpid()}"
+    monkeypatch.setattr(
+        cli.os,
+        "fchmod",
+        lambda *args: (_ for _ in ()).throw(OSError("fchmod")),
+    )
+    with pytest.raises(OSError, match="fchmod"):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert not temporary.exists()
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize(
+    ("failure", "destination_survives"),
+    (
+        ("short_write", False),
+        ("file_fsync", False),
+        ("hard_link", False),
+        ("first_directory_fsync", False),
+        ("temp_unlink", False),
+        ("second_directory_fsync", True),
+    ),
+)
+def test_publication_rollback_is_owned_inode_checked(
+    failure: str,
+    destination_survives: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cli = _load_calibration_cli()
+    destination = tmp_path / "result.json"
+    temporary = tmp_path / f".{destination.name}.tmp.{os.getpid()}"
+    real_fsync = cli.os.fsync
+    real_link = cli.os.link
+    real_unlink = cli.os.unlink
+    fsync_count = 0
+    temp_unlink_failed = False
+
+    if failure == "short_write":
+        monkeypatch.setattr(cli, "_write_buffer", lambda stream, data: len(data) - 1)
+
+    def failing_fsync(fd: int) -> None:
+        nonlocal fsync_count
+        fsync_count += 1
+        wanted = {"file_fsync": 1, "first_directory_fsync": 2, "second_directory_fsync": 3}
+        if failure in wanted and fsync_count == wanted[failure]:
+            raise OSError(failure)
+        real_fsync(fd)
+
+    def failing_link(source: Any, target: Any, **kwargs: Any) -> None:
+        if failure == "hard_link":
+            raise OSError(failure)
+        real_link(source, target, **kwargs)
+
+    def failing_unlink(path: Any, *args: Any, **kwargs: Any) -> None:
+        nonlocal temp_unlink_failed
+        if failure == "temp_unlink" and Path(path) == temporary and not temp_unlink_failed:
+            temp_unlink_failed = True
+            raise OSError(failure)
+        real_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(cli.os, "fsync", failing_fsync)
+    monkeypatch.setattr(cli.os, "link", failing_link)
+    monkeypatch.setattr(cli.os, "unlink", failing_unlink)
+    with pytest.raises(OSError, match=failure.replace("_", ".*")):
+        cli.publish_json_no_clobber(destination, _valid_result())
+    assert destination.exists() is destination_survives
+    assert not temporary.exists()
