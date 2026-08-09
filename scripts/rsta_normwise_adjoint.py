@@ -351,6 +351,11 @@ def validate_calibration_result(value: object) -> None:
     )
     for path, digest in files.items():
         _hex(digest, 64, name=f"source digest {path}")
+    if (
+        execution["calibration_cli_sha256"]
+        != files["scripts/calibrate_pass200_rsta_normwise_adjoint.py"]
+    ):
+        raise ValueError("execution calibration CLI digest differs from source")
     environment = _exact_mapping(
         top["environment"],
         (

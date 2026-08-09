@@ -213,8 +213,8 @@ def test_action_hashes_cover_actual_c_contiguous_fp32_bytes_in_named_order() -> 
 
 
 def _metric_entry() -> dict[str, Any]:
-    z = torch.zeros(1, dtype=torch.float32)
-    metrics = normwise.normwise_adjoint_metrics(z, z, {"p": z}, {"p": z}, ("p",))
+    one = torch.ones(1, dtype=torch.float32)
+    metrics = normwise.normwise_adjoint_metrics(one, one, {"p": one}, {"p": one}, ("p",))
     threshold = metrics.pop("threshold")
     passed = metrics.pop("passed")
     return {
@@ -224,8 +224,8 @@ def _metric_entry() -> dict[str, Any]:
         "dimensions": {"input": 1},
         "scales": {"operator": "0"},
         **metrics,
-        "jvp_sha256": normwise.tensor_sha256(z),
-        "vjp_sha256": normwise.parameter_tree_sha256({"p": z}, ("p",)),
+        "jvp_sha256": normwise.tensor_sha256(one),
+        "vjp_sha256": normwise.parameter_tree_sha256({"p": one}, ("p",)),
         "controls": {},
         "threshold": threshold,
         "passed": passed,
@@ -321,7 +321,7 @@ def _valid_result() -> dict[str, Any]:
             "executing_git_commit": "c" * 40,
             "calibration_source_commit": "d" * 40,
             "calibration_cli_path": "scripts/calibrate_pass200_rsta_normwise_adjoint.py",
-            "calibration_cli_sha256": "e" * 64,
+            "calibration_cli_sha256": "1" * 64,
         },
         "source": {
             "git_revision": "d" * 40,
@@ -464,3 +464,142 @@ def test_calibration_schema_rejects_impossible_scalar_and_control_payloads() -> 
     )
     with pytest.raises(ValueError):
         normwise.validate_calibration_result(reviewer_example)
+
+
+def test_calibration_schema_exhaustively_rejects_recursive_mutations() -> None:
+    base = _valid_result()
+    dict_paths: set[tuple[str, ...]] = set()
+    list_paths: set[tuple[str, ...]] = set()
+    leaf_paths: set[tuple[str, ...]] = set()
+    numeric_paths: set[tuple[str, ...]] = set()
+
+    def walk(value: Any, path: tuple[str, ...] = ()) -> None:
+        if isinstance(value, dict):
+            dict_paths.add(path)
+            for key, item in value.items():
+                walk(item, (*path, key))
+        elif isinstance(value, list):
+            list_paths.add(path)
+            for index, item in enumerate(value):
+                walk(item, (*path, str(index)))
+        else:
+            leaf_paths.add(path)
+            if type(value) in (int, float):
+                numeric_paths.add(path)
+
+    walk(base)
+
+    def parent_at(value: Any, path: tuple[str, ...]) -> Any:
+        cursor = value
+        for part in path:
+            cursor = cursor[int(part)] if isinstance(cursor, list) else cursor[part]
+        return cursor
+
+    def reject(changed: dict[str, Any], label: tuple[str, ...]) -> None:
+        try:
+            normwise.validate_calibration_result(changed)
+        except (TypeError, ValueError):
+            covered.add(label)
+            return
+        pytest.fail(f"validator accepted isolated mutation: {label}")
+
+    covered: set[tuple[str, ...]] = set()
+    expected: set[tuple[str, ...]] = set()
+
+    for path in dict_paths:
+        mapping = parent_at(base, path)
+        for key in mapping:
+            label = ("remove", *path, key)
+            expected.add(label)
+            changed = deepcopy(base)
+            del parent_at(changed, path)[key]
+            reject(changed, label)
+        label = ("extra", *path)
+        expected.add(label)
+        changed = deepcopy(base)
+        parent_at(changed, path)["unexpected_schema_key"] = None
+        reject(changed, label)
+        if len(mapping) > 1:
+            label = ("order", *path)
+            expected.add(label)
+            changed = deepcopy(base)
+            target = parent_at(changed, path)
+            reversed_items = tuple(reversed(tuple(target.items())))
+            target.clear()
+            target.update(reversed_items)
+            reject(changed, label)
+
+    for path in list_paths:
+        label = ("list_type", *path)
+        expected.add(label)
+        changed = deepcopy(base)
+        parent = parent_at(changed, path[:-1])
+        key = path[-1]
+        current = parent[int(key)] if isinstance(parent, list) else parent[key]
+        if isinstance(parent, list):
+            parent[int(key)] = tuple(current)
+        else:
+            parent[key] = tuple(current)
+        reject(changed, label)
+        if len(current) > 1:
+            label = ("list_order", *path)
+            expected.add(label)
+            changed = deepcopy(base)
+            parent = parent_at(changed, path[:-1])
+            if isinstance(parent, list):
+                parent[int(path[-1])] = list(reversed(current))
+            else:
+                parent[path[-1]] = list(reversed(current))
+            reject(changed, label)
+
+    for path in leaf_paths:
+        label = ("leaf", *path)
+        expected.add(label)
+        changed = deepcopy(base)
+        parent = parent_at(changed, path[:-1])
+        key = path[-1]
+        old = parent[int(key)] if isinstance(parent, list) else parent[key]
+        if type(old) is bool:
+            replacement: Any = not old
+        elif type(old) is int:
+            replacement = old + 1
+        elif type(old) is float:
+            replacement = old + 0.125
+        elif type(old) is str:
+            replacement = ""
+        else:
+            replacement = object()
+        if isinstance(parent, list):
+            parent[int(key)] = replacement
+        else:
+            parent[key] = replacement
+        reject(changed, label)
+
+    for path in numeric_paths:
+        for nonfinite_name, nonfinite in (
+            ("nan", float("nan")),
+            ("posinf", float("inf")),
+            ("neginf", -float("inf")),
+        ):
+            label = (nonfinite_name, *path)
+            expected.add(label)
+            changed = deepcopy(base)
+            parent = parent_at(changed, path[:-1])
+            key = path[-1]
+            if isinstance(parent, list):
+                parent[int(key)] = nonfinite
+            else:
+                parent[key] = nonfinite
+            reject(changed, label)
+
+    relational = deepcopy(base)
+    relational["execution_audit"]["calibration_cli_sha256"] = "9" * 64
+    label = ("relational", "execution_audit", "calibration_cli_sha256")
+    expected.add(label)
+    reject(relational, label)
+
+    assert covered == expected
+    assert {tuple(path) for kind, *path in covered if kind == "leaf"} == leaf_paths
+    assert {tuple(path) for kind, *path in covered if kind == "remove"} >= {
+        (*path, key) for path in dict_paths for key in parent_at(base, path)
+    }
