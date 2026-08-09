@@ -26,6 +26,48 @@ _PROTOCOL_CORRECT_METADATA = json.loads(r"""{
 }""")
 
 
+def _protocol_literal_equal(actual: Any, expected: Any) -> bool:
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return list(actual) == list(expected) and all(
+            _protocol_literal_equal(actual[key], expected[key]) for key in expected
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            _protocol_literal_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    return actual == expected
+
+
+@pytest.mark.parametrize("container", ["seeds", "dimensions", "parameter_shapes", "scales"])
+def test_protocol_metadata_oracle_detects_coordinated_nested_reorder(
+    container: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    literal = _PROTOCOL_CORRECT_METADATA["smooth_parameter_tree"]
+    kind, seeds, dimensions, scales = deepcopy(normwise._FIXTURE_METADATA["smooth_parameter_tree"])
+    containers = {"seeds": seeds, "dimensions": dimensions, "scales": scales}
+    if container == "parameter_shapes":
+        parent = dimensions
+        parent[container] = dict(reversed(tuple(parent[container].items())))
+    else:
+        target = containers[container]
+        containers[container] = dict(reversed(tuple(target.items())))
+        seeds, dimensions, scales = (
+            containers["seeds"],
+            containers["dimensions"],
+            containers["scales"],
+        )
+    monkeypatch.setitem(
+        normwise._FIXTURE_METADATA,
+        "smooth_parameter_tree",
+        (kind, seeds, dimensions, scales),
+    )
+    coordinated = normwise.correct_fixture_specs()[4].metadata
+    assert not _protocol_literal_equal(coordinated, literal)
+
+
 def _reference(
     u: torch.Tensor,
     a: torch.Tensor,
@@ -626,8 +668,7 @@ def test_correct_fixture_construction_is_byte_exact() -> None:
     assert tuple(spec.fixture_id for spec in specs) == tuple(_PROTOCOL_CORRECT_METADATA)
     for spec in specs:
         literal = _PROTOCOL_CORRECT_METADATA[spec.fixture_id]
-        assert spec.metadata == literal
-        assert list(spec.metadata) == list(literal)
+        assert _protocol_literal_equal(spec.metadata, literal)
         built = normwise._construct_correct_fixture(spec)
         tensors = built["tensors"]
         seeds = literal["seeds"]
