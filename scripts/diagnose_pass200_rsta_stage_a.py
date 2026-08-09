@@ -3032,8 +3032,8 @@ def configure_deterministic_process() -> dict[str, Any]:
         "autocast": False,
         "model_arithmetic": "float32",
         "reduction_arithmetic": "float64",
-        "torch_version": torch.__version__,
-        "numpy_version": np.__version__,
+        "torch_version": str(torch.__version__),
+        "numpy_version": str(np.__version__),
     }
 
 
@@ -5181,7 +5181,7 @@ def run_scientific_diagnostic(
         },
         panel_binding=panel_binding,
     )
-    write_json_atomic(output_path, payload)
+    write_json_atomic(output_path, payload, sort_keys=False)
     return payload
 
 
@@ -5310,8 +5310,8 @@ def _validate_environment_audit(environment: Mapping[str, Any]) -> None:
         "autocast": False,
         "model_arithmetic": "float32",
         "reduction_arithmetic": "float64",
-        "torch_version": torch.__version__,
-        "numpy_version": np.__version__,
+        "torch_version": str(torch.__version__),
+        "numpy_version": str(np.__version__),
     }
     if dict(value) != expected or any(
         type(value[name]) is not type(expected_value)
@@ -5877,7 +5877,7 @@ def run_integrity_smoke(
             **first,
         },
     }
-    write_json_atomic(output_path, payload)
+    write_json_atomic(output_path, payload, sort_keys=False)
     return payload
 
 

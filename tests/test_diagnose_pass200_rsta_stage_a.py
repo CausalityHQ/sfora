@@ -1305,6 +1305,20 @@ def test_atomic_json_rejects_nonfinite_without_replacing_existing_output(tmp_pat
     }
 
 
+def test_atomic_json_unsorted_preserves_nonalphabetic_order_and_no_clobber(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "ordered.json"
+    payload = {"zeta": 1, "alpha": 2, "middle": 3}
+    _MODULE.write_json_atomic(output, payload, sort_keys=False)
+    assert list(json.loads(output.read_text(encoding="utf-8"))) == list(payload)
+    original = output.read_bytes()
+    with pytest.raises(FileExistsError):
+        _MODULE.write_json_atomic(output, payload, sort_keys=False)
+    assert output.read_bytes() == original
+    assert list(tmp_path.glob(".*.tmp")) == []
+
+
 def test_atomic_json_rolls_back_link_when_directory_fsync_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -3312,6 +3326,32 @@ def test_configure_deterministic_process_requires_preexported_cublas_and_records
         torch.backends.cudnn.allow_tf32 = previous[3]
 
 
+def test_environment_versions_are_builtin_strings_and_validate_after_json_roundtrip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class VersionLike(str):
+        pass
+
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(torch, "__version__", VersionLike("torch-test-version"))
+    monkeypatch.setattr(np, "__version__", VersionLike("numpy-test-version"))
+    audit = _MODULE.configure_deterministic_process()
+    assert type(audit["torch_version"]) is str
+    assert type(audit["numpy_version"]) is str
+    roundtrip = json.loads(json.dumps(audit))
+    _MODULE._validate_environment_audit(roundtrip)
+
+    for name, value in (
+        ("torch_version", ""),
+        ("numpy_version", "wrong"),
+        ("torch_version", VersionLike("torch-test-version")),
+    ):
+        changed = dict(roundtrip)
+        changed[name] = value
+        with pytest.raises(ValueError, match="environment"):
+            _MODULE._validate_environment_audit(changed)
+
+
 def test_default_integrity_fixtures_persist_measured_residuals_not_booleans() -> None:
     """Catches a scientific CLI that marks dense/BN fixtures passed without executing them."""
     audit = _MODULE._default_fixture_runner()
@@ -5021,6 +5061,11 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     )
 
     result = json.loads(output.read_text(encoding="utf-8"))
+    for seed_audit in result["integrity"]["seeds"]:
+        assert list(seed_audit["adjoint"]) == list(_MODULE._ADJOINT_AUDIT_FIELDS)
+        _MODULE._validate_adjoint_integrity_audit(
+            seed_audit["adjoint"], expected_output_shape=(180, 3)
+        )
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
@@ -5349,6 +5394,10 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert result["integrity"]["zero_jacobian_classifier"] == _valid_zero_jacobian_audit()
     assert set(result["integrity"]["repeatability"]) == {"z", "dbar", "b", "s"}
     assert result["integrity"]["adjoint"]["passed"] is True
+    assert list(result["integrity"]["adjoint"]) == list(_MODULE._ADJOINT_AUDIT_FIELDS)
+    _MODULE._validate_adjoint_integrity_audit(
+        result["integrity"]["adjoint"], expected_output_shape=(180, 3)
+    )
     assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
     assert len(result["binding"]["first_batch_id_sha256"]) == 64
     assert len(result["binding"]["transform_tensor_set_sha256"]) == 64
