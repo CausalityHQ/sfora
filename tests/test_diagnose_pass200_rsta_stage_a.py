@@ -2294,6 +2294,25 @@ _GLOBAL_MAX_INPUT_SHA256 = {
     "tie": "55688cd7f3585fc5402d755dde3f30ac70701bea80c44b8a2e13d5dfa394d5b5",
 }
 
+_ZERO_JACOBIAN_NAMES = [
+    "model.last_linear.weight",
+    "model.last_linear.bias",
+]
+
+
+def _valid_zero_jacobian_audit() -> dict[str, Any]:
+    return {
+        "audit_id": "pass200-zero-jacobian-last-linear-v1",
+        "parameter_names": list(_ZERO_JACOBIAN_NAMES),
+        "parameter_shapes": [[1000, 1024], [1000]],
+        "parameter_dtypes": ["torch.float32", "torch.float32"],
+        "pre_sha256": {name: "1" * 64 for name in _ZERO_JACOBIAN_NAMES},
+        "restored_sha256": {name: "1" * 64 for name in _ZERO_JACOBIAN_NAMES},
+        "gradients_none": [True, True],
+        "mutated_output_equal": True,
+        "frozen_requires_grad": [False, False],
+    }
+
 
 def _valid_global_max_audit() -> dict[str, Any]:
     cpu = _MODULE._audit_deterministic_global_max_cpu(
@@ -2379,6 +2398,69 @@ def test_deterministic_global_max_audit_requires_cuda(monkeypatch: pytest.Monkey
 
     with pytest.raises(ValueError, match="CUDA"):
         _MODULE.audit_deterministic_global_max()
+
+
+def test_zero_jacobian_classifier_audit_restores_and_freezes_only_classifier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    _MODULE.configure_deterministic_process()
+    class DisconnectedClassifier(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.model = torch.nn.Module()
+            self.model.last_linear = torch.nn.Linear(1024, 1000, dtype=torch.float32)
+            self.model.embedding = torch.nn.Linear(4, 3, dtype=torch.float32)
+
+        def forward(self, values: torch.Tensor) -> torch.Tensor:
+            return self.model.embedding(values)
+
+    model = DisconnectedClassifier().train()
+    before = {
+        name: value.detach().clone()
+        for name, value in model.named_parameters()
+    }
+    images = torch.arange(180 * 4, dtype=torch.float32).reshape(180, 4) / 100.0
+
+    audit = _MODULE.audit_zero_jacobian_classifier(model, images)
+
+    _MODULE._validate_zero_jacobian_classifier_audit(audit)
+    assert audit["parameter_names"] == _ZERO_JACOBIAN_NAMES
+    assert audit["gradients_none"] == [True, True]
+    assert audit["mutated_output_equal"] is True
+    assert audit["pre_sha256"] == audit["restored_sha256"]
+    for name, value in model.named_parameters():
+        assert torch.equal(value, before[name])
+        assert value.requires_grad is (name not in _ZERO_JACOBIAN_NAMES)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["missing", "extra", "name", "shape", "dtype", "sha", "gradient", "output", "frozen"],
+)
+def test_zero_jacobian_classifier_audit_rejects_exact_schema_drift(mutation: str) -> None:
+    audit = _valid_zero_jacobian_audit()
+    if mutation == "missing":
+        audit.pop("audit_id")
+    elif mutation == "extra":
+        audit["unchecked"] = True
+    elif mutation == "name":
+        audit["parameter_names"].reverse()
+    elif mutation == "shape":
+        audit["parameter_shapes"][0] = [1000, 1023]
+    elif mutation == "dtype":
+        audit["parameter_dtypes"][0] = "torch.float64"
+    elif mutation == "sha":
+        audit["restored_sha256"][_ZERO_JACOBIAN_NAMES[0]] = "2" * 64
+    elif mutation == "gradient":
+        audit["gradients_none"][0] = False
+    elif mutation == "output":
+        audit["mutated_output_equal"] = False
+    else:
+        audit["frozen_requires_grad"][1] = True
+
+    with pytest.raises(ValueError, match="zero-Jacobian classifier"):
+        _MODULE._validate_zero_jacobian_classifier_audit(audit)
 
 
 def test_capture_prehead_and_raw_uses_the_executed_final_affine_head() -> None:
@@ -2863,6 +2945,9 @@ def _valid_scientific_payload_arguments(
             "tolerance": 1.0e-6,
             "buffers_unchanged": True,
         },
+        "zero_jacobian_classifier": {
+            str(seed): _valid_zero_jacobian_audit() for seed in range(4)
+        },
         "seeds": [
             {
                 "seed": seed,
@@ -2945,6 +3030,23 @@ def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schem
     assert len(payload["rows"]["alternate"]) == 4 * 16
     assert "control_aggregates" in payload["aggregation"]
     assert payload["execution_audit"] == arguments["execution_audit"]
+
+
+@pytest.mark.parametrize("mutation", ["missing_seed", "invalid_seed"])
+def test_scientific_payload_rejects_zero_jacobian_audit_mapping_drift(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    audits = arguments["integrity"]["zero_jacobian_classifier"]
+    if mutation == "missing_seed":
+        audits.pop("3")
+    else:
+        audits["2"]["gradients_none"][0] = False
+
+    with pytest.raises(ValueError, match="zero-Jacobian classifier"):
+        _MODULE.scientific_payload(**arguments)
 
 
 @pytest.mark.parametrize("mutation", ["missing", "extra", "digest_relationship"])
@@ -3422,6 +3524,43 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     _bind_synthetic_executing_diagnostic(monkeypatch, manifest_path=manifest_path)
     output = tmp_path / "scientific.json"
     validated: list[Path] = []
+    zero_jacobian_calls: list[int] = []
+
+    def zero_jacobian_auditor(_model: Any, images: torch.Tensor) -> dict[str, Any]:
+        zero_jacobian_calls.append(int(images.shape[0]))
+        return _valid_zero_jacobian_audit()
+
+    invalid_output = tmp_path / "invalid-scientific.json"
+    with pytest.raises(ValueError, match="zero-Jacobian classifier"):
+        _MODULE.main(
+            [
+                "--manifest",
+                str(manifest_path),
+                "--binding-receipt",
+                str(tmp_path / "receipt.json"),
+                "--output",
+                str(invalid_output),
+                "--scientific",
+            ],
+            expected_dimension=3,
+            receipt_validator=lambda manifest_path, _receipt_path: validated.append(manifest_path)
+            or _tiny_validated_receipt(),
+            execution_source_validator=audit_before_scoring,
+            bound_loader=bound_loader,
+            cache_builder=cache_builder,
+            model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
+            fixture_runner=lambda: fixture_audit,
+            deterministic_pool_auditor=_valid_global_max_audit,
+            zero_jacobian_auditor=lambda _model, _images: {},
+            rotation_auditor=rotation_auditor,
+            head_name="model.embedding",
+            expected_head_in_features=2,
+        )
+    assert not any(event.startswith("score-") for event in integrity_score_events)
+    assert not invalid_output.exists()
+    validated.clear()
+    bound_calls.clear()
+    integrity_score_events.clear()
 
     _MODULE.main(
         [
@@ -3442,6 +3581,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         model_loader=lambda bound: TinyOfficialHead(bound.seed).train(),
         fixture_runner=lambda: fixture_audit,
         deterministic_pool_auditor=_valid_global_max_audit,
+        zero_jacobian_auditor=zero_jacobian_auditor,
         rotation_auditor=rotation_auditor,
         head_name="model.embedding",
         expected_head_in_features=2,
@@ -3451,6 +3591,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
     assert rotation_calls == [0, 1, 2, 3]
+    assert zero_jacobian_calls == [180, 180, 180, 180]
     assert integrity_score_events[:2] == ["configure", "execution-audit"]
     assert integrity_score_events.index("execution-audit") < integrity_score_events.index(
         "decision"
@@ -3465,6 +3606,9 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
     assert result["exclusions"] == []
     assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
+    assert result["integrity"]["zero_jacobian_classifier"] == {
+        str(seed): _valid_zero_jacobian_audit() for seed in range(4)
+    }
     assert result["execution_audit"]["diagnostic_sha256"] == result["manifest"]["source"][
         "files"
     ]["scripts/diagnose_pass200_rsta_stage_a.py"]
@@ -3649,6 +3793,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
         model_loader=lambda _bound: TinyOfficialHead().train(),
         fixture_runner=lambda: fixture_audit,
         deterministic_pool_auditor=_valid_global_max_audit,
+        zero_jacobian_auditor=lambda _model, _images: _valid_zero_jacobian_audit(),
         head_name="model.embedding",
         expected_head_in_features=2,
     )
@@ -3662,6 +3807,7 @@ def test_smoke_cli_executes_only_first_batch_integrity_without_candidate_values(
     assert "rows" not in result and "aggregation" not in result and "bootstrap" not in result
     assert result["integrity"]["seed"] == 0
     assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
+    assert result["integrity"]["zero_jacobian_classifier"] == _valid_zero_jacobian_audit()
     assert set(result["integrity"]["repeatability"]) == {"z", "dbar", "b", "s"}
     assert result["integrity"]["adjoint_relative_error"] <= 5.0e-4
     assert max(result["integrity"]["rotation"]["vector_residuals"].values()) <= 5.0e-4
@@ -3810,6 +3956,11 @@ def test_amended_manifest_requires_exact_deterministic_pool_amendment(
         "sha256": "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361",
         "commit": "db29ab7bb6478cfef57eccbad142f93d2f805f7f",
     }
+    manifest["zero_jacobian_classifier_amendment"] = {
+        "path": "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md",
+        "sha256": "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade",
+        "commit": "85e8f983053f3839e5bbb2bb11563380e6b77919",
+    }
     if mutation == "missing":
         manifest.pop("deterministic_pool_amendment")
     elif mutation == "extra":
@@ -3820,6 +3971,39 @@ def test_amended_manifest_requires_exact_deterministic_pool_amendment(
         )
 
     with pytest.raises(ValueError, match="deterministic_pool_amendment|manifest fields"):
+        _MODULE._validate_amended_manifest_schema(manifest)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "path", "sha256", "commit"])
+def test_amended_manifest_requires_exact_zero_jacobian_classifier_amendment(
+    mutation: str,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    manifest = json.loads(
+        (root / "docs" / "pass200_rsta_receipt_stage_a_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    manifest["deterministic_pool_amendment"] = {
+        "path": "docs/pass200_rsta_deterministic_global_max_amendment_2026-08-09.md",
+        "sha256": "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361",
+        "commit": "db29ab7bb6478cfef57eccbad142f93d2f805f7f",
+    }
+    manifest["zero_jacobian_classifier_amendment"] = {
+        "path": "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md",
+        "sha256": "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade",
+        "commit": "85e8f983053f3839e5bbb2bb11563380e6b77919",
+    }
+    if mutation == "missing":
+        manifest.pop("zero_jacobian_classifier_amendment")
+    elif mutation == "extra":
+        manifest["zero_jacobian_classifier_amendment"]["unchecked"] = True
+    else:
+        manifest["zero_jacobian_classifier_amendment"][mutation] = "0" * (
+            64 if mutation == "sha256" else 40
+        )
+
+    with pytest.raises(ValueError, match="zero_jacobian_classifier_amendment|manifest fields"):
         _MODULE._validate_amended_manifest_schema(manifest)
 
 
@@ -3923,6 +4107,11 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             "sha256": _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256,
             "commit": _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT,
         },
+        "zero_jacobian_classifier_amendment": {
+            "path": "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md",
+            "sha256": "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade",
+            "commit": "85e8f983053f3839e5bbb2bb11563380e6b77919",
+        },
         "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
     }
     for reference in references.values():
@@ -3957,7 +4146,9 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
     def fake_blob(_repository: Path, revision: str, path_text: str) -> bytes:
         blobs.append((revision, path_text))
         digest = (
-            _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256
+            "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade"
+            if revision == "85e8f983053f3839e5bbb2bb11563380e6b77919"
+            else _MODULE._DETERMINISTIC_POOL_AMENDMENT_SHA256
             if revision == _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT
             else _MODULE._AMENDMENT_SHA256
             if revision == _MODULE._AMENDMENT_COMMIT
@@ -3985,6 +4176,10 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
     assert (
         _MODULE._DETERMINISTIC_POOL_AMENDMENT_COMMIT,
         _MODULE._DETERMINISTIC_POOL_AMENDMENT_PATH,
+    ) in blobs
+    assert (
+        "85e8f983053f3839e5bbb2bb11563380e6b77919",
+        "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md",
     ) in blobs
 
 

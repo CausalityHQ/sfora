@@ -119,6 +119,15 @@ _DETERMINISTIC_POOL_AMENDMENT_SHA256 = (
     "6b2ffed724f0056b011831bb74997cb3e8d50f83304448805b119f6a3d78b361"
 )
 _DETERMINISTIC_POOL_AMENDMENT_COMMIT = "db29ab7bb6478cfef57eccbad142f93d2f805f7f"
+_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_PATH = (
+    "docs/pass200_rsta_zero_jacobian_classifier_amendment_2026-08-09.md"
+)
+_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256 = (
+    "4b981efd3893436e1a4da09568c3cf167d7beeeb8fd637979b5869588c956ade"
+)
+_ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_COMMIT = (
+    "85e8f983053f3839e5bbb2bb11563380e6b77919"
+)
 _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
     "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
     "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
@@ -608,6 +617,7 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
             "base_preregistration",
             "amendment",
             "deterministic_pool_amendment",
+            "zero_jacobian_classifier_amendment",
             "binding_receipt",
             "historical",
             "current_scientific_source",
@@ -656,6 +666,19 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         "commit": _DETERMINISTIC_POOL_AMENDMENT_COMMIT,
     }:
         raise ValueError("amended RSTA manifest deterministic_pool_amendment differs")
+    zero_jacobian_amendment = _require_exact_keys(
+        value["zero_jacobian_classifier_amendment"],
+        {"path", "sha256", "commit"},
+        name="zero_jacobian_classifier_amendment",
+    )
+    if zero_jacobian_amendment != {
+        "path": _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_PATH,
+        "sha256": _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256,
+        "commit": _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_COMMIT,
+    }:
+        raise ValueError(
+            "amended RSTA manifest zero_jacobian_classifier_amendment differs"
+        )
     historical = _require_exact_keys(
         value["historical"], {"producer_commit", "manifest", "source"}, name="historical"
     )
@@ -795,6 +818,7 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "base_preregistration",
         "amendment",
         "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
         "artifact_schema",
     ):
         reference = manifest[name]
@@ -814,6 +838,16 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         != _DETERMINISTIC_POOL_AMENDMENT_SHA256
     ):
         raise ValueError("deterministic pool amendment Git blob SHA-256 mismatch")
+    zero_jacobian_blob = _git_blob(
+        repository,
+        _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_COMMIT,
+        _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_PATH,
+    )
+    if (
+        hashlib.sha256(zero_jacobian_blob).hexdigest()
+        != _ZERO_JACOBIAN_CLASSIFIER_AMENDMENT_SHA256
+    ):
+        raise ValueError("zero-Jacobian classifier amendment Git blob SHA-256 mismatch")
     current = manifest["current_scientific_source"]
     revision = current["git_revision"]
     head = subprocess.run(
@@ -2221,6 +2255,143 @@ def audit_deterministic_global_max() -> dict[str, Any]:
     return audit
 
 
+_ZERO_JACOBIAN_CLASSIFIER_NAMES = (
+    "model.last_linear.weight",
+    "model.last_linear.bias",
+)
+
+
+def _validate_zero_jacobian_classifier_audit(audit: Mapping[str, Any]) -> None:
+    value = _require_exact_keys(
+        audit,
+        {
+            "audit_id",
+            "parameter_names",
+            "parameter_shapes",
+            "parameter_dtypes",
+            "pre_sha256",
+            "restored_sha256",
+            "gradients_none",
+            "mutated_output_equal",
+            "frozen_requires_grad",
+        },
+        name="zero-Jacobian classifier audit",
+    )
+    if value["audit_id"] != "pass200-zero-jacobian-last-linear-v1" or type(
+        value["audit_id"]
+    ) is not str:
+        raise ValueError("zero-Jacobian classifier audit identifier differs")
+    if value["parameter_names"] != list(_ZERO_JACOBIAN_CLASSIFIER_NAMES) or any(
+        type(name) is not str for name in value["parameter_names"]
+    ):
+        raise ValueError("zero-Jacobian classifier parameter names differ")
+    if value["parameter_shapes"] != [[1000, 1024], [1000]] or any(
+        type(dimension) is not int
+        for shape in value["parameter_shapes"]
+        if isinstance(shape, list)
+        for dimension in shape
+    ):
+        raise ValueError("zero-Jacobian classifier parameter shapes differ")
+    if value["parameter_dtypes"] != ["torch.float32", "torch.float32"] or any(
+        type(dtype) is not str for dtype in value["parameter_dtypes"]
+    ):
+        raise ValueError("zero-Jacobian classifier parameter dtypes differ")
+    for field in ("pre_sha256", "restored_sha256"):
+        hashes = _require_exact_keys(
+            value[field],
+            set(_ZERO_JACOBIAN_CLASSIFIER_NAMES),
+            name=f"zero-Jacobian classifier {field}",
+        )
+        for name, digest in hashes.items():
+            _require_sha256(digest, name=f"zero-Jacobian classifier {field} {name}")
+    if value["restored_sha256"] != value["pre_sha256"]:
+        raise ValueError("zero-Jacobian classifier restoration SHA-256 differs")
+    if value["gradients_none"] != [True, True] or any(
+        type(flag) is not bool for flag in value["gradients_none"]
+    ):
+        raise ValueError("zero-Jacobian classifier gradient audit differs")
+    if type(value["mutated_output_equal"]) is not bool or not value[
+        "mutated_output_equal"
+    ]:
+        raise ValueError("zero-Jacobian classifier mutated output differs")
+    if value["frozen_requires_grad"] != [False, False] or any(
+        type(flag) is not bool for flag in value["frozen_requires_grad"]
+    ):
+        raise ValueError("zero-Jacobian classifier frozen state differs")
+
+
+def audit_zero_jacobian_classifier(model: Any, images: Any) -> dict[str, Any]:
+    import torch
+
+    _assert_deterministic_tf32_off()
+    if type(images.shape[0]) is not int or images.shape[0] != 180:
+        raise ValueError("zero-Jacobian classifier audit requires exact B=180")
+    named = list(model.named_parameters())
+    selected = [
+        (name, parameter)
+        for name, parameter in named
+        if name in _ZERO_JACOBIAN_CLASSIFIER_NAMES
+    ]
+    if [name for name, _ in selected] != list(_ZERO_JACOBIAN_CLASSIFIER_NAMES):
+        raise ValueError("zero-Jacobian classifier exact parameter names/order differ")
+    parameters = [parameter for _, parameter in selected]
+    if [list(parameter.shape) for parameter in parameters] != [[1000, 1024], [1000]]:
+        raise ValueError("zero-Jacobian classifier exact parameter shapes differ")
+    if [parameter.dtype for parameter in parameters] != [torch.float32, torch.float32]:
+        raise ValueError("zero-Jacobian classifier exact parameter dtypes differ")
+    if [parameter.requires_grad for parameter in parameters] != [True, True]:
+        raise ValueError("zero-Jacobian classifier parameters must initially require gradients")
+    _assert_deterministic_tf32_off()
+    output = model(images)
+    gradients = torch.autograd.grad(
+        output.sum(), tuple(parameters), allow_unused=True
+    )
+    gradients_none = [gradient is None for gradient in gradients]
+    if gradients_none != [True, True]:
+        raise ValueError("zero-Jacobian classifier has a nonzero graph dependency")
+    originals = [parameter.detach().clone() for parameter in parameters]
+    pre_sha256 = {
+        name: _torch_tensor_sha256(parameter)
+        for (name, parameter) in selected
+    }
+    mutated_output: Any | None = None
+    try:
+        with torch.no_grad():
+            parameters[0].fill_(0.125)
+            parameters[1].fill_(-0.25)
+        _assert_deterministic_tf32_off()
+        mutated_output = model(images)
+    finally:
+        with torch.no_grad():
+            for parameter, original in zip(parameters, originals, strict=True):
+                parameter.copy_(original)
+    restored_sha256 = {
+        name: _torch_tensor_sha256(parameter)
+        for (name, parameter) in selected
+    }
+    if restored_sha256 != pre_sha256:
+        raise ValueError("zero-Jacobian classifier restoration SHA-256 differs")
+    mutated_output_equal = torch.equal(output, mutated_output)
+    if not mutated_output_equal:
+        raise ValueError("zero-Jacobian classifier mutation changed model output")
+    for parameter in parameters:
+        parameter.requires_grad_(False)
+    audit = {
+        "audit_id": "pass200-zero-jacobian-last-linear-v1",
+        "parameter_names": list(_ZERO_JACOBIAN_CLASSIFIER_NAMES),
+        "parameter_shapes": [[1000, 1024], [1000]],
+        "parameter_dtypes": ["torch.float32", "torch.float32"],
+        "pre_sha256": pre_sha256,
+        "restored_sha256": restored_sha256,
+        "gradients_none": gradients_none,
+        "mutated_output_equal": mutated_output_equal,
+        "frozen_requires_grad": [parameter.requires_grad for parameter in parameters],
+    }
+    _assert_deterministic_tf32_off()
+    _validate_zero_jacobian_classifier_audit(audit)
+    return audit
+
+
 def capture_prehead_and_raw(
     model: Any,
     images: Any,
@@ -2953,6 +3124,13 @@ def scientific_payload(
     for row in alternate_rows:
         _validate_receiver_audit_row(row, expected_panel="alternate")
     _validate_fixture_integrity(integrity)
+    zero_jacobian = _require_exact_keys(
+        integrity.get("zero_jacobian_classifier"),
+        {"0", "1", "2", "3"},
+        name="zero-Jacobian classifier scientific audits",
+    )
+    for seed in ("0", "1", "2", "3"):
+        _validate_zero_jacobian_classifier_audit(zero_jacobian[seed])
     integrity_seeds = integrity.get("seeds")
     if not isinstance(integrity_seeds, Sequence) or {
         audit.get("seed") for audit in integrity_seeds if isinstance(audit, Mapping)
@@ -4372,6 +4550,9 @@ def run_scientific_diagnostic(
     deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
         audit_deterministic_global_max
     ),
+    zero_jacobian_auditor: Callable[[Any, Any], dict[str, Any]] = (
+        audit_zero_jacobian_classifier
+    ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -4421,17 +4602,24 @@ def run_scientific_diagnostic(
     alternate_rows: list[dict[str, Any]] = []
     seed_audits: list[dict[str, Any]] = []
     seed_integrity: list[dict[str, Any]] = []
+    zero_jacobian_integrity: dict[str, dict[str, Any]] = {}
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
     for bound in bounds:
         _assert_deterministic_tf32_off()
         model = make_rsta_diagnostic_clone(model_loader(bound))
+        first_parameter = next(iter(model.parameters()), None)
+        if first_parameter is None:
+            raise ValueError("scientific encoder has no parameters")
+        device, dtype = first_parameter.device, first_parameter.dtype
+        audit_images = cache.batch(primary["batches"][0]).to(device=device, dtype=dtype)
+        zero_jacobian = zero_jacobian_auditor(model, audit_images)
+        _validate_zero_jacobian_classifier_audit(zero_jacobian)
+        zero_jacobian_integrity[str(bound.seed)] = zero_jacobian
         parameter_items = [
             (name, value) for name, value in model.named_parameters() if value.requires_grad
         ]
         if not parameter_items:
             raise ValueError("scientific encoder has no trainable parameters")
-        parameter = parameter_items[0][1]
-        device, dtype = parameter.device, parameter.dtype
         proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
         proxy_labels = torch.tensor(
             np.array(bound.proxy_labels, copy=True), device=device, dtype=torch.long
@@ -4583,6 +4771,7 @@ def run_scientific_diagnostic(
     integrity = {
         **fixture_integrity,
         "deterministic_global_max": deterministic_global_max,
+        "zero_jacobian_classifier": zero_jacobian_integrity,
         "seeds": seed_integrity,
     }
     panel_binding = {
@@ -4604,6 +4793,9 @@ def run_scientific_diagnostic(
             "amendment": manifest.get("amendment"),
             "deterministic_pool_amendment": manifest.get(
                 "deterministic_pool_amendment"
+            ),
+            "zero_jacobian_classifier_amendment": manifest.get(
+                "zero_jacobian_classifier_amendment"
             ),
             "binding_receipt": manifest.get("binding_receipt"),
             "historical": manifest.get("historical"),
@@ -4664,6 +4856,9 @@ def run_integrity_smoke(
     deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
         audit_deterministic_global_max
     ),
+    zero_jacobian_auditor: Callable[[Any, Any], dict[str, Any]] = (
+        audit_zero_jacobian_classifier
+    ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
     expected_head_in_features: int = 1024,
@@ -4701,13 +4896,18 @@ def run_integrity_smoke(
     model = make_rsta_diagnostic_clone(model_loader(bound))
     deterministic_global_max = deterministic_pool_auditor()
     _validate_deterministic_global_max_audit(deterministic_global_max)
+    first_parameter = next(iter(model.parameters()), None)
+    if first_parameter is None:
+        raise ValueError("smoke encoder has no parameters")
+    device, dtype = first_parameter.device, first_parameter.dtype
+    images = cache.batch(batch_ids).to(device=device, dtype=dtype)
+    zero_jacobian = zero_jacobian_auditor(model, images)
+    _validate_zero_jacobian_classifier_audit(zero_jacobian)
     parameter_items = [
         (name, value) for name, value in model.named_parameters() if value.requires_grad
     ]
     if not parameter_items:
         raise ValueError("smoke encoder has no trainable parameters")
-    parameter = parameter_items[0][1]
-    device, dtype = parameter.device, parameter.dtype
     proxies = torch.tensor(np.array(bound.proxies, copy=True), device=device, dtype=dtype)
     proxy_labels = torch.tensor(
         np.array(bound.proxy_labels, copy=True), device=device, dtype=torch.long
@@ -4732,7 +4932,6 @@ def run_integrity_smoke(
     foreign_descriptors = np.asarray(
         [bound.train_embeddings[index_by_id[value]] for value in foreign_ids], dtype=np.float32
     )
-    images = cache.batch(batch_ids).to(device=device, dtype=dtype)
     labels = torch.as_tensor(
         [label_by_id[value] for value in batch_ids], device=device, dtype=torch.long
     )
@@ -4790,6 +4989,9 @@ def run_integrity_smoke(
             "deterministic_pool_amendment": manifest.get(
                 "deterministic_pool_amendment"
             ),
+            "zero_jacobian_classifier_amendment": manifest.get(
+                "zero_jacobian_classifier_amendment"
+            ),
             "binding_receipt": manifest.get("binding_receipt"),
             "historical": manifest.get("historical"),
             "artifact_schema": manifest.get("artifact_schema"),
@@ -4826,6 +5028,7 @@ def run_integrity_smoke(
             "seed": seed,
             **fixtures,
             "deterministic_global_max": deterministic_global_max,
+            "zero_jacobian_classifier": zero_jacobian,
             **first,
         },
     }
@@ -4850,6 +5053,9 @@ def main(
     fixture_runner: Callable[[], dict[str, Any]] = _default_fixture_runner,
     deterministic_pool_auditor: Callable[[], dict[str, Any]] = (
         audit_deterministic_global_max
+    ),
+    zero_jacobian_auditor: Callable[[Any, Any], dict[str, Any]] = (
+        audit_zero_jacobian_classifier
     ),
     rotation_auditor: Callable[..., dict[str, Any]] | None = None,
     head_name: str = "model.embedding",
@@ -4878,6 +5084,7 @@ def main(
             model_loader=model_loader,
             fixture_runner=fixture_runner,
             deterministic_pool_auditor=deterministic_pool_auditor,
+            zero_jacobian_auditor=zero_jacobian_auditor,
             rotation_auditor=rotation_auditor,
             head_name=head_name,
             expected_head_in_features=expected_head_in_features,
@@ -4897,6 +5104,7 @@ def main(
             model_loader=model_loader,
             fixture_runner=fixture_runner,
             deterministic_pool_auditor=deterministic_pool_auditor,
+            zero_jacobian_auditor=zero_jacobian_auditor,
             rotation_auditor=rotation_auditor,
             head_name=head_name,
             expected_head_in_features=expected_head_in_features,
