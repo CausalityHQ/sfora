@@ -483,6 +483,11 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         raise ValueError("source.files: empty")
     for index, value in enumerate(files):
         _file(value, f"source.files[{index}]")
+    source_paths = [value["path"] for value in files]
+    if source_paths != sorted(
+        source_paths, key=lambda value: value.encode("utf-8")
+    ) or len(source_paths) != len(set(source_paths)):
+        raise ValueError("source.files order")
     _merkle(source["python_tree"], "source.python_tree")
     _file(source["pyproject"], "source.pyproject")
     _file(source["lockfile"], "source.lockfile")
@@ -732,6 +737,189 @@ def _validate_sidecars(value: object) -> None:
     obj = _keys(value, set(expected), "sidecars")
     for key, literal in expected.items():
         _literal(obj[key], literal, f"sidecars.{key}")
+
+
+TRAIN_MANIFEST_CALL_GRAPH = (
+    "sfora.cli._load_cli_image_retrieval_bundle",
+    "sfora.image_recipes.resolve_recipe",
+    "sfora.image_recipes.config_for_recipe",
+    "sfora.image_recipes.mark_recipe_config_modified",
+    "sfora.image_end_to_end._checkpoint_train_validation_split",
+    "sfora.image_end_to_end._apply_training_label_noise",
+    "sfora.image_end_to_end._resolve_training_schedule",
+)
+
+
+def _ordered_record_sha256(records: list[dict[str, Any]]) -> str:
+    digest = hashlib.sha256()
+    for record in records:
+        encoded = canonical_json_bytes(record)
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return digest.hexdigest()
+
+
+def validate_train_manifest(payload: object, authority: PrelaunchAuthority) -> None:
+    """Validate the exact source-v2 optimization-row sidecar schema and bindings."""
+    _validate_json_native(payload)
+    top = _keys(
+        payload,
+        {
+            "schema_version",
+            "algorithm_id",
+            "source_commit",
+            "dataset_authority",
+            "rows",
+            "derivation",
+        },
+        "train_manifest",
+    )
+    _literal(
+        top["schema_version"], "pass201-train-manifest-v1", "train_manifest.schema_version"
+    )
+    _literal(
+        top["algorithm_id"],
+        "pass201-inshop-benchmark-row-suffix-v2",
+        "train_manifest.algorithm_id",
+    )
+    _literal(top["source_commit"], authority.source_commit, "train_manifest.source_commit")
+    expected_dataset = authority.payload["dataset"]
+    dataset = _keys(
+        top["dataset_authority"],
+        {
+            "root",
+            "partition_sha256",
+            "resolved_image_root",
+            "image_tree_sha256",
+            "bundle",
+            "selection_policy",
+        },
+        "train_manifest.dataset_authority",
+    )
+    _literal(dataset["root"], expected_dataset["root"], "train_manifest.dataset_authority.root")
+    _literal(
+        dataset["partition_sha256"],
+        expected_dataset["partition"]["sha256"],
+        "train_manifest.dataset_authority.partition_sha256",
+    )
+    _literal(
+        dataset["resolved_image_root"],
+        expected_dataset["resolved_image_root"],
+        "train_manifest.dataset_authority.resolved_image_root",
+    )
+    _literal(
+        dataset["image_tree_sha256"],
+        expected_dataset["image_tree"]["root_sha256"],
+        "train_manifest.dataset_authority.image_tree_sha256",
+    )
+    bundle = _keys(
+        dataset["bundle"],
+        {"train", "query", "gallery", "protocol", "protocol_name"},
+        "train_manifest.dataset_authority.bundle",
+    )
+    for key in ("train", "query", "gallery"):
+        _int(bundle[key], f"train_manifest.dataset_authority.bundle.{key}")
+    _literal(
+        bundle["protocol"],
+        "query_gallery",
+        "train_manifest.dataset_authority.bundle.protocol",
+    )
+    _str(bundle["protocol_name"], "train_manifest.dataset_authority.bundle.protocol_name")
+    if bundle != _thaw_json(expected_dataset["bundle"]):
+        raise ValueError("train_manifest.dataset_authority.bundle does not equal authority")
+    _literal(
+        dataset["selection_policy"],
+        "full_official_partition",
+        "train_manifest.dataset_authority.selection_policy",
+    )
+
+    raw_rows = _list(top["rows"], "train_manifest.rows")
+    rows: list[dict[str, Any]] = []
+    labels: set[int] = set()
+    for index, value in enumerate(raw_rows):
+        row = _keys(
+            value,
+            {"sample_index", "example_id", "label"},
+            f"train_manifest.rows[{index}]",
+        )
+        _int(
+            row["sample_index"],
+            f"train_manifest.rows[{index}].sample_index",
+            literal=index,
+        )
+        _str(row["example_id"], f"train_manifest.rows[{index}].example_id")
+        label = _int(row["label"], f"train_manifest.rows[{index}].label")
+        labels.add(label)
+        rows.append(row)
+
+    derivation = _keys(
+        top["derivation"],
+        {
+            "call_graph",
+            "source_files",
+            "resolved_config_sha256",
+            "row_count",
+            "identity_count",
+            "ordered_row_sha256",
+            "resolved_membership_count",
+            "resolved_membership_sha256",
+        },
+        "train_manifest.derivation",
+    )
+    _literal(
+        derivation["call_graph"],
+        list(TRAIN_MANIFEST_CALL_GRAPH),
+        "train_manifest.derivation.call_graph",
+    )
+    files = _list(derivation["source_files"], "train_manifest.derivation.source_files")
+    if not files:
+        raise ValueError("train_manifest.derivation.source_files: empty")
+    for index, value in enumerate(files):
+        _file(value, f"train_manifest.derivation.source_files[{index}]")
+    paths = [value["path"] for value in files]
+    if paths != sorted(paths, key=lambda value: value.encode("utf-8")) or len(paths) != len(
+        set(paths)
+    ):
+        raise ValueError("train_manifest.derivation.source_files order")
+    if files != _thaw_json(authority.payload["source"]["files"]):
+        raise ValueError("train_manifest.derivation.source_files does not equal authority")
+    _literal(
+        derivation["resolved_config_sha256"],
+        authority.expected_config_sha256,
+        "train_manifest.derivation.resolved_config_sha256",
+    )
+    optimization = expected_dataset["optimization_authority"]
+    _int(
+        derivation["row_count"],
+        "train_manifest.derivation.row_count",
+        literal=len(rows),
+    )
+    _int(
+        derivation["identity_count"],
+        "train_manifest.derivation.identity_count",
+        literal=len(labels),
+    )
+    ordered_hash = _ordered_record_sha256(rows)
+    _literal(
+        derivation["ordered_row_sha256"],
+        ordered_hash,
+        "train_manifest.derivation.ordered_row_sha256",
+    )
+    _literal(
+        derivation["ordered_row_sha256"],
+        optimization["ordered_row_sha256"],
+        "train_manifest.derivation.ordered_row_sha256",
+    )
+    _int(
+        derivation["resolved_membership_count"],
+        "train_manifest.derivation.resolved_membership_count",
+        literal=len(rows),
+    )
+    _literal(
+        derivation["resolved_membership_sha256"],
+        optimization["resolved_membership_sha256"],
+        "train_manifest.derivation.resolved_membership_sha256",
+    )
 
 
 def _validate_postconditions(value: object) -> None:

@@ -8,6 +8,7 @@ import os
 import pickle
 import shutil
 import stat
+import struct
 import subprocess
 import sys
 import types
@@ -32,6 +33,7 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
     validate_authorization_topology,
     validate_complete_receipt,
     validate_prelaunch,
+    validate_train_manifest,
 )
 
 H64 = "a" * 64
@@ -1545,6 +1547,234 @@ def test_receipt_manifest_identity_rejects_unrelated_value(
     receipt["authorization"][field] = replacement
     with pytest.raises(ValueError, match=field):
         validate_complete_receipt(receipt, authority)
+
+
+def _valid_train_manifest(authority: Any) -> dict[str, Any]:
+    return {
+        "schema_version": "pass201-train-manifest-v1",
+        "algorithm_id": "pass201-inshop-benchmark-row-suffix-v2",
+        "source_commit": authority.source_commit,
+        "dataset_authority": {
+            "root": authority.payload["dataset"]["root"],
+            "partition_sha256": authority.payload["dataset"]["partition"]["sha256"],
+            "resolved_image_root": authority.payload["dataset"]["resolved_image_root"],
+            "image_tree_sha256": authority.payload["dataset"]["image_tree"]["root_sha256"],
+            "bundle": mutable_json(authority.payload["dataset"]["bundle"]),
+            "selection_policy": "full_official_partition",
+        },
+        "rows": [{"sample_index": 0, "example_id": "inshop-train-img/a.jpg", "label": 7}],
+        "derivation": {
+            "call_graph": [
+                "sfora.cli._load_cli_image_retrieval_bundle",
+                "sfora.image_recipes.resolve_recipe",
+                "sfora.image_recipes.config_for_recipe",
+                "sfora.image_recipes.mark_recipe_config_modified",
+                "sfora.image_end_to_end._checkpoint_train_validation_split",
+                "sfora.image_end_to_end._apply_training_label_noise",
+                "sfora.image_end_to_end._resolve_training_schedule",
+            ],
+            "source_files": mutable_json(authority.payload["source"]["files"]),
+            "resolved_config_sha256": authority.expected_config_sha256,
+            "row_count": 1,
+            "identity_count": 1,
+            "ordered_row_sha256": authority.payload["dataset"]["optimization_authority"][
+                "ordered_row_sha256"
+            ],
+            "resolved_membership_count": 1,
+            "resolved_membership_sha256": authority.payload["dataset"][
+                "optimization_authority"
+            ]["resolved_membership_sha256"],
+        },
+    }
+
+
+def _bind_valid_manifest_row_hash(valid_prelaunch: dict[str, Any]) -> None:
+    row = {"sample_index": 0, "example_id": "inshop-train-img/a.jpg", "label": 7}
+    encoded = canonical_json_bytes(row)
+    valid_prelaunch["dataset"]["optimization_authority"]["ordered_row_sha256"] = (
+        hashlib.sha256(struct.pack(">Q", len(encoded)) + encoded).hexdigest()
+    )
+
+
+def test_train_manifest_accepts_only_exact_nested_schema(valid_prelaunch: dict[str, Any]) -> None:
+    _bind_valid_manifest_row_hash(valid_prelaunch)
+    authority = validate_prelaunch(valid_prelaunch)
+    payload = _valid_train_manifest(authority)
+
+    validate_train_manifest(payload, authority)
+
+    mutations = []
+    for path, key in (
+        ((), "extra"),
+        (("dataset_authority",), "extra"),
+        (("dataset_authority", "bundle"), "extra"),
+        (("rows", 0), "extra"),
+        (("derivation",), "extra"),
+        (("derivation", "source_files", 0), "extra"),
+    ):
+        mutated = copy.deepcopy(payload)
+        target: Any = mutated
+        for part in path:
+            target = target[part]
+        target[key] = 1
+        mutations.append(mutated)
+    for mutated in mutations:
+        with pytest.raises(ValueError):
+            validate_train_manifest(mutated, authority)
+
+
+@pytest.mark.parametrize("replacement", [True, 0.0, "0"])
+def test_train_manifest_rejects_non_integer_row_fields(
+    valid_prelaunch: dict[str, Any], replacement: object
+) -> None:
+    _bind_valid_manifest_row_hash(valid_prelaunch)
+    authority = validate_prelaunch(valid_prelaunch)
+    payload = _valid_train_manifest(authority)
+    payload["rows"][0]["sample_index"] = replacement
+    with pytest.raises(ValueError, match="sample_index"):
+        validate_train_manifest(payload, authority)
+
+
+def test_train_manifest_rejects_noncontiguous_rows_and_source_order(
+    valid_prelaunch: dict[str, Any],
+) -> None:
+    _bind_valid_manifest_row_hash(valid_prelaunch)
+    valid_prelaunch["source"]["files"] = [
+        file_binding("scripts/z.py"),
+        file_binding("scripts/a.py"),
+    ]
+    with pytest.raises(ValueError, match="source.files order"):
+        validate_prelaunch(valid_prelaunch)
+
+    valid_prelaunch["source"]["files"] = [
+        file_binding("scripts/a.py"),
+        file_binding("scripts/z.py"),
+    ]
+    authority = validate_prelaunch(valid_prelaunch)
+    payload = _valid_train_manifest(authority)
+    payload["rows"][0]["sample_index"] = 1
+    with pytest.raises(ValueError, match="sample_index"):
+        validate_train_manifest(payload, authority)
+
+
+MANIFEST_OBJECT_KEYS = {
+    (): (
+        "schema_version",
+        "algorithm_id",
+        "source_commit",
+        "dataset_authority",
+        "rows",
+        "derivation",
+    ),
+    ("dataset_authority",): (
+        "root",
+        "partition_sha256",
+        "resolved_image_root",
+        "image_tree_sha256",
+        "bundle",
+        "selection_policy",
+    ),
+    ("dataset_authority", "bundle"): (
+        "train",
+        "query",
+        "gallery",
+        "protocol",
+        "protocol_name",
+    ),
+    ("rows", 0): ("sample_index", "example_id", "label"),
+    ("derivation",): (
+        "call_graph",
+        "source_files",
+        "resolved_config_sha256",
+        "row_count",
+        "identity_count",
+        "ordered_row_sha256",
+        "resolved_membership_count",
+        "resolved_membership_sha256",
+    ),
+    ("derivation", "source_files", 0): (
+        "path",
+        "git_mode",
+        "bytes",
+        "sha256",
+        "git_blob",
+    ),
+}
+MANIFEST_MISSING_PATHS = tuple(
+    prefix + (key,) for prefix, keys in MANIFEST_OBJECT_KEYS.items() for key in keys
+)
+MANIFEST_WRONG_TYPES = (
+    (("schema_version",), 1),
+    (("algorithm_id",), 1),
+    (("source_commit",), 1),
+    (("dataset_authority",), []),
+    (("rows",), {}),
+    (("derivation",), []),
+    (("dataset_authority", "root"), 1),
+    (("dataset_authority", "partition_sha256"), 1),
+    (("dataset_authority", "resolved_image_root"), 1),
+    (("dataset_authority", "image_tree_sha256"), 1),
+    (("dataset_authority", "bundle"), []),
+    (("dataset_authority", "selection_policy"), 1),
+    (("dataset_authority", "bundle", "train"), True),
+    (("dataset_authority", "bundle", "query"), 1.0),
+    (("dataset_authority", "bundle", "gallery"), "1"),
+    (("dataset_authority", "bundle", "protocol"), 1),
+    (("dataset_authority", "bundle", "protocol_name"), 1),
+    (("rows", 0), []),
+    (("rows", 0, "sample_index"), True),
+    (("rows", 0, "example_id"), 1),
+    (("rows", 0, "label"), 7.0),
+    (("derivation", "call_graph"), {}),
+    (("derivation", "call_graph", 0), 1),
+    (("derivation", "source_files"), {}),
+    (("derivation", "resolved_config_sha256"), 1),
+    (("derivation", "row_count"), True),
+    (("derivation", "identity_count"), 1.0),
+    (("derivation", "ordered_row_sha256"), 1),
+    (("derivation", "resolved_membership_count"), False),
+    (("derivation", "resolved_membership_sha256"), 1),
+    (("derivation", "source_files", 0), []),
+    (("derivation", "source_files", 0, "path"), 1),
+    (("derivation", "source_files", 0, "git_mode"), 1),
+    (("derivation", "source_files", 0, "bytes"), True),
+    (("derivation", "source_files", 0, "sha256"), 1),
+    (("derivation", "source_files", 0, "git_blob"), 1),
+)
+
+
+def _mutate_manifest_path(payload: dict[str, Any], path: tuple[object, ...], value: Any) -> None:
+    target: Any = payload
+    for part in path[:-1]:
+        target = target[part]
+    target[path[-1]] = value
+
+
+@pytest.mark.parametrize("path", MANIFEST_MISSING_PATHS)
+def test_train_manifest_rejects_every_nested_missing_key(
+    valid_prelaunch: dict[str, Any], path: tuple[object, ...]
+) -> None:
+    _bind_valid_manifest_row_hash(valid_prelaunch)
+    authority = validate_prelaunch(valid_prelaunch)
+    payload = _valid_train_manifest(authority)
+    target: Any = payload
+    for part in path[:-1]:
+        target = target[part]
+    del target[path[-1]]
+    with pytest.raises(ValueError):
+        validate_train_manifest(payload, authority)
+
+
+@pytest.mark.parametrize(("path", "replacement"), MANIFEST_WRONG_TYPES)
+def test_train_manifest_rejects_every_nested_wrong_type(
+    valid_prelaunch: dict[str, Any], path: tuple[object, ...], replacement: object
+) -> None:
+    _bind_valid_manifest_row_hash(valid_prelaunch)
+    authority = validate_prelaunch(valid_prelaunch)
+    payload = _valid_train_manifest(authority)
+    _mutate_manifest_path(payload, path, replacement)
+    with pytest.raises(ValueError):
+        validate_train_manifest(payload, authority)
 
 
 @pytest.mark.parametrize(
