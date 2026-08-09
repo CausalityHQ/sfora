@@ -9,6 +9,12 @@
 > cannot authorize artifact inspection, diagnostic computation, training, or a
 > GPU run.
 
+> **Prospective implementation-review repair:** before any source activation or
+> candidate value, review found that the draft required an exact `BLOCKED`
+> reason without naming one. This revision freezes that reason and the complete
+> non-scored reason-code domains below; it changes no metric, threshold,
+> operator, context, or decision predicate.
+
 ## Non-authority and scope
 
 This is a proposed train-split-only, checkpoint-bound local operator diagnostic.
@@ -89,7 +95,8 @@ ordinary-PA checkpoint.  Any coalition,
 single, complementary, dropout, residual, selected-on-CIS, older-code, or
 externally published checkpoint is forbidden as a substitute.  If the fresh
 ordinary-PA report/checkpoint pair never lands or cannot be authenticated, the
-diagnostic remains `BLOCKED`; no alternative source may be chosen.
+diagnostic remains `BLOCKED` with the sole reason code
+`BLOCKED_SOURCE_ARTIFACT_UNAVAILABLE`; no alternative source may be chosen.
 
 ## Frozen production-context constants
 
@@ -943,6 +950,18 @@ The common top-level key set is exactly `schema_version`, `status`,
 `constants`, `decision`, and `integrity`, plus only the conditionally authorized
 keys above. Validators must mutate each status family to prove that fabricated
 numeric fields and missing required fields both fail closed.
+
+The complete non-scored reason-code domains are now exact. Early `UNRESOLVED`
+has exactly `["UNRESOLVED_INSUFFICIENT_DISJOINT_CONTEXTS"]`. `BLOCKED`
+has exactly `["BLOCKED_SOURCE_ARTIFACT_UNAVAILABLE"]`. `INVALID` has a
+nonempty, duplicate-free list drawn only from
+`INVALID_OPERATING_POINT_MISMATCH`,
+`INVALID_NONDETERMINISTIC_TRAIN_INPUT`, and
+`INVALID_NONDETERMINISTIC_OPERATOR_REPLAY`, sorted by UTF-8 bytes. A source-
+activation `INVALID` can contain only `INVALID_OPERATING_POINT_MISMATCH`.
+Scored `PASS` has an empty list; scored `FAIL` uses only the six frozen failure
+predicate codes; scored ordinary `UNRESOLVED` has an empty list. No alias,
+free-form explanation, or additional reason code is legal.
 
 The `null` source-dependent fields shown in this draft schema must be literal
 frozen values in any activated output.  A runner that emits a scored result
