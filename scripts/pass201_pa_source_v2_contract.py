@@ -831,9 +831,21 @@ class _RebuildTensorStub:
             or type(stride) is not tuple
             or len(size) != len(stride)
             or any(type(value) is not int or value < 0 for value in size)
-            or any(type(value) is not int for value in stride)
+            or any(type(value) is not int or value < 0 for value in stride)
         ):
             raise pickle.UnpicklingError("malformed tensor rebuild")
+        if any(dimension == 0 for dimension in size):
+            if offset > storage.size:
+                raise pickle.UnpicklingError("malformed tensor rebuild")
+        else:
+            if offset >= storage.size:
+                raise pickle.UnpicklingError("malformed tensor rebuild")
+            remaining = storage.size - 1 - offset
+            for dimension, dimension_stride in zip(size, stride, strict=True):
+                extent = dimension - 1
+                if dimension_stride and extent > remaining // dimension_stride:
+                    raise pickle.UnpicklingError("malformed tensor rebuild")
+                remaining -= extent * dimension_stride
         if self.version >= 2:
             requires_grad, backward_hooks = args[4:6]
             if type(requires_grad) is not bool or not (
@@ -1170,15 +1182,61 @@ def hash_open_regular(path: Path) -> OutputEvidence:
         os.close(parent_fd)
 
 
-def _unlink_if_same(directory_fd: int, name: str, expected: os.stat_result) -> bool:
+def _restore_quarantined_name(directory_fd: int, quarantine: str, name: str) -> None:
     try:
-        current = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
-        if _same_inode(current, expected):
-            os.unlink(name, dir_fd=directory_fd)
+        os.link(
+            quarantine,
+            name,
+            src_dir_fd=directory_fd,
+            dst_dir_fd=directory_fd,
+            follow_symlinks=False,
+        )
+    except FileExistsError:
+        return
+    except OSError:
+        with contextlib.suppress(OSError):
+            os.rename(
+                quarantine,
+                name,
+                src_dir_fd=directory_fd,
+                dst_dir_fd=directory_fd,
+            )
+        return
+    with contextlib.suppress(OSError):
+        os.unlink(quarantine, dir_fd=directory_fd)
+
+
+def _unlink_if_same(directory_fd: int, name: str, expected: os.stat_result) -> bool:
+    quarantine = f".{name}.{secrets.token_hex(16)}.rollback"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        marker_fd = os.open(quarantine, flags, 0o600, dir_fd=directory_fd)
+    except OSError:
+        return False
+    os.close(marker_fd)
+    try:
+        try:
+            os.rename(
+                name,
+                quarantine,
+                src_dir_fd=directory_fd,
+                dst_dir_fd=directory_fd,
+            )
+        except FileNotFoundError:
+            os.unlink(quarantine, dir_fd=directory_fd)
             return True
-    except FileNotFoundError:
-        pass
-    return False
+        try:
+            moved = os.stat(quarantine, dir_fd=directory_fd, follow_symlinks=False)
+        except OSError:
+            _restore_quarantined_name(directory_fd, quarantine, name)
+            return True
+        if _same_inode(moved, expected):
+            os.unlink(quarantine, dir_fd=directory_fd)
+            return True
+        _restore_quarantined_name(directory_fd, quarantine, name)
+        return True
+    except OSError:
+        return True
 
 
 def publish_new_file(path: Path, data: bytes, *, mode: int = 0o444) -> OutputEvidence:

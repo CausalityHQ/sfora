@@ -323,6 +323,10 @@ def _checkpoint_pickle(
     *,
     persistent_id: object | None = None,
     rebuild_arguments: tuple[object, ...] | None = None,
+    storage_size: int = 1,
+    storage_offset: int = 0,
+    tensor_size: tuple[int, ...] = (1,),
+    tensor_stride: tuple[int, ...] = (1,),
 ) -> bytes:
     previous = {name: sys.modules.get(name) for name in ("torch", "torch._utils")}
     torch_module = types.ModuleType("torch")
@@ -342,9 +346,20 @@ def _checkpoint_pickle(
     sys.modules["torch._utils"] = utils_module
 
     storage = storage_type()
-    pid = ("storage", storage_type, "0", "cpu", 1) if persistent_id is None else persistent_id
+    pid = (
+        ("storage", storage_type, "0", "cpu", storage_size)
+        if persistent_id is None
+        else persistent_id
+    )
     arguments = (
-        (storage, 0, (1,), (1,), False, OrderedDict())
+        (
+            storage,
+            storage_offset,
+            tensor_size,
+            tensor_stride,
+            False,
+            OrderedDict(),
+        )
         if rebuild_arguments is None
         else (storage, 0, (1,), (1,))
         if rebuild_arguments == ("short",)
@@ -557,6 +572,81 @@ def test_checkpoint_rejects_oversized_metadata_declaration(
         contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
 
 
+def test_checkpoint_accepts_exact_100000_member_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_infolist = zipfile.ZipFile.infolist
+
+    class DeclaredMembers(list[zipfile.ZipInfo]):
+        def __len__(self) -> int:
+            return 100_000
+
+    def exact_maximum(self: zipfile.ZipFile) -> DeclaredMembers:
+        return DeclaredMembers(real_infolist(self))
+
+    monkeypatch.setattr(zipfile.ZipFile, "infolist", exact_maximum)
+    metadata = contract.read_restricted_checkpoint_metadata(
+        valid_checkpoint_zip, checkpoint_authority
+    )
+    assert metadata.state_dict_key_count == 1
+
+
+def test_checkpoint_accepts_exact_2_gib_archive_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class BoundaryReached(Exception):
+        pass
+
+    real_fstat = contract.os.fstat
+    first = True
+
+    def exact_maximum(fd: int) -> Any:
+        nonlocal first
+        result = real_fstat(fd)
+        if first:
+            first = False
+            values = {name: getattr(result, name) for name in dir(result) if name.startswith("st_")}
+            values["st_size"] = 2 << 30
+            return types.SimpleNamespace(**values)
+        return result
+
+    def reached_zip_reader(*args: Any, **kwargs: Any) -> Any:
+        raise BoundaryReached
+
+    monkeypatch.setattr(contract.os, "fstat", exact_maximum)
+    monkeypatch.setattr(contract.zipfile, "ZipFile", reached_zip_reader)
+    with pytest.raises(BoundaryReached):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
+def test_checkpoint_accepts_exact_64_mib_metadata_declaration(
+    valid_checkpoint_zip: Path,
+    checkpoint_authority: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class BoundaryReached(Exception):
+        pass
+
+    real_infolist = zipfile.ZipFile.infolist
+
+    def exact_maximum(self: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
+        result = real_infolist(self)
+        next(info for info in result if info.filename.endswith("/data.pkl")).file_size = 64 << 20
+        return result
+
+    def reached_metadata_reader(*args: Any, **kwargs: Any) -> Any:
+        raise BoundaryReached
+
+    monkeypatch.setattr(zipfile.ZipFile, "infolist", exact_maximum)
+    monkeypatch.setattr(zipfile.ZipFile, "open", reached_metadata_reader)
+    with pytest.raises(BoundaryReached):
+        contract.read_restricted_checkpoint_metadata(valid_checkpoint_zip, checkpoint_authority)
+
+
 @pytest.mark.parametrize(
     ("data_pickle", "message"),
     [
@@ -608,6 +698,64 @@ def test_checkpoint_rejects_recursive_training_config(
     path = _write_checkpoint_zip(tmp_path, _checkpoint_pickle({"training_config": recursive}))
     with pytest.raises(ValueError, match="training_config"):
         contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
+    ("storage_size", "storage_offset", "tensor_size", "tensor_stride"),
+    [
+        (1, -1, (1,), (1,)),
+        (1, 0, (1,), (-1,)),
+        (1, 0, (2,), (1,)),
+        (sys.maxsize, sys.maxsize - 1, (sys.maxsize,), (sys.maxsize,)),
+    ],
+)
+def test_checkpoint_rejects_tensor_storage_span_outside_bound_storage(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    storage_size: int,
+    storage_offset: int,
+    tensor_size: tuple[int, ...],
+    tensor_stride: tuple[int, ...],
+) -> None:
+    path = _write_checkpoint_zip(
+        tmp_path,
+        _checkpoint_pickle(
+            storage_size=storage_size,
+            storage_offset=storage_offset,
+            tensor_size=tensor_size,
+            tensor_stride=tensor_stride,
+        ),
+    )
+    with pytest.raises(ValueError, match="tensor rebuild"):
+        contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+
+
+@pytest.mark.parametrize(
+    ("storage_size", "storage_offset", "tensor_size", "tensor_stride"),
+    [
+        (0, 0, (0,), (1,)),
+        (3, 1, (2,), (1,)),
+    ],
+)
+def test_checkpoint_accepts_zero_size_and_exact_boundary_tensor_spans(
+    tmp_path: Path,
+    checkpoint_authority: Any,
+    storage_size: int,
+    storage_offset: int,
+    tensor_size: tuple[int, ...],
+    tensor_stride: tuple[int, ...],
+) -> None:
+    path = _write_checkpoint_zip(
+        tmp_path,
+        _checkpoint_pickle(
+            storage_size=storage_size,
+            storage_offset=storage_offset,
+            tensor_size=tensor_size,
+            tensor_stride=tensor_stride,
+        ),
+    )
+    metadata = contract.read_restricted_checkpoint_metadata(path, checkpoint_authority)
+    assert metadata.state_dict_key_count == 1
 
 
 def test_checkpoint_rejects_pickle_build_that_poisoned_shared_rebuild_stub(
@@ -751,6 +899,93 @@ def test_publication_rolls_back_when_post_link_stat_fails(
     with pytest.raises(ValueError, match="publish"):
         contract.publish_new_file(path, b"ours")
     assert not path.exists()
+
+
+def test_publication_rollback_preserves_replacement_between_check_and_removal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "result"
+    real_stat = contract.os.stat
+    real_rename = contract.os.rename
+    real_fsync = contract.os.fsync
+    destination_stats = 0
+    replaced = False
+    directory_fsync_failed = False
+
+    def install_racer() -> None:
+        nonlocal replaced
+        if not replaced:
+            path.unlink()
+            path.write_bytes(b"racer")
+            replaced = True
+
+    def synchronizing_stat(name: Any, *args: Any, **kwargs: Any) -> Any:
+        nonlocal destination_stats
+        result = real_stat(name, *args, **kwargs)
+        if name == path.name and kwargs.get("dir_fd") is not None:
+            destination_stats += 1
+            if destination_stats == 2:
+                install_racer()
+        return result
+
+    def synchronizing_rename(source: Any, destination: Any, *args: Any, **kwargs: Any) -> None:
+        if source == path.name:
+            install_racer()
+        real_rename(source, destination, *args, **kwargs)
+
+    def failing_first_directory_fsync(fd: int) -> None:
+        nonlocal directory_fsync_failed
+        if stat.S_ISDIR(contract.os.fstat(fd).st_mode) and not directory_fsync_failed:
+            directory_fsync_failed = True
+            raise OSError("directory fsync")
+        real_fsync(fd)
+
+    monkeypatch.setattr(contract.os, "stat", synchronizing_stat)
+    monkeypatch.setattr(contract.os, "rename", synchronizing_rename)
+    monkeypatch.setattr(contract.os, "fsync", failing_first_directory_fsync)
+    with pytest.raises(ValueError, match="publish"):
+        contract.publish_new_file(path, b"ours")
+    assert replaced
+    assert path.read_bytes() == b"racer"
+
+
+@pytest.mark.parametrize("fault", ["quarantine_stat", "restore_link"])
+def test_publication_rollback_restores_racer_when_quarantine_operation_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
+) -> None:
+    path = tmp_path / "result"
+    path.write_bytes(b"ours")
+    os.link(path, tmp_path / "held-original")
+    expected = path.stat()
+    real_rename = contract.os.rename
+    real_stat = contract.os.stat
+    real_link = contract.os.link
+
+    def racing_rename(source: Any, destination: Any, *args: Any, **kwargs: Any) -> None:
+        if source == path.name:
+            path.unlink()
+            path.write_bytes(b"racer")
+        real_rename(source, destination, *args, **kwargs)
+
+    def failing_stat(name: Any, *args: Any, **kwargs: Any) -> Any:
+        if fault == "quarantine_stat" and str(name).endswith(".rollback"):
+            raise OSError("quarantine stat")
+        return real_stat(name, *args, **kwargs)
+
+    def failing_link(source: Any, destination: Any, *args: Any, **kwargs: Any) -> None:
+        if fault == "restore_link" and str(source).endswith(".rollback"):
+            raise OSError("restore link")
+        real_link(source, destination, *args, **kwargs)
+
+    monkeypatch.setattr(contract.os, "rename", racing_rename)
+    monkeypatch.setattr(contract.os, "stat", failing_stat)
+    monkeypatch.setattr(contract.os, "link", failing_link)
+    directory_fd = os.open(tmp_path, os.O_RDONLY)
+    try:
+        contract._unlink_if_same(directory_fd, path.name, expected)
+    finally:
+        os.close(directory_fd)
+    assert path.read_bytes() == b"racer"
 
 
 def test_publication_does_not_chmod_replacement_after_preliminary_hash(
