@@ -444,7 +444,9 @@ PY
       --output "$calibration_output"
   )
   calibration_exit=$?
-  sha256sum "$calibration_output"
+  calibration_artifact_sha256=$(sha256sum "$calibration_output" | cut -d ' ' -f 1)
+  test "$(printf '%s' "$calibration_artifact_sha256" | wc -c)" -eq 64
+  printf '%s  %s\n' "$calibration_artifact_sha256" "$calibration_output"
   ```
 
   Record `executing_plan_fix_commit`, the three equal blob IDs,
@@ -466,16 +468,83 @@ PY
 
 - [ ] **Step 4: Commit every complete valid result, then branch only on its verdict**
 
-  For either `all_passed=true` or `all_passed=false`, commit the one complete,
-  independently validated artifact unchanged:
+  **Result-staging erratum:** For the PASS artifact produced with reviewed source
+  `0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2` under executing plan-fix commit
+  `6e2bf99b443fd24320f9f1ea461266cc1bd3871d`, the ordinary registered command
+  `git add "$calibration_output"` failed because `reports/generated` is ignored.
+  That failed staging attempt changed neither the index nor the artifact bytes,
+  path, mode, validation state, or provenance. It did not change `.gitignore`
+  and did not create a commit.
+
+  This force-add authorization applies only to that already-produced,
+  independently VALID `all_passed=true` artifact after repeating the SHA, path,
+  mode, provenance, and no-temp checks below. The existing rule that a complete
+  valid `all_passed=false` artifact must be retained remains unchanged, but no
+  alternate artifact or path exists or is authorized here. The only force-add
+  authority is the exact literal repo-relative result path below; no wildcard,
+  directory, `.gitignore` edit, or additional force-added path is authorized:
 
   ```bash
-  git add "$calibration_output"
+  artifact_relative=reports/generated/pass200_rsta_receipt/0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2-normwise-adjoint-calibration.json
+  artifact_absolute="${repo_root}/${artifact_relative}"
+  test "$calibration_source_commit" = 0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2
+  test "$calibration_output" = "$artifact_absolute"
+  test "$calibration_exit" -eq 0
+  test -f "$artifact_absolute"
+  test ! -L "$artifact_absolute"
+  test "$(sha256sum "$artifact_absolute" | cut -d ' ' -f 1)" = "$calibration_artifact_sha256"
+  PINNED_VENV="$pinned_venv" \
+  REPO_ROOT="$repo_root" \
+  ARTIFACT_ABSOLUTE="$artifact_absolute" \
+  ARTIFACT_NAME="$(basename "$artifact_relative")" \
+  "${pinned_venv}/bin/python" - <<'PY'
+import json
+import os
+from pathlib import Path
+import sys
+
+repo_root = Path(os.environ["REPO_ROOT"])
+artifact = Path(os.environ["ARTIFACT_ABSOLUTE"])
+artifact_name = os.environ["ARTIFACT_NAME"]
+sys.path.insert(0, str(repo_root / "scripts"))
+import rsta_normwise_adjoint
+
+payload = json.loads(artifact.read_text(encoding="utf-8"))
+rsta_normwise_adjoint.validate_calibration_result(payload)
+assert payload["diagnostic"] == "pass200-rsta-normwise-adjoint-calibration"
+assert payload["mode"] == "cpu_synthetic_calibration"
+assert payload["candidate_values_computed"] is False
+assert payload["stage_a_verdict"] == "NOT_COMPUTED"
+assert payload["all_passed"] is True
+assert payload["source"]["git_revision"] == "0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2"
+assert payload["execution_audit"]["calibration_source_commit"] == "0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2"
+assert payload["execution_audit"]["executing_git_commit"] == "6e2bf99b443fd24320f9f1ea461266cc1bd3871d"
+temporary_prefix = "." + artifact_name + ".tmp."
+assert not any(entry.name.startswith(temporary_prefix) for entry in artifact.parent.iterdir())
+PY
+  test -z "$(git diff --cached --name-only)"
+  git diff --quiet -- .gitignore
+  git diff --cached --quiet -- .gitignore
+  git add -f -- "$artifact_relative"
+  test "$(git diff --cached --name-only | wc -l)" -eq 1
+  test "$(git diff --cached --name-status)" = "$(printf 'A\t%s' "$artifact_relative")"
+  read -r cached_mode cached_blob cached_stage cached_path < <(git ls-files --stage -- "$artifact_relative")
+  test "$cached_mode" = 100644
+  test "$cached_stage" = 0
+  test "$cached_path" = "$artifact_relative"
+  test "$cached_blob" = "$(git hash-object "$artifact_absolute")"
+  git show ":${artifact_relative}" | cmp - "$artifact_absolute"
+  result_parent_commit=$(git rev-parse HEAD)
+  test "$(git show -s --format=%s "$result_parent_commit")" = "authorize RSTA calibration result staging"
   git commit -m "record RSTA normwise adjoint calibration"
+  result_commit=$(git rev-parse HEAD)
+  test "$(git rev-parse "${result_commit}^")" = "$result_parent_commit"
+  test "$(git diff-tree --no-commit-id --name-only -r "$result_commit")" = "$artifact_relative"
   ```
 
-  Record the artifact SHA-256 and result commit. If `all_passed=false`, stop the
-  plan before Task 6. Only `all_passed=true` permits Task 6.
+  Record the artifact SHA-256 and result commit. The repeated exact
+  `all_passed=true` check is the only condition that permits Task 6; the durable
+  negative-artifact stop rule remains unchanged.
 
 ---
 
