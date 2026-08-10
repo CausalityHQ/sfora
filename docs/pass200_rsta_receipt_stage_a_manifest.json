@@ -44,6 +44,11 @@
     "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
     "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e"
   },
+  "scientific_artifact_roundtrip_recovery_amendment": {
+    "path": "docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md",
+    "sha256": "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591",
+    "commit": "043121f8a414b91d7fb2e3d6a1635a6bd585676a"
+  },
   "binding_receipt": {
     "path": "docs/pass200_rsta_binding_receipt_d6270a9.json",
     "sha256": "e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300"
@@ -67,11 +72,12 @@
     }
   },
   "current_scientific_source": {
-    "git_revision": "15234a529a181c39c1c8b6477ad7eb7823fd0798",
+    "git_revision": "3c368713e0890c0ffc63308f07d8d4ee5b19db1c",
     "files": {
       "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
-      "scripts/diagnose_pass200_rsta_stage_a.py": "85958a940c5a4c9f0ae27f3342e436a8a37e49d94fe9515b22db0340d597ef6e",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "50a83129f6b1238a7ab208c583d27a66bb84ebc54d784d703f96a74124830e9a",
       "scripts/rsta_normwise_adjoint.py": "bbb478a0a650b6e3fcf5c306fd972632948d66b18dfc85e1545b2fa6aa22f6db",
+      "scripts/verify_pass200_rsta_scientific_artifact.py": "4ae2fb404aeb86bb8cd32cc79104d4af87cdf247e4cdebe720fd675d3a019919",
       "src/sfora/__init__.py": "5de45a3409573b0c914d7228021b1323ed4d46c2e66eaf960791f50417fef058",
       "src/sfora/ablation.py": "b936039fc44bf143fbffa1c4306ba3b61d101fc348b17800b6002ece08f55655",
       "src/sfora/api.py": "b45894fed86d371e3820aa12c2319f087068156f8bb16cf47ce06f29f461a4b4",
