@@ -3574,7 +3574,7 @@ def test_normwise_sign_comparator_receives_raw_torch_func_actions_before_copy(
     model, images, output, directions = _tiny_normwise_audit_inputs()
     helper = importlib.import_module("rsta_normwise_adjoint")
     events: list[str] = []
-    raw_ids: set[int] = set()
+    raw_refs: list[weakref.ReferenceType[torch.Tensor]] = []
     metric_calls = 0
     original_metrics = helper.normwise_adjoint_metrics
     original_tensor = helper._tensor
@@ -3590,14 +3590,14 @@ def test_normwise_sign_comparator_receives_raw_torch_func_actions_before_copy(
         expected_device: torch.device,
     ) -> bool:
         events.append(control_name)
-        raw_ids.update((id(target_jvp), id(reference_jvp)))
-        raw_ids.update(id(target_vjp[name]) for name in parameter_names)
-        raw_ids.update(id(reference_vjp[name]) for name in parameter_names)
+        raw_refs.extend((weakref.ref(target_jvp), weakref.ref(reference_jvp)))
+        raw_refs.extend(weakref.ref(target_vjp[name]) for name in parameter_names)
+        raw_refs.extend(weakref.ref(reference_vjp[name]) for name in parameter_names)
         assert all(value.device == expected_device for value in (target_jvp, reference_jvp))
         return True
 
     def guarded_tensor(value: Any, *, name: str) -> torch.Tensor:
-        assert id(value) not in raw_ids
+        assert all(reference() is not value for reference in raw_refs)
         return original_tensor(value, name=name)
 
     def metrics(*args: Any, **kwargs: Any) -> dict[str, object]:
@@ -3859,6 +3859,146 @@ def test_normwise_sign_control_schema_rejects_every_nested_mutation(
             _MODULE._validate_adjoint_integrity_audit(
                 changed, expected_output_shape=(2, 2)
             )
+
+
+@pytest.mark.parametrize("control_name", ("parameter_sign", "output_sign"))
+def test_normwise_sign_control_infinity_requires_exact_builtin_string(
+    control_name: str,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    audit = _run_tiny_normwise_audit(model, images, output, directions)
+    builtin = deepcopy(audit)
+    builtin["controls"][control_name]["beta_norm"] = "infinity"
+    builtin["controls"][control_name]["passed"] = False
+    builtin["integrity_passed"] = False
+    _MODULE._validate_adjoint_integrity_audit(builtin, expected_output_shape=(2, 2))
+
+    mutated = deepcopy(builtin)
+    mutated["controls"][control_name]["beta_norm"] = np.str_("infinity")
+    with pytest.raises(ValueError, match="beta_norm|predicate|control|adjoint"):
+        _MODULE._validate_adjoint_integrity_audit(
+            mutated, expected_output_shape=(2, 2)
+        )
+
+
+def test_real_normwise_sign_comparator_provenance_order_and_lifetime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the authenticated helper on real torch.func target/reference actions."""
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    parameter_names = tuple(name for name, _ in model.named_parameters())
+    real_encoder = _MODULE._functional_encoder
+    real_jvp = torch.func.jvp
+    real_vjp = torch.func.vjp
+    real_neg = torch.Tensor.__neg__
+    graph_index = -1
+    sign_actions: dict[int, dict[str, Any]] = {}
+    negated_by_source: dict[int, weakref.ReferenceType[torch.Tensor]] = {}
+    compared_negated_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    comparison_labels: list[str] = []
+    comparison_index = 0
+
+    def tracked_encoder(*args: Any, **kwargs: Any) -> Any:
+        gc.collect()
+        for earlier, record in sign_actions.items():
+            if earlier < graph_index + 1:
+                assert all(reference() is None for reference in record["refs"])
+        assert all(reference() is None for reference in compared_negated_refs)
+        return real_encoder(*args, **kwargs)
+
+    def tracked_vjp(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph_index
+        graph_index += 1
+        primal, closure = real_vjp(*args, **kwargs)
+        closure_calls = 0
+
+        def tracked_closure(*closure_args: Any, **closure_kwargs: Any) -> Any:
+            nonlocal closure_calls
+            closure_calls += 1
+            result = closure(*closure_args, **closure_kwargs)
+            if graph_index >= 3:
+                record = sign_actions.setdefault(
+                    graph_index, {"jvps": [], "vjps": [], "refs": []}
+                )
+                tree = result[0]
+                record["vjps"].append({name: id(tree[name]) for name in parameter_names})
+                record["refs"].extend(weakref.ref(tree[name]) for name in parameter_names)
+            return result
+
+        return primal, tracked_closure
+
+    def tracked_jvp(*args: Any, **kwargs: Any) -> Any:
+        primal, action = real_jvp(*args, **kwargs)
+        if graph_index >= 3:
+            record = sign_actions.setdefault(
+                graph_index, {"jvps": [], "vjps": [], "refs": []}
+            )
+            record["jvps"].append(id(action))
+            record["refs"].append(weakref.ref(action))
+        return primal, action
+
+    def tracked_neg(value: torch.Tensor) -> torch.Tensor:
+        result = real_neg(value)
+        negated_by_source[id(value)] = weakref.ref(result)
+        return result
+
+    def equality_oracle(left: torch.Tensor, right: torch.Tensor) -> bool:
+        nonlocal comparison_index
+        per_control = len(parameter_names) + 1
+        control_offset = comparison_index // per_control
+        within = comparison_index % per_control
+        graph = 3 + control_offset
+        control_name = "parameter_sign" if graph == 3 else "output_sign"
+        record = sign_actions[graph]
+        if within == 0:
+            assert id(left) == record["jvps"][0]
+            if control_name == "parameter_sign":
+                reference_id = record["jvps"][1]
+                negated = negated_by_source[reference_id]
+                assert negated() is right
+                compared_negated_refs.append(weakref.ref(right))
+            else:
+                assert id(right) == record["jvps"][1]
+            comparison_labels.append(f"{control_name}:jvp")
+        else:
+            name = parameter_names[within - 1]
+            assert id(left) == record["vjps"][0][name]
+            reference_id = record["vjps"][1][name]
+            if control_name == "output_sign":
+                negated = negated_by_source[reference_id]
+                assert negated() is right
+                compared_negated_refs.append(weakref.ref(right))
+            else:
+                assert id(right) == reference_id
+            comparison_labels.append(f"{control_name}:vjp:{name}")
+        comparison_index += 1
+        return within != 0
+
+    monkeypatch.setattr(_MODULE, "_functional_encoder", tracked_encoder)
+    monkeypatch.setattr(torch.func, "vjp", tracked_vjp)
+    monkeypatch.setattr(torch.func, "jvp", tracked_jvp)
+    monkeypatch.setattr(torch.Tensor, "__neg__", tracked_neg)
+    monkeypatch.setattr(torch, "equal", equality_oracle)
+    audit = _run_tiny_normwise_audit(model, images, output, directions)
+
+    expected_labels = [
+        "parameter_sign:jvp",
+        *(f"parameter_sign:vjp:{name}" for name in parameter_names),
+        "output_sign:jvp",
+        *(f"output_sign:vjp:{name}" for name in parameter_names),
+    ]
+    assert comparison_labels == expected_labels
+    assert comparison_index == 2 * (len(parameter_names) + 1)
+    assert audit["controls"]["parameter_sign"]["exact_relation"] is False
+    assert audit["controls"]["output_sign"]["exact_relation"] is False
+    assert len(compared_negated_refs) == 1 + len(parameter_names)
+    gc.collect()
+    assert all(
+        reference() is None
+        for record in sign_actions.values()
+        for reference in record["refs"]
+    )
+    assert all(reference() is None for reference in compared_negated_refs)
 
 
 def test_normwise_sign_controls_release_target_reference_actions_before_next_graph(

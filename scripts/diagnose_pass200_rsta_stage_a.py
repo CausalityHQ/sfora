@@ -5933,7 +5933,7 @@ def _validate_adjoint_integrity_audit(
         beta = record["beta_norm"]
         if not (
             (type(beta) is float and np.isfinite(beta) and beta >= 0.0)
-            or beta == "infinity"
+            or (type(beta) is str and beta == "infinity")
         ):
             raise ValueError(f"adjoint {name} control beta_norm differs")
         relation = record[relation_name]
