@@ -603,7 +603,7 @@ schema_version = 1
 diagnostic = "pass205_rdgc_stage_b"
 mode = "scientific_no_training_virtual_update"
 status = exactly "PASS", "CLOSE", "UNRESOLVED", or "INVALID"
-phase_reached = exactly "integrity", "preliminary", or "full_panel"
+phase_reached = exactly "pre_import", "integrity", "preliminary", or "full_panel"
 training_performed = false
 benchmark_authorized = false
 scope_limitation = "Euclidean BN-Inception/Proxy-Anchor parameter tangent; invariant only to the registered common descriptor rotation, not hidden-layer rescaling or AdamW preconditioning"
@@ -620,9 +620,10 @@ tuple, and the implementation plan path/SHA/commit. `source` binds `V_G/HV_G`,
 the manifest path/SHA, exact ordered source paths/hashes, clean detached
 worktree, and ancestry. `execution` binds one attempt, command, cwd, PID,
 Python/CUDA process settings, start/end status, and output path. `environment`
-is the exact deterministic runtime audit. `binding` contains the complete RSTA
+is the exact phase-tagged deterministic runtime union below. `binding` contains the complete RSTA
 chain above, the validation-receipt SHA/status, and all four seed artifact
-digests. `integrity` contains complete all-seed fixture/action/hash audits.
+digests. `integrity` contains complete all-seed fixture/action/hash audits after
+Torch import and is exactly null in the pre-import INVALID branch.
 
 `selection` contains exact preliminary/panel identity, role, support, receiver,
 distractor, batch, transform, and tensor hashes. `preliminary.rows` are ordered
@@ -677,6 +678,16 @@ as `int`, and every scientific `float` is finite binary64 serialized as a JSON
 number. A SHA is a lowercase 64-character hex string. A Git commit is a
 lowercase 40-character hex string.
 
+Every example ID in this document is the Pass 200 **Bound ID** and is an exact,
+nonempty JSON `str`. This includes every training ID, batch ID, receiver ID,
+support ID, distractor ID, and contributor ID, whether used as a value or as an
+ordered-map key. Labels and seeds remain JSON `int`. An ID is never parsed as a
+number, converted with `str()`, trimmed, Unicode-normalized, case-folded, or
+otherwise canonicalized. Selection domains and SHA-256 inputs consume its
+original UTF-8 bytes exactly. Validation rejects the empty string, every
+non-string concrete type (including JSON number and Boolean), and any changed
+byte sequence even if visually or numerically equivalent.
+
 Reusable records are exactly:
 
 ```text
@@ -688,14 +699,18 @@ seed_artifacts = object(
   final_pack:artifact_ref, configuration_sha256:sha,
   source_export_sha256:sha)
 context_selection = object(
-  context:str{"A","B"}, batch_ids:array[int,180], batch_sha256:sha,
+  context:str{"A","B"},
+  batch_ids:array[str(nonempty Pass 200 Bound ID),180], batch_sha256:sha,
   transform_sha256:sha, tensor_sha256:sha)
 selection_group = object(
-  group_index:int, receiver_labels:array[int,8], receiver_ids:array[int,8],
+  group_index:int, receiver_labels:array[int,8],
+  receiver_ids:array[str(nonempty Pass 200 Bound ID),8],
   contexts:array[context_selection,2])
 phase_selection = object(
-  identity_labels:array[int,8|32], receiver_ids:array[int,8|32],
-  support_ids_by_label:ordered_map(canonical identity-label strings,array[int,2]),
+  identity_labels:array[int,8|32],
+  receiver_ids:array[str(nonempty Pass 200 Bound ID),8|32],
+  support_ids_by_label:ordered_map(canonical identity-label strings,
+    array[str(nonempty Pass 200 Bound ID),2]),
   groups:array[selection_group,1|4])
 operator_action = object(
   motion_sha256:sha, motion_norm:float,
@@ -728,11 +743,21 @@ execution = object(
   cublas_workspace_config:str{":4096:8"}, output_path:str,
   started_utc:str, completed_utc:str, exit_code:int)
 
+pre_import_environment = object(
+  python_executable:str, python_version:str{"3.12.3"}, numpy_version:str,
+  cuda_visible_devices:str{"0"},
+  cublas_workspace_config:str{":4096:8"},
+  source_commit:commit, source_files_sha256:sha,
+  manifest_path:str, manifest_sha256:sha)
+torch_runtime_environment = object(
+  torch_version:str, cuda_runtime_version:str, cudnn_version:int,
+  device_index:int{0}, device_name:str, device_capability:array[int,2],
+  deterministic_algorithms:bool, allow_tf32_matmul:bool,
+  allow_tf32_cudnn:bool)
 environment = object(
-  numpy_version:str, torch_version:str, cuda_runtime_version:str,
-  cudnn_version:int, device_index:int{0}, device_name:str,
-  device_capability:array[int,2], deterministic_algorithms:bool,
-  allow_tf32_matmul:bool, allow_tf32_cudnn:bool)
+  phase:str{"pre_import","post_import"},
+  pre_import:pre_import_environment,
+  torch_runtime:null|torch_runtime_environment)
 
 binding = object(
   rsta_candidate:ref, rsta_gate2_audit:ref,
@@ -767,7 +792,8 @@ The preliminary object is exactly:
 
 ```text
 preliminary_row = object(
-  seed:int, context:str{"A","B"}, receiver_label:int, receiver_id:int,
+  seed:int, context:str{"A","B"}, receiver_label:int,
+  receiver_id:str(nonempty Pass 200 Bound ID),
   dbar_norm:float, self_norm:float, kappa:float, log_kappa:float,
   b_norms_by_contributor_count:
     ordered_map(("1","8","32","180"),float),
@@ -819,7 +845,8 @@ The full panel and bootstrap objects are exactly:
 
 ```text
 panel_row = object(
-  seed:int, group:int, receiver_label:int, receiver_id:int,
+  seed:int, group:int, receiver_label:int,
+  receiver_id:str(nonempty Pass 200 Bound ID),
   context:str{"A","B"}, batch_sha256:sha,
   parameter_names_sha256:sha, p_norm:float,
   corrections:ordered_map(("rdgc","raw_cotangent","full_motion",
@@ -886,15 +913,51 @@ comparator order `pa` followed by the six registered controls, then
 context, operator order; the 16 pooled records are context then operator.
 Preliminary and panel row orders remain the literal orders stated above.
 
-An early INVALID payload retains the same top-level keys. `status="INVALID"`,
-`phase_reached="integrity"`, `candidate_values_computed=false`; `authority`,
-`source`, `execution`, `environment`, `binding`, and `integrity` are complete;
-`selection`, `preliminary`, `panel`, and `bootstrap` are JSON null; `decision`
-is the exact decision object above with one false predicate record named
-`"structural_integrity"`, `first_decisive_clause` naming the fault, and
-`authorized_action="stop_invalid"`. A scientific INVALID has the same reduced
-form and discards partial science; only `phase_reached` and
-`candidate_values_computed` reflect whether preliminary science began.
+`source_files_sha256` is SHA-256 over, for each of the 33 `source.files` records
+in order, the exact UTF-8 path bytes, one NUL byte, its lowercase SHA-256 ASCII
+bytes, and one LF byte. It must equal the digest recomputed from the already
+authenticated `source.files`; it is not caller-supplied.
+
+The environment union is selected by `phase_reached` and validated before any
+field-specific result logic:
+
+```text
+pre-Torch INVALID:
+  status = "INVALID"
+  phase_reached = "pre_import"
+  candidate_values_computed = false
+  environment.phase = "pre_import"
+  environment.pre_import = complete pre_import_environment
+  environment.torch_runtime = null
+
+every post-import INVALID/PASS/CLOSE/UNRESOLVED:
+  phase_reached in {"integrity","preliminary","full_panel"}
+  environment.phase = "post_import"
+  environment.pre_import = complete pre_import_environment
+  environment.torch_runtime = complete torch_runtime_environment
+```
+
+A pre-Torch INVALID may be atomically published only after candidate, plan,
+Git/source bytes, manifest, output authority, validation receipt, static seed
+artifact bindings, Python 3.12.3, NumPy version, and environment text have been
+authenticated. A failure before that publication authority is complete is a
+structural exit with no result, not a fabricated receipt. Building this early
+payload must neither import nor probe PyTorch/CUDA, and no Torch version,
+runtime, cuDNN, device, determinism, or TF32 value may be guessed, copied from a
+manifest, or serialized outside `torch_runtime=null`.
+
+Both INVALID variants retain the same 20 top-level keys. For pre-Torch INVALID,
+`authority`, `source`, `execution`, `environment`, and `binding` are complete;
+`integrity`, `selection`, `preliminary`, `panel`, and `bootstrap` are JSON null.
+For post-import INVALID, `authority`, `source`, `execution`, `environment`,
+`binding`, and `integrity` are complete; `selection`, `preliminary`, `panel`,
+and `bootstrap` are JSON null. Both use the exact decision object above with one
+false predicate record named `"structural_integrity"`, the fault as
+`first_decisive_clause`, and `authorized_action="stop_invalid"`. A scientific
+INVALID discards every partial scientific row. Validators first require the
+exact phase/status/environment/null-field branch, then exhaustively validate
+every field in that branch; they reject cross-branch objects, extra or absent
+Torch fields, and a non-null Torch runtime in any pre-import result.
 
 ### Literal future manifest schema
 
@@ -930,9 +993,10 @@ object(
     result_path_template:str,
     schema_version:int{1},diagnostic:str{"pass205_rdgc_stage_b"},
     mode:str{"scientific_no_training_virtual_update"},
-    statuses:array[str,4],phases:array[str,3],
+    statuses:array[str,4],phases:array[str,4],
     top_level_keys:array[str,20],
-    invalid_null_fields:array[str,4],
+    pre_import_invalid_null_fields:array[str,5],
+    post_import_invalid_null_fields:array[str,4],
     operator_order:array[str,8],
     contributor_counts:array[int,4]),
   seeds:array[int,4])
@@ -940,9 +1004,12 @@ object(
 
 The manifest literal arrays are respectively
 `["PASS","CLOSE","UNRESOLVED","INVALID"]`,
-`["integrity","preliminary","full_panel"]`, the 20 top-level keys in this
-section, `["selection","preliminary","panel","bootstrap"]`, the exact
-eight-operator order, `[1,8,32,180]`, and seeds `[0,1,2,3]`. Its 33 source
+`["pre_import","integrity","preliminary","full_panel"]`, the 20 top-level
+keys in this section,
+`["integrity","selection","preliminary","panel","bootstrap"]` for
+pre-import INVALID,
+`["selection","preliminary","panel","bootstrap"]` for post-import INVALID,
+the exact eight-operator order, `[1,8,32,180]`, and seeds `[0,1,2,3]`. Its 33 source
 records are the prior 32 paths in their exact order with the RDGC diagnostic
 inserted as path 3. Recursive validators mutate each occurrence independently;
 matching a key set without matching insertion order is insufficient.
@@ -966,7 +1033,14 @@ matching a key set without matching insertion order is insufficient.
    recurse through every occurrence of every full, reduced, and future-manifest
    nested field, independently testing removal, addition, reordering, concrete
    type substitution (including `bool`/`int`), nonfinite floats, signed-zero
-   substitution where semantically exact, and relational/hash drift. Commit the
+   substitution where semantically exact, and relational/hash drift. For every
+   example-ID occurrence, dedicated mutations replace the Bound-ID string with
+   an empty string, integer, Boolean, numeric-looking reserialization, trimmed
+   spelling, and NFC/NFD-altered spelling and independently recompute dependent
+   hashes; all must still be rejected. Environment mutations cross every
+   pre/post-import phase/status/null relation, inject or omit each Torch-runtime
+   field, fabricate a pre-import runtime, and drift the ordered-source digest.
+   Commit the
    exact two-file source/test revision as `V_G`.
 6. Create only `docs/pass205_rdgc_stage_b_manifest.json`, binding the candidate,
    plan, exact upstream chain, validation receipt, artifacts, `V_G`, and the
