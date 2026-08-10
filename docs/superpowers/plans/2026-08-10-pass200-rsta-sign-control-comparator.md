@@ -4,23 +4,28 @@
 
 **Goal:** Replace the prospective production RSTA sign controls' raw-negated-hash comparator with same-graph direct `torch.equal` target/reference evidence while preserving every prior scientific domain and keeping all candidate work blocked through a fresh green candidate-free DGX audit.
 
-**Architecture:** Keep the baseline, rebuild, and reversed-order trials unchanged. Add one strict reusable live-tensor sign comparator to the authenticated normwise helper, and make each production sign graph execute its target and ephemeral baseline-reference pairs through one VJP closure in a fixed order; persist target-only metrics plus target/reference hashes and exact booleans. Extend the production validators and future manifest projection without changing the published calibration result schema or the real manifest until the final manifest-only refreeze.
+**Architecture:** Keep the baseline, rebuild, and reversed-order trials unchanged. Add one separate device-agnostic `exact_live_sign_control_relation` function to the authenticated normwise helper without touching CPU-only `_tensor` or any calibration path, and make each production sign graph execute its target and ephemeral baseline-reference pairs through one VJP closure in a fixed order. The comparator validates live FP32 action structure on the model device, proves exact raw operand provenance with direct non-short-circuiting `torch.equal` calls, and only then permits detach/copy for target-only metrics and target/reference hashes; production validators and the future manifest projection change without editing the real manifest until the final manifest-only refreeze.
 
 **Tech Stack:** Python 3.12.3, PyTorch 2.12.1 `torch.func.jvp`/`torch.func.vjp` and `torch.equal`, NumPy 2.5.0, SHA-256, strict insertion-ordered JSON, pytest, weak references/GC, Ruff, py_compile, Git, deterministic CUDA DGX audit.
 
 ## Global Constraints
 
-- Implement `docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md` literally as committed at `a27dd7b3c8ff089c7cb80821c43658b975985a34`, SHA-256 `b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259`.
+- Implement `docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md` literally as committed at `2d09a23994b8584d6726d737d7a3e4022b4a064e`, SHA-256 `a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020`.
 - The amendment is prospective and non-scientific. H8 remains failed with no candidate; the synthetic calibration remains passed; no prior artifact is reinterpreted.
 - Do not run a DGX command, real-data audit, candidate field, receiver row, score, decision, bootstrap, or scientific payload before Tasks 1–6 are complete and the manifest-only handoff is authenticated.
 - Preserve the original baseline, rebuild, and reversed-action-order trials byte-semantically, including their graph construction, action order, metrics, hashes, schemas, predicates, and serialization order.
 - For `parameter_sign`, use target `(-v,u)` and reference `(v,u)`. For `output_sign`, use target `(v,-u)` and reference `(v,u)`.
 - Each sign graph constructs exactly one VJP closure and calls target JVP, target VJP, reference JVP, reference VJP in that literal order. It therefore has two JVP action calls and two calls to the same VJP closure.
 - Compute the exact relation while target/reference tensors are live using direct `torch.equal`: parameter target JVP equals negated reference JVP and target VJP equals reference VJP; output target JVP equals reference JVP and target VJP equals negated reference VJP.
+- Use exact helper `exact_live_sign_control_relation(control_name, target_jvp, target_vjp, reference_jvp, reference_vjp, parameter_names, *, expected_device) -> bool`. It accepts only actual finite FP32 `torch.Tensor` actions, exact named VJP order, aligned target/reference shapes, and one device equal to the live model action device.
+- The live comparator is separate from CPU-only `_tensor`: it never calls `_tensor`, and `_tensor` plus every existing calibration constructor, trial, metric, hash, validator, CLI, and result path retain their definition bytes and semantics.
+- Equality calls never short-circuit. Per sign comparator, call direct `torch.equal` exactly once for the JVP first and once per VJP tensor in named-parameter order, with no extra call.
+- Every equality left operand is the identical raw target action object yielded by `torch.func`. An unchanged right operand is the identical raw reference object; a negative right operand is the immediate live unary-negation temporary passed by the expression `torch.equal(raw_target, -raw_reference)`.
+- Complete all validation and equality calls on the live device before any detach, clone, CPU/device transfer, contiguous conversion, NumPy conversion, hashing, signed-zero canonicalization, or reconstruction.
 - Signed zero is equal under `torch.equal`. Do not derive `exact_relation` from raw hashes, `allclose`, a tolerance, scalar reductions, zero canonicalization, or a separately negated baseline hash.
 - Persist only target JVP/VJP hashes, reference JVP/VJP hashes, target `beta_norm`, `reference_exact_action_hash_match`, `exact_relation`, and `passed` for each sign control. Compute and persist no reference metric.
 - Require both reference hashes to equal the original baseline hashes. Target/reference sign consistency must not mask reference drift.
-- Release all graph objects, live actions, target/reference tensors, detached CPU tensor trees, VJP closure, and temporary negations before the next graph. Only JSON scalars, exact Python booleans, and hashes survive. One derivative graph is the peak.
+- Release all graph objects, raw target/reference actions, captured unary-negated temporaries, detached CPU tensor trees, VJP closure, and derived directions before the next graph. Only JSON scalars, exact Python booleans, and hashes survive. One derivative graph is the peak.
 - Each production sign control has exact key order `jvp_sha256`, `vjp_sha256`, `reference_jvp_sha256`, `reference_vjp_sha256`, `beta_norm`, `reference_exact_action_hash_match`, `exact_relation`, `passed`.
 - Sign `passed` is true exactly when the reference match is exact `True`, the direct relation is exact `True`, `type(beta_norm) is float`, and `beta_norm <= 0.0005`. `integrity_passed` uses the extended sign `passed` values plus the unchanged normwise/rebuild/reversed predicates.
 - The published calibration artifact and its original five-key correct-fixture sign controls remain byte-semantically unchanged and continue to use the registered `6.25e-5` calibration ceiling.
@@ -32,16 +37,16 @@
 
 ```text
 path: docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md
-sha256: b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259
-commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
+sha256: a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020
+commit: 2d09a23994b8584d6726d737d7a3e4022b4a064e
 ```
 
 ## File structure
 
-- `scripts/rsta_normwise_adjoint.py`: add the strict reusable live-tensor sign-relation comparator only; leave calibration payload construction and validation schemas unchanged.
-- `tests/test_rsta_normwise_adjoint.py`: prove signed-zero semantics, direct `torch.equal` use, exact tree topology/type checks, and unchanged published calibration validation.
+- `scripts/rsta_normwise_adjoint.py`: add only separate device-agnostic `exact_live_sign_control_relation`; leave `_tensor` and every existing calibration function body/schema unchanged.
+- `tests/test_rsta_normwise_adjoint.py`: prove CUDA/fake-device reachability, raw operand provenance/order/count, immediate unary-negation identity, signed-zero semantics, `_tensor` non-reachability, structural checks, explicit mutant rejection, and unchanged published calibration validation.
 - `scripts/diagnose_pass200_rsta_stage_a.py`: run the two same-graph target/reference sign pairs, persist the extended production schema, validate its predicates, and authenticate the new future manifest authority/projection.
-- `tests/test_diagnose_pass200_rsta_stage_a.py`: RED/GREEN coverage for dead ReLU signed zero, target-consistent reference drift, call order/count, target-only metrics, graph release, structural fail-fast, recursive schemas, provenance, candidate-free behavior, and prior-domain preservation.
+- `tests/test_diagnose_pass200_rsta_stage_a.py`: RED/GREEN coverage for raw fake-`torch.func` action identity before copy, dead-ReLU signed zero, target-consistent reference drift, exact equality/action schedules, target-only metrics, raw/negated weakref release, structural fail-fast, recursive schemas, provenance, candidate-free behavior, and prior-domain preservation.
 - `docs/pass200_rsta_receipt_stage_a_manifest.json`: protected until Task 7; then the only modified path in the manifest refreeze commit.
 - `reports/generated/pass200_rsta_receipt/${handoff_commit}-sign-control-comparator-integrity-all-seeds.json`: one absent candidate-free output created only on the authenticated DGX handoff.
 
@@ -65,10 +70,10 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   Run:
 
   ```bash
-  test "$(git rev-parse a27dd7b3c8ff089c7cb80821c43658b975985a34^{commit})" = a27dd7b3c8ff089c7cb80821c43658b975985a34
-  test "$(git show a27dd7b3c8ff089c7cb80821c43658b975985a34:docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259
-  test "$(sha256sum docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | cut -d ' ' -f 1)" = b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259
-  git diff --check a27dd7b3c8ff089c7cb80821c43658b975985a34^ a27dd7b3c8ff089c7cb80821c43658b975985a34
+  test "$(git rev-parse 2d09a23994b8584d6726d737d7a3e4022b4a064e^{commit})" = 2d09a23994b8584d6726d737d7a3e4022b4a064e
+  test "$(git show 2d09a23994b8584d6726d737d7a3e4022b4a064e:docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020
+  test "$(sha256sum docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | cut -d ' ' -f 1)" = a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020
+  git diff --check 2d09a23994b8584d6726d737d7a3e4022b4a064e^ 2d09a23994b8584d6726d737d7a3e4022b4a064e
   ```
 
   Expected: all four commands exit `0`; the amendment worktree bytes equal its committed Git blob.
@@ -78,7 +83,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   Run this read-only consultation from repository root:
 
   ```bash
-  devbox-ask claude --model opus --effort max "Read docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md, docs/pass200_rsta_normwise_adjoint_amendment_2026-08-09.md, docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md, scripts/rsta_normwise_adjoint.py, and scripts/diagnose_pass200_rsta_stage_a.py at repository HEAD. Do not edit. Adversarially review whether the prospective sign-control amendment exactly fixes signed-zero/dead-ReLU raw-negated-hash failure with same-graph target/reference direct torch.equal; preserves baseline/rebuild/reversed trials and the published calibration schema; freezes exact call order/count, target-only metrics, reference-baseline hash binding, graph lifetime, nested field order/predicates, manifest insertion/order, unchanged 31-path source membership, chronology, and no-candidate boundary. Report only concrete Critical, Important, or Minor findings with exact section evidence; say CLEAN if none."
+  devbox-ask claude --model opus --effort max "Read docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md, docs/pass200_rsta_normwise_adjoint_amendment_2026-08-09.md, docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md, scripts/rsta_normwise_adjoint.py, and scripts/diagnose_pass200_rsta_stage_a.py at repository HEAD. Do not edit. Adversarially review whether the prospective sign-control amendment exactly fixes signed-zero/dead-ReLU raw-negated-hash failure with same-graph target/reference direct torch.equal; defines a separate device-agnostic live comparator that never reaches CPU-only _tensor or any calibration path; validates actual finite FP32 action structure/device on CUDA; binds identical raw target and unchanged-reference operand identity plus immediate live unary-negation right operands; forbids detach/copy/canonicalization before exact non-short-circuiting JVP-then-named-VJP equality calls; preserves baseline/rebuild/reversed trials and the published calibration schema; freezes target-only metrics, reference-baseline hash binding, raw/negated graph lifetime, nested field order/predicates, manifest insertion/order, unchanged 31-path source membership, chronology, and no-candidate boundary. Report only concrete Critical, Important, or Minor findings with exact section evidence; say CLEAN if none."
   ```
 
   Expected: a durable read-only report that explicitly covers every listed authority boundary.
@@ -115,7 +120,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
 - Do not modify yet: `scripts/diagnose_pass200_rsta_stage_a.py`
 
 **Interfaces:**
-- Requires future helper: `exact_sign_control_relation(control_name: str, target_jvp: torch.Tensor, target_vjp: Mapping[str, torch.Tensor], reference_jvp: torch.Tensor, reference_vjp: Mapping[str, torch.Tensor], parameter_names: Sequence[str]) -> bool`.
+- Requires future helper: `exact_live_sign_control_relation(control_name: str, target_jvp: torch.Tensor, target_vjp: Mapping[str, torch.Tensor], reference_jvp: torch.Tensor, reference_vjp: Mapping[str, torch.Tensor], parameter_names: Sequence[str], *, expected_device: torch.device) -> bool`.
 - Requires future production evidence: each sign control's exact eight-key ordered mapping from the amendment.
 - Produces: focused failing tests for every comparator, schedule, lifetime, schema, and failure requirement before implementation changes.
 
@@ -124,7 +129,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   Add these exact tests to `tests/test_rsta_normwise_adjoint.py`:
 
   ```python
-  def test_exact_sign_control_relation_accepts_signed_zero_only_through_torch_equal(
+  def test_exact_live_sign_control_relation_accepts_signed_zero_only_through_torch_equal(
       monkeypatch: pytest.MonkeyPatch,
   ) -> None:
       reference_jvp = torch.tensor([0.0, -0.0], dtype=torch.float32)
@@ -140,19 +145,20 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
           return real_equal(left, right)
 
       monkeypatch.setattr(torch, "equal", sentinel)
-      assert normwise.exact_sign_control_relation(
+      assert normwise.exact_live_sign_control_relation(
           "parameter_sign",
           target_jvp,
           target_vjp,
           reference_jvp,
           reference_vjp,
           ("weight",),
+          expected_device=target_jvp.device,
       ) is True
       assert len(calls) == 2
 
 
   @pytest.mark.parametrize("control_name", ["parameter_sign", "output_sign"])
-  def test_exact_sign_control_relation_rejects_tree_shape_dtype_and_order_drift(
+  def test_exact_live_sign_control_relation_rejects_tree_shape_dtype_and_order_drift(
       control_name: str,
   ) -> None:
       reference_jvp = torch.tensor([1.0, -2.0], dtype=torch.float32)
@@ -189,28 +195,176 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
       )
       for bad_target_jvp, bad_target_vjp, bad_reference_jvp, bad_reference_vjp in invalid_calls:
           with pytest.raises(ValueError):
-              normwise.exact_sign_control_relation(
+              normwise.exact_live_sign_control_relation(
                   control_name,
                   bad_target_jvp,
                   bad_target_vjp,
                   bad_reference_jvp,
                   bad_reference_vjp,
                   ("weight", "bias"),
+                  expected_device=bad_target_jvp.device,
               )
   ```
 
   Run:
 
   ```bash
-  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py::test_exact_sign_control_relation_accepts_signed_zero_only_through_torch_equal tests/test_rsta_normwise_adjoint.py::test_exact_sign_control_relation_rejects_tree_shape_dtype_and_order_drift
+  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py::test_exact_live_sign_control_relation_accepts_signed_zero_only_through_torch_equal tests/test_rsta_normwise_adjoint.py::test_exact_live_sign_control_relation_rejects_tree_shape_dtype_and_order_drift
   ```
 
-  Expected: FAIL because `exact_sign_control_relation` is absent.
+  Expected: FAIL because `exact_live_sign_control_relation` is absent.
 
-- [ ] **Step 2: Write the dead-ReLU, exact action-order, and target-only-metric REDs**
+- [ ] **Step 2: Write CUDA, raw-operand provenance, and explicit-mutant REDs**
+
+  Add these exact tests to `tests/test_rsta_normwise_adjoint.py`:
+
+  ```python
+  class GuardedTensor(torch.Tensor):
+      comparisons_complete = False
+      negated_by_source: dict[int, weakref.ReferenceType[torch.Tensor]] = {}
+
+      @staticmethod
+      def wrap(value: torch.Tensor, label: str) -> "GuardedTensor":
+          result = torch.Tensor._make_subclass(GuardedTensor, value, value.requires_grad)
+          result.label = label
+          return result
+
+      def __neg__(self) -> torch.Tensor:
+          result = torch.Tensor.__neg__(self)
+          GuardedTensor.negated_by_source[id(self)] = weakref.ref(result)
+          return result
+
+      def _copy_guard(self, operation: str) -> None:
+          if not GuardedTensor.comparisons_complete:
+              raise AssertionError(f"{operation} occurred before live comparison")
+
+      def detach(self) -> torch.Tensor:
+          self._copy_guard("detach")
+          return super().detach()
+
+      def clone(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+          self._copy_guard("clone")
+          return super().clone(*args, **kwargs)
+
+      def cpu(self) -> torch.Tensor:
+          self._copy_guard("cpu")
+          return super().cpu()
+
+      def to(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+          self._copy_guard("to")
+          return super().to(*args, **kwargs)
+
+      def contiguous(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+          self._copy_guard("contiguous")
+          return super().contiguous(*args, **kwargs)
+
+
+  def test_live_sign_comparator_operand_provenance_order_and_no_short_circuit(
+      monkeypatch: pytest.MonkeyPatch,
+  ) -> None:
+      # A GuardedTensor subclass records each __neg__ result by weakref and
+      # raises from detach/clone/cpu/to/contiguous until comparisons_complete.
+      reference_jvp = GuardedTensor.wrap(torch.tensor([0.0, -0.0]), "reference_jvp")
+      target_jvp = GuardedTensor.wrap(torch.tensor([0.0, 0.0]), "target_jvp")
+      reference_vjp = {
+          "weight": GuardedTensor.wrap(torch.tensor([0.0]), "reference_vjp:weight"),
+          "bias": GuardedTensor.wrap(torch.tensor([-0.0]), "reference_vjp:bias"),
+      }
+      target_vjp = {
+          "weight": GuardedTensor.wrap(torch.tensor([0.0]), "target_vjp:weight"),
+          "bias": GuardedTensor.wrap(torch.tensor([-0.0]), "target_vjp:bias"),
+      }
+      expected_left_ids = [id(target_jvp), id(target_vjp["weight"]), id(target_vjp["bias"])]
+      expected_raw_right_ids = [
+          id(reference_jvp),
+          id(reference_vjp["weight"]),
+          id(reference_vjp["bias"]),
+      ]
+      calls: list[tuple[int, int]] = []
+      outcomes = iter((False, True, True))
+
+      def sentinel(left: torch.Tensor, right: torch.Tensor) -> bool:
+          index = len(calls)
+          assert id(left) == expected_left_ids[index]
+          if index == 0:
+              assert GuardedTensor.negated_by_source[expected_raw_right_ids[index]]() is right
+          else:
+              assert id(right) == expected_raw_right_ids[index]
+          assert left.device == right.device
+          calls.append((id(left), id(right)))
+          if len(calls) == 3:
+              GuardedTensor.comparisons_complete = True
+          return next(outcomes)
+
+      monkeypatch.setattr(torch, "equal", sentinel)
+      assert normwise.exact_live_sign_control_relation(
+          "parameter_sign",
+          target_jvp,
+          target_vjp,
+          reference_jvp,
+          reference_vjp,
+          ("weight", "bias"),
+          expected_device=target_jvp.device,
+      ) is False
+      assert [left for left, _right in calls] == expected_left_ids
+
+
+  @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+  def test_live_sign_comparator_accepts_cuda_without_cpu_tensor_validator(
+      monkeypatch: pytest.MonkeyPatch,
+  ) -> None:
+      device = torch.device("cuda", torch.cuda.current_device())
+      reference_jvp = torch.tensor([0.0, -0.0], dtype=torch.float32, device=device)
+      target_jvp = torch.tensor([0.0, 0.0], dtype=torch.float32, device=device)
+      reference_vjp = {"weight": torch.zeros(1, dtype=torch.float32, device=device)}
+      target_vjp = {"weight": reference_vjp["weight"].clone()}
+      monkeypatch.setattr(
+          normwise,
+          "_tensor",
+          lambda *_args, **_kwargs: pytest.fail("live comparator reached CPU-only _tensor"),
+      )
+      assert normwise.exact_live_sign_control_relation(
+          "parameter_sign",
+          target_jvp,
+          target_vjp,
+          reference_jvp,
+          reference_vjp,
+          ("weight",),
+          expected_device=device,
+      ) is True
+  ```
+
+  Add an always-run fake/device contract version of the CUDA test using CPU
+  actions, `expected_device=torch.device("cpu")`, a raising monkeypatch for
+  `_tensor`, and mismatched `expected_device=torch.device("meta")` that must
+  raise `ValueError` before `torch.equal`. The real CUDA test is the only test
+  allowed to skip when CUDA is unavailable.
+
+  Add
+  `test_live_sign_comparator_provenance_oracle_rejects_canonicalize_and_detach_mutants`.
+  Its two local mutants must respectively call
+  `torch.equal(torch.where(target == 0, torch.zeros_like(target), target),
+  -torch.where(reference == 0, torch.zeros_like(reference), reference))` and
+  `torch.equal(target.detach().clone(), -reference.detach().clone())`. Run each
+  through the identity/guard oracle above and require `pytest.raises(AssertionError)`;
+  the first changes the raw operand identity and the second triggers the
+  pre-comparison copy guard.
+
+  Run:
+
+  ```bash
+  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py::test_live_sign_comparator_operand_provenance_order_and_no_short_circuit tests/test_rsta_normwise_adjoint.py::test_live_sign_comparator_fake_device_never_uses_cpu_tensor_validator tests/test_rsta_normwise_adjoint.py::test_live_sign_comparator_accepts_cuda_without_cpu_tensor_validator tests/test_rsta_normwise_adjoint.py::test_live_sign_comparator_provenance_oracle_rejects_canonicalize_and_detach_mutants
+  ```
+
+  Expected: helper-dependent tests FAIL because the function is absent; the
+  explicit mutant-oracle test PASS proves both false-confidence mutants are
+  rejected; the CUDA test alone may SKIP when CUDA is unavailable.
+
+- [ ] **Step 3: Write the dead-ReLU, exact action-order, and target-only-metric REDs**
 
   Add tests named
   `test_normwise_sign_controls_accept_dead_relu_signed_zero_by_direct_equal`,
+  `test_normwise_sign_comparator_receives_raw_torch_func_actions_before_copy`,
   `test_normwise_sign_controls_use_exact_target_reference_call_count_and_order`,
   and `test_normwise_sign_controls_compute_metrics_for_targets_only` to
   `tests/test_diagnose_pass200_rsta_stage_a.py`.
@@ -228,6 +382,15 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   assert audit["controls"]["parameter_sign"]["exact_relation"] is True
   assert audit["controls"]["output_sign"]["exact_relation"] is True
   ```
+
+  The raw-action test makes fake `torch.func.jvp` and the fake VJP closure
+  yield the `GuardedTensor` actions from Step 2. The comparator sentinel stores
+  only IDs/weakrefs and requires each identical raw target as left operand,
+  each identical unchanged reference as right operand, and each recorded
+  immediate unary-negation temporary for negative rights. The guards raise on
+  detach/clone/cpu/to/contiguous until the last named VJP equality. Instrument
+  helper `_tensor` and assert no raw action ID ever reaches it; only later
+  detached CPU metric copies may do so.
 
   The action-order test must wrap `torch.func.vjp`, the returned closure, and
   `torch.func.jvp`. Require this full per-seed event sequence:
@@ -252,16 +415,21 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   two sign calls receive target `(-v,u)` and `(v,-u)` factors rather than either
   reference pair.
 
+  For each sign comparator separately, the equality sentinel must record
+  exactly `jvp`, followed by one label formed as literal `vjp:` plus the actual
+  registered parameter name for every trainable name in order, with no extra
+  call. Its first false return must not suppress later VJP comparisons.
+
   Run:
 
   ```bash
-  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_accept_dead_relu_signed_zero_by_direct_equal tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_use_exact_target_reference_call_count_and_order tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_compute_metrics_for_targets_only
+  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_accept_dead_relu_signed_zero_by_direct_equal tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_comparator_receives_raw_torch_func_actions_before_copy tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_use_exact_target_reference_call_count_and_order tests/test_diagnose_pass200_rsta_stage_a.py::test_normwise_sign_controls_compute_metrics_for_targets_only
   ```
 
   Expected: FAIL because production still executes one action pair per sign
   graph and derives the sign relation from raw-negated hashes.
 
-- [ ] **Step 3: Write reference-drift and exact nested-schema REDs**
+- [ ] **Step 4: Write reference-drift and exact nested-schema REDs**
 
   Add tests named
   `test_normwise_sign_control_reference_drift_fails_despite_target_consistency`
@@ -315,16 +483,17 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
 
   Expected: FAIL because reference evidence and predicates are absent.
 
-- [ ] **Step 4: Write graph-release, one-graph-peak, and structural fail-fast REDs**
+- [ ] **Step 5: Write graph-release, one-graph-peak, and structural fail-fast REDs**
 
   Extend the existing weak-reference coverage with tests named
   `test_normwise_sign_controls_release_target_reference_actions_before_next_graph`
   and `test_normwise_sign_control_reference_structure_fails_before_next_graph`.
 
   Track weak references to each functional encoder, parameter tree, closure,
-  target JVP/VJP, reference JVP/VJP, detached CPU action tree, and temporary
-  negation. At every next `_functional_encoder` call, run `gc.collect()` and
-  require all previous weak references dead. Require `graph_count == 5`,
+  raw target JVP/VJP, raw reference JVP/VJP, detached CPU action tree, and every
+  immediate unary-negation temporary captured by the equality sentinel. Store
+  no strong reference in the tracker. At every next `_functional_encoder` call,
+  run `gc.collect()` and require all previous weak references dead. Require `graph_count == 5`,
   `peak_live_graphs == 1`, and `metric_count == 5` after completion.
   The terminal assertions are exactly:
 
@@ -335,6 +504,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   assert peak_live_graphs == 1
   assert all(reference() is None for reference in graph_refs)
   assert all(reference() is None for reference in target_reference_action_refs)
+  assert all(reference() is None for reference in negated_reference_refs)
   ```
 
   For fail-fast, make the parameter-sign reference VJP tree omit the last
@@ -352,7 +522,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   Expected: FAIL because each current sign graph has no live reference pair to
   validate or release.
 
-- [ ] **Step 5: Prove the source files are still untouched at the RED checkpoint**
+- [ ] **Step 6: Prove the source files are still untouched at the RED checkpoint**
 
   Run:
 
@@ -374,7 +544,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
 - Test: `tests/test_diagnose_pass200_rsta_stage_a.py`
 
 **Interfaces:**
-- Produces: `exact_sign_control_relation(control_name: str, target_jvp: torch.Tensor, target_vjp: Mapping[str, torch.Tensor], reference_jvp: torch.Tensor, reference_vjp: Mapping[str, torch.Tensor], parameter_names: Sequence[str]) -> bool`.
+- Produces: `exact_live_sign_control_relation(control_name: str, target_jvp: torch.Tensor, target_vjp: Mapping[str, torch.Tensor], reference_jvp: torch.Tensor, reference_vjp: Mapping[str, torch.Tensor], parameter_names: Sequence[str], *, expected_device: torch.device) -> bool`.
 - Extends: authenticated helper interface required by `_load_authenticated_normwise_adjoint_helper`.
 - Extends: production `parameter_sign` and `output_sign` evidence to the amendment's exact eight-key ordered mappings.
 - Preserves: `run_fixture_controls`, `validate_calibration_result`, the published calibration artifact schema, and rebuild/reversed production behavior.
@@ -384,38 +554,69 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   In `scripts/rsta_normwise_adjoint.py`, add a function with this exact shape:
 
   ```python
-  def exact_sign_control_relation(
+  def exact_live_sign_control_relation(
       control_name: str,
       target_jvp: torch.Tensor,
       target_vjp: Mapping[str, torch.Tensor],
       reference_jvp: torch.Tensor,
       reference_vjp: Mapping[str, torch.Tensor],
       parameter_names: Sequence[str],
+      *,
+      expected_device: torch.device,
   ) -> bool:
       names = tuple(parameter_names)
-      if control_name not in ("parameter_sign", "output_sign"):
+      if (
+          control_name not in ("parameter_sign", "output_sign")
+          or not names
+          or any(type(name) is not str or not name for name in names)
+          or len(set(names)) != len(names)
+          or not isinstance(expected_device, torch.device)
+      ):
           raise ValueError("adjoint sign control name differs")
-      # Require nonempty exact ordered topology and aligned finite FP32 tensors
-      # before comparison. Use _tensor for tensor type/dtype/device/finite checks,
-      # plus explicit shape/device equality across every target/reference pair.
+
+      def live_tensor(value: object, *, name: str) -> torch.Tensor:
+          if (
+              not isinstance(value, torch.Tensor)
+              or value.dtype != torch.float32
+              or value.device != expected_device
+              or not bool(torch.isfinite(value).all())
+          ):
+              raise ValueError(f"{name} must be a finite live FP32 action")
+          return value
+
+      target_jvp = live_tensor(target_jvp, name="target JVP")
+      reference_jvp = live_tensor(reference_jvp, name="reference JVP")
+      if target_jvp.shape != reference_jvp.shape:
+          raise ValueError("sign-control JVP shapes differ")
+      if list(target_vjp) != list(names) or list(reference_vjp) != list(names):
+          raise ValueError("sign-control VJP topology/order differs")
+      for name in names:
+          target = live_tensor(target_vjp[name], name=f"target VJP {name}")
+          reference = live_tensor(reference_vjp[name], name=f"reference VJP {name}")
+          if target.shape != reference.shape:
+              raise ValueError(f"sign-control VJP shape differs for {name}")
+
+      comparisons: list[bool] = []
       if control_name == "parameter_sign":
-          return bool(
-              torch.equal(target_jvp, -reference_jvp)
-              and all(torch.equal(target_vjp[name], reference_vjp[name]) for name in names)
-          )
-      return bool(
-          torch.equal(target_jvp, reference_jvp)
-          and all(torch.equal(target_vjp[name], -reference_vjp[name]) for name in names)
-      )
+          comparisons.append(torch.equal(target_jvp, -reference_jvp))
+          for name in names:
+              comparisons.append(torch.equal(target_vjp[name], reference_vjp[name]))
+      else:
+          comparisons.append(torch.equal(target_jvp, reference_jvp))
+          for name in names:
+              comparisons.append(torch.equal(target_vjp[name], -reference_vjp[name]))
+      return all(type(result) is bool and result for result in comparisons)
   ```
 
-  Implement the stated checks directly; do not alter `_validate_control`,
-  `_validate_entry`, `run_fixture_controls`, or any calibration result key.
+  This new function must not call `_tensor`, detach, clone, transfer, make
+  contiguous, canonicalize, hash, or reconstruct an action. Do not edit the
+  definition bytes of `_tensor`, `_validate_control`, `_validate_entry`,
+  `run_fixture_controls`, or any other existing calibration function/body/key.
 
   Run:
 
   ```bash
-  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py::test_exact_sign_control_relation_accepts_signed_zero_only_through_torch_equal tests/test_rsta_normwise_adjoint.py::test_exact_sign_control_relation_rejects_tree_shape_dtype_and_order_drift
+  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py::test_exact_live_sign_control_relation_accepts_signed_zero_only_through_torch_equal tests/test_rsta_normwise_adjoint.py::test_exact_live_sign_control_relation_rejects_tree_shape_dtype_and_order_drift
   ```
 
   Expected: PASS.
@@ -430,12 +631,19 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   2. constructs the target/reference directions exactly from `u` and `v`;
   3. constructs one VJP closure;
   4. calls target JVP, target VJP, reference JVP, reference VJP in order;
-  5. calls `exact_sign_control_relation` before detaching or deleting an action;
-  6. computes legacy and normwise metrics for the target only;
-  7. hashes detached target and reference actions in exact named order;
-  8. computes the reference-baseline predicate only after the unchanged
+  5. derives `expected_device` from the live functional model actions, proves
+     every functional parameter/action is on it, and passes the identical four
+     raw action objects plus exact `parameter_names` to
+     `exact_live_sign_control_relation`;
+  6. completes the exact JVP-then-named-VJP comparator before any detach, clone,
+     CPU/device transfer, contiguous conversion, canonicalization, hash, or
+     reconstruction;
+  7. computes legacy and normwise metrics for the target only;
+  8. hashes detached target and reference actions in exact named order;
+  9. computes the reference-baseline predicate only after the unchanged
      baseline hashes exist; and
-  9. deletes all graph/live/CPU tensor state before returning JSON evidence.
+  10. deletes all graph/raw-action/negated-temporary/CPU tensor state before
+      returning JSON evidence.
 
   The produced mapping must be constructed literally in this order:
 
@@ -466,17 +674,20 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
 - [ ] **Step 3: Bind the new helper bytes and run every behavioral GREEN**
 
   Recompute the helper SHA-256 and set `_NORMWISE_ADJOINT_HELPER_SHA256` to that
-  exact lowercase digest. Add `exact_sign_control_relation` to the authenticated
+  exact lowercase digest. Add `exact_live_sign_control_relation` to the authenticated
   helper's required callable tuple. Run:
 
   ```bash
   sha256sum scripts/rsta_normwise_adjoint.py
-  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py -k 'exact_sign_control_relation or calibration_schema'
-  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'normwise_sign_control or normwise_sign_controls'
+  .venv/bin/pytest -q tests/test_rsta_normwise_adjoint.py -k 'live_sign_comparator or exact_live_sign_control_relation or calibration_schema'
+  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'normwise_sign_comparator or normwise_sign_control or normwise_sign_controls'
   ```
 
-  Expected: PASS, including the signed-zero, direct-comparator, drift, call
-  schedule, target-only metrics, graph release, and structural fail-fast tests.
+  Expected: PASS, including fake-device `_tensor` non-reachability, the CUDA
+  test when CUDA is available (otherwise its one registered skip), raw operand
+  provenance, both explicit mutant oracles, signed-zero, drift, exact equality
+  and action schedules, target-only metrics, raw/negated graph release, and
+  structural fail-fast tests.
 
 - [ ] **Step 4: Reauthenticate the immutable calibration result under the changed helper**
 
@@ -528,15 +739,15 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   ```python
   "normwise_adjoint_sign_control_amendment": {
       "path": "docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md",
-      "sha256": "b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259",
-      "commit": "a27dd7b3c8ff089c7cb80821c43658b975985a34",
+      "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
+      "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e",
   },
   ```
 
   Add `test_sign_control_manifest_authority_order_provenance_and_prior_domains`.
   It must require the amendment's worktree bytes, Git blob, SHA, commit, and
   ancestry edge
-  `a27dd7b3c8ff089c7cb80821c43658b975985a34 -> current_scientific_source.git_revision`;
+  `2d09a23994b8584d6726d737d7a3e4022b4a064e -> current_scientific_source.git_revision`;
   require exact future top-level and candidate-free projection order; mutate
   every nested authority leaf and order; and recursively compare every prior
   manifest domain before/after insertion. The only permitted differences are
@@ -716,7 +927,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   Run:
 
   ```bash
-  devbox-ask claude --model opus --effort max "Read docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md and the complete HEAD versions and history diff of scripts/rsta_normwise_adjoint.py, scripts/diagnose_pass200_rsta_stage_a.py, tests/test_rsta_normwise_adjoint.py, and tests/test_diagnose_pass200_rsta_stage_a.py. Do not edit. Review the implementation against every amendment requirement. Explicitly audit signed-zero/dead-ReLU behavior, direct live torch.equal, same-graph immutable target/reference pairs, literal closure/JVP/VJP call order and counts, target-only metrics, reference-baseline raw hashes, target-consistent reference drift, exact schemas/types/predicates/output order, calibration backward compatibility, structural fail-fast, weakref release/one-graph peak, candidate-free/scientific prefixes, authority Git bytes/ancestry/projection order, unchanged 31-path source membership, and protected manifest/results. Report concrete Critical, Important, or Minor findings with file/line evidence; say CLEAN if none."
+  devbox-ask claude --model opus --effort max "Read docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md and the complete HEAD versions and history diff of scripts/rsta_normwise_adjoint.py, scripts/diagnose_pass200_rsta_stage_a.py, tests/test_rsta_normwise_adjoint.py, and tests/test_diagnose_pass200_rsta_stage_a.py. Do not edit. Review the implementation against every amendment requirement. Explicitly audit the separate device-agnostic exact_live_sign_control_relation interface and CUDA reachability; _tensor/calibration non-reachability and unchanged behavior; actual finite FP32 device/topology validation; identical raw target left operands, identical unchanged-reference rights, and immediate unary-negated live-reference right temporaries; exact non-short-circuiting JVP-then-named-VJP equality order/count before any detach/copy/canonicalization; both explicit false-confidence mutants; signed-zero/dead-ReLU behavior; same-graph immutable target/reference action order; target-only metrics; reference-baseline drift failure; exact schemas/types/predicates/output order; structural fail-fast; raw/reference/negated weakref release and one-graph peak; candidate-free/scientific prefixes; authority Git bytes/ancestry/projection order; unchanged 31-path source membership; and protected manifest/results. Report concrete Critical, Important, or Minor findings with file/line evidence; say CLEAN if none."
   ```
 
   Expected: a fresh review of the full committed source, not only the latest
@@ -747,7 +958,7 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
 
   ```bash
   reviewed_source_commit=$(git rev-parse HEAD)
-  test "$(git show -s --format=%s a27dd7b3c8ff089c7cb80821c43658b975985a34)" = "amend RSTA sign-control comparators"
+  test "$(git show -s --format=%s 2d09a23994b8584d6726d737d7a3e4022b4a064e)" = "fix RSTA live comparator contract"
   git diff --quiet -- docs/pass200_rsta_receipt_stage_a_manifest.json
   sha256sum scripts/rsta_normwise_adjoint.py scripts/diagnose_pass200_rsta_stage_a.py tests/test_rsta_normwise_adjoint.py tests/test_diagnose_pass200_rsta_stage_a.py
   printf '%s\n' "$reviewed_source_commit"
@@ -777,8 +988,8 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   ```json
   "normwise_adjoint_sign_control_amendment": {
     "path": "docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md",
-    "sha256": "b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259",
-    "commit": "a27dd7b3c8ff089c7cb80821c43658b975985a34"
+    "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
+    "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e"
   }
   ```
 
@@ -828,8 +1039,8 @@ commit: a27dd7b3c8ff089c7cb80821c43658b975985a34
   ```bash
   test "$(git rev-parse HEAD)" = "$handoff_commit"
   test -z "$(git status --porcelain --untracked-files=all)"
-  test "$(sha256sum docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | cut -d ' ' -f 1)" = b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259
-  test "$(git show a27dd7b3c8ff089c7cb80821c43658b975985a34:docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = b87830197b162e6e3ce9ed20a3d631e138a1054d7af382054358c82867441259
+  test "$(sha256sum docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | cut -d ' ' -f 1)" = a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020
+  test "$(git show 2d09a23994b8584d6726d737d7a3e4022b4a064e:docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020
   nvidia-smi
   ```
 
