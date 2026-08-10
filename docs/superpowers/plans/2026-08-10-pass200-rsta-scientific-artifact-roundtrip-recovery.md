@@ -10,10 +10,20 @@
 
 ## Global Constraints
 
-- Implement `docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md` literally as committed at `444d82278b2f81f5d0fe429791e078137165abdc`, SHA-256 `cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6`.
+- Implement `docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md` literally as committed at `043121f8a414b91d7fb2e3d6a1635a6bd585676a`, SHA-256 `6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591`.
 - Do not open or inspect the real artifact during Tasks 1–7. Use only synthetic fixtures. The only permitted real-artifact open is the single Task 8 attempt.
 - The immutable artifact path is exactly `reports/generated/pass200_rsta_receipt/c04574e2bb751c3229bce673408577cfedc00a88-stage-a.json`; its SHA-256 is exactly `e9bcd77c6e372e9c3bab4a420b97ff56f8ea164cbca56f53ec9c99a3b3c527ae`.
 - Preserve disclosed producer metadata exactly: PID `1002393`, exit `0`, `H=c04574e2bb751c3229bce673408577cfedc00a88`, `S=15234a529a181c39c1c8b6477ad7eb7823fd0798`, old manifest SHA-256 `9260329a0f9ad45257f51292d40c3a6d70c9494ea3e8fd185afcf8484f9378fe`, and old diagnostic SHA-256 `85958a940c5a4c9f0ae27f3342e436a8a37e49d94fe9515b22db0340d597ef6e`.
+- The old persisted scientific manifest projection is exactly the ordered ten
+  keys `path`, `sha256`, `base_preregistration`, `amendment`,
+  `deterministic_pool_amendment`, `zero_jacobian_classifier_amendment`,
+  `binding_receipt`, `historical`, `artifact_schema`, `source`, independently
+  derived from H. Producer S omitted the five later amendment authorities.
+- The registered verifier interpreter is the live repository's exact
+  `.venv/bin/python`; observed Python is exactly `3.12.3`. Parent, child, and
+  persisted `environment.numpy_version` must agree exactly before legacy
+  recomputation, and the receipt records only authenticated observed runtime
+  values.
 - The inadvertently seen header `UNRESOLVED` is chronology only. Do not read, print, log, branch on, interpret, or persist it or any scientific content.
 - Never rewrite, rename, touch, chmod, normalize, migrate, re-indent, or replace the artifact.
 - Never run a GPU command, model/data load, candidate-free audit, scientific producer, scoring path, field path, receiver serialization, new aggregation/bootstrap, or decision path.
@@ -31,8 +41,8 @@
 
 ```text
 path: docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md
-sha256: cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6
-commit: 444d82278b2f81f5d0fe429791e078137165abdc
+sha256: 6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591
+commit: 043121f8a414b91d7fb2e3d6a1635a6bd585676a
 ```
 
 ## Exact implementation file structure
@@ -102,22 +112,26 @@ ROUNDTRIP_SOURCE_ORDER = (
   Run:
 
   ```bash
-  test "$(git rev-parse 444d82278b2f81f5d0fe429791e078137165abdc^{commit})" = 444d82278b2f81f5d0fe429791e078137165abdc
-  test "$(git show 444d82278b2f81f5d0fe429791e078137165abdc:docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6
-  test "$(sha256sum docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md | cut -d ' ' -f 1)" = cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6
-  test "$(git diff-tree --no-commit-id --name-only -r 444d82278b2f81f5d0fe429791e078137165abdc)" = docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md
+  test "$(git rev-parse 043121f8a414b91d7fb2e3d6a1635a6bd585676a^{commit})" = 043121f8a414b91d7fb2e3d6a1635a6bd585676a
+  test "$(git show 043121f8a414b91d7fb2e3d6a1635a6bd585676a:docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = 6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591
+  test "$(sha256sum docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md | cut -d ' ' -f 1)" = 6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591
+  test "$(git diff-tree --no-commit-id --name-only -r 043121f8a414b91d7fb2e3d6a1635a6bd585676a)" = docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md
+  test "$(git rev-parse 043121f8a414b91d7fb2e3d6a1635a6bd585676a^)" = a2fbde70730409c66561b759866d69b4802cfb9e
+  test "$(git rev-parse a2fbde70730409c66561b759866d69b4802cfb9e^)" = 444d82278b2f81f5d0fe429791e078137165abdc
   test "$(git rev-parse 444d82278b2f81f5d0fe429791e078137165abdc^)" = c04574e2bb751c3229bce673408577cfedc00a88
-  git diff --check 444d82278b2f81f5d0fe429791e078137165abdc^ 444d82278b2f81f5d0fe429791e078137165abdc
+  git diff --check 043121f8a414b91d7fb2e3d6a1635a6bd585676a^ 043121f8a414b91d7fb2e3d6a1635a6bd585676a
   ```
 
-  Expected: every command exits `0`; no source, test, manifest, result, or artifact entered the amendment commit.
+  Expected: every command exits `0`; the reviewed original amendment, original
+  plan, and amendment-fix chronology is exact, and no source, test, manifest,
+  result, or artifact entered the amendment-fix commit.
 
 - [ ] **Step 2: Obtain a read-only adversarial review without artifact access**
 
   Run:
 
   ```bash
-  devbox-ask claude --model opus --effort max "In this repository, read docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md, docs/superpowers/plans/2026-08-10-pass200-rsta-scientific-artifact-roundtrip-recovery.md, the old manifest only through git show at H=c04574e2bb751c3229bce673408577cfedc00a88, and producer/test source without opening any reports/generated scientific artifact. Do not edit. Review outcome blindness, canonical ordered string support keys, strict raw loading, the single in-memory integer-key legacy adapter, complete old-H scientific_payload recomputation, exact recursive order/type equality, byte-identical producer serialization, H/S and V/HV provenance, child __file__/cwd/import binding, exact 32 source paths, receipt schema/no-clobber, one-attempt stop, and no GPU/rerun boundary. Report only Critical/Important/Minor findings with exact lines; say CLEAN if none."
+  devbox-ask claude --model opus --effort max "In this repository, read docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md, docs/superpowers/plans/2026-08-10-pass200-rsta-scientific-artifact-roundtrip-recovery.md, the old manifest only through git show at H=c04574e2bb751c3229bce673408577cfedc00a88, and producer/test source without opening any reports/generated scientific artifact. Do not edit. Review outcome blindness, canonical ordered string support keys, exact live recursive/signed-zero/byte roundtrip, strict raw loading, the exact ten-key persisted manifest projection derived from H with later authorities omitted by S, the single in-memory integer-key legacy adapter, complete old-H scientific_payload recomputation, exact recursive order/type equality, byte-identical producer serialization, exact sys.executable/Python 3.12.3 and parent/child/persisted NumPy runtime binding, H/S and V/HV provenance, child __file__/cwd/import binding, exact 32 source paths, receipt schema/no-clobber, one-attempt stop, and no GPU/rerun boundary. Report only Critical/Important/Minor findings with exact lines; say CLEAN if none."
   ```
 
   Expected: a complete read-only report that contains no artifact content.
@@ -160,7 +174,6 @@ ROUNDTRIP_SOURCE_ORDER = (
   (
     cd "$recovery_red_root/repo"
     PYTHONDONTWRITEBYTECODE=1 "$recovery_root/.venv/bin/python" -B -m pytest -q -p no:cacheprovider \
-      tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_payload_validates_after_exact_json_roundtrip \
       tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_payload_requires_canonical_persisted_support_label_keys
   )
   recovery_red_exit=$?
@@ -170,8 +183,8 @@ ROUNDTRIP_SOURCE_ORDER = (
   rmdir "$recovery_red_root"
   ```
 
-  Expected: FAIL because old source validates integer keys before JSON
-  serialization and cannot validate the reloaded canonical string-key mapping.
+  Expected: FAIL because old source validates integer keys and cannot accept
+  the canonical string-key mapping.
   Record the exact failing nodes without artifact access, then remove only this
   named temporary worktree and directory.
 
@@ -215,12 +228,13 @@ ROUNDTRIP_SOURCE_ORDER = (
 
   ```bash
   .venv/bin/pytest -q \
-    tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_payload_validates_after_exact_json_roundtrip \
     tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_payload_requires_canonical_persisted_support_label_keys \
     tests/test_diagnose_pass200_rsta_stage_a.py::test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
   ```
 
-  Expected: PASS using synthetic data only. No real CLI or artifact path is touched.
+  Expected: PASS using synthetic data only. The exact live roundtrip/byte RED
+  is added after the comparator interface is frozen in Task 3. No real CLI or
+  artifact path is touched.
 
 ---
 
@@ -245,12 +259,14 @@ ROUNDTRIP_SOURCE_ORDER = (
   exact_ordered_equal(left: object, right: object) -> bool
   adapt_legacy_support_keys(raw: dict[str, object]) -> tuple[dict[str, object], tuple[tuple[str, ...], ...]]
   legacy_scientific_payload_arguments(adapted: dict[str, object]) -> dict[str, object]
+  legacy_manifest_projection(repository: Path, manifest: dict[str, object]) -> dict[str, object]
   validate_legacy_roundtrip(raw_bytes: bytes, legacy_module: ModuleType) -> None
   validate_roundtrip_receipt(value: dict[str, object]) -> None
   receipt_path(repository: Path, handoff_commit: str) -> Path
+  authenticate_runtime(repository: Path) -> dict[str, str]
   authenticate_legacy_provenance(repository: Path) -> dict[str, object]
   authenticate_verifier_provenance(repository: Path, manifest_path: Path) -> dict[str, object]
-  run_isolated_legacy_child(repository: Path, artifact_fd: int, *, verifier_source_commit: str, verifier_handoff_commit: str, python_executable: Path) -> tuple[int, int]
+  run_isolated_legacy_child(repository: Path, artifact_fd: int, *, verifier_source_commit: str, verifier_handoff_commit: str, python_executable: Path, expected_numpy_version: str) -> tuple[int, int]
   write_validation_receipt_atomic(path: Path, value: dict[str, object]) -> None
   main(argv: Sequence[str] | None = None) -> int
   ```
@@ -282,6 +298,46 @@ ROUNDTRIP_SOURCE_ORDER = (
   exact. `exact_ordered_equal` must distinguish `True` from `1`, mapping order,
   and the IEEE bytes of `0.0` from `-0.0`.
 
+  Replace the provisional ordinary-equality producer test with
+  `test_roundtrip_recovery_live_scientific_payload_is_exact_and_byte_identical`.
+  It dynamically loads the future verifier only inside this test and uses this
+  exact predicate/serialization shape:
+
+  ```python
+  arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+  arguments["environment"]["roundtrip_signed_zero_probe"] = -0.0
+  first = _MODULE.scientific_payload(**arguments)
+  first_path = tmp_path / "first-live-roundtrip.json"
+  _MODULE.write_json_atomic(first_path, first, sort_keys=False)
+  first_bytes = first_path.read_bytes()
+  assert first_bytes == (
+      json.dumps(first, indent=2, sort_keys=False, allow_nan=False) + "\n"
+  ).encode("utf-8")
+  persisted = verifier.strict_json_object(first_bytes, name="live roundtrip")
+  second = _MODULE.scientific_payload(
+      manifest_audit=persisted["manifest"],
+      execution_audit=persisted["execution_audit"],
+      environment=persisted["environment"],
+      seed_audits=persisted["seed_audits"],
+      primary_rows=persisted["rows"]["primary"],
+      alternate_rows=persisted["rows"]["alternate"],
+      integrity=persisted["integrity"],
+      aggregation=persisted["aggregation"],
+      bootstrap=persisted["bootstrap"],
+      panel_binding=persisted["panel_binding"],
+  )
+  assert verifier.exact_ordered_equal(second, persisted)
+  second_path = tmp_path / "second-live-roundtrip.json"
+  _MODULE.write_json_atomic(second_path, second, sort_keys=False)
+  assert second_path.read_bytes() == first_bytes
+  signed_zero_mutant = deepcopy(second)
+  signed_zero_mutant["environment"]["roundtrip_signed_zero_probe"] = 0.0
+  assert not verifier.exact_ordered_equal(signed_zero_mutant, persisted)
+  ```
+
+  No `first == persisted`, `second == persisted`, or other ordinary mapping
+  equality may substitute for either live exact predicate.
+
 - [ ] **Step 3: Add full legacy-call and mutant REDs**
 
   Add tests named:
@@ -290,6 +346,8 @@ ROUNDTRIP_SOURCE_ORDER = (
   test_legacy_roundtrip_calls_old_scientific_payload_with_exact_components
   test_legacy_roundtrip_requires_full_ordered_equality_and_exact_writer_bytes
   test_legacy_roundtrip_rejects_selected_field_current_source_and_canonicalizing_mutants
+  test_legacy_manifest_projection_is_exact_ordered_ten_keys_derived_from_h
+  test_legacy_manifest_projection_rejects_later_authority_and_current_projection_mutants
   test_real_h_scientific_payload_roundtrips_a_synthetic_artifact_in_isolated_child
   ```
 
@@ -308,6 +366,25 @@ ROUNDTRIP_SOURCE_ORDER = (
   a current module, use ordinary `dict ==`, sort keys, normalize signed zero,
   or omit byte equality must fail their recording sentinels.
 
+  Freeze the projection's literal key tuple as:
+
+  ```python
+  LEGACY_SCIENTIFIC_MANIFEST_ORDER = (
+      "path", "sha256", "base_preregistration", "amendment",
+      "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
+      "binding_receipt", "historical", "artifact_schema", "source",
+  )
+  ```
+
+  Build its values only from authenticated H: fixed path and old manifest
+  digest, same-named H values through `artifact_schema`, and
+  `source = H["current_scientific_source"]`. Add, one at a time, each of
+  `adjoint_integrity_amendment`, `normwise_adjoint_calibration_protocol`,
+  `normwise_adjoint_calibration_result`, `normwise_adjoint_amendment`, and
+  `normwise_adjoint_sign_control_amendment`; each must fail. Replacing the
+  ten-key projection with either H's full top level or the current producer's
+  larger candidate-free projection must fail.
+
 - [ ] **Step 4: Add old/new provenance and process-isolation REDs**
 
   Add tests named:
@@ -318,6 +395,9 @@ ROUNDTRIP_SOURCE_ORDER = (
   test_verifier_provenance_binds_v_hv_manifest_file_and_all_32_blobs
   test_isolated_child_uses_exact_command_fd_environment_tokens_and_timeout
   test_verifier_rejects_wrong_parent_import_path_dirty_checkout_and_blob
+  test_runtime_authentication_rejects_wrong_sys_executable_python_and_numpy
+  test_legacy_child_requires_parent_child_persisted_numpy_before_call
+  test_roundtrip_receipt_runtime_fields_are_observed_authenticated_values
   ```
 
   Mock subprocess calls to require exact order, then include one local temporary
@@ -326,6 +406,19 @@ ROUNDTRIP_SOURCE_ORDER = (
   exact source path order. Require child command `sys.executable, -I, -B`, cwd
   old H, `close_fds=True`, exactly one passed artifact FD, `start_new_session=True`,
   timeout `600`, empty CUDA visibility, closed stdin, and 64-byte output limits.
+
+  Authenticate `sys.executable` as the exact absolute live-repository
+  `.venv/bin/python`, its resolved regular-file target, and observed
+  `sys.version_info[:3] == (3, 12, 3)`. Mutate the invocation path, resolved
+  target, tuple, formatted version, parent NumPy module identity/version, child
+  old-diagnostic `np` identity/version, and persisted
+  `environment.numpy_version` independently. Assert the old
+  `scientific_payload` recording sentinel has zero calls for every drift. A
+  persisted-only mismatch produces the fixed invalid token; interpreter or
+  runtime-module drift produces the fixed structural token. Require the exact
+  receipt process order to include `python_executable`, `python_version`, then
+  `numpy_version`, populated from the authenticated observations rather than
+  caller literals.
 
 - [ ] **Step 5: Add receipt, atomic, and no-science REDs**
 
@@ -342,7 +435,10 @@ ROUNDTRIP_SOURCE_ORDER = (
   Recursively remove, add, reorder, and mistype every receipt field. Require
   `VALID <=> child exit 0/exact valid token` and
   `INVALID <=> child exit 1/exact invalid token`. Traverse all keys and reject
-  the forbidden scientific names from the amendment. Patch dataset, model,
+  the forbidden scientific names from the amendment. Require runtime values
+  to be exactly the authenticated observed `.venv/bin/python`, `3.12.3`, and
+  parent/child/persisted NumPy version; reject hard-coded or caller-supplied
+  substitutes. Patch dataset, model,
   torch/CUDA, candidate-free, producer, scoring, field, row, aggregation,
   bootstrap, and decision entry points to raise if reached.
 
@@ -356,15 +452,16 @@ ROUNDTRIP_SOURCE_ORDER = (
   ```python
   "scientific_artifact_roundtrip_recovery_amendment": {
       "path": "docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md",
-      "sha256": "cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6",
-      "commit": "444d82278b2f81f5d0fe429791e078137165abdc",
+      "sha256": "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591",
+      "commit": "043121f8a414b91d7fb2e3d6a1635a6bd585676a",
   },
   ```
 
   Require exact top-level/projection order, `ROUNDTRIP_SOURCE_ORDER`, every
   nested authority mutation, every source insertion/removal/reorder/hash
   mutation, old authority/domain equality, and ancestry
-  `444d82278b2f81f5d0fe429791e078137165abdc -> V -> HV` through mocked exact commits.
+  `043121f8a414b91d7fb2e3d6a1635a6bd585676a -> plan -> V -> HV`
+  through mocked exact commits.
 
 - [ ] **Step 7: Run all new nodes and prove RED**
 
@@ -372,7 +469,7 @@ ROUNDTRIP_SOURCE_ORDER = (
 
   ```bash
   .venv/bin/pytest -q tests/test_verify_pass200_rsta_scientific_artifact.py
-  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'roundtrip_recovery_manifest or roundtrip_recovery_projection'
+  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'roundtrip_recovery_live or roundtrip_recovery_manifest or roundtrip_recovery_projection'
   ```
 
   Expected: FAIL because the verifier file and recovery manifest authority are absent.
@@ -425,6 +522,22 @@ ROUNDTRIP_SOURCE_ORDER = (
   and recursively reject non-string object keys or any value outside those
   concrete JSON types. It must never normalize key order or scalar values.
 
+  Implement `authenticate_runtime` before any artifact-open helper. It derives
+  `registered = (repository / ".venv/bin/python").absolute()`, requires
+  `Path(sys.executable) == registered`, requires both strict resolutions to be
+  the same regular executable with execute permission, and requires
+  `sys.version_info[:3] == (3, 12, 3)`. It imports NumPy, requires
+  `sys.modules["numpy"] is numpy`, and requires a concrete nonempty
+  `str(numpy.__version__)`. It returns exactly, in order:
+
+  ```python
+  {
+      "python_executable": ".venv/bin/python",
+      "python_version": ".".join(str(value) for value in sys.version_info[:3]),
+      "numpy_version": str(numpy.__version__),
+  }
+  ```
+
 - [ ] **Step 2: Implement the single-mutation adapter and full legacy call**
 
   Require canonical keys by positional `key == str(label)`, not `int(key)`
@@ -465,7 +578,32 @@ ROUNDTRIP_SOURCE_ORDER = (
   exact commits, parents, commit path scopes, old/new manifest blobs,
   authority bytes, source order, and every worktree/Git-blob digest. Build the
   exact old manifest projection and compare it recursively to the artifact's
-  raw `manifest` object before the adapter call.
+  raw `manifest` object before the adapter call. The implementation literal is:
+
+  ```python
+  LEGACY_SCIENTIFIC_MANIFEST_ORDER = (
+      "path", "sha256", "base_preregistration", "amendment",
+      "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
+      "binding_receipt", "historical", "artifact_schema", "source",
+  )
+
+  projection = {
+      "path": "docs/pass200_rsta_receipt_stage_a_manifest.json",
+      "sha256": OLD_MANIFEST_SHA256,
+      "base_preregistration": manifest["base_preregistration"],
+      "amendment": manifest["amendment"],
+      "deterministic_pool_amendment": manifest["deterministic_pool_amendment"],
+      "zero_jacobian_classifier_amendment": manifest["zero_jacobian_classifier_amendment"],
+      "binding_receipt": manifest["binding_receipt"],
+      "historical": manifest["historical"],
+      "artifact_schema": manifest["artifact_schema"],
+      "source": manifest["current_scientific_source"],
+  }
+  ```
+
+  Require exact key order and compare with `exact_ordered_equal`; never copy
+  any of H's five later authority keys and never invoke a current projection
+  helper.
 
   The verifier source commit is derived from
   `manifest["current_scientific_source"]["git_revision"]`; handoff is derived
@@ -497,13 +635,22 @@ ROUNDTRIP_SOURCE_ORDER = (
   The public parser accepts exactly the four amendment-frozen flags. The
   private child invocation is an internal mutually exclusive parser mode with
   exact arguments `--legacy-child`, `--live-repository`, `--old-checkout`,
-  `--artifact-fd`, `--verifier-source-commit`, and
-  `--verifier-handoff-commit`; none is accepted in public mode. The parent
-  supplies its already authenticated `V/HV`, while the child independently
+  `--artifact-fd`, `--verifier-source-commit`,
+  `--verifier-handoff-commit`, and `--expected-numpy-version`; none is accepted
+  in public mode. The parent supplies its already authenticated `V/HV` and
+  observed NumPy version, while the child independently
   reauthenticates those values and the absolute executing verifier bytes before
   reading the descriptor. `run_isolated_legacy_child` returns exactly
   `(child_pid, child_exit_code)` after validating its token and empty stderr;
   raw stdout is never returned to receipt construction.
+
+  Before adapter construction and before the recording sentinel can observe a
+  call, require `type(raw["environment"]) is dict`, exact concrete nonempty
+  string `raw["environment"]["numpy_version"]`,
+  `legacy_module.np is sys.modules["numpy"]`, and exact equality among the
+  expected parent version, `str(legacy_module.np.__version__)`, and the raw
+  persisted version. A persisted-only mismatch maps to `INVALID`; interpreter,
+  parent/child version, or module-identity drift maps to `STRUCTURAL`.
 
   Public mode must first authenticate `V/HV`, exact CLI paths, output absence,
   and the output parent. Only then open the exact artifact path with
@@ -515,7 +662,11 @@ ROUNDTRIP_SOURCE_ORDER = (
 
 - [ ] **Step 5: Implement exact receipt validation and publication**
 
-  Construct fields in the amendment's literal order. Validate every exact type,
+  Construct fields in the amendment's literal order, including process order
+  `parent_pid`, `child_pid`, `child_exit_code`, `python_executable`,
+  `python_version`, `numpy_version`, `isolated`, `child_head_commit`,
+  `cuda_visible_devices`. Populate the three runtime fields only from the exact
+  `authenticate_runtime` return after child agreement. Validate every exact type,
   digest, commit, path, status relation, token relation, and forbidden key
   recursively before writing. Derive output using:
 
@@ -546,7 +697,7 @@ ROUNDTRIP_SOURCE_ORDER = (
 
   ```bash
   .venv/bin/pytest -q tests/test_verify_pass200_rsta_scientific_artifact.py
-  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'json_roundtrip or canonical_persisted_support or roundtrip_recovery_manifest or roundtrip_recovery_projection'
+  .venv/bin/pytest -q tests/test_diagnose_pass200_rsta_stage_a.py -k 'roundtrip_recovery_live or canonical_persisted_support or roundtrip_recovery_manifest or roundtrip_recovery_projection'
   ```
 
   Expected: PASS, entirely synthetic and CPU-only.
@@ -593,9 +744,11 @@ ROUNDTRIP_SOURCE_ORDER = (
 
   Run a read-only review of the complete amendment, final source files, tests,
   and history diff without artifact access. Require explicit coverage of the
-  canonical producer, exact old-H loader/callable, V/HV self-authentication,
-  adapter-only mutation, full legacy validation, equality/bytes, receipt,
-  process isolation, source order, atomicity, and unreachable science/GPU.
+  canonical producer's exact live roundtrip and bytes, exact ten-key old-H
+  projection, exact old-H loader/callable, V/HV self-authentication,
+  adapter-only mutation, full legacy validation, equality/bytes, authenticated
+  interpreter and parent/child/persisted NumPy runtime, receipt, process
+  isolation, source order, atomicity, and unreachable science/GPU.
 
   For each Critical or Important finding: add one focused failing synthetic
   test, run RED, implement the smallest change within the same four paths, run
@@ -608,7 +761,7 @@ ROUNDTRIP_SOURCE_ORDER = (
 
   ```bash
   verifier_source_commit=$(git rev-parse HEAD)
-  test "$(git diff --name-only 444d82278b2f81f5d0fe429791e078137165abdc "$verifier_source_commit" -- | sort)" = "$(printf '%s\n' docs/superpowers/plans/2026-08-10-pass200-rsta-scientific-artifact-roundtrip-recovery.md scripts/diagnose_pass200_rsta_stage_a.py scripts/verify_pass200_rsta_scientific_artifact.py tests/test_diagnose_pass200_rsta_stage_a.py tests/test_verify_pass200_rsta_scientific_artifact.py | sort)"
+  test "$(git diff --name-only 043121f8a414b91d7fb2e3d6a1635a6bd585676a "$verifier_source_commit" -- | sort)" = "$(printf '%s\n' docs/superpowers/plans/2026-08-10-pass200-rsta-scientific-artifact-roundtrip-recovery.md scripts/diagnose_pass200_rsta_stage_a.py scripts/verify_pass200_rsta_scientific_artifact.py tests/test_diagnose_pass200_rsta_stage_a.py tests/test_verify_pass200_rsta_scientific_artifact.py | sort)"
   sha256sum scripts/diagnose_pass200_rsta_stage_a.py scripts/verify_pass200_rsta_scientific_artifact.py tests/test_diagnose_pass200_rsta_stage_a.py tests/test_verify_pass200_rsta_scientific_artifact.py
   printf '%s\n' "$verifier_source_commit"
   ```
@@ -677,8 +830,8 @@ ROUNDTRIP_SOURCE_ORDER = (
   ```json
   "scientific_artifact_roundtrip_recovery_amendment": {
     "path": "docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md",
-    "sha256": "cf36924056127da62163dfe0f25527b4907c28b0393883e67b8da0e8420a45b6",
-    "commit": "444d82278b2f81f5d0fe429791e078137165abdc"
+    "sha256": "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591",
+    "commit": "043121f8a414b91d7fb2e3d6a1635a6bd585676a"
   }
   ```
 
@@ -869,9 +1022,15 @@ ROUNDTRIP_SOURCE_ORDER = (
 - [ ] Amendment commit/SHA/path occur consistently in every binding and manifest object.
 - [ ] Artifact path/SHA/PID/exit, `H`, `S`, old manifest, and diagnostic digests are exact.
 - [ ] Canonical keys are ordered `str(label)` and aliases/types/order are rejected.
+- [ ] Live producer roundtrip uses `exact_ordered_equal`, preserves signed zero,
+      and reserializes to byte-identical producer bytes without ordinary dict equality.
+- [ ] Old persisted manifest is exactly the H-derived ordered ten-key projection;
+      all five later authorities omitted by S remain absent.
 - [ ] Adapter mutates only copied key types and invokes complete old `scientific_payload`.
 - [ ] Recursive comparison is type/order/signed-zero exact; producer serialization is byte-identical.
 - [ ] Old child uses old-H cwd/import/manifest/HEAD; executing verifier bytes remain V/HV-authenticated.
+- [ ] Exact `.venv/bin/python`, observed Python `3.12.3`, NumPy module identity,
+      and parent/child/persisted version agreement precede recomputation and bind receipt runtime.
 - [ ] Source scope is exactly four files; manifest scope is exactly one later file.
 - [ ] Exact prior 31 relative order plus verifier at position 4 yields 32 paths.
 - [ ] Receipt is exact, atomic, no-clobber, provenance-only, and contains no science.
