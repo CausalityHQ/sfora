@@ -11,14 +11,22 @@
 ## Global Constraints
 
 - Implement `docs/pass205_rdgc_candidate_2026-08-10.md` literally at reviewed
-  fix commit `b2a82f79836515714b4c8b57eb9596730fa3ed55`, SHA-256
-  `92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558`.
+  schema-fix commit `30d533e532d0f22c8b1e474987001685a4aa3488`, SHA-256
+  `2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f`.
 - RDGC is independent. Never change, relabel, rerun, or reinterpret RSTA's authenticated `VALID` artifact and `UNRESOLVED/no_pass_or_fail_rule` decision.
 - The old criterion-2 failure and disclosed aggregates are hypothesis generation only. Tests use unrelated synthetic values. Source may bind their documented provenance but may not encode them as expected RDGC results.
 - Never open the old RSTA scientific artifact. Authenticate only its provenance-only roundtrip validation receipt and manifest chain.
 - Candidate formula is exactly `e=log((||b||+1e-8)/(stopgrad(||s||)+1e-8))`, `R=0.5*e^2`. No `s_hat`, `cos(b,s)`, angular receiver-self target, or vector self target may be reachable.
 - The preliminary must finish and satisfy every SURVIVES predicate before any full-panel correction, margin, control, or bootstrap object is constructed.
 - All four seed bindings and integrity audits pass before any preliminary candidate state or call.
+- Every example ID is the exact nonempty Pass 200 Bound-ID JSON string. Never
+  coerce, trim, parse, Unicode-normalize, case-fold, or regenerate an ID; hashes
+  consume its original UTF-8 bytes.
+- A pre-Torch INVALID has `phase_reached="pre_import"`, an authenticated
+  non-Torch `pre_import` environment and `torch_runtime=null`. Every post-import
+  outcome has `environment.phase="post_import"` and the complete observed Torch
+  runtime. Never import/probe Torch or fabricate runtime fields to build an
+  early receipt.
 - One B=180 CUDA graph at peak. No live CUDA tensor/action/closure from two graphs may coexist. Only detached JSON data and the exact current CPU parameter directions cross graphs.
 - Exact operator order is `pa`, `rdgc`, `raw_cotangent`, `full_motion`,
   `batch_global_gain`, `scalar_diagonal_raw`,
@@ -33,11 +41,12 @@
 
 ```text
 candidate path: docs/pass205_rdgc_candidate_2026-08-10.md
-candidate SHA-256: 92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558
-candidate reviewed fix commit C_G: b2a82f79836515714b4c8b57eb9596730fa3ed55
+candidate SHA-256: 2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f
+candidate reviewed schema-fix commit C_G: 30d533e532d0f22c8b1e474987001685a4aa3488
+candidate prior review-fix commit C_G1: b2a82f79836515714b4c8b57eb9596730fa3ed55
 candidate original commit C_G0: 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
 candidate original parent / current RSTA handoff HV_R: e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae
-prior plan commit P_G0: 5438e63dc925efd02857d52295b05a49304f71ed
+prior plan commits P_G0/P_G1: 5438e63dc925efd02857d52295b05a49304f71ed / 992f387bdc2d237cb51a2bb2a2e5c28329fa56e5
 RSTA verifier source V_R: 3c368713e0890c0ffc63308f07d8d4ee5b19db1c
 HV_R manifest SHA-256: fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b
 RSTA producer H/S: c04574e2bb751c3229bce673408577cfedc00a88 / 15234a529a181c39c1c8b6477ad7eb7823fd0798
@@ -120,17 +129,20 @@ Tests and plans are excluded from scientific source files.
   Run:
 
   ```bash
-  test "$(git rev-parse b2a82f79836515714b4c8b57eb9596730fa3ed55^{commit})" = b2a82f79836515714b4c8b57eb9596730fa3ed55
+  test "$(git rev-parse 30d533e532d0f22c8b1e474987001685a4aa3488^{commit})" = 30d533e532d0f22c8b1e474987001685a4aa3488
+  test "$(git rev-parse 30d533e532d0f22c8b1e474987001685a4aa3488^)" = 992f387bdc2d237cb51a2bb2a2e5c28329fa56e5
+  test "$(git rev-parse 992f387bdc2d237cb51a2bb2a2e5c28329fa56e5^)" = b2a82f79836515714b4c8b57eb9596730fa3ed55
   test "$(git rev-parse b2a82f79836515714b4c8b57eb9596730fa3ed55^)" = 5438e63dc925efd02857d52295b05a49304f71ed
   test "$(git rev-parse 5438e63dc925efd02857d52295b05a49304f71ed^)" = 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
   test "$(git rev-parse 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6^)" = e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae
-  test "$(git show b2a82f79836515714b4c8b57eb9596730fa3ed55:docs/pass205_rdgc_candidate_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = 92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558
+  test "$(git show 30d533e532d0f22c8b1e474987001685a4aa3488:docs/pass205_rdgc_candidate_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = 2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f
   test "$(git diff-tree --no-commit-id --name-only -r 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6)" = docs/pass205_rdgc_candidate_2026-08-10.md
   test "$(git diff-tree --no-commit-id --name-only -r b2a82f79836515714b4c8b57eb9596730fa3ed55)" = docs/pass205_rdgc_candidate_2026-08-10.md
+  test "$(git diff-tree --no-commit-id --name-only -r 30d533e532d0f22c8b1e474987001685a4aa3488)" = docs/pass205_rdgc_candidate_2026-08-10.md
   test "$(git rev-parse e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae^)" = 3c368713e0890c0ffc63308f07d8d4ee5b19db1c
   test "$(git diff-tree --no-commit-id --name-only -r e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae)" = docs/pass200_rsta_receipt_stage_a_manifest.json
   test "$(git show e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae:docs/pass200_rsta_receipt_stage_a_manifest.json | sha256sum | cut -d ' ' -f 1)" = fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b
-  git diff --check e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae b2a82f79836515714b4c8b57eb9596730fa3ed55
+  git diff --check e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae 30d533e532d0f22c8b1e474987001685a4aa3488
   ```
 
   Expected: all pass; no source/test/manifest/result/artifact changed.
@@ -189,6 +201,8 @@ Tests and plans are excluded from scientific source files.
   decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]
   paired_bootstrap(panel_rows: list[dict[str, object]]) -> dict[str, object]
   decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) -> dict[str, object]
+  build_pre_import_environment(authenticated_non_torch_fields) -> dict[str, object]
+  attach_observed_torch_runtime(pre_import_environment, torch_module) -> dict[str, object]
   validate_scientific_payload(value: dict[str, object]) -> None
   ```
 
@@ -352,6 +366,16 @@ Tests and plans are excluded from scientific source files.
   mistype/nonfinite/signed-zero/relational/hash mutations are rejected; ordinary
   key-set or `dict` equality is forbidden.
 
+  Implement the exact result union before any Torch-dependent validator:
+  pre-import INVALID requires `phase_reached="pre_import"`, complete ordered
+  non-Torch environment, `torch_runtime=null`, and the five registered null
+  fields; post-import INVALID and every scientific status require
+  `environment.phase="post_import"`, the complete observed Torch runtime, and
+  the registered four null fields where applicable. Cross-branch
+  phase/status/null combinations fail. The pre-import builder accepts only
+  already-authenticated Python/NumPy/environment/source/manifest values and is
+  statically unreachable from Torch imports or CUDA probes.
+
 - [ ] **Step 6: Run Task 2 tests GREEN**
 
   ```bash
@@ -407,13 +431,19 @@ Tests and plans are excluded from scientific source files.
   test_selection_recomputes_old_64_labels_without_old_result_access
   test_selection_freezes_8_preliminary_then_32_panel_identities
   test_selection_roles_supports_receivers_and_contexts_are_disjoint
+  test_every_batch_receiver_support_distractor_and_contributor_id_is_exact_nonempty_bound_string
+  test_bound_ids_reject_numeric_bool_empty_trimmed_and_unicode_normalized_mutations
   test_selection_uses_exact_domains_orders_and_two_172_distractor_sets
   test_selection_rejects_duplicate_missing_overlap_and_insufficient_rows
   ```
 
   Patch all old result/report candidate paths to raise. Require exact synthetic
   hash oracle, identical receivers across contexts/seeds, mutually disjoint
-  distractors, supports outside graphs, and exact B=180 final order.
+  distractors, supports outside graphs, and exact B=180 final order. The oracle
+  uses original Bound-ID UTF-8 bytes; even after dependent hashes are
+  recomputed, numeric-looking coercion, `str()` conversion, empty strings,
+  whitespace trimming, and NFC/NFD normalization fail at their exact nested
+  occurrence.
 
 - [ ] **Step 3: Add nested contributor and preliminary-metric REDs**
 
@@ -594,6 +624,10 @@ Tests and plans are excluded from scientific source files.
   ```text
   test_full_preliminary_and_reduced_invalid_schemas_reject_every_recursive_occurrence_mutation
   test_future_manifest_schema_rejects_every_recursive_occurrence_mutation
+  test_pre_import_invalid_has_authenticated_non_torch_environment_and_null_torch_runtime
+  test_pre_import_invalid_never_imports_torch_or_fabricates_runtime_fields
+  test_post_import_invalid_and_scientific_receipts_require_complete_observed_torch_runtime
+  test_environment_union_rejects_every_cross_phase_status_null_and_runtime_mutation
   test_atomic_writer_never_replaces_follows_or_leaves_temporary
   test_cli_is_exact_fresh_process_one_attempt_and_no_retry
   test_cli_preliminary_close_never_imports_panel_builder
@@ -607,6 +641,15 @@ Tests and plans are excluded from scientific source files.
   source `src/` imports to raise. Require exact command, environment, cwd,
   output derivation from `HV_G`, absent output/temp, PID consistency, one
   checkpoint-open transition, and exact exit/status relations.
+
+  Run the early-receipt tests in a fresh subprocess with an import sentinel that
+  raises on `torch`, `torch.*`, CUDA libraries, and the authenticated helper.
+  Require exact `source_files_sha256` recomputation and
+  `environment=(phase,pre_import,torch_runtime)` insertion order. Separately
+  exercise post-import INVALID and each PASS/CLOSE/UNRESOLVED fixture with a
+  real observed runtime object. Mutate each union arm, null-field array, phase,
+  status, source digest, and Torch field independently; no short-circuit or
+  generic environment default may accept them.
 
 - [ ] **Step 5: Add the mandatory unmocked real-CPU derivative/receipt RED**
 
@@ -689,7 +732,12 @@ Tests and plans are excluded from scientific source files.
 
   Parse exactly `--manifest`, `--output`, `--scientific-once`; reject aliases,
   extra flags, symlinks, alternate paths, existing output/temp, or wrong cwd.
-  Authenticate before torch import; checkpoint open consumes attempt 1. Use
+  Authenticate the complete non-Torch publication authority before Torch
+  import. A later pre-import failure publishes only the exact pre-import
+  INVALID union with `torch_runtime=null`; a failure before publication
+  authority is complete exits structurally with no receipt. Only after all
+  pre-import work succeeds may Torch be imported and observed runtime fields be
+  attached. Checkpoint open consumes attempt 1. Use
   exclusive temp, flush/fsync, hard-link no-replace, directory fsync, temp
   unlink, strict reload. Exit `0` for PASS/CLOSE/UNRESOLVED published output and
   `2` for published INVALID or structural failure; never retry.
@@ -813,15 +861,18 @@ Tests and plans are excluded from scientific source files.
   historical = manifest_path,manifest_sha256,seeds
   current_scientific_source = git_revision,files
   artifact_schema = result_path_template,schema_version,diagnostic,mode,
-    statuses,phases,top_level_keys,invalid_null_fields,operator_order,
-    contributor_counts
+    statuses,phases,top_level_keys,pre_import_invalid_null_fields,
+    post_import_invalid_null_fields,operator_order,contributor_counts
   ```
 
   Every `ref`, `artifact_ref`, `seed_artifacts`, and `source_file` has the exact
   key order/type/semantics in that registry. `primary_source_ids` has exact
   length 14 and reviewed order; source files have exact length 33; status,
-  phase, top-key, null-field, eight-operator, contributor-count, and four-seed
-  arrays are literal. `candidate` binds the reviewed fix bytes above;
+  phase (including `pre_import`), top-key, both phase-specific null-field,
+  eight-operator, contributor-count, and four-seed arrays are literal. Every
+  example ID inside all historical/selection/result schema relations remains an
+  exact nonempty Bound-ID string; the manifest author may not canonicalize it.
+  `candidate` binds the reviewed schema-fix bytes above;
   `implementation_plan` binds this final reviewed commit. No ordinary dict
   equality, key sorting, inferred default, or descriptive extra field is
   accepted.
