@@ -10,7 +10,9 @@
 
 ## Global Constraints
 
-- Implement `docs/pass205_rdgc_candidate_2026-08-10.md` literally at commit `2599bb8c3f8238bb70f0f8935c0960cadda0dfb6`, SHA-256 `a2d9103e8856f6edf8a1fbaddfe3b0b18a0a63017710e4fb0a85476978dda6f7`.
+- Implement `docs/pass205_rdgc_candidate_2026-08-10.md` literally at reviewed
+  fix commit `b2a82f79836515714b4c8b57eb9596730fa3ed55`, SHA-256
+  `92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558`.
 - RDGC is independent. Never change, relabel, rerun, or reinterpret RSTA's authenticated `VALID` artifact and `UNRESOLVED/no_pass_or_fail_rule` decision.
 - The old criterion-2 failure and disclosed aggregates are hypothesis generation only. Tests use unrelated synthetic values. Source may bind their documented provenance but may not encode them as expected RDGC results.
 - Never open the old RSTA scientific artifact. Authenticate only its provenance-only roundtrip validation receipt and manifest chain.
@@ -18,7 +20,9 @@
 - The preliminary must finish and satisfy every SURVIVES predicate before any full-panel correction, margin, control, or bootstrap object is constructed.
 - All four seed bindings and integrity audits pass before any preliminary candidate state or call.
 - One B=180 CUDA graph at peak. No live CUDA tensor/action/closure from two graphs may coexist. Only detached JSON data and the exact current CPU parameter directions cross graphs.
-- Exact operator order is `pa`, `rdgc`, `raw_cotangent`, `full_motion`, `batch_global_gain`, `scalar_diagonal_raw`, `per_example_gradient_normalized`.
+- Exact operator order is `pa`, `rdgc`, `raw_cotangent`, `full_motion`,
+  `batch_global_gain`, `scalar_diagonal_raw`,
+  `per_example_gradient_normalized`, `layerwise_trust_ratio`.
 - Action/JVP arithmetic is FP32. Norms, dot products, cosine denominators, aggregate reductions, bootstrap arrays, and hashes use cast-before-operation FP64 in exact named order.
 - Run one fresh DGX command once. Preliminary survival continues automatically in-process. Every outcome or interruption consumes attempt 1.
 - Training, optimizer state, parameter mutation, benchmark execution, query/gallery scoring, hyperparameter tuning, and `src/` changes are forbidden.
@@ -29,9 +33,11 @@
 
 ```text
 candidate path: docs/pass205_rdgc_candidate_2026-08-10.md
-candidate SHA-256: a2d9103e8856f6edf8a1fbaddfe3b0b18a0a63017710e4fb0a85476978dda6f7
-candidate commit C_G: 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
-candidate parent / current RSTA handoff HV_R: e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae
+candidate SHA-256: 92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558
+candidate reviewed fix commit C_G: b2a82f79836515714b4c8b57eb9596730fa3ed55
+candidate original commit C_G0: 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
+candidate original parent / current RSTA handoff HV_R: e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae
+prior plan commit P_G0: 5438e63dc925efd02857d52295b05a49304f71ed
 RSTA verifier source V_R: 3c368713e0890c0ffc63308f07d8d4ee5b19db1c
 HV_R manifest SHA-256: fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b
 RSTA producer H/S: c04574e2bb751c3229bce673408577cfedc00a88 / 15234a529a181c39c1c8b6477ad7eb7823fd0798
@@ -39,7 +45,7 @@ RSTA artifact SHA-256: e9bcd77c6e372e9c3bab4a420b97ff56f8ea164cbca56f53ec9c99a3b
 RSTA outcome: VALID scientific bytes; UNRESOLVED/no_pass_or_fail_rule decision
 ```
 
-The plan commit `P_G` is the commit containing this file after its independent
+The plan commit `P_G` is the commit containing this repaired file after its independent
 review. `V_G` is the final reviewed descendant whose aggregate diff from `P_G`
 is confined to the exact two source/test paths below. `HV_G` is a direct child
 of `V_G` whose only changed path is the new RDGC manifest. These symbols are
@@ -114,23 +120,28 @@ Tests and plans are excluded from scientific source files.
   Run:
 
   ```bash
-  test "$(git rev-parse 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6^{commit})" = 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
+  test "$(git rev-parse b2a82f79836515714b4c8b57eb9596730fa3ed55^{commit})" = b2a82f79836515714b4c8b57eb9596730fa3ed55
+  test "$(git rev-parse b2a82f79836515714b4c8b57eb9596730fa3ed55^)" = 5438e63dc925efd02857d52295b05a49304f71ed
+  test "$(git rev-parse 5438e63dc925efd02857d52295b05a49304f71ed^)" = 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
   test "$(git rev-parse 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6^)" = e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae
-  test "$(git show 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6:docs/pass205_rdgc_candidate_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = a2d9103e8856f6edf8a1fbaddfe3b0b18a0a63017710e4fb0a85476978dda6f7
+  test "$(git show b2a82f79836515714b4c8b57eb9596730fa3ed55:docs/pass205_rdgc_candidate_2026-08-10.md | sha256sum | cut -d ' ' -f 1)" = 92e902f76f640dc295910c8b9be3ca2be58502e5d47b0375abd6a08c07cda558
   test "$(git diff-tree --no-commit-id --name-only -r 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6)" = docs/pass205_rdgc_candidate_2026-08-10.md
+  test "$(git diff-tree --no-commit-id --name-only -r b2a82f79836515714b4c8b57eb9596730fa3ed55)" = docs/pass205_rdgc_candidate_2026-08-10.md
   test "$(git rev-parse e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae^)" = 3c368713e0890c0ffc63308f07d8d4ee5b19db1c
   test "$(git diff-tree --no-commit-id --name-only -r e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae)" = docs/pass200_rsta_receipt_stage_a_manifest.json
   test "$(git show e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae:docs/pass200_rsta_receipt_stage_a_manifest.json | sha256sum | cut -d ' ' -f 1)" = fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b
-  git diff --check e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae 2599bb8c3f8238bb70f0f8935c0960cadda0dfb6
+  git diff --check e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae b2a82f79836515714b4c8b57eb9596730fa3ed55
   ```
 
   Expected: all pass; no source/test/manifest/result/artifact changed.
 
 - [ ] **Step 2: Obtain the mandatory primary-source/Gate-2 review**
 
-  Review the exact seven-item literature/audit tuple in the candidate. Require
+  Review the exact thirteen-item literature/audit tuple (fourteen primary
+  source identifiers plus the RSTA audit) in the candidate. Require
   explicit adjudication of receiver-specific full/diagonal scalar gain versus
-  DoCL, MGS, NINT, Charpiat tangent shaping, GradNorm, K-FAC, generic functional
+  DoCL, MGS, NINT, Charpiat tangent shaping, GradNorm, K-FAC, NTKMTL, RelatIF,
+  Automatic Clipping, Fishr, AdaFace, MagFace, AdaCos, LARS, generic functional
   damping, and the failed RSTA angular proposition. The reviewer must not read
   old row values or suggest repairing RSTA.
 
@@ -141,7 +152,7 @@ Tests and plans are excluded from scientific source files.
 - [ ] **Step 3: Review the full candidate and plan contract**
 
   Require exact coverage of fresh disjoint selection, two contexts, nested
-  contributor masks, global-scalar/heterogeneity gates, all six corrections,
+  contributor masks, global-scalar/heterogeneity gates, all seven corrections,
   per-example gradient normalization, update norm matching, margins, paired
   bootstrap, decisions, graph lifetime, all-four integrity prefix, output,
   one-attempt behavior, source/manifest ancestry, and no training.
@@ -167,7 +178,10 @@ Tests and plans are excluded from scientific source files.
   ```python
   rdgc_error(torch_module, b, s, *, epsilon: float = 1e-8)
   rdgc_penalty(torch_module, b, s, *, epsilon: float = 1e-8)
-  control_penalties(torch_module, *, b, s, dbar, receiver_fields, per_example_gradients)
+  control_penalties(torch_module, *, b, s, dbar, receiver_fields, pgn_motion)
+  pgn_detached_coefficients(torch_module, first_order_gradient_norms)
+  pgn_weighted_cotangent(torch_module, dbar, coefficients)
+  layerwise_trust_ratio_direction(torch_module, named_parameters, p)
   fp64_named_norm(torch_module, values: tuple[Tensor, ...])
   fp64_named_dot(torch_module, left: tuple[Tensor, ...], right: tuple[Tensor, ...])
   normalize_virtual_updates(torch_module, p, corrections, *, alpha: float = 0.10)
@@ -205,14 +219,24 @@ Tests and plans are excluded from scientific source files.
   test_batch_global_gain_uses_eight_receiver_geometric_mean
   test_scalar_diagonal_raw_uses_batch_gain_times_each_raw_norm
   test_per_example_gradient_normalization_uses_all_180_in_row_order
+  test_pgn_coefficients_are_detached_before_one_weighted_global_vjp
+  test_pgn_one_global_vjp_is_algebraically_equal_to_tiny_explicit_sum
   test_full_motion_control_is_generic_normalized_damping
+  test_layerwise_trust_ratio_uses_exact_registered_groups_and_formula
+  test_layerwise_trust_ratio_is_distinct_from_batch_global_gain
   ```
 
-  Assert exact operator order. For PGN, use unequal synthetic gradient norms,
-  require FP64 geometric mean, detached coefficients, exact ordered sum, and a
-  recording sentinel proving no contributor is skipped, sorted, or reused.
-  Reject replacing per-example normalization with clipping, mean gradients,
-  scalar loss weights, or a preconditioner.
+  Assert exact eight-operator order. For PGN, use unequal synthetic gradient
+  norms, require FP64 geometric mean, detached coefficients, exact row order,
+  a single weighted cotangent/global VJP, and a tiny real autograd equality
+  oracle against the explicit mathematical sum. A recording sentinel proves no
+  contributor is skipped, sorted, or reused and no collection of 180
+  differentiable gradient trees exists. Reject replacing per-example
+  normalization with clipping, mean gradients, scalar loss weights, or a
+  preconditioner. For the trust-ratio control, group exact names by
+  `name.rsplit(".",1)[0]`, require first-occurrence group order, FP64 named norms,
+  detached `tau_l=||theta_l||/(||p_l||+1e-12)`, FP32 multiplication, and no
+  optimizer/decay/moment state.
 
 - [ ] **Step 4: Add update-normalization REDs**
 
@@ -243,7 +267,8 @@ Tests and plans are excluded from scientific source files.
   test_preliminary_survival_requires_every_literal_predicate
   test_preliminary_close_precedence_and_exact_boundaries
   test_preliminary_middle_region_is_unresolved
-  test_panel_pass_requires_every_pa_control_context_and_alias_predicate
+  test_panel_pass_requires_every_pa_six_control_context_and_alias_predicate
+  test_context_b_each_control_requires_alignment_and_slope_pooled_lb_and_three_seeds
   test_panel_close_precedence_and_exact_boundaries
   test_panel_middle_region_is_unresolved
   test_any_integrity_schema_or_nonfinite_fault_is_invalid
@@ -300,23 +325,32 @@ Tests and plans are excluded from scientific source files.
 
 - [ ] **Step 3: Implement exact controls and normalized updates**
 
-  Keep the six control constructors separate and assemble them once through a
-  literal ordered dispatcher. Return fresh tuples; validate identity, dtype,
-  device, shape, finite values, names, and lengths before reductions.
+  Keep RDGC and the five penalty-control constructors separate, keep the
+  PGN two-pass constructor separate, and keep the non-penalty trust-ratio
+  direction separate. Assemble them once through the literal eight-operator
+  dispatcher. Return fresh tuples; validate identity, dtype, device, shape,
+  finite values, names, and lengths before reductions.
 
 - [ ] **Step 4: Implement pure aggregate, bootstrap, and decision functions**
 
   Validate exact row order and schemas before any mean/median. Use NumPy
   float64 arrays and stable insertion order. Evaluate all CLOSE predicates in
-  literal order, then all PASS predicates, then UNRESOLVED. Return exact Boolean
-  ledgers and first decisive clause.
+  literal order, then all PASS predicates, then UNRESOLVED. Context-B
+  superiority over each of six controls independently requires pooled
+  `A_rdgc-A_control>0`, pooled `M_rdgc-M_control>0`, both paired-bootstrap lower
+  bounds `>0`, and at least three positive seed means for each metric. Return
+  exact Boolean ledgers and first decisive clause.
 
 - [ ] **Step 5: Implement exact full and reduced output validators**
 
-  Freeze the candidate's top-level and nested key order. Require exact concrete
+  Implement the candidate's literal nested schema registry, including the
+  future-manifest schema, without a permissive fallback. Require exact concrete
   JSON types, finite floats including signed-zero-aware comparisons where
   equality matters, fixed scalars, status/phase/null relations, all row counts,
   all hashes, and forbidden scientific content in pre-science INVALID output.
+  Recursively enumerate every path occurrence and prove remove/add/reorder/
+  mistype/nonfinite/signed-zero/relational/hash mutations are rejected; ordinary
+  key-set or `dict` equality is forbidden.
 
 - [ ] **Step 6: Run Task 2 tests GREEN**
 
@@ -387,17 +421,25 @@ Tests and plans are excluded from scientific source files.
 
   ```text
   test_nested_masks_are_receiver_plus_prefix_counts_1_8_32_180
+  test_preliminary_one_shared_graph_and_dbar_serves_all_receivers_and_counts
+  test_preliminary_exact_one_forward_eight_diagonal_and_32_masked_action_calls
   test_preliminary_b1_equals_self_action_before_reduction
   test_preliminary_metrics_include_context_stability_count_and_global_scalar
   test_preliminary_close_or_unresolved_never_constructs_panel
   test_preliminary_survival_constructs_panel_once_without_operator_input
   ```
 
-  Require direct live `torch.equal` and equal action hashes for `b_1` and `s`
-  before detach/copy. Mutation tests reorder contributors, recompute dbar on a
-  subset, use different receivers across contexts, pool before per-seed
-  statistics, use Pearson instead of Spearman, or fit the global scalar on the
-  other context; all fail.
+  Per seed/context require one object-identical live functional graph and
+  `dbar` shared by all eight receivers/counts, exactly one forward/loss/dbar,
+  eight independently constructed diagonal VJP/JVPs, and 32 masked VJP/JVPs in
+  receiver then `1,8,32,180` order. Require direct live `torch.equal` on
+  distinct `b_1` and `s` tensor identities and equal action hashes before
+  detach/copy. Mutation tests reorder contributors, recompute forward/BN/dbar
+  for a receiver or mask, reuse one tensor as both equality operands, use
+  different receivers across contexts, pool before per-seed statistics, use
+  Pearson instead of Spearman, or fit the global scalar on the other context;
+  all fail. Weakrefs prove each mask/VJP/JVP dies before the next action and the
+  one shared graph dies before the next seed/context.
 
 - [ ] **Step 4: Add all-four integrity-prefix REDs**
 
@@ -450,10 +492,14 @@ Tests and plans are excluded from scientific source files.
 - [ ] **Step 4: Implement all-four integrity and preliminary schedule**
 
   Complete all seed integrity records first. For preliminary science process
-  seed, context, receiver, count in literal order. Each fresh graph computes
-  exact full contextual `dbar` plus only its registered mask action; directly
-  compare `b_1/s`, reduce/hash, detach JSON evidence, then delete graph/model/
-  CUDA state before the next count. Do not accumulate full-panel state.
+  seed then context. Build one exact full B=180 graph and `dbar`; within it
+  process receiver order and, for each receiver, an independent diagonal action
+  followed by masked counts `1,8,32,180`. Directly compare the distinct live
+  `b_1/s`, reduce/hash each action, and delete each action/mask immediately.
+  Retain only the one shared graph until all 32 masks finish, then delete graph,
+  model, functional state, inputs, BN/context state, and CUDA references before
+  the next seed/context. Do not recompute forward/loss/dbar or accumulate
+  full-panel state.
 
 - [ ] **Step 5: Implement automatic preliminary branch**
 
@@ -500,9 +546,10 @@ Tests and plans are excluded from scientific source files.
   test_panel_fail_fast_stops_all_later_operator_and_context_calls
   ```
 
-  Recording adapters require candidate first, then controls in frozen order;
+  Recording adapters require candidate first, then six controls in frozen order;
   context A then B for each detached direction; exact 256 context rows
-  (`32*4*2`); and no hidden alternate ordering or omitted negative control.
+  (`32*4*2`), eight operator records per row, 28 exact paired-bootstrap
+  distributions; and no hidden alternate ordering or omitted negative control.
 
 - [ ] **Step 2: Add control and alias-sentinel REDs**
 
@@ -511,8 +558,10 @@ Tests and plans are excluded from scientific source files.
   ```text
   test_raw_control_is_dbar_angle_not_self_angle
   test_batch_global_and_scalar_raw_controls_cannot_reuse_receiver_target
-  test_pgn_control_has_180_serial_contributors_and_no_live_gradient_list
+  test_pgn_coefficient_pass_has_180_serial_first_order_norms_and_no_live_gradient_list
+  test_pgn_correction_pass_has_exactly_one_weighted_global_vjp
   test_full_motion_control_has_no_diagonal_or_raw_target
+  test_layerwise_trust_ratio_has_no_candidate_or_batch_global_gain_target
   test_correction_cosines_use_original_cpu_named_order
   ```
 
@@ -527,6 +576,8 @@ Tests and plans are excluded from scientific source files.
   test_only_one_cuda_graph_and_one_operator_action_live_at_peak
   test_action_tensors_are_reduced_hashed_detached_and_deleted_before_next_graph
   test_only_p_and_current_rdgc_cpu_directions_cross_control_graphs
+  test_pgn_coefficient_graph_dies_before_weighted_correction_graph
+  test_pgn_only_detached_scalar_norms_cross_two_pass_boundary
   test_weakrefs_die_after_every_preliminary_count_operator_and_context
   test_invalid_or_close_releases_models_caches_closures_and_cuda_references
   ```
@@ -541,7 +592,8 @@ Tests and plans are excluded from scientific source files.
   Add:
 
   ```text
-  test_full_preliminary_and_reduced_invalid_schemas_reject_every_nested_mutation
+  test_full_preliminary_and_reduced_invalid_schemas_reject_every_recursive_occurrence_mutation
+  test_future_manifest_schema_rejects_every_recursive_occurrence_mutation
   test_atomic_writer_never_replaces_follows_or_leaves_temporary
   test_cli_is_exact_fresh_process_one_attempt_and_no_retry
   test_cli_preliminary_close_never_imports_panel_builder
@@ -556,10 +608,29 @@ Tests and plans are excluded from scientific source files.
   output derivation from `HV_G`, absent output/temp, PID consistency, one
   checkpoint-open transition, and exact exit/status relations.
 
-- [ ] **Step 5: Run new nodes RED**
+- [ ] **Step 5: Add the mandatory unmocked real-CPU derivative/receipt RED**
+
+  Add exactly
+  `test_real_cpu_torch_func_end_to_end_authenticated_pass200_helper_no_adapters`.
+  It source-loads the real Pass 200 helper only after authenticating its
+  registered Git blob/worktree bytes and `__file__`, then uses real CPU
+  `torch.func` on a small deterministic functional model and real tensors. In
+  one end-to-end call it constructs the contextual field, the real higher-order
+  RDGC correction, the two-pass/one-global-VJP PGN correction, the real
+  layerwise trust-ratio direction, all normalized updates, distinct contexts A
+  and B, JVP motions, margins, a complete scientific payload, strict recursive
+  validation, and receipt serialization/reload. No fake tensor/module,
+  recording adapter, monkeypatched VJP/JVP/grad, fake helper, or schema adapter
+  is allowed in this test. It asserts numerical formulas and exact action/call
+  order plus weakref death of both context graphs, PGN coefficient/correction
+  graphs, functional states, actions, corrections, and output tensors after
+  only JSON evidence remains. A test collection hook fails if this named node
+  is skipped, xfailed, parametrically empty, or CUDA-gated.
+
+- [ ] **Step 6: Run new nodes RED**
 
   ```bash
-  .venv/bin/pytest -q tests/test_diagnose_pass205_rdgc_stage_b.py -k 'panel or control or lifetime or weakref or atomic or cli or unreachable'
+  .venv/bin/pytest -q tests/test_diagnose_pass205_rdgc_stage_b.py -k 'panel or control or lifetime or weakref or atomic or cli or unreachable or real_cpu_torch_func'
   ```
 
   Expected: FAIL on absent panel/CLI implementation.
@@ -577,17 +648,26 @@ Tests and plans are excluded from scientific source files.
 
 - [ ] **Step 1: Implement one-operator correction graphs**
 
-  For each operator, construct a fresh exact B=180 field and compute only that
-  correction. Reduce its norm and CPU direction before graph deletion. Candidate
-  direction may persist on CPU while controls are serially compared; no other
-  control direction persists after its two context JVPs and cosine.
+  For RDGC and each penalty-based control, construct a fresh exact B=180 field
+  and compute only that correction. The layerwise trust-ratio direction is
+  constructed directly from the authenticated named parameters and ordinary PA
+  direction, without a loss or candidate graph. Reduce each norm and CPU
+  direction before graph deletion. Candidate direction may persist on CPU while
+  controls are serially compared; no other control direction persists after its
+  two context JVPs and cosine.
 
-- [ ] **Step 2: Implement serial PGN without a live 180-gradient list**
+- [ ] **Step 2: Implement viable two-pass PGN with one weighted global VJP**
 
-  First pass computes/hashes the 180 FP64 norms serially and obtains detached
-  `nu`. Rebuild one fresh graph, traverse rows in exact order, scale each live
-  `g_j`, add immediately into the one FP32 accumulator, and delete `g_j` before
-  the next. Validate row-call count/order and accumulator provenance.
+  The coefficient graph computes full contextual `dbar` once, then serial
+  first-order `g_j^(0)=J_j^T stopgrad(dbar_j)` with no higher-order graph,
+  detaches each FP64 norm, and deletes each gradient before the next. Compute
+  detached `nu` and 180 detached coefficients, release the entire graph, and
+  assert only scalar coefficient evidence survives. Rebuild one hash-identical
+  higher-order context graph, form the weighted cotangent
+  `dbar_PGN,j=a_j*dbar_j`, and call exactly one global VJP to obtain the
+  differentiable `g_PGN=J_all^T dbar_PGN`. Build `b_PGN,r`, its penalty, and
+  correction from that one tree. Validate exact call order/count, VJP-linearity
+  algebra against the tiny test oracle, graph weakrefs, and no 180-tree path.
 
 - [ ] **Step 3: Implement norm-matched directions and context JVPs**
 
@@ -598,9 +678,12 @@ Tests and plans are excluded from scientific source files.
 
 - [ ] **Step 4: Implement complete panel aggregation/decision**
 
-  Require all 256 rows and every operator. Aggregate/paired-bootstrap only after
-  all rows exist. Apply CLOSE precedence then PASS then UNRESOLVED. Preserve all
-  raw rows and distribution hashes; no selected aggregate may substitute.
+  Require all 256 rows and all eight operators. Aggregate/paired-bootstrap only
+  after all rows exist. Materialize exactly 28 distributions in context,
+  comparator, metric order. Require the context-B pooled/LB/three-seed
+  alignment **and** slope predicates for every control. Apply CLOSE precedence
+  then PASS then UNRESOLVED. Preserve all raw rows and distribution hashes; no
+  selected aggregate may substitute.
 
 - [ ] **Step 5: Implement atomic output and CLI**
 
@@ -713,19 +796,40 @@ Tests and plans are excluded from scientific source files.
   seeds
   ```
 
-  `candidate` binds exact path/SHA/commit. `implementation_plan` binds final
-  reviewed path/SHA/commit. `upstream_rsta` contains the literal chain in this
-  plan. `literature_audit` binds the fresh review. `validation_receipt` binds
-  exact path/SHA and validated relations. `historical` copies complete seed
-  artifact bindings without candidate values. `current_scientific_source`
-  binds `V_G` and exact `RDGC_SOURCE_ORDER` hashes. `artifact_schema` binds the
-  candidate's full/reduced schemas and exact result path function. `seeds` is
-  exactly `[0,1,2,3]`.
+  Instantiate the candidate's **Literal future manifest schema** exactly; this
+  is normative, not an example. The nested insertion orders are exactly:
+
+  ```text
+  candidate = path,sha256,commit
+  implementation_plan = path,sha256,commit
+  upstream_rsta = candidate,gate2_audit,producer_source_commit,
+    producer_handoff_commit,producer_artifact,producer_pid,producer_exit_code,
+    verifier_source_commit,verifier_handoff_commit,verifier_manifest,
+    scientific_status,scientific_decision,first_decisive_clause
+  literature_audit = path,sha256,commit,verdict,reviewed_candidate_sha256,
+    primary_source_ids
+  validation_receipt = path,sha256,status,verifier_source_commit,
+    verifier_handoff_commit,artifact_path,artifact_sha256
+  historical = manifest_path,manifest_sha256,seeds
+  current_scientific_source = git_revision,files
+  artifact_schema = result_path_template,schema_version,diagnostic,mode,
+    statuses,phases,top_level_keys,invalid_null_fields,operator_order,
+    contributor_counts
+  ```
+
+  Every `ref`, `artifact_ref`, `seed_artifacts`, and `source_file` has the exact
+  key order/type/semantics in that registry. `primary_source_ids` has exact
+  length 14 and reviewed order; source files have exact length 33; status,
+  phase, top-key, null-field, eight-operator, contributor-count, and four-seed
+  arrays are literal. `candidate` binds the reviewed fix bytes above;
+  `implementation_plan` binds this final reviewed commit. No ordinary dict
+  equality, key sorting, inferred default, or descriptive extra field is
+  accepted.
 
 - [ ] **Step 2: Run already-GREEN manifest/provenance tests**
 
   ```bash
-  .venv/bin/pytest -q tests/test_diagnose_pass205_rdgc_stage_b.py -k 'authority or manifest or source or receipt or schema'
+  .venv/bin/pytest -q tests/test_diagnose_pass205_rdgc_stage_b.py -k 'authority or manifest or source or receipt or schema or recursive_occurrence'
   git diff --check -- docs/pass205_rdgc_stage_b_manifest.json
   ```
 
@@ -838,13 +942,21 @@ Tests and plans are excluded from scientific source files.
 - [ ] Old values are hypothesis generation only and never test expectations.
 - [ ] RDGC uses only detached scalar self norm and no angular/vector self target.
 - [ ] Preliminary uses fresh 8 identities, two contexts, and counts 1/8/32/180.
+- [ ] Each preliminary seed/context uses one shared graph/dbar, eight diagonal
+      and 32 masked VJP/JVP actions, with no BN/context recomputation.
 - [ ] Full panel uses fresh 32 identities and all six controls in exact order.
 - [ ] All updates have exact matched PA norm; context B reuses context-A CPU bytes.
-- [ ] PGN consumes 180 contributors serially with no live gradient list.
+- [ ] PGN detaches 180 coefficient norms, releases that graph, then uses one
+      weighted global higher-order VJP; no 180-tree path exists.
+- [ ] The trust-ratio control uses exact named-layer groups/formula and is not
+      aliased to batch-global gain.
 - [ ] All four seed integrity audits precede all candidate state/calls.
 - [ ] Graph/CUDA/CPU action lifetime and fail-fast paths have weakref coverage.
 - [ ] Paired PCG64(201) bootstrap and every decision boundary are exact.
 - [ ] Full/reduced schemas, atomic no-clobber, and one-attempt semantics are exact.
+- [ ] Every nested result/manifest occurrence has recursive mutation coverage.
+- [ ] The named unmocked real-CPU torch.func/helper end-to-end test passes
+      without fakes, adapters, derivative monkeypatches, skips, or xfails.
 - [ ] Aggregate source scope is exactly two new files; handoff is one new manifest.
 - [ ] Current RSTA manifest, `src/`, artifacts, reports, results, and root untracked files remain untouched.
 - [ ] PASS authorizes only a separate training preregistration; no training or benchmark occurs.
