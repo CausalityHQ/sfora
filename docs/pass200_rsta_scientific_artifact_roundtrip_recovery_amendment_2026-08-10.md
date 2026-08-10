@@ -112,17 +112,28 @@ set of keys.
 
 The producer's `_validate_registered_rows` indexes the canonical mapping with
 `str(row["label"])`. It validates the canonical key sequence before any row
-lookup. `scientific_payload` must accept its own exact JSON roundtrip:
+lookup. The implementation test must exercise the live producer's real
+`scientific_payload`, strict loader, and writer semantics. Given one complete
+synthetic valid argument set, it computes `first`, then exactly:
 
 ```text
-persisted = strict JSON load(exact JSON serialization(scientific_payload(...)))
-scientific_payload(components from persisted) == persisted
+first_bytes =
+  UTF-8(json.dumps(first, indent=2, sort_keys=False, allow_nan=False) + "\\n")
+persisted = strict JSON load(first_bytes)
+second = scientific_payload(the complete ten components from persisted)
+exact_ordered_equal(second, persisted) is true
+UTF-8(json.dumps(second, indent=2, sort_keys=False, allow_nan=False) + "\\n")
+  == first_bytes
 ```
 
-The equality above is tested with exact recursive type and insertion-order
-semantics, not ordinary mapping equality alone. All prior live relational
-checks remain in force. This repair does not loosen a scientific validator and
-does not authorize re-running the live producer.
+`exact_ordered_equal` here is the verifier's concrete-JSON recursive comparator:
+it requires identical concrete types, exact mapping key order, exact list
+order, and IEEE-754 byte equality for finite floats, including distinguishing
+`0.0` from `-0.0`. The test carries a synthetic `-0.0` through a live-payload
+field accepted and preserved by the producer, proves a post-hoc `+0.0` mutant
+is rejected, and never uses ordinary `dict ==` as its validation predicate.
+All prior live relational checks remain in force. This repair does not loosen
+a scientific validator and does not authorize re-running the live producer.
 
 ## Separate offline legacy validator
 
@@ -186,8 +197,44 @@ The verifier authenticates all of the following before legacy validation:
   `85958a940c5a4c9f0ae27f3342e436a8a37e49d94fe9515b22db0340d597ef6e`;
   and
 - the artifact's persisted `manifest` object is recursively type- and
-  order-identical to the exact projection of the old manifest, including path,
-  SHA-256, all authorities, historical and artifact-schema objects, and source.
+  order-identical to the exact ten-key old projection frozen below.
+
+### Exact old persisted manifest projection
+
+The old persisted scientific `manifest` object has exactly these ten keys in
+this order:
+
+```text
+path
+sha256
+base_preregistration
+amendment
+deterministic_pool_amendment
+zero_jacobian_classifier_amendment
+binding_receipt
+historical
+artifact_schema
+source
+```
+
+The verifier independently derives that projection from the authenticated
+manifest Git blob at `H`, never from current source and never by selecting keys
+present in the artifact. `path` is exactly
+`docs/pass200_rsta_receipt_stage_a_manifest.json`; `sha256` is exactly
+`9260329a0f9ad45257f51292d40c3a6d70c9494ea3e8fd185afcf8484f9378fe`;
+the next seven named values are the recursively exact values of the same-named
+keys in the H manifest; and `source` is the recursively exact value of H's
+`current_scientific_source`.
+
+Although the H manifest itself also contains
+`adjoint_integrity_amendment`, `normwise_adjoint_calibration_protocol`,
+`normwise_adjoint_calibration_result`, `normwise_adjoint_amendment`, and
+`normwise_adjoint_sign_control_amendment`, producer `S` constructed its
+scientific projection with the explicit ten-key literal above and therefore
+omitted those five later authorities. H's top-level `schema_version` and
+`seeds` are likewise not part of the persisted scientific projection. Adding
+an omitted key, dropping a registered key, changing order or type, or deriving
+the projection through the current producer is invalid.
 
 ### Isolated old-H execution
 
@@ -209,6 +256,16 @@ The timeout is exactly `600` seconds. `close_fds=True` is required and
 `pass_fds` contains exactly the one artifact descriptor. Captured stdout and
 stderr are each bounded to `64` bytes; exceeding either bound is structural.
 
+Before the artifact is opened, the parent derives the registered interpreter
+as the exact absolute live-repository path `.venv/bin/python`, requires
+`sys.executable` to equal that exact path, and requires both paths to resolve to
+the same existing regular executable. The observed runtime must satisfy
+`sys.version_info[:3] == (3, 12, 3)` and its canonical recorded value is
+`"3.12.3"`. The child is launched with that authenticated
+`sys.executable`, independently repeats the exact path/resolution/version
+checks against the separately supplied live repository, and rejects an
+interpreter argument, executable path, or runtime-version drift.
+
 The child reauthenticates:
 
 - its executing verifier `__file__` is the exact absolute path authenticated by
@@ -223,6 +280,19 @@ The child reauthenticates:
 - that file's worktree bytes and the `S` and `H` Git blobs have the registered
   diagnostic digest; and
 - the loaded callable is exactly the legacy module's `scientific_payload`.
+
+After strict parsing and before adapter construction or any call to
+`scientific_payload`, the child requires the raw artifact's `environment` to
+be a concrete ordered `dict`, its `numpy_version` to be a concrete nonempty
+`str`, the imported old diagnostic's `np` object to be exactly the child
+runtime module at `sys.modules["numpy"]`, and
+`str(legacy_module.np.__version__)` to equal that persisted
+`environment.numpy_version`. The parent records its own observed
+`str(numpy.__version__)`; the child also requires that parent value to equal
+both its module value and the persisted value. Any wrong NumPy module identity,
+missing or mistyped persisted version, or version drift is artifact-invalid
+when only the persisted field differs and structural when the authenticated
+runtime or module differs. These gates precede all legacy recomputation.
 
 The child suppresses scientific values and exception representations. Its
 complete permitted process outcomes are exactly:
@@ -527,10 +597,19 @@ process keys, in order:
   child_exit_code = 0 exactly when status is VALID, otherwise 1
   python_executable = ".venv/bin/python"
   python_version = "3.12.3"
+  numpy_version = exact observed parent/child version that matched the persisted artifact environment.numpy_version
   isolated = true
   child_head_commit = H
   cuda_visible_devices = ""
 ```
+
+The three runtime receipt fields are emitted only from authenticated observed
+values: `python_executable` is normalized to the registered
+repository-relative path only after the exact absolute `sys.executable` gate;
+`python_version` is formatted from the observed exact version tuple; and
+`numpy_version` is copied from the observed parent runtime only after the child
+has proved exact parent/child/persisted equality. They are runtime provenance,
+not candidate or scientific values.
 
 The receipt has no scientific verdict, decisive clause, candidate flag or
 value, field, row, score, metric, aggregate, bootstrap value or hash,
@@ -559,6 +638,9 @@ The complete RED suite precedes verifier implementation and manifest-validator
 GREEN work. It must prove:
 
 - canonical string keys and exact order after JSON roundtrip;
+- a live-producer exact recursive concrete-type/key-order/list-order/signed-zero
+  roundtrip through `exact_ordered_equal`, plus byte-identical first/second
+  producer serialization, with ordinary `dict ==` forbidden as the predicate;
 - rejection of integer, boolean, alias, missing, extra, reordered, duplicate,
   and collision keys;
 - unchanged live scientific relational checks and serialized output order;
@@ -566,9 +648,13 @@ GREEN work. It must prove:
 - the single permitted adapter mutation and rejection of every other mutation;
 - full old `scientific_payload` invocation and no selected-field shortcut;
 - old-H cwd, diagnostic `__file__`, HEAD, manifest, S/H blob, and 31-path gates;
+- the exact ten-key old persisted manifest projection derived from H and
+  rejection of every omitted-authority/current-projection mutant;
 - V/HV verifier `__file__`, manifest, source-path, Git-blob, worktree, parent,
   and clean-checkout gates;
 - exact recursive type/order equality and byte-identical serialization;
+- exact registered `sys.executable`, observed Python `3.12.3`, old-module NumPy
+  identity, and parent/child/persisted NumPy version equality before recomputation;
 - candidate/row/value-free stdout, stderr, and receipt;
 - canonicalization, tolerance, ordinary-dict-equality, selected-field,
   current-producer, wrong-import, wrong-cwd, and detached-source mutants fail;
