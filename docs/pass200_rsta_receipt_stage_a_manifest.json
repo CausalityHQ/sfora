@@ -24,6 +24,26 @@
     "sha256": "2187aa4ae343c77e50cee28d1a64d0f5e31464ea220e40b8b4b95abf0f183b2c",
     "commit": "4c6886997b4116dcdb4ee5057e9544852695b42d"
   },
+  "normwise_adjoint_calibration_protocol": {
+    "path": "docs/pass200_rsta_normwise_adjoint_calibration_protocol_2026-08-09.md",
+    "sha256": "2f4d52fd6c69588248f1b27acbcd5503b0e53dc3c5bd6b5e0755564017dc21db",
+    "commit": "171a3fe24386dbab4eb361c04cbf252da4f4e0bb"
+  },
+  "normwise_adjoint_calibration_result": {
+    "path": "reports/generated/pass200_rsta_receipt/0f5d1e2f626524f02c565a04f6fa0ae7127cd7e2-normwise-adjoint-calibration.json",
+    "sha256": "5fcb09a1e3a6eedddd05ef49bd22bc9920656089aa401a5aae2c5704a9d9dc50",
+    "commit": "95525af61d66b063983dc55a6015168d9aafd12b"
+  },
+  "normwise_adjoint_amendment": {
+    "path": "docs/pass200_rsta_normwise_adjoint_amendment_2026-08-09.md",
+    "sha256": "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4",
+    "commit": "6ddf1db20e75a47e40726d223827cd3f1a8968e3"
+  },
+  "normwise_adjoint_sign_control_amendment": {
+    "path": "docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md",
+    "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
+    "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e"
+  },
   "binding_receipt": {
     "path": "docs/pass200_rsta_binding_receipt_d6270a9.json",
     "sha256": "e75944aed5af0fbe53af9febbc9a9a5d30045357eb6b1f086c4ba61e10f82300"
@@ -47,10 +67,11 @@
     }
   },
   "current_scientific_source": {
-    "git_revision": "ea7100110816b1eafb5f309d85272019b3b78ada",
+    "git_revision": "15234a529a181c39c1c8b6477ad7eb7823fd0798",
     "files": {
       "scripts/diagnose_pass159_cotangent_stage_a.py": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
-      "scripts/diagnose_pass200_rsta_stage_a.py": "45fd0659f59a165701e9819f204092d04fdcd9a51ad3afd75f18f108837d14f1",
+      "scripts/diagnose_pass200_rsta_stage_a.py": "85958a940c5a4c9f0ae27f3342e436a8a37e49d94fe9515b22db0340d597ef6e",
+      "scripts/rsta_normwise_adjoint.py": "bbb478a0a650b6e3fcf5c306fd972632948d66b18dfc85e1545b2fa6aa22f6db",
       "src/sfora/__init__.py": "5de45a3409573b0c914d7228021b1323ed4d46c2e66eaf960791f50417fef058",
       "src/sfora/ablation.py": "b936039fc44bf143fbffa1c4306ba3b61d101fc348b17800b6002ece08f55655",
       "src/sfora/api.py": "b45894fed86d371e3820aa12c2319f087068156f8bb16cf47ce06f29f461a4b4",
