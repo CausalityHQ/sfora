@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import struct
 import subprocess
 import sys
@@ -20,6 +22,12 @@ exec(compile(_SCRIPT.read_bytes(), str(_SCRIPT), "exec"), _NAMESPACE)
 
 def _call(function_name: str, *args: object, **kwargs: object) -> object:
     return _NAMESPACE[function_name](*args, **kwargs)
+
+
+def _exception(name: str) -> type[Exception]:
+    value = _NAMESPACE[name]
+    assert isinstance(value, type) and issubclass(value, Exception)
+    return value
 
 
 def _raw_payload() -> dict[str, object]:
@@ -303,10 +311,121 @@ def test_legacy_manifest_projection_rejects_later_authority_and_current_projecti
         _call("validate_legacy_roundtrip", _encoded(raw), _legacy_module(raw, calls))
 
 
-def test_real_h_scientific_payload_roundtrips_a_synthetic_artifact_in_isolated_child() -> None:
-    assert "run_isolated_legacy_child" in _NAMESPACE
-    assert "LEGACY_HANDOFF_COMMIT" in _NAMESPACE
-    assert _NAMESPACE["LEGACY_HANDOFF_COMMIT"] == "c04574e2bb751c3229bce673408577cfedc00a88"
+def _synthetic_old_manifest() -> dict[str, object]:
+    return {
+        "base_preregistration": {"path": "base", "sha256": "a" * 64},
+        "amendment": {"path": "amendment", "sha256": "b" * 64},
+        "deterministic_pool_amendment": {"path": "pool", "sha256": "c" * 64},
+        "zero_jacobian_classifier_amendment": {"path": "zero", "sha256": "d" * 64},
+        "binding_receipt": {"path": "receipt", "sha256": "e" * 64},
+        "historical": {"producer_commit": "f" * 40},
+        "artifact_schema": {"path": "schema", "sha256": "1" * 64},
+        "current_scientific_source": {"git_revision": "2" * 40, "files": {}},
+    }
+
+
+def _run_synthetic_legacy_child(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+    *,
+    raised: Exception | None = None,
+    persisted_numpy_version: object | None = None,
+    wrong_numpy_module: bool = False,
+    forked: bool = False,
+) -> tuple[int, bytes, list[dict[str, object]]]:
+    import numpy
+
+    old = tmp_path / "old"
+    manifest_path = old / _NAMESPACE["LEGACY_MANIFEST_PATH"]
+    manifest_path.parent.mkdir(parents=True)
+    old_manifest = _synthetic_old_manifest()
+    manifest_path.write_text(json.dumps(old_manifest), encoding="utf-8")
+    raw = _raw_payload()
+    raw["environment"]["numpy_version"] = (
+        numpy.__version__
+        if persisted_numpy_version is None
+        else persisted_numpy_version
+    )
+    raw["manifest"] = _call("legacy_manifest_projection", old, old_manifest)
+    raw_bytes = _encoded(raw)
+    artifact = tmp_path / "artifact.json"
+    artifact.write_bytes(raw_bytes)
+    descriptor = os.open(artifact, os.O_RDONLY)
+    calls: list[dict[str, object]] = []
+    module = _legacy_module(raw, calls)
+    if wrong_numpy_module:
+        module.np = object()
+    if raised is not None:
+        def fail(**_kwargs: object) -> dict[str, object]:
+            raise raised
+
+        module.scientific_payload = fail
+    runtime = {
+        "python_executable": ".venv/bin/python",
+        "python_version": "3.12.3",
+        "numpy_version": numpy.__version__,
+    }
+    monkeypatch.setitem(_NAMESPACE, "ARTIFACT_SHA256", hashlib.sha256(raw_bytes).hexdigest())
+    monkeypatch.setitem(_NAMESPACE, "authenticate_runtime", lambda _repository: runtime)
+    monkeypatch.setitem(
+        _NAMESPACE,
+        "authenticate_verifier_provenance",
+        lambda _repository, _manifest: {
+            "source_commit": "a" * 40,
+            "handoff_commit": "b" * 40,
+        },
+    )
+    monkeypatch.setitem(_NAMESPACE, "authenticate_legacy_provenance", lambda _repo: {})
+    monkeypatch.setitem(_NAMESPACE, "_load_legacy_module", lambda _checkout: module)
+
+    def git(_repository: Path, *arguments: str, **_kwargs: object) -> str:
+        return _NAMESPACE["LEGACY_HANDOFF_COMMIT"] if "rev-parse" in arguments else ""
+
+    monkeypatch.setitem(_NAMESPACE, "_git", git)
+    arguments = types.SimpleNamespace(
+        live_repository=str(tmp_path),
+        old_checkout=str(old),
+        artifact_fd=descriptor,
+        verifier_source_commit="a" * 40,
+        verifier_handoff_commit="b" * 40,
+        expected_numpy_version=numpy.__version__,
+    )
+    if forked:
+        read_fd, write_fd = os.pipe()
+        pid = os.fork()
+        if pid == 0:
+            try:
+                os.close(read_fd)
+                os.dup2(write_fd, 1)
+                os.close(write_fd)
+                os._exit(_call("_legacy_child", arguments))
+            except BaseException:
+                os._exit(127)
+        os.close(write_fd)
+        os.close(descriptor)
+        token = os.read(read_fd, 65)
+        os.close(read_fd)
+        _, status = os.waitpid(pid, 0)
+        exit_code = os.waitstatus_to_exitcode(status)
+    else:
+        try:
+            exit_code = _call("_legacy_child", arguments)
+        finally:
+            os.close(descriptor)
+        token = capfd.readouterr().out.encode("ascii")
+    return exit_code, token, calls
+
+
+def test_real_h_scientific_payload_roundtrips_a_synthetic_artifact_in_isolated_child(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    exit_code, token, _calls = _run_synthetic_legacy_child(
+        tmp_path, monkeypatch, capfd, forked=True
+    )
+    assert (exit_code, token) == (0, _NAMESPACE["VALID_TOKEN"])
 
 
 def test_legacy_provenance_binds_h_s_old_manifest_and_all_31_blobs() -> None:
@@ -324,8 +443,69 @@ def test_legacy_provenance_binds_h_s_old_manifest_and_all_31_blobs() -> None:
 
 
 def test_legacy_child_uses_old_h_cwd_diagnostic_file_and_callable() -> None:
-    assert _NAMESPACE["LEGACY_DIAGNOSTIC_PATH"] == "scripts/diagnose_pass200_rsta_stage_a.py"
-    assert callable(_NAMESPACE["_load_legacy_module"])
+    temporary = _call("_create_legacy_checkout", _REPOSITORY)
+    try:
+        module = _call("_load_legacy_module", temporary.checkout)
+        expected = temporary.checkout / _NAMESPACE["LEGACY_DIAGNOSTIC_PATH"]
+        assert Path(module.__file__).resolve() == expected.resolve()
+        assert callable(module.scientific_payload)
+    finally:
+        temporary.cleanup()
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected_exit", "expected_token"),
+    (
+        (ValueError("registered validation"), 1, "INVALID_TOKEN"),
+        (RuntimeError("runtime failure"), 2, "STRUCTURAL_TOKEN"),
+    ),
+)
+def test_legacy_child_distinguishes_artifact_invalid_from_structural_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+    raised: Exception,
+    expected_exit: int,
+    expected_token: str,
+) -> None:
+    exit_code, token, calls = _run_synthetic_legacy_child(
+        tmp_path, monkeypatch, capfd, raised=raised
+    )
+    assert (exit_code, token) == (expected_exit, _NAMESPACE[expected_token])
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_exit", "expected_token"),
+    (
+        ("version_type", 2, "STRUCTURAL_TOKEN"),
+        ("module_identity", 2, "STRUCTURAL_TOKEN"),
+        ("persisted_version", 1, "INVALID_TOKEN"),
+    ),
+)
+def test_legacy_child_rejects_numpy_type_module_and_persisted_drift_before_call(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capfd: pytest.CaptureFixture[str],
+    mutation: str,
+    expected_exit: int,
+    expected_token: str,
+) -> None:
+    import numpy
+
+    if mutation == "version_type":
+        monkeypatch.setattr(
+            numpy, "__version__", type("Version", (str,), {})(numpy.__version__)
+        )
+    exit_code, token, calls = _run_synthetic_legacy_child(
+        tmp_path,
+        monkeypatch,
+        capfd,
+        persisted_numpy_version="wrong" if mutation == "persisted_version" else None,
+        wrong_numpy_module=mutation == "module_identity",
+    )
+    assert (exit_code, token) == (expected_exit, _NAMESPACE[expected_token])
+    assert calls == []
 
 
 def test_verifier_provenance_binds_v_hv_manifest_file_and_all_32_blobs() -> None:
@@ -335,6 +515,180 @@ def test_verifier_provenance_binds_v_hv_manifest_file_and_all_32_blobs() -> None
     )
     assert len(_NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]) == 32
     assert callable(_NAMESPACE["authenticate_verifier_provenance"])
+
+
+def _git_run(repository: Path, *arguments: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repository), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _commit_all(repository: Path, message: str) -> str:
+    _git_run(repository, "add", "--all")
+    _git_run(repository, "commit", "-m", message)
+    return _git_run(repository, "rev-parse", "HEAD")
+
+
+def _synthetic_verifier_repository(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    extra_between_plan_and_source: bool,
+) -> tuple[Path, Path]:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    _git_run(repository, "init", "-q")
+    _git_run(repository, "config", "user.email", "rsta@example.invalid")
+    _git_run(repository, "config", "user.name", "RSTA Test")
+    for path_text in _NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]:
+        path = repository / path_text
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"initial {path_text}\n", encoding="utf-8")
+    amendment_path_text = "docs/recovery.md"
+    amendment_path = repository / amendment_path_text
+    amendment_path.parent.mkdir(parents=True, exist_ok=True)
+    amendment_path.write_text("recovery\n", encoding="utf-8")
+    recovery = _commit_all(repository, "recovery")
+    plan_path = repository / "docs/superpowers/plans/recovery.md"
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text("plan\n", encoding="utf-8")
+    plan = _commit_all(repository, "plan")
+    if extra_between_plan_and_source:
+        extra_path = repository / "docs/unregistered-intermediate.md"
+        extra_path.write_text("intermediate\n", encoding="utf-8")
+        _commit_all(repository, "unregistered intermediate")
+    source_paths = (
+        "scripts/diagnose_pass200_rsta_stage_a.py",
+        "scripts/verify_pass200_rsta_scientific_artifact.py",
+        "tests/test_diagnose_pass200_rsta_stage_a.py",
+        "tests/test_verify_pass200_rsta_scientific_artifact.py",
+    )
+    for path_text in source_paths:
+        path = repository / path_text
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"reviewed {path_text}\n", encoding="utf-8")
+    source = _commit_all(repository, "source")
+    files = {
+        path_text: hashlib.sha256((repository / path_text).read_bytes()).hexdigest()
+        for path_text in _NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]
+    }
+    manifest = {
+        "scientific_artifact_roundtrip_recovery_amendment": {
+            "path": amendment_path_text,
+            "sha256": hashlib.sha256(amendment_path.read_bytes()).hexdigest(),
+            "commit": recovery,
+        },
+        "current_scientific_source": {"git_revision": source, "files": files},
+    }
+    manifest_path = repository / _NAMESPACE["LEGACY_MANIFEST_PATH"]
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    _commit_all(repository, "handoff")
+    _git_run(repository, "checkout", "--detach", "HEAD")
+    monkeypatch.setitem(
+        _NAMESPACE, "__file__", str(repository / _NAMESPACE["VERIFIER_PATH"])
+    )
+    monkeypatch.setitem(_NAMESPACE, "RECOVERY_AMENDMENT_PATH", amendment_path_text)
+    monkeypatch.setitem(
+        _NAMESPACE,
+        "RECOVERY_AMENDMENT_SHA256",
+        hashlib.sha256(amendment_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setitem(_NAMESPACE, "RECOVERY_AMENDMENT_COMMIT", recovery)
+    monkeypatch.setitem(_NAMESPACE, "RECOVERY_PLAN_COMMIT", plan)
+    return repository, manifest_path
+
+
+def test_verifier_provenance_requires_exact_recovery_plan_source_handoff_chain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path = _synthetic_verifier_repository(
+        tmp_path, monkeypatch, extra_between_plan_and_source=True
+    )
+    with pytest.raises(_exception("StructuralFailure"), match="plan|parent|chain"):
+        _call("authenticate_verifier_provenance", repository, manifest_path)
+
+
+def test_verifier_provenance_accepts_exact_recovery_plan_source_handoff_chain(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path = _synthetic_verifier_repository(
+        tmp_path, monkeypatch, extra_between_plan_and_source=False
+    )
+    provenance = _call("authenticate_verifier_provenance", repository, manifest_path)
+    assert provenance["source_commit"] == _git_run(repository, "rev-parse", "HEAD^")
+    assert provenance["handoff_commit"] == _git_run(repository, "rev-parse", "HEAD")
+
+
+def test_verifier_provenance_rejects_merge_handoff_with_exact_source_parent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path = _synthetic_verifier_repository(
+        tmp_path, monkeypatch, extra_between_plan_and_source=False
+    )
+    handoff = _git_run(repository, "rev-parse", "HEAD")
+    source = _git_run(repository, "rev-parse", "HEAD^")
+    _git_run(repository, "checkout", "-q", "-b", "side", source)
+    side_path = repository / "docs/side.md"
+    side_path.write_text("side\n", encoding="utf-8")
+    _commit_all(repository, "side")
+    _git_run(repository, "checkout", "-q", "--detach", handoff)
+    _git_run(repository, "merge", "--no-ff", "side", "-m", "merge handoff")
+    with pytest.raises(_exception("StructuralFailure"), match="handoff parent"):
+        _call("authenticate_verifier_provenance", repository, manifest_path)
+
+
+@pytest.mark.parametrize("version", (type("Version", (str,), {})("2.1.3"), object()))
+def test_runtime_authentication_requires_exact_builtin_numpy_version(
+    monkeypatch: pytest.MonkeyPatch, version: object
+) -> None:
+    import numpy
+
+    monkeypatch.setattr(numpy, "__version__", version)
+    with pytest.raises(_exception("StructuralFailure"), match="NumPy|version|runtime"):
+        _call("authenticate_runtime", _REPOSITORY)
+
+
+def test_runtime_authentication_rejects_python_version_tuple_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(sys, "version_info", (3, 12, 4))
+    with pytest.raises(_exception("StructuralFailure"), match="Python|runtime"):
+        _call("authenticate_runtime", _REPOSITORY)
+
+
+@pytest.mark.parametrize(
+    ("raised", "expected"),
+    (
+        (ValueError("artifact validation"), "ArtifactInvalid"),
+        (RuntimeError("runtime defect"), "RuntimeError"),
+        (ImportError("import defect"), "ImportError"),
+        (OSError("process defect"), "OSError"),
+        (MemoryError("memory defect"), "MemoryError"),
+    ),
+)
+def test_legacy_roundtrip_classifies_only_registered_validation_failures_as_invalid(
+    raised: Exception, expected: str
+) -> None:
+    raw = _raw_payload()
+    module = types.ModuleType("legacy_exception")
+
+    def scientific_payload(**_kwargs: object) -> dict[str, object]:
+        raise raised
+
+    module.scientific_payload = scientific_payload
+    builtin_types = {
+        "RuntimeError": RuntimeError,
+        "ImportError": ImportError,
+        "OSError": OSError,
+        "MemoryError": MemoryError,
+    }
+    expected_type = _exception(expected) if expected in _NAMESPACE else builtin_types[expected]
+    with pytest.raises(expected_type):
+        _call("validate_legacy_roundtrip", _encoded(raw), module)
 
 
 def test_isolated_child_uses_exact_command_fd_environment_tokens_and_timeout(
@@ -508,12 +862,64 @@ def test_atomic_receipt_never_replaces_or_follows_a_path(tmp_path: Path) -> None
 
 
 def test_cli_consumes_one_attempt_and_never_reaches_science_or_gpu(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    for name in ("torch", "dataset", "model", "candidate", "score", "bootstrap", "decision"):
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    manifest_path = repository / _NAMESPACE["LEGACY_MANIFEST_PATH"]
+    artifact_path = repository / _NAMESPACE["ARTIFACT_PATH"]
+    output_parent = repository / "reports/generated/pass200_rsta_receipt"
+    manifest_path.parent.mkdir(parents=True)
+    artifact_path.parent.mkdir(parents=True)
+    output_parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text("{}", encoding="utf-8")
+    artifact_path.write_bytes(b"opaque synthetic artifact")
+    monkeypatch.chdir(repository)
+    receipt = _receipt()
+    runtime = {
+        "python_executable": ".venv/bin/python",
+        "python_version": "3.12.3",
+        "numpy_version": receipt["process"]["numpy_version"],
+    }
+    verifier = deepcopy(receipt["verifier_provenance"])
+    legacy = deepcopy(receipt["legacy_provenance"])
+    child_calls: list[int] = []
+    forbidden_calls: list[str] = []
+    monkeypatch.setitem(_NAMESPACE, "authenticate_runtime", lambda _repo: runtime)
+    monkeypatch.setitem(
+        _NAMESPACE,
+        "authenticate_verifier_provenance",
+        lambda _repo, _manifest: verifier,
+    )
+    monkeypatch.setitem(_NAMESPACE, "authenticate_legacy_provenance", lambda _repo: legacy)
+
+    def child(_repo: Path, descriptor: int, **_kwargs: object) -> tuple[int, int]:
+        child_calls.append(descriptor)
+        return 456, 0
+
+    monkeypatch.setitem(_NAMESPACE, "run_isolated_legacy_child", child)
+    for name in (
+        "load_dataset", "load_model", "run_scientific_diagnostic",
+        "score_rsta_batch", "joint_bootstrap", "decide_stage_a",
+    ):
         monkeypatch.setitem(
-            sys.modules,
+            _NAMESPACE,
             name,
-            types.SimpleNamespace(__getattr__=lambda _: pytest.fail("science reached")),
+            lambda *_args, _name=name, **_kwargs: forbidden_calls.append(_name),
         )
-    assert callable(_NAMESPACE["main"])
+    output = _call("receipt_path", repository, verifier["handoff_commit"])
+    argv = [
+        "--manifest", _NAMESPACE["LEGACY_MANIFEST_PATH"],
+        "--artifact", _NAMESPACE["ARTIFACT_PATH"],
+        "--output", str(output),
+        "--validate-immutable-artifact-once",
+    ]
+    assert _call("main", argv) == 0
+    first_bytes = output.read_bytes()
+    persisted = _call("strict_json_object", first_bytes, name="synthetic receipt")
+    _call("validate_roundtrip_receipt", persisted)
+    assert forbidden_calls == []
+    assert len(child_calls) == 1
+    assert _call("main", argv) == 2
+    assert output.read_bytes() == first_bytes
+    assert len(child_calls) == 1

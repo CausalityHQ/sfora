@@ -44,6 +44,7 @@ RECOVERY_AMENDMENT_PATH = (
 )
 RECOVERY_AMENDMENT_SHA256 = "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591"
 RECOVERY_AMENDMENT_COMMIT = "043121f8a414b91d7fb2e3d6a1635a6bd585676a"
+RECOVERY_PLAN_COMMIT = "a3b7ad2bd1edd8cc749854f5d563449ed378a3e8"
 VERIFIER_PATH = "scripts/verify_pass200_rsta_scientific_artifact.py"
 CHILD_TIMEOUT = 600
 CHILD_OUTPUT_LIMIT = 64
@@ -258,7 +259,8 @@ def validate_legacy_roundtrip(
             or type(persisted) is not str
             or persisted != expected_numpy_version
             or getattr(legacy_module, "np", None) is not runtime_numpy
-            or str(getattr(runtime_numpy, "__version__", "")) != expected_numpy_version
+            or type(getattr(runtime_numpy, "__version__", None)) is not str
+            or runtime_numpy.__version__ != expected_numpy_version
         ):
             raise ArtifactInvalid("persisted NumPy runtime differs")
     adapted, _ledger = adapt_legacy_support_keys(raw)
@@ -268,7 +270,7 @@ def validate_legacy_roundtrip(
         raise StructuralFailure("legacy scientific payload callable differs")
     try:
         recomputed = callable_value(**arguments)
-    except Exception as error:
+    except ValueError as error:
         raise ArtifactInvalid("legacy scientific payload rejected artifact") from error
     if not exact_ordered_equal(recomputed, raw):
         raise ArtifactInvalid("legacy roundtrip exact equality differs")
@@ -399,14 +401,14 @@ def authenticate_runtime(repository: Path) -> dict[str, str]:
 
     if (
         sys.modules.get("numpy") is not numpy
-        or type(str(numpy.__version__)) is not str
-        or not str(numpy.__version__)
+        or type(numpy.__version__) is not str
+        or not numpy.__version__
     ):
         raise StructuralFailure("registered NumPy runtime differs")
     return {
         "python_executable": ".venv/bin/python",
         "python_version": ".".join(str(value) for value in sys.version_info[:3]),
-        "numpy_version": str(numpy.__version__),
+        "numpy_version": numpy.__version__,
     }
 
 
@@ -429,6 +431,24 @@ def authenticate_verifier_provenance(repository: Path, manifest_path: Path) -> d
     if len(parent_line) != 2 or parent_line[0] != head:
         raise StructuralFailure("verifier handoff parent differs")
     source = parent_line[1]
+    source_parent = str(
+        _git(repository, "rev-list", "--parents", "-n", "1", source, text=True)
+    ).strip()
+    if source_parent.split() != [source, RECOVERY_PLAN_COMMIT]:
+        raise StructuralFailure("verifier source parent is not the exact recovery plan")
+    plan_parent = str(
+        _git(
+            repository,
+            "rev-list",
+            "--parents",
+            "-n",
+            "1",
+            RECOVERY_PLAN_COMMIT,
+            text=True,
+        )
+    ).strip()
+    if plan_parent.split() != [RECOVERY_PLAN_COMMIT, RECOVERY_AMENDMENT_COMMIT]:
+        raise StructuralFailure("recovery plan parent is not the exact amendment")
     source_paths = str(
         _git(
             repository,
@@ -893,7 +913,8 @@ def _legacy_child(arguments: argparse.Namespace) -> int:
         runtime_numpy = sys.modules.get("numpy")
         if (
             getattr(module, "np", None) is not runtime_numpy
-            or str(getattr(runtime_numpy, "__version__", "")) != runtime["numpy_version"]
+            or type(getattr(runtime_numpy, "__version__", None)) is not str
+            or runtime_numpy.__version__ != runtime["numpy_version"]
         ):
             raise StructuralFailure("legacy child NumPy module differs")
         environment = raw.get("environment")
