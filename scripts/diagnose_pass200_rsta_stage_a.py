@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import importlib.machinery
 import io
 import json
 import os
@@ -19,7 +20,7 @@ import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, ModuleType
 from typing import Any
 
 import numpy as np
@@ -161,6 +162,9 @@ _NORMWISE_ADJOINT_AMENDMENT_SHA256 = (
     "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4"
 )
 _NORMWISE_ADJOINT_AMENDMENT_COMMIT = "6ddf1db20e75a47e40726d223827cd3f1a8968e3"
+_NORMWISE_ADJOINT_HELPER_SHA256 = (
+    "2e120deba25462eb75bae5b7abe705b6c107e7bb8efb1ee461cc9c33464895eb"
+)
 _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
     "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
     "relu": "5810fd957d263f60a15aff4c9a4cb3401a7ad99b165413eaa8503026582a8887",
@@ -887,6 +891,60 @@ def validate_historical_binding_receipt(
     return receipt
 
 
+def _load_authenticated_normwise_adjoint_helper(
+    helper_path: Path,
+    expected_sha256: str,
+) -> ModuleType:
+    """Execute exact helper bytes under a private content-addressed module identity."""
+    path = Path(helper_path)
+    if (
+        not path.is_absolute()
+        or path.name != "rsta_normwise_adjoint.py"
+        or path.is_symlink()
+        or not path.is_file()
+        or path.resolve() != path
+    ):
+        raise ValueError("normwise adjoint helper path must be an exact regular file")
+    if not _is_lowercase_hex(expected_sha256, length=64):
+        raise ValueError("normwise adjoint helper expected SHA-256 differs")
+    before = path.read_bytes()
+    if hashlib.sha256(before).hexdigest() != expected_sha256:
+        raise ValueError("normwise adjoint helper content SHA-256 differs")
+    module_name = f"_pass200_rsta_normwise_adjoint_{expected_sha256}"
+    if module_name in sys.modules:
+        raise ValueError("normwise adjoint private module is preexisting")
+    module = ModuleType(module_name)
+    module.__file__ = str(path)
+    module.__package__ = ""
+    module.__loader__ = None
+    module.__spec__ = importlib.machinery.ModuleSpec(
+        module_name,
+        loader=None,
+        origin=str(path),
+    )
+    sys.modules[module_name] = module
+    try:
+        exec(compile(before, str(path), "exec"), module.__dict__)
+        after = path.read_bytes()
+        if (
+            after != before
+            or hashlib.sha256(after).hexdigest() != expected_sha256
+            or sys.modules.get(module_name) is not module
+        ):
+            raise ValueError("normwise adjoint helper content changed during execution")
+        required = (
+            "normwise_adjoint_metrics",
+            "parameter_tree_sha256",
+            "tensor_sha256",
+            "validate_calibration_result",
+        )
+        if any(not callable(getattr(module, name, None)) for name in required):
+            raise ValueError("normwise adjoint helper interface differs")
+        return module
+    finally:
+        sys.modules.pop(module_name, None)
+
+
 def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
     """Validate the current source domain separately from historical receipt provenance."""
     manifest = _validate_amended_manifest_schema(load_strict_json(manifest_path))
@@ -959,9 +1017,6 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         blob = _git_blob(repository, reference["commit"], reference["path"])
         if hashlib.sha256(blob).hexdigest() != reference["sha256"]:
             raise ValueError(f"{name} Git blob SHA-256 mismatch")
-    calibration_result = load_strict_json(
-        repository / manifest["normwise_adjoint_calibration_result"]["path"]
-    )
     current = manifest["current_scientific_source"]
     revision = current["git_revision"]
     head = subprocess.run(
@@ -1008,9 +1063,17 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         path = (repository / path_text).resolve()
         if not path.is_file() or sha256_file(path) != expected_digest:
             raise ValueError(f"current scientific source worktree differs for {path_text}")
-    from rsta_normwise_adjoint import validate_calibration_result
-
-    validate_calibration_result(calibration_result)
+    helper_digest = current["files"]["scripts/rsta_normwise_adjoint.py"]
+    if helper_digest != _NORMWISE_ADJOINT_HELPER_SHA256:
+        raise ValueError("current scientific normwise helper SHA-256 differs")
+    helper = _load_authenticated_normwise_adjoint_helper(
+        repository / "scripts" / "rsta_normwise_adjoint.py",
+        helper_digest,
+    )
+    calibration_result = load_strict_json(
+        repository / manifest["normwise_adjoint_calibration_result"]["path"]
+    )
+    helper.validate_calibration_result(calibration_result)
     if calibration_result.get("all_passed") is not True:
         raise ValueError("normwise adjoint calibration result did not pass")
     executing_diagnostic = Path(__file__).resolve()
@@ -3027,6 +3090,14 @@ def adjoint_integrity_audit(
     expected_dimension: int = 512,
 ) -> dict[str, Any]:
     """Return the exact structured FP32-operator/FP64-reduction adjoint audit."""
+    helper = _load_authenticated_normwise_adjoint_helper(
+        Path(__file__).resolve().with_name("rsta_normwise_adjoint.py"),
+        _NORMWISE_ADJOINT_HELPER_SHA256,
+    )
+    normwise_adjoint_metrics = helper.normwise_adjoint_metrics
+    parameter_tree_sha256 = helper.parameter_tree_sha256
+    tensor_sha256 = helper.tensor_sha256
+
     import torch
 
     metadata = _adjoint_direction_metadata(
@@ -3038,12 +3109,14 @@ def adjoint_integrity_audit(
     )
     if not isinstance(images, torch.Tensor) or images.dtype != torch.float32:
         raise ValueError("adjoint model inputs must be torch.float32")
+
     def run_trial(
         *,
         parameter_sign: int = 1,
         output_sign: int = 1,
         reversed_action_order: bool = False,
-    ) -> tuple[Any, Any, dict[str, Any], dict[str, Any], tuple[str, ...]]:
+        baseline: bool = False,
+    ) -> tuple[dict[str, object], tuple[str, ...]]:
         encoder, parameters, parameter_names = _functional_encoder(
             model,
             images,
@@ -3073,6 +3146,15 @@ def adjoint_integrity_audit(
         else:
             _, jv = torch.func.jvp(encoder, (parameters,), (tangents,))
             jtu = vjp_function(trial_output)[0]
+        lhs_tensor, rhs_tensor = _float64_adjoint_inner_products(
+            jv,
+            trial_output,
+            tangents,
+            jtu,
+            parameter_names,
+        )
+        legacy = _finalize_adjoint_scalars(lhs_tensor, rhs_tensor)
+        del lhs_tensor, rhs_tensor
         cpu_output = trial_output.detach().to(device="cpu").contiguous()
         cpu_jvp = jv.detach().to(device="cpu").contiguous()
         cpu_tangents = {
@@ -3084,59 +3166,63 @@ def adjoint_integrity_audit(
             for name in parameter_names
         }
         del jtu, jv, vjp_function, z, parameters, encoder, tangents, trial_output
-        return cpu_output, cpu_jvp, cpu_tangents, cpu_vjp, tuple(parameter_names)
+        names = tuple(parameter_names)
+        metrics = normwise_adjoint_metrics(
+            cpu_output,
+            cpu_jvp,
+            cpu_tangents,
+            cpu_vjp,
+            names,
+            legacy_lhs=legacy["lhs"],
+            legacy_rhs=legacy["rhs"],
+        )
+        evidence: dict[str, object] = {
+            "metrics": metrics,
+            "legacy": legacy,
+            "jvp_sha256": tensor_sha256(cpu_jvp),
+            "vjp_sha256": parameter_tree_sha256(cpu_vjp, names),
+        }
+        if baseline:
+            negative_vjp = {name: -cpu_vjp[name] for name in names}
+            evidence["negative_jvp_sha256"] = tensor_sha256(-cpu_jvp)
+            evidence["negative_vjp_sha256"] = parameter_tree_sha256(
+                negative_vjp, names
+            )
+            del negative_vjp
+        del cpu_output, cpu_jvp, cpu_tangents, cpu_vjp
+        return evidence, names
 
-    baseline_actions = run_trial()
-    rebuild_actions = run_trial()
-    reversed_actions = run_trial(
-        reversed_action_order=True
-    )
-    parameter_actions = run_trial(
-        parameter_sign=-1
-    )
-    output_actions = run_trial(output_sign=-1)
-    parameter_names = baseline_actions[-1]
-    if any(
-        actions[-1] != parameter_names
-        for actions in (rebuild_actions, reversed_actions, parameter_actions, output_actions)
-    ):
-        raise ValueError("adjoint parameter order changed across fresh graphs")
+    baseline_trial, parameter_names = run_trial(baseline=True)
 
-    from rsta_normwise_adjoint import (
-        normwise_adjoint_metrics,
-        parameter_tree_sha256,
-        tensor_sha256,
-    )
+    def checked_trial(**kwargs: Any) -> dict[str, object]:
+        trial, names = run_trial(**kwargs)
+        if names != parameter_names:
+            raise ValueError("adjoint parameter order changed across fresh graphs")
+        return trial
 
-    def metrics(
-        actions: tuple[Any, Any, dict[str, Any], dict[str, Any], tuple[str, ...]],
-    ) -> dict[str, object]:
-        output, jvp, tangents, vjp, names = actions
-        return normwise_adjoint_metrics(output, jvp, tangents, vjp, names)
-
-    baseline = metrics(baseline_actions)
-    rebuild = metrics(rebuild_actions)
-    reversed_trial = metrics(reversed_actions)
-    parameter_trial = metrics(parameter_actions)
-    output_trial = metrics(output_actions)
-    _, baseline_jvp, _, baseline_vjp, _ = baseline_actions
-    _, rebuild_jvp, _, rebuild_vjp, _ = rebuild_actions
-    _, reversed_jvp, _, reversed_vjp, _ = reversed_actions
-    _, parameter_jvp, _, parameter_vjp, _ = parameter_actions
-    _, output_jvp, _, output_vjp, _ = output_actions
-
-    baseline_jvp_hash = tensor_sha256(baseline_jvp)
-    baseline_vjp_hash = parameter_tree_sha256(baseline_vjp, parameter_names)
+    rebuild = checked_trial()
+    reversed_trial = checked_trial(reversed_action_order=True)
+    parameter_trial = checked_trial(parameter_sign=-1)
+    output_trial = checked_trial(output_sign=-1)
+    baseline = baseline_trial["metrics"]
+    if not isinstance(baseline, Mapping):
+        raise ValueError("adjoint baseline metric evidence differs")
+    baseline_legacy = baseline_trial["legacy"]
+    if not isinstance(baseline_legacy, Mapping):
+        raise ValueError("adjoint baseline legacy evidence differs")
+    baseline_jvp_hash = baseline_trial["jvp_sha256"]
+    baseline_vjp_hash = baseline_trial["vjp_sha256"]
 
     def hash_control(
         trial: Mapping[str, object],
-        jvp: Any,
-        vjp: Mapping[str, Any],
     ) -> dict[str, object]:
-        jvp_hash = tensor_sha256(jvp)
-        vjp_hash = parameter_tree_sha256(vjp, parameter_names)
+        jvp_hash = trial["jvp_sha256"]
+        vjp_hash = trial["vjp_sha256"]
         exact = jvp_hash == baseline_jvp_hash and vjp_hash == baseline_vjp_hash
-        beta = trial["beta_norm"]
+        metrics = trial["metrics"]
+        if not isinstance(metrics, Mapping):
+            raise ValueError("adjoint control metric evidence differs")
+        beta = metrics["beta_norm"]
         return {
             "jvp_sha256": jvp_hash,
             "vjp_sha256": vjp_hash,
@@ -3150,15 +3236,16 @@ def adjoint_integrity_audit(
 
     def sign_control(
         trial: Mapping[str, object],
-        jvp: Any,
-        vjp: Mapping[str, Any],
         *,
         exact_relation: bool,
     ) -> dict[str, object]:
-        beta = trial["beta_norm"]
+        metrics = trial["metrics"]
+        if not isinstance(metrics, Mapping):
+            raise ValueError("adjoint sign metric evidence differs")
+        beta = metrics["beta_norm"]
         return {
-            "jvp_sha256": tensor_sha256(jvp),
-            "vjp_sha256": parameter_tree_sha256(vjp, parameter_names),
+            "jvp_sha256": trial["jvp_sha256"],
+            "vjp_sha256": trial["vjp_sha256"],
             "beta_norm": beta,
             "exact_relation": exact_relation,
             "passed": type(exact_relation) is bool
@@ -3168,29 +3255,19 @@ def adjoint_integrity_audit(
         }
 
     controls = {
-        "rebuild": hash_control(rebuild, rebuild_jvp, rebuild_vjp),
-        "reversed_action_order": hash_control(
-            reversed_trial, reversed_jvp, reversed_vjp
-        ),
+        "rebuild": hash_control(rebuild),
+        "reversed_action_order": hash_control(reversed_trial),
         "parameter_sign": sign_control(
             parameter_trial,
-            parameter_jvp,
-            parameter_vjp,
-            exact_relation=torch.equal(parameter_jvp, -baseline_jvp)
-            and all(
-                torch.equal(parameter_vjp[name], baseline_vjp[name])
-                for name in parameter_names
-            ),
+            exact_relation=parameter_trial["jvp_sha256"]
+            == baseline_trial["negative_jvp_sha256"]
+            and parameter_trial["vjp_sha256"] == baseline_vjp_hash,
         ),
         "output_sign": sign_control(
             output_trial,
-            output_jvp,
-            output_vjp,
-            exact_relation=torch.equal(output_jvp, baseline_jvp)
-            and all(
-                torch.equal(output_vjp[name], -baseline_vjp[name])
-                for name in parameter_names
-            ),
+            exact_relation=output_trial["jvp_sha256"] == baseline_jvp_hash
+            and output_trial["vjp_sha256"]
+            == baseline_trial["negative_vjp_sha256"],
         ),
     }
     beta_norm = baseline["beta_norm"]
@@ -3201,14 +3278,13 @@ def adjoint_integrity_audit(
     )
     return {
         **metadata,
-        "lhs": baseline["lhs"],
-        "rhs": baseline["rhs"],
-        "absolute_error": baseline["absolute_error"],
-        "denominator": baseline["legacy_denominator"],
-        "relative_error": baseline["legacy_relative_error"],
-        "tolerance": 5.0e-4,
-        "passed": type(baseline["legacy_relative_error"]) is float
-        and baseline["legacy_relative_error"] <= 5.0e-4,
+        "lhs": baseline_legacy["lhs"],
+        "rhs": baseline_legacy["rhs"],
+        "absolute_error": baseline_legacy["absolute_error"],
+        "denominator": baseline_legacy["denominator"],
+        "relative_error": baseline_legacy["relative_error"],
+        "tolerance": baseline_legacy["tolerance"],
+        "passed": baseline_legacy["passed"],
         "output_direction_l2": baseline["output_direction_l2"],
         "parameter_direction_l2": baseline["parameter_direction_l2"],
         "jvp_l2": baseline["jvp_l2"],
@@ -5100,6 +5176,15 @@ def _registered_first_batch_integrity(
     }
 
 
+def _new_scientific_scoring_state() -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
+    """Create candidate-row and scoring-audit state after the integrity prefix."""
+    return [], [], []
+
+
 def run_scientific_diagnostic(
     manifest: Mapping[str, Any] | None,
     *,
@@ -5153,27 +5238,48 @@ def run_scientific_diagnostic(
     for bound in bounds:
         validate_retained_training_arrays(bound)
     reference = bounds[0]
-    primary = select_primary_panel(reference.train_example_ids, reference.train_labels)
-    alternate = select_alternate_panel(reference.train_example_ids, reference.train_labels, primary)
-    used_ids = sorted(
-        {
-            example_id
-            for batch in [*primary["batches"], *alternate["batches"]]
-            for example_id in batch
-        }
+    selected_primary = select_primary_panel(
+        reference.train_example_ids, reference.train_labels
     )
-    cache = cache_builder(reference, used_ids)
-    if set(cache.tensor_sha256) != set(used_ids):
-        raise ValueError("scientific transform cache differs from registered batch rows")
-    label_by_id = dict(zip(reference.train_example_ids, reference.train_labels, strict=True))
-    index_by_id = {value: index for index, value in enumerate(reference.train_example_ids)}
-    tensor_hashes = dict(cache.tensor_sha256)
+    integrity_primary = {
+        "batch_ids": tuple(selected_primary["batches"][0]),
+        "receiver_ids": tuple(selected_primary["receiver_ids"][:8]),
+        "eligible_labels": tuple(selected_primary["eligible_labels"]),
+        "support_ids_by_label": {
+            label: tuple(ids)
+            for label, ids in selected_primary["support_ids_by_label"].items()
+        },
+    }
+    del selected_primary
+    integrity_ids = integrity_primary["batch_ids"]
+    integrity_cache = cache_builder(reference, integrity_ids)
+    if set(integrity_cache.tensor_sha256) != set(integrity_ids):
+        raise ValueError("scientific integrity cache differs from registered first batch")
+    integrity_lookup_ids = set(integrity_ids)
+    for ids in integrity_primary["support_ids_by_label"].values():
+        integrity_lookup_ids.update(ids)
+    integrity_label_by_id: dict[int, int] = {}
+    integrity_index_by_id: dict[int, int] = {}
+    for index, (example_id, label) in enumerate(
+        zip(reference.train_example_ids, reference.train_labels, strict=True)
+    ):
+        if example_id in integrity_lookup_ids:
+            integrity_label_by_id[example_id] = label
+            integrity_index_by_id[example_id] = index
+    if set(integrity_index_by_id) != integrity_lookup_ids:
+        raise ValueError("scientific integrity lookup differs from registered rows")
+    del integrity_lookup_ids
     fixture_integrity = fixture_runner()
     seed_integrity: list[dict[str, Any]] = []
     zero_jacobian_integrity: dict[str, dict[str, Any]] = {}
     rotate = _default_rotation_auditor if rotation_auditor is None else rotation_auditor
 
-    def seed_context(bound: TrainingOnlySeedInput, model: Any) -> dict[str, Any]:
+    def seed_context(
+        bound: TrainingOnlySeedInput,
+        model: Any,
+        primary_inputs: Mapping[str, Any],
+        index_by_id: Mapping[int, int],
+    ) -> dict[str, Any]:
         first_parameter = next(iter(model.parameters()), None)
         if first_parameter is None:
             raise ValueError("scientific encoder has no parameters")
@@ -5184,20 +5290,20 @@ def run_scientific_diagnostic(
         )
         support_map = {
             label: (
-                tuple(primary["support_ids_by_label"][label]),
+                primary_inputs["support_ids_by_label"][label],
                 np.asarray(
                     [
                         bound.train_embeddings[index_by_id[value]]
-                        for value in primary["support_ids_by_label"][label]
+                        for value in primary_inputs["support_ids_by_label"][label]
                     ],
                     dtype=np.float32,
                 ),
             )
-            for label in primary["eligible_labels"]
+            for label in primary_inputs["eligible_labels"]
         }
         foreign_ids = tuple(
-            primary["support_ids_by_label"][label][0]
-            for label in primary["eligible_labels"]
+            primary_inputs["support_ids_by_label"][label][0]
+            for label in primary_inputs["eligible_labels"]
         )
         return {
             "device": device,
@@ -5206,9 +5312,12 @@ def run_scientific_diagnostic(
             "proxy_labels": proxy_labels,
             "support_map": support_map,
             "foreign_ids": foreign_ids,
-            "foreign_labels": tuple(primary["eligible_labels"]),
+            "foreign_labels": primary_inputs["eligible_labels"],
             "foreign_descriptors": np.asarray(
-                [bound.train_embeddings[index_by_id[value]] for value in foreign_ids],
+                [
+                    bound.train_embeddings[index_by_id[value]]
+                    for value in foreign_ids
+                ],
                 dtype=np.float32,
             ),
         }
@@ -5218,13 +5327,20 @@ def run_scientific_diagnostic(
     for bound in bounds:
         _assert_deterministic_tf32_off()
         model = make_rsta_diagnostic_clone(model_loader(bound))
-        values = seed_context(bound, model)
-        batch_ids = primary["batches"][0]
-        receiver_ids = tuple(primary["receiver_ids"][:8])
+        values = seed_context(
+            bound,
+            model,
+            integrity_primary,
+            integrity_index_by_id,
+        )
+        batch_ids = integrity_primary["batch_ids"]
+        receiver_ids = integrity_primary["receiver_ids"]
         receiver_indices = tuple(batch_ids.index(value) for value in receiver_ids)
-        images = cache.batch(batch_ids).to(device=values["device"], dtype=values["dtype"])
+        images = integrity_cache.batch(batch_ids).to(
+            device=values["device"], dtype=values["dtype"]
+        )
         labels = torch.as_tensor(
-            [label_by_id[value] for value in batch_ids],
+            [integrity_label_by_id[value] for value in batch_ids],
             device=values["device"],
             dtype=torch.long,
         )
@@ -5254,9 +5370,31 @@ def run_scientific_diagnostic(
         del first, images, labels, values, model
 
     # Phase two recreates every model and every candidate graph from scratch.
-    primary_rows: list[dict[str, Any]] = []
-    alternate_rows: list[dict[str, Any]] = []
-    seed_audits: list[dict[str, Any]] = []
+    del (
+        seed_context,
+        integrity_cache,
+        integrity_label_by_id,
+        integrity_index_by_id,
+        integrity_primary,
+    )
+    primary = select_primary_panel(reference.train_example_ids, reference.train_labels)
+    alternate = select_alternate_panel(
+        reference.train_example_ids, reference.train_labels, primary
+    )
+    used_ids = sorted(
+        {
+            example_id
+            for batch in [*primary["batches"], *alternate["batches"]]
+            for example_id in batch
+        }
+    )
+    cache = cache_builder(reference, used_ids)
+    if set(cache.tensor_sha256) != set(used_ids):
+        raise ValueError("scientific transform cache differs from registered batch rows")
+    label_by_id = dict(zip(reference.train_example_ids, reference.train_labels, strict=True))
+    index_by_id = {value: index for index, value in enumerate(reference.train_example_ids)}
+    tensor_hashes = dict(cache.tensor_sha256)
+    primary_rows, alternate_rows, seed_audits = _new_scientific_scoring_state()
     for bound in bounds:
         _assert_deterministic_tf32_off()
         model = make_rsta_diagnostic_clone(model_loader(bound))
@@ -5555,7 +5693,7 @@ def _validate_adjoint_integrity_audit(
     if any(type(value[name]) is not float or not np.isfinite(value[name]) for name in scalar_names):
         raise ValueError("adjoint scalar must be a finite JSON number")
     expected_error = abs(value["lhs"] - value["rhs"])
-    expected_denominator = max(abs(value["lhs"]), abs(value["rhs"]), np.float64(1.0e-12))
+    expected_denominator = max(abs(value["lhs"]), abs(value["rhs"]), 1.0e-12)
     expected_relative = expected_error / expected_denominator
     if (
         value["absolute_error"] != expected_error

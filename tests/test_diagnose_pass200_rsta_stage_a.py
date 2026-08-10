@@ -6,12 +6,13 @@ import builtins
 import gc
 import hashlib
 import importlib.util
-import inspect
 import json
 import os
 import random
+import struct
 import subprocess
 import sys
+import types
 import weakref
 from collections.abc import Callable
 from copy import deepcopy
@@ -1724,6 +1725,8 @@ def _bind_synthetic_executing_diagnostic(
     manifest_path: Path,
 ) -> None:
     repository = manifest_path.resolve().parent.parent
+    helper = repository / "scripts" / "rsta_normwise_adjoint.py"
+    helper.write_bytes(_SCRIPT.with_name("rsta_normwise_adjoint.py").read_bytes())
     monkeypatch.setattr(
         _MODULE,
         "__file__",
@@ -3144,9 +3147,12 @@ def test_adjoint_float64_reduction_matches_independent_cancellation_reference(
     assert observed_rhs_terms == [expected_rhs_terms]
 
 
-def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract() -> None:
+def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Catches formula duplication, factor-two drift, or changed action bytes/order."""
     model = torch.nn.Linear(2, 3, bias=True, dtype=torch.float32).train()
+    monkeypatch.delitem(sys.modules, "rsta_normwise_adjoint", raising=False)
     images = torch.tensor(
         [[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float32
     )
@@ -3323,7 +3329,10 @@ def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract() -> 
     assert list(audit) == list(_MODULE._ADJOINT_AUDIT_FIELDS)
     assert audit == expected
     assert audit["beta_norm"] == 2.0 * audit["eta_norm"]
-    assert "rsta_normwise_adjoint" in sys.modules
+    assert "rsta_normwise_adjoint" not in sys.modules
+    assert not any(
+        name.startswith("_pass200_rsta_normwise_adjoint_") for name in sys.modules
+    )
 
     with pytest.raises(ValueError, match="every encoder parameter"):
         _MODULE.adjoint_integrity_audit(
@@ -3360,6 +3369,88 @@ def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract() -> 
             expected_batch_size=3,
             expected_dimension=3,
         )
+
+
+def test_normwise_adjoint_preserves_device_legacy_bytes_when_cpu_metrics_are_perturbed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches replacing the pre-extension device reductions with helper CPU reductions."""
+    model = torch.nn.Linear(2, 3, bias=True, dtype=torch.float32).train()
+    images = torch.tensor(
+        [[0.2, -0.8], [1.1, 0.4], [-0.5, 0.7]], dtype=torch.float32
+    )
+    output, directions = _MODULE.registered_adjoint_directions(
+        model,
+        (3, 3),
+        seed=2,
+        dtype=torch.float32,
+        device=torch.device("cpu"),
+    )
+    encoder, parameters, names = _MODULE._functional_encoder(
+        model, images, expected_batch_size=3, expected_dimension=3
+    )
+    _, pullback = torch.func.vjp(encoder, parameters)
+    _, jvp_action = torch.func.jvp(encoder, (parameters,), (directions,))
+    vjp_action = pullback(output)[0]
+    lhs_tensor, rhs_tensor = _MODULE._float64_adjoint_inner_products(
+        jvp_action, output, directions, vjp_action, names
+    )
+    expected = _MODULE._finalize_adjoint_scalars(lhs_tensor, rhs_tensor)
+    del pullback, encoder, parameters, jvp_action, vjp_action, lhs_tensor, rhs_tensor
+
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    original_metrics = helper.normwise_adjoint_metrics
+    observed_overrides: list[tuple[float, float]] = []
+
+    def perturbed_cpu_metrics(
+        u: torch.Tensor,
+        a: torch.Tensor,
+        parameter_direction: dict[str, torch.Tensor],
+        transpose_action: dict[str, torch.Tensor],
+        parameter_names: tuple[str, ...],
+        *,
+        legacy_lhs: float,
+        legacy_rhs: float,
+    ) -> dict[str, object]:
+        observed_overrides.append((legacy_lhs, legacy_rhs))
+        return original_metrics(
+            u + torch.full_like(u, 37.0),
+            a,
+            parameter_direction,
+            transpose_action,
+            parameter_names,
+            legacy_lhs=legacy_lhs,
+            legacy_rhs=legacy_rhs,
+        )
+
+    monkeypatch.setattr(helper, "normwise_adjoint_metrics", perturbed_cpu_metrics)
+    monkeypatch.setattr(
+        _MODULE,
+        "_load_authenticated_normwise_adjoint_helper",
+        lambda *_args: helper,
+    )
+    audit = _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "2"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "2"),
+        expected_batch_size=3,
+        expected_dimension=3,
+    )
+
+    assert len(observed_overrides) == 5
+    for field, expected_field in (
+        ("lhs", "lhs"),
+        ("rhs", "rhs"),
+        ("absolute_error", "absolute_error"),
+        ("denominator", "denominator"),
+        ("relative_error", "relative_error"),
+        ("tolerance", "tolerance"),
+    ):
+        assert struct.pack(">d", audit[field]) == struct.pack(">d", expected[expected_field])
+    assert audit["passed"] is expected["passed"]
 
 
 def test_normwise_adjoint_validator_accepts_only_authorized_zero_denominator_corner() -> None:
@@ -3450,33 +3541,140 @@ def test_normwise_adjoint_validator_rejects_forged_sign_relation_hash_consequenc
         _MODULE._validate_adjoint_integrity_audit(audit, expected_output_shape=(1, 1))
 
 
-def test_normwise_helper_is_loaded_only_after_all_fresh_graph_actions_are_captured(
+@pytest.mark.parametrize(
+    ("lhs", "rhs", "denominator", "relative_error", "legacy_passed"),
+    (
+        (0.0, 0.0, 1.0e-12, 0.0, True),
+        (5.0e-13, 0.0, 1.0e-12, 0.5, False),
+        (-5.0e-13, 0.0, 1.0e-12, 0.5, False),
+        (1.0e-12, 0.0, 1.0e-12, 1.0, False),
+    ),
+)
+def test_normwise_adjoint_validator_uses_python_float_legacy_floor_boundaries(
+    lhs: float,
+    rhs: float,
+    denominator: float,
+    relative_error: float,
+    legacy_passed: bool,
+) -> None:
+    """Catches NumPy scalar/bool leakage at zero and both sides of the legacy floor."""
+    model = torch.nn.Linear(1, 1, bias=False, dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (1, 1), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+    audit = _task2_adjoint_auditor(
+        model,
+        None,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "0"),
+        expected_batch_size=1,
+        expected_dimension=1,
+    )
+    absolute_error = abs(lhs - rhs)
+    audit.update(
+        {
+            "lhs": lhs,
+            "rhs": rhs,
+            "absolute_error": absolute_error,
+            "denominator": denominator,
+            "relative_error": relative_error,
+            "passed": legacy_passed,
+            "output_direction_l2": 1.0,
+            "parameter_direction_l2": 0.0,
+            "jvp_l2": 1.0,
+            "vjp_l2": 0.0,
+            "normwise_denominator": 1.0,
+            "eta_norm": absolute_error,
+            "beta_norm": 2.0 * absolute_error,
+            "lhs_absolute_product_sum": abs(lhs),
+            "rhs_absolute_product_sum": abs(rhs),
+            "lhs_cancellation_factor": 1.0,
+            "rhs_cancellation_factor": 1.0,
+            "normwise_passed": True,
+            "integrity_passed": True,
+        }
+    )
+    _MODULE._validate_adjoint_integrity_audit(audit, expected_output_shape=(1, 1))
+
+    for field, replacement in (
+        ("lhs", np.float64(lhs)),
+        ("denominator", np.float64(denominator)),
+        ("passed", int(legacy_passed)),
+    ):
+        changed = deepcopy(audit)
+        changed[field] = replacement
+        with pytest.raises(ValueError, match="adjoint|scalar|contract"):
+            _MODULE._validate_adjoint_integrity_audit(
+                changed, expected_output_shape=(1, 1)
+            )
+
+
+def test_normwise_adjoint_releases_each_graph_and_cpu_action_tree_before_next_trial(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Catches helper import or metric execution interleaved with the five FP32 graphs."""
+    """Catches retaining full graphs or detached action trees across trial boundaries."""
     model = torch.nn.Linear(2, 2, dtype=torch.float32)
     images = torch.ones((2, 2), dtype=torch.float32)
     output, directions = _MODULE.registered_adjoint_directions(
         model, (2, 2), seed=0, dtype=torch.float32, device=torch.device("cpu")
     )
     graph_count = 0
-    helper_import_counts: list[int] = []
+    metric_count = 0
+    graph_refs: list[weakref.ReferenceType[Any]] = []
+    cpu_refs: list[weakref.ReferenceType[torch.Tensor]] = []
     original_functional_encoder = _MODULE._functional_encoder
-    original_import = builtins.__import__
+    normwise_helper = importlib.import_module("rsta_normwise_adjoint")
+    original_metrics = normwise_helper.normwise_adjoint_metrics
 
     def tracked_functional_encoder(*args: Any, **kwargs: Any) -> Any:
-        nonlocal graph_count
+        nonlocal graph_count, graph_refs
+        gc.collect()
+        assert metric_count == graph_count
+        assert all(reference() is None for reference in graph_refs)
+        assert all(reference() is None for reference in cpu_refs)
+        encoder, parameters, names = original_functional_encoder(*args, **kwargs)
         graph_count += 1
-        return original_functional_encoder(*args, **kwargs)
+        graph_refs = [weakref.ref(encoder)]
+        return encoder, parameters, names
 
-    def tracked_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "rsta_normwise_adjoint":
-            helper_import_counts.append(graph_count)
-            assert graph_count == 5
-        return original_import(name, *args, **kwargs)
+    def tracked_metrics(
+        u: torch.Tensor,
+        a: torch.Tensor,
+        parameter_direction: dict[str, torch.Tensor],
+        vjp_action: dict[str, torch.Tensor],
+        parameter_names: tuple[str, ...],
+        **kwargs: Any,
+    ) -> dict[str, object]:
+        nonlocal metric_count, cpu_refs
+        gc.collect()
+        assert graph_count == metric_count + 1
+        assert all(reference() is None for reference in graph_refs)
+        cpu_refs = [
+            weakref.ref(u),
+            weakref.ref(a),
+            *(weakref.ref(parameter_direction[name]) for name in parameter_names),
+            *(weakref.ref(vjp_action[name]) for name in parameter_names),
+        ]
+        result = original_metrics(
+            u,
+            a,
+            parameter_direction,
+            vjp_action,
+            parameter_names,
+            **kwargs,
+        )
+        metric_count += 1
+        return result
 
     monkeypatch.setattr(_MODULE, "_functional_encoder", tracked_functional_encoder)
-    monkeypatch.setattr(builtins, "__import__", tracked_import)
+    monkeypatch.setattr(normwise_helper, "normwise_adjoint_metrics", tracked_metrics)
+    monkeypatch.setattr(
+        _MODULE,
+        "_load_authenticated_normwise_adjoint_helper",
+        lambda *_args: normwise_helper,
+    )
     _MODULE.adjoint_integrity_audit(
         model,
         images,
@@ -3488,8 +3686,183 @@ def test_normwise_helper_is_loaded_only_after_all_fresh_graph_actions_are_captur
         expected_dimension=2,
     )
 
-    assert graph_count == 5
-    assert helper_import_counts == [5]
+    gc.collect()
+    assert graph_count == metric_count == 5
+    assert all(reference() is None for reference in graph_refs)
+    assert all(reference() is None for reference in cpu_refs)
+
+
+def test_normwise_adjoint_nonfinite_first_trial_fails_before_constructing_control_graphs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches delaying first-trial structural failure until all five graphs exist."""
+    model = torch.nn.Linear(2, 2, dtype=torch.float32)
+    images = torch.ones((2, 2), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (2, 2), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+    graph_count = 0
+    original_functional_encoder = _MODULE._functional_encoder
+    normwise_helper = importlib.import_module("rsta_normwise_adjoint")
+
+    def tracked_functional_encoder(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph_count
+        graph_count += 1
+        return original_functional_encoder(*args, **kwargs)
+
+    def reject_nonfinite(*_args: Any, **_kwargs: Any) -> dict[str, object]:
+        raise ValueError("normwise adjoint reduction is nonfinite")
+
+    monkeypatch.setattr(_MODULE, "_functional_encoder", tracked_functional_encoder)
+    monkeypatch.setattr(normwise_helper, "normwise_adjoint_metrics", reject_nonfinite)
+    monkeypatch.setattr(
+        _MODULE,
+        "_load_authenticated_normwise_adjoint_helper",
+        lambda *_args: normwise_helper,
+    )
+    with pytest.raises(ValueError, match="nonfinite"):
+        _MODULE.adjoint_integrity_audit(
+            model,
+            images,
+            output,
+            directions,
+            output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+            parameter_direction_seed=_MODULE.domain_seed(
+                "rsta-stage-a-v1|adjoint-v|", "0"
+            ),
+            expected_batch_size=2,
+            expected_dimension=2,
+        )
+
+    assert graph_count == 1
+
+
+def test_normwise_adjoint_rejects_helper_source_before_model_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches inspecting or executing a model before helper authentication succeeds."""
+    model_accesses: list[str] = []
+
+    class ForbiddenModel:
+        def named_parameters(self) -> Any:
+            model_accesses.append("named_parameters")
+            raise AssertionError("model accessed before helper rejection")
+
+    def reject_helper(*_args: Any) -> Any:
+        raise ValueError("normwise adjoint helper content SHA-256 differs")
+
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", reject_helper
+    )
+    with pytest.raises(ValueError, match="helper content"):
+        _MODULE.adjoint_integrity_audit(
+            ForbiddenModel(),
+            torch.ones((1, 1), dtype=torch.float32),
+            torch.ones((1, 1), dtype=torch.float32),
+            {},
+            output_direction_seed=0,
+            parameter_direction_seed=0,
+            expected_batch_size=1,
+            expected_dimension=1,
+        )
+
+    assert model_accesses == []
+
+
+def test_normwise_adjoint_ignores_preloaded_bare_helper_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Catches resolving audit arithmetic through a fileless sys.modules forgery."""
+    fake = types.ModuleType("rsta_normwise_adjoint")
+    fake_calls: list[str] = []
+
+    def forged(*_args: Any, **_kwargs: Any) -> Any:
+        fake_calls.append("forged")
+        raise AssertionError("preloaded bare helper executed")
+
+    fake.normwise_adjoint_metrics = forged
+    fake.tensor_sha256 = forged
+    fake.parameter_tree_sha256 = forged
+    monkeypatch.setitem(sys.modules, "rsta_normwise_adjoint", fake)
+    model = torch.nn.Linear(2, 2, dtype=torch.float32)
+    images = torch.ones((2, 2), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (2, 2), seed=0, dtype=torch.float32, device=torch.device("cpu")
+    )
+
+    audit = _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-u|", "0"),
+        parameter_direction_seed=_MODULE.domain_seed("rsta-stage-a-v1|adjoint-v|", "0"),
+        expected_batch_size=2,
+        expected_dimension=2,
+    )
+
+    assert audit["integrity_passed"] is True
+    assert fake_calls == []
+
+
+def test_authenticated_normwise_helper_uses_literal_content_address_and_cleans_registration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Catches PYTHONPATH shadowing or leaked/preloaded private helper modules."""
+    helper_path = _SCRIPT.with_name("rsta_normwise_adjoint.py").resolve()
+    digest = _sha256_file(helper_path)
+    private_name = f"_pass200_rsta_normwise_adjoint_{digest}"
+    shadow = tmp_path / "rsta_normwise_adjoint.py"
+    shadow.write_text("raise AssertionError('shadow helper executed')\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    helper = _MODULE._load_authenticated_normwise_adjoint_helper(helper_path, digest)
+
+    assert helper.__name__ == private_name
+    assert Path(helper.__file__).resolve() == helper_path
+    assert helper.__spec__.origin == str(helper_path)
+    assert helper.THRESHOLD == 5.0e-4
+    assert private_name not in sys.modules
+
+    monkeypatch.setitem(sys.modules, private_name, types.ModuleType(private_name))
+    with pytest.raises(ValueError, match="preexisting|registered|module"):
+        _MODULE._load_authenticated_normwise_adjoint_helper(helper_path, digest)
+
+
+def test_authenticated_normwise_helper_rejects_dirty_symlink_and_execution_race(
+    tmp_path: Path,
+) -> None:
+    """Catches executing mismatched bytes, symlink substitution, or mutation during exec."""
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    helper_path = scripts / "rsta_normwise_adjoint.py"
+    marker = tmp_path / "executed"
+    dirty_source = f"from pathlib import Path\nPath({str(marker)!r}).write_text('yes')\n"
+    helper_path.write_text(dirty_source, encoding="utf-8")
+    with pytest.raises(ValueError, match="SHA-256|content|digest"):
+        _MODULE._load_authenticated_normwise_adjoint_helper(helper_path, "0" * 64)
+    assert not marker.exists()
+
+    target = scripts / "target.py"
+    target.write_text("VALUE = 1\n", encoding="utf-8")
+    helper_path.unlink()
+    helper_path.symlink_to(target)
+    with pytest.raises(ValueError, match="path|symlink|regular"):
+        _MODULE._load_authenticated_normwise_adjoint_helper(
+            helper_path, _sha256_file(target)
+        )
+
+    helper_path.unlink()
+    race_source = (
+        "from pathlib import Path\n"
+        "Path(__file__).write_text('VALUE = 2\\n', encoding='utf-8')\n"
+    )
+    helper_path.write_text(race_source, encoding="utf-8")
+    race_digest = _sha256_file(helper_path)
+    race_name = f"_pass200_rsta_normwise_adjoint_{race_digest}"
+    with pytest.raises(ValueError, match="changed|execution|content"):
+        _MODULE._load_authenticated_normwise_adjoint_helper(helper_path, race_digest)
+    assert race_name not in sys.modules
 def test_configure_deterministic_process_requires_preexported_cublas_and_records_gates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -4702,6 +5075,16 @@ def test_normwise_source_provenance_authenticates_authority_bytes_result_and_anc
 
     helper_path = repository / "scripts" / "rsta_normwise_adjoint.py"
     helper_bytes = helper_path.read_bytes()
+    result_path = repository / manifest["normwise_adjoint_calibration_result"]["path"]
+    calibration_loads: list[Path] = []
+    original_load_strict_json = _MODULE.load_strict_json
+
+    def track_calibration_load(path: Path) -> Any:
+        if path.resolve() == result_path.resolve():
+            calibration_loads.append(path.resolve())
+        return original_load_strict_json(path)
+
+    monkeypatch.setattr(_MODULE, "load_strict_json", track_calibration_load)
     helper_imports: list[str] = []
     original_import = builtins.__import__
 
@@ -4715,9 +5098,34 @@ def test_normwise_source_provenance_authenticates_authority_bytes_result_and_anc
     with pytest.raises(ValueError, match="source|worktree"):
         _MODULE.validate_scientific_execution_source(manifest_path)
     assert helper_imports == []
+    assert calibration_loads == []
+    monkeypatch.setattr(_MODULE, "load_strict_json", original_load_strict_json)
     helper_path.write_bytes(helper_bytes)
 
-    result_path = repository / manifest["normwise_adjoint_calibration_result"]["path"]
+    execution_marker = repository / "helper-executed"
+    substituted_helper = (
+        "from pathlib import Path\n"
+        f"Path({str(execution_marker)!r}).write_text('executed')\n"
+        "def normwise_adjoint_metrics(*args, **kwargs): return {}\n"
+        "def parameter_tree_sha256(*args, **kwargs): return '0' * 64\n"
+        "def tensor_sha256(*args, **kwargs): return '0' * 64\n"
+        "def validate_calibration_result(value): return None\n"
+    ).encode()
+    helper_path.write_bytes(substituted_helper)
+    substituted_digest = hashlib.sha256(substituted_helper).hexdigest()
+    manifest["current_scientific_source"]["files"][
+        "scripts/rsta_normwise_adjoint.py"
+    ] = substituted_digest
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(ValueError, match="helper|source|SHA-256"):
+        _MODULE.validate_scientific_execution_source(manifest_path)
+    assert not execution_marker.exists()
+    helper_path.write_bytes(helper_bytes)
+    manifest["current_scientific_source"]["files"][
+        "scripts/rsta_normwise_adjoint.py"
+    ] = hashlib.sha256(helper_bytes).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
     failed_result = json.loads(result_path.read_text(encoding="utf-8"))
     failed_result["all_passed"] = False
     result_path.write_text(json.dumps(failed_result), encoding="utf-8")
@@ -5555,6 +5963,8 @@ def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_b
     diagnostic_path = repository / "scripts" / "diagnose_pass200_rsta_stage_a.py"
     diagnostic_path.parent.mkdir(parents=True)
     diagnostic_path.write_text("EXECUTION = 1\n", encoding="utf-8")
+    helper_path = repository / "scripts" / "rsta_normwise_adjoint.py"
+    helper_path.write_bytes((_SCRIPT.parent / "rsta_normwise_adjoint.py").read_bytes())
     revision = "c" * 40
     manifest = {
         **references,
@@ -5564,10 +5974,11 @@ def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_b
             "commit": expected_commit,
         },
         "current_scientific_source": {
-            "git_revision": revision,
-            "files": {
-                "scripts/diagnose_pass200_rsta_stage_a.py": _sha256_file(diagnostic_path)
-            },
+                "git_revision": revision,
+                "files": {
+                    "scripts/diagnose_pass200_rsta_stage_a.py": _sha256_file(diagnostic_path),
+                    "scripts/rsta_normwise_adjoint.py": _sha256_file(helper_path),
+                },
         },
     }
     manifest_path = repository / "docs" / "manifest.json"
@@ -5653,7 +6064,10 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         bound_calls.append(receipt_seed.seed)
         return bound_for(receipt_seed.seed)
 
+    cache_calls: list[tuple[str, ...]] = []
+
     def cache_builder(bound: Any, ordered_ids: Any, **_kwargs: Any) -> Any:
+        cache_calls.append(tuple(ordered_ids))
         sources = {value: value for value in ordered_ids}
 
         def transform(example_id: str) -> torch.Tensor:
@@ -5797,6 +6211,7 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert not invalid_output.exists()
     validated.clear()
     bound_calls.clear()
+    cache_calls.clear()
     integrity_score_events.clear()
 
     scoring_model_refs: list[weakref.ReferenceType[torch.nn.Module]] = []
@@ -5859,6 +6274,18 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
         )
     assert validated == [manifest_path]
     assert bound_calls == [0, 1, 2, 3]
+    primary = _MODULE.select_primary_panel(example_ids, labels)
+    alternate = _MODULE.select_alternate_panel(example_ids, labels, primary)
+    scoring_ids = tuple(
+        sorted(
+            {
+                example_id
+                for batch in [*primary["batches"], *alternate["batches"]]
+                for example_id in batch
+            }
+        )
+    )
+    assert cache_calls == [tuple(primary["batches"][0]), scoring_ids]
     assert rotation_calls == [0, 1, 2, 3]
     assert zero_jacobian_calls == [180] * 8
     assert integrity_score_events[:2] == ["configure", "execution-audit"]
@@ -5897,18 +6324,6 @@ def test_scientific_integrity_graphs_are_released_before_next_seed_and_scoring_g
     test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows(
         tmp_path, monkeypatch
     )
-
-
-def test_scientific_candidate_state_is_declared_only_after_the_all_seed_prefix() -> None:
-    """Catches initializing candidate rows or scoring audits before integrity seed four."""
-    source = inspect.getsource(_MODULE.run_scientific_diagnostic)
-    phase_two = source.index("# Phase two recreates every model")
-    for declaration in (
-        "primary_rows: list[dict[str, Any]] = []",
-        "alternate_rows: list[dict[str, Any]] = []",
-        "seed_audits: list[dict[str, Any]] = []",
-    ):
-        assert source.index(declaration) > phase_two
 
 
 def test_scientific_invalid_global_max_audit_prevents_loading_scoring_and_output(
@@ -5965,6 +6380,33 @@ def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     manifest_path, manifest = _task2_manifest(tmp_path)
     bounds, cache_builder, model_type = _task2_inputs(manifest)
+    assert hasattr(_MODULE, "_new_scientific_scoring_state")
+    primary = _MODULE.select_primary_panel(
+        bounds[0].train_example_ids, bounds[0].train_labels
+    )
+    expected_integrity_ids = tuple(primary["batches"][0])
+    alternate_calls = 0
+    cache_calls: list[tuple[str, ...]] = []
+    scoring_state_calls = 0
+
+    def forbidden_alternate(*_args: Any, **_kwargs: Any) -> Any:
+        nonlocal alternate_calls
+        alternate_calls += 1
+        raise AssertionError("alternate panel initialized before integrity prefix")
+
+    def tracked_cache(bound: Any, ordered_ids: Any, **kwargs: Any) -> Any:
+        cache_calls.append(tuple(ordered_ids))
+        if len(cache_calls) > 1:
+            raise AssertionError("full scoring cache initialized before integrity prefix")
+        return cache_builder(bound, ordered_ids, **kwargs)
+
+    def forbidden_scoring_state() -> Any:
+        nonlocal scoring_state_calls
+        scoring_state_calls += 1
+        raise AssertionError("scoring state initialized before integrity prefix")
+
+    monkeypatch.setattr(_MODULE, "select_alternate_panel", forbidden_alternate)
+    monkeypatch.setattr(_MODULE, "_new_scientific_scoring_state", forbidden_scoring_state)
     candidate_calls = {name: 0 for name in (
         "score_rsta_batch", "decide_stage_a", "joint_bootstrap", "scientific_payload"
     )}
@@ -6042,7 +6484,7 @@ def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
             receipt_validator=lambda *_args: _tiny_validated_receipt(),
             execution_source_validator=lambda _path: {"validated": True},
             bound_loader=lambda _entry, receipt_seed, **_kwargs: bounds[receipt_seed.seed],
-            cache_builder=cache_builder,
+            cache_builder=tracked_cache,
             model_loader=model_loader,
             fixture_runner=_task2_fixture_audit,
             deterministic_pool_auditor=_valid_global_max_audit,
@@ -6050,6 +6492,9 @@ def test_scientific_later_seed_integrity_failure_prevents_all_candidate_work(
         )
 
     assert candidate_calls == {name: 0 for name in candidate_calls}
+    assert alternate_calls == 0
+    assert cache_calls == [expected_integrity_ids]
+    assert scoring_state_calls == 0
     assert not output.exists()
     assert list(tmp_path.glob(f".{output.name}.*.tmp")) == []
 
@@ -6510,6 +6955,8 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
     manifest_path.write_text("{}", encoding="utf-8")
     diagnostic = scripts / "diagnose_pass200_rsta_stage_a.py"
     diagnostic.write_text("BOUND = True\n", encoding="utf-8")
+    helper_path = scripts / "rsta_normwise_adjoint.py"
+    helper_path.write_text("BOUND = True\n", encoding="utf-8")
     references = {
         "base_preregistration": {"path": "docs/base.md", "sha256": "1" * 64},
         "amendment": {
@@ -6559,6 +7006,7 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             "git_revision": "3" * 40,
             "files": {
                 "scripts/diagnose_pass200_rsta_stage_a.py": "4" * 64,
+                "scripts/rsta_normwise_adjoint.py": _MODULE._NORMWISE_ADJOINT_HELPER_SHA256,
             },
         },
     }
@@ -6576,6 +7024,11 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
     monkeypatch.setattr(_MODULE, "load_strict_json", load_json)
     normwise_helper = importlib.import_module("rsta_normwise_adjoint")
     monkeypatch.setattr(normwise_helper, "validate_calibration_result", lambda _value: None)
+    monkeypatch.setattr(
+        _MODULE,
+        "_load_authenticated_normwise_adjoint_helper",
+        lambda *_args: normwise_helper,
+    )
     monkeypatch.setattr(_MODULE, "_validate_amended_manifest_schema", lambda value: value)
     monkeypatch.setattr(_MODULE, "__file__", str(diagnostic))
     hashed_paths: list[Path] = []
@@ -6584,6 +7037,8 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
         hashed_paths.append(path.resolve())
         if path.resolve() == diagnostic.resolve():
             return "4" * 64
+        if path.resolve() == helper_path.resolve():
+            return _MODULE._NORMWISE_ADJOINT_HELPER_SHA256
         for reference in references.values():
             if path.resolve() == (repository / reference["path"]).resolve():
                 return str(reference["sha256"])
@@ -6593,6 +7048,8 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
 
     def fake_blob(_repository: Path, revision: str, path_text: str) -> bytes:
         blobs.append((revision, path_text))
+        if path_text == "scripts/rsta_normwise_adjoint.py":
+            return b"blob-" + _MODULE._NORMWISE_ADJOINT_HELPER_SHA256.encode("ascii")
         digest_by_commit = {
             str(reference["commit"]): str(reference["sha256"])
             for reference in references.values()

@@ -227,6 +227,104 @@ def test_normwise_metrics_cast_every_factor_before_product_and_norm(
     assert actual["threshold"] == 5.0e-4
 
 
+def test_normwise_metrics_legacy_override_matches_independent_cpu_reduction() -> None:
+    u = torch.tensor([1.25, -0.5], dtype=torch.float32)
+    a = torch.tensor([0.75, 2.0], dtype=torch.float32)
+    v = {"p": torch.tensor([3.0, -4.0], dtype=torch.float32)}
+    b = {"p": torch.tensor([0.5, 0.25], dtype=torch.float32)}
+    names = ("p",)
+    lhs = float(
+        np.sum(u.numpy().astype(np.float64) * a.numpy().astype(np.float64), dtype=np.float64)
+    )
+    rhs = float(
+        np.sum(
+            v["p"].numpy().astype(np.float64)
+            * b["p"].numpy().astype(np.float64),
+            dtype=np.float64,
+        )
+    )
+
+    default = normwise.normwise_adjoint_metrics(u, a, v, b, names)
+    overridden = normwise.normwise_adjoint_metrics(
+        u,
+        a,
+        v,
+        b,
+        names,
+        legacy_lhs=lhs,
+        legacy_rhs=rhs,
+    )
+
+    assert default == overridden
+
+
+def test_normwise_metrics_legacy_override_controls_only_legacy_derived_scalars() -> None:
+    u = torch.tensor([7.0, -2.0], dtype=torch.float32)
+    a = torch.tensor([3.0, 5.0], dtype=torch.float32)
+    v = {"p": torch.tensor([11.0, -13.0], dtype=torch.float32)}
+    b = {"p": torch.tensor([17.0, 19.0], dtype=torch.float32)}
+    names = ("p",)
+    legacy_lhs, legacy_rhs = 2.0, -3.0
+
+    cpu = normwise.normwise_adjoint_metrics(u, a, v, b, names)
+    result = normwise.normwise_adjoint_metrics(
+        u,
+        a,
+        v,
+        b,
+        names,
+        legacy_lhs=legacy_lhs,
+        legacy_rhs=legacy_rhs,
+    )
+
+    assert result["lhs"] == legacy_lhs
+    assert result["rhs"] == legacy_rhs
+    assert result["absolute_error"] == 5.0
+    assert result["legacy_denominator"] == 3.0
+    assert result["legacy_relative_error"] == 5.0 / 3.0
+    assert result["eta_norm"] == 5.0 / result["normwise_denominator"]
+    assert result["beta_norm"] == 2.0 * result["eta_norm"]
+    assert result["lhs_cancellation_factor"] == result["lhs_absolute_product_sum"] / 2.0
+    assert result["rhs_cancellation_factor"] == result["rhs_absolute_product_sum"] / 3.0
+    for field in (
+        "output_direction_l2",
+        "parameter_direction_l2",
+        "jvp_l2",
+        "vjp_l2",
+        "normwise_denominator",
+        "lhs_absolute_product_sum",
+        "rhs_absolute_product_sum",
+    ):
+        assert result[field] == cpu[field]
+
+
+@pytest.mark.parametrize(
+    ("legacy_lhs", "legacy_rhs"),
+    [
+        (1.0, None),
+        (None, 1.0),
+        (1, 1.0),
+        (1.0, np.float64(1.0)),
+        (float("nan"), 1.0),
+        (1.0, float("inf")),
+    ],
+)
+def test_normwise_metrics_rejects_incomplete_non_python_or_nonfinite_legacy_override(
+    legacy_lhs: object, legacy_rhs: object
+) -> None:
+    one = torch.ones(1, dtype=torch.float32)
+    with pytest.raises(ValueError, match="legacy scalar override"):
+        normwise.normwise_adjoint_metrics(
+            one,
+            one,
+            {"p": one},
+            {"p": one},
+            ("p",),
+            legacy_lhs=legacy_lhs,
+            legacy_rhs=legacy_rhs,
+        )
+
+
 def test_normwise_zero_zero_corner_is_exact_zero() -> None:
     z = torch.zeros(4, dtype=torch.float32)
     result = normwise.normwise_adjoint_metrics(z, z, {"p": z}, {"p": z}, ("p",))

@@ -503,8 +503,21 @@ def normwise_adjoint_metrics(
     parameter_direction: Mapping[str, torch.Tensor],
     vjp_action: Mapping[str, torch.Tensor],
     parameter_names: Sequence[str],
+    *,
+    legacy_lhs: float | None = None,
+    legacy_rhs: float | None = None,
 ) -> dict[str, object]:
     """Compute the frozen FP64 normwise adjoint metrics from FP32 actions."""
+    if (legacy_lhs is None) != (legacy_rhs is None) or (
+        legacy_lhs is not None
+        and (
+            type(legacy_lhs) is not float
+            or type(legacy_rhs) is not float
+            or not math.isfinite(legacy_lhs)
+            or not math.isfinite(legacy_rhs)
+        )
+    ):
+        raise ValueError("legacy scalar override must be paired finite Python floats")
     u = _tensor(u, name="output direction")
     a = _tensor(a, name="JVP action")
     if u.shape != a.shape:
@@ -555,7 +568,9 @@ def normwise_adjoint_metrics(
     ]
     if not all(bool(torch.isfinite(value)) for value in values):
         raise ValueError("normwise adjoint reduction is nonfinite")
-    lhs, rhs = float(lhs_tensor), float(rhs_tensor)
+    cpu_lhs, cpu_rhs = float(lhs_tensor), float(rhs_tensor)
+    lhs = cpu_lhs if legacy_lhs is None else legacy_lhs
+    rhs = cpu_rhs if legacy_rhs is None else legacy_rhs
     absolute_error = abs(lhs - rhs)
     legacy_denominator = max(abs(lhs), abs(rhs), float(np.float64(1.0e-12)))
     legacy_relative_error = absolute_error / legacy_denominator
