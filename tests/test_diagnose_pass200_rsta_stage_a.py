@@ -4984,7 +4984,13 @@ def _valid_scientific_payload_arguments(
             "self_minus_desc_sha256": _MODULE.float64_c_order_sha256(self_desc_bootstrap),
         },
         "panel_binding": {
-            "primary": primary,
+            "primary": {
+                **primary,
+                "support_ids_by_label": {
+                    str(label): ids
+                    for label, ids in primary["support_ids_by_label"].items()
+                },
+            },
             "alternate": alternate,
             "expected_dimension": 512,
             "tensor_sha256": tensor_hashes,
@@ -5000,6 +5006,89 @@ def test_scientific_payload_requires_receiver_rows_and_persists_full_audit_schem
     arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
     payload = _MODULE.scientific_payload(**arguments)
     assert payload["candidate_values_computed"] is True
+
+
+def test_roundtrip_recovery_live_scientific_payload_is_exact_and_byte_identical(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    arguments["environment"]["roundtrip_signed_zero_probe"] = -0.0
+    verifier_path = _SCRIPT.parent / "verify_pass200_rsta_scientific_artifact.py"
+    namespace: dict[str, Any] = {}
+    exec(compile(verifier_path.read_bytes(), str(verifier_path), "exec"), namespace)
+    first = _MODULE.scientific_payload(**arguments)
+    first_path = tmp_path / "first-live-roundtrip.json"
+    _MODULE.write_json_atomic(first_path, first, sort_keys=False)
+    first_bytes = first_path.read_bytes()
+    assert first_bytes == (
+        json.dumps(first, indent=2, sort_keys=False, allow_nan=False) + "\n"
+    ).encode("utf-8")
+    persisted = namespace["strict_json_object"](first_bytes, name="live roundtrip")
+    second = _MODULE.scientific_payload(
+        manifest_audit=persisted["manifest"],
+        execution_audit=persisted["execution_audit"],
+        environment=persisted["environment"],
+        seed_audits=persisted["seed_audits"],
+        primary_rows=persisted["rows"]["primary"],
+        alternate_rows=persisted["rows"]["alternate"],
+        integrity=persisted["integrity"],
+        aggregation=persisted["aggregation"],
+        bootstrap=persisted["bootstrap"],
+        panel_binding=persisted["panel_binding"],
+    )
+    assert namespace["exact_ordered_equal"](second, persisted)
+    second_path = tmp_path / "second-live-roundtrip.json"
+    _MODULE.write_json_atomic(second_path, second, sort_keys=False)
+    assert second_path.read_bytes() == first_bytes
+    signed_zero_mutant = deepcopy(second)
+    signed_zero_mutant["environment"]["roundtrip_signed_zero_probe"] = 0.0
+    assert not namespace["exact_ordered_equal"](signed_zero_mutant, persisted)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "integer_keys",
+        "boolean_key",
+        "noncanonical_string",
+        "missing",
+        "extra",
+        "order",
+        "integer_alias_collision",
+    ),
+)
+def test_scientific_payload_requires_canonical_persisted_support_label_keys(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    arguments = _valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    primary = arguments["panel_binding"]["primary"]
+    support = primary["support_ids_by_label"]
+    keys = list(support)
+    first = keys[0]
+    if mutation == "integer_keys":
+        primary["support_ids_by_label"] = {
+            int(label): ids for label, ids in support.items()
+        }
+    elif mutation == "boolean_key":
+        support[True] = support[first]
+    elif mutation == "noncanonical_string":
+        primary["support_ids_by_label"] = {
+            (f"0{label}" if label == first else label): ids
+            for label, ids in support.items()
+        }
+    elif mutation == "missing":
+        support.pop(first)
+    elif mutation == "extra":
+        support["999999"] = support[first]
+    elif mutation == "order":
+        primary["support_ids_by_label"] = dict(reversed(support.items()))
+    else:
+        support[int(first)] = support[first]
+
+    with pytest.raises(ValueError, match="support label keys"):
+        _MODULE.scientific_payload(**arguments)
 
 
 def test_scientific_payload_requires_exact_structured_adjoint_audits(
@@ -5519,8 +5608,13 @@ def _future_normwise_manifest() -> dict[str, Any]:
         "scripts/rsta_normwise_adjoint.py": _sha256_file(
             root / "scripts" / "rsta_normwise_adjoint.py"
         ),
+        "scripts/verify_pass200_rsta_scientific_artifact.py": _sha256_file(
+            root / "scripts" / "verify_pass200_rsta_scientific_artifact.py"
+        ),
         **source_files,
     }
+
+
     return {
         "schema_version": prior["schema_version"],
         "base_preregistration": prior["base_preregistration"],
@@ -5554,6 +5648,14 @@ def _future_normwise_manifest() -> dict[str, Any]:
             "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
             "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e",
         },
+        "scientific_artifact_roundtrip_recovery_amendment": {
+            "path": (
+                "docs/pass200_rsta_scientific_artifact_roundtrip_"
+                "recovery_amendment_2026-08-10.md"
+            ),
+            "sha256": "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591",
+            "commit": "043121f8a414b91d7fb2e3d6a1635a6bd585676a",
+        },
         "binding_receipt": prior["binding_receipt"],
         "historical": prior["historical"],
         "current_scientific_source": {
@@ -5563,6 +5665,95 @@ def _future_normwise_manifest() -> dict[str, Any]:
         "artifact_schema": prior["artifact_schema"],
         "seeds": prior["seeds"],
     }
+
+
+_ROUNDTRIP_SOURCE_ORDER = (
+    "scripts/diagnose_pass159_cotangent_stage_a.py",
+    "scripts/diagnose_pass200_rsta_stage_a.py",
+    "scripts/rsta_normwise_adjoint.py",
+    "scripts/verify_pass200_rsta_scientific_artifact.py",
+    *_NORMWISE_SOURCE_ORDER[3:],
+)
+
+
+def _future_roundtrip_manifest() -> dict[str, Any]:
+    prior = _future_normwise_manifest()
+    old_files = prior["current_scientific_source"]["files"]
+    source_files = {
+        path: (
+            "0" * 64
+            if path == "scripts/verify_pass200_rsta_scientific_artifact.py"
+            else old_files[path]
+        )
+        for path in _ROUNDTRIP_SOURCE_ORDER
+    }
+    return {
+        **{
+            key: value
+            for key, value in prior.items()
+            if key
+            not in {
+                "binding_receipt", "historical", "current_scientific_source",
+                "artifact_schema", "seeds",
+            }
+        },
+        "scientific_artifact_roundtrip_recovery_amendment": {
+            "path": (
+                "docs/pass200_rsta_scientific_artifact_roundtrip_"
+                "recovery_amendment_2026-08-10.md"
+            ),
+            "sha256": "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591",
+            "commit": "043121f8a414b91d7fb2e3d6a1635a6bd585676a",
+        },
+        "binding_receipt": prior["binding_receipt"],
+        "historical": prior["historical"],
+        "current_scientific_source": {"git_revision": "a" * 40, "files": source_files},
+        "artifact_schema": prior["artifact_schema"],
+        "seeds": prior["seeds"],
+    }
+
+
+def test_roundtrip_recovery_manifest_authority_order_and_32_source_paths() -> None:
+    validated = _MODULE._validate_amended_manifest_schema(_future_roundtrip_manifest())
+    assert list(validated) == [
+        "schema_version", "base_preregistration", "amendment",
+        "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment", "binding_receipt",
+        "historical", "current_scientific_source", "artifact_schema", "seeds",
+    ]
+    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _ROUNDTRIP_SOURCE_ORDER
+
+
+def test_roundtrip_recovery_projection_rejects_every_nested_mutation() -> None:
+    manifest = _future_roundtrip_manifest()
+    _MODULE._validate_amended_manifest_schema(manifest)
+    authority = "scientific_artifact_roundtrip_recovery_amendment"
+    for field, replacement in (
+        ("path", "docs/wrong.md"),
+        ("sha256", "f" * 64),
+        ("commit", "f" * 40),
+    ):
+        changed = deepcopy(manifest)
+        changed[authority][field] = replacement
+        with pytest.raises(ValueError):
+            _MODULE._validate_amended_manifest_schema(changed)
+    for mutation in ("missing", "extra", "reordered", "digest"):
+        changed = deepcopy(manifest)
+        files = changed["current_scientific_source"]["files"]
+        if mutation == "missing":
+            files.pop("scripts/verify_pass200_rsta_scientific_artifact.py")
+        elif mutation == "extra":
+            files["scripts/unreviewed.py"] = "0" * 64
+        elif mutation == "reordered":
+            value = files.pop("scripts/verify_pass200_rsta_scientific_artifact.py")
+            files["scripts/verify_pass200_rsta_scientific_artifact.py"] = value
+        else:
+            files["scripts/verify_pass200_rsta_scientific_artifact.py"] = "g" * 64
+        with pytest.raises(ValueError):
+            _MODULE._validate_amended_manifest_schema(changed)
 
 
 def test_normwise_manifest_freezes_exact_authorities_projection_and_source_order() -> None:
@@ -5581,6 +5772,7 @@ def test_normwise_manifest_freezes_exact_authorities_projection_and_source_order
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
         "binding_receipt",
         "historical",
         "current_scientific_source",
@@ -5588,9 +5780,9 @@ def test_normwise_manifest_freezes_exact_authorities_projection_and_source_order
         "seeds",
     ]
     assert list(validated["current_scientific_source"]["files"]) == list(
-        _NORMWISE_SOURCE_ORDER
+        _ROUNDTRIP_SOURCE_ORDER
     )
-    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _NORMWISE_SOURCE_ORDER
+    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _ROUNDTRIP_SOURCE_ORDER
     assert (
         _MODULE._NORMWISE_ADJOINT_CALIBRATION_PROTOCOL_SHA256
         == "2f4d52fd6c69588248f1b27acbcd5503b0e53dc3c5bd6b5e0755564017dc21db"
@@ -5612,6 +5804,7 @@ def test_normwise_manifest_rejects_every_new_authority_leaf_and_order_mutation()
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
     )
     for authority in authority_names:
         for mutation in ("remove_object", "extra", "path", "sha256", "commit"):
@@ -5626,7 +5819,9 @@ def test_normwise_manifest_rejects_every_new_authority_leaf_and_order_mutation()
                     "sha256": "0" * 64,
                     "commit": "0" * 40,
                 }[mutation]
-            with pytest.raises(ValueError, match="normwise|manifest|calibration"):
+            with pytest.raises(
+                ValueError, match="normwise|manifest|calibration|roundtrip|recovery"
+            ):
                 _MODULE._validate_amended_manifest_schema(changed)
 
     changed = _future_normwise_manifest()
@@ -5665,8 +5860,8 @@ def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
             encoding="utf-8"
         )
     )
-    assert len(_NORMWISE_SOURCE_ORDER) == 31
-    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _NORMWISE_SOURCE_ORDER
+    assert len(_ROUNDTRIP_SOURCE_ORDER) == 32
+    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _ROUNDTRIP_SOURCE_ORDER
     for name in (
         "schema_version",
         "base_preregistration",
@@ -5683,7 +5878,7 @@ def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
     revision = "c" * 40
     executing = "d" * 40
     manifest["current_scientific_source"]["git_revision"] = revision
-    for path_text in _NORMWISE_SOURCE_ORDER:
+    for path_text in _ROUNDTRIP_SOURCE_ORDER:
         destination = repository / path_text
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((source_root / path_text).read_bytes())
@@ -5700,6 +5895,7 @@ def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
         "artifact_schema",
     )
     for name in reference_names:
@@ -5752,7 +5948,14 @@ def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
             manifest["normwise_adjoint_amendment"]["commit"],
             manifest["normwise_adjoint_sign_control_amendment"]["commit"],
         ),
-        (manifest["normwise_adjoint_sign_control_amendment"]["commit"], revision),
+        (
+            manifest["normwise_adjoint_sign_control_amendment"]["commit"],
+            manifest["scientific_artifact_roundtrip_recovery_amendment"]["commit"],
+        ),
+        (
+            manifest["scientific_artifact_roundtrip_recovery_amendment"]["commit"],
+            revision,
+        ),
         (revision, executing),
     ]
     assert ancestry_edges == expected_ancestry_edges
@@ -5762,6 +5965,7 @@ def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
     ):
         path = repository / manifest[name]["path"]
         original = path.read_bytes()
@@ -6135,9 +6339,10 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
         "path", "sha256", "base_preregistration", "amendment",
         "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
         "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
-        "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
-        "normwise_adjoint_sign_control_amendment",
-        "binding_receipt", "historical",
+            "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
+            "normwise_adjoint_sign_control_amendment",
+            "scientific_artifact_roundtrip_recovery_amendment",
+            "binding_receipt", "historical",
         "artifact_schema", "source",
     ]
     assert set(payload["environment"]) == _MODULE.ENVIRONMENT_AUDIT_FIELDS
@@ -6187,7 +6392,8 @@ def test_sign_control_candidate_free_projection_schema_rejects_every_authority_m
         "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
         "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
-        "normwise_adjoint_sign_control_amendment", "binding_receipt",
+        "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment", "binding_receipt",
         "historical", "artifact_schema", "source",
     )
     sign_keys = (
@@ -6250,6 +6456,9 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
         "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
         "normwise_adjoint_sign_control_amendment": manifest[
             "normwise_adjoint_sign_control_amendment"
+        ],
+        "scientific_artifact_roundtrip_recovery_amendment": manifest[
+            "scientific_artifact_roundtrip_recovery_amendment"
         ],
         "binding_receipt": manifest["binding_receipt"], "historical": manifest["historical"],
         "artifact_schema": manifest["artifact_schema"], "source": source,
@@ -6725,6 +6934,12 @@ def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_b
                 _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
                 _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
             ),
+            (
+                "scientific_artifact_roundtrip_recovery_amendment",
+                _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_PATH,
+                _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_SHA256,
+                _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_COMMIT,
+            ),
     ):
         destination = repository / path_text
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -7077,6 +7292,12 @@ def test_scientific_cli_executes_exact_four_seed_pipeline_and_writes_atomic_rows
     assert result["mode"] == "scientific"
     assert len(result["rows"]["primary"]) == 4 * 64
     assert len(result["rows"]["alternate"]) == 4 * 16
+    persisted_primary = result["panel_binding"]["primary"]
+    assert list(persisted_primary["support_ids_by_label"]) == [
+        str(label) for label in persisted_primary["eligible_labels"]
+    ]
+    assert all(type(row["label"]) is int for row in result["rows"]["primary"])
+    assert all(type(row["label"]) is int for row in result["rows"]["alternate"])
     assert all(len(audit["primary_batch_ids"]) == 8 for audit in result["seed_audits"])
     assert result["exclusions"] == []
     assert result["integrity"]["deterministic_global_max"] == _valid_global_max_audit()
@@ -7764,11 +7985,16 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
                 "sha256": _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
                 "commit": _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
             },
-            "normwise_adjoint_sign_control_amendment": {
-                "path": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
-                "sha256": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
-                "commit": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
-            },
+                "normwise_adjoint_sign_control_amendment": {
+                    "path": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
+                    "sha256": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
+                    "commit": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
+                },
+                "scientific_artifact_roundtrip_recovery_amendment": {
+                    "path": _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_PATH,
+                    "sha256": _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_SHA256,
+                    "commit": _MODULE._SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_COMMIT,
+                },
         "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
     }
     for reference in references.values():

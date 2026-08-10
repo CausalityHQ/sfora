@@ -171,6 +171,15 @@ _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256 = (
 _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT = (
     "2d09a23994b8584d6726d737d7a3e4022b4a064e"
 )
+_SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_PATH = (
+    "docs/pass200_rsta_scientific_artifact_roundtrip_recovery_amendment_2026-08-10.md"
+)
+_SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_SHA256 = (
+    "6e1767e802295fcfbf29e7151ac05991a016994ca92b99bf2e2cbcd46e4e9591"
+)
+_SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_COMMIT = (
+    "043121f8a414b91d7fb2e3d6a1635a6bd585676a"
+)
 _NORMWISE_ADJOINT_HELPER_SHA256 = (
     "bbb478a0a650b6e3fcf5c306fd972632948d66b18dfc85e1545b2fa6aa22f6db"
 )
@@ -184,6 +193,7 @@ _CURRENT_SCIENTIFIC_SOURCE_FILES = (
         "scripts/diagnose_pass159_cotangent_stage_a.py",
         "scripts/diagnose_pass200_rsta_stage_a.py",
         "scripts/rsta_normwise_adjoint.py",
+        "scripts/verify_pass200_rsta_scientific_artifact.py",
         "src/sfora/__init__.py",
         "src/sfora/ablation.py",
         "src/sfora/api.py",
@@ -666,6 +676,7 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
         "binding_receipt",
         "historical",
         "current_scientific_source",
@@ -763,6 +774,11 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
             "path": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
             "sha256": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
             "commit": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
+        },
+        "scientific_artifact_roundtrip_recovery_amendment": {
+            "path": _SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_PATH,
+            "sha256": _SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_SHA256,
+            "commit": _SCIENTIFIC_ARTIFACT_ROUNDTRIP_RECOVERY_AMENDMENT_COMMIT,
         },
     }
     for name, expected in normwise_references.items():
@@ -986,6 +1002,7 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
         "artifact_schema",
     ):
         reference = manifest[name]
@@ -1030,6 +1047,7 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
     ):
         reference = manifest[name]
         blob = _git_blob(repository, reference["commit"], reference["path"])
@@ -1059,7 +1077,14 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
             manifest["normwise_adjoint_amendment"]["commit"],
             manifest["normwise_adjoint_sign_control_amendment"]["commit"],
         ),
-        (manifest["normwise_adjoint_sign_control_amendment"]["commit"], revision),
+        (
+            manifest["normwise_adjoint_sign_control_amendment"]["commit"],
+            manifest["scientific_artifact_roundtrip_recovery_amendment"]["commit"],
+        ),
+        (
+            manifest["scientific_artifact_roundtrip_recovery_amendment"]["commit"],
+            revision,
+        ),
         (revision, executing_commit),
     )
     for ancestor, descendant in ancestry_edges:
@@ -3693,6 +3718,16 @@ def _validate_registered_rows(
     foreign_support_ids = set(panel_binding.get("foreign_support_ids", ()))
     if not all(isinstance(value, Mapping) for value in (primary, alternate, tensor_hashes)):
         raise ValueError("registered panel binding is incomplete")
+    eligible_labels = primary.get("eligible_labels")
+    support_ids_by_label = primary.get("support_ids_by_label")
+    if (
+        not isinstance(eligible_labels, list)
+        or any(type(label) is not int or label < 0 for label in eligible_labels)
+        or len(set(eligible_labels)) != len(eligible_labels)
+        or type(support_ids_by_label) is not dict
+        or list(support_ids_by_label) != [str(label) for label in eligible_labels]
+    ):
+        raise ValueError("registered primary support label keys differ")
     expected_panels = {"primary": primary, "alternate": alternate}
     rows_by_panel = {"primary": primary_rows, "alternate": alternate_rows}
     primary_tensors: dict[tuple[int, str], str] = {}
@@ -3714,7 +3749,8 @@ def _validate_registered_rows(
                     row["receiver_id"] != expected_id
                     or row["batch_index"] != batch_index
                     or row["batch_ids"] != expected_batch
-                    or row["support_ids"] != primary["support_ids_by_label"][row["label"]]
+                    or row["support_ids"]
+                    != support_ids_by_label[str(row["label"])]
                 ):
                     raise ValueError("receiver row differs from registered roles or batches")
                 if not set(row["foreign_ids"]) <= foreign_support_ids:
@@ -5658,8 +5694,15 @@ def run_scientific_diagnostic(
         "zero_jacobian_classifier": zero_jacobian_integrity,
         "seeds": seed_integrity,
     }
+    canonical_primary = {
+        **primary,
+        "support_ids_by_label": {
+            str(label): ids
+            for label, ids in primary["support_ids_by_label"].items()
+        },
+    }
     panel_binding = {
-        "primary": primary,
+        "primary": canonical_primary,
         "alternate": alternate,
         "expected_dimension": int(expected_dimension),
         "tensor_sha256": tensor_hashes,
@@ -6072,6 +6115,7 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             "normwise_adjoint_calibration_result",
             "normwise_adjoint_amendment",
             "normwise_adjoint_sign_control_amendment",
+            "scientific_artifact_roundtrip_recovery_amendment",
             "binding_receipt",
             "historical",
             "artifact_schema",
@@ -6091,6 +6135,7 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
         "normwise_adjoint_sign_control_amendment",
+        "scientific_artifact_roundtrip_recovery_amendment",
         "binding_receipt",
         "historical",
         "artifact_schema",
@@ -6124,6 +6169,9 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
         "normwise_adjoint_sign_control_amendment": manifest[
             "normwise_adjoint_sign_control_amendment"
+        ],
+        "scientific_artifact_roundtrip_recovery_amendment": manifest[
+            "scientific_artifact_roundtrip_recovery_amendment"
         ],
         "binding_receipt": manifest["binding_receipt"],
         "historical": manifest["historical"],
@@ -6402,6 +6450,9 @@ def run_all_seed_adjoint_integrity(
             "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
             "normwise_adjoint_sign_control_amendment": manifest[
                 "normwise_adjoint_sign_control_amendment"
+            ],
+            "scientific_artifact_roundtrip_recovery_amendment": manifest[
+                "scientific_artifact_roundtrip_recovery_amendment"
             ],
             "binding_receipt": manifest["binding_receipt"],
             "historical": manifest["historical"],
