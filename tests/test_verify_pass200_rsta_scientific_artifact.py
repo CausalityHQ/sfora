@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import struct
@@ -417,15 +418,170 @@ def _run_synthetic_legacy_child(
     return exit_code, token, calls
 
 
-def test_real_h_scientific_payload_roundtrips_a_synthetic_artifact_in_isolated_child(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    capfd: pytest.CaptureFixture[str],
-) -> None:
-    exit_code, token, _calls = _run_synthetic_legacy_child(
-        tmp_path, monkeypatch, capfd, forked=True
+def _real_h_synthetic_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> bytes:
+    """Build opaque fixture bytes through the real reviewed H payload builder."""
+    test_path = _REPOSITORY / "tests/test_diagnose_pass200_rsta_stage_a.py"
+    spec = importlib.util.spec_from_file_location("rsta_diagnostic_fixture_module", test_path)
+    assert spec is not None and spec.loader is not None
+    fixture_module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = fixture_module
+    try:
+        spec.loader.exec_module(fixture_module)
+        arguments = fixture_module._valid_scientific_payload_arguments(tmp_path, monkeypatch)
+    finally:
+        sys.modules.pop(spec.name, None)
+
+    temporary = _call("_create_legacy_checkout", _REPOSITORY)
+    try:
+        checkout = temporary.checkout
+        legacy = _call("_load_legacy_module", checkout)
+        old_manifest = _call(
+            "strict_json_object",
+            (checkout / _NAMESPACE["LEGACY_MANIFEST_PATH"]).read_bytes(),
+            name="synthetic legacy manifest",
+        )
+        arguments["manifest_audit"] = _call(
+            "legacy_manifest_projection", checkout, old_manifest
+        )
+        arguments["execution_audit"] = {
+            "executing_git_commit": _NAMESPACE["LEGACY_HANDOFF_COMMIT"],
+            "diagnostic_path": _NAMESPACE["LEGACY_DIAGNOSTIC_PATH"],
+            "diagnostic_sha256": _NAMESPACE["LEGACY_DIAGNOSTIC_SHA256"],
+            "frozen_source_revision": _NAMESPACE["LEGACY_SOURCE_COMMIT"],
+        }
+        arguments["environment"]["numpy_version"] = legacy.np.__version__
+        primary = arguments["panel_binding"]["primary"]
+        primary["support_ids_by_label"] = {
+            int(key): value for key, value in primary["support_ids_by_label"].items()
+        }
+        prior_cwd = Path.cwd()
+        try:
+            os.chdir(checkout)
+            payload = legacy.scientific_payload(**arguments)
+        finally:
+            os.chdir(prior_cwd)
+        return _encoded(payload)
+    finally:
+        temporary.cleanup()
+
+
+def _real_cli_repository(tmp_path: Path, artifact_bytes: bytes) -> tuple[Path, str, Path]:
+    """Create a real linear V..HV checkout bound to one synthetic artifact digest."""
+    repository = tmp_path / "live"
+    _git_run(
+        _REPOSITORY,
+        "clone",
+        "--no-hardlinks",
+        "--no-checkout",
+        str(_REPOSITORY),
+        str(repository),
     )
-    assert (exit_code, token) == (0, _NAMESPACE["VALID_TOKEN"])
+    _git_run(repository, "checkout", "--detach", "2e7d673d21854ba264a9fa7d6a18365aa7a3d534")
+    _git_run(repository, "config", "user.email", "rsta@example.invalid")
+    _git_run(repository, "config", "user.name", "RSTA Test")
+
+    verifier_path = repository / _NAMESPACE["VERIFIER_PATH"]
+    verifier_source = _SCRIPT.read_text(encoding="utf-8")
+    synthetic_digest = hashlib.sha256(artifact_bytes).hexdigest()
+    verifier_source = verifier_source.replace(
+        _NAMESPACE["ARTIFACT_SHA256"], synthetic_digest
+    )
+    verifier_path.write_text(verifier_source, encoding="utf-8")
+    _git_run(repository, "add", _NAMESPACE["VERIFIER_PATH"])
+    _git_run(repository, "commit", "-m", "bind synthetic verifier fixture")
+    source = _git_run(repository, "rev-parse", "HEAD")
+
+    old_manifest_path = repository / _NAMESPACE["LEGACY_MANIFEST_PATH"]
+    old_manifest = json.loads(old_manifest_path.read_text(encoding="utf-8"))
+    source_files = {
+        path_text: hashlib.sha256(
+            subprocess.run(
+                ["git", "-C", str(repository), "show", f"{source}:{path_text}"],
+                check=True,
+                capture_output=True,
+            ).stdout
+        ).hexdigest()
+        for path_text in _NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]
+    }
+    manifest: dict[str, object] = {}
+    for key, value in old_manifest.items():
+        if key == "binding_receipt":
+            manifest["scientific_artifact_roundtrip_recovery_amendment"] = {
+                "path": _NAMESPACE["RECOVERY_AMENDMENT_PATH"],
+                "sha256": _NAMESPACE["RECOVERY_AMENDMENT_SHA256"],
+                "commit": _NAMESPACE["RECOVERY_AMENDMENT_COMMIT"],
+            }
+        if key == "current_scientific_source":
+            value = {"git_revision": source, "files": source_files}
+        manifest[key] = value
+    old_manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=False, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    _git_run(repository, "add", _NAMESPACE["LEGACY_MANIFEST_PATH"])
+    _git_run(repository, "commit", "-m", "bind synthetic verifier handoff")
+    handoff = _git_run(repository, "rev-parse", "HEAD")
+    _git_run(repository, "checkout", "--detach", handoff)
+
+    (repository / ".venv").symlink_to(_REPOSITORY / ".venv", target_is_directory=True)
+    exclude = repository / ".git/info/exclude"
+    exclude.write_text(exclude.read_text(encoding="utf-8") + ".venv\n", encoding="utf-8")
+    artifact_path = repository / _NAMESPACE["ARTIFACT_PATH"]
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_bytes(artifact_bytes)
+    return repository, handoff, artifact_path
+
+
+def test_real_h_scientific_payload_roundtrips_a_synthetic_artifact_in_isolated_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact_bytes = _real_h_synthetic_artifact(tmp_path, monkeypatch)
+    repository, handoff, artifact_path = _real_cli_repository(tmp_path, artifact_bytes)
+    output = _call("receipt_path", repository, handoff)
+    command = [
+        str(repository / ".venv/bin/python"),
+        "-I",
+        "-B",
+        str(repository / _NAMESPACE["VERIFIER_PATH"]),
+        "--manifest",
+        _NAMESPACE["LEGACY_MANIFEST_PATH"],
+        "--artifact",
+        _NAMESPACE["ARTIFACT_PATH"],
+        "--output",
+        str(output),
+        "--validate-immutable-artifact-once",
+    ]
+    environment = dict(os.environ)
+    environment["CUDA_VISIBLE_DEVICES"] = ""
+    environment["TMPDIR"] = str(_REPOSITORY / ".pytest_cache")
+    first = subprocess.run(
+        command,
+        cwd=repository,
+        env=environment,
+        capture_output=True,
+        timeout=600,
+        check=False,
+    )
+    assert (first.returncode, first.stdout, first.stderr) == (0, b"", b"")
+    first_bytes = output.read_bytes()
+    persisted = _call("strict_json_object", first_bytes, name="real CLI synthetic receipt")
+    assert persisted["status"] == "VALID"
+    assert persisted["process"]["child_exit_code"] == 0
+
+    artifact_path.unlink()
+    os.mkfifo(artifact_path)
+    second = subprocess.run(
+        command,
+        cwd=repository,
+        env=environment,
+        capture_output=True,
+        timeout=30,
+        check=False,
+    )
+    assert (second.returncode, second.stdout, second.stderr) == (2, b"", b"")
+    assert output.read_bytes() == first_bytes
 
 
 def test_legacy_provenance_binds_h_s_old_manifest_and_all_31_blobs() -> None:
@@ -537,6 +693,9 @@ def _synthetic_verifier_repository(
     monkeypatch: pytest.MonkeyPatch,
     *,
     extra_between_plan_and_source: bool,
+    missing_aggregate_path: bool = False,
+    wrong_ancestor: bool = False,
+    wrong_handoff_parent: bool = False,
 ) -> tuple[Path, Path]:
     repository = tmp_path / "repository"
     repository.mkdir()
@@ -556,6 +715,8 @@ def _synthetic_verifier_repository(
     plan_path.parent.mkdir(parents=True, exist_ok=True)
     plan_path.write_text("plan\n", encoding="utf-8")
     plan = _commit_all(repository, "plan")
+    if wrong_ancestor:
+        _git_run(repository, "checkout", "-q", "-b", "wrong-ancestor", recovery)
     if extra_between_plan_and_source:
         extra_path = repository / "docs/unregistered-intermediate.md"
         extra_path.write_text("intermediate\n", encoding="utf-8")
@@ -566,11 +727,17 @@ def _synthetic_verifier_repository(
         "tests/test_diagnose_pass200_rsta_stage_a.py",
         "tests/test_verify_pass200_rsta_scientific_artifact.py",
     )
-    for path_text in source_paths:
+    for path_text in source_paths[:2]:
         path = repository / path_text
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f"reviewed {path_text}\n", encoding="utf-8")
-    source = _commit_all(repository, "source")
+        path.write_text(f"reviewed first {path_text}\n", encoding="utf-8")
+    _commit_all(repository, "source one")
+    final_paths = source_paths[2:-1] if missing_aggregate_path else source_paths[2:]
+    for path_text in final_paths:
+        path = repository / path_text
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"reviewed second {path_text}\n", encoding="utf-8")
+    source = _commit_all(repository, "source two")
     files = {
         path_text: hashlib.sha256((repository / path_text).read_bytes()).hexdigest()
         for path_text in _NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]
@@ -585,6 +752,15 @@ def _synthetic_verifier_repository(
     }
     manifest_path = repository / _NAMESPACE["LEGACY_MANIFEST_PATH"]
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    if wrong_handoff_parent:
+        _git_run(repository, "checkout", "-q", "-b", "wrong-handoff", "HEAD^")
+        for path_text in source_paths[2:]:
+            path = repository / path_text
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(f"reviewed second {path_text}\n", encoding="utf-8")
+        unrelated_allowed = repository / "scripts/verify_pass200_rsta_scientific_artifact.py"
+        unrelated_allowed.write_text("wrong parent\n", encoding="utf-8")
+        _commit_all(repository, "wrong source parent")
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     _commit_all(repository, "handoff")
     _git_run(repository, "checkout", "--detach", "HEAD")
@@ -608,7 +784,9 @@ def test_verifier_provenance_requires_exact_recovery_plan_source_handoff_chain(
     repository, manifest_path = _synthetic_verifier_repository(
         tmp_path, monkeypatch, extra_between_plan_and_source=True
     )
-    with pytest.raises(_exception("StructuralFailure"), match="plan|parent|chain"):
+    with pytest.raises(
+        _exception("StructuralFailure"), match="plan|parent|chain|scope"
+    ):
         _call("authenticate_verifier_provenance", repository, manifest_path)
 
 
@@ -621,6 +799,25 @@ def test_verifier_provenance_accepts_exact_recovery_plan_source_handoff_chain(
     provenance = _call("authenticate_verifier_provenance", repository, manifest_path)
     assert provenance["source_commit"] == _git_run(repository, "rev-parse", "HEAD^")
     assert provenance["handoff_commit"] == _git_run(repository, "rev-parse", "HEAD")
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("extra_path", "missing_aggregate_path", "wrong_ancestor", "wrong_handoff_parent"),
+)
+def test_verifier_provenance_rejects_every_linear_history_scope_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    repository, manifest_path = _synthetic_verifier_repository(
+        tmp_path,
+        monkeypatch,
+        extra_between_plan_and_source=mutation == "extra_path",
+        missing_aggregate_path=mutation == "missing_aggregate_path",
+        wrong_ancestor=mutation == "wrong_ancestor",
+        wrong_handoff_parent=mutation == "wrong_handoff_parent",
+    )
+    with pytest.raises(_exception("StructuralFailure")):
+        _call("authenticate_verifier_provenance", repository, manifest_path)
 
 
 def test_verifier_provenance_rejects_merge_handoff_with_exact_source_parent(
@@ -638,6 +835,35 @@ def test_verifier_provenance_rejects_merge_handoff_with_exact_source_parent(
     _git_run(repository, "checkout", "-q", "--detach", handoff)
     _git_run(repository, "merge", "--no-ff", "side", "-m", "merge handoff")
     with pytest.raises(_exception("StructuralFailure"), match="handoff parent"):
+        _call("authenticate_verifier_provenance", repository, manifest_path)
+
+
+def test_verifier_provenance_rejects_merge_in_source_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path = _synthetic_verifier_repository(
+        tmp_path, monkeypatch, extra_between_plan_and_source=False
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source = _git_run(repository, "rev-parse", "HEAD^")
+    _git_run(repository, "checkout", "-q", "-b", "source-side", f"{source}^")
+    side_path = repository / "scripts/verify_pass200_rsta_scientific_artifact.py"
+    side_path.write_text("reviewed side source\n", encoding="utf-8")
+    _commit_all(repository, "source side")
+    _git_run(repository, "checkout", "-q", "--detach", source)
+    _git_run(repository, "merge", "--no-ff", "source-side", "-m", "merge source")
+    merged_source = _git_run(repository, "rev-parse", "HEAD")
+    manifest["current_scientific_source"] = {
+        "git_revision": merged_source,
+        "files": {
+            path_text: hashlib.sha256((repository / path_text).read_bytes()).hexdigest()
+            for path_text in _NAMESPACE["ROUNDTRIP_SOURCE_ORDER"]
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    _commit_all(repository, "merged source handoff")
+    _git_run(repository, "checkout", "--detach", "HEAD")
+    with pytest.raises(_exception("StructuralFailure"), match="linear"):
         _call("authenticate_verifier_provenance", repository, manifest_path)
 
 

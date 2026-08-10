@@ -431,11 +431,47 @@ def authenticate_verifier_provenance(repository: Path, manifest_path: Path) -> d
     if len(parent_line) != 2 or parent_line[0] != head:
         raise StructuralFailure("verifier handoff parent differs")
     source = parent_line[1]
-    source_parent = str(
-        _git(repository, "rev-list", "--parents", "-n", "1", source, text=True)
-    ).strip()
-    if source_parent.split() != [source, RECOVERY_PLAN_COMMIT]:
-        raise StructuralFailure("verifier source parent is not the exact recovery plan")
+    allowed_source_paths = {
+        "scripts/diagnose_pass200_rsta_stage_a.py",
+        "scripts/verify_pass200_rsta_scientific_artifact.py",
+        "tests/test_diagnose_pass200_rsta_stage_a.py",
+        "tests/test_verify_pass200_rsta_scientific_artifact.py",
+    }
+    current_commit = source
+    visited: set[str] = set()
+    while current_commit != RECOVERY_PLAN_COMMIT:
+        if current_commit in visited:
+            raise StructuralFailure("verifier source history contains a cycle")
+        visited.add(current_commit)
+        commit_line = str(
+            _git(
+                repository,
+                "rev-list",
+                "--parents",
+                "-n",
+                "1",
+                current_commit,
+                text=True,
+            )
+        ).strip().split()
+        if len(commit_line) != 2 or commit_line[0] != current_commit:
+            raise StructuralFailure("verifier source history is not linear")
+        changed_paths = set(
+            str(
+                _git(
+                    repository,
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-only",
+                    "-r",
+                    current_commit,
+                    text=True,
+                )
+            ).splitlines()
+        )
+        if not changed_paths or not changed_paths <= allowed_source_paths:
+            raise StructuralFailure("verifier source commit scope differs")
+        current_commit = commit_line[1]
     plan_parent = str(
         _git(
             repository,
@@ -449,24 +485,20 @@ def authenticate_verifier_provenance(repository: Path, manifest_path: Path) -> d
     ).strip()
     if plan_parent.split() != [RECOVERY_PLAN_COMMIT, RECOVERY_AMENDMENT_COMMIT]:
         raise StructuralFailure("recovery plan parent is not the exact amendment")
-    source_paths = str(
-        _git(
-            repository,
-            "diff-tree",
-            "--no-commit-id",
-            "--name-only",
-            "-r",
-            source,
-            text=True,
-        )
-    ).splitlines()
-    if set(source_paths) != {
-        "scripts/diagnose_pass200_rsta_stage_a.py",
-        "scripts/verify_pass200_rsta_scientific_artifact.py",
-        "tests/test_diagnose_pass200_rsta_stage_a.py",
-        "tests/test_verify_pass200_rsta_scientific_artifact.py",
-    }:
-        raise StructuralFailure("verifier source commit scope differs")
+    aggregate_paths = set(
+        str(
+            _git(
+                repository,
+                "diff",
+                "--name-only",
+                RECOVERY_PLAN_COMMIT,
+                source,
+                text=True,
+            )
+        ).splitlines()
+    )
+    if aggregate_paths != allowed_source_paths:
+        raise StructuralFailure("verifier aggregate source scope differs")
     if str(_git(repository, "status", "--porcelain", "--untracked-files=all", text=True)):
         raise StructuralFailure("verifier checkout is dirty")
     changed = str(
