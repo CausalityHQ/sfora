@@ -56,6 +56,18 @@ The chronology is exact:
    from raw SHA-256 equality against a separately negated baseline action. That
    raw-negated-hash relation can be false when the registered mathematical
    relation is true under direct `torch.equal`.
+7. The initial prospective comparator amendment was committed docs-only at
+   `a27dd7b3c8ff089c7cb80821c43658b975985a34`, and its initial implementation
+   plan was committed docs-only at
+   `3df1f9571c910fb1240b82c4f8addb5b2a8c5dce`.
+8. A subsequent independent read-only documentation review returned
+   `NOT READY`, with no Critical finding and two Important findings. First, the
+   initial plan incorrectly routed the live comparator through the calibration
+   helper `_tensor`, whose registered contract rejects CUDA tensors. Second,
+   its equality sentinel counted calls without proving the exact provenance of
+   either operand, so signed-zero canonicalization or detached reconstruction
+   could create false confidence. This repair resolves both documentation
+   defects before source work.
 
 IEEE signed zero explains the mismatch. A dead ReLU or another exact-zero
 action can produce `+0.0` in one fresh derivative evaluation while explicit
@@ -66,10 +78,11 @@ equal for this registered exact tensor relation. Hashes remain exact byte
 evidence, but a hash of an explicitly negated tensor is not the authority for
 signed numerical equality.
 
-This was a read-only review finding. It produced no new real audit, DGX result,
-or candidate value. It does not establish how any prior seed would behave
-under the repaired comparator and does not alter the published calibration
-artifact, whose complete bytes and original schema remain historical evidence.
+Both review rounds were read-only. They produced no source, test, manifest,
+result, GPU, real-audit, or candidate change, and no new real audit, DGX result,
+or candidate value. They do not establish how any prior seed would behave under
+the repaired comparator and do not alter the published calibration artifact,
+whose complete bytes and original schema remain historical evidence.
 
 ## Frozen design A: same-graph target and reference
 
@@ -110,24 +123,88 @@ The exact target and reference action inputs are:
 Here `u` and `v` are the unchanged registered baseline direction tensors. The
 functional model state and input tensors are immutable across both pairs.
 
-While all target and reference tensors are still live, compute
-`exact_relation` directly with `torch.equal` as the conjunction below:
+## Device-agnostic live comparator contract
+
+The authenticated normwise helper adds one separate function named exactly
+`exact_live_sign_control_relation`. Its exact interface is:
+
+```text
+exact_live_sign_control_relation(
+    control_name: str,
+    target_jvp: torch.Tensor,
+    target_vjp: Mapping[str, torch.Tensor],
+    reference_jvp: torch.Tensor,
+    reference_vjp: Mapping[str, torch.Tensor],
+    parameter_names: Sequence[str],
+    *,
+    expected_device: torch.device,
+) -> bool
+```
+
+This function is device-agnostic. It must operate on the live action device,
+including CUDA in production, and must not call or route an operand through the
+calibration helper `_tensor`. The definition and behavior of `_tensor` remain
+unchanged: it continues to accept only finite CPU FP32 tensors for the existing
+calibration and detached diagnostic paths. No existing calibration constructor,
+trial, metric, hash, validator, CLI, artifact, or result path may import, call,
+or depend on `exact_live_sign_control_relation`.
+
+Before the first equality call, the live comparator performs structural
+validation on device. It accepts only actual `torch.Tensor` instances with
+exact dtype `torch.float32` whose values are finite. `parameter_names` must be a
+nonempty exact sequence of unique nonempty strings. Both VJP mappings must have
+exactly those keys in that insertion order and no others. Target and reference
+JVPs must have identical shape and device, and that device must equal
+`expected_device`. For every name in registered order, target and reference VJP
+tensors must have identical shape and device; that device must equal the JVP
+device and `expected_device`. A wrong control name, tensor type, dtype,
+finiteness, topology, name/order, shape, or device is structural and raises
+before any equality call.
+
+The production caller derives `expected_device` from the live functional model
+actions and first proves that all live functional parameters/actions use that
+same device. The comparator never transfers an action to satisfy the device
+contract.
+
+While all raw target and reference tensors are still live on that validated
+device, compute `exact_relation` directly with `torch.equal` as follows:
 
 ```text
 parameter_sign:
-    torch.equal(target_jvp, -reference_jvp)
-    and every named parameter satisfies
-        torch.equal(target_vjp[name], reference_vjp[name])
+    comparison_results[0] = torch.equal(target_jvp, -reference_jvp)
+    for each name in exact named-parameter order:
+        append torch.equal(target_vjp[name], reference_vjp[name])
 
 output_sign:
-    torch.equal(target_jvp, reference_jvp)
-    and every named parameter satisfies
-        torch.equal(target_vjp[name], -reference_vjp[name])
+    comparison_results[0] = torch.equal(target_jvp, reference_jvp)
+    for each name in exact named-parameter order:
+        append torch.equal(target_vjp[name], -reference_vjp[name])
+
+exact_relation = all exact Python booleans in comparison_results
+                 after every comparison has executed
 ```
 
-The named VJP traversal is the exact trainable named-parameter order. The
-comparison requires identical tensor topology, names, order, shapes, dtypes,
-and devices before calling `torch.equal`. Direct `torch.equal` is normative:
+The equality-call schedule is exact and never short-circuits: call
+`torch.equal` once for the JVP first, then exactly once for every VJP tensor in
+registered trainable named-parameter order, with no additional equality call.
+Collect the exact Python boolean results and conjoin them only after every
+registered comparison has executed.
+
+For every call, the left operand is the identical raw target action object
+yielded by `torch.func`, not a view, clone, detached tensor, CPU copy,
+contiguous copy, reconstruction, or canonicalized value. For an unchanged
+relation, the right operand is the identical raw reference action object
+yielded by `torch.func`. For a negative relation, the right operand is the
+immediate result of direct unary negation of that live raw reference tensor at
+the equality call: the production expression is exactly
+`torch.equal(raw_target, -raw_reference)`. No detached, copied,
+canonicalized, reconstructed, precomputed, cached, or multiply-by-minus-one
+substitute is permitted.
+
+All structural validation and every direct equality call occur before any
+target, reference, or negated action is detached, cloned, moved with `.cpu()`
+or any `.to` call, made contiguous, converted to NumPy, hashed, zero-canonicalized,
+or reconstructed. Direct `torch.equal` on the live device is normative:
 signed-zero equality is accepted, and no raw hash comparison, `allclose`,
 tolerance, scalar reduction, canonicalization, zero-sign rewrite, or post-hoc
 reconstruction may substitute for it.
@@ -161,13 +238,15 @@ require the sign-changed target hash to equal a raw hash computed by explicitly
 negating baseline or reference tensors.
 
 The direct tensor relation and every structural check must be completed while
-the target and reference actions are live. Then compute only the registered
-JSON-ready target metrics, booleans, and raw hashes. Release the VJP closure,
-functional parameters, primal outputs, graph actions, target tensors,
-reference tensors, directions derived for the trial, detached CPU tensor
-copies, and any temporary negations before constructing the next graph. Only
-JSON scalars, exact Python booleans, and lowercase SHA-256 strings may survive.
-At most one full derivative graph exists at peak.
+the identical raw target and reference actions are live. Only after the final
+named VJP equality returns may production detach or transfer tensors and
+compute the registered JSON-ready target metrics, booleans, and raw hashes.
+Release the VJP closure, functional parameters, primal outputs, graph actions,
+raw target tensors, raw reference tensors, directions derived for the trial,
+detached CPU tensor copies, and every immediate unary-negated reference
+temporary before constructing the next graph. Only JSON scalars, exact Python
+booleans, and lowercase SHA-256 strings may survive. At most one full
+derivative graph exists at peak.
 
 The complete per-seed production action schedule is therefore exactly:
 
@@ -283,12 +362,30 @@ infer a sign relation by hashing an explicitly negated baseline or reference
 tensor. Direct `torch.equal` is the signed-relation authority, and signed zero
 is accepted by that authority.
 
-Tests must use a direct-`torch.equal` sentinel so a producer that returns a
-hard-coded relation, compares raw-negated hashes, canonicalizes signed zero, or
-uses another comparator fails. They must also prove that a target/reference
-pair can be mutually sign-consistent while the reference hashes drift from the
-baseline and that this sets `reference_exact_action_hash_match=false`,
-`passed=false`, and `integrity_passed=false`.
+Tests must instrument direct `torch.equal` and prove operand provenance, not
+only call count. In exact call order, each left operand must be the identical
+raw target action object yielded by fake or real `torch.func`; each unchanged
+right operand must be the identical raw reference object; and each negative
+right operand must be the recorded immediate unary-negated live-reference
+temporary on the same device. The tests must prove the comparator runs before
+any detach, clone, CPU/device transfer, contiguity conversion,
+canonicalization, or reconstruction. Sentinel tensor subclasses or wrappers
+must raise if one of those operations occurs before the final comparison.
+
+Explicit comparator mutants that canonicalize signed zero before comparison
+and that detach/reconstruct actions post hoc must both fail the provenance
+oracle. A direct signed-zero dead-ReLU case must pass; a mutually
+target/reference-consistent reference drift from baseline must still set
+`reference_exact_action_hash_match=false`, `passed=false`, and
+`integrity_passed=false`. CUDA reachability must be exercised when CUDA is
+available, with only that execution test skipped when it is not; an always-run
+fake/device contract test must independently prove that neither the helper nor
+production routes live comparator actions through CPU-only `_tensor`.
+
+Weak-reference evidence must include every raw target, raw reference, and
+captured unary-negated reference temporary. All must be dead before the next
+graph. Per sign comparator, the sentinel must observe exactly one JVP equality
+followed by exactly one VJP equality per named parameter and no extra call.
 
 Topology, name/order, shape, dtype, device, nonfinite factor, helper
 authentication, action-call count/order, extra closure, graph-lifetime, schema,
@@ -310,11 +407,13 @@ below.
 The published synthetic calibration result is not rewritten, migrated, or
 reinterpreted. Its correct-fixture sign-control objects retain their original
 five-key schema and their original `6.25e-5` calibration ceiling. This
-amendment governs the prospective production sign controls only. Calibration
-source may receive only the minimal reusable comparator/hash support and tests
-needed by the reviewed production implementation; its published result
-validator must continue to accept and authenticate the original result bytes
-under the original calibration protocol.
+amendment governs the prospective production sign controls only. The new
+device-agnostic live comparator is a separate addition: `_tensor` and every
+existing calibration constructor, trial, control, metric, hash, validator, and
+CLI code path retain their existing definition bytes and semantic behavior.
+No calibration path calls the new comparator. The published result validator
+continues to accept and authenticate the original result bytes under the
+original calibration protocol.
 
 Every prior receipt, historical object, artifact object, seed object,
 base-preregistration object, calibration protocol, calibration result,
@@ -443,8 +542,11 @@ tests/test_diagnose_pass200_rsta_stage_a.py
 
 The implementation must begin with failing tests for signed-zero dead-ReLU
 behavior, reference drift despite target/reference consistency, exact target
-and reference call count/order, the direct-`torch.equal` sentinel, every nested
-schema mutation, weak-reference graph/action release, one-graph peak,
+and reference call count/order, direct-`torch.equal` operand identity and
+provenance, unchanged and immediate-negated right operands, CUDA reachability,
+the fake/device contract, `_tensor` non-reachability, signed-zero
+canonicalization and detach/reconstruction mutants, every nested schema
+mutation, weak-reference release of raw/negated actions, one-graph peak,
 target-only metrics, and immediate structural fail-fast. Minimal source changes
 then make those tests pass. The real manifest is not edited in the source
 commit.
