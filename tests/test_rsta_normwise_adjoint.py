@@ -8,6 +8,7 @@ import os
 import stat
 import subprocess
 import sys
+import weakref
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,46 @@ import rsta_normwise_adjoint as normwise
 _CALIBRATION_CLI_PATH = (
     Path(__file__).resolve().parents[1] / "scripts/calibrate_pass200_rsta_normwise_adjoint.py"
 )
+
+
+class GuardedTensor(torch.Tensor):
+    comparisons_complete = False
+    negated_by_source: dict[int, weakref.ReferenceType[torch.Tensor]] = {}
+
+    @staticmethod
+    def wrap(value: torch.Tensor, label: str) -> GuardedTensor:
+        result = torch.Tensor._make_subclass(GuardedTensor, value, value.requires_grad)
+        result.label = label
+        return result
+
+    def __neg__(self) -> torch.Tensor:
+        result = torch.Tensor.__neg__(self)
+        GuardedTensor.negated_by_source[id(self)] = weakref.ref(result)
+        return result
+
+    def _copy_guard(self, operation: str) -> None:
+        if not GuardedTensor.comparisons_complete:
+            raise AssertionError(f"{operation} occurred before live comparison")
+
+    def detach(self) -> torch.Tensor:
+        self._copy_guard("detach")
+        return super().detach()
+
+    def clone(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+        self._copy_guard("clone")
+        return super().clone(*args, **kwargs)
+
+    def cpu(self) -> torch.Tensor:
+        self._copy_guard("cpu")
+        return super().cpu()
+
+    def to(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+        self._copy_guard("to")
+        return super().to(*args, **kwargs)
+
+    def contiguous(self, *args: Any, **kwargs: Any) -> torch.Tensor:
+        self._copy_guard("contiguous")
+        return super().contiguous(*args, **kwargs)
 
 
 def _load_calibration_cli() -> Any:
@@ -172,6 +213,233 @@ def _reference(
             )
         ),
     }
+
+
+def test_exact_live_sign_control_relation_accepts_signed_zero_only_through_torch_equal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference_jvp = torch.tensor([0.0, -0.0], dtype=torch.float32)
+    target_jvp = torch.tensor([0.0, 0.0], dtype=torch.float32)
+    reference_vjp = {"weight": torch.tensor([0.0, -0.0], dtype=torch.float32)}
+    target_vjp = {"weight": reference_vjp["weight"].clone()}
+    assert normwise.tensor_sha256(target_jvp) != normwise.tensor_sha256(-reference_jvp)
+    real_equal = torch.equal
+    calls: list[tuple[torch.Tensor, torch.Tensor]] = []
+
+    def sentinel(left: torch.Tensor, right: torch.Tensor) -> bool:
+        calls.append((left, right))
+        return real_equal(left, right)
+
+    monkeypatch.setattr(torch, "equal", sentinel)
+    assert normwise.exact_live_sign_control_relation(
+        "parameter_sign",
+        target_jvp,
+        target_vjp,
+        reference_jvp,
+        reference_vjp,
+        ("weight",),
+        expected_device=target_jvp.device,
+    ) is True
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("control_name", ["parameter_sign", "output_sign"])
+def test_exact_live_sign_control_relation_rejects_tree_shape_dtype_and_order_drift(
+    control_name: str,
+) -> None:
+    reference_jvp = torch.tensor([1.0, -2.0], dtype=torch.float32)
+    target_jvp = -reference_jvp if control_name == "parameter_sign" else reference_jvp.clone()
+    reference_vjp = {
+        "weight": torch.tensor([3.0, -4.0], dtype=torch.float32),
+        "bias": torch.tensor([5.0], dtype=torch.float32),
+    }
+    target_vjp = {
+        name: (value.clone() if control_name == "parameter_sign" else -value)
+        for name, value in reference_vjp.items()
+    }
+    invalid_calls = (
+        (
+            target_jvp,
+            {"bias": target_vjp["bias"], "weight": target_vjp["weight"]},
+            reference_jvp,
+            reference_vjp,
+        ),
+        (target_jvp[:1], target_vjp, reference_jvp, reference_vjp),
+        (target_jvp.double(), target_vjp, reference_jvp, reference_vjp),
+        (
+            target_jvp,
+            target_vjp,
+            reference_jvp,
+            {"weight": reference_vjp["weight"].double(), "bias": reference_vjp["bias"]},
+        ),
+        (
+            target_jvp,
+            target_vjp,
+            torch.empty(reference_jvp.shape, dtype=torch.float32, device="meta"),
+            reference_vjp,
+        ),
+    )
+    for bad_target_jvp, bad_target_vjp, bad_reference_jvp, bad_reference_vjp in invalid_calls:
+        with pytest.raises(ValueError):
+            normwise.exact_live_sign_control_relation(
+                control_name,
+                bad_target_jvp,
+                bad_target_vjp,
+                bad_reference_jvp,
+                bad_reference_vjp,
+                ("weight", "bias"),
+                expected_device=bad_target_jvp.device,
+            )
+
+
+def test_live_sign_comparator_operand_provenance_order_and_no_short_circuit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    GuardedTensor.comparisons_complete = False
+    GuardedTensor.negated_by_source = {}
+    reference_jvp = GuardedTensor.wrap(torch.tensor([0.0, -0.0]), "reference_jvp")
+    target_jvp = GuardedTensor.wrap(torch.tensor([0.0, 0.0]), "target_jvp")
+    reference_vjp = {
+        "weight": GuardedTensor.wrap(torch.tensor([0.0]), "reference_vjp:weight"),
+        "bias": GuardedTensor.wrap(torch.tensor([-0.0]), "reference_vjp:bias"),
+    }
+    target_vjp = {
+        "weight": GuardedTensor.wrap(torch.tensor([0.0]), "target_vjp:weight"),
+        "bias": GuardedTensor.wrap(torch.tensor([-0.0]), "target_vjp:bias"),
+    }
+    expected_left_ids = [id(target_jvp), id(target_vjp["weight"]), id(target_vjp["bias"])]
+    expected_raw_right_ids = [
+        id(reference_jvp),
+        id(reference_vjp["weight"]),
+        id(reference_vjp["bias"]),
+    ]
+    calls: list[tuple[int, int]] = []
+    outcomes = iter((False, True, True))
+
+    def sentinel(left: torch.Tensor, right: torch.Tensor) -> bool:
+        index = len(calls)
+        assert id(left) == expected_left_ids[index]
+        if index == 0:
+            assert GuardedTensor.negated_by_source[expected_raw_right_ids[index]]() is right
+        else:
+            assert id(right) == expected_raw_right_ids[index]
+        assert left.device == right.device
+        calls.append((id(left), id(right)))
+        if len(calls) == 3:
+            GuardedTensor.comparisons_complete = True
+        return next(outcomes)
+
+    monkeypatch.setattr(torch, "equal", sentinel)
+    assert normwise.exact_live_sign_control_relation(
+        "parameter_sign",
+        target_jvp,
+        target_vjp,
+        reference_jvp,
+        reference_vjp,
+        ("weight", "bias"),
+        expected_device=target_jvp.device,
+    ) is False
+    assert [left for left, _right in calls] == expected_left_ids
+
+
+def test_live_sign_comparator_fake_device_never_uses_cpu_tensor_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reference_jvp = torch.tensor([0.0, -0.0], dtype=torch.float32)
+    target_jvp = torch.tensor([0.0, 0.0], dtype=torch.float32)
+    reference_vjp = {"weight": torch.zeros(1, dtype=torch.float32)}
+    target_vjp = {"weight": reference_vjp["weight"].clone()}
+    monkeypatch.setattr(
+        normwise,
+        "_tensor",
+        lambda *_args, **_kwargs: pytest.fail("live comparator reached CPU-only _tensor"),
+    )
+    assert normwise.exact_live_sign_control_relation(
+        "parameter_sign",
+        target_jvp,
+        target_vjp,
+        reference_jvp,
+        reference_vjp,
+        ("weight",),
+        expected_device=torch.device("cpu"),
+    ) is True
+    equal_calls = 0
+
+    def forbidden_equal(*_args: Any) -> bool:
+        nonlocal equal_calls
+        equal_calls += 1
+        return True
+
+    monkeypatch.setattr(torch, "equal", forbidden_equal)
+    with pytest.raises(ValueError):
+        normwise.exact_live_sign_control_relation(
+            "parameter_sign",
+            target_jvp,
+            target_vjp,
+            reference_jvp,
+            reference_vjp,
+            ("weight",),
+            expected_device=torch.device("meta"),
+        )
+    assert equal_calls == 0
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+def test_live_sign_comparator_accepts_cuda_without_cpu_tensor_validator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    device = torch.device("cuda", torch.cuda.current_device())
+    reference_jvp = torch.tensor([0.0, -0.0], dtype=torch.float32, device=device)
+    target_jvp = torch.tensor([0.0, 0.0], dtype=torch.float32, device=device)
+    reference_vjp = {"weight": torch.zeros(1, dtype=torch.float32, device=device)}
+    target_vjp = {"weight": reference_vjp["weight"].clone()}
+    monkeypatch.setattr(
+        normwise,
+        "_tensor",
+        lambda *_args, **_kwargs: pytest.fail("live comparator reached CPU-only _tensor"),
+    )
+    assert normwise.exact_live_sign_control_relation(
+        "parameter_sign",
+        target_jvp,
+        target_vjp,
+        reference_jvp,
+        reference_vjp,
+        ("weight",),
+        expected_device=device,
+    ) is True
+
+
+def test_live_sign_comparator_provenance_oracle_rejects_canonicalize_and_detach_mutants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def run_mutant(mutant: Any) -> None:
+        GuardedTensor.comparisons_complete = False
+        GuardedTensor.negated_by_source = {}
+        target = GuardedTensor.wrap(torch.tensor([0.0]), "target")
+        reference = GuardedTensor.wrap(torch.tensor([-0.0]), "reference")
+        expected_left = id(target)
+
+        def identity_oracle(left: torch.Tensor, right: torch.Tensor) -> bool:
+            assert id(left) == expected_left
+            assert GuardedTensor.negated_by_source[id(reference)]() is right
+            GuardedTensor.comparisons_complete = True
+            return True
+
+        monkeypatch.setattr(torch, "equal", identity_oracle)
+        with pytest.raises(AssertionError):
+            mutant(target, reference)
+
+    run_mutant(
+        lambda target, reference: torch.equal(
+            torch.where(target == 0, torch.zeros_like(target), target),
+            -torch.where(reference == 0, torch.zeros_like(reference), reference),
+        )
+    )
+    run_mutant(
+        lambda target, reference: torch.equal(
+            target.detach().clone(), -reference.detach().clone()
+        )
+    )
 
 
 def test_normwise_metrics_cast_every_factor_before_product_and_norm(

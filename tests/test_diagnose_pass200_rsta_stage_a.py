@@ -3305,7 +3305,10 @@ def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract(
                     (-reference_jvp).detach().contiguous().numpy().tobytes(order="C")
                 ).hexdigest(),
                 "vjp_sha256": expected_vjp_hash,
+                "reference_jvp_sha256": expected_jvp_hash,
+                "reference_vjp_sha256": expected_vjp_hash,
                 "beta_norm": beta_norm,
+                "reference_exact_action_hash_match": True,
                 "exact_relation": True,
                 "passed": beta_norm <= 5.0e-4,
             },
@@ -3317,7 +3320,10 @@ def test_normwise_adjoint_integrity_audit_composes_exact_extended_contract(
                         for name in parameter_names
                     )
                 ).hexdigest(),
+                "reference_jvp_sha256": expected_jvp_hash,
+                "reference_vjp_sha256": expected_vjp_hash,
                 "beta_norm": beta_norm,
+                "reference_exact_action_hash_match": True,
                 "exact_relation": True,
                 "passed": beta_norm <= 5.0e-4,
             },
@@ -3453,6 +3459,529 @@ def test_normwise_adjoint_preserves_device_legacy_bytes_when_cpu_metrics_are_per
     assert audit["passed"] is expected["passed"]
 
 
+def _tiny_normwise_audit_inputs() -> tuple[
+    torch.nn.Module, torch.Tensor, torch.Tensor, dict[str, torch.Tensor]
+]:
+    model = torch.nn.Linear(2, 2, bias=True, dtype=torch.float32).train()
+    images = torch.tensor([[0.25, -0.5], [0.75, 0.125]], dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (2, 2), seed=7, dtype=torch.float32, device=torch.device("cpu")
+    )
+    return model, images, output, directions
+
+
+def _run_tiny_normwise_audit(
+    model: torch.nn.Module,
+    images: torch.Tensor,
+    output: torch.Tensor,
+    directions: dict[str, torch.Tensor],
+) -> dict[str, Any]:
+    return _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=7,
+        parameter_direction_seed=8,
+        expected_batch_size=2,
+        expected_dimension=2,
+    )
+
+
+def test_normwise_sign_controls_accept_dead_relu_signed_zero_by_direct_equal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model = torch.nn.Sequential(
+        torch.nn.Linear(2, 2, bias=True, dtype=torch.float32), torch.nn.ReLU()
+    ).train()
+    with torch.no_grad():
+        model[0].weight.fill_(-1.0)
+        model[0].bias.fill_(-1.0)
+    images = torch.ones((2, 2), dtype=torch.float32)
+    output, directions = _MODULE.registered_adjoint_directions(
+        model, (2, 2), seed=9, dtype=torch.float32, device=torch.device("cpu")
+    )
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    real_equal = torch.equal
+    labels: list[str] = []
+
+    def comparator(
+        control_name: str,
+        target_jvp: torch.Tensor,
+        target_vjp: dict[str, torch.Tensor],
+        reference_jvp: torch.Tensor,
+        reference_vjp: dict[str, torch.Tensor],
+        parameter_names: tuple[str, ...],
+        *,
+        expected_device: torch.device,
+    ) -> bool:
+        assert expected_device == target_jvp.device
+        if control_name == "parameter_sign":
+            assert real_equal(target_jvp, -reference_jvp)
+            target_hash = hashlib.sha256(target_jvp.detach().numpy().tobytes()).hexdigest()
+            negated_hash = hashlib.sha256(
+                (-reference_jvp).detach().numpy().tobytes()
+            ).hexdigest()
+            assert target_hash != negated_hash
+        else:
+            assert real_equal(target_jvp, reference_jvp)
+        results = []
+        right_jvp = -reference_jvp if control_name == "parameter_sign" else reference_jvp
+        left_right = [(target_jvp, right_jvp)]
+        left_right.extend(
+            (
+                target_vjp[name],
+                reference_vjp[name] if control_name == "parameter_sign" else -reference_vjp[name],
+            )
+            for name in parameter_names
+        )
+        for index, (left, right) in enumerate(left_right):
+            label = (
+                f"{control_name}:jvp"
+                if index == 0
+                else f"{control_name}:vjp:{parameter_names[index - 1]}"
+            )
+            labels.append(label)
+            results.append(torch.equal(left, right))
+        return all(results)
+
+    monkeypatch.setattr(helper, "exact_live_sign_control_relation", comparator, raising=False)
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    audit = _MODULE.adjoint_integrity_audit(
+        model,
+        images,
+        output,
+        directions,
+        output_direction_seed=9,
+        parameter_direction_seed=10,
+        expected_batch_size=2,
+        expected_dimension=2,
+    )
+    assert audit["controls"]["parameter_sign"]["exact_relation"] is True
+    assert audit["controls"]["output_sign"]["exact_relation"] is True
+    names = tuple(name for name, _ in model.named_parameters())
+    assert labels == [
+        *["parameter_sign:jvp", *(f"parameter_sign:vjp:{name}" for name in names)],
+        *["output_sign:jvp", *(f"output_sign:vjp:{name}" for name in names)],
+    ]
+
+
+def test_normwise_sign_comparator_receives_raw_torch_func_actions_before_copy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    events: list[str] = []
+    raw_ids: set[int] = set()
+    metric_calls = 0
+    original_metrics = helper.normwise_adjoint_metrics
+    original_tensor = helper._tensor
+
+    def comparator(
+        control_name: str,
+        target_jvp: torch.Tensor,
+        target_vjp: dict[str, torch.Tensor],
+        reference_jvp: torch.Tensor,
+        reference_vjp: dict[str, torch.Tensor],
+        parameter_names: tuple[str, ...],
+        *,
+        expected_device: torch.device,
+    ) -> bool:
+        events.append(control_name)
+        raw_ids.update((id(target_jvp), id(reference_jvp)))
+        raw_ids.update(id(target_vjp[name]) for name in parameter_names)
+        raw_ids.update(id(reference_vjp[name]) for name in parameter_names)
+        assert all(value.device == expected_device for value in (target_jvp, reference_jvp))
+        return True
+
+    def guarded_tensor(value: Any, *, name: str) -> torch.Tensor:
+        assert id(value) not in raw_ids
+        return original_tensor(value, name=name)
+
+    def metrics(*args: Any, **kwargs: Any) -> dict[str, object]:
+        nonlocal metric_calls
+        if metric_calls >= 3:
+            assert len(events) == metric_calls - 2
+        metric_calls += 1
+        return original_metrics(*args, **kwargs)
+
+    monkeypatch.setattr(helper, "exact_live_sign_control_relation", comparator, raising=False)
+    monkeypatch.setattr(helper, "_tensor", guarded_tensor)
+    monkeypatch.setattr(helper, "normwise_adjoint_metrics", metrics)
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    _run_tiny_normwise_audit(model, images, output, directions)
+    assert events == ["parameter_sign", "output_sign"]
+
+
+def test_normwise_sign_controls_use_exact_target_reference_call_count_and_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    monkeypatch.setattr(
+        helper,
+        "exact_live_sign_control_relation",
+        lambda *_args, **_kwargs: True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    real_vjp, real_jvp = torch.func.vjp, torch.func.jvp
+    events: list[str] = []
+    graph = -1
+    jvp_count = 0
+    vjp_count = 0
+    graph_names = ("baseline", "rebuild", "reversed", "parameter_sign", "output_sign")
+
+    def wrapped_vjp(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph
+        graph += 1
+        name = graph_names[graph]
+        events.append(f"{name}:vjp_construct")
+        primal, closure = real_vjp(*args, **kwargs)
+        local_calls = 0
+
+        def wrapped_closure(*closure_args: Any, **closure_kwargs: Any) -> Any:
+            nonlocal local_calls, vjp_count
+            local_calls += 1
+            vjp_count += 1
+            suffix = "vjp" if graph < 3 else ("target_vjp" if local_calls == 1 else "reference_vjp")
+            events.append(f"{name}:{suffix}")
+            return closure(*closure_args, **closure_kwargs)
+
+        return primal, wrapped_closure
+
+    per_graph_jvp: dict[int, int] = {}
+
+    def wrapped_jvp(*args: Any, **kwargs: Any) -> Any:
+        nonlocal jvp_count
+        jvp_count += 1
+        per_graph_jvp[graph] = per_graph_jvp.get(graph, 0) + 1
+        name = graph_names[graph]
+        suffix = (
+            "jvp"
+            if graph < 3
+            else ("target_jvp" if per_graph_jvp[graph] == 1 else "reference_jvp")
+        )
+        events.append(f"{name}:{suffix}")
+        return real_jvp(*args, **kwargs)
+
+    monkeypatch.setattr(torch.func, "vjp", wrapped_vjp)
+    monkeypatch.setattr(torch.func, "jvp", wrapped_jvp)
+    _run_tiny_normwise_audit(model, images, output, directions)
+    assert events == [
+        "baseline:vjp_construct", "baseline:jvp", "baseline:vjp",
+        "rebuild:vjp_construct", "rebuild:jvp", "rebuild:vjp",
+        "reversed:vjp_construct", "reversed:vjp", "reversed:jvp",
+        "parameter_sign:vjp_construct", "parameter_sign:target_jvp",
+        "parameter_sign:target_vjp", "parameter_sign:reference_jvp",
+        "parameter_sign:reference_vjp", "output_sign:vjp_construct",
+        "output_sign:target_jvp", "output_sign:target_vjp",
+        "output_sign:reference_jvp", "output_sign:reference_vjp",
+    ]
+    assert (graph + 1, jvp_count, vjp_count) == (5, 7, 7)
+
+
+def test_normwise_sign_controls_compute_metrics_for_targets_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    calls: list[tuple[torch.Tensor, dict[str, torch.Tensor]]] = []
+    original = helper.normwise_adjoint_metrics
+    comparator_calls: list[str] = []
+
+    def metrics(
+        u: torch.Tensor,
+        a: torch.Tensor,
+        parameter_direction: dict[str, torch.Tensor],
+        vjp_action: dict[str, torch.Tensor],
+        names: tuple[str, ...],
+        **kwargs: Any,
+    ) -> dict[str, object]:
+        calls.append((u, parameter_direction))
+        return original(u, a, parameter_direction, vjp_action, names, **kwargs)
+
+    monkeypatch.setattr(helper, "normwise_adjoint_metrics", metrics)
+    monkeypatch.setattr(
+        helper,
+        "exact_live_sign_control_relation",
+        lambda control_name, *_args, **_kwargs: comparator_calls.append(control_name) or True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    _run_tiny_normwise_audit(model, images, output, directions)
+    assert len(calls) == 5
+    assert comparator_calls == ["parameter_sign", "output_sign"]
+    assert all(torch.equal(calls[3][1][name], -directions[name]) for name in directions)
+    assert torch.equal(calls[4][0], -output)
+
+
+def test_normwise_sign_control_reference_drift_fails_despite_target_consistency(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    real_jvp, real_vjp = torch.func.jvp, torch.func.vjp
+    graph = -1
+    jvp_calls: dict[int, int] = {}
+
+    def wrapped_vjp(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph
+        graph += 1
+        primal, closure = real_vjp(*args, **kwargs)
+        local = 0
+
+        def wrapped_closure(*closure_args: Any, **closure_kwargs: Any) -> Any:
+            nonlocal local
+            local += 1
+            result = closure(*closure_args, **closure_kwargs)
+            if graph == 3:
+                return ({name: value + 0.25 for name, value in result[0].items()},)
+            return result
+
+        return primal, wrapped_closure
+
+    def wrapped_jvp(*args: Any, **kwargs: Any) -> Any:
+        jvp_calls[graph] = jvp_calls.get(graph, 0) + 1
+        primal, action = real_jvp(*args, **kwargs)
+        if graph == 3:
+            delta = torch.full_like(action, 0.25)
+            action = action - delta if jvp_calls[graph] == 1 else action + delta
+        return primal, action
+
+    monkeypatch.setattr(torch.func, "vjp", wrapped_vjp)
+    monkeypatch.setattr(torch.func, "jvp", wrapped_jvp)
+    monkeypatch.setattr(
+        helper,
+        "exact_live_sign_control_relation",
+        lambda *_args, **_kwargs: True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    audit = _run_tiny_normwise_audit(model, images, output, directions)
+    sign = audit["controls"]["parameter_sign"]
+    assert sign["exact_relation"] is True
+    assert sign["reference_jvp_sha256"] != audit["jvp_sha256"]
+    assert sign["reference_vjp_sha256"] != audit["vjp_sha256"]
+    assert sign["reference_exact_action_hash_match"] is False
+    assert sign["passed"] is False
+    assert audit["integrity_passed"] is False
+
+
+def test_normwise_sign_control_schema_rejects_every_nested_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    monkeypatch.setattr(
+        helper,
+        "exact_live_sign_control_relation",
+        lambda *_args, **_kwargs: True,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    audit = _run_tiny_normwise_audit(model, images, output, directions)
+    sign_keys = (
+        "jvp_sha256",
+        "vjp_sha256",
+        "reference_jvp_sha256",
+        "reference_vjp_sha256",
+        "beta_norm",
+        "reference_exact_action_hash_match",
+        "exact_relation",
+        "passed",
+    )
+    _MODULE._validate_adjoint_integrity_audit(audit, expected_output_shape=(2, 2))
+    for control_name in ("parameter_sign", "output_sign"):
+        record = audit["controls"][control_name]
+        assert tuple(record) == sign_keys
+        for key in sign_keys:
+            changed = deepcopy(audit)
+            changed["controls"][control_name].pop(key)
+            with pytest.raises(ValueError):
+                _MODULE._validate_adjoint_integrity_audit(
+                    changed, expected_output_shape=(2, 2)
+                )
+        changed = deepcopy(audit)
+        changed["controls"][control_name]["extra"] = True
+        with pytest.raises(ValueError):
+            _MODULE._validate_adjoint_integrity_audit(changed, expected_output_shape=(2, 2))
+        for key in sign_keys:
+            changed = deepcopy(audit)
+            value = changed["controls"][control_name].pop(key)
+            changed["controls"][control_name] = {key: value, **changed["controls"][control_name]}
+            if tuple(changed["controls"][control_name]) != sign_keys:
+                with pytest.raises(ValueError):
+                    _MODULE._validate_adjoint_integrity_audit(
+                        changed, expected_output_shape=(2, 2)
+                    )
+        for key in ("reference_jvp_sha256", "reference_vjp_sha256"):
+            changed = deepcopy(audit)
+            changed["controls"][control_name][key] = "f" * 64
+            with pytest.raises(ValueError):
+                _MODULE._validate_adjoint_integrity_audit(
+                    changed, expected_output_shape=(2, 2)
+                )
+        for key in (
+            "reference_exact_action_hash_match",
+            "exact_relation",
+            "passed",
+        ):
+            for replacement in (0, 1, np.bool_(True)):
+                changed = deepcopy(audit)
+                changed["controls"][control_name][key] = replacement
+                with pytest.raises(ValueError):
+                    _MODULE._validate_adjoint_integrity_audit(
+                        changed, expected_output_shape=(2, 2)
+                    )
+        for beta, expected_passed in ((5.0e-4, True), (5.0000001e-4, False), ("infinity", False)):
+            changed = deepcopy(audit)
+            sign = changed["controls"][control_name]
+            sign["beta_norm"] = beta
+            sign["passed"] = expected_passed
+            changed["integrity_passed"] = expected_passed and all(
+                item["passed"] is True
+                for name, item in changed["controls"].items()
+                if name != control_name
+            )
+            _MODULE._validate_adjoint_integrity_audit(
+                changed, expected_output_shape=(2, 2)
+            )
+
+
+def test_normwise_sign_controls_release_target_reference_actions_before_next_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    original_encoder = _MODULE._functional_encoder
+    original_metrics = helper.normwise_adjoint_metrics
+    graph_count = 0
+    metric_count = 0
+    peak_live_graphs = 0
+    graph_refs: list[weakref.ReferenceType[Any]] = []
+    target_reference_action_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    negated_reference_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    comparison_count = 0
+
+    def tracked_encoder(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph_count, peak_live_graphs, graph_refs
+        gc.collect()
+        live = sum(reference() is not None for reference in graph_refs)
+        peak_live_graphs = max(peak_live_graphs, live + 1)
+        assert live == 0
+        assert all(reference() is None for reference in target_reference_action_refs)
+        encoder, parameters, names = original_encoder(*args, **kwargs)
+        graph_count += 1
+        graph_refs = [weakref.ref(encoder)]
+        return encoder, parameters, names
+
+    def comparator(
+        control_name: str,
+        target_jvp: torch.Tensor,
+        target_vjp: dict[str, torch.Tensor],
+        reference_jvp: torch.Tensor,
+        reference_vjp: dict[str, torch.Tensor],
+        names: tuple[str, ...],
+        *,
+        expected_device: torch.device,
+    ) -> bool:
+        nonlocal comparison_count
+        del expected_device
+        comparison_count += 1
+        target_reference_action_refs.extend(
+            [weakref.ref(target_jvp), weakref.ref(reference_jvp)]
+            + [weakref.ref(target_vjp[name]) for name in names]
+            + [weakref.ref(reference_vjp[name]) for name in names]
+        )
+        negative = -reference_jvp if control_name == "parameter_sign" else -reference_vjp[names[0]]
+        negated_reference_refs.append(weakref.ref(negative))
+        return True
+
+    def metrics(*args: Any, **kwargs: Any) -> dict[str, object]:
+        nonlocal metric_count
+        result = original_metrics(*args, **kwargs)
+        metric_count += 1
+        return result
+
+    monkeypatch.setattr(_MODULE, "_functional_encoder", tracked_encoder)
+    monkeypatch.setattr(helper, "normwise_adjoint_metrics", metrics)
+    monkeypatch.setattr(helper, "exact_live_sign_control_relation", comparator, raising=False)
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    _run_tiny_normwise_audit(model, images, output, directions)
+    gc.collect()
+    assert graph_count == 5
+    assert metric_count == 5
+    assert comparison_count == 2
+    assert peak_live_graphs == 1
+    assert all(reference() is None for reference in graph_refs)
+    assert all(reference() is None for reference in target_reference_action_refs)
+    assert all(reference() is None for reference in negated_reference_refs)
+
+
+def test_normwise_sign_control_reference_structure_fails_before_next_graph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model, images, output, directions = _tiny_normwise_audit_inputs()
+    helper = importlib.import_module("rsta_normwise_adjoint")
+    real_vjp = torch.func.vjp
+    graph_count = 0
+    metric_count = 0
+    original_encoder = _MODULE._functional_encoder
+    original_metrics = helper.normwise_adjoint_metrics
+
+    def encoder(*args: Any, **kwargs: Any) -> Any:
+        nonlocal graph_count
+        graph_count += 1
+        return original_encoder(*args, **kwargs)
+
+    def wrapped_vjp(*args: Any, **kwargs: Any) -> Any:
+        primal, closure = real_vjp(*args, **kwargs)
+        calls = 0
+
+        def wrapped_closure(*closure_args: Any, **closure_kwargs: Any) -> Any:
+            nonlocal calls
+            calls += 1
+            result = closure(*closure_args, **closure_kwargs)
+            if graph_count == 4 and calls == 2:
+                changed = dict(result[0])
+                changed.pop(next(reversed(changed)))
+                return (changed,)
+            return result
+
+        return primal, wrapped_closure
+
+    def metrics(*args: Any, **kwargs: Any) -> dict[str, object]:
+        nonlocal metric_count
+        metric_count += 1
+        return original_metrics(*args, **kwargs)
+
+    monkeypatch.setattr(_MODULE, "_functional_encoder", encoder)
+    monkeypatch.setattr(torch.func, "vjp", wrapped_vjp)
+    monkeypatch.setattr(helper, "normwise_adjoint_metrics", metrics)
+    monkeypatch.setattr(
+        _MODULE, "_load_authenticated_normwise_adjoint_helper", lambda *_args: helper
+    )
+    with pytest.raises(ValueError, match="topology|order|VJP"):
+        _run_tiny_normwise_audit(model, images, output, directions)
+    assert graph_count == 4
+    assert metric_count == 3
+
+
 def test_normwise_adjoint_validator_accepts_only_authorized_zero_denominator_corner() -> None:
     """Catches rejecting the frozen infinity corner or accepting other string/nonfinite drift."""
     model = torch.nn.Linear(1, 1, bias=False, dtype=torch.float32)
@@ -3513,12 +4042,15 @@ def test_normwise_adjoint_validator_accepts_only_authorized_zero_denominator_cor
 
 @pytest.mark.parametrize(
     ("control_name", "hash_name"),
-    (("parameter_sign", "vjp_sha256"), ("output_sign", "jvp_sha256")),
+    (
+        ("parameter_sign", "reference_vjp_sha256"),
+        ("output_sign", "reference_jvp_sha256"),
+    ),
 )
 def test_normwise_adjoint_validator_rejects_forged_sign_relation_hash_consequences(
     control_name: str, hash_name: str
 ) -> None:
-    """Catches trusting a sign relation boolean whose unchanged action hash differs."""
+    """Catches trusting a reference-match boolean whose baseline action hash differs."""
     model = torch.nn.Linear(1, 1, bias=False, dtype=torch.float32)
     images = torch.ones((1, 1), dtype=torch.float32)
     output, directions = _MODULE.registered_adjoint_directions(
@@ -4065,14 +4597,20 @@ def _extended_normwise_adjoint(legacy: dict[str, Any]) -> dict[str, Any]:
                 "parameter_sign": {
                     "jvp_sha256": "d" * 64,
                     "vjp_sha256": action_hash,
+                    "reference_jvp_sha256": action_hash,
+                    "reference_vjp_sha256": action_hash,
                     "beta_norm": 0.0,
+                    "reference_exact_action_hash_match": True,
                     "exact_relation": True,
                     "passed": True,
                 },
                 "output_sign": {
                     "jvp_sha256": action_hash,
                     "vjp_sha256": "d" * 64,
+                    "reference_jvp_sha256": action_hash,
+                    "reference_vjp_sha256": action_hash,
                     "beta_norm": 0.0,
+                    "reference_exact_action_hash_match": True,
                     "exact_relation": True,
                     "passed": True,
                 },
@@ -4871,6 +5409,11 @@ def _future_normwise_manifest() -> dict[str, Any]:
             "sha256": "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4",
             "commit": "6ddf1db20e75a47e40726d223827cd3f1a8968e3",
         },
+        "normwise_adjoint_sign_control_amendment": {
+            "path": "docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md",
+            "sha256": "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020",
+            "commit": "2d09a23994b8584d6726d737d7a3e4022b4a064e",
+        },
         "binding_receipt": prior["binding_receipt"],
         "historical": prior["historical"],
         "current_scientific_source": {
@@ -4897,6 +5440,7 @@ def test_normwise_manifest_freezes_exact_authorities_projection_and_source_order
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "binding_receipt",
         "historical",
         "current_scientific_source",
@@ -4927,6 +5471,7 @@ def test_normwise_manifest_rejects_every_new_authority_leaf_and_order_mutation()
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
     )
     for authority in authority_names:
         for mutation in ("remove_object", "extra", "path", "sha256", "commit"):
@@ -4968,13 +5513,33 @@ def test_normwise_manifest_rejects_every_new_authority_leaf_and_order_mutation()
             _MODULE._validate_amended_manifest_schema(changed)
 
 
-def test_normwise_source_provenance_authenticates_authority_bytes_result_and_ancestry(
+def test_sign_control_manifest_authority_order_provenance_and_prior_domains(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Catches unvalidated authority blobs, a false calibration verdict, or ancestry drift."""
     source_root = _SCRIPT.parents[1]
     repository = tmp_path
     manifest = _future_normwise_manifest()
+    prior = json.loads(
+        (_SCRIPT.parents[1] / "docs" / "pass200_rsta_receipt_stage_a_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(_NORMWISE_SOURCE_ORDER) == 31
+    assert tuple(_MODULE._CURRENT_SCIENTIFIC_SOURCE_FILES) == _NORMWISE_SOURCE_ORDER
+    for name in (
+        "schema_version",
+        "base_preregistration",
+        "amendment",
+        "deterministic_pool_amendment",
+        "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment",
+        "binding_receipt",
+        "historical",
+        "artifact_schema",
+        "seeds",
+    ):
+        assert manifest[name] == prior[name]
     revision = "c" * 40
     executing = "d" * 40
     manifest["current_scientific_source"]["git_revision"] = revision
@@ -4994,6 +5559,7 @@ def test_normwise_source_provenance_authenticates_authority_bytes_result_and_anc
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "artifact_schema",
     )
     for name in reference_names:
@@ -5042,7 +5608,11 @@ def test_normwise_source_provenance_authenticates_authority_bytes_result_and_anc
             manifest["normwise_adjoint_calibration_result"]["commit"],
             manifest["normwise_adjoint_amendment"]["commit"],
         ),
-        (manifest["normwise_adjoint_amendment"]["commit"], revision),
+        (
+            manifest["normwise_adjoint_amendment"]["commit"],
+            manifest["normwise_adjoint_sign_control_amendment"]["commit"],
+        ),
+        (manifest["normwise_adjoint_sign_control_amendment"]["commit"], revision),
         (revision, executing),
     ]
     assert ancestry_edges == expected_ancestry_edges
@@ -5051,6 +5621,7 @@ def test_normwise_source_provenance_authenticates_authority_bytes_result_and_anc
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
     ):
         path = repository / manifest[name]["path"]
         original = path.read_bytes()
@@ -5278,14 +5849,20 @@ def _task2_adjoint_auditor(
         "parameter_sign": {
             "jvp_sha256": "b" * 64,
             "vjp_sha256": action_hash,
+            "reference_jvp_sha256": action_hash,
+            "reference_vjp_sha256": action_hash,
             "beta_norm": 0.0,
+            "reference_exact_action_hash_match": True,
             "exact_relation": True,
             "passed": True,
         },
         "output_sign": {
             "jvp_sha256": action_hash,
             "vjp_sha256": "b" * 64,
+            "reference_jvp_sha256": action_hash,
+            "reference_vjp_sha256": action_hash,
             "beta_norm": 0.0,
+            "reference_exact_action_hash_match": True,
             "exact_relation": True,
             "passed": True,
         },
@@ -5419,6 +5996,7 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
         "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
         "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "binding_receipt", "historical",
         "artifact_schema", "source",
     ]
@@ -5459,6 +6037,49 @@ def test_integrity_all_seeds_mode_is_candidate_free_and_exact_schema(
     assert not keys(payload) & {"rows", "fields", "scores", "decision", "aggregation", "bootstrap"}
 
 
+def test_sign_control_candidate_free_projection_schema_rejects_every_authority_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output, _calls = _run_task2_cli(tmp_path, monkeypatch)
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    expected_projection = (
+        "path", "sha256", "base_preregistration", "amendment",
+        "deterministic_pool_amendment", "zero_jacobian_classifier_amendment",
+        "adjoint_integrity_amendment", "normwise_adjoint_calibration_protocol",
+        "normwise_adjoint_calibration_result", "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment", "binding_receipt",
+        "historical", "artifact_schema", "source",
+    )
+    sign_keys = (
+        "jvp_sha256", "vjp_sha256", "reference_jvp_sha256",
+        "reference_vjp_sha256", "beta_norm",
+        "reference_exact_action_hash_match", "exact_relation", "passed",
+    )
+    assert tuple(payload["manifest"]) == expected_projection
+    for seed in payload["integrity"]["seeds"].values():
+        for name in ("parameter_sign", "output_sign"):
+            assert tuple(seed["adjoint"]["controls"][name]) == sign_keys
+    authority = "normwise_adjoint_sign_control_amendment"
+    for mutation in ("missing", "extra", "reordered", "path", "sha256", "commit"):
+        changed = deepcopy(payload)
+        record = changed["manifest"]
+        if mutation == "missing":
+            record.pop(authority)
+        elif mutation == "extra":
+            record[authority]["unchecked"] = True
+        elif mutation == "reordered":
+            value = record.pop(authority)
+            record[authority] = value
+        else:
+            record[authority][mutation] = {
+                "path": "docs/substituted.md",
+                "sha256": "0" * 64,
+                "commit": "0" * 40,
+            }[mutation]
+        with pytest.raises(ValueError, match="manifest|projection|sign|amendment"):
+            _MODULE.validate_all_seed_adjoint_integrity_payload(changed)
+
+
 def test_integrity_all_seeds_recursively_validates_execution_manifest_environment(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -5487,6 +6108,9 @@ def test_integrity_all_seeds_recursively_validates_execution_manifest_environmen
             "normwise_adjoint_calibration_result"
         ],
         "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
+        "normwise_adjoint_sign_control_amendment": manifest[
+            "normwise_adjoint_sign_control_amendment"
+        ],
         "binding_receipt": manifest["binding_receipt"], "historical": manifest["historical"],
         "artifact_schema": manifest["artifact_schema"], "source": source,
     }
@@ -5949,12 +6573,18 @@ def test_scientific_source_authenticates_adjoint_integrity_amendment_bytes_and_b
             _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256,
             _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT,
         ),
-        (
-            "normwise_adjoint_amendment",
-            _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
-            _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
-            _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
-        ),
+            (
+                "normwise_adjoint_amendment",
+                _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
+                _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
+                _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+            ),
+            (
+                "normwise_adjoint_sign_control_amendment",
+                _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
+                _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
+                _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
+            ),
     ):
         destination = repository / path_text
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -6989,11 +7619,16 @@ def test_scientific_source_authenticates_deterministic_pool_amendment_bytes_and_
             "sha256": _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_SHA256,
             "commit": _MODULE._NORMWISE_ADJOINT_CALIBRATION_RESULT_COMMIT,
         },
-        "normwise_adjoint_amendment": {
-            "path": _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
-            "sha256": _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
-            "commit": _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
-        },
+            "normwise_adjoint_amendment": {
+                "path": _MODULE._NORMWISE_ADJOINT_AMENDMENT_PATH,
+                "sha256": _MODULE._NORMWISE_ADJOINT_AMENDMENT_SHA256,
+                "commit": _MODULE._NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+            },
+            "normwise_adjoint_sign_control_amendment": {
+                "path": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
+                "sha256": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
+                "commit": _MODULE._NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
+            },
         "artifact_schema": {"path": "docs/artifacts.json", "sha256": "2" * 64},
     }
     for reference in references.values():

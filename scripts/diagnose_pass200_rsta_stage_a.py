@@ -162,8 +162,17 @@ _NORMWISE_ADJOINT_AMENDMENT_SHA256 = (
     "416fdd6af90fa2e54ace61fcd72721713aae84dc0dd2010bde91037bf0eccbd4"
 )
 _NORMWISE_ADJOINT_AMENDMENT_COMMIT = "6ddf1db20e75a47e40726d223827cd3f1a8968e3"
+_NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH = (
+    "docs/pass200_rsta_sign_control_comparator_amendment_2026-08-10.md"
+)
+_NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256 = (
+    "a4e20431c47889796ff13c90347accce855067249fc8205769bf7c8c120dd020"
+)
+_NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT = (
+    "2d09a23994b8584d6726d737d7a3e4022b4a064e"
+)
 _NORMWISE_ADJOINT_HELPER_SHA256 = (
-    "2e120deba25462eb75bae5b7abe705b6c107e7bb8efb1ee461cc9c33464895eb"
+    "bbb478a0a650b6e3fcf5c306fd972632948d66b18dfc85e1545b2fa6aa22f6db"
 )
 _DETERMINISTIC_GLOBAL_MAX_INPUT_SHA256 = {
     "random": "849f58506a8eabf18741d830a3d83e053d327786a8bfe731df0556b31d43389c",
@@ -656,6 +665,7 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "binding_receipt",
         "historical",
         "current_scientific_source",
@@ -748,6 +758,11 @@ def _validate_amended_manifest_schema(manifest: dict[str, Any]) -> dict[str, Any
             "path": _NORMWISE_ADJOINT_AMENDMENT_PATH,
             "sha256": _NORMWISE_ADJOINT_AMENDMENT_SHA256,
             "commit": _NORMWISE_ADJOINT_AMENDMENT_COMMIT,
+        },
+        "normwise_adjoint_sign_control_amendment": {
+            "path": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_PATH,
+            "sha256": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_SHA256,
+            "commit": _NORMWISE_ADJOINT_SIGN_CONTROL_AMENDMENT_COMMIT,
         },
     }
     for name, expected in normwise_references.items():
@@ -933,6 +948,7 @@ def _load_authenticated_normwise_adjoint_helper(
         ):
             raise ValueError("normwise adjoint helper content changed during execution")
         required = (
+            "exact_live_sign_control_relation",
             "normwise_adjoint_metrics",
             "parameter_tree_sha256",
             "tensor_sha256",
@@ -969,6 +985,7 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "artifact_schema",
     ):
         reference = manifest[name]
@@ -1012,6 +1029,7 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
     ):
         reference = manifest[name]
         blob = _git_blob(repository, reference["commit"], reference["path"])
@@ -1037,7 +1055,11 @@ def validate_scientific_execution_source(manifest_path: Path) -> dict[str, Any]:
             manifest["normwise_adjoint_calibration_result"]["commit"],
             manifest["normwise_adjoint_amendment"]["commit"],
         ),
-        (manifest["normwise_adjoint_amendment"]["commit"], revision),
+        (
+            manifest["normwise_adjoint_amendment"]["commit"],
+            manifest["normwise_adjoint_sign_control_amendment"]["commit"],
+        ),
+        (manifest["normwise_adjoint_sign_control_amendment"]["commit"], revision),
         (revision, executing_commit),
     )
     for ancestor, descendant in ancestry_edges:
@@ -3097,6 +3119,7 @@ def adjoint_integrity_audit(
     normwise_adjoint_metrics = helper.normwise_adjoint_metrics
     parameter_tree_sha256 = helper.parameter_tree_sha256
     tensor_sha256 = helper.tensor_sha256
+    exact_live_sign_control_relation = helper.exact_live_sign_control_relation
 
     import torch
 
@@ -3112,10 +3135,7 @@ def adjoint_integrity_audit(
 
     def run_trial(
         *,
-        parameter_sign: int = 1,
-        output_sign: int = 1,
         reversed_action_order: bool = False,
-        baseline: bool = False,
     ) -> tuple[dict[str, object], tuple[str, ...]]:
         encoder, parameters, parameter_names = _functional_encoder(
             model,
@@ -3128,13 +3148,8 @@ def adjoint_integrity_audit(
             for name in parameter_names
         ):
             raise ValueError("adjoint parameter direction device differs from model")
-        tangents = {
-            name: parameter_direction[name]
-            if parameter_sign == 1
-            else -parameter_direction[name]
-            for name in parameter_names
-        }
-        trial_output = output_direction if output_sign == 1 else -output_direction
+        tangents = {name: parameter_direction[name] for name in parameter_names}
+        trial_output = output_direction
         z, vjp_function = torch.func.vjp(encoder, parameters)
         if trial_output.shape != z.shape:
             raise ValueError("adjoint output direction differs from descriptor shape")
@@ -3182,17 +3197,10 @@ def adjoint_integrity_audit(
             "jvp_sha256": tensor_sha256(cpu_jvp),
             "vjp_sha256": parameter_tree_sha256(cpu_vjp, names),
         }
-        if baseline:
-            negative_vjp = {name: -cpu_vjp[name] for name in names}
-            evidence["negative_jvp_sha256"] = tensor_sha256(-cpu_jvp)
-            evidence["negative_vjp_sha256"] = parameter_tree_sha256(
-                negative_vjp, names
-            )
-            del negative_vjp
         del cpu_output, cpu_jvp, cpu_tangents, cpu_vjp
         return evidence, names
 
-    baseline_trial, parameter_names = run_trial(baseline=True)
+    baseline_trial, parameter_names = run_trial()
 
     def checked_trial(**kwargs: Any) -> dict[str, object]:
         trial, names = run_trial(**kwargs)
@@ -3202,8 +3210,6 @@ def adjoint_integrity_audit(
 
     rebuild = checked_trial()
     reversed_trial = checked_trial(reversed_action_order=True)
-    parameter_trial = checked_trial(parameter_sign=-1)
-    output_trial = checked_trial(output_sign=-1)
     baseline = baseline_trial["metrics"]
     if not isinstance(baseline, Mapping):
         raise ValueError("adjoint baseline metric evidence differs")
@@ -3212,6 +3218,151 @@ def adjoint_integrity_audit(
         raise ValueError("adjoint baseline legacy evidence differs")
     baseline_jvp_hash = baseline_trial["jvp_sha256"]
     baseline_vjp_hash = baseline_trial["vjp_sha256"]
+
+    def run_sign_trial(control_name: str) -> dict[str, object]:
+        encoder, parameters, names = _functional_encoder(
+            model,
+            images,
+            expected_batch_size=expected_batch_size,
+            expected_dimension=expected_dimension,
+        )
+        if tuple(names) != parameter_names:
+            raise ValueError("adjoint parameter order changed across fresh graphs")
+        expected_device = next(iter(parameters.values())).device
+        if any(value.device != expected_device for value in parameters.values()) or any(
+            parameter_direction[name].device != expected_device for name in names
+        ):
+            raise ValueError("adjoint sign-control functional device differs")
+        reference_tangents = {name: parameter_direction[name] for name in names}
+        reference_output = output_direction
+        if control_name == "parameter_sign":
+            target_tangents = {name: -parameter_direction[name] for name in names}
+            target_output = output_direction
+        elif control_name == "output_sign":
+            target_tangents = reference_tangents
+            target_output = -output_direction
+        else:
+            raise ValueError("adjoint sign control name differs")
+        z, vjp_function = torch.func.vjp(encoder, parameters)
+        if z.shape != output_direction.shape or z.device != expected_device:
+            raise ValueError("adjoint sign-control descriptor differs")
+        _, target_jvp = torch.func.jvp(
+            encoder, (parameters,), (target_tangents,)
+        )
+        target_vjp = vjp_function(target_output)[0]
+        _, reference_jvp = torch.func.jvp(
+            encoder, (parameters,), (reference_tangents,)
+        )
+        reference_vjp = vjp_function(reference_output)[0]
+        live_actions = (
+            target_output,
+            reference_output,
+            target_jvp,
+            reference_jvp,
+            *target_tangents.values(),
+            *reference_tangents.values(),
+            *target_vjp.values(),
+            *reference_vjp.values(),
+        )
+        if any(value.device != expected_device for value in live_actions):
+            raise ValueError("adjoint sign-control action device differs")
+        exact_relation = exact_live_sign_control_relation(
+            control_name,
+            target_jvp,
+            target_vjp,
+            reference_jvp,
+            reference_vjp,
+            names,
+            expected_device=expected_device,
+        )
+        lhs_tensor, rhs_tensor = _float64_adjoint_inner_products(
+            target_jvp,
+            target_output,
+            target_tangents,
+            target_vjp,
+            names,
+        )
+        legacy = _finalize_adjoint_scalars(lhs_tensor, rhs_tensor)
+        del lhs_tensor, rhs_tensor
+        cpu_output = target_output.detach().to(device="cpu").contiguous()
+        cpu_target_jvp = target_jvp.detach().to(device="cpu").contiguous()
+        cpu_target_tangents = {
+            name: target_tangents[name].detach().to(device="cpu").contiguous()
+            for name in names
+        }
+        cpu_target_vjp = {
+            name: target_vjp[name].detach().to(device="cpu").contiguous()
+            for name in names
+        }
+        cpu_reference_jvp = reference_jvp.detach().to(device="cpu").contiguous()
+        cpu_reference_vjp = {
+            name: reference_vjp[name].detach().to(device="cpu").contiguous()
+            for name in names
+        }
+        del (
+            live_actions,
+            reference_vjp,
+            reference_jvp,
+            target_vjp,
+            target_jvp,
+            vjp_function,
+            z,
+            parameters,
+            encoder,
+            target_tangents,
+            reference_tangents,
+            target_output,
+            reference_output,
+        )
+        metrics = normwise_adjoint_metrics(
+            cpu_output,
+            cpu_target_jvp,
+            cpu_target_tangents,
+            cpu_target_vjp,
+            names,
+            legacy_lhs=legacy["lhs"],
+            legacy_rhs=legacy["rhs"],
+        )
+        target_jvp_sha256 = tensor_sha256(cpu_target_jvp)
+        target_vjp_sha256 = parameter_tree_sha256(cpu_target_vjp, names)
+        reference_jvp_sha256 = tensor_sha256(cpu_reference_jvp)
+        reference_vjp_sha256 = parameter_tree_sha256(cpu_reference_vjp, names)
+        reference_exact_action_hash_match = (
+            reference_jvp_sha256 == baseline_jvp_hash
+            and reference_vjp_sha256 == baseline_vjp_hash
+        )
+        target_beta_norm = metrics["beta_norm"]
+        evidence = {
+            "jvp_sha256": target_jvp_sha256,
+            "vjp_sha256": target_vjp_sha256,
+            "reference_jvp_sha256": reference_jvp_sha256,
+            "reference_vjp_sha256": reference_vjp_sha256,
+            "beta_norm": target_beta_norm,
+            "reference_exact_action_hash_match": reference_exact_action_hash_match,
+            "exact_relation": exact_relation,
+            "passed": (
+                type(reference_exact_action_hash_match) is bool
+                and reference_exact_action_hash_match is True
+                and type(exact_relation) is bool
+                and exact_relation is True
+                and type(target_beta_norm) is float
+                and target_beta_norm <= 5.0e-4
+            ),
+        }
+        del (
+            legacy,
+            metrics,
+            cpu_output,
+            cpu_target_jvp,
+            cpu_target_tangents,
+            cpu_target_vjp,
+            cpu_reference_jvp,
+            cpu_reference_vjp,
+        )
+        return evidence
+
+    parameter_trial = run_sign_trial("parameter_sign")
+    output_trial = run_sign_trial("output_sign")
 
     def hash_control(
         trial: Mapping[str, object],
@@ -3234,41 +3385,11 @@ def adjoint_integrity_audit(
             and beta <= 5.0e-4,
         }
 
-    def sign_control(
-        trial: Mapping[str, object],
-        *,
-        exact_relation: bool,
-    ) -> dict[str, object]:
-        metrics = trial["metrics"]
-        if not isinstance(metrics, Mapping):
-            raise ValueError("adjoint sign metric evidence differs")
-        beta = metrics["beta_norm"]
-        return {
-            "jvp_sha256": trial["jvp_sha256"],
-            "vjp_sha256": trial["vjp_sha256"],
-            "beta_norm": beta,
-            "exact_relation": exact_relation,
-            "passed": type(exact_relation) is bool
-            and exact_relation is True
-            and type(beta) is float
-            and beta <= 5.0e-4,
-        }
-
     controls = {
         "rebuild": hash_control(rebuild),
         "reversed_action_order": hash_control(reversed_trial),
-        "parameter_sign": sign_control(
-            parameter_trial,
-            exact_relation=parameter_trial["jvp_sha256"]
-            == baseline_trial["negative_jvp_sha256"]
-            and parameter_trial["vjp_sha256"] == baseline_vjp_hash,
-        ),
-        "output_sign": sign_control(
-            output_trial,
-            exact_relation=output_trial["jvp_sha256"] == baseline_jvp_hash
-            and output_trial["vjp_sha256"]
-            == baseline_trial["negative_vjp_sha256"],
-        ),
+        "parameter_sign": parameter_trial,
+        "output_sign": output_trial,
     }
     beta_norm = baseline["beta_norm"]
     normwise_passed = type(beta_norm) is float and beta_norm <= 5.0e-4
@@ -5769,26 +5890,46 @@ def _validate_adjoint_integrity_audit(
     ]:
         raise ValueError("adjoint control order differs")
     for name, control in controls.items():
-        relation_name = (
-            "exact_action_hash_match"
-            if name in {"rebuild", "reversed_action_order"}
-            else "exact_relation"
+        sign_control = name in {"parameter_sign", "output_sign"}
+        relation_name = "exact_relation" if sign_control else "exact_action_hash_match"
+        control_order = (
+            (
+                "jvp_sha256",
+                "vjp_sha256",
+                "reference_jvp_sha256",
+                "reference_vjp_sha256",
+                "beta_norm",
+                "reference_exact_action_hash_match",
+                "exact_relation",
+                "passed",
+            )
+            if sign_control
+            else (
+                "jvp_sha256",
+                "vjp_sha256",
+                "beta_norm",
+                "exact_action_hash_match",
+                "passed",
+            )
         )
         record = _require_exact_keys(
             control,
-            {"jvp_sha256", "vjp_sha256", "beta_norm", relation_name, "passed"},
+            set(control_order),
             name=f"adjoint {name} control",
         )
-        if list(record) != [
-            "jvp_sha256",
-            "vjp_sha256",
-            "beta_norm",
-            relation_name,
-            "passed",
-        ]:
+        if list(record) != list(control_order):
             raise ValueError(f"adjoint {name} control field order differs")
         _require_sha256(record["jvp_sha256"], name=f"adjoint {name} JVP")
         _require_sha256(record["vjp_sha256"], name=f"adjoint {name} VJP")
+        if sign_control:
+            _require_sha256(
+                record["reference_jvp_sha256"],
+                name=f"adjoint {name} reference JVP",
+            )
+            _require_sha256(
+                record["reference_vjp_sha256"],
+                name=f"adjoint {name} reference VJP",
+            )
         beta = record["beta_norm"]
         if not (
             (type(beta) is float and np.isfinite(beta) and beta >= 0.0)
@@ -5796,23 +5937,29 @@ def _validate_adjoint_integrity_audit(
         ):
             raise ValueError(f"adjoint {name} control beta_norm differs")
         relation = record[relation_name]
-        if name in {"rebuild", "reversed_action_order"}:
+        if not sign_control:
             expected_hash_match = (
                 record["jvp_sha256"] == value["jvp_sha256"]
                 and record["vjp_sha256"] == value["vjp_sha256"]
             )
             if relation is not expected_hash_match:
                 raise ValueError(f"adjoint {name} exact action hash predicate differs")
-        elif (
-            name == "parameter_sign"
-            and record["vjp_sha256"] != value["vjp_sha256"]
-        ) or (
-            name == "output_sign"
-            and record["jvp_sha256"] != value["jvp_sha256"]
-        ):
-            raise ValueError(f"adjoint {name} exact relation action hash differs")
+        else:
+            expected_reference_match = (
+                record["reference_jvp_sha256"] == value["jvp_sha256"]
+                and record["reference_vjp_sha256"] == value["vjp_sha256"]
+            )
+            if (
+                type(record["reference_exact_action_hash_match"]) is not bool
+                or record["reference_exact_action_hash_match"]
+                is not expected_reference_match
+            ):
+                raise ValueError(
+                    f"adjoint {name} reference action hash predicate differs"
+                )
         expected_passed = (
-            type(relation) is bool
+            (not sign_control or record["reference_exact_action_hash_match"] is True)
+            and type(relation) is bool
             and relation is True
             and type(beta) is float
             and beta <= 5.0e-4
@@ -5924,6 +6071,7 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             "normwise_adjoint_calibration_protocol",
             "normwise_adjoint_calibration_result",
             "normwise_adjoint_amendment",
+            "normwise_adjoint_sign_control_amendment",
             "binding_receipt",
             "historical",
             "artifact_schema",
@@ -5942,6 +6090,7 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
         "normwise_adjoint_calibration_protocol",
         "normwise_adjoint_calibration_result",
         "normwise_adjoint_amendment",
+        "normwise_adjoint_sign_control_amendment",
         "binding_receipt",
         "historical",
         "artifact_schema",
@@ -5973,6 +6122,9 @@ def validate_all_seed_adjoint_integrity_payload(payload: Mapping[str, Any]) -> N
             "normwise_adjoint_calibration_result"
         ],
         "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
+        "normwise_adjoint_sign_control_amendment": manifest[
+            "normwise_adjoint_sign_control_amendment"
+        ],
         "binding_receipt": manifest["binding_receipt"],
         "historical": manifest["historical"],
         "artifact_schema": manifest["artifact_schema"],
@@ -6248,6 +6400,9 @@ def run_all_seed_adjoint_integrity(
                 "normwise_adjoint_calibration_result"
             ],
             "normwise_adjoint_amendment": manifest["normwise_adjoint_amendment"],
+            "normwise_adjoint_sign_control_amendment": manifest[
+                "normwise_adjoint_sign_control_amendment"
+            ],
             "binding_receipt": manifest["binding_receipt"],
             "historical": manifest["historical"],
             "artifact_schema": manifest["artifact_schema"],

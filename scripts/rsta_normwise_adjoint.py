@@ -497,6 +497,60 @@ def _cancellation_factor(product_sum: float, scalar: float) -> float | str:
     return "infinity"
 
 
+def exact_live_sign_control_relation(
+    control_name: str,
+    target_jvp: torch.Tensor,
+    target_vjp: Mapping[str, torch.Tensor],
+    reference_jvp: torch.Tensor,
+    reference_vjp: Mapping[str, torch.Tensor],
+    parameter_names: Sequence[str],
+    *,
+    expected_device: torch.device,
+) -> bool:
+    names = tuple(parameter_names)
+    if (
+        control_name not in ("parameter_sign", "output_sign")
+        or not names
+        or any(type(name) is not str or not name for name in names)
+        or len(set(names)) != len(names)
+        or not isinstance(expected_device, torch.device)
+    ):
+        raise ValueError("adjoint sign control name differs")
+
+    def live_tensor(value: object, *, name: str) -> torch.Tensor:
+        if (
+            not isinstance(value, torch.Tensor)
+            or value.dtype != torch.float32
+            or value.device != expected_device
+            or not bool(torch.isfinite(value).all())
+        ):
+            raise ValueError(f"{name} must be a finite live FP32 action")
+        return value
+
+    target_jvp = live_tensor(target_jvp, name="target JVP")
+    reference_jvp = live_tensor(reference_jvp, name="reference JVP")
+    if target_jvp.shape != reference_jvp.shape:
+        raise ValueError("sign-control JVP shapes differ")
+    if list(target_vjp) != list(names) or list(reference_vjp) != list(names):
+        raise ValueError("sign-control VJP topology/order differs")
+    for name in names:
+        target = live_tensor(target_vjp[name], name=f"target VJP {name}")
+        reference = live_tensor(reference_vjp[name], name=f"reference VJP {name}")
+        if target.shape != reference.shape:
+            raise ValueError(f"sign-control VJP shape differs for {name}")
+
+    comparisons: list[bool] = []
+    if control_name == "parameter_sign":
+        comparisons.append(torch.equal(target_jvp, -reference_jvp))
+        for name in names:
+            comparisons.append(torch.equal(target_vjp[name], reference_vjp[name]))
+    else:
+        comparisons.append(torch.equal(target_jvp, reference_jvp))
+        for name in names:
+            comparisons.append(torch.equal(target_vjp[name], -reference_vjp[name]))
+    return all(type(result) is bool and result for result in comparisons)
+
+
 def normwise_adjoint_metrics(
     u: torch.Tensor,
     a: torch.Tensor,
