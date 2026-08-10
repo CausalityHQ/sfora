@@ -127,15 +127,43 @@ tuple and return `LIVE-NARROW` for the scalar object below:
 6. [K-FAC, ICML
    2015](https://proceedings.mlr.press/v37/martens15.html): a Fisher-curvature
    optimizer/preconditioner, not a loss-induced receiver-specific scalar target.
-7. The exact RSTA Gate-2 audit path/SHA/commit above, especially its
-   load-bearing non-collapse section.
+7. [NTKMTL, NeurIPS
+   2025](https://proceedings.neurips.cc/paper_files/paper/2025/hash/4522de4178bddb36b49aa26efad537cf-Abstract-Conference.html): extended-NTK
+   spectral task-convergence balancing, not a receiver's contextual
+   full/diagonal gain-ratio penalty.
+8. [RelatIF, AISTATS
+   2020](https://proceedings.mlr.press/v108/barshan20a.html): local influence
+   constrained by global model influence for explanatory-example selection,
+   not a loss correction or receiver-diagonal scalar target.
+9. [Automatic Clipping, NeurIPS
+   2022](https://openreview.net/forum?id=plu6AK3qs5T): automatic per-example
+   gradient clipping for private optimization, a required near-neighbor for the
+   per-example-normalized control but not RDGC.
+10. [Fishr, ICML
+    2022](https://proceedings.mlr.press/v162/rame22a.html): matching
+    domain-level gradient variances/Fisher information, not a named receiver's
+    empirical-tangent gain.
+11. [AdaFace, CVPR
+    2022](https://openaccess.thecvf.com/content/CVPR2022/html/Kim_AdaFace_Quality_Adaptive_Margin_for_Face_Recognition_CVPR_2022_paper.html),
+    [MagFace, CVPR
+    2021](https://openaccess.thecvf.com/content/CVPR2021/papers/Meng_MagFace_A_Universal_Representation_for_Face_Recognition_and_Quality_Assessment_CVPR_2021_paper.pdf),
+    and [AdaCos, CVPR
+    2019](https://openaccess.thecvf.com/content_CVPR_2019/html/Zhang_AdaCos_Adaptively_Scaling_Cosine_Logits_for_Effectively_Learning_Deep_Face_CVPR_2019_paper.html):
+    feature-norm quality margins or adaptive logit scaling, not a differentiated
+    contextual tangent-response ratio. These are mandatory because an
+    embedding-norm or adaptive-scale reinterpretation would collapse RDGC.
+12. [LARS](https://arxiv.org/abs/1708.03888): layerwise trust-ratio scaling of
+    a parameter update. Its exact no-training control below must distinguish
+    RDGC from an ordinary parameter-space trust-ratio effect.
+13. The exact RSTA Gate-2 audit path/SHA/commit above, especially its
+    load-bearing non-collapse section.
 
 The only defensible proposition is: **RDGC differentiates the logarithmic gain
 error between a named receiver's full contextual empirical-tangent response and
 the stopped scalar norm of its diagonal receiver path.** It leaves sample
 eligibility, sample weights, proxies, optimizer metric, and inference unchanged.
 
-A primary source that already applies this exact receiver-specific
+A primary source in this complete thirteen-item tuple that already applies this exact receiver-specific
 full/diagonal gain-ratio penalty closes RDGC before source work. Claims about a
 new NTK regularizer, norm balancing generally, functional motion generally, or
 preconditioning are forbidden.
@@ -244,11 +272,17 @@ The preliminary uses only the first eight fresh identities: one B=180 group,
 two contexts, and four seeds. It computes no auxiliary parameter correction,
 proxy-free margin, or bootstrap.
 
-For each receiver/context, obtain `dbar` once from the exact full B=180
-contextual PA graph. Order the 179 nonreceiver rows by
+For each seed/context, build **one** exact live B=180 functional graph and
+obtain its complete contextual `dbar` once. That same graph, functional
+parameter/buffer state, BN evaluation, input tensors, batch order, and `dbar`
+serve all eight receivers and all four contributor counts. No receiver or mask
+may recompute a forward, BN state, loss, `dbar`, or context. Order the 179
+nonreceiver rows for each receiver by
 `H("rdgc-stage-b-v1|contributor|<seed>|<receiver_id>|<context>|", example_id)`.
 For contributor counts `n = 1, 8, 32, 180`, define `C_n` as the receiver plus
-the first `n-1` ordered rows and compute:
+the first `n-1` ordered rows. Construct the exact FP32 masked cotangent
+`dbar^(r,n)_j=dbar_j` for `j in C_n` and an exact same-shape zero otherwise,
+then compute one masked VJP and receiver JVP:
 
 ```text
 g_r,n = sum_{j in C_n} J_j^T dbar_j
@@ -258,6 +292,18 @@ kappa_r = (||s_r||_2 + 1e-8) / (||dbar_r||_2 + 1e-8)
 E_r,n = abs(log((||b_r,n||_2 + 1e-8) / (||s_r||_2 + 1e-8)))
 C_r = E_r,180 - E_r,8
 ```
+
+The registered schedule inside this shared graph is receiver identity order.
+For each receiver, first compute the independently registered diagonal VJP/JVP
+`s_r=J_rJ_r^Tdbar_r`; then compute masked `n=1,8,32,180` in that order. Compare
+the distinct live `b_r,1` and `s_r` operands with direct `torch.equal`, then
+reduce/hash both before deleting `s_r`; using one tensor as both operands is
+forbidden. Delete each mask, masked VJP, and masked JVP before the next count.
+The shared graph is retained only until all eight receivers finish, then every
+graph/function/model/CUDA reference is deleted before the next seed/context.
+Exactly one forward/loss/`dbar`, eight diagonal VJPs/JVPs, and 32 masked
+VJPs/JVPs occur per seed/context; no eight receiver graphs or 32 context graphs
+are permitted. Only detached row scalars, booleans, and hashes survive the graph.
 
 For each seed/context define the global scalar
 `log_kappa_global` as the median of its eight `log(kappa_r)` values and define
@@ -310,6 +356,7 @@ full_motion
 batch_global_gain
 scalar_diagonal_raw
 per_example_gradient_normalized
+layerwise_trust_ratio
 ```
 
 Their penalties are:
@@ -332,12 +379,30 @@ R_scalar_diagonal_raw =
   0.5 * log((||b_r||+eps)/stopgrad(T_scalar_raw,r))^2
 ```
 
-For the last control, form each differentiable per-example parameter direction
-`g_j=J_j^T dbar_j` in exact batch order. With FP64 cast-before-reduction norms,
-define the detached geometric mean
-`nu=exp(mean_j log(||g_j||+1e-12))`, detached coefficients
-`a_j=stopgrad(nu/(||g_j||+1e-12))`,
-`g_PGN=sum_j a_j g_j`, and `b_PGN,r=J_r g_PGN`. Then:
+The per-example-gradient-normalized (PGN) control uses an exact two-graph
+construction. Its coefficient graph evaluates the full context and `dbar`
+once. In batch order, compute each first-order
+`g_j^(0)=J_j^T stopgrad(dbar_j)` with no higher-order graph, reduce its FP64
+cast-before-product norm, detach that scalar, and delete `g_j^(0)` immediately.
+Only 180 detached scalar norms survive. Define the detached FP64 geometric mean
+`nu=exp(mean_j log(||g_j^(0)||+1e-12))` and detached FP32 coefficients
+`a_j=nu/(||g_j^(0)||+1e-12)`, in exact batch order, then release the coefficient
+graph completely.
+
+Rebuild one fresh, byte-identical full-context higher-order graph, proving
+identical batch/input/descriptor/`dbar` hashes. Construct the single weighted
+FP32 cotangent pytree `dbar_PGN,j=a_j*dbar_j` and perform **one weighted global
+VJP**:
+
+```text
+g_PGN = J_all^T dbar_PGN
+      = sum_j a_j J_j^T dbar_j
+b_PGN,r = J_r g_PGN
+```
+
+The equality is the VJP linearity identity, not permission to instantiate 180
+higher-order `g_j` trees. `g_PGN` remains differentiable for the one registered
+penalty/correction graph. Then:
 
 ```text
 R_per_example_gradient_normalized =
@@ -345,9 +410,33 @@ R_per_example_gradient_normalized =
 ```
 
 This control tests whether a few large per-example parameter gradients explain
-the apparent gain. It is a diagnostic control, not a training proposal.
+the apparent gain. At peak it owns one full graph and one global VJP tree, never
+180 differentiable per-example trees. It is a diagnostic control, not a
+training proposal.
 
-For `X` in the exact operator order, compute `c_X=-partial R_X/partial theta`.
+The final control is a frozen LARS-style layerwise trust-ratio direction, not a
+penalty. Derive ordered layer keys from the exact named parameter tuple as
+`name.rsplit(".",1)[0]` (a name without `.` is its own key); first occurrence
+fixes layer order and all tensors sharing that key form the layer. For every
+layer `ell`, using FP64 cast-before-product named reductions, define from the
+ordinary PA direction:
+
+```text
+tau_ell = stopgrad(||theta_ell||_2 / (||p_ell||_2 + 1e-12))
+c_layerwise_trust_ratio,ell = tau_ell * p_ell
+```
+
+All `tau_ell` are finite detached FP64 scalars cast to FP32 for multiplication.
+Every parameter and direction layer norm must exceed `1e-12`; no weight decay,
+momentum, optimizer moment, clipping, damping, or learned state is present.
+This is a true parameter-space trust-ratio control. It is distinct from
+`batch_global_gain`, whose single stopped scalar target is computed from eight
+receiver output actions and whose differentiated correction remains an RDGC-
+shaped loss correction.
+
+For `X` through `per_example_gradient_normalized` in the exact operator order,
+compute `c_X=-partial R_X/partial theta`; use the registered trust-ratio
+direction above as `c_layerwise_trust_ratio`.
 All corrections and updates use FP64 cast-before-product reductions in the
 exact named parameter order. Let `n=||p||`. Require every norm `>1e-12`, then:
 
@@ -390,12 +479,15 @@ Full-panel **PASS** requires all:
    `>0`, and at least three seed means `>=0.01`;
 2. primary-context pooled mean `M_rdgc-M_PA >0`, lower bound `>0`, and at least
    three positive seed means;
-3. for each of the five controls, primary pooled means and lower bounds of both
+3. for each of the six controls, primary pooled means and lower bounds of both
    `A_rdgc-A_control` and `M_rdgc-M_control` are `>0`, with at least three
-   positive seed means for each `A` difference;
+   positive seed means for each `A` and each `M` difference;
 4. context-B pooled mean `A_rdgc-A_PA >0`, lower bound `>0`, and at least three
    positive seed means;
-5. in context B, every pooled `A_rdgc-A_control >0`;
+5. in context B, for each of the six controls, the paired-bootstrap lower bound
+   of `A_rdgc-A_control` and of `M_rdgc-M_control` is `>0`, at least three of
+   four seed means are positive for each metric, and both corresponding pooled
+   differences are `>0`;
 6. pooled median absolute parameter-direction cosine
    `abs(cos(c_rdgc,c_control)) <0.95` for every control; and
 7. every row, seed, context, operator, hash, integrity gate, and bootstrap
@@ -408,7 +500,8 @@ Full-panel **CLOSE** takes precedence if any:
 2. primary pooled `M_rdgc-M_PA <=0`, with at least three nonpositive seed means;
 3. any control has primary pooled `A_rdgc-A_control <=0` and at least three
    nonpositive seed differences;
-4. the batch-global, scalar-diagonal/raw, or per-example-normalized control has
+4. the batch-global, scalar-diagonal/raw, per-example-normalized, or
+   layerwise-trust-ratio control has
    primary pooled `M_rdgc-M_control <=0` and at least three nonpositive seed
    differences; or
 5. pooled median absolute correction cosine with any control is `>=0.99`, with
@@ -451,19 +544,24 @@ timeout, CUDA fault, preliminary result, panel result, or publication failure
 consumes it. No retry or second output is authorized.
 
 Use one full B=180 CUDA graph at peak. Process seeds, groups, receivers,
-contributor counts, operators, and contexts in registered order. Within one
-graph, compute only the actions needed for the current registered unit, reduce
-and hash them, detach only JSON scalars/booleans/hashes and the one required CPU
-parameter direction, then delete every CUDA tensor, closure, gradient,
-functional state, model reference, and graph before the next graph.
+contributor counts, operators, and contexts in registered order. The preliminary
+uses the one-shared-graph-per-seed/context schedule frozen above: all 32 masked
+actions consume one live `dbar` without recomputation and only one action tuple
+exists at a time. Every other graph computes only the actions needed for its
+current registered unit. Reduce and hash them, detach only JSON
+scalars/booleans/hashes and the one required CPU parameter direction, then
+delete every CUDA tensor, closure, gradient, functional state, model reference,
+and graph before the next graph.
 
 Store `p` and the current receiver's `c_rdgc` as detached CPU tensors only while
 needed for update normalization and correction-cosine controls. Process each
 other correction serially, compute its FP64 CPU dot/cosine with `c_rdgc`, build
 and consume its one virtual JVP direction, then delete it before the next
-control. Per-example gradients are accumulated serially in exact row order;
-never retain 180 live CUDA gradient trees. No candidate or control action from
-two graphs may coexist on CUDA.
+control. PGN's coefficient pass retains only 180 detached scalar norms and then
+releases its graph; its fresh correction pass performs one weighted global VJP
+and retains one higher-order tree. No per-example gradient tensor crosses a
+coefficient iteration and no 180-tree collection exists. No candidate or
+control action from two graphs may coexist on CUDA.
 
 On preliminary CLOSE/UNRESOLVED, the full-panel builder is unreachable. On any
 INVALID condition, no later candidate or control call occurs. Result publication
@@ -552,7 +650,8 @@ Full `panel.rows` are ordered by seed, group, receiver, context, and have exact
 identity/batch hashes, parameter metadata, `p_norm`, every correction norm,
 every matched update norm, every correction cosine, and operator records in
 order `pa`, `rdgc`, `raw_cotangent`, `full_motion`, `batch_global_gain`,
-`scalar_diagonal_raw`, `per_example_gradient_normalized`. Each operator record
+`scalar_diagonal_raw`, `per_example_gradient_normalized`,
+`layerwise_trust_ratio`. Each operator record
 contains exactly `motion_sha256`, `motion_norm`, `margin_alignment`, and
 `margin_slope`. `panel` contains every within-seed and pooled aggregate and
 threshold Boolean. `bootstrap` contains PCG64 version/seed/replicates, every
@@ -568,6 +667,286 @@ validators reject every missing, extra, reordered, mistyped, nonfinite, alias,
 inconsistent, selectively omitted, or post-hoc canonicalized field. Aggregates
 without all registered rows and hashes are invalid.
 
+### Literal nested schema registry
+
+This registry replaces all descriptive freedom in the preceding paragraphs.
+`object(k:T,...)` means an insertion-ordered JSON object with exactly those
+keys; `array[T,N]` has exact length `N`; `ordered_map(keys,T)` is an object whose
+keys and insertion order are the stated strings. JSON `bool` is never accepted
+as `int`, and every scientific `float` is finite binary64 serialized as a JSON
+number. A SHA is a lowercase 64-character hex string. A Git commit is a
+lowercase 40-character hex string.
+
+Reusable records are exactly:
+
+```text
+ref = object(path:str, sha256:sha, commit:commit)
+source_file = object(path:str, sha256:sha, git_blob:str)
+artifact_ref = object(path:str, sha256:sha)
+seed_artifacts = object(
+  seed:int, checkpoint:artifact_ref, training_report:artifact_ref,
+  final_pack:artifact_ref, configuration_sha256:sha,
+  source_export_sha256:sha)
+context_selection = object(
+  context:str{"A","B"}, batch_ids:array[int,180], batch_sha256:sha,
+  transform_sha256:sha, tensor_sha256:sha)
+selection_group = object(
+  group_index:int, receiver_labels:array[int,8], receiver_ids:array[int,8],
+  contexts:array[context_selection,2])
+phase_selection = object(
+  identity_labels:array[int,8|32], receiver_ids:array[int,8|32],
+  support_ids_by_label:ordered_map(canonical identity-label strings,array[int,2]),
+  groups:array[selection_group,1|4])
+operator_action = object(
+  motion_sha256:sha, motion_norm:float,
+  margin_alignment:float, margin_slope:float)
+correction_record = object(
+  direction_sha256:sha, correction_norm:float, matched_update_norm:float,
+  rdgc_correction_cosine:float)
+```
+
+The exact nested top-level records are:
+
+```text
+authority = object(
+  candidate:ref, implementation_plan:ref,
+  literature_audit:object(
+    path:str, sha256:sha, commit:commit, verdict:str{"LIVE-NARROW"},
+    reviewed_candidate_sha256:sha,
+    primary_source_ids:array[str,14]))
+
+source = object(
+  source_commit:commit, handoff_commit:commit, handoff_parent:commit,
+  manifest_path:str, manifest_sha256:sha,
+  files:array[source_file,33], detached_head:bool,
+  clean_tracked_worktree:bool, ancestry_passed:bool)
+
+execution = object(
+  attempt:int{1}, command:array[str,9], cwd:str, pid:int,
+  python_executable:str, python_version:str{"3.12.3"},
+  cuda_visible_devices:str{"0"},
+  cublas_workspace_config:str{":4096:8"}, output_path:str,
+  started_utc:str, completed_utc:str, exit_code:int)
+
+environment = object(
+  numpy_version:str, torch_version:str, cuda_runtime_version:str,
+  cudnn_version:int, device_index:int{0}, device_name:str,
+  device_capability:array[int,2], deterministic_algorithms:bool,
+  allow_tf32_matmul:bool, allow_tf32_cudnn:bool)
+
+binding = object(
+  rsta_candidate:ref, rsta_gate2_audit:ref,
+  rsta_producer_source_commit:commit, rsta_producer_handoff_commit:commit,
+  rsta_artifact:artifact_ref, rsta_producer_pid:int{1002393},
+  rsta_producer_exit_code:int{0}, verifier_source_commit:commit,
+  verifier_handoff_commit:commit, verifier_manifest_sha256:sha,
+  validation_receipt:object(path:str,sha256:sha,status:str{"VALID"}),
+  rsta_scientific_status:str{"VALID"},
+  rsta_scientific_decision:str{"UNRESOLVED"},
+  rsta_first_decisive_clause:str{"no_pass_or_fail_rule"},
+  seeds:array[seed_artifacts,4])
+
+integrity_seed = object(
+  seed:int, dense_jacobian_passed:bool, bn_passed:bool,
+  repeatability_passed:bool, normwise_adjoint_passed:bool,
+  sign_control_passed:bool, rotation_passed:bool,
+  atomic_writer_passed:bool, no_candidate_reachability_passed:bool,
+  action_hashes_sha256:sha, passed:bool)
+integrity = object(
+  seeds:array[integrity_seed,4], all_four_passed:bool,
+  candidate_calls_before_all_four:int{0},
+  candidate_state_before_all_four:bool{false})
+
+selection = object(
+  old_rsta_exclusion_sha256:sha,
+  preliminary:phase_selection[8 identities,1 group],
+  panel:phase_selection[32 identities,4 groups])
+```
+
+The preliminary object is exactly:
+
+```text
+preliminary_row = object(
+  seed:int, context:str{"A","B"}, receiver_label:int, receiver_id:int,
+  dbar_norm:float, self_norm:float, kappa:float, log_kappa:float,
+  b_norms_by_contributor_count:
+    ordered_map(("1","8","32","180"),float),
+  absolute_log_gain_errors_by_contributor_count:
+    ordered_map(("1","8","32","180"),float),
+  count_gain:float)
+preliminary_seed_context = object(
+  seed:int, context:str{"A","B"}, count_gain_mean:float,
+  log_kappa_median:float, log_kappa_iqr:float,
+  global_scalar_relative_error_median:float,
+  full_gain_error_median:float)
+preliminary_seed_correlation = object(seed:int,spearman:float)
+preliminary_pooled = object(
+  count_gain_median_A:float, count_gain_median_B:float,
+  positive_count_gain_seed_means_A:int,
+  positive_count_gain_seed_means_B:int,
+  context_spearman_median:float,
+  context_spearman_seeds_ge_point_three:int,
+  log_kappa_iqr_A:float, log_kappa_iqr_B:float,
+  global_scalar_relative_error_median_A:float,
+  global_scalar_relative_error_median_B:float,
+  full_gain_error_median_A:float, full_gain_error_median_B:float,
+  full_gain_error_seed_medians_ge_log_one_point_one_A:int,
+  full_gain_error_seed_medians_ge_log_one_point_one_B:int)
+preliminary_predicates = object(
+  survives_count_gain:bool, survives_context_stability:bool,
+  survives_receiver_heterogeneity:bool, survives_global_scalar:bool,
+  survives_full_gain:bool, close_count_gain:bool,
+  close_context_stability:bool, close_receiver_heterogeneity:bool,
+  close_global_scalar:bool, close_full_gain:bool)
+preliminary = object(
+  operator_counts:object(
+    forwards_per_seed_context:int{1}, dbars_per_seed_context:int{1},
+    diagonal_vjps_per_seed_context:int{8},
+    diagonal_jvps_per_seed_context:int{8},
+    masked_vjps_per_seed_context:int{32},
+    masked_receiver_jvps_per_seed_context:int{32}),
+  rows:array[preliminary_row,64],
+  seed_context_aggregates:array[preliminary_seed_context,8],
+  seed_correlations:array[preliminary_seed_correlation,4],
+  pooled_aggregates:preliminary_pooled,
+  predicates:preliminary_predicates,
+  decision:object(
+    status:str{"SURVIVES","CLOSE","UNRESOLVED","INVALID"},
+    first_decisive_clause:str, full_panel_authorized:bool))
+```
+
+The full panel and bootstrap objects are exactly:
+
+```text
+panel_row = object(
+  seed:int, group:int, receiver_label:int, receiver_id:int,
+  context:str{"A","B"}, batch_sha256:sha,
+  parameter_names_sha256:sha, p_norm:float,
+  corrections:ordered_map(("rdgc","raw_cotangent","full_motion",
+    "batch_global_gain","scalar_diagonal_raw",
+    "per_example_gradient_normalized","layerwise_trust_ratio"),
+    correction_record),
+  operators:ordered_map(("pa","rdgc","raw_cotangent","full_motion",
+    "batch_global_gain","scalar_diagonal_raw",
+    "per_example_gradient_normalized","layerwise_trust_ratio"),
+    operator_action))
+panel_seed_context = object(
+  seed:int, context:str{"A","B"}, operator:str,
+  alignment_mean:float, slope_mean:float,
+  rdgc_minus_operator_alignment_mean:float,
+  rdgc_minus_operator_slope_mean:float)
+panel_pooled = object(
+  context:str{"A","B"}, operator:str,
+  alignment_mean:float, slope_mean:float,
+  rdgc_minus_operator_alignment_mean:float,
+  rdgc_minus_operator_slope_mean:float,
+  positive_alignment_seed_means:int,
+  positive_slope_seed_means:int)
+correction_alias = object(
+  control:str, pooled_median_absolute_cosine:float,
+  seed_medians_ge_point_nine_nine:int)
+panel_predicates = object(
+  primary_vs_pa_alignment:bool, primary_vs_pa_slope:bool,
+  primary_vs_all_controls:bool, context_b_vs_pa:bool,
+  context_b_vs_all_controls_alignment_and_slope:bool,
+  correction_nonalias:bool, completeness:bool,
+  close_vs_pa:bool, close_primary_control:bool,
+  close_control_slope:bool, close_correction_alias:bool)
+panel = object(
+  operator_order:array[str,8], rows:array[panel_row,256],
+  seed_context_aggregates:array[panel_seed_context,64],
+  pooled_aggregates:array[panel_pooled,16],
+  correction_alias_aggregates:array[correction_alias,6],
+  predicates:panel_predicates)
+
+bootstrap_distribution = object(
+  context:str{"A","B"}, comparator:str,
+  metric:str{"margin_alignment","margin_slope"},
+  values:array[float,10000], values_sha256:sha,
+  lower_bound:float)
+bootstrap = object(
+  bit_generator:str{"PCG64"}, seed:int{201}, replicates:int{10000},
+  complete_labels:array[int,32],
+  distributions:array[bootstrap_distribution,28])
+
+predicate_record = object(name:str,value:bool)
+decision = object(
+  close_precedence:bool,
+  predicates:array[predicate_record,1|11],
+  status:str{"PASS","CLOSE","UNRESOLVED","INVALID"},
+  first_decisive_clause:str,
+  authorized_action:str{"stop_invalid","stop_close","stop_unresolved",
+    "new_training_preregistration_only"})
+```
+
+There are 28 bootstrap distributions: two contexts times seven comparators
+(`pa` plus six controls) times two metrics. Their order is context `A,B`, then
+comparator order `pa` followed by the six registered controls, then
+`margin_alignment,margin_slope`. The 64 `panel_seed_context` records are seed,
+context, operator order; the 16 pooled records are context then operator.
+Preliminary and panel row orders remain the literal orders stated above.
+
+An early INVALID payload retains the same top-level keys. `status="INVALID"`,
+`phase_reached="integrity"`, `candidate_values_computed=false`; `authority`,
+`source`, `execution`, `environment`, `binding`, and `integrity` are complete;
+`selection`, `preliminary`, `panel`, and `bootstrap` are JSON null; `decision`
+is the exact decision object above with one false predicate record named
+`"structural_integrity"`, `first_decisive_clause` naming the fault, and
+`authorized_action="stop_invalid"`. A scientific INVALID has the same reduced
+form and discards partial science; only `phase_reached` and
+`candidate_values_computed` reflect whether preliminary science began.
+
+### Literal future manifest schema
+
+`docs/pass205_rdgc_stage_b_manifest.json` has exactly the following nested
+schema. It contains no result bytes, candidate values, or output status:
+
+```text
+object(
+  schema_version:int{1},
+  candidate:ref,
+  implementation_plan:ref,
+  upstream_rsta:object(
+    candidate:ref, gate2_audit:ref,
+    producer_source_commit:commit, producer_handoff_commit:commit,
+    producer_artifact:artifact_ref, producer_pid:int{1002393},
+    producer_exit_code:int{0}, verifier_source_commit:commit,
+    verifier_handoff_commit:commit, verifier_manifest:artifact_ref,
+    scientific_status:str{"VALID"},
+    scientific_decision:str{"UNRESOLVED"},
+    first_decisive_clause:str{"no_pass_or_fail_rule"}),
+  literature_audit:object(
+    path:str,sha256:sha,commit:commit,verdict:str{"LIVE-NARROW"},
+    reviewed_candidate_sha256:sha,primary_source_ids:array[str,14]),
+  validation_receipt:object(
+    path:str,sha256:sha,status:str{"VALID"},
+    verifier_source_commit:commit,verifier_handoff_commit:commit,
+    artifact_path:str,artifact_sha256:sha),
+  historical:object(
+    manifest_path:str,manifest_sha256:sha,seeds:array[seed_artifacts,4]),
+  current_scientific_source:object(
+    git_revision:commit,files:array[source_file,33]),
+  artifact_schema:object(
+    result_path_template:str,
+    schema_version:int{1},diagnostic:str{"pass205_rdgc_stage_b"},
+    mode:str{"scientific_no_training_virtual_update"},
+    statuses:array[str,4],phases:array[str,3],
+    top_level_keys:array[str,20],
+    invalid_null_fields:array[str,4],
+    operator_order:array[str,8],
+    contributor_counts:array[int,4]),
+  seeds:array[int,4])
+```
+
+The manifest literal arrays are respectively
+`["PASS","CLOSE","UNRESOLVED","INVALID"]`,
+`["integrity","preliminary","full_panel"]`, the 20 top-level keys in this
+section, `["selection","preliminary","panel","bootstrap"]`, the exact
+eight-operator order, `[1,8,32,180]`, and seeds `[0,1,2,3]`. Its 33 source
+records are the prior 32 paths in their exact order with the RDGC diagnostic
+inserted as path 3. Recursive validators mutate each occurrence independently;
+matching a key set without matching insertion order is insufficient.
+
 ## Source, manifest, review, and DGX sequence
 
 1. Commit this candidate alone and obtain its SHA-256/commit.
@@ -578,7 +957,17 @@ without all registered rows and hashes are invalid.
    `scripts/diagnose_pass205_rdgc_stage_b.py` and
    `tests/test_diagnose_pass205_rdgc_stage_b.py`.
 5. Run all synthetic CPU/tiny-CUDA-if-available tests, lint, compilation, scope,
-   and source review. Commit the exact two-file source/test revision as `V_G`.
+   and source review. Acceptance requires a named unmocked real-CPU
+   `torch.func` end-to-end test using the authenticated Pass 200 helper and real
+   higher-order RDGC/PGN corrections: both contexts, exact normalization,
+   complete result construction/validation, and graph/action weakref death are
+   exercised without fake tensors, fake modules, recording adapters, or
+   monkeypatched derivative primitives. Synthetic mutation tests must also
+   recurse through every occurrence of every full, reduced, and future-manifest
+   nested field, independently testing removal, addition, reordering, concrete
+   type substitution (including `bool`/`int`), nonfinite floats, signed-zero
+   substitution where semantically exact, and relational/hash drift. Commit the
+   exact two-file source/test revision as `V_G`.
 6. Create only `docs/pass205_rdgc_stage_b_manifest.json`, binding the candidate,
    plan, exact upstream chain, validation receipt, artifacts, `V_G`, and the
    current 32 scientific source paths plus the new diagnostic in frozen order.
