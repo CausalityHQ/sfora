@@ -119,7 +119,7 @@ that independent review.
 
 Before creating the repair branch, H4 must remain reachable through the exact
 local preservation ref `pass201-source-v4-handoff-32c4d39` resolving to H4.
-The repair chronology is linear from S4, not H4. The four already-committed
+The repair chronology is linear from S4, not H4. The ten already-committed
 docs-only ancestors are exact and no other commit may occur between them:
 
 ```text
@@ -132,6 +132,8 @@ S4
  -> c66a5af736d33f4743039031f81776bc3a6ada0a  (second plan fix)
  -> d392a1c028ac7c8f918acc6c7c69c78bffbbacf4  (third amendment fix)
  -> d3ad7701ed000dcd941e21d0a58577a70b626f3f  (third plan fix)
+ -> b8a6e567db1352707afe5f38a364c342d006b9c8  (fourth amendment fix)
+ -> 886c979433b94ce00420679668569ef83e2969b0  (fourth plan fix)
  -> final amendment-fix A5
  -> final plan-fix P5
  -> reviewed source V5
@@ -140,7 +142,7 @@ H4 is the separate sole-manifest child of S4 and remains preserved by the tag.
 ```
 
 The final amendment-fix A5 has exact parent
-`d3ad7701ed000dcd941e21d0a58577a70b626f3f`, changes only this amendment,
+`886c979433b94ce00420679668569ef83e2969b0`, changes only this amendment,
 and is bound by exact path/SHA-256/commit in the final plan and H5. The final
 plan-fix P5 is the sole-path child of A5, changes only its implementation plan,
 and is bound by exact path/SHA-256/commit in V5 and H5. Every source or test
@@ -161,8 +163,8 @@ has one parent V5 and adds exactly one regular mode-100644 file:
 docs/pass201_pa_source_v5_authorization_manifest.json
 ```
 
-The v5 source-chain validator must require that exact ten-commit docs chain
-(the eight literal commits plus A5 and P5), with each edge single-parent,
+The v5 source-chain validator must require that exact twelve-commit docs chain
+(the ten literal commits plus A5 and P5), with each edge single-parent,
 merge-free, nonempty, and confined to its one registered documentation path.
 It then requires the reviewed P5-to-V5 source segment to be merge-free, rejects
 empty or out-of-scope source commits, and requires the aggregate three-path
@@ -476,11 +478,51 @@ executor_diagnostic_sha256
 The historical fields bind H4/S4 and the immutable receipt. The executor fields
 bind H5/V5 and the current diagnostic. `source_revision` remains S4 because the
 checkpoint/report source was produced by S4; it must never be silently
-redefined as V5. Every activated preregistration, controller replay, process
+redefined as V5. `prelaunch_source_manifest_path` and
+`prelaunch_source_manifest_sha256` are exactly the v5 authorization-manifest
+path and authenticated H5 manifest SHA-256; they are neither inherited from H4
+nor caller-selected. Every activated preregistration, controller replay, process
 role, result source projection, and strict validator carries and validates the
 same `activation_repair` object. Existing runtime version strings remain the
 frozen exact values used by the current source-v3 path; this repair does not
 derive them from a mutable ambient environment.
+
+## Candidate-free v5 manifest freezer
+
+The reviewed V5 diagnostic provides the only authorized v5 freezer entrypoint:
+
+```text
+.venv/bin/python -I -B scripts/diagnose_pass201_cis_operator.py \
+  --freeze-v5-authority \
+  --root <normalized-absolute-V5-checkout> \
+  --frozen-absence-checked-utc <one-literal-RFC3339-UTC-value> \
+  --output <normalized-absolute-absent-candidate-path>
+```
+
+`--freeze-v5-authority` is a mutually exclusive public mode in the already
+authorized diagnostic file. No fourth source path, generated source file,
+tracked helper, untracked script, shell heredoc, private-function invocation,
+or modification of `scripts/run_pass201_pa_source_v2.py` is authorized. The
+entrypoint requires a detached, tracked-clean V5 checkout; authenticates the
+exact docs chain, H4/S4 tag/topology/manifests, immutable receipt/output
+metadata, V5 Git blobs, and current worktree bytes; verifies the four registered
+future outputs are absent; builds the exact v5 authority; validates it through
+the authenticated contract v5 branch; and exclusively publishes one canonical
+mode-0600 candidate with same-directory no-replace atomic mechanics. The
+candidate output path is not embedded in the authority, so two distinct
+candidate destinations can produce byte-identical bytes.
+
+The freezer rejects every mode-incompatible argument, relative or aliased
+root/output, pre-existing destination or owned temporary, attached/dirty
+checkout, authority/blob/worktree drift, output-presence drift, and schema or
+roundtrip mismatch before publication. It must not import Torch, load or parse
+checkpoint/report candidate contents, access dataset image tensors, construct a
+model/context/operator, compute a candidate value, or launch a GPU process.
+Literal immutable sizes and SHA-256 values recorded by this amendment may be
+incorporated only after their H4 manifest/receipt Git-and-byte authority has
+authenticated. Tests install import/access sentinels before fresh-process
+module load and exercise the real public CLI, two-process byte identity, strict
+persisted reload, no-clobber, race, rollback, and candidate-free failure paths.
 
 ## TDD and review requirements
 
@@ -491,7 +533,11 @@ Before production edits, tests must prove RED for:
 - exact v5 dispatch absence;
 - H4 receipt rebinding and H5 current-executor binding;
 - v1/v2 source-manifest branch separation; and
-- activated/controller/process/result propagation of both provenance domains.
+- activated/controller/process/result propagation of both provenance domains;
+- absence of the public `--freeze-v5-authority` mode and exact v5 candidate
+  construction/publication behavior; and
+- structural absence of a v5 dispatcher/constant branch, rather than relying
+  on the legacy fallthrough's ambiguous SHA-mismatch error text.
 
 Tests then require GREEN for:
 
@@ -518,11 +564,13 @@ before H5 is built.
 ## H5 freeze and execution rules
 
 From independently reviewed V5, create two fresh freezer processes that write
-distinct absent candidate paths and require byte-identical v5 manifests. The
-freezer may inspect only authority/source/data metadata and the already-known
-source-output hashes; it computes no candidate value. Exclusively publish one
-candidate and commit only the v5 manifest as H5. Revalidate H5 in a fresh
-detached clean checkout.
+distinct absent candidate paths using the exact public command above and the
+same literal UTC value, then require byte-identical v5 manifests. The freezer
+may inspect only registered authority/source/data metadata and the already-known
+source-output sizes/hashes; it computes no candidate value. Exclusively publish
+one candidate, stage only the exact registered path, require cached mode 100644
+and cached bytes identical to the mode-0600 worktree candidate, and commit only
+the v5 manifest as H5. Revalidate H5 in a fresh detached clean checkout.
 
 In that H5 checkout, copy the six immutable source outputs from the preserved
 H4 execution directory to their exact repository-relative paths. Before any
