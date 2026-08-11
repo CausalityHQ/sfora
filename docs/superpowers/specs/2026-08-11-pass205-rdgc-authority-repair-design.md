@@ -34,7 +34,7 @@ RDGC remains the project label, but every repaired authority calls it the
 `LIVE-NARROW`; it may not be called a wholly independent new object or a
 continuation of a validated directional mechanism.
 
-The repaired chronology is:
+The repaired conceptual chronology is:
 
 1. original reviewed candidate and implementation plan;
 2. source implementation and review fixes through `291ccbf`;
@@ -47,6 +47,12 @@ The repaired chronology is:
 8. a direct-child manifest-only handoff;
 9. the single authorized DGX process.
 
+The document-byte chronology is more specific: original authority-only design
+`68a012f`, initial audit `12c55f0`, audit review fix `9b4cf05`, then the
+scientific-boundary expansion of this design at `bad1bf0`. The final design
+bytes therefore postdate the corrected audit they incorporate. Later
+authorities must freeze and disclose that exact order.
+
 The chronology must be disclosed exactly. The original candidate's requirement
 that audit precede implementation was breached. The audit is prospective to
 scientific execution but was committed after the first source implementation;
@@ -56,8 +62,9 @@ new audit and amendment before any handoff.
 ## Scientific-boundary correction
 
 Keep the exact RDGC scalar formula and keep computing and persisting
-`E_r,n` for contributor counts `[1,8,32,180]`. Reclassify `E_r,180` as
-descriptive contamination-disclosed evidence only. Remove exactly:
+`E_r,n` for contributor counts `[1,8,32,180]`. Reclassify direct
+`E_r,180` endpoint levels and their seed summaries as descriptive,
+contamination-disclosed evidence. Remove exactly:
 
 - the preliminary SURVIVE conjunct requiring pooled/seed `E_r,180` thresholds;
 - the paired CLOSE clause using `E_r,180`.
@@ -66,6 +73,15 @@ Do not replace either clause with a raised, widened, fitted, or calibrated
 threshold. All other fresh preliminary predicates and CLOSE clauses retain
 their exact formulas, thresholds, order, and semantics. All panel predicates,
 controls, bootstraps, and CLOSE-before-PASS precedence remain unchanged.
+
+The existing contributor-sensitivity contrast
+`C_r = E_r,180 - E_r,8` remains decision-bearing. It is a fresh matched
+contrast: RSTA observed no `E_r,8`, no same-receiver difference, and none of
+RDGC's fresh rows. A prior marginal `E_r,180` does not determine the contrast,
+because the unobserved `E_r,8` can be equal, larger, or smaller. Tests and docs
+must state this exception precisely: no predicate may consume a direct
+`E_r,180` level or pooled/seed endpoint threshold; the count-gain predicate may
+consume the endpoint only through exact paired `C_r`.
 
 The diagnostic's candidate formula remains no-training. Norm matching and the
 0.10 ratio apply only to Stage-B virtual updates. A possible future training
@@ -160,8 +176,9 @@ Use strict RED-to-GREEN tests for:
 - exact repair-chain ancestry and per-commit scope;
 - unchanged RDGC formulas, controls, decisions, selection, graph schedule,
   result schema, atomic publication, and no-candidate-before-integrity rules,
-  except for the literal removal of the contaminated `E_r,180` SURVIVE/CLOSE
-  decision clauses while retaining its exact persisted metrics;
+  except for the literal removal of the contaminated direct `E_r,180`
+  SURVIVE/CLOSE decision clauses while retaining its exact persisted metrics
+  and fresh paired `C_r` count-gain predicate;
 - the final real-CPU `torch.func` kernel-to-receipt path;
 - the future manifest and direct-child manifest-only handoff.
 
@@ -174,6 +191,7 @@ and a separate manifest/provenance review before DGX execution.
 This repair does not change RDGC's operator, epsilon placement, remaining
 thresholds, controls, receiver selection, contexts, update normalization,
 bootstrap, decision precedence, training authorization, or inference behavior.
-It changes only the classification of `E_r,180` from decision-bearing to
-descriptive and corrects RDGC's relationship to RSTA. It does not read the old
-RSTA scientific artifact, run RDGC, or use any RDGC outcome.
+It changes only direct `E_r,180` endpoint-level decisions to descriptive
+evidence, retains the fresh paired `C_r` contrast, and corrects RDGC's
+relationship to RSTA. It does not read the old RSTA scientific artifact, run
+RDGC, or use any RDGC outcome.
