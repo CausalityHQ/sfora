@@ -21,8 +21,8 @@ integrity/scientific logic.
 
 ```text
 path: docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md
-sha256: ec27a45cc02ae0f2133ccc9cf771850392e6408ccea9abdf556c21f0b1e3ca28
-commit: b8a6e567db1352707afe5f38a364c342d006b9c8
+sha256: 6ed8e3b6eabafb36167b9168a127bef1dcf3a383257cfefd3708ac48221a22d6
+commit: 3436bc7fdf09465667635fe89b6229707370c5a2
 historical S4: 53a9db9e9dbe54fcebb33769b915c3f33699d522
 historical H4: 32c4d39322fca2a5a906f785bdb612dcd7008647
 H4 preservation ref: pass201-source-v4-handoff-32c4d39
@@ -48,9 +48,9 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `tests/test_diagnose_pass201_cis_operator.py`.
 - The exact docs ancestry before source work is S4 → `d4a2df3` → `04f423b`
   → `1f5bb12` → `4afbda4` → `12003f5` → `c66a5af` → `d392a1c` → `d3ad770`
-  → `b8a6e56` → this final plan commit. Each edge is single-parent, merge-free,
-  nonempty, and confined to its registered one-file documentation scope;
-  arbitrary docs-only ancestors are forbidden.
+  → `b8a6e56` → `886c979` → `3436bc7` → this final plan commit. Each edge is
+  single-parent, merge-free, nonempty, and confined to its registered one-file
+  documentation scope; arbitrary docs-only ancestors are forbidden.
 - H5 changes only
   `docs/pass201_pa_source_v5_authorization_manifest.json` with status `A` and
   mode `100644`, and `H5^ == V5`.
@@ -71,7 +71,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - Review this plan.
 - Read the diagnostic/test and H4 manifest only; do not execute science.
 
-- [ ] Verify `b8a6e567db1352707afe5f38a364c342d006b9c8` is the final
+- [ ] Verify `3436bc7fdf09465667635fe89b6229707370c5a2` is the final
   one-file amendment-fix descendant of S4 and its Git/worktree SHA is the
   literal above.
 - [ ] Verify this plan is its sole-path child and substitute its final commit
@@ -92,9 +92,14 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   repository and exact v4 schema. Against old source, require the observed
   `prelaunch manifest SHA-256 mismatch`; prove no activation/result/temp file.
 - [ ] Add an exact v5 public-dispatch test. Against old source, require failure
-  because v5 is unrecognized, not because a synthetic SHA override is absent.
+  from structural absence of the v5 constant/branch; do not infer the cause from
+  the legacy fallthrough's ambiguous SHA-mismatch message.
+- [ ] Add a real fresh-process public-CLI RED for absent
+  `--freeze-v5-authority`. Its fixture uses literal independent expected v5
+  bytes and installs Torch/model/checkpoint/dataset/candidate sentinels before
+  module load.
 - [ ] Build a real merge-free temporary Git history with separate H4 and the
-  exact ten-commit docs chain → V5 → H5 branches. Do not mock Git command helpers. Add mutations for
+  exact twelve-commit docs chain → V5 → H5 branches. Do not mock Git command helpers. Add mutations for
   every commit, parent, edge status/mode/path, source row, manifest bytes/order,
   and detached/clean predicate.
 - [ ] Add historical receipt/output fixtures using the real strict contract
@@ -115,7 +120,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - [ ] Add exact static bindings for A5/P5, H4/S4, v4 manifest metadata,
   receipt metadata, five non-receipt output records, v5 manifest path/schema,
   and exact 30-source path order.
-- [ ] Add a v5 source-chain validator: the exact ten docs commits through the
+- [ ] Add a v5 source-chain validator: the exact twelve docs commits through the
   final A5/P5 must be exact ancestors; each
   source commit after P5 is merge-free, nonempty, `M`-only, and confined to the
   exact three paths; aggregate scope is all three paths.
@@ -145,6 +150,13 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   to exact `SOURCE_V5_AUTHORIZATION_MANIFEST_PATH`. Retain the v4 path only for
   the separately authenticated historical H4 domain; reject public caller v4,
   alias, and every other manifest path before model/candidate access.
+- [ ] Implement the exact candidate-free `--freeze-v5-authority` public mode in
+  the diagnostic. Require normalized absolute V5 root/output, detached clean
+  V5, exact docs/H4/S4/current-source authentication, the one literal UTC
+  value, exact four-output absence, contract-v5 validation, canonical persisted
+  reload, mode-0600 same-directory exclusive publication, and rollback. Reject
+  every incompatible argument and pre-existing destination/temp. Prove no
+  Torch/model/checkpoint-content/dataset-tensor/candidate/GPU reachability.
 - [ ] Run the Task 2 selector GREEN plus exhaustive recursive v5 mutations.
 
 ## Task 4: Implement source-manifest v2 and provenance propagation
@@ -181,6 +193,11 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `SMOKE_RESULT_PATH`; bind smoke only to that path and science only to the
   unchanged `RESULT_PATH`. There is no public SHA override, runtime factory,
   alternate manifest, caller-selected output, or cross-mode output path.
+- [ ] Add real `main([...])` and fresh `python -I -B` tests for
+  `--freeze-v5-authority`, including mode-incompatible args, relative/aliased
+  paths, attached/dirty/tree/blob/authority/output-presence drift, two-process
+  byte identity, persisted strict reload, no-clobber/race/rollback, and
+  pre-import candidate-free sentinels.
 - [ ] Prove every public non-process mode invoked without
   `--prelaunch-manifest` resolves to the exact v5 literal, while an explicit v4
   path fails with the repair-required error before activation/model/candidate
@@ -226,10 +243,16 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   smoke/result paths, four-key authorization frozen absence, and
   `candidate_values_computed=false`.
 - [ ] In a fresh detached V5 checkout, run exactly two fresh freezer processes
-  to distinct absent paths. They may read metadata/hashes only. Require
-  byte-identical canonical candidates and strict validation.
+  to distinct absent paths with the exact registered
+  `.venv/bin/python -I -B scripts/diagnose_pass201_cis_operator.py
+  --freeze-v5-authority --root ... --frozen-absence-checked-utc ... --output
+  ...` command and the same one-time UTC literal. They may read registered
+  metadata/hashes only. Require byte-identical canonical mode-0600 candidates,
+  strict persisted validation, and no Torch/model/checkpoint-content/dataset-
+  tensor/candidate access.
 - [ ] Exclusively publish one candidate, commit only the v5 manifest as
-  `refreeze Pass201 source-v5 activation`, and require `H5^ == V5`.
+  `refreeze Pass201 source-v5 activation`, require the cached one-path bytes to
+  equal the candidate and cached mode to be 100644, and require `H5^ == V5`.
 - [ ] In a fresh detached H5 checkout, validate H5/V5 current provenance,
   H4/S4 historical Git evidence, amendment/plan bindings, source rows, manifest
   schema, and absence predicates. Obtain one final Opus→Sol review. STOP on any
