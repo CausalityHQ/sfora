@@ -284,7 +284,7 @@ def _correlation(left: np.ndarray, right: np.ndarray) -> float:
         )
     )
     if denominator == 0.0:
-        raise ValueError("correlation is undefined for a constant vector")
+        return 0.0
     return float(
         np.sum(left_centered * right_centered, dtype=np.float64) / denominator
     )

@@ -130,7 +130,7 @@ Test tied-rank Spearman with independently specified average ranks. Parameterize
 
 - [ ] **Step 4: Implement diagnostics and exact predicates**
 
-Do not import SciPy. Average equal-value ranks in a stable sorted pass, compute correlations in `float64`, and reject constant vectors because correlation would be undefined. Return predicates in this exact order: `correlation`, `absolute_gain`, `oracle_recovery`, `paired_significance`, `permuted_control`.
+Do not import SciPy. Average equal-value ranks in a stable sorted pass and compute correlations in `float64`. A constant prediction is a valid scientific KILL, not a structural error: record both correlations as `0.0`. Return predicates in this exact order: `correlation`, `absolute_gain`, `oracle_recovery`, `paired_significance`, `permuted_control`, `random_direction_null`.
 
 - [ ] **Step 5: Run and commit Task 2**
 

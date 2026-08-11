@@ -132,6 +132,14 @@ def test_density_diagnostics_uses_average_tied_ranks() -> None:
     )
 
 
+def test_density_diagnostics_treats_constant_prediction_as_zero_correlation() -> None:
+    predicted = np.ones(4, dtype=np.float64)
+    observed = np.asarray([0.0, 1.0, 2.0, 3.0], dtype=np.float64)
+    assert density_diagnostics(predicted, observed) == pytest.approx(
+        {"pearson": 0.0, "spearman": 0.0, "mse": 1.5}
+    )
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
