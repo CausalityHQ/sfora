@@ -348,6 +348,7 @@ def _authenticate_source_v3_git_handoff(
             SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
             SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
             SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V6_AUTHORIZATION_MANIFEST_PATH,
         ),
         "source authorization manifest path differs",
     )
@@ -2867,8 +2868,9 @@ def _validate_activation_repair(
             f"source manifest {key}",
         )
     _require(
-        prelaunch_path == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
-        and repair["executor_manifest_path"] == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+        prelaunch_path
+        in (SOURCE_V5_AUTHORIZATION_MANIFEST_PATH, SOURCE_V6_AUTHORIZATION_MANIFEST_PATH)
+        and repair["executor_manifest_path"] == prelaunch_path
         and repair["executor_manifest_sha256"] == prelaunch_sha256
         and repair["executor_diagnostic_sha256"] == diagnostic_sha256,
         "source manifest executor provenance differs",
@@ -2887,7 +2889,8 @@ def _validate_source_manifest_artifact(manifest: Any) -> None:
     _require(manifest["status"] == "frozen", "source manifest status")
     if is_v2:
         _require(
-            manifest["prelaunch_source_manifest_path"] == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            manifest["prelaunch_source_manifest_path"]
+            in (SOURCE_V5_AUTHORIZATION_MANIFEST_PATH, SOURCE_V6_AUTHORIZATION_MANIFEST_PATH),
             "source manifest prelaunch path",
         )
     else:

@@ -257,8 +257,12 @@ def _git(root: Path, *arguments: str) -> str:
     ).stdout.strip()
 
 
-def _source_v3_handoff_fixture(tmp_path: Path) -> tuple[Path, str, str, Path]:
-    root = tmp_path / "source-v3-handoff"
+def _source_v3_handoff_fixture(
+    tmp_path: Path,
+    *,
+    manifest_relative: str = "docs/pass201_pa_source_v3_authorization_manifest.json",
+) -> tuple[Path, str, str, Path]:
+    root = tmp_path / f"source-handoff-{Path(manifest_relative).stem}"
     (root / "scripts").mkdir(parents=True)
     (root / "docs/superpowers/plans").mkdir(parents=True)
     for relative in (
@@ -278,7 +282,7 @@ def _source_v3_handoff_fixture(tmp_path: Path) -> tuple[Path, str, str, Path]:
     _git(root, "add", ".")
     _git(root, "commit", "-q", "-m", "source-v3")
     source_commit = _git(root, "rev-parse", "HEAD")
-    manifest_path = root / "docs/pass201_pa_source_v3_authorization_manifest.json"
+    manifest_path = root / manifest_relative
     manifest_path.write_bytes(b"{}\n")
     _git(root, "add", manifest_path.relative_to(root).as_posix())
     _git(root, "commit", "-q", "-m", "handoff")
@@ -420,6 +424,23 @@ def test_source_v3_git_handoff_authenticates_detached_manifest_only_child(
     assert handoff.handoff_commit == handoff_commit
     assert handoff.manifest_bytes == b"{}\n"
     assert handoff.manifest_sha256 == hashlib.sha256(b"{}\n").hexdigest()
+
+
+def test_source_v6_git_handoff_authenticates_detached_manifest_only_child(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, handoff_commit, manifest_path = _source_v3_handoff_fixture(
+        tmp_path,
+        manifest_relative=MODULE.SOURCE_V6_AUTHORIZATION_MANIFEST_PATH,
+    )
+    handoff = MODULE._authenticate_source_v3_git_handoff(
+        root=root,
+        git_root=root,
+        manifest_path=manifest_path,
+    )
+    assert handoff.source_commit == source_commit
+    assert handoff.handoff_commit == handoff_commit
+    assert handoff.manifest_bytes == b"{}\n"
 
 
 def _source_v4_chain_fixture(
@@ -4478,11 +4499,14 @@ def test_source_binding_dispatches_exact_v5_schema_without_legacy_sha_override(
     assert observed == [args]
 
 
-def _source_manifest_v2_fixture() -> dict[str, object]:
+def _source_manifest_v2_fixture(
+    *,
+    prelaunch_manifest_path: str = MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+) -> dict[str, object]:
     manifest: dict[str, object] = {
         "schema_version": "pass201-source-v2",
         "status": "frozen",
-        "prelaunch_source_manifest_path": MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_source_manifest_path": prelaunch_manifest_path,
         "prelaunch_source_manifest_sha256": "1" * 64,
         "source_report_path": "reports/generated/pass201_source_v3/run-v3/report.json",
         "source_report_sha256": "2" * 64,
@@ -4515,7 +4539,7 @@ def _source_manifest_v2_fixture() -> dict[str, object]:
         ),
         "executor_authorization_commit": "8" * 40,
         "executor_source_commit": "9" * 40,
-        "executor_manifest_path": MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "executor_manifest_path": prelaunch_manifest_path,
         "executor_manifest_sha256": manifest["prelaunch_source_manifest_sha256"],
         "executor_diagnostic_sha256": manifest["diagnostic_source_sha256"],
     }
@@ -4524,6 +4548,25 @@ def _source_manifest_v2_fixture() -> dict[str, object]:
 
 def test_source_manifest_v2_validates_exact_dual_provenance():
     MODULE._validate_source_manifest_artifact(_source_manifest_v2_fixture())
+
+
+def test_source_manifest_v2_validates_exact_source_v6_dual_provenance():
+    manifest = _source_manifest_v2_fixture(
+        prelaunch_manifest_path=MODULE.SOURCE_V6_AUTHORIZATION_MANIFEST_PATH,
+    )
+    MODULE._validate_source_manifest_artifact(manifest)
+
+    source = MODULE._result_source_from_manifest(
+        manifest,
+        [
+            {
+                "python_version": "3.12.3",
+                "cuda_version": "13.0",
+                "cudnn_version": "92000",
+            }
+        ],
+    )
+    MODULE._validate_source(source, activated=True)
 
 
 @pytest.mark.parametrize(
