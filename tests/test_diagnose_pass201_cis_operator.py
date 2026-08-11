@@ -1533,6 +1533,73 @@ def test_process_role_controller_uses_exactly_three_fresh_ordered_children(
     assert not list(output.parent.glob(".pass201-process-*"))
 
 
+@pytest.mark.parametrize("mode", ("smoke", "scientific"))
+def test_controller_rejects_preexisting_destination_before_child_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    output = tmp_path / f"{mode}.json"
+    output.write_bytes(b"foreign-result")
+    source_manifest = tmp_path / "source.json"
+    source_manifest.write_bytes(b"{}\n")
+    args = SimpleNamespace(
+        output=output,
+        root=tmp_path,
+        source_manifest=source_manifest,
+        binding_only=False,
+        smoke_only=mode == "smoke",
+        scientific=mode == "scientific",
+        runtime_factory=None,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_validate_controller_binding",
+        lambda _args: ({"schema_version": "pass201-source-v2"}, {}),
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_spawn_process_role",
+        lambda *_args, **_kwargs: pytest.fail("preexisting output launched a child"),
+    )
+    with pytest.raises(FileExistsError):
+        MODULE.run_controller(args)
+    assert output.read_bytes() == b"foreign-result"
+    assert not list(tmp_path.glob(".pass201-process-*"))
+
+
+def test_controller_rejects_preexisting_owned_temp_before_child_launch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "smoke.json"
+    foreign_temp = tmp_path / f".{output.name}.tmp-foreign"
+    foreign_temp.write_bytes(b"foreign-temp")
+    source_manifest = tmp_path / "source.json"
+    source_manifest.write_bytes(b"{}\n")
+    args = SimpleNamespace(
+        output=output,
+        root=tmp_path,
+        source_manifest=source_manifest,
+        binding_only=False,
+        smoke_only=True,
+        scientific=False,
+        runtime_factory=None,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_validate_controller_binding",
+        lambda _args: ({"schema_version": "pass201-source-v2"}, {}),
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_spawn_process_role",
+        lambda *_args, **_kwargs: pytest.fail("preexisting temp launched a child"),
+    )
+    with pytest.raises(ValueError, match="temporary"):
+        MODULE.run_controller(args)
+    assert foreign_temp.read_bytes() == b"foreign-temp"
+    assert not output.exists()
+    assert not list(tmp_path.glob(".pass201-process-*"))
+
+
 def test_replay_controller_failure_emits_only_the_launched_process_prefix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

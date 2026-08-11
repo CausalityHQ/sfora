@@ -2859,6 +2859,22 @@ def _atomic_write_json(path: Path, payload: object, *, sort_keys: bool = True) -
     return data
 
 
+def _publish_json_no_replace(path: Path, payload: object, *, sort_keys: bool = True) -> bytes:
+    data = (
+        canonical_json_bytes(payload)
+        if sort_keys
+        else json.dumps(
+            payload,
+            sort_keys=False,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    ) + b"\n"
+    _publish_source_v5_candidate(path, data)
+    return data
+
+
 def _restore_atomic_file(path: Path, prior: bytes | None) -> None:
     if prior is None:
         try:
@@ -3867,6 +3883,14 @@ def run_controller(args: Any) -> None:
     mode = "scientific" if bool(getattr(args, "scientific", False)) else "smoke"
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    _require(
+        output_path.parent.is_dir() and not output_path.parent.is_symlink(),
+        "controller output parent must be a real directory",
+    )
+    if output_path.exists() or output_path.is_symlink():
+        raise FileExistsError(output_path)
+    if any(output_path.parent.glob(f".{output_path.name}.tmp-*")):
+        raise ValueError("controller output temporary path already exists")
     child_environment = dict(os.environ)
     child_environment.pop("PASS201_RUNTIME_FACTORY", None)
     child_environment.update(CPU_THREAD_ENVIRONMENT)
@@ -3924,7 +3948,7 @@ def run_controller(args: Any) -> None:
     except (RuntimeError, ValueError) as error:
         if processes:
             invalid = _reduced_replay_failure(source_manifest, constants, processes, error)
-            _atomic_write_json(
+            _publish_json_no_replace(
                 output_path,
                 invalid,
                 sort_keys=source_manifest["schema_version"] != "pass201-source-v2",
@@ -3954,7 +3978,7 @@ def run_controller(args: Any) -> None:
             tensor_max,
             scalar_max,
         )
-    _atomic_write_json(
+    _publish_json_no_replace(
         output_path,
         payload,
         sort_keys=source_manifest["schema_version"] != "pass201-source-v2",
