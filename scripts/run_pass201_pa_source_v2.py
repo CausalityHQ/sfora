@@ -372,6 +372,150 @@ def _canonical_package_bytes(
     )
 
 
+_IMPORTLIB_INVENTORY_CHILD = r"""
+import importlib.metadata
+import json
+import re
+import sys
+
+records = []
+for distribution in importlib.metadata.distributions():
+    name = distribution.metadata["Name"]
+    version = distribution.version
+    normalized_name = re.sub(r"[-_.]+", "-", name).lower()
+    records.append(
+        {"name": name, "normalized_name": normalized_name, "version": version}
+    )
+records.sort(
+    key=lambda record: tuple(
+        record[field].encode("utf-8")
+        for field in ("normalized_name", "name", "version")
+    )
+)
+payload = {
+    "schema_version": "pass201-importlib-environment-v1",
+    "python": {
+        "executable": sys.executable,
+        "prefix": sys.prefix,
+        "sys_path": sys.path,
+    },
+    "distributions": records,
+}
+sys.stdout.buffer.write(
+    json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    + b"\n"
+)
+""".strip()
+
+
+def _canonical_package_inventory(
+    interpreter: Path, checkout: Path, environment: Mapping[str, str]
+) -> tuple[bytes, int]:
+    raw = _run_checked(
+        (str(interpreter), "-B", "-c", _IMPORTLIB_INVENTORY_CHILD),
+        cwd=checkout,
+        environment=environment,
+    )
+    payload = load_strict_json_bytes(raw)
+    _require(canonical_json_bytes(payload) == raw, "package inventory is not canonical")
+    _require(
+        list(payload) == ["distributions", "python", "schema_version"],
+        "package inventory keys",
+    )
+    _require(
+        payload["schema_version"] == "pass201-importlib-environment-v1",
+        "package inventory schema",
+    )
+
+    python = payload["python"]
+    _require(type(python) is dict, "package inventory Python record")
+    _require(
+        list(python) == ["executable", "prefix", "sys_path"],
+        "package inventory Python keys",
+    )
+    for key in ("executable", "prefix"):
+        value = python[key]
+        _require(
+            type(value) is str
+            and bool(value)
+            and "\x00" not in value
+            and value.strip() == value,
+            f"package inventory Python {key}",
+        )
+    sys_path = python["sys_path"]
+    _require(type(sys_path) is list, "package inventory sys.path")
+    _require(
+        all(type(value) is str and "\x00" not in value for value in sys_path),
+        "package inventory sys.path entry",
+    )
+
+    distributions = payload["distributions"]
+    _require(type(distributions) is list and bool(distributions), "package inventory records")
+    normalized_names: list[str] = []
+    for record in distributions:
+        _require(type(record) is dict, "package inventory record")
+        _require(
+            list(record) == ["name", "normalized_name", "version"],
+            "package inventory record keys",
+        )
+        for key in ("name", "normalized_name", "version"):
+            value = record[key]
+            _require(
+                type(value) is str
+                and bool(value)
+                and "\x00" not in value
+                and value.strip() == value,
+                f"package inventory {key}",
+            )
+        expected_name = re.sub(r"[-_.]+", "-", record["name"]).lower()
+        _require(record["normalized_name"] == expected_name, "package name normalization")
+        normalized_names.append(record["normalized_name"])
+    _require(
+        len(normalized_names) == len(set(normalized_names)),
+        "duplicate normalized package name",
+    )
+    expected_records = sorted(
+        distributions,
+        key=lambda record: tuple(
+            record[field].encode("utf-8")
+            for field in ("normalized_name", "name", "version")
+        ),
+    )
+    _require(distributions == expected_records, "package inventory record order")
+    return raw, len(distributions)
+
+
+def _bind_python_package_evidence(
+    schema_version: str,
+    interpreter: Path,
+    checkout: Path,
+    environment: Mapping[str, str],
+) -> dict[str, object]:
+    if schema_version == "pass201-pa-source-v2-prelaunch-v1":
+        packages = _canonical_package_bytes(interpreter, checkout, environment)
+        return {
+            "bytes": len(packages),
+            "sha256": hashlib.sha256(packages).hexdigest(),
+        }
+    if schema_version == "pass201-pa-source-v3-prelaunch-v1":
+        packages, distribution_count = _canonical_package_inventory(
+            interpreter, checkout, environment
+        )
+        return {
+            "algorithm": "importlib-metadata-v1",
+            "bytes": len(packages),
+            "distribution_count": distribution_count,
+            "sha256": hashlib.sha256(packages).hexdigest(),
+        }
+    raise ValueError("unknown source package schema")
+
+
 def _python_version(interpreter: Path, checkout: Path, environment: Mapping[str, str]) -> str:
     raw = _run_checked(
         (
@@ -440,7 +584,12 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
     git_path = _git_path(environment)
     source_commit = _source_commit(checkout, git_path)
     python_payload, python_realpath = _bind_python_executable(args.python_path)
-    packages = _canonical_package_bytes(args.python_path.absolute(), checkout, environment)
+    package_evidence = _bind_python_package_evidence(
+        "pass201-pa-source-v2-prelaunch-v1",
+        args.python_path.absolute(),
+        checkout,
+        environment,
+    )
     source_tree = bind_merkle(checkout / "src" / "sfora")
     partition_path = args.dataset_root / "Eval" / "list_eval_partition.txt"
     partition = _external_file_payload(bind_external_file(partition_path))
@@ -471,10 +620,7 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
         "python_realpath": python_realpath,
         "python_version": _python_version(args.python_path.absolute(), checkout, environment),
         "git": _external_file_payload(bind_external_file(git_path)),
-        "python_packages": {
-            "bytes": len(packages),
-            "sha256": hashlib.sha256(packages).hexdigest(),
-        },
+        "python_packages": package_evidence,
         "python_import_roots": [
             _import_root_payload(value)
             for value in bind_import_roots(args.python_path.absolute(), environment, checkout)

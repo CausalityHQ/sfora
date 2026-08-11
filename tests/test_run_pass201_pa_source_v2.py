@@ -58,6 +58,211 @@ from sfora.image_end_to_end import (  # noqa: E402
 )
 
 
+def _importlib_inventory_payload() -> dict[str, object]:
+    return {
+        "distributions": [
+            {"name": "Alpha_Pkg", "normalized_name": "alpha-pkg", "version": "1.0"},
+            {"name": "beta.pkg", "normalized_name": "beta-pkg", "version": "2.0"},
+        ],
+        "python": {
+            "executable": "/registered/bin/python",
+            "prefix": "/registered",
+            "sys_path": ["", "/registered/src"],
+        },
+        "schema_version": "pass201-importlib-environment-v1",
+    }
+
+
+def _inventory_bytes(payload: object) -> bytes:
+    return (
+        json.dumps(
+            payload,
+            sort_keys=True,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        + b"\n"
+    )
+
+
+def test_importlib_inventory_uses_exact_interpreter_environment_and_is_repeatable(
+    tmp_path: Path,
+) -> None:
+    interpreter = Path(__file__).resolve().parents[1] / ".venv" / "bin" / "python"
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(tmp_path / "registered-src")
+    environment["PYTHONNOUSERSITE"] = "1"
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+
+    first, first_count = controller._canonical_package_inventory(
+        interpreter, tmp_path, environment
+    )
+    second, second_count = controller._canonical_package_inventory(
+        interpreter, tmp_path, environment
+    )
+
+    assert first == second
+    assert first_count == second_count > 0
+    payload = load_strict_json_bytes(first)
+    assert list(payload) == ["distributions", "python", "schema_version"]
+    probe = subprocess.run(
+        (
+            str(interpreter),
+            "-B",
+            "-c",
+            "import json,sys;print(json.dumps("
+            "{'executable':sys.executable,'prefix':sys.prefix,'sys_path':sys.path},"
+            "sort_keys=True,separators=(',',':')))",
+        ),
+        cwd=tmp_path,
+        env=environment,
+        check=True,
+        capture_output=True,
+    )
+    assert payload["python"] == json.loads(probe.stdout)
+
+
+def test_importlib_inventory_invokes_literal_nonisolated_child(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    observed: list[tuple[tuple[str, ...], Path, dict[str, str]]] = []
+    payload = _importlib_inventory_payload()
+    environment = {"PYTHONPATH": f"{tmp_path}/src", "TOKEN": "exact"}
+
+    def capture(
+        argv: object, *, cwd: Path, environment: object = None
+    ) -> bytes:
+        assert isinstance(argv, tuple)
+        assert isinstance(environment, dict)
+        observed.append((argv, cwd, environment))
+        return _inventory_bytes(payload)
+
+    monkeypatch.setattr(controller, "_run_checked", capture)
+    encoded, count = controller._canonical_package_inventory(
+        Path("/registered/bin/python"), tmp_path, environment
+    )
+
+    assert count == 2
+    assert encoded == _inventory_bytes(payload)
+    assert len(observed) == 1
+    argv, cwd, child_environment = observed[0]
+    assert argv[0:2] == ("/registered/bin/python", "-B")
+    assert argv[2] == "-c"
+    assert len(argv) == 4 and type(argv[3]) is str and bool(argv[3])
+    assert "-I" not in argv
+    assert cwd == tmp_path
+    assert child_environment == environment
+
+
+def test_package_evidence_dispatches_by_enclosing_source_schema(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    interpreter = Path("/registered/bin/python")
+    environment = {"PYTHONPATH": f"{tmp_path}/src"}
+    legacy = b"alpha==1\n"
+    inventory = _inventory_bytes(_importlib_inventory_payload())
+    calls: list[str] = []
+
+    def legacy_capture(*_args: object, **_kwargs: object) -> bytes:
+        calls.append("v2")
+        return legacy
+
+    def inventory_capture(*_args: object, **_kwargs: object) -> tuple[bytes, int]:
+        calls.append("v3")
+        return inventory, 2
+
+    monkeypatch.setattr(controller, "_canonical_package_bytes", legacy_capture)
+    monkeypatch.setattr(controller, "_canonical_package_inventory", inventory_capture)
+
+    assert controller._bind_python_package_evidence(
+        "pass201-pa-source-v2-prelaunch-v1", interpreter, tmp_path, environment
+    ) == {"bytes": len(legacy), "sha256": hashlib.sha256(legacy).hexdigest()}
+    assert controller._bind_python_package_evidence(
+        "pass201-pa-source-v3-prelaunch-v1", interpreter, tmp_path, environment
+    ) == {
+        "algorithm": "importlib-metadata-v1",
+        "distribution_count": 2,
+        "bytes": len(inventory),
+        "sha256": hashlib.sha256(inventory).hexdigest(),
+    }
+    assert calls == ["v2", "v3"]
+    with pytest.raises(ValueError, match="schema"):
+        controller._bind_python_package_evidence(
+            "pass201-pa-source-v4-prelaunch-v1", interpreter, tmp_path, environment
+        )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "non_utf8",
+        "malformed_json",
+        "top_keys",
+        "python_keys",
+        "record_keys",
+        "wrong_type",
+        "trimmed_name",
+        "nul_version",
+        "wrong_normalization",
+        "duplicate_normalized_name",
+        "unsorted_records",
+        "noncanonical_object_order",
+        "missing_lf",
+        "extra_bytes",
+    ),
+)
+def test_importlib_inventory_rejects_every_noncanonical_or_inconsistent_capture(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, mutation: str
+) -> None:
+    payload = _importlib_inventory_payload()
+    if mutation == "non_utf8":
+        encoded = b"\xff\n"
+    elif mutation == "malformed_json":
+        encoded = b"{\n"
+    else:
+        changed = copy.deepcopy(payload)
+        distributions = changed["distributions"]
+        python = changed["python"]
+        assert isinstance(distributions, list) and isinstance(python, dict)
+        if mutation == "top_keys":
+            changed["extra"] = None
+        elif mutation == "python_keys":
+            python["extra"] = None
+        elif mutation == "record_keys":
+            distributions[0]["extra"] = None
+        elif mutation == "wrong_type":
+            distributions[0]["version"] = 1
+        elif mutation == "trimmed_name":
+            distributions[0]["name"] = " Alpha_Pkg"
+        elif mutation == "nul_version":
+            distributions[0]["version"] = "1\x00.0"
+        elif mutation == "wrong_normalization":
+            distributions[0]["normalized_name"] = "alpha_pkg"
+        elif mutation == "duplicate_normalized_name":
+            distributions[1]["normalized_name"] = "alpha-pkg"
+        elif mutation == "unsorted_records":
+            distributions.reverse()
+        if mutation == "noncanonical_object_order":
+            reversed_top = dict(reversed(list(changed.items())))
+            encoded = (
+                json.dumps(reversed_top, ensure_ascii=False, separators=(",", ":")).encode()
+                + b"\n"
+            )
+        else:
+            encoded = _inventory_bytes(changed)
+        if mutation == "missing_lf":
+            encoded = encoded[:-1]
+        elif mutation == "extra_bytes":
+            encoded += b"\n"
+
+    monkeypatch.setattr(controller, "_run_checked", lambda *_args, **_kwargs: encoded)
+    with pytest.raises(ValueError):
+        controller._canonical_package_inventory(
+            Path("/registered/bin/python"), tmp_path, {"PYTHONPATH": f"{tmp_path}/src"}
+        )
+
+
 @pytest.fixture
 def tiny_inshop(tmp_path: Path) -> Path:
     root = tmp_path / "inshop"

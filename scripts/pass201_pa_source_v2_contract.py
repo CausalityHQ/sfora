@@ -376,6 +376,36 @@ def _hash(value: object, where: str, length: int = 64) -> str:
     return result
 
 
+def _validate_python_package_evidence(
+    value: object, schema_version: str, where: str
+) -> dict[str, Any]:
+    if schema_version in (
+        "pass201-pa-source-v2-prelaunch-v1",
+        "pass201-pa-source-v2-receipt-v1",
+    ):
+        expected_order = ["bytes", "sha256"]
+        obj = _keys(value, set(expected_order), where)
+        if list(obj) != expected_order:
+            raise ValueError(f"{where}: key order")
+        _int(obj["bytes"], f"{where}.bytes")
+        _hash(obj["sha256"], f"{where}.sha256")
+        return obj
+    if schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v3-receipt-v1",
+    ):
+        expected_order = ["algorithm", "bytes", "distribution_count", "sha256"]
+        obj = _keys(value, set(expected_order), where)
+        if list(obj) != expected_order:
+            raise ValueError(f"{where}: key order")
+        _literal(obj["algorithm"], "importlib-metadata-v1", f"{where}.algorithm")
+        _int(obj["bytes"], f"{where}.bytes", minimum=1)
+        _int(obj["distribution_count"], f"{where}.distribution_count", minimum=1)
+        _hash(obj["sha256"], f"{where}.sha256")
+        return obj
+    raise ValueError(f"{where}: unknown enclosing schema")
+
+
 def _repo_path(value: object, where: str) -> str:
     result = _str(value, where)
     path = PurePosixPath(result)
@@ -606,9 +636,9 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _abs_path(execution["python_realpath"], "execution.python_realpath")
     _str(execution["python_version"], "execution.python_version")
     _external(execution["git"], "execution.git")
-    packages = _keys(execution["python_packages"], {"bytes", "sha256"}, "execution.python_packages")
-    _int(packages["bytes"], "execution.python_packages.bytes")
-    _hash(packages["sha256"], "execution.python_packages.sha256")
+    _validate_python_package_evidence(
+        execution["python_packages"], top["schema_version"], "execution.python_packages"
+    )
     for i, item in enumerate(
         _list(execution["python_import_roots"], "execution.python_import_roots")
     ):
@@ -2486,11 +2516,9 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
     )
     _file(controller["file"], "receipt.controller.file")
     _external(controller["python"], "receipt.controller.python")
-    packages = _keys(
-        controller["python_packages"], {"bytes", "sha256"}, "receipt.controller.python_packages"
+    _validate_python_package_evidence(
+        controller["python_packages"], top["schema_version"], "receipt.controller.python_packages"
     )
-    _int(packages["bytes"], "receipt.controller.python_packages.bytes")
-    _hash(packages["sha256"], "receipt.controller.python_packages.sha256")
     _merkle(controller["source_tree"], "receipt.controller.source_tree")
     command = _keys(top["command"], {"cwd", "environment", "argv"}, "receipt.command")
     _abs_path(command["cwd"], "receipt.command.cwd")

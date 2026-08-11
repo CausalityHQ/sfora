@@ -313,6 +313,82 @@ def test_schema_accepts_complete_prelaunch(valid_prelaunch: dict[str, Any]) -> N
     assert authority.payload["status"] == "frozen"
 
 
+def test_package_evidence_is_version_selected_and_historical_v2_remains_valid(
+    valid_prelaunch: dict[str, Any],
+) -> None:
+    legacy = {"bytes": 1, "sha256": H64}
+    current = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": H64,
+    }
+    assert contract._validate_python_package_evidence(
+        legacy, "pass201-pa-source-v2-prelaunch-v1", "packages"
+    ) == legacy
+    assert contract._validate_python_package_evidence(
+        current, "pass201-pa-source-v3-prelaunch-v1", "packages"
+    ) == current
+    assert validate_prelaunch(valid_prelaunch).payload["execution"]["python_packages"] == legacy
+    with pytest.raises(ValueError):
+        contract._validate_python_package_evidence(
+            current, "pass201-pa-source-v2-prelaunch-v1", "packages"
+        )
+    with pytest.raises(ValueError):
+        contract._validate_python_package_evidence(
+            legacy, "pass201-pa-source-v3-prelaunch-v1", "packages"
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("algorithm", "pip-freeze-v1"),
+        ("distribution_count", True),
+        ("distribution_count", 0),
+        ("bytes", True),
+        ("bytes", 0),
+        ("sha256", "A" * 64),
+    ),
+)
+def test_source_v3_package_evidence_rejects_fixed_value_type_and_range_drift(
+    field: str, replacement: object
+) -> None:
+    evidence: dict[str, object] = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": H64,
+    }
+    evidence[field] = replacement
+    with pytest.raises(ValueError):
+        contract._validate_python_package_evidence(
+            evidence, "pass201-pa-source-v3-prelaunch-v1", "packages"
+        )
+
+
+@pytest.mark.parametrize("operation", ("missing", "extra", "reordered"))
+def test_source_v3_package_evidence_rejects_recursive_key_drift(
+    operation: str,
+) -> None:
+    evidence: dict[str, object] = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": H64,
+    }
+    if operation == "missing":
+        del evidence["bytes"]
+    elif operation == "extra":
+        evidence["extra"] = None
+    else:
+        evidence = dict(reversed(list(evidence.items())))
+    with pytest.raises(ValueError):
+        contract._validate_python_package_evidence(
+            evidence, "pass201-pa-source-v3-prelaunch-v1", "packages"
+        )
+
+
 def test_schema_payload_is_recursively_immutable(valid_prelaunch: dict[str, Any]) -> None:
     authority = validate_prelaunch(valid_prelaunch)
     with pytest.raises(TypeError):
