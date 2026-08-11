@@ -215,6 +215,13 @@ class RdgcPostImportInvalid(RuntimeError):
         self.clause = clause
 
 
+def validate_rdgc_python_version(version_info: tuple[int, int, int]) -> None:
+    if type(version_info) is not tuple or any(type(value) is not int for value in version_info):
+        raise TypeError("Python version info must be an exact integer tuple")
+    if version_info != RDGC_PYTHON_VERSION_INFO:
+        raise ValueError(f"scientific process requires Python {RDGC_PYTHON_VERSION}")
+
+
 def _require_fp32_finite(torch_module: Any, value: Any, *, nonzero: bool = False) -> None:
     if value.dtype != torch_module.float32:
         raise TypeError("tensor must be FP32")
@@ -1828,10 +1835,12 @@ def attach_observed_torch_runtime(
         raise ValueError("invalid pre-import environment")
     runtime = {
         "torch_version": str(torch_module.__version__),
-        "cuda_runtime_version": torch_module.version.cuda,
+        "cuda_runtime_version": str(torch_module.version.cuda),
         "cudnn_version": torch_module.backends.cudnn.version(),
         "device_index": torch_module.cuda.current_device(),
-        "device_name": torch_module.cuda.get_device_name(torch_module.cuda.current_device()),
+        "device_name": str(
+            torch_module.cuda.get_device_name(torch_module.cuda.current_device())
+        ),
         "device_capability": list(
             torch_module.cuda.get_device_capability(torch_module.cuda.current_device())
         ),
@@ -4643,12 +4652,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     expected_python = (repository / ".venv/bin/python").resolve(strict=True)
     if Path(sys.executable).resolve() != expected_python:
         parser.error("scientific process must use the registered .venv interpreter")
-    if (
-        sys.version_info.major,
-        sys.version_info.minor,
-        sys.version_info.micro,
-    ) != RDGC_PYTHON_VERSION_INFO:
-        parser.error(f"scientific process requires Python {RDGC_PYTHON_VERSION}")
+    try:
+        validate_rdgc_python_version(
+            (
+                sys.version_info.major,
+                sys.version_info.minor,
+                sys.version_info.micro,
+            )
+        )
+    except (TypeError, ValueError) as exc:
+        parser.error(str(exc))
     if os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
         parser.error("CUDA_VISIBLE_DEVICES must equal 0")
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":

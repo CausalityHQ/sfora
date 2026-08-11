@@ -814,7 +814,10 @@ def test_pre_import_environment_is_exact_non_torch_union() -> None:
     assert tuple(value) == ("phase", "pre_import", "torch_runtime")
 
 
-def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> None:
+def test_version_fields_remain_observational_builtin_strings() -> None:
+    class VersionText(str):
+        pass
+
     fields = {
         "python_executable": ".venv/bin/python",
         "python_version": "3.13.9",
@@ -828,8 +831,8 @@ def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> Non
     }
     pre = _MODULE.build_pre_import_environment(fields)
     fake = types.SimpleNamespace(
-        __version__="2.5.1",
-        version=types.SimpleNamespace(cuda="12.4"),
+        __version__=VersionText("2.5.1"),
+        version=types.SimpleNamespace(cuda=VersionText("12.4")),
         backends=types.SimpleNamespace(
             cudnn=types.SimpleNamespace(version=lambda: 90100, allow_tf32=False),
             cuda=types.SimpleNamespace(matmul=types.SimpleNamespace(allow_tf32=False)),
@@ -837,7 +840,7 @@ def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> Non
         are_deterministic_algorithms_enabled=lambda: True,
         cuda=types.SimpleNamespace(
             current_device=lambda: 0,
-            get_device_name=lambda _index: "synthetic",
+            get_device_name=lambda _index: VersionText("synthetic"),
             get_device_capability=lambda _index: (9, 0),
         ),
     )
@@ -847,6 +850,10 @@ def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> Non
     assert value["pre_import"]["numpy_version"] == "2.5.0"
     assert type(value["torch_runtime"]["torch_version"]) is str
     assert value["torch_runtime"]["torch_version"] == "2.5.1"
+    assert type(value["torch_runtime"]["cuda_runtime_version"]) is str
+    assert value["torch_runtime"]["cuda_runtime_version"] == "12.4"
+    assert type(value["torch_runtime"]["device_name"]) is str
+    assert value["torch_runtime"]["device_name"] == "synthetic"
     assert value["torch_runtime"]["device_capability"] == [9, 0]
 
 
@@ -1867,32 +1874,12 @@ def test_cli_requires_isolated_and_dont_write_bytecode_flags() -> None:
     assert "isolated" in completed.stderr
 
 
-def test_dgx_python_runtime_rejects_local_cpu_interpreter_before_authority() -> None:
-    head = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-I",
-            "-B",
-            str(_SCRIPT),
-            "--manifest",
-            "docs/pass205_rdgc_stage_b_manifest.json",
-            "--output",
-            f"reports/generated/pass205_rdgc_stage_b/{head}-rdgc-stage-b.json",
-            "--scientific-once",
-        ],
-        cwd=_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    assert completed.returncode == 2
-    assert "scientific process requires Python 3.13.9" in completed.stderr
+def test_dgx_python_runtime_rejects_local_cpu_version_without_launching() -> None:
+    _MODULE.validate_rdgc_python_version((3, 13, 9))
+    with pytest.raises(ValueError, match="scientific process requires Python 3.13.9"):
+        _MODULE.validate_rdgc_python_version((3, 12, 3))
+    with pytest.raises(TypeError, match="exact integer tuple"):
+        _MODULE.validate_rdgc_python_version((3, 13, True))
 
 
 def test_runtime_version_consistency_uses_one_exact_contract() -> None:
@@ -1902,6 +1889,14 @@ def test_runtime_version_consistency_uses_one_exact_contract() -> None:
         ".".join(str(component) for component in _MODULE.RDGC_PYTHON_VERSION_INFO)
         == _MODULE.RDGC_PYTHON_VERSION
     )
+    source = _SCRIPT.read_text()
+    main_source = source[source.index("def main(") :]
+    validator_source = source[
+        source.index("def _validate_result_nested(") : source.index("def main(")
+    ]
+    assert "validate_rdgc_python_version(" in main_source
+    assert 'pre_import["python_version"] != RDGC_PYTHON_VERSION' in validator_source
+    assert 'pre_import["python_version"] != "3.13.9"' not in validator_source
 
 
 def test_execution_command_is_exact_nine_token_isolated_one_shot() -> None:
@@ -2732,6 +2727,40 @@ def _synthetic_full_payload(
         }
     )
     return payload
+
+
+def test_persisted_full_and_reduced_python_runtime_mutations_are_rejected() -> None:
+    action = {
+        "motion_sha256": "a" * 64,
+        "motion_norm": 1.0,
+        "margin_alignment": 0.25,
+        "margin_slope": 0.5,
+    }
+    records = {
+        context: {name: dict(action) for name in _MODULE.OPERATOR_ORDER}
+        for context in ("A", "B")
+    }
+    payloads = (_reduced_pre_import_invalid(), _synthetic_full_payload(records))
+    for payload in payloads:
+        persisted = json.loads(json.dumps(payload, allow_nan=False))
+        _MODULE.validate_scientific_payload(persisted)
+        for invalid in ("3.12.3", 3139, ""):
+            mutant = deepcopy(persisted)
+            mutant["environment"]["pre_import"]["python_version"] = invalid
+            with pytest.raises((TypeError, ValueError)):
+                _MODULE.validate_scientific_payload(
+                    json.loads(json.dumps(mutant, allow_nan=False))
+                )
+
+        class VersionText(str):
+            pass
+
+        subclass_mutant = deepcopy(persisted)
+        subclass_mutant["environment"]["pre_import"]["python_version"] = VersionText(
+            "3.13.9"
+        )
+        with pytest.raises((TypeError, ValueError)):
+            _MODULE.validate_scientific_payload(subclass_mutant)
 
 
 def test_panel_close_predicates_record_context_b_pa_failure_even_when_it_is_not_primary() -> None:
