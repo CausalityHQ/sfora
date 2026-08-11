@@ -17,7 +17,7 @@ import numpy as np
 
 from sfora.amortized_local_scale import (
     RetrievalComparison,
-    compare_potential,
+    compare_potentials,
     decide_alsp,
     density_diagnostics,
     fit_ridge_potential,
@@ -32,6 +32,8 @@ K = 50
 FIT_FRACTION = 0.8
 RIDGE_GRID = (1e-6, 1e-4, 1e-2, 1.0, 100.0)
 PERMUTATION_SEED = 20260811
+RANDOM_DIRECTION_SEED = 20260812
+RANDOM_DIRECTION_COUNT = 20
 ARM_NAMES = ("raw", "alsp", "constant", "permuted", "oracle")
 COMPARISON_KEYS = (
     "raw_recall",
@@ -175,32 +177,20 @@ def build_alsp_report(
     fit_labels, validation_labels = split_labels(train.labels, FIT_FRACTION)
     fit_mask = np.isin(train.labels, fit_labels)
     validation_mask = np.isin(train.labels, validation_labels)
-    fit_targets = nonself_density(
-        train.embeddings[fit_mask],
-        train.example_ids[fit_mask],
-        k=K,
-        block_size=block_size,
-    )
-    validation_targets = nonself_density(
-        train.embeddings[validation_mask],
-        train.example_ids[validation_mask],
-        k=K,
-        block_size=block_size,
-    )
-    selected_model, grid_rows = select_ridge_lambda(
-        train.embeddings[fit_mask],
-        fit_targets,
-        train.embeddings[validation_mask],
-        validation_targets,
-        RIDGE_GRID,
-    )
-
     all_train_targets = nonself_density(
         train.embeddings,
         train.example_ids,
         k=K,
         block_size=block_size,
     )
+    selected_model, grid_rows = select_ridge_lambda(
+        train.embeddings[fit_mask],
+        all_train_targets[fit_mask],
+        train.embeddings[validation_mask],
+        all_train_targets[validation_mask],
+        RIDGE_GRID,
+    )
+
     model = fit_ridge_potential(
         train.embeddings, all_train_targets, selected_model.ridge_lambda
     )
@@ -229,32 +219,54 @@ def build_alsp_report(
     )
     diagnostics = density_diagnostics(predicted_potential, true_gallery_density)
     zero_potential = np.zeros(gallery.labels.size, dtype=np.float64)
+    random_generator = np.random.Generator(np.random.PCG64(RANDOM_DIRECTION_SEED))
+    predicted_mean = float(np.mean(predicted_potential, dtype=np.float64))
+    predicted_std = float(np.std(predicted_potential, dtype=np.float64))
+    random_potentials: dict[str, np.ndarray] = {}
+    for index in range(RANDOM_DIRECTION_COUNT):
+        direction = random_generator.normal(size=gallery.embeddings.shape[1])
+        direction /= np.linalg.norm(direction)
+        projection = gallery.embeddings.astype(np.float64) @ direction
+        projection_mean = float(np.mean(projection, dtype=np.float64))
+        projection_std = float(np.std(projection, dtype=np.float64))
+        if projection_std == 0.0 or predicted_std == 0.0:
+            scaled = np.full(gallery.labels.size, predicted_mean, dtype=np.float64)
+        else:
+            scaled = predicted_mean + predicted_std * (
+                (projection - projection_mean) / projection_std
+            )
+        random_potentials[f"random_{index:02d}"] = np.asarray(scaled, dtype=np.float64)
     potentials = {
         "raw": zero_potential,
         "alsp": predicted_potential,
         "constant": constant_potential,
         "permuted": permuted_potential,
         "oracle": true_gallery_density,
+        **random_potentials,
     }
-    arms = {
-        name: _comparison_dict(
-            compare_potential(
-                query.embeddings,
-                query.labels,
-                gallery.embeddings,
-                gallery.labels,
-                potential,
-                block_size,
-            )
-        )
-        for name, potential in potentials.items()
-    }
+    comparisons = compare_potentials(
+        query.embeddings,
+        query.labels,
+        gallery.embeddings,
+        gallery.labels,
+        potentials,
+        block_size,
+    )
+    arms = {name: _comparison_dict(comparisons[name]) for name in ARM_NAMES}
+    random_gains = [
+        comparisons[f"random_{index:02d}"].gain
+        for index in range(RANDOM_DIRECTION_COUNT)
+    ]
+    random_null_p95 = float(
+        np.quantile(np.asarray(random_gains, dtype=np.float64), 0.95, method="linear")
+    )
     passed, predicates = decide_alsp(
         correlation=diagnostics["pearson"],
         alsp_gain=float(arms["alsp"]["gain"]),
         oracle_gain=float(arms["oracle"]["gain"]),
         alsp_p_value=float(arms["alsp"]["p_value"]),
         permuted_gain=float(arms["permuted"]["gain"]),
+        random_null_p95=random_null_p95,
     )
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -273,6 +285,8 @@ def build_alsp_report(
             "fit_fraction": FIT_FRACTION,
             "ridge_grid": list(RIDGE_GRID),
             "permutation_seed": PERMUTATION_SEED,
+            "random_direction_seed": RANDOM_DIRECTION_SEED,
+            "random_direction_count": RANDOM_DIRECTION_COUNT,
         },
         "split": {
             "fit_label_count": int(fit_labels.size),
@@ -294,7 +308,14 @@ def build_alsp_report(
             "weights_sha256": float64_sha256(model.weights),
             "intercept": model.intercept,
         },
-        "test": {"density_diagnostics": diagnostics, "arms": arms},
+        "test": {
+            "density_diagnostics": diagnostics,
+            "arms": arms,
+            "random_direction_null": {
+                "gains": random_gains,
+                "linear_p95": random_null_p95,
+            },
+        },
         "decision": {"predicates": predicates, "passes_falsifier": passed},
     }
     return validate_alsp_report(report)
@@ -346,7 +367,15 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         raise ValueError("inputs.checkpoint_sha256 differs")
     configuration = _require_keys(
         report["configuration"],
-        ("k", "block_size", "fit_fraction", "ridge_grid", "permutation_seed"),
+        (
+            "k",
+            "block_size",
+            "fit_fraction",
+            "ridge_grid",
+            "permutation_seed",
+            "random_direction_seed",
+            "random_direction_count",
+        ),
         "configuration",
     )
     if configuration["k"] != K or type(configuration["block_size"]) is not int:
@@ -355,6 +384,8 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         configuration["fit_fraction"] != FIT_FRACTION
         or configuration["ridge_grid"] != list(RIDGE_GRID)
         or configuration["permutation_seed"] != PERMUTATION_SEED
+        or configuration["random_direction_seed"] != RANDOM_DIRECTION_SEED
+        or configuration["random_direction_count"] != RANDOM_DIRECTION_COUNT
     ):
         raise ValueError("configuration differs")
     split = _require_keys(
@@ -420,7 +451,11 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
     if fit["weights_sha256"] != float64_sha256(weights):
         raise ValueError("fit.weights_sha256 differs")
     _require_float(fit["intercept"], "fit.intercept")
-    test = _require_keys(report["test"], ("density_diagnostics", "arms"), "test")
+    test = _require_keys(
+        report["test"],
+        ("density_diagnostics", "arms", "random_direction_null"),
+        "test",
+    )
     diagnostics = _require_keys(
         test["density_diagnostics"], ("pearson", "spearman", "mse"), "test.diagnostics"
     )
@@ -440,6 +475,20 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
             raise ValueError(f"test.arms.{arm_name}.gain differs")
     if arms["constant"] != arms["raw"]:
         raise ValueError("constant arm is not a ranking identity")
+    random_null = _require_keys(
+        test["random_direction_null"], ("gains", "linear_p95"), "test.random_null"
+    )
+    if type(random_null["gains"]) is not list or len(
+        random_null["gains"]
+    ) != RANDOM_DIRECTION_COUNT:
+        raise ValueError("test.random_null.gains differs")
+    random_gains = np.asarray(
+        [_require_float(item, "test.random_null.gains") for item in random_null["gains"]],
+        dtype=np.float64,
+    )
+    expected_random_p95 = float(np.quantile(random_gains, 0.95, method="linear"))
+    if random_null["linear_p95"] != expected_random_p95:
+        raise ValueError("test.random_null.linear_p95 differs")
     decision = _require_keys(
         report["decision"], ("predicates", "passes_falsifier"), "decision"
     )
@@ -449,6 +498,7 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         oracle_gain=arms["oracle"]["gain"],
         alsp_p_value=arms["alsp"]["p_value"],
         permuted_gain=arms["permuted"]["gain"],
+        random_null_p95=expected_random_p95,
     )
     if decision["predicates"] != expected_predicates:
         raise ValueError("decision predicates differ")

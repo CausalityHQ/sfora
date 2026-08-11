@@ -16,7 +16,11 @@ reading the test gallery graph. The query-side potential is omitted because it
 is constant for all candidates of one query and cannot change ranking.
 
 The working name is **Amortized Local-Scale Potential (ALSP)**. This is a
-candidate, not a novelty or SOTA claim.
+mechanism probe and item-bias baseline, not the final novelty or a SOTA claim.
+An independent cross-field review identified the stronger learning candidate as
+an equipotential constraint that reduces cross-sample variance of local
+potential; ALSP first tests whether such a potential is representable from the
+embedding at all.
 
 ## Evidence that motivates the candidate
 
@@ -93,9 +97,9 @@ digests must be persisted in the result.
 1. Sort distinct train labels by `SHA256(int64_label_bytes), label`.
 2. Assign the first 80% of labels to fit and the remainder to validation. A
    label may not occur in both partitions.
-3. Compute `mu_50` for every train row against all other rows in its own
-   partition, excluding self with an explicit row identity rather than relying
-   on a diagonal position after blocking.
+3. Compute `mu_50` once for every train row against the complete train pool,
+   excluding self with an explicit row identity. The label split controls model
+   fitting and validation; it must not redefine two different density pools.
 4. Standardize target values using fit-partition statistics only for numerical
    fitting, then invert that transform so every predicted potential is in the
    original cosine-similarity units.
@@ -120,6 +124,8 @@ Evaluate exactly once on the compatible seed-0 query/gallery pair:
 - ALSP prediction;
 - constant-potential identity control;
 - a predictor fit to one fixed PCG64 permutation of train targets;
+- 20 fixed-PCG64 random-direction unary potentials, each centered and scaled to
+  the ALSP prediction's gallery mean and standard deviation;
 - the true test-gallery `mu_50` transductive oracle, reported only as an upper
   bound after the ALSP prediction and configuration are frozen.
 
@@ -141,6 +147,8 @@ ALSP passes only if all conditions hold:
 - `G_alsp >= 0.30 * G_oracle`;
 - exact paired McNemar `p < 0.05`;
 - the permuted-target gain is strictly less than `G_alsp - 0.00025`.
+- `G_alsp` is strictly greater than the linear empirical 95th percentile of the
+  20 random-direction gains.
 
 Otherwise the unary predictability hypothesis is killed. There is no nonlinear
 rescue on the same test pair. A failure may motivate the separately specified
@@ -162,19 +170,30 @@ context-feature ANC approach, but that would require a new prospective design.
 
 ## Follow-up only if the falsifier passes
 
-Add one scalar potential head to the Proxy Anchor embedding model. Train it
-against a stop-gradient memory-bank `mu_50` teacher alongside the unchanged
-Proxy Anchor objective. Compare three matched arms across at least three seeds:
+The preferred learning continuation is an equipotential constraint, not a claim
+that an item-bias head is itself novel. Add
+
+\[
+  L_{eq}=\operatorname{Var}_{i\in B}\left[
+    \tau\log\frac{1}{|B|-1}\sum_{j\ne i}
+    \exp(\langle z_i,z_j\rangle/\tau)
+  \right],\qquad \tau=0.1,
+\]
+
+to the unchanged Proxy Anchor objective. Compare matched `mu in {0, 1e-2,
+1e-1, 1}` arms across at least three seeds. ALSP remains a diagnostic baseline
+and optional auxiliary head, not the principal contribution.
 
 1. Proxy Anchor baseline;
-2. baseline plus an equal-parameter arbitrary scalar auxiliary head;
-3. baseline plus ALSP distillation and raw ALSP inference.
+2. baseline plus equipotential variance at each fixed dose;
+3. an equal-compute generic regularization control.
 
 The first GPU gate is not a SOTA claim. It passes only if mean raw Recall@1
 improves, the paired/seed uncertainty excludes zero, and the post-hoc
-transductive oracle gain shrinks, which is the causal signature that the model
-internalized the correction. A stronger reproducible checkpoint such as
-Hyp-ViT is a later transfer benchmark, not the first expensive run.
+transductive oracle gain shrinks monotonically with dose. That dose-response is
+the causal signature that the model internalized the defect rather than merely
+benefiting from another regularizer. Backbone-matched Proxy Anchor/HIST are the
+fair first comparison; larger-pretraining ViT systems are reported separately.
 
 ## Prior-art boundary
 
@@ -190,8 +209,9 @@ ALSP is adjacent to, and must be compared against:
 - probabilistic embeddings, which predict uncertainty distributions rather
   than this specific local-scale potential.
 
-The defensible claim, if all gates pass, is narrow: **a train-only scalar head
-can amortize a gallery-local scaling correction to unseen-class retrieval and
-improve raw nearest-neighbour ranking without observing the test gallery
-graph**. Broader claims of novel calibration, density awareness, or SOTA are
-not authorized by this design.
+The defensible ALSP claim, if all gates pass, is narrow: **a train-only scalar
+head can amortize a gallery-local scaling correction to unseen-class retrieval
+and improve raw nearest-neighbour ranking without observing the test gallery
+graph**. This algebraically resembles an item-bias term in matrix factorization,
+so it is evidence for representability and a baseline—not the novelty claim.
+Broader claims require the separately gated equipotential training result.

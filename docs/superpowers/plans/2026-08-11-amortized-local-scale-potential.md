@@ -16,7 +16,7 @@
 - Split distinct labels 80/20 by `SHA256(int64_label_bytes), label`; labels cannot cross partitions.
 - No test input may influence model selection, ridge lambda, scale, clipping, or transformation.
 - The official published checkpoint is not evaluated because no coordinate-compatible training archive exists.
-- Passing requires all five predicates from design commit `5062fb4`; there is no nonlinear rescue after outcome observation.
+- Passing requires all six predicates in the reviewed design; there is no nonlinear rescue after outcome observation.
 - Result publication must reject an existing destination and leave no owned temporary file after failure.
 
 ---
@@ -164,7 +164,7 @@ Generate a deterministic class-disjoint train archive and query/gallery archives
 
 - [ ] **Step 4: Implement the train-only pipeline**
 
-Compute fit/validation targets separately, select lambda, recompute all-train targets, refit, predict test-gallery potential, freeze it, then compute the true test density for diagnostics/oracle. Fit the permutation control from the same all-train design using `np.random.Generator(np.random.PCG64(20260811))`.
+Compute all-train targets once, split their rows by held-out labels, select lambda, refit, predict the test-gallery potential, and freeze it before computing true test density. Fit the permutation control from the same all-train design and generate 20 fixed-PCG64 random unit directions, each centered/scaled to the ALSP gallery prediction. Share each query-gallery matrix product across every arm.
 
 - [ ] **Step 5: Write atomic-publication RED tests**
 
@@ -207,7 +207,7 @@ Run the two pytest files, Ruff, py_compile, and `git diff --check`. Run the repo
 - [ ] **Step 3: Execute once on frozen inputs**
 
 ```bash
-CUDA_VISIBLE_DEVICES='' /home/rb/worktrees/sfora-emafactorial/.venv/bin/python -I -B \
+CUDA_VISIBLE_DEVICES='' PYTHONPATH=src /home/rb/worktrees/sfora-emafactorial/.venv/bin/python -B \
   scripts/evaluate_inshop_alsp.py \
   --train /home/rb/reranking-inputs-2026-08-11/inshop_corrected_pa_seed0_train_final.npz \
   --query /home/rb/reranking-inputs-2026-08-11/inshop_corrected_pa_seed0_query_final.npz \
@@ -239,4 +239,4 @@ If any decision predicate is false, do not add a nonlinear predictor and do not 
 
 - [ ] **Step 2: Write a separate GPU design on PASS**
 
-If all predicates pass, write and review a new design for a scalar ALSP head trained against a stop-gradient memory-bank teacher. Freeze baseline/equal-parameter-control/ALSP arms, at least three seeds, deterministic CPU evaluation, uncertainty, and the causal `posthoc oracle gain shrinks` predicate before any GPU process starts.
+If all predicates pass, write and review a new equipotential-training design. Freeze `tau=0.1`, `mu in {0, 1e-2, 1e-1, 1}`, at least three seeds, a generic regularization control, deterministic CPU evaluation, uncertainty, and the causal monotone `posthoc oracle gain shrinks with dose` predicate before any GPU process starts.

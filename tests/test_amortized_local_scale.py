@@ -5,6 +5,7 @@ import pytest
 
 from sfora.amortized_local_scale import (
     compare_potential,
+    compare_potentials,
     decide_alsp,
     density_diagnostics,
     fit_ridge_potential,
@@ -95,6 +96,29 @@ def test_compare_potential_reports_stable_ranking_and_paired_counts() -> None:
     assert result.p_value == pytest.approx(1.0)
 
 
+def test_compare_potentials_matches_literal_arm_results() -> None:
+    gallery = _unit([[1, 0], [0.8, 0.6], [0, 1]])
+    queries = _unit([[1, 0], [1, 0], [0, 1]])
+    gallery_labels = np.asarray([1, 0, 2], dtype=np.int64)
+    query_labels = np.asarray([1, 0, 2], dtype=np.int64)
+    results = compare_potentials(
+        queries,
+        query_labels,
+        gallery,
+        gallery_labels,
+        {
+            "raw": np.zeros(3, dtype=np.float64),
+            "shifted": np.asarray([0.5, 0.0, 0.0], dtype=np.float64),
+        },
+        block_size=2,
+    )
+    assert list(results) == ["raw", "shifted"]
+    assert results["raw"].wrong_to_right == 0
+    assert results["raw"].right_to_wrong == 0
+    assert results["shifted"].wrong_to_right == 1
+    assert results["shifted"].right_to_wrong == 1
+
+
 def test_density_diagnostics_uses_average_tied_ranks() -> None:
     predicted = np.asarray([1.0, 2.0, 2.0, 4.0], dtype=np.float64)
     observed = np.asarray([4.0, 1.0, 1.0, 0.0], dtype=np.float64)
@@ -116,6 +140,7 @@ def test_density_diagnostics_uses_average_tied_ranks() -> None:
         ("oracle_gain", 0.003334),
         ("alsp_p_value", 0.05),
         ("permuted_gain", 0.00075),
+        ("random_null_p95", 0.001),
     ],
 )
 def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> None:
@@ -125,6 +150,7 @@ def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> N
         "oracle_gain": 0.0033333333333333335,
         "alsp_p_value": 0.049,
         "permuted_gain": 0.000749,
+        "random_null_p95": 0.0008,
     }
     arguments[field] = value
     passed, predicates = decide_alsp(**arguments)
@@ -136,6 +162,7 @@ def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> N
             "oracle_gain": "oracle_recovery",
             "alsp_p_value": "paired_significance",
             "permuted_gain": "permuted_control",
+            "random_null_p95": "random_direction_null",
         }[field]
     ]
 
@@ -147,6 +174,7 @@ def test_decide_alsp_accepts_exact_inclusive_gain_boundaries() -> None:
         oracle_gain=0.0033333333333333335,
         alsp_p_value=0.049,
         permuted_gain=0.000749,
+        random_null_p95=0.0008,
     )
     assert passed
     assert list(predicates) == [
@@ -155,4 +183,5 @@ def test_decide_alsp_accepts_exact_inclusive_gain_boundaries() -> None:
         "oracle_recovery",
         "paired_significance",
         "permuted_control",
+        "random_direction_null",
     ]

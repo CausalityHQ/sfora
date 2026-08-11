@@ -9,8 +9,6 @@ from fractions import Fraction
 
 import numpy as np
 
-from sfora.gallery_hubness import corrected_cosine_top1
-
 
 @dataclass(frozen=True)
 class RidgePotential:
@@ -179,6 +177,26 @@ def compare_potential(
 ) -> RetrievalComparison:
     """Compare raw cosine with ``2*cosine - potential`` using paired queries."""
 
+    return compare_potentials(
+        queries,
+        query_labels,
+        gallery,
+        gallery_labels,
+        {"potential": potential},
+        block_size,
+    )["potential"]
+
+
+def compare_potentials(
+    queries: np.ndarray,
+    query_labels: np.ndarray,
+    gallery: np.ndarray,
+    gallery_labels: np.ndarray,
+    potentials: dict[str, np.ndarray],
+    block_size: int = 256,
+) -> dict[str, RetrievalComparison]:
+    """Compare many unary potentials while sharing each query-gallery product."""
+
     query_matrix = _validate_embeddings(queries)
     gallery_matrix = _validate_embeddings(gallery)
     if query_matrix.shape[1] != gallery_matrix.shape[1]:
@@ -189,34 +207,58 @@ def compare_potential(
     gallery_targets = _validate_labels(
         gallery_labels, gallery_matrix.shape[0], name="gallery_labels"
     )
-    if (
-        not isinstance(potential, np.ndarray)
-        or potential.shape != (gallery_matrix.shape[0],)
-        or potential.dtype != np.float64
-        or not np.isfinite(potential).all()
-    ):
-        raise ValueError("potential must be a finite gallery-aligned float64 vector")
-    zeros = np.zeros(gallery_matrix.shape[0], dtype=np.float64)
-    raw_indices, _ = corrected_cosine_top1(
-        query_matrix, gallery_matrix, zeros, block_size
-    )
-    corrected_indices, _ = corrected_cosine_top1(
-        query_matrix, gallery_matrix, potential, block_size
-    )
+    if type(block_size) is not int or block_size <= 0:
+        raise ValueError("block_size must be a positive integer")
+    if type(potentials) is not dict or not potentials:
+        raise ValueError("potentials must be a nonempty concrete dict")
+    potential32: dict[str, np.ndarray] = {}
+    for name, potential in potentials.items():
+        if type(name) is not str or not name:
+            raise ValueError("potential names must be nonempty concrete strings")
+        if (
+            not isinstance(potential, np.ndarray)
+            or potential.shape != (gallery_matrix.shape[0],)
+            or potential.dtype != np.float64
+            or not np.isfinite(potential).all()
+        ):
+            raise ValueError(
+                "each potential must be a finite gallery-aligned float64 vector"
+            )
+        potential32[name] = np.asarray(potential, dtype=np.float32)
+
+    raw_indices = np.empty(query_matrix.shape[0], dtype=np.int64)
+    corrected_indices = {
+        name: np.empty(query_matrix.shape[0], dtype=np.int64) for name in potentials
+    }
+    gallery_t = np.asarray(gallery_matrix.T, dtype=np.float32)
+    for start in range(0, query_matrix.shape[0], block_size):
+        stop = min(start + block_size, query_matrix.shape[0])
+        scores = np.asarray(
+            2.0 * (np.asarray(query_matrix[start:stop]) @ gallery_t),
+            dtype=np.float32,
+        )
+        raw_indices[start:stop] = np.argmax(scores, axis=1)
+        for name, potential in potential32.items():
+            corrected_indices[name][start:stop] = np.argmax(
+                scores - potential, axis=1
+            )
     raw_correct = gallery_targets[raw_indices] == query_targets
-    corrected_correct = gallery_targets[corrected_indices] == query_targets
-    wrong_to_right = int(np.sum(~raw_correct & corrected_correct))
-    right_to_wrong = int(np.sum(raw_correct & ~corrected_correct))
     raw_recall = float(np.mean(raw_correct, dtype=np.float64))
-    corrected_recall = float(np.mean(corrected_correct, dtype=np.float64))
-    return RetrievalComparison(
-        raw_recall=raw_recall,
-        corrected_recall=corrected_recall,
-        gain=corrected_recall - raw_recall,
-        wrong_to_right=wrong_to_right,
-        right_to_wrong=right_to_wrong,
-        p_value=_exact_mcnemar(wrong_to_right, right_to_wrong),
-    )
+    results: dict[str, RetrievalComparison] = {}
+    for name, indices in corrected_indices.items():
+        corrected_correct = gallery_targets[indices] == query_targets
+        wrong_to_right = int(np.sum(~raw_correct & corrected_correct))
+        right_to_wrong = int(np.sum(raw_correct & ~corrected_correct))
+        corrected_recall = float(np.mean(corrected_correct, dtype=np.float64))
+        results[name] = RetrievalComparison(
+            raw_recall=raw_recall,
+            corrected_recall=corrected_recall,
+            gain=corrected_recall - raw_recall,
+            wrong_to_right=wrong_to_right,
+            right_to_wrong=right_to_wrong,
+            p_value=_exact_mcnemar(wrong_to_right, right_to_wrong),
+        )
+    return results
 
 
 def _average_ranks(value: np.ndarray) -> np.ndarray:
@@ -280,6 +322,7 @@ def decide_alsp(
     oracle_gain: float,
     alsp_p_value: float,
     permuted_gain: float,
+    random_null_p95: float,
 ) -> tuple[bool, dict[str, bool]]:
     """Apply the prospectively frozen ALSP pass predicates."""
 
@@ -289,6 +332,7 @@ def decide_alsp(
         oracle_gain,
         alsp_p_value,
         permuted_gain,
+        random_null_p95,
     )
     if any(type(value) is not float or not np.isfinite(value) for value in values):
         raise ValueError("decision inputs must be finite concrete floats")
@@ -298,6 +342,7 @@ def decide_alsp(
         "oracle_recovery": oracle_gain > 0.0 and alsp_gain >= 0.30 * oracle_gain,
         "paired_significance": 0.0 <= alsp_p_value < 0.05,
         "permuted_control": permuted_gain < alsp_gain - 0.00025,
+        "random_direction_null": alsp_gain > random_null_p95,
     }
     return all(predicates.values()), predicates
 

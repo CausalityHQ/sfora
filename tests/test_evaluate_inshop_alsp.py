@@ -112,10 +112,10 @@ def test_build_report_runs_train_only_pipeline_and_validates_exact_schema(
     query_path = tmp_path / "query.npz"
     gallery_path = tmp_path / "gallery.npz"
 
-    train_labels = np.repeat(np.arange(20, dtype=np.int64), 15)
+    train_labels = np.repeat(np.arange(20, dtype=np.int64), 3)
     train_angles = (
-        np.repeat(np.linspace(0.0, 5.7, 20, dtype=np.float32), 15)
-        + np.tile(np.linspace(-0.03, 0.03, 15, dtype=np.float32), 20)
+        np.repeat(np.linspace(0.0, 5.7, 20, dtype=np.float32), 3)
+        + np.tile(np.linspace(-0.03, 0.03, 3, dtype=np.float32), 20)
     )
     train_embeddings = np.stack(
         (np.cos(train_angles), np.sin(train_angles)), axis=1
