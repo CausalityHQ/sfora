@@ -50,9 +50,11 @@ The repaired conceptual chronology is:
 The document-byte chronology is more specific: original authority-only design
 `68a012f`, initial audit `12c55f0`, audit review fix `9b4cf05`,
 scientific-boundary expansion of this design at `bad1bf0`, audit paired-contrast
-clarification `9ae137f`, then final design clarification `f116512`. The final
-design bytes therefore postdate the corrected audit they incorporate. Later
-authorities must freeze and disclose that exact order.
+clarification `9ae137f`, design clarification `f116512`, then the review-fix
+commit containing these bytes. A document cannot self-bind that last commit;
+the later amendment must derive it from Git, freeze it literally, and disclose
+the complete order. These reviewed design bytes postdate the corrected audit
+they incorporate.
 
 The chronology must be disclosed exactly. The original candidate's requirement
 that audit precede implementation was breached. The audit is prospective to
