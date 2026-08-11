@@ -18,6 +18,7 @@ import os
 import pickle
 import platform
 import random
+import re
 import stat
 import struct
 import subprocess
@@ -2313,17 +2314,40 @@ def _validate_train_manifest(manifest: Mapping[str, Any]) -> None:
 
 
 def _validate_source_v3_output(
-    root: Path, path: Path, evidence: Mapping[str, Any], expected_relative: str
+    root: Path,
+    path: Path,
+    evidence: Mapping[str, Any],
+    expected_relative: str,
+    contract: Any,
 ) -> None:
     _require(path == root / expected_relative, "source-v3 output path differs")
-    _require(path.is_file(), "source-v3 output is unavailable")
-    data = path.read_bytes()
     _require(
-        evidence["path"] == expected_relative
+        type(evidence) is dict
+        and set(evidence) == {"bytes", "file_type", "mode", "path", "sha256"}
+        and type(evidence["bytes"]) is int
+        and evidence["bytes"] >= 0
+        and type(evidence["file_type"]) is str
         and evidence["file_type"] == "regular"
-        and evidence["mode"] == 0o100644
-        and evidence["bytes"] == len(data)
-        and evidence["sha256"] == hashlib.sha256(data).hexdigest(),
+        and type(evidence["mode"]) is int
+        and evidence["mode"] == 0o100444
+        and type(evidence["path"]) is str
+        and evidence["path"] == expected_relative
+        and type(evidence["sha256"]) is str
+        and re.fullmatch(r"[0-9a-f]{64}", evidence["sha256"]) is not None,
+        "source-v3 output evidence differs",
+    )
+    observed = contract.verify_existing_regular_file(
+        path,
+        expected_mode=evidence["mode"],
+        expected_bytes=evidence["bytes"],
+        expected_sha256=evidence["sha256"],
+    )
+    _require(
+        observed.file_type == "regular"
+        and evidence["file_type"] == "regular"
+        and observed.mode == evidence["mode"]
+        and observed.byte_count == evidence["bytes"]
+        and observed.sha256 == evidence["sha256"],
         "source-v3 output evidence differs",
     )
 
@@ -2353,6 +2377,7 @@ def _validate_source_v3_binding(
             path,
             receipt["outputs"][key],
             payload["outputs"][key]["path"],
+            bound.contract,
         )
     report = _read_json_object(output_paths["report"], "source report")
     checkpoint = _read_checkpoint_metadata(output_paths["checkpoint"])

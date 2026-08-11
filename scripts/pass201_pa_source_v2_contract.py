@@ -2132,7 +2132,7 @@ def _hash_regular_at(
     try:
         fd = os.open(name, flags, dir_fd=directory_fd)
     except OSError as exc:
-        raise ValueError(f"cannot safely open output: {path}") from exc
+        raise ValueError(f"cannot safely open regular non-symlink output: {path}") from exc
     try:
         before = os.fstat(fd)
         if not stat.S_ISREG(before.st_mode) or (
@@ -2204,6 +2204,52 @@ def hash_open_regular(path: Path) -> OutputEvidence:
         return OutputEvidence(
             PurePosixPath(path.as_posix()), "regular", before.st_mode, before.st_size, digest
         )
+    finally:
+        os.close(parent_fd)
+
+
+def verify_existing_regular_file(
+    path: Path,
+    *,
+    expected_mode: int,
+    expected_bytes: int,
+    expected_sha256: str,
+) -> OutputEvidence:
+    """Authenticate an existing output without changing its bytes or mode."""
+    if (
+        not isinstance(path, Path)
+        or type(expected_mode) is not int
+        or type(expected_bytes) is not int
+        or expected_bytes < 0
+        or type(expected_sha256) is not str
+        or len(expected_sha256) != 64
+        or any(character not in SHA256 for character in expected_sha256)
+    ):
+        raise ValueError("invalid existing output evidence")
+    absolute = path.absolute()
+    parent_fd, parent_before = _open_directory(absolute.parent)
+    try:
+        observed, digest = _hash_regular_at(parent_fd, absolute.name, absolute)
+        parent_after = os.fstat(parent_fd)
+        named_parent = os.stat(absolute.parent, follow_symlinks=False)
+        if not _same_inode(parent_before, parent_after) or not _same_inode(
+            parent_before, named_parent
+        ):
+            raise ValueError(f"output parent changed during read: {absolute.parent}")
+        evidence = OutputEvidence(
+            PurePosixPath(absolute.as_posix()),
+            "regular",
+            observed.st_mode,
+            observed.st_size,
+            digest,
+        )
+        if (
+            evidence.mode != expected_mode
+            or evidence.byte_count != expected_bytes
+            or evidence.sha256 != expected_sha256
+        ):
+            raise ValueError("existing output evidence differs")
+        return evidence
     finally:
         os.close(parent_fd)
 

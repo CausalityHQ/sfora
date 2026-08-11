@@ -1589,6 +1589,78 @@ def test_output_evidence_makes_successfully_hashed_file_read_only(tmp_path: Path
     assert stat.S_IMODE(path.stat().st_mode) == 0o444
 
 
+def test_existing_output_verifier_is_read_only_and_binds_complete_mode(tmp_path: Path) -> None:
+    """Catch an activation verifier that mutates mode or checks only bytes."""
+    path = tmp_path / "immutable-result"
+    data = b"bound read-only output"
+    path.write_bytes(data)
+    path.chmod(0o444)
+    before = path.stat()
+
+    evidence = contract.verify_existing_regular_file(
+        path,
+        expected_mode=0o100444,
+        expected_bytes=len(data),
+        expected_sha256=hashlib.sha256(data).hexdigest(),
+    )
+
+    after = path.stat()
+    assert evidence.path == PurePosixPath(path.as_posix())
+    assert evidence.mode == 0o100444
+    assert evidence.byte_count == len(data)
+    assert evidence.sha256 == hashlib.sha256(data).hexdigest()
+    assert after.st_mode == before.st_mode
+    assert after.st_size == before.st_size
+    assert after.st_ino == before.st_ino
+
+
+def test_existing_output_verifier_rejects_symlink_without_mutating_target(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "target"
+    target.write_bytes(b"bound")
+    target.chmod(0o444)
+    link = tmp_path / "output"
+    link.symlink_to(target)
+
+    with pytest.raises(ValueError, match="regular non-symlink"):
+        contract.verify_existing_regular_file(
+            link,
+            expected_mode=0o100444,
+            expected_bytes=5,
+            expected_sha256=hashlib.sha256(b"bound").hexdigest(),
+        )
+
+    assert stat.S_IMODE(target.stat().st_mode) == 0o444
+
+
+def test_existing_output_verifier_rejects_change_during_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "output"
+    path.write_bytes(b"old")
+    path.chmod(0o444)
+    real_read = contract.os.read
+    changed = False
+
+    def mutating_read(fd: int, size: int) -> bytes:
+        nonlocal changed
+        data = real_read(fd, size)
+        if data and not changed:
+            changed = True
+            path.chmod(0o644)
+        return data
+
+    monkeypatch.setattr(contract.os, "read", mutating_read)
+    with pytest.raises(ValueError, match="changed during read"):
+        contract.verify_existing_regular_file(
+            path,
+            expected_mode=0o100444,
+            expected_bytes=3,
+            expected_sha256=hashlib.sha256(b"old").hexdigest(),
+        )
+
+
 def test_output_evidence_rejects_same_size_mtime_restored_mutation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

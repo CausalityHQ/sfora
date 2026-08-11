@@ -134,6 +134,119 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def test_source_output_accepts_exact_authenticated_read_only_mode(tmp_path: Path) -> None:
+    """Catch activation regressing to a writable-mode literal."""
+    relative = "reports/generated/pass201_source_v3/run-v3/report.json"
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    data = b'{"ordinary_proxy_anchor":true}\n'
+    path.write_bytes(data)
+    path.chmod(0o444)
+    evidence = {
+        "bytes": len(data),
+        "file_type": "regular",
+        "mode": 0o100444,
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+    MODULE._validate_source_v3_output(tmp_path, path, evidence, relative, SOURCE_CONTRACT)
+
+
+def test_source_output_rejects_writable_receipt_mode_even_when_bytes_match(
+    tmp_path: Path,
+) -> None:
+    """Catch trusting the old writable receipt literal without checking the file."""
+    relative = "reports/generated/pass201_source_v3/run-v3/report.json"
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    data = b'{"ordinary_proxy_anchor":true}\n'
+    path.write_bytes(data)
+    path.chmod(0o444)
+    evidence = {
+        "bytes": len(data),
+        "file_type": "regular",
+        "mode": 0o100644,
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+    with pytest.raises(ValueError, match="source-v3 output evidence differs"):
+        MODULE._validate_source_v3_output(
+            tmp_path, path, evidence, relative, SOURCE_CONTRACT
+        )
+
+
+def test_source_output_rejects_symlink_even_when_target_bytes_match(tmp_path: Path) -> None:
+    """Catch path.is_file/read_bytes silently following an output symlink."""
+    relative = "reports/generated/pass201_source_v3/run-v3/report.json"
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    target = tmp_path / "foreign-report.json"
+    data = b'{"ordinary_proxy_anchor":true}\n'
+    target.write_bytes(data)
+    path.symlink_to(target)
+    evidence = {
+        "bytes": len(data),
+        "file_type": "regular",
+        "mode": 0o100444,
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+    with pytest.raises(ValueError, match="regular non-symlink"):
+        MODULE._validate_source_v3_output(
+            tmp_path, path, evidence, relative, SOURCE_CONTRACT
+        )
+
+
+@pytest.mark.parametrize("invalid_mode", (0o100400, True, 33060.0, "33060", -1))
+def test_source_output_rejects_nonhistorical_receipt_modes(
+    tmp_path: Path, invalid_mode: object
+) -> None:
+    """Catch weakening the activation-only complete-mode authority."""
+    relative = "reports/generated/pass201_source_v3/run-v3/report.json"
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    data = b'{"ordinary_proxy_anchor":true}\n'
+    path.write_bytes(data)
+    path.chmod(0o444)
+    evidence = {
+        "bytes": len(data),
+        "file_type": "regular",
+        "mode": invalid_mode,
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+    with pytest.raises(ValueError, match="source-v3 output evidence differs"):
+        MODULE._validate_source_v3_output(
+            tmp_path, path, evidence, relative, SOURCE_CONTRACT
+        )
+
+
+def test_source_output_rejects_live_mode_drift(tmp_path: Path) -> None:
+    """Catch checking only the receipt mode and not the named file's mode."""
+    relative = "reports/generated/pass201_source_v3/run-v3/report.json"
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True)
+    data = b'{"ordinary_proxy_anchor":true}\n'
+    path.write_bytes(data)
+    path.chmod(0o644)
+    evidence = {
+        "bytes": len(data),
+        "file_type": "regular",
+        "mode": 0o100444,
+        "path": relative,
+        "sha256": hashlib.sha256(data).hexdigest(),
+    }
+
+    with pytest.raises(ValueError, match="existing output evidence differs"):
+        MODULE._validate_source_v3_output(
+            tmp_path, path, evidence, relative, SOURCE_CONTRACT
+        )
+
+
 def _git(root: Path, *arguments: str) -> str:
     return subprocess.run(
         ["git", *arguments],
