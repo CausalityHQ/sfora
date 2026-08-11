@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from sfora.amortized_local_scale import (
+    _exact_mcnemar,
     compare_potential,
     compare_potentials,
     decide_alsp,
@@ -53,8 +54,16 @@ def test_ridge_recovers_affine_target_with_unregularized_intercept() -> None:
     assert model.weights.dtype == np.float64
     assert model.intercept == pytest.approx(0.3, abs=1e-12)
     assert predict_potential(model, embeddings) == pytest.approx(
-        targets, abs=2e-7
+        targets, abs=5e-7
     )
+
+
+def test_ridge_lambda_is_normalized_by_fit_row_count() -> None:
+    embeddings = np.asarray([[-1, 0], [0, 0], [1, 0]], dtype=np.float32)
+    targets = np.asarray([0.0, 1.0, 2.0], dtype=np.float64)
+    model = fit_ridge_potential(embeddings, targets, ridge_lambda=1.0)
+    assert model.weights == pytest.approx(np.asarray([0.4, 0.0]))
+    assert model.intercept == pytest.approx(1.0)
 
 
 def test_select_ridge_lambda_breaks_equal_mse_by_grid_order() -> None:
@@ -94,6 +103,11 @@ def test_compare_potential_reports_stable_ranking_and_paired_counts() -> None:
     assert result.wrong_to_right == 1
     assert result.right_to_wrong == 1
     assert result.p_value == pytest.approx(1.0)
+
+
+def test_exact_mcnemar_uses_two_sided_binomial_tail() -> None:
+    assert _exact_mcnemar(0, 5) == pytest.approx(0.0625)
+    assert _exact_mcnemar(2, 10) == pytest.approx(158 / 4096)
 
 
 def test_compare_potentials_matches_literal_arm_results() -> None:
@@ -149,6 +163,7 @@ def test_density_diagnostics_treats_constant_prediction_as_zero_correlation() ->
         ("alsp_p_value", 0.05),
         ("permuted_gain", 0.00075),
         ("random_null_p95", 0.001),
+        ("assignment_null_p95", 0.001),
     ],
 )
 def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> None:
@@ -159,6 +174,7 @@ def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> N
         "alsp_p_value": 0.049,
         "permuted_gain": 0.000749,
         "random_null_p95": 0.0008,
+        "assignment_null_p95": 0.0008,
     }
     arguments[field] = value
     passed, predicates = decide_alsp(**arguments)
@@ -171,6 +187,7 @@ def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> N
             "alsp_p_value": "paired_significance",
             "permuted_gain": "permuted_control",
             "random_null_p95": "random_direction_null",
+            "assignment_null_p95": "assignment_null",
         }[field]
     ]
 
@@ -183,6 +200,7 @@ def test_decide_alsp_accepts_exact_inclusive_gain_boundaries() -> None:
         alsp_p_value=0.049,
         permuted_gain=0.000749,
         random_null_p95=0.0008,
+        assignment_null_p95=0.0008,
     )
     assert passed
     assert list(predicates) == [
@@ -192,4 +210,29 @@ def test_decide_alsp_accepts_exact_inclusive_gain_boundaries() -> None:
         "paired_significance",
         "permuted_control",
         "random_direction_null",
+        "assignment_null",
     ]
+
+
+def test_decide_alsp_requires_positive_oracle_and_assignment_null() -> None:
+    common = {
+        "correlation": 0.3,
+        "alsp_gain": 0.002,
+        "alsp_p_value": 0.01,
+        "permuted_gain": 0.0,
+        "random_null_p95": 0.001,
+        "assignment_null_p95": 0.001,
+    }
+    passed, predicates = decide_alsp(oracle_gain=0.004, **common)
+    assert passed
+    assert predicates["assignment_null"]
+
+    passed, predicates = decide_alsp(
+        oracle_gain=0.004, **{**common, "assignment_null_p95": 0.002}
+    )
+    assert not passed
+    assert not predicates["assignment_null"]
+
+    passed, predicates = decide_alsp(oracle_gain=0.0, **common)
+    assert not passed
+    assert not predicates["oracle_recovery"]

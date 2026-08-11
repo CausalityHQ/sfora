@@ -76,10 +76,11 @@ def fit_ridge_potential(
         weights = np.zeros(design.shape[1], dtype=np.float64)
     else:
         standardized_target = (response - target_mean) / target_scale
-        gram = centered_design.T @ centered_design
+        row_count = centered_design.shape[0]
+        gram = (centered_design.T @ centered_design) / row_count
         weights_standardized = np.linalg.solve(
             gram + ridge_lambda * np.eye(design.shape[1], dtype=np.float64),
-            centered_design.T @ standardized_target,
+            (centered_design.T @ standardized_target) / row_count,
         )
         weights = np.asarray(weights_standardized * target_scale, dtype=np.float64)
     intercept = float(target_mean - design_mean @ weights)
@@ -323,6 +324,7 @@ def decide_alsp(
     alsp_p_value: float,
     permuted_gain: float,
     random_null_p95: float,
+    assignment_null_p95: float,
 ) -> tuple[bool, dict[str, bool]]:
     """Apply the prospectively frozen ALSP pass predicates."""
 
@@ -333,6 +335,7 @@ def decide_alsp(
         alsp_p_value,
         permuted_gain,
         random_null_p95,
+        assignment_null_p95,
     )
     if any(type(value) is not float or not np.isfinite(value) for value in values):
         raise ValueError("decision inputs must be finite concrete floats")
@@ -343,6 +346,7 @@ def decide_alsp(
         "paired_significance": 0.0 <= alsp_p_value < 0.05,
         "permuted_control": permuted_gain < alsp_gain - 0.00025,
         "random_direction_null": alsp_gain > random_null_p95,
+        "assignment_null": alsp_gain > assignment_null_p95,
     }
     return all(predicates.values()), predicates
 

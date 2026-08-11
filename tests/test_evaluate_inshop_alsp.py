@@ -106,8 +106,10 @@ def test_atomic_writer_rolls_back_owned_publication_on_reload_failure(
 
 
 def test_build_report_runs_train_only_pipeline_and_validates_exact_schema(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+        monkeypatch.setenv(name, "1")
     train_path = tmp_path / "train.npz"
     query_path = tmp_path / "query.npz"
     gallery_path = tmp_path / "gallery.npz"
@@ -167,10 +169,22 @@ def test_build_report_runs_train_only_pipeline_and_validates_exact_schema(
         "decision",
     ]
     assert report["configuration"]["k"] == 50
+    assert report["configuration"]["numpy_version"] == str(np.__version__)
+    assert report["configuration"]["thread_environment"] == {
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+    }
     assert report["fit"]["weights_sha256"] == MODULE.float64_sha256(
         np.asarray(report["fit"]["weights"], dtype=np.float64)
     )
     assert report["test"]["arms"]["constant"] == report["test"]["arms"]["raw"]
+    assert len(report["test"]["assignment_null"]["gains"]) == 20
+    assert list(report["test"]["scale_sensitivity"]["arms"]) == ["0.5", "1.0", "2.0"]
+    assert list(report["test"]["scale_sensitivity"]["calibration"]) == [
+        "slope",
+        "intercept",
+    ]
 
     mutation = copy.deepcopy(report)
     mutation["decision"]["passes_falsifier"] = not report["decision"][
@@ -178,3 +192,53 @@ def test_build_report_runs_train_only_pipeline_and_validates_exact_schema(
     ]
     with pytest.raises(ValueError, match="decision"):
         MODULE.validate_alsp_report(mutation)
+
+    mutation = copy.deepcopy(report)
+    mutation["test"]["arms"]["alsp"]["p_value"] = 0.987654321
+    mutation["test"]["scale_sensitivity"]["arms"]["1.0"]["p_value"] = 0.987654321
+    with pytest.raises(ValueError, match="p_value"):
+        MODULE.validate_alsp_report(mutation)
+
+    mutation = copy.deepcopy(report)
+    mutation["test"]["arms"]["alsp"]["raw_recall"] -= 0.01
+    mutation["test"]["arms"]["alsp"]["gain"] = (
+        mutation["test"]["arms"]["alsp"]["corrected_recall"]
+        - mutation["test"]["arms"]["alsp"]["raw_recall"]
+    )
+    mutation["test"]["scale_sensitivity"]["arms"]["1.0"] = copy.deepcopy(
+        mutation["test"]["arms"]["alsp"]
+    )
+    with pytest.raises(ValueError, match="raw_recall"):
+        MODULE.validate_alsp_report(mutation)
+
+    mutation = copy.deepcopy(report)
+    mutation["inputs"]["train"]["sha256"] = "z" * 64
+    with pytest.raises(ValueError, match="sha256"):
+        MODULE.validate_alsp_report(mutation)
+
+    mutation = copy.deepcopy(report)
+    mutation["configuration"]["block_size"] = False
+    with pytest.raises(ValueError, match="configuration"):
+        MODULE.validate_alsp_report(mutation)
+
+    rotated = np.roll(gallery_embeddings, 7, axis=0)
+    _write_bundle(
+        gallery_path,
+        rotated,
+        gallery_labels,
+        prefix="different-gallery",
+        split="gallery",
+    )
+    _write_bundle(
+        query_path,
+        np.roll(query_embeddings, 11, axis=0),
+        gallery_labels,
+        prefix="different-query",
+        split="query",
+    )
+    changed_test_report = MODULE.build_alsp_report(
+        train_path, query_path, gallery_path, block_size=17
+    )
+    assert changed_test_report["split"] == report["split"]
+    assert changed_test_report["selection"] == report["selection"]
+    assert changed_test_report["fit"] == report["fit"]

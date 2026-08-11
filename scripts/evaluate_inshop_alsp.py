@@ -17,6 +17,7 @@ import numpy as np
 
 from sfora.amortized_local_scale import (
     RetrievalComparison,
+    _exact_mcnemar,
     compare_potentials,
     decide_alsp,
     density_diagnostics,
@@ -27,13 +28,16 @@ from sfora.amortized_local_scale import (
     split_labels,
 )
 
-SCHEMA_VERSION = "inshop-alsp-v1"
+SCHEMA_VERSION = "inshop-alsp-v2"
 K = 50
 FIT_FRACTION = 0.8
 RIDGE_GRID = (1e-6, 1e-4, 1e-2, 1.0, 100.0)
 PERMUTATION_SEED = 20260811
 RANDOM_DIRECTION_SEED = 20260812
 RANDOM_DIRECTION_COUNT = 20
+ASSIGNMENT_PERMUTATION_SEED = 20260813
+ASSIGNMENT_PERMUTATION_COUNT = 20
+SCALE_MULTIPLIERS = (0.5, 1.0, 2.0)
 ARM_NAMES = ("raw", "alsp", "constant", "permuted", "oracle")
 COMPARISON_KEYS = (
     "raw_recall",
@@ -158,6 +162,12 @@ def build_alsp_report(
 
     if type(block_size) is not int or block_size <= 0:
         raise ValueError("block_size must be a positive integer")
+    thread_environment = {
+        name: os.environ.get(name)
+        for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+    }
+    if any(value != "1" for value in thread_environment.values()):
+        raise ValueError("BLAS thread environment must be pinned to 1")
     train = load_embedding_bundle(train_path, expected_split="train")
     query = load_embedding_bundle(query_path, expected_split="query")
     gallery = load_embedding_bundle(gallery_path, expected_split="gallery")
@@ -236,6 +246,24 @@ def build_alsp_report(
                 (projection - projection_mean) / projection_std
             )
         random_potentials[f"random_{index:02d}"] = np.asarray(scaled, dtype=np.float64)
+    assignment_generator = np.random.Generator(
+        np.random.PCG64(ASSIGNMENT_PERMUTATION_SEED)
+    )
+    assignment_potentials = {
+        f"assignment_{index:02d}": np.asarray(
+            predicted_potential[
+                assignment_generator.permutation(predicted_potential.size)
+            ],
+            dtype=np.float64,
+        )
+        for index in range(ASSIGNMENT_PERMUTATION_COUNT)
+    }
+    scale_potentials = {
+        f"scale_{multiplier:.1f}": np.asarray(
+            multiplier * predicted_potential, dtype=np.float64
+        )
+        for multiplier in SCALE_MULTIPLIERS
+    }
     potentials = {
         "raw": zero_potential,
         "alsp": predicted_potential,
@@ -243,6 +271,8 @@ def build_alsp_report(
         "permuted": permuted_potential,
         "oracle": true_gallery_density,
         **random_potentials,
+        **assignment_potentials,
+        **scale_potentials,
     }
     comparisons = compare_potentials(
         query.embeddings,
@@ -260,6 +290,31 @@ def build_alsp_report(
     random_null_p95 = float(
         np.quantile(np.asarray(random_gains, dtype=np.float64), 0.95, method="linear")
     )
+    assignment_gains = [
+        comparisons[f"assignment_{index:02d}"].gain
+        for index in range(ASSIGNMENT_PERMUTATION_COUNT)
+    ]
+    assignment_null_p95 = float(
+        np.quantile(
+            np.asarray(assignment_gains, dtype=np.float64), 0.95, method="linear"
+        )
+    )
+    predicted_centered = predicted_potential - predicted_mean
+    predicted_sum_squares = float(
+        np.sum(predicted_centered * predicted_centered, dtype=np.float64)
+    )
+    observed_mean = float(np.mean(true_gallery_density, dtype=np.float64))
+    if predicted_sum_squares == 0.0:
+        calibration_slope = 0.0
+    else:
+        calibration_slope = float(
+            np.sum(
+                predicted_centered * (true_gallery_density - observed_mean),
+                dtype=np.float64,
+            )
+            / predicted_sum_squares
+        )
+    calibration_intercept = float(observed_mean - calibration_slope * predicted_mean)
     passed, predicates = decide_alsp(
         correlation=diagnostics["pearson"],
         alsp_gain=float(arms["alsp"]["gain"]),
@@ -267,6 +322,7 @@ def build_alsp_report(
         alsp_p_value=float(arms["alsp"]["p_value"]),
         permuted_gain=float(arms["permuted"]["gain"]),
         random_null_p95=random_null_p95,
+        assignment_null_p95=assignment_null_p95,
     )
     report = {
         "schema_version": SCHEMA_VERSION,
@@ -287,6 +343,11 @@ def build_alsp_report(
             "permutation_seed": PERMUTATION_SEED,
             "random_direction_seed": RANDOM_DIRECTION_SEED,
             "random_direction_count": RANDOM_DIRECTION_COUNT,
+            "assignment_permutation_seed": ASSIGNMENT_PERMUTATION_SEED,
+            "assignment_permutation_count": ASSIGNMENT_PERMUTATION_COUNT,
+            "scale_multipliers": list(SCALE_MULTIPLIERS),
+            "numpy_version": str(np.__version__),
+            "thread_environment": thread_environment,
         },
         "split": {
             "fit_label_count": int(fit_labels.size),
@@ -315,6 +376,22 @@ def build_alsp_report(
                 "gains": random_gains,
                 "linear_p95": random_null_p95,
             },
+            "assignment_null": {
+                "gains": assignment_gains,
+                "linear_p95": assignment_null_p95,
+            },
+            "scale_sensitivity": {
+                "arms": {
+                    f"{multiplier:.1f}": _comparison_dict(
+                        comparisons[f"scale_{multiplier:.1f}"]
+                    )
+                    for multiplier in SCALE_MULTIPLIERS
+                },
+                "calibration": {
+                    "slope": calibration_slope,
+                    "intercept": calibration_intercept,
+                },
+            },
         },
         "decision": {"predicates": predicates, "passes_falsifier": passed},
     }
@@ -330,6 +407,16 @@ def _require_keys(value: object, keys: tuple[str, ...], name: str) -> dict[str, 
 def _require_float(value: object, name: str) -> float:
     if type(value) is not float or not np.isfinite(value):
         raise ValueError(f"{name} must be a finite float")
+    return value
+
+
+def _require_sha256(value: object, name: str) -> str:
+    if (
+        type(value) is not str
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{name} differs")
     return value
 
 
@@ -359,12 +446,8 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         row = _require_keys(inputs[name], ("path", "sha256"), f"inputs.{name}")
         if type(row["path"]) is not str or not row["path"]:
             raise ValueError(f"inputs.{name}.path differs")
-        if type(row["sha256"]) is not str or len(row["sha256"]) != 64:
-            raise ValueError(f"inputs.{name}.sha256 differs")
-    if type(inputs["checkpoint_sha256"]) is not str or len(
-        inputs["checkpoint_sha256"]
-    ) != 64:
-        raise ValueError("inputs.checkpoint_sha256 differs")
+        _require_sha256(row["sha256"], f"inputs.{name}.sha256")
+    _require_sha256(inputs["checkpoint_sha256"], "inputs.checkpoint_sha256")
     configuration = _require_keys(
         report["configuration"],
         (
@@ -375,10 +458,19 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
             "permutation_seed",
             "random_direction_seed",
             "random_direction_count",
+            "assignment_permutation_seed",
+            "assignment_permutation_count",
+            "scale_multipliers",
+            "numpy_version",
+            "thread_environment",
         ),
         "configuration",
     )
-    if configuration["k"] != K or type(configuration["block_size"]) is not int:
+    if (
+        configuration["k"] != K
+        or type(configuration["block_size"]) is not int
+        or configuration["block_size"] <= 0
+    ):
         raise ValueError("configuration differs")
     if (
         configuration["fit_fraction"] != FIT_FRACTION
@@ -386,6 +478,18 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         or configuration["permutation_seed"] != PERMUTATION_SEED
         or configuration["random_direction_seed"] != RANDOM_DIRECTION_SEED
         or configuration["random_direction_count"] != RANDOM_DIRECTION_COUNT
+        or configuration["assignment_permutation_seed"]
+        != ASSIGNMENT_PERMUTATION_SEED
+        or configuration["assignment_permutation_count"]
+        != ASSIGNMENT_PERMUTATION_COUNT
+        or configuration["scale_multipliers"] != list(SCALE_MULTIPLIERS)
+        or configuration["numpy_version"] != str(np.__version__)
+        or configuration["thread_environment"]
+        != {
+            "OMP_NUM_THREADS": "1",
+            "MKL_NUM_THREADS": "1",
+            "OPENBLAS_NUM_THREADS": "1",
+        }
     ):
         raise ValueError("configuration differs")
     split = _require_keys(
@@ -453,7 +557,13 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
     _require_float(fit["intercept"], "fit.intercept")
     test = _require_keys(
         report["test"],
-        ("density_diagnostics", "arms", "random_direction_null"),
+        (
+            "density_diagnostics",
+            "arms",
+            "random_direction_null",
+            "assignment_null",
+            "scale_sensitivity",
+        ),
         "test",
     )
     diagnostics = _require_keys(
@@ -473,6 +583,16 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
                 raise ValueError(f"test.arms.{arm_name}.{name} differs")
         if arm["gain"] != arm["corrected_recall"] - arm["raw_recall"]:
             raise ValueError(f"test.arms.{arm_name}.gain differs")
+        if arm["p_value"] != _exact_mcnemar(
+            arm["wrong_to_right"], arm["right_to_wrong"]
+        ):
+            raise ValueError(f"test.arms.{arm_name}.p_value differs")
+        if not 0.0 <= arm["raw_recall"] <= 1.0 or not 0.0 <= arm[
+            "corrected_recall"
+        ] <= 1.0:
+            raise ValueError(f"test.arms.{arm_name}.recall differs")
+        if arm["raw_recall"] != arms["raw"]["raw_recall"]:
+            raise ValueError(f"test.arms.{arm_name}.raw_recall differs")
     if arms["constant"] != arms["raw"]:
         raise ValueError("constant arm is not a ranking identity")
     random_null = _require_keys(
@@ -489,6 +609,67 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
     expected_random_p95 = float(np.quantile(random_gains, 0.95, method="linear"))
     if random_null["linear_p95"] != expected_random_p95:
         raise ValueError("test.random_null.linear_p95 differs")
+    assignment_null = _require_keys(
+        test["assignment_null"], ("gains", "linear_p95"), "test.assignment_null"
+    )
+    if type(assignment_null["gains"]) is not list or len(
+        assignment_null["gains"]
+    ) != ASSIGNMENT_PERMUTATION_COUNT:
+        raise ValueError("test.assignment_null.gains differs")
+    assignment_gains = np.asarray(
+        [
+            _require_float(item, "test.assignment_null.gains")
+            for item in assignment_null["gains"]
+        ],
+        dtype=np.float64,
+    )
+    expected_assignment_p95 = float(
+        np.quantile(assignment_gains, 0.95, method="linear")
+    )
+    if assignment_null["linear_p95"] != expected_assignment_p95:
+        raise ValueError("test.assignment_null.linear_p95 differs")
+    sensitivity = _require_keys(
+        test["scale_sensitivity"], ("arms", "calibration"), "test.scale_sensitivity"
+    )
+    sensitivity_arms = _require_keys(
+        sensitivity["arms"], tuple(f"{value:.1f}" for value in SCALE_MULTIPLIERS),
+        "test.scale_sensitivity.arms",
+    )
+    for arm_name in sensitivity_arms:
+        arm = _require_keys(
+            sensitivity_arms[arm_name],
+            COMPARISON_KEYS,
+            f"test.scale_sensitivity.arms.{arm_name}",
+        )
+        for name in ("raw_recall", "corrected_recall", "gain", "p_value"):
+            _require_float(arm[name], f"test.scale_sensitivity.arms.{arm_name}.{name}")
+        for name in ("wrong_to_right", "right_to_wrong"):
+            if type(arm[name]) is not int or arm[name] < 0:
+                raise ValueError(
+                    f"test.scale_sensitivity.arms.{arm_name}.{name} differs"
+                )
+        if arm["gain"] != arm["corrected_recall"] - arm["raw_recall"]:
+            raise ValueError(f"test.scale_sensitivity.arms.{arm_name}.gain differs")
+        if arm["p_value"] != _exact_mcnemar(
+            arm["wrong_to_right"], arm["right_to_wrong"]
+        ):
+            raise ValueError(
+                f"test.scale_sensitivity.arms.{arm_name}.p_value differs"
+            )
+        if arm["raw_recall"] != arms["raw"]["raw_recall"]:
+            raise ValueError(
+                f"test.scale_sensitivity.arms.{arm_name}.raw_recall differs"
+            )
+    if sensitivity_arms["1.0"] != arms["alsp"]:
+        raise ValueError("test.scale_sensitivity 1.0 arm differs")
+    calibration = _require_keys(
+        sensitivity["calibration"], ("slope", "intercept"),
+        "test.scale_sensitivity.calibration",
+    )
+    _require_float(calibration["slope"], "test.scale_sensitivity.calibration.slope")
+    _require_float(
+        calibration["intercept"], "test.scale_sensitivity.calibration.intercept"
+    )
     decision = _require_keys(
         report["decision"], ("predicates", "passes_falsifier"), "decision"
     )
@@ -499,6 +680,7 @@ def validate_alsp_report(value: object) -> dict[str, Any]:
         alsp_p_value=arms["alsp"]["p_value"],
         permuted_gain=arms["permuted"]["gain"],
         random_null_p95=expected_random_p95,
+        assignment_null_p95=expected_assignment_p95,
     )
     if decision["predicates"] != expected_predicates:
         raise ValueError("decision predicates differ")
