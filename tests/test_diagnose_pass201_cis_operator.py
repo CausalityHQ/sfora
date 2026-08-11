@@ -3971,6 +3971,131 @@ def test_source_v5_contract_accepts_exact_activation_authority():
     assert authority.source_commit == "5" * 40
 
 
+def _source_v6_contract_fixture() -> dict[str, object]:
+    base = _source_v5_contract_fixture()
+    source_commit = "6" * 40
+    authorization = deepcopy(base["authorization"])
+    manifest_path = "docs/pass201_pa_source_v6_authorization_manifest.json"
+    authorization["manifest_path"] = manifest_path
+    authorization["required_diff_paths"] = [manifest_path]
+    authorization["required_parent_commit"] = source_commit
+    repair = {
+        "amendment": {
+            "path": "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+            "sha256": "32133627314017b0ff62a7f4ad3da100619828f7bca08fd171df790e16e93c0d",
+            "commit": "c575ffc1a040530eeeb3e439d67d1d4b24fe92ac",
+        },
+        "plan": {
+            "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v5-output-mode-repair.md",
+            "sha256": "481eb45cf2b34fc008dd3731e23e89e4ac935579f05dc00cd1c118b8b05c5a2c",
+            "commit": "d5d061eee6a3be42a3d55b9f5a13a8467e3a9326",
+        },
+        "prior_handoff": {
+            "commit": "18b225f33b61dd221d6878cf8b14eb75a0037323",
+            "source_commit": "656b5f2069f76ee6d8c5079bee8ae6a371a89f69",
+            "manifest": {
+                "path": "docs/pass201_pa_source_v5_authorization_manifest.json",
+                "bytes": 25097,
+                "sha256": "2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20",
+                "git_blob": "ac0c42d0f73bd5957e934c20f5b7ef33d80af3a9",
+            },
+            "preservation_ref": "pass201-source-v5-handoff-18b225f",
+        },
+        "failed_activation": {
+            "pid": 1061572,
+            "exit_code": 1,
+            "error": "ValueError: source-v3 output evidence differs",
+            "activation_absent": True,
+            "source_manifest_absent": True,
+            "smoke_absent": True,
+            "scientific_absent": True,
+            "candidate_values_computed": False,
+            "gpu_process_launched": False,
+        },
+        "historical_output_mode": 33060,
+    }
+    return {
+        "authorization": authorization,
+        "controller": base["controller"],
+        "dataset": base["dataset"],
+        "execution": base["execution"],
+        "historical_producer": base["historical_producer"],
+        "output_mode_repair": repair,
+        "outputs": base["outputs"],
+        "plan": base["plan"],
+        "postconditions": base["postconditions"],
+        "process_entry_amendment": base["process_entry_amendment"],
+        "process_entry_evidence": base["process_entry_evidence"],
+        "process_entry_plan": base["process_entry_plan"],
+        "protocol": base["protocol"],
+        "purpose": base["purpose"],
+        "repair_amendment": base["repair_amendment"],
+        "repair_plan": base["repair_plan"],
+        "schema_version": "pass201-pa-source-v6-activation-v1",
+        "sidecars": base["sidecars"],
+        "source": base["source"],
+        "source_commit": source_commit,
+        "status": base["status"],
+    }
+
+
+def test_source_v6_contract_accepts_exact_mode_repair_authority():
+    authority = SOURCE_CONTRACT.validate_prelaunch(_source_v6_contract_fixture())
+    assert authority.payload["schema_version"] == "pass201-pa-source-v6-activation-v1"
+    assert authority.payload["output_mode_repair"]["historical_output_mode"] == 33060
+    assert authority.source_commit == "6" * 40
+
+
+def test_source_v6_authority_builder_matches_independent_literal_fixture():
+    expected = _source_v6_contract_fixture()
+    actual = MODULE._build_source_v6_authority(
+        prior_manifest=_source_v5_contract_fixture(),
+        source_commit="6" * 40,
+        source_files=expected["source"]["files"],
+        frozen_absence_checked_utc="2026-08-11T21:30:00Z",
+    )
+    expected["authorization"]["frozen_absence_checked_utc"] = "2026-08-11T21:30:00Z"
+    assert actual == expected
+
+
+def test_source_v6_docs_and_source_chain_are_exact_in_real_repository():
+    root = MODULE_PATH.parents[1]
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    MODULE._authenticate_source_v6_source_chain(root, head)
+
+
+def test_public_controller_defaults_to_literal_source_v6_manifest(tmp_path: Path):
+    args = MODULE._build_cli_parser().parse_args(["--activate-source", "--root", str(tmp_path)])
+    MODULE._default_cli_paths(args)
+    assert args.prelaunch_manifest == (
+        tmp_path / "docs/pass201_pa_source_v6_authorization_manifest.json"
+    )
+
+
+def test_v6_freezer_is_a_public_mode_with_only_raw_authority_arguments(tmp_path: Path):
+    output = tmp_path / "candidate.json"
+    args = MODULE._build_cli_parser().parse_args(
+        [
+            "--freeze-v6-authority",
+            "--root",
+            str(tmp_path),
+            "--frozen-absence-checked-utc",
+            "2026-08-11T21:30:00Z",
+            "--output",
+            str(output),
+        ]
+    )
+    assert args.freeze_v6_authority is True
+    assert args.root == tmp_path
+    assert args.output == output
+
+
 def test_source_v5_contract_rejects_reordered_run_directory():
     payload = deepcopy(_source_v5_contract_fixture())
     run_directory = payload["outputs"]["run_directory"]

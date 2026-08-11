@@ -41,6 +41,7 @@ PRELAUNCH_SOURCE_MANIFEST_PATH = "docs/pass201_pa_source_prelaunch_manifest.json
 SOURCE_V3_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v3_authorization_manifest.json"
 SOURCE_V4_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v4_authorization_manifest.json"
 SOURCE_V5_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v5_authorization_manifest.json"
+SOURCE_V6_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v6_authorization_manifest.json"
 SOURCE_V3_I3_COMMIT = "23e7ff5c82fb28cd9fdd8e9e819e34b8fc9aacde"
 SOURCE_V3_I3A_COMMIT = "757d0672fc4409d7bc5076004bc3797d0c7b3cde"
 SOURCE_V3_V3_COMMIT = "03d0ed509fe7b65aee0162941a9f6a3b6fea228f"
@@ -99,6 +100,43 @@ FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f40
 RESULT_PATH = "reports/generated/pass201_cis_operator/pass201_inshop_seed0.json"
 SMOKE_RESULT_PATH = "reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json"
 SOURCE_V5_REPAIR_PLAN_COMMIT = "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e"
+SOURCE_V6_REPAIR_AMENDMENT_COMMIT = "c575ffc1a040530eeeb3e439d67d1d4b24fe92ac"
+SOURCE_V6_REPAIR_PLAN_COMMIT = "d5d061eee6a3be42a3d55b9f5a13a8467e3a9326"
+SOURCE_V5_HANDOFF_COMMIT = "18b225f33b61dd221d6878cf8b14eb75a0037323"
+SOURCE_V5_REVIEWED_SOURCE_COMMIT = "656b5f2069f76ee6d8c5079bee8ae6a371a89f69"
+SOURCE_V5_HANDOFF_TAG = "pass201-source-v5-handoff-18b225f"
+SOURCE_V6_DOCS_CHAIN = (
+    (
+        "622e145b2dfeafdf6a202c7012ad92813a2932c2",
+        SOURCE_V5_REVIEWED_SOURCE_COMMIT,
+        "A",
+        "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "a8119bcf4b97de6a7a948d75ffd393e64c406b10",
+        "622e145b2dfeafdf6a202c7012ad92813a2932c2",
+        "M",
+        "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "651920e80126d2c8f31b2acce6d04438fe0c12a8",
+        "a8119bcf4b97de6a7a948d75ffd393e64c406b10",
+        "A",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v5-output-mode-repair.md",
+    ),
+    (
+        SOURCE_V6_REPAIR_AMENDMENT_COMMIT,
+        "651920e80126d2c8f31b2acce6d04438fe0c12a8",
+        "M",
+        "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+    ),
+    (
+        SOURCE_V6_REPAIR_PLAN_COMMIT,
+        SOURCE_V6_REPAIR_AMENDMENT_COMMIT,
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v5-output-mode-repair.md",
+    ),
+)
 SOURCE_V4_HISTORICAL_SOURCE_COMMIT = "53a9db9e9dbe54fcebb33769b915c3f33699d522"
 SOURCE_V4_HISTORICAL_HANDOFF_COMMIT = "32c4d39322fca2a5a906f785bdb612dcd7008647"
 SOURCE_V4_HISTORICAL_TAG = "pass201-source-v4-handoff-32c4d39"
@@ -581,6 +619,65 @@ def _authenticate_source_v5_source_chain(root: Path, source_commit: str) -> None
     _require(aggregate == allowed, "source-v5 aggregate source scope differs")
 
 
+def _authenticate_source_v6_source_chain(root: Path, source_commit: str) -> None:
+    for commit, parent, status, path in SOURCE_V6_DOCS_CHAIN:
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", commit)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        _require(fields == [commit, parent], f"source-v6 docs parent differs: {commit}")
+        changed = _git_command_bytes(
+            root, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", commit
+        ).split(b"\0")
+        _require(
+            changed == [status.encode("ascii"), path.encode("utf-8"), b""],
+            f"source-v6 docs scope differs: {commit}",
+        )
+        tree = _git_command_bytes(root, "ls-tree", commit, "--", path).decode("utf-8")
+        _require(
+            tree.startswith("100644 blob ") and tree.endswith(f"\t{path}\n"),
+            f"source-v6 docs mode differs: {commit}",
+        )
+    current = source_commit
+    aggregate: set[str] = set()
+    allowed = {
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "tests/test_diagnose_pass201_cis_operator.py",
+        "tests/test_pass201_pa_source_v2_contract.py",
+    }
+    while current != SOURCE_V6_REPAIR_PLAN_COMMIT:
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", current)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        _require(len(fields) == 2, "source-v6 source chain must be merge-free")
+        entries = _git_command_bytes(
+            root, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", current
+        ).split(b"\0")
+        _require(entries[-1:] == [b""] and len(entries) > 1, "source-v6 source commit empty")
+        entries = entries[:-1]
+        _require(len(entries) % 2 == 0, "source-v6 source edge malformed")
+        changed_paths: set[str] = set()
+        for index in range(0, len(entries), 2):
+            _require(entries[index] == b"M", "source-v6 source edge status differs")
+            try:
+                changed_paths.add(entries[index + 1].decode("utf-8"))
+            except UnicodeDecodeError as error:
+                raise ValueError("source-v6 source path is not UTF-8") from error
+        _require(
+            changed_paths <= allowed,
+            "source-v6 source commit changes unauthorized path",
+        )
+        aggregate.update(changed_paths)
+        current = fields[1]
+    _require(aggregate == allowed, "source-v6 aggregate source scope differs")
+
+
 def _validate_source_v3_receipt_relations(
     authority: Any,
     receipt: Mapping[str, Any],
@@ -821,24 +918,41 @@ def _load_source_v3_authority(
     return SourceV3Authority(handoff, contract, authority, receipt)
 
 
-def _load_source_v5_authority(
-    *, root: Path, git_root: Path, manifest_path: Path, receipt_path: Path
+def _load_source_activation_authority(
+    *,
+    root: Path,
+    git_root: Path,
+    manifest_path: Path,
+    receipt_path: Path,
+    version: int,
 ) -> SourceV3Authority:
+    _require(version in (5, 6), "source activation version differs")
+    expected_path = (
+        SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+        if version == 5
+        else SOURCE_V6_AUTHORIZATION_MANIFEST_PATH
+    )
+    expected_schema = f"pass201-pa-source-v{version}-activation-v1"
     handoff = _authenticate_source_v3_git_handoff(
         root=root, git_root=git_root, manifest_path=manifest_path
     )
     _require(
-        manifest_path == root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
-        "source-v5 authorization manifest path differs",
+        manifest_path == root / expected_path,
+        f"source-v{version} authorization manifest path differs",
     )
-    _authenticate_source_v5_source_chain(root, handoff.source_commit)
+    source_chain = (
+        _authenticate_source_v5_source_chain
+        if version == 5
+        else _authenticate_source_v6_source_chain
+    )
+    source_chain(root, handoff.source_commit)
     bootstrap = _bootstrap_strict_json_object(
-        handoff.manifest_bytes, "source-v5 authorization manifest"
+        handoff.manifest_bytes, f"source-v{version} authorization manifest"
     )
     _require(
-        bootstrap.get("schema_version") == "pass201-pa-source-v5-activation-v1"
+        bootstrap.get("schema_version") == expected_schema
         and bootstrap.get("source_commit") == handoff.source_commit,
-        "source-v5 bootstrap authority differs",
+        f"source-v{version} bootstrap authority differs",
     )
     source = bootstrap.get("source")
     _require(type(source) is dict, "source-v5 source mapping")
@@ -961,7 +1075,63 @@ def _load_source_v5_authority(
         manifest_git_blob=_git_blob_sha1(historical_bytes),
     )
     _validate_source_v3_receipt_relations(historical_authority, receipt, historical_handoff)
+    if version == 6:
+        repair = authority.payload["output_mode_repair"]["prior_handoff"]
+        _require(
+            _git_command_bytes(root, "rev-parse", SOURCE_V5_HANDOFF_TAG)
+            .decode("ascii")
+            .strip()
+            == SOURCE_V5_HANDOFF_COMMIT,
+            "source-v5 preservation tag differs",
+        )
+        prior_fields = (
+            _git_command_bytes(
+                root, "rev-list", "--parents", "-n", "1", SOURCE_V5_HANDOFF_COMMIT
+            )
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        _require(
+            prior_fields == [SOURCE_V5_HANDOFF_COMMIT, SOURCE_V5_REVIEWED_SOURCE_COMMIT],
+            "source-v5 prior handoff parent differs",
+        )
+        prior_bytes = _git_command_bytes(
+            root,
+            "show",
+            f"{SOURCE_V5_HANDOFF_COMMIT}:{SOURCE_V5_AUTHORIZATION_MANIFEST_PATH}",
+        )
+        _require(
+            len(prior_bytes) == repair["manifest"]["bytes"]
+            and hashlib.sha256(prior_bytes).hexdigest() == repair["manifest"]["sha256"]
+            and _git_blob_sha1(prior_bytes) == repair["manifest"]["git_blob"],
+            "source-v5 prior handoff manifest identity differs",
+        )
     return SourceV3Authority(handoff, contract, authority, receipt)
+
+
+def _load_source_v5_authority(
+    *, root: Path, git_root: Path, manifest_path: Path, receipt_path: Path
+) -> SourceV3Authority:
+    return _load_source_activation_authority(
+        root=root,
+        git_root=git_root,
+        manifest_path=manifest_path,
+        receipt_path=receipt_path,
+        version=5,
+    )
+
+
+def _load_source_v6_authority(
+    *, root: Path, git_root: Path, manifest_path: Path, receipt_path: Path
+) -> SourceV3Authority:
+    return _load_source_activation_authority(
+        root=root,
+        git_root=git_root,
+        manifest_path=manifest_path,
+        receipt_path=receipt_path,
+        version=6,
+    )
 
 
 def _representative_tensor_indices(labels: Any, sample_indices: Any, torch: Any) -> Any:
@@ -2447,7 +2617,12 @@ def _validate_source_v3_binding(
 
 def _validate_source_v5_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     root = Path(args.root).resolve(strict=True)
-    bound = _load_source_v5_authority(
+    loader = (
+        _load_source_v6_authority
+        if Path(args.prelaunch_manifest) == root / SOURCE_V6_AUTHORIZATION_MANIFEST_PATH
+        else _load_source_v5_authority
+    )
+    bound = loader(
         root=root,
         git_root=Path(args.git_root),
         manifest_path=Path(args.prelaunch_manifest),
@@ -2482,6 +2657,8 @@ def _validate_source_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]
     if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v3-prelaunch-v1":
         return _validate_source_v3_binding(args)
     if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v5-activation-v1":
+        return _validate_source_v5_binding(args)
+    if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v6-activation-v1":
         return _validate_source_v5_binding(args)
     if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v4-prelaunch-v1":
         raise ValueError("source-v4 authorization is repair-required")
@@ -4190,6 +4367,80 @@ def _source_v5_current_rows(
     return rows
 
 
+def _build_source_v6_authority(
+    *,
+    prior_manifest: Mapping[str, Any],
+    source_commit: str,
+    source_files: Sequence[Mapping[str, Any]],
+    frozen_absence_checked_utc: str,
+) -> dict[str, Any]:
+    authorization = copy.deepcopy(prior_manifest["authorization"])
+    authorization["frozen_absence_checked_utc"] = frozen_absence_checked_utc
+    authorization["manifest_path"] = SOURCE_V6_AUTHORIZATION_MANIFEST_PATH
+    authorization["required_diff_paths"] = [SOURCE_V6_AUTHORIZATION_MANIFEST_PATH]
+    authorization["required_parent_commit"] = source_commit
+    source = copy.deepcopy(prior_manifest["source"])
+    source["files"] = [copy.deepcopy(dict(row)) for row in source_files]
+    repair = {
+        "amendment": {
+            "path": "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+            "sha256": "32133627314017b0ff62a7f4ad3da100619828f7bca08fd171df790e16e93c0d",
+            "commit": SOURCE_V6_REPAIR_AMENDMENT_COMMIT,
+        },
+        "plan": {
+            "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v5-output-mode-repair.md",
+            "sha256": "481eb45cf2b34fc008dd3731e23e89e4ac935579f05dc00cd1c118b8b05c5a2c",
+            "commit": SOURCE_V6_REPAIR_PLAN_COMMIT,
+        },
+        "prior_handoff": {
+            "commit": SOURCE_V5_HANDOFF_COMMIT,
+            "source_commit": SOURCE_V5_REVIEWED_SOURCE_COMMIT,
+            "manifest": {
+                "path": SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+                "bytes": 25097,
+                "sha256": "2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20",
+                "git_blob": "ac0c42d0f73bd5957e934c20f5b7ef33d80af3a9",
+            },
+            "preservation_ref": SOURCE_V5_HANDOFF_TAG,
+        },
+        "failed_activation": {
+            "pid": 1061572,
+            "exit_code": 1,
+            "error": "ValueError: source-v3 output evidence differs",
+            "activation_absent": True,
+            "source_manifest_absent": True,
+            "smoke_absent": True,
+            "scientific_absent": True,
+            "candidate_values_computed": False,
+            "gpu_process_launched": False,
+        },
+        "historical_output_mode": 0o100444,
+    }
+    return {
+        "authorization": authorization,
+        "controller": copy.deepcopy(prior_manifest["controller"]),
+        "dataset": copy.deepcopy(prior_manifest["dataset"]),
+        "execution": copy.deepcopy(prior_manifest["execution"]),
+        "historical_producer": copy.deepcopy(prior_manifest["historical_producer"]),
+        "output_mode_repair": repair,
+        "outputs": copy.deepcopy(prior_manifest["outputs"]),
+        "plan": copy.deepcopy(prior_manifest["plan"]),
+        "postconditions": copy.deepcopy(prior_manifest["postconditions"]),
+        "process_entry_amendment": copy.deepcopy(prior_manifest["process_entry_amendment"]),
+        "process_entry_evidence": copy.deepcopy(prior_manifest["process_entry_evidence"]),
+        "process_entry_plan": copy.deepcopy(prior_manifest["process_entry_plan"]),
+        "protocol": copy.deepcopy(prior_manifest["protocol"]),
+        "purpose": prior_manifest["purpose"],
+        "repair_amendment": copy.deepcopy(prior_manifest["repair_amendment"]),
+        "repair_plan": copy.deepcopy(prior_manifest["repair_plan"]),
+        "schema_version": "pass201-pa-source-v6-activation-v1",
+        "sidecars": copy.deepcopy(prior_manifest["sidecars"]),
+        "source": source,
+        "source_commit": source_commit,
+        "status": prior_manifest["status"],
+    }
+
+
 def _authenticate_source_v5_freezer_root(root: Path) -> tuple[str, bytes]:
     _require(
         Path(__file__).resolve(strict=True).parents[1] == root,
@@ -4318,6 +4569,107 @@ def freeze_source_v5_authority(
     return data
 
 
+def _authenticate_source_v6_freezer_root(root: Path) -> tuple[str, bytes]:
+    _require(
+        Path(__file__).resolve(strict=True).parents[1] == root,
+        "source-v6 root differs from executing checkout",
+    )
+    symbolic = subprocess.run(
+        ["git", "symbolic-ref", "-q", "HEAD"], cwd=root, capture_output=True
+    )
+    _require(symbolic.returncode == 1, "source-v6 freezer requires detached HEAD")
+    _require(
+        _git_command_bytes(root, "status", "--porcelain", "--untracked-files=no", "-z")
+        == b"",
+        "source-v6 freezer requires tracked-clean checkout",
+    )
+    head = _git_command_bytes(root, "rev-parse", "HEAD").decode("ascii").strip()
+    _authenticate_source_v6_source_chain(root, head)
+    _require(
+        _git_command_bytes(root, "rev-parse", SOURCE_V5_HANDOFF_TAG).decode("ascii").strip()
+        == SOURCE_V5_HANDOFF_COMMIT,
+        "source-v5 preservation tag differs",
+    )
+    fields = (
+        _git_command_bytes(root, "rev-list", "--parents", "-n", "1", SOURCE_V5_HANDOFF_COMMIT)
+        .decode("ascii")
+        .strip()
+        .split()
+    )
+    _require(
+        fields == [SOURCE_V5_HANDOFF_COMMIT, SOURCE_V5_REVIEWED_SOURCE_COMMIT],
+        "source-v5 handoff parent differs",
+    )
+    changed = _git_command_bytes(
+        root, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", SOURCE_V5_HANDOFF_COMMIT
+    ).split(b"\0")
+    _require(
+        changed == [b"A", SOURCE_V5_AUTHORIZATION_MANIFEST_PATH.encode("utf-8"), b""],
+        "source-v5 handoff scope differs",
+    )
+    prior_bytes = _git_command_bytes(
+        root, "show", f"{SOURCE_V5_HANDOFF_COMMIT}:{SOURCE_V5_AUTHORIZATION_MANIFEST_PATH}"
+    )
+    _require(
+        len(prior_bytes) == 25097
+        and hashlib.sha256(prior_bytes).hexdigest()
+        == "2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20"
+        and _git_blob_sha1(prior_bytes) == "ac0c42d0f73bd5957e934c20f5b7ef33d80af3a9",
+        "source-v5 handoff manifest differs",
+    )
+    return head, prior_bytes
+
+
+def freeze_source_v6_authority(
+    *, root: Path, output: Path, frozen_absence_checked_utc: str
+) -> bytes:
+    root = root.resolve(strict=True)
+    _require(output.is_absolute(), "source-v6 output must be absolute")
+    _require(output == output.resolve(strict=False), "source-v6 output must be normalized")
+    try:
+        parsed_utc = datetime.strptime(frozen_absence_checked_utc, "%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError) as error:
+        raise ValueError("source-v6 UTC evidence differs") from error
+    _require(
+        type(frozen_absence_checked_utc) is str
+        and parsed_utc.strftime("%Y-%m-%dT%H:%M:%SZ") == frozen_absence_checked_utc,
+        "source-v6 UTC evidence differs",
+    )
+    source_commit, prior_bytes = _authenticate_source_v6_freezer_root(root)
+    for relative in (
+        ACTIVATED_PREREGISTRATION_PATH,
+        SOURCE_MANIFEST_PATH,
+        SMOKE_RESULT_PATH,
+        RESULT_PATH,
+    ):
+        _require(
+            not (root / relative).exists() and not (root / relative).is_symlink(),
+            f"source-v6 frozen output exists: {relative}",
+        )
+    bootstrap = _bootstrap_strict_json_object(prior_bytes, "source-v5 prior authority")
+    paths = [row["path"] for row in bootstrap["source"]["files"]]
+    rows = _source_v5_current_rows(root, source_commit, paths)
+    contract = _load_authenticated_source_v3_contract(root, source_commit, rows[1])
+    prior = contract.load_strict_json_bytes(prior_bytes)
+    contract.validate_prelaunch(prior)
+    payload = _build_source_v6_authority(
+        prior_manifest=prior,
+        source_commit=source_commit,
+        source_files=rows,
+        frozen_absence_checked_utc=frozen_absence_checked_utc,
+    )
+    contract.validate_prelaunch(payload)
+    data = contract.canonical_ordered_json_bytes(payload)
+    reloaded = contract.load_strict_json_bytes(data)
+    contract.validate_prelaunch(reloaded)
+    _require(
+        reloaded == payload and contract.canonical_ordered_json_bytes(reloaded) == data,
+        "source-v6 persisted authority differs",
+    )
+    _publish_source_v5_candidate(output, data)
+    return data
+
+
 def _build_cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Bound Pass201 CIS operator diagnostic")
     modes = parser.add_mutually_exclusive_group(required=True)
@@ -4327,6 +4679,7 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     modes.add_argument("--smoke-only", action="store_true")
     modes.add_argument("--scientific", action="store_true")
     modes.add_argument("--freeze-v5-authority", action="store_true")
+    modes.add_argument("--freeze-v6-authority", action="store_true")
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--git-root", type=Path)
     parser.add_argument("--prelaunch-manifest", type=Path)
@@ -4351,7 +4704,7 @@ def _default_cli_paths(args: Any) -> None:
     args.root = root
     defaults = {
         "git_root": root,
-        "prelaunch_manifest": root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_manifest": root / SOURCE_V6_AUTHORIZATION_MANIFEST_PATH,
         "source_report": root / "reports/generated/pass201_source_v3/run-v3/report.json",
         "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
         "checkpoint": root / "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
@@ -4369,15 +4722,15 @@ def _default_cli_paths(args: Any) -> None:
 
 def _validate_source_v3_public_controller_args(args: Any) -> None:
     root = Path(args.root).resolve(strict=True)
-    expected = root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+    expected = root / SOURCE_V6_AUTHORIZATION_MANIFEST_PATH
     _require(
         args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,
-        "source-v5 runtime factories are forbidden",
+        "source-v6 runtime factories are forbidden",
     )
     _require(
         Path(args.prelaunch_manifest) == expected,
         "source-v4 authorization is repair-required; public controller requires the "
-        "literal source-v5 authorization manifest path",
+        "literal source-v6 authorization manifest path",
     )
     executing_root = Path(__file__).resolve(strict=True).parents[1]
     _require(root == executing_root, "public controller root differs from executing checkout")
@@ -4430,8 +4783,48 @@ def _dispatch_source_v5_freezer(args: Any) -> None:
     )
 
 
+def _dispatch_source_v6_freezer(args: Any) -> None:
+    incompatible = (
+        "git_root",
+        "prelaunch_manifest",
+        "source_report",
+        "source_receipt",
+        "checkpoint",
+        "resolved_config",
+        "train_manifest",
+        "dataset_root",
+        "diagnostic_path",
+        "activated_preregistration",
+        "source_manifest",
+        "process_output",
+        "runtime_factory",
+    )
+    supplied = [name for name in incompatible if getattr(args, name) is not None]
+    if supplied:
+        raise ValueError(f"source-v6 freezer incompatible argument: {supplied[0]}")
+    _require(args.output is not None, "source-v6 freezer requires --output")
+    _require(
+        args.frozen_absence_checked_utc is not None,
+        "source-v6 freezer requires --frozen-absence-checked-utc",
+    )
+    raw_root = Path(args.root)
+    _require(raw_root.is_absolute(), "source-v6 freezer root must be absolute")
+    _require(
+        raw_root == raw_root.resolve(strict=True),
+        "source-v6 freezer root must be normalized",
+    )
+    freeze_source_v6_authority(
+        root=raw_root,
+        output=Path(args.output),
+        frozen_absence_checked_utc=args.frozen_absence_checked_utc,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     args = _build_cli_parser().parse_args(argv)
+    if args.freeze_v6_authority:
+        _dispatch_source_v6_freezer(args)
+        return
     if args.freeze_v5_authority:
         _dispatch_source_v5_freezer(args)
         return
@@ -4447,6 +4840,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
             SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
             SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V6_AUTHORIZATION_MANIFEST_PATH,
         ):
             _require(
                 args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,

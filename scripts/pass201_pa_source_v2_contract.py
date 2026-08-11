@@ -471,6 +471,7 @@ def _validate_python_package_evidence(
         "pass201-pa-source-v4-prelaunch-v1",
         "pass201-pa-source-v4-receipt-v1",
         "pass201-pa-source-v5-activation-v1",
+        "pass201-pa-source-v6-activation-v1",
     ):
         expected_order = ["algorithm", "bytes", "distribution_count", "sha256"]
         obj = _keys(value, set(expected_order), where)
@@ -610,16 +611,20 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     schema_version = raw.get("schema_version")
     is_v4 = schema_version == "pass201-pa-source-v4-prelaunch-v1"
     is_v5 = schema_version == "pass201-pa-source-v5-activation-v1"
+    is_v6 = schema_version == "pass201-pa-source-v6-activation-v1"
+    is_activation = is_v5 or is_v6
     is_source_v3 = schema_version in (
         "pass201-pa-source-v3-prelaunch-v1",
         "pass201-pa-source-v4-prelaunch-v1",
         "pass201-pa-source-v5-activation-v1",
+        "pass201-pa-source-v6-activation-v1",
     )
     if schema_version not in (
         "pass201-pa-source-v2-prelaunch-v1",
         "pass201-pa-source-v3-prelaunch-v1",
         "pass201-pa-source-v4-prelaunch-v1",
         "pass201-pa-source-v5-activation-v1",
+        "pass201-pa-source-v6-activation-v1",
     ):
         raise ValueError("schema_version: unsupported source schema")
     top_keys = {
@@ -638,25 +643,28 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     }
     if is_source_v3:
         top_keys |= {"protocol", "plan"}
-    if is_v4 or is_v5:
+    if is_v4 or is_activation:
         top_keys |= {
             "process_entry_amendment",
             "process_entry_plan",
             "process_entry_evidence",
         }
-    if is_v5:
+    if is_activation:
         top_keys |= {"historical_producer", "repair_amendment", "repair_plan"}
+    if is_v6:
+        top_keys |= {"output_mode_repair"}
     top = _keys(
         payload,
         top_keys,
         "prelaunch",
     )
-    if is_v5 and list(top) != [
+    activation_order = [
         "authorization",
         "controller",
         "dataset",
         "execution",
         "historical_producer",
+        *(("output_mode_repair",) if is_v6 else ()),
         "outputs",
         "plan",
         "postconditions",
@@ -672,8 +680,9 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         "source",
         "source_commit",
         "status",
-    ]:
-        raise ValueError("prelaunch: source-v5 key order")
+    ]
+    if is_activation and list(top) != activation_order:
+        raise ValueError("prelaunch: activation key order")
     if is_source_v3:
         _authority_reference(
             top["protocol"],
@@ -689,7 +698,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
             "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
             "f38af4465333f4e50c08b1c30c10aa9f06829f43",
         )
-    if is_v4 or is_v5:
+    if is_v4 or is_activation:
         for key, commit, path, sha256 in (
             (
                 "process_entry_amendment",
@@ -737,15 +746,19 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         "authorization",
     )
     manifest_path = (
-        "docs/pass201_pa_source_v5_authorization_manifest.json"
-        if is_v5
+        "docs/pass201_pa_source_v6_authorization_manifest.json"
+        if is_v6
         else (
-            "docs/pass201_pa_source_v4_authorization_manifest.json"
-            if is_v4
+            "docs/pass201_pa_source_v5_authorization_manifest.json"
+            if is_v5
             else (
-                "docs/pass201_pa_source_v3_authorization_manifest.json"
-                if is_source_v3
-                else "docs/pass201_pa_source_v2_prelaunch.json"
+                "docs/pass201_pa_source_v4_authorization_manifest.json"
+                if is_v4
+                else (
+                    "docs/pass201_pa_source_v3_authorization_manifest.json"
+                    if is_source_v3
+                    else "docs/pass201_pa_source_v2_prelaunch.json"
+                )
             )
         )
     )
@@ -763,7 +776,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _str(auth["frozen_absence_checked_utc"], "authorization.frozen_absence_checked_utc")
     absence_keys = (
         {"activated_preregistration", "result", "smoke", "source_manifest"}
-        if is_v5
+        if is_activation
         else {
             "run_directory",
             "report",
@@ -775,7 +788,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         }
     )
     absence = _keys(auth["frozen_absence"], absence_keys, "authorization.frozen_absence")
-    if is_v5 and list(absence) != [
+    if is_activation and list(absence) != [
         "activated_preregistration",
         "result",
         "smoke",
@@ -806,9 +819,13 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _file(source["pyproject"], "source.pyproject")
     _file(source["lockfile"], "source.lockfile")
     _str(source["equivalence_test_id"], "source.equivalence_test_id")
-    (_validate_outputs_v5 if is_v5 else _validate_outputs)(top["outputs"], schema_version)
-    if is_v5:
+    (_validate_outputs_v5 if is_activation else _validate_outputs)(
+        top["outputs"], schema_version
+    )
+    if is_activation:
         _validate_source_v5_provenance(top)
+    if is_v6:
+        _validate_source_v6_repair(top)
     execution = _keys(
         top["execution"],
         {
@@ -1128,6 +1145,138 @@ def _validate_source_v5_provenance(top: dict[str, Any]) -> None:
             expected_sha256,
             f"historical_producer.outputs.{name}.sha256",
         )
+
+
+def _validate_source_v6_repair(top: dict[str, Any]) -> None:
+    repair = _keys(
+        top["output_mode_repair"],
+        {
+            "amendment",
+            "plan",
+            "prior_handoff",
+            "failed_activation",
+            "historical_output_mode",
+        },
+        "output_mode_repair",
+    )
+    if list(repair) != [
+        "amendment",
+        "plan",
+        "prior_handoff",
+        "failed_activation",
+        "historical_output_mode",
+    ]:
+        raise ValueError("output_mode_repair: key order")
+    for key, path, sha256, commit in (
+        (
+            "amendment",
+            "docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md",
+            "32133627314017b0ff62a7f4ad3da100619828f7bca08fd171df790e16e93c0d",
+            "c575ffc1a040530eeeb3e439d67d1d4b24fe92ac",
+        ),
+        (
+            "plan",
+            "docs/superpowers/plans/2026-08-11-pass201-pa-source-v5-output-mode-repair.md",
+            "481eb45cf2b34fc008dd3731e23e89e4ac935579f05dc00cd1c118b8b05c5a2c",
+            "d5d061eee6a3be42a3d55b9f5a13a8467e3a9326",
+        ),
+    ):
+        if list(repair[key]) != ["path", "sha256", "commit"]:
+            raise ValueError(f"output_mode_repair.{key}: key order")
+        _authority_reference(repair[key], f"output_mode_repair.{key}", path, sha256, commit)
+    prior = _keys(
+        repair["prior_handoff"],
+        {"commit", "source_commit", "manifest", "preservation_ref"},
+        "output_mode_repair.prior_handoff",
+    )
+    if list(prior) != ["commit", "source_commit", "manifest", "preservation_ref"]:
+        raise ValueError("output_mode_repair.prior_handoff: key order")
+    _literal(
+        prior["commit"],
+        "18b225f33b61dd221d6878cf8b14eb75a0037323",
+        "output_mode_repair.prior_handoff.commit",
+    )
+    _literal(
+        prior["source_commit"],
+        "656b5f2069f76ee6d8c5079bee8ae6a371a89f69",
+        "output_mode_repair.prior_handoff.source_commit",
+    )
+    manifest = _keys(
+        prior["manifest"],
+        {"path", "bytes", "sha256", "git_blob"},
+        "output_mode_repair.prior_handoff.manifest",
+    )
+    if list(manifest) != ["path", "bytes", "sha256", "git_blob"]:
+        raise ValueError("output_mode_repair.prior_handoff.manifest: key order")
+    _literal(
+        manifest["path"],
+        "docs/pass201_pa_source_v5_authorization_manifest.json",
+        "output_mode_repair.prior_handoff.manifest.path",
+    )
+    _int(manifest["bytes"], "output_mode_repair.prior_handoff.manifest.bytes", literal=25097)
+    _literal(
+        manifest["sha256"],
+        "2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20",
+        "output_mode_repair.prior_handoff.manifest.sha256",
+    )
+    _literal(
+        manifest["git_blob"],
+        "ac0c42d0f73bd5957e934c20f5b7ef33d80af3a9",
+        "output_mode_repair.prior_handoff.manifest.git_blob",
+    )
+    _literal(
+        prior["preservation_ref"],
+        "pass201-source-v5-handoff-18b225f",
+        "output_mode_repair.prior_handoff.preservation_ref",
+    )
+    failed = _keys(
+        repair["failed_activation"],
+        {
+            "pid",
+            "exit_code",
+            "error",
+            "activation_absent",
+            "source_manifest_absent",
+            "smoke_absent",
+            "scientific_absent",
+            "candidate_values_computed",
+            "gpu_process_launched",
+        },
+        "output_mode_repair.failed_activation",
+    )
+    if list(failed) != [
+        "pid",
+        "exit_code",
+        "error",
+        "activation_absent",
+        "source_manifest_absent",
+        "smoke_absent",
+        "scientific_absent",
+        "candidate_values_computed",
+        "gpu_process_launched",
+    ]:
+        raise ValueError("output_mode_repair.failed_activation: key order")
+    _int(failed["pid"], "output_mode_repair.failed_activation.pid", literal=1061572)
+    _int(failed["exit_code"], "output_mode_repair.failed_activation.exit_code", literal=1)
+    _literal(
+        failed["error"],
+        "ValueError: source-v3 output evidence differs",
+        "output_mode_repair.failed_activation.error",
+    )
+    for key in (
+        "activation_absent",
+        "source_manifest_absent",
+        "smoke_absent",
+        "scientific_absent",
+    ):
+        _true(failed[key], f"output_mode_repair.failed_activation.{key}")
+    for key in ("candidate_values_computed", "gpu_process_launched"):
+        _literal(failed[key], False, f"output_mode_repair.failed_activation.{key}")
+    _int(
+        repair["historical_output_mode"],
+        "output_mode_repair.historical_output_mode",
+        literal=0o100444,
+    )
 
 
 def _validate_outputs_v5(value: object, _schema_version: object) -> None:
@@ -2859,6 +3008,8 @@ def _output_evidence(value: object, where: str) -> OutputEvidence:
 def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) -> CompleteReceipt:
     if authority.payload["schema_version"] == "pass201-pa-source-v5-activation-v1":
         raise ValueError("v5 activation authorities have no source-training receipt")
+    if authority.payload["schema_version"] == "pass201-pa-source-v6-activation-v1":
+        raise ValueError("v6 activation authorities have no source-training receipt")
     _validate_json_native(payload)
     top = _keys(
         payload,
