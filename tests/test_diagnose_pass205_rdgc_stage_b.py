@@ -1217,14 +1217,10 @@ def _authority_repository(
             for seed, record in enumerate(validated_historical_records)
         },
     }
-    caller_shaped_historical_manifest = deepcopy(validated_historical_manifest)
-    caller_shaped_historical_manifest["seeds"]["0"]["checkpoint_pt"]["path"] = (
-        "artifacts/caller-selected-checkpoint.pt"
-    )
     historical_manifest_path = repository / _MODULE.RSTA_MANIFEST_PATH
     historical_manifest_path.parent.mkdir(parents=True, exist_ok=True)
     historical_manifest_path.write_text(
-        json.dumps(caller_shaped_historical_manifest, separators=(",", ":")) + "\n"
+        json.dumps(validated_historical_manifest, separators=(",", ":")) + "\n"
     )
     historical_manifest_sha256 = hashlib.sha256(
         historical_manifest_path.read_bytes()
@@ -1456,7 +1452,12 @@ def _authority_repository(
         def validate_scientific_execution_source(path: Path) -> dict[str, object]:
             assert path == historical_manifest_path.resolve()
             validator_calls.append("source")
-            return deepcopy(validated_historical_manifest)
+            return {
+                "executing_git_commit": "1" * 40,
+                "diagnostic_path": "scripts/diagnose_pass200_rsta_stage_a.py",
+                "diagnostic_sha256": "2" * 64,
+                "frozen_source_revision": "3" * 40,
+            }
 
         @staticmethod
         def validate_historical_binding_receipt(
@@ -1501,8 +1502,14 @@ def test_authority_binds_linear_handoff_sources_and_receipt(
     assert value["validation_receipt"]["status"] == "VALID"
     assert len(value["files"]) == 33
     assert _MODULE._TEST_VALIDATOR_CALLS == ["load_pass200", "source", "receipt", "derive"]
-    assert value["validated_historical_manifest"] != json.loads(
+    assert value["validated_historical_manifest"] == json.loads(
         (repository / _MODULE.RSTA_MANIFEST_PATH).read_text()
+    )
+    assert tuple(value["pass200_source_validation"]) == (
+        "executing_git_commit",
+        "diagnostic_path",
+        "diagnostic_sha256",
+        "frozen_source_revision",
     )
 
 
@@ -2301,6 +2308,20 @@ def test_repaired_seed_schema_is_derived_from_validated_pass200_authorities() ->
     assert records[0]["train_source_export_sha256"] == (
         receipt.seeds[0].train_source_export_sha256
     )
+
+
+def test_real_pass200_source_validator_returns_execution_audit_not_manifest() -> None:
+    audit = _RSTA.validate_scientific_execution_source(
+        _ROOT / _MODULE.RSTA_MANIFEST_PATH
+    )
+    assert tuple(audit) == (
+        "executing_git_commit",
+        "diagnostic_path",
+        "diagnostic_sha256",
+        "frozen_source_revision",
+    )
+    assert "binding_receipt" not in audit
+    assert "seeds" not in audit
 
 
 def test_repaired_seed_schema_rejects_recursive_shape_type_and_relation_drift() -> None:

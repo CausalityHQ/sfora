@@ -1474,11 +1474,17 @@ def authenticate_authority(
         RDGC_SOURCE_ORDER.index("scripts/diagnose_pass200_rsta_stage_a.py")
     ]
     pass200_module = load_authenticated_rsta_module(repository, pass200_source)
-    validated_historical_manifest = pass200_module.validate_scientific_execution_source(
+    pass200_source_validation = pass200_module.validate_scientific_execution_source(
         historical_manifest_path
     )
-    if type(validated_historical_manifest) is not dict:
+    if type(pass200_source_validation) is not dict or tuple(pass200_source_validation) != (
+        "executing_git_commit",
+        "diagnostic_path",
+        "diagnostic_sha256",
+        "frozen_source_revision",
+    ):
         raise ValueError("Pass 200 scientific source validator returned invalid authority")
+    validated_historical_manifest = _strict_json(historical_manifest_path)
     historical_receipt_ref = validated_historical_manifest.get("binding_receipt")
     if (
         type(historical_receipt_ref) is not dict
@@ -1503,6 +1509,7 @@ def authenticate_authority(
         "files": files,
         "validation_receipt": receipt_ref,
         "pass200_module": pass200_module,
+        "pass200_source_validation": pass200_source_validation,
         "validated_historical_manifest": validated_historical_manifest,
         "validated_binding_receipt": validated_binding_receipt,
     }
