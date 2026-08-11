@@ -115,14 +115,25 @@ exact external collision in the fourteen-source corpus; none was found.
 
 The prior strong full-motion and norm-ratio observations are hypothesis
 generation only. They are not RDGC validation evidence. However, the original
-candidate's `E_r,180` statistic is effectively the same full/diagonal absolute
-log-norm ratio already observed under RSTA (apart from epsilon and fresh rows).
-Its preregistered low threshold was therefore contaminated and cannot serve as
-a fresh SURVIVE or CLOSE predicate. The repaired diagnostic must retain
-`E_r,180` and its seed/context summaries transparently as descriptive evidence
-but remove both corresponding decision clauses. No replacement threshold may
-be selected from the prior value. The other receiver-specificity, context,
-heterogeneity, and global-scalar predicates remain fresh and binding.
+candidate's `E_r,180` endpoint statistic is effectively the same
+full/diagonal absolute log-norm ratio already observed under RSTA (apart from
+epsilon and fresh rows). Its preregistered direct level threshold was therefore
+contaminated and cannot serve as a fresh SURVIVE or CLOSE predicate. The
+repaired diagnostic must retain `E_r,180` and its seed/context summaries
+transparently as descriptive evidence but remove both direct full-gain decision
+clauses. No replacement endpoint threshold may be selected from the prior
+value.
+
+The paired contributor-sensitivity contrast
+`C_r = E_r,180 - E_r,8` remains decision-bearing. RSTA observed neither
+`E_r,8` nor the same-receiver paired difference on RDGC's fresh rows. A large
+marginal endpoint does not determine the sign or size of this difference:
+`E_r,8` may be equal, larger, or smaller. `C_r` can still close the candidate
+when eight contributors already explain as much mismatch as all 180. This
+distinction is exact: direct endpoint levels and their seed summaries are
+descriptive; only the fresh paired contrast may consume `E_r,180` in a
+predicate. The count-sensitivity, context, heterogeneity, and global-scalar
+predicates remain fresh and binding.
 
 ## Narrow claim and mandatory falsifiers
 
@@ -148,9 +159,11 @@ comparisons intact:
 7. layerwise LARS-style trust-ratio direction.
 
 The fresh nested-contributor preliminary must close RDGC before the expensive
-panel if the receiver-specific diagonal reference aliases a global scalar,
-lacks stable context transfer, or lacks material heterogeneity. `E_r,180`
-remains recorded but non-gating. If the preliminary survives,
+panel if its full-versus-eight contributor contrast is nonpositive, the
+receiver-specific diagonal reference aliases a global scalar, context transfer
+is nonpositive, or receiver heterogeneity is negligible. Direct `E_r,180`
+endpoint levels remain descriptive; the endpoint participates in decisions
+only through the fresh paired `C_r` contrast. If the preliminary survives,
 the full panel must show paired lower-bound and seed-consistent improvements in
 both alignment and margin slope against Proxy Anchor and every control, while
 also rejecting correction-direction aliasing. The repaired CLOSE predicates
