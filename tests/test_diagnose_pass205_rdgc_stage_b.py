@@ -1194,6 +1194,41 @@ def _authority_repository(
     _git(repository, "add", str(original_plan_path.relative_to(repository)))
     _git(repository, "commit", "-qm", "original plan")
     original_plan_commit = _git(repository, "rev-parse", "HEAD")
+    future = _future_manifest()
+    historical_receipt_path = repository / "reports/pass200-binding-receipt.json"
+    historical_receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    historical_receipt_path.write_text("{}\n")
+    validated_historical_records = deepcopy(future["historical"]["seeds"])
+    validated_historical_records[0]["checkpoint"]["path"] = (
+        "artifacts/validator-selected-checkpoint.pt"
+    )
+    validated_historical_manifest = {
+        "binding_receipt": {
+            "path": str(historical_receipt_path.relative_to(repository)),
+            "sha256": hashlib.sha256(historical_receipt_path.read_bytes()).hexdigest(),
+        },
+        "seeds": {
+            str(seed): {
+                "checkpoint_pt": dict(record["checkpoint"]),
+                "report_json": dict(record["training_report"]),
+                "retrieval_json": dict(record["retrieval_report"]),
+                "train_npz": dict(record["train_final_pack"]),
+            }
+            for seed, record in enumerate(validated_historical_records)
+        },
+    }
+    caller_shaped_historical_manifest = deepcopy(validated_historical_manifest)
+    caller_shaped_historical_manifest["seeds"]["0"]["checkpoint_pt"]["path"] = (
+        "artifacts/caller-selected-checkpoint.pt"
+    )
+    historical_manifest_path = repository / _MODULE.RSTA_MANIFEST_PATH
+    historical_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    historical_manifest_path.write_text(
+        json.dumps(caller_shaped_historical_manifest, separators=(",", ":")) + "\n"
+    )
+    historical_manifest_sha256 = hashlib.sha256(
+        historical_manifest_path.read_bytes()
+    ).hexdigest()
     for source_path in _MODULE.RDGC_SOURCE_ORDER:
         path = repository / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1204,7 +1239,14 @@ def _authority_repository(
     test_path = repository / "tests/test_diagnose_pass205_rdgc_stage_b.py"
     test_path.parent.mkdir(parents=True, exist_ok=True)
     test_path.write_text("# test\n")
-    _git(repository, "add", *(_MODULE.RDGC_SOURCE_ORDER), str(test_path.relative_to(repository)))
+    _git(
+        repository,
+        "add",
+        *(_MODULE.RDGC_SOURCE_ORDER),
+        str(test_path.relative_to(repository)),
+        str(historical_manifest_path.relative_to(repository)),
+        str(historical_receipt_path.relative_to(repository)),
+    )
     _git(repository, "commit", "-qm", "initial source")
     initial_source_commit = _git(repository, "rev-parse", "HEAD")
     design_path = repository / _MODULE.REPAIR_DESIGN_PATH
@@ -1241,9 +1283,11 @@ def _authority_repository(
     )
     _git(repository, "commit", "-qm", "repaired source")
     source_commit = _git(repository, "rev-parse", "HEAD")
-    receipt_path = repository / "reports/validation.json"
-    receipt_path.parent.mkdir(parents=True)
+    receipt_path = repository / _MODULE.RSTA_VALIDATION_RECEIPT_PATH
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
     receipt = _real_roundtrip_receipt()
+    receipt["verifier_provenance"]["source_commit"] = original_plan_commit
+    receipt["verifier_provenance"]["handoff_commit"] = initial_source_commit
     _VERIFIER.write_validation_receipt_atomic(receipt_path, receipt)
     source_files = []
     for source_path in _MODULE.RDGC_SOURCE_ORDER:
@@ -1256,34 +1300,40 @@ def _authority_repository(
             }
         )
     manifest_path = repository / "docs/pass205_rdgc_stage_b_manifest.json"
-    future = _future_manifest()
-    historical_receipt_path = repository / "reports/pass200-binding-receipt.json"
-    historical_receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    historical_receipt_path.write_text("{}\n")
-    validated_historical_manifest = {
-        "binding_receipt": {
-            "path": str(historical_receipt_path.relative_to(repository)),
-            "sha256": hashlib.sha256(historical_receipt_path.read_bytes()).hexdigest(),
-        },
-        "seeds": {
-            str(seed): {
-                "checkpoint_pt": dict(record["checkpoint"]),
-                "report_json": dict(record["training_report"]),
-                "retrieval_json": dict(record["retrieval_report"]),
-                "train_npz": dict(record["train_final_pack"]),
-            }
-            for seed, record in enumerate(future["historical"]["seeds"])
-        },
+    historical = {
+        "manifest_path": str(historical_manifest_path.relative_to(repository)),
+        "manifest_sha256": historical_manifest_sha256,
+        "seeds": validated_historical_records,
     }
-    historical_manifest_path = repository / future["historical"]["manifest_path"]
-    historical_manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    historical_manifest_path.write_text(
-        json.dumps(validated_historical_manifest, separators=(",", ":")) + "\n"
-    )
-    historical = deepcopy(future["historical"])
-    historical["manifest_sha256"] = hashlib.sha256(
-        historical_manifest_path.read_bytes()
-    ).hexdigest()
+    upstream = {
+        "candidate": {
+            "path": _MODULE.CANDIDATE_PATH,
+            "sha256": hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
+            "commit": candidate_commit,
+        },
+        "gate2_audit": {
+            "path": _MODULE.LITERATURE_AUDIT_PATH,
+            "sha256": hashlib.sha256(audit_path.read_bytes()).hexdigest(),
+            "commit": audit_commit,
+        },
+        "producer_source_commit": candidate_commit,
+        "producer_handoff_commit": original_plan_commit,
+        "producer_artifact": {
+            "path": receipt["artifact"]["path"],
+            "sha256": receipt["artifact"]["sha256"],
+        },
+        "producer_pid": receipt["artifact"]["producer_pid"],
+        "producer_exit_code": receipt["artifact"]["producer_exit_code"],
+        "verifier_source_commit": original_plan_commit,
+        "verifier_handoff_commit": initial_source_commit,
+        "verifier_manifest": {
+            "path": str(historical_manifest_path.relative_to(repository)),
+            "sha256": historical_manifest_sha256,
+        },
+        "scientific_status": "VALID",
+        "scientific_decision": "UNRESOLVED",
+        "first_decisive_clause": "no_pass_or_fail_rule",
+    }
     manifest = {
         "schema_version": 1,
         "candidate": {
@@ -1296,7 +1346,7 @@ def _authority_repository(
             "sha256": hashlib.sha256(plan_path.read_bytes()).hexdigest(),
             "commit": plan_commit,
         },
-        "upstream_rsta": future["upstream_rsta"],
+        "upstream_rsta": upstream,
         "literature_audit": {
             "path": _MODULE.LITERATURE_AUDIT_PATH,
             "sha256": hashlib.sha256(audit_path.read_bytes()).hexdigest(),
@@ -1311,8 +1361,8 @@ def _authority_repository(
             "path": str(receipt_path.relative_to(repository)),
             "sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
             "status": "VALID",
-            "verifier_source_commit": "e" * 40,
-            "verifier_handoff_commit": "f" * 40,
+            "verifier_source_commit": original_plan_commit,
+            "verifier_handoff_commit": initial_source_commit,
             "artifact_path": receipt["artifact"]["path"],
             "artifact_sha256": receipt["artifact"]["sha256"],
         },
@@ -1351,6 +1401,34 @@ def _authority_repository(
     )
     monkeypatch.setattr(_MODULE, "PLAN_COMMIT", plan_commit)
     monkeypatch.setattr(_MODULE, "PLAN_SHA256", hashlib.sha256(plan_path.read_bytes()).hexdigest())
+    monkeypatch.setattr(_MODULE, "RSTA_CANDIDATE_PATH", _MODULE.CANDIDATE_PATH)
+    monkeypatch.setattr(_MODULE, "RSTA_CANDIDATE_COMMIT", candidate_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "RSTA_CANDIDATE_SHA256",
+        hashlib.sha256(candidate_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(_MODULE, "RSTA_GATE2_AUDIT_PATH", _MODULE.LITERATURE_AUDIT_PATH)
+    monkeypatch.setattr(_MODULE, "RSTA_GATE2_AUDIT_COMMIT", audit_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "RSTA_GATE2_AUDIT_SHA256",
+        hashlib.sha256(audit_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(_MODULE, "RSTA_PRODUCER_SOURCE_COMMIT", candidate_commit)
+    monkeypatch.setattr(_MODULE, "RSTA_PRODUCER_HANDOFF_COMMIT", original_plan_commit)
+    monkeypatch.setattr(_MODULE, "RSTA_ARTIFACT_PATH", receipt["artifact"]["path"])
+    monkeypatch.setattr(_MODULE, "RSTA_ARTIFACT_SHA256", receipt["artifact"]["sha256"])
+    monkeypatch.setattr(_MODULE, "RSTA_PRODUCER_PID", receipt["artifact"]["producer_pid"])
+    monkeypatch.setattr(_MODULE, "RSTA_VERIFIER_SOURCE_COMMIT", original_plan_commit)
+    monkeypatch.setattr(_MODULE, "RSTA_VERIFIER_HANDOFF_COMMIT", initial_source_commit)
+    monkeypatch.setattr(
+        _MODULE, "RSTA_MANIFEST_PATH", str(historical_manifest_path.relative_to(repository))
+    )
+    monkeypatch.setattr(_MODULE, "RSTA_MANIFEST_SHA256", historical_manifest_sha256)
+    monkeypatch.setattr(
+        _MODULE, "RSTA_VALIDATION_RECEIPT_PATH", str(receipt_path.relative_to(repository))
+    )
     monkeypatch.setattr(_MODULE, "REOPENED_SOURCE_COMMIT", initial_source_commit)
     monkeypatch.setattr(
         _MODULE,
@@ -1390,6 +1468,7 @@ def _authority_repository(
             return validated_receipt
 
     real_loader = _MODULE.load_authenticated_rsta_module
+    real_derive = _MODULE.derive_rdgc_seed_artifacts
 
     def load_authority_module(
         repository_arg: Path, source: dict[str, object]
@@ -1400,6 +1479,11 @@ def _authority_repository(
         return real_loader(repository_arg, source)
 
     monkeypatch.setattr(_MODULE, "load_authenticated_rsta_module", load_authority_module)
+    def recorded_derive(manifest_arg: object, receipt_arg: object) -> list[dict[str, object]]:
+        validator_calls.append("derive")
+        return real_derive(manifest_arg, receipt_arg)
+
+    monkeypatch.setattr(_MODULE, "derive_rdgc_seed_artifacts", recorded_derive)
     monkeypatch.setattr(_MODULE, "_TEST_VALIDATOR_CALLS", validator_calls, raising=False)
     monkeypatch.setattr(
         _MODULE, "_TEST_INITIAL_SOURCE_COMMIT", initial_source_commit, raising=False
@@ -1416,7 +1500,10 @@ def test_authority_binds_linear_handoff_sources_and_receipt(
     assert value["handoff_commit"] == _git(repository, "rev-parse", "HEAD")
     assert value["validation_receipt"]["status"] == "VALID"
     assert len(value["files"]) == 33
-    assert _MODULE._TEST_VALIDATOR_CALLS == ["load_pass200", "source", "receipt"]
+    assert _MODULE._TEST_VALIDATOR_CALLS == ["load_pass200", "source", "receipt", "derive"]
+    assert value["validated_historical_manifest"] != json.loads(
+        (repository / _MODULE.RSTA_MANIFEST_PATH).read_text()
+    )
 
 
 def test_authority_rejects_skipped_repair_chronology_commit(
@@ -2219,7 +2306,6 @@ def test_repaired_seed_schema_rejects_recursive_shape_type_and_relation_drift() 
 
 
 def _future_manifest() -> dict[str, object]:
-    reference = {"path": "docs/value.md", "sha256": "d" * 64, "commit": "e" * 40}
     artifact = {"path": "artifacts/value.json", "sha256": "f" * 64}
     seeds = [
         {
@@ -2249,16 +2335,30 @@ def _future_manifest() -> dict[str, object]:
             "commit": _MODULE.PLAN_COMMIT,
         },
         "upstream_rsta": {
-            "candidate": dict(reference),
-            "gate2_audit": dict(reference),
-            "producer_source_commit": "1" * 40,
-            "producer_handoff_commit": "2" * 40,
-            "producer_artifact": dict(artifact),
-            "producer_pid": 1002393,
+            "candidate": {
+                "path": _MODULE.RSTA_CANDIDATE_PATH,
+                "sha256": _MODULE.RSTA_CANDIDATE_SHA256,
+                "commit": _MODULE.RSTA_CANDIDATE_COMMIT,
+            },
+            "gate2_audit": {
+                "path": _MODULE.RSTA_GATE2_AUDIT_PATH,
+                "sha256": _MODULE.RSTA_GATE2_AUDIT_SHA256,
+                "commit": _MODULE.RSTA_GATE2_AUDIT_COMMIT,
+            },
+            "producer_source_commit": _MODULE.RSTA_PRODUCER_SOURCE_COMMIT,
+            "producer_handoff_commit": _MODULE.RSTA_PRODUCER_HANDOFF_COMMIT,
+            "producer_artifact": {
+                "path": _MODULE.RSTA_ARTIFACT_PATH,
+                "sha256": _MODULE.RSTA_ARTIFACT_SHA256,
+            },
+            "producer_pid": _MODULE.RSTA_PRODUCER_PID,
             "producer_exit_code": 0,
-            "verifier_source_commit": "3" * 40,
-            "verifier_handoff_commit": "4" * 40,
-            "verifier_manifest": dict(artifact),
+            "verifier_source_commit": _MODULE.RSTA_VERIFIER_SOURCE_COMMIT,
+            "verifier_handoff_commit": _MODULE.RSTA_VERIFIER_HANDOFF_COMMIT,
+            "verifier_manifest": {
+                "path": _MODULE.RSTA_MANIFEST_PATH,
+                "sha256": _MODULE.RSTA_MANIFEST_SHA256,
+            },
             "scientific_status": "VALID",
             "scientific_decision": "UNRESOLVED",
             "first_decisive_clause": "no_pass_or_fail_rule",
@@ -2287,17 +2387,17 @@ def _future_manifest() -> dict[str, object]:
             ],
         },
         "validation_receipt": {
-            "path": "reports/validation.json",
+            "path": _MODULE.RSTA_VALIDATION_RECEIPT_PATH,
             "sha256": "4" * 64,
             "status": "VALID",
-            "verifier_source_commit": "3" * 40,
-            "verifier_handoff_commit": "4" * 40,
-            "artifact_path": "forbidden-old-result.json",
-            "artifact_sha256": "5" * 64,
+            "verifier_source_commit": _MODULE.RSTA_VERIFIER_SOURCE_COMMIT,
+            "verifier_handoff_commit": _MODULE.RSTA_VERIFIER_HANDOFF_COMMIT,
+            "artifact_path": _MODULE.RSTA_ARTIFACT_PATH,
+            "artifact_sha256": _MODULE.RSTA_ARTIFACT_SHA256,
         },
         "historical": {
-            "manifest_path": "docs/pass200_rsta_receipt_stage_a_manifest.json",
-            "manifest_sha256": "6" * 64,
+            "manifest_path": _MODULE.RSTA_MANIFEST_PATH,
+            "manifest_sha256": _MODULE.RSTA_MANIFEST_SHA256,
             "seeds": seeds,
         },
         "current_scientific_source": {"git_revision": "c" * 40, "files": files},
@@ -2649,3 +2749,29 @@ def test_future_manifest_rejects_original_plan_as_current_authority() -> None:
     }
     with pytest.raises(ValueError, match="candidate|plan"):
         _MODULE.validate_future_manifest(value)
+
+
+def test_future_manifest_rejects_valid_looking_upstream_and_historical_drift() -> None:
+    value = _future_manifest()
+    mutations: list[dict[str, object]] = []
+    for section, key, replacement in (
+        ("upstream_rsta", "producer_source_commit", "1" * 40),
+        ("upstream_rsta", "producer_handoff_commit", "2" * 40),
+        ("upstream_rsta", "verifier_source_commit", "3" * 40),
+        ("upstream_rsta", "verifier_handoff_commit", "4" * 40),
+        ("historical", "manifest_path", "docs/foreign-pass200.json"),
+        ("historical", "manifest_sha256", "5" * 64),
+        ("validation_receipt", "artifact_sha256", "6" * 64),
+    ):
+        mutant = deepcopy(value)
+        mutant[section][key] = replacement
+        mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["upstream_rsta"]["candidate"]["sha256"] = "7" * 64
+    mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["upstream_rsta"]["gate2_audit"]["commit"] = "8" * 40
+    mutations.append(mutant)
+    for mutant in mutations:
+        with pytest.raises(ValueError, match="upstream|historical|receipt"):
+            _MODULE.validate_future_manifest(mutant)

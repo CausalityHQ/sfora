@@ -128,6 +128,29 @@ REPAIR_DOCUMENT_CHAIN = (
     (AUTHORITY_AMENDMENT_PATH, AUTHORITY_AMENDMENT_COMMIT),
     (PLAN_PATH, PLAN_COMMIT),
 )
+RSTA_CANDIDATE_PATH = "docs/pass200_rsta_candidate_2026-08-09.md"
+RSTA_CANDIDATE_COMMIT = "4b33076f7d7fd8da78987eb4d04664bde14452c6"
+RSTA_CANDIDATE_SHA256 = "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857"
+RSTA_GATE2_AUDIT_PATH = "docs/pass200_rsta_gate2_primary_audit_2026-08-09.md"
+RSTA_GATE2_AUDIT_COMMIT = "9d0cc9646607e1637f593457a507dce547d7d4b8"
+RSTA_GATE2_AUDIT_SHA256 = "3efad753b1328c1a23188dfb1422cf86fa1376e625434a6ea419b24dfc0caf0b"
+RSTA_PRODUCER_SOURCE_COMMIT = "15234a529a181c39c1c8b6477ad7eb7823fd0798"
+RSTA_PRODUCER_HANDOFF_COMMIT = "c04574e2bb751c3229bce673408577cfedc00a88"
+RSTA_ARTIFACT_PATH = (
+    "reports/generated/pass200_rsta_receipt/"
+    "c04574e2bb751c3229bce673408577cfedc00a88-stage-a.json"
+)
+RSTA_ARTIFACT_SHA256 = "e9bcd77c6e372e9c3bab4a420b97ff56f8ea164cbca56f53ec9c99a3b3c527ae"
+RSTA_PRODUCER_PID = 1002393
+RSTA_VERIFIER_SOURCE_COMMIT = "3c368713e0890c0ffc63308f07d8d4ee5b19db1c"
+RSTA_VERIFIER_HANDOFF_COMMIT = "e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae"
+RSTA_MANIFEST_PATH = "docs/pass200_rsta_receipt_stage_a_manifest.json"
+RSTA_MANIFEST_SHA256 = "fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b"
+RSTA_VALIDATION_RECEIPT_PATH = (
+    "reports/generated/pass200_rsta_receipt/"
+    "e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae-"
+    "scientific-artifact-roundtrip-validation.json"
+)
 RDGC_SOURCE_ORDER = (
     "scripts/diagnose_pass159_cotangent_stage_a.py",
     "scripts/diagnose_pass200_rsta_stage_a.py",
@@ -1347,6 +1370,39 @@ def authenticate_authority(
         "primary_source_ids": list(PRIMARY_SOURCE_IDS),
     }:
         raise ValueError("literature audit manifest authority differs")
+    upstream = manifest["upstream_rsta"]
+    for authority_name, reference in (
+        ("RSTA candidate", upstream["candidate"]),
+        ("RSTA Gate-2 audit", upstream["gate2_audit"]),
+    ):
+        authority_path = _within(repository, repository / reference["path"])
+        authority_bytes = _git_bytes(
+            repository, "show", f'{reference["commit"]}:{reference["path"]}'
+        )
+        if (
+            hashlib.sha256(authority_bytes).hexdigest() != reference["sha256"]
+            or _sha256_file(authority_path) != reference["sha256"]
+        ):
+            raise ValueError(f"{authority_name} Git/worktree bytes differ")
+    if _run_git(
+        repository, "show", "-s", "--format=%P", RSTA_PRODUCER_HANDOFF_COMMIT
+    ).split() != [RSTA_PRODUCER_SOURCE_COMMIT]:
+        raise ValueError("RSTA producer source/handoff relation mismatch")
+    if _run_git(
+        repository, "show", "-s", "--format=%P", RSTA_VERIFIER_HANDOFF_COMMIT
+    ).split() != [RSTA_VERIFIER_SOURCE_COMMIT]:
+        raise ValueError("RSTA verifier source/handoff relation mismatch")
+    rsta_manifest_path = _within(repository, repository / RSTA_MANIFEST_PATH)
+    rsta_manifest_bytes = _git_bytes(
+        repository,
+        "show",
+        f"{RSTA_VERIFIER_HANDOFF_COMMIT}:{RSTA_MANIFEST_PATH}",
+    )
+    if (
+        hashlib.sha256(rsta_manifest_bytes).hexdigest() != RSTA_MANIFEST_SHA256
+        or _sha256_file(rsta_manifest_path) != RSTA_MANIFEST_SHA256
+    ):
+        raise ValueError("RSTA verifier manifest Git/worktree bytes differ")
     if _run_git(repository, "merge-base", "--is-ancestor", PLAN_COMMIT, source_commit) != "":
         # merge-base --is-ancestor succeeds with empty output; the wrapper raises on failure.
         raise ValueError("unexpected ancestry output")
@@ -2756,6 +2812,37 @@ def validate_future_manifest(value: dict[str, object]) -> None:
         or upstream["first_decisive_clause"] != "no_pass_or_fail_rule"
     ):
         raise ValueError("future upstream outcome provenance mismatch")
+    expected_upstream = {
+        "candidate": {
+            "path": RSTA_CANDIDATE_PATH,
+            "sha256": RSTA_CANDIDATE_SHA256,
+            "commit": RSTA_CANDIDATE_COMMIT,
+        },
+        "gate2_audit": {
+            "path": RSTA_GATE2_AUDIT_PATH,
+            "sha256": RSTA_GATE2_AUDIT_SHA256,
+            "commit": RSTA_GATE2_AUDIT_COMMIT,
+        },
+        "producer_source_commit": RSTA_PRODUCER_SOURCE_COMMIT,
+        "producer_handoff_commit": RSTA_PRODUCER_HANDOFF_COMMIT,
+        "producer_artifact": {
+            "path": RSTA_ARTIFACT_PATH,
+            "sha256": RSTA_ARTIFACT_SHA256,
+        },
+        "producer_pid": RSTA_PRODUCER_PID,
+        "producer_exit_code": 0,
+        "verifier_source_commit": RSTA_VERIFIER_SOURCE_COMMIT,
+        "verifier_handoff_commit": RSTA_VERIFIER_HANDOFF_COMMIT,
+        "verifier_manifest": {
+            "path": RSTA_MANIFEST_PATH,
+            "sha256": RSTA_MANIFEST_SHA256,
+        },
+        "scientific_status": "VALID",
+        "scientific_decision": "UNRESOLVED",
+        "first_decisive_clause": "no_pass_or_fail_rule",
+    }
+    if upstream != expected_upstream:
+        raise ValueError("future upstream RSTA literal authority mismatch")
     literature = _exact_object(
         value["literature_audit"],
         (
@@ -2807,12 +2894,25 @@ def validate_future_manifest(value: dict[str, object]) -> None:
         _sha(receipt[key], f"future receipt.{key}")
     for key in ("verifier_source_commit", "verifier_handoff_commit"):
         _commit(receipt[key], f"future receipt.{key}")
+    if (
+        receipt["path"] != RSTA_VALIDATION_RECEIPT_PATH
+        or receipt["verifier_source_commit"] != RSTA_VERIFIER_SOURCE_COMMIT
+        or receipt["verifier_handoff_commit"] != RSTA_VERIFIER_HANDOFF_COMMIT
+        or receipt["artifact_path"] != RSTA_ARTIFACT_PATH
+        or receipt["artifact_sha256"] != RSTA_ARTIFACT_SHA256
+    ):
+        raise ValueError("future validation receipt literal authority mismatch")
     historical = _exact_object(
         value["historical"], ("manifest_path", "manifest_sha256", "seeds"), "future historical"
     )
     if type(historical["manifest_path"]) is not str or not historical["manifest_path"]:
         raise ValueError("future historical manifest path mismatch")
     _sha(historical["manifest_sha256"], "future historical manifest hash")
+    if (
+        historical["manifest_path"] != RSTA_MANIFEST_PATH
+        or historical["manifest_sha256"] != RSTA_MANIFEST_SHA256
+    ):
+        raise ValueError("future historical manifest literal authority mismatch")
     if type(historical["seeds"]) is not list or len(historical["seeds"]) != 4:
         raise ValueError("future historical seed count mismatch")
     for seed, record in enumerate(historical["seeds"]):
