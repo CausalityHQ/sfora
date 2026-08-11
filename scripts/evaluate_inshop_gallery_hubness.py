@@ -98,7 +98,6 @@ def select_train_split(bundle: EmbeddingBundle, max_classes: int = 1024) -> Trai
     if not selected:
         raise ValueError("training bundle has no identity with at least two examples")
     query_indices: list[int] = []
-    gallery_indices: list[int] = []
     for label in selected:
         indices = np.flatnonzero(bundle.labels == label)
         ordered = sorted(
@@ -106,7 +105,10 @@ def select_train_split(bundle: EmbeddingBundle, max_classes: int = 1024) -> Trai
             key=lambda index: _example_sort_key(bundle.example_ids[index]),
         )
         query_indices.append(ordered[0])
-        gallery_indices.extend(ordered[1:])
+    query_index_set = set(query_indices)
+    gallery_indices = [
+        index for index in range(bundle.labels.size) if index not in query_index_set
+    ]
     return TrainSplit(
         query=_subset(bundle, np.asarray(query_indices, dtype=np.int64)),
         gallery=_subset(bundle, np.asarray(gallery_indices, dtype=np.int64)),
@@ -151,6 +153,10 @@ def tune_k(
     split = select_train_split(train, max_classes=max_classes)
     raw_indices = _raw_top1(split.query.embeddings, split.gallery.embeddings, block_size)
     raw = _recall_at_one(split.query.labels, split.gallery.labels, raw_indices)
+    if raw > 0.99:
+        raise ValueError(
+            "train pseudo split is saturated; k selection is not informative"
+        )
     rows: list[dict[str, int | str | float]] = []
     selected: int | str | None = None
     best = -1.0
@@ -195,18 +201,12 @@ def evaluate_pair(
     permuted = _evaluate_for_density(
         query, gallery, density[permutation], block_size=block_size
     )
-    global_density = np.full_like(density, np.mean(density, dtype=np.float32))
-    global_control = _evaluate_for_density(
-        query, gallery, global_density, block_size=block_size
-    )
     hubness = top1_hubness(query.embeddings, gallery.embeddings, block_size)
     return {
         "raw_recall_at_one": raw,
         "corrected_recall_at_one": corrected,
         "absolute_gain": corrected - raw,
         "permuted_density_control_recall_at_one": permuted,
-        "global_density_control_recall_at_one": global_control,
-        "query_invariant_control_recall_at_one": raw,
         "hubness": {
             "incoming_count_sum": int(np.sum(hubness.counts)),
             "maximum_count": hubness.maximum_count,
@@ -333,4 +333,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

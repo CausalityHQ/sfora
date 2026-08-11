@@ -57,7 +57,7 @@ def test_loader_requires_exact_core_arrays_and_unit_finite_embeddings(
         MODULE.load_embedding_bundle(nonunit)
 
 
-def test_train_split_is_deterministic_disjoint_and_one_query_per_class() -> None:
+def test_train_split_keeps_all_nonquery_rows_as_distractors() -> None:
     labels = np.repeat(np.arange(6, dtype=np.int64), 3)
     angles = np.arange(labels.size, dtype=np.float32) * 0.17
     bundle = MODULE.EmbeddingBundle(
@@ -70,11 +70,13 @@ def test_train_split_is_deterministic_disjoint_and_one_query_per_class() -> None
     assert first.query.example_ids.tolist() == second.query.example_ids.tolist()
     assert first.gallery.example_ids.tolist() == second.gallery.example_ids.tolist()
     assert first.query.embeddings.shape[0] == 4
+    assert first.gallery.embeddings.shape[0] == labels.size - 4
     assert set(first.query.example_ids).isdisjoint(first.gallery.example_ids)
-    assert set(first.query.labels) == set(first.gallery.labels)
+    assert set(first.query.labels).issubset(first.gallery.labels)
+    assert {4, 5}.issubset(first.gallery.labels)
 
 
-def test_tuner_uses_train_split_and_breaks_equal_scores_by_grid_order() -> None:
+def test_tuner_rejects_a_saturated_train_split() -> None:
     train = MODULE.EmbeddingBundle(
         embeddings=_unit(
             [[1, 0], [0.99, 0.1], [0, 1], [0.1, 0.99], [-1, 0], [-0.99, 0.1]]
@@ -82,16 +84,11 @@ def test_tuner_uses_train_split_and_breaks_equal_scores_by_grid_order() -> None:
         labels=np.asarray([0, 0, 1, 1, 2, 2], dtype=np.int64),
         example_ids=np.asarray(["a", "b", "c", "d", "e", "f"]),
     )
-    selected, rows = MODULE.tune_k(
-        train, max_classes=3, k_values=(1, "all"), block_size=2
-    )
-    assert selected == 1
-    assert [row["k"] for row in rows] == [1, "all"]
-    assert all(row["raw_recall_at_one"] == pytest.approx(1.0) for row in rows)
-    assert all(row["corrected_recall_at_one"] == pytest.approx(1.0) for row in rows)
+    with pytest.raises(ValueError, match="saturated"):
+        MODULE.tune_k(train, max_classes=3, k_values=(1, "all"), block_size=2)
 
 
-def test_pair_evaluation_reports_real_and_negative_controls() -> None:
+def test_pair_evaluation_reports_real_and_permuted_control() -> None:
     query = MODULE.EmbeddingBundle(
         embeddings=_unit([[1, 0], [0, 1]]),
         labels=np.asarray([7, 8], dtype=np.int64),
@@ -103,17 +100,24 @@ def test_pair_evaluation_reports_real_and_negative_controls() -> None:
         example_ids=np.asarray(["g0", "g1", "g2", "g3"]),
     )
     result = MODULE.evaluate_pair(query, gallery, k=1, block_size=2, permutation_seed=9)
+    assert list(result) == [
+        "raw_recall_at_one",
+        "corrected_recall_at_one",
+        "absolute_gain",
+        "permuted_density_control_recall_at_one",
+        "hubness",
+    ]
     assert result["raw_recall_at_one"] == pytest.approx(1.0)
     assert result["corrected_recall_at_one"] == pytest.approx(1.0)
     assert result["absolute_gain"] == pytest.approx(0.0)
-    assert result["global_density_control_recall_at_one"] == pytest.approx(1.0)
-    assert result["query_invariant_control_recall_at_one"] == pytest.approx(1.0)
     assert type(result["permuted_density_control_recall_at_one"]) is float
     assert result["hubness"]["incoming_count_sum"] == 2
     assert result["hubness"]["maximum_count"] == 1
 
 
-def test_report_binds_inputs_grid_controls_and_hard_decision(tmp_path: Path) -> None:
+def test_report_refuses_to_touch_test_pairs_after_saturated_tuning(
+    tmp_path: Path,
+) -> None:
     train_path = tmp_path / "train.npz"
     query_path = tmp_path / "query.npz"
     gallery_path = tmp_path / "gallery.npz"
@@ -132,28 +136,17 @@ def test_report_binds_inputs_grid_controls_and_hard_decision(tmp_path: Path) -> 
         np.asarray([7, 9, 8, 10]),
         prefix="gallery",
     )
-    report = MODULE.build_report(
-        train_path=train_path,
-        evaluations={"published": (query_path, gallery_path)},
-        max_classes=2,
-        k_values=(1, "all"),
-        block_size=2,
-        minimum_gain=0.001,
-    )
-    assert list(report) == [
-        "schema_version",
-        "inputs",
-        "tuning",
-        "evaluations",
-        "minimum_gain",
-        "hubness_kill",
-        "passes_falsifier",
-    ]
-    assert report["schema_version"] == "inshop-gallery-hubness-v1"
-    assert len(report["inputs"]["train_sha256"]) == 64
-    assert report["tuning"]["selected_k"] == 1
-    assert report["hubness_kill"] is True
-    assert report["passes_falsifier"] is False
+    query_path.unlink()
+    gallery_path.unlink()
+    with pytest.raises(ValueError, match="saturated"):
+        MODULE.build_report(
+            train_path=train_path,
+            evaluations={"published": (query_path, gallery_path)},
+            max_classes=2,
+            k_values=(1, "all"),
+            block_size=2,
+            minimum_gain=0.001,
+        )
 
 
 def test_atomic_writer_roundtrips_and_never_clobbers(tmp_path: Path) -> None:
