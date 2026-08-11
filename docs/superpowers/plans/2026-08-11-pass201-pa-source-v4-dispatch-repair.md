@@ -20,8 +20,8 @@ then emits source-manifest v2 and runs unchanged integrity/scientific logic.
 
 ```text
 path: docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md
-sha256: 6285950251ce8166b0bc727248def9304df7d386b95dd1ce5e20e6b946e91a8a
-commit: d4a2df3
+sha256: dbd3a4f39aa731e511b41e182bb360be35d8e3aa58ddd5c4736a2e12b8566e55
+commit: 1f5bb121ed6062b00f904395715dcd89bb28fb6f
 historical S4: 53a9db9e9dbe54fcebb33769b915c3f33699d522
 historical H4: 32c4d39322fca2a5a906f785bdb612dcd7008647
 H4 preservation ref: pass201-source-v4-handoff-32c4d39
@@ -33,8 +33,9 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - Never edit, move, stage, or remove `HANDOFF_BRIEF.md`, `RSPG_SPECDEFECT.md`,
   or `RSPG_TASK.md`.
 - Never rerun source training or launch a GPU process.
-- Never pass or expose `--expected-prelaunch-sha256` on the public repaired
-  path. Unknown schemas fail closed; no default/fallthrough branch is allowed.
+- The public CLI already exposes no SHA override. The repaired v5 path must not
+  consult the internal `expected_prelaunch_sha256` legacy/test attribute.
+  Unknown schemas fail closed; no default/fallthrough branch is allowed.
 - Never describe a fresh H4 checkout as evidence of the historical runtime
   worktree. Historical evidence is Git topology/blobs plus canonical receipt
   and output bytes.
@@ -42,6 +43,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   until both historical and current provenance domains validate.
 - The source/test aggregate from this plan commit through V5 is exactly:
   `scripts/diagnose_pass201_cis_operator.py` and
+  `scripts/pass201_pa_source_v2_contract.py` and
   `tests/test_diagnose_pass201_cis_operator.py`.
 - H5 changes only
   `docs/pass201_pa_source_v5_authorization_manifest.json` with status `A` and
@@ -63,8 +65,9 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - Review this plan.
 - Read the diagnostic/test and H4 manifest only; do not execute science.
 
-- [ ] Verify `d4a2df3` is a one-file docs-only child of S4 and the amendment
-  Git/worktree SHA is the literal above.
+- [ ] Verify `1f5bb121ed6062b00f904395715dcd89bb28fb6f` is the final
+  one-file amendment-fix descendant of S4 and its Git/worktree SHA is the
+  literal above.
 - [ ] Verify this plan is its sole-path child and substitute its final commit
   and SHA into source constants/tests before RED work.
 - [ ] Verify the preservation tag resolves exactly to H4 and H4^ is S4.
@@ -100,6 +103,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 **Files:**
 
 - Modify `scripts/diagnose_pass201_cis_operator.py`.
+- Modify `scripts/pass201_pa_source_v2_contract.py`.
 - Modify `tests/test_diagnose_pass201_cis_operator.py`.
 
 - [ ] Add exact static bindings for A5/P5, H4/S4, v4 manifest metadata,
@@ -111,24 +115,30 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - [ ] Generalize the existing handoff authenticator only by manifest path and
   expected v5 schema, preserving detached/clean, sole-parent, sole-`A`-manifest,
   mode, Git/worktree, and parent relations.
-- [ ] Implement exact recursive v5 manifest validation. Reuse unchanged v4
-  domain validators where semantically identical; validate
+- [ ] Add an explicit v5 contract branch: exact schema/top/nested keys, exact
+  v5 output objects, v3 run-directory paths, and no default arm. The contract
+  must explicitly reject complete-receipt validation for v5 activation
+  authorities; no v5 source-training receipt exists.
+- [ ] Implement exact recursive v5 manifest validation. Reuse contract v4
+  domain validators only where semantically identical; validate
   `historical_producer` independently against literal H4/S4 Git objects and the
   strict canonical receipt/output bytes.
 - [ ] Rebind the receipt only to the literal historical H4 handoff. Never accept
-  an arbitrary declared commit or compare it to H5.
+  an arbitrary declared commit or compare it to H5. Construct and validate the
+  historical v4 authority separately; submit the v4 receipt only to that
+  authority.
 - [ ] Authenticate all current source rows against V5 Git blobs and current
   worktree bytes, including `__file__`.
 - [ ] Dispatch exactly v3 to the existing v3 path and v5 to the new dual-domain
   path. Reject v4 public activation with an explicit repair-required error and
-  reject every other schema. Remove all use of the SHA override from this
-  public branch without changing legacy tests that intentionally cover legacy
-  behavior.
+  reject every other schema. The v5 public branch must never consult the
+  internal SHA-override attribute without changing legacy tests that
+  intentionally cover legacy behavior.
 - [ ] Run the Task 2 selector GREEN plus exhaustive recursive v5 mutations.
 
 ## Task 4: Implement source-manifest v2 and provenance propagation
 
-**Files:** Same two files.
+**Files:** Same three files.
 
 - [ ] Add exact `pass201-source-v2` validation with all v1 fields plus the
   ordered `activation_repair` object frozen by the amendment. V1 remains valid
@@ -148,7 +158,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 
 ## Task 5: Public CLI, atomicity, and scientific noninterference
 
-**Files:** Same two files.
+**Files:** Same three files.
 
 - [ ] Add real `main([...])` tests for `--activate-source`, `--binding-only`,
   `--smoke-only`, and `--scientific` argument/path pinning. There is no public
@@ -166,11 +176,11 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 
 ## Task 6: Commit and independently review V5
 
-**Files:** Exact diagnostic/test pair only.
+**Files:** Exact diagnostic/contract/test trio only.
 
 - [ ] Review the complete P5-to-worktree diff and cached diff; require no other
   tracked path and preserve the three protected untracked files.
-- [ ] Commit the exact pair as `fix Pass201 source-v4 dispatch provenance`.
+- [ ] Commit the exact trio as `fix Pass201 source-v4 dispatch provenance`.
 - [ ] Re-run the focused provenance/CLI suite and full relevant assurance from
   the committed tree.
 - [ ] Start one Opus→Sol read-only review with exact amendment, plan, S4/H4,
@@ -188,8 +198,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 
 - [ ] Add future-manifest tests before V5 review completes: exact top/nested
   order, literal A5/P5 and H4/S4/receipt/output bindings, exact 30 source rows,
-  current V5 hashes, required-present source outputs, required-absent activation
-  and result paths, and `candidate_values_computed=false`.
+  current V5 hashes, the exact eleven-key outputs object, required-present
+  source outputs/run directory, required-absent activation/source-manifest/
+  smoke/result paths, four-key authorization frozen absence, and
+  `candidate_values_computed=false`.
 - [ ] In a fresh detached V5 checkout, run exactly two fresh freezer processes
   to distinct absent paths. They may read metadata/hashes only. Require
   byte-identical canonical candidates and strict validation.
