@@ -2010,7 +2010,6 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
         },
         "torch_runtime": None,
     }
-    reference = {"path": "docs/value.md", "sha256": "d" * 64, "commit": "e" * 40}
     source = {
         "source_commit": "a" * 40,
         "handoff_commit": "f" * 40,
@@ -2036,8 +2035,8 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
         "benchmark_authorized": False,
         "scope_limitation": _MODULE.SCOPE_LIMITATION,
         "authority": {
-            "candidate": dict(reference),
-            "implementation_plan": dict(reference),
+            "candidate": future["candidate"],
+            "implementation_plan": future["implementation_plan"],
             "literature_audit": future["literature_audit"],
         },
         "source": source,
@@ -2128,6 +2127,32 @@ def test_result_union_rejects_order_phase_null_type_and_nonfinite_mutations() ->
     mutations.append(mutant)
     for mutant in mutations:
         with pytest.raises((TypeError, ValueError), match="."):
+            _MODULE.validate_scientific_payload(mutant)
+
+
+def test_result_validator_rejects_valid_looking_fixed_authority_drift() -> None:
+    value = _reduced_pre_import_invalid()
+    mutations: list[dict[str, object]] = []
+    for section, key, replacement in (
+        (
+            "authority",
+            "candidate",
+            {"path": "docs/x", "sha256": "1" * 64, "commit": "2" * 40},
+        ),
+        ("binding", "rsta_producer_source_commit", "3" * 40),
+        ("binding", "rsta_producer_handoff_commit", "4" * 40),
+        ("binding", "verifier_source_commit", "5" * 40),
+        ("binding", "verifier_handoff_commit", "6" * 40),
+        ("binding", "verifier_manifest_sha256", "7" * 64),
+    ):
+        mutant = deepcopy(value)
+        mutant[section][key] = replacement
+        mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["binding"]["validation_receipt"]["path"] = "reports/foreign-receipt.json"
+    mutations.append(mutant)
+    for mutant in mutations:
+        with pytest.raises(ValueError, match="authority|binding|provenance"):
             _MODULE.validate_scientific_payload(mutant)
 
 

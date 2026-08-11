@@ -2514,6 +2514,16 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     )
     _validate_ref(authority["candidate"], "authority candidate")
     _validate_ref(authority["implementation_plan"], "authority plan")
+    if authority["candidate"] != {
+        "path": CANDIDATE_PATH,
+        "sha256": CANDIDATE_SHA256,
+        "commit": CANDIDATE_COMMIT,
+    } or authority["implementation_plan"] != {
+        "path": PLAN_PATH,
+        "sha256": PLAN_SHA256,
+        "commit": PLAN_COMMIT,
+    }:
+        raise ValueError("result candidate/plan authority mismatch")
     literature = _exact_object(
         authority["literature_audit"],
         (
@@ -2531,11 +2541,14 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     _sha(literature["sha256"], "authority literature hash")
     _commit(literature["commit"], "authority literature commit")
     _sha(literature["reviewed_candidate_sha256"], "authority reviewed candidate")
-    if (
-        literature["verdict"] != "LIVE-NARROW"
-        or type(literature["primary_source_ids"]) is not list
-        or len(literature["primary_source_ids"]) != 14
-    ):
+    if literature != {
+        "path": LITERATURE_AUDIT_PATH,
+        "sha256": LITERATURE_AUDIT_SHA256,
+        "commit": LITERATURE_AUDIT_COMMIT,
+        "verdict": "LIVE-NARROW",
+        "reviewed_candidate_sha256": CANDIDATE_SHA256,
+        "primary_source_ids": list(PRIMARY_SOURCE_IDS),
+    }:
         raise ValueError("authority literature tuple mismatch")
     source = _exact_object(
         value["source"],
@@ -2694,8 +2707,28 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     _sha(receipt["sha256"], "binding receipt")
     if (
         receipt["status"] != "VALID"
-        or binding["rsta_producer_pid"] != 1002393
+        or binding["rsta_candidate"]
+        != {
+            "path": RSTA_CANDIDATE_PATH,
+            "sha256": RSTA_CANDIDATE_SHA256,
+            "commit": RSTA_CANDIDATE_COMMIT,
+        }
+        or binding["rsta_gate2_audit"]
+        != {
+            "path": RSTA_GATE2_AUDIT_PATH,
+            "sha256": RSTA_GATE2_AUDIT_SHA256,
+            "commit": RSTA_GATE2_AUDIT_COMMIT,
+        }
+        or binding["rsta_producer_source_commit"] != RSTA_PRODUCER_SOURCE_COMMIT
+        or binding["rsta_producer_handoff_commit"] != RSTA_PRODUCER_HANDOFF_COMMIT
+        or binding["rsta_artifact"]
+        != {"path": RSTA_ARTIFACT_PATH, "sha256": RSTA_ARTIFACT_SHA256}
+        or binding["rsta_producer_pid"] != RSTA_PRODUCER_PID
         or binding["rsta_producer_exit_code"] != 0
+        or binding["verifier_source_commit"] != RSTA_VERIFIER_SOURCE_COMMIT
+        or binding["verifier_handoff_commit"] != RSTA_VERIFIER_HANDOFF_COMMIT
+        or binding["verifier_manifest_sha256"] != RSTA_MANIFEST_SHA256
+        or receipt["path"] != RSTA_VALIDATION_RECEIPT_PATH
         or binding["rsta_scientific_status"] != "VALID"
         or binding["rsta_scientific_decision"] != "UNRESOLVED"
         or binding["rsta_first_decisive_clause"] != "no_pass_or_fail_rule"
