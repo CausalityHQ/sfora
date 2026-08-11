@@ -74,3 +74,6 @@ representation. A defensible continuation needs a prospectively fixed local
 scale on another dataset/checkpoint pair, with a non-saturated selector or no
 tuning, paired uncertainty, and a calibrated null.
 
+That fixed-parameter external check was subsequently run on the existing frozen
+Cars196 PFML test embeddings without Cars tuning. See
+`docs/cars_local_scaling_external_result_2026-08-11.md`.
