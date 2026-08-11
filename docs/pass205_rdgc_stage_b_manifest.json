@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "candidate": {
+    "path": "docs/pass205_rdgc_candidate_2026-08-10.md",
+    "sha256": "2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f",
+    "commit": "30d533e532d0f22c8b1e474987001685a4aa3488"
+  },
+  "implementation_plan": {
+    "path": "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md",
+    "sha256": "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412",
+    "commit": "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a"
+  },
+  "upstream_rsta": {
+    "candidate": {
+      "path": "docs/pass200_rsta_candidate_2026-08-09.md",
+      "sha256": "a35cd3469d5561ce59202030dd3c3050e018dbfc537cb0ee0401a1d0340f5857",
+      "commit": "4b33076f7d7fd8da78987eb4d04664bde14452c6"
+    },
+    "gate2_audit": {
+      "path": "docs/pass200_rsta_gate2_primary_audit_2026-08-09.md",
+      "sha256": "3efad753b1328c1a23188dfb1422cf86fa1376e625434a6ea419b24dfc0caf0b",
+      "commit": "9d0cc9646607e1637f593457a507dce547d7d4b8"
+    },
+    "producer_source_commit": "15234a529a181c39c1c8b6477ad7eb7823fd0798",
+    "producer_handoff_commit": "c04574e2bb751c3229bce673408577cfedc00a88",
+    "producer_artifact": {
+      "path": "reports/generated/pass200_rsta_receipt/c04574e2bb751c3229bce673408577cfedc00a88-stage-a.json",
+      "sha256": "e9bcd77c6e372e9c3bab4a420b97ff56f8ea164cbca56f53ec9c99a3b3c527ae"
+    },
+    "producer_pid": 1002393,
+    "producer_exit_code": 0,
+    "verifier_source_commit": "3c368713e0890c0ffc63308f07d8d4ee5b19db1c",
+    "verifier_handoff_commit": "e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae",
+    "verifier_manifest": {
+      "path": "docs/pass200_rsta_receipt_stage_a_manifest.json",
+      "sha256": "fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b"
+    },
+    "scientific_status": "VALID",
+    "scientific_decision": "UNRESOLVED",
+    "first_decisive_clause": "no_pass_or_fail_rule"
+  },
+  "literature_audit": {
+    "path": "docs/pass205_rdgc_gate2_primary_audit_2026-08-11.md",
+    "sha256": "6f99134b905213049f0506b19b1acbcc7e5760b8412a9dc790e2c085b4f8573b",
+    "commit": "9ae137f3af0558728554c6af865fe96d6bf10060",
+    "verdict": "LIVE-NARROW",
+    "reviewed_candidate_sha256": "2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f",
+    "primary_source_ids": [
+      "pmlr-v130-zhou21a",
+      "neurips-2022-67b0579a7298d9cf39c59404d867bdd7",
+      "arxiv-2511.15487v2",
+      "neurips-2019-c61f571dbd2fb949d3fe5ae1608dd48b",
+      "pmlr-v80-chen18a",
+      "pmlr-v37-martens15",
+      "neurips-2025-4522de4178bddb36b49aa26efad537cf",
+      "pmlr-v108-barshan20a",
+      "neurips-2023-8249b30d877c91611fd8c7aa6ac2b5fe",
+      "pmlr-v162-rame22a",
+      "cvpr-2022-kim-adaface",
+      "cvpr-2021-meng-magface",
+      "cvpr-2019-zhang-adacos",
+      "arxiv-1708.03888"
+    ]
+  },
+  "validation_receipt": {
+    "path": "reports/generated/pass200_rsta_receipt/e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae-scientific-artifact-roundtrip-validation.json",
+    "sha256": "943c4c93d1c5fe26ea288fc8bced0c416744a606b0d501f0c9da9b2aa2df1410",
+    "status": "VALID",
+    "verifier_source_commit": "3c368713e0890c0ffc63308f07d8d4ee5b19db1c",
+    "verifier_handoff_commit": "e73e9d4520ed953dd2ec713df8b83c3e43d3a8ae",
+    "artifact_path": "reports/generated/pass200_rsta_receipt/c04574e2bb751c3229bce673408577cfedc00a88-stage-a.json",
+    "artifact_sha256": "e9bcd77c6e372e9c3bab4a420b97ff56f8ea164cbca56f53ec9c99a3b3c527ae"
+  },
+  "historical": {
+    "manifest_path": "docs/pass200_rsta_receipt_stage_a_manifest.json",
+    "manifest_sha256": "fb089cf5905cea32a9d22563b50160af5fc8643efb657c49cb519d6d0c0da80b",
+    "seeds": [
+      {
+        "seed": 0,
+        "checkpoint": {
+          "path": "/home/riomus/group-learning/reports/checkpoints/inshop_corrected_pa_seed0.pt",
+          "sha256": "2b46a68a0364cd204e60068858198f1da699f043897fc93d0c22525b6f635546"
+        },
+        "training_report": {
+          "path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0.json",
+          "sha256": "9121937b0ebd8cfbf57f52209eff7e8762795e4d05f77d963ca96ed03d708476"
+        },
+        "retrieval_report": {
+          "path": "/home/riomus/group-learning/reports/generated/inshop_corrected_pa_seed0_final_retrieval.json",
+          "sha256": "7f35282d65466727b024a5259606fb1f5e3dd15dea3dc303cdf54daf42f4e41b"
+        },
+        "train_final_pack": {
+          "path": "/home/riomus/group-learning/reports/emb/inshop_corrected_pa_seed0_train_final.npz",
+          "sha256": "67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea"
+        },
+        "train_source_export_sha256": "5341f5a28fd6f105d8beaf022c336b16406f560e3db74fe79a0066da0ef409b7"
+      },
+      {
+        "seed": 1,
+        "checkpoint": {
+          "path": "/home/riomus/sfora-inshop-seed1/reports/checkpoints/inshop_corrected_pa_seed1.pt",
+          "sha256": "a25dc22691981e6ad7df899878f448d96d4ac41adbb8e346e10322e93883e580"
+        },
+        "training_report": {
+          "path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1.json",
+          "sha256": "3482d3f976e5184eb12a1ae250bed5a8e66ef458148e0cef4ab0afb9efbcc02a"
+        },
+        "retrieval_report": {
+          "path": "/home/riomus/sfora-inshop-seed1/reports/generated/inshop_corrected_pa_seed1_final_retrieval.json",
+          "sha256": "59d5b15c4e3b6e5e0eac1649bce266b1d7a4e8bf036995f76e0b5b70e03c6f33"
+        },
+        "train_final_pack": {
+          "path": "/home/riomus/sfora-inshop-seed1/reports/emb/inshop_corrected_pa_seed1_train_final.npz",
+          "sha256": "5fd172cf7a69bcb1cf6b715793f8a81f12ecf7382a69416f6a3343ca301e3f4d"
+        },
+        "train_source_export_sha256": "686b05f3054e6d5c06c66c223cc4bbde68ea25913176bc8a25ab09959bfde8e2"
+      },
+      {
+        "seed": 2,
+        "checkpoint": {
+          "path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt",
+          "sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f"
+        },
+        "training_report": {
+          "path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2.json",
+          "sha256": "f84b5ddce57e468e858bdc5e97415466369793497993af11d1a9223222ace442"
+        },
+        "retrieval_report": {
+          "path": "/home/riomus/sfora-inshop-seed2/reports/generated/inshop_corrected_pa_seed2_final_retrieval.json",
+          "sha256": "ff0619a255ffe56b90ca7f548ed671b914fbda8ac9f7287db8d94ec3733b9788"
+        },
+        "train_final_pack": {
+          "path": "/home/riomus/sfora-inshop-seed2/reports/emb/inshop_corrected_pa_seed2_train_final.npz",
+          "sha256": "98830a4d47c9314c82c58166b659c7d7a278aa660de842831e5ff081161ed549"
+        },
+        "train_source_export_sha256": "a52a17c3e71ae5e846d0de49076af44cfda7fa558047192c249829f5053fcbdb"
+      },
+      {
+        "seed": 3,
+        "checkpoint": {
+          "path": "/home/riomus/sfora-inshop-seed3/reports/checkpoints/inshop_corrected_pa_seed3.pt",
+          "sha256": "2a1d675220cde9c8ef096597cc5f25e665d32e7634f50102ec5046c6ed4ac7ae"
+        },
+        "training_report": {
+          "path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3.json",
+          "sha256": "7eaf0fb10071ef11b4bddf957d9b66b9a0d70315dcc259628994f3da0d6df1de"
+        },
+        "retrieval_report": {
+          "path": "/home/riomus/sfora-inshop-seed3/reports/generated/inshop_corrected_pa_seed3_final_retrieval.json",
+          "sha256": "32e8c0f93160465a71bab8f7a36b53817a387fc16f949b097e87a78528aebef2"
+        },
+        "train_final_pack": {
+          "path": "/home/riomus/sfora-inshop-seed3/reports/emb/inshop_corrected_pa_seed3_train_final.npz",
+          "sha256": "d53a88cfc12a8f0fb03be0f26cd21e159dc1a3805462cddc20900b2df2d133a3"
+        },
+        "train_source_export_sha256": "fbd92eb777d220c45fa4770f8b31fab3d276bd0d0c7e1dc00f5ea7eb175f70b5"
+      }
+    ]
+  },
+  "current_scientific_source": {
+    "git_revision": "328a70ad809c1adeae9ccd2aea28b87f3243018b",
+    "files": [
+      {
+        "path": "scripts/diagnose_pass159_cotangent_stage_a.py",
+        "sha256": "93da5465a134a31d9dc2978918d72a200ecc32042e3ad8cb046b52caaebdd815",
+        "git_blob": "e57035fb281a951b4356f0cba58ff77675f16977"
+      },
+      {
+        "path": "scripts/diagnose_pass200_rsta_stage_a.py",
+        "sha256": "50a83129f6b1238a7ab208c583d27a66bb84ebc54d784d703f96a74124830e9a",
+        "git_blob": "facdfa10cce28705861018bca4ba8abee0eab0c8"
+      },
+      {
+        "path": "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "sha256": "284d372565321d707281fafd22fd66b5fe6c67c3c9896ca94cecc3187449ebfa",
+        "git_blob": "388e50576ce9fedce59360cb9ba2475f3421073a"
+      },
+      {
+        "path": "scripts/rsta_normwise_adjoint.py",
+        "sha256": "bbb478a0a650b6e3fcf5c306fd972632948d66b18dfc85e1545b2fa6aa22f6db",
+        "git_blob": "c919bca4ca700dc1f1fc0eca5817096d0199afec"
+      },
+      {
+        "path": "scripts/verify_pass200_rsta_scientific_artifact.py",
+        "sha256": "4ae2fb404aeb86bb8cd32cc79104d4af87cdf247e4cdebe720fd675d3a019919",
+        "git_blob": "d828e23bbf5ffb8420e17bd952ffae36c93cfa56"
+      },
+      {
+        "path": "src/sfora/__init__.py",
+        "sha256": "5de45a3409573b0c914d7228021b1323ed4d46c2e66eaf960791f50417fef058",
+        "git_blob": "5d78e4908231f02c3deafff637015413f899160f"
+      },
+      {
+        "path": "src/sfora/ablation.py",
+        "sha256": "b936039fc44bf143fbffa1c4306ba3b61d101fc348b17800b6002ece08f55655",
+        "git_blob": "5f57d80bde88b5a4a2651f50844d09400e494d2d"
+      },
+      {
+        "path": "src/sfora/api.py",
+        "sha256": "b45894fed86d371e3820aa12c2319f087068156f8bb16cf47ce06f29f461a4b4",
+        "git_blob": "6b116e408a699c4ae339ca0d8c4a28aced60b5b1"
+      },
+      {
+        "path": "src/sfora/arcg.py",
+        "sha256": "b64b4e6f968213bd9479f9f822cf83fdb92663e11cb9f3fbca307a68949cf3a1",
+        "git_blob": "6e55650b6dc5d771356dfe1819f4c30e8da4c617"
+      },
+      {
+        "path": "src/sfora/benchmark.py",
+        "sha256": "bd1bd3281501611a69d9633f565d3ff85154672a9a572c20b144e1a6d5677005",
+        "git_blob": "a916df61681d4fc677eb0aa0e399d3764938bbe3"
+      },
+      {
+        "path": "src/sfora/bn_inception.py",
+        "sha256": "acfe5e8edeab019b54ec8b31a4ac9fa16daab9febf013a6950458e3d1ed42c14",
+        "git_blob": "eb807a8f487e8dbafd112faa7266bfd2c00cb578"
+      },
+      {
+        "path": "src/sfora/catalog.py",
+        "sha256": "4f8e94f164e0f23a0f5b47e7d5cbab2f309786f6e25141997699d566a0406ad1",
+        "git_blob": "531ccc697a089547d8beda6467b80d37f214fae5"
+      },
+      {
+        "path": "src/sfora/cea.py",
+        "sha256": "162166a7e7abb3cf4a98b37ae3d0e6edb2405054e317f99cca1a30fad13bf13b",
+        "git_blob": "fa5340aa262c5ed7719d5273615d15e28169d976"
+      },
+      {
+        "path": "src/sfora/cem.py",
+        "sha256": "1ba78625e941d95cbf6b0e24958a27017b2f4d23eb47bfc3808eb400e46fbbbb",
+        "git_blob": "cbd60914574fa1b782cadd822f5ccb47e9cb9521"
+      },
+      {
+        "path": "src/sfora/cli.py",
+        "sha256": "cf7f9249e24fc1f09dbef6c618120a8460b972afff8a4aaf71304e4bd1e9e759",
+        "git_blob": "eca52091da7a231e359094ac8d16c4f5170b4fda"
+      },
+      {
+        "path": "src/sfora/compose.py",
+        "sha256": "37cd5b2cc2173709e6092b307d7b3ad98f7428c3657f6727f30356b38cc9d394",
+        "git_blob": "b08e6dd6fd6e079d4e51cc8fa362344a54f764e3"
+      },
+      {
+        "path": "src/sfora/data.py",
+        "sha256": "b8b75e2d7a2e85f259f045ba36db62f3dc0a3551167a24447bc081417b10843a",
+        "git_blob": "9c7d166215d479ffc1c82da05d3ceb02600ac989"
+      },
+      {
+        "path": "src/sfora/encoder_ablation.py",
+        "sha256": "d853bee8e3a15cbacc2bdf145206b9e041aef07fa3cc677bb014b013f55bc07c",
+        "git_blob": "4a73f4c11652b974793a8b10ff3558ac5135dddd"
+      },
+      {
+        "path": "src/sfora/encoder_training.py",
+        "sha256": "3a13624b317a6b60d444fc253b9c0a9845545d4da7eceab8b9f63a09d8aecf17",
+        "git_blob": "3ef2c9b50ccef6b2b355cc51456443468153f8f6"
+      },
+      {
+        "path": "src/sfora/evaluation.py",
+        "sha256": "63ebcb917eaf877e7763708fc6a2550182d8027be889ce10c739f41463d69c3a",
+        "git_blob": "cfe88c6104dadb63e5e259ca52e829872e8e1abf"
+      },
+      {
+        "path": "src/sfora/experiments.py",
+        "sha256": "4d0ed9e31b255dd48b90066a1bf6385f58bbca3314126d756231e05a4fa007bd",
+        "git_blob": "45cff59719a83d356e65034e555081003262e572"
+      },
+      {
+        "path": "src/sfora/image_benchmark.py",
+        "sha256": "5f0f46e6fcea45452ee0a990eef690358cf13bdc29740f82040e3c1730f3f698",
+        "git_blob": "3cf568900a16aa6cd0536084efdb6cdac853dc03"
+      },
+      {
+        "path": "src/sfora/image_end_to_end.py",
+        "sha256": "28ccedf6d85efa2e8b8b870c0aa62400dec2858f5e0a987fa4c6a23123122a62",
+        "git_blob": "d9148891b7e1248fd975cb413662b3d757bf2121"
+      },
+      {
+        "path": "src/sfora/image_recipes.py",
+        "sha256": "e19f0c8de7e4e6938fed765341aebcb72de9d8a2dc3c6151afac58ce8d31bc5e",
+        "git_blob": "face67fa17c67819a310c08ef5cdd9c610b8644f"
+      },
+      {
+        "path": "src/sfora/ipsr.py",
+        "sha256": "01ff1b06807b80cd81d0dac66dc53b46be943645c7e03d61ca21778255ca6c6a",
+        "git_blob": "908610aea63e89a22ccc60ad562f75f0989de86c"
+      },
+      {
+        "path": "src/sfora/losses.py",
+        "sha256": "02f0b0046ad319bc5cd12ef656fe8e46ef9d9c907301741582bf65b356e4f9b5",
+        "git_blob": "3565613343498b9fff6cda7187c88bf2e2c09b4c"
+      },
+      {
+        "path": "src/sfora/method.py",
+        "sha256": "85c9b43adf68d949229429c0d834701f06ae429c352c81a1a7353bc11a7414cf",
+        "git_blob": "00ad961de34176770a9eccd033adbeb9104efd17"
+      },
+      {
+        "path": "src/sfora/oapf.py",
+        "sha256": "4f6fc319ea2a12355fef0366c8308ba03fca74025758c4ea3096d87e2028a3ed",
+        "git_blob": "2a8bd26ddb872079264ee06c6a4cf6e1294d3284"
+      },
+      {
+        "path": "src/sfora/publication.py",
+        "sha256": "f9384658a5a342c05ebc2b82a7f5b75a6540f8929cd33f5af8a853f8c4565885",
+        "git_blob": "20ba2ab7c767a939f06098a569c94838f82cc9fb"
+      },
+      {
+        "path": "src/sfora/remote.py",
+        "sha256": "9d81bd193a8fd95f58dac1c7859b2e805b9b18959253ab8b1e7dcbf9482fc231",
+        "git_blob": "07543aaa18acfeaf4cff52c3b058947a2c13109d"
+      },
+      {
+        "path": "src/sfora/report.py",
+        "sha256": "8b71503804f9c9a8f2d6eecf25c154b24c80a22dd4c7bdd18f5c570d5c24bafa",
+        "git_blob": "8dbad45aaaf1355e1d426745b467c9082752f162"
+      },
+      {
+        "path": "src/sfora/text_baselines.py",
+        "sha256": "e0173fad843fa7f124db3aa0d8a04c9e27f8d55f1b0c0446b1c3547c62d46d84",
+        "git_blob": "9795129e921d66d94c1474fd78d5b16c3ed4c816"
+      },
+      {
+        "path": "src/sfora/training.py",
+        "sha256": "d31551841cbb468a69a6988d6c352ea4c7aee4c3368bdaf8713e343ed5db4078",
+        "git_blob": "4256c1b39c987b3cc49167b3892d358f58f43c43"
+      }
+    ]
+  },
+  "artifact_schema": {
+    "result_path_template": "reports/generated/pass205_rdgc_stage_b/{handoff_commit}-rdgc-stage-b.json",
+    "schema_version": 1,
+    "diagnostic": "pass205_rdgc_stage_b",
+    "mode": "scientific_no_training_virtual_update",
+    "statuses": [
+      "PASS",
+      "CLOSE",
+      "UNRESOLVED",
+      "INVALID"
+    ],
+    "phases": [
+      "pre_import",
+      "integrity",
+      "preliminary",
+      "full_panel"
+    ],
+    "top_level_keys": [
+      "schema_version",
+      "diagnostic",
+      "mode",
+      "status",
+      "phase_reached",
+      "candidate_values_computed",
+      "training_performed",
+      "benchmark_authorized",
+      "scope_limitation",
+      "authority",
+      "source",
+      "execution",
+      "environment",
+      "binding",
+      "integrity",
+      "selection",
+      "preliminary",
+      "panel",
+      "bootstrap",
+      "decision"
+    ],
+    "pre_import_invalid_null_fields": [
+      "integrity",
+      "selection",
+      "preliminary",
+      "panel",
+      "bootstrap"
+    ],
+    "post_import_invalid_null_fields": [
+      "selection",
+      "preliminary",
+      "panel",
+      "bootstrap"
+    ],
+    "operator_order": [
+      "pa",
+      "rdgc",
+      "raw_cotangent",
+      "full_motion",
+      "batch_global_gain",
+      "scalar_diagonal_raw",
+      "per_example_gradient_normalized",
+      "layerwise_trust_ratio"
+    ],
+    "contributor_counts": [
+      1,
+      8,
+      32,
+      180
+    ]
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ]
+}
