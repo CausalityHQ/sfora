@@ -22,12 +22,19 @@ reviewed source V5: 656b5f2069f76ee6d8c5079bee8ae6a371a89f69
 manifest-only handoff H5: 18b225f33b61dd221d6878cf8b14eb75a0037323
 H5 manifest path: docs/pass201_pa_source_v5_authorization_manifest.json
 H5 manifest SHA-256: 2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20
+H5 preservation ref: pass201-source-v5-handoff-18b225f
+H5 recovery bundle: /home/rb/pass201-h5-18b225f.bundle
+H5 recovery bundle SHA-256: 838b3f65435b374e172220caa1612910fc3ca73fd24560a0ab7affec6e7ceb75
 historical receipt SHA-256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9
 ```
 
 H5 is a sole-manifest child of V5. H4 is the separately preserved
 sole-manifest child of S4. Every source output below remains byte-identical to
-the historical receipt.
+the historical receipt. During independent review, H5 was found absent from
+the local shared Git object store. Before source work, the complete registered
+bundle above was verified, H5 was imported, and the exact local preservation
+ref above was created. The ref resolves to H5, H5's sole parent is V5, its sole
+edge adds the v5 manifest, and the manifest Git bytes have the SHA-256 above.
 
 ## Third structural activation failure
 
@@ -80,8 +87,9 @@ a writable copy would still fail because the receipt remains `0100444`.
 For each of the four activation inputs, in the existing literal order
 `report`, `checkpoint`, `resolved_config`, `train_manifest`, validation must:
 
-1. require the evidence object to have the historical receipt's exact key
-   order `bytes,file_type,mode,path,sha256` and exact concrete JSON types;
+1. rely on the already-required canonical receipt byte equality to bind JSON
+   key order, and require the evidence object to have the exact key set
+   `bytes,file_type,mode,path,sha256` and exact concrete JSON types;
 2. require the receipt mode to be exactly the historical literal decimal
    `33060` (`0o100444`), not merely any regular-file mode;
 3. resolve only the exact authority-declared repository-relative path under
@@ -91,7 +99,11 @@ For each of the four activation inputs, in the existing literal order
    byte count, and exact SHA-256 while holding the descriptor;
 6. require the path identity and parent identity not to change across the
    read; and
-7. reject symlinks, mode drift including `0644`, path aliases, non-regular
+7. compare the live absolute path separately to
+   `root / evidence["path"]`; the descriptor verifier reports live mode, size,
+   and digest and does not pretend its absolute path equals the receipt's
+   repository-relative path; and
+8. reject symlinks, mode drift including `0644`, path aliases, non-regular
    files, size drift, hash drift, and replacement races before parsing or
    deserializing content.
 
@@ -124,14 +136,18 @@ candidate path, or result schema changed.
 
 ## Git and refreeze sequence
 
-The chronology is prospective and linear. The first amendment commit is
-`622e145b2dfeafdf6a202c7012ad92813a2932c2`; final A6 is its sole-file
-review-fix child and incorporates this corrected exact receipt key order and
-source scope:
+The chronology is prospective and linear. The initial amendment commit is
+`622e145b2dfeafdf6a202c7012ad92813a2932c2`; its first sole-file fix is
+`a8119bcf4b97de6a7a948d75ffd393e64c406b10`; the initial plan is
+`651920e80126d2c8f31b2acce6d04438fe0c12a8`. Final A6 is the sole-file
+review-fix child of that initial plan and incorporates the independent review;
+final P6 is A6's sole-file child:
 
 ```text
 V5
  -> 622e145b2dfeafdf6a202c7012ad92813a2932c2
+ -> a8119bcf4b97de6a7a948d75ffd393e64c406b10
+ -> 651920e80126d2c8f31b2acce6d04438fe0c12a8
  -> final amendment A6
  -> bound implementation plan P6
  -> reviewed source/test repair V6
@@ -145,6 +161,7 @@ is single-parent, merge-free, nonempty, and confined to:
 scripts/diagnose_pass201_cis_operator.py
 scripts/pass201_pa_source_v2_contract.py
 tests/test_diagnose_pass201_cis_operator.py
+tests/test_pass201_pa_source_v2_contract.py
 ```
 
 H6 is the sole-manifest child of V6. It adds a new source-v6 authorization
@@ -166,5 +183,6 @@ receipt evidence before launch, and keep CUDA unavailable.
 If activation passes, the pre-existing plan gates continue in order:
 binding-only, seed-0 smoke, then one scientific CPU process. Any structural or
 integrity failure stops the chain. Source training and GPU execution remain
-forbidden. The three earlier structural activation attempts stay disclosed and
-are never reclassified.
+forbidden. The two structural attempts that preceded PID `1061572`, plus PID
+`1061572` itself, remain the exact three disclosed structural attempts and are
+never reclassified.
