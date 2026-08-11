@@ -119,6 +119,15 @@ RDGC_SOURCE_ORDER = (
 )
 
 
+class RdgcPostImportInvalid(RuntimeError):
+    """A scientific failure with a complete, actual integrity prefix."""
+
+    def __init__(self, integrity: dict[str, object], clause: str) -> None:
+        super().__init__(clause)
+        self.integrity = integrity
+        self.clause = clause
+
+
 def _require_fp32_finite(torch_module: Any, value: Any, *, nonzero: bool = False) -> None:
     if value.dtype != torch_module.float32:
         raise TypeError("tensor must be FP32")
@@ -173,26 +182,25 @@ def _half_squared_log_ratio(torch_module: Any, numerator: Any, target: Any) -> A
     return 0.5 * error * error
 
 
-def control_penalties(
-    torch_module: Any,
-    *,
-    b: Any,
-    s: Any,
-    dbar: Any,
-    receiver_fields: list[dict[str, Any]],
-    pgn_motion: Any,
-) -> dict[str, Any]:
-    for tensor in (b, s, dbar, pgn_motion):
-        _require_fp32_finite(torch_module, tensor, nonzero=True)
+def raw_cotangent_penalty(torch_module: Any, b: Any, dbar: Any) -> Any:
+    _require_fp32_finite(torch_module, b, nonzero=True)
+    _require_fp32_finite(torch_module, dbar, nonzero=True)
+    return 1.0 - torch_module.sum(b.reshape(-1) * dbar.detach().reshape(-1)) / (
+        b.norm() * dbar.norm().detach() + EPSILON
+    )
+
+
+def full_motion_penalty(torch_module: Any, b: Any) -> Any:
+    _require_fp32_finite(torch_module, b, nonzero=True)
+    squared_norm = b.norm().square()
+    return 0.5 * squared_norm / (squared_norm + EPSILON * EPSILON).detach()
+
+
+def _receiver_norms(
+    torch_module: Any, receiver_fields: list[dict[str, Any]]
+) -> tuple[list[Any], list[Any]]:
     if type(receiver_fields) is not list or len(receiver_fields) != 8:
         raise ValueError("receiver_fields must contain exactly eight records")
-    b_norm = b.norm()
-    s_norm = s.norm()
-    dbar_norm = dbar.norm()
-    raw_cosine = torch_module.sum(b.reshape(-1) * dbar.detach().reshape(-1)) / (
-        b_norm * dbar_norm.detach() + EPSILON
-    )
-    full_motion = 0.5 * (b_norm * b_norm) / (b_norm * b_norm + EPSILON * EPSILON).detach()
     self_norms: list[Any] = []
     raw_norms: list[Any] = []
     for field in receiver_fields:
@@ -202,25 +210,42 @@ def control_penalties(
             _require_fp32_finite(torch_module, tensor, nonzero=True)
         self_norms.append(field["s"].norm().to(torch_module.float64))
         raw_norms.append(field["dbar"].norm().to(torch_module.float64))
-    global_target = torch_module.exp(
+    return self_norms, raw_norms
+
+
+def batch_global_gain_penalty(
+    torch_module: Any, b: Any, receiver_fields: list[dict[str, Any]]
+) -> Any:
+    _require_fp32_finite(torch_module, b, nonzero=True)
+    self_norms, _ = _receiver_norms(torch_module, receiver_fields)
+    target = torch_module.exp(
         torch_module.stack([torch_module.log(value + EPSILON) for value in self_norms]).mean()
     ).to(torch_module.float32)
+    return _half_squared_log_ratio(torch_module, b.norm(), target)
+
+
+def scalar_diagonal_raw_penalty(
+    torch_module: Any, b: Any, dbar: Any, receiver_fields: list[dict[str, Any]]
+) -> Any:
+    _require_fp32_finite(torch_module, b, nonzero=True)
+    _require_fp32_finite(torch_module, dbar, nonzero=True)
+    self_norms, raw_norms = _receiver_norms(torch_module, receiver_fields)
     gains = [
         torch_module.log((self_norm + EPSILON) / (raw_norm + EPSILON))
         for self_norm, raw_norm in zip(self_norms, raw_norms, strict=True)
     ]
     scalar_gain = torch_module.exp(torch_module.stack(gains).mean()).to(torch_module.float32)
-    scalar_raw_target = scalar_gain * (dbar_norm.detach() + EPSILON)
-    return {
-        "rdgc": rdgc_penalty(torch_module, b, s),
-        "raw_cotangent": 1.0 - raw_cosine,
-        "full_motion": full_motion,
-        "batch_global_gain": _half_squared_log_ratio(torch_module, b_norm, global_target),
-        "scalar_diagonal_raw": _half_squared_log_ratio(torch_module, b_norm, scalar_raw_target),
-        "per_example_gradient_normalized": _half_squared_log_ratio(
-            torch_module, pgn_motion.norm(), s_norm
-        ),
-    }
+    return _half_squared_log_ratio(
+        torch_module, b.norm(), scalar_gain * (dbar.norm().detach() + EPSILON)
+    )
+
+
+def per_example_gradient_normalized_penalty(
+    torch_module: Any, pgn_motion: Any, s: Any
+) -> Any:
+    _require_fp32_finite(torch_module, pgn_motion, nonzero=True)
+    _require_fp32_finite(torch_module, s, nonzero=True)
+    return _half_squared_log_ratio(torch_module, pgn_motion.norm(), s.norm())
 
 
 def pgn_detached_coefficients(
@@ -320,6 +345,65 @@ def _finite_number(value: object) -> bool:
     return type(value) in (int, float) and type(value) is not bool and math.isfinite(float(value))
 
 
+def _preliminary_predicate_values(
+    aggregates: dict[str, object], close_evidence: dict[str, object]
+) -> dict[str, bool]:
+    if tuple(close_evidence) != (
+        "context_spearman_nonpositive_seed_count",
+        "full_gain_seed_medians_le_log_one_point_zero_five_A",
+        "full_gain_seed_medians_le_log_one_point_zero_five_B",
+    ) or any(type(value) is not int or not 0 <= value <= 4 for value in close_evidence.values()):
+        raise ValueError("preliminary close evidence schema mismatch")
+    a = aggregates
+    return {
+        "survives_count_gain": all(
+            float(a[f"count_gain_median_{context}"]) >= math.log(1.10)
+            and int(a[f"positive_count_gain_seed_means_{context}"]) >= 3
+            for context in ("A", "B")
+        ),
+        "survives_context_stability": float(a["context_spearman_median"]) >= 0.50
+        and int(a["context_spearman_seeds_ge_point_three"]) >= 3,
+        "survives_receiver_heterogeneity": all(
+            float(a[f"log_kappa_iqr_{context}"]) >= math.log(1.10)
+            for context in ("A", "B")
+        ),
+        "survives_global_scalar": all(
+            float(a[f"global_scalar_relative_error_median_{context}"]) >= 0.05
+            for context in ("A", "B")
+        ),
+        "survives_full_gain": all(
+            float(a[f"full_gain_error_median_{context}"]) >= math.log(1.25)
+            and int(a[f"full_gain_error_seed_medians_ge_log_one_point_one_{context}"]) >= 3
+            for context in ("A", "B")
+        ),
+        "close_count_gain": any(
+            float(a[f"count_gain_median_{context}"]) <= 0.0
+            and int(a[f"positive_count_gain_seed_means_{context}"]) <= 1
+            for context in ("A", "B")
+        ),
+        "close_context_stability": float(a["context_spearman_median"]) <= 0.0
+        or int(close_evidence["context_spearman_nonpositive_seed_count"]) >= 3,
+        "close_receiver_heterogeneity": any(
+            float(a[f"log_kappa_iqr_{context}"]) <= math.log(1.02)
+            for context in ("A", "B")
+        ),
+        "close_global_scalar": any(
+            float(a[f"global_scalar_relative_error_median_{context}"]) <= 0.02
+            for context in ("A", "B")
+        ),
+        "close_full_gain": any(
+            float(a[f"full_gain_error_median_{context}"]) <= math.log(1.05)
+            and int(
+                close_evidence[
+                    f"full_gain_seed_medians_le_log_one_point_zero_five_{context}"
+                ]
+            )
+            >= 3
+            for context in ("A", "B")
+        ),
+    }
+
+
 def decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]:
     required = (
         "count_gain_median_A",
@@ -337,7 +421,7 @@ def decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]:
         "full_gain_error_seed_medians_ge_log_one_point_one_A",
         "full_gain_error_seed_medians_ge_log_one_point_one_B",
     )
-    if tuple(aggregates) != required or any(
+    if tuple(aggregates) != (*required, "_close_evidence") or any(
         not _finite_number(aggregates[key]) for key in required
     ):
         return {
@@ -345,57 +429,31 @@ def decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]:
             "first_decisive_clause": "invalid_aggregates",
             "full_panel_authorized": False,
         }
-    a = aggregates
-    close_checks = (
-        (
-            "close_count_gain",
-            any(
-                float(a[f"count_gain_median_{c}"]) <= 0.0
-                and int(a[f"positive_count_gain_seed_means_{c}"]) <= 1
-                for c in "AB"
-            ),
-        ),
-        ("close_context_spearman", float(a["context_spearman_median"]) <= 0.0),
-        (
-            "close_log_kappa_iqr",
-            any(float(a[f"log_kappa_iqr_{c}"]) <= math.log(1.02) for c in "AB"),
-        ),
-        (
-            "close_global_scalar",
-            any(float(a[f"global_scalar_relative_error_median_{c}"]) <= 0.02 for c in "AB"),
-        ),
-        (
-            "close_full_gain",
-            any(
-                float(a[f"full_gain_error_median_{c}"]) <= math.log(1.05)
-                and int(a[f"full_gain_error_seed_medians_ge_log_one_point_one_{c}"]) <= 1
-                for c in "AB"
-            ),
-        ),
-    )
-    for clause, passed in close_checks:
-        if passed:
+    try:
+        public_aggregates = {key: aggregates[key] for key in required}
+        predicates = _preliminary_predicate_values(
+            public_aggregates, aggregates["_close_evidence"]
+        )
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return {
+            "status": "INVALID",
+            "first_decisive_clause": "invalid_aggregates",
+            "full_panel_authorized": False,
+        }
+    for predicate_name, clause in (
+        ("close_count_gain", "close_count_gain"),
+        ("close_context_stability", "close_context_spearman"),
+        ("close_receiver_heterogeneity", "close_log_kappa_iqr"),
+        ("close_global_scalar", "close_global_scalar"),
+        ("close_full_gain", "close_full_gain"),
+    ):
+        if predicates[predicate_name]:
             return {
                 "status": "CLOSE",
                 "first_decisive_clause": clause,
                 "full_panel_authorized": False,
             }
-    survives = (
-        all(
-            float(a[f"count_gain_median_{c}"]) >= math.log(1.10)
-            and int(a[f"positive_count_gain_seed_means_{c}"]) >= 3
-            for c in "AB"
-        )
-        and float(a["context_spearman_median"]) >= 0.50
-        and int(a["context_spearman_seeds_ge_point_three"]) >= 3
-        and all(float(a[f"log_kappa_iqr_{c}"]) >= math.log(1.10) for c in "AB")
-        and all(float(a[f"global_scalar_relative_error_median_{c}"]) >= 0.05 for c in "AB")
-        and all(
-            float(a[f"full_gain_error_median_{c}"]) >= math.log(1.25)
-            and int(a[f"full_gain_error_seed_medians_ge_log_one_point_one_{c}"]) >= 3
-            for c in "AB"
-        )
-    )
+    survives = all(predicates[name] for name in tuple(predicates)[:5])
     if survives:
         return {
             "status": "SURVIVES",
@@ -420,6 +478,12 @@ def _metric_pass(
     )
 
 
+def _metric_close(metric: dict[str, object]) -> bool:
+    return float(metric["pooled_difference"]) <= 0.0 and int(
+        metric["positive_seed_means"]
+    ) <= 1
+
+
 def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) -> dict[str, object]:
     if aggregates.get("completeness") is not True:
         return {
@@ -429,24 +493,21 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
         }
     try:
         pa_a = aggregates["primary_pa_alignment"]
-        if float(pa_a["pooled_difference"]) <= 0.0 and int(pa_a["positive_seed_means"]) <= 1:
+        if _metric_close(pa_a):
             return {
                 "status": "CLOSE",
                 "first_decisive_clause": "close_vs_pa",
                 "authorized_action": "stop_close",
             }
         context_b_pa = aggregates["context_b_pa_alignment"]
-        if (
-            float(context_b_pa["pooled_difference"]) <= 0.0
-            and int(context_b_pa["positive_seed_means"]) <= 1
-        ):
+        if _metric_close(context_b_pa):
             return {
                 "status": "CLOSE",
                 "first_decisive_clause": "close_context_b_vs_pa",
                 "authorized_action": "stop_close",
             }
         pa_s = aggregates["primary_pa_slope"]
-        if float(pa_s["pooled_difference"]) <= 0.0 and int(pa_s["positive_seed_means"]) <= 1:
+        if _metric_close(pa_s):
             return {
                 "status": "CLOSE",
                 "first_decisive_clause": "close_vs_pa_slope",
@@ -456,10 +517,7 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
         aliases = aggregates["correction_aliases"]
         for name in CONTROL_ORDER:
             metric = controls[name]["primary_alignment"]
-            if (
-                float(metric["pooled_difference"]) <= 0.0
-                and int(metric["positive_seed_means"]) <= 1
-            ):
+            if _metric_close(metric):
                 return {
                     "status": "CLOSE",
                     "first_decisive_clause": f"close_{name}_primary_alignment",
@@ -472,10 +530,7 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
                 "layerwise_trust_ratio",
             ):
                 metric = controls[name]["primary_slope"]
-                if (
-                    float(metric["pooled_difference"]) <= 0.0
-                    and int(metric["positive_seed_means"]) <= 1
-                ):
+                if _metric_close(metric):
                     return {
                         "status": "CLOSE",
                         "first_decisive_clause": f"close_{name}_primary_slope",
@@ -491,7 +546,11 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
                     "first_decisive_clause": f"close_alias_{name}",
                     "authorized_action": "stop_close",
                 }
-        passes = _metric_pass(pa_a, alignment_floor=0.02, strict=False) and _metric_pass(pa_s)
+        passes = (
+            _metric_pass(pa_a, alignment_floor=0.02, strict=False)
+            and int(pa_a["seed_means_ge_point_zero_one"]) >= 3
+            and _metric_pass(pa_s)
+        )
         passes = passes and _metric_pass(aggregates["context_b_pa_alignment"])
         for name in CONTROL_ORDER:
             passes = passes and all(
@@ -508,7 +567,7 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
             return {
                 "status": "PASS",
                 "first_decisive_clause": "all_pass_predicates",
-                "authorized_action": "authorize_rdgc_preregistration",
+                "authorized_action": "new_training_preregistration_only",
             }
     except (KeyError, TypeError, ValueError, OverflowError):
         return {
@@ -716,13 +775,47 @@ def preliminary_metrics(rows: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def _preliminary_close_evidence(
+    seed_context_aggregates: list[dict[str, object]],
+    seed_correlations: list[dict[str, object]],
+) -> dict[str, object]:
+    if len(seed_context_aggregates) != 8 or len(seed_correlations) != 4:
+        raise ValueError("preliminary close evidence is incomplete")
+    counts: dict[str, int] = {}
+    for context in ("A", "B"):
+        selected = [
+            record
+            for record in seed_context_aggregates
+            if type(record) is dict and record.get("context") == context
+        ]
+        if len(selected) != 4 or [record.get("seed") for record in selected] != list(range(4)):
+            raise ValueError("preliminary close evidence order mismatch")
+        values = [record.get("full_gain_error_median") for record in selected]
+        if any(not _finite_number(value) for value in values):
+            raise ValueError("preliminary full-gain close evidence is nonfinite")
+        counts[context] = sum(float(value) <= math.log(1.05) for value in values)
+    correlations = [record.get("spearman") for record in seed_correlations]
+    if (
+        [record.get("seed") for record in seed_correlations] != list(range(4))
+        or any(not _finite_number(value) for value in correlations)
+    ):
+        raise ValueError("preliminary correlation close evidence mismatch")
+    return {
+        "context_spearman_nonpositive_seed_count": sum(
+            float(value) <= 0.0 for value in correlations
+        ),
+        "full_gain_seed_medians_le_log_one_point_zero_five_A": counts["A"],
+        "full_gain_seed_medians_le_log_one_point_zero_five_B": counts["B"],
+    }
+
+
 def _domain_hash(domain: str, value: str) -> bytes:
     return hashlib.sha256(domain.encode("utf-8") + b"\0" + value.encode("utf-8")).digest()
 
 
 def _bound_inputs(training_ids: Any, labels: Any) -> tuple[list[str], list[int]]:
-    ids = list(training_ids)
-    raw_labels = list(labels)
+    ids = training_ids.tolist() if type(training_ids) is np.ndarray else list(training_ids)
+    raw_labels = labels.tolist() if type(labels) is np.ndarray else list(labels)
     if not ids or len(ids) != len(raw_labels):
         raise ValueError("training IDs and labels must be nonempty and aligned")
     if any(type(value) is not str or not value for value in ids):
@@ -741,20 +834,58 @@ def build_rdgc_selection(
     training_ids: Any, labels: Any, *, old_selection: Any
 ) -> dict[str, object]:
     ids, canonical_labels = _bound_inputs(training_ids, labels)
-    if type(old_selection) not in (set, frozenset) or any(
-        type(value) is not int or value < 0 for value in old_selection
+    if type(old_selection) is not dict:
+        raise TypeError("old selection must be the recomputed primary panel")
+    old_labels_value = old_selection.get("labels")
+    old_receivers = old_selection.get("receiver_ids")
+    old_supports = old_selection.get("support_ids_by_label")
+    old_blocks = old_selection.get("distractor_blocks")
+    if (
+        type(old_labels_value) is not list
+        or len(old_labels_value) != 64
+        or any(type(value) is not int or value < 0 for value in old_labels_value)
+        or len(set(old_labels_value)) != 64
+        or type(old_receivers) is not list
+        or len(old_receivers) != 64
+        or type(old_supports) is not dict
+        or type(old_blocks) is not list
+        or len(old_blocks) != 8
     ):
-        raise TypeError("old selection must be a label set")
-    old_labels = set(old_selection)
+        raise ValueError("old primary selection schema mismatch")
+    old_labels = set(old_labels_value)
+    old_ids: set[str] = set()
+    for receiver in old_receivers:
+        if type(receiver) is not str or not receiver:
+            raise ValueError("old primary receiver ID mismatch")
+        old_ids.add(receiver)
+    for label in old_labels_value:
+        pair = old_supports.get(label)
+        if type(pair) is not list or len(pair) != 2:
+            raise ValueError("old primary support IDs mismatch")
+        for support in pair:
+            if type(support) is not str or not support:
+                raise ValueError("old primary support ID mismatch")
+            old_ids.add(support)
+    for block in old_blocks:
+        if type(block) is not list or len(block) != 172:
+            raise ValueError("old primary distractor block mismatch")
+        for distractor in block:
+            if type(distractor) is not str or not distractor:
+                raise ValueError("old primary distractor ID mismatch")
+            old_ids.add(distractor)
+    if not old_ids <= set(ids):
+        raise ValueError("old primary selection references unknown Bound IDs")
     rows: dict[int, list[str]] = {}
     for example_id, label in zip(ids, canonical_labels, strict=True):
         rows.setdefault(label, []).append(example_id)
     roles = {
         label: sorted(
-            values, key=lambda value: (_domain_hash("rdgc-stage-b-v1|role|", value), value)
+            [value for value in values if value not in old_ids],
+            key=lambda value: (_domain_hash("rdgc-stage-b-v1|role|", value), value),
         )
         for label, values in rows.items()
-        if len(values) >= 3 and label not in old_labels
+        if len([value for value in values if value not in old_ids]) >= 3
+        and label not in old_labels
     }
     ordered = sorted(
         roles,
@@ -764,7 +895,7 @@ def build_rdgc_selection(
         raise ValueError("at least forty fresh eligible identities are required")
     selected = ordered[:40]
     selected_rows = {item for label in selected for item in rows[label]}
-    old_rows = {item for label in old_labels for item in rows.get(label, ())}
+    old_rows = {item for label in old_labels for item in rows.get(label, ())} | old_ids
     assigned_distractors: set[str] = set()
 
     def phase_record(name: str, phase_labels: list[int]) -> dict[str, object]:
@@ -826,11 +957,87 @@ def build_rdgc_selection(
 
     return {
         "old_rsta_exclusion_sha256": hashlib.sha256(
-            b"".join(f"{label}\n".encode() for label in sorted(old_labels))
+            b"".join(item.encode("utf-8") + b"\n" for item in sorted(old_ids))
         ).hexdigest(),
         "preliminary": phase_record("preliminary", selected[:8]),
         "panel": phase_record("panel", selected[8:]),
     }
+
+
+def bind_selection_context_hashes(
+    selection: dict[str, object], bounds: tuple[Any, ...], *, rsta_module: types.ModuleType
+) -> dict[str, object]:
+    """Bind the frozen contexts to authenticated seed bytes and live transform tensors."""
+    if type(bounds) is not tuple or len(bounds) != 4 or [bound.seed for bound in bounds] != list(
+        range(4)
+    ):
+        raise ValueError("selection hash binding requires exact seed order")
+    for phase_name in ("preliminary", "panel"):
+        for group in selection[phase_name]["groups"]:
+            for context in group["contexts"]:
+                batch_ids = tuple(context["batch_ids"])
+                transform_digest = hashlib.sha256()
+                tensor_digest = hashlib.sha256()
+                for bound in bounds:
+                    index_by_id = {
+                        value: index for index, value in enumerate(bound.train_example_ids)
+                    }
+                    if any(value not in index_by_id for value in batch_ids):
+                        raise ValueError("selection context references an unknown Bound ID")
+                    transform_digest.update(int(bound.seed).to_bytes(1, "big"))
+                    transform_digest.update(hashlib.sha256(bound.checkpoint_bytes).digest())
+                    transform_digest.update(
+                        json.dumps(
+                            rsta_module._json_ready(bound.config),
+                            sort_keys=True,
+                            separators=(",", ":"),
+                            allow_nan=False,
+                        ).encode("utf-8")
+                    )
+                    transform_digest.update(b"\0")
+                    for example_id in batch_ids:
+                        source = bound.train_source_paths[index_by_id[example_id]]
+                        if isinstance(source, np.str_):
+                            source = source.item()
+                        if type(source) is not str or not source:
+                            raise ValueError("bound source path must be an exact nonempty string")
+                        transform_digest.update(example_id.encode("utf-8"))
+                        transform_digest.update(b"\0")
+                        transform_digest.update(source.encode("utf-8"))
+                        transform_digest.update(b"\n")
+                    cache = rsta_module.cache_seed_training_tensors(bound, batch_ids)
+                    if (
+                        tuple(cache.example_ids) != batch_ids
+                        or tuple(cache.tensor_sha256) != batch_ids
+                    ):
+                        raise ValueError("selection transform cache binding mismatch")
+                    tensor_digest.update(int(bound.seed).to_bytes(1, "big"))
+                    for example_id in batch_ids:
+                        tensor_digest.update(example_id.encode("utf-8"))
+                        tensor_digest.update(b"\0")
+                        tensor_digest.update(cache.tensor_sha256[example_id].encode("ascii"))
+                        tensor_digest.update(b"\n")
+                    del cache
+                    gc.collect()
+                context["transform_sha256"] = transform_digest.hexdigest()
+                context["tensor_sha256"] = tensor_digest.hexdigest()
+    return selection
+
+
+def require_identical_pgn_graph_evidence(
+    coefficient: dict[str, object], correction: dict[str, object]
+) -> None:
+    order = ("batch_sha256", "input_sha256", "descriptor_sha256", "dbar_sha256")
+    if type(coefficient) is not dict or type(correction) is not dict:
+        raise ValueError("PGN graph evidence must be exact objects")
+    if tuple(coefficient) != order or tuple(correction) != order:
+        raise ValueError("PGN graph evidence schema mismatch")
+    for record in (coefficient, correction):
+        for value in record.values():
+            if type(value) is not str or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+                raise ValueError("PGN graph evidence hash mismatch")
+    if coefficient != correction:
+        raise ValueError("PGN fresh graphs differ")
 
 
 def nested_contributor_masks(
@@ -1098,13 +1305,25 @@ def authenticate_authority(
     ):
         raise ValueError("validation receipt binding mismatch")
     receipt = _strict_json(receipt_path)
+    verifier_source = files[
+        RDGC_SOURCE_ORDER.index("scripts/verify_pass200_rsta_scientific_artifact.py")
+    ]
+    verifier_module = load_authenticated_rsta_module(repository, verifier_source)
+    try:
+        verifier_module.validate_roundtrip_receipt(receipt)
+    except verifier_module.StructuralFailure as exc:
+        raise ValueError("validation receipt schema/status mismatch") from exc
     if (
-        tuple(receipt) != ("status", "artifact_path", "artifact_sha256")
-        or receipt["status"] != "VALID"
+        receipt["status"] != "VALID"
+        or receipt["outcome_disclosed"] is not False
+        or receipt["artifact"]["path"] != receipt_ref["artifact_path"]
+        or receipt["artifact"]["sha256"] != receipt_ref["artifact_sha256"]
+        or receipt["verifier_provenance"]["source_commit"]
+        != receipt_ref["verifier_source_commit"]
+        or receipt["verifier_provenance"]["handoff_commit"]
+        != receipt_ref["verifier_handoff_commit"]
     ):
-        raise ValueError("validation receipt schema/status mismatch")
-    if type(receipt["artifact_path"]) is not str or type(receipt["artifact_sha256"]) is not str:
-        raise ValueError("validation receipt artifact binding mismatch")
+        raise ValueError("validation receipt nested binding mismatch")
     return {
         "source_commit": source_commit,
         "handoff_commit": head,
@@ -1166,18 +1385,35 @@ def compute_parameter_correction(
             value.detach().to(device="cpu", dtype=torch_module.float32).contiguous()
             for value in layerwise_trust_ratio_direction(torch_module, named_parameters, p)
         )
-    required = ("b", "s", "dbar", "receiver_fields", "pgn_motion")
+    required_by_operator = {
+        "rdgc": ("b", "s"),
+        "raw_cotangent": ("b", "dbar"),
+        "full_motion": ("b",),
+        "batch_global_gain": ("b", "receiver_fields"),
+        "scalar_diagonal_raw": ("b", "dbar", "receiver_fields"),
+        "per_example_gradient_normalized": ("pgn_motion", "s"),
+    }
+    required = required_by_operator[operator]
     if any(key not in field for key in required):
         raise ValueError("penalty field is incomplete")
-    penalties = control_penalties(
-        torch_module,
-        b=field["b"],
-        s=field["s"],
-        dbar=field["dbar"],
-        receiver_fields=field["receiver_fields"],
-        pgn_motion=field["pgn_motion"],
-    )
-    penalty = penalties[operator]
+    if operator == "rdgc":
+        penalty = rdgc_penalty(torch_module, field["b"], field["s"])
+    elif operator == "raw_cotangent":
+        penalty = raw_cotangent_penalty(torch_module, field["b"], field["dbar"])
+    elif operator == "full_motion":
+        penalty = full_motion_penalty(torch_module, field["b"])
+    elif operator == "batch_global_gain":
+        penalty = batch_global_gain_penalty(
+            torch_module, field["b"], field["receiver_fields"]
+        )
+    elif operator == "scalar_diagonal_raw":
+        penalty = scalar_diagonal_raw_penalty(
+            torch_module, field["b"], field["dbar"], field["receiver_fields"]
+        )
+    else:
+        penalty = per_example_gradient_normalized_penalty(
+            torch_module, field["pgn_motion"], field["s"]
+        )
     gradients = torch_module.autograd.grad(
         penalty, parameters, retain_graph=False, create_graph=False, allow_unused=False
     )
@@ -1410,6 +1646,8 @@ def validate_scientific_payload(value: dict[str, object]) -> None:
             value[key] is not None for key in ("selection", "preliminary", "panel", "bootstrap")
         ):
             raise ValueError("post-import INVALID null union mismatch")
+        if status == "INVALID" and value["integrity"] is None:
+            raise ValueError("post-import INVALID requires complete actual integrity")
         if (
             phase == "preliminary"
             and status != "INVALID"
@@ -1462,6 +1700,10 @@ def validate_scientific_payload(value: dict[str, object]) -> None:
             or type(record["value"]) is not bool
         ):
             raise ValueError("predicate record schema mismatch")
+    if status == "INVALID" and decision["predicates"] != [
+        {"name": "structural_integrity", "value": False}
+    ]:
+        raise ValueError("INVALID decision predicate mismatch")
     _validate_result_nested(value)
 
 
@@ -1536,6 +1778,53 @@ def _validate_seed_artifacts(value: object, expected_seed: int, name: str) -> No
     _sha(record["source_export_sha256"], f"{name}.source export")
 
 
+def _validate_integrity(value: object, *, require_all_passed: bool) -> None:
+    record = _exact_object(
+        value,
+        (
+            "seeds",
+            "all_four_passed",
+            "candidate_calls_before_all_four",
+            "candidate_state_before_all_four",
+        ),
+        "integrity",
+    )
+    seeds = record["seeds"]
+    if type(seeds) is not list or len(seeds) != 4:
+        raise ValueError("integrity seed count mismatch")
+    flag_names = (
+        "dense_jacobian_passed",
+        "bn_passed",
+        "repeatability_passed",
+        "normwise_adjoint_passed",
+        "sign_control_passed",
+        "rotation_passed",
+        "atomic_writer_passed",
+        "no_candidate_reachability_passed",
+    )
+    seed_order = ("seed", *flag_names, "action_hashes_sha256", "passed")
+    passes: list[bool] = []
+    for expected_seed, seed_value in enumerate(seeds):
+        seed = _exact_object(seed_value, seed_order, "integrity seed")
+        if seed["seed"] != expected_seed or any(
+            type(seed[name]) is not bool for name in flag_names
+        ):
+            raise ValueError("integrity seed order/type mismatch")
+        _sha(seed["action_hashes_sha256"], "integrity action hashes")
+        expected_passed = all(seed[name] for name in flag_names)
+        if seed["passed"] is not expected_passed:
+            raise ValueError("integrity seed passed relation mismatch")
+        passes.append(expected_passed)
+    expected_all = all(passes)
+    if (
+        record["all_four_passed"] is not expected_all
+        or record["candidate_calls_before_all_four"] != 0
+        or record["candidate_state_before_all_four"] is not False
+        or (require_all_passed and not expected_all)
+    ):
+        raise ValueError("integrity prefix relation mismatch")
+
+
 def _validate_source_file(value: object, expected_path: str, name: str) -> None:
     record = _exact_object(value, ("path", "sha256", "git_blob"), name)
     if record["path"] != expected_path:
@@ -1550,6 +1839,9 @@ def _validate_selection(value: object) -> None:
         value, ("old_rsta_exclusion_sha256", "preliminary", "panel"), "selection"
     )
     _sha(selection["old_rsta_exclusion_sha256"], "selection exclusion")
+    all_labels: set[int] = set()
+    all_role_ids: set[str] = set()
+    all_distractors: set[str] = set()
     for phase_name, identity_count, group_count in (
         ("preliminary", 8, 1),
         ("panel", 32, 4),
@@ -1568,12 +1860,17 @@ def _validate_selection(value: object) -> None:
         if (
             any(type(label) is not int or label < 0 for label in labels)
             or len(set(labels)) != identity_count
+            or not all_labels.isdisjoint(labels)
         ):
             raise ValueError(f"{phase_name} labels mismatch")
+        all_labels.update(labels)
         if type(receiver_ids) is not list or len(receiver_ids) != identity_count:
             raise ValueError(f"{phase_name} receiver count mismatch")
         for receiver_id in receiver_ids:
             _bound_id(receiver_id, f"{phase_name} receiver")
+        if len(set(receiver_ids)) != identity_count or not all_role_ids.isdisjoint(receiver_ids):
+            raise ValueError(f"{phase_name} receiver uniqueness mismatch")
+        all_role_ids.update(receiver_ids)
         expected_support_keys = tuple(str(label) for label in labels)
         if type(supports) is not dict or tuple(supports) != expected_support_keys:
             raise ValueError(f"{phase_name} support order mismatch")
@@ -1582,6 +1879,9 @@ def _validate_selection(value: object) -> None:
                 raise ValueError(f"{phase_name} support pair mismatch")
             for support_id in pair:
                 _bound_id(support_id, f"{phase_name} support")
+                if support_id in all_role_ids:
+                    raise ValueError(f"{phase_name} support/receiver overlap")
+                all_role_ids.add(support_id)
         if type(groups) is not list or len(groups) != group_count:
             raise ValueError(f"{phase_name} group count mismatch")
         for group_index, group_value in enumerate(groups):
@@ -1616,15 +1916,33 @@ def _validate_selection(value: object) -> None:
                     context["context"] != context_name
                     or type(context["batch_ids"]) is not list
                     or len(context["batch_ids"]) != 180
+                    or len(set(context["batch_ids"])) != 180
                 ):
                     raise ValueError(f"{phase_name} context batch mismatch")
                 for example_id in context["batch_ids"]:
                     _bound_id(example_id, f"{phase_name} batch ID")
                 for key in ("batch_sha256", "transform_sha256", "tensor_sha256"):
                     _sha(context[key], f"{phase_name}.{key}")
+                expected_batch_hash = hashlib.sha256(
+                    b"".join(
+                        example_id.encode("utf-8") + b"\n"
+                        for example_id in context["batch_ids"]
+                    )
+                ).hexdigest()
+                if context["batch_sha256"] != expected_batch_hash:
+                    raise ValueError(f"{phase_name} context batch hash mismatch")
+                batch = set(context["batch_ids"])
+                if not set(group["receiver_ids"]) <= batch or batch & (
+                    all_role_ids - set(group["receiver_ids"])
+                ):
+                    raise ValueError(f"{phase_name} context role relation mismatch")
+                distractors = batch - set(group["receiver_ids"])
+                if len(distractors) != 172 or not all_distractors.isdisjoint(distractors):
+                    raise ValueError(f"{phase_name} context distractor relation mismatch")
+                all_distractors.update(distractors)
 
 
-def _validate_preliminary(value: object) -> None:
+def _validate_preliminary(value: object, selection: dict[str, object]) -> None:
     preliminary = _exact_object(
         value,
         (
@@ -1668,8 +1986,20 @@ def _validate_preliminary(value: object) -> None:
         "absolute_log_gain_errors_by_contributor_count",
         "count_gain",
     )
-    for row in rows:
+    phase = selection["preliminary"]
+    for index, row in enumerate(rows):
         record = _exact_object(row, row_keys, "preliminary row")
+        expected_seed = index // 16
+        within_seed = index % 16
+        expected_context = ("A", "B")[within_seed // 8]
+        receiver_index = within_seed % 8
+        if (
+            record["seed"] != expected_seed
+            or record["context"] != expected_context
+            or record["receiver_label"] != phase["identity_labels"][receiver_index]
+            or record["receiver_id"] != phase["receiver_ids"][receiver_index]
+        ):
+            raise ValueError("preliminary row order/selection relation mismatch")
         _integer(record["seed"], "preliminary seed")
         _integer(record["receiver_label"], "preliminary label")
         _bound_id(record["receiver_id"], "preliminary receiver")
@@ -1728,9 +2058,15 @@ def _validate_preliminary(value: object) -> None:
         "full_panel_authorized",
     ):
         raise ValueError("preliminary decision schema mismatch")
+    expected = summarize_preliminary_rows(rows)
+    for key in expected:
+        if preliminary[key] != expected[key]:
+            raise ValueError(f"preliminary {key} aggregate/predicate/decision mismatch")
 
 
-def _validate_bootstrap(value: object) -> None:
+def _validate_bootstrap(
+    value: object, panel: dict[str, object], selection: dict[str, object]
+) -> None:
     bootstrap = _exact_object(
         value,
         ("bit_generator", "seed", "replicates", "complete_labels", "distributions"),
@@ -1742,7 +2078,10 @@ def _validate_bootstrap(value: object) -> None:
         or bootstrap["replicates"] != 10_000
     ):
         raise ValueError("bootstrap fixed fields mismatch")
-    if type(bootstrap["complete_labels"]) is not list or len(bootstrap["complete_labels"]) != 32:
+    if (
+        type(bootstrap["complete_labels"]) is not list
+        or bootstrap["complete_labels"] != selection["panel"]["identity_labels"]
+    ):
         raise ValueError("bootstrap complete labels mismatch")
     distributions = bootstrap["distributions"]
     if type(distributions) is not list or len(distributions) != 28:
@@ -1765,6 +2104,8 @@ def _validate_bootstrap(value: object) -> None:
                     raise ValueError("bootstrap distribution order mismatch")
                 if type(record["values"]) is not list or len(record["values"]) != 10_000:
                     raise ValueError("bootstrap values mismatch")
+                if any(type(item) is not float for item in record["values"]):
+                    raise ValueError("bootstrap values must be JSON floats")
                 values = np.asarray(record["values"], dtype=np.float64)
                 if not np.isfinite(values).all():
                     raise ValueError("bootstrap values nonfinite")
@@ -1772,9 +2113,24 @@ def _validate_bootstrap(value: object) -> None:
                 if hashlib.sha256(values.tobytes(order="C")).hexdigest() != record["values_sha256"]:
                     raise ValueError("bootstrap values hash mismatch")
                 _float(record["lower_bound"], "bootstrap lower bound")
+                if record["lower_bound"] != float(np.percentile(values, 2.5)):
+                    raise ValueError("bootstrap lower-bound percentile mismatch")
+    bootstrap_rows = [
+        {
+            "seed": row["seed"],
+            "context": row["context"],
+            "receiver_label": row["receiver_label"],
+            "operators": row["operators"],
+        }
+        for row in panel["rows"]
+    ]
+    if bootstrap != paired_bootstrap(bootstrap_rows):
+        raise ValueError("bootstrap recomputation mismatch")
 
 
-def _validate_panel(value: object) -> None:
+def _validate_panel(
+    value: object, selection: dict[str, object], bootstrap: dict[str, object]
+) -> None:
     panel = _exact_object(
         value,
         (
@@ -1817,12 +2173,21 @@ def _validate_panel(value: object) -> None:
         within_seed = index % 64
         expected_receiver = within_seed // 2
         expected_context = ("A", "B")[within_seed % 2]
+        phase = selection["panel"]
+        expected_label = phase["identity_labels"][expected_receiver]
+        expected_receiver_id = phase["receiver_ids"][expected_receiver]
+        expected_batch_hash = phase["groups"][expected_receiver // 8]["contexts"][
+            within_seed % 2
+        ]["batch_sha256"]
         if (
             record["seed"] != expected_seed
             or record["group"] != expected_receiver // 8
             or record["context"] != expected_context
+            or record["receiver_label"] != expected_label
+            or record["receiver_id"] != expected_receiver_id
+            or record["batch_sha256"] != expected_batch_hash
         ):
-            raise ValueError("panel row order mismatch")
+            raise ValueError("panel row order/selection relation mismatch")
         _integer(record["receiver_label"], "panel receiver label")
         _bound_id(record["receiver_id"], "panel receiver ID")
         _sha(record["batch_sha256"], "panel batch hash")
@@ -1921,6 +2286,23 @@ def _validate_panel(value: object) -> None:
     predicates = _exact_object(panel["predicates"], predicate_keys, "panel predicates")
     if any(type(item) is not bool for item in predicates.values()):
         raise ValueError("panel predicate types mismatch")
+    correction_cosines = {
+        control: [
+            (int(row["seed"]), float(row["corrections"][control]["rdgc_correction_cosine"]))
+            for row in rows
+            if row["context"] == "A"
+        ]
+        for control in CONTROL_ORDER
+    }
+    expected_panel, _ = _aggregate_panel(rows, correction_cosines, bootstrap)
+    for key in (
+        "seed_context_aggregates",
+        "pooled_aggregates",
+        "correction_alias_aggregates",
+        "predicates",
+    ):
+        if panel[key] != expected_panel[key]:
+            raise ValueError(f"panel {key} aggregate/predicate mismatch")
 
 
 def _validate_result_nested(value: dict[str, object]) -> None:
@@ -2003,9 +2385,24 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     if (
         execution["attempt"] != 1
         or type(execution["command"]) is not list
-        or not execution["command"]
+        or len(execution["command"]) != 9
     ):
         raise ValueError("execution attempt/command mismatch")
+    expected_command = [
+        ".venv/bin/python",
+        "-I",
+        "-B",
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "--manifest",
+        source["manifest_path"],
+        "--output",
+        execution["output_path"],
+        "--scientific-once",
+    ]
+    if execution["command"] != expected_command or any(
+        type(token) is not str for token in execution["command"]
+    ):
+        raise ValueError("execution command mismatch")
     for key in (
         "cwd",
         "python_executable",
@@ -2106,33 +2503,42 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     for seed, record in enumerate(binding["seeds"]):
         _validate_seed_artifacts(record, seed, "binding seed")
     integrity = value["integrity"]
-    if integrity is not None and value["status"] != "INVALID":
-        integrity_record = _exact_object(
-            integrity,
-            (
-                "seeds",
-                "all_four_passed",
-                "candidate_calls_before_all_four",
-                "candidate_state_before_all_four",
-            ),
-            "integrity",
-        )
-        if (
-            type(integrity_record["seeds"]) is not list
-            or len(integrity_record["seeds"]) != 4
-            or integrity_record["all_four_passed"] is not True
-            or integrity_record["candidate_calls_before_all_four"] != 0
-            or integrity_record["candidate_state_before_all_four"] is not False
-        ):
-            raise ValueError("integrity prefix relation mismatch")
+    if integrity is not None:
+        _validate_integrity(integrity, require_all_passed=value["status"] != "INVALID")
     if value["selection"] is not None:
         _validate_selection(value["selection"])
     if value["preliminary"] is not None:
-        _validate_preliminary(value["preliminary"])
-    if value["bootstrap"] is not None:
-        _validate_bootstrap(value["bootstrap"])
+        _validate_preliminary(value["preliminary"], value["selection"])
     if value["panel"] is not None:
-        _validate_panel(value["panel"])
+        _validate_bootstrap(value["bootstrap"], value["panel"], value["selection"])
+        _validate_panel(value["panel"], value["selection"], value["bootstrap"])
+        expected_predicates = [
+            {"name": name, "value": predicate}
+            for name, predicate in value["panel"]["predicates"].items()
+        ]
+        if value["decision"]["predicates"] != expected_predicates:
+            raise ValueError("top-level decision predicate order/relation mismatch")
+        _, expected_decision = _aggregate_panel(
+            value["panel"]["rows"],
+            {
+                control: [
+                    (
+                        int(row["seed"]),
+                        float(row["corrections"][control]["rdgc_correction_cosine"]),
+                    )
+                    for row in value["panel"]["rows"]
+                    if row["context"] == "A"
+                ]
+                for control in CONTROL_ORDER
+            },
+            value["bootstrap"],
+        )
+        if (
+            value["decision"]["status"] != expected_decision["status"]
+            or value["decision"]["first_decisive_clause"]
+            != expected_decision["first_decisive_clause"]
+        ):
+            raise ValueError("top-level decision relation mismatch")
 
 
 def validate_future_manifest(value: dict[str, object]) -> None:
@@ -2333,6 +2739,8 @@ def write_json_atomic(path: Path, payload: dict[str, object]) -> None:
             os.fsync(directory)
         finally:
             os.close(directory)
+        persisted = _strict_json(path)
+        validate_scientific_payload(persisted)
     finally:
         with contextlib.suppress(FileNotFoundError):
             temporary.unlink()
@@ -2511,7 +2919,6 @@ def run_preliminary_science(
                 )
             )
     aggregates = preliminary_metrics(rows)
-    decision = decide_preliminary(aggregates)
     seed_context_aggregates: list[dict[str, object]] = []
     seed_correlations: list[dict[str, object]] = []
     for seed in range(4):
@@ -2562,33 +2969,9 @@ def run_preliminary_science(
                 "spearman": float(np.corrcoef(ranks_a, ranks_b)[0, 1]),
             }
         )
-    predicates = {
-        "survives_count_gain": all(
-            float(aggregates[f"count_gain_median_{context}"]) >= math.log(1.10)
-            and int(aggregates[f"positive_count_gain_seed_means_{context}"]) >= 3
-            for context in ("A", "B")
-        ),
-        "survives_context_stability": float(aggregates["context_spearman_median"]) >= 0.50
-        and int(aggregates["context_spearman_seeds_ge_point_three"]) >= 3,
-        "survives_receiver_heterogeneity": all(
-            float(aggregates[f"log_kappa_iqr_{context}"]) >= math.log(1.10)
-            for context in ("A", "B")
-        ),
-        "survives_global_scalar": all(
-            float(aggregates[f"global_scalar_relative_error_median_{context}"]) >= 0.05
-            for context in ("A", "B")
-        ),
-        "survives_full_gain": all(
-            float(aggregates[f"full_gain_error_median_{context}"]) >= math.log(1.25)
-            and int(aggregates[f"full_gain_error_seed_medians_ge_log_one_point_one_{context}"]) >= 3
-            for context in ("A", "B")
-        ),
-        "close_count_gain": decision["first_decisive_clause"] == "close_count_gain",
-        "close_context_stability": decision["first_decisive_clause"] == "close_context_spearman",
-        "close_receiver_heterogeneity": decision["first_decisive_clause"] == "close_log_kappa_iqr",
-        "close_global_scalar": decision["first_decisive_clause"] == "close_global_scalar",
-        "close_full_gain": decision["first_decisive_clause"] == "close_full_gain",
-    }
+    close_evidence = _preliminary_close_evidence(seed_context_aggregates, seed_correlations)
+    decision = decide_preliminary({**aggregates, "_close_evidence": close_evidence})
+    predicates = _preliminary_predicate_values(aggregates, close_evidence)
     return {
         "operator_counts": {
             "forwards_per_seed_context": 1,
@@ -2599,6 +2982,59 @@ def run_preliminary_science(
             "masked_receiver_jvps_per_seed_context": 32,
         },
         "rows": rows,
+        "seed_context_aggregates": seed_context_aggregates,
+        "seed_correlations": seed_correlations,
+        "pooled_aggregates": aggregates,
+        "predicates": predicates,
+        "decision": decision,
+    }
+
+
+def summarize_preliminary_rows(rows: list[dict[str, object]]) -> dict[str, object]:
+    """Derive every registered preliminary aggregate, predicate, and decision."""
+    aggregates = preliminary_metrics(rows)
+    seed_context_aggregates: list[dict[str, object]] = []
+    seed_correlations: list[dict[str, object]] = []
+    for seed in range(4):
+        context_logs: dict[str, np.ndarray] = {}
+        for context in ("A", "B"):
+            selected = [row for row in rows if row["seed"] == seed and row["context"] == context]
+            if len(selected) != 8:
+                raise ValueError("preliminary seed/context completeness mismatch")
+            logs = np.asarray([float(row["log_kappa"]) for row in selected], dtype=np.float64)
+            context_logs[context] = logs
+            global_log = float(np.median(logs))
+            seed_context_aggregates.append(
+                {
+                    "seed": seed,
+                    "context": context,
+                    "count_gain_mean": float(
+                        np.mean([float(row["count_gain"]) for row in selected], dtype=np.float64)
+                    ),
+                    "log_kappa_median": global_log,
+                    "log_kappa_iqr": float(np.percentile(logs, 75) - np.percentile(logs, 25)),
+                    "global_scalar_relative_error_median": float(
+                        np.median(np.abs(np.exp(logs - global_log) - 1.0))
+                    ),
+                    "full_gain_error_median": float(
+                        np.median(
+                            [
+                                float(row["absolute_log_gain_errors_by_contributor_count"]["180"])
+                                for row in selected
+                            ]
+                        )
+                    ),
+                }
+            )
+        ranks_a = np.argsort(np.argsort(context_logs["A"], kind="stable"), kind="stable")
+        ranks_b = np.argsort(np.argsort(context_logs["B"], kind="stable"), kind="stable")
+        seed_correlations.append(
+            {"seed": seed, "spearman": float(np.corrcoef(ranks_a, ranks_b)[0, 1])}
+        )
+    close_evidence = _preliminary_close_evidence(seed_context_aggregates, seed_correlations)
+    decision = decide_preliminary({**aggregates, "_close_evidence": close_evidence})
+    predicates = _preliminary_predicate_values(aggregates, close_evidence)
+    return {
         "seed_context_aggregates": seed_context_aggregates,
         "seed_correlations": seed_correlations,
         "pooled_aggregates": aggregates,
@@ -2654,6 +3090,14 @@ def _open_panel_context(
     )
     dbar = -torch_module.autograd.grad(loss, z, create_graph=True)[0]
     _require_fp32_finite(torch_module, dbar)
+    graph_evidence = {
+        "batch_sha256": hashlib.sha256(
+            b"".join(value.encode("utf-8") + b"\n" for value in batch_ids)
+        ).hexdigest(),
+        "input_sha256": _tensor_sha256(images, torch_module),
+        "descriptor_sha256": _tensor_sha256(z, torch_module),
+        "dbar_sha256": _tensor_sha256(dbar, torch_module),
+    }
     return {
         "cache": cache,
         "model": model,
@@ -2668,6 +3112,7 @@ def _open_panel_context(
         "vjp_function": vjp_function,
         "loss": loss,
         "dbar": dbar,
+        "graph_evidence": graph_evidence,
         "receiver_indices": tuple(batch_ids.index(value) for value in receiver_ids),
         "device": device,
     }
@@ -2743,14 +3188,25 @@ def _parameter_correction_science(
     dbar = context["dbar"]
     vjp_function = context["vjp_function"]
     encoder = context["encoder"]
-    receiver_fields: list[dict[str, Any]] = []
-    for index in context["receiver_indices"]:
+
+    def receiver_field(index: int) -> dict[str, Any]:
         cotangent = torch_module.zeros_like(dbar)
         cotangent[index] = dbar[index]
         gradient = vjp_function(cotangent)[0]
         _, full_motion = torch_module.func.jvp(encoder, (parameters,), (gradient,))
-        receiver_fields.append({"s": full_motion[index], "dbar": dbar[index]})
+        result = {"s": full_motion[index], "dbar": dbar[index]}
         del cotangent, gradient, full_motion
+        return result
+
+    receiver_fields: list[dict[str, Any]] = []
+    if operator in {"batch_global_gain", "scalar_diagonal_raw"}:
+        receiver_fields = [receiver_field(index) for index in context["receiver_indices"]]
+        self_motion = None
+    elif operator in {"rdgc", "per_example_gradient_normalized"}:
+        target_field = receiver_field(receiver_index)
+        self_motion = target_field["s"]
+    else:
+        self_motion = None
     global_gradient = None
     global_motion = None
     if operator == "per_example_gradient_normalized":
@@ -2772,13 +3228,17 @@ def _parameter_correction_science(
         "named_parameters": tuple((name, parameters[name]) for name in names),
         "p": tuple(value.to(context["device"]) for value in p),
         "b": b,
-        "s": receiver_fields[context["receiver_indices"].index(receiver_index)]["s"],
-        "dbar": dbar[receiver_index],
-        "receiver_fields": receiver_fields,
-        "pgn_motion": pgn_motion,
     }
+    if operator in {"rdgc", "per_example_gradient_normalized"}:
+        field["s"] = self_motion
+    if operator in {"raw_cotangent", "scalar_diagonal_raw"}:
+        field["dbar"] = dbar[receiver_index]
+    if operator in {"batch_global_gain", "scalar_diagonal_raw"}:
+        field["receiver_fields"] = receiver_fields
+    if operator == "per_example_gradient_normalized":
+        field["pgn_motion"] = pgn_motion
     result = compute_parameter_correction(field, operator, torch_module=torch_module)
-    del field, receiver_fields, global_gradient, global_motion, b
+    del field, receiver_fields, global_gradient, global_motion, b, self_motion
     return result
 
 
@@ -2923,6 +3383,7 @@ def _correction_for_receiver(
         )
         try:
             coefficients = _pgn_coefficients_science(coefficient_context, torch_module)
+            coefficient_evidence = dict(coefficient_context["graph_evidence"])
         finally:
             _close_panel_context(coefficient_context, torch_module)
     context = _open_panel_context(
@@ -2934,6 +3395,10 @@ def _correction_for_receiver(
         expected_dimension=expected_dimension,
     )
     try:
+        if operator == "per_example_gradient_normalized":
+            require_identical_pgn_graph_evidence(
+                coefficient_evidence, context["graph_evidence"]
+            )
         return _parameter_correction_science(
             operator=operator,
             receiver_index=batch_ids.index(receiver_id),
@@ -3047,6 +3512,10 @@ def _aggregate_panel(
                     "positive_seed_means": record["positive_alignment_seed_means"],
                     "nonpositive_seed_means": 4 - int(record["positive_alignment_seed_means"]),
                 }
+                if context == "A" and operator == "pa":
+                    metric_ledger[(context, operator, "alignment")][
+                        "seed_means_ge_point_zero_one"
+                    ] = sum(value >= 0.01 for value in alignment_differences)
                 metric_ledger[(context, operator, "slope")] = {
                     "pooled_difference": record["rdgc_minus_operator_slope_mean"],
                     "lower_bound": bootstrap_by_key[(context, operator, "margin_slope")][
@@ -3094,6 +3563,12 @@ def _aggregate_panel(
         "completeness": True,
     }
     decision = decide_panel(decision_input, bootstrap)
+    close_slope_controls = (
+        "batch_global_gain",
+        "scalar_diagonal_raw",
+        "per_example_gradient_normalized",
+        "layerwise_trust_ratio",
+    )
     predicates = {
         "primary_vs_pa_alignment": _metric_pass(
             decision_input["primary_pa_alignment"],
@@ -3117,12 +3592,27 @@ def _aggregate_panel(
             for control in CONTROL_ORDER
         ),
         "completeness": True,
-        "close_vs_pa": decision["first_decisive_clause"].startswith("close_vs_pa"),
-        "close_primary_control": decision["first_decisive_clause"].startswith("close_")
-        and "primary_alignment" in decision["first_decisive_clause"],
-        "close_control_slope": decision["first_decisive_clause"].startswith("close_")
-        and "slope" in decision["first_decisive_clause"],
-        "close_correction_alias": decision["first_decisive_clause"].startswith("close_alias_"),
+        "close_vs_pa": any(
+            _metric_close(metric)
+            for metric in (
+                decision_input["primary_pa_alignment"],
+                decision_input["context_b_pa_alignment"],
+                decision_input["primary_pa_slope"],
+            )
+        ),
+        "close_primary_control": any(
+            _metric_close(controls[control]["primary_alignment"])
+            for control in CONTROL_ORDER
+        ),
+        "close_control_slope": any(
+            _metric_close(controls[control]["primary_slope"])
+            for control in close_slope_controls
+        ),
+        "close_correction_alias": any(
+            float(alias_map[control]["pooled_median_absolute_cosine"]) >= 0.99
+            and int(alias_map[control]["seed_medians_ge_point_nine_nine"]) >= 3
+            for control in CONTROL_ORDER
+        ),
     }
     panel = {
         "operator_order": list(OPERATOR_ORDER),
@@ -3289,6 +3779,79 @@ def _source_files_digest(files: list[dict[str, object]]) -> str:
     return digest.hexdigest()
 
 
+def convert_rsta_integrity_prefix(payload: dict[str, object]) -> dict[str, object]:
+    """Reduce the validated Pass 200 prefix without replacing observed gate values."""
+    if type(payload) is not dict or type(payload.get("integrity")) is not dict:
+        raise ValueError("RSTA integrity payload schema mismatch")
+    raw = payload["integrity"]
+    dense = raw.get("dense_fixture")
+    bn = raw.get("bn_fixture")
+    seeds = raw.get("seeds")
+    if (
+        type(dense) is not dict
+        or type(dense.get("passed")) is not bool
+        or type(bn) is not dict
+        or type(bn.get("passed")) is not bool
+        or type(seeds) is not dict
+        or tuple(seeds) != ("0", "1", "2", "3")
+    ):
+        raise ValueError("RSTA integrity fixtures/seeds mismatch")
+    records: list[dict[str, object]] = []
+    for seed in range(4):
+        seed_record = seeds[str(seed)]
+        if type(seed_record) is not dict or type(seed_record.get("adjoint")) is not dict:
+            raise ValueError("RSTA seed integrity schema mismatch")
+        adjoint = seed_record["adjoint"]
+        controls = adjoint.get("controls")
+        if type(controls) is not dict or tuple(controls) != (
+            "rebuild",
+            "reversed_action_order",
+            "parameter_sign",
+            "output_sign",
+        ):
+            raise ValueError("RSTA adjoint control schema mismatch")
+        control_passes: dict[str, bool] = {}
+        for name, control in controls.items():
+            if type(control) is not dict or type(control.get("passed")) is not bool:
+                raise ValueError("RSTA adjoint control predicate mismatch")
+            control_passes[name] = control["passed"]
+        for name in ("jvp_sha256", "vjp_sha256"):
+            _sha(adjoint.get(name), f"RSTA adjoint {name}")
+        normwise = adjoint.get("normwise_passed")
+        if type(normwise) is not bool:
+            raise ValueError("RSTA normwise predicate mismatch")
+        flags = {
+            "dense_jacobian_passed": dense["passed"],
+            "bn_passed": bn["passed"],
+            "repeatability_passed": control_passes["rebuild"],
+            "normwise_adjoint_passed": normwise,
+            "sign_control_passed": control_passes["parameter_sign"]
+            and control_passes["output_sign"],
+            "rotation_passed": control_passes["reversed_action_order"],
+            "atomic_writer_passed": True,
+            "no_candidate_reachability_passed": True,
+        }
+        encoded = json.dumps(adjoint, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        records.append(
+            {
+                "seed": seed,
+                **flags,
+                "action_hashes_sha256": hashlib.sha256(encoded).hexdigest(),
+                "passed": all(flags.values()),
+            }
+        )
+    result = {
+        "seeds": records,
+        "all_four_passed": all(record["passed"] for record in records),
+        "candidate_calls_before_all_four": 0,
+        "candidate_state_before_all_four": False,
+    }
+    _validate_integrity(result, require_all_passed=False)
+    if raw.get("all_passed") is not result["all_four_passed"]:
+        raise ValueError("RSTA/RDGC integrity all-pass relation mismatch")
+    return result
+
+
 def _integrity_prefix_from_rsta(
     *,
     rsta_module: types.ModuleType,
@@ -3316,33 +3879,20 @@ def _integrity_prefix_from_rsta(
         )
     finally:
         rsta_module.write_json_atomic = original_writer
-    if captured != [payload] or payload["integrity"]["all_passed"] is not True:
+    if captured != [payload]:
         raise ValueError("reused all-seed integrity prefix failed")
-    records: list[dict[str, object]] = []
-    for seed in range(4):
-        raw = payload["integrity"]["seeds"][str(seed)]
-        encoded = json.dumps(raw, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        records.append(
-            {
-                "seed": seed,
-                "dense_jacobian_passed": True,
-                "bn_passed": True,
-                "repeatability_passed": True,
-                "normwise_adjoint_passed": True,
-                "sign_control_passed": True,
-                "rotation_passed": True,
-                "atomic_writer_passed": True,
-                "no_candidate_reachability_passed": True,
-                "action_hashes_sha256": hashlib.sha256(encoded).hexdigest(),
-                "passed": True,
-            }
-        )
-    return records, payload["binding"]
+    integrity = convert_rsta_integrity_prefix(payload)
+    if integrity["all_four_passed"] is not True:
+        failed = next(record["seed"] for record in integrity["seeds"] if not record["passed"])
+        raise RdgcPostImportInvalid(integrity, f"seed_{failed}_integrity_failed")
+    return integrity["seeds"], payload["binding"]
 
 
 def _result_decision(
     status: str, clause: str, *, predicates: list[dict[str, object]] | None = None
 ) -> dict[str, object]:
+    if status == "INVALID":
+        predicates = [{"name": "structural_integrity", "value": False}]
     return {
         "close_precedence": True,
         "predicates": predicates or [{"name": clause, "value": True}],
@@ -3355,6 +3905,23 @@ def _result_decision(
             "INVALID": "stop_invalid",
         }[status],
     }
+
+
+def result_decision_for_phase(
+    status: str, clause: str, *, panel: dict[str, object] | None
+) -> dict[str, object]:
+    if panel is None:
+        return _result_decision(status, clause)
+    if type(panel) is not dict or type(panel.get("predicates")) is not dict:
+        raise ValueError("full-panel result requires exact panel predicates")
+    predicates = panel["predicates"]
+    if any(type(name) is not str or type(value) is not bool for name, value in predicates.items()):
+        raise ValueError("full-panel result predicates must be concrete booleans")
+    return _result_decision(
+        status,
+        clause,
+        predicates=[{"name": name, "value": value} for name, value in predicates.items()],
+    )
 
 
 def _output_binding(manifest: dict[str, object]) -> dict[str, object]:
@@ -3461,6 +4028,7 @@ def run_rdgc_scientific_once(
     started_utc: str,
     command: list[str],
     expected_dimension: int = 512,
+    integrity_observer: Any | None = None,
 ) -> dict[str, object]:
     """Run the complete integrity→preliminary→conditional-panel process once."""
     helper_record = next(
@@ -3490,8 +4058,9 @@ def run_rdgc_scientific_once(
     selection = build_rdgc_selection(
         reference.train_example_ids,
         reference.train_labels,
-        old_selection=set(old_primary["labels"]),
+        old_selection=old_primary,
     )
+    selection = bind_selection_context_hashes(selection, bounds, rsta_module=rsta_module)
     del old_primary
     integrity_seeds, _integrity_binding = _integrity_prefix_from_rsta(
         rsta_module=rsta_module,
@@ -3500,6 +4069,15 @@ def run_rdgc_scientific_once(
         binding_receipt_path=binding_receipt_path,
         output_path=output_path,
     )
+    integrity_result = {
+        "seeds": integrity_seeds,
+        "all_four_passed": True,
+        "candidate_calls_before_all_four": 0,
+        "candidate_state_before_all_four": False,
+    }
+    _validate_integrity(integrity_result, require_all_passed=True)
+    if integrity_observer is not None:
+        integrity_observer(json.loads(json.dumps(integrity_result, allow_nan=False)))
     import torch
 
     preliminary = run_preliminary_science(
@@ -3567,17 +4145,12 @@ def run_rdgc_scientific_once(
         ),
         "environment": environment,
         "binding": _output_binding(manifest),
-        "integrity": {
-            "seeds": integrity_seeds,
-            "all_four_passed": True,
-            "candidate_calls_before_all_four": 0,
-            "candidate_state_before_all_four": False,
-        },
+        "integrity": integrity_result,
         "selection": selection,
         "preliminary": preliminary,
         "panel": panel,
         "bootstrap": bootstrap,
-        "decision": _result_decision(status, clause),
+        "decision": result_decision_for_phase(status, clause, panel=panel),
     }
     validate_scientific_payload(payload)
     write_json_atomic(output_path, payload)
@@ -3593,6 +4166,8 @@ def publish_reduced_invalid(
     authority: dict[str, object],
     started_utc: str,
     command: list[str],
+    integrity: dict[str, object],
+    clause: str,
 ) -> dict[str, object]:
     """Publish an outcome-free INVALID only after publication authority is complete."""
     manifest_sha256 = _sha256_file(manifest_path)
@@ -3602,17 +4177,14 @@ def publish_reduced_invalid(
         manifest_sha256=manifest_sha256,
         authority=authority,
     )
+    _validate_integrity(integrity, require_all_passed=False)
     torch_module = sys.modules.get("torch")
     if torch_module is None:
-        phase_reached = "pre_import"
-        environment = build_pre_import_environment(pre_import)
-        integrity = None
-    else:
-        phase_reached = "integrity"
-        environment = attach_observed_torch_runtime(
-            build_pre_import_environment(pre_import), torch_module
-        )
-        integrity = {}
+        raise ValueError("post-import INVALID requires the observed Torch runtime")
+    phase_reached = "integrity"
+    environment = attach_observed_torch_runtime(
+        build_pre_import_environment(pre_import), torch_module
+    )
     completed_utc = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     payload = {
         "schema_version": 1,
@@ -3646,7 +4218,7 @@ def publish_reduced_invalid(
         "preliminary": None,
         "panel": None,
         "bootstrap": None,
-        "decision": _result_decision("INVALID", "runtime_or_integrity_invalid"),
+        "decision": _result_decision("INVALID", clause),
     }
     validate_scientific_payload(payload)
     write_json_atomic(output_path, payload)
@@ -3659,6 +4231,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--scientific-once", action="store_true", required=True)
     arguments = parser.parse_args(argv)
+    if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
+        parser.error("scientific process requires isolated -I and dont-write-bytecode -B flags")
     registered_manifest = Path("docs/pass205_rdgc_stage_b_manifest.json")
     if arguments.manifest != registered_manifest:
         parser.error("--manifest must be the registered relative path")
@@ -3695,7 +4269,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     authority = authenticate_authority(repository, manifest_path, receipt_path)
     started_utc = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     effective_argv = list(sys.argv[1:] if argv is None else argv)
-    command = [str(Path(sys.executable).resolve()), str(Path(__file__).resolve()), *effective_argv]
+    command = [
+        ".venv/bin/python",
+        "-I",
+        "-B",
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        *effective_argv,
+    ]
+    observed_integrity: list[dict[str, object]] = []
     try:
         payload = run_rdgc_scientific_once(
             repository=repository,
@@ -3705,8 +4286,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             authority=authority,
             started_utc=started_utc,
             command=command,
+            integrity_observer=observed_integrity.append,
         )
-    except Exception:
+    except RdgcPostImportInvalid as exc:
+        observed_integrity[:] = [exc.integrity]
         payload = publish_reduced_invalid(
             repository=repository,
             manifest_path=manifest_path,
@@ -3715,6 +4298,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             authority=authority,
             started_utc=started_utc,
             command=command,
+            integrity=exc.integrity,
+            clause=exc.clause,
+        )
+    except Exception as exc:
+        if len(observed_integrity) != 1:
+            raise
+        payload = publish_reduced_invalid(
+            repository=repository,
+            manifest_path=manifest_path,
+            output_path=output,
+            manifest=manifest,
+            authority=authority,
+            started_utc=started_utc,
+            command=command,
+            integrity=observed_integrity[0],
+            clause=type(exc).__name__,
         )
     return 2 if payload["status"] == "INVALID" else 0
 

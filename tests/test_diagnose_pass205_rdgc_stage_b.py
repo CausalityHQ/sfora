@@ -5,6 +5,7 @@ from __future__ import annotations
 import gc
 import hashlib
 import importlib.util
+import inspect
 import json
 import math
 import subprocess
@@ -25,6 +26,21 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 sys.modules[_SPEC.name] = _MODULE
 _SPEC.loader.exec_module(_MODULE)
+_VERIFIER_SCRIPT = _ROOT / "scripts/verify_pass200_rsta_scientific_artifact.py"
+_VERIFIER_SPEC = importlib.util.spec_from_file_location(
+    "verify_pass200_rsta_scientific_artifact_for_rdgc_test", _VERIFIER_SCRIPT
+)
+assert _VERIFIER_SPEC is not None and _VERIFIER_SPEC.loader is not None
+_VERIFIER = importlib.util.module_from_spec(_VERIFIER_SPEC)
+_VERIFIER_SPEC.loader.exec_module(_VERIFIER)
+_RSTA_SCRIPT = _ROOT / "scripts/diagnose_pass200_rsta_stage_a.py"
+_RSTA_SPEC = importlib.util.spec_from_file_location(
+    "diagnose_pass200_rsta_stage_a_for_rdgc_test", _RSTA_SCRIPT
+)
+assert _RSTA_SPEC is not None and _RSTA_SPEC.loader is not None
+_RSTA = importlib.util.module_from_spec(_RSTA_SPEC)
+sys.modules[_RSTA_SPEC.name] = _RSTA
+_RSTA_SPEC.loader.exec_module(_RSTA)
 
 
 def test_module_import_is_torch_free_in_fresh_process() -> None:
@@ -64,12 +80,27 @@ def _preliminary_aggregates() -> dict[str, object]:
     }
 
 
+def _preliminary_close_evidence(
+    *, full_gain_a: int = 0, full_gain_b: int = 0, nonpositive_correlations: int = 0
+) -> dict[str, object]:
+    return {
+        "context_spearman_nonpositive_seed_count": nonpositive_correlations,
+        "full_gain_seed_medians_le_log_one_point_zero_five_A": full_gain_a,
+        "full_gain_seed_medians_le_log_one_point_zero_five_B": full_gain_b,
+    }
+
+
+def _preliminary_decision_aggregates() -> dict[str, object]:
+    return {**_preliminary_aggregates(), "_close_evidence": _preliminary_close_evidence()}
+
+
 def _panel_aggregates() -> dict[str, object]:
     metric = lambda pooled=0.04, lower=0.01, positive=4: {  # noqa: E731
         "pooled_difference": pooled,
         "lower_bound": lower,
         "positive_seed_means": positive,
         "nonpositive_seed_means": 4 - positive,
+        "seed_means_ge_point_zero_one": positive,
     }
     controls = {
         name: {
@@ -150,14 +181,18 @@ def test_control_order_and_formulas_are_literal() -> None:
         for index in range(8)
     ]
     pgn = _finite_tensor([0.0, 6.0], requires_grad=True)
-    controls = _MODULE.control_penalties(
-        torch,
-        b=b,
-        s=s,
-        dbar=dbar,
-        receiver_fields=receiver_fields,
-        pgn_motion=pgn,
-    )
+    controls = {
+        "rdgc": _MODULE.rdgc_penalty(torch, b, s),
+        "raw_cotangent": _MODULE.raw_cotangent_penalty(torch, b, dbar),
+        "full_motion": _MODULE.full_motion_penalty(torch, b),
+        "batch_global_gain": _MODULE.batch_global_gain_penalty(torch, b, receiver_fields),
+        "scalar_diagonal_raw": _MODULE.scalar_diagonal_raw_penalty(
+            torch, b, dbar, receiver_fields
+        ),
+        "per_example_gradient_normalized": _MODULE.per_example_gradient_normalized_penalty(
+            torch, pgn, s
+        ),
+    }
     assert tuple(controls) == _MODULE.PENALTY_OPERATOR_ORDER
     assert controls["raw_cotangent"].item() == pytest.approx(0.4, rel=1e-6)
     assert controls["full_motion"].item() == pytest.approx(0.5, rel=1e-6)
@@ -174,16 +209,11 @@ def test_batch_global_gain_uses_eight_receiver_geometric_mean() -> None:
         {"s": _finite_tensor([float(2**index)]), "dbar": _finite_tensor([1.0])}
         for index in range(8)
     ]
-    result = _MODULE.control_penalties(
-        torch,
-        b=_finite_tensor([8.0], requires_grad=True),
-        s=fields[0]["s"],
-        dbar=fields[0]["dbar"],
-        receiver_fields=fields,
-        pgn_motion=_finite_tensor([3.0], requires_grad=True),
+    result = _MODULE.batch_global_gain_penalty(
+        torch, _finite_tensor([8.0], requires_grad=True), fields
     )
     target = math.exp(sum(math.log(float(2**index) + 1e-8) for index in range(8)) / 8)
-    assert result["batch_global_gain"].item() == pytest.approx(
+    assert result.item() == pytest.approx(
         0.5 * math.log((8.0 + 1e-8) / target) ** 2, rel=1e-6
     )
 
@@ -193,22 +223,105 @@ def test_scalar_diagonal_raw_uses_batch_gain_times_each_raw_norm() -> None:
         {"s": _finite_tensor([float(index + 2)]), "dbar": _finite_tensor([float(index + 1)])}
         for index in range(8)
     ]
-    result = _MODULE.control_penalties(
-        torch,
-        b=_finite_tensor([5.0], requires_grad=True),
-        s=fields[3]["s"],
-        dbar=fields[3]["dbar"],
-        receiver_fields=fields,
-        pgn_motion=_finite_tensor([2.0], requires_grad=True),
+    result = _MODULE.scalar_diagonal_raw_penalty(
+        torch, _finite_tensor([5.0], requires_grad=True), fields[3]["dbar"], fields
     )
     gain = math.exp(
         sum(math.log((float(index + 2) + 1e-8) / (float(index + 1) + 1e-8)) for index in range(8))
         / 8
     )
     target = gain * (4.0 + 1e-8)
-    assert result["scalar_diagonal_raw"].item() == pytest.approx(
+    assert result.item() == pytest.approx(
         0.5 * math.log((5.0 + 1e-8) / target) ** 2, rel=1e-6
     )
+
+
+def test_correction_dispatch_constructs_only_literal_requested_penalty_in_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    names = {
+        "rdgc": "rdgc_penalty",
+        "raw_cotangent": "raw_cotangent_penalty",
+        "full_motion": "full_motion_penalty",
+        "batch_global_gain": "batch_global_gain_penalty",
+        "scalar_diagonal_raw": "scalar_diagonal_raw_penalty",
+        "per_example_gradient_normalized": "per_example_gradient_normalized_penalty",
+    }
+    events: list[str] = []
+    theta = _finite_tensor([2.0], requires_grad=True)
+
+    def constructor(name: str):
+        def build(*_args: object, **_kwargs: object) -> torch.Tensor:
+            events.append(name)
+            return theta.square().sum()
+
+        return build
+
+    for operator, function_name in names.items():
+        monkeypatch.setattr(_MODULE, function_name, constructor(operator))
+    field = {
+        "named_parameters": (("weight", theta),),
+        "p": (_finite_tensor([1.0]),),
+        "b": _finite_tensor([1.0]),
+        "s": _finite_tensor([1.0]),
+        "dbar": _finite_tensor([1.0]),
+        "receiver_fields": [
+            {"s": _finite_tensor([1.0]), "dbar": _finite_tensor([1.0])}
+            for _ in range(8)
+        ],
+        "pgn_motion": _finite_tensor([1.0]),
+    }
+    for operator in names:
+        events.clear()
+        result = _MODULE.compute_parameter_correction(field, operator, torch_module=torch)
+        assert len(result) == 1
+        assert events == [operator]
+    events.clear()
+    minimal_rdgc = {
+        "named_parameters": (("weight", theta),),
+        "p": (_finite_tensor([1.0]),),
+        "b": _finite_tensor([1.0]),
+        "s": _finite_tensor([1.0]),
+    }
+    _MODULE.compute_parameter_correction(minimal_rdgc, "rdgc", torch_module=torch)
+    assert events == ["rdgc"]
+
+
+def test_scientific_rdgc_builds_only_global_and_target_self_actions() -> None:
+    theta = _finite_tensor([1.5, -0.5], requires_grad=True)
+    parameters = {"weight": theta}
+
+    def encoder(values: dict[str, torch.Tensor]) -> torch.Tensor:
+        return torch.stack(
+            [values["weight"] * float(index + 1) for index in range(8)], dim=0
+        )
+
+    _z, actual_vjp = torch.func.vjp(encoder, parameters)
+    vjp_calls = 0
+
+    def counted_vjp(cotangent: torch.Tensor):
+        nonlocal vjp_calls
+        vjp_calls += 1
+        return actual_vjp(cotangent)
+
+    context = {
+        "parameter_names": ("weight",),
+        "parameters": parameters,
+        "dbar": _finite_tensor([[0.1, 0.2]] * 8),
+        "vjp_function": counted_vjp,
+        "encoder": encoder,
+        "receiver_indices": tuple(range(8)),
+        "device": theta.device,
+    }
+    result = _MODULE._parameter_correction_science(
+        operator="rdgc",
+        receiver_index=0,
+        context=context,
+        p=(theta.detach(),),
+        pgn_coefficients=None,
+        torch_module=torch,
+    )
+    assert len(result) == 1 and vjp_calls == 2
 
 
 def test_per_example_gradient_normalization_uses_all_180_in_row_order() -> None:
@@ -262,14 +375,7 @@ def test_pgn_one_global_vjp_is_algebraically_equal_to_tiny_explicit_sum() -> Non
 
 def test_full_motion_control_is_generic_normalized_damping() -> None:
     b = _finite_tensor([3.0, 4.0], requires_grad=True)
-    result = _MODULE.control_penalties(
-        torch,
-        b=b,
-        s=_finite_tensor([2.0]),
-        dbar=_finite_tensor([1.0]),
-        receiver_fields=[{"s": _finite_tensor([2.0]), "dbar": _finite_tensor([1.0])}] * 8,
-        pgn_motion=_finite_tensor([2.0], requires_grad=True),
-    )["full_motion"]
+    result = _MODULE.full_motion_penalty(torch, b)
     assert result.item() == pytest.approx(0.5, rel=1e-6)
     assert torch.autograd.grad(result, b)[0].norm().item() > 0
 
@@ -343,7 +449,7 @@ def test_virtual_update_rejects_zero_nonfinite_wrong_dtype_and_reordered_trees(
 
 
 def test_preliminary_survival_requires_every_literal_predicate() -> None:
-    valid = _preliminary_aggregates()
+    valid = _preliminary_decision_aggregates()
     decision = _MODULE.decide_preliminary(valid)
     assert decision == {
         "status": "SURVIVES",
@@ -363,8 +469,12 @@ def test_preliminary_survival_requires_every_literal_predicate() -> None:
         assert _MODULE.decide_preliminary(case)["status"] == "UNRESOLVED", key
 
 
+def test_preliminary_decision_keeps_the_frozen_single_argument_interface() -> None:
+    assert tuple(inspect.signature(_MODULE.decide_preliminary).parameters) == ("aggregates",)
+
+
 def test_preliminary_close_precedence_and_exact_boundaries() -> None:
-    case = _preliminary_aggregates()
+    case = _preliminary_decision_aggregates()
     case["count_gain_median_A"] = 0.0
     case["positive_count_gain_seed_means_A"] = 1
     case["context_spearman_median"] = 0.0
@@ -380,21 +490,80 @@ def test_preliminary_close_precedence_and_exact_boundaries() -> None:
         ("global_scalar_relative_error_median_A", 0.02),
         ("full_gain_error_median_A", math.log(1.05)),
     ):
-        exact = _preliminary_aggregates()
+        exact = _preliminary_decision_aggregates()
         exact[key] = boundary
         if key == "full_gain_error_median_A":
             exact["full_gain_error_seed_medians_ge_log_one_point_one_A"] = 1
+        evidence = _preliminary_close_evidence(
+            full_gain_a=3 if key == "full_gain_error_median_A" else 0
+        )
+        exact["_close_evidence"] = evidence
         assert _MODULE.decide_preliminary(exact)["status"] == "CLOSE", key
 
 
 def test_preliminary_middle_region_is_unresolved() -> None:
-    case = _preliminary_aggregates()
+    case = _preliminary_decision_aggregates()
     case["global_scalar_relative_error_median_A"] = 0.03
     assert _MODULE.decide_preliminary(case) == {
         "status": "UNRESOLVED",
         "first_decisive_clause": "no_close_or_survival_rule",
         "full_panel_authorized": False,
     }
+
+
+def _preliminary_decision_rows(
+    *,
+    count_gain: float = 1.0,
+    log_kappa_step: float = 0.30,
+    full_gain_seed_values: tuple[float, float, float, float] | None = None,
+) -> list[dict[str, object]]:
+    if full_gain_seed_values is None:
+        full_gain_seed_values = (math.log(1.30),) * 4
+    rows: list[dict[str, object]] = []
+    for seed in range(4):
+        for context in ("A", "B"):
+            for receiver_label in range(8):
+                rows.append(
+                    {
+                        "seed": seed,
+                        "context": context,
+                        "receiver_label": receiver_label,
+                        "log_kappa": log_kappa_step * receiver_label,
+                        "count_gain": count_gain,
+                        "absolute_log_gain_errors_by_contributor_count": {
+                            "1": 1.0,
+                            "8": 1.0,
+                            "32": 1.0,
+                            "180": full_gain_seed_values[seed],
+                        },
+                    }
+                )
+    return rows
+
+
+def test_preliminary_full_gain_close_uses_three_seed_medians_at_log_one_point_zero_five() -> None:
+    rows = _preliminary_decision_rows(
+        full_gain_seed_values=(0.0, math.log(1.04), math.log(1.06), math.log(1.08))
+    )
+    summary = _MODULE.summarize_preliminary_rows(rows)
+    assert summary["pooled_aggregates"]["full_gain_error_median_A"] <= math.log(1.05)
+    assert summary["decision"]["status"] == "UNRESOLVED"
+    assert summary["predicates"]["close_full_gain"] is False
+
+
+def test_preliminary_predicates_record_every_true_close_condition_not_only_first() -> None:
+    summary = _MODULE.summarize_preliminary_rows(
+        _preliminary_decision_rows(
+            count_gain=-1.0,
+            log_kappa_step=0.001,
+            full_gain_seed_values=(0.0, 0.0, 0.0, 0.0),
+        )
+    )
+    assert summary["decision"]["first_decisive_clause"] == "close_count_gain"
+    assert summary["predicates"]["close_count_gain"] is True
+    assert summary["predicates"]["close_receiver_heterogeneity"] is True
+    assert summary["predicates"]["close_global_scalar"] is True
+    assert summary["predicates"]["close_full_gain"] is True
 
 
 def test_panel_pass_requires_every_pa_six_control_context_and_alias_predicate() -> None:
@@ -412,6 +581,18 @@ def test_panel_pass_requires_every_pa_six_control_context_and_alias_predicate() 
     cases.append(case)
     for mutant in cases:
         assert _MODULE.decide_panel(mutant, {})["status"] == "UNRESOLVED"
+
+
+def test_panel_primary_alignment_requires_three_seed_means_at_point_zero_one() -> None:
+    case = _panel_aggregates()
+    case["primary_pa_alignment"]["seed_means_ge_point_zero_one"] = 2
+    assert _MODULE.decide_panel(case, {})["status"] == "UNRESOLVED"
+
+
+def test_panel_pass_action_is_the_frozen_training_preregistration_action() -> None:
+    assert _MODULE.decide_panel(_panel_aggregates(), {})["authorized_action"] == (
+        "new_training_preregistration_only"
+    )
 
 
 def test_context_b_each_control_requires_alignment_and_slope_pooled_lb_and_three_seeds() -> None:
@@ -568,7 +749,7 @@ def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> Non
     assert value["torch_runtime"]["device_capability"] == [9, 0]
 
 
-def _bound_rows(count: int = 600) -> tuple[list[str], list[int]]:
+def _bound_rows(count: int = 1_000) -> tuple[list[str], list[int]]:
     ids: list[str] = []
     labels: list[int] = []
     for label in range(count):
@@ -578,53 +759,165 @@ def _bound_rows(count: int = 600) -> tuple[list[str], list[int]]:
     return ids, labels
 
 
+def _old_primary(ids: list[str], labels: list[int]) -> dict[str, object]:
+    return _RSTA.select_primary_panel(ids, labels)
+
+
 def test_selection_recomputes_old_64_and_freezes_fresh_8_then_32() -> None:
     ids, labels = _bound_rows()
-    old = set(range(64))
+    old = _old_primary(ids, labels)
     value = _MODULE.build_rdgc_selection(ids, labels, old_selection=old)
     assert len(value["preliminary"]["identity_labels"]) == 8
     assert len(value["panel"]["identity_labels"]) == 32
     chosen = value["preliminary"]["identity_labels"] + value["panel"]["identity_labels"]
-    assert not old.intersection(chosen)
+    assert not set(old["labels"]).intersection(chosen)
     assert len(set(chosen)) == 40
     assert (
         value["old_rsta_exclusion_sha256"]
-        == hashlib.sha256(b"".join(f"{label}\n".encode() for label in sorted(old))).hexdigest()
+        == hashlib.sha256(
+            b"".join(
+                item.encode() + b"\n"
+                for item in sorted(
+                    {
+                        *old["receiver_ids"],
+                        *(
+                            item
+                            for label in old["labels"]
+                            for item in old["support_ids_by_label"][label]
+                        ),
+                        *(item for block in old["distractor_blocks"] for item in block),
+                    }
+                )
+            )
+        ).hexdigest()
     )
 
 
 def test_selection_bound_ids_are_exact_nonempty_unmodified_strings() -> None:
     ids, labels = _bound_rows()
-    value = _MODULE.build_rdgc_selection(ids, labels, old_selection=set(range(64)))
+    old = _old_primary(ids, labels)
+    value = _MODULE.build_rdgc_selection(ids, labels, old_selection=old)
     selected_ids = value["preliminary"]["receiver_ids"] + value["panel"]["receiver_ids"]
     assert all(item in ids for item in selected_ids)
     for mutant in (0, True, ""):
         bad_ids = list(ids)
         bad_ids[300] = mutant  # type: ignore[list-item]
         with pytest.raises((TypeError, ValueError)):
-            _MODULE.build_rdgc_selection(bad_ids, labels, old_selection=set(range(64)))
+            _MODULE.build_rdgc_selection(bad_ids, labels, old_selection=old)
+    ndarray_value = _MODULE.build_rdgc_selection(
+        np.asarray(ids),
+        np.asarray(labels, dtype=np.int64),
+        old_selection=old,
+    )
+    assert ndarray_value == value
 
 
 def test_selection_support_receiver_roles_are_disjoint_and_deterministic() -> None:
     ids, labels = _bound_rows()
-    first = _MODULE.build_rdgc_selection(ids, labels, old_selection=set(range(64)))
-    second = _MODULE.build_rdgc_selection(ids, labels, old_selection=set(range(64)))
+    old = _old_primary(ids, labels)
+    first = _MODULE.build_rdgc_selection(ids, labels, old_selection=old)
+    second = _MODULE.build_rdgc_selection(ids, labels, old_selection=old)
     assert first == second
+    old_ids = {
+        *old["receiver_ids"],
+        *(item for label in old["labels"] for item in old["support_ids_by_label"][label]),
+        *(item for block in old["distractor_blocks"] for item in block),
+    }
     for phase in ("preliminary", "panel"):
         supports = {item for pair in first[phase]["support_ids_by_label"].values() for item in pair}
         receivers = set(first[phase]["receiver_ids"])
+        distractors = {
+            item
+            for group in first[phase]["groups"]
+            for context in group["contexts"]
+            for item in context["batch_ids"]
+            if item not in receivers
+        }
         assert supports.isdisjoint(receivers)
+        assert old_ids.isdisjoint(supports | receivers | distractors)
 
 
 def test_selection_rejects_duplicate_length_and_insufficient_identity_rows() -> None:
     ids, labels = _bound_rows()
+    old = _old_primary(ids, labels)
     for mutant_ids, mutant_labels in (
         (ids[:-1], labels),
         ([ids[0], *ids[1:-1], ids[0]], labels),
         (ids[: 100 * 4], labels[: 100 * 4]),
     ):
         with pytest.raises((TypeError, ValueError)):
-            _MODULE.build_rdgc_selection(mutant_ids, mutant_labels, old_selection=set(range(64)))
+            _MODULE.build_rdgc_selection(mutant_ids, mutant_labels, old_selection=old)
+
+
+def test_selection_hash_plan_is_bound_to_authenticated_bytes_and_live_fp32_tensors() -> None:
+    ids, labels = _bound_rows()
+    selection = _MODULE.build_rdgc_selection(
+        ids, labels, old_selection=_old_primary(ids, labels)
+    )
+    bounds = tuple(
+        types.SimpleNamespace(
+            seed=seed,
+            checkpoint_bytes=f"checkpoint-{seed}".encode(),
+            config={"seed": seed, "crop": 227},
+            train_example_ids=ids,
+            train_source_paths=[f"source/{index}.jpg" for index in range(len(ids))],
+        )
+        for seed in range(4)
+    )
+
+    class Cache:
+        def __init__(self, bound: object, batch_ids: tuple[str, ...]) -> None:
+            self.example_ids = batch_ids
+            self.tensor_sha256 = {
+                value: hashlib.sha256(
+                    torch.tensor(
+                        [float(bound.seed), float(ids.index(value))], dtype=torch.float32
+                    )
+                    .numpy()
+                    .tobytes()
+                ).hexdigest()
+                for value in batch_ids
+            }
+
+    helper = types.SimpleNamespace(
+        cache_seed_training_tensors=lambda bound, batch_ids: Cache(bound, tuple(batch_ids)),
+        _json_ready=lambda value: value,
+    )
+    bound = _MODULE.bind_selection_context_hashes(selection, bounds, rsta_module=helper)
+    hashes = [
+        (context["transform_sha256"], context["tensor_sha256"])
+        for phase in ("preliminary", "panel")
+        for group in bound[phase]["groups"]
+        for context in group["contexts"]
+    ]
+    assert len(hashes) == 10 and len(set(hashes)) == 10
+    assert all(
+        value not in {hashlib.sha256(b"transform").hexdigest(), "0" * 64}
+        for pair in hashes
+        for value in pair
+    )
+    changed_bounds = list(bounds)
+    changed_bounds[0] = types.SimpleNamespace(**vars(bounds[0]))
+    changed_bounds[0].checkpoint_bytes = b"changed-authenticated-checkpoint"
+    changed = _MODULE.bind_selection_context_hashes(
+        deepcopy(selection), tuple(changed_bounds), rsta_module=helper
+    )
+    assert changed["preliminary"]["groups"][0]["contexts"][0]["transform_sha256"] != hashes[0][0]
+
+
+def test_pgn_fresh_graph_requires_exact_batch_input_descriptor_and_dbar_hashes() -> None:
+    evidence = {
+        "batch_sha256": "1" * 64,
+        "input_sha256": "2" * 64,
+        "descriptor_sha256": "3" * 64,
+        "dbar_sha256": "4" * 64,
+    }
+    _MODULE.require_identical_pgn_graph_evidence(evidence, deepcopy(evidence))
+    for key in evidence:
+        mutant = deepcopy(evidence)
+        mutant[key] = "f" * 64
+        with pytest.raises(ValueError, match="PGN"):
+            _MODULE.require_identical_pgn_graph_evidence(evidence, mutant)
 
 
 def test_nested_masks_are_receiver_plus_exact_prefix_counts() -> None:
@@ -730,6 +1023,58 @@ def _git(repository: Path, *arguments: str) -> str:
     ).stdout.strip()
 
 
+def _real_roundtrip_receipt() -> dict[str, object]:
+    value = {
+        "schema_version": 1,
+        "validation": "pass200-rsta-scientific-artifact-roundtrip",
+        "mode": "offline_immutable_artifact",
+        "attempt": 1,
+        "status": "VALID",
+        "outcome_disclosed": False,
+        "artifact": {
+            "path": _VERIFIER.ARTIFACT_PATH,
+            "sha256": _VERIFIER.ARTIFACT_SHA256,
+            "producer_pid": 1002393,
+            "producer_exit_code": 0,
+            "immutable": True,
+        },
+        "legacy_provenance": {
+            "handoff_commit": _VERIFIER.LEGACY_HANDOFF_COMMIT,
+            "source_commit": _VERIFIER.LEGACY_SOURCE_COMMIT,
+            "manifest_path": _VERIFIER.LEGACY_MANIFEST_PATH,
+            "manifest_sha256": _VERIFIER.LEGACY_MANIFEST_SHA256,
+            "diagnostic_path": _VERIFIER.LEGACY_DIAGNOSTIC_PATH,
+            "diagnostic_sha256": _VERIFIER.LEGACY_DIAGNOSTIC_SHA256,
+        },
+        "verifier_provenance": {
+            "source_commit": "e" * 40,
+            "handoff_commit": "f" * 40,
+            "manifest_path": _VERIFIER.LEGACY_MANIFEST_PATH,
+            "manifest_sha256": "a" * 64,
+            "verifier_path": _VERIFIER.VERIFIER_PATH,
+            "verifier_sha256": hashlib.sha256(_VERIFIER_SCRIPT.read_bytes()).hexdigest(),
+            "amendment": {
+                "path": _VERIFIER.RECOVERY_AMENDMENT_PATH,
+                "sha256": _VERIFIER.RECOVERY_AMENDMENT_SHA256,
+                "commit": _VERIFIER.RECOVERY_AMENDMENT_COMMIT,
+            },
+        },
+        "process": {
+            "parent_pid": 17,
+            "child_pid": 19,
+            "child_exit_code": 0,
+            "python_executable": ".venv/bin/python",
+            "python_version": "3.12.3",
+            "numpy_version": np.__version__,
+            "isolated": True,
+            "child_head_commit": _VERIFIER.LEGACY_HANDOFF_COMMIT,
+            "cuda_visible_devices": "",
+        },
+    }
+    _VERIFIER.validate_roundtrip_receipt(value)
+    return value
+
+
 def _authority_repository(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Path, Path, Path]:
@@ -743,7 +1088,10 @@ def _authority_repository(
             continue
         path = repository / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f"# {source_path}\n")
+        if source_path == "scripts/verify_pass200_rsta_scientific_artifact.py":
+            path.write_bytes(_VERIFIER_SCRIPT.read_bytes())
+        else:
+            path.write_text(f"# {source_path}\n")
     _git(
         repository,
         "add",
@@ -769,7 +1117,10 @@ def _authority_repository(
     for source_path in _MODULE.RDGC_SOURCE_ORDER:
         path = repository / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(f"# {source_path}\n")
+        if source_path == "scripts/verify_pass200_rsta_scientific_artifact.py":
+            path.write_bytes(_VERIFIER_SCRIPT.read_bytes())
+        else:
+            path.write_text(f"# {source_path}\n")
     test_path = repository / "tests/test_diagnose_pass205_rdgc_stage_b.py"
     test_path.parent.mkdir(parents=True, exist_ok=True)
     test_path.write_text("# test\n")
@@ -778,12 +1129,8 @@ def _authority_repository(
     source_commit = _git(repository, "rev-parse", "HEAD")
     receipt_path = repository / "reports/validation.json"
     receipt_path.parent.mkdir(parents=True)
-    receipt = {
-        "status": "VALID",
-        "artifact_path": "forbidden-old-result.json",
-        "artifact_sha256": "d" * 64,
-    }
-    receipt_path.write_text(json.dumps(receipt, separators=(",", ":")) + "\n")
+    receipt = _real_roundtrip_receipt()
+    _VERIFIER.write_validation_receipt_atomic(receipt_path, receipt)
     source_files = []
     for source_path in _MODULE.RDGC_SOURCE_ORDER:
         data = (repository / source_path).read_bytes()
@@ -816,8 +1163,8 @@ def _authority_repository(
             "status": "VALID",
             "verifier_source_commit": "e" * 40,
             "verifier_handoff_commit": "f" * 40,
-            "artifact_path": "forbidden-old-result.json",
-            "artifact_sha256": "d" * 64,
+            "artifact_path": receipt["artifact"]["path"],
+            "artifact_sha256": receipt["artifact"]["sha256"],
         },
         "historical": future["historical"],
         "current_scientific_source": {"git_revision": source_commit, "files": source_files},
@@ -846,6 +1193,33 @@ def test_authority_binds_linear_handoff_sources_and_receipt(
     assert value["handoff_commit"] == _git(repository, "rev-parse", "HEAD")
     assert value["validation_receipt"]["status"] == "VALID"
     assert len(value["files"]) == 33
+
+
+def test_authority_uses_real_roundtrip_receipt_schema_and_nested_bindings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path, receipt_path = _authority_repository(tmp_path, monkeypatch)
+    manifest = json.loads(manifest_path.read_text())
+    receipt = json.loads(receipt_path.read_text())
+    _VERIFIER.validate_roundtrip_receipt(receipt)
+    for mutate in (
+        lambda value: value.update({"outcome_disclosed": True}),
+        lambda value: value["artifact"].update({"path": "alias.json"}),
+        lambda value: value["artifact"].update({"sha256": "0" * 64}),
+        lambda value: value["verifier_provenance"].update({"source_commit": "0" * 40}),
+        lambda value: value["process"].update({"child_exit_code": 1}),
+    ):
+        mutant = deepcopy(receipt)
+        mutate(mutant)
+        receipt_path.write_text(json.dumps(mutant, separators=(",", ":")) + "\n")
+        manifest["validation_receipt"]["sha256"] = hashlib.sha256(
+            receipt_path.read_bytes()
+        ).hexdigest()
+        manifest_path.write_text(json.dumps(manifest, separators=(",", ":")) + "\n")
+        _git(repository, "add", str(manifest_path.relative_to(repository)))
+        _git(repository, "commit", "--amend", "--no-edit", "-q")
+        with pytest.raises(ValueError, match="receipt"):
+            _MODULE.authenticate_authority(repository, manifest_path, receipt_path)
 
 
 def test_authority_rejects_dirty_source_digest_and_never_opens_artifact(
@@ -1032,6 +1406,24 @@ def test_atomic_writer_no_clobber_symlink_or_temporary(tmp_path: Path) -> None:
         _MODULE.write_json_atomic(link, payload)
 
 
+def test_atomic_writer_strict_reloads_and_revalidates_published_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "result.json"
+    payload = _reduced_pre_import_invalid()
+    calls: list[dict[str, object]] = []
+    original = _MODULE.validate_scientific_payload
+
+    def record(value: dict[str, object]) -> None:
+        calls.append(value)
+        original(value)
+
+    monkeypatch.setattr(_MODULE, "validate_scientific_payload", record)
+    _MODULE.write_json_atomic(output, payload)
+    assert calls == [payload, payload]
+    assert calls[1] is not payload
+
+
 def test_cli_requires_exact_manifest_output_and_scientific_once() -> None:
     with pytest.raises(SystemExit):
         _MODULE.main(["--manifest", "x", "--output", "y"])
@@ -1039,63 +1431,205 @@ def test_cli_requires_exact_manifest_output_and_scientific_once() -> None:
         _MODULE.main(["--manifest", "x", "--output", "y", "--scientific-once", "--retry"])
 
 
+def test_cli_requires_isolated_and_dont_write_bytecode_flags() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            str(_SCRIPT),
+            "--manifest",
+            "docs/pass205_rdgc_stage_b_manifest.json",
+            "--output",
+            "reports/generated/pass205_rdgc_stage_b/x-rdgc-stage-b.json",
+            "--scientific-once",
+        ],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "isolated" in completed.stderr
+
+
+def test_execution_command_is_exact_nine_token_isolated_one_shot() -> None:
+    value = _reduced_pre_import_invalid()
+    value["execution"]["command"] = [
+        ".venv/bin/python",
+        "-I",
+        "-B",
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "--manifest",
+        "docs/pass205_rdgc_stage_b_manifest.json",
+        "--output",
+        "reports/generated/pass205_rdgc_stage_b/result.json",
+        "--scientific-once",
+    ]
+    _MODULE.validate_scientific_payload(value)
+    for mutant_command in (
+        value["execution"]["command"][1:],
+        [*value["execution"]["command"], "--retry"],
+    ):
+        mutant = deepcopy(value)
+        mutant["execution"]["command"] = mutant_command
+        with pytest.raises(ValueError, match="command"):
+            _MODULE.validate_scientific_payload(mutant)
+
+
 def test_real_cpu_torch_func_end_to_end_authenticated_pass200_helper_no_adapters(
     tmp_path: Path,
 ) -> None:
-    helper = _ROOT / "scripts/rsta_normwise_adjoint.py"
+    helper = _ROOT / "scripts/diagnose_pass200_rsta_stage_a.py"
     descriptor = {
         "path": str(helper),
         "sha256": hashlib.sha256(helper.read_bytes()).hexdigest(),
-        "git_blob": _git(_ROOT, "rev-parse", "HEAD:scripts/rsta_normwise_adjoint.py"),
+        "git_blob": _git(_ROOT, "rev-parse", "HEAD:scripts/diagnose_pass200_rsta_stage_a.py"),
     }
     loaded = _MODULE.load_authenticated_rsta_module(_ROOT, descriptor)
     assert loaded.__file__ == str(helper)
-    p = (_finite_tensor([0.8, -0.4]),)
+    assert loaded.domain_seed("rdgc-e2e|", "bound-id") == _RSTA.domain_seed(
+        "rdgc-e2e|", "bound-id"
+    )
+    generator = torch.Generator().manual_seed(205)
+    inputs_by_context = {
+        "A": torch.randn((180, 3), generator=generator, dtype=torch.float32),
+        "B": torch.randn((180, 3), generator=generator, dtype=torch.float32),
+    }
+    initial = {
+        "encoder.weight": torch.randn((2, 3), generator=generator, dtype=torch.float32),
+        "encoder.bias": torch.randn((2,), generator=generator, dtype=torch.float32),
+    }
+    graph_references: list[weakref.ReferenceType[torch.Tensor]] = []
 
-    def fresh_field() -> dict[str, object]:
-        theta = _finite_tensor([1.1, -0.7], requires_grad=True)
-        return {
-            "named_parameters": (("encoder.weight", theta),),
-            "p": p,
-            "b": torch.stack((theta[0] * theta[0], 2.0 * theta[1])),
-            "s": _finite_tensor([1.0, 1.0]),
-            "dbar": _finite_tensor([0.2, -0.5]),
-            "receiver_fields": [
-                {"s": _finite_tensor([1.0 + i, 1.0]), "dbar": _finite_tensor([0.5, 0.25])}
-                for i in range(8)
-            ],
-            "pgn_motion": torch.stack((theta[0], -theta[1])),
+    def open_context(context_name: str) -> tuple[dict[str, object], dict[str, int]]:
+        inputs = inputs_by_context[context_name]
+        parameters = {
+            name: value.detach().clone().requires_grad_(True) for name, value in initial.items()
         }
 
-    corrections = {
-        name: _MODULE.compute_parameter_correction(fresh_field(), name, torch_module=torch)
-        for name in _MODULE.CORRECTION_ORDER
-    }
+        def encoder(values: dict[str, torch.Tensor]) -> torch.Tensor:
+            return torch.tanh(
+                inputs @ values["encoder.weight"].transpose(0, 1) + values["encoder.bias"]
+            )
+
+        z, real_vjp = torch.func.vjp(encoder, parameters)
+        loss = (z.square().sum(dim=1) * torch.linspace(0.5, 1.5, 180)).mean()
+        dbar = -torch.autograd.grad(loss, z, create_graph=True)[0]
+        calls = {"vjp": 0}
+
+        def counted_vjp(cotangent: torch.Tensor):
+            calls["vjp"] += 1
+            return real_vjp(cotangent)
+
+        graph_references.extend((weakref.ref(z), weakref.ref(dbar), weakref.ref(loss)))
+        evidence = {
+            "batch_sha256": hashlib.sha256(context_name.encode()).hexdigest(),
+            "input_sha256": _MODULE._tensor_sha256(inputs, torch),
+            "descriptor_sha256": _MODULE._tensor_sha256(z, torch),
+            "dbar_sha256": _MODULE._tensor_sha256(dbar, torch),
+        }
+        return (
+            {
+                "parameter_names": tuple(parameters),
+                "parameters": parameters,
+                "dbar": dbar,
+                "vjp_function": counted_vjp,
+                "encoder": encoder,
+                "receiver_indices": tuple(range(8)),
+                "device": torch.device("cpu"),
+                "graph_evidence": evidence,
+                "loss": loss,
+            },
+            calls,
+        )
+
+    ordinary, _ = open_context("A")
+    ordinary_gradients = torch.autograd.grad(
+        ordinary["loss"], tuple(ordinary["parameters"].values()), retain_graph=False
+    )
+    p = tuple((-value).detach().contiguous() for value in ordinary_gradients)
+    named_parameters = tuple(
+        (name, value.detach().clone()) for name, value in ordinary["parameters"].items()
+    )
+    ordinary.clear()
+    del ordinary, ordinary_gradients
+    gc.collect()
+
+    corrections: dict[str, tuple[torch.Tensor, ...]] = {}
+    for operator in _MODULE.PENALTY_OPERATOR_ORDER:
+        if operator == "per_example_gradient_normalized":
+            coefficient_context, coefficient_calls = open_context("A")
+            coefficients = _MODULE._pgn_coefficients_science(coefficient_context, torch)
+            coefficient_evidence = dict(coefficient_context["graph_evidence"])
+            assert coefficient_calls["vjp"] == 180
+            coefficient_context.clear()
+            del coefficient_context
+            gc.collect()
+            context, correction_calls = open_context("A")
+            _MODULE.require_identical_pgn_graph_evidence(
+                coefficient_evidence, context["graph_evidence"]
+            )
+            correction = _MODULE._parameter_correction_science(
+                operator=operator,
+                receiver_index=0,
+                context=context,
+                p=p,
+                pgn_coefficients=coefficients,
+                torch_module=torch,
+            )
+            assert correction_calls["vjp"] == 2
+            del coefficients, coefficient_evidence
+        else:
+            context, _ = open_context("A")
+            correction = _MODULE._parameter_correction_science(
+                operator=operator,
+                receiver_index=0,
+                context=context,
+                p=p,
+                pgn_coefficients=None,
+                torch_module=torch,
+            )
+        corrections[operator] = correction
+        context.clear()
+        del context, correction
+        gc.collect()
+    corrections["layerwise_trust_ratio"] = _MODULE.layerwise_trust_ratio_direction(
+        torch, named_parameters, p
+    )
     updates = _MODULE.normalize_virtual_updates(torch, p, corrections)
-    theta = _finite_tensor([1.1, -0.7])
+    records: dict[str, dict[str, dict[str, object]]] = {}
+    for context_name in ("A", "B"):
+        inputs = inputs_by_context[context_name]
+        action_parameters = tuple(value.detach().clone() for value in initial.values())
 
-    def function(values: tuple[torch.Tensor, ...]) -> torch.Tensor:
-        return torch.stack((values[0][0] * values[0][0], values[0][1] + values[0][1]))
+        def receiver_function(
+            values: tuple[torch.Tensor, ...], context_inputs: torch.Tensor = inputs
+        ) -> torch.Tensor:
+            weight, bias = values
+            return torch.tanh(context_inputs[0] @ weight.transpose(0, 1) + bias)
 
-    records = {
-        context: {
+        records[context_name] = {
             name: _MODULE.evaluate_virtual_direction(
-                {"function": function, "parameters": (theta.detach(),)},
+                {"function": receiver_function, "parameters": action_parameters},
                 direction,
                 _finite_tensor([1.0, -1.0]),
                 torch_module=torch,
             )
             for name, direction in updates.items()
         }
-        for context in ("A", "B")
-    }
     assert tuple(records) == ("A", "B")
     assert all(tuple(records[context]) == _MODULE.OPERATOR_ORDER for context in ("A", "B"))
+    del corrections, updates, named_parameters, p, action_parameters
+    gc.collect()
+    assert all(reference() is None for reference in graph_references)
     payload = _synthetic_full_payload(records)
     _MODULE.validate_scientific_payload(payload)
     output = tmp_path / "receipt.json"
     _MODULE.write_json_atomic(output, payload)
-    assert json.loads(output.read_text())["status"] == "UNRESOLVED"
+    persisted = json.loads(output.read_text())
+    assert persisted == payload
+    _MODULE.validate_scientific_payload(persisted)
+    with pytest.raises(FileExistsError):
+        _MODULE.write_json_atomic(output, payload)
 
 
 def test_virtual_jvp_leaves_only_scalars_hashes_and_releases_action() -> None:
@@ -1168,7 +1702,17 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
         "source": source,
         "execution": {
             "attempt": 1,
-            "command": ["python", "script"],
+            "command": [
+                ".venv/bin/python",
+                "-I",
+                "-B",
+                "scripts/diagnose_pass205_rdgc_stage_b.py",
+                "--manifest",
+                "docs/pass205_rdgc_stage_b_manifest.json",
+                "--output",
+                "reports/generated/pass205_rdgc_stage_b/result.json",
+                "--scientific-once",
+            ],
             "cwd": str(_ROOT),
             "pid": 1,
             "python_executable": ".venv/bin/python",
@@ -1209,9 +1753,9 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
         "bootstrap": None,
         "decision": {
             "close_precedence": True,
-            "predicates": [{"name": "structural_invalid", "value": True}],
+            "predicates": [{"name": "structural_integrity", "value": False}],
             "status": "INVALID",
-            "first_decisive_clause": "structural_invalid",
+            "first_decisive_clause": "structural_integrity",
             "authorized_action": "stop_invalid",
         },
     }
@@ -1244,6 +1788,93 @@ def test_result_union_rejects_order_phase_null_type_and_nonfinite_mutations() ->
     for mutant in mutations:
         with pytest.raises((TypeError, ValueError), match="."):
             _MODULE.validate_scientific_payload(mutant)
+
+
+def test_post_import_invalid_requires_complete_actual_integrity_through_failure() -> None:
+    value = _reduced_pre_import_invalid()
+    value["phase_reached"] = "integrity"
+    value["environment"]["phase"] = "post_import"
+    value["environment"]["torch_runtime"] = {
+        "torch_version": torch.__version__,
+        "cuda_runtime_version": "synthetic",
+        "cudnn_version": 1,
+        "device_index": 0,
+        "device_name": "synthetic",
+        "device_capability": [9, 0],
+        "deterministic_algorithms": True,
+        "allow_tf32_matmul": False,
+        "allow_tf32_cudnn": False,
+    }
+    seeds = []
+    for seed in range(4):
+        passed = seed < 3
+        seeds.append(
+            {
+                "seed": seed,
+                "dense_jacobian_passed": passed,
+                "bn_passed": passed,
+                "repeatability_passed": passed,
+                "normwise_adjoint_passed": passed,
+                "sign_control_passed": passed,
+                "rotation_passed": passed,
+                "atomic_writer_passed": passed,
+                "no_candidate_reachability_passed": passed,
+                "action_hashes_sha256": hashlib.sha256(f"seed-{seed}".encode()).hexdigest(),
+                "passed": passed,
+            }
+        )
+    value["integrity"] = {
+        "seeds": seeds,
+        "all_four_passed": False,
+        "candidate_calls_before_all_four": 0,
+        "candidate_state_before_all_four": False,
+    }
+    value["decision"] = {
+        "close_precedence": True,
+        "predicates": [{"name": "structural_integrity", "value": False}],
+        "status": "INVALID",
+        "first_decisive_clause": "seed_3_integrity_failed",
+        "authorized_action": "stop_invalid",
+    }
+    _MODULE.validate_scientific_payload(value)
+    for mutation in ({}, {**value["integrity"], "all_four_passed": True}):
+        mutant = deepcopy(value)
+        mutant["integrity"] = mutation
+        with pytest.raises(ValueError, match="integrity"):
+            _MODULE.validate_scientific_payload(mutant)
+
+
+def test_rsta_integrity_conversion_preserves_each_actual_gate_through_failure() -> None:
+    seeds = {}
+    for seed in range(4):
+        controls = {
+            "rebuild": {"passed": True},
+            "reversed_action_order": {"passed": seed != 2},
+            "parameter_sign": {"passed": True},
+            "output_sign": {"passed": True},
+        }
+        seeds[str(seed)] = {
+            "adjoint": {
+                "normwise_passed": True,
+                "integrity_passed": seed != 2,
+                "jvp_sha256": hashlib.sha256(f"jvp-{seed}".encode()).hexdigest(),
+                "vjp_sha256": hashlib.sha256(f"vjp-{seed}".encode()).hexdigest(),
+                "controls": controls,
+            }
+        }
+    raw = {
+        "integrity": {
+            "dense_fixture": {"passed": True},
+            "bn_fixture": {"passed": True},
+            "seeds": seeds,
+            "all_passed": False,
+        }
+    }
+    converted = _MODULE.convert_rsta_integrity_prefix(raw)
+    assert converted["all_four_passed"] is False
+    assert converted["seeds"][2]["rotation_passed"] is False
+    assert converted["seeds"][2]["passed"] is False
+    assert all(converted["seeds"][index]["passed"] for index in (0, 1, 3))
 
 
 def _future_manifest() -> dict[str, object]:
@@ -1335,12 +1966,16 @@ def _synthetic_full_payload(
     records: dict[str, dict[str, dict[str, object]]],
 ) -> dict[str, object]:
     ids, labels = _bound_rows()
-    selection = _MODULE.build_rdgc_selection(ids, labels, old_selection=set(range(64)))
+    selection = _MODULE.build_rdgc_selection(
+        ids, labels, old_selection=_old_primary(ids, labels)
+    )
     preliminary_labels = selection["preliminary"]["identity_labels"]
     preliminary_rows: list[dict[str, object]] = []
     for seed in range(4):
         for context in ("A", "B"):
             for receiver_label in preliminary_labels:
+                receiver_offset = preliminary_labels.index(receiver_label)
+                kappa = 1.25 + 0.25 * receiver_offset
                 errors = {
                     key: float(index + 1) for index, key in enumerate(("1", "8", "32", "180"))
                 }
@@ -1353,14 +1988,15 @@ def _synthetic_full_payload(
                             preliminary_labels.index(receiver_label)
                         ],
                         "dbar_norm": 1.0,
-                        "self_norm": 2.0,
-                        "kappa": 2.0,
-                        "log_kappa": float(math.log(2.0)),
+                        "self_norm": kappa,
+                        "kappa": kappa,
+                        "log_kappa": float(math.log(kappa)),
                         "b_norms_by_contributor_count": dict(errors),
                         "absolute_log_gain_errors_by_contributor_count": dict(errors),
                         "count_gain": 2.0,
                     }
                 )
+    preliminary_summary = _MODULE.summarize_preliminary_rows(preliminary_rows)
     preliminary = {
         "operator_counts": {
             "forwards_per_seed_context": 1,
@@ -1371,28 +2007,7 @@ def _synthetic_full_payload(
             "masked_receiver_jvps_per_seed_context": 32,
         },
         "rows": preliminary_rows,
-        "seed_context_aggregates": [
-            {"seed": seed, "context": context} for seed in range(4) for context in ("A", "B")
-        ],
-        "seed_correlations": [{"seed": seed, "spearman": 1.0} for seed in range(4)],
-        "pooled_aggregates": _preliminary_aggregates(),
-        "predicates": {
-            "survives_count_gain": True,
-            "survives_context_stability": True,
-            "survives_receiver_heterogeneity": True,
-            "survives_global_scalar": True,
-            "survives_full_gain": True,
-            "close_count_gain": False,
-            "close_context_stability": False,
-            "close_receiver_heterogeneity": False,
-            "close_global_scalar": False,
-            "close_full_gain": False,
-        },
-        "decision": {
-            "status": "SURVIVES",
-            "first_decisive_clause": "all_survival_predicates",
-            "full_panel_authorized": True,
-        },
+        **preliminary_summary,
     }
     panel_rows: list[dict[str, object]] = []
     bootstrap_rows: list[dict[str, object]] = []
@@ -1408,7 +2023,9 @@ def _synthetic_full_payload(
                         "receiver_label": receiver_label,
                         "receiver_id": selection["panel"]["receiver_ids"][receiver_index],
                         "context": context,
-                        "batch_sha256": "1" * 64,
+                        "batch_sha256": selection["panel"]["groups"][receiver_index // 8][
+                            "contexts"
+                        ][("A", "B").index(context)]["batch_sha256"],
                         "parameter_names_sha256": "2" * 64,
                         "p_norm": 1.0,
                         "corrections": {
@@ -1432,66 +2049,17 @@ def _synthetic_full_payload(
                     }
                 )
     bootstrap = _MODULE.paired_bootstrap(bootstrap_rows)
-    seed_context_aggregates = [
-        {
-            "seed": seed,
-            "context": context,
-            "operator": operator,
-            "alignment_mean": 0.1,
-            "slope_mean": 0.2,
-            "rdgc_minus_operator_alignment_mean": 0.0,
-            "rdgc_minus_operator_slope_mean": 0.0,
-        }
-        for seed in range(4)
-        for context in ("A", "B")
-        for operator in _MODULE.OPERATOR_ORDER
-    ]
-    pooled_aggregates = [
-        {
-            "context": context,
-            "operator": operator,
-            "alignment_mean": 0.1,
-            "slope_mean": 0.2,
-            "rdgc_minus_operator_alignment_mean": 0.0,
-            "rdgc_minus_operator_slope_mean": 0.0,
-            "positive_alignment_seed_means": 0,
-            "positive_slope_seed_means": 0,
-        }
-        for context in ("A", "B")
-        for operator in _MODULE.OPERATOR_ORDER
-    ]
-    aliases = [
-        {
-            "control": control,
-            "pooled_median_absolute_cosine": 0.5,
-            "seed_medians_ge_point_nine_nine": 0,
-        }
+    correction_cosines = {
+        control: [(int(row["seed"]), 0.5) for row in panel_rows if row["context"] == "A"]
         for control in _MODULE.CONTROL_ORDER
-    ]
-    panel = {
-        "operator_order": list(_MODULE.OPERATOR_ORDER),
-        "rows": panel_rows,
-        "seed_context_aggregates": seed_context_aggregates,
-        "pooled_aggregates": pooled_aggregates,
-        "correction_alias_aggregates": aliases,
-        "predicates": {
-            "primary_vs_pa_alignment": False,
-            "primary_vs_pa_slope": False,
-            "primary_vs_all_controls": False,
-            "context_b_vs_pa": False,
-            "context_b_vs_all_controls_alignment_and_slope": False,
-            "correction_nonalias": True,
-            "completeness": True,
-            "close_vs_pa": False,
-            "close_primary_control": False,
-            "close_control_slope": False,
-            "close_correction_alias": False,
-        },
     }
+    panel, panel_decision = _MODULE._aggregate_panel(
+        panel_rows, correction_cosines, bootstrap
+    )
     payload = _reduced_pre_import_invalid()
     payload.update(
         {
-            "status": "UNRESOLVED",
+            "status": panel_decision["status"],
             "phase_reached": "full_panel",
             "candidate_values_computed": True,
             "integrity": {},
@@ -1536,12 +2104,133 @@ def _synthetic_full_payload(
     }
     payload["decision"].update(
         {
-            "status": "UNRESOLVED",
-            "first_decisive_clause": "no_close_or_pass_rule",
-            "authorized_action": "stop_unresolved",
+            "predicates": [
+                {"name": name, "value": value} for name, value in panel["predicates"].items()
+            ],
+            "status": panel_decision["status"],
+            "first_decisive_clause": panel_decision["first_decisive_clause"],
+            "authorized_action": {
+                "PASS": "new_training_preregistration_only",
+                "CLOSE": "stop_close",
+                "UNRESOLVED": "stop_unresolved",
+            }[panel_decision["status"]],
         }
     )
     return payload
+
+
+def test_panel_close_predicates_record_context_b_pa_failure_even_when_it_is_not_primary() -> None:
+    records = {
+        context: {
+            name: {
+                "motion_sha256": "a" * 64,
+                "motion_norm": 1.0,
+                "margin_alignment": 0.0,
+                "margin_slope": 0.0,
+            }
+            for name in _MODULE.OPERATOR_ORDER
+        }
+        for context in ("A", "B")
+    }
+    records["A"]["rdgc"]["margin_alignment"] = 0.1
+    records["A"]["rdgc"]["margin_slope"] = 0.1
+    records["B"]["rdgc"]["margin_alignment"] = 0.0
+    records["B"]["pa"]["margin_alignment"] = 0.1
+    value = _synthetic_full_payload(records)
+    assert value["decision"]["first_decisive_clause"] == "close_context_b_vs_pa"
+    assert value["panel"]["predicates"]["close_vs_pa"] is True
+
+
+def test_full_panel_result_decision_persists_all_ordered_panel_predicates() -> None:
+    predicates = {
+        name: False
+        for name in (
+            "primary_vs_pa_alignment",
+            "primary_vs_pa_slope",
+            "primary_vs_all_controls",
+            "context_b_vs_pa",
+            "context_b_vs_all_controls_alignment_and_slope",
+            "correction_nonalias",
+            "completeness",
+            "close_vs_pa",
+            "close_primary_control",
+            "close_control_slope",
+            "close_correction_alias",
+        )
+    }
+    predicates["completeness"] = True
+    decision = _MODULE.result_decision_for_phase(
+        "UNRESOLVED",
+        "no_close_or_pass_rule",
+        panel={"predicates": predicates},
+    )
+    assert decision["predicates"] == [
+        {"name": name, "value": value} for name, value in predicates.items()
+    ]
+
+
+def test_full_validator_recomputes_rows_aggregates_predicates_decisions_and_bootstrap() -> None:
+    action = {
+        "motion_sha256": "a" * 64,
+        "motion_norm": 1.0,
+        "margin_alignment": 0.25,
+        "margin_slope": 0.5,
+    }
+    records = {
+        context: {name: dict(action) for name in _MODULE.OPERATOR_ORDER}
+        for context in ("A", "B")
+    }
+    value = _synthetic_full_payload(records)
+    _MODULE.validate_scientific_payload(value)
+    mutations = []
+    mutant = deepcopy(value)
+    mutant["preliminary"]["rows"][0], mutant["preliminary"]["rows"][1] = (
+        mutant["preliminary"]["rows"][1],
+        mutant["preliminary"]["rows"][0],
+    )
+    mutations.append(mutant)
+    for section, key in (
+        ("preliminary", "pooled_aggregates"),
+        ("preliminary", "predicates"),
+        ("panel", "seed_context_aggregates"),
+        ("panel", "pooled_aggregates"),
+        ("panel", "predicates"),
+    ):
+        mutant = deepcopy(value)
+        target = mutant[section][key]
+        if type(target) is dict:
+            first = next(iter(target))
+            target[first] = not target[first]
+        elif section == "preliminary":
+            target[0]["count_gain_mean"] += 0.125
+        else:
+            numeric = "alignment_mean"
+            target[0][numeric] += 0.125
+        mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["panel"]["rows"][0]["receiver_label"] = mutant["panel"]["rows"][2][
+        "receiver_label"
+    ]
+    mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["bootstrap"]["distributions"][0]["lower_bound"] += 0.125
+    mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["bootstrap"]["complete_labels"][0], mutant["bootstrap"]["complete_labels"][1] = (
+        mutant["bootstrap"]["complete_labels"][1],
+        mutant["bootstrap"]["complete_labels"][0],
+    )
+    mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["decision"]["predicates"] = [{"name": "alias", "value": True}]
+    mutations.append(mutant)
+    for index, mutant in enumerate(mutations):
+        try:
+            _MODULE.validate_scientific_payload(mutant)
+        except ValueError:
+            pass
+        else:
+            pytest.fail(f"validator accepted relation mutation {index}")
 
 
 def test_future_manifest_validator_freezes_source_and_projection_order() -> None:
