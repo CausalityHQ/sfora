@@ -126,25 +126,28 @@ S4 -> amendment A5 -> plan P5 -> reviewed source V5 -> manifest-only H5
 H4 is the separate sole-manifest child of S4 and remains preserved by the tag.
 ```
 
-A5 changes only this amendment. P5 changes only its implementation plan. Every
-source or test commit from P5 through V5 has one parent, changes a nonempty
-subset of exactly:
+The final amendment commit changes only this amendment. The final plan commit
+changes only its implementation plan. Every source or test commit from the
+final plan through V5 has one parent, changes a nonempty subset of exactly:
 
 ```text
 scripts/diagnose_pass201_cis_operator.py
+scripts/pass201_pa_source_v2_contract.py
 tests/test_diagnose_pass201_cis_operator.py
 ```
 
-and the aggregate P5-to-V5 source/test set is exactly those two paths. H5 has
-one parent V5 and adds exactly one regular mode-100644 file:
+and the aggregate final-plan-to-V5 source/test set is exactly those three
+paths. Contract changes are confined to explicit v5 schema/key/output
+validation and the explicit prohibition on a v5 source-training receipt. H5
+has one parent V5 and adds exactly one regular mode-100644 file:
 
 ```text
 docs/pass201_pa_source_v5_authorization_manifest.json
 ```
 
-The v5 source-chain validator must explicitly allow the docs-only A5/P5
+The v5 source-chain validator must explicitly allow the docs-only amendment/plan
 ancestors, require the reviewed source segment to be merge-free, reject empty
-or out-of-scope source commits, and require the aggregate two-path set. It must
+or out-of-scope source commits, and require the aggregate three-path set. It must
 not route H4 through the current-source chain.
 
 ## Two provenance domains
@@ -184,8 +187,9 @@ The same process separately authenticates H5 and V5:
 - every ordered current source row equals both the V5 Git blob and current
   worktree bytes, including the executing diagnostic;
 - `Path(__file__)` resolves to the exact current diagnostic worktree path;
-- A5 and P5 are exact ancestors of V5 with exact path/SHA/commit bindings; and
-- the reviewed P5-to-V5 source/test chain has the exact scope above.
+- the final amendment and plan are exact ancestors of V5 with exact
+  path/SHA/commit bindings; and
+- the reviewed final-plan-to-V5 source/test chain has the exact scope above.
 
 There is no self-cycle: V5 does not contain H5 or H5's digest, and H5 binds V5.
 The load-bearing guarantee that the repair does not alter scientific behavior
@@ -220,19 +224,73 @@ source_commit
 status
 ```
 
-All pre-existing v4 domains retain their exact nested schemas and semantics.
-The following values change prospectively:
+All pre-existing v4 domains except `authorization`, `outputs`, and the three new
+authority domains retain their exact nested schemas and semantics. The
+following values change prospectively:
 
 - `schema_version` is exactly `pass201-pa-source-v5-activation-v1`;
 - `purpose` is exactly `activate_completed_source_v4_then_run_cpu_diagnostic`;
 - `source_commit` and `authorization.required_parent_commit` are V5;
 - `authorization.manifest_path` and its sole required diff path are the exact v5
   manifest path;
+- `authorization.frozen_absence` records freeze-time absence only for the
+  activated preregistration, activated source manifest, smoke output, and final
+  result; completed source outputs and the run directory are excluded;
 - `source.files` retains the exact historical 30-path order below but binds V5
   Git/worktree bytes;
 - `historical_producer` is the exact immutable H4/S4/receipt/output block; and
-- `outputs` records the six completed source files as required-present immutable
-  inputs, plus required-absent activation/result paths.
+- `outputs` records the six completed source files and run directory as
+  required-present-at-execution immutable inputs, plus required-absent-at-freeze
+  activation, source-manifest, smoke, and result paths.
+
+`authorization.frozen_absence` has exactly these keys in order, each with the
+literal value `ENOENT`:
+
+```text
+activated_preregistration
+result
+smoke
+source_manifest
+```
+
+Its sibling `frozen_absence_checked_utc` is one literal RFC3339 UTC string
+captured once and passed identically to both freezer processes. It is evidence
+about the four future outputs only, never a runtime predicate about completed
+source files.
+
+`outputs` has these keys in order:
+
+```text
+activated_preregistration
+checkpoint
+log
+receipt
+report
+resolved_config
+result
+run_directory
+smoke
+source_manifest
+train_manifest
+```
+
+The exact future-output paths are:
+
+```text
+activated_preregistration: docs/pass201_cis_operator_activated_preregistration.json
+source_manifest: docs/pass201_cis_operator_source_manifest.json
+smoke: reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json
+result: reports/generated/pass201_cis_operator/pass201_inshop_seed0.json
+```
+
+Each of those four objects has `path`, `required_absent_when_frozen` in order,
+with the boolean exactly `true`. Each of `checkpoint`, `log`, `receipt`,
+`report`, `resolved_config`, and `train_manifest` has `path`, `bytes`, `sha256`,
+`required_present_at_execution` in order, using the immutable values above and
+the boolean exactly `true`. `run_directory` has `path`,
+`required_present_at_execution` in order and binds exactly
+`reports/generated/pass201_source_v3/run-v3` and `true`. The v4 key
+`run_directory_required_absent` is not valid in v5 and has no default meaning.
 
 `historical_producer` has these keys in order:
 
@@ -251,7 +309,8 @@ order. `outputs` has exactly `checkpoint`, `log`, `report`, `resolved_config`,
 Each output object has `path`, `bytes`, `sha256` in order.
 
 `repair_amendment` and `repair_plan` each have `path`, `sha256`, `commit` in
-that order. Their exact values are filled only after their docs-only commits.
+that order. Their exact values bind the final docs-only amendment-fix and
+plan-fix commits that immediately precede source work.
 
 The exact current `source.files` path order is:
 
@@ -303,13 +362,16 @@ pass201-pa-source-v5-activation-v1 -> exact v5 dual-provenance path
 ```
 
 The defective v4 public path remains rejected, as do v2, unknown, malformed,
-and caller-overridden schemas. The v5 path must never consult
-`expected_prelaunch_sha256` and the public CLI must expose no SHA override.
+and caller-overridden schemas. The public CLI already exposes no SHA-override
+flag. The v5 path must never consult the internal
+`expected_prelaunch_sha256` legacy/test attribute fallback.
 
 The repair may change only source/provenance/serialization plumbing needed for:
 
 - exact historical H4 receipt rebinding;
 - exact current V5/H5 execution binding;
+- explicit contract support for the exact v5 activation manifest with no
+  schema, output, or receipt fallthrough;
 - source-manifest schema `pass201-source-v2`;
 - the activated-preregistration source projection;
 - downstream controller/process/result provenance projection; and
@@ -318,6 +380,15 @@ The repair may change only source/provenance/serialization plumbing needed for:
 The repair must not change candidate construction, model/checkpoint loading,
 context selection, operators, tensor arithmetic, tolerances, thresholds,
 bootstrap, aggregation, decision logic, or output path.
+
+The contract validates the v5 activation authority as its own explicit branch.
+It must not derive a v5 source-training receipt schema because no v5 source
+training exists or is authorized. Calling complete-receipt validation with a
+v5 activation authority fails explicitly. The immutable
+`pass201-pa-source-v4-receipt-v1` is validated only against a separately
+constructed and authenticated historical v4 authority from the literal H4
+manifest; it is never validated against or rebound to the v5 executor
+authority.
 
 ## Activated source-manifest v2
 
@@ -376,10 +447,11 @@ Tests then require GREEN for:
   order, context counts, and result decision functions; and
 - exact no-clobber/rollback behavior for activation and result paths.
 
-Run focused RED/GREEN, the complete diagnostic test file, the repository's
-relevant assurance suite once after the diff stabilizes, Ruff, `py_compile`,
-and `git diff --check`. Independent review must examine the complete P5-to-V5
-diff and report no Critical or Important finding before H5 is built.
+Run focused RED/GREEN, the complete diagnostic and contract test files, the
+repository's relevant assurance suite once after the diff stabilizes, Ruff,
+`py_compile`, and `git diff --check`. Independent review must examine the
+complete final-plan-to-V5 diff and report no Critical or Important finding
+before H5 is built.
 
 ## H5 freeze and execution rules
 
