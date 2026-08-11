@@ -413,6 +413,12 @@ sys.stdout.buffer.write(
 )
 """.strip()
 
+_PYTHON_IDENTITY_CHILD = (
+    "import json,sys;print(json.dumps("
+    "{'executable':sys.executable,'prefix':sys.prefix,'sys_path':sys.path},"
+    "sort_keys=True,ensure_ascii=False,allow_nan=False,separators=(',',':')))"
+)
+
 
 def _canonical_package_inventory(
     interpreter: Path, checkout: Path, environment: Mapping[str, str]
@@ -453,6 +459,25 @@ def _canonical_package_inventory(
     _require(
         all(type(value) is str and "\x00" not in value for value in sys_path),
         "package inventory sys.path entry",
+    )
+    identity_raw = _run_checked(
+        (str(interpreter), "-B", "-c", _PYTHON_IDENTITY_CHILD),
+        cwd=checkout,
+        environment=environment,
+    )
+    identity = load_strict_json_bytes(identity_raw)
+    _require(
+        canonical_json_bytes(identity) == identity_raw,
+        "Python runtime identity is not canonical",
+    )
+    _require(
+        list(identity) == ["executable", "prefix", "sys_path"],
+        "Python runtime identity keys",
+    )
+    _require(identity == python, "package inventory runtime identity drift")
+    _require(
+        python["executable"] == interpreter.absolute().as_posix(),
+        "package inventory executable drift",
     )
 
     distributions = payload["distributions"]

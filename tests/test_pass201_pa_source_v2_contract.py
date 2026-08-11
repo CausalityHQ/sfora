@@ -329,6 +329,14 @@ def test_package_evidence_is_version_selected_and_historical_v2_remains_valid(
     assert contract._validate_python_package_evidence(
         current, "pass201-pa-source-v3-prelaunch-v1", "packages"
     ) == current
+    assert contract._validate_python_package_evidence(
+        dict(reversed(list(legacy.items()))),
+        "pass201-pa-source-v2-receipt-v1",
+        "packages",
+    ) == dict(reversed(list(legacy.items())))
+    assert contract._validate_python_package_evidence(
+        current, "pass201-pa-source-v3-receipt-v1", "packages"
+    ) == current
     assert validate_prelaunch(valid_prelaunch).payload["execution"]["python_packages"] == legacy
     with pytest.raises(ValueError):
         contract._validate_python_package_evidence(
@@ -337,6 +345,10 @@ def test_package_evidence_is_version_selected_and_historical_v2_remains_valid(
     with pytest.raises(ValueError):
         contract._validate_python_package_evidence(
             legacy, "pass201-pa-source-v3-prelaunch-v1", "packages"
+        )
+    with pytest.raises(ValueError, match="unknown"):
+        contract._validate_python_package_evidence(
+            current, "pass201-pa-source-v4-prelaunch-v1", "packages"
         )
 
 

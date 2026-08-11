@@ -86,6 +86,10 @@ def _inventory_bytes(payload: object) -> bytes:
     )
 
 
+def _python_identity_bytes(python: object) -> bytes:
+    return _inventory_bytes(python)
+
+
 def test_importlib_inventory_uses_exact_interpreter_environment_and_is_repeatable(
     tmp_path: Path,
 ) -> None:
@@ -136,7 +140,11 @@ def test_importlib_inventory_invokes_literal_nonisolated_child(
         assert isinstance(argv, tuple)
         assert isinstance(environment, dict)
         observed.append((argv, cwd, environment))
-        return _inventory_bytes(payload)
+        return (
+            _inventory_bytes(payload)
+            if "importlib.metadata" in argv[3]
+            else _python_identity_bytes(payload["python"])
+        )
 
     monkeypatch.setattr(controller, "_run_checked", capture)
     encoded, count = controller._canonical_package_inventory(
@@ -145,7 +153,7 @@ def test_importlib_inventory_invokes_literal_nonisolated_child(
 
     assert count == 2
     assert encoded == _inventory_bytes(payload)
-    assert len(observed) == 1
+    assert len(observed) == 2
     argv, cwd, child_environment = observed[0]
     assert argv[0:2] == ("/registered/bin/python", "-B")
     assert argv[2] == "-c"
@@ -153,6 +161,53 @@ def test_importlib_inventory_invokes_literal_nonisolated_child(
     assert "-I" not in argv
     assert cwd == tmp_path
     assert child_environment == environment
+    identity_argv, identity_cwd, identity_environment = observed[1]
+    assert identity_argv[0:3] == ("/registered/bin/python", "-B", "-c")
+    assert identity_argv != argv
+    assert identity_cwd == cwd
+    assert identity_environment == child_environment
+
+
+def test_importlib_inventory_rejects_isolated_child_runtime_path_drift(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    interpreter = Path(__file__).resolve().parents[1] / ".venv" / "bin" / "python"
+    registered_src = tmp_path / "registered-src"
+    registered_src.mkdir()
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(registered_src)
+    environment["PYTHONNOUSERSITE"] = "1"
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    isolated = subprocess.run(
+        (str(interpreter), "-I", "-c", controller._IMPORTLIB_INVENTORY_CHILD),
+        cwd=tmp_path,
+        env=environment,
+        check=True,
+        capture_output=True,
+    ).stdout
+    identity = subprocess.run(
+        (
+            str(interpreter),
+            "-B",
+            "-c",
+            "import json,sys;print(json.dumps("
+            "{'executable':sys.executable,'prefix':sys.prefix,'sys_path':sys.path},"
+            "sort_keys=True,separators=(',',':')))",
+        ),
+        cwd=tmp_path,
+        env=environment,
+        check=True,
+        capture_output=True,
+    ).stdout
+    isolated_path = load_strict_json_bytes(isolated)["python"]["sys_path"]
+    regular_path = load_strict_json_bytes(identity)["sys_path"]
+    assert str(registered_src) not in isolated_path
+    assert str(registered_src) in regular_path
+    responses = iter((isolated, identity))
+    monkeypatch.setattr(controller, "_run_checked", lambda *_args, **_kwargs: next(responses))
+
+    with pytest.raises(ValueError, match="runtime|executable"):
+        controller._canonical_package_inventory(interpreter, tmp_path, environment)
 
 
 def test_package_evidence_dispatches_by_enclosing_source_schema(
@@ -202,6 +257,9 @@ def test_package_evidence_dispatches_by_enclosing_source_schema(
         "python_keys",
         "record_keys",
         "wrong_type",
+        "runtime_executable_drift",
+        "runtime_prefix_drift",
+        "runtime_sys_path_drift",
         "trimmed_name",
         "nul_version",
         "wrong_normalization",
@@ -233,6 +291,12 @@ def test_importlib_inventory_rejects_every_noncanonical_or_inconsistent_capture(
             distributions[0]["extra"] = None
         elif mutation == "wrong_type":
             distributions[0]["version"] = 1
+        elif mutation == "runtime_executable_drift":
+            python["executable"] = "/other/bin/python"
+        elif mutation == "runtime_prefix_drift":
+            python["prefix"] = "/other"
+        elif mutation == "runtime_sys_path_drift":
+            python["sys_path"].append("/other")
         elif mutation == "trimmed_name":
             distributions[0]["name"] = " Alpha_Pkg"
         elif mutation == "nul_version":
@@ -240,6 +304,7 @@ def test_importlib_inventory_rejects_every_noncanonical_or_inconsistent_capture(
         elif mutation == "wrong_normalization":
             distributions[0]["normalized_name"] = "alpha_pkg"
         elif mutation == "duplicate_normalized_name":
+            distributions[1]["name"] = "alpha.pkg"
             distributions[1]["normalized_name"] = "alpha-pkg"
         elif mutation == "unsorted_records":
             distributions.reverse()
@@ -256,8 +321,21 @@ def test_importlib_inventory_rejects_every_noncanonical_or_inconsistent_capture(
         elif mutation == "extra_bytes":
             encoded += b"\n"
 
-    monkeypatch.setattr(controller, "_run_checked", lambda *_args, **_kwargs: encoded)
-    with pytest.raises(ValueError):
+    def captured_output(argv: object, **_kwargs: object) -> bytes:
+        assert isinstance(argv, tuple)
+        return (
+            encoded
+            if "importlib.metadata" in argv[3]
+            else _python_identity_bytes(payload["python"])
+        )
+
+    monkeypatch.setattr(controller, "_run_checked", captured_output)
+    expected_error = (
+        "duplicate normalized package name"
+        if mutation == "duplicate_normalized_name"
+        else None
+    )
+    with pytest.raises(ValueError, match=expected_error):
         controller._canonical_package_inventory(
             Path("/registered/bin/python"), tmp_path, {"PYTHONPATH": f"{tmp_path}/src"}
         )

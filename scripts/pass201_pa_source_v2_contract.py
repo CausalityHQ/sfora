@@ -383,10 +383,7 @@ def _validate_python_package_evidence(
         "pass201-pa-source-v2-prelaunch-v1",
         "pass201-pa-source-v2-receipt-v1",
     ):
-        expected_order = ["bytes", "sha256"]
-        obj = _keys(value, set(expected_order), where)
-        if list(obj) != expected_order:
-            raise ValueError(f"{where}: key order")
+        obj = _keys(value, {"bytes", "sha256"}, where)
         _int(obj["bytes"], f"{where}.bytes")
         _hash(obj["sha256"], f"{where}.sha256")
         return obj
