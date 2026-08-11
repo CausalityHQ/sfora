@@ -44,6 +44,11 @@ so the registered command is structurally unreachable. Neither exit is a
 training attempt. The protocol's one-attempt rule begins only when the
 registered image-end-to-end child is spawned.
 
+The exact structured chronology and probe result are durably preserved at
+`docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json`. The final
+repair authority binds that path, its SHA-256, and its Git commit alongside this
+amendment and the repair plan.
+
 ## Exact process-entry contract
 
 The replacement source must snapshot `dict(os.environ)` exactly once after
@@ -51,7 +56,8 @@ stdlib imports and before importing `pass201_pa_source_v2_contract`, `typer`, or
 any `sfora` module. Call this immutable-by-convention private snapshot
 `_PROCESS_ENTRY_ENVIRONMENT`.
 
-`_require_replacement_environment` must require both:
+Both `_require_replacement_environment` and `_validate_bound_environment` must
+call one shared exact predicate that requires:
 
 1. the snapshot is exactly equal, including key set, built-in string types, and
    values, to `authority.payload["execution"]["environment"]`; and
@@ -61,6 +67,11 @@ any `sfora` module. Call this immutable-by-convention private snapshot
 The comparison is exact dictionary equality. No filtering, coercion, default,
 wildcard, prefix allowance, or `os.environ` mutation is authorized. The
 controller must not delete or rewrite the two observed KMP entries.
+
+This shared predicate must run in the parent preflight, postflight, and the
+`derive-sidecars` child. Separate RED/GREEN tests are required for both public
+call sites. This prevents the same import mutation from consuming the one
+training attempt and then failing during post-training sidecar derivation.
 
 Every subprocess involved in runtime recapture, sidecar derivation, or training
 continues to receive the original exact frozen 16-key replacement environment
@@ -83,32 +94,52 @@ Mutation tests must independently reject:
 - a KMP key present at process entry;
 - snapshot capture after contract, Typer, or `sfora` import;
 - any registered child environment containing either KMP key.
+- either exact live-environment call site bypassing the shared predicate.
 
-Historical source-v2 schema and receipt validators remain byte-semantically
-unchanged. The replacement source must retain the existing full source-v3 suite,
-Ruff, `py_compile`, and diff-check gates and obtain independent read-only review.
+Historical source-v2 and source-v3 schemas and receipts remain accepted with
+their exact prior key sets and `required_diff_status=["A"]`. The replacement
+authority uses new exact schema versions
+`pass201-pa-source-v4-prelaunch-v1` and `pass201-pa-source-v4-receipt-v1` so no
+old union or coercion is introduced. It adds exact top-level objects
+`process_entry_amendment`, `process_entry_plan`, and
+`process_entry_evidence`, each with ordered keys `path,sha256,commit`. Receipt
+authorization repeats those three objects exactly. The v4 manifest path is
+`docs/pass201_pa_source_v4_authorization_manifest.json`; its required diff
+status remains exact `["A"]`. The run directory and six runtime output paths
+remain the H3 source-v3 values. The replacement source must retain the existing
+full suite, Ruff, `py_compile`, and diff-check gates and obtain independent
+read-only review.
 
 ## Replacement Git and manifest chain
 
 The prospective chain is linear:
 
 ```text
-A3 -> P3 -> I3 -> V3 -> H3 -> A4 -> P4 -> S4 -> H4
+A3 -> P3 -> I3a -> I3 -> V3 -> H3 -> A4-draft -> P4-draft -> F4 -> S4 -> H4
 ```
 
-- A4 adds only this amendment.
-- P4 adds only its bound implementation plan.
-- S4 changes exactly the same six source/test paths authorized for V3.
-- H4 changes only
-  `docs/pass201_pa_source_v3_authorization_manifest.json` in mode `100644`.
+F4 is the final docs-only repair-authority commit. It changes this amendment and
+the plan and adds the structured evidence file. S4 means the final independently
+reviewed source commit: one or more consecutive nonempty source-review commits
+may occur after F4, each changing only a subset of the authorized six paths,
+with the aggregate `F4..S4` diff exactly those six paths. H4 has sole parent S4
+and adds only `docs/pass201_pa_source_v4_authorization_manifest.json` in mode
+`100644`.
 
-S4 must authenticate every preceding edge, with no merge. H4 has sole parent S4,
-its manifest `source_commit` is S4, and its `protocol` and `plan` objects bind A4
-and P4. Since H3 already added the manifest path, H4's sole edge is exact `M`,
-not `A`. All runtime, package, source, dataset, output, and frozen scientific
-domains are recomputed from S4 and otherwise unchanged.
+S4 must authenticate every preceding edge, including the initial package commit
+I3a `757d0672`, with no merge. H4's manifest `source_commit` is S4. Its original
+`protocol` and `plan` objects continue to bind A3 and P3; the three new repair
+objects bind the final F4 amendment, plan, and evidence bytes. All runtime,
+package, source, dataset, output, and frozen scientific domains are recomputed
+from S4 and otherwise unchanged.
 
-The authority freezer must again run in exactly two fresh top-level processes
+The literal execution checkout remains
+`/home/riomus/pass201-pa-source-v3-03d0ed5`. S4 and H4 are checked out detached
+into that same physical non-symlink directory so `cwd`, `checkout_root`, and
+`PYTHONPATH` remain byte-identical to H3. The stale suffix is historical naming,
+not authority; Git commits and hashes are the authority.
+
+The v4 authority freezer must again run in exactly two fresh top-level processes
 with one shared prospective absence timestamp and the two registered sibling
 temporary paths. Their bytes must be identical before H4. No training or GPU
 process is authorized until H4 independently validates as READY.
