@@ -130,6 +130,8 @@ S4
  -> 4afbda4886bf7e71eb72359904c838d8db87ff4c  (first plan fix)
  -> 12003f535d1dcfa91274c895af830df690856a2c  (second amendment fix)
  -> c66a5af736d33f4743039031f81776bc3a6ada0a  (second plan fix)
+ -> d392a1c028ac7c8f918acc6c7c69c78bffbbacf4  (third amendment fix)
+ -> d3ad7701ed000dcd941e21d0a58577a70b626f3f  (third plan fix)
  -> final amendment-fix A5
  -> final plan-fix P5
  -> reviewed source V5
@@ -138,7 +140,7 @@ H4 is the separate sole-manifest child of S4 and remains preserved by the tag.
 ```
 
 The final amendment-fix A5 has exact parent
-`c66a5af736d33f4743039031f81776bc3a6ada0a`, changes only this amendment,
+`d3ad7701ed000dcd941e21d0a58577a70b626f3f`, changes only this amendment,
 and is bound by exact path/SHA-256/commit in the final plan and H5. The final
 plan-fix P5 is the sole-path child of A5, changes only its implementation plan,
 and is bound by exact path/SHA-256/commit in V5 and H5. Every source or test
@@ -159,8 +161,8 @@ has one parent V5 and adds exactly one regular mode-100644 file:
 docs/pass201_pa_source_v5_authorization_manifest.json
 ```
 
-The v5 source-chain validator must require that exact eight-commit docs chain
-(the six literal commits plus A5 and P5), with each edge single-parent,
+The v5 source-chain validator must require that exact ten-commit docs chain
+(the eight literal commits plus A5 and P5), with each edge single-parent,
 merge-free, nonempty, and confined to its one registered documentation path.
 It then requires the reviewed P5-to-V5 source segment to be merge-free, rejects
 empty or out-of-scope source commits, and requires the aggregate three-path
@@ -244,6 +246,19 @@ status
 All pre-existing v4 domains except `authorization`, `outputs`, and the three new
 authority domains retain their exact nested schemas and semantics. The
 following values change prospectively:
+
+`authorization` retains exactly these keys in order:
+
+```text
+clean_policy
+frozen_absence
+frozen_absence_checked_utc
+manifest_path
+required_diff_modes
+required_diff_paths
+required_diff_status
+required_parent_commit
+```
 
 - `schema_version` is exactly `pass201-pa-source-v5-activation-v1`;
 - `purpose` is exactly `activate_completed_source_v4_then_run_cpu_diagnostic`;
@@ -400,11 +415,21 @@ path fails before activation/model/candidate access. The v4 path remains usable
 only inside the separately authenticated historical H4 receipt domain; it is
 never the current public executor authority.
 
+Every process-role invocation applies the runtime-factory prohibition when its
+source manifest's `prelaunch_source_manifest_path` is the exact v5 path. The v5
+path is added to the existing v3/v4 predicate, or that predicate is equivalently
+made fail-closed for every current nonhistorical schema. Both
+`args.runtime_factory` and ambient `PASS201_RUNTIME_FACTORY` must be absent
+before source-manifest validation, Torch import, model/checkpoint access, or
+candidate computation. No process-role path may export or consume a runtime
+factory under v5.
+
 The repair may change only source/provenance/serialization plumbing needed for:
 
 - exact historical H4 receipt rebinding;
 - exact current V5/H5 execution binding;
 - exact public default/required prelaunch-manifest repointing from v4 to v5;
+- exact fail-closed v5 process-role runtime-factory rejection;
 - explicit contract support for the exact v5 activation manifest with no
   schema, output, or receipt fallthrough;
 - source-manifest schema `pass201-source-v2`;
