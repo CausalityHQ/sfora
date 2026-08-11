@@ -854,7 +854,7 @@ def _load_source_v5_authority(
     contract = _load_authenticated_source_v3_contract(root, handoff.source_commit, files[1])
     manifest = contract.load_strict_json_bytes(handoff.manifest_bytes)
     _require(
-        contract.canonical_json_bytes(manifest) == handoff.manifest_bytes,
+        contract.canonical_ordered_json_bytes(manifest) == handoff.manifest_bytes,
         "source-v5 manifest bytes are not canonical",
     )
     authority = contract.validate_prelaunch(manifest)
@@ -933,7 +933,8 @@ def _load_source_v5_authority(
         "status",
     ):
         _require(
-            authority.payload[key] == historical[key],
+            contract.canonical_ordered_json_bytes(manifest[key])
+            == contract.canonical_ordered_json_bytes(historical[key]),
             f"source-v5 retained historical domain differs: {key}",
         )
     expected_receipt = root / authority.payload["outputs"]["receipt"]["path"]

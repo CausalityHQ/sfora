@@ -3791,6 +3791,132 @@ def test_source_v5_contract_accepts_exact_activation_authority():
     assert authority.source_commit == "5" * 40
 
 
+def test_source_v5_contract_rejects_reordered_run_directory():
+    payload = deepcopy(_source_v5_contract_fixture())
+    run_directory = payload["outputs"]["run_directory"]
+    payload["outputs"]["run_directory"] = {
+        "required_present_at_execution": run_directory["required_present_at_execution"],
+        "path": run_directory["path"],
+    }
+    with pytest.raises(ValueError, match="outputs.run_directory: key order"):
+        SOURCE_CONTRACT.validate_prelaunch(payload)
+
+
+def test_source_v5_loader_accepts_the_ordered_bytes_emitted_by_the_freezer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    payload = _source_v5_contract_fixture()
+    data = SOURCE_CONTRACT.canonical_ordered_json_bytes(payload)
+    handoff = MODULE.SourceV3GitHandoff(
+        handoff_commit="6" * 40,
+        source_commit="5" * 40,
+        manifest_bytes=data,
+        manifest_sha256=hashlib.sha256(data).hexdigest(),
+        manifest_git_blob="7" * 40,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_authenticate_source_v3_git_handoff",
+        lambda **_kwargs: handoff,
+    )
+    monkeypatch.setattr(MODULE, "_authenticate_source_v5_source_chain", lambda *_args: None)
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_source_v3_contract",
+        lambda *_args: SOURCE_CONTRACT,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_authenticate_source_v3_repo_row",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("ordered bytes accepted")),
+    )
+    with pytest.raises(RuntimeError, match="ordered bytes accepted"):
+        MODULE._load_source_v5_authority(
+            root=tmp_path,
+            git_root=tmp_path,
+            manifest_path=tmp_path / MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            receipt_path=tmp_path / "receipt.json",
+        )
+
+
+def test_source_v5_loader_rejects_reordered_retained_historical_domain(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    root = MODULE_PATH.parents[1]
+    payload = _source_v5_contract_fixture()
+    payload["dataset"] = {
+        key: payload["dataset"][key] for key in reversed(tuple(payload["dataset"]))
+    }
+    data = SOURCE_CONTRACT.canonical_ordered_json_bytes(payload)
+    handoff = MODULE.SourceV3GitHandoff(
+        handoff_commit="6" * 40,
+        source_commit="5" * 40,
+        manifest_bytes=data,
+        manifest_sha256=hashlib.sha256(data).hexdigest(),
+        manifest_git_blob="7" * 40,
+    )
+    historical_bytes = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}:"
+            f"{MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH}",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+
+    def git_bytes(_root: Path, *args: str) -> bytes:
+        if args == ("rev-parse", MODULE.SOURCE_V4_HISTORICAL_TAG):
+            return f"{MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}\n".encode("ascii")
+        if args == (
+            "rev-list",
+            "--parents",
+            "-n",
+            "1",
+            MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        ):
+            return (
+                f"{MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT} "
+                f"{MODULE.SOURCE_V4_HISTORICAL_SOURCE_COMMIT}\n"
+            ).encode("ascii")
+        if args == (
+            "show",
+            f"{MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}:"
+            f"{MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH}",
+        ):
+            return historical_bytes
+        raise AssertionError(args)
+
+    monkeypatch.setattr(
+        MODULE,
+        "_authenticate_source_v3_git_handoff",
+        lambda **_kwargs: handoff,
+    )
+    monkeypatch.setattr(MODULE, "_authenticate_source_v5_source_chain", lambda *_args: None)
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_source_v3_contract",
+        lambda *_args: SOURCE_CONTRACT,
+    )
+    monkeypatch.setattr(MODULE, "_authenticate_source_v3_repo_row", lambda *_args: None)
+    monkeypatch.setattr(
+        MODULE, "_authenticate_source_v3_static_authorities", lambda *_args: None
+    )
+    monkeypatch.setattr(
+        MODULE, "_authenticate_process_entry_static_authorities", lambda *_args: None
+    )
+    monkeypatch.setattr(MODULE, "_git_command_bytes", git_bytes)
+    with pytest.raises(ValueError, match="retained historical domain differs: dataset"):
+        MODULE._load_source_v5_authority(
+            root=root,
+            git_root=root,
+            manifest_path=root / MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            receipt_path=root / payload["outputs"]["receipt"]["path"],
+        )
+
+
 def test_source_v5_contract_rejects_source_training_receipt_validation():
     authority = SOURCE_CONTRACT.validate_prelaunch(_source_v5_contract_fixture())
     with pytest.raises(

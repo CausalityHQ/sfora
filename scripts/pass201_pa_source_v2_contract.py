@@ -1162,6 +1162,8 @@ def _validate_outputs_v5(value: object, _schema_version: object) -> None:
     run_dir = _keys(
         obj["run_directory"], {"path", "required_present_at_execution"}, "outputs.run_directory"
     )
+    if list(run_dir) != ["path", "required_present_at_execution"]:
+        raise ValueError("outputs.run_directory: key order")
     _literal(
         run_dir["path"], "reports/generated/pass201_source_v3/run-v3", "outputs.run_directory.path"
     )
