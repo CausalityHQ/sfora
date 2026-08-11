@@ -80,8 +80,8 @@ a writable copy would still fail because the receipt remains `0100444`.
 For each of the four activation inputs, in the existing literal order
 `report`, `checkpoint`, `resolved_config`, `train_manifest`, validation must:
 
-1. require the evidence object to have exact key order
-   `path,file_type,mode,bytes,sha256` and exact concrete JSON types;
+1. require the evidence object to have the historical receipt's exact key
+   order `bytes,file_type,mode,path,sha256` and exact concrete JSON types;
 2. require the receipt mode to be exactly the historical literal decimal
    `33060` (`0o100444`), not merely any regular-file mode;
 3. resolve only the exact authority-declared repository-relative path under
@@ -124,11 +124,15 @@ candidate path, or result schema changed.
 
 ## Git and refreeze sequence
 
-The chronology is prospective and linear:
+The chronology is prospective and linear. The first amendment commit is
+`622e145b2dfeafdf6a202c7012ad92813a2932c2`; final A6 is its sole-file
+review-fix child and incorporates this corrected exact receipt key order and
+source scope:
 
 ```text
 V5
- -> this amendment A6
+ -> 622e145b2dfeafdf6a202c7012ad92813a2932c2
+ -> final amendment A6
  -> bound implementation plan P6
  -> reviewed source/test repair V6
  -> manifest-only handoff H6
@@ -139,6 +143,7 @@ is single-parent, merge-free, nonempty, and confined to:
 
 ```text
 scripts/diagnose_pass201_cis_operator.py
+scripts/pass201_pa_source_v2_contract.py
 tests/test_diagnose_pass201_cis_operator.py
 ```
 
@@ -147,6 +152,9 @@ manifest rather than modifying H5 or any historical authority. The new
 manifest incorporates this amendment and plan by exact path, SHA-256, and
 commit; preserves every historical producer domain and output digest; binds
 the reviewed V6 source rows; and contains no candidate or scientific values.
+The contract change is restricted to the exact source-v6 authority shape and
+the non-mutating descriptor-based existing-output verifier; it cannot alter the
+historical producer, receipt builder, or publication helper.
 
 ## Execution authorization after H6
 
