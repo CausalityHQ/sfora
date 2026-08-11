@@ -102,8 +102,12 @@ authority uses new exact schema versions
 `pass201-pa-source-v4-prelaunch-v1` and `pass201-pa-source-v4-receipt-v1` so no
 old union or coercion is introduced. It adds exact top-level objects
 `process_entry_amendment`, `process_entry_plan`, and
-`process_entry_evidence`, each with ordered keys `path,sha256,commit`. Receipt
-authorization repeats those three objects exactly. The v4 manifest path is
+`process_entry_evidence`. Because the unchanged canonical JSON encoder uses
+`sort_keys=True`, each of those objects has the exact persisted and in-memory
+key order `commit,path,sha256`; construction, strict validation, round-trip
+validation, and receipt authorization must all require that same order. Receipt
+authorization repeats those three objects exactly. The historical v2/v3
+authority-reference behavior is unchanged. The v4 manifest path is
 `docs/pass201_pa_source_v4_authorization_manifest.json`; its required diff
 status remains exact `["A"]`. The run directory and six runtime output paths
 remain the H3 source-v3 values. The replacement source must retain the existing
@@ -115,21 +119,25 @@ read-only review.
 The prospective chain is linear:
 
 ```text
-A3 -> P3 -> I3a -> I3 -> V3 -> H3 -> A4-draft -> P4-draft -> F4 -> S4 -> H4
+A3 -> P3 -> I3a -> I3 -> V3 -> H3 -> A4-draft -> P4-draft -> F4 -> F5 -> S4 -> H4
 ```
 
-F4 is the final docs-only repair-authority commit. It changes this amendment and
-the plan and adds the structured evidence file. S4 means the final independently
-reviewed source commit: one or more consecutive nonempty source-review commits
-may occur after F4, each changing only a subset of the authorized six paths,
-with the aggregate `F4..S4` diff exactly those six paths. H4 has sole parent S4
+F4 is the durable docs/evidence repair package: it changes this amendment and
+the plan and adds the structured evidence file. F5 is the final docs-only
+canonical-order correction and changes only this amendment and the plan. The
+v4 `process_entry_amendment` and `process_entry_plan` objects bind their F5
+bytes/commit, while `process_entry_evidence` continues to bind its unchanged F4
+bytes/commit. S4 means the final independently reviewed source commit: one or
+more consecutive nonempty source-review commits may occur after F5, each
+changing only a subset of the authorized six paths, with the aggregate
+`F5..S4` diff exactly those six paths. H4 has sole parent S4
 and adds only `docs/pass201_pa_source_v4_authorization_manifest.json` in mode
 `100644`.
 
 S4 must authenticate every preceding edge, including the initial package commit
 I3a `757d0672`, with no merge. H4's manifest `source_commit` is S4. Its original
 `protocol` and `plan` objects continue to bind A3 and P3; the three new repair
-objects bind the final F4 amendment, plan, and evidence bytes. All runtime,
+objects bind the final F5 amendment/plan and F4 evidence bytes. All runtime,
 package, source, dataset, output, and frozen scientific domains are recomputed
 from S4 and otherwise unchanged.
 

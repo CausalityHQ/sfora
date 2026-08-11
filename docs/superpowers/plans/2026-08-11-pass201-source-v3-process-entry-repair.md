@@ -4,13 +4,14 @@
 
 **Goal:** Make the frozen Pass201 source-v3 training command reachable without weakening its exact child environment, then issue a reviewed replacement source and manifest handoff.
 
-**Architecture:** Preserve H3 and both pre-training failures as historical evidence. Snapshot the exact process-entry environment before training-stack imports, authenticate the two exact KMP additions at both live-environment predicates, and keep passing the original 16-key environment explicitly to every child. Bind the final docs/evidence package F4, final reviewed source S4, and new v4 manifest H4 before one real training child starts.
+**Architecture:** Preserve H3 and both pre-training failures as historical evidence. Snapshot the exact process-entry environment before training-stack imports, authenticate the two exact KMP additions at both live-environment predicates, and keep passing the original 16-key environment explicitly to every child. Bind the durable docs/evidence package F4, canonical-order correction F5, final reviewed source S4, and new v4 manifest H4 before one real training child starts.
 
 **Tech Stack:** Python 3.13, stdlib `os`/`subprocess`, pytest, Git, canonical JSON, Ruff.
 
 ## Global Constraints
 
-- `967a02d5d1535dd2a019f3b34039f0a706796310` and `6067219a3a312053cadfaeb4cfa8d8d5fb907b9c` are preserved draft authority commits; F4 is the final docs/evidence repair authority.
+- `967a02d5d1535dd2a019f3b34039f0a706796310` and `6067219a3a312053cadfaeb4cfa8d8d5fb907b9c` are preserved draft authority commits; F4 is the durable docs/evidence repair package and F5 is the final two-doc canonical-order correction.
+- The unchanged canonical JSON encoder sorts keys. Every new v4 repair reference must therefore be constructed, persisted, reloaded, and validated in exact order `commit,path,sha256`; historical v2/v3 behavior remains unchanged.
 - H3 and PIDs 1031337/1032024 remain historical pre-training failures.
 - Structured evidence is `docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json`.
 - Exact entry environment remains the 16-key H3 execution environment.
@@ -34,7 +35,7 @@
 - Consumes: H3 and the two preflight traces.
 - Produces: independent READY authority for source changes.
 
-- [ ] Verify the final amendment, plan, and evidence are one docs-only F4 package with exact hashes/ancestry and clean diff-check.
+- [ ] Verify F4's amendment/plan/evidence package and F5's amendment/plan-only canonical-order correction with exact hashes/ancestry and clean diff-check.
 - [ ] Reproduce read-only that exact entry environment becomes entry plus exactly the two registered KMP keys after importing the real controller.
 - [ ] Obtain read-only Claude review with explicit models `['opus','gpt-5.6-sol']`; stop on Critical/Important findings.
 
@@ -51,7 +52,7 @@
 - [ ] Add a fresh `python -B` subprocess test that starts through `env -i`, imports the real controller, proves the two exact KMP additions exist, and proves the old predicate rejects them.
 - [ ] Add parameterized mutations for missing/changed/extra entry keys, either KMP key missing/changed/mistyped, a third post-import key, and a KMP key present at entry, exercising both `_require_replacement_environment` and `_validate_bound_environment`.
 - [ ] Wrap the training-child launcher and assert its `environment` argument equals the exact 16-key authority object and excludes both KMP keys.
-- [ ] Add real-Git RED coverage for `I3a -> I3 -> V3 -> H3 -> draft docs -> F4 -> S4 -> H4`, aggregate F4..S4 six-path scope, and H4 sole `A 100644` v4-manifest edge; reject merges, wrong parents, `M` at H4, and extra paths.
+- [ ] Add real-Git RED coverage for `I3a -> I3 -> V3 -> H3 -> draft docs -> F4 -> F5 -> S4 -> H4`, aggregate F5..S4 six-path scope, and H4 sole `A 100644` v4-manifest edge; reject merges, wrong parents, `M` at H4, and extra paths.
 - [ ] Run the focused selector and retain the behavior-specific RED output:
 
 ```bash
@@ -67,7 +68,7 @@
 - Modify: the three corresponding test files
 
 **Interfaces:**
-- Consumes: RED tests and final authority package F4.
+- Consumes: RED tests, durable authority package F4, and final canonical-order correction F5.
 - Produces: reviewed S4 with the same exact six-path scope as V3.
 
 - [ ] Before contract/Typer/sfora imports, capture entry and declare exact additions:
@@ -106,8 +107,8 @@ def _validate_bound_environment(authority: PrelaunchAuthority) -> None:
 
 - [ ] Do not mutate `os.environ`; keep every explicit child `environment=expected` and test each boundary.
 - [ ] Add exact v4 manifest/receipt schemas with three ordered repair authority objects while leaving v2/v3 schemas and their `["A"]` status byte-semantically unchanged. V4 also uses `["A"]` at the new path.
-- [ ] Retain original A3/P3 `protocol`/`plan` objects and add exact F4 amendment/plan/evidence objects in controller, contract, receipt, and diagnostic validators.
-- [ ] Update diagnostic Git validation for every exact edge in `I3a -> I3 -> V3 -> H3 -> draft docs -> F4 -> S4 -> H4`; allow consecutive review-fix source commits whose aggregate F4..S4 diff is exactly six paths, and require H4 sole v4-manifest `A 100644`.
+- [ ] Retain original A3/P3 `protocol`/`plan` objects; add exact F5 amendment/plan and F4 evidence objects in controller, contract, receipt, and diagnostic validators, each with exact canonical order `commit,path,sha256`.
+- [ ] Update diagnostic Git validation for every exact edge in `I3a -> I3 -> V3 -> H3 -> draft docs -> F4 -> F5 -> S4 -> H4`; allow consecutive review-fix source commits whose aggregate F5..S4 diff is exactly six paths, and require H4 sole v4-manifest `A 100644`.
 - [ ] Run focused GREEN, then the complete gate:
 
 ```bash
@@ -122,7 +123,7 @@ git diff --check
 ### Task 4: Independent Source Review
 
 **Files:**
-- Review: exact aggregate `F4..S4` six-file diff
+- Review: exact aggregate `F5..S4` six-file diff
 
 **Interfaces:**
 - Consumes: verified S4.
@@ -142,7 +143,7 @@ git diff --check
 
 - [ ] Reuse the exact physical checkout `/home/riomus/pass201-pa-source-v3-03d0ed5`, detach it at S4, and confirm H3 outputs remain absent, interpreter/data/pretrained paths match, and no compute process exists.
 - [ ] Capture one new RFC3339 UTC absence timestamp. Run exactly two fresh v4 `freeze-authority` processes to the registered sibling paths and require byte identity.
-- [ ] Add only the v4 manifest, commit H4 with sole parent S4 and sole `A 100644` edge, then validate canonical schema, A3/P3 plus F4 refs, S4 source rows, all hashes, package/runtime evidence, absence, and no scientific values.
+- [ ] Add only the v4 manifest, commit H4 with sole parent S4 and sole `A 100644` edge, then validate canonical schema, A3/P3 plus F5 amendment/plan and F4 evidence refs, S4 source rows, all hashes, package/runtime evidence, absence, and no scientific values.
 - [ ] Obtain independent read-only READY review of H4; do not train before it completes.
 
 ### Task 6: Launch One Real Training Child
