@@ -119,16 +119,28 @@ that independent review.
 
 Before creating the repair branch, H4 must remain reachable through the exact
 local preservation ref `pass201-source-v4-handoff-32c4d39` resolving to H4.
-The repair chronology is linear from S4, not H4:
+The repair chronology is linear from S4, not H4. The four already-committed
+docs-only ancestors are exact and no other commit may occur between them:
 
 ```text
-S4 -> amendment A5 -> plan P5 -> reviewed source V5 -> manifest-only H5
+S4
+ -> d4a2df313a1f4fb708d9d30c5bce70abf232fa10  (initial amendment)
+ -> 04f423baae919318855297ebec9fc3d4cdf6b1ab  (initial plan)
+ -> 1f5bb121ed6062b00f904395715dcd89bb28fb6f  (first amendment fix)
+ -> 4afbda4886bf7e71eb72359904c838d8db87ff4c  (first plan fix)
+ -> final amendment-fix A5
+ -> final plan-fix P5
+ -> reviewed source V5
+ -> manifest-only H5
 H4 is the separate sole-manifest child of S4 and remains preserved by the tag.
 ```
 
-The final amendment commit changes only this amendment. The final plan commit
-changes only its implementation plan. Every source or test commit from the
-final plan through V5 has one parent, changes a nonempty subset of exactly:
+The final amendment-fix A5 has exact parent
+`4afbda4886bf7e71eb72359904c838d8db87ff4c`, changes only this amendment,
+and is bound by exact path/SHA-256/commit in the final plan and H5. The final
+plan-fix P5 is the sole-path child of A5, changes only its implementation plan,
+and is bound by exact path/SHA-256/commit in V5 and H5. Every source or test
+commit from P5 through V5 has one parent, changes a nonempty subset of exactly:
 
 ```text
 scripts/diagnose_pass201_cis_operator.py
@@ -145,10 +157,13 @@ has one parent V5 and adds exactly one regular mode-100644 file:
 docs/pass201_pa_source_v5_authorization_manifest.json
 ```
 
-The v5 source-chain validator must explicitly allow the docs-only amendment/plan
-ancestors, require the reviewed source segment to be merge-free, reject empty
-or out-of-scope source commits, and require the aggregate three-path set. It must
-not route H4 through the current-source chain.
+The v5 source-chain validator must require that exact six-commit docs chain
+(the four literal commits plus A5 and P5), with each edge single-parent,
+merge-free, nonempty, and confined to its one registered documentation path.
+It then requires the reviewed P5-to-V5 source segment to be merge-free, rejects
+empty or out-of-scope source commits, and requires the aggregate three-path
+set. It must not admit an arbitrary docs-only ancestor or route H4 through the
+current-source chain.
 
 ## Two provenance domains
 
@@ -283,6 +298,14 @@ smoke: reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json
 result: reports/generated/pass201_cis_operator/pass201_inshop_seed0.json
 ```
 
+The diagnostic registers the smoke path as the literal public constant
+`SMOKE_RESULT_PATH` and retains `RESULT_PATH` for the scientific result. Public
+`--smoke-only` binds `--output` exactly to `SMOKE_RESULT_PATH`; public
+`--scientific` binds it exactly to `RESULT_PATH`. Caller-supplied aliases,
+cross-mode paths, and every other output path are rejected. Both destinations
+must be absent before their respective one-shot process. Smoke therefore
+cannot overwrite, be overwritten by, or block the scientific result.
+
 Each of those four objects has `path`, `required_absent_when_frozen` in order,
 with the boolean exactly `true`. Each of `checkpoint`, `log`, `receipt`,
 `report`, `resolved_config`, and `train_manifest` has `path`, `bytes`, `sha256`,
@@ -379,7 +402,9 @@ The repair may change only source/provenance/serialization plumbing needed for:
 
 The repair must not change candidate construction, model/checkpoint loading,
 context selection, operators, tensor arithmetic, tolerances, thresholds,
-bootstrap, aggregation, decision logic, or output path.
+bootstrap, aggregation, or decision logic. Its only output-path change is the
+registered `SMOKE_RESULT_PATH` and exact mode-specific public binding above;
+`RESULT_PATH` and every scientific output path remain byte-for-byte unchanged.
 
 The contract validates the v5 activation authority as its own explicit branch.
 It must not derive a v5 source-training receipt schema because no v5 source
@@ -474,9 +499,10 @@ and the registered Python/Torch/NumPy environment:
 1. one fresh `--activate-source` process;
 2. one fresh `--binding-only` process;
 3. one fresh `--smoke-only` controller process, which runs the registered
-   integrity roles and computes no scientific candidate result; and
+   integrity roles, writes only the registered smoke destination, and computes
+   no scientific candidate result; and
 4. only if all prior predicates are GREEN, one fresh `--scientific` controller
-   process.
+   process, writing only the distinct registered scientific result destination.
 
 Each invocation re-authenticates the v5 manifest, H5/V5, H4/S4, receipt, and
 outputs. Activation, binding-only, and smoke are not scientific attempts. The
