@@ -58,6 +58,64 @@ from sfora.image_end_to_end import (  # noqa: E402
 )
 
 
+def test_source_v3_frozen_paths_and_source_order_are_literal() -> None:
+    assert (
+        controller.SOURCE_V3_PRELAUNCH_PATH.as_posix()
+        == "docs/pass201_pa_source_v3_authorization_manifest.json"
+    )
+    assert (
+        controller.SOURCE_V3_RUN_DIRECTORY.as_posix()
+        == "reports/generated/pass201_source_v3/run-v3"
+    )
+    assert tuple(path.as_posix() for path in controller.SOURCE_V3_PATHS) == (
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "src/sfora/__init__.py",
+        "src/sfora/ablation.py",
+        "src/sfora/api.py",
+        "src/sfora/arcg.py",
+        "src/sfora/benchmark.py",
+        "src/sfora/bn_inception.py",
+        "src/sfora/catalog.py",
+        "src/sfora/cea.py",
+        "src/sfora/cem.py",
+        "src/sfora/cli.py",
+        "src/sfora/compose.py",
+        "src/sfora/data.py",
+        "src/sfora/encoder_ablation.py",
+        "src/sfora/encoder_training.py",
+        "src/sfora/evaluation.py",
+        "src/sfora/experiments.py",
+        "src/sfora/image_benchmark.py",
+        "src/sfora/image_end_to_end.py",
+        "src/sfora/image_recipes.py",
+        "src/sfora/ipsr.py",
+        "src/sfora/losses.py",
+        "src/sfora/method.py",
+        "src/sfora/oapf.py",
+        "src/sfora/publication.py",
+        "src/sfora/remote.py",
+        "src/sfora/report.py",
+        "src/sfora/text_baselines.py",
+        "src/sfora/training.py",
+    )
+
+
+def test_source_v3_static_protocol_and_plan_bind_git_worktree_ancestry() -> None:
+    root = Path(__file__).parents[1]
+    source_commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert controller._authenticate_source_v3_static_authorities(root, source_commit) == {
+        "protocol": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+        "plan": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    }
+
+
 def _importlib_inventory_payload() -> dict[str, object]:
     return {
         "distributions": [
@@ -1927,6 +1985,8 @@ status = controller.main(
         "2026-08-09T00:00:00Z",
         "--output",
         sys.argv[2],
+        "--schema-version",
+        "pass201-pa-source-v2-prelaunch-v1",
     ]
 )
 print(os.getpid())
@@ -2062,6 +2122,48 @@ def test_freeze_authority_captures_twice_and_emits_canonical_strict_manifest(
     assert capture_calls == [1, 2]
     assert absence_calls == [checkout, checkout, checkout]
     assert not output.exists()
+
+
+def test_source_v3_prelaunch_builder_emits_exact_versioned_delta(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=controller.DATASET_ROOT,
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-11T00:00:00Z",
+        output_path=_prelaunch_freeze_output(checkout, 1),
+        schema_version="pass201-pa-source-v3-prelaunch-v1",
+    )
+    runtime = _fake_freeze_runtime(checkout)
+    runtime["source_files"] = [
+        _repo_binding(path.as_posix(), "a") for path in controller.SOURCE_V3_PATHS
+    ]
+    runtime["python_packages"] = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": "3" * 64,
+    }
+
+    payload = controller._build_prelaunch_payload(args, capture, runtime)
+    authority = controller.validate_prelaunch(payload)
+
+    assert authority.payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1"
+    assert authority.payload["authorization"]["manifest_path"] == (
+        "docs/pass201_pa_source_v3_authorization_manifest.json"
+    )
+    assert authority.payload["outputs"]["run_directory"] == (
+        "reports/generated/pass201_source_v3/run-v3"
+    )
+    assert tuple(row["path"] for row in authority.payload["source"]["files"]) == tuple(
+        path.as_posix() for path in controller.SOURCE_V3_PATHS
+    )
+    assert authority.payload["execution"]["python_packages"] == runtime["python_packages"]
 
 
 def test_freeze_authority_checks_first_capture_absence_before_second_child(
@@ -2574,21 +2676,33 @@ def _make_complete_receipt_inputs(
     tmp_path: Path,
     capture: CapturedAuthority,
     checkpoint_metadata: CheckpointMetadata,
+    schema_version: str = "pass201-pa-source-v2-prelaunch-v1",
 ) -> SimpleNamespace:
     checkout = tmp_path / "receipt-checkout"
     checkout.mkdir()
     runtime = _fake_freeze_runtime(checkout)
+    if schema_version == "pass201-pa-source-v3-prelaunch-v1":
+        runtime["source_files"] = [
+            _repo_binding(path.as_posix(), "a") for path in controller.SOURCE_V3_PATHS
+        ]
+        runtime["python_packages"] = {
+            "algorithm": "importlib-metadata-v1",
+            "bytes": 123,
+            "distribution_count": 2,
+            "sha256": "3" * 64,
+        }
     args = controller.FreezeArgs(
         checkout_root=checkout,
         dataset_root=Path("/home/riomus/datasets/inshop_official_standard"),
         python_path=Path("/venv/bin/python"),
         frozen_absence_checked_utc="2026-08-09T00:00:00Z",
         output_path=checkout / "docs" / "pass201_pa_source_v2_prelaunch.json",
+        schema_version=schema_version,
     )
     payload = controller._build_prelaunch_payload(args, capture, runtime)
     authority = controller.validate_prelaunch(payload)
     manifest_bytes = canonical_json_bytes(payload)
-    run_directory = checkout / controller.RUN_DIRECTORY
+    run_directory = checkout / authority.payload["outputs"]["run_directory"]
     report = _immutable_output_evidence(
         run_directory / "report.json",
         b'{"methods":{"opaque":NaN}}\n',
@@ -2684,6 +2798,39 @@ def test_complete_receipt_builds_exact_valid_authority(
     assert payload["candidate_values_computed"] is False
     assert "receipt" not in payload["outputs"]
     assert "metric" not in payload and "methods" not in payload
+
+
+def test_source_v3_complete_receipt_builds_exact_versioned_authority(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(
+        tmp_path,
+        capture,
+        checkpoint_metadata,
+        "pass201-pa-source-v3-prelaunch-v1",
+    )
+
+    receipt_bytes = controller._build_complete_receipt(
+        inputs.authorized,
+        inputs.process,
+        inputs.postflight,
+        inputs.scientific,
+        inputs.metadata,
+        inputs.frames,
+        inputs.config,
+        inputs.manifest,
+    )
+
+    payload = load_strict_json_bytes(receipt_bytes)
+    validate_complete_receipt(payload, inputs.authority)
+    assert payload["schema_version"] == "pass201-pa-source-v3-receipt-v1"
+    assert payload["authorization"]["protocol"] == inputs.authority.payload["protocol"]
+    assert payload["authorization"]["plan"] == inputs.authority.payload["plan"]
+    assert payload["controller"]["python_packages"] == (
+        inputs.authority.payload["execution"]["python_packages"]
+    )
 
 
 def test_receipt_publication_is_terminal_after_final_directory_validation(
@@ -3028,6 +3175,8 @@ def test_public_cli_freeze_authority_publishes_only_selected_temporary_output(
                 "2026-08-09T00:00:00Z",
                 "--output",
                 str(output),
+                "--schema-version",
+                "pass201-pa-source-v2-prelaunch-v1",
             ]
         )
         == 0
@@ -3069,10 +3218,25 @@ def test_public_cli_freeze_authority_rejects_non_normalized_output_spelling(
                 "2026-08-09T00:00:00Z",
                 "--output",
                 output_argument,
+                "--schema-version",
+                "pass201-pa-source-v2-prelaunch-v1",
             ]
         )
 
     assert not output.exists()
+
+
+def test_public_cli_freeze_authority_requires_an_explicit_schema_version() -> None:
+    with pytest.raises(SystemExit):
+        controller._parser().parse_args(
+            [
+                "freeze-authority",
+                "--frozen-absence-checked-utc",
+                "2026-08-11T00:00:00Z",
+                "--output",
+                "/tmp/pass201-freeze.json",
+            ]
+        )
 
 
 def test_public_cli_run_dispatches_exact_manifest_path(

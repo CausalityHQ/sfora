@@ -69,6 +69,10 @@ RECIPE_DIGEST = "97c0fe91ae527b5d3fb3be643e139524584981f5124d706f11341506be54736
 DATASET_ROOT = Path("/home/riomus/datasets/inshop_official_standard")
 PRELAUNCH_PATH = PurePosixPath("docs/pass201_pa_source_v2_prelaunch.json")
 RUN_DIRECTORY = PurePosixPath("reports/generated/pass201_source_v2/run-v2")
+SOURCE_V3_PRELAUNCH_PATH = PurePosixPath(
+    "docs/pass201_pa_source_v3_authorization_manifest.json"
+)
+SOURCE_V3_RUN_DIRECTORY = PurePosixPath("reports/generated/pass201_source_v3/run-v3")
 CONTROLLER_PATH = PurePosixPath("scripts/run_pass201_pa_source_v2.py")
 SOURCE_PATHS = tuple(
     PurePosixPath(path)
@@ -104,6 +108,21 @@ SOURCE_PATHS = tuple(
         "src/sfora/training.py",
     )
 )
+SOURCE_V3_PATHS = (PurePosixPath("scripts/diagnose_pass201_cis_operator.py"), *SOURCE_PATHS)
+SOURCE_V3_STATIC_AUTHORITIES = {
+    "protocol": {
+        "path": PurePosixPath("docs/pass201_pa_source_v3_protocol_2026-08-11.md"),
+        "sha256": "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
+        "commit": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+    },
+    "plan": {
+        "path": PurePosixPath(
+            "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md"
+        ),
+        "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
+        "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    },
+}
 OUTPUT_FILENAMES = {
     "report": "report.json",
     "checkpoint": "checkpoint.pt",
@@ -164,6 +183,7 @@ class FreezeArgs:
     python_path: Path
     frozen_absence_checked_utc: str
     output_path: Path
+    schema_version: str = "pass201-pa-source-v2-prelaunch-v1"
 
 
 @dataclass(frozen=True)
@@ -340,6 +360,37 @@ def _source_commit(checkout: Path, git_path: Path) -> str:
     status = _run_checked((str(git_path), "status", "--porcelain=v1", "-z"), cwd=checkout)
     _require(not status, "source checkout must be clean")
     return revision
+
+
+def _authenticate_source_v3_static_authorities(
+    checkout: Path, source_commit: str, git_path: Path | None = None
+) -> dict[str, str]:
+    executable = git_path or Path(shutil.which("git") or "git")
+    result: dict[str, str] = {}
+    for name, reference in SOURCE_V3_STATIC_AUTHORITIES.items():
+        commit = str(reference["commit"])
+        ancestry = subprocess.run(
+            [str(executable), "merge-base", "--is-ancestor", commit, source_commit],
+            cwd=checkout,
+            check=False,
+            capture_output=True,
+        )
+        _require(ancestry.returncode == 0, f"{name} is not an ancestor of source-v3")
+        path = reference["path"]
+        data = _run_checked(
+            (str(executable), "show", f"{commit}:{path.as_posix()}"),
+            cwd=checkout,
+        )
+        _require(
+            hashlib.sha256(data).hexdigest() == reference["sha256"],
+            f"{name} Git bytes differ",
+        )
+        _require(
+            (checkout / path).is_file() and (checkout / path).read_bytes() == data,
+            f"{name} worktree bytes differ",
+        )
+        result[name] = commit
+    return result
 
 
 def _bind_python_executable(path: Path) -> tuple[dict[str, object], str]:
@@ -608,9 +659,11 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
     _require(checkout == args.checkout_root.absolute(), "checkout root contains a symlink")
     git_path = _git_path(environment)
     source_commit = _source_commit(checkout, git_path)
+    if args.schema_version == "pass201-pa-source-v3-prelaunch-v1":
+        _authenticate_source_v3_static_authorities(checkout, source_commit, git_path)
     python_payload, python_realpath = _bind_python_executable(args.python_path)
     package_evidence = _bind_python_package_evidence(
-        "pass201-pa-source-v2-prelaunch-v1",
+        args.schema_version,
         args.python_path.absolute(),
         checkout,
         environment,
@@ -632,7 +685,11 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
         "controller": _repo_blob_payload(bind_repo_blob(checkout, source_commit, CONTROLLER_PATH)),
         "source_files": [
             _repo_blob_payload(bind_repo_blob(checkout, source_commit, path))
-            for path in SOURCE_PATHS
+            for path in (
+                SOURCE_V3_PATHS
+                if args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+                else SOURCE_PATHS
+            )
         ],
         "python_tree": _merkle_payload(source_tree, root="src/sfora"),
         "pyproject": _repo_blob_payload(
@@ -659,7 +716,7 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
     }
 
 
-def _frozen_argv(runtime: Mapping[str, object]) -> list[str]:
+def _frozen_argv(runtime: Mapping[str, object], run_directory: PurePosixPath) -> list[str]:
     return [
         str(runtime["python"]["path"]),  # type: ignore[index]
         "-m",
@@ -678,9 +735,9 @@ def _frozen_argv(runtime: Mapping[str, object]) -> list[str]:
         "--seed",
         "0",
         "--save-model-path",
-        f"{RUN_DIRECTORY.as_posix()}/{OUTPUT_FILENAMES['checkpoint']}",
+        f"{run_directory.as_posix()}/{OUTPUT_FILENAMES['checkpoint']}",
         "--output",
-        f"{RUN_DIRECTORY.as_posix()}/{OUTPUT_FILENAMES['report']}",
+        f"{run_directory.as_posix()}/{OUTPUT_FILENAMES['report']}",
     ]
 
 
@@ -724,6 +781,13 @@ def _validate_rfc3339_utc(value: str) -> None:
 
 def _require_frozen_absence(args: FreezeArgs) -> None:
     checkout = args.checkout_root.resolve(strict=True)
+    is_v3 = args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    _require(
+        is_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
+        "source schema",
+    )
+    manifest_path = SOURCE_V3_PRELAUNCH_PATH if is_v3 else PRELAUNCH_PATH
+    run_path = SOURCE_V3_RUN_DIRECTORY if is_v3 else RUN_DIRECTORY
     permitted_outputs = tuple(
         checkout.parent / f"{checkout.name}.pass201-prelaunch-freeze-{ordinal}.tmp"
         for ordinal in (1, 2)
@@ -744,7 +808,7 @@ def _require_frozen_absence(args: FreezeArgs) -> None:
         not os.path.lexists(args.output_path),
         "selected prelaunch output already exists",
     )
-    canonical_manifest = checkout / PRELAUNCH_PATH
+    canonical_manifest = checkout / manifest_path
     try:
         canonical_parent_status = os.stat(
             canonical_manifest.parent,
@@ -764,7 +828,7 @@ def _require_frozen_absence(args: FreezeArgs) -> None:
         not os.path.lexists(canonical_manifest),
         "canonical prelaunch manifest already exists",
     )
-    run_directory = checkout / RUN_DIRECTORY
+    run_directory = checkout / run_path
     _require(not os.path.lexists(run_directory), "private run directory already exists")
     for filename in (*OUTPUT_FILENAMES.values(), "report.json.tmp"):
         _require(
@@ -793,20 +857,28 @@ def _build_prelaunch_payload(
     runtime: Mapping[str, object],
 ) -> dict[str, object]:
     _validate_freeze_capture(capture)
+    is_v3 = args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    _require(
+        is_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
+        "source schema",
+    )
+    run_directory = SOURCE_V3_RUN_DIRECTORY if is_v3 else RUN_DIRECTORY
+    manifest_path = SOURCE_V3_PRELAUNCH_PATH if is_v3 else PRELAUNCH_PATH
     output_paths = {
-        key: f"{RUN_DIRECTORY.as_posix()}/{filename}" for key, filename in OUTPUT_FILENAMES.items()
+        key: f"{run_directory.as_posix()}/{filename}"
+        for key, filename in OUTPUT_FILENAMES.items()
     }
     outputs = {key: {"path": path, "required_absent": True} for key, path in output_paths.items()}
     row_records = _capture_rows(capture)
-    return {
-        "schema_version": "pass201-pa-source-v2-prelaunch-v1",
+    payload: dict[str, object] = {
+        "schema_version": args.schema_version,
         "status": "frozen",
         "purpose": "prospective ordinary Proxy Anchor seed-0 source authority",
         "source_commit": runtime["source_commit"],
         "authorization": {
-            "manifest_path": PRELAUNCH_PATH.as_posix(),
+            "manifest_path": manifest_path.as_posix(),
             "required_parent_commit": runtime["source_commit"],
-            "required_diff_paths": [PRELAUNCH_PATH.as_posix()],
+            "required_diff_paths": [manifest_path.as_posix()],
             "required_diff_status": ["A"],
             "required_diff_modes": ["100644"],
             "clean_policy": "empty-porcelain-v1-z",
@@ -835,7 +907,7 @@ def _build_prelaunch_payload(
             "python_import_roots": runtime["python_import_roots"],
             "environment": runtime["environment"],
             "environment_policy": "replace",
-            "argv": _frozen_argv(runtime),
+            "argv": _frozen_argv(runtime, run_directory),
             "objective": "proxy_anchor",
             "seed": 0,
             "expected_config_json": capture.config_bytes.decode("utf-8"),
@@ -876,7 +948,7 @@ def _build_prelaunch_payload(
             },
         },
         "outputs": {
-            "run_directory": RUN_DIRECTORY.as_posix(),
+            "run_directory": run_directory.as_posix(),
             "run_directory_required_absent": True,
             **outputs,
         },
@@ -897,6 +969,18 @@ def _build_prelaunch_payload(
             "require_complete_receipt": True,
         },
     }
+    if is_v3:
+        payload["protocol"] = {
+            "path": "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+            "sha256": "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
+            "commit": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+        }
+        payload["plan"] = {
+            "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+            "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
+            "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+        }
+    return payload
 
 
 def freeze_authority(args: FreezeArgs) -> bytes:
@@ -909,7 +993,12 @@ def freeze_authority(args: FreezeArgs) -> bytes:
     _require_frozen_absence(args)
     environment = _build_replacement_environment(args)
     runtime = _bind_freeze_runtime(args, environment)
-    argv = _frozen_argv(runtime)
+    run_directory = (
+        SOURCE_V3_RUN_DIRECTORY
+        if args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+        else RUN_DIRECTORY
+    )
+    argv = _frozen_argv(runtime, run_directory)
     first = _run_freeze_capture_child(args, argv, environment)
     _require_frozen_absence(args)
     second = _run_freeze_capture_child(args, argv, environment)
@@ -1030,6 +1119,7 @@ def _bind_runtime_after(authority: PrelaunchAuthority) -> dict[str, object]:
         python_path=executing_python,
         frozen_absence_checked_utc=authority.payload["authorization"]["frozen_absence_checked_utc"],
         output_path=authority.checkout_root / authority.payload["authorization"]["manifest_path"],
+        schema_version=str(authority.payload["schema_version"]),
     )
     current = _bind_freeze_runtime(args, dict(execution["environment"]))
     current["source_commit"] = authority.source_commit
@@ -1388,22 +1478,31 @@ def _build_complete_receipt(
         "resolved_config": _output_evidence_payload(config_evidence, authority.checkout_root),
         "train_manifest": _output_evidence_payload(manifest_evidence, authority.checkout_root),
     }
+    is_v3 = payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1"
+    authorization = {
+        "authorization_commit": authorized.authorization_commit,
+        "source_commit": authority.source_commit,
+        "manifest_path": payload["authorization"]["manifest_path"],
+        "manifest_bytes": len(authorized.manifest_bytes),
+        "manifest_sha256": authorized.manifest_sha256,
+        "manifest_git_blob": authorized.manifest_git_blob,
+        "parent_verified": True,
+        "single_addition_verified": True,
+        "detached_head_verified": True,
+        "clean_policy_verified": True,
+    }
+    if is_v3:
+        authorization["protocol"] = payload["protocol"]
+        authorization["plan"] = payload["plan"]
     receipt = {
-        "schema_version": "pass201-pa-source-v2-receipt-v1",
+        "schema_version": (
+            "pass201-pa-source-v3-receipt-v1"
+            if is_v3
+            else "pass201-pa-source-v2-receipt-v1"
+        ),
         "status": "complete",
         "candidate_values_computed": False,
-        "authorization": {
-            "authorization_commit": authorized.authorization_commit,
-            "source_commit": authority.source_commit,
-            "manifest_path": payload["authorization"]["manifest_path"],
-            "manifest_bytes": len(authorized.manifest_bytes),
-            "manifest_sha256": authorized.manifest_sha256,
-            "manifest_git_blob": authorized.manifest_git_blob,
-            "parent_verified": True,
-            "single_addition_verified": True,
-            "detached_head_verified": True,
-            "clean_policy_verified": True,
-        },
+        "authorization": authorization,
         "controller": {
             "file": measured_runtime["controller"],
             "python": measured_runtime["python"],
@@ -2471,6 +2570,14 @@ def _parser() -> argparse.ArgumentParser:
     freeze = commands.add_parser("freeze-authority")
     freeze.add_argument("--frozen-absence-checked-utc", required=True)
     freeze.add_argument("--output", required=True)
+    freeze.add_argument(
+        "--schema-version",
+        choices=(
+            "pass201-pa-source-v2-prelaunch-v1",
+            "pass201-pa-source-v3-prelaunch-v1",
+        ),
+        required=True,
+    )
     run = commands.add_parser("run")
     run.add_argument("--manifest", required=True, type=Path)
     sidecars = commands.add_parser("derive-sidecars")
@@ -2498,6 +2605,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 python_path=Path(sys.executable).absolute(),
                 frozen_absence_checked_utc=args.frozen_absence_checked_utc,
                 output_path=output,
+                schema_version=args.schema_version,
             )
         )
         publish_new_file(output, frozen, mode=0o644)

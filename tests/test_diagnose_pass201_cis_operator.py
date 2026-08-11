@@ -19,6 +19,14 @@ SPEC = importlib.util.spec_from_file_location("diagnose_pass201_cis_operator", M
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+CONTRACT_PATH = Path(__file__).parents[1] / "scripts" / "pass201_pa_source_v2_contract.py"
+CONTRACT_SPEC = importlib.util.spec_from_file_location(
+    "pass201_pa_source_v2_contract", CONTRACT_PATH
+)
+assert CONTRACT_SPEC is not None and CONTRACT_SPEC.loader is not None
+SOURCE_CONTRACT = importlib.util.module_from_spec(CONTRACT_SPEC)
+sys.modules[CONTRACT_SPEC.name] = SOURCE_CONTRACT
+CONTRACT_SPEC.loader.exec_module(SOURCE_CONTRACT)
 
 LITERAL_ROWS = [
     {"example_id": "7-a", "sample_index": 70, "label": 7},
@@ -60,7 +68,31 @@ THRESHOLDS = {
     "joint_equal_union_margin_change": 0.000,
 }
 
+
+def _deterministic_settings() -> dict[str, object]:
+    return {
+        "cublas_workspace_config": ":4096:8",
+        "deterministic_algorithms": True,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "matmul_tf32": False,
+        "cudnn_tf32": False,
+        "autocast": False,
+        "dtype": "float32",
+        "torch_num_threads": 1,
+        "torch_num_interop_threads": 1,
+    }
+
 FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f402ef8066"
+
+
+@pytest.fixture(autouse=True)
+def _single_thread_cpu_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setenv("OMP_NUM_THREADS", "1")
+    monkeypatch.setenv("MKL_NUM_THREADS", "1")
+    monkeypatch.setenv("OPENBLAS_NUM_THREADS", "1")
 
 
 def _sha256_file(path: Path) -> str:
@@ -98,6 +130,378 @@ def _literal_data_tree_digest(root: Path, relative_root: str) -> tuple[int, int,
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _git(root: Path, *arguments: str) -> str:
+    return subprocess.run(
+        ["git", *arguments],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _source_v3_handoff_fixture(tmp_path: Path) -> tuple[Path, str, str, Path]:
+    root = tmp_path / "source-v3-handoff"
+    (root / "scripts").mkdir(parents=True)
+    (root / "docs/superpowers/plans").mkdir(parents=True)
+    for relative in (
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/run_pass201_pa_source_v2.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+        "docs/pass201_pa_source_v3_authorization_manifest.json",
+    ):
+        source = Path(__file__).parents[1] / relative
+        destination = root / relative
+        if source.is_file():
+            destination.write_bytes(source.read_bytes())
+    _git(root, "init", "-q")
+    _git(root, "config", "user.email", "test@example.invalid")
+    _git(root, "config", "user.name", "Pass201 Test")
+    _git(root, "add", ".")
+    _git(root, "commit", "-q", "-m", "source-v3")
+    source_commit = _git(root, "rev-parse", "HEAD")
+    manifest_path = root / "docs/pass201_pa_source_v3_authorization_manifest.json"
+    manifest_path.write_bytes(b"{}\n")
+    _git(root, "add", manifest_path.relative_to(root).as_posix())
+    _git(root, "commit", "-q", "-m", "handoff")
+    handoff_commit = _git(root, "rev-parse", "HEAD")
+    _git(root, "checkout", "--detach", "-q", handoff_commit)
+    return root, source_commit, handoff_commit, manifest_path
+
+
+def _load_contract_test_fixtures() -> object:
+    path = Path(__file__).parent / "test_pass201_pa_source_v2_contract.py"
+    name = "_pass201_contract_test_fixtures"
+    specification = importlib.util.spec_from_file_location(name, path)
+    assert specification is not None and specification.loader is not None
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[name] = module
+    try:
+        specification.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+def _copy_worktree_file(source_root: Path, checkout: Path, relative: str) -> None:
+    destination = checkout / relative
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes((source_root / relative).read_bytes())
+
+
+def test_source_v3_full_authority_loads_real_six_path_v_then_manifest_only_h(
+    tmp_path: Path,
+) -> None:
+    source_root = Path(__file__).parents[1]
+    checkout = tmp_path / "source-v3-full"
+    subprocess.run(
+        ["git", "clone", "-q", "--shared", "--no-checkout", str(source_root), str(checkout)],
+        check=True,
+    )
+    source_paths = tuple(SOURCE_CONTRACT.SOURCE_V3_PATHS)
+    production_paths = (
+        "scripts/run_pass201_pa_source_v2.py",
+        *source_paths,
+        "pyproject.toml",
+        "uv.lock",
+        "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+        "docs/pass201_pa_source_v3_authorization_manifest.json",
+    )
+    six_path_scope = (
+        "scripts/run_pass201_pa_source_v2.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "scripts/diagnose_pass201_cis_operator.py",
+        "tests/test_run_pass201_pa_source_v2.py",
+        "tests/test_pass201_pa_source_v2_contract.py",
+        "tests/test_diagnose_pass201_cis_operator.py",
+    )
+    subprocess.run(["git", "sparse-checkout", "init", "--no-cone"], cwd=checkout, check=True)
+    subprocess.run(
+        [
+            "git",
+            "sparse-checkout",
+            "set",
+            "--no-cone",
+            *sorted(set((*production_paths, *six_path_scope))),
+        ],
+        cwd=checkout,
+        check=True,
+    )
+    subprocess.run(["git", "checkout", "--detach", "-q", "HEAD"], cwd=checkout, check=True)
+    _git(checkout, "config", "user.email", "test@example.invalid")
+    _git(checkout, "config", "user.name", "Pass201 Test")
+    for relative in six_path_scope:
+        _copy_worktree_file(source_root, checkout, relative)
+    _git(checkout, "add", *six_path_scope)
+    _git(checkout, "commit", "-q", "-m", "source-v3")
+    source_commit = _git(checkout, "rev-parse", "HEAD")
+
+    fixtures = _load_contract_test_fixtures()
+    payload = fixtures.source_v3_prelaunch(fixtures.valid_prelaunch.__wrapped__())
+    payload["source_commit"] = source_commit
+    payload["authorization"]["required_parent_commit"] = source_commit
+    payload["controller"] = _repo_row(
+        checkout, source_commit, "scripts/run_pass201_pa_source_v2.py"
+    )
+    payload["source"]["files"] = [
+        _repo_row(checkout, source_commit, relative) for relative in source_paths
+    ]
+    payload["source"]["pyproject"] = _repo_row(
+        checkout, source_commit, "pyproject.toml"
+    )
+    payload["source"]["lockfile"] = _repo_row(checkout, source_commit, "uv.lock")
+    payload["execution"]["checkout_root"] = str(checkout)
+    payload["execution"]["cwd"] = str(checkout)
+    payload["execution"]["environment"]["PYTHONPATH"] = str(checkout / "src")
+    manifest_path = checkout / "docs/pass201_pa_source_v3_authorization_manifest.json"
+    manifest_path.write_bytes(SOURCE_CONTRACT.canonical_json_bytes(payload))
+    _git(checkout, "add", manifest_path.relative_to(checkout).as_posix())
+    _git(checkout, "commit", "-q", "-m", "handoff")
+    handoff_commit = _git(checkout, "rev-parse", "HEAD")
+
+    authority = SOURCE_CONTRACT.validate_prelaunch(payload)
+    receipt = fixtures.source_v3_receipt(authority)
+    receipt["authorization"]["authorization_commit"] = handoff_commit
+    receipt["controller"]["file"] = deepcopy(payload["controller"])
+    receipt["command"]["cwd"] = payload["execution"]["cwd"]
+    receipt_path = checkout / payload["outputs"]["receipt"]["path"]
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_bytes(SOURCE_CONTRACT.canonical_json_bytes(receipt))
+    assert SOURCE_CONTRACT.validate_complete_receipt(receipt, authority)
+
+    temp_module_path = checkout / "scripts/diagnose_pass201_cis_operator.py"
+    name = "_pass201_source_v3_full_diagnostic"
+    specification = importlib.util.spec_from_file_location(name, temp_module_path)
+    assert specification is not None and specification.loader is not None
+    temp_module = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(temp_module)
+    bound = temp_module._load_source_v3_authority(
+        root=checkout,
+        git_root=checkout,
+        manifest_path=manifest_path,
+        receipt_path=receipt_path,
+    )
+    assert bound.handoff.source_commit == source_commit
+    assert bound.handoff.handoff_commit == handoff_commit
+    assert tuple(row["path"] for row in bound.authority.payload["source"]["files"]) == source_paths
+
+
+def test_source_v3_git_handoff_authenticates_detached_manifest_only_child(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, handoff_commit, manifest_path = _source_v3_handoff_fixture(
+        tmp_path
+    )
+    handoff = MODULE._authenticate_source_v3_git_handoff(
+        root=root,
+        git_root=root,
+        manifest_path=manifest_path,
+    )
+    assert handoff.source_commit == source_commit
+    assert handoff.handoff_commit == handoff_commit
+    assert handoff.manifest_bytes == b"{}\n"
+    assert handoff.manifest_sha256 == hashlib.sha256(b"{}\n").hexdigest()
+
+
+@pytest.mark.parametrize("mutation", ("dirty", "extra_edge", "attached", "merge"))
+def test_source_v3_git_handoff_rejects_topology_and_worktree_drift(
+    tmp_path: Path, mutation: str
+) -> None:
+    root, _source_commit, _handoff_commit, manifest_path = _source_v3_handoff_fixture(
+        tmp_path
+    )
+    if mutation == "dirty":
+        manifest_path.write_bytes(b'{"drift":true}\n')
+    elif mutation == "extra_edge":
+        (root / "extra.txt").write_text("extra\n", encoding="utf-8")
+        _git(root, "add", "extra.txt")
+        _git(root, "commit", "-q", "-m", "extra edge")
+    elif mutation == "attached":
+        _git(root, "switch", "-q", "-c", "attached")
+    else:
+        _git(root, "switch", "-q", "-c", "merge-side", _source_commit)
+        (root / "merge-side.txt").write_text("side\n", encoding="utf-8")
+        _git(root, "add", "merge-side.txt")
+        _git(root, "commit", "-q", "-m", "merge side")
+        _git(root, "checkout", "--detach", "-q", _handoff_commit)
+        _git(root, "merge", "--no-ff", "-q", "merge-side", "-m", "merge")
+    with pytest.raises(ValueError):
+        MODULE._authenticate_source_v3_git_handoff(
+            root=root,
+            git_root=root,
+            manifest_path=manifest_path,
+        )
+
+
+def test_source_v3_static_protocol_and_plan_are_git_worktree_ancestors() -> None:
+    root = Path(__file__).parents[1]
+    source_commit = _git(root, "rev-parse", "HEAD")
+    result = MODULE._authenticate_source_v3_static_authorities(root, source_commit)
+    assert result == {
+        "protocol": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+        "plan": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    }
+
+
+def _source_v3_receipt_relation_fixture() -> tuple[SimpleNamespace, dict, object]:
+    handoff = SimpleNamespace(
+        source_commit="b" * 40,
+        handoff_commit="c" * 40,
+        manifest_sha256="d" * 64,
+        manifest_git_blob="e" * 40,
+    )
+    protocol = deepcopy(MODULE.SOURCE_V3_STATIC_AUTHORITIES["protocol"])
+    plan = deepcopy(MODULE.SOURCE_V3_STATIC_AUTHORITIES["plan"])
+    authority = SimpleNamespace(
+        payload={
+            "schema_version": "pass201-pa-source-v3-prelaunch-v1",
+            "source_commit": handoff.source_commit,
+            "protocol": protocol,
+            "plan": plan,
+            "authorization": {
+                "manifest_path": (
+                    "docs/pass201_pa_source_v3_authorization_manifest.json"
+                ),
+                "required_parent_commit": handoff.source_commit,
+                "required_diff_paths": (
+                    "docs/pass201_pa_source_v3_authorization_manifest.json",
+                ),
+            },
+        }
+    )
+    receipt = {
+        "schema_version": "pass201-pa-source-v3-receipt-v1",
+        "candidate_values_computed": False,
+        "authorization": {
+            "authorization_commit": handoff.handoff_commit,
+            "source_commit": handoff.source_commit,
+            "manifest_path": "docs/pass201_pa_source_v3_authorization_manifest.json",
+            "manifest_sha256": handoff.manifest_sha256,
+            "manifest_git_blob": handoff.manifest_git_blob,
+            "protocol": protocol,
+            "plan": plan,
+        },
+    }
+    return authority, receipt, handoff
+
+
+def test_source_v3_receipt_relations_bind_handoff_and_static_authorities() -> None:
+    authority, receipt, handoff = _source_v3_receipt_relation_fixture()
+    MODULE._validate_source_v3_receipt_relations(authority, receipt, handoff)
+
+
+@pytest.mark.parametrize(
+    ("path", "replacement"),
+    (
+        (("authorization", "authorization_commit"), "9" * 40),
+        (("authorization", "source_commit"), "9" * 40),
+        (("authorization", "manifest_sha256"), "9" * 64),
+        (("authorization", "manifest_git_blob"), "9" * 40),
+        (("authorization", "protocol"), {}),
+        (("authorization", "plan"), {}),
+        (("candidate_values_computed",), True),
+    ),
+)
+def test_source_v3_receipt_relations_reject_coordinated_output_authority_drift(
+    path: tuple[str, ...], replacement: object
+) -> None:
+    authority, receipt, handoff = _source_v3_receipt_relation_fixture()
+    target = receipt
+    for component in path[:-1]:
+        target = target[component]
+    target[path[-1]] = replacement
+    with pytest.raises(ValueError):
+        MODULE._validate_source_v3_receipt_relations(authority, receipt, handoff)
+
+
+def _repo_row(root: Path, revision: str, relative: str) -> dict[str, object]:
+    data = subprocess.run(
+        ["git", "show", f"{revision}:{relative}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    tree = _git(root, "ls-tree", revision, "--", relative)
+    mode, _kind, blob_and_path = tree.split(" ", 2)
+    blob = blob_and_path.split("\t", 1)[0]
+    return {
+        "path": relative,
+        "git_mode": mode,
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "git_blob": blob,
+    }
+
+
+def test_source_v3_repo_row_authenticates_git_blob_and_worktree_bytes(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
+        tmp_path
+    )
+    row = _repo_row(
+        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
+    )
+    assert MODULE._authenticate_source_v3_repo_row(root, source_commit, row) == (
+        root / "scripts/pass201_pa_source_v2_contract.py"
+    ).read_bytes()
+
+
+@pytest.mark.parametrize("mutation", ("sha256", "blob", "mode", "worktree"))
+def test_source_v3_repo_row_rejects_valid_looking_binding_drift(
+    tmp_path: Path, mutation: str
+) -> None:
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
+        tmp_path
+    )
+    row = _repo_row(
+        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
+    )
+    if mutation == "worktree":
+        (root / row["path"]).write_text("DRIFT = True\n", encoding="utf-8")
+    else:
+        row[
+            "git_mode"
+            if mutation == "mode"
+            else "git_blob"
+            if mutation == "blob"
+            else mutation
+        ] = (
+            "9" * 64
+            if mutation == "sha256"
+            else "9" * 40
+            if mutation == "blob"
+            else "100755"
+        )
+    with pytest.raises(ValueError):
+        MODULE._authenticate_source_v3_repo_row(root, source_commit, row)
+
+
+def test_source_v3_contract_loader_executes_only_the_authenticated_private_blob(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
+        tmp_path
+    )
+    row = _repo_row(
+        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
+    )
+    contract_module = MODULE._load_authenticated_source_v3_contract(
+        root, source_commit, row
+    )
+    assert contract_module.__file__ == str(
+        root / "scripts/pass201_pa_source_v2_contract.py"
+    )
+    assert callable(contract_module.validate_prelaunch)
+    assert callable(contract_module.validate_complete_receipt)
+    assert not any(
+        name.startswith("_pass201_source_v3_contract_") for name in sys.modules
+    )
 
 
 def _source_binding_fixture(tmp_path: Path) -> SimpleNamespace:
@@ -500,7 +904,7 @@ class _FakeCuda:
 
     def device_count(self) -> int:
         self.events.append("enumerate")
-        return 1
+        return 0
 
     def get_device_properties(self, index: int) -> SimpleNamespace:
         assert index == 0
@@ -520,13 +924,19 @@ class _FakeBackendFlags:
     deterministic = False
     allow_tf32 = True
 
+    @staticmethod
+    def version() -> int:
+        return 92000
+
 
 class _FakeTorch:
     __version__ = "test-torch"
-    version = SimpleNamespace(cuda="test-cuda")
+    version = SimpleNamespace(cuda="13.0")
 
     def __init__(self, events: list[str]):
         self.events = events
+        self._num_threads = 8
+        self._num_interop_threads = 4
         self.cuda = _FakeCuda(events)
         self.backends = SimpleNamespace(
             cudnn=_FakeBackendFlags(),
@@ -536,6 +946,24 @@ class _FakeTorch:
     def use_deterministic_algorithms(self, enabled: bool, *, warn_only: bool) -> None:
         assert enabled is True and warn_only is False
         self.events.append("deterministic")
+
+    def set_num_threads(self, value: int) -> None:
+        assert value == 1
+        self.events.append("set_num_threads")
+        self._num_threads = value
+
+    def set_num_interop_threads(self, value: int) -> None:
+        assert value == 1
+        self.events.append("set_num_interop_threads")
+        self._num_interop_threads = value
+
+    def get_num_threads(self) -> int:
+        self.events.append("get_num_threads")
+        return self._num_threads
+
+    def get_num_interop_threads(self) -> int:
+        self.events.append("get_num_interop_threads")
+        return self._num_interop_threads
 
     def manual_seed(self, seed: int) -> None:
         assert seed == 2010812
@@ -690,7 +1118,15 @@ def test_process_role_sets_determinism_before_model_and_seeds_once_without_rewin
     def load_runtime(source_manifest: dict, torch_module: object) -> _FakeProcessRuntime:
         assert source_manifest == {"bound": True}
         assert torch_module is fake_torch
-        assert events[:2] == ["enumerate", "deterministic"]
+        assert events[:7] == [
+            "set_num_threads",
+            "set_num_interop_threads",
+            "get_num_threads",
+            "get_num_interop_threads",
+            "enumerate",
+            "deterministic",
+            "torch_seed",
+        ]
         events.append("model")
         return _FakeProcessRuntime(events, "scientific")
 
@@ -702,6 +1138,8 @@ def test_process_role_sets_determinism_before_model_and_seeds_once_without_rewin
     assert events.count("enumerate") == 1
     assert events.count("torch_seed") == 1
     assert events.count("cuda_seed") == 1
+    assert events.count("set_num_threads") == 1
+    assert events.count("set_num_interop_threads") == 1
     assert events.index("deterministic") < events.index("model")
     assert events.index("prepare") < events.index("score:0")
     assert [event for event in events if event.startswith("score:")] == [
@@ -710,6 +1148,66 @@ def test_process_role_sets_determinism_before_model_and_seeds_once_without_rewin
     assert payload["process_record"]["prepared_context_count"] == 32
     assert payload["aggregate_context_indices"] == list(range(32))
     assert len(payload["contexts"]) == 32
+    assert payload["process_record"]["accelerator"] == "cpu"
+    assert payload["process_record"]["visible_cuda_devices"] == ["cpu"]
+    assert payload["process_record"]["deterministic_settings"]["torch_num_threads"] == 1
+    assert (
+        payload["process_record"]["deterministic_settings"]["torch_num_interop_threads"]
+        == 1
+    )
+
+
+def test_process_role_rejects_thread_environment_before_torch_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MKL_NUM_THREADS", "2")
+    imported: list[bool] = []
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: imported.append(True))
+    with pytest.raises(ValueError, match="MKL_NUM_THREADS"):
+        MODULE.run_process_role("integrity_replay_a", {"bound": True}, tmp_path / "out.json")
+    assert imported == []
+
+
+def test_deterministic_process_rejects_a_visible_cuda_device() -> None:
+    events: list[str] = []
+    fake_torch = _FakeTorch(events)
+    fake_torch.cuda.device_count = lambda: 1
+    with pytest.raises(ValueError, match="visible CUDA"):
+        MODULE._initialize_deterministic_process(fake_torch)
+
+
+@pytest.mark.parametrize(
+    ("cuda_version", "cudnn_version"),
+    (("12.8", 92000), ("13.0", 91000), (None, None)),
+)
+def test_deterministic_process_rejects_unregistered_build_versions(
+    cuda_version: object, cudnn_version: object
+) -> None:
+    fake_torch = _FakeTorch([])
+    fake_torch.version = SimpleNamespace(cuda=cuda_version)
+    fake_torch.backends.cudnn.version = lambda: cudnn_version
+    with pytest.raises(ValueError, match="build version"):
+        MODULE._initialize_deterministic_process(fake_torch, thread_counts=(1, 1))
+
+
+@pytest.mark.parametrize("available", (True, 1))
+def test_production_runtime_device_selection_rejects_cuda_availability(
+    available: object,
+) -> None:
+    fake = SimpleNamespace(
+        cuda=SimpleNamespace(is_available=lambda: available),
+        device=lambda name: name,
+    )
+    with pytest.raises(ValueError, match="CPU runtime"):
+        MODULE._select_production_cpu_device(fake)
+
+
+def test_production_runtime_device_selection_is_literal_cpu() -> None:
+    fake = SimpleNamespace(
+        cuda=SimpleNamespace(is_available=lambda: False),
+        device=lambda name: f"device:{name}",
+    )
+    assert MODULE._select_production_cpu_device(fake) == "device:cpu"
 
 
 @pytest.mark.parametrize(
@@ -763,16 +1261,17 @@ def _comparison_process(
         "process_record": {
             "role": role,
             "pid": 1,
-            "accelerator": "fake-gpu",
+            "accelerator": "cpu",
             "python_version": "3.13.9",
             "torch_version": "2.12.1",
             "cuda_version": "13.0",
-            "cudnn_version": "9",
-            "visible_cuda_devices": ["0000:01:00.0 fake-gpu"],
+            "cudnn_version": "92000",
+            "visible_cuda_devices": ["cpu"],
             "initial_python_rng_sha256": HEX_A,
             "initial_numpy_rng_sha256": HEX_A,
             "initial_torch_cpu_rng_sha256": HEX_A,
             "initial_torch_cuda_rng_sha256_by_device": {"0": HEX_A},
+            "deterministic_settings": _deterministic_settings(),
             "prepared_context_count": 32,
             "input_context_digest_records": [_process_digest(i) for i in range(32)],
             "context0_record_sha256": hashlib.sha256(
@@ -806,7 +1305,7 @@ def test_replay_tensor_and_scalar_tolerances_are_exact() -> None:
 @pytest.mark.parametrize(
     ("field", "replacement", "message"),
     [
-        ("accelerator", "other-gpu", "environment replay"),
+        ("accelerator", "other-gpu", "process_record.accelerator"),
         ("initial_python_rng_sha256", HEX_B, "RNG replay"),
     ],
 )
@@ -819,6 +1318,19 @@ def test_replay_rejects_environment_and_initial_rng_drift(
     b["process_record"][field] = replacement
     with pytest.raises(ValueError, match=message):
         MODULE.compare_integrity_records(a, b, scientific)
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (("cuda_version", "12.8"), ("cudnn_version", "9")),
+)
+def test_process_record_rejects_unregistered_cpu_build_strings(
+    field: str, replacement: str
+) -> None:
+    payload = _comparison_process("integrity_replay_a")
+    payload["process_record"][field] = replacement
+    with pytest.raises(ValueError, match="build version"):
+        MODULE._validate_process_output(payload, "integrity_replay_a")
 
 
 def test_process_role_output_rejects_a_self_inconsistent_context0_hash() -> None:
@@ -961,6 +1473,9 @@ def test_replay_controller_failure_emits_only_the_launched_process_prefix(
     args.output = output
     args.runtime_factory = None
     bound_manifest = json.loads(args.source_manifest.read_text(encoding="utf-8"))
+    bound_manifest["prelaunch_source_manifest_path"] = (
+        "docs/pass201_pa_source_v3_authorization_manifest.json"
+    )
     bound_manifest["prelaunch_source_manifest_sha256"] = (
         "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
     )
@@ -1016,6 +1531,106 @@ def test_cli_parser_exposes_only_the_frozen_execution_modes() -> None:
         "--smoke-only",
         "--scientific",
     } <= actions
+
+
+@pytest.mark.parametrize("factory_source", ("argument", "environment"))
+def test_source_v3_public_cli_rejects_runtime_factory_before_controller(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    factory_source: str,
+) -> None:
+    called: list[bool] = []
+    monkeypatch.setattr(MODULE, "run_controller", lambda args: called.append(True))
+    argv = [
+        "--binding-only",
+        "--root",
+        str(tmp_path),
+        "--prelaunch-manifest",
+        str(tmp_path / "docs/pass201_pa_source_v3_authorization_manifest.json"),
+    ]
+    if factory_source == "argument":
+        argv.extend(("--runtime-factory", str(tmp_path / "runtime.py")))
+    else:
+        monkeypatch.setenv("PASS201_RUNTIME_FACTORY", str(tmp_path / "runtime.py"))
+    with pytest.raises(ValueError, match="runtime factor"):
+        MODULE.main(argv)
+    assert called == []
+
+
+def test_source_v3_public_cli_rejects_old_or_aliased_manifest_path_before_controller(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    called: list[bool] = []
+    monkeypatch.setattr(MODULE, "run_controller", lambda args: called.append(True))
+    with pytest.raises(ValueError, match="source-v3 authorization manifest path"):
+        MODULE.main(
+            [
+                "--binding-only",
+                "--root",
+                str(tmp_path),
+                "--prelaunch-manifest",
+                str(tmp_path / "docs/pass201_pa_source_prelaunch_manifest.json"),
+            ]
+        )
+    assert called == []
+
+
+def test_source_v3_process_role_rejects_ambient_runtime_factory_before_torch_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_manifest = tmp_path / "source.json"
+    _write_json(
+        source_manifest,
+        {
+            "prelaunch_source_manifest_path": (
+                "docs/pass201_pa_source_v3_authorization_manifest.json"
+            )
+        },
+    )
+    monkeypatch.setenv("PASS201_RUNTIME_FACTORY", str(tmp_path / "runtime.py"))
+    imported: list[bool] = []
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: imported.append(True))
+    with pytest.raises(ValueError, match="runtime factor"):
+        MODULE.main(
+            [
+                "--process-role",
+                "integrity_replay_a",
+                "--source-manifest",
+                str(source_manifest),
+                "--process-output",
+                str(tmp_path / "output.json"),
+            ]
+        )
+    assert imported == []
+
+
+def test_process_role_rejects_unbound_source_manifest_before_torch_import(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_manifest = tmp_path / "source.json"
+    _write_json(
+        source_manifest,
+        {
+            "prelaunch_source_manifest_path": (
+                "docs/pass201_pa_source_v3_authorization_manifest.json"
+            )
+        },
+    )
+    monkeypatch.setenv("PASS201_BINDING_AUTHORIZED_SHA256", "9" * 64)
+    imported: list[bool] = []
+    monkeypatch.setattr(MODULE, "_import_torch", lambda: imported.append(True))
+    with pytest.raises(ValueError, match="binding-authorized source manifest"):
+        MODULE.main(
+            [
+                "--process-role",
+                "integrity_replay_a",
+                "--source-manifest",
+                str(source_manifest),
+                "--process-output",
+                str(tmp_path / "output.json"),
+            ]
+        )
+    assert imported == []
 
 
 def _literal_tensor_frame(array: np.ndarray) -> bytes:
@@ -1384,7 +1999,9 @@ def _aggregates() -> dict:
 
 def _source() -> dict:
     return {
-        "prelaunch_source_manifest_path": "docs/pass201_pa_source_prelaunch_manifest.json",
+        "prelaunch_source_manifest_path": (
+            "docs/pass201_pa_source_v3_authorization_manifest.json"
+        ),
         "prelaunch_source_manifest_sha256": (
             "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
         ),
@@ -1404,8 +2021,8 @@ def _source() -> dict:
         "python_version": "3.11.0",
         "torch_version": "2.0.0",
         "numpy_version": "2.0.0",
-        "cuda_version": "12.0",
-        "cudnn_version": "9",
+        "cuda_version": "13.0",
+        "cudnn_version": "92000",
     }
 
 
@@ -1430,16 +2047,17 @@ def _process_record(role: str, contexts: list[dict]) -> dict:
     return {
         "role": role,
         "pid": 100,
-        "accelerator": "synthetic",
+        "accelerator": "cpu",
         "python_version": "3.11.0",
         "torch_version": "2.0.0",
-        "cuda_version": "12.0",
-        "cudnn_version": "9",
-        "visible_cuda_devices": ["0000:00:01.0"],
+        "cuda_version": "13.0",
+        "cudnn_version": "92000",
+        "visible_cuda_devices": ["cpu"],
         "initial_python_rng_sha256": HEX_A,
         "initial_numpy_rng_sha256": HEX_A,
         "initial_torch_cpu_rng_sha256": HEX_A,
         "initial_torch_cuda_rng_sha256_by_device": {"0": HEX_A},
+        "deterministic_settings": _deterministic_settings(),
         "prepared_context_count": 32,
         "input_context_digest_records": [_digest_record(context) for context in contexts],
         "context0_record_sha256": hashlib.sha256(
@@ -1488,16 +2106,7 @@ def literal_valid_scored_payload() -> dict:
             "training_flags_restored": True,
             "deterministic_process_verified": True,
             "first_context_operator_replay_verified": True,
-            "deterministic_settings": {
-                "cublas_workspace_config": ":4096:8",
-                "deterministic_algorithms": True,
-                "cudnn_benchmark": False,
-                "cudnn_deterministic": True,
-                "matmul_tf32": False,
-                "cudnn_tf32": False,
-                "autocast": False,
-                "dtype": "float32",
-            },
+            "deterministic_settings": _deterministic_settings(),
             "process_records": records,
             "replay_residuals": {
                 "pair_count": 3,
@@ -1836,7 +2445,7 @@ def _malformed_digest(payload):
 
 
 def _wrong_prelaunch_digest(payload):
-    payload["source"]["prelaunch_source_manifest_sha256"] = "0" * 64
+    payload["source"]["prelaunch_source_manifest_sha256"] = "A" * 64
 
 
 def _context0_hash_includes_process_metadata(payload):

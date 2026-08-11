@@ -40,6 +40,39 @@ from pass201_pa_source_v2_contract import (  # noqa: E402
 H64 = "a" * 64
 G40 = "b" * 40
 
+V3_SOURCE_PATHS = (
+    "scripts/diagnose_pass201_cis_operator.py",
+    "scripts/pass201_pa_source_v2_contract.py",
+    "src/sfora/__init__.py",
+    "src/sfora/ablation.py",
+    "src/sfora/api.py",
+    "src/sfora/arcg.py",
+    "src/sfora/benchmark.py",
+    "src/sfora/bn_inception.py",
+    "src/sfora/catalog.py",
+    "src/sfora/cea.py",
+    "src/sfora/cem.py",
+    "src/sfora/cli.py",
+    "src/sfora/compose.py",
+    "src/sfora/data.py",
+    "src/sfora/encoder_ablation.py",
+    "src/sfora/encoder_training.py",
+    "src/sfora/evaluation.py",
+    "src/sfora/experiments.py",
+    "src/sfora/image_benchmark.py",
+    "src/sfora/image_end_to_end.py",
+    "src/sfora/image_recipes.py",
+    "src/sfora/ipsr.py",
+    "src/sfora/losses.py",
+    "src/sfora/method.py",
+    "src/sfora/oapf.py",
+    "src/sfora/publication.py",
+    "src/sfora/remote.py",
+    "src/sfora/report.py",
+    "src/sfora/text_baselines.py",
+    "src/sfora/training.py",
+)
+
 
 def mutable_json(value: Any) -> Any:
     if isinstance(value, Mapping):
@@ -245,6 +278,48 @@ def valid_prelaunch() -> dict[str, Any]:
     }
 
 
+def source_v3_prelaunch(valid_prelaunch: dict[str, Any]) -> dict[str, Any]:
+    payload = copy.deepcopy(valid_prelaunch)
+    payload["schema_version"] = "pass201-pa-source-v3-prelaunch-v1"
+    payload["protocol"] = {
+        "path": "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+        "sha256": "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
+        "commit": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+    }
+    payload["plan"] = {
+        "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+        "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
+        "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    }
+    manifest_path = "docs/pass201_pa_source_v3_authorization_manifest.json"
+    payload["authorization"]["manifest_path"] = manifest_path
+    payload["authorization"]["required_diff_paths"] = [manifest_path]
+    payload["source"]["files"] = [file_binding(path) for path in V3_SOURCE_PATHS]
+    payload["execution"]["python_packages"] = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": H64,
+    }
+    run_directory = "reports/generated/pass201_source_v3/run-v3"
+    payload["outputs"]["run_directory"] = run_directory
+    for key, filename in {
+        "report": "report.json",
+        "checkpoint": "checkpoint.pt",
+        "log": "training.log",
+        "resolved_config": "resolved_config.json",
+        "train_manifest": "train_manifest.json",
+        "receipt": "receipt.json",
+    }.items():
+        payload["outputs"][key]["path"] = f"{run_directory}/{filename}"
+    payload["execution"]["argv"] = frozen_argv(
+        payload["execution"]["python"]["path"],
+        payload["outputs"]["checkpoint"]["path"],
+        payload["outputs"]["report"]["path"],
+    )
+    return payload
+
+
 @pytest.mark.parametrize("raw", [b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}'])
 def test_strict_json_rejects_ambiguous_bytes(raw: bytes) -> None:
     with pytest.raises(ValueError):
@@ -311,6 +386,86 @@ def test_schema_accepts_complete_prelaunch(valid_prelaunch: dict[str, Any]) -> N
     assert authority.expected_config_bytes == b"{}\n"
     valid_prelaunch["status"] = "changed"
     assert authority.payload["status"] == "frozen"
+
+
+def test_source_v3_schema_accepts_exact_versioned_manifest(
+    valid_prelaunch: dict[str, Any],
+) -> None:
+    payload = source_v3_prelaunch(valid_prelaunch)
+    authority = validate_prelaunch(payload)
+    assert authority.payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1"
+    assert authority.payload["protocol"] == payload["protocol"]
+    assert authority.payload["plan"] == payload["plan"]
+    assert tuple(row["path"] for row in authority.payload["source"]["files"]) == V3_SOURCE_PATHS
+
+
+@pytest.mark.parametrize(
+    ("authority_name", "field", "replacement"),
+    (
+        ("protocol", "sha256", "9" * 64),
+        ("protocol", "commit", "9" * 40),
+        ("plan", "sha256", "9" * 64),
+        ("plan", "commit", "9" * 40),
+    ),
+)
+def test_source_v3_schema_rejects_coordinated_authority_drift(
+    valid_prelaunch: dict[str, Any],
+    authority_name: str,
+    field: str,
+    replacement: str,
+) -> None:
+    payload = source_v3_prelaunch(valid_prelaunch)
+    payload[authority_name][field] = replacement
+    with pytest.raises(ValueError, match=authority_name):
+        validate_prelaunch(payload)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_protocol",
+        "extra_plan_key",
+        "v2_manifest_path",
+        "v2_package_shape",
+        "v2_run_directory",
+        "missing_source",
+        "extra_source",
+        "reordered_source",
+        "unknown_schema",
+    ),
+)
+def test_source_v3_schema_rejects_cross_version_and_recursive_drift(
+    valid_prelaunch: dict[str, Any], mutation: str
+) -> None:
+    payload = source_v3_prelaunch(valid_prelaunch)
+    if mutation == "missing_protocol":
+        del payload["protocol"]
+    elif mutation == "extra_plan_key":
+        payload["plan"]["extra"] = None
+    elif mutation == "v2_manifest_path":
+        payload["authorization"]["manifest_path"] = (
+            "docs/pass201_pa_source_prelaunch_manifest.json"
+        )
+        payload["authorization"]["required_diff_paths"] = [
+            "docs/pass201_pa_source_prelaunch_manifest.json"
+        ]
+    elif mutation == "v2_package_shape":
+        payload["execution"]["python_packages"] = {"bytes": 123, "sha256": H64}
+    elif mutation == "v2_run_directory":
+        payload["outputs"]["run_directory"] = "reports/generated/pass201_source_v2/run-v2"
+    elif mutation == "missing_source":
+        payload["source"]["files"].pop()
+    elif mutation == "extra_source":
+        payload["source"]["files"].append(file_binding("scripts/extra.py"))
+    elif mutation == "reordered_source":
+        payload["source"]["files"][0], payload["source"]["files"][1] = (
+            payload["source"]["files"][1],
+            payload["source"]["files"][0],
+        )
+    else:
+        payload["schema_version"] = "pass201-pa-source-v4-prelaunch-v1"
+    with pytest.raises(ValueError):
+        validate_prelaunch(payload)
 
 
 def test_package_evidence_is_version_selected_and_historical_v2_remains_valid(
@@ -1768,6 +1923,72 @@ def valid_receipt(authority: Any) -> dict[str, Any]:
             "authorized_action": "source_binding_only",
         },
     }
+
+
+def source_v3_receipt(authority: Any) -> dict[str, Any]:
+    receipt = valid_receipt(authority)
+    receipt["schema_version"] = "pass201-pa-source-v3-receipt-v1"
+    receipt["authorization"]["manifest_path"] = authority.payload["authorization"][
+        "manifest_path"
+    ]
+    receipt["authorization"]["protocol"] = mutable_json(authority.payload["protocol"])
+    receipt["authorization"]["plan"] = mutable_json(authority.payload["plan"])
+    receipt["controller"]["python_packages"] = mutable_json(
+        authority.payload["execution"]["python_packages"]
+    )
+    receipt["sidecar_derivation"]["source_files"] = mutable_json(
+        authority.payload["source"]["files"]
+    )
+    return receipt
+
+
+def test_source_v3_receipt_accepts_exact_versioned_authority(
+    valid_prelaunch: dict[str, Any],
+) -> None:
+    authority = validate_prelaunch(source_v3_prelaunch(valid_prelaunch))
+    receipt = source_v3_receipt(authority)
+    result = validate_complete_receipt(receipt, authority)
+    assert result.payload["schema_version"] == "pass201-pa-source-v3-receipt-v1"
+    assert result.payload["authorization"]["protocol"] == authority.payload["protocol"]
+    assert result.payload["authorization"]["plan"] == authority.payload["plan"]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_protocol",
+        "extra_plan_key",
+        "protocol_drift",
+        "plan_drift",
+        "v2_package_shape",
+        "v2_source_shape",
+        "v2_schema",
+        "candidate_scope",
+    ),
+)
+def test_source_v3_receipt_rejects_cross_version_and_recursive_drift(
+    valid_prelaunch: dict[str, Any], mutation: str
+) -> None:
+    authority = validate_prelaunch(source_v3_prelaunch(valid_prelaunch))
+    receipt = source_v3_receipt(authority)
+    if mutation == "missing_protocol":
+        del receipt["authorization"]["protocol"]
+    elif mutation == "extra_plan_key":
+        receipt["authorization"]["plan"]["extra"] = None
+    elif mutation == "protocol_drift":
+        receipt["authorization"]["protocol"]["sha256"] = "9" * 64
+    elif mutation == "plan_drift":
+        receipt["authorization"]["plan"]["commit"] = "9" * 40
+    elif mutation == "v2_package_shape":
+        receipt["controller"]["python_packages"] = {"bytes": 123, "sha256": H64}
+    elif mutation == "v2_source_shape":
+        receipt["sidecar_derivation"]["source_files"] = [file_binding()]
+    elif mutation == "v2_schema":
+        receipt["schema_version"] = "pass201-pa-source-v2-receipt-v1"
+    else:
+        receipt["scope"]["pass201_candidate_paths_read"] = True
+    with pytest.raises(ValueError):
+        validate_complete_receipt(receipt, authority)
 
 
 def test_receipt_schema_rejects_third_child_and_open_hashes(

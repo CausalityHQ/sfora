@@ -17,6 +17,7 @@ import os
 import pickle
 import platform
 import random
+import stat
 import struct
 import subprocess
 import sys
@@ -34,6 +35,35 @@ BOOTSTRAP_SEED = 2010811
 BOOTSTRAP_REPLICATES = 20_000
 CONTEXT_PAIRS = 32
 PRELAUNCH_SOURCE_MANIFEST_PATH = "docs/pass201_pa_source_prelaunch_manifest.json"
+SOURCE_V3_AUTHORIZATION_MANIFEST_PATH = (
+    "docs/pass201_pa_source_v3_authorization_manifest.json"
+)
+SOURCE_V3_I3_COMMIT = "23e7ff5c82fb28cd9fdd8e9e819e34b8fc9aacde"
+SOURCE_V3_CHANGED_PATHS = tuple(
+    sorted(
+        (
+            "scripts/run_pass201_pa_source_v2.py",
+            "scripts/pass201_pa_source_v2_contract.py",
+            "scripts/diagnose_pass201_cis_operator.py",
+            "tests/test_run_pass201_pa_source_v2.py",
+            "tests/test_pass201_pa_source_v2_contract.py",
+            "tests/test_diagnose_pass201_cis_operator.py",
+        ),
+        key=lambda value: value.encode("utf-8"),
+    )
+)
+SOURCE_V3_STATIC_AUTHORITIES = {
+    "protocol": {
+        "path": "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+        "sha256": "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
+        "commit": "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+    },
+    "plan": {
+        "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+        "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
+        "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    },
+}
 PRELAUNCH_SOURCE_MANIFEST_SHA256 = (
     "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
 )
@@ -114,6 +144,383 @@ class _OutcomeBaseline(NamedTuple):
     before_m: float
     foreign_gradients: dict[str, Any]
     margin_gradients: dict[str, Any]
+
+
+class SourceV3GitHandoff(NamedTuple):
+    handoff_commit: str
+    source_commit: str
+    manifest_bytes: bytes
+    manifest_sha256: str
+    manifest_git_blob: str
+
+
+class SourceV3Authority(NamedTuple):
+    handoff: SourceV3GitHandoff
+    contract: Any
+    authority: Any
+    receipt: Any
+
+
+def _git_command_bytes(root: Path, *arguments: str, check: bool = True) -> bytes:
+    completed = subprocess.run(
+        ["git", *arguments],
+        cwd=root,
+        check=False,
+        capture_output=True,
+    )
+    if check and completed.returncode != 0:
+        raise ValueError(
+            f"git {' '.join(arguments)} failed with exit {completed.returncode}"
+        )
+    return completed.stdout
+
+
+def _git_blob_sha1(data: bytes) -> str:
+    return hashlib.sha1(
+        b"blob " + str(len(data)).encode("ascii") + b"\0" + data,
+        usedforsecurity=False,
+    ).hexdigest()
+
+
+def _authenticate_source_v3_git_handoff(
+    *, root: Path, git_root: Path, manifest_path: Path
+) -> SourceV3GitHandoff:
+    checkout = root.resolve(strict=True)
+    _require(git_root.resolve(strict=True) == checkout, "git root differs from checkout")
+    expected_manifest = checkout / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+    _require(
+        manifest_path == expected_manifest,
+        "source-v3 authorization manifest path differs",
+    )
+    _require(
+        _git_command_bytes(checkout, "symbolic-ref", "-q", "HEAD", check=False) == b"",
+        "source-v3 handoff checkout must be detached",
+    )
+    _require(
+        _git_command_bytes(checkout, "status", "--porcelain=v1", "-z") == b"",
+        "source-v3 handoff checkout must be clean",
+    )
+    parent_fields = _git_command_bytes(
+        checkout, "rev-list", "--parents", "-n", "1", "HEAD"
+    ).decode("ascii").strip().split()
+    _require(len(parent_fields) == 2, "source-v3 handoff must have one parent")
+    handoff_commit, source_commit = parent_fields
+    diff = _git_command_bytes(
+        checkout,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-status",
+        "-r",
+        "-z",
+        handoff_commit,
+    ).split(b"\0")
+    _require(
+        diff == [b"A", SOURCE_V3_AUTHORIZATION_MANIFEST_PATH.encode(), b""],
+        "source-v3 handoff must add only the authorization manifest",
+    )
+    tree_line = _git_command_bytes(
+        checkout,
+        "ls-tree",
+        handoff_commit,
+        "--",
+        SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+    ).decode("utf-8")
+    _require(
+        tree_line.startswith("100644 blob ")
+        and tree_line.endswith(f"\t{SOURCE_V3_AUTHORIZATION_MANIFEST_PATH}\n"),
+        "source-v3 handoff manifest mode differs",
+    )
+    committed = _git_command_bytes(
+        checkout,
+        "show",
+        f"{handoff_commit}:{SOURCE_V3_AUTHORIZATION_MANIFEST_PATH}",
+    )
+    _require(manifest_path.is_file(), "source-v3 authorization manifest unavailable")
+    worktree = manifest_path.read_bytes()
+    _require(committed == worktree, "source-v3 manifest Git/worktree bytes differ")
+    return SourceV3GitHandoff(
+        handoff_commit=handoff_commit,
+        source_commit=source_commit,
+        manifest_bytes=committed,
+        manifest_sha256=hashlib.sha256(committed).hexdigest(),
+        manifest_git_blob=_git_blob_sha1(committed),
+    )
+
+
+def _authenticate_source_v3_static_authorities(
+    root: Path, source_commit: str
+) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for name, reference in SOURCE_V3_STATIC_AUTHORITIES.items():
+        commit = reference["commit"]
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", commit, source_commit],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        _require(ancestry.returncode == 0, f"{name} is not an ancestor of source-v3")
+        data = _git_command_bytes(root, "show", f"{commit}:{reference['path']}")
+        _require(
+            hashlib.sha256(data).hexdigest() == reference["sha256"],
+            f"{name} Git bytes differ",
+        )
+        path = root / reference["path"]
+        _require(path.is_file() and path.read_bytes() == data, f"{name} worktree bytes differ")
+        result[name] = commit
+    return result
+
+
+def _authenticate_source_v3_source_chain(root: Path, source_commit: str) -> None:
+    parent_fields = _git_command_bytes(
+        root, "rev-list", "--parents", "-n", "1", source_commit
+    ).decode("ascii").strip().split()
+    _require(
+        parent_fields == [source_commit, SOURCE_V3_I3_COMMIT],
+        "source-v3 source must be the sole child of reviewed I3",
+    )
+    changed = _git_command_bytes(
+        root,
+        "diff-tree",
+        "--no-commit-id",
+        "--name-status",
+        "-r",
+        "-z",
+        source_commit,
+    ).split(b"\0")
+    expected: list[bytes] = []
+    for path in SOURCE_V3_CHANGED_PATHS:
+        expected.extend((b"M", path.encode("utf-8")))
+    expected.append(b"")
+    _require(changed == expected, "source-v3 source edge differs from exact six paths")
+
+
+def _validate_source_v3_receipt_relations(
+    authority: Any,
+    receipt: Mapping[str, Any],
+    handoff: SourceV3GitHandoff,
+) -> None:
+    payload = authority.payload
+    _require(
+        payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1",
+        "source-v3 authority schema differs",
+    )
+    _require(
+        payload["source_commit"]
+        == payload["authorization"]["required_parent_commit"]
+        == handoff.source_commit,
+        "source-v3 source commit differs",
+    )
+    _require(
+        payload["authorization"]["manifest_path"]
+        == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        and payload["authorization"]["required_diff_paths"]
+        == (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,),
+        "source-v3 manifest authority differs",
+    )
+    _require(
+        payload["protocol"] == SOURCE_V3_STATIC_AUTHORITIES["protocol"]
+        and payload["plan"] == SOURCE_V3_STATIC_AUTHORITIES["plan"],
+        "source-v3 static authority differs",
+    )
+    _require(
+        receipt["schema_version"] == "pass201-pa-source-v3-receipt-v1"
+        and receipt["candidate_values_computed"] is False,
+        "source-v3 receipt schema or scope differs",
+    )
+    authorization = receipt["authorization"]
+    _require(
+        authorization["authorization_commit"] == handoff.handoff_commit
+        and authorization["source_commit"] == handoff.source_commit
+        and authorization["manifest_path"] == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        and authorization["manifest_sha256"] == handoff.manifest_sha256
+        and authorization["manifest_git_blob"] == handoff.manifest_git_blob,
+        "source-v3 receipt handoff binding differs",
+    )
+    _require(
+        authorization["protocol"] == payload["protocol"]
+        and authorization["plan"] == payload["plan"],
+        "source-v3 receipt static authority differs",
+    )
+
+
+def _authenticate_source_v3_repo_row(
+    root: Path, source_commit: str, row: Mapping[str, Any]
+) -> bytes:
+    _require(
+        isinstance(row, Mapping)
+        and set(row) == {"path", "git_mode", "bytes", "sha256", "git_blob"},
+        "source row keys differ",
+    )
+    relative = row["path"]
+    _require(isinstance(relative, str) and relative, "source row path")
+    relative_path = Path(relative)
+    _require(
+        not relative_path.is_absolute()
+        and relative_path.as_posix() == relative
+        and ".." not in relative_path.parts,
+        "source row path is not normalized",
+    )
+    _require(row["git_mode"] == "100644", "source row Git mode differs")
+    _require(type(row["bytes"]) is int and row["bytes"] > 0, "source row byte count")
+    _digest(row["sha256"], "source row sha256")
+    _require(
+        isinstance(row["git_blob"], str)
+        and len(row["git_blob"]) == 40
+        and all(character in "0123456789abcdef" for character in row["git_blob"]),
+        "source row Git blob",
+    )
+    data = _git_command_bytes(root, "show", f"{source_commit}:{relative}")
+    blob = _git_command_bytes(
+        root, "rev-parse", f"{source_commit}:{relative}"
+    ).decode("ascii").strip()
+    tree_line = _git_command_bytes(
+        root, "ls-tree", source_commit, "--", relative
+    ).decode("utf-8")
+    _require(
+        tree_line.startswith("100644 blob ") and tree_line.endswith(f"\t{relative}\n"),
+        "source row committed mode differs",
+    )
+    _require(
+        len(data) == row["bytes"]
+        and hashlib.sha256(data).hexdigest() == row["sha256"]
+        and blob == row["git_blob"],
+        "source row Git identity differs",
+    )
+    path = root / relative_path
+    _require(
+        path.resolve(strict=True) == path.absolute()
+        and stat.S_ISREG(os.lstat(path).st_mode)
+        and path.read_bytes() == data,
+        "source row worktree bytes differ",
+    )
+    return data
+
+
+def _load_authenticated_source_v3_contract(
+    root: Path, source_commit: str, row: Mapping[str, Any]
+) -> Any:
+    _require(
+        row.get("path") == "scripts/pass201_pa_source_v2_contract.py",
+        "source-v3 contract path differs",
+    )
+    authenticated = _authenticate_source_v3_repo_row(root, source_commit, row)
+    path = root / "scripts/pass201_pa_source_v2_contract.py"
+    module_name = f"_pass201_source_v3_contract_{hashlib.sha256(authenticated).hexdigest()}"
+    _require(module_name not in sys.modules, "source-v3 private contract already loaded")
+    specification = importlib.util.spec_from_file_location(module_name, path)
+    _require(
+        specification is not None and specification.loader is not None,
+        "unable to load source-v3 contract",
+    )
+    module = importlib.util.module_from_spec(specification)
+    sys.modules[module_name] = module
+    try:
+        specification.loader.exec_module(module)
+    finally:
+        sys.modules.pop(module_name, None)
+    _require(
+        _authenticate_source_v3_repo_row(root, source_commit, row) == authenticated,
+        "source-v3 contract changed during import",
+    )
+    _require(
+        Path(module.__file__).resolve(strict=True) == path.resolve(strict=True),
+        "source-v3 contract module path differs",
+    )
+    return module
+
+
+def _bootstrap_strict_json_object(data: bytes, where: str) -> dict[str, Any]:
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"{where}: nonfinite JSON constant {value}")
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"{where}: duplicate JSON key {key}")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            data.decode("utf-8"),
+            parse_constant=reject_constant,
+            object_pairs_hook=unique_object,
+        )
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(f"{where}: invalid JSON") from error
+    _require(type(value) is dict, f"{where}: expected object")
+    return value
+
+
+def _load_source_v3_authority(
+    *, root: Path, git_root: Path, manifest_path: Path, receipt_path: Path
+) -> SourceV3Authority:
+    handoff = _authenticate_source_v3_git_handoff(
+        root=root, git_root=git_root, manifest_path=manifest_path
+    )
+    _authenticate_source_v3_source_chain(root, handoff.source_commit)
+    bootstrap = _bootstrap_strict_json_object(
+        handoff.manifest_bytes, "source-v3 authorization manifest"
+    )
+    _require(
+        bootstrap.get("schema_version") == "pass201-pa-source-v3-prelaunch-v1"
+        and bootstrap.get("source_commit") == handoff.source_commit,
+        "source-v3 bootstrap authority differs",
+    )
+    source = bootstrap.get("source")
+    _require(type(source) is dict, "source-v3 source mapping")
+    files = source.get("files")
+    _require(type(files) is list and len(files) >= 2, "source-v3 source files")
+    _require(
+        files[0].get("path") == "scripts/diagnose_pass201_cis_operator.py"
+        and files[1].get("path") == "scripts/pass201_pa_source_v2_contract.py",
+        "source-v3 bootstrap source prefix differs",
+    )
+    contract = _load_authenticated_source_v3_contract(
+        root, handoff.source_commit, files[1]
+    )
+    manifest = contract.load_strict_json_bytes(handoff.manifest_bytes)
+    _require(
+        contract.canonical_json_bytes(manifest) == handoff.manifest_bytes,
+        "source-v3 manifest bytes are not canonical",
+    )
+    authority = contract.validate_prelaunch(manifest)
+    _authenticate_source_v3_static_authorities(root, handoff.source_commit)
+    payload = authority.payload
+    _require(
+        tuple(row["path"] for row in payload["source"]["files"])
+        == contract.SOURCE_V3_PATHS,
+        "source-v3 source path order differs",
+    )
+    _require(
+        payload["controller"]["path"] == "scripts/run_pass201_pa_source_v2.py",
+        "source-v3 controller path differs",
+    )
+    for row in (
+        payload["controller"],
+        *payload["source"]["files"],
+        payload["source"]["pyproject"],
+        payload["source"]["lockfile"],
+    ):
+        _authenticate_source_v3_repo_row(root, handoff.source_commit, row)
+    diagnostic_path = root / "scripts/diagnose_pass201_cis_operator.py"
+    _require(
+        Path(__file__).resolve(strict=True) == diagnostic_path.resolve(strict=True),
+        "executing diagnostic is not the source-v3 worktree path",
+    )
+    expected_receipt = root / payload["outputs"]["receipt"]["path"]
+    _require(receipt_path == expected_receipt, "source-v3 receipt path differs")
+    receipt_bytes = receipt_path.read_bytes()
+    receipt = contract.load_strict_json_bytes(receipt_bytes)
+    _require(
+        contract.canonical_json_bytes(receipt) == receipt_bytes,
+        "source-v3 receipt bytes are not canonical",
+    )
+    contract.validate_complete_receipt(receipt, authority)
+    _validate_source_v3_receipt_relations(authority, receipt, handoff)
+    return SourceV3Authority(handoff, contract, authority, receipt)
 
 
 def _representative_tensor_indices(labels: Any, sample_indices: Any, torch: Any) -> Any:
@@ -1481,7 +1888,118 @@ def _validate_train_manifest(manifest: Mapping[str, Any]) -> None:
     _require(len(indices) == len(set(indices)), "duplicate train sample index")
 
 
+def _validate_source_v3_output(
+    root: Path, path: Path, evidence: Mapping[str, Any], expected_relative: str
+) -> None:
+    _require(path == root / expected_relative, "source-v3 output path differs")
+    _require(path.is_file(), "source-v3 output is unavailable")
+    data = path.read_bytes()
+    _require(
+        evidence["path"] == expected_relative
+        and evidence["file_type"] == "regular"
+        and evidence["mode"] == 0o100644
+        and evidence["bytes"] == len(data)
+        and evidence["sha256"] == hashlib.sha256(data).hexdigest(),
+        "source-v3 output evidence differs",
+    )
+
+
+def _validate_source_v3_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    root = Path(args.root).resolve(strict=True)
+    bound = _load_source_v3_authority(
+        root=root,
+        git_root=Path(args.git_root),
+        manifest_path=Path(args.prelaunch_manifest),
+        receipt_path=Path(args.source_receipt),
+    )
+    payload = bound.authority.payload
+    receipt = bound.receipt
+    output_paths = {
+        "report": Path(args.source_report),
+        "checkpoint": Path(args.checkpoint),
+        "resolved_config": Path(args.resolved_config),
+        "train_manifest": Path(args.train_manifest),
+    }
+    for key, path in output_paths.items():
+        _validate_source_v3_output(
+            root,
+            path,
+            receipt["outputs"][key],
+            payload["outputs"][key]["path"],
+        )
+    report = _read_json_object(output_paths["report"], "source report")
+    checkpoint = _read_checkpoint_metadata(output_paths["checkpoint"])
+    config = _read_json_object(output_paths["resolved_config"], "resolved config")
+    train_manifest = _read_json_object(output_paths["train_manifest"], "train manifest")
+    _validate_activation_config(config)
+    _validate_train_manifest(train_manifest)
+    _require(report.get("config") == config, "source-v3 report config mismatch")
+    methods = report.get("methods")
+    _require(isinstance(methods, dict) and len(methods) == 1, "ordinary PA report methods")
+    method = next(iter(methods.values()))
+    _require(
+        isinstance(method, dict)
+        and method.get("objective") == "proxy_anchor"
+        and method.get("executed_train_steps") == bound.authority.expected_train_steps,
+        "ordinary PA report identity",
+    )
+    _require(checkpoint.get("training_config") == config, "checkpoint config mismatch")
+    _require(
+        checkpoint.get("artifact_selection") == "final_training_state"
+        and checkpoint.get("evaluation_model_source") == "student"
+        and checkpoint.get("training_step") == bound.authority.expected_train_steps,
+        "ordinary PA checkpoint identity",
+    )
+    checkpoint_epoch = checkpoint.get("checkpoint_epoch")
+    _require(_is_int(checkpoint_epoch) and checkpoint_epoch >= 0, "checkpoint epoch")
+    diagnostic_row = payload["source"]["files"][0]
+    source_manifest = {
+        "schema_version": "pass201-source-v1",
+        "status": "frozen",
+        "prelaunch_source_manifest_path": SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_source_manifest_sha256": bound.handoff.manifest_sha256,
+        "source_report_path": payload["outputs"]["report"]["path"],
+        "source_report_sha256": receipt["outputs"]["report"]["sha256"],
+        "source_revision": bound.handoff.source_commit,
+        "checkpoint_path": payload["outputs"]["checkpoint"]["path"],
+        "checkpoint_sha256": receipt["outputs"]["checkpoint"]["sha256"],
+        "checkpoint_bytes": receipt["outputs"]["checkpoint"]["bytes"],
+        "checkpoint_epoch": checkpoint_epoch,
+        "objective": "proxy_anchor",
+        "seed": 0,
+        "resolved_config_path": payload["outputs"]["resolved_config"]["path"],
+        "resolved_config_sha256": receipt["outputs"]["resolved_config"]["sha256"],
+        "train_manifest_path": payload["outputs"]["train_manifest"]["path"],
+        "train_manifest_sha256": receipt["outputs"]["train_manifest"]["sha256"],
+        "diagnostic_source_sha256": diagnostic_row["sha256"],
+        "activated_preregistration_sha256": "",
+        "torch_version": "2.12.1+cu130",
+        "numpy_version": "2.5.0",
+    }
+    constants = {
+        "batch_size": 180,
+        "context_pairs": 32,
+        "null_replicates": 256,
+        "bootstrap_replicates": 20000,
+        "s_prime_rank_seed": 2010809,
+        "null_seed": 2010810,
+        "bootstrap_seed": 2010811,
+        "model_forward_seed": 2010812,
+        "learning_rate": float(config["learning_rate"]),
+        "coalition_weight": float(config["coalition_weight"]),
+        "proxy_learning_rate_multiplier": float(config["proxy_learning_rate_multiplier"]),
+        "owner_margin_temperature": 0.05,
+    }
+    return source_manifest, constants
+
+
 def _validate_source_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    prelaunch_bytes = Path(args.prelaunch_manifest).read_bytes()
+    prelaunch_bootstrap = _bootstrap_strict_json_object(
+        prelaunch_bytes, "source authorization manifest"
+    )
+    if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v3-prelaunch-v1":
+        return _validate_source_v3_binding(args)
     root = Path(args.root)
     git_root = Path(args.git_root)
     prelaunch_path = Path(args.prelaunch_manifest)
@@ -1643,7 +2161,8 @@ def _validate_source_manifest_artifact(manifest: Any) -> None:
     _require(manifest["schema_version"] == "pass201-source-v1", "source manifest schema")
     _require(manifest["status"] == "frozen", "source manifest status")
     _require(
-        manifest["prelaunch_source_manifest_path"] == PRELAUNCH_SOURCE_MANIFEST_PATH,
+        manifest["prelaunch_source_manifest_path"]
+        in (PRELAUNCH_SOURCE_MANIFEST_PATH, SOURCE_V3_AUTHORIZATION_MANIFEST_PATH),
         "source manifest prelaunch path",
     )
     for key in (
@@ -1846,6 +2365,15 @@ def _load_process_runtime(source_manifest: Mapping[str, Any], torch: Any) -> Any
     return factory(dict(source_manifest), torch)
 
 
+def _select_production_cpu_device(torch: Any) -> Any:
+    cuda_available = torch.cuda.is_available()
+    _require(
+        type(cuda_available) is bool and cuda_available is False,
+        "Pass201 production runtime requires a CPU runtime",
+    )
+    return torch.device("cpu")
+
+
 class _ProductionRuntime:
     """Bound production adapter; imports model/data code only inside a child."""
 
@@ -1892,7 +2420,7 @@ class _ProductionRuntime:
             )
         self.train_transform = _default_transform_factory(self.config, True)
         self.clean_transform = _default_transform_factory(self.config, False)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = _select_production_cpu_device(torch)
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
         _require(
             isinstance(checkpoint, dict) and checkpoint.get("training_config") == config_payload,
@@ -2071,6 +2599,13 @@ class _ProductionRuntime:
 
 
 PROCESS_ROLES = ("integrity_replay_a", "integrity_replay_b", "scientific")
+CPU_THREAD_ENVIRONMENT = {
+    "CUDA_VISIBLE_DEVICES": "",
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+}
 PROCESS_OUTPUT_KEYS = {
     "schema_version",
     "status",
@@ -2093,17 +2628,42 @@ def _rng_sha256(value: Any) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _initialize_deterministic_process(torch: Any) -> dict[str, Any]:
+def _require_cpu_process_environment() -> None:
+    for key, expected in CPU_THREAD_ENVIRONMENT.items():
+        _require(
+            os.environ.get(key) == expected,
+            f"{key} must equal {expected!r} before torch import",
+        )
+
+
+def _configure_cpu_threading(torch: Any) -> tuple[int, int]:
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    num_threads = torch.get_num_threads()
+    num_interop_threads = torch.get_num_interop_threads()
+    _require(
+        type(num_threads) is int and num_threads == 1,
+        "torch intra-op thread count differs",
+    )
+    _require(
+        type(num_interop_threads) is int and num_interop_threads == 1,
+        "torch inter-op thread count differs",
+    )
+    return num_threads, num_interop_threads
+
+
+def _initialize_deterministic_process(
+    torch: Any, *, thread_counts: tuple[int, int] | None = None
+) -> dict[str, Any]:
     _require(
         os.environ.get("CUBLAS_WORKSPACE_CONFIG") == ":4096:8",
         "CUBLAS_WORKSPACE_CONFIG must be set before torch import",
     )
     cuda_count = int(torch.cuda.device_count())
-    visible_devices = []
-    for index in range(cuda_count):
-        properties = torch.cuda.get_device_properties(index)
-        pci_identity = str(getattr(properties, "pci_bus_id", f"device-{index}"))
-        visible_devices.append(f"{pci_identity} {properties.name}")
+    _require(cuda_count == 0, "visible CUDA devices are forbidden for Pass201 replay")
+    if thread_counts is None:
+        thread_counts = _configure_cpu_threading(torch)
+    num_threads, num_interop_threads = thread_counts
     torch.use_deterministic_algorithms(True, warn_only=False)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
@@ -2117,26 +2677,39 @@ def _initialize_deterministic_process(torch: Any) -> dict[str, Any]:
     python_digest = hashlib.sha256(pickle.dumps(random.getstate(), protocol=4)).hexdigest()
     numpy_digest = hashlib.sha256(pickle.dumps(np.random.get_state(), protocol=4)).hexdigest()
     torch_cpu_digest = _rng_sha256(torch.get_rng_state())
-    cuda_digests = {
-        str(index): _rng_sha256(torch.cuda.get_rng_state(index)) for index in range(cuda_count)
-    }
-    if not visible_devices:
-        visible_devices = ["cpu"]
-        cuda_digests = {"0": torch_cpu_digest}
+    visible_devices = ["cpu"]
+    cuda_digests = {"0": torch_cpu_digest}
     cudnn_version_function = getattr(torch.backends.cudnn, "version", None)
     cudnn_version = cudnn_version_function() if callable(cudnn_version_function) else None
-    accelerator = ", ".join(visible_devices)
+    cuda_version = str(getattr(torch.version, "cuda", None) or "unavailable")
+    cudnn_version_text = str(cudnn_version or "unavailable")
+    _require(
+        cuda_version == "13.0" and cudnn_version_text == "92000",
+        "Pass201 CPU build version differs from the registered runtime",
+    )
     return {
-        "accelerator": accelerator,
+        "accelerator": "cpu",
         "python_version": platform.python_version(),
         "torch_version": str(torch.__version__),
-        "cuda_version": str(getattr(torch.version, "cuda", None) or "unavailable"),
-        "cudnn_version": str(cudnn_version or "unavailable"),
+        "cuda_version": cuda_version,
+        "cudnn_version": cudnn_version_text,
         "visible_cuda_devices": visible_devices,
         "initial_python_rng_sha256": python_digest,
         "initial_numpy_rng_sha256": numpy_digest,
         "initial_torch_cpu_rng_sha256": torch_cpu_digest,
         "initial_torch_cuda_rng_sha256_by_device": cuda_digests,
+        "deterministic_settings": {
+            "cublas_workspace_config": ":4096:8",
+            "deterministic_algorithms": True,
+            "cudnn_benchmark": False,
+            "cudnn_deterministic": True,
+            "matmul_tf32": False,
+            "cudnn_tf32": False,
+            "autocast": False,
+            "dtype": "float32",
+            "torch_num_threads": num_threads,
+            "torch_num_interop_threads": num_interop_threads,
+        },
     }
 
 
@@ -2178,8 +2751,10 @@ def run_process_role(
         os.environ.get("PASS201_PROCESS_ROLE", role) == role,
         "process role environment mismatch",
     )
+    _require_cpu_process_environment()
     torch = _import_torch()
-    environment = _initialize_deterministic_process(torch)
+    thread_counts = _configure_cpu_threading(torch)
+    environment = _initialize_deterministic_process(torch, thread_counts=thread_counts)
     runtime = _load_process_runtime(source_manifest, torch)
     prepared_contexts = runtime.prepare_contexts()
     _require(
@@ -2457,6 +3032,7 @@ def compare_integrity_records(
         "cuda_version",
         "cudnn_version",
         "visible_cuda_devices",
+        "deterministic_settings",
     )
     _require(
         all(
@@ -2697,16 +3273,7 @@ def _finalize_scientific_payload(
             "training_flags_restored": core["training_flags_restored"],
             "deterministic_process_verified": True,
             "first_context_operator_replay_verified": True,
-            "deterministic_settings": {
-                "cublas_workspace_config": ":4096:8",
-                "deterministic_algorithms": True,
-                "cudnn_benchmark": False,
-                "cudnn_deterministic": True,
-                "matmul_tf32": False,
-                "cudnn_tf32": False,
-                "autocast": False,
-                "dtype": "float32",
-            },
+            "deterministic_settings": dict(records[0]["deterministic_settings"]),
             "process_records": records,
             "replay_residuals": {
                 "pair_count": 3,
@@ -2732,9 +3299,9 @@ def run_controller(args: Any) -> None:
     mode = "scientific" if bool(getattr(args, "scientific", False)) else "smoke"
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     child_environment = dict(os.environ)
-    child_environment["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    child_environment.pop("PASS201_RUNTIME_FACTORY", None)
+    child_environment.update(CPU_THREAD_ENVIRONMENT)
     child_environment["PASS201_PROCESS_MODE"] = mode
     child_environment["PASS201_SOURCE_ROOT"] = str(Path(args.root).resolve())
     child_environment["PASS201_BINDING_AUTHORIZED_SHA256"] = _sha256_file(
@@ -2834,6 +3401,7 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--git-root", type=Path)
     parser.add_argument("--prelaunch-manifest", type=Path)
     parser.add_argument("--source-report", type=Path)
+    parser.add_argument("--source-receipt", type=Path)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--resolved-config", type=Path)
     parser.add_argument("--train-manifest", type=Path)
@@ -2848,10 +3416,18 @@ def _build_cli_parser() -> argparse.ArgumentParser:
 
 
 def _default_cli_paths(args: Any) -> None:
-    root = Path(args.root)
+    root = Path(args.root).resolve(strict=True)
+    args.root = root
     defaults = {
         "git_root": root,
-        "prelaunch_manifest": root / PRELAUNCH_SOURCE_MANIFEST_PATH,
+        "prelaunch_manifest": root / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        "source_report": root / "reports/generated/pass201_source_v3/run-v3/report.json",
+        "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
+        "checkpoint": root / "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
+        "resolved_config": root
+        / "reports/generated/pass201_source_v3/run-v3/resolved_config.json",
+        "train_manifest": root
+        / "reports/generated/pass201_source_v3/run-v3/train_manifest.json",
         "activated_preregistration": root / ACTIVATED_PREREGISTRATION_PATH,
         "source_manifest": root / SOURCE_MANIFEST_PATH,
         "diagnostic_path": Path(__file__).resolve(),
@@ -2862,14 +3438,54 @@ def _default_cli_paths(args: Any) -> None:
             setattr(args, key, value)
 
 
+def _validate_source_v3_public_controller_args(args: Any) -> None:
+    root = Path(args.root).resolve(strict=True)
+    expected = root / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+    _require(
+        Path(args.prelaunch_manifest) == expected,
+        "public controller requires the literal source-v3 authorization manifest path",
+    )
+    _require(
+        args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,
+        "source-v3 runtime factories are forbidden",
+    )
+    executing_root = Path(__file__).resolve(strict=True).parents[1]
+    _require(root == executing_root, "public controller root differs from executing checkout")
+    expected_paths = {
+        "git_root": root,
+        "diagnostic_path": root / "scripts/diagnose_pass201_cis_operator.py",
+        "activated_preregistration": root / ACTIVATED_PREREGISTRATION_PATH,
+        "source_manifest": root / SOURCE_MANIFEST_PATH,
+        "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
+    }
+    for name, value in expected_paths.items():
+        _require(Path(getattr(args, name)) == value, f"public controller {name} differs")
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     args = _build_cli_parser().parse_args(argv)
     _default_cli_paths(args)
+    if not args.process_role:
+        _validate_source_v3_public_controller_args(args)
     if args.activate_source:
         activate_source(args)
     elif args.process_role:
         _require(args.process_output is not None, "--process-output is required")
         manifest = _read_json_object(args.source_manifest, "source manifest")
+        if (
+            manifest.get("prelaunch_source_manifest_path")
+            == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        ):
+            _require(
+                args.runtime_factory is None
+                and "PASS201_RUNTIME_FACTORY" not in os.environ,
+                "source-v3 runtime factories are forbidden",
+            )
+        _require(
+            os.environ.get("PASS201_BINDING_AUTHORIZED_SHA256")
+            == _sha256_file(Path(args.source_manifest)),
+            "process source manifest differs from the binding-authorized source manifest",
+        )
         _validate_source_manifest_artifact(manifest)
         _require(
             _sha256_file(Path(__file__).resolve()) == manifest["diagnostic_source_sha256"],
@@ -2920,13 +3536,8 @@ def _validate_source(source: Any, *, activated: bool) -> None:
     _exact_keys(source, keys, "source")
     _require(
         source["prelaunch_source_manifest_path"]
-        == "docs/pass201_pa_source_prelaunch_manifest.json",
+        == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
         "wrong prelaunch source path",
-    )
-    _require(
-        source["prelaunch_source_manifest_sha256"]
-        == "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803",
-        "wrong prelaunch source digest",
     )
     for key in (
         "prelaunch_source_manifest_sha256",
@@ -2955,6 +3566,11 @@ def _validate_source(source: Any, *, activated: bool) -> None:
         if not activated and source[key] is None:
             continue
         _require(isinstance(source[key], str) and bool(source[key]), f"source.{key}")
+    if source["cuda_version"] is not None or source["cudnn_version"] is not None:
+        _require(
+            source["cuda_version"] == "13.0" and source["cudnn_version"] == "92000",
+            "source build version",
+        )
     if activated or source["checkpoint_bytes"] is not None:
         _require(
             _is_int(source["checkpoint_bytes"]) and source["checkpoint_bytes"] > 0,
@@ -3336,6 +3952,7 @@ PROCESS_KEYS = {
     "initial_numpy_rng_sha256",
     "initial_torch_cpu_rng_sha256",
     "initial_torch_cuda_rng_sha256_by_device",
+    "deterministic_settings",
     "prepared_context_count",
     "input_context_digest_records",
     "context0_record_sha256",
@@ -3370,15 +3987,14 @@ def _validate_process_record(record: Any, role: str, path: str, *, context0_requ
     _require(_is_int(record["pid"]) and record["pid"] > 0, f"{path}.pid")
     for key in ("accelerator", "python_version", "torch_version", "cuda_version", "cudnn_version"):
         _require(isinstance(record[key], str) and bool(record[key]), f"{path}.{key}")
+    _require(record["accelerator"] == "cpu", f"{path}.accelerator")
     _require(
-        isinstance(record["visible_cuda_devices"], list)
-        and bool(record["visible_cuda_devices"])
-        and all(isinstance(item, str) and item for item in record["visible_cuda_devices"]),
-        f"{path}.visible_cuda_devices",
+        record["cuda_version"] == "13.0" and record["cudnn_version"] == "92000",
+        f"{path}.build version",
     )
     _require(
-        record["visible_cuda_devices"] == sorted(record["visible_cuda_devices"]),
-        f"{path}.visible_cuda_devices order",
+        record["visible_cuda_devices"] == ["cpu"],
+        f"{path}.visible_cuda_devices",
     )
     for key in (
         "initial_python_rng_sha256",
@@ -3388,16 +4004,41 @@ def _validate_process_record(record: Any, role: str, path: str, *, context0_requ
         _digest(record[key], f"{path}.{key}")
     cuda_hashes = record["initial_torch_cuda_rng_sha256_by_device"]
     _require(
-        isinstance(cuda_hashes, dict) and bool(cuda_hashes),
+        isinstance(cuda_hashes, dict) and list(cuda_hashes) == ["0"],
         f"{path}.initial_torch_cuda_rng_sha256_by_device",
     )
     _require(
-        list(cuda_hashes) == [str(index) for index in range(len(record["visible_cuda_devices"]))],
-        f"{path}.initial_torch_cuda_rng_sha256_by_device order",
+        cuda_hashes["0"] == record["initial_torch_cpu_rng_sha256"],
+        f"{path}.initial_torch_cuda_rng_sha256_by_device CPU placeholder",
     )
     for key, value in cuda_hashes.items():
         _require(str(int(key)) == key, f"{path}.CUDA device index")
         _digest(value, f"{path}.initial_torch_cuda_rng_sha256_by_device.{key}")
+    expected_settings = {
+        "cublas_workspace_config": ":4096:8",
+        "deterministic_algorithms": True,
+        "cudnn_benchmark": False,
+        "cudnn_deterministic": True,
+        "matmul_tf32": False,
+        "cudnn_tf32": False,
+        "autocast": False,
+        "dtype": "float32",
+        "torch_num_threads": 1,
+        "torch_num_interop_threads": 1,
+    }
+    _exact_keys(
+        record["deterministic_settings"],
+        expected_settings,
+        f"{path}.deterministic_settings",
+    )
+    _require(
+        all(
+            type(record["deterministic_settings"][key]) is type(expected)
+            and record["deterministic_settings"][key] == expected
+            for key, expected in expected_settings.items()
+        ),
+        f"{path}.deterministic_settings",
+    )
     _require(
         _is_int(record["prepared_context_count"]) and record["prepared_context_count"] >= 0,
         f"{path}.prepared_context_count",
@@ -3487,6 +4128,8 @@ def _validate_scored_integrity(integrity: Any, contexts: list[dict[str, Any]]) -
         "cudnn_tf32": False,
         "autocast": False,
         "dtype": "float32",
+        "torch_num_threads": 1,
+        "torch_num_interop_threads": 1,
     }
     _exact_keys(settings, expected_settings, "integrity.deterministic_settings")
     _require(

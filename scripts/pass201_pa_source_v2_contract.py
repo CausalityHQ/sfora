@@ -56,6 +56,38 @@ PRIVATE_CHILD_ROLES = {
     "binding-request": 5,
     "binding-response": 6,
 }
+SOURCE_V3_PATHS = (
+    "scripts/diagnose_pass201_cis_operator.py",
+    "scripts/pass201_pa_source_v2_contract.py",
+    "src/sfora/__init__.py",
+    "src/sfora/ablation.py",
+    "src/sfora/api.py",
+    "src/sfora/arcg.py",
+    "src/sfora/benchmark.py",
+    "src/sfora/bn_inception.py",
+    "src/sfora/catalog.py",
+    "src/sfora/cea.py",
+    "src/sfora/cem.py",
+    "src/sfora/cli.py",
+    "src/sfora/compose.py",
+    "src/sfora/data.py",
+    "src/sfora/encoder_ablation.py",
+    "src/sfora/encoder_training.py",
+    "src/sfora/evaluation.py",
+    "src/sfora/experiments.py",
+    "src/sfora/image_benchmark.py",
+    "src/sfora/image_end_to_end.py",
+    "src/sfora/image_recipes.py",
+    "src/sfora/ipsr.py",
+    "src/sfora/losses.py",
+    "src/sfora/method.py",
+    "src/sfora/oapf.py",
+    "src/sfora/publication.py",
+    "src/sfora/remote.py",
+    "src/sfora/report.py",
+    "src/sfora/text_baselines.py",
+    "src/sfora/training.py",
+)
 
 
 @dataclass(frozen=True)
@@ -415,6 +447,19 @@ def _repo_path(value: object, where: str) -> str:
     return result
 
 
+def _authority_reference(
+    value: object,
+    where: str,
+    expected_path: str,
+    expected_sha256: str,
+    expected_commit: str,
+) -> None:
+    obj = _keys(value, {"path", "sha256", "commit"}, where)
+    _literal(obj["path"], expected_path, f"{where}.path")
+    _literal(obj["sha256"], expected_sha256, f"{where}.sha256")
+    _literal(obj["commit"], expected_commit, f"{where}.commit")
+
+
 def _abs_path(value: object, where: str) -> str:
     result = _str(value, where)
     path = PurePosixPath(result)
@@ -512,25 +557,50 @@ def _import_directory(value: object, where: str) -> None:
 
 def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _validate_json_native(payload)
+    raw = _dict(payload, "prelaunch")
+    schema_version = raw.get("schema_version")
+    is_v3 = schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    if schema_version not in (
+        "pass201-pa-source-v2-prelaunch-v1",
+        "pass201-pa-source-v3-prelaunch-v1",
+    ):
+        raise ValueError("schema_version: unsupported source schema")
+    top_keys = {
+        "schema_version",
+        "status",
+        "purpose",
+        "source_commit",
+        "authorization",
+        "controller",
+        "source",
+        "execution",
+        "dataset",
+        "outputs",
+        "sidecars",
+        "postconditions",
+    }
+    if is_v3:
+        top_keys |= {"protocol", "plan"}
     top = _keys(
         payload,
-        {
-            "schema_version",
-            "status",
-            "purpose",
-            "source_commit",
-            "authorization",
-            "controller",
-            "source",
-            "execution",
-            "dataset",
-            "outputs",
-            "sidecars",
-            "postconditions",
-        },
+        top_keys,
         "prelaunch",
     )
-    _literal(top["schema_version"], "pass201-pa-source-v2-prelaunch-v1", "schema_version")
+    if is_v3:
+        _authority_reference(
+            top["protocol"],
+            "protocol",
+            "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
+            "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
+            "9782eb44f4a087682563d8a1f4e075f4fcdd165b",
+        )
+        _authority_reference(
+            top["plan"],
+            "plan",
+            "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
+            "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
+            "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+        )
     _literal(top["status"], "frozen", "status")
     _str(top["purpose"], "purpose")
     source_commit = _hash(top["source_commit"], "source_commit", 40)
@@ -548,16 +618,17 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         },
         "authorization",
     )
-    _literal(
-        auth["manifest_path"],
-        "docs/pass201_pa_source_v2_prelaunch.json",
-        "authorization.manifest_path",
+    manifest_path = (
+        "docs/pass201_pa_source_v3_authorization_manifest.json"
+        if is_v3
+        else "docs/pass201_pa_source_v2_prelaunch.json"
     )
+    _literal(auth["manifest_path"], manifest_path, "authorization.manifest_path")
     parent = _hash(auth["required_parent_commit"], "authorization.required_parent_commit", 40)
     if parent != source_commit:
         raise ValueError("authorization.required_parent_commit must equal source_commit")
     for key, expected in (
-        ("required_diff_paths", ["docs/pass201_pa_source_v2_prelaunch.json"]),
+        ("required_diff_paths", [manifest_path]),
         ("required_diff_status", ["A"]),
         ("required_diff_modes", ["100644"]),
     ):
@@ -595,11 +666,13 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         source_paths, key=lambda value: value.encode("utf-8")
     ) or len(source_paths) != len(set(source_paths)):
         raise ValueError("source.files order")
+    if is_v3 and tuple(source_paths) != SOURCE_V3_PATHS:
+        raise ValueError("source.files does not equal source-v3 registry")
     _merkle(source["python_tree"], "source.python_tree")
     _file(source["pyproject"], "source.pyproject")
     _file(source["lockfile"], "source.lockfile")
     _str(source["equivalence_test_id"], "source.equivalence_test_id")
-    _validate_outputs(top["outputs"])
+    _validate_outputs(top["outputs"], schema_version)
     execution = _keys(
         top["execution"],
         {
@@ -800,7 +873,7 @@ def _validate_dataset(value: object) -> None:
     )
 
 
-def _validate_outputs(value: object) -> None:
+def _validate_outputs(value: object, schema_version: object) -> None:
     keys = {
         "run_directory",
         "run_directory_required_absent",
@@ -813,11 +886,12 @@ def _validate_outputs(value: object) -> None:
     }
     obj = _keys(value, keys, "outputs")
     run_directory = _repo_path(obj["run_directory"], "outputs.run_directory")
-    _literal(
-        run_directory,
-        "reports/generated/pass201_source_v2/run-v2",
-        "outputs.run_directory",
+    expected_run_directory = (
+        "reports/generated/pass201_source_v3/run-v3"
+        if schema_version == "pass201-pa-source-v3-prelaunch-v1"
+        else "reports/generated/pass201_source_v2/run-v2"
     )
+    _literal(run_directory, expected_run_directory, "outputs.run_directory")
     _true(obj["run_directory_required_absent"], "outputs.run_directory_required_absent")
     names = {
         "report": "report.json",
@@ -2456,25 +2530,35 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
         },
         "receipt",
     )
-    _literal(top["schema_version"], "pass201-pa-source-v2-receipt-v1", "receipt.schema_version")
+    authority_schema = authority.payload["schema_version"]
+    is_v3 = authority_schema == "pass201-pa-source-v3-prelaunch-v1"
+    expected_receipt_schema = (
+        "pass201-pa-source-v3-receipt-v1"
+        if is_v3
+        else "pass201-pa-source-v2-receipt-v1"
+    )
+    _literal(top["schema_version"], expected_receipt_schema, "receipt.schema_version")
     _literal(top["status"], "complete", "receipt.status")
     _literal(top["candidate_values_computed"], False, "receipt.candidate_values_computed")
-    auth = _keys(
-        top["authorization"],
-        {
-            "authorization_commit",
-            "source_commit",
-            "manifest_path",
-            "manifest_bytes",
-            "manifest_sha256",
-            "manifest_git_blob",
-            "parent_verified",
-            "single_addition_verified",
-            "detached_head_verified",
-            "clean_policy_verified",
-        },
-        "receipt.authorization",
-    )
+    authorization_keys = {
+        "authorization_commit",
+        "source_commit",
+        "manifest_path",
+        "manifest_bytes",
+        "manifest_sha256",
+        "manifest_git_blob",
+        "parent_verified",
+        "single_addition_verified",
+        "detached_head_verified",
+        "clean_policy_verified",
+    }
+    if is_v3:
+        authorization_keys |= {"protocol", "plan"}
+    auth = _keys(top["authorization"], authorization_keys, "receipt.authorization")
+    if is_v3:
+        for key in ("protocol", "plan"):
+            if auth[key] != authority.payload[key]:
+                raise ValueError(f"receipt.authorization.{key} does not bind authority")
     authorization_commit = _hash(
         auth["authorization_commit"], "receipt.authorization.authorization_commit", 40
     )
