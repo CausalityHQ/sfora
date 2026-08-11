@@ -48,9 +48,10 @@ The repaired conceptual chronology is:
 9. the single authorized DGX process.
 
 The document-byte chronology is more specific: original authority-only design
-`68a012f`, initial audit `12c55f0`, audit review fix `9b4cf05`, then the
-scientific-boundary expansion of this design at `bad1bf0`. The final design
-bytes therefore postdate the corrected audit they incorporate. Later
+`68a012f`, initial audit `12c55f0`, audit review fix `9b4cf05`,
+scientific-boundary expansion of this design at `bad1bf0`, audit paired-contrast
+clarification `9ae137f`, then final design clarification `f116512`. The final
+design bytes therefore postdate the corrected audit they incorporate. Later
 authorities must freeze and disclose that exact order.
 
 The chronology must be disclosed exactly. The original candidate's requirement
@@ -67,7 +68,8 @@ Keep the exact RDGC scalar formula and keep computing and persisting
 contamination-disclosed evidence. Remove exactly:
 
 - the preliminary SURVIVE conjunct requiring pooled/seed `E_r,180` thresholds;
-- the paired CLOSE clause using `E_r,180`.
+- the `close_full_gain` clause requiring direct pooled/seed `E_r,180`
+  endpoint thresholds.
 
 Do not replace either clause with a raised, widened, fitted, or calibrated
 threshold. All other fresh preliminary predicates and CLOSE clauses retain
