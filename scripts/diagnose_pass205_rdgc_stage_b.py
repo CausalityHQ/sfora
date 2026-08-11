@@ -177,8 +177,11 @@ def fp64_named_dot(torch_module: Any, left: tuple[Any, ...], right: tuple[Any, .
     return total
 
 
-def _half_squared_log_ratio(torch_module: Any, numerator: Any, target: Any) -> Any:
-    error = torch_module.log((numerator + EPSILON) / (target.detach() + EPSILON))
+def _half_squared_log_ratio(
+    torch_module: Any, numerator: Any, target: Any, *, target_has_epsilon: bool = False
+) -> Any:
+    denominator = target.detach() + (EPSILON if target_has_epsilon else 0.0)
+    error = torch_module.log((numerator + EPSILON) / denominator)
     return 0.5 * error * error
 
 
@@ -245,7 +248,9 @@ def per_example_gradient_normalized_penalty(
 ) -> Any:
     _require_fp32_finite(torch_module, pgn_motion, nonzero=True)
     _require_fp32_finite(torch_module, s, nonzero=True)
-    return _half_squared_log_ratio(torch_module, pgn_motion.norm(), s.norm())
+    return _half_squared_log_ratio(
+        torch_module, pgn_motion.norm(), s.norm(), target_has_epsilon=True
+    )
 
 
 def pgn_detached_coefficients(
@@ -523,19 +528,20 @@ def decide_panel(aggregates: dict[str, object], bootstrap: dict[str, object]) ->
                     "first_decisive_clause": f"close_{name}_primary_alignment",
                     "authorized_action": "stop_close",
                 }
-            if name in (
-                "batch_global_gain",
-                "scalar_diagonal_raw",
-                "per_example_gradient_normalized",
-                "layerwise_trust_ratio",
-            ):
-                metric = controls[name]["primary_slope"]
-                if _metric_close(metric):
-                    return {
-                        "status": "CLOSE",
-                        "first_decisive_clause": f"close_{name}_primary_slope",
-                        "authorized_action": "stop_close",
-                    }
+        for name in (
+            "batch_global_gain",
+            "scalar_diagonal_raw",
+            "per_example_gradient_normalized",
+            "layerwise_trust_ratio",
+        ):
+            metric = controls[name]["primary_slope"]
+            if _metric_close(metric):
+                return {
+                    "status": "CLOSE",
+                    "first_decisive_clause": f"close_{name}_primary_slope",
+                    "authorized_action": "stop_close",
+                }
+        for name in CONTROL_ORDER:
             alias = aliases[name]
             if (
                 float(alias["pooled_median_absolute_cosine"]) >= 0.99
@@ -1526,8 +1532,8 @@ def run_full_panel(
     rows = [
         records[(seed, context, label)]
         for seed in range(4)
-        for context in ("A", "B")
         for label in labels
+        for context in ("A", "B")
     ]
     return {"rows": rows}
 

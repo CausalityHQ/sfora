@@ -236,6 +236,22 @@ def test_scalar_diagonal_raw_uses_batch_gain_times_each_raw_norm() -> None:
     )
 
 
+def test_batch_and_scalar_targets_do_not_receive_an_unregistered_second_epsilon() -> None:
+    fields = [
+        {"s": _finite_tensor([2.0e-8]), "dbar": _finite_tensor([1.0e-8])}
+        for _ in range(8)
+    ]
+    b = _finite_tensor([5.0e-8], requires_grad=True)
+    target = 3.0e-8
+    expected = 0.5 * math.log((5.0e-8 + 1.0e-8) / target) ** 2
+    assert _MODULE.batch_global_gain_penalty(torch, b, fields).item() == pytest.approx(
+        expected, rel=1e-6
+    )
+    assert _MODULE.scalar_diagonal_raw_penalty(
+        torch, b, fields[0]["dbar"], fields
+    ).item() == pytest.approx(expected, rel=1e-6)
+
+
 def test_correction_dispatch_constructs_only_literal_requested_penalty_in_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -617,6 +633,37 @@ def test_panel_close_precedence_and_exact_boundaries() -> None:
     assert decision["status"] == "CLOSE"
     assert decision["first_decisive_clause"] == "close_vs_pa"
     assert decision["authorized_action"] == "stop_close"
+
+
+def test_panel_close_precedence_is_by_frozen_clause_before_control_order() -> None:
+    case = _panel_aggregates()
+    case["correction_aliases"]["raw_cotangent"].update(
+        pooled_median_absolute_cosine=0.99,
+        seed_medians_ge_point_nine_nine=3,
+    )
+    case["controls"]["layerwise_trust_ratio"]["primary_alignment"].update(
+        pooled_difference=0.0,
+        positive_seed_means=1,
+        nonpositive_seed_means=3,
+    )
+    assert _MODULE.decide_panel(case, {})["first_decisive_clause"] == (
+        "close_layerwise_trust_ratio_primary_alignment"
+    )
+
+    case = _panel_aggregates()
+    case["controls"]["batch_global_gain"]["primary_slope"].update(
+        pooled_difference=0.0,
+        positive_seed_means=1,
+        nonpositive_seed_means=3,
+    )
+    case["controls"]["layerwise_trust_ratio"]["primary_alignment"].update(
+        pooled_difference=0.0,
+        positive_seed_means=1,
+        nonpositive_seed_means=3,
+    )
+    assert _MODULE.decide_panel(case, {})["first_decisive_clause"] == (
+        "close_layerwise_trust_ratio_primary_alignment"
+    )
 
 
 def test_panel_middle_region_is_unresolved() -> None:
@@ -1362,6 +1409,15 @@ def test_panel_uses_exact_seed_group_receiver_operator_context_order() -> None:
         ("evaluate", 0, 0, 0, "pa", "B"),
     ]
     assert tuple(value["rows"][0]["operators"]) == _MODULE.OPERATOR_ORDER
+    assert [
+        (row["seed"], row["receiver_label"], row["context"]) for row in value["rows"]
+    ] == [
+        (seed, receiver_label, context)
+        for seed in range(4)
+        for receiver_label in range(32)
+        for context in ("A", "B")
+    ]
+    assert len(_MODULE.paired_bootstrap(value["rows"])["distributions"]) == 28
 
 
 def test_panel_fail_fast_does_not_build_later_corrections() -> None:
