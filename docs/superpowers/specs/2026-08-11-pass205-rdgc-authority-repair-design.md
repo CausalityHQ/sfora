@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Repair two pre-execution provenance defects without changing the Receiver-Diagonal
-Gain Calibration (RDGC) scientific proposal. No RDGC GPU process, preliminary,
-panel, result, or candidate value exists. The repaired chain therefore remains
-prospective with respect to every RDGC outcome.
+Repair two pre-execution provenance defects and two review-discovered scientific
+boundary defects in Receiver-Diagonal Gain Calibration (RDGC). No RDGC GPU
+process, preliminary, panel, result, or candidate value exists. The repaired
+chain therefore remains prospective with respect to every RDGC outcome.
 
 The defects are:
 
@@ -15,29 +15,62 @@ The defects are:
    digest they mean.
 2. The proposed `literature_audit` record has no distinct committed audit file,
    and the current diagnostic checks only its JSON shape.
+3. RDGC was described as wholly independent even though its scalar operator is
+   the magnitude-only ablation of RSTA's registered cosine-plus-log-norm
+   operator.
+4. Preliminary `E_r,180` is effectively the RSTA full/diagonal absolute
+   log-norm ratio already observed before RDGC was proposed. Its low SURVIVE and
+   CLOSE thresholds are contaminated and cannot serve as fresh falsifiers.
 
 ## Chosen approach
 
-Use an in-chain authority amendment and a new repair plan, followed by a new
-reviewed source commit. Do not use a side branch, self-reference the candidate as
-its own review, or fill undefined manifest fields by convention.
+Use an in-chain scientific/authority amendment and a new repair plan, followed
+by a new reviewed source commit. Do not use a side branch, self-reference the
+candidate as its own review, fill undefined manifest fields by convention, or
+choose a replacement threshold from the prior RSTA value.
+
+RDGC remains the project label, but every repaired authority calls it the
+**magnitude-only RSTA ablation**. Its narrow external-prior-art verdict may be
+`LIVE-NARROW`; it may not be called a wholly independent new object or a
+continuation of a validated directional mechanism.
 
 The repaired chronology is:
 
 1. original reviewed candidate and implementation plan;
 2. source implementation and review fixes through `291ccbf`;
 3. this design, after discovery of the authority defects and before any RDGC run;
-4. a fresh, distinct primary-literature audit of the unchanged scientific
-   candidate;
+4. a fresh, distinct primary-literature audit of the scientific candidate,
+   including the review-discovered ablation and contamination findings;
 5. an authority amendment freezing the mappings and authentication rules;
 6. a bound repair plan;
 7. TDD source/test repairs and a fresh independent source review;
 8. a direct-child manifest-only handoff;
 9. the single authorized DGX process.
 
-The chronology must be disclosed exactly. The audit is prospective to scientific
-execution but was committed after the first source implementation because the
-missing durable audit authority was discovered at the manifest gate.
+The chronology must be disclosed exactly. The original candidate's requirement
+that audit precede implementation was breached. The audit is prospective to
+scientific execution but was committed after the first source implementation;
+the mandatory remedy is to reopen and independently re-review source under the
+new audit and amendment before any handoff.
+
+## Scientific-boundary correction
+
+Keep the exact RDGC scalar formula and keep computing and persisting
+`E_r,n` for contributor counts `[1,8,32,180]`. Reclassify `E_r,180` as
+descriptive contamination-disclosed evidence only. Remove exactly:
+
+- the preliminary SURVIVE conjunct requiring pooled/seed `E_r,180` thresholds;
+- the paired CLOSE clause using `E_r,180`.
+
+Do not replace either clause with a raised, widened, fitted, or calibrated
+threshold. All other fresh preliminary predicates and CLOSE clauses retain
+their exact formulas, thresholds, order, and semantics. All panel predicates,
+controls, bootstraps, and CLOSE-before-PASS precedence remain unchanged.
+
+The diagnostic's candidate formula remains no-training. Norm matching and the
+0.10 ratio apply only to Stage-B virtual updates. A possible future training
+form is `L_PA + lambda_G R_RDGC`; neither `lambda_G` nor a schedule is selected
+or authorized.
 
 ## Exact historical seed authority
 
@@ -86,6 +119,10 @@ Create a distinct committed audit document that binds:
 - the exact narrow novelty claim and mandatory controls;
 - the post-source/pre-result chronology disclosure.
 
+The audit's source array uses the archival NeurIPS 2023 Automatic Clipping
+record `neurips-2023-8249b30d877c91611fd8c7aa6ac2b5fe`, replacing the
+original candidate's mislabeled non-archival OpenReview reference.
+
 Only `LIVE-NARROW` authorizes continuation. The new diagnostic must require the
 literal audit path, SHA-256, and commit; require that the audit commit is in the
 declared repair chain; compare `reviewed_candidate_sha256` to the original
@@ -122,7 +159,9 @@ Use strict RED-to-GREEN tests for:
   or wrong-candidate literature audit;
 - exact repair-chain ancestry and per-commit scope;
 - unchanged RDGC formulas, controls, decisions, selection, graph schedule,
-  result schema, atomic publication, and no-candidate-before-integrity rules;
+  result schema, atomic publication, and no-candidate-before-integrity rules,
+  except for the literal removal of the contaminated `E_r,180` SURVIVE/CLOSE
+  decision clauses while retaining its exact persisted metrics;
 - the final real-CPU `torch.func` kernel-to-receipt path;
 - the future manifest and direct-child manifest-only handoff.
 
@@ -132,7 +171,9 @@ and a separate manifest/provenance review before DGX execution.
 
 ## Non-goals
 
-This repair does not change RDGC's operator, epsilon placement, thresholds,
-controls, receiver selection, contexts, update normalization, bootstrap,
-decision precedence, training authorization, or inference behavior. It does not
-read the old RSTA scientific artifact, run RDGC, or use any RDGC outcome.
+This repair does not change RDGC's operator, epsilon placement, remaining
+thresholds, controls, receiver selection, contexts, update normalization,
+bootstrap, decision precedence, training authorization, or inference behavior.
+It changes only the classification of `E_r,180` from decision-bearing to
+descriptive and corrects RDGC's relationship to RSTA. It does not read the old
+RSTA scientific artifact, run RDGC, or use any RDGC outcome.
