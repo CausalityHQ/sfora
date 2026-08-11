@@ -9,19 +9,20 @@
 rerunning source training, bind the immutable H4/S4 receipt separately from the
 new V5/H5 executor, and complete the registered CPU diagnostic once.
 
-**Architecture:** V5 branches from S4 through this amendment and plan, changes
-only the diagnostic and its test, and implements an exact source-v5 authority
-schema. H5 is the sole-manifest child of V5. The v5 manifest binds historical
-H4/S4/receipt/output Git-and-byte evidence and current H5/V5 Git/worktree
-evidence as separate domains. The existing public activation/controller path
-then emits source-manifest v2 and runs unchanged integrity/scientific logic.
+**Architecture:** V5 branches from S4 through the exact docs chain below,
+changes only the diagnostic, contract, and diagnostic test, and implements an
+exact source-v5 authority schema. H5 is the sole-manifest child of V5. The v5
+manifest binds historical H4/S4/receipt/output Git-and-byte evidence and current
+H5/V5 Git/worktree evidence as separate domains. The existing public
+activation/controller path then emits source-manifest v2 and runs unchanged
+integrity/scientific logic.
 
 **Authority:**
 
 ```text
 path: docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md
-sha256: dbd3a4f39aa731e511b41e182bb360be35d8e3aa58ddd5c4736a2e12b8566e55
-commit: 1f5bb121ed6062b00f904395715dcd89bb28fb6f
+sha256: aea24a590cfda45e80fb14192635b773b6cb1449e4170702ee689ce52c4f5799
+commit: 12003f535d1dcfa91274c895af830df690856a2c
 historical S4: 53a9db9e9dbe54fcebb33769b915c3f33699d522
 historical H4: 32c4d39322fca2a5a906f785bdb612dcd7008647
 H4 preservation ref: pass201-source-v4-handoff-32c4d39
@@ -45,6 +46,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `scripts/diagnose_pass201_cis_operator.py` and
   `scripts/pass201_pa_source_v2_contract.py` and
   `tests/test_diagnose_pass201_cis_operator.py`.
+- The exact docs ancestry before source work is S4 → `d4a2df3` → `04f423b`
+  → `1f5bb12` → `4afbda4` → `12003f5` → this final plan commit. Each edge is
+  single-parent, merge-free, nonempty, and confined to its registered one-file
+  documentation scope; arbitrary docs-only ancestors are forbidden.
 - H5 changes only
   `docs/pass201_pa_source_v5_authorization_manifest.json` with status `A` and
   mode `100644`, and `H5^ == V5`.
@@ -65,7 +70,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - Review this plan.
 - Read the diagnostic/test and H4 manifest only; do not execute science.
 
-- [ ] Verify `1f5bb121ed6062b00f904395715dcd89bb28fb6f` is the final
+- [ ] Verify `12003f535d1dcfa91274c895af830df690856a2c` is the final
   one-file amendment-fix descendant of S4 and its Git/worktree SHA is the
   literal above.
 - [ ] Verify this plan is its sole-path child and substitute its final commit
@@ -109,9 +114,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - [ ] Add exact static bindings for A5/P5, H4/S4, v4 manifest metadata,
   receipt metadata, five non-receipt output records, v5 manifest path/schema,
   and exact 30-source path order.
-- [ ] Add a v5 source-chain validator: A5/P5 must be exact ancestors; each
+- [ ] Add a v5 source-chain validator: the exact six docs commits through the
+  final A5/P5 must be exact ancestors; each
   source commit after P5 is merge-free, nonempty, `M`-only, and confined to the
-  exact two paths; aggregate scope is both paths.
+  exact three paths; aggregate scope is all three paths.
 - [ ] Generalize the existing handoff authenticator only by manifest path and
   expected v5 schema, preserving detached/clean, sole-parent, sole-`A`-manifest,
   mode, Git/worktree, and parent relations.
@@ -161,13 +167,16 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 **Files:** Same three files.
 
 - [ ] Add real `main([...])` tests for `--activate-source`, `--binding-only`,
-  `--smoke-only`, and `--scientific` argument/path pinning. There is no public
-  SHA override, runtime factory, alternate manifest, or alternate output path.
+  `--smoke-only`, and `--scientific` argument/path pinning. Register exact
+  `SMOKE_RESULT_PATH`; bind smoke only to that path and science only to the
+  unchanged `RESULT_PATH`. There is no public SHA override, runtime factory,
+  alternate manifest, caller-selected output, or cross-mode output path.
 - [ ] Prove each invocation re-authenticates H5/V5 and H4/S4/receipt/outputs.
 - [ ] Prove authority failures produce no activation/result/temp file and no
   Torch/model/checkpoint/candidate access.
 - [ ] Re-run existing no-clobber, rollback, and persisted-output tests. Add
-  destination sentinels for activation and result paths.
+  destination sentinels for activation, smoke, and result paths. Prove smoke
+  cannot overwrite or block the distinct scientific result.
 - [ ] Add byte/function-source assertions proving the repair does not change
   constants, context counts, operators, tensor arithmetic, thresholds,
   bootstrap, aggregation, or decision functions.
@@ -231,12 +240,14 @@ smoke output, and final result path.
   reload and validate both activation files and dual provenance.
 - [ ] Run one fresh `--binding-only` process. It must exit zero and write
   nothing.
-- [ ] Run one fresh `--smoke-only` controller. Authenticate all process records,
-  exact input/context/action hashes, CPU device/build evidence, and registered
-  replay tolerances. STOP on any failure; do not run science.
+- [ ] Run one fresh `--smoke-only` controller with the exact registered smoke
+  destination. Authenticate all process records, exact input/context/action
+  hashes, CPU device/build evidence, and registered replay tolerances. Prove
+  the scientific result remains absent. STOP on any failure; do not run science.
 - [ ] Only after GREEN, run one fresh `--scientific` controller. Monitor the
-  original PID only; no retry or duplicate. On completion, strictly reload and
-  validate the result and all provenance/replay/scientific relations.
+  original PID only with the unchanged exact result destination; no retry or
+  duplicate. On completion, strictly reload and validate the result and all
+  provenance/replay/scientific relations while preserving the smoke bytes.
 - [ ] Report exact process IDs/exits/times, output paths/SHA values, and final
   PASS/FAIL/UNRESOLVED result. No additional GPU or training action is
   authorized.
