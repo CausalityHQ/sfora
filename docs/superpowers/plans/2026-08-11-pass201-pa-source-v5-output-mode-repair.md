@@ -23,12 +23,16 @@ authentication, POSIX `open`/`fstat`/`lstat`, SHA-256.
 
 ```text
 amendment path: docs/pass201_pa_source_v5_output_mode_repair_amendment_2026-08-11.md
-amendment commit A6: a8119bcf4b97de6a7a948d75ffd393e64c406b10
-amendment SHA-256: 9b3d8def5622ed402599f0c8ddfd0071d430ef6356bdd7b57ba9e19f3ff9a0bb
+amendment commit A6: c575ffc1a040530eeeb3e439d67d1d4b24fe92ac
+amendment SHA-256: 32133627314017b0ff62a7f4ad3da100619828f7bca08fd171df790e16e93c0d
 initial amendment commit: 622e145b2dfeafdf6a202c7012ad92813a2932c2
+first amendment fix: a8119bcf4b97de6a7a948d75ffd393e64c406b10
+initial plan: 651920e80126d2c8f31b2acce6d04438fe0c12a8
 V5: 656b5f2069f76ee6d8c5079bee8ae6a371a89f69
 H5: 18b225f33b61dd221d6878cf8b14eb75a0037323
 H5 manifest SHA-256: 2cf3b9a1c5cb41304f8d653e839d5372fa9570c4f442d4948ecdec4256c0de20
+H5 preservation ref: pass201-source-v5-handoff-18b225f
+H5 bundle SHA-256: 838b3f65435b374e172220caa1612910fc3ca73fd24560a0ab7affec6e7ceb75
 historical receipt SHA-256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9
 historical output mode: decimal 33060 / octal 0100444
 ```
@@ -43,7 +47,7 @@ historical output mode: decimal 33060 / octal 0100444
 - Preserve the baseline Recall@1 `0.9174989449992966` as the reproducible
   comparison anchor.
 - The only P6-to-V6 source/test paths are the diagnostic, shared contract, and
-  diagnostic test named by the amendment.
+  their two tests named by the amendment.
 - Use one Opus-to-Sol consultation per completed docs/source/H6 boundary;
   explicit ordered models are `opus,gpt-5.6-sol`. Do not replay failed jobs.
 - H6 contains no candidate or scientific values. Activation, binding-only,
@@ -65,10 +69,12 @@ historical output mode: decimal 33060 / octal 0100444
 
 - [ ] **Step 1: Verify the failure boundary read-only**
 
-  Confirm PID `1061572` is absent; activation/source-manifest/smoke/science and
-  owned temporary paths are absent; no GPU compute process remains. Confirm
-  all four copied files are regular non-symlinks with mode `0444`, exact bytes,
-  and exact receipt SHA-256.
+  On `riomus@spark-2751`, confirm PID `1061572` is absent;
+  activation/source-manifest/smoke/science and owned temporary paths are
+  absent; no GPU compute process remains. Confirm all four copied files are
+  regular non-symlinks with mode `0444`, exact bytes, and exact receipt
+  SHA-256. Locally, verify the registered bundle SHA, preservation ref, H5^=V5,
+  sole manifest edge, and H5 manifest Git-byte SHA.
 
 - [ ] **Step 2: Verify producer intent from source**
 
@@ -83,8 +89,9 @@ historical output mode: decimal 33060 / octal 0100444
 
 - [ ] **Step 4: Commit this plan alone**
 
-  Require A6 as the exact parent, sole path addition, mode `100644`, clean
-  `git diff --check`, and record P6 commit/SHA in production constants/tests.
+  Require A6 as the exact parent, sole path modification, mode `100644`, and
+  clean `git diff --check`. Record the resulting P6 commit/SHA later in V6
+  production constants/tests; P6 cannot self-bind its own commit.
 
 ### Task 2: Establish exact immutable-output RED tests
 
@@ -102,7 +109,7 @@ historical output mode: decimal 33060 / octal 0100444
 - [ ] **Step 1: Write the valid read-only file regression**
 
   Create a real repository-relative regular file, write independent bytes,
-  chmod `0444`, compute SHA-256, and pass exact ordered evidence:
+  chmod `0444`, compute SHA-256, and pass canonical receipt-shaped evidence:
 
   ```python
   evidence = {
@@ -134,6 +141,7 @@ historical output mode: decimal 33060 / octal 0100444
 - Modify: `scripts/pass201_pa_source_v2_contract.py`
 - Modify: `scripts/diagnose_pass201_cis_operator.py`
 - Modify: `tests/test_diagnose_pass201_cis_operator.py`
+- Modify: `tests/test_pass201_pa_source_v2_contract.py`
 
 **Interfaces:**
 
@@ -149,13 +157,16 @@ historical output mode: decimal 33060 / octal 0100444
   Open the parent directory and named file with no-follow semantics, require
   regular type and exact `st_mode`, stream SHA-256 and byte count, compare
   pre/post descriptor identity, compare the named entry and parent identity,
-  and return exact observed evidence.
+  and return observed absolute path, complete mode, size, and digest. The helper
+  is mode-generic; it must not contain the activation-specific literal 33060.
 
 - [ ] **Step 2: Replace the hard-coded activation predicate**
 
-  Require exact ordered evidence keys and concrete types; require historical
-  literal mode `0o100444`; call `verify_existing_regular_file`; compare the
-  returned path/mode/size/hash exactly to receipt evidence and authority path.
+  Rely on prior canonical-receipt byte authentication for key order. Require
+  the exact evidence key set and concrete types; require the activation-only
+  historical literal mode `0o100444`; compare the absolute live path separately
+  to `root / evidence["path"]`; call `verify_existing_regular_file`; compare
+  only returned complete mode/size/hash to receipt evidence.
 
 - [ ] **Step 3: Run focused GREEN**
 
@@ -170,7 +181,7 @@ historical output mode: decimal 33060 / octal 0100444
 
 ### Task 4: Add source-v6 authority and freezer
 
-**Files:** same three files.
+**Files:** same four files.
 
 **Interfaces:**
 
@@ -209,7 +220,7 @@ historical output mode: decimal 33060 / octal 0100444
 
 ### Task 5: Full assurance and independent source review
 
-**Files:** exact three-file source/test scope.
+**Files:** exact four-file source/test scope.
 
 - [ ] **Step 1: Run the complete affected suite once**
 
@@ -230,7 +241,7 @@ historical output mode: decimal 33060 / octal 0100444
 
 - [ ] **Step 4: Commit reviewed V6**
 
-  Require aggregate P6..V6 scope exactly the three registered files, record
+  Require aggregate P6..V6 scope exactly the four registered files, record
   V6 and all source digests, and leave only protected untracked files.
 
 ### Task 6: Freeze and review manifest-only H6
@@ -263,7 +274,8 @@ historical output mode: decimal 33060 / octal 0100444
 
 - [ ] **Step 1: Prepare a fresh remote detached H6 checkout**
 
-  Copy the six historical outputs byte-for-byte, authenticate exact sizes,
+  On `riomus@spark-2751`, copy the six historical outputs byte-for-byte,
+  authenticate exact sizes,
   SHA-256, modes, non-symlink status, receipt, dataset root, runtime, clean
   checkout, output/temp absence, process absence, and empty GPU compute list.
 
