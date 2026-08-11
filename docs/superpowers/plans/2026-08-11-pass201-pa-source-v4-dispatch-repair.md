@@ -21,8 +21,8 @@ integrity/scientific logic.
 
 ```text
 path: docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md
-sha256: aea24a590cfda45e80fb14192635b773b6cb1449e4170702ee689ce52c4f5799
-commit: 12003f535d1dcfa91274c895af830df690856a2c
+sha256: a186bb4494012947f38bee176a3eafc061ab6924f953c17a9eebf78d49314a41
+commit: d392a1c028ac7c8f918acc6c7c69c78bffbbacf4
 historical S4: 53a9db9e9dbe54fcebb33769b915c3f33699d522
 historical H4: 32c4d39322fca2a5a906f785bdb612dcd7008647
 H4 preservation ref: pass201-source-v4-handoff-32c4d39
@@ -47,9 +47,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `scripts/pass201_pa_source_v2_contract.py` and
   `tests/test_diagnose_pass201_cis_operator.py`.
 - The exact docs ancestry before source work is S4 → `d4a2df3` → `04f423b`
-  → `1f5bb12` → `4afbda4` → `12003f5` → this final plan commit. Each edge is
-  single-parent, merge-free, nonempty, and confined to its registered one-file
-  documentation scope; arbitrary docs-only ancestors are forbidden.
+  → `1f5bb12` → `4afbda4` → `12003f5` → `c66a5af` → `d392a1c` → this
+  final plan commit. Each edge is single-parent, merge-free, nonempty, and
+  confined to its registered one-file documentation scope; arbitrary docs-only
+  ancestors are forbidden.
 - H5 changes only
   `docs/pass201_pa_source_v5_authorization_manifest.json` with status `A` and
   mode `100644`, and `H5^ == V5`.
@@ -70,7 +71,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - Review this plan.
 - Read the diagnostic/test and H4 manifest only; do not execute science.
 
-- [ ] Verify `12003f535d1dcfa91274c895af830df690856a2c` is the final
+- [ ] Verify `d392a1c028ac7c8f918acc6c7c69c78bffbbacf4` is the final
   one-file amendment-fix descendant of S4 and its Git/worktree SHA is the
   literal above.
 - [ ] Verify this plan is its sole-path child and substitute its final commit
@@ -92,8 +93,8 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `prelaunch manifest SHA-256 mismatch`; prove no activation/result/temp file.
 - [ ] Add an exact v5 public-dispatch test. Against old source, require failure
   because v5 is unrecognized, not because a synthetic SHA override is absent.
-- [ ] Build a real merge-free temporary Git history with separate H4 and
-  A5→P5→V5→H5 branches. Do not mock Git command helpers. Add mutations for
+- [ ] Build a real merge-free temporary Git history with separate H4 and the
+  exact eight-commit docs chain → V5 → H5 branches. Do not mock Git command helpers. Add mutations for
   every commit, parent, edge status/mode/path, source row, manifest bytes/order,
   and detached/clean predicate.
 - [ ] Add historical receipt/output fixtures using the real strict contract
@@ -114,7 +115,7 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
 - [ ] Add exact static bindings for A5/P5, H4/S4, v4 manifest metadata,
   receipt metadata, five non-receipt output records, v5 manifest path/schema,
   and exact 30-source path order.
-- [ ] Add a v5 source-chain validator: the exact six docs commits through the
+- [ ] Add a v5 source-chain validator: the exact eight docs commits through the
   final A5/P5 must be exact ancestors; each
   source commit after P5 is merge-free, nonempty, `M`-only, and confined to the
   exact three paths; aggregate scope is all three paths.
@@ -140,6 +141,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   reject every other schema. The v5 public branch must never consult the
   internal SHA-override attribute without changing legacy tests that
   intentionally cover legacy behavior.
+- [ ] Repoint `_default_cli_paths` and the public-controller manifest-path gate
+  to exact `SOURCE_V5_AUTHORIZATION_MANIFEST_PATH`. Retain the v4 path only for
+  the separately authenticated historical H4 domain; reject public caller v4,
+  alias, and every other manifest path before model/candidate access.
 - [ ] Run the Task 2 selector GREEN plus exhaustive recursive v5 mutations.
 
 ## Task 4: Implement source-manifest v2 and provenance propagation
@@ -171,6 +176,10 @@ historical receipt sha256: a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362
   `SMOKE_RESULT_PATH`; bind smoke only to that path and science only to the
   unchanged `RESULT_PATH`. There is no public SHA override, runtime factory,
   alternate manifest, caller-selected output, or cross-mode output path.
+- [ ] Prove every public non-process mode invoked without
+  `--prelaunch-manifest` resolves to the exact v5 literal, while an explicit v4
+  path fails with the repair-required error before activation/model/candidate
+  access.
 - [ ] Prove each invocation re-authenticates H5/V5 and H4/S4/receipt/outputs.
 - [ ] Prove authority failures produce no activation/result/temp file and no
   Torch/model/checkpoint/candidate access.
