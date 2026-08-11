@@ -16,7 +16,7 @@
 - Split distinct labels 80/20 by `SHA256(int64_label_bytes), label`; labels cannot cross partitions.
 - No test input may influence model selection, ridge lambda, scale, clipping, or transformation.
 - The official published checkpoint is not evaluated because no coordinate-compatible training archive exists.
-- Passing requires all six predicates in the reviewed design; there is no nonlinear rescue after outcome observation.
+- Passing requires all seven predicates in the reviewed design; there is no nonlinear rescue after outcome observation.
 - Result publication must reject an existing destination and leave no owned temporary file after failure.
 
 ---
@@ -91,7 +91,7 @@ def test_select_ridge_lambda_breaks_equal_mse_by_grid_order() -> None:
 
 - [ ] **Step 6: Implement centered ridge and selection**
 
-Center `X` and standardized `y`, solve `(Xc.T @ Xc + lambda * I) w = Xc.T @ yc`, recover the unregularized intercept, and invert target standardization before returning predictions. If target standard deviation is zero, return the constant mean predictor. Selection minimizes exact validation MSE and updates only on strict improvement.
+Center `X` and standardized `y`, solve `((Xc.T @ Xc)/n + lambda * I) w = (Xc.T @ yc)/n`, recover the unregularized intercept, and invert target standardization before returning predictions. If target standard deviation is zero, return the constant mean predictor. Selection minimizes exact validation MSE and updates only on strict improvement.
 
 - [ ] **Step 7: Run and commit Task 1**
 
@@ -130,7 +130,7 @@ Test tied-rank Spearman with independently specified average ranks. Parameterize
 
 - [ ] **Step 4: Implement diagnostics and exact predicates**
 
-Do not import SciPy. Average equal-value ranks in a stable sorted pass and compute correlations in `float64`. A constant prediction is a valid scientific KILL, not a structural error: record both correlations as `0.0`. Return predicates in this exact order: `correlation`, `absolute_gain`, `oracle_recovery`, `paired_significance`, `permuted_control`, `random_direction_null`.
+Do not import SciPy. Average equal-value ranks in a stable sorted pass and compute correlations in `float64`. A constant prediction is a valid scientific KILL, not a structural error: record both correlations as `0.0`. Require the oracle gain to be positive. Return predicates in this exact order: `correlation`, `absolute_gain`, `oracle_recovery`, `paired_significance`, `permuted_control`, `random_direction_null`, `assignment_null`.
 
 - [ ] **Step 5: Run and commit Task 2**
 
@@ -164,7 +164,7 @@ Generate a deterministic class-disjoint train archive and query/gallery archives
 
 - [ ] **Step 4: Implement the train-only pipeline**
 
-Compute all-train targets once, split their rows by held-out labels, select lambda, refit, predict the test-gallery potential, and freeze it before computing true test density. Fit the permutation control from the same all-train design and generate 20 fixed-PCG64 random unit directions, each centered/scaled to the ALSP gallery prediction. Share each query-gallery matrix product across every arm.
+Compute all-train targets once, split their rows by held-out labels, select lambda, refit, predict the test-gallery potential, and freeze it before computing true test density. Fit the target-permutation control from the same all-train design; generate 20 fixed-PCG64 random unit directions centered/scaled to the ALSP gallery prediction; and generate 20 fixed-PCG64 row permutations of the frozen prediction. Share each query-gallery matrix product across every arm. Report fixed `{0.5, 1.0, 2.0}` scale-sensitivity arms and the observed-on-predicted OLS slope/intercept as diagnostics only.
 
 - [ ] **Step 5: Write atomic-publication RED tests**
 
@@ -207,7 +207,7 @@ Run the two pytest files, Ruff, py_compile, and `git diff --check`. Run the repo
 - [ ] **Step 3: Execute once on frozen inputs**
 
 ```bash
-CUDA_VISIBLE_DEVICES='' PYTHONPATH=src /home/rb/worktrees/sfora-emafactorial/.venv/bin/python -B \
+CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=src /home/rb/worktrees/sfora-emafactorial/.venv/bin/python -B \
   scripts/evaluate_inshop_alsp.py \
   --train /home/rb/reranking-inputs-2026-08-11/inshop_corrected_pa_seed0_train_final.npz \
   --query /home/rb/reranking-inputs-2026-08-11/inshop_corrected_pa_seed0_query_final.npz \

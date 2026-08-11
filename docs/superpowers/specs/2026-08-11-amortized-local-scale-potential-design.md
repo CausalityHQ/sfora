@@ -107,8 +107,10 @@ digests must be persisted in the result.
 ### Predictor selection
 
 Fit ridge models with an unregularized intercept for the fixed grid
-`lambda in {1e-6, 1e-4, 1e-2, 1, 100}`. Select the model with the lowest
-validation mean squared error; break ties by the earlier grid entry. No test
+`lambda in {1e-6, 1e-4, 1e-2, 1, 100}`. Normalize both `Xc.T @ Xc` and
+`Xc.T @ yc` by the fit-row count before applying `lambda`, so the grid has a
+sample-count-independent meaning. Select the model with the lowest validation
+mean squared error; break ties by the earlier grid entry. No test
 embedding, test density, label, or retrieval result may participate in this
 selection.
 
@@ -126,6 +128,11 @@ Evaluate exactly once on the compatible seed-0 query/gallery pair:
 - a predictor fit to one fixed PCG64 permutation of train targets;
 - 20 fixed-PCG64 random-direction unary potentials, each centered and scaled to
   the ALSP prediction's gallery mean and standard deviation;
+- 20 fixed-PCG64 row permutations of the frozen ALSP gallery prediction, which
+  preserve its exact marginal distribution while breaking item assignment;
+- diagnostic-only ALSP multipliers `{0.5, 1.0, 2.0}` and the least-squares
+  slope/intercept mapping predicted potential to true gallery density. These
+  diagnose scale mismatch and never alter the frozen `1.0` decision arm;
 - the true test-gallery `mu_50` transductive oracle, reported only as an upper
   bound after the ALSP prediction and configuration are frozen.
 
@@ -144,11 +151,13 @@ ALSP passes only if all conditions hold:
 
 - Pearson correlation with test-gallery `mu_50` is at least `0.20`;
 - `G_alsp >= 0.001`;
-- `G_alsp >= 0.30 * G_oracle`;
+- `G_oracle > 0` and `G_alsp >= 0.30 * G_oracle`;
 - exact paired McNemar `p < 0.05`;
 - the permuted-target gain is strictly less than `G_alsp - 0.00025`.
 - `G_alsp` is strictly greater than the linear empirical 95th percentile of the
   20 random-direction gains.
+- `G_alsp` is strictly greater than the linear empirical 95th percentile of the
+  20 assignment-permutation gains.
 
 Otherwise the unary predictability hypothesis is killed. There is no nonlinear
 rescue on the same test pair. A failure may motivate the separately specified
@@ -157,6 +166,8 @@ context-feature ANC approach, but that would require a new prospective design.
 ## Leakage and reproducibility constraints
 
 - CPU NumPy only for the frozen falsifier; `CUDA_VISIBLE_DEVICES` is empty.
+- Launch with `OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, and
+  `OPENBLAS_NUM_THREADS=1`; record these values and the NumPy version.
 - No test labels enter fitting or model selection.
 - Test density is computed only for the frozen oracle and post-freeze mechanism
   diagnostics.
@@ -208,6 +219,10 @@ ALSP is adjacent to, and must be compared against:
   nearest-neighbour ranking;
 - probabilistic embeddings, which predict uncertainty distributions rather
   than this specific local-scale potential.
+- cohort score normalization, including Z/T/S/AS-Norm in speaker and face
+  verification, which estimates normalization statistics from an external
+  cohort. The narrow delta is amortizing a gallery-side potential into a
+  feed-forward predictor, not inventing cohort normalization.
 
 The defensible ALSP claim, if all gates pass, is narrow: **a train-only scalar
 head can amortize a gallery-local scaling correction to unseen-class retrieval
