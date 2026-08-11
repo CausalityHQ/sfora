@@ -4,6 +4,9 @@ import numpy as np
 import pytest
 
 from sfora.amortized_local_scale import (
+    compare_potential,
+    decide_alsp,
+    density_diagnostics,
     fit_ridge_potential,
     nonself_density,
     predict_potential,
@@ -66,3 +69,90 @@ def test_select_ridge_lambda_breaks_equal_mse_by_grid_order() -> None:
     assert model.ridge_lambda == 1e-6
     assert [row["ridge_lambda"] for row in rows] == [1e-6, 1e-4]
     assert [row["validation_mse"] for row in rows] == pytest.approx([0.0, 0.0])
+
+
+def test_compare_potential_reports_stable_ranking_and_paired_counts() -> None:
+    gallery = _unit([[1, 0], [0.8, 0.6], [0, 1]])
+    queries = _unit([[1, 0], [1, 0], [0, 1]])
+    gallery_labels = np.asarray([1, 0, 2], dtype=np.int64)
+    query_labels = np.asarray([1, 0, 2], dtype=np.int64)
+    potential = np.asarray([0.5, 0.0, 0.0], dtype=np.float64)
+
+    result = compare_potential(
+        queries,
+        query_labels,
+        gallery,
+        gallery_labels,
+        potential,
+        block_size=1,
+    )
+
+    assert result.raw_recall == pytest.approx(2 / 3)
+    assert result.corrected_recall == pytest.approx(2 / 3)
+    assert result.gain == pytest.approx(0.0)
+    assert result.wrong_to_right == 1
+    assert result.right_to_wrong == 1
+    assert result.p_value == pytest.approx(1.0)
+
+
+def test_density_diagnostics_uses_average_tied_ranks() -> None:
+    predicted = np.asarray([1.0, 2.0, 2.0, 4.0], dtype=np.float64)
+    observed = np.asarray([4.0, 1.0, 1.0, 0.0], dtype=np.float64)
+    result = density_diagnostics(predicted, observed)
+    assert result == pytest.approx(
+        {
+            "pearson": -0.8411910241920598,
+            "spearman": -1.0,
+            "mse": 6.75,
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("correlation", 0.199999),
+        ("alsp_gain", 0.000999),
+        ("oracle_gain", 0.003334),
+        ("alsp_p_value", 0.05),
+        ("permuted_gain", 0.00075),
+    ],
+)
+def test_decide_alsp_rejects_each_failed_boundary(field: str, value: float) -> None:
+    arguments = {
+        "correlation": 0.20,
+        "alsp_gain": 0.001,
+        "oracle_gain": 0.0033333333333333335,
+        "alsp_p_value": 0.049,
+        "permuted_gain": 0.000749,
+    }
+    arguments[field] = value
+    passed, predicates = decide_alsp(**arguments)
+    assert not passed
+    assert not predicates[
+        {
+            "correlation": "correlation",
+            "alsp_gain": "absolute_gain",
+            "oracle_gain": "oracle_recovery",
+            "alsp_p_value": "paired_significance",
+            "permuted_gain": "permuted_control",
+        }[field]
+    ]
+
+
+def test_decide_alsp_accepts_exact_inclusive_gain_boundaries() -> None:
+    passed, predicates = decide_alsp(
+        correlation=0.20,
+        alsp_gain=0.001,
+        oracle_gain=0.0033333333333333335,
+        alsp_p_value=0.049,
+        permuted_gain=0.000749,
+    )
+    assert passed
+    assert list(predicates) == [
+        "correlation",
+        "absolute_gain",
+        "oracle_recovery",
+        "paired_significance",
+        "permuted_control",
+    ]

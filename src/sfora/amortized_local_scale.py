@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
+from fractions import Fraction
 
 import numpy as np
+
+from sfora.gallery_hubness import corrected_cosine_top1
 
 
 @dataclass(frozen=True)
@@ -15,6 +19,18 @@ class RidgePotential:
     weights: np.ndarray
     intercept: float
     ridge_lambda: float
+
+
+@dataclass(frozen=True)
+class RetrievalComparison:
+    """Raw/corrected Recall@1 and their exact paired transition statistics."""
+
+    raw_recall: float
+    corrected_recall: float
+    gain: float
+    wrong_to_right: int
+    right_to_wrong: int
+    p_value: float
 
 
 def _validate_design(value: np.ndarray, *, name: str) -> np.ndarray:
@@ -130,6 +146,160 @@ def select_ridge_lambda(
     if selected is None:
         raise ValueError("ridge_grid did not contain a valid model")
     return selected, rows
+
+
+def _validate_labels(value: np.ndarray, row_count: int, *, name: str) -> np.ndarray:
+    if (
+        not isinstance(value, np.ndarray)
+        or value.shape != (row_count,)
+        or value.dtype != np.int64
+    ):
+        raise ValueError(f"{name} must be a row-aligned int64 vector")
+    return value
+
+
+def _exact_mcnemar(wrong_to_right: int, right_to_wrong: int) -> float:
+    discordant = wrong_to_right + right_to_wrong
+    if discordant == 0:
+        return 1.0
+    tail = sum(
+        math.comb(discordant, index)
+        for index in range(min(wrong_to_right, right_to_wrong) + 1)
+    )
+    return min(1.0, float(Fraction(2 * tail, 2**discordant)))
+
+
+def compare_potential(
+    queries: np.ndarray,
+    query_labels: np.ndarray,
+    gallery: np.ndarray,
+    gallery_labels: np.ndarray,
+    potential: np.ndarray,
+    block_size: int = 256,
+) -> RetrievalComparison:
+    """Compare raw cosine with ``2*cosine - potential`` using paired queries."""
+
+    query_matrix = _validate_embeddings(queries)
+    gallery_matrix = _validate_embeddings(gallery)
+    if query_matrix.shape[1] != gallery_matrix.shape[1]:
+        raise ValueError("query and gallery embedding dimensions differ")
+    query_targets = _validate_labels(
+        query_labels, query_matrix.shape[0], name="query_labels"
+    )
+    gallery_targets = _validate_labels(
+        gallery_labels, gallery_matrix.shape[0], name="gallery_labels"
+    )
+    if (
+        not isinstance(potential, np.ndarray)
+        or potential.shape != (gallery_matrix.shape[0],)
+        or potential.dtype != np.float64
+        or not np.isfinite(potential).all()
+    ):
+        raise ValueError("potential must be a finite gallery-aligned float64 vector")
+    zeros = np.zeros(gallery_matrix.shape[0], dtype=np.float64)
+    raw_indices, _ = corrected_cosine_top1(
+        query_matrix, gallery_matrix, zeros, block_size
+    )
+    corrected_indices, _ = corrected_cosine_top1(
+        query_matrix, gallery_matrix, potential, block_size
+    )
+    raw_correct = gallery_targets[raw_indices] == query_targets
+    corrected_correct = gallery_targets[corrected_indices] == query_targets
+    wrong_to_right = int(np.sum(~raw_correct & corrected_correct))
+    right_to_wrong = int(np.sum(raw_correct & ~corrected_correct))
+    raw_recall = float(np.mean(raw_correct, dtype=np.float64))
+    corrected_recall = float(np.mean(corrected_correct, dtype=np.float64))
+    return RetrievalComparison(
+        raw_recall=raw_recall,
+        corrected_recall=corrected_recall,
+        gain=corrected_recall - raw_recall,
+        wrong_to_right=wrong_to_right,
+        right_to_wrong=right_to_wrong,
+        p_value=_exact_mcnemar(wrong_to_right, right_to_wrong),
+    )
+
+
+def _average_ranks(value: np.ndarray) -> np.ndarray:
+    order = np.argsort(value, kind="stable")
+    ranks = np.empty(value.size, dtype=np.float64)
+    start = 0
+    while start < value.size:
+        stop = start + 1
+        while stop < value.size and value[order[stop]] == value[order[start]]:
+            stop += 1
+        ranks[order[start:stop]] = (start + stop - 1) / 2.0
+        start = stop
+    return ranks
+
+
+def _correlation(left: np.ndarray, right: np.ndarray) -> float:
+    left_centered = left - np.mean(left, dtype=np.float64)
+    right_centered = right - np.mean(right, dtype=np.float64)
+    denominator = float(
+        np.sqrt(
+            np.sum(left_centered * left_centered, dtype=np.float64)
+            * np.sum(right_centered * right_centered, dtype=np.float64)
+        )
+    )
+    if denominator == 0.0:
+        raise ValueError("correlation is undefined for a constant vector")
+    return float(
+        np.sum(left_centered * right_centered, dtype=np.float64) / denominator
+    )
+
+
+def density_diagnostics(
+    predicted: np.ndarray, observed: np.ndarray
+) -> dict[str, float]:
+    """Return Pearson, average-rank Spearman, and MSE diagnostics."""
+
+    if (
+        not isinstance(predicted, np.ndarray)
+        or not isinstance(observed, np.ndarray)
+        or predicted.ndim != 1
+        or observed.shape != predicted.shape
+        or predicted.dtype != np.float64
+        or observed.dtype != np.float64
+        or predicted.size < 2
+        or not np.isfinite(predicted).all()
+        or not np.isfinite(observed).all()
+    ):
+        raise ValueError("diagnostic inputs must be finite aligned float64 vectors")
+    errors = predicted - observed
+    return {
+        "pearson": _correlation(predicted, observed),
+        "spearman": _correlation(_average_ranks(predicted), _average_ranks(observed)),
+        "mse": float(np.mean(errors * errors, dtype=np.float64)),
+    }
+
+
+def decide_alsp(
+    *,
+    correlation: float,
+    alsp_gain: float,
+    oracle_gain: float,
+    alsp_p_value: float,
+    permuted_gain: float,
+) -> tuple[bool, dict[str, bool]]:
+    """Apply the prospectively frozen ALSP pass predicates."""
+
+    values = (
+        correlation,
+        alsp_gain,
+        oracle_gain,
+        alsp_p_value,
+        permuted_gain,
+    )
+    if any(type(value) is not float or not np.isfinite(value) for value in values):
+        raise ValueError("decision inputs must be finite concrete floats")
+    predicates = {
+        "correlation": correlation >= 0.20,
+        "absolute_gain": alsp_gain >= 0.001,
+        "oracle_recovery": oracle_gain > 0.0 and alsp_gain >= 0.30 * oracle_gain,
+        "paired_significance": 0.0 <= alsp_p_value < 0.05,
+        "permuted_control": permuted_gain < alsp_gain - 0.00025,
+    }
+    return all(predicates.values()), predicates
 
 
 def _validate_embeddings(value: np.ndarray) -> np.ndarray:
