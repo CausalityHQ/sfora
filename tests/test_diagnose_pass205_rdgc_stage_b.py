@@ -8,6 +8,7 @@ import importlib.util
 import inspect
 import json
 import math
+import os
 import subprocess
 import sys
 import types
@@ -97,6 +98,245 @@ def test_module_import_is_torch_free_in_fresh_process() -> None:
         [sys.executable, "-c", program], cwd=_ROOT, capture_output=True, text=True
     )
     assert completed.returncode == 0, completed.stderr
+
+
+def test_entry_configures_runtime_before_artifact_hash_integrity_and_seed_loading(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    events: list[str] = []
+
+    class StopAfterFirstSeed(RuntimeError):
+        pass
+
+    class RstaStub:
+        @staticmethod
+        def configure_deterministic_process() -> dict[str, object]:
+            events.append("configure")
+            return {}
+
+        @staticmethod
+        def load_training_only_seed(
+            _entry: object,
+            _receipt_seed: object,
+            *,
+            expected_dimension: int,
+        ) -> object:
+            assert expected_dimension == 17
+            events.append("load_seed")
+            raise StopAfterFirstSeed
+
+    integrity_seeds = [
+        {
+            "seed": seed,
+            "dense_jacobian_passed": True,
+            "bn_passed": True,
+            "repeatability_passed": True,
+            "normwise_adjoint_passed": True,
+            "sign_control_passed": True,
+            "rotation_passed": True,
+            "atomic_writer_passed": True,
+            "no_candidate_reachability_passed": True,
+            "action_hashes_sha256": hashlib.sha256(f"seed-{seed}".encode()).hexdigest(),
+            "passed": True,
+        }
+        for seed in range(4)
+    ]
+
+    def integrity_prefix(**_kwargs: object) -> tuple[list[dict[str, object]], dict[str, object]]:
+        events.append("integrity")
+        return integrity_seeds, {}
+
+    monkeypatch.setattr(_MODULE, "_integrity_prefix_from_rsta", integrity_prefix)
+
+    def sha256_file(_path: Path) -> str:
+        events.append("sha256_file")
+        return "a" * 64
+
+    monkeypatch.setattr(_MODULE, "_sha256_file", sha256_file)
+    monkeypatch.setattr(
+        _MODULE,
+        "build_rdgc_selection",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("selection constructed before all-four integrity")
+        ),
+    )
+    old_manifest = {
+        "binding_receipt": {"path": "binding.json"},
+        "seeds": {str(seed): {} for seed in range(4)},
+    }
+    receipt = types.SimpleNamespace(seeds=tuple(object() for _ in range(4)))
+    manifest = {
+        "historical": {
+            "manifest_path": "old-manifest.json",
+            "manifest_sha256": "a" * 64,
+        }
+    }
+    authority = {
+        "pass200_module": RstaStub,
+        "validated_historical_manifest": old_manifest,
+        "validated_binding_receipt": receipt,
+    }
+    (tmp_path / "old-manifest.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "binding.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StopAfterFirstSeed):
+        _MODULE.run_rdgc_scientific_once(
+            repository=tmp_path,
+            manifest_path=tmp_path / "manifest.json",
+            output_path=tmp_path / "output.json",
+            manifest=manifest,
+            authority=authority,
+            started_utc="2026-08-11T00:00:00Z",
+            command=["registered"],
+            expected_dimension=17,
+        )
+    assert events == ["configure", "sha256_file", "integrity", "load_seed"]
+
+
+def test_real_historical_runtime_boundary_fails_fresh_then_passes_after_configuration() -> None:
+    program = f"""
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+path = Path({str(_RSTA_SCRIPT)!r})
+spec = importlib.util.spec_from_file_location("rsta_runtime_boundary_probe", path)
+module = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = module
+spec.loader.exec_module(module)
+try:
+    module._assert_deterministic_tf32_off()
+except ValueError:
+    pass
+else:
+    raise AssertionError("fresh process unexpectedly satisfied deterministic boundary")
+module.configure_deterministic_process()
+module._assert_deterministic_tf32_off()
+"""
+    environment = dict(os.environ)
+    environment["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    completed = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", program],
+        cwd=_ROOT,
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_selection_state_is_constructed_only_after_all_four_integrity(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    events: list[str] = []
+
+    class SelectionReached(RuntimeError):
+        pass
+
+    class RstaStub:
+        @staticmethod
+        def configure_deterministic_process() -> dict[str, object]:
+            events.append("configure")
+            return {}
+
+        @staticmethod
+        def load_training_only_seed(
+            _entry: object,
+            _receipt_seed: object,
+            *,
+            expected_dimension: int,
+        ) -> object:
+            assert expected_dimension == 17
+            events.append("load_seed")
+            return types.SimpleNamespace(
+                train_example_ids=np.asarray(["id-0", "id-1"]),
+                train_labels=np.asarray([0, 1]),
+            )
+
+        @staticmethod
+        def validate_cross_seed_training_binding(_bounds: object) -> None:
+            events.append("validate_binding")
+
+        @staticmethod
+        def select_primary_panel(_ids: object, _labels: object) -> dict[str, object]:
+            events.append("old_selection")
+            return {}
+
+    integrity_seeds = [
+        {
+            "seed": seed,
+            "dense_jacobian_passed": True,
+            "bn_passed": True,
+            "repeatability_passed": True,
+            "normwise_adjoint_passed": True,
+            "sign_control_passed": True,
+            "rotation_passed": True,
+            "atomic_writer_passed": True,
+            "no_candidate_reachability_passed": True,
+            "action_hashes_sha256": hashlib.sha256(f"seed-{seed}".encode()).hexdigest(),
+            "passed": True,
+        }
+        for seed in range(4)
+    ]
+
+    def integrity_prefix(**_kwargs: object) -> tuple[list[dict[str, object]], dict[str, object]]:
+        events.append("integrity")
+        return integrity_seeds, {}
+
+    def build_selection(*_args: object, **_kwargs: object) -> dict[str, object]:
+        events.append("selection")
+        raise SelectionReached
+
+    monkeypatch.setattr(_MODULE, "_integrity_prefix_from_rsta", integrity_prefix)
+
+    def sha256_file(_path: Path) -> str:
+        events.append("sha256_file")
+        return "a" * 64
+
+    monkeypatch.setattr(_MODULE, "_sha256_file", sha256_file)
+    monkeypatch.setattr(_MODULE, "build_rdgc_selection", build_selection)
+    old_manifest = {
+        "binding_receipt": {"path": "binding.json"},
+        "seeds": {str(seed): {} for seed in range(4)},
+    }
+    authority = {
+        "pass200_module": RstaStub,
+        "validated_historical_manifest": old_manifest,
+        "validated_binding_receipt": types.SimpleNamespace(
+            seeds=tuple(object() for _ in range(4))
+        ),
+    }
+    (tmp_path / "old-manifest.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "binding.json").write_text("{}", encoding="utf-8")
+    with pytest.raises(SelectionReached):
+        _MODULE.run_rdgc_scientific_once(
+            repository=tmp_path,
+            manifest_path=tmp_path / "manifest.json",
+            output_path=tmp_path / "output.json",
+            manifest={
+                "historical": {
+                    "manifest_path": "old-manifest.json",
+                    "manifest_sha256": "a" * 64,
+                }
+            },
+            authority=authority,
+            started_utc="2026-08-11T00:00:00Z",
+            command=["registered"],
+            expected_dimension=17,
+        )
+    assert events == [
+        "configure",
+        "sha256_file",
+        "integrity",
+        "load_seed",
+        "load_seed",
+        "load_seed",
+        "load_seed",
+        "validate_binding",
+        "old_selection",
+        "selection",
+    ]
 
 
 def _finite_tensor(values: list[float], *, requires_grad: bool = False) -> torch.Tensor:

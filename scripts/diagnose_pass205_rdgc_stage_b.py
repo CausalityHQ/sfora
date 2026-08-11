@@ -4443,6 +4443,7 @@ def run_rdgc_scientific_once(
 ) -> dict[str, object]:
     """Run the complete integrity→preliminary→conditional-panel process once."""
     rsta_module = authority["pass200_module"]
+    rsta_module.configure_deterministic_process()
     historical = manifest["historical"]
     old_manifest_path = _within(repository, repository / historical["manifest_path"])
     if _sha256_file(old_manifest_path) != historical["manifest_sha256"]:
@@ -4452,22 +4453,6 @@ def run_rdgc_scientific_once(
     binding_receipt_path = _within(
         repository, repository / old_manifest["binding_receipt"]["path"]
     )
-    bounds = tuple(
-        rsta_module.load_training_only_seed(old_manifest["seeds"][str(seed)], receipt.seeds[seed])
-        for seed in range(4)
-    )
-    rsta_module.validate_cross_seed_training_binding(bounds)
-    reference = bounds[0]
-    old_primary = rsta_module.select_primary_panel(
-        reference.train_example_ids, reference.train_labels
-    )
-    selection = build_rdgc_selection(
-        reference.train_example_ids,
-        reference.train_labels,
-        old_selection=old_primary,
-    )
-    selection = bind_selection_context_hashes(selection, bounds, rsta_module=rsta_module)
-    del old_primary
     integrity_seeds, _integrity_binding = _integrity_prefix_from_rsta(
         rsta_module=rsta_module,
         old_manifest=old_manifest,
@@ -4482,6 +4467,26 @@ def run_rdgc_scientific_once(
         "candidate_state_before_all_four": False,
     }
     _validate_integrity(integrity_result, require_all_passed=True)
+    bounds = tuple(
+        rsta_module.load_training_only_seed(
+            old_manifest["seeds"][str(seed)],
+            receipt.seeds[seed],
+            expected_dimension=expected_dimension,
+        )
+        for seed in range(4)
+    )
+    rsta_module.validate_cross_seed_training_binding(bounds)
+    reference = bounds[0]
+    old_primary = rsta_module.select_primary_panel(
+        reference.train_example_ids, reference.train_labels
+    )
+    selection = build_rdgc_selection(
+        reference.train_example_ids,
+        reference.train_labels,
+        old_selection=old_primary,
+    )
+    selection = bind_selection_context_hashes(selection, bounds, rsta_module=rsta_module)
+    del old_primary
     if integrity_observer is not None:
         integrity_observer(json.loads(json.dumps(integrity_result, allow_nan=False)))
     import torch
