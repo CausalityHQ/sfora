@@ -79,9 +79,55 @@ SCOPE_LIMITATION = (
 CANDIDATE_PATH = "docs/pass205_rdgc_candidate_2026-08-10.md"
 CANDIDATE_COMMIT = "30d533e532d0f22c8b1e474987001685a4aa3488"
 CANDIDATE_SHA256 = "2a86f11f8d6a4563610b0585db74c372903bdbf7deabd580fa929114fda2af0f"
-PLAN_PATH = "docs/superpowers/plans/2026-08-10-pass205-rdgc-stage-b.md"
-PLAN_COMMIT = "c1e49b13c08f853ae17d5b8b48be1aa7b8a4bc11"
-PLAN_SHA256 = "20915982228bd4a17f1260952fe184d9e09b27b9b28165b5931bad843872c7ed"
+ORIGINAL_PLAN_PATH = "docs/superpowers/plans/2026-08-10-pass205-rdgc-stage-b.md"
+ORIGINAL_PLAN_COMMIT = "c1e49b13c08f853ae17d5b8b48be1aa7b8a4bc11"
+ORIGINAL_PLAN_SHA256 = "20915982228bd4a17f1260952fe184d9e09b27b9b28165b5931bad843872c7ed"
+REPAIR_DESIGN_PATH = (
+    "docs/superpowers/specs/2026-08-11-pass205-rdgc-authority-repair-design.md"
+)
+REPAIR_DESIGN_COMMIT = "2f2ea249a754a1fb4186ba55939d95c85de747a8"
+REPAIR_DESIGN_SHA256 = "63be862bd099703eb3189d7317e766eb7900fe6a855d130409a32775d1008144"
+LITERATURE_AUDIT_PATH = "docs/pass205_rdgc_gate2_primary_audit_2026-08-11.md"
+LITERATURE_AUDIT_COMMIT = "9ae137f3af0558728554c6af865fe96d6bf10060"
+LITERATURE_AUDIT_SHA256 = "6f99134b905213049f0506b19b1acbcc7e5760b8412a9dc790e2c085b4f8573b"
+AUTHORITY_AMENDMENT_PATH = "docs/pass205_rdgc_authority_amendment_2026-08-11.md"
+AUTHORITY_AMENDMENT_COMMIT = "c7fae7683533e740660d7e860bd313be07a41014"
+AUTHORITY_AMENDMENT_SHA256 = (
+    "41b53d1955c4a800bfd2f901e35167e4d483e175c949353984c0ae75a69c7228"
+)
+PRIMARY_SOURCE_IDS = (
+    "pmlr-v130-zhou21a",
+    "neurips-2022-67b0579a7298d9cf39c59404d867bdd7",
+    "arxiv-2511.15487v2",
+    "neurips-2019-c61f571dbd2fb949d3fe5ae1608dd48b",
+    "pmlr-v80-chen18a",
+    "pmlr-v37-martens15",
+    "neurips-2025-4522de4178bddb36b49aa26efad537cf",
+    "pmlr-v108-barshan20a",
+    "neurips-2023-8249b30d877c91611fd8c7aa6ac2b5fe",
+    "pmlr-v162-rame22a",
+    "cvpr-2022-kim-adaface",
+    "cvpr-2021-meng-magface",
+    "cvpr-2019-zhang-adacos",
+    "arxiv-1708.03888",
+)
+PLAN_PATH = "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md"
+PLAN_COMMIT = "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a"
+PLAN_SHA256 = "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412"
+REOPENED_SOURCE_COMMIT = "291ccbfbe322565c71c1e08317ca6e5c914b74a9"
+REPAIR_DOCUMENT_CHAIN = (
+    (REPAIR_DESIGN_PATH, "68a012f7fa775099c03f9121a10323c29541308c"),
+    (LITERATURE_AUDIT_PATH, "12c55f0fd0d7a47622421be0966b3c98316f4bda"),
+    (LITERATURE_AUDIT_PATH, "9b4cf055cb00a8508e7d0aabd5667e5442037fbd"),
+    (REPAIR_DESIGN_PATH, "bad1bf0a8a9d54e6698ab45f89076d26b4482fcc"),
+    (LITERATURE_AUDIT_PATH, LITERATURE_AUDIT_COMMIT),
+    (REPAIR_DESIGN_PATH, "f116512c5132bafba706925d4586bd48e388c7c9"),
+    (REPAIR_DESIGN_PATH, "91d7d58ae0db4525fd2658ad0eda4fac4b8ed7e9"),
+    (REPAIR_DESIGN_PATH, "9b3367e4a8c0138f45719511b87862266abb679b"),
+    (REPAIR_DESIGN_PATH, REPAIR_DESIGN_COMMIT),
+    (AUTHORITY_AMENDMENT_PATH, AUTHORITY_AMENDMENT_COMMIT),
+    (PLAN_PATH, PLAN_COMMIT),
+)
 RDGC_SOURCE_ORDER = (
     "scripts/diagnose_pass159_cotangent_stage_a.py",
     "scripts/diagnose_pass200_rsta_stage_a.py",
@@ -353,11 +399,9 @@ def _finite_number(value: object) -> bool:
 def _preliminary_predicate_values(
     aggregates: dict[str, object], close_evidence: dict[str, object]
 ) -> dict[str, bool]:
-    if tuple(close_evidence) != (
-        "context_spearman_nonpositive_seed_count",
-        "full_gain_seed_medians_le_log_one_point_zero_five_A",
-        "full_gain_seed_medians_le_log_one_point_zero_five_B",
-    ) or any(type(value) is not int or not 0 <= value <= 4 for value in close_evidence.values()):
+    if tuple(close_evidence) != ("context_spearman_nonpositive_seed_count",) or any(
+        type(value) is not int or not 0 <= value <= 4 for value in close_evidence.values()
+    ):
         raise ValueError("preliminary close evidence schema mismatch")
     a = aggregates
     return {
@@ -376,11 +420,6 @@ def _preliminary_predicate_values(
             float(a[f"global_scalar_relative_error_median_{context}"]) >= 0.05
             for context in ("A", "B")
         ),
-        "survives_full_gain": all(
-            float(a[f"full_gain_error_median_{context}"]) >= math.log(1.25)
-            and int(a[f"full_gain_error_seed_medians_ge_log_one_point_one_{context}"]) >= 3
-            for context in ("A", "B")
-        ),
         "close_count_gain": any(
             float(a[f"count_gain_median_{context}"]) <= 0.0
             and int(a[f"positive_count_gain_seed_means_{context}"]) <= 1
@@ -394,16 +433,6 @@ def _preliminary_predicate_values(
         ),
         "close_global_scalar": any(
             float(a[f"global_scalar_relative_error_median_{context}"]) <= 0.02
-            for context in ("A", "B")
-        ),
-        "close_full_gain": any(
-            float(a[f"full_gain_error_median_{context}"]) <= math.log(1.05)
-            and int(
-                close_evidence[
-                    f"full_gain_seed_medians_le_log_one_point_zero_five_{context}"
-                ]
-            )
-            >= 3
             for context in ("A", "B")
         ),
     }
@@ -450,7 +479,6 @@ def decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]:
         ("close_context_stability", "close_context_spearman"),
         ("close_receiver_heterogeneity", "close_log_kappa_iqr"),
         ("close_global_scalar", "close_global_scalar"),
-        ("close_full_gain", "close_full_gain"),
     ):
         if predicates[predicate_name]:
             return {
@@ -458,7 +486,7 @@ def decide_preliminary(aggregates: dict[str, object]) -> dict[str, object]:
                 "first_decisive_clause": clause,
                 "full_panel_authorized": False,
             }
-    survives = all(predicates[name] for name in tuple(predicates)[:5])
+    survives = all(predicates[name] for name in tuple(predicates)[:4])
     if survives:
         return {
             "status": "SURVIVES",
@@ -787,19 +815,6 @@ def _preliminary_close_evidence(
 ) -> dict[str, object]:
     if len(seed_context_aggregates) != 8 or len(seed_correlations) != 4:
         raise ValueError("preliminary close evidence is incomplete")
-    counts: dict[str, int] = {}
-    for context in ("A", "B"):
-        selected = [
-            record
-            for record in seed_context_aggregates
-            if type(record) is dict and record.get("context") == context
-        ]
-        if len(selected) != 4 or [record.get("seed") for record in selected] != list(range(4)):
-            raise ValueError("preliminary close evidence order mismatch")
-        values = [record.get("full_gain_error_median") for record in selected]
-        if any(not _finite_number(value) for value in values):
-            raise ValueError("preliminary full-gain close evidence is nonfinite")
-        counts[context] = sum(float(value) <= math.log(1.05) for value in values)
     correlations = [record.get("spearman") for record in seed_correlations]
     if (
         [record.get("seed") for record in seed_correlations] != list(range(4))
@@ -809,9 +824,7 @@ def _preliminary_close_evidence(
     return {
         "context_spearman_nonpositive_seed_count": sum(
             float(value) <= 0.0 for value in correlations
-        ),
-        "full_gain_seed_medians_le_log_one_point_zero_five_A": counts["A"],
-        "full_gain_seed_medians_le_log_one_point_zero_five_B": counts["B"],
+        )
     }
 
 
@@ -1221,10 +1234,30 @@ def authenticate_authority(
         if not changed_paths or not changed_paths <= allowed_source_paths:
             raise ValueError("source history commit scope mismatch")
         cursor = cursor_parents[0]
-    if _run_git(repository, "rev-parse", f"{PLAN_COMMIT}^") != CANDIDATE_COMMIT:
-        raise ValueError("reviewed plan/candidate parent relation mismatch")
-    if _run_git(repository, "show", "-s", "--format=%P", PLAN_COMMIT).split() != [CANDIDATE_COMMIT]:
-        raise ValueError("reviewed plan must have exactly one candidate parent")
+    if _run_git(repository, "show", "-s", "--format=%P", ORIGINAL_PLAN_COMMIT).split() != [
+        CANDIDATE_COMMIT
+    ]:
+        raise ValueError("original plan must have exactly one candidate parent")
+    if not REPAIR_DOCUMENT_CHAIN or REPAIR_DOCUMENT_CHAIN[-1] != (PLAN_PATH, PLAN_COMMIT):
+        raise ValueError("repair document chain terminus differs")
+    previous_commit = REOPENED_SOURCE_COMMIT
+    for expected_path, document_commit in REPAIR_DOCUMENT_CHAIN:
+        parents = _run_git(
+            repository, "show", "-s", "--format=%P", document_commit
+        ).split()
+        if parents != [previous_commit]:
+            raise ValueError("repair document history is not the exact linear chain")
+        changed_paths = _run_git(
+            repository,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            document_commit,
+        ).splitlines()
+        if changed_paths != [expected_path]:
+            raise ValueError("repair document commit scope mismatch")
+        previous_commit = document_commit
     aggregate_scope = _run_git(
         repository,
         "diff",
@@ -1269,6 +1302,51 @@ def authenticate_authority(
         literal_digest = CANDIDATE_SHA256 if key == "candidate" else PLAN_SHA256
         if reference["sha256"] != literal_digest:
             raise ValueError(f"{key} literal digest mismatch")
+    for authority_name, expected_path, expected_commit, expected_sha256 in (
+        (
+            "original implementation plan",
+            ORIGINAL_PLAN_PATH,
+            ORIGINAL_PLAN_COMMIT,
+            ORIGINAL_PLAN_SHA256,
+        ),
+        (
+            "repair design",
+            REPAIR_DESIGN_PATH,
+            REPAIR_DESIGN_COMMIT,
+            REPAIR_DESIGN_SHA256,
+        ),
+        (
+            "literature audit",
+            LITERATURE_AUDIT_PATH,
+            LITERATURE_AUDIT_COMMIT,
+            LITERATURE_AUDIT_SHA256,
+        ),
+        (
+            "authority amendment",
+            AUTHORITY_AMENDMENT_PATH,
+            AUTHORITY_AMENDMENT_COMMIT,
+            AUTHORITY_AMENDMENT_SHA256,
+        ),
+    ):
+        authority_path = _within(repository, repository / expected_path)
+        authority_bytes = _git_bytes(
+            repository, "show", f"{expected_commit}:{expected_path}"
+        )
+        if (
+            hashlib.sha256(authority_bytes).hexdigest() != expected_sha256
+            or _sha256_file(authority_path) != expected_sha256
+        ):
+            raise ValueError(f"{authority_name} bytes differ from reviewed authority")
+    literature = manifest["literature_audit"]
+    if literature != {
+        "path": LITERATURE_AUDIT_PATH,
+        "sha256": LITERATURE_AUDIT_SHA256,
+        "commit": LITERATURE_AUDIT_COMMIT,
+        "verdict": "LIVE-NARROW",
+        "reviewed_candidate_sha256": CANDIDATE_SHA256,
+        "primary_source_ids": list(PRIMARY_SOURCE_IDS),
+    }:
+        raise ValueError("literature audit manifest authority differs")
     if _run_git(repository, "merge-base", "--is-ancestor", PLAN_COMMIT, source_commit) != "":
         # merge-base --is-ancestor succeeds with empty output; the wrapper raises on failure.
         raise ValueError("unexpected ancestry output")
@@ -1330,11 +1408,47 @@ def authenticate_authority(
         != receipt_ref["verifier_handoff_commit"]
     ):
         raise ValueError("validation receipt nested binding mismatch")
+    historical = manifest["historical"]
+    historical_manifest_path = _within(
+        repository, repository / historical["manifest_path"]
+    )
+    if _sha256_file(historical_manifest_path) != historical["manifest_sha256"]:
+        raise ValueError("historical RSTA manifest digest mismatch")
+    pass200_source = files[
+        RDGC_SOURCE_ORDER.index("scripts/diagnose_pass200_rsta_stage_a.py")
+    ]
+    pass200_module = load_authenticated_rsta_module(repository, pass200_source)
+    validated_historical_manifest = pass200_module.validate_scientific_execution_source(
+        historical_manifest_path
+    )
+    if type(validated_historical_manifest) is not dict:
+        raise ValueError("Pass 200 scientific source validator returned invalid authority")
+    historical_receipt_ref = validated_historical_manifest.get("binding_receipt")
+    if (
+        type(historical_receipt_ref) is not dict
+        or tuple(historical_receipt_ref) != ("path", "sha256")
+        or type(historical_receipt_ref["path"]) is not str
+    ):
+        raise ValueError("validated Pass 200 binding receipt reference differs")
+    historical_receipt_path = _within(
+        repository, repository / historical_receipt_ref["path"]
+    )
+    validated_binding_receipt = pass200_module.validate_historical_binding_receipt(
+        historical_manifest_path, historical_receipt_path
+    )
+    derived_seed_artifacts = derive_rdgc_seed_artifacts(
+        validated_historical_manifest, validated_binding_receipt
+    )
+    if historical["seeds"] != derived_seed_artifacts:
+        raise ValueError("historical seed records differ from validated Pass 200 authorities")
     return {
         "source_commit": source_commit,
         "handoff_commit": head,
         "files": files,
         "validation_receipt": receipt_ref,
+        "pass200_module": pass200_module,
+        "validated_historical_manifest": validated_historical_manifest,
+        "validated_binding_receipt": validated_binding_receipt,
     }
 
 
@@ -1763,6 +1877,36 @@ def _validate_artifact_ref(value: object, name: str) -> None:
     _sha(record["sha256"], f"{name}.sha256")
 
 
+def derive_rdgc_seed_artifacts(
+    manifest: object, binding_receipt: object
+) -> list[dict[str, object]]:
+    if type(manifest) is not dict:
+        raise ValueError("validated historical manifest must be an object")
+    seeds = manifest.get("seeds")
+    receipt_seeds = getattr(binding_receipt, "seeds", None)
+    if type(seeds) is not dict or tuple(seeds) != ("0", "1", "2", "3"):
+        raise ValueError("validated historical manifest seed order mismatch")
+    if type(receipt_seeds) is not tuple or len(receipt_seeds) != 4:
+        raise ValueError("validated historical receipt seed order mismatch")
+    records: list[dict[str, object]] = []
+    for seed in range(4):
+        manifest_seed = seeds[str(seed)]
+        receipt_seed = receipt_seeds[seed]
+        if type(manifest_seed) is not dict or getattr(receipt_seed, "seed", None) != seed:
+            raise ValueError("validated historical seed relation mismatch")
+        record = {
+            "seed": seed,
+            "checkpoint": dict(manifest_seed["checkpoint_pt"]),
+            "training_report": dict(manifest_seed["report_json"]),
+            "retrieval_report": dict(manifest_seed["retrieval_json"]),
+            "train_final_pack": dict(manifest_seed["train_npz"]),
+            "train_source_export_sha256": receipt_seed.train_source_export_sha256,
+        }
+        _validate_seed_artifacts(record, seed, "derived historical seed")
+        records.append(record)
+    return records
+
+
 def _validate_seed_artifacts(value: object, expected_seed: int, name: str) -> None:
     record = _exact_object(
         value,
@@ -1770,18 +1914,17 @@ def _validate_seed_artifacts(value: object, expected_seed: int, name: str) -> No
             "seed",
             "checkpoint",
             "training_report",
-            "final_pack",
-            "configuration_sha256",
-            "source_export_sha256",
+            "retrieval_report",
+            "train_final_pack",
+            "train_source_export_sha256",
         ),
         name,
     )
-    if record["seed"] != expected_seed:
+    if type(record["seed"]) is not int or record["seed"] != expected_seed:
         raise ValueError(f"{name}.seed mismatch")
-    for key in ("checkpoint", "training_report", "final_pack"):
+    for key in ("checkpoint", "training_report", "retrieval_report", "train_final_pack"):
         _validate_artifact_ref(record[key], f"{name}.{key}")
-    _sha(record["configuration_sha256"], f"{name}.configuration")
-    _sha(record["source_export_sha256"], f"{name}.source export")
+    _sha(record["train_source_export_sha256"], f"{name}.train source export")
 
 
 def _validate_integrity(value: object, *, require_all_passed: bool) -> None:
@@ -2050,12 +2193,10 @@ def _validate_preliminary(value: object, selection: dict[str, object]) -> None:
         "survives_context_stability",
         "survives_receiver_heterogeneity",
         "survives_global_scalar",
-        "survives_full_gain",
         "close_count_gain",
         "close_context_stability",
         "close_receiver_heterogeneity",
         "close_global_scalar",
-        "close_full_gain",
     ) or any(type(item) is not bool for item in preliminary["predicates"].values()):
         raise ValueError("preliminary predicate schema mismatch")
     if tuple(preliminary["decision"]) != (
@@ -2565,6 +2706,18 @@ def validate_future_manifest(value: dict[str, object]) -> None:
         raise ValueError("future manifest schema version mismatch")
     _validate_ref(value["candidate"], "future candidate")
     _validate_ref(value["implementation_plan"], "future plan")
+    if value["candidate"] != {
+        "path": CANDIDATE_PATH,
+        "sha256": CANDIDATE_SHA256,
+        "commit": CANDIDATE_COMMIT,
+    }:
+        raise ValueError("future candidate authority mismatch")
+    if value["implementation_plan"] != {
+        "path": PLAN_PATH,
+        "sha256": PLAN_SHA256,
+        "commit": PLAN_COMMIT,
+    }:
+        raise ValueError("future plan authority mismatch")
     upstream = _exact_object(
         value["upstream_rsta"],
         (
@@ -2620,12 +2773,14 @@ def validate_future_manifest(value: dict[str, object]) -> None:
     _sha(literature["sha256"], "future literature hash")
     _commit(literature["commit"], "future literature commit")
     _sha(literature["reviewed_candidate_sha256"], "future reviewed candidate")
-    if (
-        literature["verdict"] != "LIVE-NARROW"
-        or type(literature["primary_source_ids"]) is not list
-        or len(literature["primary_source_ids"]) != 14
-        or any(type(item) is not str or not item for item in literature["primary_source_ids"])
-    ):
+    if literature != {
+        "path": LITERATURE_AUDIT_PATH,
+        "sha256": LITERATURE_AUDIT_SHA256,
+        "commit": LITERATURE_AUDIT_COMMIT,
+        "verdict": "LIVE-NARROW",
+        "reviewed_candidate_sha256": CANDIDATE_SHA256,
+        "primary_source_ids": list(PRIMARY_SOURCE_IDS),
+    }:
         raise ValueError("future literature audit tuple mismatch")
     receipt = _exact_object(
         value["validation_receipt"],
@@ -4037,20 +4192,15 @@ def run_rdgc_scientific_once(
     integrity_observer: Any | None = None,
 ) -> dict[str, object]:
     """Run the complete integrity→preliminary→conditional-panel process once."""
-    helper_record = next(
-        record
-        for record in authority["files"]
-        if record["path"] == "scripts/diagnose_pass200_rsta_stage_a.py"
-    )
-    rsta_module = load_authenticated_rsta_module(repository, helper_record)
+    rsta_module = authority["pass200_module"]
     historical = manifest["historical"]
     old_manifest_path = _within(repository, repository / historical["manifest_path"])
     if _sha256_file(old_manifest_path) != historical["manifest_sha256"]:
         raise ValueError("historical RSTA manifest digest mismatch")
-    old_manifest = _strict_json(old_manifest_path)
-    binding_receipt_path = _within(repository, repository / old_manifest["binding_receipt"]["path"])
-    receipt = rsta_module.validate_historical_binding_receipt(
-        old_manifest_path, binding_receipt_path
+    old_manifest = authority["validated_historical_manifest"]
+    receipt = authority["validated_binding_receipt"]
+    binding_receipt_path = _within(
+        repository, repository / old_manifest["binding_receipt"]["path"]
     )
     bounds = tuple(
         rsta_module.load_training_only_seed(old_manifest["seeds"][str(seed)], receipt.seeds[seed])

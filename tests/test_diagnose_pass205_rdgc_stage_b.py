@@ -43,6 +43,30 @@ sys.modules[_RSTA_SPEC.name] = _RSTA
 _RSTA_SPEC.loader.exec_module(_RSTA)
 
 
+def test_repair_authority_literals_are_consumed_by_the_source_gate() -> None:
+    assert (
+        _MODULE.ORIGINAL_PLAN_PATH,
+        _MODULE.ORIGINAL_PLAN_COMMIT,
+        _MODULE.ORIGINAL_PLAN_SHA256,
+    ) == (
+        "docs/superpowers/plans/2026-08-10-pass205-rdgc-stage-b.md",
+        "c1e49b13c08f853ae17d5b8b48be1aa7b8a4bc11",
+        "20915982228bd4a17f1260952fe184d9e09b27b9b28165b5931bad843872c7ed",
+    )
+    assert (
+        _MODULE.PLAN_PATH,
+        _MODULE.PLAN_COMMIT,
+        _MODULE.PLAN_SHA256,
+    ) == (
+        "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md",
+        "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a",
+        "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412",
+    )
+    assert _MODULE.REPAIR_DESIGN_COMMIT == "2f2ea249a754a1fb4186ba55939d95c85de747a8"
+    assert _MODULE.LITERATURE_AUDIT_COMMIT == "9ae137f3af0558728554c6af865fe96d6bf10060"
+    assert _MODULE.AUTHORITY_AMENDMENT_COMMIT == "c7fae7683533e740660d7e860bd313be07a41014"
+
+
 def test_module_import_is_torch_free_in_fresh_process() -> None:
     program = (
         "import importlib.util,sys;"
@@ -80,13 +104,9 @@ def _preliminary_aggregates() -> dict[str, object]:
     }
 
 
-def _preliminary_close_evidence(
-    *, full_gain_a: int = 0, full_gain_b: int = 0, nonpositive_correlations: int = 0
-) -> dict[str, object]:
+def _preliminary_close_evidence(*, nonpositive_correlations: int = 0) -> dict[str, object]:
     return {
         "context_spearman_nonpositive_seed_count": nonpositive_correlations,
-        "full_gain_seed_medians_le_log_one_point_zero_five_A": full_gain_a,
-        "full_gain_seed_medians_le_log_one_point_zero_five_B": full_gain_b,
     }
 
 
@@ -477,7 +497,6 @@ def test_preliminary_survival_requires_every_literal_predicate() -> None:
         "context_spearman_median": math.nextafter(0.50, -math.inf),
         "log_kappa_iqr_A": math.nextafter(math.log(1.10), -math.inf),
         "global_scalar_relative_error_median_A": math.nextafter(0.05, -math.inf),
-        "full_gain_error_median_A": math.nextafter(math.log(1.25), -math.inf),
     }
     for key, value in mutations.items():
         case = deepcopy(valid)
@@ -504,16 +523,10 @@ def test_preliminary_close_precedence_and_exact_boundaries() -> None:
         ("context_spearman_median", 0.0),
         ("log_kappa_iqr_A", math.log(1.02)),
         ("global_scalar_relative_error_median_A", 0.02),
-        ("full_gain_error_median_A", math.log(1.05)),
     ):
         exact = _preliminary_decision_aggregates()
         exact[key] = boundary
-        if key == "full_gain_error_median_A":
-            exact["full_gain_error_seed_medians_ge_log_one_point_one_A"] = 1
-        evidence = _preliminary_close_evidence(
-            full_gain_a=3 if key == "full_gain_error_median_A" else 0
-        )
-        exact["_close_evidence"] = evidence
+        exact["_close_evidence"] = _preliminary_close_evidence()
         assert _MODULE.decide_preliminary(exact)["status"] == "CLOSE", key
 
 
@@ -525,6 +538,25 @@ def test_preliminary_middle_region_is_unresolved() -> None:
         "first_decisive_clause": "no_close_or_survival_rule",
         "full_panel_authorized": False,
     }
+
+
+def test_repair_removes_direct_full_gain_decisions_but_retains_descriptive_metrics() -> None:
+    summary = _MODULE.summarize_preliminary_rows(
+        _preliminary_decision_rows(full_gain_seed_values=(0.0,) * 4)
+    )
+    assert tuple(summary["predicates"]) == (
+        "survives_count_gain",
+        "survives_context_stability",
+        "survives_receiver_heterogeneity",
+        "survives_global_scalar",
+        "close_count_gain",
+        "close_context_stability",
+        "close_receiver_heterogeneity",
+        "close_global_scalar",
+    )
+    assert "full_gain_error_median_A" in summary["pooled_aggregates"]
+    assert "full_gain_error_median_B" in summary["pooled_aggregates"]
+    assert summary["decision"]["first_decisive_clause"] != "close_full_gain"
 
 
 def _preliminary_decision_rows(
@@ -557,14 +589,15 @@ def _preliminary_decision_rows(
     return rows
 
 
-def test_preliminary_full_gain_close_uses_three_seed_medians_at_log_one_point_zero_five() -> None:
+def test_preliminary_full_gain_endpoint_is_descriptive_only() -> None:
     rows = _preliminary_decision_rows(
         full_gain_seed_values=(0.0, math.log(1.04), math.log(1.06), math.log(1.08))
     )
     summary = _MODULE.summarize_preliminary_rows(rows)
     assert summary["pooled_aggregates"]["full_gain_error_median_A"] <= math.log(1.05)
-    assert summary["decision"]["status"] == "UNRESOLVED"
-    assert summary["predicates"]["close_full_gain"] is False
+    assert summary["decision"]["status"] == "SURVIVES"
+    assert "survives_full_gain" not in summary["predicates"]
+    assert "close_full_gain" not in summary["predicates"]
 
 
 def test_preliminary_predicates_record_every_true_close_condition_not_only_first() -> None:
@@ -579,7 +612,7 @@ def test_preliminary_predicates_record_every_true_close_condition_not_only_first
     assert summary["predicates"]["close_count_gain"] is True
     assert summary["predicates"]["close_receiver_heterogeneity"] is True
     assert summary["predicates"]["close_global_scalar"] is True
-    assert summary["predicates"]["close_full_gain"] is True
+    assert "close_full_gain" not in summary["predicates"]
 
 
 def test_panel_pass_requires_every_pa_six_control_context_and_alias_predicate() -> None:
@@ -1155,12 +1188,12 @@ def _authority_repository(
     _git(repository, "add", str(candidate_path.relative_to(repository)))
     _git(repository, "commit", "-qm", "candidate")
     candidate_commit = _git(repository, "rev-parse", "HEAD")
-    plan_path = repository / _MODULE.PLAN_PATH
-    plan_path.parent.mkdir(parents=True, exist_ok=True)
-    plan_path.write_text("plan\n")
-    _git(repository, "add", str(plan_path.relative_to(repository)))
-    _git(repository, "commit", "-qm", "plan")
-    plan_commit = _git(repository, "rev-parse", "HEAD")
+    original_plan_path = repository / _MODULE.ORIGINAL_PLAN_PATH
+    original_plan_path.parent.mkdir(parents=True, exist_ok=True)
+    original_plan_path.write_text("original plan\n")
+    _git(repository, "add", str(original_plan_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "original plan")
+    original_plan_commit = _git(repository, "rev-parse", "HEAD")
     for source_path in _MODULE.RDGC_SOURCE_ORDER:
         path = repository / source_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1172,7 +1205,41 @@ def _authority_repository(
     test_path.parent.mkdir(parents=True, exist_ok=True)
     test_path.write_text("# test\n")
     _git(repository, "add", *(_MODULE.RDGC_SOURCE_ORDER), str(test_path.relative_to(repository)))
-    _git(repository, "commit", "-qm", "source")
+    _git(repository, "commit", "-qm", "initial source")
+    initial_source_commit = _git(repository, "rev-parse", "HEAD")
+    design_path = repository / _MODULE.REPAIR_DESIGN_PATH
+    design_path.parent.mkdir(parents=True, exist_ok=True)
+    design_path.write_text("repair design\n")
+    _git(repository, "add", str(design_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "repair design")
+    design_commit = _git(repository, "rev-parse", "HEAD")
+    audit_path = repository / _MODULE.LITERATURE_AUDIT_PATH
+    audit_path.write_text("literature audit\n")
+    _git(repository, "add", str(audit_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "literature audit")
+    audit_commit = _git(repository, "rev-parse", "HEAD")
+    amendment_path = repository / _MODULE.AUTHORITY_AMENDMENT_PATH
+    amendment_path.write_text("authority amendment\n")
+    _git(repository, "add", str(amendment_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "authority amendment")
+    amendment_commit = _git(repository, "rev-parse", "HEAD")
+    plan_path = repository / _MODULE.PLAN_PATH
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text("repair plan\n")
+    _git(repository, "add", str(plan_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "repair plan")
+    plan_commit = _git(repository, "rev-parse", "HEAD")
+    (repository / "scripts/diagnose_pass205_rdgc_stage_b.py").write_text(
+        "# scripts/diagnose_pass205_rdgc_stage_b.py\n# repaired\n"
+    )
+    test_path.write_text("# test\n# repaired\n")
+    _git(
+        repository,
+        "add",
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "tests/test_diagnose_pass205_rdgc_stage_b.py",
+    )
+    _git(repository, "commit", "-qm", "repaired source")
     source_commit = _git(repository, "rev-parse", "HEAD")
     receipt_path = repository / "reports/validation.json"
     receipt_path.parent.mkdir(parents=True)
@@ -1190,6 +1257,33 @@ def _authority_repository(
         )
     manifest_path = repository / "docs/pass205_rdgc_stage_b_manifest.json"
     future = _future_manifest()
+    historical_receipt_path = repository / "reports/pass200-binding-receipt.json"
+    historical_receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    historical_receipt_path.write_text("{}\n")
+    validated_historical_manifest = {
+        "binding_receipt": {
+            "path": str(historical_receipt_path.relative_to(repository)),
+            "sha256": hashlib.sha256(historical_receipt_path.read_bytes()).hexdigest(),
+        },
+        "seeds": {
+            str(seed): {
+                "checkpoint_pt": dict(record["checkpoint"]),
+                "report_json": dict(record["training_report"]),
+                "retrieval_json": dict(record["retrieval_report"]),
+                "train_npz": dict(record["train_final_pack"]),
+            }
+            for seed, record in enumerate(future["historical"]["seeds"])
+        },
+    }
+    historical_manifest_path = repository / future["historical"]["manifest_path"]
+    historical_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    historical_manifest_path.write_text(
+        json.dumps(validated_historical_manifest, separators=(",", ":")) + "\n"
+    )
+    historical = deepcopy(future["historical"])
+    historical["manifest_sha256"] = hashlib.sha256(
+        historical_manifest_path.read_bytes()
+    ).hexdigest()
     manifest = {
         "schema_version": 1,
         "candidate": {
@@ -1203,7 +1297,16 @@ def _authority_repository(
             "commit": plan_commit,
         },
         "upstream_rsta": future["upstream_rsta"],
-        "literature_audit": future["literature_audit"],
+        "literature_audit": {
+            "path": _MODULE.LITERATURE_AUDIT_PATH,
+            "sha256": hashlib.sha256(audit_path.read_bytes()).hexdigest(),
+            "commit": audit_commit,
+            "verdict": "LIVE-NARROW",
+            "reviewed_candidate_sha256": hashlib.sha256(
+                candidate_path.read_bytes()
+            ).hexdigest(),
+            "primary_source_ids": list(_MODULE.PRIMARY_SOURCE_IDS),
+        },
         "validation_receipt": {
             "path": str(receipt_path.relative_to(repository)),
             "sha256": hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
@@ -1213,7 +1316,7 @@ def _authority_repository(
             "artifact_path": receipt["artifact"]["path"],
             "artifact_sha256": receipt["artifact"]["sha256"],
         },
-        "historical": future["historical"],
+        "historical": historical,
         "current_scientific_source": {"git_revision": source_commit, "files": source_files},
         "artifact_schema": future["artifact_schema"],
         "seeds": [0, 1, 2, 3],
@@ -1226,8 +1329,81 @@ def _authority_repository(
     monkeypatch.setattr(
         _MODULE, "CANDIDATE_SHA256", hashlib.sha256(candidate_path.read_bytes()).hexdigest()
     )
+    monkeypatch.setattr(_MODULE, "ORIGINAL_PLAN_COMMIT", original_plan_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "ORIGINAL_PLAN_SHA256",
+        hashlib.sha256(original_plan_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(_MODULE, "REPAIR_DESIGN_COMMIT", design_commit)
+    monkeypatch.setattr(
+        _MODULE, "REPAIR_DESIGN_SHA256", hashlib.sha256(design_path.read_bytes()).hexdigest()
+    )
+    monkeypatch.setattr(_MODULE, "LITERATURE_AUDIT_COMMIT", audit_commit)
+    monkeypatch.setattr(
+        _MODULE, "LITERATURE_AUDIT_SHA256", hashlib.sha256(audit_path.read_bytes()).hexdigest()
+    )
+    monkeypatch.setattr(_MODULE, "AUTHORITY_AMENDMENT_COMMIT", amendment_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "AUTHORITY_AMENDMENT_SHA256",
+        hashlib.sha256(amendment_path.read_bytes()).hexdigest(),
+    )
     monkeypatch.setattr(_MODULE, "PLAN_COMMIT", plan_commit)
     monkeypatch.setattr(_MODULE, "PLAN_SHA256", hashlib.sha256(plan_path.read_bytes()).hexdigest())
+    monkeypatch.setattr(_MODULE, "REOPENED_SOURCE_COMMIT", initial_source_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "REPAIR_DOCUMENT_CHAIN",
+        (
+            (_MODULE.REPAIR_DESIGN_PATH, design_commit),
+            (_MODULE.LITERATURE_AUDIT_PATH, audit_commit),
+            (_MODULE.AUTHORITY_AMENDMENT_PATH, amendment_commit),
+            (_MODULE.PLAN_PATH, plan_commit),
+        ),
+    )
+    validator_calls: list[str] = []
+    validated_receipt = types.SimpleNamespace(
+        seeds=tuple(
+            types.SimpleNamespace(
+                seed=seed,
+                train_source_export_sha256=record["train_source_export_sha256"],
+            )
+            for seed, record in enumerate(historical["seeds"])
+        )
+    )
+
+    class FakePass200Module:
+        @staticmethod
+        def validate_scientific_execution_source(path: Path) -> dict[str, object]:
+            assert path == historical_manifest_path.resolve()
+            validator_calls.append("source")
+            return deepcopy(validated_historical_manifest)
+
+        @staticmethod
+        def validate_historical_binding_receipt(
+            manifest_arg: Path, receipt_arg: Path
+        ) -> object:
+            assert manifest_arg == historical_manifest_path.resolve()
+            assert receipt_arg == historical_receipt_path.resolve()
+            validator_calls.append("receipt")
+            return validated_receipt
+
+    real_loader = _MODULE.load_authenticated_rsta_module
+
+    def load_authority_module(
+        repository_arg: Path, source: dict[str, object]
+    ) -> object:
+        if source["path"] == "scripts/diagnose_pass200_rsta_stage_a.py":
+            validator_calls.append("load_pass200")
+            return FakePass200Module()
+        return real_loader(repository_arg, source)
+
+    monkeypatch.setattr(_MODULE, "load_authenticated_rsta_module", load_authority_module)
+    monkeypatch.setattr(_MODULE, "_TEST_VALIDATOR_CALLS", validator_calls, raising=False)
+    monkeypatch.setattr(
+        _MODULE, "_TEST_INITIAL_SOURCE_COMMIT", initial_source_commit, raising=False
+    )
     return repository, manifest_path, receipt_path
 
 
@@ -1240,6 +1416,28 @@ def test_authority_binds_linear_handoff_sources_and_receipt(
     assert value["handoff_commit"] == _git(repository, "rev-parse", "HEAD")
     assert value["validation_receipt"]["status"] == "VALID"
     assert len(value["files"]) == 33
+    assert _MODULE._TEST_VALIDATOR_CALLS == ["load_pass200", "source", "receipt"]
+
+
+def test_authority_rejects_skipped_repair_chronology_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path, receipt_path = _authority_repository(tmp_path, monkeypatch)
+    chain = _MODULE.REPAIR_DOCUMENT_CHAIN
+    monkeypatch.setattr(_MODULE, "REPAIR_DOCUMENT_CHAIN", chain[:1] + chain[2:])
+    with pytest.raises(ValueError, match="repair document history"):
+        _MODULE.authenticate_authority(repository, manifest_path, receipt_path)
+    assert _MODULE._TEST_VALIDATOR_CALLS == []
+
+
+def test_authority_rejects_old_plan_as_repaired_source_chain_base(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, manifest_path, receipt_path = _authority_repository(tmp_path, monkeypatch)
+    monkeypatch.setattr(_MODULE, "REOPENED_SOURCE_COMMIT", _MODULE.ORIGINAL_PLAN_COMMIT)
+    with pytest.raises(ValueError, match="repair document history"):
+        _MODULE.authenticate_authority(repository, manifest_path, receipt_path)
+    assert _MODULE._TEST_VALIDATOR_CALLS == []
 
 
 def test_authority_uses_real_roundtrip_receipt_schema_and_nested_bindings(
@@ -1933,6 +2131,93 @@ def test_rsta_integrity_conversion_preserves_each_actual_gate_through_failure() 
     assert all(converted["seeds"][index]["passed"] for index in (0, 1, 3))
 
 
+def _validated_historical_authorities() -> tuple[dict[str, object], object]:
+    names = (
+        "checkpoint_pt",
+        "gallery_npz",
+        "prehead_npz",
+        "query_npz",
+        "report_json",
+        "retrieval_json",
+        "train_npz",
+    )
+    manifest_seeds: dict[str, object] = {}
+    receipt_seeds = []
+    for seed in range(4):
+        artifacts = {
+            name: {
+                "path": f"/registered/seed{seed}/{name}",
+                "sha256": hashlib.sha256(f"{seed}:{name}".encode()).hexdigest(),
+            }
+            for name in names
+        }
+        manifest_seeds[str(seed)] = artifacts
+        receipt_seeds.append(
+            types.SimpleNamespace(
+                seed=seed,
+                artifacts=artifacts,
+                official_recall_at_1=0.5,
+                train_row_count=180,
+                train_identity_count=40,
+                train_example_id_order_sha256="1" * 64,
+                train_label_order_sha256="2" * 64,
+                train_source_order_sha256="3" * 64,
+                train_source_export_sha256=hashlib.sha256(
+                    f"train-source:{seed}".encode()
+                ).hexdigest(),
+            )
+        )
+    return {"seeds": manifest_seeds}, types.SimpleNamespace(seeds=tuple(receipt_seeds))
+
+
+def test_repaired_seed_schema_is_derived_from_validated_pass200_authorities() -> None:
+    manifest, receipt = _validated_historical_authorities()
+    records = _MODULE.derive_rdgc_seed_artifacts(manifest, receipt)
+    assert [record["seed"] for record in records] == [0, 1, 2, 3]
+    assert tuple(records[0]) == (
+        "seed",
+        "checkpoint",
+        "training_report",
+        "retrieval_report",
+        "train_final_pack",
+        "train_source_export_sha256",
+    )
+    assert records[0]["checkpoint"] == manifest["seeds"]["0"]["checkpoint_pt"]
+    assert records[0]["training_report"] == manifest["seeds"]["0"]["report_json"]
+    assert records[0]["retrieval_report"] == manifest["seeds"]["0"]["retrieval_json"]
+    assert records[0]["train_final_pack"] == manifest["seeds"]["0"]["train_npz"]
+    assert records[0]["train_source_export_sha256"] == (
+        receipt.seeds[0].train_source_export_sha256
+    )
+
+
+def test_repaired_seed_schema_rejects_recursive_shape_type_and_relation_drift() -> None:
+    manifest, receipt = _validated_historical_authorities()
+    baseline = _MODULE.derive_rdgc_seed_artifacts(manifest, receipt)[0]
+    mutants: list[dict[str, object]] = []
+    mutant = deepcopy(baseline)
+    mutant["seed"] = False
+    mutants.append(mutant)
+    mutant = deepcopy(baseline)
+    mutant["configuration_sha256"] = "0" * 64
+    mutants.append(mutant)
+    mutant = deepcopy(baseline)
+    mutant["checkpoint"] = {
+        "sha256": baseline["checkpoint"]["sha256"],
+        "path": baseline["checkpoint"]["path"],
+    }
+    mutants.append(mutant)
+    mutant = deepcopy(baseline)
+    mutant["retrieval_report"]["sha256"] = "A" * 64
+    mutants.append(mutant)
+    mutant = deepcopy(baseline)
+    mutant["train_final_pack"]["path"] = ""
+    mutants.append(mutant)
+    for mutant in mutants:
+        with pytest.raises(ValueError):
+            _MODULE._validate_seed_artifacts(mutant, 0, "mutant seed")
+
+
 def _future_manifest() -> dict[str, object]:
     reference = {"path": "docs/value.md", "sha256": "d" * 64, "commit": "e" * 40}
     artifact = {"path": "artifacts/value.json", "sha256": "f" * 64}
@@ -1941,9 +2226,9 @@ def _future_manifest() -> dict[str, object]:
             "seed": seed,
             "checkpoint": dict(artifact),
             "training_report": dict(artifact),
-            "final_pack": dict(artifact),
-            "configuration_sha256": "1" * 64,
-            "source_export_sha256": "2" * 64,
+            "retrieval_report": dict(artifact),
+            "train_final_pack": dict(artifact),
+            "train_source_export_sha256": "2" * 64,
         }
         for seed in range(4)
     ]
@@ -1953,8 +2238,16 @@ def _future_manifest() -> dict[str, object]:
     ]
     return {
         "schema_version": 1,
-        "candidate": dict(reference),
-        "implementation_plan": dict(reference),
+        "candidate": {
+            "path": _MODULE.CANDIDATE_PATH,
+            "sha256": _MODULE.CANDIDATE_SHA256,
+            "commit": _MODULE.CANDIDATE_COMMIT,
+        },
+        "implementation_plan": {
+            "path": _MODULE.PLAN_PATH,
+            "sha256": _MODULE.PLAN_SHA256,
+            "commit": _MODULE.PLAN_COMMIT,
+        },
         "upstream_rsta": {
             "candidate": dict(reference),
             "gate2_audit": dict(reference),
@@ -1971,12 +2264,27 @@ def _future_manifest() -> dict[str, object]:
             "first_decisive_clause": "no_pass_or_fail_rule",
         },
         "literature_audit": {
-            "path": "docs/audit.md",
-            "sha256": "3" * 64,
-            "commit": "5" * 40,
+            "path": _MODULE.LITERATURE_AUDIT_PATH,
+            "sha256": _MODULE.LITERATURE_AUDIT_SHA256,
+            "commit": _MODULE.LITERATURE_AUDIT_COMMIT,
             "verdict": "LIVE-NARROW",
-            "reviewed_candidate_sha256": "d" * 64,
-            "primary_source_ids": [f"source-{index}" for index in range(14)],
+            "reviewed_candidate_sha256": _MODULE.CANDIDATE_SHA256,
+            "primary_source_ids": [
+                "pmlr-v130-zhou21a",
+                "neurips-2022-67b0579a7298d9cf39c59404d867bdd7",
+                "arxiv-2511.15487v2",
+                "neurips-2019-c61f571dbd2fb949d3fe5ae1608dd48b",
+                "pmlr-v80-chen18a",
+                "pmlr-v37-martens15",
+                "neurips-2025-4522de4178bddb36b49aa26efad537cf",
+                "pmlr-v108-barshan20a",
+                "neurips-2023-8249b30d877c91611fd8c7aa6ac2b5fe",
+                "pmlr-v162-rame22a",
+                "cvpr-2022-kim-adaface",
+                "cvpr-2021-meng-magface",
+                "cvpr-2019-zhang-adacos",
+                "arxiv-1708.03888",
+            ],
         },
         "validation_receipt": {
             "path": "reports/validation.json",
@@ -2308,3 +2616,36 @@ def test_future_manifest_validator_freezes_source_and_projection_order() -> None
         target[path[-1]] = replacement
         with pytest.raises(ValueError):
             _MODULE.validate_future_manifest(mutant)
+
+
+def test_future_manifest_rejects_valid_looking_literature_authority_drift() -> None:
+    value = _future_manifest()
+    _MODULE.validate_future_manifest(value)
+    mutations = []
+    for key, replacement in (
+        ("path", "docs/alias-audit.md"),
+        ("sha256", "7" * 64),
+        ("commit", "8" * 40),
+        ("verdict", "UNRESOLVED"),
+        ("reviewed_candidate_sha256", "9" * 64),
+    ):
+        mutant = deepcopy(value)
+        mutant["literature_audit"][key] = replacement
+        mutations.append(mutant)
+    mutant = deepcopy(value)
+    mutant["literature_audit"]["primary_source_ids"][8] = "openreview-wrong-version"
+    mutations.append(mutant)
+    for mutant in mutations:
+        with pytest.raises(ValueError, match="literature"):
+            _MODULE.validate_future_manifest(mutant)
+
+
+def test_future_manifest_rejects_original_plan_as_current_authority() -> None:
+    value = _future_manifest()
+    value["implementation_plan"] = {
+        "path": _MODULE.ORIGINAL_PLAN_PATH,
+        "sha256": _MODULE.ORIGINAL_PLAN_SHA256,
+        "commit": _MODULE.ORIGINAL_PLAN_COMMIT,
+    }
+    with pytest.raises(ValueError, match="candidate|plan"):
+        _MODULE.validate_future_manifest(value)
