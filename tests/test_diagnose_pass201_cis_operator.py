@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import json
+import shutil
+import stat
 import struct
 import subprocess
 import sys
@@ -83,6 +86,7 @@ def _deterministic_settings() -> dict[str, object]:
         "torch_num_interop_threads": 1,
     }
 
+
 FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f402ef8066"
 
 
@@ -105,8 +109,7 @@ def _literal_tree_digest(root: Path, relative_root: str) -> tuple[int, str]:
         key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
     )
     framed = b"".join(
-        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
-        for path in paths
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode() for path in paths
     )
     return len(paths), hashlib.sha256(framed).hexdigest()
 
@@ -117,8 +120,7 @@ def _literal_data_tree_digest(root: Path, relative_root: str) -> tuple[int, int,
         key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
     )
     framed = b"".join(
-        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
-        for path in paths
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode() for path in paths
     )
     return (
         len(paths),
@@ -254,9 +256,7 @@ def test_source_v3_full_authority_loads_real_six_path_v_then_manifest_only_h(
     payload["source"]["files"] = [
         _repo_row(checkout, source_commit, relative) for relative in source_paths
     ]
-    payload["source"]["pyproject"] = _repo_row(
-        checkout, source_commit, "pyproject.toml"
-    )
+    payload["source"]["pyproject"] = _repo_row(checkout, source_commit, "pyproject.toml")
     payload["source"]["lockfile"] = _repo_row(checkout, source_commit, "uv.lock")
     payload["execution"]["checkout_root"] = str(checkout)
     payload["execution"]["cwd"] = str(checkout)
@@ -297,9 +297,7 @@ def test_source_v3_full_authority_loads_real_six_path_v_then_manifest_only_h(
 def test_source_v3_git_handoff_authenticates_detached_manifest_only_child(
     tmp_path: Path,
 ) -> None:
-    root, source_commit, handoff_commit, manifest_path = _source_v3_handoff_fixture(
-        tmp_path
-    )
+    root, source_commit, handoff_commit, manifest_path = _source_v3_handoff_fixture(tmp_path)
     handoff = MODULE._authenticate_source_v3_git_handoff(
         root=root,
         git_root=root,
@@ -426,9 +424,7 @@ def test_source_v4_source_chain_rejects_historical_parent_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(tmp_path)
-    monkeypatch.setattr(
-        MODULE, "PROCESS_ENTRY_F4_COMMIT", MODULE.PROCESS_ENTRY_DRAFT_PLAN_COMMIT
-    )
+    monkeypatch.setattr(MODULE, "PROCESS_ENTRY_F4_COMMIT", MODULE.PROCESS_ENTRY_DRAFT_PLAN_COMMIT)
     with pytest.raises(ValueError, match="historical edge differs"):
         MODULE._authenticate_source_v4_source_chain(root, source_commit)
 
@@ -437,9 +433,7 @@ def test_source_v4_source_chain_rejects_historical_parent_drift(
 def test_source_v3_git_handoff_rejects_topology_and_worktree_drift(
     tmp_path: Path, mutation: str
 ) -> None:
-    root, _source_commit, _handoff_commit, manifest_path = _source_v3_handoff_fixture(
-        tmp_path
-    )
+    root, _source_commit, _handoff_commit, manifest_path = _source_v3_handoff_fixture(tmp_path)
     if mutation == "dirty":
         manifest_path.write_bytes(b'{"drift":true}\n')
     elif mutation == "extra_edge":
@@ -489,13 +483,9 @@ def _source_v3_receipt_relation_fixture() -> tuple[SimpleNamespace, dict, object
             "protocol": protocol,
             "plan": plan,
             "authorization": {
-                "manifest_path": (
-                    "docs/pass201_pa_source_v3_authorization_manifest.json"
-                ),
+                "manifest_path": ("docs/pass201_pa_source_v3_authorization_manifest.json"),
                 "required_parent_commit": handoff.source_commit,
-                "required_diff_paths": (
-                    "docs/pass201_pa_source_v3_authorization_manifest.json",
-                ),
+                "required_diff_paths": ("docs/pass201_pa_source_v3_authorization_manifest.json",),
             },
         }
     )
@@ -566,43 +556,26 @@ def _repo_row(root: Path, revision: str, relative: str) -> dict[str, object]:
 def test_source_v3_repo_row_authenticates_git_blob_and_worktree_bytes(
     tmp_path: Path,
 ) -> None:
-    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
-        tmp_path
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(tmp_path)
+    row = _repo_row(root, source_commit, "scripts/pass201_pa_source_v2_contract.py")
+    assert (
+        MODULE._authenticate_source_v3_repo_row(root, source_commit, row)
+        == (root / "scripts/pass201_pa_source_v2_contract.py").read_bytes()
     )
-    row = _repo_row(
-        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
-    )
-    assert MODULE._authenticate_source_v3_repo_row(root, source_commit, row) == (
-        root / "scripts/pass201_pa_source_v2_contract.py"
-    ).read_bytes()
 
 
 @pytest.mark.parametrize("mutation", ("sha256", "blob", "mode", "worktree"))
 def test_source_v3_repo_row_rejects_valid_looking_binding_drift(
     tmp_path: Path, mutation: str
 ) -> None:
-    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
-        tmp_path
-    )
-    row = _repo_row(
-        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
-    )
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(tmp_path)
+    row = _repo_row(root, source_commit, "scripts/pass201_pa_source_v2_contract.py")
     if mutation == "worktree":
         (root / row["path"]).write_text("DRIFT = True\n", encoding="utf-8")
     else:
         row[
-            "git_mode"
-            if mutation == "mode"
-            else "git_blob"
-            if mutation == "blob"
-            else mutation
-        ] = (
-            "9" * 64
-            if mutation == "sha256"
-            else "9" * 40
-            if mutation == "blob"
-            else "100755"
-        )
+            "git_mode" if mutation == "mode" else "git_blob" if mutation == "blob" else mutation
+        ] = "9" * 64 if mutation == "sha256" else "9" * 40 if mutation == "blob" else "100755"
     with pytest.raises(ValueError):
         MODULE._authenticate_source_v3_repo_row(root, source_commit, row)
 
@@ -610,23 +583,13 @@ def test_source_v3_repo_row_rejects_valid_looking_binding_drift(
 def test_source_v3_contract_loader_executes_only_the_authenticated_private_blob(
     tmp_path: Path,
 ) -> None:
-    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(
-        tmp_path
-    )
-    row = _repo_row(
-        root, source_commit, "scripts/pass201_pa_source_v2_contract.py"
-    )
-    contract_module = MODULE._load_authenticated_source_v3_contract(
-        root, source_commit, row
-    )
-    assert contract_module.__file__ == str(
-        root / "scripts/pass201_pa_source_v2_contract.py"
-    )
+    root, source_commit, _handoff_commit, _manifest_path = _source_v3_handoff_fixture(tmp_path)
+    row = _repo_row(root, source_commit, "scripts/pass201_pa_source_v2_contract.py")
+    contract_module = MODULE._load_authenticated_source_v3_contract(root, source_commit, row)
+    assert contract_module.__file__ == str(root / "scripts/pass201_pa_source_v2_contract.py")
     assert callable(contract_module.validate_prelaunch)
     assert callable(contract_module.validate_complete_receipt)
-    assert not any(
-        name.startswith("_pass201_source_v3_contract_") for name in sys.modules
-    )
+    assert not any(name.startswith("_pass201_source_v3_contract_") for name in sys.modules)
 
 
 def _source_binding_fixture(tmp_path: Path) -> SimpleNamespace:
@@ -666,8 +629,7 @@ def _source_binding_fixture(tmp_path: Path) -> SimpleNamespace:
         "0",
     ]
     bind_output_postcondition = (
-        "bind_output_hashes_in_separate_activation_manifest_before_any_"
-        "pass201_tensor_or_gradient"
+        "bind_output_hashes_in_separate_activation_manifest_before_any_pass201_tensor_or_gradient"
     )
     prelaunch = {
         "schema_version": "pass201-pa-source-prelaunch-v1",
@@ -810,9 +772,9 @@ def test_source_activation_emits_two_atomic_acyclic_artifacts_in_order(
     writes: list[Path] = []
     real_write = MODULE._atomic_write_json
 
-    def recording_write(path: Path, payload: object) -> bytes:
+    def recording_write(path: Path, payload: object, **kwargs: object) -> bytes:
         writes.append(path)
-        return real_write(path, payload)
+        return real_write(path, payload, **kwargs)
 
     monkeypatch.setattr(MODULE, "_atomic_write_json", recording_write)
     preregistration, manifest = MODULE.activate_source(args)
@@ -916,9 +878,7 @@ def test_source_binding_mutations_fail_before_torch_model_or_scoring(
         original = source_path.read_text(encoding="utf-8")
         source_path.write_text("REVISION_DRIFT = True\n", encoding="utf-8")
         subprocess.run(["git", "add", "src/sfora/core.py"], cwd=args.root, check=True)
-        subprocess.run(
-            ["git", "commit", "-q", "-m", "revision drift"], cwd=args.root, check=True
-        )
+        subprocess.run(["git", "commit", "-q", "-m", "revision drift"], cwd=args.root, check=True)
         revision = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=args.root,
@@ -992,7 +952,7 @@ def test_activation_failure_preserves_prior_committed_artifacts(
     before_preregistration = args.activated_preregistration.read_bytes()
     before_manifest = args.source_manifest.read_bytes()
 
-    def fail_second_write(path: Path, payload: object) -> bytes:
+    def fail_second_write(path: Path, payload: object, **_kwargs: object) -> bytes:
         if path == args.source_manifest:
             raise OSError("injected source manifest write failure")
         return MODULE.canonical_json_bytes(payload) + b"\n"
@@ -1141,12 +1101,8 @@ class _FakeProcessRuntime:
 
 def _synthetic_task2_score() -> dict:
     gradients = {}
-    updates = {
-        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
-    }
-    outcomes = {
-        regime: {operator: {} for operator in OPERATORS} for regime in REGIMES
-    }
+    updates = {regime: {operator: {} for operator in OPERATORS} for regime in REGIMES}
+    outcomes = {regime: {operator: {} for operator in OPERATORS} for regime in REGIMES}
     for operator in OPERATORS:
         for panel in PANELS:
             gradients[f"{operator}.{panel}"] = MODULE.PanelGradient(
@@ -1161,9 +1117,7 @@ def _synthetic_task2_score() -> dict:
                 cosine_with_pa=1.0,
                 cosine_with_atomic_full_union=1.0,
                 cosine_with_summed_dropout=1.0,
-                scale_residual_to_summed_union=(
-                    1.0 if operator.startswith("atomic_") else None
-                ),
+                scale_residual_to_summed_union=(1.0 if operator.startswith("atomic_") else None),
             )
             for regime in REGIMES:
                 equal = regime == "equal_norm"
@@ -1276,10 +1230,7 @@ def test_process_role_sets_determinism_before_model_and_seeds_once_without_rewin
     assert payload["process_record"]["accelerator"] == "cpu"
     assert payload["process_record"]["visible_cuda_devices"] == ["cpu"]
     assert payload["process_record"]["deterministic_settings"]["torch_num_threads"] == 1
-    assert (
-        payload["process_record"]["deterministic_settings"]["torch_num_interop_threads"]
-        == 1
-    )
+    assert payload["process_record"]["deterministic_settings"]["torch_num_interop_threads"] == 1
 
 
 def test_process_role_rejects_thread_environment_before_torch_import(
@@ -1364,14 +1315,10 @@ def test_process_role_scores_only_the_role_authorized_contexts(
     assert [int(event.split(":")[1]) for event in events if event.startswith("score:")] == (
         expected_scores
     )
-    assert payload["aggregate_context_indices"] == (
-        expected_scores if role == "scientific" else []
-    )
+    assert payload["aggregate_context_indices"] == (expected_scores if role == "scientific" else [])
 
 
-def _comparison_process(
-    role: str, *, tensor: float = 0.0, scalar: float = 1.0
-) -> dict:
+def _comparison_process(role: str, *, tensor: float = 0.0, scalar: float = 1.0) -> dict:
     context = {"context_index": 0, "operator_value": 1.0}
     contexts = (
         [context]
@@ -1623,11 +1570,9 @@ def test_replay_controller_failure_emits_only_the_launched_process_prefix(
             "metadata_sha256",
         )
     }
-    b["process_record"]["input_context_digest_records"][1]["combined_sha256"] = (
-        hashlib.sha256(
-            json.dumps(combined, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
-    )
+    b["process_record"]["input_context_digest_records"][1]["combined_sha256"] = hashlib.sha256(
+        json.dumps(combined, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     launched: list[str] = []
 
     def spawn(role: str, **kwargs: object) -> dict:
@@ -1687,7 +1632,7 @@ def test_source_v3_public_cli_rejects_old_or_aliased_manifest_path_before_contro
 ) -> None:
     called: list[bool] = []
     monkeypatch.setattr(MODULE, "run_controller", lambda args: called.append(True))
-    with pytest.raises(ValueError, match="source-v4 authorization manifest path"):
+    with pytest.raises(ValueError, match="source-v4 authorization is repair-required"):
         MODULE.main(
             [
                 "--binding-only",
@@ -1814,9 +1759,7 @@ def test_named_tensor_digest_has_literal_framing_and_little_endian_float64():
 
 def test_gradient_hash_accepts_a_live_requires_grad_tensor_via_cpu_bytes():
     live = torch.tensor([1.0, -2.0], dtype=torch.float32, requires_grad=True)
-    expected = MODULE.sha256_named_tensors(
-        [("weight", np.array([1.0, -2.0], dtype=np.float32))]
-    )
+    expected = MODULE.sha256_named_tensors([("weight", np.array([1.0, -2.0], dtype=np.float32))])
     assert MODULE.sha256_named_tensors([("weight", live)]) == expected
 
 
@@ -2070,9 +2013,9 @@ def test_process_role_scientific_aggregation_uses_the_32_retained_contexts() -> 
     aggregates, distributions = MODULE.aggregate_scored_contexts(contexts)
     MODULE._validate_aggregates(aggregates)
     assert aggregates["m_unique"]["n"] == 32
-    assert aggregates["equal_norm"]["network_only"]["operators"]["summed_union"][
-        "R_F"
-    ]["mean"] == 0.02
+    assert (
+        aggregates["equal_norm"]["network_only"]["operators"]["summed_union"]["R_F"]["mean"] == 0.02
+    )
     assert set(distributions) == set(aggregates["bootstrap"]["distribution_sha256_by_metric"])
 
 
@@ -2124,9 +2067,7 @@ def _aggregates() -> dict:
 
 def _source() -> dict:
     return {
-        "prelaunch_source_manifest_path": (
-            "docs/pass201_pa_source_v3_authorization_manifest.json"
-        ),
+        "prelaunch_source_manifest_path": ("docs/pass201_pa_source_v3_authorization_manifest.json"),
         "prelaunch_source_manifest_sha256": (
             "37644551f99976a7982589c1574effa00a9c77aa4a690117b5a8cd84244cc803"
         ),
@@ -2999,9 +2940,7 @@ def test_operator_losses_match_hand_derived_six_loss_fixture():
 
 def test_atomic_full_union_is_per_image_and_summed_union_is_cross_image():
     members = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float64)
-    proxies = torch.tensor(
-        [[1.0, 0.0], [0.0, 1.0], [2**-0.5, 2**-0.5]], dtype=torch.float64
-    )
+    proxies = torch.tensor([[1.0, 0.0], [0.0, 1.0], [2**-0.5, 2**-0.5]], dtype=torch.float64)
     losses = MODULE.coalition_losses(
         embeddings=members,
         labels=torch.tensor([10, 20]),
@@ -3011,9 +2950,7 @@ def test_atomic_full_union_is_per_image_and_summed_union_is_cross_image():
         alpha=1.0,
         delta=0.0,
     )
-    assert losses["atomic_full_union"].item() == pytest.approx(
-        0.7047830585784727, abs=1e-12
-    )
+    assert losses["atomic_full_union"].item() == pytest.approx(0.7047830585784727, abs=1e-12)
     assert losses["summed_union"].item() == pytest.approx(0.7049762468198759, abs=1e-12)
 
 
@@ -3048,9 +2985,7 @@ class _TinyOperatorModel(torch.nn.Module):
             torch.tensor([[1.0, 0.1], [-0.2, 1.0], [0.8, 0.6]], dtype=torch.float64)
         )
         self.encoder = torch.nn.Linear(2, 2, bias=False, dtype=torch.float64)
-        self.encoder.weight.data.copy_(
-            torch.tensor([[1.0, 0.2], [-0.1, 0.9]], dtype=torch.float64)
-        )
+        self.encoder.weight.data.copy_(torch.tensor([[1.0, 0.2], [-0.1, 0.9]], dtype=torch.float64))
         if disconnected:
             self.unused = torch.nn.Parameter(torch.tensor([0.25], dtype=torch.float64))
 
@@ -3060,9 +2995,7 @@ class _TinyOperatorModel(torch.nn.Module):
 
 def _tiny_gradient_fixture(*, disconnected=False):
     model = _TinyOperatorModel(disconnected=disconnected)
-    inputs = torch.tensor(
-        [[1.0, 0.0], [0.0, 1.0], [-0.8, 0.6], [0.6, 0.8]], dtype=torch.float64
-    )
+    inputs = torch.tensor([[1.0, 0.0], [0.0, 1.0], [-0.8, 0.6], [0.6, 0.8]], dtype=torch.float64)
     labels = torch.tensor([10, 20, 10, 30])
     sample_indices = torch.tensor([8, 9, 4, 1])
     proxy_labels = torch.tensor([10, 20, 30])
@@ -3218,16 +3151,14 @@ def test_gradient_panel_measurements_use_update_space_and_context_multiplicity()
             assert record.cosine_with_pa == pytest.approx(
                 torch.dot(flattened, pa_flattened).item()
                 / (
-                    torch.linalg.vector_norm(flattened)
-                    * torch.linalg.vector_norm(pa_flattened)
+                    torch.linalg.vector_norm(flattened) * torch.linalg.vector_norm(pa_flattened)
                 ).item(),
                 abs=1e-12,
             )
             assert record.cosine_with_atomic_full_union == pytest.approx(
                 torch.dot(flattened, full_flattened).item()
                 / (
-                    torch.linalg.vector_norm(flattened)
-                    * torch.linalg.vector_norm(full_flattened)
+                    torch.linalg.vector_norm(flattened) * torch.linalg.vector_norm(full_flattened)
                 ).item(),
                 abs=1e-12,
             )
@@ -3294,9 +3225,7 @@ def test_stateless_updates_zero_network_proxy_and_match_panel_specific_equal_nor
         proxy_parameter_name="metric_proxies",
         proxy_learning_rate_multiplier=2.5,
     )
-    updates = MODULE.make_stateless_updates(
-        gradients, learning_rate=0.2, coalition_weight=0.3
-    )
+    updates = MODULE.make_stateless_updates(gradients, learning_rate=0.2, coalition_weight=0.3)
     for panel in PANELS:
         reference = updates["equal_norm"]["proxy_anchor"][panel].reference_pa_norm
         for operator in OPERATORS:
@@ -3304,9 +3233,7 @@ def test_stateless_updates_zero_network_proxy_and_match_panel_specific_equal_nor
             assert update.parameter_update_norm == pytest.approx(reference, abs=1e-12)
             assert update.norm_match_absolute_error <= 1e-10 * max(reference, 1e-12)
     network_update = updates["configured_loss_stateless"]["summed_union"]["network_only"]
-    joint_update = updates["configured_loss_stateless"]["summed_union"][
-        "joint_including_proxies"
-    ]
+    joint_update = updates["configured_loss_stateless"]["summed_union"]["joint_including_proxies"]
     assert "metric_proxies" not in dict(network_update.named_updates)
     assert "metric_proxies" in dict(joint_update.named_updates)
     assert updates["equal_norm"]["proxy_anchor"]["network_only"].reference_pa_norm != (
@@ -3318,9 +3245,7 @@ class _LiteralOutcomeModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.metric_proxies = torch.nn.Parameter(
-            torch.tensor(
-                [[1.0, 0.0], [0.0, 1.0], [-2**-0.5, -2**-0.5]], dtype=torch.float64
-            )
+            torch.tensor([[1.0, 0.0], [0.0, 1.0], [-(2**-0.5), -(2**-0.5)]], dtype=torch.float64)
         )
         self.encoder = torch.nn.Linear(2, 2, bias=False, dtype=torch.float64)
         self.encoder.weight.data.copy_(torch.eye(2, dtype=torch.float64))
@@ -3332,9 +3257,7 @@ class _LiteralOutcomeModel(torch.nn.Module):
 def test_owner_outcomes_match_literal_values_and_directional_signs():
     model = _LiteralOutcomeModel().train()
     before_parameters = {name: value.detach().clone() for name, value in model.named_parameters()}
-    update = {
-        "encoder.weight": torch.tensor([[0.0, 0.02], [0.02, 0.0]], dtype=torch.float64)
-    }
+    update = {"encoder.weight": torch.tensor([[0.0, 0.02], [0.02, 0.0]], dtype=torch.float64)}
     outcome = MODULE.owner_outcomes(
         model=model,
         clean_inputs=torch.eye(2, dtype=torch.float64),
@@ -3385,9 +3308,7 @@ def test_shared_confuser_uses_exact_independent_row_null_stream():
     legacy_reseeded = np.empty(256, dtype="<f8")
     for replicate in range(256):
         legacy_generator = np.random.Generator(np.random.PCG64(2010810 + replicate))
-        permuted = np.stack(
-            [row[legacy_generator.permutation(q.shape[1])] for row in q], axis=0
-        )
+        permuted = np.stack([row[legacy_generator.permutation(q.shape[1])] for row in q], axis=0)
         legacy_reseeded[replicate] = np.exp(np.log(permuted).mean(axis=0)).mean()
 
     assert result["A_aligned"] == pytest.approx(0.4718767931766301, abs=1e-12)
@@ -3398,9 +3319,7 @@ def test_shared_confuser_uses_exact_independent_row_null_stream():
     )
     assert np.array_equal(result["null_distribution"], continuous)
     assert not np.array_equal(result["null_distribution"], legacy_reseeded)
-    assert result["null_distribution"][0] != pytest.approx(
-        0.4718767931766301, abs=1e-12
-    )
+    assert result["null_distribution"][0] != pytest.approx(0.4718767931766301, abs=1e-12)
     expected_digest = hashlib.sha256(
         np.asarray(result["null_distribution"], dtype="<f8").tobytes(order="C")
     ).hexdigest()
@@ -3418,9 +3337,7 @@ class _TinyBatchNormOperatorModel(torch.nn.Module):
         )
         self.bn = torch.nn.BatchNorm1d(2, dtype=torch.float64)
         self.head = torch.nn.Linear(2, 2, bias=False, dtype=torch.float64)
-        self.head.weight.data.copy_(
-            torch.tensor([[1.0, 0.3], [-0.2, 0.8]], dtype=torch.float64)
-        )
+        self.head.weight.data.copy_(torch.tensor([[1.0, 0.3], [-0.2, 0.8]], dtype=torch.float64))
         self.forward_modes = []
 
     def forward(self, values):
@@ -3429,9 +3346,7 @@ class _TinyBatchNormOperatorModel(torch.nn.Module):
 
 
 def _tiny_bn_rows():
-    return torch.tensor(
-        [[2.0, -0.5], [-0.4, 1.7], [0.3, -1.1], [1.1, 0.8]], dtype=torch.float64
-    )
+    return torch.tensor([[2.0, -0.5], [-0.4, 1.7], [0.3, -1.1], [1.1, 0.8]], dtype=torch.float64)
 
 
 def _tensor_byte_identity(value):
@@ -3467,9 +3382,7 @@ def test_train_bn_forward_uses_disposable_buffers_and_restores_flags():
     before_parameters = {
         name: _tensor_byte_identity(value) for name, value in model.named_parameters()
     }
-    before_buffers = {
-        name: _tensor_byte_identity(value) for name, value in model.named_buffers()
-    }
+    before_buffers = {name: _tensor_byte_identity(value) for name, value in model.named_buffers()}
     before_flags = tuple(module.training for module in model.modules())
     graph = MODULE.bufferless_train_embeddings(model, inputs)
     assert graph.changed_buffer_names == (
@@ -3494,9 +3407,7 @@ def test_score_context_uses_one_shared_train_graph_and_one_clean_baseline():
     before_parameters = {
         name: _tensor_byte_identity(value) for name, value in model.named_parameters()
     }
-    before_buffers = {
-        name: _tensor_byte_identity(value) for name, value in model.named_buffers()
-    }
+    before_buffers = {name: _tensor_byte_identity(value) for name, value in model.named_buffers()}
     before_flags = tuple(module.training for module in model.modules())
     result = MODULE.score_context(
         model=model,
@@ -3527,11 +3438,14 @@ def test_score_context_uses_one_shared_train_graph_and_one_clean_baseline():
     assert set(result["gradients"]) == {
         f"{operator}.{panel}" for operator in OPERATORS for panel in PANELS
     }
-    assert sum(
-        len(result["outcomes"][regime][operator])
-        for regime in REGIMES
-        for operator in OPERATORS
-    ) == 24
+    assert (
+        sum(
+            len(result["outcomes"][regime][operator])
+            for regime in REGIMES
+            for operator in OPERATORS
+        )
+        == 24
+    )
     assert result["train_graph"].changed_buffer_names
     assert result["train_graph"].embeddings.requires_grad is False
     assert all(loss.requires_grad is False for loss in result["losses"].values())
@@ -3541,3 +3455,737 @@ def test_score_context_uses_one_shared_train_graph_and_one_clean_baseline():
     for name, value in model.named_buffers():
         assert _tensor_byte_identity(value) == before_buffers[name]
     assert tuple(module.training for module in model.modules()) == before_flags
+
+
+def test_v5_freezer_is_a_public_mode_with_only_raw_authority_arguments(tmp_path: Path):
+    output = tmp_path / "candidate.json"
+    args = MODULE._build_cli_parser().parse_args(
+        [
+            "--freeze-v5-authority",
+            "--root",
+            str(tmp_path),
+            "--frozen-absence-checked-utc",
+            "2026-08-11T20:00:00Z",
+            "--output",
+            str(output),
+        ]
+    )
+    assert args.freeze_v5_authority is True
+    assert args.root == tmp_path
+    assert args.frozen_absence_checked_utc == "2026-08-11T20:00:00Z"
+    assert args.output == output
+    assert args.checkpoint is None
+    assert args.prelaunch_manifest is None
+
+
+def test_v5_freezer_dispatches_before_public_path_defaults(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    root = MODULE_PATH.parents[1]
+    output = tmp_path / "candidate.json"
+    observed: dict[str, object] = {}
+
+    def freeze(*, root: Path, output: Path, frozen_absence_checked_utc: str) -> bytes:
+        observed.update(
+            root=root,
+            output=output,
+            frozen_absence_checked_utc=frozen_absence_checked_utc,
+        )
+        return b"authority\n"
+
+    monkeypatch.setattr(MODULE, "freeze_source_v5_authority", freeze)
+    monkeypatch.setattr(
+        MODULE,
+        "_default_cli_paths",
+        lambda _args: pytest.fail("freezer dispatch reached controller defaults"),
+    )
+    MODULE.main(
+        [
+            "--freeze-v5-authority",
+            "--root",
+            str(root),
+            "--frozen-absence-checked-utc",
+            "2026-08-11T20:00:00Z",
+            "--output",
+            str(output),
+        ]
+    )
+    assert observed == {
+        "root": root,
+        "output": output,
+        "frozen_absence_checked_utc": "2026-08-11T20:00:00Z",
+    }
+
+
+def test_v5_freezer_rejects_incompatible_raw_argument_before_defaults(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    root = MODULE_PATH.parents[1]
+    monkeypatch.setattr(
+        MODULE,
+        "_default_cli_paths",
+        lambda _args: pytest.fail("freezer validation reached controller defaults"),
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "freeze_source_v5_authority",
+        lambda **_kwargs: pytest.fail("invalid freezer arguments reached publication"),
+    )
+    with pytest.raises(ValueError, match="incompatible.*checkpoint"):
+        MODULE.main(
+            [
+                "--freeze-v5-authority",
+                "--root",
+                str(root),
+                "--frozen-absence-checked-utc",
+                "2026-08-11T20:00:00Z",
+                "--output",
+                str(tmp_path / "candidate.json"),
+                "--checkpoint",
+                str(tmp_path / "checkpoint.pt"),
+            ]
+        )
+
+
+def test_v5_freezer_rejects_relative_root_before_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        MODULE,
+        "freeze_source_v5_authority",
+        lambda **_kwargs: pytest.fail("relative root reached freezer"),
+    )
+    with pytest.raises(ValueError, match="root.*absolute"):
+        MODULE.main(
+            [
+                "--freeze-v5-authority",
+                "--root",
+                ".",
+                "--frozen-absence-checked-utc",
+                "2026-08-11T20:00:00Z",
+                "--output",
+                str(tmp_path / "candidate.json"),
+            ]
+        )
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected_relative"),
+    (
+        (
+            "--smoke-only",
+            "reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json",
+        ),
+        ("--scientific", MODULE.RESULT_PATH),
+    ),
+)
+def test_public_controller_defaults_output_by_mode(
+    tmp_path: Path, mode: str, expected_relative: str
+):
+    args = MODULE._build_cli_parser().parse_args([mode, "--root", str(tmp_path)])
+    MODULE._default_cli_paths(args)
+    assert args.output == tmp_path / expected_relative
+
+
+def test_public_smoke_rejects_caller_selected_output_before_controller(tmp_path: Path):
+    root = MODULE_PATH.parents[1]
+    args = MODULE._build_cli_parser().parse_args(
+        [
+            "--smoke-only",
+            "--root",
+            str(root),
+            "--output",
+            str(tmp_path / "caller-selected.json"),
+        ]
+    )
+    MODULE._default_cli_paths(args)
+    with pytest.raises(ValueError, match="output"):
+        MODULE._validate_source_v3_public_controller_args(args)
+
+
+def test_v5_process_role_rejects_runtime_factory_before_manifest_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    source_manifest = tmp_path / "source-manifest.json"
+    source_manifest.write_text(
+        json.dumps(
+            {
+                "prelaunch_source_manifest_path": (
+                    "docs/pass201_pa_source_v5_authorization_manifest.json"
+                )
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(
+        "PASS201_BINDING_AUTHORIZED_SHA256",
+        hashlib.sha256(source_manifest.read_bytes()).hexdigest(),
+    )
+    with pytest.raises(ValueError, match="runtime factories are forbidden"):
+        MODULE.main(
+            [
+                "--process-role",
+                MODULE.PROCESS_ROLES[0],
+                "--root",
+                str(MODULE_PATH.parents[1]),
+                "--source-manifest",
+                str(source_manifest),
+                "--process-output",
+                str(tmp_path / "process.json"),
+                "--runtime-factory",
+                str(tmp_path / "runtime.py"),
+            ]
+        )
+
+
+def _source_v5_contract_fixture() -> dict[str, object]:
+    root = MODULE_PATH.parents[1]
+    h4_bytes = subprocess.run(
+        [
+            "git",
+            "show",
+            "32c4d39322fca2a5a906f785bdb612dcd7008647:"
+            "docs/pass201_pa_source_v4_authorization_manifest.json",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    h4 = json.loads(h4_bytes)
+    v5 = "5" * 40
+    run_dir = "reports/generated/pass201_source_v3/run-v3"
+    artifacts = {
+        "checkpoint": (
+            "checkpoint.pt",
+            55760186,
+            "e42d25b4e8e98f1d619aada2215ecbfeca579327dabaf6f09f02151183220696",
+        ),
+        "log": (
+            "training.log",
+            8757,
+            "053a7dc0b447f6bfeabf7dac347d80b0b889e94db7688eeebaf94e02f5f4d1d2",
+        ),
+        "receipt": (
+            "receipt.json",
+            15179,
+            "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9",
+        ),
+        "report": (
+            "report.json",
+            250481,
+            "a74a2a1c08beee2a0b4d67adcf378421309077c3ce39c93711f782f0589cc843",
+        ),
+        "resolved_config": (
+            "resolved_config.json",
+            5981,
+            "bd5d1f0216b8c55d70a7ac4bd528fb5545d66472e964abd321bba3877079584e",
+        ),
+        "train_manifest": (
+            "train_manifest.json",
+            2895656,
+            "c60e998e802f2b1050fc3c934ce9960c27c7ec4e598b0d88acd8062295c3def9",
+        ),
+    }
+
+    def completed(name: str, *, execution: bool = True) -> dict[str, object]:
+        filename, size, digest = artifacts[name]
+        value: dict[str, object] = {
+            "path": f"{run_dir}/{filename}",
+            "bytes": size,
+            "sha256": digest,
+        }
+        if execution:
+            value["required_present_at_execution"] = True
+        return value
+
+    def future(path: str) -> dict[str, object]:
+        return {"path": path, "required_absent_when_frozen": True}
+
+    return {
+        "authorization": {
+            "clean_policy": "empty-porcelain-v1-z",
+            "frozen_absence": {
+                "activated_preregistration": "ENOENT",
+                "result": "ENOENT",
+                "smoke": "ENOENT",
+                "source_manifest": "ENOENT",
+            },
+            "frozen_absence_checked_utc": "2026-08-11T20:00:00Z",
+            "manifest_path": "docs/pass201_pa_source_v5_authorization_manifest.json",
+            "required_diff_modes": ["100644"],
+            "required_diff_paths": ["docs/pass201_pa_source_v5_authorization_manifest.json"],
+            "required_diff_status": ["A"],
+            "required_parent_commit": v5,
+        },
+        "controller": h4["controller"],
+        "dataset": h4["dataset"],
+        "execution": h4["execution"],
+        "historical_producer": {
+            "authorization_commit": "32c4d39322fca2a5a906f785bdb612dcd7008647",
+            "source_commit": "53a9db9e9dbe54fcebb33769b915c3f33699d522",
+            "manifest": {
+                "path": "docs/pass201_pa_source_v4_authorization_manifest.json",
+                "bytes": len(h4_bytes),
+                "sha256": hashlib.sha256(h4_bytes).hexdigest(),
+                "git_blob": "430f340a17cc32c5fd239083b1a0dba98e09ad7c",
+            },
+            "receipt": {
+                **completed("receipt", execution=False),
+                "schema_version": "pass201-pa-source-v4-receipt-v1",
+                "candidate_values_computed": False,
+            },
+            "outputs": {
+                name: completed(name, execution=False)
+                for name in (
+                    "checkpoint",
+                    "log",
+                    "report",
+                    "resolved_config",
+                    "train_manifest",
+                )
+            },
+        },
+        "outputs": {
+            "activated_preregistration": future(MODULE.ACTIVATED_PREREGISTRATION_PATH),
+            "checkpoint": completed("checkpoint"),
+            "log": completed("log"),
+            "receipt": completed("receipt"),
+            "report": completed("report"),
+            "resolved_config": completed("resolved_config"),
+            "result": future(MODULE.RESULT_PATH),
+            "run_directory": {"path": run_dir, "required_present_at_execution": True},
+            "smoke": future(MODULE.SMOKE_RESULT_PATH),
+            "source_manifest": future(MODULE.SOURCE_MANIFEST_PATH),
+            "train_manifest": completed("train_manifest"),
+        },
+        "plan": h4["plan"],
+        "postconditions": h4["postconditions"],
+        "process_entry_amendment": h4["process_entry_amendment"],
+        "process_entry_evidence": h4["process_entry_evidence"],
+        "process_entry_plan": h4["process_entry_plan"],
+        "protocol": h4["protocol"],
+        "purpose": "activate_completed_source_v4_then_run_cpu_diagnostic",
+        "repair_amendment": {
+            "path": "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+            "sha256": "a265f7d2a5f55c52eb63263909aa387a55c74820b9644bf92a3cadda965da716",
+            "commit": "8d7938a4e66abad0a8351422fcfa6f741ea76b00",
+        },
+        "repair_plan": {
+            "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+            "sha256": "470f3e08ad138cb48b4802f251b63b5c4387b28f3fd023e8492b0fd98950732e",
+            "commit": "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e",
+        },
+        "schema_version": "pass201-pa-source-v5-activation-v1",
+        "sidecars": h4["sidecars"],
+        "source": h4["source"],
+        "source_commit": v5,
+        "status": h4["status"],
+    }
+
+
+def test_source_v5_contract_accepts_exact_activation_authority():
+    authority = SOURCE_CONTRACT.validate_prelaunch(_source_v5_contract_fixture())
+    assert authority.payload["schema_version"] == "pass201-pa-source-v5-activation-v1"
+    assert authority.source_commit == "5" * 40
+
+
+def test_source_v5_contract_rejects_source_training_receipt_validation():
+    authority = SOURCE_CONTRACT.validate_prelaunch(_source_v5_contract_fixture())
+    with pytest.raises(
+        ValueError, match="v5 activation authorities have no source-training receipt"
+    ):
+        SOURCE_CONTRACT.validate_complete_receipt({}, authority)
+
+
+@pytest.mark.parametrize(
+    ("domain", "name", "field"),
+    [
+        ("historical_producer", "manifest", "bytes"),
+        *[
+            ("historical_producer", name, field)
+            for name in ("checkpoint", "log", "report", "resolved_config", "train_manifest")
+            for field in ("path", "bytes", "sha256")
+        ],
+        *[
+            ("outputs", name, field)
+            for name in (
+                "checkpoint",
+                "log",
+                "receipt",
+                "report",
+                "resolved_config",
+                "train_manifest",
+            )
+            for field in ("path", "bytes", "sha256")
+        ],
+    ],
+)
+def test_source_v5_contract_rejects_valid_looking_historical_artifact_drift(
+    domain: str, name: str, field: str
+):
+    payload = deepcopy(_source_v5_contract_fixture())
+    if domain == "historical_producer" and name == "manifest":
+        target = payload[domain][name]
+    elif domain == "historical_producer":
+        target = payload[domain]["outputs"][name]
+    else:
+        target = payload[domain][name]
+    target[field] = (
+        target[field] + 1
+        if field == "bytes"
+        else ("0" * 64 if field == "sha256" else f"reports/generated/drift/{name}")
+    )
+    with pytest.raises(ValueError):
+        SOURCE_CONTRACT.validate_prelaunch(payload)
+
+
+def test_source_v5_authority_builder_matches_independent_literal_fixture():
+    expected = _source_v5_contract_fixture()
+    root = MODULE_PATH.parents[1]
+    h4_bytes = subprocess.run(
+        [
+            "git",
+            "show",
+            "32c4d39322fca2a5a906f785bdb612dcd7008647:"
+            "docs/pass201_pa_source_v4_authorization_manifest.json",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    actual = MODULE._build_source_v5_authority(
+        historical_manifest=json.loads(h4_bytes),
+        historical_manifest_bytes=h4_bytes,
+        source_commit="5" * 40,
+        source_files=expected["source"]["files"],
+        frozen_absence_checked_utc="2026-08-11T20:00:00Z",
+    )
+    assert actual == expected
+
+
+def test_source_v5_candidate_publication_is_exclusive_and_mode_0600(tmp_path: Path):
+    destination = tmp_path / "authority.json"
+    MODULE._publish_source_v5_candidate(destination, b'{"a":1}\n')
+    assert destination.read_bytes() == b'{"a":1}\n'
+    assert destination.stat().st_mode & 0o777 == 0o600
+    with pytest.raises(FileExistsError):
+        MODULE._publish_source_v5_candidate(destination, b'{"a":2}\n')
+    assert destination.read_bytes() == b'{"a":1}\n'
+    assert list(tmp_path.glob(f".{destination.name}.tmp-*")) == []
+
+
+def test_source_v5_candidate_publication_rolls_back_owned_link_on_directory_fsync_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    destination = tmp_path / "authority.json"
+    original_fsync = MODULE.os.fsync
+
+    def fail_directory_fsync(descriptor: int) -> None:
+        if stat.S_ISDIR(MODULE.os.fstat(descriptor).st_mode):
+            raise OSError("injected directory fsync failure")
+        original_fsync(descriptor)
+
+    monkeypatch.setattr(MODULE.os, "fsync", fail_directory_fsync)
+    with pytest.raises(OSError, match="injected directory fsync failure"):
+        MODULE._publish_source_v5_candidate(destination, b'{"a":1}\n')
+    assert not destination.exists()
+    assert list(tmp_path.glob(f".{destination.name}.tmp-*")) == []
+
+
+def test_source_v5_candidate_publication_rejects_preexisting_sibling_temp(
+    tmp_path: Path,
+):
+    destination = tmp_path / "authority.json"
+    foreign = tmp_path / f".{destination.name}.tmp-foreign"
+    foreign.write_bytes(b"foreign")
+    with pytest.raises(ValueError, match="temporary"):
+        MODULE._publish_source_v5_candidate(destination, b'{"a":1}\n')
+    assert foreign.read_bytes() == b"foreign"
+    assert not destination.exists()
+
+
+def test_source_v5_docs_chain_is_exact_in_real_repository():
+    MODULE._authenticate_source_v5_docs_chain(MODULE_PATH.parents[1])
+
+
+def test_source_v5_public_freezer_two_processes_are_byte_identical_and_candidate_free(
+    tmp_path: Path,
+):
+    source_root = MODULE_PATH.parents[1]
+    checkout = tmp_path / "checkout"
+    subprocess.run(
+        ["git", "clone", "-q", "--no-hardlinks", str(source_root), str(checkout)],
+        check=True,
+    )
+    _git(checkout, "config", "user.email", "test@example.invalid")
+    _git(checkout, "config", "user.name", "Pass201 Test")
+    for relative in (
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "tests/test_diagnose_pass201_cis_operator.py",
+    ):
+        shutil.copyfile(source_root / relative, checkout / relative)
+    assert _git(checkout, "status", "--short").splitlines() == [
+        "M scripts/diagnose_pass201_cis_operator.py",
+        " M scripts/pass201_pa_source_v2_contract.py",
+        " M tests/test_diagnose_pass201_cis_operator.py",
+    ]
+    _git(
+        checkout,
+        "add",
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "tests/test_diagnose_pass201_cis_operator.py",
+    )
+    _git(checkout, "commit", "-q", "-m", "candidate source-v5")
+    source_commit = _git(checkout, "rev-parse", "HEAD")
+    _git(checkout, "checkout", "--detach", "-q", source_commit)
+    (checkout / "scripts/torch.py").write_text(
+        "raise AssertionError('freezer imported torch')\n",
+        encoding="utf-8",
+    )
+    external_dir = tmp_path / "candidate"
+    external_dir.mkdir(mode=0o700)
+    external = external_dir / "authority.json"
+    registered = checkout / MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+    base_command = [
+        sys.executable,
+        "-I",
+        "-B",
+        str(checkout / "scripts/diagnose_pass201_cis_operator.py"),
+        "--freeze-v5-authority",
+        "--root",
+        str(checkout),
+        "--frozen-absence-checked-utc",
+        "2026-08-11T20:00:00Z",
+        "--output",
+    ]
+    subprocess.run([*base_command, str(external)], cwd=checkout, check=True)
+    subprocess.run([*base_command, str(registered)], cwd=checkout, check=True)
+    assert external.read_bytes() == registered.read_bytes()
+    assert external.stat().st_mode & 0o777 == registered.stat().st_mode & 0o777 == 0o600
+    payload = SOURCE_CONTRACT.load_strict_json_bytes(registered.read_bytes())
+    authority = SOURCE_CONTRACT.validate_prelaunch(payload)
+    assert authority.source_commit == source_commit
+    assert list(external_dir.glob(f".{external.name}.tmp-*")) == []
+    assert list(registered.parent.glob(f".{registered.name}.tmp-*")) == []
+
+
+def test_source_training_freezer_rejects_v5_activation_schema_before_output(
+    tmp_path: Path,
+):
+    output = tmp_path / "authority.json"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(MODULE_PATH.parents[1] / "scripts/run_pass201_pa_source_v2.py"),
+            "freeze-authority",
+            "--frozen-absence-checked-utc",
+            "2026-08-11T20:00:00Z",
+            "--output",
+            str(output),
+            "--schema-version",
+            "pass201-pa-source-v5-activation-v1",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 2
+    assert "invalid choice" in completed.stderr
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "2026-08-11T20:00Z",
+        "2026-08-11 20:00:00Z",
+        "2026-08-11T20:00:00+00:00",
+        "2026-13-11T20:00:00Z",
+        "2026-08-11T25:00:00Z",
+        "anythingZ",
+    ),
+)
+def test_source_v5_freezer_rejects_noncanonical_rfc3339_utc_before_git(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str
+):
+    monkeypatch.setattr(
+        MODULE,
+        "_authenticate_source_v5_freezer_root",
+        lambda _root: pytest.fail("invalid UTC reached Git authentication"),
+    )
+    with pytest.raises(ValueError, match="UTC"):
+        MODULE.freeze_source_v5_authority(
+            root=tmp_path,
+            output=tmp_path / "candidate.json",
+            frozen_absence_checked_utc=value,
+        )
+
+
+def test_source_binding_dispatches_exact_v5_schema_without_legacy_sha_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    manifest = tmp_path / "authority.json"
+    _write_json(manifest, {"schema_version": "pass201-pa-source-v5-activation-v1"})
+    args = SimpleNamespace(
+        prelaunch_manifest=manifest,
+        expected_prelaunch_sha256="forbidden-legacy-override",
+    )
+    expected = ({"schema_version": "pass201-source-v2"}, {"batch_size": 180})
+    observed: list[object] = []
+
+    def validate(value: object):
+        observed.append(value)
+        return expected
+
+    monkeypatch.setattr(MODULE, "_validate_source_v5_binding", validate, raising=False)
+    assert MODULE._validate_source_binding(args) == expected
+    assert observed == [args]
+
+
+def _source_manifest_v2_fixture() -> dict[str, object]:
+    manifest: dict[str, object] = {
+        "schema_version": "pass201-source-v2",
+        "status": "frozen",
+        "prelaunch_source_manifest_path": MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_source_manifest_sha256": "1" * 64,
+        "source_report_path": "reports/generated/pass201_source_v3/run-v3/report.json",
+        "source_report_sha256": "2" * 64,
+        "source_revision": MODULE.SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        "checkpoint_path": "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
+        "checkpoint_sha256": "3" * 64,
+        "checkpoint_bytes": 55760186,
+        "checkpoint_epoch": 59,
+        "objective": "proxy_anchor",
+        "seed": 0,
+        "resolved_config_path": ("reports/generated/pass201_source_v3/run-v3/resolved_config.json"),
+        "resolved_config_sha256": "4" * 64,
+        "train_manifest_path": ("reports/generated/pass201_source_v3/run-v3/train_manifest.json"),
+        "train_manifest_sha256": "5" * 64,
+        "diagnostic_source_sha256": "6" * 64,
+        "activated_preregistration_sha256": "7" * 64,
+        "torch_version": "2.12.1+cu130",
+        "numpy_version": "2.5.0",
+    }
+    manifest["activation_repair"] = {
+        "historical_authorization_commit": MODULE.SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        "historical_source_commit": MODULE.SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        "historical_manifest_path": MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+        "historical_manifest_sha256": (
+            "080adaeaaa5c7bf9c87ed93761d6e4c517b958bb60c49af68a880109f5abce1f"
+        ),
+        "historical_receipt_path": ("reports/generated/pass201_source_v3/run-v3/receipt.json"),
+        "historical_receipt_sha256": (
+            "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9"
+        ),
+        "executor_authorization_commit": "8" * 40,
+        "executor_source_commit": "9" * 40,
+        "executor_manifest_path": MODULE.SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "executor_manifest_sha256": manifest["prelaunch_source_manifest_sha256"],
+        "executor_diagnostic_sha256": manifest["diagnostic_source_sha256"],
+    }
+    return manifest
+
+
+def test_source_manifest_v2_validates_exact_dual_provenance():
+    MODULE._validate_source_manifest_artifact(_source_manifest_v2_fixture())
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("historical_source_commit", "a" * 40),
+        ("executor_manifest_path", MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
+        ("executor_manifest_sha256", "b" * 64),
+        ("executor_diagnostic_sha256", "c" * 64),
+    ),
+)
+def test_source_manifest_v2_rejects_dual_provenance_drift(field: str, value: str):
+    manifest = _source_manifest_v2_fixture()
+    manifest["activation_repair"][field] = value
+    with pytest.raises(ValueError):
+        MODULE._validate_source_manifest_artifact(manifest)
+
+
+def test_source_manifest_v2_persists_through_activation_and_result_projection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    source_manifest = _source_manifest_v2_fixture()
+    source_manifest["activated_preregistration_sha256"] = ""
+    constants = _constants()
+    args = SimpleNamespace(
+        root=tmp_path,
+        activated_preregistration=tmp_path / MODULE.ACTIVATED_PREREGISTRATION_PATH,
+        source_manifest=tmp_path / MODULE.SOURCE_MANIFEST_PATH,
+    )
+    args.activated_preregistration.parent.mkdir(parents=True)
+    monkeypatch.setattr(
+        MODULE,
+        "_validate_source_binding",
+        lambda _args: (deepcopy(source_manifest), deepcopy(constants)),
+    )
+    preregistration, persisted = MODULE.activate_source(args)
+    assert persisted["schema_version"] == "pass201-source-v2"
+    assert preregistration["source"]["activation_repair"] == source_manifest["activation_repair"]
+    MODULE._validate_source_manifest_artifact(persisted)
+    MODULE._validate_activated_preregistration(preregistration)
+    result_source = MODULE._result_source_from_manifest(
+        persisted,
+        [
+            {
+                "python_version": "3.12.3",
+                "cuda_version": "13.0",
+                "cudnn_version": "92000",
+            }
+        ],
+    )
+    assert result_source["activation_repair"] == source_manifest["activation_repair"]
+    MODULE._validate_source(result_source, activated=True)
+
+
+def test_v5_repair_preserves_registered_scientific_function_asts():
+    root = MODULE_PATH.parents[1]
+    historical = subprocess.run(
+        [
+            "git",
+            "show",
+            "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e:scripts/diagnose_pass201_cis_operator.py",
+        ],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    current = MODULE_PATH.read_text(encoding="utf-8")
+    frozen = {
+        "coalition_losses",
+        "operator_gradients",
+        "make_stateless_updates",
+        "_outcome_scalars",
+        "bufferless_train_embeddings",
+        "_prepare_outcome_baseline",
+        "_outcome_after_update",
+        "owner_outcomes",
+        "shared_confuser_statistic",
+        "score_context",
+        "construct_one_context",
+        "bootstrap_indices",
+        "bootstrap_mean_distribution",
+        "summarize_metric",
+        "materialize_scored_context",
+        "aggregate_scored_contexts",
+        "_finalize_scientific_payload",
+    }
+
+    def function_asts(text: str) -> dict[str, str]:
+        return {
+            node.name: ast.dump(node, include_attributes=False)
+            for node in ast.parse(text).body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in frozen
+        }
+
+    assert function_asts(current) == function_asts(historical)
+    assert set(function_asts(current)) == frozen

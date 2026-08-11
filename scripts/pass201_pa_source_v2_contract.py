@@ -88,6 +88,38 @@ SOURCE_V3_PATHS = (
     "src/sfora/text_baselines.py",
     "src/sfora/training.py",
 )
+SOURCE_V5_COMPLETED_ARTIFACTS = {
+    "checkpoint": (
+        "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
+        55760186,
+        "e42d25b4e8e98f1d619aada2215ecbfeca579327dabaf6f09f02151183220696",
+    ),
+    "log": (
+        "reports/generated/pass201_source_v3/run-v3/training.log",
+        8757,
+        "053a7dc0b447f6bfeabf7dac347d80b0b889e94db7688eeebaf94e02f5f4d1d2",
+    ),
+    "receipt": (
+        "reports/generated/pass201_source_v3/run-v3/receipt.json",
+        15179,
+        "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9",
+    ),
+    "report": (
+        "reports/generated/pass201_source_v3/run-v3/report.json",
+        250481,
+        "a74a2a1c08beee2a0b4d67adcf378421309077c3ce39c93711f782f0589cc843",
+    ),
+    "resolved_config": (
+        "reports/generated/pass201_source_v3/run-v3/resolved_config.json",
+        5981,
+        "bd5d1f0216b8c55d70a7ac4bd528fb5545d66472e964abd321bba3877079584e",
+    ),
+    "train_manifest": (
+        "reports/generated/pass201_source_v3/run-v3/train_manifest.json",
+        2895656,
+        "c60e998e802f2b1050fc3c934ce9960c27c7ec4e598b0d88acd8062295c3def9",
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -301,6 +333,20 @@ def canonical_json_bytes(value: Any) -> bytes:
     ).encode("utf-8")
 
 
+def canonical_ordered_json_bytes(value: Any) -> bytes:
+    _validate_json_native(value)
+    return (
+        json.dumps(
+            value,
+            sort_keys=False,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
 def load_strict_json_value_bytes(data: bytes) -> Any:
     try:
         text = data.decode("utf-8")
@@ -424,6 +470,7 @@ def _validate_python_package_evidence(
         "pass201-pa-source-v3-receipt-v1",
         "pass201-pa-source-v4-prelaunch-v1",
         "pass201-pa-source-v4-receipt-v1",
+        "pass201-pa-source-v5-activation-v1",
     ):
         expected_order = ["algorithm", "bytes", "distribution_count", "sha256"]
         obj = _keys(value, set(expected_order), where)
@@ -562,14 +609,17 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     raw = _dict(payload, "prelaunch")
     schema_version = raw.get("schema_version")
     is_v4 = schema_version == "pass201-pa-source-v4-prelaunch-v1"
+    is_v5 = schema_version == "pass201-pa-source-v5-activation-v1"
     is_source_v3 = schema_version in (
         "pass201-pa-source-v3-prelaunch-v1",
         "pass201-pa-source-v4-prelaunch-v1",
+        "pass201-pa-source-v5-activation-v1",
     )
     if schema_version not in (
         "pass201-pa-source-v2-prelaunch-v1",
         "pass201-pa-source-v3-prelaunch-v1",
         "pass201-pa-source-v4-prelaunch-v1",
+        "pass201-pa-source-v5-activation-v1",
     ):
         raise ValueError("schema_version: unsupported source schema")
     top_keys = {
@@ -588,17 +638,42 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     }
     if is_source_v3:
         top_keys |= {"protocol", "plan"}
-    if is_v4:
+    if is_v4 or is_v5:
         top_keys |= {
             "process_entry_amendment",
             "process_entry_plan",
             "process_entry_evidence",
         }
+    if is_v5:
+        top_keys |= {"historical_producer", "repair_amendment", "repair_plan"}
     top = _keys(
         payload,
         top_keys,
         "prelaunch",
     )
+    if is_v5 and list(top) != [
+        "authorization",
+        "controller",
+        "dataset",
+        "execution",
+        "historical_producer",
+        "outputs",
+        "plan",
+        "postconditions",
+        "process_entry_amendment",
+        "process_entry_evidence",
+        "process_entry_plan",
+        "protocol",
+        "purpose",
+        "repair_amendment",
+        "repair_plan",
+        "schema_version",
+        "sidecars",
+        "source",
+        "source_commit",
+        "status",
+    ]:
+        raise ValueError("prelaunch: source-v5 key order")
     if is_source_v3:
         _authority_reference(
             top["protocol"],
@@ -614,7 +689,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
             "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
             "f38af4465333f4e50c08b1c30c10aa9f06829f43",
         )
-    if is_v4:
+    if is_v4 or is_v5:
         for key, commit, path, sha256 in (
             (
                 "process_entry_amendment",
@@ -662,12 +737,16 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         "authorization",
     )
     manifest_path = (
-        "docs/pass201_pa_source_v4_authorization_manifest.json"
-        if is_v4
+        "docs/pass201_pa_source_v5_authorization_manifest.json"
+        if is_v5
         else (
-            "docs/pass201_pa_source_v3_authorization_manifest.json"
-            if is_source_v3
-            else "docs/pass201_pa_source_v2_prelaunch.json"
+            "docs/pass201_pa_source_v4_authorization_manifest.json"
+            if is_v4
+            else (
+                "docs/pass201_pa_source_v3_authorization_manifest.json"
+                if is_source_v3
+                else "docs/pass201_pa_source_v2_prelaunch.json"
+            )
         )
     )
     _literal(auth["manifest_path"], manifest_path, "authorization.manifest_path")
@@ -682,9 +761,10 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         _literal(auth[key], expected, f"authorization.{key}")
     _literal(auth["clean_policy"], "empty-porcelain-v1-z", "authorization.clean_policy")
     _str(auth["frozen_absence_checked_utc"], "authorization.frozen_absence_checked_utc")
-    absence = _keys(
-        auth["frozen_absence"],
-        {
+    absence_keys = (
+        {"activated_preregistration", "result", "smoke", "source_manifest"}
+        if is_v5
+        else {
             "run_directory",
             "report",
             "checkpoint",
@@ -692,9 +772,16 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
             "resolved_config",
             "train_manifest",
             "receipt",
-        },
-        "authorization.frozen_absence",
+        }
     )
+    absence = _keys(auth["frozen_absence"], absence_keys, "authorization.frozen_absence")
+    if is_v5 and list(absence) != [
+        "activated_preregistration",
+        "result",
+        "smoke",
+        "source_manifest",
+    ]:
+        raise ValueError("authorization.frozen_absence: key order")
     for key, value in absence.items():
         _literal(value, "ENOENT", f"authorization.frozen_absence.{key}")
     _file(top["controller"], "controller")
@@ -709,9 +796,9 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     for index, value in enumerate(files):
         _file(value, f"source.files[{index}]")
     source_paths = [value["path"] for value in files]
-    if source_paths != sorted(
-        source_paths, key=lambda value: value.encode("utf-8")
-    ) or len(source_paths) != len(set(source_paths)):
+    if source_paths != sorted(source_paths, key=lambda value: value.encode("utf-8")) or len(
+        source_paths
+    ) != len(set(source_paths)):
         raise ValueError("source.files order")
     if is_source_v3 and tuple(source_paths) != SOURCE_V3_PATHS:
         raise ValueError("source.files does not equal source-v3 registry")
@@ -719,7 +806,9 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _file(source["pyproject"], "source.pyproject")
     _file(source["lockfile"], "source.lockfile")
     _str(source["equivalence_test_id"], "source.equivalence_test_id")
-    _validate_outputs(top["outputs"], schema_version)
+    (_validate_outputs_v5 if is_v5 else _validate_outputs)(top["outputs"], schema_version)
+    if is_v5:
+        _validate_source_v5_provenance(top)
     execution = _keys(
         top["execution"],
         {
@@ -920,6 +1009,183 @@ def _validate_dataset(value: object) -> None:
     )
 
 
+def _validate_source_v5_provenance(top: dict[str, Any]) -> None:
+    for key, path, sha256, commit in (
+        (
+            "repair_amendment",
+            "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+            "a265f7d2a5f55c52eb63263909aa387a55c74820b9644bf92a3cadda965da716",
+            "8d7938a4e66abad0a8351422fcfa6f741ea76b00",
+        ),
+        (
+            "repair_plan",
+            "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+            "470f3e08ad138cb48b4802f251b63b5c4387b28f3fd023e8492b0fd98950732e",
+            "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e",
+        ),
+    ):
+        if list(top[key]) != ["path", "sha256", "commit"]:
+            raise ValueError(f"{key}: key order")
+        _authority_reference(top[key], key, path, sha256, commit)
+    historical = _keys(
+        top["historical_producer"],
+        {"authorization_commit", "source_commit", "manifest", "receipt", "outputs"},
+        "historical_producer",
+    )
+    if list(historical) != [
+        "authorization_commit",
+        "source_commit",
+        "manifest",
+        "receipt",
+        "outputs",
+    ]:
+        raise ValueError("historical_producer: key order")
+    _literal(
+        historical["authorization_commit"],
+        "32c4d39322fca2a5a906f785bdb612dcd7008647",
+        "historical_producer.authorization_commit",
+    )
+    _literal(
+        historical["source_commit"],
+        "53a9db9e9dbe54fcebb33769b915c3f33699d522",
+        "historical_producer.source_commit",
+    )
+    manifest = _keys(
+        historical["manifest"],
+        {"path", "bytes", "sha256", "git_blob"},
+        "historical_producer.manifest",
+    )
+    if list(manifest) != ["path", "bytes", "sha256", "git_blob"]:
+        raise ValueError("historical_producer.manifest: key order")
+    _literal(
+        manifest["path"],
+        "docs/pass201_pa_source_v4_authorization_manifest.json",
+        "historical_producer.manifest.path",
+    )
+    _int(manifest["bytes"], "historical_producer.manifest.bytes", literal=22079)
+    _literal(
+        manifest["sha256"],
+        "080adaeaaa5c7bf9c87ed93761d6e4c517b958bb60c49af68a880109f5abce1f",
+        "historical_producer.manifest.sha256",
+    )
+    _literal(
+        manifest["git_blob"],
+        "430f340a17cc32c5fd239083b1a0dba98e09ad7c",
+        "historical_producer.manifest.git_blob",
+    )
+    receipt = _keys(
+        historical["receipt"],
+        {"path", "bytes", "sha256", "schema_version", "candidate_values_computed"},
+        "historical_producer.receipt",
+    )
+    if list(receipt) != ["path", "bytes", "sha256", "schema_version", "candidate_values_computed"]:
+        raise ValueError("historical_producer.receipt: key order")
+    _literal(
+        receipt["path"],
+        "reports/generated/pass201_source_v3/run-v3/receipt.json",
+        "historical_producer.receipt.path",
+    )
+    _int(receipt["bytes"], "historical_producer.receipt.bytes", literal=15179)
+    _literal(
+        receipt["sha256"],
+        "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9",
+        "historical_producer.receipt.sha256",
+    )
+    _literal(
+        receipt["schema_version"],
+        "pass201-pa-source-v4-receipt-v1",
+        "historical_producer.receipt.schema_version",
+    )
+    _literal(
+        receipt["candidate_values_computed"],
+        False,
+        "historical_producer.receipt.candidate_values_computed",
+    )
+    outputs = _keys(
+        historical["outputs"],
+        {"checkpoint", "log", "report", "resolved_config", "train_manifest"},
+        "historical_producer.outputs",
+    )
+    if list(outputs) != ["checkpoint", "log", "report", "resolved_config", "train_manifest"]:
+        raise ValueError("historical_producer.outputs: key order")
+    for name, value in outputs.items():
+        item = _keys(value, {"path", "bytes", "sha256"}, f"historical_producer.outputs.{name}")
+        if list(item) != ["path", "bytes", "sha256"]:
+            raise ValueError(f"historical_producer.outputs.{name}: key order")
+        expected_path, expected_bytes, expected_sha256 = SOURCE_V5_COMPLETED_ARTIFACTS[name]
+        _literal(
+            item["path"],
+            expected_path,
+            f"historical_producer.outputs.{name}.path",
+        )
+        _int(
+            item["bytes"],
+            f"historical_producer.outputs.{name}.bytes",
+            literal=expected_bytes,
+        )
+        _literal(
+            item["sha256"],
+            expected_sha256,
+            f"historical_producer.outputs.{name}.sha256",
+        )
+
+
+def _validate_outputs_v5(value: object, _schema_version: object) -> None:
+    order = [
+        "activated_preregistration",
+        "checkpoint",
+        "log",
+        "receipt",
+        "report",
+        "resolved_config",
+        "result",
+        "run_directory",
+        "smoke",
+        "source_manifest",
+        "train_manifest",
+    ]
+    obj = _keys(value, set(order), "outputs")
+    if list(obj) != order:
+        raise ValueError("outputs: source-v5 key order")
+    future = {
+        "activated_preregistration": "docs/pass201_cis_operator_activated_preregistration.json",
+        "result": "reports/generated/pass201_cis_operator/pass201_inshop_seed0.json",
+        "smoke": "reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json",
+        "source_manifest": "docs/pass201_cis_operator_source_manifest.json",
+    }
+    for name, path in future.items():
+        item = _keys(obj[name], {"path", "required_absent_when_frozen"}, f"outputs.{name}")
+        if list(item) != ["path", "required_absent_when_frozen"]:
+            raise ValueError(f"outputs.{name}: key order")
+        _literal(item["path"], path, f"outputs.{name}.path")
+        _true(item["required_absent_when_frozen"], f"outputs.{name}.required_absent_when_frozen")
+    run_dir = _keys(
+        obj["run_directory"], {"path", "required_present_at_execution"}, "outputs.run_directory"
+    )
+    _literal(
+        run_dir["path"], "reports/generated/pass201_source_v3/run-v3", "outputs.run_directory.path"
+    )
+    _true(
+        run_dir["required_present_at_execution"],
+        "outputs.run_directory.required_present_at_execution",
+    )
+    for name in ("checkpoint", "log", "receipt", "report", "resolved_config", "train_manifest"):
+        item = _keys(
+            obj[name],
+            {"path", "bytes", "sha256", "required_present_at_execution"},
+            f"outputs.{name}",
+        )
+        if list(item) != ["path", "bytes", "sha256", "required_present_at_execution"]:
+            raise ValueError(f"outputs.{name}: key order")
+        expected_path, expected_bytes, expected_sha256 = SOURCE_V5_COMPLETED_ARTIFACTS[name]
+        _literal(item["path"], expected_path, f"outputs.{name}.path")
+        _int(item["bytes"], f"outputs.{name}.bytes", literal=expected_bytes)
+        _literal(item["sha256"], expected_sha256, f"outputs.{name}.sha256")
+        _true(
+            item["required_present_at_execution"], f"outputs.{name}.required_present_at_execution"
+        )
+
+
 def _validate_outputs(value: object, schema_version: object) -> None:
     keys = {
         "run_directory",
@@ -1003,9 +1269,7 @@ def validate_train_manifest(payload: object, authority: PrelaunchAuthority) -> N
         },
         "train_manifest",
     )
-    _literal(
-        top["schema_version"], "pass201-train-manifest-v1", "train_manifest.schema_version"
-    )
+    _literal(top["schema_version"], "pass201-train-manifest-v1", "train_manifest.schema_version")
     _literal(
         top["algorithm_id"],
         "pass201-inshop-benchmark-row-suffix-v2",
@@ -1399,10 +1663,7 @@ def _load_restricted_pickle(data: bytes) -> object:
     build_count = sum(opcode.name == "BUILD" for opcode, _, _ in operations)
     if build_count > 1:
         raise ValueError("forbidden BUILD stateful pickle opcode")
-    if any(
-        opcode.name in {"INST", "NEWOBJ", "NEWOBJ_EX", "OBJ"}
-        for opcode, _, _ in operations
-    ):
+    if any(opcode.name in {"INST", "NEWOBJ", "NEWOBJ_EX", "OBJ"} for opcode, _, _ in operations):
         raise ValueError("stateful pickle opcode is forbidden")
     try:
         unpickler = _RestrictedMetadataUnpickler(io.BytesIO(data))
@@ -1677,9 +1938,7 @@ def _external_binding_from_payload(value: object, where: str) -> ExternalFileBin
     )
 
 
-def _metadata_from_payload(
-    value: object, authority: PrelaunchAuthority
-) -> CheckpointMetadata:
+def _metadata_from_payload(value: object, authority: PrelaunchAuthority) -> CheckpointMetadata:
     obj = _keys(
         value,
         {
@@ -1788,14 +2047,10 @@ def decode_checkpoint_metadata_response(
         "metadata_response",
     )
     binding_obj = payload["checkpoint_binding"]
-    external = _external_binding_from_payload(
-        binding_obj, "metadata_response.checkpoint_binding"
-    )
+    external = _external_binding_from_payload(binding_obj, "metadata_response.checkpoint_binding")
     if external.path != checkpoint_path.absolute():
         raise ValueError("metadata child checkpoint path drift")
-    return BoundCheckpointMetadata(
-        external, _metadata_from_payload(payload["metadata"], authority)
-    )
+    return BoundCheckpointMetadata(external, _metadata_from_payload(payload["metadata"], authority))
 
 
 def _restricted_metadata_child(checkpoint_path: Path) -> bytes:
@@ -1806,9 +2061,7 @@ def _restricted_metadata_child(checkpoint_path: Path) -> bytes:
     if before != after:
         raise ValueError("checkpoint changed across metadata child")
     payload = _checkpoint_metadata_payload(metadata, after)
-    return encode_private_child_frame(
-        PrivateChildFrame("metadata-response", os.getpid(), payload)
-    )
+    return encode_private_child_frame(PrivateChildFrame("metadata-response", os.getpid(), payload))
 
 
 def encode_checkpoint_binding_request(binding: ExternalFileBinding) -> bytes:
@@ -1861,9 +2114,7 @@ def _restricted_binding_child(checkpoint_path: Path) -> bytes:
     if current != expected:
         raise ValueError("checkpoint input drift")
     return encode_private_child_frame(
-        PrivateChildFrame(
-            "binding-response", os.getpid(), _checkpoint_binding_payload(current)
-        )
+        PrivateChildFrame("binding-response", os.getpid(), _checkpoint_binding_payload(current))
     )
 
 
@@ -2558,6 +2809,8 @@ def _output_evidence(value: object, where: str) -> OutputEvidence:
 
 
 def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) -> CompleteReceipt:
+    if authority.payload["schema_version"] == "pass201-pa-source-v5-activation-v1":
+        raise ValueError("v5 activation authorities have no source-training receipt")
     _validate_json_native(payload)
     top = _keys(
         payload,
@@ -2588,9 +2841,7 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
         "pass201-pa-source-v4-receipt-v1"
         if is_v4
         else (
-            "pass201-pa-source-v3-receipt-v1"
-            if is_source_v3
-            else "pass201-pa-source-v2-receipt-v1"
+            "pass201-pa-source-v3-receipt-v1" if is_source_v3 else "pass201-pa-source-v2-receipt-v1"
         )
     )
     _literal(top["schema_version"], expected_receipt_schema, "receipt.schema_version")

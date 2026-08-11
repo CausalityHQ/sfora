@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import hashlib
 import importlib.util
 import io
@@ -25,6 +26,7 @@ import tempfile
 import zipfile
 from collections import Counter, OrderedDict, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -35,12 +37,9 @@ BOOTSTRAP_SEED = 2010811
 BOOTSTRAP_REPLICATES = 20_000
 CONTEXT_PAIRS = 32
 PRELAUNCH_SOURCE_MANIFEST_PATH = "docs/pass201_pa_source_prelaunch_manifest.json"
-SOURCE_V3_AUTHORIZATION_MANIFEST_PATH = (
-    "docs/pass201_pa_source_v3_authorization_manifest.json"
-)
-SOURCE_V4_AUTHORIZATION_MANIFEST_PATH = (
-    "docs/pass201_pa_source_v4_authorization_manifest.json"
-)
+SOURCE_V3_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v3_authorization_manifest.json"
+SOURCE_V4_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v4_authorization_manifest.json"
+SOURCE_V5_AUTHORIZATION_MANIFEST_PATH = "docs/pass201_pa_source_v5_authorization_manifest.json"
 SOURCE_V3_I3_COMMIT = "23e7ff5c82fb28cd9fdd8e9e819e34b8fc9aacde"
 SOURCE_V3_I3A_COMMIT = "757d0672fc4409d7bc5076004bc3797d0c7b3cde"
 SOURCE_V3_V3_COMMIT = "03d0ed509fe7b65aee0162941a9f6a3b6fea228f"
@@ -97,6 +96,97 @@ PRELAUNCH_SOURCE_MANIFEST_SHA256 = (
 FROZEN_DRAFT_PATH = "docs/pass201_cis_operator_diagnostic_draft_2026-08-09.md"
 FROZEN_DRAFT_SHA256 = "310f194ee28727caa5908e877338afed82c7ac8be5f2f446affb08f402ef8066"
 RESULT_PATH = "reports/generated/pass201_cis_operator/pass201_inshop_seed0.json"
+SMOKE_RESULT_PATH = "reports/generated/pass201_cis_operator/pass201_inshop_seed0_smoke.json"
+SOURCE_V5_REPAIR_PLAN_COMMIT = "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e"
+SOURCE_V4_HISTORICAL_SOURCE_COMMIT = "53a9db9e9dbe54fcebb33769b915c3f33699d522"
+SOURCE_V4_HISTORICAL_HANDOFF_COMMIT = "32c4d39322fca2a5a906f785bdb612dcd7008647"
+SOURCE_V4_HISTORICAL_TAG = "pass201-source-v4-handoff-32c4d39"
+SOURCE_V5_DOCS_CHAIN = (
+    (
+        "d4a2df313a1f4fb708d9d30c5bce70abf232fa10",
+        SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        "A",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "04f423baae919318855297ebec9fc3d4cdf6b1ab",
+        "d4a2df313a1f4fb708d9d30c5bce70abf232fa10",
+        "A",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "1f5bb121ed6062b00f904395715dcd89bb28fb6f",
+        "04f423baae919318855297ebec9fc3d4cdf6b1ab",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "4afbda4886bf7e71eb72359904c838d8db87ff4c",
+        "1f5bb121ed6062b00f904395715dcd89bb28fb6f",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "12003f535d1dcfa91274c895af830df690856a2c",
+        "4afbda4886bf7e71eb72359904c838d8db87ff4c",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "c66a5af736d33f4743039031f81776bc3a6ada0a",
+        "12003f535d1dcfa91274c895af830df690856a2c",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "d392a1c028ac7c8f918acc6c7c69c78bffbbacf4",
+        "c66a5af736d33f4743039031f81776bc3a6ada0a",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "d3ad7701ed000dcd941e21d0a58577a70b626f3f",
+        "d392a1c028ac7c8f918acc6c7c69c78bffbbacf4",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "b8a6e567db1352707afe5f38a364c342d006b9c8",
+        "d3ad7701ed000dcd941e21d0a58577a70b626f3f",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "886c979433b94ce00420679668569ef83e2969b0",
+        "b8a6e567db1352707afe5f38a364c342d006b9c8",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "3436bc7fdf09465667635fe89b6229707370c5a2",
+        "886c979433b94ce00420679668569ef83e2969b0",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        "61c2bd3dd62ad4e81f91c39a77e584e67a5532a2",
+        "3436bc7fdf09465667635fe89b6229707370c5a2",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+    (
+        "8d7938a4e66abad0a8351422fcfa6f741ea76b00",
+        "61c2bd3dd62ad4e81f91c39a77e584e67a5532a2",
+        "M",
+        "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+    ),
+    (
+        SOURCE_V5_REPAIR_PLAN_COMMIT,
+        "8d7938a4e66abad0a8351422fcfa6f741ea76b00",
+        "M",
+        "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+    ),
+)
 ACTIVATED_PREREGISTRATION_PATH = "docs/pass201_cis_operator_activated_preregistration.json"
 SOURCE_MANIFEST_PATH = "docs/pass201_cis_operator_source_manifest.json"
 
@@ -196,9 +286,7 @@ def _git_command_bytes(root: Path, *arguments: str, check: bool = True) -> bytes
         capture_output=True,
     )
     if check and completed.returncode != 0:
-        raise ValueError(
-            f"git {' '.join(arguments)} failed with exit {completed.returncode}"
-        )
+        raise ValueError(f"git {' '.join(arguments)} failed with exit {completed.returncode}")
     return completed.stdout
 
 
@@ -217,7 +305,11 @@ def _authenticate_source_v3_git_handoff(
     relative_manifest = manifest_path.relative_to(checkout).as_posix()
     _require(
         relative_manifest
-        in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
+        in (
+            SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        ),
         "source authorization manifest path differs",
     )
     expected_manifest = checkout / relative_manifest
@@ -233,9 +325,12 @@ def _authenticate_source_v3_git_handoff(
         _git_command_bytes(checkout, "status", "--porcelain=v1", "-z") == b"",
         "source-v3 handoff checkout must be clean",
     )
-    parent_fields = _git_command_bytes(
-        checkout, "rev-list", "--parents", "-n", "1", "HEAD"
-    ).decode("ascii").strip().split()
+    parent_fields = (
+        _git_command_bytes(checkout, "rev-list", "--parents", "-n", "1", "HEAD")
+        .decode("ascii")
+        .strip()
+        .split()
+    )
     _require(len(parent_fields) == 2, "source-v3 handoff must have one parent")
     handoff_commit, source_commit = parent_fields
     diff = _git_command_bytes(
@@ -259,8 +354,7 @@ def _authenticate_source_v3_git_handoff(
         relative_manifest,
     ).decode("utf-8")
     _require(
-        tree_line.startswith("100644 blob ")
-        and tree_line.endswith(f"\t{relative_manifest}\n"),
+        tree_line.startswith("100644 blob ") and tree_line.endswith(f"\t{relative_manifest}\n"),
         "source handoff manifest mode differs",
     )
     committed = _git_command_bytes(
@@ -280,9 +374,7 @@ def _authenticate_source_v3_git_handoff(
     )
 
 
-def _authenticate_source_v3_static_authorities(
-    root: Path, source_commit: str
-) -> dict[str, str]:
+def _authenticate_source_v3_static_authorities(root: Path, source_commit: str) -> dict[str, str]:
     result: dict[str, str] = {}
     for name, reference in SOURCE_V3_STATIC_AUTHORITIES.items():
         commit = reference["commit"]
@@ -329,9 +421,12 @@ def _authenticate_process_entry_static_authorities(
 
 
 def _authenticate_source_v3_source_chain(root: Path, source_commit: str) -> None:
-    parent_fields = _git_command_bytes(
-        root, "rev-list", "--parents", "-n", "1", source_commit
-    ).decode("ascii").strip().split()
+    parent_fields = (
+        _git_command_bytes(root, "rev-list", "--parents", "-n", "1", source_commit)
+        .decode("ascii")
+        .strip()
+        .split()
+    )
     _require(
         parent_fields == [source_commit, SOURCE_V3_I3_COMMIT],
         "source-v3 source must be the sole child of reviewed I3",
@@ -363,16 +458,22 @@ def _authenticate_source_v4_source_chain(root: Path, source_commit: str) -> None
         PROCESS_ENTRY_F5_COMMIT: PROCESS_ENTRY_F4_COMMIT,
     }
     for child, parent in expected_edges.items():
-        fields = _git_command_bytes(
-            root, "rev-list", "--parents", "-n", "1", child
-        ).decode("ascii").strip().split()
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", child)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
         _require(fields == [child, parent], f"source-v4 historical edge differs: {child}")
     current = source_commit
     aggregate: set[str] = set()
     while current != PROCESS_ENTRY_F5_COMMIT:
-        fields = _git_command_bytes(
-            root, "rev-list", "--parents", "-n", "1", current
-        ).decode("ascii").strip().split()
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", current)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
         _require(len(fields) == 2, "source-v4 source chain must be merge-free")
         raw_changed = _git_command_bytes(
             root, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", current
@@ -408,6 +509,77 @@ def _authenticate_source_v4_source_chain(root: Path, source_commit: str) -> None
     )
 
 
+def _authenticate_source_v5_docs_chain(root: Path) -> None:
+    for commit, parent, status, path in SOURCE_V5_DOCS_CHAIN:
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", commit)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        _require(fields == [commit, parent], f"source-v5 docs parent differs: {commit}")
+        changed = _git_command_bytes(
+            root,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+            "-z",
+            commit,
+        ).split(b"\0")
+        _require(
+            changed == [status.encode("ascii"), path.encode("utf-8"), b""],
+            f"source-v5 docs scope differs: {commit}",
+        )
+        tree = _git_command_bytes(root, "ls-tree", commit, "--", path).decode("utf-8")
+        _require(
+            tree.startswith("100644 blob ") and tree.endswith(f"\t{path}\n"),
+            f"source-v5 docs mode differs: {commit}",
+        )
+
+
+def _authenticate_source_v5_source_chain(root: Path, source_commit: str) -> None:
+    _authenticate_source_v5_docs_chain(root)
+    current = source_commit
+    aggregate: set[str] = set()
+    allowed = {
+        "scripts/diagnose_pass201_cis_operator.py",
+        "scripts/pass201_pa_source_v2_contract.py",
+        "tests/test_diagnose_pass201_cis_operator.py",
+    }
+    while current != SOURCE_V5_REPAIR_PLAN_COMMIT:
+        fields = (
+            _git_command_bytes(root, "rev-list", "--parents", "-n", "1", current)
+            .decode("ascii")
+            .strip()
+            .split()
+        )
+        _require(len(fields) == 2, "source-v5 source chain must be merge-free")
+        entries = _git_command_bytes(
+            root,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+            "-z",
+            current,
+        ).split(b"\0")
+        _require(entries[-1:] == [b""] and len(entries) > 1, "source-v5 source commit empty")
+        entries = entries[:-1]
+        _require(len(entries) % 2 == 0, "source-v5 source edge malformed")
+        changed: set[str] = set()
+        for index in range(0, len(entries), 2):
+            _require(entries[index] == b"M", "source-v5 source edge status differs")
+            try:
+                changed.add(entries[index + 1].decode("utf-8"))
+            except UnicodeDecodeError as error:
+                raise ValueError("source-v5 source path is not UTF-8") from error
+        _require(changed <= allowed, "source-v5 source commit changes unauthorized path")
+        aggregate.update(changed)
+        current = fields[1]
+    _require(aggregate == allowed, "source-v5 aggregate source scope differs")
+
+
 def _validate_source_v3_receipt_relations(
     authority: Any,
     receipt: Mapping[str, Any],
@@ -420,9 +592,7 @@ def _validate_source_v3_receipt_relations(
         "source authority schema differs",
     )
     manifest_path = (
-        SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
-        if is_v4
-        else SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        SOURCE_V4_AUTHORIZATION_MANIFEST_PATH if is_v4 else SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
     )
     _require(
         payload["source_commit"]
@@ -431,10 +601,8 @@ def _validate_source_v3_receipt_relations(
         "source-v3 source commit differs",
     )
     _require(
-        payload["authorization"]["manifest_path"]
-        == manifest_path
-        and payload["authorization"]["required_diff_paths"]
-        == (manifest_path,),
+        payload["authorization"]["manifest_path"] == manifest_path
+        and payload["authorization"]["required_diff_paths"] == (manifest_path,),
         "source-v3 manifest authority differs",
     )
     _require(
@@ -498,12 +666,10 @@ def _authenticate_source_v3_repo_row(
         "source row Git blob",
     )
     data = _git_command_bytes(root, "show", f"{source_commit}:{relative}")
-    blob = _git_command_bytes(
-        root, "rev-parse", f"{source_commit}:{relative}"
-    ).decode("ascii").strip()
-    tree_line = _git_command_bytes(
-        root, "ls-tree", source_commit, "--", relative
-    ).decode("utf-8")
+    blob = (
+        _git_command_bytes(root, "rev-parse", f"{source_commit}:{relative}").decode("ascii").strip()
+    )
+    tree_line = _git_command_bytes(root, "ls-tree", source_commit, "--", relative).decode("utf-8")
     _require(
         tree_line.startswith("100644 blob ") and tree_line.endswith(f"\t{relative}\n"),
         "source row committed mode differs",
@@ -597,11 +763,7 @@ def _load_source_v3_authority(
     )
     _require(
         bootstrap.get("schema_version")
-        == (
-            "pass201-pa-source-v4-prelaunch-v1"
-            if is_v4
-            else "pass201-pa-source-v3-prelaunch-v1"
-        )
+        == ("pass201-pa-source-v4-prelaunch-v1" if is_v4 else "pass201-pa-source-v3-prelaunch-v1")
         and bootstrap.get("source_commit") == handoff.source_commit,
         "source-v3 bootstrap authority differs",
     )
@@ -614,9 +776,7 @@ def _load_source_v3_authority(
         and files[1].get("path") == "scripts/pass201_pa_source_v2_contract.py",
         "source-v3 bootstrap source prefix differs",
     )
-    contract = _load_authenticated_source_v3_contract(
-        root, handoff.source_commit, files[1]
-    )
+    contract = _load_authenticated_source_v3_contract(root, handoff.source_commit, files[1])
     manifest = contract.load_strict_json_bytes(handoff.manifest_bytes)
     _require(
         contract.canonical_json_bytes(manifest) == handoff.manifest_bytes,
@@ -628,8 +788,7 @@ def _load_source_v3_authority(
         _authenticate_process_entry_static_authorities(root, handoff.source_commit)
     payload = authority.payload
     _require(
-        tuple(row["path"] for row in payload["source"]["files"])
-        == contract.SOURCE_V3_PATHS,
+        tuple(row["path"] for row in payload["source"]["files"]) == contract.SOURCE_V3_PATHS,
         "source-v3 source path order differs",
     )
     _require(
@@ -658,6 +817,148 @@ def _load_source_v3_authority(
     )
     contract.validate_complete_receipt(receipt, authority)
     _validate_source_v3_receipt_relations(authority, receipt, handoff)
+    return SourceV3Authority(handoff, contract, authority, receipt)
+
+
+def _load_source_v5_authority(
+    *, root: Path, git_root: Path, manifest_path: Path, receipt_path: Path
+) -> SourceV3Authority:
+    handoff = _authenticate_source_v3_git_handoff(
+        root=root, git_root=git_root, manifest_path=manifest_path
+    )
+    _require(
+        manifest_path == root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+        "source-v5 authorization manifest path differs",
+    )
+    _authenticate_source_v5_source_chain(root, handoff.source_commit)
+    bootstrap = _bootstrap_strict_json_object(
+        handoff.manifest_bytes, "source-v5 authorization manifest"
+    )
+    _require(
+        bootstrap.get("schema_version") == "pass201-pa-source-v5-activation-v1"
+        and bootstrap.get("source_commit") == handoff.source_commit,
+        "source-v5 bootstrap authority differs",
+    )
+    source = bootstrap.get("source")
+    _require(type(source) is dict, "source-v5 source mapping")
+    files = source.get("files")
+    _require(type(files) is list and len(files) == 30, "source-v5 source files")
+    _require(
+        [row.get("path") for row in files[:2]]
+        == [
+            "scripts/diagnose_pass201_cis_operator.py",
+            "scripts/pass201_pa_source_v2_contract.py",
+        ],
+        "source-v5 bootstrap source prefix differs",
+    )
+    contract = _load_authenticated_source_v3_contract(root, handoff.source_commit, files[1])
+    manifest = contract.load_strict_json_bytes(handoff.manifest_bytes)
+    _require(
+        contract.canonical_json_bytes(manifest) == handoff.manifest_bytes,
+        "source-v5 manifest bytes are not canonical",
+    )
+    authority = contract.validate_prelaunch(manifest)
+    _require(
+        tuple(row["path"] for row in authority.payload["source"]["files"])
+        == contract.SOURCE_V3_PATHS,
+        "source-v5 source path order differs",
+    )
+    for row in (
+        authority.payload["controller"],
+        *authority.payload["source"]["files"],
+        authority.payload["source"]["pyproject"],
+        authority.payload["source"]["lockfile"],
+    ):
+        _authenticate_source_v3_repo_row(root, handoff.source_commit, row)
+    _require(
+        Path(__file__).resolve(strict=True)
+        == (root / "scripts/diagnose_pass201_cis_operator.py").resolve(strict=True),
+        "executing diagnostic is not the source-v5 worktree path",
+    )
+    _authenticate_source_v3_static_authorities(root, handoff.source_commit)
+    _authenticate_process_entry_static_authorities(root, handoff.source_commit)
+
+    _require(
+        _git_command_bytes(root, "rev-parse", SOURCE_V4_HISTORICAL_TAG).decode("ascii").strip()
+        == SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        "source-v4 preservation tag differs",
+    )
+    historical_fields = (
+        _git_command_bytes(
+            root,
+            "rev-list",
+            "--parents",
+            "-n",
+            "1",
+            SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        )
+        .decode("ascii")
+        .strip()
+        .split()
+    )
+    _require(
+        historical_fields
+        == [SOURCE_V4_HISTORICAL_HANDOFF_COMMIT, SOURCE_V4_HISTORICAL_SOURCE_COMMIT],
+        "source-v4 historical parent differs",
+    )
+    historical_bytes = _git_command_bytes(
+        root,
+        "show",
+        f"{SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}:{SOURCE_V4_AUTHORIZATION_MANIFEST_PATH}",
+    )
+    historical = contract.load_strict_json_bytes(historical_bytes)
+    historical_manifest = authority.payload["historical_producer"]["manifest"]
+    _require(
+        len(historical_bytes) == historical_manifest["bytes"]
+        and hashlib.sha256(historical_bytes).hexdigest() == historical_manifest["sha256"]
+        and _git_blob_sha1(historical_bytes) == historical_manifest["git_blob"],
+        "source-v4 historical manifest identity differs",
+    )
+    _require(
+        contract.canonical_json_bytes(historical) == historical_bytes,
+        "source-v4 historical manifest bytes are not canonical",
+    )
+    historical_authority = contract.validate_prelaunch(historical)
+    for key in (
+        "controller",
+        "dataset",
+        "execution",
+        "plan",
+        "postconditions",
+        "process_entry_amendment",
+        "process_entry_evidence",
+        "process_entry_plan",
+        "protocol",
+        "sidecars",
+        "status",
+    ):
+        _require(
+            authority.payload[key] == historical[key],
+            f"source-v5 retained historical domain differs: {key}",
+        )
+    expected_receipt = root / authority.payload["outputs"]["receipt"]["path"]
+    _require(receipt_path == expected_receipt, "source-v5 receipt path differs")
+    receipt_bytes = receipt_path.read_bytes()
+    historical_receipt = authority.payload["historical_producer"]["receipt"]
+    _require(
+        len(receipt_bytes) == historical_receipt["bytes"]
+        and hashlib.sha256(receipt_bytes).hexdigest() == historical_receipt["sha256"],
+        "source-v5 historical receipt identity differs",
+    )
+    receipt = contract.load_strict_json_bytes(receipt_bytes)
+    _require(
+        contract.canonical_json_bytes(receipt) == receipt_bytes,
+        "source-v4 receipt bytes are not canonical",
+    )
+    contract.validate_complete_receipt(receipt, historical_authority)
+    historical_handoff = SourceV3GitHandoff(
+        handoff_commit=SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        source_commit=SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        manifest_bytes=historical_bytes,
+        manifest_sha256=hashlib.sha256(historical_bytes).hexdigest(),
+        manifest_git_blob=_git_blob_sha1(historical_bytes),
+    )
+    _validate_source_v3_receipt_relations(historical_authority, receipt, historical_handoff)
     return SourceV3Authority(handoff, contract, authority, receipt)
 
 
@@ -818,15 +1119,12 @@ def operator_gradients(
             losses[operator], parameters, retain_graph=True, allow_unused=True
         )
         disconnected = [
-            name
-            for name, value in zip(expected_names, values, strict=True)
-            if value is None
+            name for name, value in zip(expected_names, values, strict=True) if value is None
         ]
         if disconnected:
             raise ValueError(f"disconnected required parameter: {disconnected[0]}")
         gradients_by_name = {
-            name: value.detach().clone()
-            for name, value in zip(expected_names, values, strict=True)
+            name: value.detach().clone() for name, value in zip(expected_names, values, strict=True)
         }
         for panel in PANELS:
             panel_names = tuple(
@@ -950,9 +1248,7 @@ def make_stateless_updates(
                     float(coalition_weight),
                 )
             )
-            configured_update = _scaled_named_tensors(
-                configured_direction, -float(learning_rate)
-            )
+            configured_update = _scaled_named_tensors(configured_direction, -float(learning_rate))
             updates["configured_loss_stateless"][operator][panel] = StatelessUpdate(
                 parameter_names=pure.parameter_names,
                 named_updates=configured_update,
@@ -1038,16 +1334,12 @@ def bufferless_train_embeddings(model: Any, inputs: Any) -> TrainGraph:
     import torch
 
     parameters = dict(model.named_parameters())
-    parameter_values = {
-        name: value.detach().clone() for name, value in parameters.items()
-    }
+    parameter_values = {name: value.detach().clone() for name, value in parameters.items()}
     parameter_identities = {
         name: _tensor_byte_identity(value) for name, value in parameters.items()
     }
     before = {name: value.detach().clone() for name, value in model.named_buffers()}
-    buffer_identities = {
-        name: _tensor_byte_identity(value) for name, value in before.items()
-    }
+    buffer_identities = {name: _tensor_byte_identity(value) for name, value in before.items()}
     disposable = {name: value.clone() for name, value in before.items()}
     flags = _module_training_flags(model)
     try:
@@ -1299,9 +1591,7 @@ def shared_confuser_statistic(
     null_values = np.empty(null_replicates, dtype="<f8")
     generator = np.random.Generator(np.random.PCG64(null_seed))
     for replicate in range(null_replicates):
-        permuted = np.stack(
-            [row[generator.permutation(q.shape[1])] for row in q], axis=0
-        )
+        permuted = np.stack([row[generator.permutation(q.shape[1])] for row in q], axis=0)
         null_values[replicate] = np.exp(np.log(permuted).mean(axis=0)).mean()
     null_mean = float(null_values.mean())
     return {
@@ -1310,9 +1600,7 @@ def shared_confuser_statistic(
         "null_mean": null_mean,
         "E_shared": (aligned - null_mean) / max(null_mean, 1e-12),
         "null_distribution": null_values,
-        "null_distribution_sha256": hashlib.sha256(
-            null_values.tobytes(order="C")
-        ).hexdigest(),
+        "null_distribution_sha256": hashlib.sha256(null_values.tobytes(order="C")).hexdigest(),
     }
 
 
@@ -1854,9 +2142,7 @@ def _repo_relative(path: Path, root: Path) -> str:
         raise ValueError(f"bound path is outside source root: {path}") from error
 
 
-def _path_tree_digest(
-    root: Path, relative_root: str, *, python_only: bool
-) -> tuple[int, int, str]:
+def _path_tree_digest(root: Path, relative_root: str, *, python_only: bool) -> tuple[int, int, str]:
     tree_root = root / relative_root
     _require(tree_root.is_dir(), f"missing bound tree: {relative_root}")
     paths = sorted(
@@ -1868,8 +2154,7 @@ def _path_tree_digest(
         key=lambda path: path.relative_to(root).as_posix().encode("utf-8"),
     )
     framed = b"".join(
-        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode()
-        for path in paths
+        f"{_sha256_file(path)}  {path.relative_to(root).as_posix()}\n".encode() for path in paths
     )
     return (
         len(paths),
@@ -1890,12 +2175,12 @@ def _git_output(root: Path, *arguments: str) -> bytes:
         raise ValueError("unable to authenticate executing source revision") from error
 
 
-def _git_python_tree_digest(
-    root: Path, revision: str, relative_root: str
-) -> tuple[int, str]:
-    names = _git_output(
-        root, "ls-tree", "-r", "--name-only", revision, "--", relative_root
-    ).decode("utf-8").splitlines()
+def _git_python_tree_digest(root: Path, revision: str, relative_root: str) -> tuple[int, str]:
+    names = (
+        _git_output(root, "ls-tree", "-r", "--name-only", revision, "--", relative_root)
+        .decode("utf-8")
+        .splitlines()
+    )
     paths = sorted(
         (name for name in names if name.endswith(".py")),
         key=lambda name: name.encode("utf-8"),
@@ -2042,14 +2327,17 @@ def _validate_source_v3_output(
     )
 
 
-def _validate_source_v3_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+def _validate_source_v3_binding(
+    args: Any, *, bound: SourceV3Authority | None = None
+) -> tuple[dict[str, Any], dict[str, Any]]:
     root = Path(args.root).resolve(strict=True)
-    bound = _load_source_v3_authority(
-        root=root,
-        git_root=Path(args.git_root),
-        manifest_path=Path(args.prelaunch_manifest),
-        receipt_path=Path(args.source_receipt),
-    )
+    if bound is None:
+        bound = _load_source_v3_authority(
+            root=root,
+            git_root=Path(args.git_root),
+            manifest_path=Path(args.prelaunch_manifest),
+            receipt_path=Path(args.source_receipt),
+        )
     payload = bound.authority.payload
     receipt = bound.receipt
     output_paths = {
@@ -2131,6 +2419,35 @@ def _validate_source_v3_binding(args: Any) -> tuple[dict[str, Any], dict[str, An
     return source_manifest, constants
 
 
+def _validate_source_v5_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    root = Path(args.root).resolve(strict=True)
+    bound = _load_source_v5_authority(
+        root=root,
+        git_root=Path(args.git_root),
+        manifest_path=Path(args.prelaunch_manifest),
+        receipt_path=Path(args.source_receipt),
+    )
+    source_manifest, constants = _validate_source_v3_binding(args, bound=bound)
+    payload = bound.authority.payload
+    historical = payload["historical_producer"]
+    source_manifest["schema_version"] = "pass201-source-v2"
+    source_manifest["source_revision"] = SOURCE_V4_HISTORICAL_SOURCE_COMMIT
+    source_manifest["activation_repair"] = {
+        "historical_authorization_commit": SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        "historical_source_commit": SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        "historical_manifest_path": historical["manifest"]["path"],
+        "historical_manifest_sha256": historical["manifest"]["sha256"],
+        "historical_receipt_path": historical["receipt"]["path"],
+        "historical_receipt_sha256": historical["receipt"]["sha256"],
+        "executor_authorization_commit": bound.handoff.handoff_commit,
+        "executor_source_commit": bound.handoff.source_commit,
+        "executor_manifest_path": payload["authorization"]["manifest_path"],
+        "executor_manifest_sha256": bound.handoff.manifest_sha256,
+        "executor_diagnostic_sha256": source_manifest["diagnostic_source_sha256"],
+    }
+    return source_manifest, constants
+
+
 def _validate_source_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     prelaunch_bytes = Path(args.prelaunch_manifest).read_bytes()
     prelaunch_bootstrap = _bootstrap_strict_json_object(
@@ -2138,6 +2455,10 @@ def _validate_source_binding(args: Any) -> tuple[dict[str, Any], dict[str, Any]]
     )
     if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v3-prelaunch-v1":
         return _validate_source_v3_binding(args)
+    if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v5-activation-v1":
+        return _validate_source_v5_binding(args)
+    if prelaunch_bootstrap.get("schema_version") == "pass201-pa-source-v4-prelaunch-v1":
+        raise ValueError("source-v4 authorization is repair-required")
     root = Path(args.root)
     git_root = Path(args.git_root)
     prelaunch_path = Path(args.prelaunch_manifest)
@@ -2292,21 +2613,90 @@ SOURCE_MANIFEST_KEYS = {
     "torch_version",
     "numpy_version",
 }
+ACTIVATION_REPAIR_KEYS = (
+    "historical_authorization_commit",
+    "historical_source_commit",
+    "historical_manifest_path",
+    "historical_manifest_sha256",
+    "historical_receipt_path",
+    "historical_receipt_sha256",
+    "executor_authorization_commit",
+    "executor_source_commit",
+    "executor_manifest_path",
+    "executor_manifest_sha256",
+    "executor_diagnostic_sha256",
+)
+
+
+def _validate_activation_repair(
+    repair: Any,
+    *,
+    prelaunch_path: Any,
+    prelaunch_sha256: Any,
+    source_revision: Any,
+    diagnostic_sha256: Any,
+) -> None:
+    _require(
+        type(repair) is dict and list(repair) == list(ACTIVATION_REPAIR_KEYS),
+        "source manifest activation_repair keys/order",
+    )
+    _require(
+        repair["historical_authorization_commit"] == SOURCE_V4_HISTORICAL_HANDOFF_COMMIT
+        and repair["historical_source_commit"] == SOURCE_V4_HISTORICAL_SOURCE_COMMIT
+        and source_revision == SOURCE_V4_HISTORICAL_SOURCE_COMMIT,
+        "source manifest historical commits differ",
+    )
+    _require(
+        repair["historical_manifest_path"] == SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
+        and repair["historical_manifest_sha256"]
+        == "080adaeaaa5c7bf9c87ed93761d6e4c517b958bb60c49af68a880109f5abce1f"
+        and repair["historical_receipt_path"]
+        == "reports/generated/pass201_source_v3/run-v3/receipt.json"
+        and repair["historical_receipt_sha256"]
+        == "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9",
+        "source manifest historical artifacts differ",
+    )
+    for key in ("executor_authorization_commit", "executor_source_commit"):
+        _require(
+            type(repair[key]) is str
+            and len(repair[key]) == 40
+            and all(character in "0123456789abcdef" for character in repair[key]),
+            f"source manifest {key}",
+        )
+    _require(
+        prelaunch_path == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+        and repair["executor_manifest_path"] == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
+        and repair["executor_manifest_sha256"] == prelaunch_sha256
+        and repair["executor_diagnostic_sha256"] == diagnostic_sha256,
+        "source manifest executor provenance differs",
+    )
 
 
 def _validate_source_manifest_artifact(manifest: Any) -> None:
-    _exact_keys(manifest, SOURCE_MANIFEST_KEYS, "source manifest")
-    _require(manifest["schema_version"] == "pass201-source-v1", "source manifest schema")
-    _require(manifest["status"] == "frozen", "source manifest status")
+    _require(type(manifest) is dict, "source manifest must be an object")
+    is_v2 = manifest.get("schema_version") == "pass201-source-v2"
+    expected_keys = SOURCE_MANIFEST_KEYS | ({"activation_repair"} if is_v2 else set())
+    _exact_keys(manifest, expected_keys, "source manifest")
     _require(
-        manifest["prelaunch_source_manifest_path"]
-        in (
-            PRELAUNCH_SOURCE_MANIFEST_PATH,
-            SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
-            SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
-        ),
-        "source manifest prelaunch path",
+        is_v2 or manifest["schema_version"] == "pass201-source-v1",
+        "source manifest schema",
     )
+    _require(manifest["status"] == "frozen", "source manifest status")
+    if is_v2:
+        _require(
+            manifest["prelaunch_source_manifest_path"] == SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            "source manifest prelaunch path",
+        )
+    else:
+        _require(
+            manifest["prelaunch_source_manifest_path"]
+            in (
+                PRELAUNCH_SOURCE_MANIFEST_PATH,
+                SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+                SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+            ),
+            "source manifest prelaunch path",
+        )
     for key in (
         "prelaunch_source_manifest_sha256",
         "source_report_sha256",
@@ -2337,6 +2727,14 @@ def _validate_source_manifest_artifact(manifest: Any) -> None:
     )
     _require(manifest["objective"] == "proxy_anchor", "source manifest objective")
     _require(manifest["seed"] == 0 and _is_int(manifest["seed"]), "source manifest seed")
+    if is_v2:
+        _validate_activation_repair(
+            manifest["activation_repair"],
+            prelaunch_path=manifest["prelaunch_source_manifest_path"],
+            prelaunch_sha256=manifest["prelaunch_source_manifest_sha256"],
+            source_revision=manifest["source_revision"],
+            diagnostic_sha256=manifest["diagnostic_source_sha256"],
+        )
 
 
 def _validate_activated_preregistration(payload: Any) -> None:
@@ -2359,11 +2757,11 @@ def _validate_activated_preregistration(payload: Any) -> None:
     _require(payload["frozen_draft_sha256"] == FROZEN_DRAFT_SHA256, "frozen draft digest")
     _require(payload["result_path"] == RESULT_PATH, "activated result path")
     _require(
-        payload["authorized_action"]
-        == "binding_and_integrity_smoke_then_scientific_if_green",
+        payload["authorized_action"] == "binding_and_integrity_smoke_then_scientific_if_green",
         "activated authorized action",
     )
-    source_keys = SOURCE_MANIFEST_KEYS - {
+    is_v2 = "activation_repair" in payload["source"]
+    source_keys = (SOURCE_MANIFEST_KEYS | ({"activation_repair"} if is_v2 else set())) - {
         "schema_version",
         "status",
         "activated_preregistration_sha256",
@@ -2371,7 +2769,7 @@ def _validate_activated_preregistration(payload: Any) -> None:
     _exact_keys(payload["source"], source_keys, "activated source")
     source_for_validation = {
         **payload["source"],
-        "schema_version": "pass201-source-v1",
+        "schema_version": "pass201-source-v2" if is_v2 else "pass201-source-v1",
         "status": "frozen",
         "activated_preregistration_sha256": "0" * 64,
     }
@@ -2379,6 +2777,48 @@ def _validate_activated_preregistration(payload: Any) -> None:
     _validate_constants(payload["constants"], activated=True)
     _exact_keys(payload["thresholds"], THRESHOLDS, "activated thresholds")
     _require(payload["thresholds"] == THRESHOLDS, "activated thresholds mismatch")
+
+
+def _publish_source_v5_candidate(path: Path, data: bytes) -> None:
+    if not path.parent.is_dir() or path.parent.is_symlink():
+        raise ValueError("source-v5 candidate parent must be a real directory")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    if any(path.parent.glob(f".{path.name}.tmp-*")):
+        raise ValueError("source-v5 candidate temporary path already exists")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.tmp-", dir=path.parent)
+    temporary = Path(temporary_name)
+    published = False
+
+    def fsync_directory() -> None:
+        directory_descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+
+    try:
+        with os.fdopen(descriptor, "wb") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            handle.write(data)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_identity = (temporary.stat().st_dev, temporary.stat().st_ino)
+        os.link(temporary, path, follow_symlinks=False)
+        published = True
+        fsync_directory()
+        temporary.unlink()
+        fsync_directory()
+    except BaseException:
+        if published:
+            with contextlib.suppress(FileNotFoundError):
+                current = path.stat(follow_symlinks=False)
+                if (current.st_dev, current.st_ino) == temporary_identity:
+                    path.unlink()
+        temporary.unlink(missing_ok=True)
+        with contextlib.suppress(OSError):
+            fsync_directory()
+        raise
 
 
 def _atomic_write_bytes(path: Path, data: bytes) -> None:
@@ -2402,8 +2842,18 @@ def _atomic_write_bytes(path: Path, data: bytes) -> None:
         raise
 
 
-def _atomic_write_json(path: Path, payload: object) -> bytes:
-    data = canonical_json_bytes(payload) + b"\n"
+def _atomic_write_json(path: Path, payload: object, *, sort_keys: bool = True) -> bytes:
+    data = (
+        canonical_json_bytes(payload)
+        if sort_keys
+        else json.dumps(
+            payload,
+            sort_keys=False,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        ).encode("utf-8")
+    ) + b"\n"
     _atomic_write_bytes(path, data)
     return data
 
@@ -2458,12 +2908,17 @@ def activate_source(args: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     )
     prior_manifest = source_manifest_path.read_bytes() if source_manifest_path.exists() else None
     try:
-        preregistration_bytes = _atomic_write_json(preregistration_path, preregistration)
+        is_v2 = source_manifest["schema_version"] == "pass201-source-v2"
+        preregistration_bytes = _atomic_write_json(
+            preregistration_path,
+            preregistration,
+            sort_keys=not is_v2,
+        )
         source_manifest["activated_preregistration_sha256"] = hashlib.sha256(
             preregistration_bytes
         ).hexdigest()
         _validate_source_manifest_artifact(source_manifest)
-        _atomic_write_json(source_manifest_path, source_manifest)
+        _atomic_write_json(source_manifest_path, source_manifest, sort_keys=not is_v2)
         persisted_preregistration = _read_json_object(
             preregistration_path, "activated preregistration"
         )
@@ -2629,9 +3084,7 @@ class _ProductionRuntime:
                     self.rejected_context_count += 1
                     continue
                 raise
-            clean_rows = [
-                clean_dataset[index][0] for index in metadata["s_prime_sample_indices"]
-            ]
+            clean_rows = [clean_dataset[index][0] for index in metadata["s_prime_sample_indices"]]
             clean_tensor = self.torch.stack(clean_rows, dim=0)
             context = {
                 **metadata,
@@ -2681,9 +3134,7 @@ class _ProductionRuntime:
             delta=float(self.config.proxy_anchor_delta),
             learning_rate=float(self.config.learning_rate),
             coalition_weight=float(self.config.coalition_weight),
-            proxy_learning_rate_multiplier=float(
-                self.config.proxy_learning_rate_multiplier
-            ),
+            proxy_learning_rate_multiplier=float(self.config.proxy_learning_rate_multiplier),
             context_index=index,
         )
         context = materialize_scored_context(entry["context"], score)
@@ -2704,9 +3155,7 @@ class _ProductionRuntime:
                 for regime in REGIMES:
                     update = panel_record["updates"][regime]
                     for metric in ("parameter_update_norm", *OUTCOME_METRICS):
-                        scalar_replay[f"{operator}.{panel}.{regime}.{metric}"] = update[
-                            metric
-                        ]
+                        scalar_replay[f"{operator}.{panel}.{regime}.{metric}"] = update[metric]
         self.scored.append({"context": context, "score": score})
         return {
             "context": context,
@@ -2883,9 +3332,7 @@ def _validate_process_output(payload: Any, role: str) -> None:
         _require(payload["result"] is None, "integrity process cannot emit aggregate result")
 
 
-def run_process_role(
-    role: str, source_manifest: Mapping[str, Any], output_path: Path
-) -> None:
+def run_process_role(role: str, source_manifest: Mapping[str, Any], output_path: Path) -> None:
     """Run one fresh deterministic replay role and atomically publish its record."""
 
     _require(role in PROCESS_ROLES, "unknown process role")
@@ -3005,16 +3452,10 @@ def materialize_scored_context(
                 "gradient_sha256": gradient.gradient_sha256,
                 "raw_gradient_norm": float(gradient.raw_gradient_norm),
                 "update_space_norm": float(gradient.update_space_norm),
-                "auxiliary_to_pa_norm_ratio": float(
-                    gradient.auxiliary_to_pa_norm_ratio
-                ),
+                "auxiliary_to_pa_norm_ratio": float(gradient.auxiliary_to_pa_norm_ratio),
                 "cosine_with_pa": float(gradient.cosine_with_pa),
-                "cosine_with_atomic_full_union": float(
-                    gradient.cosine_with_atomic_full_union
-                ),
-                "cosine_with_summed_dropout": float(
-                    gradient.cosine_with_summed_dropout
-                ),
+                "cosine_with_atomic_full_union": float(gradient.cosine_with_atomic_full_union),
+                "cosine_with_summed_dropout": float(gradient.cosine_with_summed_dropout),
                 "scale_residual_to_summed_union": (
                     None
                     if gradient.scale_residual_to_summed_union is None
@@ -3076,9 +3517,7 @@ def aggregate_scored_contexts(
                 for metric in OUTCOME_METRICS:
                     path = f"{regime}.{panel}.operators.{operator}.{metric}"
                     values = [
-                        context["operators"][operator]["panels"][panel]["updates"][regime][
-                            metric
-                        ]
+                        context["operators"][operator]["panels"][panel]["updates"][regime][metric]
                         for context in contexts
                     ]
                     metrics[metric] = add_summary(path, values)
@@ -3087,12 +3526,10 @@ def aggregate_scored_contexts(
             for advantage, metric in (("A_F", "R_F"), ("A_M", "Delta_M")):
                 path = f"{regime}.{panel}.paired_advantages.{advantage}"
                 values = [
-                    context["operators"]["summed_union"]["panels"][panel]["updates"][
-                        regime
-                    ][metric]
-                    - context["operators"]["atomic_full_union"]["panels"][panel][
-                        "updates"
-                    ][regime][metric]
+                    context["operators"]["summed_union"]["panels"][panel]["updates"][regime][metric]
+                    - context["operators"]["atomic_full_union"]["panels"][panel]["updates"][regime][
+                        metric
+                    ]
                     for context in contexts
                 ]
                 advantages[advantage] = add_summary(path, values)
@@ -3152,9 +3589,7 @@ def _replay_maxima(
             left_value = float(left["replay_scalars"][key])
             right_value = float(right["replay_scalars"][key])
             _require(math.isfinite(left_value) and math.isfinite(right_value), "scalar replay")
-            residual = abs(left_value - right_value) / max(
-                abs(left_value), abs(right_value), 1e-12
-            )
+            residual = abs(left_value - right_value) / max(abs(left_value), abs(right_value), 1e-12)
             scalar_max = max(scalar_max, residual)
     return tensor_max, scalar_max
 
@@ -3190,10 +3625,7 @@ def compare_integrity_records(
         "initial_torch_cuda_rng_sha256_by_device",
     )
     _require(
-        all(
-            all(record[key] == records[0][key] for key in rng_keys)
-            for record in records[1:]
-        ),
+        all(all(record[key] == records[0][key] for key in rng_keys) for record in records[1:]),
         "RNG replay mismatch",
     )
     _require(
@@ -3217,9 +3649,7 @@ def _validate_controller_binding(args: Any) -> tuple[dict[str, Any], dict[str, A
     source_manifest, constants = _validate_source_binding(args)
     preregistration_path = Path(args.activated_preregistration)
     source_manifest_path = Path(args.source_manifest)
-    persisted_preregistration = _read_json_object(
-        preregistration_path, "activated preregistration"
-    )
+    persisted_preregistration = _read_json_object(preregistration_path, "activated preregistration")
     persisted_manifest = _read_json_object(source_manifest_path, "source manifest")
     _validate_activated_preregistration(persisted_preregistration)
     _validate_source_manifest_artifact(persisted_manifest)
@@ -3274,11 +3704,9 @@ def _result_source_from_manifest(
     source_manifest: Mapping[str, Any], process_records: Sequence[Mapping[str, Any]]
 ) -> dict[str, Any]:
     last_record = process_records[-1]
-    return {
+    result = {
         "prelaunch_source_manifest_path": source_manifest["prelaunch_source_manifest_path"],
-        "prelaunch_source_manifest_sha256": source_manifest[
-            "prelaunch_source_manifest_sha256"
-        ],
+        "prelaunch_source_manifest_sha256": source_manifest["prelaunch_source_manifest_sha256"],
         "source_report_path": source_manifest["source_report_path"],
         "source_report_sha256": source_manifest["source_report_sha256"],
         "source_revision": source_manifest["source_revision"],
@@ -3291,15 +3719,16 @@ def _result_source_from_manifest(
         "train_manifest_path": source_manifest["train_manifest_path"],
         "train_manifest_sha256": source_manifest["train_manifest_sha256"],
         "diagnostic_source_sha256": source_manifest["diagnostic_source_sha256"],
-        "activated_preregistration_sha256": source_manifest[
-            "activated_preregistration_sha256"
-        ],
+        "activated_preregistration_sha256": source_manifest["activated_preregistration_sha256"],
         "python_version": last_record["python_version"],
         "torch_version": source_manifest["torch_version"],
         "numpy_version": source_manifest["numpy_version"],
         "cuda_version": last_record["cuda_version"],
         "cudnn_version": last_record["cudnn_version"],
     }
+    if source_manifest["schema_version"] == "pass201-source-v2":
+        result["activation_repair"] = copy.deepcopy(source_manifest["activation_repair"])
+    return result
 
 
 def _reduced_replay_failure(
@@ -3318,9 +3747,7 @@ def _reduced_replay_failure(
     )
     integrity = {
         "stage": stage,
-        "accepted_context_count": min(
-            record["prepared_context_count"] for record in records
-        ),
+        "accepted_context_count": min(record["prepared_context_count"] for record in records),
         "rejected_context_count": 0,
         "invalid_context_count": 1,
         "input_replay_verified": False,
@@ -3329,9 +3756,7 @@ def _reduced_replay_failure(
         "failure_evidence_sha256": "",
         "all_finite": False,
     }
-    integrity["failure_evidence_sha256"] = _failure_evidence_digest(
-        "INVALID", [reason], integrity
-    )
+    integrity["failure_evidence_sha256"] = _failure_evidence_digest("INVALID", [reason], integrity)
     payload = {
         "schema_version": "pass201-cis-operator-v1",
         "status": "INVALID",
@@ -3484,9 +3909,7 @@ def run_controller(args: Any) -> None:
                         "context-0 replay mismatch before scientific",
                     )
             child_environment["PASS201_REPLAY_AUTHORIZED_SHA256"] = hashlib.sha256(
-                canonical_json_bytes(
-                    [process["process_record"] for process in processes]
-                )
+                canonical_json_bytes([process["process_record"] for process in processes])
             ).hexdigest()
             child_environment["PASS201_PROCESS_ROLE"] = "scientific"
             scientific = _spawn_process_role(
@@ -3499,10 +3922,12 @@ def run_controller(args: Any) -> None:
             compare_integrity_records(*processes)
     except (RuntimeError, ValueError) as error:
         if processes:
-            invalid = _reduced_replay_failure(
-                source_manifest, constants, processes, error
+            invalid = _reduced_replay_failure(source_manifest, constants, processes, error)
+            _atomic_write_json(
+                output_path,
+                invalid,
+                sort_keys=source_manifest["schema_version"] != "pass201-source-v2",
             )
-            _atomic_write_json(output_path, invalid)
             return
         raise
     tensor_max, scalar_max = _replay_maxima(*processes)
@@ -3528,7 +3953,319 @@ def run_controller(args: Any) -> None:
             tensor_max,
             scalar_max,
         )
-    _atomic_write_json(output_path, payload)
+    _atomic_write_json(
+        output_path,
+        payload,
+        sort_keys=source_manifest["schema_version"] != "pass201-source-v2",
+    )
+
+
+def _build_source_v5_authority(
+    *,
+    historical_manifest: Mapping[str, Any],
+    historical_manifest_bytes: bytes,
+    source_commit: str,
+    source_files: Sequence[Mapping[str, Any]],
+    frozen_absence_checked_utc: str,
+) -> dict[str, Any]:
+    run_dir = "reports/generated/pass201_source_v3/run-v3"
+    artifacts = {
+        "checkpoint": (
+            "checkpoint.pt",
+            55760186,
+            "e42d25b4e8e98f1d619aada2215ecbfeca579327dabaf6f09f02151183220696",
+        ),
+        "log": (
+            "training.log",
+            8757,
+            "053a7dc0b447f6bfeabf7dac347d80b0b889e94db7688eeebaf94e02f5f4d1d2",
+        ),
+        "receipt": (
+            "receipt.json",
+            15179,
+            "a494ead85167539670f8c5d1481f8d9eabc274776727df06d7362e99e9b7cdf9",
+        ),
+        "report": (
+            "report.json",
+            250481,
+            "a74a2a1c08beee2a0b4d67adcf378421309077c3ce39c93711f782f0589cc843",
+        ),
+        "resolved_config": (
+            "resolved_config.json",
+            5981,
+            "bd5d1f0216b8c55d70a7ac4bd528fb5545d66472e964abd321bba3877079584e",
+        ),
+        "train_manifest": (
+            "train_manifest.json",
+            2895656,
+            "c60e998e802f2b1050fc3c934ce9960c27c7ec4e598b0d88acd8062295c3def9",
+        ),
+    }
+
+    def completed(name: str, *, execution: bool = True) -> dict[str, Any]:
+        filename, size, digest = artifacts[name]
+        item: dict[str, Any] = {
+            "path": f"{run_dir}/{filename}",
+            "bytes": size,
+            "sha256": digest,
+        }
+        if execution:
+            item["required_present_at_execution"] = True
+        return item
+
+    def future(path: str) -> dict[str, Any]:
+        return {"path": path, "required_absent_when_frozen": True}
+
+    source = copy.deepcopy(historical_manifest["source"])
+    source["files"] = [copy.deepcopy(dict(row)) for row in source_files]
+    retained = {
+        key: copy.deepcopy(historical_manifest[key])
+        for key in (
+            "controller",
+            "dataset",
+            "execution",
+            "plan",
+            "postconditions",
+            "process_entry_amendment",
+            "process_entry_evidence",
+            "process_entry_plan",
+            "protocol",
+            "sidecars",
+            "status",
+        )
+    }
+    return {
+        "authorization": {
+            "clean_policy": "empty-porcelain-v1-z",
+            "frozen_absence": {
+                "activated_preregistration": "ENOENT",
+                "result": "ENOENT",
+                "smoke": "ENOENT",
+                "source_manifest": "ENOENT",
+            },
+            "frozen_absence_checked_utc": frozen_absence_checked_utc,
+            "manifest_path": SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
+            "required_diff_modes": ["100644"],
+            "required_diff_paths": [SOURCE_V5_AUTHORIZATION_MANIFEST_PATH],
+            "required_diff_status": ["A"],
+            "required_parent_commit": source_commit,
+        },
+        "controller": retained["controller"],
+        "dataset": retained["dataset"],
+        "execution": retained["execution"],
+        "historical_producer": {
+            "authorization_commit": "32c4d39322fca2a5a906f785bdb612dcd7008647",
+            "source_commit": "53a9db9e9dbe54fcebb33769b915c3f33699d522",
+            "manifest": {
+                "path": SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+                "bytes": len(historical_manifest_bytes),
+                "sha256": hashlib.sha256(historical_manifest_bytes).hexdigest(),
+                "git_blob": "430f340a17cc32c5fd239083b1a0dba98e09ad7c",
+            },
+            "receipt": {
+                **completed("receipt", execution=False),
+                "schema_version": "pass201-pa-source-v4-receipt-v1",
+                "candidate_values_computed": False,
+            },
+            "outputs": {
+                name: completed(name, execution=False)
+                for name in ("checkpoint", "log", "report", "resolved_config", "train_manifest")
+            },
+        },
+        "outputs": {
+            "activated_preregistration": future(ACTIVATED_PREREGISTRATION_PATH),
+            "checkpoint": completed("checkpoint"),
+            "log": completed("log"),
+            "receipt": completed("receipt"),
+            "report": completed("report"),
+            "resolved_config": completed("resolved_config"),
+            "result": future(RESULT_PATH),
+            "run_directory": {"path": run_dir, "required_present_at_execution": True},
+            "smoke": future(SMOKE_RESULT_PATH),
+            "source_manifest": future(SOURCE_MANIFEST_PATH),
+            "train_manifest": completed("train_manifest"),
+        },
+        "plan": retained["plan"],
+        "postconditions": retained["postconditions"],
+        "process_entry_amendment": retained["process_entry_amendment"],
+        "process_entry_evidence": retained["process_entry_evidence"],
+        "process_entry_plan": retained["process_entry_plan"],
+        "protocol": retained["protocol"],
+        "purpose": "activate_completed_source_v4_then_run_cpu_diagnostic",
+        "repair_amendment": {
+            "path": "docs/pass201_pa_source_v4_dispatch_repair_amendment_2026-08-11.md",
+            "sha256": "a265f7d2a5f55c52eb63263909aa387a55c74820b9644bf92a3cadda965da716",
+            "commit": "8d7938a4e66abad0a8351422fcfa6f741ea76b00",
+        },
+        "repair_plan": {
+            "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v4-dispatch-repair.md",
+            "sha256": "470f3e08ad138cb48b4802f251b63b5c4387b28f3fd023e8492b0fd98950732e",
+            "commit": "20785ba6be243a9b7e95fcb25647ee3cdc55cc9e",
+        },
+        "schema_version": "pass201-pa-source-v5-activation-v1",
+        "sidecars": retained["sidecars"],
+        "source": source,
+        "source_commit": source_commit,
+        "status": retained["status"],
+    }
+
+
+def _source_v5_current_rows(
+    root: Path, source_commit: str, paths: Sequence[str]
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for relative in paths:
+        committed = _git_command_bytes(root, "show", f"{source_commit}:{relative}")
+        worktree_path = root / relative
+        _require(
+            worktree_path.is_file() and not worktree_path.is_symlink(),
+            "source-v5 worktree file unavailable",
+        )
+        worktree = worktree_path.read_bytes()
+        _require(worktree == committed, f"source-v5 worktree bytes differ: {relative}")
+        tree = _git_command_bytes(root, "ls-tree", source_commit, "--", relative).decode("utf-8")
+        _require(
+            tree.startswith("100644 blob ") and tree.endswith(f"\t{relative}\n"),
+            f"source-v5 source mode differs: {relative}",
+        )
+        rows.append(
+            {
+                "bytes": len(committed),
+                "git_blob": tree.split()[2],
+                "git_mode": "100644",
+                "path": relative,
+                "sha256": hashlib.sha256(committed).hexdigest(),
+            }
+        )
+    return rows
+
+
+def _authenticate_source_v5_freezer_root(root: Path) -> tuple[str, bytes]:
+    _require(
+        Path(__file__).resolve(strict=True).parents[1] == root,
+        "source-v5 root differs from executing checkout",
+    )
+    symbolic = subprocess.run(
+        ["git", "symbolic-ref", "-q", "HEAD"],
+        cwd=root,
+        capture_output=True,
+    )
+    _require(symbolic.returncode == 1, "source-v5 freezer requires detached HEAD")
+    _require(
+        _git_command_bytes(root, "status", "--porcelain", "--untracked-files=no", "-z") == b"",
+        "source-v5 freezer requires tracked-clean checkout",
+    )
+    head = _git_command_bytes(root, "rev-parse", "HEAD").decode("ascii").strip()
+    _require(
+        _git_command_bytes(root, "rev-parse", SOURCE_V4_HISTORICAL_TAG).decode("ascii").strip()
+        == SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        "source-v4 preservation tag differs",
+    )
+    parents = (
+        _git_command_bytes(
+            root,
+            "rev-list",
+            "--parents",
+            "-n",
+            "1",
+            SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        )
+        .decode("ascii")
+        .strip()
+        .split()
+    )
+    _require(
+        parents == [SOURCE_V4_HISTORICAL_HANDOFF_COMMIT, SOURCE_V4_HISTORICAL_SOURCE_COMMIT],
+        "source-v4 historical parent differs",
+    )
+    h4_path = SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
+    _require(
+        _git_command_bytes(
+            root,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-status",
+            "-r",
+            "-z",
+            SOURCE_V4_HISTORICAL_HANDOFF_COMMIT,
+        ).split(b"\0")
+        == [b"A", h4_path.encode("utf-8"), b""],
+        "source-v4 historical handoff scope differs",
+    )
+    h4_bytes = _git_command_bytes(
+        root,
+        "show",
+        f"{SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}:{h4_path}",
+    )
+    _require(
+        hashlib.sha256(h4_bytes).hexdigest()
+        == "080adaeaaa5c7bf9c87ed93761d6e4c517b958bb60c49af68a880109f5abce1f",
+        "source-v4 historical manifest digest differs",
+    )
+    _require(
+        _git_command_bytes(
+            root,
+            "rev-parse",
+            f"{SOURCE_V4_HISTORICAL_HANDOFF_COMMIT}:{h4_path}",
+        )
+        .decode("ascii")
+        .strip()
+        == "430f340a17cc32c5fd239083b1a0dba98e09ad7c",
+        "source-v4 historical manifest blob differs",
+    )
+    _authenticate_source_v5_source_chain(root, head)
+    return head, h4_bytes
+
+
+def freeze_source_v5_authority(
+    *, root: Path, output: Path, frozen_absence_checked_utc: str
+) -> bytes:
+    root = root.resolve(strict=True)
+    _require(output.is_absolute(), "source-v5 output must be absolute")
+    _require(output == output.resolve(strict=False), "source-v5 output must be normalized")
+    try:
+        parsed_utc = datetime.strptime(frozen_absence_checked_utc, "%Y-%m-%dT%H:%M:%SZ")
+    except (TypeError, ValueError) as error:
+        raise ValueError("source-v5 UTC evidence differs") from error
+    _require(
+        type(frozen_absence_checked_utc) is str
+        and parsed_utc.strftime("%Y-%m-%dT%H:%M:%SZ") == frozen_absence_checked_utc,
+        "source-v5 UTC evidence differs",
+    )
+    source_commit, h4_bytes = _authenticate_source_v5_freezer_root(root)
+    for relative in (
+        ACTIVATED_PREREGISTRATION_PATH,
+        SOURCE_MANIFEST_PATH,
+        SMOKE_RESULT_PATH,
+        RESULT_PATH,
+    ):
+        _require(
+            not (root / relative).exists() and not (root / relative).is_symlink(),
+            f"source-v5 frozen output exists: {relative}",
+        )
+    bootstrap = _bootstrap_strict_json_object(h4_bytes, "source-v4 historical authority")
+    paths = [row["path"] for row in bootstrap["source"]["files"]]
+    rows = _source_v5_current_rows(root, source_commit, paths)
+    contract = _load_authenticated_source_v3_contract(root, source_commit, rows[1])
+    historical = contract.load_strict_json_bytes(h4_bytes)
+    contract.validate_prelaunch(historical)
+    payload = _build_source_v5_authority(
+        historical_manifest=historical,
+        historical_manifest_bytes=h4_bytes,
+        source_commit=source_commit,
+        source_files=rows,
+        frozen_absence_checked_utc=frozen_absence_checked_utc,
+    )
+    contract.validate_prelaunch(payload)
+    data = contract.canonical_ordered_json_bytes(payload)
+    reloaded = contract.load_strict_json_bytes(data)
+    contract.validate_prelaunch(reloaded)
+    _require(
+        reloaded == payload and contract.canonical_ordered_json_bytes(reloaded) == data,
+        "source-v5 persisted authority differs",
+    )
+    _publish_source_v5_candidate(output, data)
+    return data
 
 
 def _build_cli_parser() -> argparse.ArgumentParser:
@@ -3539,6 +4276,7 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     modes.add_argument("--binding-only", action="store_true")
     modes.add_argument("--smoke-only", action="store_true")
     modes.add_argument("--scientific", action="store_true")
+    modes.add_argument("--freeze-v5-authority", action="store_true")
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--git-root", type=Path)
     parser.add_argument("--prelaunch-manifest", type=Path)
@@ -3554,6 +4292,7 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--process-output", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--runtime-factory", type=Path)
+    parser.add_argument("--frozen-absence-checked-utc")
     return parser
 
 
@@ -3562,18 +4301,16 @@ def _default_cli_paths(args: Any) -> None:
     args.root = root
     defaults = {
         "git_root": root,
-        "prelaunch_manifest": root / SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_manifest": root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
         "source_report": root / "reports/generated/pass201_source_v3/run-v3/report.json",
         "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
         "checkpoint": root / "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
-        "resolved_config": root
-        / "reports/generated/pass201_source_v3/run-v3/resolved_config.json",
-        "train_manifest": root
-        / "reports/generated/pass201_source_v3/run-v3/train_manifest.json",
+        "resolved_config": root / "reports/generated/pass201_source_v3/run-v3/resolved_config.json",
+        "train_manifest": root / "reports/generated/pass201_source_v3/run-v3/train_manifest.json",
         "activated_preregistration": root / ACTIVATED_PREREGISTRATION_PATH,
         "source_manifest": root / SOURCE_MANIFEST_PATH,
         "diagnostic_path": Path(__file__).resolve(),
-        "output": root / RESULT_PATH,
+        "output": root / (SMOKE_RESULT_PATH if args.smoke_only else RESULT_PATH),
     }
     for key, value in defaults.items():
         if getattr(args, key) is None:
@@ -3582,14 +4319,15 @@ def _default_cli_paths(args: Any) -> None:
 
 def _validate_source_v3_public_controller_args(args: Any) -> None:
     root = Path(args.root).resolve(strict=True)
-    expected = root / SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
-    _require(
-        Path(args.prelaunch_manifest) == expected,
-        "public controller requires the literal source-v4 authorization manifest path",
-    )
+    expected = root / SOURCE_V5_AUTHORIZATION_MANIFEST_PATH
     _require(
         args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,
-        "source-v3 runtime factories are forbidden",
+        "source-v5 runtime factories are forbidden",
+    )
+    _require(
+        Path(args.prelaunch_manifest) == expected,
+        "source-v4 authorization is repair-required; public controller requires the "
+        "literal source-v5 authorization manifest path",
     )
     executing_root = Path(__file__).resolve(strict=True).parents[1]
     _require(root == executing_root, "public controller root differs from executing checkout")
@@ -3599,13 +4337,54 @@ def _validate_source_v3_public_controller_args(args: Any) -> None:
         "activated_preregistration": root / ACTIVATED_PREREGISTRATION_PATH,
         "source_manifest": root / SOURCE_MANIFEST_PATH,
         "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
+        "output": root / (SMOKE_RESULT_PATH if args.smoke_only else RESULT_PATH),
     }
     for name, value in expected_paths.items():
         _require(Path(getattr(args, name)) == value, f"public controller {name} differs")
 
 
+def _dispatch_source_v5_freezer(args: Any) -> None:
+    incompatible = (
+        "git_root",
+        "prelaunch_manifest",
+        "source_report",
+        "source_receipt",
+        "checkpoint",
+        "resolved_config",
+        "train_manifest",
+        "dataset_root",
+        "diagnostic_path",
+        "activated_preregistration",
+        "source_manifest",
+        "process_output",
+        "runtime_factory",
+    )
+    supplied = [name for name in incompatible if getattr(args, name) is not None]
+    if supplied:
+        raise ValueError(f"source-v5 freezer incompatible argument: {supplied[0]}")
+    _require(args.output is not None, "source-v5 freezer requires --output")
+    _require(
+        args.frozen_absence_checked_utc is not None,
+        "source-v5 freezer requires --frozen-absence-checked-utc",
+    )
+    raw_root = Path(args.root)
+    _require(raw_root.is_absolute(), "source-v5 freezer root must be absolute")
+    _require(
+        raw_root == raw_root.resolve(strict=True),
+        "source-v5 freezer root must be normalized",
+    )
+    freeze_source_v5_authority(
+        root=raw_root,
+        output=Path(args.output),
+        frozen_absence_checked_utc=args.frozen_absence_checked_utc,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     args = _build_cli_parser().parse_args(argv)
+    if args.freeze_v5_authority:
+        _dispatch_source_v5_freezer(args)
+        return
     _default_cli_paths(args)
     if not args.process_role:
         _validate_source_v3_public_controller_args(args)
@@ -3614,13 +4393,13 @@ def main(argv: Sequence[str] | None = None) -> None:
     elif args.process_role:
         _require(args.process_output is not None, "--process-output is required")
         manifest = _read_json_object(args.source_manifest, "source manifest")
-        if (
-            manifest.get("prelaunch_source_manifest_path")
-            in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH)
+        if manifest.get("prelaunch_source_manifest_path") in (
+            SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V5_AUTHORIZATION_MANIFEST_PATH,
         ):
             _require(
-                args.runtime_factory is None
-                and "PASS201_RUNTIME_FACTORY" not in os.environ,
+                args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,
                 "source-v3 runtime factories are forbidden",
             )
         _require(
@@ -3653,7 +4432,7 @@ def _metric_paths() -> set[str]:
 
 
 def _validate_source(source: Any, *, activated: bool) -> None:
-    keys = (
+    keys = {
         "prelaunch_source_manifest_path",
         "prelaunch_source_manifest_sha256",
         "source_report_path",
@@ -3674,13 +4453,25 @@ def _validate_source(source: Any, *, activated: bool) -> None:
         "numpy_version",
         "cuda_version",
         "cudnn_version",
-    )
+    }
+    has_repair = type(source) is dict and "activation_repair" in source
+    if has_repair:
+        keys.add("activation_repair")
     _exact_keys(source, keys, "source")
-    _require(
-        source["prelaunch_source_manifest_path"]
-        in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
-        "wrong prelaunch source path",
-    )
+    if has_repair:
+        _validate_activation_repair(
+            source["activation_repair"],
+            prelaunch_path=source["prelaunch_source_manifest_path"],
+            prelaunch_sha256=source["prelaunch_source_manifest_sha256"],
+            source_revision=source["source_revision"],
+            diagnostic_sha256=source["diagnostic_source_sha256"],
+        )
+    else:
+        _require(
+            source["prelaunch_source_manifest_path"]
+            in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
+            "wrong prelaunch source path",
+        )
     for key in (
         "prelaunch_source_manifest_sha256",
         "source_report_sha256",
