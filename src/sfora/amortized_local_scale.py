@@ -349,14 +349,12 @@ def nonself_density(
 
     result = np.empty(matrix.shape[0], dtype=np.float64)
     matrix_t = np.asarray(matrix.T, dtype=np.float32)
+    index_by_id = {str(row_id): index for index, row_id in enumerate(identifiers)}
     for start in range(0, matrix.shape[0], block_size):
         stop = min(start + block_size, matrix.shape[0])
         scores = np.asarray(matrix[start:stop] @ matrix_t, dtype=np.float32)
         for local_index, row_id in enumerate(identifiers[start:stop]):
-            matches = np.flatnonzero(identifiers == row_id)
-            if matches.size != 1:
-                raise ValueError("each row ID must identify exactly one row")
-            scores[local_index, matches[0]] = -np.inf
+            scores[local_index, index_by_id[str(row_id)]] = -np.inf
         selected = np.partition(scores, scores.shape[1] - k, axis=1)[:, -k:]
         result[start:stop] = np.mean(selected, axis=1, dtype=np.float64)
     return result
