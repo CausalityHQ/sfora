@@ -66,14 +66,14 @@ is repeated.
 
 ## Exact defect and failed-attempt chronology
 
-The frozen public controller requires the literal source-v4 manifest path, but
+The pre-repair public controller requires the literal source-v4 manifest path, but
 `_validate_source_binding` dispatches only the exact source-v3 schema to the
 source-v3/v4 authority validator. The source-v4 schema therefore falls through
 to the obsolete source-v2 SHA gate and fails with
-`prelaunch manifest SHA-256 mismatch`. Passing
-`--expected-prelaunch-sha256` is forbidden: it would remain in the source-v2
-body and skip the source-v4 chain, process-entry authorities, canonical
-contract, and completed-receipt relations.
+`prelaunch manifest SHA-256 mismatch`. Supplying the internal/test-only
+`expected_prelaunch_sha256` attribute is forbidden: it would remain in the
+source-v2 body and skip the source-v4 chain, process-entry authorities,
+canonical contract, and completed-receipt relations.
 
 The chronology after the source receipt became READY is exact:
 
@@ -128,6 +128,8 @@ S4
  -> 04f423baae919318855297ebec9fc3d4cdf6b1ab  (initial plan)
  -> 1f5bb121ed6062b00f904395715dcd89bb28fb6f  (first amendment fix)
  -> 4afbda4886bf7e71eb72359904c838d8db87ff4c  (first plan fix)
+ -> 12003f535d1dcfa91274c895af830df690856a2c  (second amendment fix)
+ -> c66a5af736d33f4743039031f81776bc3a6ada0a  (second plan fix)
  -> final amendment-fix A5
  -> final plan-fix P5
  -> reviewed source V5
@@ -136,7 +138,7 @@ H4 is the separate sole-manifest child of S4 and remains preserved by the tag.
 ```
 
 The final amendment-fix A5 has exact parent
-`4afbda4886bf7e71eb72359904c838d8db87ff4c`, changes only this amendment,
+`c66a5af736d33f4743039031f81776bc3a6ada0a`, changes only this amendment,
 and is bound by exact path/SHA-256/commit in the final plan and H5. The final
 plan-fix P5 is the sole-path child of A5, changes only its implementation plan,
 and is bound by exact path/SHA-256/commit in V5 and H5. Every source or test
@@ -157,8 +159,8 @@ has one parent V5 and adds exactly one regular mode-100644 file:
 docs/pass201_pa_source_v5_authorization_manifest.json
 ```
 
-The v5 source-chain validator must require that exact six-commit docs chain
-(the four literal commits plus A5 and P5), with each edge single-parent,
+The v5 source-chain validator must require that exact eight-commit docs chain
+(the six literal commits plus A5 and P5), with each edge single-parent,
 merge-free, nonempty, and confined to its one registered documentation path.
 It then requires the reviewed P5-to-V5 source segment to be merge-free, rejects
 empty or out-of-scope source commits, and requires the aggregate three-path
@@ -389,10 +391,20 @@ and caller-overridden schemas. The public CLI already exposes no SHA-override
 flag. The v5 path must never consult the internal
 `expected_prelaunch_sha256` legacy/test attribute fallback.
 
+The public controller's default and required prelaunch-manifest path are
+repointed from `SOURCE_V4_AUTHORIZATION_MANIFEST_PATH` to the literal
+`SOURCE_V5_AUTHORIZATION_MANIFEST_PATH`. `_default_cli_paths` supplies that v5
+path for every non-process public mode, and the public-controller argument gate
+requires it exactly. A caller-supplied v4 path, alias, or any other manifest
+path fails before activation/model/candidate access. The v4 path remains usable
+only inside the separately authenticated historical H4 receipt domain; it is
+never the current public executor authority.
+
 The repair may change only source/provenance/serialization plumbing needed for:
 
 - exact historical H4 receipt rebinding;
 - exact current V5/H5 execution binding;
+- exact public default/required prelaunch-manifest repointing from v4 to v5;
 - explicit contract support for the exact v5 activation manifest with no
   schema, output, or receipt fallthrough;
 - source-manifest schema `pass201-source-v2`;
