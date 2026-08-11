@@ -152,7 +152,6 @@ def _source_v3_handoff_fixture(tmp_path: Path) -> tuple[Path, str, str, Path]:
         "scripts/pass201_pa_source_v2_contract.py",
         "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
         "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
-        "docs/pass201_pa_source_v3_authorization_manifest.json",
     ):
         source = Path(__file__).parents[1] / relative
         destination = root / relative
@@ -232,7 +231,11 @@ def test_source_v3_full_authority_loads_real_six_path_v_then_manifest_only_h(
         cwd=checkout,
         check=True,
     )
-    subprocess.run(["git", "checkout", "--detach", "-q", "HEAD"], cwd=checkout, check=True)
+    subprocess.run(
+        ["git", "checkout", "--detach", "-q", MODULE.SOURCE_V3_I3_COMMIT],
+        cwd=checkout,
+        check=True,
+    )
     _git(checkout, "config", "user.email", "test@example.invalid")
     _git(checkout, "config", "user.name", "Pass201 Test")
     for relative in six_path_scope:
@@ -306,6 +309,56 @@ def test_source_v3_git_handoff_authenticates_detached_manifest_only_child(
     assert handoff.handoff_commit == handoff_commit
     assert handoff.manifest_bytes == b"{}\n"
     assert handoff.manifest_sha256 == hashlib.sha256(b"{}\n").hexdigest()
+
+
+def _source_v4_chain_fixture(
+    tmp_path: Path, *, mutation: str | None = None
+) -> tuple[Path, str, str, Path]:
+    source_root = Path(__file__).parents[1]
+    root = tmp_path / f"source-v4-{mutation or 'valid'}"
+    subprocess.run(
+        ["git", "clone", "-q", "--shared", str(source_root), str(root)],
+        check=True,
+    )
+    _git(root, "checkout", "--detach", "-q", MODULE.PROCESS_ENTRY_F5_COMMIT)
+    _git(root, "config", "user.email", "test@example.invalid")
+    _git(root, "config", "user.name", "Pass201 Test")
+    for relative in MODULE.SOURCE_V3_CHANGED_PATHS:
+        path = root / relative
+        path.write_bytes(path.read_bytes() + b"\n# source-v4 test binding\n")
+    if mutation == "extra_source":
+        (root / "extra.txt").write_text("extra\n", encoding="utf-8")
+        _git(root, "add", "extra.txt")
+    _git(root, "add", *MODULE.SOURCE_V3_CHANGED_PATHS)
+    _git(root, "commit", "-q", "-m", "source-v4")
+    source_commit = _git(root, "rev-parse", "HEAD")
+    manifest = root / MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
+    manifest.write_bytes(b"{}\n")
+    _git(root, "add", manifest.relative_to(root).as_posix())
+    _git(root, "commit", "-q", "-m", "handoff-v4")
+    handoff_commit = _git(root, "rev-parse", "HEAD")
+    _git(root, "checkout", "--detach", "-q", handoff_commit)
+    return root, source_commit, handoff_commit, manifest
+
+
+def test_source_v4_source_chain_and_manifest_only_addition_are_exact(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, handoff_commit, manifest = _source_v4_chain_fixture(tmp_path)
+    MODULE._authenticate_source_v4_source_chain(root, source_commit)
+    handoff = MODULE._authenticate_source_v3_git_handoff(
+        root=root, git_root=root, manifest_path=manifest
+    )
+    assert handoff.source_commit == source_commit
+    assert handoff.handoff_commit == handoff_commit
+
+
+def test_source_v4_source_chain_rejects_extra_source_path(tmp_path: Path) -> None:
+    root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(
+        tmp_path, mutation="extra_source"
+    )
+    with pytest.raises(ValueError, match="unauthorized path"):
+        MODULE._authenticate_source_v4_source_chain(root, source_commit)
 
 
 @pytest.mark.parametrize("mutation", ("dirty", "extra_edge", "attached", "merge"))
@@ -1546,7 +1599,7 @@ def test_source_v3_public_cli_rejects_runtime_factory_before_controller(
         "--root",
         str(tmp_path),
         "--prelaunch-manifest",
-        str(tmp_path / "docs/pass201_pa_source_v3_authorization_manifest.json"),
+        str(tmp_path / "docs/pass201_pa_source_v4_authorization_manifest.json"),
     ]
     if factory_source == "argument":
         argv.extend(("--runtime-factory", str(tmp_path / "runtime.py")))
@@ -1562,7 +1615,7 @@ def test_source_v3_public_cli_rejects_old_or_aliased_manifest_path_before_contro
 ) -> None:
     called: list[bool] = []
     monkeypatch.setattr(MODULE, "run_controller", lambda args: called.append(True))
-    with pytest.raises(ValueError, match="source-v3 authorization manifest path"):
+    with pytest.raises(ValueError, match="source-v4 authorization manifest path"):
         MODULE.main(
             [
                 "--binding-only",

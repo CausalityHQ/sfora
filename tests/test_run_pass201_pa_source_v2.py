@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 import threading
+from collections.abc import Mapping
 from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path, PurePosixPath
@@ -99,6 +100,166 @@ def test_source_v3_frozen_paths_and_source_order_are_literal() -> None:
         "src/sfora/text_baselines.py",
         "src/sfora/training.py",
     )
+
+
+def test_source_v4_process_entry_authorities_and_paths_are_literal() -> None:
+    assert (
+        controller.SOURCE_V4_PRELAUNCH_PATH.as_posix()
+        == "docs/pass201_pa_source_v4_authorization_manifest.json"
+    )
+    assert controller.SOURCE_V4_RUN_DIRECTORY == controller.SOURCE_V3_RUN_DIRECTORY
+    assert {
+        "process_entry_amendment": {
+            "commit": "ed743aff23792b13209f5974f2a74f26c0104f74",
+            "path": PurePosixPath(
+                "docs/pass201_pa_source_v3_process_entry_amendment_2026-08-11.md"
+            ),
+            "sha256": "9d751d0a9cd215438d150cffc62fe61baca62eb57addb62a4414412378144003",
+        },
+        "process_entry_plan": {
+            "commit": "ed743aff23792b13209f5974f2a74f26c0104f74",
+            "path": PurePosixPath(
+                "docs/superpowers/plans/2026-08-11-pass201-source-v3-process-entry-repair.md"
+            ),
+            "sha256": "621ae3939f54a3f7d3944d2c6a63ff533fd2205f4121169dacec910bc52e7edd",
+        },
+        "process_entry_evidence": {
+            "commit": "463985d86afd1ea54ff021df1cf8624b6aa013d1",
+            "path": PurePosixPath(
+                "docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json"
+            ),
+            "sha256": "dd05361cb3630bf37b0bfbde79df7019afa6db9dee9f78b7343cd385acd77549",
+        },
+    } == controller.PROCESS_ENTRY_STATIC_AUTHORITIES
+
+
+def test_process_entry_snapshot_precedes_training_stack_imports() -> None:
+    source = Path(controller.__file__).read_text(encoding="utf-8")
+    snapshot = source.index("_PROCESS_ENTRY_ENVIRONMENT = dict(os.environ)")
+    assert snapshot < source.index("from pass201_pa_source_v2_contract import")
+    assert snapshot < source.index("from typer.main import get_command")
+    assert snapshot < source.index("import sfora.cli")
+
+
+@pytest.mark.parametrize(
+    ("entry_mutation", "live_mutation"),
+    [
+        ("missing", None),
+        ("changed", None),
+        ("extra", None),
+        ("kmp_at_entry", None),
+        (None, "missing_duplicate"),
+        (None, "changed_duplicate"),
+        (None, "missing_fork"),
+        (None, "changed_fork"),
+        (None, "extra"),
+    ],
+)
+@pytest.mark.parametrize(
+    "predicate_name", ["_require_replacement_environment", "_validate_bound_environment"]
+)
+def test_process_entry_environment_predicates_reject_every_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    predicate_name: str,
+    entry_mutation: str | None,
+    live_mutation: str | None,
+) -> None:
+    expected = {"PATH": "/registered/bin", "PYTHONPATH": "/registered/src"}
+    entry = dict(expected)
+    live = {
+        **expected,
+        "KMP_DUPLICATE_LIB_OK": "True",
+        "KMP_INIT_AT_FORK": "FALSE",
+    }
+    if entry_mutation == "missing":
+        entry.pop("PATH")
+    elif entry_mutation == "changed":
+        entry["PATH"] = "/drift"
+    elif entry_mutation == "extra":
+        entry["EXTRA"] = "drift"
+    elif entry_mutation == "kmp_at_entry":
+        entry["KMP_DUPLICATE_LIB_OK"] = "True"
+    if live_mutation == "missing_duplicate":
+        live.pop("KMP_DUPLICATE_LIB_OK")
+    elif live_mutation == "changed_duplicate":
+        live["KMP_DUPLICATE_LIB_OK"] = "False"
+    elif live_mutation == "missing_fork":
+        live.pop("KMP_INIT_AT_FORK")
+    elif live_mutation == "changed_fork":
+        live["KMP_INIT_AT_FORK"] = "TRUE"
+    elif live_mutation == "extra":
+        live["EXTRA"] = "drift"
+    authority = SimpleNamespace(payload={"execution": {"environment": expected}})
+    monkeypatch.setattr(controller, "_PROCESS_ENTRY_ENVIRONMENT", entry)
+    with monkeypatch.context() as context:
+        context.setattr(os, "environ", live)
+        with pytest.raises(ValueError, match="environment"):
+            getattr(controller, predicate_name)(authority)
+
+
+def test_process_entry_environment_predicates_accept_exact_registered_transition(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = {"PATH": "/registered/bin", "PYTHONPATH": "/registered/src"}
+    live = {
+        **expected,
+        "KMP_DUPLICATE_LIB_OK": "True",
+        "KMP_INIT_AT_FORK": "FALSE",
+    }
+    authority = SimpleNamespace(payload={"execution": {"environment": expected}})
+    monkeypatch.setattr(controller, "_PROCESS_ENTRY_ENVIRONMENT", dict(expected))
+    with monkeypatch.context() as context:
+        context.setattr(os, "environ", live)
+        controller._require_replacement_environment(authority)
+        controller._validate_bound_environment(authority)
+
+
+def test_process_entry_transition_is_observed_in_fresh_exact_environment(
+    tmp_path: Path,
+) -> None:
+    repo = Path(__file__).parents[1]
+    environment = _freeze_test_environment(repo)
+    environment["HOME"] = str(tmp_path)
+    environment["XDG_CACHE_HOME"] = str(tmp_path / ".cache")
+    environment["TORCH_HOME"] = str(tmp_path / ".cache" / "torch")
+    environment["PATH"] = f"{Path(sys.executable).parent}:/usr/bin:/bin"
+    environment["PYTHONPATH"] = f"{repo / 'scripts'}{os.pathsep}{repo / 'src'}"
+    program = """
+import json, os
+from types import SimpleNamespace
+import run_pass201_pa_source_v2 as controller
+entry = dict(controller._PROCESS_ENTRY_ENVIRONMENT)
+live = dict(os.environ)
+authority = SimpleNamespace(payload={"execution": {"environment": entry}})
+controller._require_replacement_environment(authority)
+controller._validate_bound_environment(authority)
+print(json.dumps({
+    "entry": entry,
+    "added": {key: live[key] for key in live.keys() - entry.keys()},
+    "changed": {
+        key: [entry[key], live[key]]
+        for key in entry.keys() & live.keys()
+        if entry[key] != live[key]
+    },
+    "removed": sorted(entry.keys() - live.keys()),
+}, sort_keys=True))
+"""
+    result = subprocess.run(
+        [sys.executable, "-B", "-c", program],
+        cwd=repo,
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, (result.stdout, result.stderr)
+    observed = json.loads(result.stdout)
+    assert observed == {
+        "entry": environment,
+        "added": controller._POST_IMPORT_ENVIRONMENT_ADDITIONS,
+        "changed": {},
+        "removed": [],
+    }
 
 
 def test_source_v3_static_protocol_and_plan_bind_git_worktree_ancestry() -> None:
@@ -299,10 +460,18 @@ def test_package_evidence_dispatches_by_enclosing_source_schema(
         "bytes": len(inventory),
         "sha256": hashlib.sha256(inventory).hexdigest(),
     }
-    assert calls == ["v2", "v3"]
+    assert controller._bind_python_package_evidence(
+        "pass201-pa-source-v4-prelaunch-v1", interpreter, tmp_path, environment
+    ) == {
+        "algorithm": "importlib-metadata-v1",
+        "distribution_count": 2,
+        "bytes": len(inventory),
+        "sha256": hashlib.sha256(inventory).hexdigest(),
+    }
+    assert calls == ["v2", "v3", "v3"]
     with pytest.raises(ValueError, match="schema"):
         controller._bind_python_package_evidence(
-            "pass201-pa-source-v4-prelaunch-v1", interpreter, tmp_path, environment
+            "pass201-pa-source-v5-prelaunch-v1", interpreter, tmp_path, environment
         )
 
 
@@ -471,6 +640,25 @@ def forbidden(name: str):
         raise AssertionError(f"forbidden {name}")
 
     return fail
+
+
+def _entry_environment(value: Mapping[str, str] | None = None) -> dict[str, str]:
+    result = dict(os.environ if value is None else value)
+    for key in controller._POST_IMPORT_ENVIRONMENT_ADDITIONS:
+        result.pop(key, None)
+    return result
+
+
+def _patch_registered_process_environment(
+    monkeypatch: pytest.MonkeyPatch, expected: Mapping[str, str]
+) -> None:
+    entry = _entry_environment(expected)
+    monkeypatch.setattr(controller, "_PROCESS_ENTRY_ENVIRONMENT", entry)
+    monkeypatch.setattr(
+        controller.os,
+        "environ",
+        {**entry, **controller._POST_IMPORT_ENVIRONMENT_ADDITIONS},
+    )
 
 
 def ordered_row_hash(rows: tuple[tuple[int, str, int], ...]) -> str:
@@ -982,10 +1170,18 @@ def test_private_sidecar_environment_must_equal_authority(
         authority,
         payload={**authority.payload, "execution": {"environment": bound}},
     )
-    monkeypatch.setattr(controller.os, "environ", dict(bound))
+    _patch_registered_process_environment(monkeypatch, bound)
     controller._validate_bound_environment(authority)
 
-    monkeypatch.setattr(controller.os, "environ", {**bound, "EXTRA": "drift"})
+    monkeypatch.setattr(
+        controller.os,
+        "environ",
+        {
+            **bound,
+            **controller._POST_IMPORT_ENVIRONMENT_ADDITIONS,
+            "EXTRA": "drift",
+        },
+    )
     with pytest.raises(ValueError, match="environment drift"):
         controller._validate_bound_environment(authority)
 
@@ -1072,7 +1268,7 @@ def test_private_sidecar_rejects_recipe_drift_before_checkpoint_child(
     checkpoint.write_bytes(b"checkpoint")
     execution = {
         **authority.payload["execution"],
-        "environment": dict(os.environ),
+        "environment": _entry_environment(),
         "argv": [],
         "recipe_id": "different-recipe",
     }
@@ -1087,6 +1283,7 @@ def test_private_sidecar_rejects_recipe_drift_before_checkpoint_child(
         },
     }
     authority = replace(authority, payload=payload, checkout_root=tmp_path)
+    _patch_registered_process_environment(monkeypatch, execution["environment"])
     monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
     monkeypatch.setattr(controller, "_run_capture_child", lambda _authority: capture)
     monkeypatch.setattr(
@@ -1152,7 +1349,7 @@ def _derive_with_synchronized_checkpoint_handoff(
     )
     execution = {
         **authority.payload["execution"],
-        "environment": dict(os.environ),
+        "environment": _entry_environment(),
         "argv": [],
     }
     payload = {
@@ -1217,6 +1414,7 @@ def _derive_with_synchronized_checkpoint_handoff(
         return decode_checkpoint_binding_response(result.stdout, expected, path)
 
     monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
+    _patch_registered_process_environment(monkeypatch, execution["environment"])
     monkeypatch.setattr(controller, "_run_capture_child", lambda _authority: capture)
     monkeypatch.setattr(controller, "_run_metadata_child", metadata_child)
     monkeypatch.setattr(controller, "_run_binding_child", binding_child)
@@ -1389,7 +1587,7 @@ def test_private_sidecar_rejects_alternative_report_before_reading_it(
     payload = {
         **authority.payload,
         "authorization": {"manifest_path": "authority.json"},
-        "execution": {"environment": dict(os.environ), "argv": []},
+        "execution": {"environment": _entry_environment(), "argv": []},
         "outputs": {
             "run_directory": "run",
             "report": {"path": "run/report.json"},
@@ -1397,6 +1595,9 @@ def test_private_sidecar_rejects_alternative_report_before_reading_it(
         },
     }
     authority = replace(authority, payload=payload, checkout_root=tmp_path)
+    _patch_registered_process_environment(
+        monkeypatch, payload["execution"]["environment"]
+    )
     monkeypatch.setattr(controller, "validate_prelaunch", lambda _payload: authority)
     reads: list[Path] = []
     real_read = controller._read_immutable_regular
@@ -1493,7 +1694,7 @@ payload = {
         "checkpoint": {"path": "run/checkpoint.pt"},
     },
     "execution": {
-        "environment": dict(os.environ),
+        "environment": dict(c._PROCESS_ENTRY_ENVIRONMENT),
         "argv": [],
         "recipe_id": c.RECIPE_ID,
         "recipe_digest": c.RECIPE_DIGEST,
@@ -2166,6 +2367,46 @@ def test_source_v3_prelaunch_builder_emits_exact_versioned_delta(
     assert authority.payload["execution"]["python_packages"] == runtime["python_packages"]
 
 
+def test_source_v4_prelaunch_builder_adds_only_registered_process_entry_authorities(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, _checkpoint = sidecar_inputs
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    args = controller.FreezeArgs(
+        checkout_root=checkout,
+        dataset_root=controller.DATASET_ROOT,
+        python_path=Path("/venv/bin/python"),
+        frozen_absence_checked_utc="2026-08-11T00:00:00Z",
+        output_path=_prelaunch_freeze_output(checkout, 1),
+        schema_version="pass201-pa-source-v4-prelaunch-v1",
+    )
+    runtime = _fake_freeze_runtime(checkout)
+    runtime["source_files"] = [
+        _repo_binding(path.as_posix(), "a") for path in controller.SOURCE_V3_PATHS
+    ]
+    runtime["python_packages"] = {
+        "algorithm": "importlib-metadata-v1",
+        "bytes": 123,
+        "distribution_count": 2,
+        "sha256": "3" * 64,
+    }
+    authority = controller.validate_prelaunch(
+        controller._build_prelaunch_payload(args, capture, runtime)
+    )
+    assert authority.payload["authorization"]["manifest_path"] == (
+        "docs/pass201_pa_source_v4_authorization_manifest.json"
+    )
+    assert authority.payload["authorization"]["required_diff_status"] == ("A",)
+    for key, reference in controller.PROCESS_ENTRY_STATIC_AUTHORITIES.items():
+        assert authority.payload[key] == {
+            "path": reference["path"].as_posix(),
+            "sha256": reference["sha256"],
+            "commit": reference["commit"],
+        }
+
+
 def test_freeze_authority_checks_first_capture_absence_before_second_child(
     tmp_path: Path,
     sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
@@ -2327,7 +2568,7 @@ def test_run_preflight_accepts_only_detached_sole_manifest_addition(
 ) -> None:
     capture, _authority, _checkpoint = sidecar_inputs
     fixture = _make_authorized_git_fixture(tmp_path, capture)
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: fixture.runtime)
 
     authorized = controller.validate_runtime_preflight(fixture.manifest)
@@ -2442,7 +2683,7 @@ def test_run_preflight_rejects_branch_extra_diff_or_parent(
 ) -> None:
     capture, _authority, _checkpoint = sidecar_inputs
     fixture = _make_authorized_git_fixture(tmp_path, capture, topology=topology)
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(
         controller,
         "_bind_runtime_after",
@@ -2460,10 +2701,15 @@ def test_replacement_environment_rejects_ambient_leak_before_runtime_binding(
 ) -> None:
     capture, _authority, _checkpoint = sidecar_inputs
     fixture = _make_authorized_git_fixture(tmp_path, capture)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(
-        controller,
-        "_ambient_environment",
-        lambda: {**fixture.environment, "AMBIENT_SECRET": "must-not-leak"},
+        controller.os,
+        "environ",
+        {
+            **fixture.environment,
+            **controller._POST_IMPORT_ENVIRONMENT_ADDITIONS,
+            "AMBIENT_SECRET": "must-not-leak",
+        },
     )
     monkeypatch.setattr(
         controller,
@@ -2512,7 +2758,7 @@ def test_run_preflight_rejects_changed_runtime_source_pretrained_or_data_binding
         drifted[binding_name] = [*value, {"status": "nonexistent", "entry": "/drift"}]
     else:
         value["sha256" if "sha256" in value else "root_sha256"] = "0" * 64
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: drifted)
 
     with pytest.raises(ValueError, match="runtime binding"):
@@ -2539,7 +2785,7 @@ def test_run_preflight_rejects_false_scope_or_recipe_authority_drift(
         capture,
         payload_mutation=payload_mutation,
     )
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(
         controller,
         "_bind_runtime_after",
@@ -2565,7 +2811,7 @@ def test_run_preflight_rejects_existing_run_directory_output_or_temporary(
         (run_directory / "report.json").write_bytes(b"collision")
     elif collision == "report_temp":
         (run_directory / "report.json.tmp").write_bytes(b"collision")
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: fixture.environment)
+    _patch_registered_process_environment(monkeypatch, fixture.environment)
     monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: fixture.runtime)
 
     with pytest.raises(ValueError, match="run directory|output"):
@@ -2620,6 +2866,9 @@ def test_replacement_environment_launches_exact_argv_once_without_ambient_leak(
     observed = json.loads(ledger.read_text(encoding="utf-8"))
     assert observed["argv"] == argv
     assert observed["environment"] == environment
+    assert not (
+        set(observed["environment"]) & set(controller._POST_IMPORT_ENVIRONMENT_ADDITIONS)
+    )
     assert "AMBIENT_SECRET" not in observed["environment"]
     assert (run_directory / "training.log").read_text(encoding="utf-8") == (
         "ordinary child complete\n"
@@ -2681,7 +2930,10 @@ def _make_complete_receipt_inputs(
     checkout = tmp_path / "receipt-checkout"
     checkout.mkdir()
     runtime = _fake_freeze_runtime(checkout)
-    if schema_version == "pass201-pa-source-v3-prelaunch-v1":
+    if schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    ):
         runtime["source_files"] = [
             _repo_binding(path.as_posix(), "a") for path in controller.SOURCE_V3_PATHS
         ]
@@ -2831,6 +3083,35 @@ def test_source_v3_complete_receipt_builds_exact_versioned_authority(
     assert payload["controller"]["python_packages"] == (
         inputs.authority.payload["execution"]["python_packages"]
     )
+
+
+def test_source_v4_complete_receipt_repeats_every_process_entry_authority(
+    tmp_path: Path,
+    sidecar_inputs: tuple[CapturedAuthority, PrelaunchAuthority, CheckpointMetadata],
+) -> None:
+    capture, _authority, checkpoint_metadata = sidecar_inputs
+    inputs = _make_complete_receipt_inputs(
+        tmp_path,
+        capture,
+        checkpoint_metadata,
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
+    payload = load_strict_json_bytes(
+        controller._build_complete_receipt(
+            inputs.authorized,
+            inputs.process,
+            inputs.postflight,
+            inputs.scientific,
+            inputs.metadata,
+            inputs.frames,
+            inputs.config,
+            inputs.manifest,
+        )
+    )
+    validate_complete_receipt(payload, inputs.authority)
+    assert payload["schema_version"] == "pass201-pa-source-v4-receipt-v1"
+    for key in controller.PROCESS_ENTRY_STATIC_AUTHORITIES:
+        assert payload["authorization"][key] == inputs.authority.payload[key]
 
 
 def test_receipt_publication_is_terminal_after_final_directory_validation(
@@ -3062,7 +3343,7 @@ def test_postflight_rejects_runtime_drift_before_hashing_outputs(
     inputs = _make_complete_receipt_inputs(tmp_path, capture, checkpoint_metadata)
     drifted = copy.deepcopy(inputs.authorized.runtime_bindings)
     drifted["partition"]["sha256"] = "0" * 64
-    monkeypatch.setattr(controller, "_ambient_environment", lambda: drifted["environment"])
+    _patch_registered_process_environment(monkeypatch, drifted["environment"])
     monkeypatch.setattr(controller, "_bind_runtime_after", lambda _authority: drifted)
     monkeypatch.setattr(
         controller,

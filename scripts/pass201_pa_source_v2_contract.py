@@ -422,6 +422,8 @@ def _validate_python_package_evidence(
     if schema_version in (
         "pass201-pa-source-v3-prelaunch-v1",
         "pass201-pa-source-v3-receipt-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+        "pass201-pa-source-v4-receipt-v1",
     ):
         expected_order = ["algorithm", "bytes", "distribution_count", "sha256"]
         obj = _keys(value, set(expected_order), where)
@@ -559,10 +561,15 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
     _validate_json_native(payload)
     raw = _dict(payload, "prelaunch")
     schema_version = raw.get("schema_version")
-    is_v3 = schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    is_v4 = schema_version == "pass201-pa-source-v4-prelaunch-v1"
+    is_source_v3 = schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
     if schema_version not in (
         "pass201-pa-source-v2-prelaunch-v1",
         "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
     ):
         raise ValueError("schema_version: unsupported source schema")
     top_keys = {
@@ -579,14 +586,20 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         "sidecars",
         "postconditions",
     }
-    if is_v3:
+    if is_source_v3:
         top_keys |= {"protocol", "plan"}
+    if is_v4:
+        top_keys |= {
+            "process_entry_amendment",
+            "process_entry_plan",
+            "process_entry_evidence",
+        }
     top = _keys(
         payload,
         top_keys,
         "prelaunch",
     )
-    if is_v3:
+    if is_source_v3:
         _authority_reference(
             top["protocol"],
             "protocol",
@@ -601,6 +614,36 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
             "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
             "f38af4465333f4e50c08b1c30c10aa9f06829f43",
         )
+    if is_v4:
+        for key, commit, path, sha256 in (
+            (
+                "process_entry_amendment",
+                "ed743aff23792b13209f5974f2a74f26c0104f74",
+                "docs/pass201_pa_source_v3_process_entry_amendment_2026-08-11.md",
+                "9d751d0a9cd215438d150cffc62fe61baca62eb57addb62a4414412378144003",
+            ),
+            (
+                "process_entry_plan",
+                "ed743aff23792b13209f5974f2a74f26c0104f74",
+                "docs/superpowers/plans/2026-08-11-pass201-source-v3-process-entry-repair.md",
+                "621ae3939f54a3f7d3944d2c6a63ff533fd2205f4121169dacec910bc52e7edd",
+            ),
+            (
+                "process_entry_evidence",
+                "463985d86afd1ea54ff021df1cf8624b6aa013d1",
+                "docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json",
+                "dd05361cb3630bf37b0bfbde79df7019afa6db9dee9f78b7343cd385acd77549",
+            ),
+        ):
+            if list(top[key]) != ["commit", "path", "sha256"]:
+                raise ValueError(f"{key}: key order")
+            _authority_reference(
+                top[key],
+                key,
+                path,
+                sha256,
+                commit,
+            )
     _literal(top["status"], "frozen", "status")
     _str(top["purpose"], "purpose")
     source_commit = _hash(top["source_commit"], "source_commit", 40)
@@ -619,9 +662,13 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         "authorization",
     )
     manifest_path = (
-        "docs/pass201_pa_source_v3_authorization_manifest.json"
-        if is_v3
-        else "docs/pass201_pa_source_v2_prelaunch.json"
+        "docs/pass201_pa_source_v4_authorization_manifest.json"
+        if is_v4
+        else (
+            "docs/pass201_pa_source_v3_authorization_manifest.json"
+            if is_source_v3
+            else "docs/pass201_pa_source_v2_prelaunch.json"
+        )
     )
     _literal(auth["manifest_path"], manifest_path, "authorization.manifest_path")
     parent = _hash(auth["required_parent_commit"], "authorization.required_parent_commit", 40)
@@ -666,7 +713,7 @@ def validate_prelaunch(payload: object) -> PrelaunchAuthority:
         source_paths, key=lambda value: value.encode("utf-8")
     ) or len(source_paths) != len(set(source_paths)):
         raise ValueError("source.files order")
-    if is_v3 and tuple(source_paths) != SOURCE_V3_PATHS:
+    if is_source_v3 and tuple(source_paths) != SOURCE_V3_PATHS:
         raise ValueError("source.files does not equal source-v3 registry")
     _merkle(source["python_tree"], "source.python_tree")
     _file(source["pyproject"], "source.pyproject")
@@ -888,7 +935,8 @@ def _validate_outputs(value: object, schema_version: object) -> None:
     run_directory = _repo_path(obj["run_directory"], "outputs.run_directory")
     expected_run_directory = (
         "reports/generated/pass201_source_v3/run-v3"
-        if schema_version == "pass201-pa-source-v3-prelaunch-v1"
+        if schema_version
+        in ("pass201-pa-source-v3-prelaunch-v1", "pass201-pa-source-v4-prelaunch-v1")
         else "reports/generated/pass201_source_v2/run-v2"
     )
     _literal(run_directory, expected_run_directory, "outputs.run_directory")
@@ -2531,11 +2579,19 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
         "receipt",
     )
     authority_schema = authority.payload["schema_version"]
-    is_v3 = authority_schema == "pass201-pa-source-v3-prelaunch-v1"
+    is_v4 = authority_schema == "pass201-pa-source-v4-prelaunch-v1"
+    is_source_v3 = authority_schema in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
     expected_receipt_schema = (
-        "pass201-pa-source-v3-receipt-v1"
-        if is_v3
-        else "pass201-pa-source-v2-receipt-v1"
+        "pass201-pa-source-v4-receipt-v1"
+        if is_v4
+        else (
+            "pass201-pa-source-v3-receipt-v1"
+            if is_source_v3
+            else "pass201-pa-source-v2-receipt-v1"
+        )
     )
     _literal(top["schema_version"], expected_receipt_schema, "receipt.schema_version")
     _literal(top["status"], "complete", "receipt.status")
@@ -2552,11 +2608,27 @@ def validate_complete_receipt(payload: object, authority: PrelaunchAuthority) ->
         "detached_head_verified",
         "clean_policy_verified",
     }
-    if is_v3:
+    if is_source_v3:
         authorization_keys |= {"protocol", "plan"}
+    if is_v4:
+        authorization_keys |= {
+            "process_entry_amendment",
+            "process_entry_plan",
+            "process_entry_evidence",
+        }
     auth = _keys(top["authorization"], authorization_keys, "receipt.authorization")
-    if is_v3:
+    if is_source_v3:
         for key in ("protocol", "plan"):
+            if auth[key] != authority.payload[key]:
+                raise ValueError(f"receipt.authorization.{key} does not bind authority")
+    if is_v4:
+        for key in (
+            "process_entry_amendment",
+            "process_entry_plan",
+            "process_entry_evidence",
+        ):
+            if list(auth[key]) != ["commit", "path", "sha256"]:
+                raise ValueError(f"receipt.authorization.{key} key order")
             if auth[key] != authority.payload[key]:
                 raise ValueError(f"receipt.authorization.{key} does not bind authority")
     authorization_commit = _hash(

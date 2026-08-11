@@ -38,7 +38,17 @@ PRELAUNCH_SOURCE_MANIFEST_PATH = "docs/pass201_pa_source_prelaunch_manifest.json
 SOURCE_V3_AUTHORIZATION_MANIFEST_PATH = (
     "docs/pass201_pa_source_v3_authorization_manifest.json"
 )
+SOURCE_V4_AUTHORIZATION_MANIFEST_PATH = (
+    "docs/pass201_pa_source_v4_authorization_manifest.json"
+)
 SOURCE_V3_I3_COMMIT = "23e7ff5c82fb28cd9fdd8e9e819e34b8fc9aacde"
+SOURCE_V3_I3A_COMMIT = "757d0672fc4409d7bc5076004bc3797d0c7b3cde"
+SOURCE_V3_V3_COMMIT = "03d0ed509fe7b65aee0162941a9f6a3b6fea228f"
+SOURCE_V3_H3_COMMIT = "183fa5b9cf99b7f860e954c9be38c06a477b3912"
+PROCESS_ENTRY_DRAFT_AMENDMENT_COMMIT = "967a02d5d1535dd2a019f3b34039f0a706796310"
+PROCESS_ENTRY_DRAFT_PLAN_COMMIT = "6067219a3a312053cadfaeb4cfa8d8d5fb907b9c"
+PROCESS_ENTRY_F4_COMMIT = "463985d86afd1ea54ff021df1cf8624b6aa013d1"
+PROCESS_ENTRY_F5_COMMIT = "ed743aff23792b13209f5974f2a74f26c0104f74"
 SOURCE_V3_CHANGED_PATHS = tuple(
     sorted(
         (
@@ -62,6 +72,23 @@ SOURCE_V3_STATIC_AUTHORITIES = {
         "path": "docs/superpowers/plans/2026-08-11-pass201-pa-source-v3.md",
         "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
         "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    },
+}
+PROCESS_ENTRY_STATIC_AUTHORITIES = {
+    "process_entry_amendment": {
+        "commit": PROCESS_ENTRY_F5_COMMIT,
+        "path": "docs/pass201_pa_source_v3_process_entry_amendment_2026-08-11.md",
+        "sha256": "9d751d0a9cd215438d150cffc62fe61baca62eb57addb62a4414412378144003",
+    },
+    "process_entry_plan": {
+        "commit": PROCESS_ENTRY_F5_COMMIT,
+        "path": "docs/superpowers/plans/2026-08-11-pass201-source-v3-process-entry-repair.md",
+        "sha256": "621ae3939f54a3f7d3944d2c6a63ff533fd2205f4121169dacec910bc52e7edd",
+    },
+    "process_entry_evidence": {
+        "commit": PROCESS_ENTRY_F4_COMMIT,
+        "path": "docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json",
+        "sha256": "dd05361cb3630bf37b0bfbde79df7019afa6db9dee9f78b7343cd385acd77549",
     },
 }
 PRELAUNCH_SOURCE_MANIFEST_SHA256 = (
@@ -187,7 +214,13 @@ def _authenticate_source_v3_git_handoff(
 ) -> SourceV3GitHandoff:
     checkout = root.resolve(strict=True)
     _require(git_root.resolve(strict=True) == checkout, "git root differs from checkout")
-    expected_manifest = checkout / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+    relative_manifest = manifest_path.relative_to(checkout).as_posix()
+    _require(
+        relative_manifest
+        in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
+        "source authorization manifest path differs",
+    )
+    expected_manifest = checkout / relative_manifest
     _require(
         manifest_path == expected_manifest,
         "source-v3 authorization manifest path differs",
@@ -215,25 +248,25 @@ def _authenticate_source_v3_git_handoff(
         handoff_commit,
     ).split(b"\0")
     _require(
-        diff == [b"A", SOURCE_V3_AUTHORIZATION_MANIFEST_PATH.encode(), b""],
-        "source-v3 handoff must add only the authorization manifest",
+        diff == [b"A", relative_manifest.encode(), b""],
+        "source handoff must add only the authorization manifest",
     )
     tree_line = _git_command_bytes(
         checkout,
         "ls-tree",
         handoff_commit,
         "--",
-        SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        relative_manifest,
     ).decode("utf-8")
     _require(
         tree_line.startswith("100644 blob ")
-        and tree_line.endswith(f"\t{SOURCE_V3_AUTHORIZATION_MANIFEST_PATH}\n"),
-        "source-v3 handoff manifest mode differs",
+        and tree_line.endswith(f"\t{relative_manifest}\n"),
+        "source handoff manifest mode differs",
     )
     committed = _git_command_bytes(
         checkout,
         "show",
-        f"{handoff_commit}:{SOURCE_V3_AUTHORIZATION_MANIFEST_PATH}",
+        f"{handoff_commit}:{relative_manifest}",
     )
     _require(manifest_path.is_file(), "source-v3 authorization manifest unavailable")
     worktree = manifest_path.read_bytes()
@@ -271,6 +304,30 @@ def _authenticate_source_v3_static_authorities(
     return result
 
 
+def _authenticate_process_entry_static_authorities(
+    root: Path, source_commit: str
+) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for name, reference in PROCESS_ENTRY_STATIC_AUTHORITIES.items():
+        commit = reference["commit"]
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", commit, source_commit],
+            cwd=root,
+            check=False,
+            capture_output=True,
+        )
+        _require(ancestry.returncode == 0, f"{name} is not an ancestor of source-v4")
+        data = _git_command_bytes(root, "show", f"{commit}:{reference['path']}")
+        _require(
+            hashlib.sha256(data).hexdigest() == reference["sha256"],
+            f"{name} Git bytes differ",
+        )
+        path = root / reference["path"]
+        _require(path.is_file() and path.read_bytes() == data, f"{name} worktree bytes differ")
+        result[name] = commit
+    return result
+
+
 def _authenticate_source_v3_source_chain(root: Path, source_commit: str) -> None:
     parent_fields = _git_command_bytes(
         root, "rev-list", "--parents", "-n", "1", source_commit
@@ -295,15 +352,59 @@ def _authenticate_source_v3_source_chain(root: Path, source_commit: str) -> None
     _require(changed == expected, "source-v3 source edge differs from exact six paths")
 
 
+def _authenticate_source_v4_source_chain(root: Path, source_commit: str) -> None:
+    expected_edges = {
+        SOURCE_V3_H3_COMMIT: SOURCE_V3_V3_COMMIT,
+        SOURCE_V3_V3_COMMIT: SOURCE_V3_I3_COMMIT,
+        SOURCE_V3_I3_COMMIT: SOURCE_V3_I3A_COMMIT,
+        PROCESS_ENTRY_DRAFT_AMENDMENT_COMMIT: SOURCE_V3_H3_COMMIT,
+        PROCESS_ENTRY_DRAFT_PLAN_COMMIT: PROCESS_ENTRY_DRAFT_AMENDMENT_COMMIT,
+        PROCESS_ENTRY_F4_COMMIT: PROCESS_ENTRY_DRAFT_PLAN_COMMIT,
+        PROCESS_ENTRY_F5_COMMIT: PROCESS_ENTRY_F4_COMMIT,
+    }
+    for child, parent in expected_edges.items():
+        fields = _git_command_bytes(
+            root, "rev-list", "--parents", "-n", "1", child
+        ).decode("ascii").strip().split()
+        _require(fields == [child, parent], f"source-v4 historical edge differs: {child}")
+    current = source_commit
+    aggregate: set[str] = set()
+    while current != PROCESS_ENTRY_F5_COMMIT:
+        fields = _git_command_bytes(
+            root, "rev-list", "--parents", "-n", "1", current
+        ).decode("ascii").strip().split()
+        _require(len(fields) == 2, "source-v4 source chain must be merge-free")
+        changed = _git_command_bytes(
+            root, "diff-tree", "--no-commit-id", "--name-only", "-r", current
+        ).decode("utf-8").splitlines()
+        _require(bool(changed), "source-v4 source commit must not be empty")
+        _require(
+            set(changed) <= set(SOURCE_V3_CHANGED_PATHS),
+            "source-v4 source commit changes an unauthorized path",
+        )
+        aggregate.update(changed)
+        current = fields[1]
+    _require(
+        aggregate == set(SOURCE_V3_CHANGED_PATHS),
+        "source-v4 aggregate source scope differs from exact six paths",
+    )
+
+
 def _validate_source_v3_receipt_relations(
     authority: Any,
     receipt: Mapping[str, Any],
     handoff: SourceV3GitHandoff,
 ) -> None:
     payload = authority.payload
+    is_v4 = payload["schema_version"] == "pass201-pa-source-v4-prelaunch-v1"
     _require(
-        payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1",
-        "source-v3 authority schema differs",
+        is_v4 or payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1",
+        "source authority schema differs",
+    )
+    manifest_path = (
+        SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
+        if is_v4
+        else SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
     )
     _require(
         payload["source_commit"]
@@ -313,9 +414,9 @@ def _validate_source_v3_receipt_relations(
     )
     _require(
         payload["authorization"]["manifest_path"]
-        == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        == manifest_path
         and payload["authorization"]["required_diff_paths"]
-        == (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,),
+        == (manifest_path,),
         "source-v3 manifest authority differs",
     )
     _require(
@@ -324,7 +425,8 @@ def _validate_source_v3_receipt_relations(
         "source-v3 static authority differs",
     )
     _require(
-        receipt["schema_version"] == "pass201-pa-source-v3-receipt-v1"
+        receipt["schema_version"]
+        == ("pass201-pa-source-v4-receipt-v1" if is_v4 else "pass201-pa-source-v3-receipt-v1")
         and receipt["candidate_values_computed"] is False,
         "source-v3 receipt schema or scope differs",
     )
@@ -332,7 +434,7 @@ def _validate_source_v3_receipt_relations(
     _require(
         authorization["authorization_commit"] == handoff.handoff_commit
         and authorization["source_commit"] == handoff.source_commit
-        and authorization["manifest_path"] == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+        and authorization["manifest_path"] == manifest_path
         and authorization["manifest_sha256"] == handoff.manifest_sha256
         and authorization["manifest_git_blob"] == handoff.manifest_git_blob,
         "source-v3 receipt handoff binding differs",
@@ -342,6 +444,13 @@ def _validate_source_v3_receipt_relations(
         and authorization["plan"] == payload["plan"],
         "source-v3 receipt static authority differs",
     )
+    if is_v4:
+        for key in PROCESS_ENTRY_STATIC_AUTHORITIES:
+            _require(
+                payload[key] == PROCESS_ENTRY_STATIC_AUTHORITIES[key]
+                and authorization[key] == payload[key],
+                f"source-v4 receipt {key} differs",
+            )
 
 
 def _authenticate_source_v3_repo_row(
@@ -460,12 +569,21 @@ def _load_source_v3_authority(
     handoff = _authenticate_source_v3_git_handoff(
         root=root, git_root=git_root, manifest_path=manifest_path
     )
-    _authenticate_source_v3_source_chain(root, handoff.source_commit)
+    is_v4 = manifest_path.name == Path(SOURCE_V4_AUTHORIZATION_MANIFEST_PATH).name
+    if is_v4:
+        _authenticate_source_v4_source_chain(root, handoff.source_commit)
+    else:
+        _authenticate_source_v3_source_chain(root, handoff.source_commit)
     bootstrap = _bootstrap_strict_json_object(
         handoff.manifest_bytes, "source-v3 authorization manifest"
     )
     _require(
-        bootstrap.get("schema_version") == "pass201-pa-source-v3-prelaunch-v1"
+        bootstrap.get("schema_version")
+        == (
+            "pass201-pa-source-v4-prelaunch-v1"
+            if is_v4
+            else "pass201-pa-source-v3-prelaunch-v1"
+        )
         and bootstrap.get("source_commit") == handoff.source_commit,
         "source-v3 bootstrap authority differs",
     )
@@ -488,6 +606,8 @@ def _load_source_v3_authority(
     )
     authority = contract.validate_prelaunch(manifest)
     _authenticate_source_v3_static_authorities(root, handoff.source_commit)
+    if is_v4:
+        _authenticate_process_entry_static_authorities(root, handoff.source_commit)
     payload = authority.payload
     _require(
         tuple(row["path"] for row in payload["source"]["files"])
@@ -1956,7 +2076,7 @@ def _validate_source_v3_binding(args: Any) -> tuple[dict[str, Any], dict[str, An
     source_manifest = {
         "schema_version": "pass201-source-v1",
         "status": "frozen",
-        "prelaunch_source_manifest_path": SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_source_manifest_path": payload["authorization"]["manifest_path"],
         "prelaunch_source_manifest_sha256": bound.handoff.manifest_sha256,
         "source_report_path": payload["outputs"]["report"]["path"],
         "source_report_sha256": receipt["outputs"]["report"]["sha256"],
@@ -2162,7 +2282,11 @@ def _validate_source_manifest_artifact(manifest: Any) -> None:
     _require(manifest["status"] == "frozen", "source manifest status")
     _require(
         manifest["prelaunch_source_manifest_path"]
-        in (PRELAUNCH_SOURCE_MANIFEST_PATH, SOURCE_V3_AUTHORIZATION_MANIFEST_PATH),
+        in (
+            PRELAUNCH_SOURCE_MANIFEST_PATH,
+            SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+            SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
+        ),
         "source manifest prelaunch path",
     )
     for key in (
@@ -3420,7 +3544,7 @@ def _default_cli_paths(args: Any) -> None:
     args.root = root
     defaults = {
         "git_root": root,
-        "prelaunch_manifest": root / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        "prelaunch_manifest": root / SOURCE_V4_AUTHORIZATION_MANIFEST_PATH,
         "source_report": root / "reports/generated/pass201_source_v3/run-v3/report.json",
         "source_receipt": root / "reports/generated/pass201_source_v3/run-v3/receipt.json",
         "checkpoint": root / "reports/generated/pass201_source_v3/run-v3/checkpoint.pt",
@@ -3440,10 +3564,10 @@ def _default_cli_paths(args: Any) -> None:
 
 def _validate_source_v3_public_controller_args(args: Any) -> None:
     root = Path(args.root).resolve(strict=True)
-    expected = root / SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+    expected = root / SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
     _require(
         Path(args.prelaunch_manifest) == expected,
-        "public controller requires the literal source-v3 authorization manifest path",
+        "public controller requires the literal source-v4 authorization manifest path",
     )
     _require(
         args.runtime_factory is None and "PASS201_RUNTIME_FACTORY" not in os.environ,
@@ -3474,7 +3598,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         manifest = _read_json_object(args.source_manifest, "source manifest")
         if (
             manifest.get("prelaunch_source_manifest_path")
-            == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH
+            in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH)
         ):
             _require(
                 args.runtime_factory is None
@@ -3536,7 +3660,7 @@ def _validate_source(source: Any, *, activated: bool) -> None:
     _exact_keys(source, keys, "source")
     _require(
         source["prelaunch_source_manifest_path"]
-        == SOURCE_V3_AUTHORIZATION_MANIFEST_PATH,
+        in (SOURCE_V3_AUTHORIZATION_MANIFEST_PATH, SOURCE_V4_AUTHORIZATION_MANIFEST_PATH),
         "wrong prelaunch source path",
     )
     for key in (

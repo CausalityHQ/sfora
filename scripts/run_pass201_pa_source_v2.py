@@ -21,7 +21,13 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Literal, NoReturn
 from unittest.mock import patch
 
-from pass201_pa_source_v2_contract import (
+_PROCESS_ENTRY_ENVIRONMENT = dict(os.environ)
+_POST_IMPORT_ENVIRONMENT_ADDITIONS = {
+    "KMP_DUPLICATE_LIB_OK": "True",
+    "KMP_INIT_AT_FORK": "FALSE",
+}
+
+from pass201_pa_source_v2_contract import (  # noqa: E402
     TRAIN_MANIFEST_CALL_GRAPH,
     BoundCheckpointMetadata,
     CheckpointMetadata,
@@ -57,12 +63,12 @@ from pass201_pa_source_v2_contract import (
     validate_prelaunch,
     validate_train_manifest,
 )
-from typer.main import get_command
+from typer.main import get_command  # noqa: E402
 
-import sfora.cli
-import sfora.image_end_to_end as image_end_to_end
-from sfora.data import ImageExample
-from sfora.image_end_to_end import ImageEndToEndConfig
+import sfora.cli  # noqa: E402
+import sfora.image_end_to_end as image_end_to_end  # noqa: E402
+from sfora.data import ImageExample  # noqa: E402
+from sfora.image_end_to_end import ImageEndToEndConfig  # noqa: E402
 
 RECIPE_ID = "proxy_anchor.inshop.official-51db570"
 RECIPE_DIGEST = "97c0fe91ae527b5d3fb3be643e139524584981f5124d706f11341506be547361"
@@ -73,6 +79,10 @@ SOURCE_V3_PRELAUNCH_PATH = PurePosixPath(
     "docs/pass201_pa_source_v3_authorization_manifest.json"
 )
 SOURCE_V3_RUN_DIRECTORY = PurePosixPath("reports/generated/pass201_source_v3/run-v3")
+SOURCE_V4_PRELAUNCH_PATH = PurePosixPath(
+    "docs/pass201_pa_source_v4_authorization_manifest.json"
+)
+SOURCE_V4_RUN_DIRECTORY = SOURCE_V3_RUN_DIRECTORY
 CONTROLLER_PATH = PurePosixPath("scripts/run_pass201_pa_source_v2.py")
 SOURCE_PATHS = tuple(
     PurePosixPath(path)
@@ -121,6 +131,29 @@ SOURCE_V3_STATIC_AUTHORITIES = {
         ),
         "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
         "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
+    },
+}
+PROCESS_ENTRY_STATIC_AUTHORITIES = {
+    "process_entry_amendment": {
+        "commit": "ed743aff23792b13209f5974f2a74f26c0104f74",
+        "path": PurePosixPath(
+            "docs/pass201_pa_source_v3_process_entry_amendment_2026-08-11.md"
+        ),
+        "sha256": "9d751d0a9cd215438d150cffc62fe61baca62eb57addb62a4414412378144003",
+    },
+    "process_entry_plan": {
+        "commit": "ed743aff23792b13209f5974f2a74f26c0104f74",
+        "path": PurePosixPath(
+            "docs/superpowers/plans/2026-08-11-pass201-source-v3-process-entry-repair.md"
+        ),
+        "sha256": "621ae3939f54a3f7d3944d2c6a63ff533fd2205f4121169dacec910bc52e7edd",
+    },
+    "process_entry_evidence": {
+        "commit": "463985d86afd1ea54ff021df1cf8624b6aa013d1",
+        "path": PurePosixPath(
+            "docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json"
+        ),
+        "sha256": "dd05361cb3630bf37b0bfbde79df7019afa6db9dee9f78b7343cd385acd77549",
     },
 }
 OUTPUT_FILENAMES = {
@@ -393,6 +426,37 @@ def _authenticate_source_v3_static_authorities(
     return result
 
 
+def _authenticate_process_entry_static_authorities(
+    checkout: Path, source_commit: str, git_path: Path | None = None
+) -> dict[str, str]:
+    executable = git_path or Path(shutil.which("git") or "git")
+    result: dict[str, str] = {}
+    for name, reference in PROCESS_ENTRY_STATIC_AUTHORITIES.items():
+        commit = str(reference["commit"])
+        ancestry = subprocess.run(
+            [str(executable), "merge-base", "--is-ancestor", commit, source_commit],
+            cwd=checkout,
+            check=False,
+            capture_output=True,
+        )
+        _require(ancestry.returncode == 0, f"{name} is not an ancestor of source-v4")
+        path = reference["path"]
+        data = _run_checked(
+            (str(executable), "show", f"{commit}:{path.as_posix()}"),
+            cwd=checkout,
+        )
+        _require(
+            hashlib.sha256(data).hexdigest() == reference["sha256"],
+            f"{name} Git bytes differ",
+        )
+        _require(
+            (checkout / path).is_file() and (checkout / path).read_bytes() == data,
+            f"{name} worktree bytes differ",
+        )
+        result[name] = commit
+    return result
+
+
 def _bind_python_executable(path: Path) -> tuple[dict[str, object], str]:
     absolute = path.absolute()
     _require(absolute.is_absolute(), "Python path must be absolute")
@@ -579,7 +643,10 @@ def _bind_python_package_evidence(
             "bytes": len(packages),
             "sha256": hashlib.sha256(packages).hexdigest(),
         }
-    if schema_version == "pass201-pa-source-v3-prelaunch-v1":
+    if schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    ):
         packages, distribution_count = _canonical_package_inventory(
             interpreter, checkout, environment
         )
@@ -659,8 +726,13 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
     _require(checkout == args.checkout_root.absolute(), "checkout root contains a symlink")
     git_path = _git_path(environment)
     source_commit = _source_commit(checkout, git_path)
-    if args.schema_version == "pass201-pa-source-v3-prelaunch-v1":
+    if args.schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    ):
         _authenticate_source_v3_static_authorities(checkout, source_commit, git_path)
+    if args.schema_version == "pass201-pa-source-v4-prelaunch-v1":
+        _authenticate_process_entry_static_authorities(checkout, source_commit, git_path)
     python_payload, python_realpath = _bind_python_executable(args.python_path)
     package_evidence = _bind_python_package_evidence(
         args.schema_version,
@@ -687,7 +759,8 @@ def _bind_freeze_runtime(args: FreezeArgs, environment: Mapping[str, str]) -> di
             _repo_blob_payload(bind_repo_blob(checkout, source_commit, path))
             for path in (
                 SOURCE_V3_PATHS
-                if args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+                if args.schema_version
+                in ("pass201-pa-source-v3-prelaunch-v1", "pass201-pa-source-v4-prelaunch-v1")
                 else SOURCE_PATHS
             )
         ],
@@ -781,13 +854,21 @@ def _validate_rfc3339_utc(value: str) -> None:
 
 def _require_frozen_absence(args: FreezeArgs) -> None:
     checkout = args.checkout_root.resolve(strict=True)
-    is_v3 = args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    is_v4 = args.schema_version == "pass201-pa-source-v4-prelaunch-v1"
+    is_source_v3 = args.schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
     _require(
-        is_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
+        is_source_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
         "source schema",
     )
-    manifest_path = SOURCE_V3_PRELAUNCH_PATH if is_v3 else PRELAUNCH_PATH
-    run_path = SOURCE_V3_RUN_DIRECTORY if is_v3 else RUN_DIRECTORY
+    manifest_path = (
+        SOURCE_V4_PRELAUNCH_PATH
+        if is_v4
+        else SOURCE_V3_PRELAUNCH_PATH if is_source_v3 else PRELAUNCH_PATH
+    )
+    run_path = SOURCE_V3_RUN_DIRECTORY if is_source_v3 else RUN_DIRECTORY
     permitted_outputs = tuple(
         checkout.parent / f"{checkout.name}.pass201-prelaunch-freeze-{ordinal}.tmp"
         for ordinal in (1, 2)
@@ -857,13 +938,21 @@ def _build_prelaunch_payload(
     runtime: Mapping[str, object],
 ) -> dict[str, object]:
     _validate_freeze_capture(capture)
-    is_v3 = args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+    is_v4 = args.schema_version == "pass201-pa-source-v4-prelaunch-v1"
+    is_source_v3 = args.schema_version in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
     _require(
-        is_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
+        is_source_v3 or args.schema_version == "pass201-pa-source-v2-prelaunch-v1",
         "source schema",
     )
-    run_directory = SOURCE_V3_RUN_DIRECTORY if is_v3 else RUN_DIRECTORY
-    manifest_path = SOURCE_V3_PRELAUNCH_PATH if is_v3 else PRELAUNCH_PATH
+    run_directory = SOURCE_V3_RUN_DIRECTORY if is_source_v3 else RUN_DIRECTORY
+    manifest_path = (
+        SOURCE_V4_PRELAUNCH_PATH
+        if is_v4
+        else SOURCE_V3_PRELAUNCH_PATH if is_source_v3 else PRELAUNCH_PATH
+    )
     output_paths = {
         key: f"{run_directory.as_posix()}/{filename}"
         for key, filename in OUTPUT_FILENAMES.items()
@@ -969,7 +1058,7 @@ def _build_prelaunch_payload(
             "require_complete_receipt": True,
         },
     }
-    if is_v3:
+    if is_source_v3:
         payload["protocol"] = {
             "path": "docs/pass201_pa_source_v3_protocol_2026-08-11.md",
             "sha256": "716460eda8664a4c37b5f14332244a8dae4f921b393b7e4c085ff0b4e26a7426",
@@ -980,6 +1069,13 @@ def _build_prelaunch_payload(
             "sha256": "351abb720c7526ce71f5ccea85e5ee16385b8e1d79df9073309ef5b4321ba3ae",
             "commit": "f38af4465333f4e50c08b1c30c10aa9f06829f43",
         }
+    if is_v4:
+        for name, reference in PROCESS_ENTRY_STATIC_AUTHORITIES.items():
+            payload[name] = {
+                "commit": reference["commit"],
+                "path": reference["path"].as_posix(),
+                "sha256": reference["sha256"],
+            }
     return payload
 
 
@@ -995,7 +1091,8 @@ def freeze_authority(args: FreezeArgs) -> bytes:
     runtime = _bind_freeze_runtime(args, environment)
     run_directory = (
         SOURCE_V3_RUN_DIRECTORY
-        if args.schema_version == "pass201-pa-source-v3-prelaunch-v1"
+        if args.schema_version
+        in ("pass201-pa-source-v3-prelaunch-v1", "pass201-pa-source-v4-prelaunch-v1")
         else RUN_DIRECTORY
     )
     argv = _frozen_argv(runtime, run_directory)
@@ -1054,9 +1151,23 @@ def _require_authority_scope(authority: PrelaunchAuthority) -> None:
     )
 
 
-def _require_replacement_environment(authority: PrelaunchAuthority) -> None:
+def _require_bound_process_environment(
+    authority: PrelaunchAuthority, role: str
+) -> None:
     expected = dict(authority.payload["execution"]["environment"])
-    _require(_ambient_environment() == expected, "controller environment drift")
+    _require(
+        expected == _PROCESS_ENTRY_ENVIRONMENT,
+        f"{role} process-entry environment drift",
+    )
+    expected_live = {**expected, **_POST_IMPORT_ENVIRONMENT_ADDITIONS}
+    _require(
+        dict(os.environ) == expected_live,
+        f"{role} post-import environment drift",
+    )
+
+
+def _require_replacement_environment(authority: PrelaunchAuthority) -> None:
+    _require_bound_process_environment(authority, "controller")
 
 
 def _expected_runtime_bindings(authority: PrelaunchAuthority) -> dict[str, object]:
@@ -1478,7 +1589,11 @@ def _build_complete_receipt(
         "resolved_config": _output_evidence_payload(config_evidence, authority.checkout_root),
         "train_manifest": _output_evidence_payload(manifest_evidence, authority.checkout_root),
     }
-    is_v3 = payload["schema_version"] == "pass201-pa-source-v3-prelaunch-v1"
+    is_v4 = payload["schema_version"] == "pass201-pa-source-v4-prelaunch-v1"
+    is_source_v3 = payload["schema_version"] in (
+        "pass201-pa-source-v3-prelaunch-v1",
+        "pass201-pa-source-v4-prelaunch-v1",
+    )
     authorization = {
         "authorization_commit": authorized.authorization_commit,
         "source_commit": authority.source_commit,
@@ -1491,14 +1606,21 @@ def _build_complete_receipt(
         "detached_head_verified": True,
         "clean_policy_verified": True,
     }
-    if is_v3:
+    if is_source_v3:
         authorization["protocol"] = payload["protocol"]
         authorization["plan"] = payload["plan"]
+    if is_v4:
+        for key in PROCESS_ENTRY_STATIC_AUTHORITIES:
+            authorization[key] = payload[key]
     receipt = {
         "schema_version": (
-            "pass201-pa-source-v3-receipt-v1"
-            if is_v3
-            else "pass201-pa-source-v2-receipt-v1"
+            "pass201-pa-source-v4-receipt-v1"
+            if is_v4
+            else (
+                "pass201-pa-source-v3-receipt-v1"
+                if is_source_v3
+                else "pass201-pa-source-v2-receipt-v1"
+            )
         ),
         "status": "complete",
         "candidate_values_computed": False,
@@ -2416,8 +2538,7 @@ def _exact_regular_path(path: Path) -> Path:
 
 
 def _validate_bound_environment(authority: PrelaunchAuthority) -> None:
-    expected = dict(authority.payload["execution"]["environment"])
-    _require(dict(os.environ) == expected, "sidecar environment drift")
+    _require_bound_process_environment(authority, "sidecar")
 
 
 def _run_private_child(
@@ -2575,6 +2696,7 @@ def _parser() -> argparse.ArgumentParser:
         choices=(
             "pass201-pa-source-v2-prelaunch-v1",
             "pass201-pa-source-v3-prelaunch-v1",
+            "pass201-pa-source-v4-prelaunch-v1",
         ),
         required=True,
     )

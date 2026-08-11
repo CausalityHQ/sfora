@@ -320,6 +320,40 @@ def source_v3_prelaunch(valid_prelaunch: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def source_v4_prelaunch(valid_prelaunch: dict[str, Any]) -> dict[str, Any]:
+    payload = source_v3_prelaunch(valid_prelaunch)
+    payload["schema_version"] = "pass201-pa-source-v4-prelaunch-v1"
+    manifest_path = "docs/pass201_pa_source_v4_authorization_manifest.json"
+    payload["authorization"]["manifest_path"] = manifest_path
+    payload["authorization"]["required_diff_paths"] = [manifest_path]
+    for key, commit, path, sha256 in (
+        (
+            "process_entry_amendment",
+            "ed743aff23792b13209f5974f2a74f26c0104f74",
+            "docs/pass201_pa_source_v3_process_entry_amendment_2026-08-11.md",
+            "9d751d0a9cd215438d150cffc62fe61baca62eb57addb62a4414412378144003",
+        ),
+        (
+            "process_entry_plan",
+            "ed743aff23792b13209f5974f2a74f26c0104f74",
+            "docs/superpowers/plans/2026-08-11-pass201-source-v3-process-entry-repair.md",
+            "621ae3939f54a3f7d3944d2c6a63ff533fd2205f4121169dacec910bc52e7edd",
+        ),
+        (
+            "process_entry_evidence",
+            "463985d86afd1ea54ff021df1cf8624b6aa013d1",
+            "docs/pass201_pa_source_v3_process_entry_evidence_2026-08-11.json",
+            "dd05361cb3630bf37b0bfbde79df7019afa6db9dee9f78b7343cd385acd77549",
+        ),
+    ):
+        payload[key] = {
+            "commit": commit,
+            "path": path,
+            "sha256": sha256,
+        }
+    return payload
+
+
 @pytest.mark.parametrize("raw", [b'{"x":1,"x":2}', b'{"x":NaN}', b'{"x":Infinity}'])
 def test_strict_json_rejects_ambiguous_bytes(raw: bytes) -> None:
     with pytest.raises(ValueError):
@@ -501,9 +535,12 @@ def test_package_evidence_is_version_selected_and_historical_v2_remains_valid(
         contract._validate_python_package_evidence(
             legacy, "pass201-pa-source-v3-prelaunch-v1", "packages"
         )
+    assert contract._validate_python_package_evidence(
+        current, "pass201-pa-source-v4-prelaunch-v1", "packages"
+    ) == current
     with pytest.raises(ValueError, match="unknown"):
         contract._validate_python_package_evidence(
-            current, "pass201-pa-source-v4-prelaunch-v1", "packages"
+            current, "pass201-pa-source-v5-prelaunch-v1", "packages"
         )
 
 
@@ -1940,6 +1977,68 @@ def source_v3_receipt(authority: Any) -> dict[str, Any]:
         authority.payload["source"]["files"]
     )
     return receipt
+
+
+def source_v4_receipt(authority: Any) -> dict[str, Any]:
+    receipt = source_v3_receipt(authority)
+    receipt["schema_version"] = "pass201-pa-source-v4-receipt-v1"
+    for key in (
+        "process_entry_amendment",
+        "process_entry_plan",
+        "process_entry_evidence",
+    ):
+        receipt["authorization"][key] = mutable_json(authority.payload[key])
+    return receipt
+
+
+def test_source_v4_schema_and_receipt_bind_all_repair_authorities(
+    valid_prelaunch: dict[str, Any],
+) -> None:
+    authority = validate_prelaunch(source_v4_prelaunch(valid_prelaunch))
+    assert authority.payload["authorization"]["required_diff_status"] == ("A",)
+    result = validate_complete_receipt(source_v4_receipt(authority), authority)
+    assert result.payload["schema_version"] == "pass201-pa-source-v4-receipt-v1"
+    for key in (
+        "process_entry_amendment",
+        "process_entry_plan",
+        "process_entry_evidence",
+    ):
+        assert result.payload["authorization"][key] == authority.payload[key]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "missing_repair",
+        "repair_hash",
+        "repair_order",
+        "old_manifest_path",
+        "modified_edge",
+        "v3_schema",
+    ),
+)
+def test_source_v4_schema_rejects_cross_version_and_repair_drift(
+    valid_prelaunch: dict[str, Any], mutation: str
+) -> None:
+    payload = source_v4_prelaunch(valid_prelaunch)
+    if mutation == "missing_repair":
+        del payload["process_entry_evidence"]
+    elif mutation == "repair_hash":
+        payload["process_entry_plan"]["sha256"] = "0" * 64
+    elif mutation == "repair_order":
+        payload["process_entry_plan"] = dict(
+            reversed(list(payload["process_entry_plan"].items()))
+        )
+    elif mutation == "old_manifest_path":
+        payload["authorization"]["manifest_path"] = (
+            "docs/pass201_pa_source_v3_authorization_manifest.json"
+        )
+    elif mutation == "modified_edge":
+        payload["authorization"]["required_diff_status"] = ["M"]
+    else:
+        payload["schema_version"] = "pass201-pa-source-v3-prelaunch-v1"
+    with pytest.raises(ValueError):
+        validate_prelaunch(payload)
 
 
 def test_source_v3_receipt_accepts_exact_versioned_authority(
