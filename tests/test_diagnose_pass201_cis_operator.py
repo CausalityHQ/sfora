@@ -3919,6 +3919,7 @@ def test_source_v5_public_freezer_two_processes_are_byte_identical_and_candidate
         ["git", "clone", "-q", "--no-hardlinks", str(source_root), str(checkout)],
         check=True,
     )
+    _git(checkout, "checkout", "--detach", "-q", MODULE.SOURCE_V5_REPAIR_PLAN_COMMIT)
     _git(checkout, "config", "user.email", "test@example.invalid")
     _git(checkout, "config", "user.name", "Pass201 Test")
     for relative in (
