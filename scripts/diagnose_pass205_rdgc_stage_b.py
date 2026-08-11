@@ -30,6 +30,8 @@ EPSILON = 1.0e-8
 NORM_FLOOR = 1.0e-12
 BOOTSTRAP_SEED = 201
 BOOTSTRAP_REPLICATES = 10_000
+RDGC_PYTHON_VERSION_INFO = (3, 13, 9)
+RDGC_PYTHON_VERSION = "3.13.9"
 CONTRIBUTOR_COUNTS = (1, 8, 32, 180)
 CONTROL_ORDER = (
     "raw_cotangent",
@@ -111,9 +113,25 @@ PRIMARY_SOURCE_IDS = (
     "cvpr-2019-zhang-adacos",
     "arxiv-1708.03888",
 )
-PLAN_PATH = "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md"
-PLAN_COMMIT = "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a"
-PLAN_SHA256 = "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412"
+AUTHORITY_REPAIR_PLAN_PATH = (
+    "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md"
+)
+AUTHORITY_REPAIR_PLAN_COMMIT = "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a"
+AUTHORITY_REPAIR_PLAN_SHA256 = (
+    "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412"
+)
+REVIEWED_PRE_RUNTIME_SOURCE_COMMIT = "328a70ad809c1adeae9ccd2aea28b87f3243018b"
+UNEXECUTED_PRE_RUNTIME_HANDOFF_COMMIT = "3c9e6b9fe5494f8f6a98caab18ff4923b66734ec"
+RUNTIME_AMENDMENT_PATH = "docs/pass205_rdgc_dgx_runtime_amendment_2026-08-11.md"
+RUNTIME_AMENDMENT_COMMIT = "29f0600d64d92d931ab2f57e04a59d9daba209d6"
+RUNTIME_AMENDMENT_SHA256 = (
+    "eb18908fc8a514e5ac3f0deb67950eeaf2a256ad20e1ae594e4fbd6fb2f74df0"
+)
+PLAN_PATH = (
+    "docs/superpowers/plans/2026-08-11-pass205-rdgc-dgx-runtime-repair.md"
+)
+PLAN_COMMIT = "aa978a90a43bf2c8de25b001aadffcd44073e4e6"
+PLAN_SHA256 = "668926b41389d90d87bf7f8717ce36903745ed146d46ae063b6d8b522d0d4cfd"
 REOPENED_SOURCE_COMMIT = "291ccbfbe322565c71c1e08317ca6e5c914b74a9"
 REPAIR_DOCUMENT_CHAIN = (
     (REPAIR_DESIGN_PATH, "68a012f7fa775099c03f9121a10323c29541308c"),
@@ -126,7 +144,7 @@ REPAIR_DOCUMENT_CHAIN = (
     (REPAIR_DESIGN_PATH, "9b3367e4a8c0138f45719511b87862266abb679b"),
     (REPAIR_DESIGN_PATH, REPAIR_DESIGN_COMMIT),
     (AUTHORITY_AMENDMENT_PATH, AUTHORITY_AMENDMENT_COMMIT),
-    (PLAN_PATH, PLAN_COMMIT),
+    (AUTHORITY_REPAIR_PLAN_PATH, AUTHORITY_REPAIR_PLAN_COMMIT),
 )
 RSTA_CANDIDATE_PATH = "docs/pass200_rsta_candidate_2026-08-09.md"
 RSTA_CANDIDATE_COMMIT = "4b33076f7d7fd8da78987eb4d04664bde14452c6"
@@ -1261,7 +1279,10 @@ def authenticate_authority(
         CANDIDATE_COMMIT
     ]:
         raise ValueError("original plan must have exactly one candidate parent")
-    if not REPAIR_DOCUMENT_CHAIN or REPAIR_DOCUMENT_CHAIN[-1] != (PLAN_PATH, PLAN_COMMIT):
+    if not REPAIR_DOCUMENT_CHAIN or REPAIR_DOCUMENT_CHAIN[-1] != (
+        AUTHORITY_REPAIR_PLAN_PATH,
+        AUTHORITY_REPAIR_PLAN_COMMIT,
+    ):
         raise ValueError("repair document chain terminus differs")
     previous_commit = REOPENED_SOURCE_COMMIT
     for expected_path, document_commit in REPAIR_DOCUMENT_CHAIN:
@@ -1281,6 +1302,65 @@ def authenticate_authority(
         if changed_paths != [expected_path]:
             raise ValueError("repair document commit scope mismatch")
         previous_commit = document_commit
+    old_source_cursor = REVIEWED_PRE_RUNTIME_SOURCE_COMMIT
+    while old_source_cursor != AUTHORITY_REPAIR_PLAN_COMMIT:
+        old_source_parents = _run_git(
+            repository, "show", "-s", "--format=%P", old_source_cursor
+        ).split()
+        if len(old_source_parents) != 1:
+            raise ValueError("reviewed pre-runtime source history differs")
+        old_changed_paths = set(
+            _run_git(
+                repository,
+                "diff-tree",
+                "--no-commit-id",
+                "--name-only",
+                "-r",
+                old_source_cursor,
+            ).splitlines()
+        )
+        if not old_changed_paths or not old_changed_paths <= allowed_source_paths:
+            raise ValueError("reviewed pre-runtime source scope mismatch")
+        old_source_cursor = old_source_parents[0]
+    if _run_git(
+        repository,
+        "diff",
+        "--name-only",
+        AUTHORITY_REPAIR_PLAN_COMMIT,
+        REVIEWED_PRE_RUNTIME_SOURCE_COMMIT,
+    ).splitlines() != [
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "tests/test_diagnose_pass205_rdgc_stage_b.py",
+    ]:
+        raise ValueError("reviewed pre-runtime aggregate scope mismatch")
+    for expected_commit, expected_parent, expected_path, message in (
+        (
+            UNEXECUTED_PRE_RUNTIME_HANDOFF_COMMIT,
+            REVIEWED_PRE_RUNTIME_SOURCE_COMMIT,
+            "docs/pass205_rdgc_stage_b_manifest.json",
+            "unexecuted pre-runtime handoff",
+        ),
+        (
+            RUNTIME_AMENDMENT_COMMIT,
+            UNEXECUTED_PRE_RUNTIME_HANDOFF_COMMIT,
+            RUNTIME_AMENDMENT_PATH,
+            "runtime amendment",
+        ),
+        (PLAN_COMMIT, RUNTIME_AMENDMENT_COMMIT, PLAN_PATH, "runtime repair plan"),
+    ):
+        if _run_git(repository, "show", "-s", "--format=%P", expected_commit).split() != [
+            expected_parent
+        ]:
+            raise ValueError(f"{message} parent differs")
+        if _run_git(
+            repository,
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            expected_commit,
+        ).splitlines() != [expected_path]:
+            raise ValueError(f"{message} scope differs")
     aggregate_scope = _run_git(
         repository,
         "diff",
@@ -1349,6 +1429,18 @@ def authenticate_authority(
             AUTHORITY_AMENDMENT_PATH,
             AUTHORITY_AMENDMENT_COMMIT,
             AUTHORITY_AMENDMENT_SHA256,
+        ),
+        (
+            "authority repair plan",
+            AUTHORITY_REPAIR_PLAN_PATH,
+            AUTHORITY_REPAIR_PLAN_COMMIT,
+            AUTHORITY_REPAIR_PLAN_SHA256,
+        ),
+        (
+            "runtime amendment",
+            RUNTIME_AMENDMENT_PATH,
+            RUNTIME_AMENDMENT_COMMIT,
+            RUNTIME_AMENDMENT_SHA256,
         ),
     ):
         authority_path = _within(repository, repository / expected_path)
@@ -1735,7 +1827,7 @@ def attach_observed_torch_runtime(
     ):
         raise ValueError("invalid pre-import environment")
     runtime = {
-        "torch_version": torch_module.__version__,
+        "torch_version": str(torch_module.__version__),
         "cuda_runtime_version": torch_module.version.cuda,
         "cudnn_version": torch_module.backends.cudnn.version(),
         "device_index": torch_module.cuda.current_device(),
@@ -1808,6 +1900,9 @@ def validate_scientific_payload(value: dict[str, object]) -> None:
         "manifest_sha256",
     ):
         raise ValueError("pre-import environment schema/order mismatch")
+    for key in ("python_executable", "python_version", "numpy_version"):
+        if type(pre_import[key]) is not str or not pre_import[key]:
+            raise ValueError(f"pre-import environment {key} mismatch")
     if phase == "pre_import":
         if (
             status != "INVALID"
@@ -2644,7 +2739,7 @@ def _validate_result_nested(value: dict[str, object]) -> None:
     environment = value["environment"]
     pre_import = environment["pre_import"]
     if (
-        pre_import["python_version"] != "3.12.3"
+        pre_import["python_version"] != RDGC_PYTHON_VERSION
         or pre_import["cuda_visible_devices"] != "0"
         or pre_import["cublas_workspace_config"] != ":4096:8"
     ):
@@ -2670,7 +2765,13 @@ def _validate_result_nested(value: dict[str, object]) -> None:
             "Torch runtime",
         )
         if (
-            runtime_record["device_index"] != 0
+            type(runtime_record["torch_version"]) is not str
+            or not runtime_record["torch_version"]
+            or type(runtime_record["cuda_runtime_version"]) is not str
+            or not runtime_record["cuda_runtime_version"]
+            or type(runtime_record["device_name"]) is not str
+            or not runtime_record["device_name"]
+            or runtime_record["device_index"] != 0
             or runtime_record["deterministic_algorithms"] is not True
             or runtime_record["allow_tf32_matmul"] is not False
             or runtime_record["allow_tf32_cudnn"] is not False
@@ -4309,7 +4410,7 @@ def _execution_environment(
         "python_version": (
             f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         ),
-        "numpy_version": np.__version__,
+        "numpy_version": str(np.__version__),
         "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
         "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG", ""),
         "source_commit": authority["source_commit"],
@@ -4542,8 +4643,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     expected_python = (repository / ".venv/bin/python").resolve(strict=True)
     if Path(sys.executable).resolve() != expected_python:
         parser.error("scientific process must use the registered .venv interpreter")
-    if (sys.version_info.major, sys.version_info.minor, sys.version_info.micro) != (3, 12, 3):
-        parser.error("scientific process requires Python 3.12.3")
+    if (
+        sys.version_info.major,
+        sys.version_info.minor,
+        sys.version_info.micro,
+    ) != RDGC_PYTHON_VERSION_INFO:
+        parser.error(f"scientific process requires Python {RDGC_PYTHON_VERSION}")
     if os.environ.get("CUDA_VISIBLE_DEVICES") != "0":
         parser.error("CUDA_VISIBLE_DEVICES must equal 0")
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":

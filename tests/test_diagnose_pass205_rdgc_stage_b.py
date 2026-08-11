@@ -54,13 +54,31 @@ def test_repair_authority_literals_are_consumed_by_the_source_gate() -> None:
         "20915982228bd4a17f1260952fe184d9e09b27b9b28165b5931bad843872c7ed",
     )
     assert (
-        _MODULE.PLAN_PATH,
-        _MODULE.PLAN_COMMIT,
-        _MODULE.PLAN_SHA256,
+        _MODULE.AUTHORITY_REPAIR_PLAN_PATH,
+        _MODULE.AUTHORITY_REPAIR_PLAN_COMMIT,
+        _MODULE.AUTHORITY_REPAIR_PLAN_SHA256,
     ) == (
         "docs/superpowers/plans/2026-08-11-pass205-rdgc-authority-repair.md",
         "4c72bc65e964cb863f9b4abf83bcdf0d38e7165a",
         "3893dd02f18afccd0bc3373789e6896fd4d1add53df3b324dfa1eb195ce13412",
+    )
+    assert (
+        _MODULE.RUNTIME_AMENDMENT_PATH,
+        _MODULE.RUNTIME_AMENDMENT_COMMIT,
+        _MODULE.RUNTIME_AMENDMENT_SHA256,
+    ) == (
+        "docs/pass205_rdgc_dgx_runtime_amendment_2026-08-11.md",
+        "29f0600d64d92d931ab2f57e04a59d9daba209d6",
+        "eb18908fc8a514e5ac3f0deb67950eeaf2a256ad20e1ae594e4fbd6fb2f74df0",
+    )
+    assert (
+        _MODULE.PLAN_PATH,
+        _MODULE.PLAN_COMMIT,
+        _MODULE.PLAN_SHA256,
+    ) == (
+        "docs/superpowers/plans/2026-08-11-pass205-rdgc-dgx-runtime-repair.md",
+        "aa978a90a43bf2c8de25b001aadffcd44073e4e6",
+        "668926b41389d90d87bf7f8717ce36903745ed146d46ae063b6d8b522d0d4cfd",
     )
     assert _MODULE.REPAIR_DESIGN_COMMIT == "2f2ea249a754a1fb4186ba55939d95c85de747a8"
     assert _MODULE.LITERATURE_AUDIT_COMMIT == "9ae137f3af0558728554c6af865fe96d6bf10060"
@@ -782,7 +800,7 @@ def test_bootstrap_rejects_unpaired_missing_reordered_or_partial_rows(mutation: 
 def test_pre_import_environment_is_exact_non_torch_union() -> None:
     fields = {
         "python_executable": ".venv/bin/python",
-        "python_version": "3.12.3",
+        "python_version": "3.13.9",
         "numpy_version": "2.5.0",
         "cuda_visible_devices": "0",
         "cublas_workspace_config": ":4096:8",
@@ -799,7 +817,7 @@ def test_pre_import_environment_is_exact_non_torch_union() -> None:
 def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> None:
     fields = {
         "python_executable": ".venv/bin/python",
-        "python_version": "3.12.3",
+        "python_version": "3.13.9",
         "numpy_version": "2.5.0",
         "cuda_visible_devices": "0",
         "cublas_workspace_config": ":4096:8",
@@ -825,6 +843,9 @@ def test_observed_torch_runtime_is_attached_without_fabricated_defaults() -> Non
     )
     value = _MODULE.attach_observed_torch_runtime(pre, fake)
     assert value["phase"] == "post_import"
+    assert type(value["pre_import"]["numpy_version"]) is str
+    assert value["pre_import"]["numpy_version"] == "2.5.0"
+    assert type(value["torch_runtime"]["torch_version"]) is str
     assert value["torch_runtime"]["torch_version"] == "2.5.1"
     assert value["torch_runtime"]["device_capability"] == [9, 0]
 
@@ -1145,7 +1166,7 @@ def _real_roundtrip_receipt() -> dict[str, object]:
             "child_exit_code": 0,
             "python_executable": ".venv/bin/python",
             "python_version": "3.12.3",
-            "numpy_version": np.__version__,
+            "numpy_version": str(np.__version__),
             "isolated": True,
             "child_head_commit": _VERIFIER.LEGACY_HANDOFF_COMMIT,
             "cuda_visible_devices": "",
@@ -1261,12 +1282,12 @@ def _authority_repository(
     _git(repository, "add", str(amendment_path.relative_to(repository)))
     _git(repository, "commit", "-qm", "authority amendment")
     amendment_commit = _git(repository, "rev-parse", "HEAD")
-    plan_path = repository / _MODULE.PLAN_PATH
-    plan_path.parent.mkdir(parents=True, exist_ok=True)
-    plan_path.write_text("repair plan\n")
-    _git(repository, "add", str(plan_path.relative_to(repository)))
-    _git(repository, "commit", "-qm", "repair plan")
-    plan_commit = _git(repository, "rev-parse", "HEAD")
+    authority_plan_path = repository / _MODULE.AUTHORITY_REPAIR_PLAN_PATH
+    authority_plan_path.parent.mkdir(parents=True, exist_ok=True)
+    authority_plan_path.write_text("authority repair plan\n")
+    _git(repository, "add", str(authority_plan_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "authority repair plan")
+    authority_plan_commit = _git(repository, "rev-parse", "HEAD")
     (repository / "scripts/diagnose_pass205_rdgc_stage_b.py").write_text(
         "# scripts/diagnose_pass205_rdgc_stage_b.py\n# repaired\n"
     )
@@ -1278,6 +1299,34 @@ def _authority_repository(
         "tests/test_diagnose_pass205_rdgc_stage_b.py",
     )
     _git(repository, "commit", "-qm", "repaired source")
+    reviewed_pre_runtime_source_commit = _git(repository, "rev-parse", "HEAD")
+    manifest_path = repository / "docs/pass205_rdgc_stage_b_manifest.json"
+    manifest_path.write_text("{}\n")
+    _git(repository, "add", str(manifest_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "unexecuted pre-runtime handoff")
+    unexecuted_pre_runtime_handoff_commit = _git(repository, "rev-parse", "HEAD")
+    runtime_amendment_path = repository / _MODULE.RUNTIME_AMENDMENT_PATH
+    runtime_amendment_path.write_text("runtime amendment\n")
+    _git(repository, "add", str(runtime_amendment_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "runtime amendment")
+    runtime_amendment_commit = _git(repository, "rev-parse", "HEAD")
+    plan_path = repository / _MODULE.PLAN_PATH
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    plan_path.write_text("runtime repair plan\n")
+    _git(repository, "add", str(plan_path.relative_to(repository)))
+    _git(repository, "commit", "-qm", "runtime repair plan")
+    plan_commit = _git(repository, "rev-parse", "HEAD")
+    (repository / "scripts/diagnose_pass205_rdgc_stage_b.py").write_text(
+        "# scripts/diagnose_pass205_rdgc_stage_b.py\n# repaired\n# runtime repaired\n"
+    )
+    test_path.write_text("# test\n# repaired\n# runtime repaired\n")
+    _git(
+        repository,
+        "add",
+        "scripts/diagnose_pass205_rdgc_stage_b.py",
+        "tests/test_diagnose_pass205_rdgc_stage_b.py",
+    )
+    _git(repository, "commit", "-qm", "runtime repaired source")
     source_commit = _git(repository, "rev-parse", "HEAD")
     receipt_path = repository / _MODULE.RSTA_VALIDATION_RECEIPT_PATH
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1295,7 +1344,6 @@ def _authority_repository(
                 "git_blob": _git(repository, "rev-parse", f"HEAD:{source_path}"),
             }
         )
-    manifest_path = repository / "docs/pass205_rdgc_stage_b_manifest.json"
     historical = {
         "manifest_path": str(historical_manifest_path.relative_to(repository)),
         "manifest_sha256": historical_manifest_sha256,
@@ -1395,6 +1443,26 @@ def _authority_repository(
         "AUTHORITY_AMENDMENT_SHA256",
         hashlib.sha256(amendment_path.read_bytes()).hexdigest(),
     )
+    monkeypatch.setattr(_MODULE, "AUTHORITY_REPAIR_PLAN_COMMIT", authority_plan_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "AUTHORITY_REPAIR_PLAN_SHA256",
+        hashlib.sha256(authority_plan_path.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(
+        _MODULE, "REVIEWED_PRE_RUNTIME_SOURCE_COMMIT", reviewed_pre_runtime_source_commit
+    )
+    monkeypatch.setattr(
+        _MODULE,
+        "UNEXECUTED_PRE_RUNTIME_HANDOFF_COMMIT",
+        unexecuted_pre_runtime_handoff_commit,
+    )
+    monkeypatch.setattr(_MODULE, "RUNTIME_AMENDMENT_COMMIT", runtime_amendment_commit)
+    monkeypatch.setattr(
+        _MODULE,
+        "RUNTIME_AMENDMENT_SHA256",
+        hashlib.sha256(runtime_amendment_path.read_bytes()).hexdigest(),
+    )
     monkeypatch.setattr(_MODULE, "PLAN_COMMIT", plan_commit)
     monkeypatch.setattr(_MODULE, "PLAN_SHA256", hashlib.sha256(plan_path.read_bytes()).hexdigest())
     monkeypatch.setattr(_MODULE, "RSTA_CANDIDATE_PATH", _MODULE.CANDIDATE_PATH)
@@ -1433,7 +1501,7 @@ def _authority_repository(
             (_MODULE.REPAIR_DESIGN_PATH, design_commit),
             (_MODULE.LITERATURE_AUDIT_PATH, audit_commit),
             (_MODULE.AUTHORITY_AMENDMENT_PATH, amendment_commit),
-            (_MODULE.PLAN_PATH, plan_commit),
+            (_MODULE.AUTHORITY_REPAIR_PLAN_PATH, authority_plan_commit),
         ),
     )
     validator_calls: list[str] = []
@@ -1799,6 +1867,43 @@ def test_cli_requires_isolated_and_dont_write_bytecode_flags() -> None:
     assert "isolated" in completed.stderr
 
 
+def test_dgx_python_runtime_rejects_local_cpu_interpreter_before_authority() -> None:
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(_SCRIPT),
+            "--manifest",
+            "docs/pass205_rdgc_stage_b_manifest.json",
+            "--output",
+            f"reports/generated/pass205_rdgc_stage_b/{head}-rdgc-stage-b.json",
+            "--scientific-once",
+        ],
+        cwd=_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 2
+    assert "scientific process requires Python 3.13.9" in completed.stderr
+
+
+def test_runtime_version_consistency_uses_one_exact_contract() -> None:
+    assert _MODULE.RDGC_PYTHON_VERSION_INFO == (3, 13, 9)
+    assert _MODULE.RDGC_PYTHON_VERSION == "3.13.9"
+    assert (
+        ".".join(str(component) for component in _MODULE.RDGC_PYTHON_VERSION_INFO)
+        == _MODULE.RDGC_PYTHON_VERSION
+    )
+
+
 def test_execution_command_is_exact_nine_token_isolated_one_shot() -> None:
     value = _reduced_pre_import_invalid()
     value["execution"]["command"] = [
@@ -2006,8 +2111,8 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
         "phase": "pre_import",
         "pre_import": {
             "python_executable": ".venv/bin/python",
-            "python_version": "3.12.3",
-            "numpy_version": np.__version__,
+            "python_version": "3.13.9",
+            "numpy_version": str(np.__version__),
             "cuda_visible_devices": "0",
             "cublas_workspace_config": ":4096:8",
             "source_commit": "a" * 40,
@@ -2063,7 +2168,7 @@ def _reduced_pre_import_invalid() -> dict[str, object]:
             "cwd": str(_ROOT),
             "pid": 1,
             "python_executable": ".venv/bin/python",
-            "python_version": "3.12.3",
+            "python_version": "3.13.9",
             "cuda_visible_devices": "0",
             "cublas_workspace_config": ":4096:8",
             "output_path": "reports/generated/pass205_rdgc_stage_b/result.json",
@@ -2168,7 +2273,7 @@ def test_post_import_invalid_requires_complete_actual_integrity_through_failure(
     value["phase_reached"] = "integrity"
     value["environment"]["phase"] = "post_import"
     value["environment"]["torch_runtime"] = {
-        "torch_version": torch.__version__,
+        "torch_version": str(torch.__version__),
         "cuda_runtime_version": "synthetic",
         "cudnn_version": 1,
         "device_index": 0,
@@ -2581,7 +2686,7 @@ def _synthetic_full_payload(
     )
     payload["environment"]["phase"] = "post_import"
     payload["environment"]["torch_runtime"] = {
-        "torch_version": torch.__version__,
+        "torch_version": str(torch.__version__),
         "cuda_runtime_version": "synthetic",
         "cudnn_version": 1,
         "device_index": 0,
