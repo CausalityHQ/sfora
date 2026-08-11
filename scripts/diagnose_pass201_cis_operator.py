@@ -374,10 +374,28 @@ def _authenticate_source_v4_source_chain(root: Path, source_commit: str) -> None
             root, "rev-list", "--parents", "-n", "1", current
         ).decode("ascii").strip().split()
         _require(len(fields) == 2, "source-v4 source chain must be merge-free")
-        changed = _git_command_bytes(
-            root, "diff-tree", "--no-commit-id", "--name-only", "-r", current
-        ).decode("utf-8").splitlines()
-        _require(bool(changed), "source-v4 source commit must not be empty")
+        raw_changed = _git_command_bytes(
+            root, "diff-tree", "--no-commit-id", "--name-status", "-r", "-z", current
+        ).split(b"\0")
+        _require(
+            raw_changed[-1:] == [b""] and len(raw_changed) > 1,
+            "source-v4 source commit must not be empty",
+        )
+        entries = raw_changed[:-1]
+        _require(
+            len(entries) % 2 == 0,
+            "source-v4 source edge status differs from exact modifications",
+        )
+        changed: list[str] = []
+        for index in range(0, len(entries), 2):
+            _require(
+                entries[index] == b"M",
+                "source-v4 source edge status differs from exact modifications",
+            )
+            try:
+                changed.append(entries[index + 1].decode("utf-8"))
+            except UnicodeDecodeError as exc:
+                raise ValueError("source-v4 source path is not UTF-8") from exc
         _require(
             set(changed) <= set(SOURCE_V3_CHANGED_PATHS),
             "source-v4 source commit changes an unauthorized path",

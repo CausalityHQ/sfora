@@ -323,14 +323,47 @@ def _source_v4_chain_fixture(
     _git(root, "checkout", "--detach", "-q", MODULE.PROCESS_ENTRY_F5_COMMIT)
     _git(root, "config", "user.email", "test@example.invalid")
     _git(root, "config", "user.name", "Pass201 Test")
-    for relative in MODULE.SOURCE_V3_CHANGED_PATHS:
+    changed_paths = list(MODULE.SOURCE_V3_CHANGED_PATHS)
+    if mutation == "missing_path":
+        changed_paths.pop()
+    for relative in changed_paths:
         path = root / relative
         path.write_bytes(path.read_bytes() + b"\n# source-v4 test binding\n")
+    if mutation == "deleted_path":
+        (root / changed_paths[-1]).unlink()
     if mutation == "extra_source":
         (root / "extra.txt").write_text("extra\n", encoding="utf-8")
         _git(root, "add", "extra.txt")
-    _git(root, "add", *MODULE.SOURCE_V3_CHANGED_PATHS)
-    _git(root, "commit", "-q", "-m", "source-v4")
+    _git(root, "add", "-A", *MODULE.SOURCE_V3_CHANGED_PATHS)
+    if mutation == "multi_commit":
+        second_half = changed_paths[3:]
+        _git(root, "reset", "-q", "HEAD", "--", *second_half)
+        _git(root, "commit", "-q", "-m", "source-v4-part-1")
+        _git(root, "add", *second_half)
+        _git(root, "commit", "-q", "-m", "source-v4-part-2")
+    else:
+        _git(root, "commit", "-q", "-m", "source-v4")
+    if mutation == "empty_commit":
+        _git(root, "commit", "--allow-empty", "-q", "-m", "empty-review-fix")
+    elif mutation == "merge":
+        first_parent = _git(root, "rev-parse", "HEAD")
+        _git(root, "checkout", "-q", "-b", "source-v4-side", MODULE.PROCESS_ENTRY_F5_COMMIT)
+        side_path = root / MODULE.SOURCE_V3_CHANGED_PATHS[0]
+        side_path.write_bytes(side_path.read_bytes() + b"\n# side review fix\n")
+        _git(root, "add", MODULE.SOURCE_V3_CHANGED_PATHS[0])
+        _git(root, "commit", "-q", "-m", "source-v4-side")
+        _git(root, "checkout", "--detach", "-q", first_parent)
+        _git(
+            root,
+            "merge",
+            "--no-ff",
+            "-s",
+            "ours",
+            "-q",
+            "source-v4-side",
+            "-m",
+            "merge-review",
+        )
     source_commit = _git(root, "rev-parse", "HEAD")
     manifest = root / MODULE.SOURCE_V4_AUTHORIZATION_MANIFEST_PATH
     manifest.write_bytes(b"{}\n")
@@ -357,7 +390,46 @@ def test_source_v4_source_chain_rejects_extra_source_path(tmp_path: Path) -> Non
     root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(
         tmp_path, mutation="extra_source"
     )
-    with pytest.raises(ValueError, match="unauthorized path"):
+    with pytest.raises(ValueError, match="status differs|unauthorized path"):
+        MODULE._authenticate_source_v4_source_chain(root, source_commit)
+
+
+def test_source_v4_source_chain_accepts_multiple_nonempty_review_commits(
+    tmp_path: Path,
+) -> None:
+    root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(
+        tmp_path, mutation="multi_commit"
+    )
+    MODULE._authenticate_source_v4_source_chain(root, source_commit)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        ("deleted_path", "status differs"),
+        ("missing_path", "aggregate source scope differs"),
+        ("empty_commit", "must not be empty"),
+        ("merge", "must be merge-free"),
+    ),
+)
+def test_source_v4_source_chain_rejects_invalid_review_topology(
+    tmp_path: Path, mutation: str, message: str
+) -> None:
+    root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(
+        tmp_path, mutation=mutation
+    )
+    with pytest.raises(ValueError, match=message):
+        MODULE._authenticate_source_v4_source_chain(root, source_commit)
+
+
+def test_source_v4_source_chain_rejects_historical_parent_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root, source_commit, _handoff_commit, _manifest = _source_v4_chain_fixture(tmp_path)
+    monkeypatch.setattr(
+        MODULE, "PROCESS_ENTRY_F4_COMMIT", MODULE.PROCESS_ENTRY_DRAFT_PLAN_COMMIT
+    )
+    with pytest.raises(ValueError, match="historical edge differs"):
         MODULE._authenticate_source_v4_source_chain(root, source_commit)
 
 
