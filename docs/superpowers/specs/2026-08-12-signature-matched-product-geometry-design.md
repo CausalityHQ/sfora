@@ -1,207 +1,126 @@
 # Signature-Matched Product Geometry SOTA Gate
 
-**Status:** prospective zero-training falsifier. Curved training is forbidden
-unless every gate in this document passes.
+**Status:** rejected at adversarial design review; do not implement.
 
-## Objective and SOTA boundary
+## Decision
 
-The objective is not to demonstrate that non-Euclidean geometry can compress a
-descriptor. It is to decide cheaply whether curvature has a credible,
-method-attributable path beyond the supervised UNICOM ViT-B/16 In-Shop point
-of 95.5 Recall@1 at 512 stored dimensions.
+Non-Euclidean geometry remains an idea for reaching state of the art, not a
+requirement. This exact product-geometry program is closed because its proposed
+falsifiers and serving claim cannot support that objective. No new geometry
+code, training arm, or GPU run is authorized by this document.
 
-The published absolute In-Shop reference is 96.7 for UNICOM ViT-L/14 at 336
-pixels. That is a larger backbone, larger input, and eight-GPU lane. Therefore:
+The active queue retains the already implemented Lorentz L0/L1 experiment as a
+cheap frozen-embedding diagnostic. That experiment may establish a
+quality/storage result or close a function family. It cannot reopen curved
+training automatically and cannot establish an absolute SOTA claim.
 
-- a result above a locally reproduced 95.5 with the same ViT-B/16 backbone,
-  pretraining, input, 512-D descriptor, evaluator, and training budget is a
-  matched frontier improvement;
-- an absolute descriptor-only SOTA claim additionally requires exceeding the
-  strongest verified contemporary comparable point, including 96.7 when
-  backbone/compute are not constrained;
-- a quality/efficiency Pareto claim may instead match the strongest quality
-  within a preregistered equivalence band while materially lowering training,
-  inference, or storage cost;
-- larger models, extra data, reranking, ensembles, and test-selected
-  checkpoints are separate lanes and cannot be credited to the method.
+## Why the draft was rejected
 
-## Evidence and collision boundary
+### 1. The proposed triangle statistic was invalid on this artifact
 
-Plain Poincare, Lorentz, and fixed product-manifold heads are not novel. The
-closest direct collision is Xu et al., *Mixed-Curvature Metric Learning for
-Image Retrieval*, IEEE TMM 2026, which combines positive-, zero-, and
-negative-curvature spaces and evaluates image retrieval. Earlier occupied
-families include mixed-curvature product spaces, kappa-stereographic networks,
-Hyp-ViT, HIER, MERU, AMCAD, and hyperbolic prototype classifiers.
-
-Published In-Shop curved-geometry systems audited in this repository remain
-well below the modern frontier: Hyp-ViT/Hyp-DINO are about 92.6--92.7 and HIER
-about 92.4 in different backbone/dimension lanes. Yue et al. further show that
-hyperbolic metric-learning improvements can be explained by implicit
-hard-negative weighting. The repository's Lorentz scorer also reduces exactly
-to query-conditioned norm-weighted cosine. Consequently, temperature,
-hard-negative, spatial-only, and power-law controls are load-bearing.
-
-## Alternatives and decision
-
-Three approaches are considered:
-
-1. **Run a mixed-curvature training head immediately.** This has the highest
-   cost, collides with prior art, and lacks evidence that geometry explains
-   modern UNICOM errors. Rejected before the falsifiers.
-2. **Run zero-training geometry falsifiers on the immutable UNICOM export.**
-   This is selected. It costs no GPU, can rule out the lane, and measures the
-   exact assumptions needed by a curved head.
-3. **Ignore geometry and repair the modern Euclidean anchor.** This remains the
-   default SOTA path: reproduce UNICOM, measure its fixed-prefix evaluator and
-   distributed-mask defects, compare full-width/synchronized controls, and
-   optimize only a measured bottleneck. It proceeds regardless of the geometry
-   result.
-
-## Steelman candidate, conditional only
-
-If all zero-training gates pass, the strongest surviving candidate is a
-signature-matched kappa-stereographic product head inside an otherwise matched
-UNICOM ViT-B/16 fine-tune.
-
-Split the 512-dimensional descriptor into factors with dimensions `d_f` and
-`sum_f d_f = 512`. For factor `f`, let `v_f = W_f h`, learn
-
-```text
-kappa_f = 4 tanh(theta_f),
-z_f = exp_0^{kappa_f}(v_f),
-```
-
-and use the kappa-stereographic distance `d_{kappa_f}`. The product distance is
-
-```text
-D(z, p_c)^2 = sum_f alpha_f d_{kappa_f}(z_f, p_{c,f})^2,
-alpha_f = softmax(a)_f.
-```
-
-The classifier logit is `-s * (D(z,p_c)^2 + m * 1[c=y])`, with the original
-class set, PartialFC sharding, optimizer, sampling, and schedule retained.
-Each `kappa_f` is initialized from a train-only triangle-comparison signature;
-`kappa_f -> 0` must recover the Euclidean implementation numerically.
-
-This candidate is not claimed novel by its ingredients. Its only potentially
-defensible contribution would be a measured-signature initialization and an
-exact matched transfer to the modern UNICOM frontier, if it uniquely beats all
-controls.
-
-## Frozen no-training falsifiers
-
-All falsifiers consume the same authenticated, immutable 768-D UNICOM train,
-query, and gallery export already queued. No model weights or test labels are
-used to fit parameters.
-
-### F0: curvature signature
-
-Reuse the registered ten fixed 2,000-row train subsamples. Measure relative
-delta-hyperbolicity with its column-permutation and spectrum-matched Gaussian
-nulls. On the same rows, measure the triangle-comparison statistic
+The draft used
 
 ```text
 xi(a;b,c) = d(a,m)^2 + d(b,c)^2 / 4
-            - (d(a,b)^2 + d(a,c)^2) / 2,
+            - (d(a,b)^2 + d(a,c)^2) / 2
 ```
 
-where `m` is the `b,c` midpoint. Negative `xi` indicates hyperbolic tendency;
-positive `xi` indicates spherical tendency. Persist replicate values and
-train-identity clustered intervals.
+with `m` the midpoint of `b,c`. On the queued Euclidean point cloud, using
+`m=(b+c)/2`, Apollonius' identity makes `xi` exactly zero for every triple.
+The proposed requirement that its interval exclude zero was therefore
+unpassable by construction. Gu et al.'s discrete graph-midpoint estimator
+cannot be transplanted to a point cloud without defining and validating a
+graph metric, midpoint-row rule, and normalization. Creating that new
+instrument is not justified while the existing Lorentz falsifier is pending.
 
-### F1: residual-error ceiling
+### 2. The claimed one-GEMM product score was algebraically false
 
-Using only the frozen official-512 retrieval result, partition incorrect
-queries into coarse-category-crossing and within-category errors from the
-official In-Shop paths. This is a generous upper bound, not an estimate of
-achievable gain: hierarchy-shaped geometry cannot plausibly repair more errors
-than exist in its relevant stratum.
+For one Lorentz factor, maximizing a Lorentz inner product is equivalent to
+minimizing its geodesic distance because `-cosh(d)` is monotone. This does not
+extend to a sum of squared geodesic distances. For multiple factors,
 
-### F2: product-family no-training scorer
+```text
+sum_f alpha_f arccosh(-<q_f,g_f>_L)^2
+```
 
-Fit PCA on train embeddings only. Evaluate registered block factorizations
-`F in {1,2,4,8}` and a fixed curvature/scale grid. Rank with the summed
-factorwise score. The paired bootstrap must recompute the maximum over all
-interior settings inside each replicate.
+is not affine in concatenated inner products; the spherical `arccos^2` case
+has the same problem. Exact product-geodesic retrieval requires factorwise
+matrix products plus elementwise transcendental transforms and loses ordinary
+single-index FAISS compatibility. Replacing geodesic distance by an affine
+surrogate would define a different, already occupied method family.
 
-Every candidate is compared against, at identical stored width:
+### 3. The available artifact cannot answer the intended frontier question
 
-- PCA Euclidean and PCA cosine endpoints;
-- the existing spatial-only Lorentz control;
-- fixed power-law norm scorers with powers one and three;
-- a Euclidean product scorer with independently fitted factor temperatures;
-- a hard-negative-weight-equivalent calibration control when labels are used
-  in a later training smoke.
+The queued released UNICOM ViT-B/16 export targets the 74.6 zero-shot point.
+The published 95.5 In-Shop point requires a 128-epoch, four-GPU supervised
+fine-tune and has no released checkpoint. Residual-error composition and
+no-training rescoring on the zero-shot model cannot authorize a claim about
+the residual errors of the unavailable 95.5 model. Waiting for a local 95.5
+reproduction would make the allegedly free falsifier depend on the expensive
+experiment it was intended to precede.
 
-The scorer and all controls must use maintained matrix multiplication plus
-elementwise transforms. A custom retrieval kernel is forbidden at this stage.
+### 4. The program could not produce the requested absolute result
 
-## Frozen go/no-go rules
+The draft's minimum successful outcome was 95.5 plus 0.5 Recall@1 point, or
+96.0. That only ties the published UNICOM ViT-L/14 point and remains below the
+audited 96.7 ViT-L/14@336 reference. Its inference path was slower rather than
+Pareto-better, and its 512-D descriptor supplied no registered compression
+advantage. It was a lane-closure experiment, not an absolute SOTA program.
 
-Curved training is authorized only if all conditions hold:
+### 5. The research territory is occupied
 
-1. `F0`: mean relative delta-hyperbolicity is at most 0.30, is separated from
-   both nulls, and the clustered interval for the triangle signature excludes
-   zero. A low delta alone is insufficient.
-2. `F1`: at least 33% of the reproduced baseline's residual errors cross the
-   registered coarse-category boundary. This supplies at least a 1.5-point
-   gross ceiling for a required 0.5-point net effect.
-3. `F2`: the best interior product geometry improves Recall@1 by at least 0.30
-   point over the best endpoint, has a positive 95% clustered-bootstrap lower
-   bound, and beats every spatial, power-law, and temperature-matched control.
-4. The direct MCML paper is recovered and checked. A matching method/result
-   removes novelty; a strong modern result becomes a mandatory baseline.
+Mixed positive/zero/negative-curvature image retrieval is directly occupied by
+Xu et al., *Mixed-Curvature Metric Learning for Image Retrieval*, IEEE TMM
+2026. Product manifolds, kappa-stereographic networks, Hyp-ViT, HIER, MERU,
+AMCAD, and hyperbolic prototype classifiers occupy the surrounding components.
+Yue et al. show that hyperbolic DML gains can be explained by implicit
+hard-negative weighting. Repository Pass 70 had already closed generic
+hyperbolic/product manifolds as prior art or an already controlled
+regularization family. The TMM paper's exact In-Shop row remains worth
+recovering as a baseline fact, but it cannot rescue novelty for this design.
 
-Failure of any rule closes curved training. Thresholds, partitions,
-factorizations, and curvature grids are not changed after viewing outcomes.
+## SOTA program after closure
 
-## Conditional smoke and frontier experiment
+The research target remains unchanged:
 
-Only after F0--F2 pass, run one six-epoch paired smoke from the same UNICOM
-initialization:
+1. reproduce and validate the strongest feasible modern anchor before
+   attributing improvements;
+2. treat 95.5 as the matched ViT-B/16 frontier and 96.7 as the audited absolute
+   In-Shop descriptor reference until a stronger comparable source is
+   verified;
+3. use the active UNICOM audit to measure real evaluator and distributed-mask
+   defects, then prefer full-width, synchronized-mask, corrected-normalization,
+   and EMA controls over a speculative geometry head;
+4. require any quality candidate to improve the matched final checkpoint by at
+   least 0.5 Recall@1 point with a one-sided paired confidence bound above zero;
+5. call a result absolute SOTA only if it exceeds the strongest verified
+   descriptor-only point in its declared lane; otherwise require a genuine
+   Pareto result with the authoritative quality-equivalence and cost gates;
+6. replicate a surviving direction on at least two of CUB, Cars196, and SOP.
 
-- official Euclidean head;
-- temperature/hard-negative-matched Euclidean product twin;
-- signature-matched curved product head.
+The already queued order remains correct: finish the three-seed
+PA/MCPS/compactness comparison, export and validate UNICOM, run Lorentz and CTM
+as frozen diagnostics, and run the DADA compatibility smoke. The next learning
+candidate is selected from those measured results, not from geometric
+intuition.
 
-The curved arm proceeds only if its label-disjoint validation Recall@1 exceeds
-the twin by at least 0.30 point, fitted curvatures remain bounded away from
-zero, all values remain finite, and step time is no more than 1.10x the twin.
+## What would be required to revisit geometry
 
-A matched frontier claim then requires a local faithful 95.5 reproduction and
-six paired final-checkpoint seeds. Mean curved gain over every control must be
-at least 0.50 Recall@1 point with a one-sided 95% paired lower bound above zero.
-R@10 and mAP@R may not regress by more than 0.10 point. Direction must replicate
-on at least two of CUB, Cars196, and SOP.
+Geometry may be reconsidered only after all of the following independently
+exist:
 
-An absolute SOTA claim requires the final system to exceed the strongest
-verified descriptor-only point in its declared compute/backbone lane. A Pareto
-claim instead requires a preregistered quality-equivalence interval plus at
-least 20% end-to-end training or inference improvement, or a materially
-smaller descriptor at matched quality.
+- a locally reproduced supervised modern anchor, rather than the 74.6
+  zero-shot export;
+- an error analysis showing a geometry-specific repair ceiling large enough to
+  cross the absolute or Pareto frontier;
+- a scorer with an exact maintained-index reduction and measured cost;
+- a result that uniquely beats temperature, norm-weighting, hard-negative,
+  spatial-only, and power-law controls;
+- a novelty distinction from MCML and the other published families.
 
-## Systems path
-
-Product distances are sums of factor scores. Hyperbolic factors use the
-Lorentz sign-flip MIPS representation, spherical factors use inner products,
-and flat factors use the standard augmented-MIPS reduction. Concatenating the
-weighted factor representations yields one ordinary GEMM/FAISS inner-product
-search. Geometry-specific operations stay in a compiled elementwise projection
-head; a native kernel is considered only after profiling shows an unfused
-operation consumes at least 10% of runtime.
-
-## Failure handling and interpretation
-
-Nonfinite values, unstable curvature, a requirement for FP64 model execution,
-failed baseline reproduction, or a result explained by a matched Euclidean
-control closes the geometry lane. A positive frozen-embedding result is only a
-mechanism premise. A positive smoke is only a training premise. Neither is
-reported as SOTA.
-
-The expected outcome is closure at F2. That is useful: it prevents an expensive
-curved training campaign and concentrates the SOTA budget on the reproducible
-modern baseline, measured defects, and maintained-kernel performance work.
+That would be a new design with new prospective gates. It does not inherit the
+invalid midpoint statistic, product score, or thresholds from the rejected
+draft.
 
 ## Primary sources
 
