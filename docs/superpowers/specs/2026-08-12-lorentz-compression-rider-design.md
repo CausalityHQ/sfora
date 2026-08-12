@@ -55,17 +55,36 @@ and seeds, compare:
 3. Matryoshka-style truncation head;
 4. WCCN followed by calibrated cosine.
 
+The no-training lift also requires two functional controls. Spatial-only
+Euclidean distance on `sinh(a) * z_hat` removes exactly the Lorentz time term.
+Power-law norm scorers with powers `1` and `3` replace the `sinh/cosh`
+functions while retaining the same angular and radial inputs. A result matched
+by either family is norm-weighted rescoring, not evidence for hyperbolic
+geometry.
+
 The matched hard-negative control is load-bearing because published analysis
 shows that apparent hyperbolic gains can come from implicit negative weighting.
 
 ## Falsifier ladder
 
 1. `L0`, no training: estimate relative delta-hyperbolicity on ten fixed
-   2,000-row train-only subsamples. Close if mean `delta_rel > 0.30` on at least
-   two of In-Shop, Cars196, and SOP.
-2. `L1`, no training: PCA each train export to the registered dimensions, sweep
-   a frozen Lorentz lift scale, and measure whether R@1 moves by at least three
-   query-identity bootstrap standard errors. If L0 and L1 both fail, close.
+   2,000-row train-only subsamples. For four points, sort the three paired
+   distance sums as `L >= M >= S`, set `delta=(L-M)/2`, and report the exact
+   convention `delta_rel=2*delta/diameter`. Close if mean `delta_rel > 0.30` on
+   at least two of In-Shop, Cars196, and SOP. Paired column-permutation and
+   spectrum-matched Gaussian nulls are mandatory because distance
+   concentration can make an unstructured high-dimensional cloud appear to
+   have low relative delta.
+2. `L1`, no training: PCA each train export to the registered dimensions and
+   set scales by fixed target median train radii `{0.125,0.25,0.5,1,2,4,8}`.
+   The small-scale endpoint is PCA-Euclidean and the fully clipped endpoint is
+   PCA-cosine. The primary statistic is the maximum, over interior scales, of
+   `R1(scale) - max(R1(Euclidean), R1(cosine))`; its query-identity clustered
+   bootstrap must recompute that maximum inside every replicate. L1 passes
+   only if its lower bound exceeds zero and its point is at least three
+   bootstrap standard errors on at least two datasets, and the winning
+   sinh/cosh scorer beats both the spatial-only and power-law controls. If L0
+   and L1 both fail, close.
 3. `L2`, frozen-head training only: three seeds per method/dimension. At 16 and
    32 dimensions, Lorentz must beat the best matched control by at least 0.5
    R@1 point and three paired-bootstrap standard errors on label-disjoint
@@ -79,6 +98,21 @@ shows that apparent hyperbolic gains can come from implicit negative weighting.
 Any nonfinite value, FP64 requirement, failed matched control, or failed
 external replication closes the lane. Full backbone training is not authorized
 by this design.
+
+## Interpretation boundary
+
+For projected vector `x`, let `a=s*||x||` after clipping. Per query, Lorentz
+retrieval ranks gallery rows by
+
+```text
+tanh(a_query) * sinh(a_gallery) * cosine(query,gallery) - cosh(a_gallery).
+```
+
+Thus the no-training L1 scorer is exactly a query-conditioned norm weighting
+of cosine, not an independently identifiable geometric mechanism. L1 may
+falsify the lane or nominate a useful low-dimensional norm-weighted rescoring
+function; it cannot by itself establish a hyperbolic claim. Escalation to L2
+requires the endpoint and function-family controls above to pass prospectively.
 
 ## Relationship to CTM and kernels
 
