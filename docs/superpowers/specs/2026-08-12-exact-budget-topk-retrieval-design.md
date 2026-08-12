@@ -21,9 +21,12 @@ search. It receives no scientific credit by itself.
 
 The queued released UNICOM ViT-B/16 export is a 74.6 zero-shot anchor. It is not
 the unavailable 95.5 supervised model and cannot establish a supervised SOTA
-claim. Absolute comparisons use the official UNICOM geometry: normalize the
-full embedding, retain the first 512 coordinates, do not renormalize the
-truncation, and rank by squared Euclidean distance.
+claim. Absolute comparisons are sequenced behind the open UNICOM geometry
+audit. The source-faithful arm normalizes the full 768-D embedding, retains the
+first 512 coordinates, does not renormalize the truncation, and ranks by
+squared Euclidean distance. If the audit selects another geometry, that result
+is frozen before G1 and every train/eval arm uses it; results from one geometry
+cannot authorize training under another.
 
 ## 2. Why the previous objective is closed
 
@@ -68,38 +71,47 @@ It chooses a scalar threshold `b_i` and uses the Laplace CDF on
 operator's analytical VJP includes the threshold's dependence on every score.
 Hard top-k is recovered as `t -> 0` for distinct scores.
 
-The project does not claim this operator: LapSum is ICML 2025 and Fast LapSum
-is the 2026 GPU implementation. The candidate contribution is the retrieval
-objective, its large-live-batch regime, and the measured quality/compute result.
+The project does not claim this operator or multistage backpropagation: LapSum
+is ICML 2025, its official repository already contains CUDA code, Fast LapSum
+(arXiv:2608.06912) is a 2026 exact-budget GPU method, and Revaud et al./RS@k and
+GradCache precede this live-batch mechanism. DFTopK (arXiv:2510.11472) is a
+mandatory relaxed-budget speed/quality control. The candidate contribution is
+only the any-positive union objective and a measured quality/compute result.
 
-### 3.2 Any-positive mass loss
+### 3.2 Log-domain any-positive union loss
 
 For query `i`, class-positive set `P_i`, and each registered
 `k in {1,2,4,8,16}`, define
 
 ```text
-m_i(k) = sum_{j in P_i} w_ij(k)
-u_i(k) = min(1, m_i(k))
-L_i(k) = -log(max(u_i(k), eps))
-L_EBTR = mean_{valid i,k} L_i(k).
+u_i(k) = 1 - product_{j in P_i}(1 - w_ij(k))
+x_i(k) = -log(u_i(k))
+h_c(x) = c * log1p(x / c)
+L_i(k) = h_c(x_i(k))
+L_EBTR = mean_{valid i,k} L_i(k)
 ```
 
-`eps` is a fixed numerical floor used only inside the log; it may not clamp the
-derivative of a finite positive mass. Queries without a same-class peer are
-excluded and counted. The hard-mask limit is exact: the loss is zero iff at
-least one positive is in hard top-k and positive otherwise. Multiple positives
-help only until the query has enough selected positive mass to satisfy the
-binary any-positive event.
+Queries without a same-class peer are excluded and counted. The noisy-OR union
+has the exact desired hard-mask limit: `u=1` iff at least one positive is in
+hard top-k and `u=0` otherwise. Unlike `min(1,sum w)`, it cannot saturate merely
+because several missed positives each receive fractional boundary mass.
 
-The hard `min(1,m)` is intentional. Its boundary derivative must match the
-pinned PyTorch reference. A smooth-union replacement is an ablation because it
-does not have the same hard top-k limit.
+The reference never forms `u`, never clamps it, and has no epsilon. It obtains
+the exact Laplace `log(w)`/`log(1-w)` branches in FP64. In fixed positive-index
+order it starts `a=-infinity` and updates
+`a=logaddexp(a, log(w_j)+log1mexp(a))`; the final `a` is `log(u)`. Finite scores
+and positive temperature must produce finite loss and gradients even when the
+ordinary FP32 mask underflows. The production analytical VJP is checked against
+that oracle, and its underflow/flush-to-zero behavior is reported. The robust
+scale is a finite builtin FP64 scalar with `c>0`.
 
-The log is load-bearing. For a missed positive on the lower exponential branch
-of the Laplace CDF, its membership decays exponentially with score distance but
-`-log(m)` cancels that attenuation, leaving a finite score gradient. A
-registered synthetic rank sweep must verify this from rank 2 through rank
-`B-1`; no claim is made from algebra alone.
+The outer `h_c` is a prospectively calibrated robustifier: it preserves zero
+loss exactly, grows logarithmically rather than letting a mislabeled outlier
+dominate the batch, and retains nonzero influence at every finite `x`. The
+training-only calibration chooses `c` from a frozen grid by the G1 gradient
+support and loss-concentration constraints; every control receives the same
+search budget. Raw `x`, ROADMAP's bounded surrogate, and a tuned hard-negative
+weighting are mandatory controls. No test metric selects `c` or temperature.
 
 ### 3.3 Fully live large batches
 
@@ -107,18 +119,27 @@ The primary method uses gradient caching/recomputation:
 
 1. encode a registered identity-balanced logical batch in microbatches without
    retaining backbone activations;
-2. compute `L_EBTR` and exact descriptor gradients over the complete logical
+2. compute `L_EBTR` and descriptor gradients over the complete logical
    batch;
 3. re-encode the same microbatches with identical augmentation bytes and
    backpropagate their cached descriptor gradients; and
 4. perform one optimizer step.
 
 Every descriptor is current and receives both query- and database-role
-gradients. No detached cross-batch memory is present. Logical batch sizes are a
-prospectively frozen ladder, initially `{1024,4096,16384}` subject to memory and
-epoch-time profiling. Identity multiplicity is held fixed across objectives;
-increasing the batch adds identities rather than silently changing positives
-per identity.
+gradients. No detached cross-batch memory is present. Each dataset's batch
+ladder is capped at `min(registered hardware limit, floor(0.25*|train|))`; the
+initial candidates are `{1024,4096}` plus the largest feasible registered rung.
+CUB/Cars are small-batch generalization checks, not evidence for a 16k-batch
+claim. Training uses a fixed optimizer-step and GPU-hour budget, not epochs.
+Identity multiplicity is fixed across objectives; increasing the batch adds
+identities rather than changing positives per identity.
+
+The two passes reuse byte-identical augmentations and saved per-microbatch RNG
+state. Stateful normalization statistics may update on exactly one pass;
+unsupported state mutation is a hard error. A B=256 deterministic reference
+must match a true single-pass full-batch backward within a frozen numerical
+tolerance, and sampled production steps must match replayed descriptors within
+that tolerance. CUDA training is not claimed bitwise deterministic.
 
 The reference arm applies the existing source-faithful RS@k and Smooth-AP to
 the same live descriptors, sampler, augmentation bytes, optimizer, EMA policy,
@@ -131,22 +152,33 @@ margin-softmax objective is retained as the reproduced backbone anchor.
 
 Before custom code, benchmark:
 
-1. PyTorch score GEMM plus the official/pinned LapSum CUDA implementation;
-2. PyTorch score GEMM plus a maintained sort/scan implementation; and
-3. chunked PyTorch score generation with analytical VJP recomputation.
+1. PyTorch score GEMM plus the commit-pinned official LapSum CUDA code;
+2. commit-pinned Fast LapSum if code is released, otherwise its paper result is
+   prior art but not an executable baseline;
+3. DFTopK as the relaxed-budget linear-time control;
+4. PyTorch score GEMM plus a maintained sort/scan implementation; and
+5. chunked PyTorch score generation with analytical VJP recomputation.
 
 A naive `B x B x P` broadcast is forbidden as a performance baseline.
 
+On the registered GB10, a B=16384 ViT-B cached step is estimated at 11--19 s,
+while the complete score/select/reduce/backward operator is estimated at
+0.2--0.4 s. These are planning estimates, not measurements: they make a custom
+training kernel unlikely to pass K1 and require profiling before any kernel
+work. Fast LapSum's million-score-per-row bracket is inapplicable at these
+batch sizes. A deployment search kernel is assessed separately because search,
+not the backbone, dominates that workload.
+
 ### 4.2 Candidate fused operator
 
-Only if the maintained baselines fail the K1 gate, implement `ebtr_laptopk`:
+Only if the measured maintained baselines pass the K1 trigger, implement
+`ebtr_laptopk`:
 
 - tiled benchmark-geometry score generation without materializing normalized
   duplicate tensors;
 - per-row exact-budget Laplace threshold via sort plus cooperative
-  prefix/suffix scan (or the validated Fast LapSum bracket above one million
-  scores per row);
-- fused positive-mass, loss, and diagnostic reduction;
+  prefix/suffix scan;
+- fused log-domain positive-union loss and diagnostic reduction;
 - analytical score VJP; and
 - deterministic descriptor-gradient GEMMs/reductions in FP32 accumulation.
 
@@ -163,32 +195,42 @@ oracle.
 
 ### 4.3 Compact deployment rung
 
-If the quality lane survives, train nested prefixes `{64,128,256,512}` with
-the same EBTR event loss plus feature/score distillation from the 512-D arm.
+If the quality lane survives, apply the established Matryoshka representation
+learning baseline to nested prefixes `{64,128,256,512}` with the same EBTR
+event loss plus feature/score distillation from the 512-D arm. Temperature is
+calibrated separately per prefix because truncate-without-renormalize changes
+the score scale.
 The deployed Pareto candidate is one prefix only. Evaluate FP16, INT8, and
 packed INT8 squared-Euclidean search against an optimized GEMM/top-k baseline.
-Quantization calibration uses training identities only. Quality and latency are
-reported jointly; kernel speed alone is not a method claim.
+Quantization calibration uses training identities only. Exact-search baselines
+include optimized FP16/INT8 GEMM/top-k; deployment baselines include FAISS
+PQ/OPQ/IVF-PQ, ScaNN, and a current binary/RaBitQ implementation under matched
+recall. Squared Euclidean self-norms are computed from the dequantized vectors,
+not carried as privileged FP32 side data. Quality and latency are reported
+jointly; kernel speed alone is not a method claim.
 
 ## 5. Staged gates
 
 ### G0: current-frontier and artifact gate
 
-Before training, refresh the primary-source leaderboard and contamination
-audit. Separate released zero-shot weights, reproduced supervised weights, and
-paper-only numbers. The first trainable anchor must reproduce its published
-pipeline within a prospectively declared tolerance. Otherwise stop rather than
-calling a weak local baseline SOTA.
+Before training, finish the UNICOM geometry audit and refresh the primary-source
+leaderboard and contamination audit. Freeze the trained head dimension and
+selected score geometry. Separate released zero-shot weights, reproduced
+supervised weights, and paper-only numbers. The first trainable anchor must
+reproduce its published pipeline within a prospectively declared tolerance.
+Otherwise stop rather than calling a weak local baseline SOTA.
 
 ### G1: zero-training objective falsifier
 
 Using frozen training-only embeddings from the Proxy-Anchor artifact and, once
 available, the released UNICOM export:
 
-- compare EBTR, RS@k, Smooth-AP, and a tuned hard-negative weighting control on
-  identical identity-balanced subsets at `B={180,1024,4096}`;
-- sweep the location of the nearest positive synthetically from rank 2 through
-  `B-1` while holding the negative-score distribution fixed;
+- compare robust EBTR, raw union EBTR, ROADMAP, RS@k, Smooth-AP, DFTopK union,
+  and a tuned hard-negative weighting control on identical identity-balanced
+  subsets at `B={180,1024,4096}`;
+- sweep `|P| in {1,3,7}` with positives jointly moved from rank 2 through
+  `B-1`, including near-tied configurations just outside each k boundary,
+  while holding the negative-score distribution fixed;
 - record loss, descriptor-gradient norm, cosine, support by global rank,
   positive/database role split, and finite-difference agreement; and
 - fit the best nonnegative scalar and monotone rank-weighted Euclidean control
@@ -196,13 +238,16 @@ available, the released UNICOM export:
 
 Kill EBTR if any is true:
 
-1. its missed-positive gradient falls below one percent of its rank-2 magnitude
-   before rank `0.25B` for every calibrated temperature;
-2. finite differences or autograd disagree beyond the frozen tolerance;
-3. after magnitude matching, its gradient cosine with the tuned hard-negative
-   or Smooth-AP control is at least 0.98 on the held-out fold; or
-4. more than one percent of valid queries hit the epsilon floor at a usable
-   temperature.
+1. the worst one percent of queries contribute more than a frozen 20 percent
+   of total loss for every calibrated `(temperature,c)` pair;
+2. finite differences, autograd, or the FP64 log-domain oracle disagree beyond
+   the frozen tolerance, or finite inputs underflow to zero loss/gradient;
+3. after magnitude matching, its gradient cosine with ROADMAP, the tuned
+   hard-negative, or Smooth-AP control is at least 0.98 on the held-out fold;
+4. a multi-positive hard miss receives zero loss or zero gradient at finite
+   temperature; or
+5. the selected temperature fails a prospectively frozen hard-top-k agreement
+   bound.
 
 Temperature is chosen from a training-identity calibration split by maximizing
 hard top-k agreement subject to the gradient-support constraint. Test retrieval
@@ -210,13 +255,16 @@ outcomes may not tune it.
 
 ### G2: tiny matched training
 
-Run one short, fixed-budget experiment on the strongest locally reproducible
-backbone with four arms: anchor, large-batch RS@k, large-batch Smooth-AP, and
-EBTR. Every arm has identical live logical batch, microbatches, augmentation
-bytes, optimizer, EMA, step count, and GPU-hour cap. EBTR continues only if its
-identity-bootstrap lower bound exceeds both listwise controls by at least
-`+0.10` Recall@1 point or reaches the same quality with at least 20 percent less
-end-to-end training time. A point estimate is insufficient.
+Run a short, fixed-step experiment on the strongest locally reproducible
+backbone with at least three paired training seeds per arm: anchor, ROADMAP,
+large-batch RS@k, large-batch Smooth-AP, and EBTR. Every arm has identical live
+logical batch, microbatches, augmentation bytes, optimizer, EMA, step count,
+tuning budget, and GPU-hour cap. Report FLOPs and wall time separately. EBTR
+continues only if the across-seed paired lower bound exceeds every listwise
+control by at least the larger of `+0.10` Recall@1 point and the registered
+anchor seed standard deviation, or reaches statistically equivalent quality
+with at least 20 percent less end-to-end time under equally mature maintained
+implementations. An evaluation identity bootstrap alone is insufficient.
 
 ### K1: kernel gate
 
@@ -231,14 +279,31 @@ speedup **and** at least 10 percent end-to-end step speedup, or unlock a batch
 whose G2-quality improvement survives matched GPU-hours. Otherwise retain the
 maintained implementation and close the kernel claim.
 
+### K2: deployment-kernel gate
+
+After a quality model exists, profile exact and approximate search separately.
+A fused Triton or native CUDA squared-Euclidean/top-k operator is authorized
+only when search is at least 30 percent of end-to-end serving latency and the
+maintained exact/ANN baselines leave a measured gap. The custom kernel must
+preserve the selected geometry, match the reference ranking at the registered
+dtype tolerance, and improve end-to-end p50 and p95 latency by at least 15
+percent at matched recall and batch/concurrency. Triton is tried first; CUDA is
+used only for a measured missing primitive, synchronization, or code-generation
+limit. This is the plausible native-kernel lane; it is independent of whether
+the training operator passes K1.
+
 ### G3: full training and Pareto gate
 
-Only after G2/K1, run prospectively registered seeds on In-Shop, SOP, CUB, and
-Cars. Report Recall@1/2/4/8/16, mAP@R where standard, wall time, GPU-hours, peak
-memory, descriptor bytes, and query/gallery throughput. Absolute SOTA requires
-the same backbone/data/evaluator or an explicit end-to-end system comparison.
-The Pareto lane passes only when no audited baseline is both more accurate and
-faster/smaller under the same hardware and search contract.
+Only after G2, run at least three prospectively registered seeds on In-Shop and
+SOP under a fixed step budget and a predeclared total GPU-hour cap. CUB and Cars
+remain capped small-batch generalization checks. K1 is optional and cannot
+block a scientific result; K2 is optional and cannot rescue a quality failure.
+Report Recall@1/2/4/8/16, mAP@R where standard, across-seed uncertainty, wall
+time, FLOPs, GPU-hours, peak memory, descriptor bytes, and query/gallery
+throughput. Absolute SOTA requires the same backbone/data/evaluator or an
+explicit end-to-end system comparison. The Pareto lane passes only when no
+audited exact or ANN baseline is both more accurate and faster/smaller under
+the same hardware and search contract.
 
 ## 6. Non-Euclidean decision
 
@@ -256,9 +321,22 @@ same single Euclidean descriptor; otherwise it is a different deployment lane.
 - If G2 improves neither quality nor time, close EBTR; do not rescue it with a
   kernel.
 - If K1 fails, keep the scientific result but make no native-kernel claim.
+- If K2 fails, retain the maintained search implementation and make no serving
+  kernel claim.
 - If full training improves an old local baseline but not a reproduced modern
   anchor, report an ablation, not SOTA.
 - If compact INT8 loses outside its frozen equivalence margin, report the
   quality model only; do not average quality and speed into one score.
 
 This ladder deliberately makes the cheapest decisive failure occur first.
+
+## 8. Prior-art boundary
+
+The implementation plan must pin primary sources and executable revisions for
+LapSum, DFTopK, ROADMAP, RS@k/Revaud multistage backpropagation, GradCache,
+Smooth-AP, and Matryoshka representation learning. Fast LapSum is treated as
+paper-only until an executable artifact is authenticated. EBTR claims none of
+their operators, caching mechanism, or nested representation scheme. Its only
+scientific novelty candidate is the robust log-domain noisy-OR composition of
+exact-budget top-k memberships, tested against those controls; any native
+kernel claim is a separate measured systems result.
