@@ -22,7 +22,7 @@ def _fold(label: int) -> int:
     return hashlib.sha256(b"LE-IDGP-fold-v1:" + encoded).digest()[0] & 3
 
 
-def _write_train_archive(path: Path) -> None:
+def _write_train_archive(path: Path, *, include_ineligible: bool = False) -> None:
     labels_for_fold: list[int] = []
     label = 0
     while len(labels_for_fold) < 90:
@@ -42,6 +42,12 @@ def _write_train_archive(path: Path) -> None:
             rows.append(row.astype(np.float32))
             labels.append(class_label)
             ids.append(f"example-{class_label}-{sample}")
+    if include_ineligible:
+        singleton = rng.normal(size=64)
+        singleton /= np.linalg.norm(singleton)
+        rows.append(singleton.astype(np.float32))
+        labels.append(1_000_000)
+        ids.append("ineligible-singleton")
     np.savez(
         path,
         embeddings=np.asarray(rows, dtype=np.float32),
@@ -67,7 +73,7 @@ def test_build_report_is_train_only_and_relationally_validates(
 ) -> None:
     _set_environment(monkeypatch)
     path = tmp_path / "train.npz"
-    _write_train_archive(path)
+    _write_train_archive(path, include_ineligible=True)
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", digest)
     monkeypatch.setattr(CLI, "DENSITY_POOL_SIZE", 180)
@@ -75,7 +81,7 @@ def test_build_report_is_train_only_and_relationally_validates(
     assert CLI.validate_report(report) is report
     assert report["input"]["sha256"] == digest
     assert report["decision"]["status"] in {"PASS", "KILL"}
-    assert report["input"]["rows"] == 360
+    assert report["input"]["rows"] == 361
     assert report["configuration"]["cohort_rows"] == 180
     assert report["configuration"]["density_pool_size"] == 180
     assert report["density_pools"]["primary_rows"] == 180

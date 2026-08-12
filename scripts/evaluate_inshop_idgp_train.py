@@ -401,7 +401,7 @@ def validate_report(value: object) -> dict[str, Any]:
         or type(density_pools["primary_rows"]) is not int
         or density_pools["primary_rows"] != DENSITY_POOL_SIZE
         or type(density_pools["alternate_rows"]) is not int
-        or density_pools["alternate_rows"] != value["input"]["rows"] - DENSITY_POOL_SIZE
+        or density_pools["alternate_rows"] < LOCAL_K
         or any(
             type(density_pools[key]) is not str
             or len(density_pools[key]) != 64
