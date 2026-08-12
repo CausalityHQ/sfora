@@ -64,7 +64,9 @@ gallery identities.
 
 The released UNICOM ViT-B/16 checkpoint is evaluated on the official
 DeepFashion In-Shop split with the official transform and one-image inference
-path, without test-time augmentation.
+path, without test-time augmentation. The checkpoint path basename is exactly
+`FP16-ViT-B-16.pt`; upstream selects that basename inside `download_root`, so a
+renamed copy is rejected rather than silently ignored or replaced by a download.
 
 One embedding bundle contains, in this exact logical order:
 

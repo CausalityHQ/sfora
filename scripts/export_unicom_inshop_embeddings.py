@@ -259,6 +259,8 @@ def _git_revision(checkout: Path) -> str:
 
 
 def _official_encoder(checkout: Path, checkpoint: Path):
+    if checkpoint.name != "FP16-ViT-B-16.pt":
+        raise ValueError("checkpoint filename must be FP16-ViT-B-16.pt")
     import torch
     from PIL import Image
 

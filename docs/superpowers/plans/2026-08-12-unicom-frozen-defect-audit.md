@@ -308,6 +308,9 @@ function. The production `main` checks the official checkout Git revision,
 dynamically imports `unicom`, loads `ViT-B/16` and the supplied checkpoint,
 uses the package transform, evaluates under `torch.inference_mode()`, casts
 outputs to contiguous CPU FP32, and never enables gradients or optimization.
+Require the supplied checkpoint basename to be exactly `FP16-ViT-B-16.pt`
+before importing Torch; upstream resolves that literal basename inside the
+checkpoint parent directory.
 
 - [ ] **Step 4: Implement atomic `.npz` publication**
 

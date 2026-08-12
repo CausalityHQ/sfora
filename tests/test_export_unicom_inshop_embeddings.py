@@ -178,3 +178,14 @@ def test_official_encoder_loads_named_architecture_from_checkpoint_directory(
     assert observed == [
         ("ViT-B/16", {"download_root": str(checkpoint.parent)})
     ]
+
+
+def test_official_encoder_rejects_checkpoint_filename_upstream_would_ignore(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    checkpoint = tmp_path / "renamed-unicom.pt"
+    checkpoint.write_bytes(b"checkpoint")
+
+    with pytest.raises(ValueError, match="FP16-ViT-B-16.pt"):
+        module._official_encoder(tmp_path / "checkout", checkpoint)
