@@ -27,25 +27,50 @@ class ObjectiveResult:
 
 
 @dataclass(frozen=True)
-class ShardAudit:
+class ShardConfig:
+    panel_classes: int
+    examples_per_class: int
+    selected_coordinates: int
     trials: int
     permutations_per_trial: int
+    arcface_margin: float = 0.25
+    arcface_scale: float = 32.0
+    loss_range_threshold: float = 1e-3
+    gradient_mse_ratio: float = 1.25
+    coherent_control_tolerance: float = 1e-6
+    prediction_change_threshold: float = 0.10
+    panel_selection_seed: int = 205
+    mask_seed_start: int = 1000
+    mask_seed_stride: int = 4
+    assignment_seed_start: int = 3000
+    shard_rank_count: int = 4
+
+
+@dataclass(frozen=True)
+class ShardAudit:
+    config: ShardConfig
     independent_loss_range: float
     independent_loss_std: float
     independent_gradient_mse: float
     coherent_gradient_mse: float
     independent_gradient_cosine_distance: float
     coherent_gradient_cosine_distance: float
-    coherent_invariance_error: float
+    coherent_placement_control_error: float
     prediction_change_rate: float
     mask_union_coverage: float
     all_finite: bool
     decision: str
 
+    @property
+    def trials(self) -> int:
+        return self.config.trials
 
-def contiguous_shard_sizes(
-    class_count: int, world_size: int = 4
-) -> tuple[int, int, int, int]:
+    @property
+    def permutations_per_trial(self) -> int:
+        return self.config.permutations_per_trial
+
+
+def contiguous_shard_sizes(class_count: int, world_size: int = 4) -> tuple[int, int, int, int]:
     if type(class_count) is not int or type(world_size) is not int:
         raise TypeError("class_count and world_size must be builtin integers")
     if class_count <= 0 or world_size != 4:
@@ -79,15 +104,17 @@ def select_shard_panel(
     class_count: int = 64,
     examples_per_class: int = 4,
     seed: int = 205,
+    world_size: int = 4,
 ) -> ShardPanel:
     _validate_training_inputs(train_embeddings, train_labels)
     if (
         type(class_count) is not int
         or type(examples_per_class) is not int
         or type(seed) is not int
+        or type(world_size) is not int
     ):
         raise TypeError("panel parameters must be builtin integers")
-    if class_count <= 0 or examples_per_class <= 0:
+    if class_count <= 0 or examples_per_class <= 0 or world_size != 4:
         raise ValueError("panel sizes must be positive")
 
     unique_labels, counts = np.unique(train_labels, return_counts=True)
@@ -114,7 +141,7 @@ def select_shard_panel(
         labels=np.asarray(row_labels),
         prototypes=prototype_matrix,
         class_labels=np.asarray(class_labels),
-        shard_sizes=contiguous_shard_sizes(class_count),
+        shard_sizes=contiguous_shard_sizes(class_count, world_size),
     )
 
 
@@ -234,8 +261,7 @@ def arcface_joint_objective(
         unit = normalized_embeddings[shard]
         norms = np.linalg.norm(selected_embeddings[shard], axis=1, keepdims=True)
         tangent_gradient = (
-            direction_gradient
-            - unit * np.sum(unit * direction_gradient, axis=1, keepdims=True)
+            direction_gradient - unit * np.sum(unit * direction_gradient, axis=1, keepdims=True)
         ) / norms
         embedding_gradient[:, mask] += tangent_gradient
 
@@ -254,47 +280,69 @@ def arcface_joint_objective(
 
 
 def trial_masks(
-    *, dimension: int, selected: int = 512, trial: int
+    *,
+    dimension: int,
+    selected: int = 512,
+    trial: int,
+    seed_start: int = 1000,
+    seed_stride: int = 4,
+    rank_count: int = 4,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     if (
         type(dimension) is not int
         or type(selected) is not int
         or type(trial) is not int
+        or type(seed_start) is not int
+        or type(seed_stride) is not int
+        or type(rank_count) is not int
         or dimension <= 0
         or selected <= 0
         or selected > dimension
         or trial < 0
+        or seed_start < 0
+        or seed_stride <= 0
+        or rank_count != 4
     ):
         raise ValueError("invalid mask parameters")
     masks = tuple(
         np.sort(
-            np.random.Generator(np.random.PCG64(1000 + trial * 4 + rank)).choice(
+            np.random.Generator(np.random.PCG64(seed_start + trial * seed_stride + rank)).choice(
                 dimension, selected, replace=False
             )
         ).astype(np.int64)
-        for rank in range(4)
+        for rank in range(rank_count)
     )
     return masks  # type: ignore[return-value]
 
 
 def class_to_shard_permutations(
-    *, class_count: int, trial: int, count: int = 16
+    *,
+    class_count: int,
+    trial: int,
+    count: int = 16,
+    seed_start: int = 3000,
+    world_size: int = 4,
 ) -> tuple[np.ndarray, ...]:
     if (
         type(class_count) is not int
         or type(trial) is not int
         or type(count) is not int
+        or type(seed_start) is not int
+        or type(world_size) is not int
         or class_count < 4
         or trial < 0
         or count <= 0
+        or seed_start < 0
+        or world_size != 4
     ):
         raise ValueError("invalid permutation parameters")
     baseline = np.concatenate(
-        [np.full(size, rank, dtype=np.int64) for rank, size in enumerate(
-            contiguous_shard_sizes(class_count)
-        )]
+        [
+            np.full(size, rank, dtype=np.int64)
+            for rank, size in enumerate(contiguous_shard_sizes(class_count, world_size))
+        ]
     )
-    generator = np.random.Generator(np.random.PCG64(3000 + trial))
+    generator = np.random.Generator(np.random.PCG64(seed_start + trial))
     return tuple(generator.permutation(baseline) for _ in range(count))
 
 
@@ -303,16 +351,24 @@ def shard_decision(
     independent_loss_range: float,
     independent_gradient_mse: float,
     coherent_gradient_mse: float,
-    coherent_invariance_error: float,
+    coherent_placement_control_error: float,
     prediction_change_rate: float,
     all_finite: bool,
+    loss_range_threshold: float = 1e-3,
+    gradient_mse_ratio: float = 1.25,
+    coherent_control_tolerance: float = 1e-6,
+    prediction_change_threshold: float = 0.10,
 ) -> str:
     scalar_values = (
         independent_loss_range,
         independent_gradient_mse,
         coherent_gradient_mse,
-        coherent_invariance_error,
+        coherent_placement_control_error,
         prediction_change_rate,
+        loss_range_threshold,
+        gradient_mse_ratio,
+        coherent_control_tolerance,
+        prediction_change_threshold,
     )
     if any(type(value) is not float or not np.isfinite(value) for value in scalar_values):
         raise TypeError("shard decision metrics must be finite builtin floats")
@@ -320,10 +376,10 @@ def shard_decision(
         raise TypeError("all_finite must be a builtin bool")
     sensitive = (
         all_finite
-        and independent_loss_range >= 1e-3
-        and independent_gradient_mse >= 1.25 * coherent_gradient_mse
-        and coherent_invariance_error <= 1e-6
-        and prediction_change_rate >= 0.10
+        and independent_loss_range >= loss_range_threshold
+        and independent_gradient_mse >= gradient_mse_ratio * coherent_gradient_mse
+        and coherent_placement_control_error <= coherent_control_tolerance
+        and prediction_change_rate >= prediction_change_threshold
     )
     return "SHARD_SENSITIVE" if sensitive else "SHARD_NULL"
 
@@ -355,14 +411,26 @@ def audit_shard_sensitivity(
         raise ValueError("trials and permutations must be positive builtin integers")
     if permutations <= 0:
         raise ValueError("trials and permutations must be positive builtin integers")
+    config = ShardConfig(
+        panel_classes=class_count,
+        examples_per_class=examples_per_class,
+        selected_coordinates=selected,
+        trials=trials,
+        permutations_per_trial=permutations,
+    )
     panel = select_shard_panel(
         train_embeddings,
         train_labels,
-        class_count=class_count,
-        examples_per_class=examples_per_class,
-        seed=205,
+        class_count=config.panel_classes,
+        examples_per_class=config.examples_per_class,
+        seed=config.panel_selection_seed,
+        world_size=config.shard_rank_count,
     )
-    if type(selected) is not int or selected <= 0 or selected > panel.embeddings.shape[1]:
+    if (
+        type(config.selected_coordinates) is not int
+        or config.selected_coordinates <= 0
+        or config.selected_coordinates > panel.embeddings.shape[1]
+    ):
         raise ValueError("selected must be within the embedding dimension")
     label_indices = np.searchsorted(panel.class_labels, panel.labels).astype(np.int64)
     full_mask = np.arange(panel.embeddings.shape[1], dtype=np.int64)
@@ -374,13 +442,18 @@ def audit_shard_sensitivity(
     coherent_mse: list[float] = []
     independent_cosine: list[float] = []
     coherent_cosine: list[float] = []
-    coherent_invariance: list[float] = []
+    coherent_control_errors: list[float] = []
     prediction_changes: list[float] = []
     coverages: list[float] = []
 
-    for trial in range(trials):
+    for trial in range(config.trials):
         independent_masks = trial_masks(
-            dimension=panel.embeddings.shape[1], selected=selected, trial=trial
+            dimension=panel.embeddings.shape[1],
+            selected=config.selected_coordinates,
+            trial=trial,
+            seed_start=config.mask_seed_start,
+            seed_stride=config.mask_seed_stride,
+            rank_count=config.shard_rank_count,
         )
         coherent_masks = (
             independent_masks[0],
@@ -389,17 +462,15 @@ def audit_shard_sensitivity(
             independent_masks[0],
         )
         assignments = class_to_shard_permutations(
-            class_count=class_count, trial=trial, count=permutations
+            class_count=config.panel_classes,
+            trial=trial,
+            count=config.permutations_per_trial,
+            seed_start=config.assignment_seed_start,
+            world_size=config.shard_rank_count,
         )
         trial_independent_losses: list[float] = []
+        trial_coherent_losses: list[float] = []
         reference_predictions: np.ndarray | None = None
-        class_order = np.random.Generator(np.random.PCG64(4000 + trial)).permutation(
-            class_count
-        )
-        inverse_order = np.empty(class_count, dtype=np.int64)
-        inverse_order[class_order] = np.arange(class_count, dtype=np.int64)
-        permuted_prototypes = np.ascontiguousarray(panel.prototypes[class_order])
-        permuted_labels = inverse_order[label_indices]
         for assignment in assignments:
             independent = arcface_joint_objective(
                 panel.embeddings,
@@ -407,6 +478,8 @@ def audit_shard_sensitivity(
                 panel.prototypes,
                 assignment,
                 independent_masks,
+                margin=config.arcface_margin,
+                scale=config.arcface_scale,
             )
             coherent = arcface_joint_objective(
                 panel.embeddings,
@@ -414,6 +487,8 @@ def audit_shard_sensitivity(
                 panel.prototypes,
                 assignment,
                 coherent_masks,
+                margin=config.arcface_margin,
+                scale=config.arcface_scale,
             )
             full = arcface_joint_objective(
                 panel.embeddings,
@@ -421,18 +496,11 @@ def audit_shard_sensitivity(
                 panel.prototypes,
                 assignment,
                 full_masks,
-            )
-            consistent_permutation = arcface_joint_objective(
-                panel.embeddings,
-                permuted_labels,
-                permuted_prototypes,
-                np.ascontiguousarray(assignment[class_order]),
-                independent_masks,
+                margin=config.arcface_margin,
+                scale=config.arcface_scale,
             )
             trial_independent_losses.append(independent.loss)
-            coherent_invariance.append(
-                float(abs(consistent_permutation.loss - independent.loss))
-            )
+            trial_coherent_losses.append(coherent.loss)
             independent_mse.append(
                 float(np.mean((independent.embedding_gradient - full.embedding_gradient) ** 2))
             )
@@ -455,6 +523,9 @@ def audit_shard_sensitivity(
         independent_ranges.append(
             float(max(trial_independent_losses) - min(trial_independent_losses))
         )
+        coherent_control_errors.append(
+            float(max(trial_coherent_losses) - min(trial_coherent_losses))
+        )
         union = np.unique(np.concatenate(independent_masks))
         coverages.append(float(union.size / panel.embeddings.shape[1]))
 
@@ -467,7 +538,7 @@ def audit_shard_sensitivity(
             coherent_mse,
             independent_cosine,
             coherent_cosine,
-            coherent_invariance,
+            coherent_control_errors,
             prediction_changes or [0.0],
             coverages,
         )
@@ -482,20 +553,23 @@ def audit_shard_sensitivity(
         independent_loss_range=loss_range,
         independent_gradient_mse=independent_gradient_mse,
         coherent_gradient_mse=coherent_gradient_mse,
-        coherent_invariance_error=invariance_error,
+        coherent_placement_control_error=invariance_error,
         prediction_change_rate=prediction_change_rate,
         all_finite=all_finite,
+        loss_range_threshold=config.loss_range_threshold,
+        gradient_mse_ratio=config.gradient_mse_ratio,
+        coherent_control_tolerance=config.coherent_control_tolerance,
+        prediction_change_threshold=config.prediction_change_threshold,
     )
     return ShardAudit(
-        trials=trials,
-        permutations_per_trial=permutations,
+        config=config,
         independent_loss_range=loss_range,
         independent_loss_std=float(np.std(scalar_arrays[0])),
         independent_gradient_mse=independent_gradient_mse,
         coherent_gradient_mse=coherent_gradient_mse,
         independent_gradient_cosine_distance=float(np.mean(scalar_arrays[4])),
         coherent_gradient_cosine_distance=float(np.mean(scalar_arrays[5])),
-        coherent_invariance_error=invariance_error,
+        coherent_placement_control_error=invariance_error,
         prediction_change_rate=prediction_change_rate,
         mask_union_coverage=float(np.mean(scalar_arrays[8])),
         all_finite=all_finite,

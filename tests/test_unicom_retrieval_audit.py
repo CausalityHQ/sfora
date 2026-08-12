@@ -95,6 +95,22 @@ def test_recall_and_map_at_r_match_hand_computed_fixture() -> None:
     assert result.map_at_r == 1.0
 
 
+def test_map_at_r_masks_nonmatches_and_uses_relevant_count_denominator() -> None:
+    angles = np.asarray([0.0, 0.1, 0.2, 0.3, 0.4], dtype=np.float32)
+    gallery = np.stack((np.cos(angles), np.sin(angles)), axis=1).astype(np.float32)
+
+    result = retrieval_view(
+        np.array([[1.0, 0.0]], dtype=np.float32),
+        gallery,
+        np.array(["match"]),
+        np.array(["match", "wrong", "match", "match", "wrong"]),
+        coordinates=np.array([0, 1]),
+        normalize_before=False,
+    )
+
+    assert result.map_at_r == pytest.approx((1.0 + 2.0 / 3.0) / 3.0)
+
+
 def test_retrieval_only_stably_sorts_the_registered_metric_prefix(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -218,6 +234,23 @@ def test_geometry_decision_boundaries(
     )
 
     assert decision.primary == primary
+
+
+def test_geometry_flags_remain_independent_when_full_dimension_has_precedence() -> None:
+    decision = geometry_decision(
+        delta_norm=0.002,
+        norm_lower_bound=1e-9,
+        delta_full=0.002,
+        full_lower_bound=1e-9,
+        delta_mask=0.002,
+        mask_wins=24,
+        disagree=0.10,
+    )
+
+    assert decision.primary == "FULL_DIMENSION_CONTROL"
+    assert decision.full_dimension_control is True
+    assert decision.evaluator_repair is True
+    assert decision.coordinate_nonexchangeability is True
 
 
 def test_reproduction_gate_uses_published_full_768_view() -> None:

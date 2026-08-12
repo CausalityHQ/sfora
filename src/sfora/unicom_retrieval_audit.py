@@ -26,8 +26,25 @@ class GeometryDecision:
     coordinate_nonexchangeability: bool
 
 
+@dataclass(frozen=True)
+class GeometryConfig:
+    selected_coordinates: int
+    random_mask_count: int
+    bootstrap_samples: int
+    expected_official_r1: float
+    reproduction_tolerance: float
+    delta_threshold: float = 0.002
+    mask_wins_threshold: int = 24
+    disagreement_threshold: float = 0.10
+    norm_bootstrap_seed: int = 205
+    energy_bootstrap_seed: int = 205
+    full_bootstrap_seed: int = 206
+    random_mask_seed_start: int = 0
+
+
 @dataclass(frozen=True, eq=False)
 class GeometryAudit:
+    config: GeometryConfig
     official: RetrievalView
     prefix_unit: RetrievalView
     full_unit: RetrievalView
@@ -61,7 +78,8 @@ class GeometryAudit:
             )
 
         return (
-            view_equal(self.official, other.official)
+            self.config == other.config
+            and view_equal(self.official, other.official)
             and view_equal(self.prefix_unit, other.prefix_unit)
             and view_equal(self.full_unit, other.full_unit)
             and len(self.random_units) == len(other.random_units)
@@ -111,18 +129,20 @@ def l2_normalize(values: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray((values.astype(np.float64) / norms).astype(np.float32))
 
 
-def random_masks(*, dimension: int, selected: int, count: int) -> tuple[np.ndarray, ...]:
-    if type(dimension) is not int or type(selected) is not int or type(count) is not int:
-        raise TypeError("dimension, selected, and count must be builtin integers")
-    if dimension <= 0 or selected <= 0 or selected > dimension or count <= 0:
+def random_masks(
+    *, dimension: int, selected: int, count: int, seed_start: int = 0
+) -> tuple[np.ndarray, ...]:
+    if any(type(value) is not int for value in (dimension, selected, count, seed_start)):
+        raise TypeError("mask parameters must be builtin integers")
+    if dimension <= 0 or selected <= 0 or selected > dimension or count <= 0 or seed_start < 0:
         raise ValueError("invalid random-mask dimensions")
     return tuple(
         np.sort(
-            np.random.Generator(np.random.PCG64(seed)).choice(
+            np.random.Generator(np.random.PCG64(seed_start + offset)).choice(
                 dimension, selected, replace=False
             )
         ).astype(np.int64)
-        for seed in range(count)
+        for offset in range(count)
     )
 
 
@@ -209,8 +229,8 @@ def retrieval_view(
     for start in range(0, query.shape[0], chunk_size):
         query_chunk = query[start : start + chunk_size].astype(np.float64)
         query_norms = np.sum(query_chunk * query_chunk, axis=1, dtype=np.float64)
-        distances = query_norms[:, None] + gallery_norms[None, :] - 2.0 * (
-            query_chunk @ gallery64.T
+        distances = (
+            query_norms[:, None] + gallery_norms[None, :] - 2.0 * (query_chunk @ gallery64.T)
         )
         for offset, row in enumerate(distances):
             query_index = start + offset
@@ -286,6 +306,9 @@ def geometry_decision(
     delta_mask: float,
     mask_wins: int,
     disagree: float,
+    delta_threshold: float = 0.002,
+    mask_wins_threshold: int = 24,
+    disagreement_threshold: float = 0.10,
 ) -> GeometryDecision:
     values = (
         delta_norm,
@@ -299,11 +322,20 @@ def geometry_decision(
         raise TypeError("decision metrics must be finite builtin floats")
     if type(mask_wins) is not int or not 0 <= mask_wins <= 32:
         raise TypeError("mask_wins must be a builtin integer in [0, 32]")
-    full_dimension_control = delta_full >= 0.002 and full_lower_bound > 0.0
-    evaluator_repair = (
-        not full_dimension_control and delta_norm >= 0.002 and norm_lower_bound > 0.0
+    if any(
+        type(value) is not float or not np.isfinite(value)
+        for value in (delta_threshold, disagreement_threshold)
+    ):
+        raise TypeError("decision thresholds must be finite builtin floats")
+    if type(mask_wins_threshold) is not int or not 0 <= mask_wins_threshold <= 32:
+        raise TypeError("mask-wins threshold must be a builtin integer in [0, 32]")
+    full_dimension_control = delta_full >= delta_threshold and full_lower_bound > 0.0
+    evaluator_repair = delta_norm >= delta_threshold and norm_lower_bound > 0.0
+    coordinate = (
+        delta_mask >= delta_threshold
+        and mask_wins >= mask_wins_threshold
+        and disagree >= disagreement_threshold
     )
-    coordinate = delta_mask >= 0.002 and mask_wins >= 24 and disagree >= 0.10
     if full_dimension_control:
         primary = "FULL_DIMENSION_CONTROL"
     elif evaluator_repair:
@@ -344,8 +376,15 @@ def audit_deployment_geometry(
         raise ValueError("reproduction values must be finite")
     if reproduction_tolerance < 0.0:
         raise ValueError("reproduction_tolerance must be nonnegative")
+    config = GeometryConfig(
+        selected_coordinates=selected,
+        random_mask_count=random_count,
+        bootstrap_samples=bootstrap_samples,
+        expected_official_r1=expected_official_r1,
+        reproduction_tolerance=reproduction_tolerance,
+    )
 
-    prefix = np.arange(selected, dtype=np.int64)
+    prefix = np.arange(config.selected_coordinates, dtype=np.int64)
     full = np.arange(query_embeddings.shape[1], dtype=np.int64)
     official = retrieval_view(
         query_embeddings,
@@ -381,7 +420,10 @@ def audit_deployment_geometry(
             normalize_before=False,
         )
         for mask in random_masks(
-            dimension=query_embeddings.shape[1], selected=selected, count=random_count
+            dimension=query_embeddings.shape[1],
+            selected=config.selected_coordinates,
+            count=config.random_mask_count,
+            seed_start=config.random_mask_seed_start,
         )
     )
 
@@ -389,15 +431,15 @@ def audit_deployment_geometry(
     norm_interval = paired_r1_interval(
         official.top1_correct,
         prefix_unit.top1_correct,
-        samples=bootstrap_samples,
-        seed=205,
+        samples=config.bootstrap_samples,
+        seed=config.norm_bootstrap_seed,
     )
     delta_full = float(full_unit.recall[1] - prefix_unit.recall[1])
     full_interval = paired_r1_interval(
         prefix_unit.top1_correct,
         full_unit.top1_correct,
-        samples=bootstrap_samples,
-        seed=206,
+        samples=config.bootstrap_samples,
+        seed=config.full_bootstrap_seed,
     )
     random_r1 = np.asarray([view.recall[1] for view in random_units], dtype=np.float64)
     delta_mask = float(np.median(random_r1) - prefix_unit.recall[1])
@@ -410,7 +452,7 @@ def audit_deployment_geometry(
 
     gallery_full_unit = l2_normalize(gallery_embeddings)
     prefix_energy = np.sum(
-        gallery_full_unit[:, :selected].astype(np.float64) ** 2,
+        gallery_full_unit[:, : config.selected_coordinates].astype(np.float64) ** 2,
         axis=1,
         dtype=np.float64,
     )
@@ -425,8 +467,8 @@ def audit_deployment_geometry(
         energy_gap_negative_fraction: float | None = float(np.mean(energy_gaps < 0.0))
         energy_gap_interval: tuple[float, float] | None = _bootstrap_mean_interval(
             energy_gaps,
-            samples=bootstrap_samples,
-            seed=205,
+            samples=config.bootstrap_samples,
+            seed=config.energy_bootstrap_seed,
         )
     else:
         energy_gap_mean = None
@@ -442,7 +484,7 @@ def audit_deployment_geometry(
         association = float(np.corrcoef(errors, selected_energy)[0, 1])
 
     reproduction_passed = (
-        abs(full_unit.recall[1] - expected_official_r1) <= reproduction_tolerance
+        abs(full_unit.recall[1] - config.expected_official_r1) <= config.reproduction_tolerance
     )
     if reproduction_passed:
         decision = geometry_decision(
@@ -453,6 +495,9 @@ def audit_deployment_geometry(
             delta_mask=delta_mask,
             mask_wins=mask_wins,
             disagree=disagree,
+            delta_threshold=config.delta_threshold,
+            mask_wins_threshold=config.mask_wins_threshold,
+            disagreement_threshold=config.disagreement_threshold,
         )
     else:
         decision = GeometryDecision(
@@ -462,6 +507,7 @@ def audit_deployment_geometry(
             coordinate_nonexchangeability=False,
         )
     return GeometryAudit(
+        config=config,
         official=official,
         prefix_unit=prefix_unit,
         full_unit=full_unit,

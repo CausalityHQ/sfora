@@ -5,6 +5,7 @@ import pytest
 
 import sfora.unicom_shard_audit as shard_module
 from sfora.unicom_shard_audit import (
+    ObjectiveResult,
     arcface_joint_objective,
     audit_shard_sensitivity,
     class_to_shard_permutations,
@@ -47,9 +48,7 @@ def test_panel_selects_seeded_classes_then_restores_sorted_order() -> None:
         seed=205,
     )
     all_classes = np.unique(labels)
-    chosen = np.random.Generator(np.random.PCG64(205)).choice(
-        all_classes.size, 8, replace=False
-    )
+    chosen = np.random.Generator(np.random.PCG64(205)).choice(all_classes.size, 8, replace=False)
     expected_classes = np.sort(all_classes[chosen])
 
     assert panel.embeddings.shape == (32, 8)
@@ -94,9 +93,7 @@ def test_panel_rejects_classes_with_too_few_rows() -> None:
 
 
 def _objective_fixture():
-    embeddings = np.array(
-        [[1.0, 0.2, 0.3, 0.4], [0.4, 0.3, 0.2, 1.0]], dtype=np.float32
-    )
+    embeddings = np.array([[1.0, 0.2, 0.3, 0.4], [0.4, 0.3, 0.2, 1.0]], dtype=np.float32)
     prototypes = np.array(
         [
             [1.0, 0.1, 0.2, 0.3],
@@ -143,9 +140,7 @@ def _straight_through_oracle(
             selected_prototypes, axis=1, keepdims=True
         )
         columns = np.flatnonzero(assignments == shard)
-        logits[:, columns] = (
-            normalized_embeddings[shard] @ normalized_prototypes[shard][columns].T
-        )
+        logits[:, columns] = normalized_embeddings[shard] @ normalized_prototypes[shard][columns].T
     rows_index = np.arange(rows)
     targets = np.clip(logits[rows_index, labels], -1.0, 1.0)
     predictions = logits.argmax(axis=1)
@@ -164,15 +159,12 @@ def _straight_through_oracle(
     gradient = np.zeros((rows, dimension), dtype=np.float64)
     for shard, mask in enumerate(masks):
         columns = np.flatnonzero(assignments == shard)
-        direction_gradient = (
-            score_gradient[:, columns] @ normalized_prototypes[shard][columns]
-        )
+        direction_gradient = score_gradient[:, columns] @ normalized_prototypes[shard][columns]
         selected = embeddings[:, mask].astype(np.float64)
         norms = np.linalg.norm(selected, axis=1, keepdims=True)
         unit = normalized_embeddings[shard]
         tangent = (
-            direction_gradient
-            - unit * np.sum(unit * direction_gradient, axis=1, keepdims=True)
+            direction_gradient - unit * np.sum(unit * direction_gradient, axis=1, keepdims=True)
         ) / norms
         gradient[:, mask] += tangent
     return float(losses.mean()), losses, predictions, gradient
@@ -213,22 +205,115 @@ def test_arcface_target_gradient_is_straight_through_not_mathematical_derivative
     assert not np.allclose(result.embedding_gradient, mathematical, atol=1e-8, rtol=1e-8)
 
 
-def test_shard_audit_exercises_consistent_prototype_permutation(monkeypatch) -> None:
+def test_audit_measures_coherent_invariance_across_class_placements(monkeypatch) -> None:
     embeddings, labels = _training_fixture(classes=8, rows_per_class=4, dimension=8)
-    panel = select_shard_panel(
-        embeddings, labels, class_count=8, examples_per_class=2, seed=205
+
+    def placement_sensitive_objective(
+        values: np.ndarray,
+        label_indices: np.ndarray,
+        prototypes: np.ndarray,
+        assignments: np.ndarray,
+        masks: tuple[np.ndarray, ...],
+        *,
+        margin: float,
+        scale: float,
+    ) -> ObjectiveResult:
+        assert margin == 0.25
+        assert scale == 32.0
+        coherent = all(np.array_equal(mask, masks[0]) for mask in masks[1:])
+        placement_score = float(
+            np.dot(np.arange(1, assignments.size + 1, dtype=np.float64), assignments)
+        )
+        if not coherent:
+            multiplier = 10.0
+        elif masks[0].size == values.shape[1]:
+            multiplier = 100.0
+        else:
+            multiplier = 1.0
+        loss = multiplier * placement_score
+        return ObjectiveResult(
+            loss=loss,
+            per_example_loss=np.full(values.shape[0], loss, dtype=np.float64),
+            predictions=np.zeros(values.shape[0], dtype=np.int64),
+            embedding_gradient=np.zeros_like(values, dtype=np.float64),
+        )
+
+    monkeypatch.setattr(shard_module, "arcface_joint_objective", placement_sensitive_objective)
+
+    result = audit_shard_sensitivity(
+        embeddings,
+        labels,
+        class_count=8,
+        examples_per_class=2,
+        selected=4,
+        trials=1,
+        permutations=3,
     )
-    original = shard_module.arcface_joint_objective
-    captured_permutations: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
 
-    def capture(*args, **kwargs):
-        prototypes = args[2]
-        if not np.array_equal(prototypes, panel.prototypes):
-            captured_permutations.append((args[1].copy(), prototypes.copy(), args[3].copy()))
-        return original(*args, **kwargs)
+    assignments = class_to_shard_permutations(class_count=8, trial=0, count=3)
+    coherent_losses = [
+        float(np.dot(np.arange(1, 9, dtype=np.float64), assignment)) for assignment in assignments
+    ]
+    expected_coherent_range = max(coherent_losses) - min(coherent_losses)
+    assert result.independent_loss_range == 10.0 * expected_coherent_range
+    assert result.coherent_placement_control_error == expected_coherent_range
 
-    monkeypatch.setattr(shard_module, "arcface_joint_objective", capture)
-    audit_shard_sensitivity(
+
+def test_coherent_masks_remove_class_placement_dependence_on_real_objective() -> None:
+    embeddings, labels, prototypes, assignments, masks = _objective_fixture()
+    moved_assignments = np.array([1, 0, 3, 2], dtype=np.int64)
+    coherent_masks = (masks[0], masks[0], masks[0], masks[0])
+
+    independent_before = arcface_joint_objective(embeddings, labels, prototypes, assignments, masks)
+    independent_after = arcface_joint_objective(
+        embeddings, labels, prototypes, moved_assignments, masks
+    )
+    coherent_before = arcface_joint_objective(
+        embeddings, labels, prototypes, assignments, coherent_masks
+    )
+    coherent_after = arcface_joint_objective(
+        embeddings, labels, prototypes, moved_assignments, coherent_masks
+    )
+
+    assert abs(independent_before.loss - independent_after.loss) > 1e-3
+    assert coherent_before.loss == coherent_after.loss
+
+
+def test_trial_masks_use_exact_registered_streams() -> None:
+    masks = trial_masks(dimension=8, selected=4, trial=3)
+    for rank, actual in enumerate(masks):
+        expected = np.sort(
+            np.random.Generator(np.random.PCG64(1000 + 3 * 4 + rank)).choice(8, 4, replace=False)
+        )
+        assert np.array_equal(actual, expected)
+
+
+def test_audit_routes_registered_rank_count_into_panel_masks_and_assignments(
+    monkeypatch,
+) -> None:
+    embeddings, labels = _training_fixture(classes=8, rows_per_class=4, dimension=8)
+    real_panel = shard_module.select_shard_panel
+    real_masks = shard_module.trial_masks
+    real_assignments = shard_module.class_to_shard_permutations
+    observed: list[tuple[str, int | None]] = []
+
+    def panel(*args, **kwargs):
+        observed.append(("panel", kwargs.get("world_size")))
+        return real_panel(*args, **kwargs)
+
+    def masks(*args, **kwargs):
+        observed.append(("masks", kwargs.get("rank_count")))
+        return real_masks(*args, **kwargs)
+
+    def assignments(*args, **kwargs):
+        observed.append(("assignments", kwargs.get("world_size")))
+        return real_assignments(*args, **kwargs)
+
+    monkeypatch.setattr(shard_module, "select_shard_panel", panel)
+    monkeypatch.setattr(shard_module, "trial_masks", masks)
+    monkeypatch.setattr(shard_module, "class_to_shard_permutations", assignments)
+
+    result = audit_shard_sensitivity(
         embeddings,
         labels,
         class_count=8,
@@ -238,29 +323,8 @@ def test_shard_audit_exercises_consistent_prototype_permutation(monkeypatch) -> 
         permutations=2,
     )
 
-    order = np.random.Generator(np.random.PCG64(4000)).permutation(8)
-    inverse = np.empty(8, dtype=np.int64)
-    inverse[order] = np.arange(8, dtype=np.int64)
-    original_labels = np.searchsorted(panel.class_labels, panel.labels).astype(np.int64)
-    assignments = class_to_shard_permutations(class_count=8, trial=0, count=2)
-    assert len(captured_permutations) == 2
-    for (actual_labels, actual_prototypes, actual_assignment), assignment in zip(
-        captured_permutations, assignments, strict=True
-    ):
-        assert np.array_equal(actual_labels, inverse[original_labels])
-        assert np.array_equal(actual_prototypes, panel.prototypes[order])
-        assert np.array_equal(actual_assignment, assignment[order])
-
-
-def test_trial_masks_use_exact_registered_streams() -> None:
-    masks = trial_masks(dimension=8, selected=4, trial=3)
-    for rank, actual in enumerate(masks):
-        expected = np.sort(
-            np.random.Generator(np.random.PCG64(1000 + 3 * 4 + rank)).choice(
-                8, 4, replace=False
-            )
-        )
-        assert np.array_equal(actual, expected)
+    assert result.config.shard_rank_count == 4
+    assert observed == [("panel", 4), ("masks", 4), ("assignments", 4)]
 
 
 def test_class_permutations_use_exact_registered_stream() -> None:
@@ -305,7 +369,7 @@ def test_shard_decision_boundaries(
         independent_loss_range=loss_range,
         independent_gradient_mse=independent_mse,
         coherent_gradient_mse=coherent_mse,
-        coherent_invariance_error=invariance,
+        coherent_placement_control_error=invariance,
         prediction_change_rate=prediction_change,
         all_finite=finite,
     )

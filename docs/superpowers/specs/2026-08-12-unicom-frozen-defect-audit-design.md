@@ -185,8 +185,9 @@ to reduce them to scalar statistics. Report:
 - standard deviation and range of loss over class-shard permutations;
 - mean gradient MSE and cosine distance versus `full_768`;
 - the same values for `coherent_mask`;
-- invariance error under `PCG64(4000 + trial)` when prototype rows, target
-  indices, and shard assignments are permuted consistently;
+- coherent-mask class-placement numerical-control error, measured as the range of the
+  coherent-mask loss across the same 16 `PCG64(3000 + trial)` class-to-shard
+  assignments used by the independent-mask path;
 - mask union coverage; and
 - finite/count checks.
 
@@ -195,7 +196,7 @@ E2 is `SHARD_SENSITIVE` only if all hold:
 1. independent-mask permutation loss range is at least `1e-3`;
 2. its mean gradient MSE versus full-768 is at least 25% larger than the
    coherent-mask MSE;
-3. coherent-mask consistent-permutation invariance error is at most `1e-6`;
+3. the coherent-mask class-placement numerical control is at most `1e-6`;
 4. independent-mask class-shard placement changes at least 10% of per-example
    top-1 prototype predictions computed before the label-dependent ArcFace
    target margin; and
@@ -204,9 +205,15 @@ E2 is `SHARD_SENSITIVE` only if all hold:
 Otherwise E2 is `SHARD_NULL`. This gate measures sensitivity; it does not prove
 that synchronized masks improve trained retrieval.
 
+Criterion 3 is an implementation/numerical control that is algebraically zero
+for a correct coherent-mask objective; it is not an additional empirical
+defect signal. It remains fail-closed so a broken emulation cannot license a
+training experiment.
+
 ## Output and failure handling
 
-The JSON report contains version, input hashes, exact constants, E1 metrics and
+The JSON report contains version, input hashes, all exact thresholds, counts,
+RNG seeds, the four-shard topology, E1 metrics and
 per-query bootstrap summaries, E2 aggregate statistics, decisions, runtime,
 and warnings. It contains no candidate training outcome.
 

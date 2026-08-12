@@ -200,7 +200,14 @@ Compute each shard with its assigned coordinate mask, concatenate columns in cla
 
 - [ ] **Step 6: Write sharding-sensitivity decision RED tests**
 
-Freeze one adversarial small fixture where coherent masks are permutation invariant and independent masks cross all five `SHARD_SENSITIVE` boundaries. Add one mutation per boundary and assert `SHARD_NULL`. Verify exact streams `PCG64(1000 + trial * 4 + rank)` and `PCG64(3000 + trial)`.
+Freeze one adversarial small fixture where coherent masks are invariant to
+class-to-shard placement while independent masks cross all five
+`SHARD_SENSITIVE` boundaries. Add one mutation per boundary and assert
+`SHARD_NULL`. Verify exact streams `PCG64(1000 + trial * 4 + rank)` and
+`PCG64(3000 + trial)`, and prove the reported coherent invariance statistic is
+the coherent-loss range across those placements rather than a trivial
+consistent relabeling. Treat this algebraically-zero quantity as a fail-closed
+numerical control, not as independent empirical evidence for shard sensitivity.
 
 - [ ] **Step 7: Implement `audit_shard_sensitivity` and commit**
 

@@ -12,7 +12,7 @@ from sfora.unicom_audit_io import (
     build_audit_report,
     load_embedding_bundle,
     publish_json_no_clobber,
-    validate_audit_report,
+    validate_official_audit_report,
 )
 from sfora.unicom_retrieval_audit import audit_deployment_geometry
 from sfora.unicom_shard_audit import audit_shard_sensitivity
@@ -45,11 +45,14 @@ def run(arguments: Sequence[str] | None = None) -> int:
         geometry = run_geometry(bundle)
         sharding = run_sharding(bundle)
         report = build_audit_report(bundle, geometry, sharding)
-        validate_audit_report(report)
+        validate_official_audit_report(report)
         publish_json_no_clobber(args.output, report)
     except Exception as error:
         print(f"audit failed: {error}", file=sys.stderr)
         return 2
+    if not geometry.reproduction_passed:
+        print(f"audit reproduction failed: {args.output}", file=sys.stderr)
+        return 1
     print(f"audit complete: {args.output}")
     return 0
 

@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import sfora.unicom_audit_io as audit_io
 from sfora.unicom_audit_io import (
     build_audit_report,
     load_embedding_bundle,
@@ -62,9 +63,7 @@ def _write_bundle(path: Path) -> None:
 def _valid_report(tmp_path: Path) -> dict[str, object]:
     bundle_path = tmp_path / "embeddings.npz"
     _write_bundle(bundle_path)
-    bundle = load_embedding_bundle(
-        bundle_path, expected_counts=(32, 4, 6), expected_dimension=8
-    )
+    bundle = load_embedding_bundle(bundle_path, expected_counts=(32, 4, 6), expected_dimension=8)
     geometry = audit_deployment_geometry(
         bundle.query_embeddings,
         bundle.gallery_embeddings,
@@ -73,7 +72,6 @@ def _valid_report(tmp_path: Path) -> dict[str, object]:
         selected=4,
         random_count=2,
         bootstrap_samples=50,
-        expected_official_r1=1.0,
     )
     sharding = audit_shard_sensitivity(
         bundle.train_embeddings,
@@ -84,15 +82,7 @@ def _valid_report(tmp_path: Path) -> dict[str, object]:
         trials=2,
         permutations=3,
     )
-    return build_audit_report(
-        bundle,
-        geometry,
-        sharding,
-        selected_coordinates=4,
-        geometry_bootstrap_samples=50,
-        panel_classes=8,
-        examples_per_class=2,
-    )
+    return build_audit_report(bundle, geometry, sharding)
 
 
 def test_load_embedding_bundle_validates_exact_keys_hashes_and_shapes(tmp_path: Path) -> None:
@@ -117,9 +107,7 @@ def test_load_embedding_bundle_validates_exact_keys_hashes_and_shapes(tmp_path: 
 
 
 @pytest.mark.parametrize("mutation", ["extra_key", "wrong_hash", "nonfinite", "wrong_count"])
-def test_load_embedding_bundle_rejects_structural_mutations(
-    tmp_path: Path, mutation: str
-) -> None:
+def test_load_embedding_bundle_rejects_structural_mutations(tmp_path: Path, mutation: str) -> None:
     original = tmp_path / "original.npz"
     _write_bundle(original)
     with np.load(original, allow_pickle=False) as archive:
@@ -158,7 +146,86 @@ def test_report_roundtrips_through_strict_validator(tmp_path: Path) -> None:
     }
 
 
-@pytest.mark.parametrize("mutation", ["extra", "nan", "bad_decision", "bad_count"])
+def test_report_persists_every_frozen_scientific_constant(tmp_path: Path) -> None:
+    report = _valid_report(tmp_path)
+
+    assert report["constants"] == {
+        "selected_coordinates": 4,
+        "random_masks": 2,
+        "geometry_bootstrap_samples": 50,
+        "panel_classes": 8,
+        "examples_per_class": 2,
+        "shard_trials": 2,
+        "permutations_per_trial": 3,
+        "expected_official_r1": 0.746,
+        "reproduction_tolerance": 0.002,
+        "geometry_delta_threshold": 0.002,
+        "geometry_mask_wins_threshold": 24,
+        "geometry_disagreement_threshold": 0.10,
+        "shard_loss_range_threshold": 1e-3,
+        "shard_gradient_mse_ratio": 1.25,
+        "coherent_placement_control_tolerance": 1e-6,
+        "shard_prediction_change_threshold": 0.10,
+        "arcface_margin": 0.25,
+        "arcface_scale": 32.0,
+        "geometry_norm_bootstrap_seed": 205,
+        "geometry_energy_bootstrap_seed": 205,
+        "geometry_full_bootstrap_seed": 206,
+        "geometry_random_mask_seed_start": 0,
+        "panel_selection_seed": 205,
+        "shard_mask_seed_start": 1000,
+        "shard_mask_seed_stride": 4,
+        "shard_assignment_seed_start": 3000,
+        "shard_rank_count": 4,
+    }
+
+
+def test_official_report_validator_rejects_underpowered_count_constants(
+    tmp_path: Path,
+) -> None:
+    report = _valid_report(tmp_path)
+
+    with pytest.raises(ValueError, match="official count constants"):
+        audit_io.validate_official_audit_report(report)
+
+
+def test_report_constants_are_derived_from_the_executed_audits(tmp_path: Path) -> None:
+    bundle_path = tmp_path / "embeddings.npz"
+    _write_bundle(bundle_path)
+    bundle = load_embedding_bundle(bundle_path, expected_counts=(32, 4, 6), expected_dimension=8)
+    geometry = audit_deployment_geometry(
+        bundle.query_embeddings,
+        bundle.gallery_embeddings,
+        bundle.query_labels,
+        bundle.gallery_labels,
+        selected=4,
+        random_count=2,
+        bootstrap_samples=50,
+        expected_official_r1=0.111,
+        reproduction_tolerance=0.9,
+    )
+    sharding = audit_shard_sensitivity(
+        bundle.train_embeddings,
+        bundle.train_labels,
+        class_count=8,
+        examples_per_class=2,
+        selected=4,
+        trials=2,
+        permutations=3,
+    )
+
+    report = build_audit_report(bundle, geometry, sharding)
+
+    assert report["constants"]["selected_coordinates"] == 4
+    assert report["constants"]["expected_official_r1"] == 0.111
+    assert report["constants"]["reproduction_tolerance"] == 0.9
+    with pytest.raises(ValueError, match="frozen constants"):
+        validate_audit_report(report)
+
+
+@pytest.mark.parametrize(
+    "mutation", ["extra", "nan", "bad_decision", "bad_count", "bad_fixed_constant"]
+)
 def test_report_validator_rejects_mutations(tmp_path: Path, mutation: str) -> None:
     report = _valid_report(tmp_path)
     if mutation == "extra":
@@ -167,8 +234,10 @@ def test_report_validator_rejects_mutations(tmp_path: Path, mutation: str) -> No
         report["sharding"]["independent_loss_range"] = float("nan")
     elif mutation == "bad_decision":
         report["sharding"]["decision"] = "PASS"
-    else:
+    elif mutation == "bad_count":
         report["constants"]["random_masks"] += 1
+    else:
+        report["constants"]["arcface_scale"] = 33.0
 
     with pytest.raises((TypeError, ValueError)):
         validate_audit_report(report)

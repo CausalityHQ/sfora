@@ -46,6 +46,77 @@ _REPORT_KEYS = (
     "runtime",
     "warnings",
 )
+_CONSTANT_KEYS = (
+    "selected_coordinates",
+    "random_masks",
+    "geometry_bootstrap_samples",
+    "panel_classes",
+    "examples_per_class",
+    "shard_trials",
+    "permutations_per_trial",
+    "expected_official_r1",
+    "reproduction_tolerance",
+    "geometry_delta_threshold",
+    "geometry_mask_wins_threshold",
+    "geometry_disagreement_threshold",
+    "shard_loss_range_threshold",
+    "shard_gradient_mse_ratio",
+    "coherent_placement_control_tolerance",
+    "shard_prediction_change_threshold",
+    "arcface_margin",
+    "arcface_scale",
+    "geometry_norm_bootstrap_seed",
+    "geometry_energy_bootstrap_seed",
+    "geometry_full_bootstrap_seed",
+    "geometry_random_mask_seed_start",
+    "panel_selection_seed",
+    "shard_mask_seed_start",
+    "shard_mask_seed_stride",
+    "shard_assignment_seed_start",
+    "shard_rank_count",
+)
+_COUNT_CONSTANT_KEYS = (
+    "selected_coordinates",
+    "random_masks",
+    "geometry_bootstrap_samples",
+    "panel_classes",
+    "examples_per_class",
+    "shard_trials",
+    "permutations_per_trial",
+)
+_OFFICIAL_COUNT_CONSTANTS = {
+    "selected_coordinates": 512,
+    "random_masks": 32,
+    "geometry_bootstrap_samples": 10_000,
+    "panel_classes": 64,
+    "examples_per_class": 4,
+    "shard_trials": 32,
+    "permutations_per_trial": 16,
+}
+_FIXED_CONSTANTS = {
+    "expected_official_r1": 0.746,
+    "reproduction_tolerance": 0.002,
+    "geometry_delta_threshold": 0.002,
+    "geometry_mask_wins_threshold": 24,
+    "geometry_disagreement_threshold": 0.10,
+    "shard_loss_range_threshold": 1e-3,
+    "shard_gradient_mse_ratio": 1.25,
+    "coherent_placement_control_tolerance": 1e-6,
+    "shard_prediction_change_threshold": 0.10,
+    "arcface_margin": 0.25,
+    "arcface_scale": 32.0,
+    "geometry_norm_bootstrap_seed": 205,
+    "geometry_energy_bootstrap_seed": 205,
+    "geometry_full_bootstrap_seed": 206,
+    "geometry_random_mask_seed_start": 0,
+    "panel_selection_seed": 205,
+    "shard_mask_seed_start": 1000,
+    "shard_mask_seed_stride": 4,
+    "shard_assignment_seed_start": 3000,
+    "shard_rank_count": 4,
+}
+assert set(_COUNT_CONSTANT_KEYS).isdisjoint(_FIXED_CONSTANTS)
+assert set(_COUNT_CONSTANT_KEYS) | set(_FIXED_CONSTANTS) == set(_CONSTANT_KEYS)
 _HEX = frozenset("0123456789abcdef")
 
 
@@ -227,19 +298,16 @@ def build_audit_report(
     bundle: EmbeddingBundle,
     geometry: GeometryAudit,
     sharding: ShardAudit,
-    *,
-    selected_coordinates: int = 512,
-    geometry_bootstrap_samples: int = 10_000,
-    panel_classes: int = 64,
-    examples_per_class: int = 4,
 ) -> dict[str, object]:
+    geometry_config = geometry.config
+    shard_config = sharding.config
+    if geometry_config.selected_coordinates != shard_config.selected_coordinates:
+        raise ValueError("geometry and sharding selected-coordinate counts differ")
     geometry_payload = {
         "official": _view_payload(geometry.official, include_rows=True),
         "prefix_unit": _view_payload(geometry.prefix_unit, include_rows=True),
         "full_unit": _view_payload(geometry.full_unit, include_rows=False),
-        "random_units": [
-            _view_payload(view, include_rows=False) for view in geometry.random_units
-        ],
+        "random_units": [_view_payload(view, include_rows=False) for view in geometry.random_units],
         "reproduction_passed": geometry.reproduction_passed,
         "delta_norm": geometry.delta_norm,
         "norm_interval": list(geometry.norm_interval),
@@ -260,9 +328,7 @@ def build_audit_report(
             "primary": geometry.decision.primary,
             "full_dimension_control": geometry.decision.full_dimension_control,
             "evaluator_repair": geometry.decision.evaluator_repair,
-            "coordinate_nonexchangeability": (
-                geometry.decision.coordinate_nonexchangeability
-            ),
+            "coordinate_nonexchangeability": (geometry.decision.coordinate_nonexchangeability),
         },
     }
     sharding_payload = {
@@ -272,11 +338,9 @@ def build_audit_report(
         "independent_loss_std": sharding.independent_loss_std,
         "independent_gradient_mse": sharding.independent_gradient_mse,
         "coherent_gradient_mse": sharding.coherent_gradient_mse,
-        "independent_gradient_cosine_distance": (
-            sharding.independent_gradient_cosine_distance
-        ),
+        "independent_gradient_cosine_distance": (sharding.independent_gradient_cosine_distance),
         "coherent_gradient_cosine_distance": sharding.coherent_gradient_cosine_distance,
-        "coherent_invariance_error": sharding.coherent_invariance_error,
+        "coherent_placement_control_error": (sharding.coherent_placement_control_error),
         "prediction_change_rate": sharding.prediction_change_rate,
         "mask_union_coverage": sharding.mask_union_coverage,
         "all_finite": sharding.all_finite,
@@ -290,13 +354,33 @@ def build_audit_report(
             "metadata": bundle.metadata,
         },
         "constants": {
-            "selected_coordinates": selected_coordinates,
-            "random_masks": len(geometry.random_units),
-            "geometry_bootstrap_samples": geometry_bootstrap_samples,
-            "panel_classes": panel_classes,
-            "examples_per_class": examples_per_class,
-            "shard_trials": sharding.trials,
-            "permutations_per_trial": sharding.permutations_per_trial,
+            "selected_coordinates": geometry_config.selected_coordinates,
+            "random_masks": geometry_config.random_mask_count,
+            "geometry_bootstrap_samples": geometry_config.bootstrap_samples,
+            "panel_classes": shard_config.panel_classes,
+            "examples_per_class": shard_config.examples_per_class,
+            "shard_trials": shard_config.trials,
+            "permutations_per_trial": shard_config.permutations_per_trial,
+            "expected_official_r1": geometry_config.expected_official_r1,
+            "reproduction_tolerance": geometry_config.reproduction_tolerance,
+            "geometry_delta_threshold": geometry_config.delta_threshold,
+            "geometry_mask_wins_threshold": geometry_config.mask_wins_threshold,
+            "geometry_disagreement_threshold": (geometry_config.disagreement_threshold),
+            "shard_loss_range_threshold": shard_config.loss_range_threshold,
+            "shard_gradient_mse_ratio": shard_config.gradient_mse_ratio,
+            "coherent_placement_control_tolerance": (shard_config.coherent_control_tolerance),
+            "shard_prediction_change_threshold": (shard_config.prediction_change_threshold),
+            "arcface_margin": shard_config.arcface_margin,
+            "arcface_scale": shard_config.arcface_scale,
+            "geometry_norm_bootstrap_seed": geometry_config.norm_bootstrap_seed,
+            "geometry_energy_bootstrap_seed": geometry_config.energy_bootstrap_seed,
+            "geometry_full_bootstrap_seed": geometry_config.full_bootstrap_seed,
+            "geometry_random_mask_seed_start": (geometry_config.random_mask_seed_start),
+            "panel_selection_seed": shard_config.panel_selection_seed,
+            "shard_mask_seed_start": shard_config.mask_seed_start,
+            "shard_mask_seed_stride": shard_config.mask_seed_stride,
+            "shard_assignment_seed_start": shard_config.assignment_seed_start,
+            "shard_rank_count": shard_config.shard_rank_count,
         },
         "geometry": geometry_payload,
         "sharding": sharding_payload,
@@ -340,19 +424,17 @@ def validate_audit_report(value: object) -> None:
     _require_exact_keys(input_value["metadata"], _METADATA_KEYS, name="report metadata")
     constants = _require_exact_keys(
         report["constants"],
-        (
-            "selected_coordinates",
-            "random_masks",
-            "geometry_bootstrap_samples",
-            "panel_classes",
-            "examples_per_class",
-            "shard_trials",
-            "permutations_per_trial",
-        ),
+        _CONSTANT_KEYS,
         name="report constants",
     )
-    if any(type(value) is not int or value <= 0 for value in constants.values()):
+    count_values = tuple(constants[name] for name in _COUNT_CONSTANT_KEYS)
+    if any(type(value) is not int or value <= 0 for value in count_values):
         raise ValueError("report constants differ")
+    if any(
+        type(constants[name]) is not type(expected) or constants[name] != expected
+        for name, expected in _FIXED_CONSTANTS.items()
+    ):
+        raise ValueError("report frozen constants differ")
     geometry = _require_exact_keys(
         report["geometry"],
         (
@@ -403,7 +485,7 @@ def validate_audit_report(value: object) -> None:
             "coherent_gradient_mse",
             "independent_gradient_cosine_distance",
             "coherent_gradient_cosine_distance",
-            "coherent_invariance_error",
+            "coherent_placement_control_error",
             "prediction_change_rate",
             "mask_union_coverage",
             "all_finite",
@@ -433,6 +515,21 @@ def validate_audit_report(value: object) -> None:
         raise TypeError("warnings schema differs")
 
 
+def validate_official_audit_report(value: object) -> None:
+    """Validate the frozen official audit settings in addition to its schema."""
+
+    validate_audit_report(value)
+    report = value
+    assert isinstance(report, dict)
+    constants = report["constants"]
+    assert isinstance(constants, dict)
+    if any(
+        type(constants[name]) is not int or constants[name] != expected
+        for name, expected in _OFFICIAL_COUNT_CONSTANTS.items()
+    ):
+        raise ValueError("report official count constants differ")
+
+
 def publish_json_no_clobber(path: Path, payload: Mapping[str, object]) -> None:
     """Publish a validated JSON report with exclusive hard-link installation."""
 
@@ -444,8 +541,7 @@ def publish_json_no_clobber(path: Path, payload: Mapping[str, object]) -> None:
     if path.exists() or path.is_symlink():
         raise FileExistsError(path)
     encoded = (
-        json.dumps(payload, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
-        + "\n"
+        json.dumps(payload, allow_nan=False, ensure_ascii=False, separators=(",", ":")) + "\n"
     ).encode("utf-8")
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     descriptor: int | None = None
