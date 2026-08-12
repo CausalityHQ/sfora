@@ -38,6 +38,11 @@ class ArmComparison:
     right_to_wrong: int
     p_value: float
     shard_gains: tuple[float, float, float, float]
+    raw_correct: int = 0
+    correct: int = 0
+    shard_counts: tuple[int, int, int, int] = (0, 0, 0, 0)
+    shard_raw_correct: tuple[int, int, int, int] = (0, 0, 0, 0)
+    shard_correct: tuple[int, int, int, int] = (0, 0, 0, 0)
 
 
 @dataclass(frozen=True)
@@ -135,9 +140,7 @@ def reporting_shards(evaluation_labels: np.ndarray) -> np.ndarray:
 
     labels = _labels(evaluation_labels, name="evaluation_labels")
     shards = [
-        hashlib.sha256(
-            b"AHNCR-shard-v1:" + np.asarray(label, dtype="<i8").tobytes()
-        ).digest()[0]
+        hashlib.sha256(b"AHNCR-shard-v1:" + np.asarray(label, dtype="<i8").tobytes()).digest()[0]
         >> 6
         for label in labels
     ]
@@ -175,9 +178,7 @@ def _validate_operator(
 
 def _stable_topk(scores: np.ndarray, k: int) -> np.ndarray:
     indices = np.arange(scores.shape[1], dtype=np.int64)
-    return np.stack(
-        [np.lexsort((indices, -row))[:k] for row in scores], axis=0
-    )
+    return np.stack([np.lexsort((indices, -row))[:k] for row in scores], axis=0)
 
 
 def hard_negative_centroids(
@@ -239,8 +240,7 @@ def exact_mcnemar(wrong_to_right: int, right_to_wrong: int) -> float:
     if discordant == 0:
         return 1.0
     tail = sum(
-        math.comb(discordant, index)
-        for index in range(min(wrong_to_right, right_to_wrong) + 1)
+        math.comb(discordant, index) for index in range(min(wrong_to_right, right_to_wrong) + 1)
     )
     return min(1.0, float(Fraction(2 * tail, 2**discordant)))
 
@@ -265,6 +265,9 @@ def _comparison(
         )
         for shard in range(4)
     )
+    shard_counts = tuple(int(np.sum(shard_ids == shard)) for shard in range(4))
+    shard_raw_correct = tuple(int(np.sum(raw_correct[shard_ids == shard])) for shard in range(4))
+    shard_correct = tuple(int(np.sum(corrected[shard_ids == shard])) for shard in range(4))
     return ArmComparison(
         raw_recall=raw_recall,
         recall=recall,
@@ -273,6 +276,11 @@ def _comparison(
         right_to_wrong=right_to_wrong,
         p_value=exact_mcnemar(wrong_to_right, right_to_wrong),
         shard_gains=shard_gains,  # type: ignore[arg-type]
+        raw_correct=int(np.sum(raw_correct)),
+        correct=int(np.sum(corrected)),
+        shard_counts=shard_counts,  # type: ignore[arg-type]
+        shard_raw_correct=shard_raw_correct,  # type: ignore[arg-type]
+        shard_correct=shard_correct,  # type: ignore[arg-type]
     )
 
 
@@ -301,9 +309,7 @@ def evaluate_ahncr(
     query_matrix = _unit_embeddings(queries, name="queries")
     gallery_matrix = _unit_embeddings(gallery, name="gallery")
     cohort_matrix = _unit_embeddings(cohort, name="cohort")
-    if not (
-        query_matrix.shape[1] == gallery_matrix.shape[1] == cohort_matrix.shape[1]
-    ):
+    if not (query_matrix.shape[1] == gallery_matrix.shape[1] == cohort_matrix.shape[1]):
         raise ValueError("embedding dimensions differ")
     query_targets = _labels(query_labels, name="query_labels")
     gallery_targets = _labels(gallery_labels, name="gallery_labels")
@@ -328,9 +334,7 @@ def evaluate_ahncr(
     )
     raw_scores = np.asarray(query_matrix @ gallery_matrix.T, dtype=np.float32)
     centroid_scores = np.asarray(query_centroids @ gallery_matrix.T, dtype=np.float32)
-    global_mean = np.asarray(
-        np.mean(cohort_matrix.astype(np.float64), axis=0), dtype=np.float32
-    )
+    global_mean = np.asarray(np.mean(cohort_matrix.astype(np.float64), axis=0), dtype=np.float32)
     global_scores = np.asarray(global_mean @ gallery_matrix.T, dtype=np.float32)
     symmetric_scores = np.asarray(
         _normalized_residual(query_matrix, query_centroids)
@@ -340,12 +344,8 @@ def evaluate_ahncr(
     scores = {
         "raw": raw_scores,
         "ahncr": np.asarray(2.0 * raw_scores - centroid_scores, dtype=np.float32),
-        "global_mean": np.asarray(
-            2.0 * raw_scores - global_scores[None, :], dtype=np.float32
-        ),
-        "positive_expansion": np.asarray(
-            2.0 * raw_scores + centroid_scores, dtype=np.float32
-        ),
+        "global_mean": np.asarray(2.0 * raw_scores - global_scores[None, :], dtype=np.float32),
+        "positive_expansion": np.asarray(2.0 * raw_scores + centroid_scores, dtype=np.float32),
         "unary_cohort_density": np.asarray(
             2.0 * raw_scores - gallery_density.astype(np.float32)[None, :],
             dtype=np.float32,

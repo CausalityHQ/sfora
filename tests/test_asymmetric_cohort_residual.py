@@ -21,9 +21,7 @@ from sfora.asymmetric_cohort_residual import (
 
 def _unit(rows: list[list[float]]) -> np.ndarray:
     values = np.asarray(rows, dtype=np.float32)
-    return np.asarray(
-        values / np.linalg.norm(values, axis=1, keepdims=True), dtype=np.float32
-    )
+    return np.asarray(values / np.linalg.norm(values, axis=1, keepdims=True), dtype=np.float32)
 
 
 def _label_key(value: np.int64) -> tuple[bytes, int]:
@@ -36,9 +34,7 @@ def _id_key(value: str) -> tuple[bytes, str]:
 
 
 def test_split_heldout_labels_is_literal_hash_ordered_and_class_disjoint() -> None:
-    labels = np.asarray(
-        [9, 9, 7, 7, 7, 5, 5, 3, 3, 1, 1, 11], dtype=np.int64
-    )
+    labels = np.asarray([9, 9, 7, 7, 7, 5, 5, 3, 3, 1, 1, 11], dtype=np.int64)
     split = split_heldout_labels(labels)
     eligible = sorted(
         [np.int64(1), np.int64(3), np.int64(5), np.int64(7), np.int64(9)],
@@ -85,12 +81,8 @@ def test_hard_negative_centroids_matches_stable_literal_topk_and_blocks() -> Non
         [(cohort[0] + cohort[1]) / 2, (cohort[1] + cohort[2]) / 2],
         dtype=np.float32,
     )
-    assert hard_negative_centroids(queries, cohort, k=2, block_size=1) == pytest.approx(
-        expected
-    )
-    assert hard_negative_centroids(queries, cohort, k=2, block_size=8) == pytest.approx(
-        expected
-    )
+    assert hard_negative_centroids(queries, cohort, k=2, block_size=1) == pytest.approx(expected)
+    assert hard_negative_centroids(queries, cohort, k=2, block_size=8) == pytest.approx(expected)
 
 
 def test_unary_cohort_density_matches_literal_topk_mean() -> None:
@@ -98,9 +90,7 @@ def test_unary_cohort_density_matches_literal_topk_mean() -> None:
     gallery = _unit([[1, 1], [1, -1]])
     root_half = np.float32(1 / np.sqrt(2))
     expected = np.asarray([root_half, root_half], dtype=np.float64)
-    assert unary_cohort_density(gallery, cohort, k=2, block_size=1) == pytest.approx(
-        expected
-    )
+    assert unary_cohort_density(gallery, cohort, k=2, block_size=1) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize("bad_k", [True, 0, 5])
@@ -229,9 +219,7 @@ def test_exact_mcnemar_uses_exact_two_sided_binomial_tail() -> None:
 
 def _passing_evaluation() -> Evaluation:
     raw = ArmComparison(0.70, 0.70, 0.0, 0, 0, 1.0, (0.0, 0.0, 0.0, 0.0))
-    candidate = ArmComparison(
-        0.70, 0.71, 0.01, 20, 10, 0.009, (0.01, 0.01, 0.01, -0.001)
-    )
+    candidate = ArmComparison(0.70, 0.71, 0.01, 20, 10, 0.009, (0.01, 0.01, 0.01, -0.001))
     control = ArmComparison(0.70, 0.7089, 0.0089, 10, 1, 0.02, (0, 0, 0, 0))
     return Evaluation(
         arms={
@@ -242,7 +230,7 @@ def _passing_evaluation() -> Evaluation:
             "unary_cohort_density": control,
             "symmetric_ad_norm": control,
         },
-        shuffled_gains=(0.001,) * 19 + (0.008, ),
+        shuffled_gains=(0.001,) * 19 + (0.008,),
         shuffled_p95=0.00135,
     )
 
