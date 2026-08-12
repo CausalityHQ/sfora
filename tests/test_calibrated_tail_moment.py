@@ -403,6 +403,29 @@ def test_width_grid_has_exact_controls_and_storage_accounting() -> None:
     assert native_basis.kind == "native"
 
 
+def test_registered_width_may_equal_official_geometry_width() -> None:
+    train = _unit_fixture()
+    basis = fit_projection_basis(train, kind="pca")
+    projected = project_unit(train, basis)
+
+    views = evaluate_width(
+        train[:2],
+        train[2:],
+        projected[:2],
+        projected[2:],
+        np.asarray(["a", "b"]),
+        np.asarray(["a", "b"]),
+        width=2,
+        native_fit=fit_tail_moment(train, width=2, basis_kind="native", neighbors=1),
+        pca_fit=fit_tail_moment(projected, width=2, basis_kind="pca", neighbors=1),
+        pca_fixed_bytes=basis.mean.nbytes + basis.matrix.nbytes,
+        official_width=2,
+    )
+
+    assert views["native_ctm"].values_per_row == 3
+    assert views["official_512"].values_per_row == 2
+
+
 def _passing_decision(**changes):
     values = {
         "ctm_r1": 0.91,

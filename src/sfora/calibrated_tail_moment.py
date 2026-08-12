@@ -593,8 +593,8 @@ def evaluate_width(
         raise ValueError("evaluation dimensions differ")
     if type(width) is not int or not 0 < width + 1 < dimension:
         raise ValueError("evaluation width must leave at least one tail coordinate")
-    if type(official_width) is not int or not width < official_width <= dimension:
-        raise ValueError("official_width must exceed width and fit the dimension")
+    if type(official_width) is not int or not 0 < official_width <= dimension:
+        raise ValueError("official_width must be positive and fit the dimension")
     if type(pca_fixed_bytes) is not int or pca_fixed_bytes < 0:
         raise ValueError("pca_fixed_bytes must be a nonnegative builtin integer")
 
