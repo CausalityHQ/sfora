@@ -158,6 +158,20 @@ def validate_inshop_dataset_root(dataset_root: Path) -> Path:
         raise ValueError("DADA In-Shop dataset is missing") from exc
     if not inshop.is_dir():
         raise ValueError("DADA In-Shop dataset is not a directory")
+    partition = inshop / "list_eval_partition.txt"
+    try:
+        rows = partition.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError as exc:
+        raise ValueError("DADA In-Shop partition is missing") from exc
+    if len(rows) < 3 or not rows[2].split():
+        raise ValueError("DADA In-Shop partition has no registered rows")
+    relative_image = rows[2].split()[0]
+    try:
+        registered_image = (inshop / relative_image).resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise ValueError("DADA In-Shop registered image is missing") from exc
+    if not registered_image.is_file():
+        raise ValueError("DADA In-Shop registered image is not a file")
     return root
 
 

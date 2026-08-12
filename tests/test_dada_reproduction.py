@@ -164,7 +164,19 @@ def test_inshop_dataset_preflight_requires_real_registered_subdirectory(
     with pytest.raises(ValueError, match="In-Shop dataset"):
         dada.validate_inshop_dataset_root(dataset_root)
 
-    (dataset_root / "inshop").mkdir()
+    inshop = dataset_root / "inshop"
+    inshop.mkdir()
+    with pytest.raises(ValueError, match="partition"):
+        dada.validate_inshop_dataset_root(dataset_root)
+
+    (inshop / "list_eval_partition.txt").write_text(
+        "1\nimage_name item_id evaluation_status\nimg/example.jpg id_1 train\n"
+    )
+    with pytest.raises(ValueError, match="registered image"):
+        dada.validate_inshop_dataset_root(dataset_root)
+
+    (inshop / "img").mkdir()
+    (inshop / "img" / "example.jpg").write_bytes(b"image")
     assert dada.validate_inshop_dataset_root(dataset_root) == dataset_root.resolve()
 
 
