@@ -48,6 +48,8 @@ EndToEndObjective = Literal[
     "group_potential",
     "group_potential_xbm",
     "proxy_anchor",
+    "proxy_anchor_lops_pg",
+    "proxy_anchor_compactness",
     "proxy_anchor_coalition",
     "proxy_anchor_cem",
     "tversky_proxy_anchor",
@@ -1444,6 +1446,19 @@ def run_image_end_to_end_benchmark(
                         embeddings = _normalize(raw_embeddings, torch)
                     if bgsi_state is not None:
                         bgsi_state.update(embeddings, labels)
+                    if objective == "proxy_anchor_lops_pg":
+                        hook_embeddings = embeddings.detach()
+                        hook_labels = labels.detach()
+                        embeddings.register_hook(
+                            lambda gradient,
+                            frozen_embeddings=hook_embeddings,
+                            frozen_labels=hook_labels: _lops_pg_embedding_gradient(
+                                gradient,
+                                frozen_embeddings,
+                                frozen_labels,
+                                torch_module=torch,
+                            )
+                        )
                     teacher_embeddings = None
                     if teacher_model is not None:
                         with torch.no_grad():
@@ -3054,6 +3069,8 @@ class _BestCheckpoint:
 def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
     if objective in {
         "proxy_anchor",
+        "proxy_anchor_lops_pg",
+        "proxy_anchor_compactness",
         "proxy_anchor_coalition",
         "proxy_anchor_cem",
         "tversky_proxy_anchor",
@@ -3720,6 +3737,10 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
             alpha=config.proxy_anchor_alpha,
             delta=config.proxy_anchor_delta,
             torch_module=torch_module,
+        )
+    if kwargs["objective"] == "proxy_anchor_compactness":
+        loss = loss + 0.1 * _positive_compactness_loss(
+            embeddings, labels, torch_module=torch_module
         )
     if config.ipsr_weight > 0.0 and kwargs.get("ipsr_state") is not None:
         sample_indices = kwargs.get("sample_indices")
@@ -4552,6 +4573,8 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "group_supcon_xbm_radius": _group_supcon_xbm_radius_objective_loss,
     "pfml": _pfml_objective_loss,
     "proxy_anchor": _proxy_anchor_objective_loss,
+    "proxy_anchor_lops_pg": _proxy_anchor_objective_loss,
+    "proxy_anchor_compactness": _proxy_anchor_objective_loss,
     "proxy_anchor_coalition": _proxy_anchor_coalition_objective_loss,
     "proxy_anchor_cem": _proxy_anchor_cem_objective_loss,
     "tversky_proxy_anchor": _tversky_proxy_anchor_objective_loss,
@@ -4659,6 +4682,8 @@ def _objective_display_name(objective: str) -> str:
         "group_potential": "Group Potential",
         "group_potential_xbm": "Group Potential + XBM",
         "proxy_anchor": "Proxy Anchor",
+        "proxy_anchor_lops_pg": "Proxy Anchor + LOPS-PG",
+        "proxy_anchor_compactness": "Proxy Anchor + Positive Compactness",
         "proxy_anchor_coalition": "Proxy Anchor + Coalition Supervision",
         "proxy_anchor_cem": "Proxy Anchor + Confusion-Edge Margin",
         "tversky_proxy_anchor": "Tversky contrast similarity",
@@ -5710,6 +5735,63 @@ def _lennard_jones_intra_term(
     ratio = float(sigma) / distances[valid_positive]
     well = ratio.pow(2.0 * float(power)) - 2.0 * ratio.pow(float(power))
     return well.mean()
+
+
+def _positive_centroid_tangents(
+    embeddings: Any, labels: Any, *, torch_module: Any
+) -> tuple[Any, Any]:
+    """Return stopped leave-one-out centroid tangents and their active rows."""
+
+    with torch_module.no_grad():
+        normalized = _normalize(embeddings.detach(), torch_module)
+        same = labels[:, None].eq(labels[None, :])
+        same.fill_diagonal_(False)
+        counts = same.sum(dim=1)
+        active = counts.gt(0)
+        sibling_means = same.to(normalized.dtype) @ normalized
+        sibling_means = sibling_means / counts.clamp_min(1).to(normalized.dtype)[:, None]
+        centroids = _normalize(sibling_means, torch_module)
+        tangents = centroids - normalized * (normalized * centroids).sum(
+            dim=1, keepdim=True
+        )
+        tangents[~active] = 0.0
+        active &= tangents.norm(dim=1).ge(1e-8)
+    return tangents, active
+
+
+def _lops_pg_embedding_gradient(
+    gradient: Any, embeddings: Any, labels: Any, *, torch_module: Any
+) -> Any:
+    """Project conflicting live embedding cotangents onto positive safety."""
+
+    tangents, active = _positive_centroid_tangents(
+        embeddings, labels, torch_module=torch_module
+    )
+    dots = (gradient * tangents).sum(dim=1)
+    squared_norms = tangents.square().sum(dim=1)
+    conflict = active & dots.gt(0.0)
+    scale = torch_module.zeros_like(dots)
+    scale[conflict] = dots[conflict] / squared_norms[conflict]
+    return gradient - scale[:, None] * tangents
+
+
+def _positive_compactness_loss(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
+    """Mean cosine distance to stopped leave-one-out same-class centroids."""
+
+    normalized = _normalize(embeddings, torch_module)
+    with torch_module.no_grad():
+        stopped = normalized.detach()
+        same = labels[:, None].eq(labels[None, :])
+        same.fill_diagonal_(False)
+        counts = same.sum(dim=1)
+        active = counts.gt(0)
+        sibling_means = same.to(stopped.dtype) @ stopped
+        sibling_means = sibling_means / counts.clamp_min(1).to(stopped.dtype)[:, None]
+        centroids = _normalize(sibling_means, torch_module)
+    if not bool(active.any()):
+        return embeddings.sum() * 0.0
+    cosine = (normalized * centroids).sum(dim=1)
+    return (1.0 - cosine[active]).mean()
 
 
 def _proxy_anchor_loss(

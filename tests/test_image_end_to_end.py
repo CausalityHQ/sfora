@@ -1537,6 +1537,135 @@ def test_end_to_end_config_accepts_frozen_baseline_objective() -> None:
     )
 
 
+def test_lops_pg_embedding_gradient_projects_only_conflicts() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _lops_pg_embedding_gradient
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [-0.6, 0.8]], dtype=torch.float64
+    )
+    labels = torch.tensor([0, 0, 1, 1], dtype=torch.long)
+    gradient = torch.tensor(
+        [[0.0, 2.0], [0.6, -0.8], [2.0, 0.0], [-0.8, -0.6]], dtype=torch.float64
+    )
+    actual = _lops_pg_embedding_gradient(gradient, embeddings, labels, torch_module=torch)
+    assert actual.dtype == gradient.dtype
+    assert actual.shape == gradient.shape
+    with torch.no_grad():
+        tangent = torch.stack(
+            [
+                embeddings[1] - embeddings[0] * (embeddings[0] @ embeddings[1]),
+                embeddings[0] - embeddings[1] * (embeddings[1] @ embeddings[0]),
+                embeddings[3] - embeddings[2] * (embeddings[2] @ embeddings[3]),
+                embeddings[2] - embeddings[3] * (embeddings[3] @ embeddings[2]),
+            ]
+        )
+    dots = (actual * tangent).sum(dim=1)
+    assert bool((dots <= 1e-12).all())
+
+
+def test_positive_compactness_stops_sibling_centroids() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _positive_compactness_loss
+
+    embeddings = torch.tensor(
+        [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [-0.6, 0.8]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    labels = torch.tensor([0, 0, 1, 1], dtype=torch.long)
+    loss = _positive_compactness_loss(embeddings, labels, torch_module=torch)
+    expected = torch.tensor([0.2, 0.2, 0.2, 0.2], dtype=torch.float64).mean()
+    torch.testing.assert_close(loss, expected)
+    loss.backward()
+    assert embeddings.grad is not None and bool(torch.isfinite(embeddings.grad).all())
+
+
+def test_lops_hook_preserves_proxy_anchor_loss_and_proxy_gradient() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _lops_pg_embedding_gradient, _proxy_anchor_loss
+
+    labels = torch.tensor([0, 0, 1, 1], dtype=torch.long)
+    proxy_labels = torch.tensor([0, 1], dtype=torch.long)
+    base_embeddings = torch.tensor(
+        [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [-0.6, 0.8]], dtype=torch.float64
+    )
+    base_proxies = torch.tensor([[0.9, 0.1], [0.1, 0.9]], dtype=torch.float64)
+
+    def run(with_hook: bool) -> tuple[float, object]:
+        embeddings = base_embeddings.clone().requires_grad_(True)
+        proxies = base_proxies.clone().requires_grad_(True)
+        if with_hook:
+            embeddings.register_hook(
+                lambda gradient: _lops_pg_embedding_gradient(
+                    gradient, embeddings.detach(), labels, torch_module=torch
+                )
+            )
+        loss = _proxy_anchor_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxies,
+            proxy_labels=proxy_labels,
+            alpha=32.0,
+            delta=0.1,
+            torch_module=torch,
+        )
+        loss.backward()
+        return float(loss.detach()), proxies.grad
+
+    plain_loss, plain_proxy_gradient = run(False)
+    lops_loss, lops_proxy_gradient = run(True)
+    assert lops_loss == plain_loss
+    torch.testing.assert_close(lops_proxy_gradient, plain_proxy_gradient, rtol=0.0, atol=0.0)
+
+
+def test_lops_and_compactness_objectives_complete_tiny_training() -> None:
+    torch = pytest.importorskip("torch")
+
+    class TinyModel(torch.nn.Module):  # type: ignore[misc]
+        def __init__(self) -> None:
+            super().__init__()
+            self.linear = torch.nn.Linear(2, 2)
+
+        def forward(self, images: object) -> object:
+            return self.linear(images)
+
+    examples = [
+        ImageExample(
+            example_id=f"{label}-{index}", image=[float(label), float(index)], label=label
+        )
+        for label in range(4)
+        for index in range(2)
+    ]
+    result = run_image_end_to_end_benchmark(
+        train_examples=examples,
+        test_examples=examples,
+        config=ImageEndToEndConfig(
+            dataset_name="cub",
+            protocol="sota-resnet50-512",
+            objectives=("proxy_anchor_lops_pg", "proxy_anchor_compactness"),
+            backbone_name="tiny",
+            embedding_dimensions=2,
+            batch_size=8,
+            eval_batch_size=8,
+            train_steps=1,
+            group_size=2,
+            proxy_count_per_class=1,
+            progress_every=0,
+            num_workers=0,
+        ),
+        model_factory=lambda config: TinyModel(),
+        transform_factory=lambda config, train: lambda image: torch.as_tensor(
+            image, dtype=torch.float32
+        ),
+    )
+    assert set(result.methods) == {
+        "proxy_anchor_lops_pg_end_to_end:tiny",
+        "proxy_anchor_compactness_end_to_end:tiny",
+    }
+    assert all(len(method.loss_history) == 1 for method in result.methods.values())
+
+
 def test_end_to_end_config_accepts_group_potential_objectives() -> None:
     config = ImageEndToEndConfig(
         dataset_name="cub",
