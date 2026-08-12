@@ -66,7 +66,8 @@ resolutions, pooling rules, and output dimensions for:
 - the released UNICOM ViT-B/16 export under its official normalize-full,
   truncate-512-without-renormalization Euclidean geometry; and
 - the strongest faithful local DADA/VPTSP-G reproduction available at the
-  time of execution.
+  time of execution, with the faithful BN-Inception Proxy Anchor reproduction
+  as the registered fallback comparator when neither reproduction is ready.
 
 An unavailable gated weight is recorded as unavailable; it is never silently
 replaced. If neither DINOv3 compact model is accessible, MobileCLIP-S2 becomes
@@ -107,15 +108,21 @@ Report R@1/10/20/30 for In-Shop, R@1/10/100 for SOP, mAP@R where defined, and
 the full quality/cost table. Raw-frozen rows are descriptive. Fit the same
 bias-free 512-D linear probe to every F0-green anchor using cached
 training-identity features and select only on the identity-disjoint validation
-split. Continue only if at least one probe comes within 1.0 validation R@1
-point of the strongest faithful local anchor, or is strictly Pareto-dominant on
-encoder p95 or descriptor bytes while inside the 0.40-point margin.
+split. The comparator is the strongest faithful local anchor that is F0-green
+and has been re-evaluated with this identical probe protocol on the same
+identity-disjoint validation split; published or official-test values,
+including BN-Inception PA 91.5201 and DADA/VPTSP-G capability rows, are
+descriptive only. Continue only if at least one probe comes within 1.0
+validation R@1 point of that same-split comparator, or is strictly
+Pareto-dominant on encoder p95 or descriptor bytes while inside the 0.40-point
+margin.
 
 Because closed LVD/WebLI corpora make contamination unfalsifiable, In-Shop,
 Cars196, and SOP are reproduction/generality rows, not contamination evidence.
 ILIAS's post-cutoff construction is mandatory and non-substitutable before a
 zero-shot or general foundation-transfer claim. SOP remains a separate
-generality check.
+generality check. If ILIAS does not run, every claim is restricted to In-Shop
+and SOP reproduction and the general foundation-transfer claim closes.
 
 ## 4. Cached-feature Matryoshka adapter
 
@@ -141,9 +148,11 @@ reproduced.
 
 Descriptor storage is a Section 4 claim: compare teacher/teacher retrieval at
 the validation-selected prefix with the same teacher at 512 dimensions and
-with PCA/PQ/OPQ/INT8 controls. Require quality inside the registered 0.40-point
-equivalence margin and at least 2x smaller gallery rows. It is not credited to
-the later student.
+with PCA/PQ/OPQ/INT8 controls. The 64-D prefix is diagnostic only; the
+deployable prefix is selected from `{128,256,512}` so the later student can
+serve it. Require the 90% query-identity paired-bootstrap interval to lie
+entirely inside `[-0.40,+0.40]` R@1 point and require at least 2x smaller
+gallery rows. It is not credited to the later student.
 
 ### 4.2 Optional complementary teacher
 
@@ -172,8 +181,9 @@ complementarity.
 The null deployment control is the released DINOv3-S or ConvNeXt-Tiny frozen
 encoder plus its own Section 4 adapter; Meta already distilled these backbones,
 so another distillation must beat this control rather than a weak unadapted
-student. Only if the null loses the registered quality target, fine-tune one
-small student against the adapted P2 teacher. Add one 512-D head whose prefixes
+student. F2 therefore fine-tunes exactly one small student against the single
+adapted teacher of Section 4.1 and retains it only if it clears the F2 bullet-3
+threshold against that null. Add one 512-D head whose prefixes
 `{128,256,512}` are independently L2-normalized.
 
 The primary deployment is explicitly asymmetric: gallery rows are encoded
@@ -258,6 +268,10 @@ satisfies all:
   cached-feature linear alignment must not recover 90% of that gain. Otherwise
   use the aligned null and close additional distillation.
 
+For the asymmetric comparison, the matched null is Section 5.3 control 6 in
+the teacher's serving coordinates. The Section 5.1 own-adapter null is compared
+only in the symmetric student/student versus null/null configuration.
+
 Kill relational distillation if feature-only recovers at least 90% of its gain.
 Kill MRL if independently trained fixed-width heads dominate every prefix at
 matched width and training cost.
@@ -306,7 +320,9 @@ repeatability plus cross-tile tolerance tests. Keep it only if it provides at
 least 1.5x operator speed, at least 10% end-to-end step speed, and at least 15%
 lower median time-to-the-frozen-quality-target over paired runs. A larger batch
 counts only if it improves quality at matched GPU-hours. Otherwise retain the
-maintained implementation.
+maintained implementation. The time-to-quality test uses at least four paired
+seeds and is paid from the surviving F2/F3 allocation; it is not an additional
+GPU budget.
 
 ### 6.1 Workloads
 
@@ -387,28 +403,43 @@ delete the custom path and ship the maintained index.
 2. Implement the missing F0 surface explicitly: revision-addressed model and
    processor loading; content-addressed multi-view cache v2; asynchronous
    export; batch latency/memory/MAC instrumentation; SOP R@100; and
-   metric-specific native-evaluator fixtures.
+   metric-specific native-evaluator fixtures. Also implement train-only
+   PCA/INT8/PQ/OPQ comparators and pin an importable FAISS/cuVS build before
+   any Section 4 compression claim. Budget 10 engineer-days of CPU/dev work;
+   this estimate consumes no GB10 hours.
 3. Implement and test a PyTorch linear/MLP Matryoshka adapter; run F1 frozen
    screens plus cheap linear probes and close unavailable or weak anchors.
+   Budget 5 engineer-days of CPU/dev work.
 4. Fit the single adapter and optional two-encoder diagnostic; close fusion if
    complementarity fails.
-5. Run the three-seed F2 student falsifier.
-6. Before F2, implement cached external-teacher targets, the small-backbone
-   training path, asymmetric aligned-space evaluator, and matched nulls. Spend
-   F3 only on the validation-selected prefix/control pair.
-7. Acquire or name a real 1M+ workload and benchmark maintained search.
-8. Write Triton/CUDA only after K0.
+5. Before F2, implement cached external-teacher targets, the small-backbone
+   training path, asymmetric aligned-space evaluator, and matched nulls.
+   Budget 8 engineer-days of CPU/dev work.
+6. Run the three-seed F2 student falsifier. Spend F3 only on the
+   validation-selected prefix/control pair.
+7. Estimate and, if affordable, run the ILIAS quality evaluation. If it does
+   not run, close the general foundation-transfer claim.
+8. If the T0 profiler trigger fires, run at least four paired maintained-versus-
+   candidate time-to-quality seeds inside the surviving F2/F3 allocation.
+9. Acquire or name a real 1M+ workload and benchmark maintained search.
+10. Write Triton/CUDA only after K0.
 
 This design supersedes the parent's unlaunched post-queue allocation while
-retaining its gross 120-GB10-hour ceiling; already spent protocol-identical
-hours are charged against it. Frozen exports/F0 receive 6 hours, cached
-adapters 4, F2 student screening 25, confirmatory F3 at most 50, conditional
-DADA/VPTSP-G fidelity work 25 only if no current probe reaches the local
-anchor, and 10 remain reserve. The conditional fidelity and F3 allocations
-cannot both exceed the gross ceiling; measured short-run throughput may shrink
-but never enlarge them. Public 5M characterization requires its own prospective
-encoding estimate within the reserve; otherwise it does not run. Kernel work
-receives no GPU budget before T0/K0.
+retaining its gross 120-GB10-hour ceiling. Before a new job, the execution
+ledger enumerates every already-spent protocol-identical run as `H_spent` and
+sets `H_remaining = 120 - H_spent`; no rounded or estimated value can authorize
+work. Frozen exports/F0 may use at most 6 new hours, cached adapters 4, and F2
+student screening 25. Conditional DADA/VPTSP-G fidelity work may use at most
+25 only if no current same-split probe reaches the fallback anchor. Ten hours
+remain reserve for a prospectively estimated ILIAS/public characterization.
+F3 receives at most
+`min(50, H_remaining - H_F0 - H_adapter - H_F2 - H_fidelity - 10)` and is cut
+first if the ledger would exceed 120; conditional fidelity is cut next. T0's
+at-least-four paired runs are charged to the surviving F2/F3 line rather than
+added on top. Measured short-run throughput may shrink but never enlarge these
+caps. If the reserve cannot cover ILIAS encoding, ILIAS does not run and the
+general foundation-transfer claim closes. Kernel work receives no GPU budget
+before T0/K0.
 
 ## 8. Claims and stop rules
 
