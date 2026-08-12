@@ -12,7 +12,10 @@
 
 - Input is exactly train archive SHA-256 `67aa387c9815fd300e7db0da9f1a781e4b95191bc9db715e7d06850c9a7e6fea`.
 - Run with `CUDA_VISIBLE_DEVICES=''` and `OMP_NUM_THREADS=MKL_NUM_THREADS=OPENBLAS_NUM_THREADS=1`.
-- Use cohorts of 45 labels times four rows, local `k=50`, geodesic step `0.01`, tangent cutoff `1e-8`, control seeds `20260812` and `20260814`, bootstrap seed `20260813`, and 10,000 label resamples.
+- Use cohorts of 45 labels times four rows, a deterministic 12,612-row density
+  pool, local `k=50`, geodesic step `0.01`, tangent cutoff `1e-8`, control
+  seeds `20260812` and `20260814`, bootstrap seed `20260813`, and 10,000 label
+  resamples.
 - Use float64 for all geometry and statistics. Treat all nuisance peers as stop-gradient.
 - The CPU gradient is explicitly the repository's centroid-proxy surrogate, not the historical learned-proxy gradient.
 - Do not open official query/gallery arrays or run GPU training unless this gate passes.
@@ -26,7 +29,8 @@
 - Create: `tests/test_idgp.py`
 
 **Interfaces:**
-- Produces: `normalize_rows`, `assign_label_folds`, `build_cohorts`, `local_excess_tangent`, and `global_tangent`.
+- Produces: `normalize_rows`, `assign_label_folds`, `build_cohorts`,
+  `build_density_pools`, `local_excess_tangent`, and `global_tangent`.
 - Consumes: unit or normalizable embeddings `(n,d)`, exact `int64` labels, and Unicode example IDs.
 
 - [ ] **Step 1: Write cohort-construction RED tests**
@@ -62,15 +66,18 @@ class Cohort:
 normalize_rows(value: NDArray[np.floating]) -> NDArray[np.float64]
 assign_label_folds(labels: NDArray[np.int64]) -> dict[int, int]
 build_cohorts(labels: NDArray[np.int64], example_ids: NDArray[np.str_]) -> Sequence[Cohort]
+build_density_pools(labels: NDArray[np.int64], example_ids: NDArray[np.str_]) -> DensityPools
 ```
 
-Sort labels by `(digest,label)`, slice consecutive groups of 45, select four
-rows by `(SHA256(row-domain + UTF-8 id),id)`, and define the next complete
-cohort in the fold cyclically as reference.
+Sort labels by `(digest,label)`, slice consecutive groups of 45, and select
+four rows by `(SHA256(row-domain + UTF-8 id),id)`. Independently sort every
+eligible row by `(SHA256(b"LE-IDGP-pool-v1:" + UTF-8 id),id)`: the first
+12,612 rows are the primary density pool and all remaining rows are the
+alternate diagnostic pool. Persist both ordered hashes.
 
 - [ ] **Step 4: Write finite-difference and decomposition RED tests**
 
-Use a six-row two-dimensional case with three foreign peers tied at the top-k
+Use separate anchor and pool arrays with three foreign peers tied at the top-k
 boundary. Assert stable ID tie-breaking. With a nontied case, central-difference
 
 ```text
@@ -84,13 +91,16 @@ tangent; require radial dot products below `1e-12`.
 - [ ] **Step 5: Implement top-k and global tangents**
 
 ```python
-local_excess_tangent(z, labels, example_ids, *, k=50) -> tuple[NDArray[np.float64], NDArray[np.float64]]
-global_tangent(z, labels) -> NDArray[np.float64]
+local_excess_tangent(anchors, anchor_labels, pool, pool_labels, pool_ids,
+                     *, k=50) -> tuple[NDArray[np.float64], NDArray[np.float64]]
+global_tangent(anchors, anchor_labels, pool, pool_labels) -> NDArray[np.float64]
 ```
 
-Return `(h, delta_rho)`. Select foreign peers by descending cosine then UTF-8
-ID. Reject fewer than `k` foreign peers. Compute `tangent(mean(top-k)-mean(all))`
-and `tangent(mean(all))` exactly in float64.
+Return `(h, delta_rho)`. Select different-label pool peers by descending cosine
+then UTF-8 ID. Reject fewer than `k` foreign peers. Compute
+`tangent(mean(top-k)-mean(all))` and `tangent(mean(all))` exactly in float64,
+using block matrix multiplication so the 12,612 peers do not create a dense
+all-anchor similarity matrix.
 
 - [ ] **Step 6: Run GREEN and commit**
 
@@ -159,14 +169,17 @@ zero, le_idgp, shuffled_local, random_tangent, global_centering, two_sided
 
 Assert shuffled and random arms use independent streams, the primary row set is
 exactly conflict intersect bottom margin quartile, the single-anchor result is
-primary, and reference-cohort diagnostics never enter arm decisions.
+primary, and alternate-pool diagnostics never enter arm decisions.
 
 - [ ] **Step 6: Implement `evaluate_cohort` and commit**
 
-Create `CohortEvaluation` holding exact row IDs/labels, conflict/skipped masks,
-pre-step geometry, each arm's margin and positive-similarity changes, analytic
-first-order reductions, local/global tangent norms/cosines, collective
-diagnostics, and disjoint-reference diagnostics.
+Create `CohortEvaluation` holding exact row IDs/labels, `bottom_mask`,
+conflict/skipped masks, pre-step geometry, each arm's margin and
+positive-similarity changes, analytic first-order reductions, local/global
+tangent norms/cosines, collective diagnostics, and alternate-pool diagnostics.
+Tests must prove one-sided and two-sided are identical on `primary_mask`, differ
+on at least one safe bottom-quartile row, and predicate 7 aggregates over
+`bottom_mask & ~skipped_mask` rather than primary rows.
 
 ```bash
 .venv/bin/pytest -q tests/test_idgp.py
@@ -226,8 +239,9 @@ predicates with exact builtin booleans.
 
 - [ ] **Step 5: Add a mechanism-positive synthetic test and commit**
 
-Build a 45-label/four-row unit-sphere cohort where a PA-like tangent increases
-top-50-minus-global crowding for the hard rows. Require LE-IDGP to improve the
+Build a 45-label/four-row unit-sphere cohort plus a separate density pool where
+a PA-like tangent increases top-50-minus-global crowding for the hard rows.
+Require LE-IDGP to improve the
 single-anchor primary margin, while shuffled, random, global, and two-sided
 controls fail their intended attribution checks.
 
@@ -267,8 +281,8 @@ schema_version,input,environment,configuration,cohorts,pooled,controls,
 bootstrap,diagnostics,decision
 ```
 
-Persist all constants and hashes, per-cohort counts and summaries,
-conflict/skipped/primary statistics, local/global/reference diagnostics, arm
+Persist all constants and density/alternate-pool hashes, per-cohort counts and
+summaries, conflict/skipped/primary statistics, local/global/alternate-pool diagnostics, arm
 effects, analytic effects, bootstrap bytes hashes/bounds/MDE, seven predicates,
 and status.
 

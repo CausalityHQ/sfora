@@ -37,11 +37,14 @@ component from the descent direction.
 
 ## Candidate mechanism
 
-Use the same `B=180` cohort shape as the intended training regime: 45 labels
-and four rows per label. Let `z_i` be a unit embedding, `F_i` its 176
-different-label peers, and `N_i` the 50 highest-cosine peers in `F_i` with
-stable example-ID tie breaking. All peers are stop-gradient. Define local
-excess foreign density
+Use the same `B=180` cohort shape as the intended training regime for the
+PA-surrogate gradient: 45 labels and four rows per label. Separately construct
+a stopped, deterministic density pool by ordering every eligible train row by
+`SHA256("LE-IDGP-pool-v1:" || example_id UTF-8)`, then taking the first 12,612
+rows. The size exactly matches the gallery population on which top-50 scaling
+was validated. For anchor `z_i`, let `F_i` be pool rows whose label differs
+from `y_i`, and let `N_i` be the 50 highest-cosine rows in `F_i` with stable
+example-ID tie breaking. Define local excess foreign density
 
 ```text
 delta_rho_i = mean_{j in N_i} <z_i,z_j>
@@ -55,9 +58,11 @@ h_i = (I - z_i z_i^T)
       (mean_{j in N_i} z_j - mean_{j in F_i} z_j).
 ```
 
-This directly matches the validated top-50 density scale while subtracting the
-global-centroid component. It cannot degenerate into either a nearly uniform
-global mean or a single hardest negative.
+The pool has 12,612 rows before the small same-label exclusion, so this matches
+the validated top-50 neighborhood fraction to within the removed source-class
+rows while subtracting the global-centroid component. It cannot degenerate into
+either a nearly uniform global mean or a single hardest negative. The
+180-sample cohort supplies `g_i`; it does not define `h_i`.
 
 Let `g_i` be the repository's deterministic Proxy-Anchor surrogate gradient:
 `sfora.training._proxy_anchor_gradient` with `ProjectionTrainingConfig(
@@ -116,9 +121,10 @@ in real training; it does not establish open-set transfer.
   groups of 45 labels; discard the incomplete tail. For each label choose the
   first four rows by SHA-256 of
   `b"LE-IDGP-row-v1:" + example_id.encode("utf-8")`, then example ID.
-- Each primary cohort is therefore exactly 180 rows and 45 labels. Its
-  reference cohort is the next complete cohort cyclically within the same
-  fold; labels are disjoint.
+- Each primary cohort is therefore exactly 180 rows and 45 labels.
+- Build the 12,612-row density pool once from all eligible rows under the pool
+  hash above. The unused eligible rows, if at least 1,000 remain, form an
+  alternate-pool diagnostic; this diagnostic is never a pass predicate.
 - Normalize archive rows first. Compute the PA-surrogate tangent, local-excess
   tangent, conflicts, and all controls in float64.
 
@@ -157,8 +163,8 @@ breaking. All arms are compared on those identical rows.
 - **Two-sided local ablation:** always remove the component parallel to `h_i`,
   including safe `c_i>=0` rows.
 - **Zero surgery:** the unmodified PA-surrogate tangent.
-- **Disjoint-reference diagnostic:** compute local-excess `h_i` from the
-  cyclic reference cohort instead of the primary cohort and report conflict
+- **Alternate-pool diagnostic:** compute local-excess `h_i` from the unused
+  eligible rows instead of the fixed 12,612-row pool and report conflict
   prevalence and cosine agreement. It is diagnostic, not a pass predicate.
 
 Bootstrap uses 10,000 PCG64 seed `20260813` resamples of labels, preserving all
@@ -181,7 +187,10 @@ LE-IDGP passes only if every condition holds:
 6. on the same primary rows, its mean nearest-positive similarity minus zero
    surgery is at least `-1e-4`, and the one-sided 99% lower bound is at least
    `-5e-4`;
-7. the two-sided local ablation does not exceed LE-IDGP's pooled advantage.
+7. on all bottom-quartile rows with nondegenerate `h_i` (not only conflicts),
+   the pooled mean margin of LE-IDGP is at least the two-sided local ablation.
+   Conflict rows are expected to be identical between these arms; safe rows
+   are the load-bearing comparison.
 
 Report the analytic first-order density reduction
 `epsilon*abs(c_i)/||g_i||` alongside realized margin changes; it is explanatory
@@ -198,9 +207,10 @@ authorize a SOTA claim.
 
 ## Reproducibility and reporting
 
-Run with CUDA hidden and BLAS/OpenMP fixed to one thread. Report the input and
-ordered cohort hashes; exact counts; conflict fractions; skipped tangent rows;
-local/global tangent norms and cosine; disjoint-reference diagnostics; all arm
+Run with CUDA hidden and BLAS/OpenMP fixed to one thread. Report the input,
+density-pool, alternate-pool, and ordered cohort hashes; exact counts; conflict
+fractions; skipped tangent rows; local/global tangent norms and cosine;
+alternate-pool diagnostics; all arm
 metrics; analytic effects; bootstrap hashes and bounds; seven ordered
 predicates; and `PASS` or `KILL`. Tests must cover sign, finite differences,
 top-50/tie selection, global subtraction, tangent/geodesic equality, label
