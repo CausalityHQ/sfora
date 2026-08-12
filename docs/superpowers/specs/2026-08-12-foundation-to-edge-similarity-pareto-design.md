@@ -188,9 +188,9 @@ The null deployment control is the released DINOv3-S or ConvNeXt-Tiny frozen
 encoder plus its own Section 4 adapter; Meta already distilled these backbones,
 so another distillation must beat this control rather than a weak unadapted
 student. F2 therefore fine-tunes exactly one small student against the single
-adapted teacher of Section 4.1 and retains it only if it clears the F2 bullet-3
-threshold against the serving-mode-matched null of Section 5.4 in the primary
-asymmetric configuration. Add one 512-D head whose prefixes
+adapted teacher of Section 4.1 and retains it only if it clears both the F2
+bullet-3 asymmetric threshold and bullet-4 symmetric non-inferiority threshold
+against their serving-mode-matched nulls. Add one 512-D head whose prefixes
 `{128,256,512}` are independently L2-normalized.
 
 The primary deployment is explicitly asymmetric: gallery rows are encoded
@@ -243,7 +243,8 @@ Run, in order:
 3. supervised MRL student;
 4. single-teacher feature distillation;
 5. single-teacher feature plus relational distillation;
-6. a frozen compact encoder plus a cached-feature alignment into the teacher's
+6. the same frozen compact backbone used by the student plus a cached-feature
+   alignment into the teacher's
    serving coordinates, using the same at-most-5M-parameter `D -> 1024 -> 512`
    adapter class, optimizer-search budget, and training identities as Section
    4.1; a bias-free linear alignment is a required nested ablation;
@@ -276,9 +277,13 @@ satisfies all:
 - the trained student beats the Section 5.3 control-6 nonlinear aligned null by
   at least 0.50 R@1 point at matched query latency and serving mode; and
 - in the symmetric student/student versus own-adapter/own-adapter comparison,
-  the 90% query-identity paired-bootstrap interval for the student's R@1
-  difference lies wholly above `-0.40` point. Otherwise use the winning null
-  and close additional distillation.
+  compute each validation query identity's R@1 difference after averaging that
+  identity over the same three screening seeds, require the 90%
+  query-identity paired-bootstrap interval of those seed-averaged differences
+  to lie wholly above `-0.40` point, and require every per-seed mean difference
+  to exceed `-0.40` point. Otherwise use control 6 for asymmetric serving and
+  the own-adapter compact null for symmetric serving, and close additional
+  distillation.
 
 For the asymmetric comparison, the matched null is Section 5.3 control 6 in
 the teacher's serving coordinates. The Section 5.1 own-adapter null is compared
