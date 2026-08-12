@@ -151,6 +151,7 @@ def test_report_roundtrips_through_strict_validator(tmp_path: Path) -> None:
     assert persisted == report
     assert persisted["geometry"]["decision"]["primary"] in {
         "EVALUATOR_REPAIR",
+        "FULL_DIMENSION_CONTROL",
         "COORDINATE_NONEXCHANGEABILITY",
         "GEOMETRY_NULL",
         "REPRODUCTION_FAILED",

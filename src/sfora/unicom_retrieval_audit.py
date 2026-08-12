@@ -18,6 +18,7 @@ class RetrievalView:
 @dataclass(frozen=True)
 class GeometryDecision:
     primary: str
+    full_dimension_control: bool
     evaluator_repair: bool
     coordinate_nonexchangeability: bool
 
@@ -31,6 +32,8 @@ class GeometryAudit:
     reproduction_passed: bool
     delta_norm: float
     norm_interval: tuple[float, float]
+    delta_full: float
+    full_interval: tuple[float, float]
     delta_mask: float
     mask_wins: int
     disagree: float
@@ -66,6 +69,8 @@ class GeometryAudit:
             and self.reproduction_passed == other.reproduction_passed
             and self.delta_norm == other.delta_norm
             and self.norm_interval == other.norm_interval
+            and self.delta_full == other.delta_full
+            and self.full_interval == other.full_interval
             and self.delta_mask == other.delta_mask
             and self.mask_wins == other.mask_wins
             and self.disagree == other.disagree
@@ -258,18 +263,32 @@ def geometry_decision(
     *,
     delta_norm: float,
     norm_lower_bound: float,
+    delta_full: float,
+    full_lower_bound: float,
     delta_mask: float,
     mask_wins: int,
     disagree: float,
 ) -> GeometryDecision:
-    values = (delta_norm, norm_lower_bound, delta_mask, disagree)
+    values = (
+        delta_norm,
+        norm_lower_bound,
+        delta_full,
+        full_lower_bound,
+        delta_mask,
+        disagree,
+    )
     if any(type(value) is not float or not np.isfinite(value) for value in values):
         raise TypeError("decision metrics must be finite builtin floats")
     if type(mask_wins) is not int or not 0 <= mask_wins <= 32:
         raise TypeError("mask_wins must be a builtin integer in [0, 32]")
-    evaluator_repair = delta_norm >= 0.002 and norm_lower_bound > 0.0
+    full_dimension_control = delta_full >= 0.002 and full_lower_bound > 0.0
+    evaluator_repair = (
+        not full_dimension_control and delta_norm >= 0.002 and norm_lower_bound > 0.0
+    )
     coordinate = delta_mask >= 0.002 and mask_wins >= 24 and disagree >= 0.10
-    if evaluator_repair:
+    if full_dimension_control:
+        primary = "FULL_DIMENSION_CONTROL"
+    elif evaluator_repair:
         primary = "EVALUATOR_REPAIR"
     elif coordinate:
         primary = "COORDINATE_NONEXCHANGEABILITY"
@@ -277,6 +296,7 @@ def geometry_decision(
         primary = "GEOMETRY_NULL"
     return GeometryDecision(
         primary=primary,
+        full_dimension_control=full_dimension_control,
         evaluator_repair=evaluator_repair,
         coordinate_nonexchangeability=coordinate,
     )
@@ -354,6 +374,13 @@ def audit_deployment_geometry(
         samples=bootstrap_samples,
         seed=205,
     )
+    delta_full = float(full_unit.recall[1] - prefix_unit.recall[1])
+    full_interval = paired_r1_interval(
+        prefix_unit.top1_correct,
+        full_unit.top1_correct,
+        samples=bootstrap_samples,
+        seed=206,
+    )
     random_r1 = np.asarray([view.recall[1] for view in random_units], dtype=np.float64)
     delta_mask = float(np.median(random_r1) - prefix_unit.recall[1])
     mask_wins = int(np.count_nonzero(random_r1 > prefix_unit.recall[1]))
@@ -397,12 +424,14 @@ def audit_deployment_geometry(
         association = float(np.corrcoef(errors, selected_energy)[0, 1])
 
     reproduction_passed = (
-        abs(official.recall[1] - expected_official_r1) <= reproduction_tolerance
+        abs(full_unit.recall[1] - expected_official_r1) <= reproduction_tolerance
     )
     if reproduction_passed:
         decision = geometry_decision(
             delta_norm=delta_norm,
             norm_lower_bound=norm_interval[0],
+            delta_full=delta_full,
+            full_lower_bound=full_interval[0],
             delta_mask=delta_mask,
             mask_wins=mask_wins,
             disagree=disagree,
@@ -410,6 +439,7 @@ def audit_deployment_geometry(
     else:
         decision = GeometryDecision(
             primary="REPRODUCTION_FAILED",
+            full_dimension_control=False,
             evaluator_repair=False,
             coordinate_nonexchangeability=False,
         )
@@ -421,6 +451,8 @@ def audit_deployment_geometry(
         reproduction_passed=reproduction_passed,
         delta_norm=delta_norm,
         norm_interval=norm_interval,
+        delta_full=delta_full,
+        full_interval=full_interval,
         delta_mask=delta_mask,
         mask_wins=mask_wins,
         disagree=disagree,

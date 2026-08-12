@@ -243,6 +243,8 @@ def build_audit_report(
         "reproduction_passed": geometry.reproduction_passed,
         "delta_norm": geometry.delta_norm,
         "norm_interval": list(geometry.norm_interval),
+        "delta_full": geometry.delta_full,
+        "full_interval": list(geometry.full_interval),
         "delta_mask": geometry.delta_mask,
         "mask_wins": geometry.mask_wins,
         "disagree": geometry.disagree,
@@ -256,6 +258,7 @@ def build_audit_report(
         "error_energy_point_biserial": geometry.error_energy_point_biserial,
         "decision": {
             "primary": geometry.decision.primary,
+            "full_dimension_control": geometry.decision.full_dimension_control,
             "evaluator_repair": geometry.decision.evaluator_repair,
             "coordinate_nonexchangeability": (
                 geometry.decision.coordinate_nonexchangeability
@@ -360,6 +363,8 @@ def validate_audit_report(value: object) -> None:
             "reproduction_passed",
             "delta_norm",
             "norm_interval",
+            "delta_full",
+            "full_interval",
             "delta_mask",
             "mask_wins",
             "disagree",
@@ -384,6 +389,7 @@ def validate_audit_report(value: object) -> None:
         "COORDINATE_NONEXCHANGEABILITY",
         "GEOMETRY_NULL",
         "REPRODUCTION_FAILED",
+        "FULL_DIMENSION_CONTROL",
     }:
         raise ValueError("geometry decision differs")
     sharding = _require_exact_keys(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+import sfora.unicom_shard_audit as shard_module
 from sfora.unicom_shard_audit import (
     arcface_joint_objective,
     audit_shard_sensitivity,
@@ -147,6 +148,7 @@ def _straight_through_oracle(
         )
     rows_index = np.arange(rows)
     targets = np.clip(logits[rows_index, labels], -1.0, 1.0)
+    predictions = logits.argmax(axis=1)
     logits[rows_index, labels] = np.cos(np.arccos(targets) + margin)
     logits *= scale
     shifted = logits - logits.max(axis=1, keepdims=True)
@@ -173,7 +175,7 @@ def _straight_through_oracle(
             - unit * np.sum(unit * direction_gradient, axis=1, keepdims=True)
         ) / norms
         gradient[:, mask] += tangent
-    return float(losses.mean()), losses, logits.argmax(axis=1), gradient
+    return float(losses.mean()), losses, predictions, gradient
 
 
 def test_arcface_joint_objective_matches_independent_straight_through_oracle() -> None:
@@ -209,6 +211,45 @@ def test_arcface_target_gradient_is_straight_through_not_mathematical_derivative
 
     assert result.embedding_gradient == pytest.approx(expected, abs=1e-10)
     assert not np.allclose(result.embedding_gradient, mathematical, atol=1e-8, rtol=1e-8)
+
+
+def test_shard_audit_exercises_consistent_prototype_permutation(monkeypatch) -> None:
+    embeddings, labels = _training_fixture(classes=8, rows_per_class=4, dimension=8)
+    panel = select_shard_panel(
+        embeddings, labels, class_count=8, examples_per_class=2, seed=205
+    )
+    original = shard_module.arcface_joint_objective
+    captured_permutations: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+
+    def capture(*args, **kwargs):
+        prototypes = args[2]
+        if not np.array_equal(prototypes, panel.prototypes):
+            captured_permutations.append((args[1].copy(), prototypes.copy(), args[3].copy()))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(shard_module, "arcface_joint_objective", capture)
+    audit_shard_sensitivity(
+        embeddings,
+        labels,
+        class_count=8,
+        examples_per_class=2,
+        selected=4,
+        trials=1,
+        permutations=2,
+    )
+
+    order = np.random.Generator(np.random.PCG64(4000)).permutation(8)
+    inverse = np.empty(8, dtype=np.int64)
+    inverse[order] = np.arange(8, dtype=np.int64)
+    original_labels = np.searchsorted(panel.class_labels, panel.labels).astype(np.int64)
+    assignments = class_to_shard_permutations(class_count=8, trial=0, count=2)
+    assert len(captured_permutations) == 2
+    for (actual_labels, actual_prototypes, actual_assignment), assignment in zip(
+        captured_permutations, assignments, strict=True
+    ):
+        assert np.array_equal(actual_labels, inverse[original_labels])
+        assert np.array_equal(actual_prototypes, panel.prototypes[order])
+        assert np.array_equal(actual_assignment, assignment[order])
 
 
 def test_trial_masks_use_exact_registered_streams() -> None:

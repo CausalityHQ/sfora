@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -141,3 +142,39 @@ def test_export_rejects_nonfinite_or_wrong_batch_rows(tmp_path: Path) -> None:
             batch_size=2,
             expected_counts=(4, 2, 3),
         )
+
+
+def test_official_encoder_loads_named_architecture_from_checkpoint_directory(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _load_script()
+    checkout = tmp_path / "unicom-checkout"
+    package = checkout / "unicom" / "unicom"
+    package.mkdir(parents=True)
+    package_file = package / "__init__.py"
+    package_file.write_text("")
+    checkpoint = tmp_path / "FP16-ViT-B-16.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    observed: list[tuple[object, ...]] = []
+
+    class Model:
+        def cuda(self):
+            return self
+
+        def eval(self):
+            return self
+
+    fake_unicom = SimpleNamespace(
+        __file__=str(package_file),
+        load=lambda *args, **kwargs: observed.append((*args, kwargs))
+        or (Model(), object()),
+    )
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "PIL", SimpleNamespace(Image=object()))
+    monkeypatch.setattr(module.importlib, "import_module", lambda name: fake_unicom)
+
+    module._official_encoder(checkout, checkpoint)
+
+    assert observed == [
+        ("ViT-B/16", {"download_root": str(checkpoint.parent)})
+    ]

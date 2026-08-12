@@ -116,14 +116,18 @@ Define
 
 ```text
 delta_norm = R1(prefix_unit_512) - R1(official_512)
+delta_full = R1(full_unit_768) - R1(prefix_unit_512)
 delta_mask = median_j R1(random_unit_512[j]) - R1(prefix_unit_512)
 mask_wins  = count_j[R1(random_unit_512[j]) > R1(prefix_unit_512)]
 disagree   = median_j mean_q[top1_random_j(q) != top1_prefix(q)]
 ```
 
-The released checkpoint must first reproduce documented `official_512` R@1 to
-within 0.002 absolute of 0.746. If it does not, the report is a reproduction
-failure and no scientific decision is made.
+The released checkpoint must first reproduce documented zero-shot
+`full_unit_768` R@1 to within 0.002 absolute of 0.746. The upstream zero-shot
+command does not pass `--num_feat`; the 512-coordinate truncation is used by
+the unreleased supervised fine-tuning recipe and remains a diagnostic, not the
+reproduction anchor. If full-768 does not reproduce, the report is a
+reproduction failure and no scientific decision is made.
 
 After that gate, compute two independent flags:
 
@@ -132,10 +136,13 @@ After that gate, compute two independent flags:
 2. `evaluator_repair` is true if `delta_norm >= 0.002` and the 95% paired
    bootstrap lower bound for `delta_norm` is positive.
 
-The primary decision is `EVALUATOR_REPAIR` whenever `evaluator_repair` is true,
-otherwise `COORDINATE_NONEXCHANGEABILITY` when its flag is true, and
-`GEOMETRY_NULL` otherwise. Both flags are always persisted, so a coordinate
-finding is retained as a diagnostic when evaluator repair has priority.
+Use a second 10,000-resample paired interval from `PCG64(206)` for
+`delta_full`. `full_dimension_control` is true when `delta_full >= 0.002` and
+its lower bound is positive. The primary decision is `FULL_DIMENSION_CONTROL`
+whenever that simpler control passes, then `EVALUATOR_REPAIR`, then
+`COORDINATE_NONEXCHANGEABILITY`, and `GEOMETRY_NULL` otherwise. All flags are
+persisted; a later training mechanism is never licensed by an evaluation
+defect already removed by the full-dimension control.
 Thresholds cannot be changed after the embedding bundle is opened.
 
 ## Experiment E2: four-shard objective emulation
@@ -176,7 +183,8 @@ to reduce them to scalar statistics. Report:
 - standard deviation and range of loss over class-shard permutations;
 - mean gradient MSE and cosine distance versus `full_768`;
 - the same values for `coherent_mask`;
-- invariance error when class and prototype order are permuted consistently;
+- invariance error under `PCG64(4000 + trial)` when prototype rows, target
+  indices, and shard assignments are permuted consistently;
 - mask union coverage; and
 - finite/count checks.
 
@@ -187,7 +195,8 @@ E2 is `SHARD_SENSITIVE` only if all hold:
    coherent-mask MSE;
 3. coherent-mask consistent-permutation invariance error is at most `1e-6`;
 4. independent-mask class-shard placement changes at least 10% of per-example
-   top-1 prototype predictions; and
+   top-1 prototype predictions computed before the label-dependent ArcFace
+   target margin; and
 5. all values are finite.
 
 Otherwise E2 is `SHARD_NULL`. This gate measures sensitivity; it does not prove

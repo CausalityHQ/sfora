@@ -270,7 +270,9 @@ def _official_encoder(checkout: Path, checkpoint: Path):
         sys.path.pop(0)
     if Path(unicom.__file__).resolve().parent != package_root / "unicom":
         raise ValueError("imported UNICOM package does not come from the pinned checkout")
-    model, transform = unicom.load(str(checkpoint))
+    model, transform = unicom.load(
+        "ViT-B/16", download_root=str(checkpoint.parent)
+    )
     model = model.cuda().eval()
 
     def encode(paths: tuple[Path, ...]) -> np.ndarray:

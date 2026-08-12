@@ -94,16 +94,28 @@ def test_recall_and_map_at_r_match_hand_computed_fixture() -> None:
 
 
 @pytest.mark.parametrize(
-    ("delta_norm", "norm_lb", "delta_mask", "mask_wins", "disagree", "primary"),
+    (
+        "delta_norm",
+        "norm_lb",
+        "delta_full",
+        "full_lb",
+        "delta_mask",
+        "mask_wins",
+        "disagree",
+        "primary",
+    ),
     [
-        (0.002, 1e-9, 0.002, 24, 0.10, "EVALUATOR_REPAIR"),
-        (0.0, -1e-9, 0.002, 24, 0.10, "COORDINATE_NONEXCHANGEABILITY"),
-        (0.0, 0.0, 0.001999999, 32, 1.0, "GEOMETRY_NULL"),
+        (0.002, 1e-9, 0.0, 0.0, 0.002, 24, 0.10, "EVALUATOR_REPAIR"),
+        (0.002, 1e-9, 0.002, 1e-9, 0.002, 24, 0.10, "FULL_DIMENSION_CONTROL"),
+        (0.0, -1e-9, 0.0, 0.0, 0.002, 24, 0.10, "COORDINATE_NONEXCHANGEABILITY"),
+        (0.0, 0.0, 0.0, 0.0, 0.001999999, 32, 1.0, "GEOMETRY_NULL"),
     ],
 )
 def test_geometry_decision_boundaries(
     delta_norm: float,
     norm_lb: float,
+    delta_full: float,
+    full_lb: float,
     delta_mask: float,
     mask_wins: int,
     disagree: float,
@@ -112,12 +124,38 @@ def test_geometry_decision_boundaries(
     decision = geometry_decision(
         delta_norm=delta_norm,
         norm_lower_bound=norm_lb,
+        delta_full=delta_full,
+        full_lower_bound=full_lb,
         delta_mask=delta_mask,
         mask_wins=mask_wins,
         disagree=disagree,
     )
 
     assert decision.primary == primary
+
+
+def test_reproduction_gate_uses_published_full_768_view() -> None:
+    query = np.array([[3.1690565, 3.7732935, 4.94705]], dtype=np.float32)
+    gallery = np.array(
+        [[4.7299457, 8.226437, 1.7401735], [8.516344, 8.891572, 0.7644352]],
+        dtype=np.float32,
+    )
+
+    result = audit_deployment_geometry(
+        query,
+        gallery,
+        np.array(["correct"]),
+        np.array(["correct", "wrong"]),
+        selected=2,
+        random_count=2,
+        bootstrap_samples=32,
+        expected_official_r1=1.0,
+        reproduction_tolerance=0.0,
+    )
+
+    assert result.official.recall[1] == 0.0
+    assert result.full_unit.recall[1] == 1.0
+    assert result.reproduction_passed is True
 
 
 def test_paired_interval_uses_exact_registered_stream() -> None:

@@ -216,6 +216,7 @@ def arcface_joint_objective(
 
     row_indices = np.arange(rows)
     target_cosines = np.clip(logits[row_indices, labels], -1.0, 1.0)
+    predictions = np.argmax(logits, axis=1).astype(np.int64)
     logits[row_indices, labels] = np.cos(np.arccos(target_cosines) + margin)
     logits *= scale
     shifted = logits - np.max(logits, axis=1, keepdims=True)
@@ -247,7 +248,7 @@ def arcface_joint_objective(
     return ObjectiveResult(
         loss=float(np.mean(per_example_loss, dtype=np.float64)),
         per_example_loss=per_example_loss,
-        predictions=np.argmax(logits, axis=1).astype(np.int64),
+        predictions=predictions,
         embedding_gradient=embedding_gradient,
     )
 
@@ -391,8 +392,14 @@ def audit_shard_sensitivity(
             class_count=class_count, trial=trial, count=permutations
         )
         trial_independent_losses: list[float] = []
-        trial_coherent_losses: list[float] = []
         reference_predictions: np.ndarray | None = None
+        class_order = np.random.Generator(np.random.PCG64(4000 + trial)).permutation(
+            class_count
+        )
+        inverse_order = np.empty(class_count, dtype=np.int64)
+        inverse_order[class_order] = np.arange(class_count, dtype=np.int64)
+        permuted_prototypes = np.ascontiguousarray(panel.prototypes[class_order])
+        permuted_labels = inverse_order[label_indices]
         for assignment in assignments:
             independent = arcface_joint_objective(
                 panel.embeddings,
@@ -415,8 +422,17 @@ def audit_shard_sensitivity(
                 assignment,
                 full_masks,
             )
+            consistent_permutation = arcface_joint_objective(
+                panel.embeddings,
+                permuted_labels,
+                permuted_prototypes,
+                np.ascontiguousarray(assignment[class_order]),
+                independent_masks,
+            )
             trial_independent_losses.append(independent.loss)
-            trial_coherent_losses.append(coherent.loss)
+            coherent_invariance.append(
+                float(abs(consistent_permutation.loss - independent.loss))
+            )
             independent_mse.append(
                 float(np.mean((independent.embedding_gradient - full.embedding_gradient) ** 2))
             )
@@ -438,9 +454,6 @@ def audit_shard_sensitivity(
         independent_losses.extend(trial_independent_losses)
         independent_ranges.append(
             float(max(trial_independent_losses) - min(trial_independent_losses))
-        )
-        coherent_invariance.append(
-            float(max(trial_coherent_losses) - min(trial_coherent_losses))
         )
         union = np.unique(np.concatenate(independent_masks))
         coverages.append(float(union.size / panel.embeddings.shape[1]))

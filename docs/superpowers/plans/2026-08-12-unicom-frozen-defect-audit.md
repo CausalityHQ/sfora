@@ -82,11 +82,12 @@ Implement chunked squared-distance ranking with `np.lexsort((gallery_index, dist
 
 ```python
 @pytest.mark.parametrize(
-    ("delta_norm", "norm_lb", "delta_mask", "mask_wins", "disagree", "primary"),
+    ("delta_norm", "norm_lb", "delta_full", "full_lb", "delta_mask", "mask_wins", "disagree", "primary"),
     [
-        (0.002, 1e-9, 0.002, 24, 0.10, "EVALUATOR_REPAIR"),
-        (0.0, -1e-9, 0.002, 24, 0.10, "COORDINATE_NONEXCHANGEABILITY"),
-        (0.0, 0.0, 0.001999999, 32, 1.0, "GEOMETRY_NULL"),
+        (0.002, 1e-9, 0.0, 0.0, 0.002, 24, 0.10, "EVALUATOR_REPAIR"),
+        (0.002, 1e-9, 0.002, 1e-9, 0.002, 24, 0.10, "FULL_DIMENSION_CONTROL"),
+        (0.0, -1e-9, 0.0, 0.0, 0.002, 24, 0.10, "COORDINATE_NONEXCHANGEABILITY"),
+        (0.0, 0.0, 0.0, 0.0, 0.001999999, 32, 1.0, "GEOMETRY_NULL"),
     ],
 )
 def test_geometry_decision_boundaries(
@@ -111,7 +112,7 @@ Also assert 10,000 paired resamples come from `PCG64(205)`, official R@1 outside
 
 - [ ] **Step 5: Implement the complete E1 audit**
 
-`audit_deployment_geometry` must build `official_512`, `prefix_unit_512`, `full_unit_768`, and all 32 `random_unit_512` views from identical arrays; compute `delta_norm`, `delta_mask`, `mask_wins`, `disagree`, the paired R@1 interval, energy-gap summaries, point-biserial association, both boolean flags, and the prioritized primary decision.
+`audit_deployment_geometry` must build `official_512`, `prefix_unit_512`, `full_unit_768`, and all 32 `random_unit_512` views from identical arrays; compute `delta_norm`, `delta_full`, `delta_mask`, `mask_wins`, `disagree`, both paired R@1 intervals, energy-gap summaries, point-biserial association, all flags, and the prioritized primary decision.
 
 - [ ] **Step 6: Run Task 1 GREEN and commit**
 
