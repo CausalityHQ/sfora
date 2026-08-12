@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -18,6 +18,8 @@ ROWS_PER_LABEL = 4
 LOCAL_K = 50
 CONTROL_SHUFFLE_SEED = 20260812
 CONTROL_RANDOM_SEED = 20260814
+BOOTSTRAP_SEED = 20260813
+BOOTSTRAP_REPLICATES = 10_000
 ARM_ORDER = (
     "zero",
     "le_idgp",
@@ -60,6 +62,31 @@ class CohortEvaluation:
     collective_idgp_advantage: float
     reference_conflict_fraction: float
     reference_cosine_mean: float
+
+
+@dataclass(frozen=True)
+class BootstrapSummary:
+    """One label-cluster bootstrap distribution and its frozen summaries."""
+
+    mean: float
+    standard_error: float
+    lower_bound: float
+    mde: float
+    label_count: int
+    median_rows_per_label: float
+    replicate_sha256: str
+    replicates: NDArray[np.float64]
+
+
+@dataclass(frozen=True)
+class IDGPEvaluation:
+    """Full core evaluation before JSON report conversion."""
+
+    evaluations: tuple[CohortEvaluation, ...]
+    summary: Mapping[str, object]
+    predicates: tuple[dict[str, object], ...]
+    passed: bool
+    status: str
 
 
 def normalize_rows(value: NDArray[np.floating]) -> NDArray[np.float64]:
@@ -506,4 +533,294 @@ def evaluate_cohort(
         collective_idgp_advantage=collective_advantage,
         reference_conflict_fraction=reference_conflict_fraction,
         reference_cosine_mean=_cosine_mean(local, reference_local),
+    )
+
+
+def cluster_bootstrap(
+    values: NDArray[np.floating],
+    labels: NDArray[np.int64],
+    *,
+    seed: int,
+    replicates: int = BOOTSTRAP_REPLICATES,
+) -> BootstrapSummary:
+    """Bootstrap a mean by resampling complete identity clusters."""
+
+    value_array = np.asarray(values, dtype=np.float64)
+    label_array = _validate_labels(labels)
+    if value_array.ndim != 1 or value_array.shape != label_array.shape:
+        raise ValueError("bootstrap values and labels must be aligned vectors")
+    if value_array.size == 0 or not np.isfinite(value_array).all():
+        raise ValueError("bootstrap values must be nonempty and finite")
+    if type(seed) is not int or type(replicates) is not int or replicates < 2:
+        raise ValueError("bootstrap seed and replicate count must be builtin ints")
+    unique = np.asarray(sorted(np.unique(label_array).tolist()), dtype=np.int64)
+    grouped = [value_array[label_array == label] for label in unique]
+    rng = np.random.default_rng(seed)
+    distribution = np.empty(replicates, dtype=np.float64)
+    for replicate in range(replicates):
+        selected = rng.integers(0, unique.size, size=unique.size)
+        distribution[replicate] = float(
+            np.concatenate([grouped[position] for position in selected]).mean()
+        )
+    little_endian = distribution.astype("<f8", copy=False)
+    row_counts = np.asarray([group.size for group in grouped], dtype=np.float64)
+    standard_error = float(distribution.std(ddof=1))
+    return BootstrapSummary(
+        mean=float(value_array.mean()),
+        standard_error=standard_error,
+        lower_bound=float(np.percentile(distribution, 1.0, method="linear")),
+        mde=2.576 * standard_error,
+        label_count=int(unique.size),
+        median_rows_per_label=float(np.median(row_counts)),
+        replicate_sha256=hashlib.sha256(little_endian.tobytes(order="C")).hexdigest(),
+        replicates=distribution,
+    )
+
+
+def _bootstrap_record(summary: BootstrapSummary) -> dict[str, object]:
+    return {
+        "mean": summary.mean,
+        "standard_error": summary.standard_error,
+        "lower_bound": summary.lower_bound,
+        "mde": summary.mde,
+        "label_count": summary.label_count,
+        "median_rows_per_label": summary.median_rows_per_label,
+        "replicate_sha256": summary.replicate_sha256,
+    }
+
+
+def summarize_evaluations(
+    evaluations: Sequence[CohortEvaluation],
+    *,
+    bootstrap_replicates: int = BOOTSTRAP_REPLICATES,
+) -> dict[str, object]:
+    """Aggregate primary-row effects and all paired control contrasts."""
+
+    if not evaluations:
+        raise ValueError("at least one cohort evaluation is required")
+    ordered = sorted(evaluations, key=lambda value: (value.fold, value.index))
+    primary_labels: list[NDArray[np.int64]] = []
+    raw_values: list[NDArray[np.float64]] = []
+    shuffled_values: list[NDArray[np.float64]] = []
+    random_values: list[NDArray[np.float64]] = []
+    global_values: list[NDArray[np.float64]] = []
+    positive_values: list[NDArray[np.float64]] = []
+    two_sided_values: list[NDArray[np.float64]] = []
+    zero_changes: list[NDArray[np.float64]] = []
+    fold_values: dict[int, list[NDArray[np.float64]]] = {}
+    for evaluation in ordered:
+        primary = evaluation.primary_mask
+        if not np.any(primary):
+            continue
+        le = evaluation.margin_changes["le_idgp"][primary]
+        zero = evaluation.margin_changes["zero"][primary]
+        raw = le - zero
+        labels = evaluation.labels[primary]
+        primary_labels.append(labels)
+        raw_values.append(raw)
+        shuffled_values.append(le - evaluation.margin_changes["shuffled_local"][primary])
+        random_values.append(le - evaluation.margin_changes["random_tangent"][primary])
+        global_values.append(le - evaluation.margin_changes["global_centering"][primary])
+        positive_values.append(
+            evaluation.positive_similarity_changes["le_idgp"][primary]
+            - evaluation.positive_similarity_changes["zero"][primary]
+        )
+        two_sided_values.append(le - evaluation.margin_changes["two_sided"][primary])
+        zero_changes.append(zero)
+        fold_values.setdefault(evaluation.fold, []).append(raw)
+    if not primary_labels:
+        eligible_rows = sum(evaluation.labels.size for evaluation in ordered)
+        conflicting_rows = sum(
+            int(np.count_nonzero((evaluation.conflict_dots < 0.0) & ~evaluation.skipped_mask))
+            for evaluation in ordered
+        )
+        empty_hash = hashlib.sha256(b"").hexdigest()
+        empty_bootstrap = {
+            "mean": 0.0,
+            "standard_error": 0.0,
+            "lower_bound": 0.0,
+            "mde": 0.0,
+            "label_count": 0,
+            "median_rows_per_label": 0.0,
+            "replicate_sha256": empty_hash,
+        }
+        return {
+            "coverage": {
+                "eligible_rows": eligible_rows,
+                "conflicting_rows": conflicting_rows,
+                "conflict_fraction": conflicting_rows / eligible_rows,
+                "primary_rows": 0,
+                "primary_labels": 0,
+                "folds_with_primary": 0,
+            },
+            "fold_mean_advantages": [],
+            "pooled": {
+                "raw_advantage_mean": 0.0,
+                "raw_advantage_lower": 0.0,
+                "shuffled_contrast_lower": 0.0,
+                "random_contrast_lower": 0.0,
+                "global_contrast_lower": 0.0,
+                "zero_abs_margin_change_median": 0.0,
+                "positive_similarity_mean": 0.0,
+                "positive_similarity_lower": 0.0,
+                "le_minus_two_sided_mean": 0.0,
+            },
+            "bootstrap": {
+                name: dict(empty_bootstrap)
+                for name in ("raw", "shuffled", "random", "global", "positive")
+            },
+        }
+
+    labels = np.concatenate(primary_labels)
+    contrasts = {
+        "raw": np.concatenate(raw_values),
+        "shuffled": np.concatenate(shuffled_values),
+        "random": np.concatenate(random_values),
+        "global": np.concatenate(global_values),
+        "positive": np.concatenate(positive_values),
+    }
+    bootstraps = {
+        name: cluster_bootstrap(
+            values,
+            labels,
+            seed=BOOTSTRAP_SEED + offset,
+            replicates=bootstrap_replicates,
+        )
+        for offset, (name, values) in enumerate(contrasts.items())
+    }
+    raw = contrasts["raw"]
+    positive = contrasts["positive"]
+    two_sided = np.concatenate(two_sided_values)
+    zero = np.concatenate(zero_changes)
+    eligible_rows = sum(evaluation.labels.size for evaluation in ordered)
+    conflicting_rows = sum(
+        int(np.count_nonzero((evaluation.conflict_dots < 0.0) & ~evaluation.skipped_mask))
+        for evaluation in ordered
+    )
+    folds_with_primary = len(fold_values)
+    fold_means = [float(np.concatenate(fold_values[fold]).mean()) for fold in sorted(fold_values)]
+    return {
+        "coverage": {
+            "eligible_rows": eligible_rows,
+            "conflicting_rows": conflicting_rows,
+            "conflict_fraction": conflicting_rows / eligible_rows,
+            "primary_rows": int(labels.size),
+            "primary_labels": int(np.unique(labels).size),
+            "folds_with_primary": folds_with_primary,
+        },
+        "fold_mean_advantages": fold_means,
+        "pooled": {
+            "raw_advantage_mean": float(raw.mean()),
+            "raw_advantage_lower": bootstraps["raw"].lower_bound,
+            "shuffled_contrast_lower": bootstraps["shuffled"].lower_bound,
+            "random_contrast_lower": bootstraps["random"].lower_bound,
+            "global_contrast_lower": bootstraps["global"].lower_bound,
+            "zero_abs_margin_change_median": float(np.median(np.abs(zero))),
+            "positive_similarity_mean": float(positive.mean()),
+            "positive_similarity_lower": bootstraps["positive"].lower_bound,
+            "le_minus_two_sided_mean": float(two_sided.mean()),
+        },
+        "bootstrap": {name: _bootstrap_record(value) for name, value in bootstraps.items()},
+    }
+
+
+def decide_idgp(
+    summary: Mapping[str, object],
+) -> tuple[bool, tuple[dict[str, object], ...]]:
+    """Apply the seven frozen LE-IDGP predicates in exact order."""
+
+    coverage = summary["coverage"]
+    pooled = summary["pooled"]
+    fold_means = summary["fold_mean_advantages"]
+    if (
+        not isinstance(coverage, Mapping)
+        or not isinstance(pooled, Mapping)
+        or not isinstance(fold_means, Sequence)
+    ):
+        raise ValueError("summary structure differs")
+    predicates = (
+        {
+            "name": "coverage",
+            "passed": coverage["conflict_fraction"] >= 0.1
+            and coverage["primary_labels"] >= 100
+            and coverage["folds_with_primary"] >= 3,
+        },
+        {
+            "name": "raw_advantage",
+            "passed": pooled["raw_advantage_mean"] > 0.0 and pooled["raw_advantage_lower"] > 0.0,
+        },
+        {
+            "name": "fold_consistency",
+            "passed": sum(value > 0.0 for value in fold_means) >= 3,
+        },
+        {
+            "name": "control_superiority",
+            "passed": pooled["shuffled_contrast_lower"] > 0.0
+            and pooled["random_contrast_lower"] > 0.0
+            and pooled["global_contrast_lower"] > 0.0,
+        },
+        {
+            "name": "material_effect",
+            "passed": pooled["raw_advantage_mean"]
+            >= 0.05 * pooled["zero_abs_margin_change_median"],
+        },
+        {
+            "name": "positive_similarity",
+            "passed": pooled["positive_similarity_mean"] >= -1e-4
+            and pooled["positive_similarity_lower"] >= -5e-4,
+        },
+        {
+            "name": "one_sided_specificity",
+            "passed": pooled["le_minus_two_sided_mean"] >= 0.0,
+        },
+    )
+    if any(type(predicate["passed"]) is not bool for predicate in predicates):
+        raise ValueError("predicate values must be builtin booleans")
+    return all(predicate["passed"] is True for predicate in predicates), predicates
+
+
+def evaluate_idgp(
+    embeddings: NDArray[np.floating],
+    labels: NDArray[np.int64],
+    example_ids: NDArray[np.str_],
+    *,
+    bootstrap_replicates: int = BOOTSTRAP_REPLICATES,
+) -> IDGPEvaluation:
+    """Evaluate every complete deterministic cohort and apply the frozen gate."""
+
+    z, label_array = _validate_geometry_inputs(embeddings, labels)
+    id_array = np.asarray(example_ids)
+    if id_array.shape != (z.shape[0],) or id_array.dtype.kind != "U":
+        raise ValueError("example IDs must be aligned Unicode values")
+    unique, counts = np.unique(label_array, return_counts=True)
+    eligible_labels = unique[counts >= ROWS_PER_LABEL]
+    eligible = np.isin(label_array, eligible_labels)
+    eligible_z = z[eligible]
+    eligible_label_array = label_array[eligible]
+    eligible_ids = id_array[eligible]
+    cohorts = build_cohorts(eligible_label_array, eligible_ids)
+    if not cohorts:
+        raise ValueError("input has no complete LE-IDGP cohorts")
+    evaluations: list[CohortEvaluation] = []
+    for cohort in cohorts:
+        evaluations.append(
+            evaluate_cohort(
+                eligible_z[cohort.row_indices],
+                eligible_label_array[cohort.row_indices],
+                eligible_ids[cohort.row_indices],
+                fold=cohort.fold,
+                index=cohort.index,
+                reference_embeddings=eligible_z[cohort.reference_row_indices],
+                reference_labels=eligible_label_array[cohort.reference_row_indices],
+                reference_ids=eligible_ids[cohort.reference_row_indices],
+            )
+        )
+    summary = summarize_evaluations(evaluations, bootstrap_replicates=bootstrap_replicates)
+    passed, predicates = decide_idgp(summary)
+    return IDGPEvaluation(
+        evaluations=tuple(evaluations),
+        summary=summary,
+        predicates=predicates,
+        passed=passed,
+        status="PASS" if passed else "KILL",
     )

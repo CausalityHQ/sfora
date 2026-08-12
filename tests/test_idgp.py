@@ -8,9 +8,14 @@ import pytest
 
 from sfora.idgp import (
     ARM_ORDER,
+    BootstrapSummary,
+    CohortEvaluation,
     assign_label_folds,
     build_cohorts,
+    cluster_bootstrap,
+    decide_idgp,
     evaluate_cohort,
+    evaluate_idgp,
     geodesic_step,
     global_tangent,
     local_excess_tangent,
@@ -19,6 +24,7 @@ from sfora.idgp import (
     project_two_sided,
     proxy_anchor_surrogate_tangent,
     retrieval_geometry,
+    summarize_evaluations,
 )
 
 
@@ -308,3 +314,204 @@ def test_reference_cohort_changes_only_reference_diagnostics() -> None:
         first.reference_conflict_fraction != second.reference_conflict_fraction
         or first.reference_cosine_mean != second.reference_cosine_mean
     )
+
+
+def _independent_cluster_replicates(
+    values: np.ndarray, labels: np.ndarray, seed: int, replicates: int
+) -> np.ndarray:
+    unique = np.asarray(sorted(np.unique(labels).tolist()), dtype=np.int64)
+    rng = np.random.default_rng(seed)
+    result = np.empty(replicates, dtype=np.float64)
+    for replicate in range(replicates):
+        selected = unique[rng.integers(0, unique.size, size=unique.size)]
+        rows = np.concatenate([values[labels == label] for label in selected])
+        result[replicate] = rows.mean()
+    return result
+
+
+def test_cluster_bootstrap_resamples_labels_and_hashes_exact_replicates() -> None:
+    values = np.asarray([1.0, 2.0, 10.0, -3.0, -2.0, -1.0], dtype=np.float64)
+    labels = np.asarray([0, 0, 1, 2, 2, 2], dtype=np.int64)
+    expected = _independent_cluster_replicates(values, labels, seed=31, replicates=50)
+    actual = cluster_bootstrap(values, labels, seed=31, replicates=50)
+    assert isinstance(actual, BootstrapSummary)
+    np.testing.assert_array_equal(actual.replicates, expected)
+    assert actual.mean == float(values.mean())
+    assert actual.lower_bound == float(np.percentile(expected, 1.0, method="linear"))
+    assert actual.standard_error == float(expected.std(ddof=1))
+    assert actual.mde == 2.576 * actual.standard_error
+    assert actual.label_count == 3
+    assert actual.median_rows_per_label == 2.0
+    assert actual.replicate_sha256 == hashlib.sha256(expected.astype("<f8").tobytes()).hexdigest()
+
+    permutation = np.asarray([5, 0, 3, 2, 1, 4])
+    permuted = cluster_bootstrap(values[permutation], labels[permutation], seed=31, replicates=50)
+    np.testing.assert_array_equal(permuted.replicates, expected)
+
+
+def _passing_summary() -> dict[str, object]:
+    return {
+        "coverage": {
+            "eligible_rows": 720,
+            "conflicting_rows": 120,
+            "conflict_fraction": 1.0 / 6.0,
+            "primary_rows": 110,
+            "primary_labels": 105,
+            "folds_with_primary": 4,
+        },
+        "fold_mean_advantages": [0.01, 0.02, 0.01, -0.001],
+        "pooled": {
+            "raw_advantage_mean": 0.01,
+            "raw_advantage_lower": 0.004,
+            "shuffled_contrast_lower": 0.003,
+            "random_contrast_lower": 0.003,
+            "global_contrast_lower": 0.002,
+            "zero_abs_margin_change_median": 0.1,
+            "positive_similarity_mean": -5e-5,
+            "positive_similarity_lower": -4e-4,
+            "le_minus_two_sided_mean": 0.001,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "predicate"),
+    [
+        (("coverage", "conflict_fraction"), 0.09, "coverage"),
+        (("coverage", "primary_labels"), 99, "coverage"),
+        (("pooled", "raw_advantage_lower"), 0.0, "raw_advantage"),
+        (("fold_mean_advantages", 2), -0.01, "fold_consistency"),
+        (("pooled", "shuffled_contrast_lower"), 0.0, "control_superiority"),
+        (("pooled", "random_contrast_lower"), 0.0, "control_superiority"),
+        (("pooled", "global_contrast_lower"), 0.0, "control_superiority"),
+        (("pooled", "raw_advantage_mean"), 0.0049, "material_effect"),
+        (("pooled", "positive_similarity_lower"), -0.0006, "positive_similarity"),
+        (("pooled", "le_minus_two_sided_mean"), -1e-6, "one_sided_specificity"),
+    ],
+)
+def test_decide_idgp_rejects_each_frozen_predicate(
+    path: tuple[str | int, ...], value: float, predicate: str
+) -> None:
+    summary = _passing_summary()
+    node: object = summary
+    for key in path[:-1]:
+        node = node[key]  # type: ignore[index]
+    node[path[-1]] = value  # type: ignore[index]
+    passed, predicates = decide_idgp(summary)
+    assert passed is False
+    failed = [record["name"] for record in predicates if record["passed"] is False]
+    assert predicate in failed
+
+
+def test_decide_idgp_accepts_only_complete_passing_summary() -> None:
+    passed, predicates = decide_idgp(_passing_summary())
+    assert passed is True
+    assert [record["name"] for record in predicates] == [
+        "coverage",
+        "raw_advantage",
+        "fold_consistency",
+        "control_superiority",
+        "material_effect",
+        "positive_similarity",
+        "one_sided_specificity",
+    ]
+    assert all(record["passed"] is True for record in predicates)
+
+
+def _evaluation_for_summary(fold: int, advantage: float) -> CohortEvaluation:
+    rows = 8
+    labels = np.asarray([fold * 10 + value for value in (0, 0, 1, 1, 2, 2, 3, 3)])
+    primary = np.asarray([True, True, True, True, False, False, False, False])
+    zero = np.asarray([0.02, -0.01, 0.03, -0.02, 0.0, 0.0, 0.0, 0.0])
+    le = zero + advantage
+    margin_changes = {
+        "zero": zero,
+        "le_idgp": le,
+        "shuffled_local": zero + advantage / 4.0,
+        "random_tangent": zero + advantage / 5.0,
+        "global_centering": zero + advantage / 3.0,
+        "two_sided": zero + advantage / 2.0,
+    }
+    positive = {arm: np.zeros(rows, dtype=np.float64) for arm in ARM_ORDER}
+    return CohortEvaluation(
+        fold=fold,
+        index=0,
+        example_ids=np.asarray([f"f{fold}-r{row}" for row in range(rows)]),
+        labels=labels.astype(np.int64),
+        pre_margins=np.linspace(-1.0, 1.0, rows),
+        conflict_dots=np.asarray([-1.0] * 4 + [1.0] * 4),
+        skipped_mask=np.zeros(rows, dtype=np.bool_),
+        primary_mask=primary,
+        margin_changes=margin_changes,
+        positive_similarity_changes=positive,
+        analytic_density_reduction=np.ones(rows),
+        local_norms=np.ones(rows),
+        global_norms=np.ones(rows),
+        local_global_cosine_mean=0.1,
+        collective_idgp_advantage=0.0,
+        reference_conflict_fraction=0.25,
+        reference_cosine_mean=0.2,
+    )
+
+
+def test_summarize_evaluations_recomputes_primary_contrasts() -> None:
+    evaluations = [_evaluation_for_summary(fold, 0.01 + 0.001 * fold) for fold in range(4)]
+    summary = summarize_evaluations(evaluations, bootstrap_replicates=100)
+    assert summary["coverage"]["eligible_rows"] == 32
+    assert summary["coverage"]["conflicting_rows"] == 16
+    assert summary["coverage"]["primary_rows"] == 16
+    assert summary["coverage"]["primary_labels"] == 8
+    np.testing.assert_allclose(summary["fold_mean_advantages"], [0.01, 0.011, 0.012, 0.013])
+    assert summary["pooled"]["raw_advantage_mean"] == pytest.approx(0.0115)
+    assert summary["pooled"]["le_minus_two_sided_mean"] == pytest.approx(0.00575)
+
+
+def test_evaluate_idgp_builds_complete_cohorts_and_frozen_decision() -> None:
+    selected_labels = _labels_in_fold(3, 90)
+    rng = np.random.default_rng(81)
+    bases = normalize_rows(rng.normal(size=(90, 64)))
+    rows: list[np.ndarray] = []
+    labels: list[int] = []
+    ids: list[str] = []
+    for position, label in enumerate(selected_labels):
+        for sample in range(4):
+            rows.append(bases[position] + 0.04 * rng.normal(size=64))
+            labels.append(label)
+            ids.append(f"id-{label}-{sample}")
+    result = evaluate_idgp(
+        normalize_rows(np.asarray(rows)),
+        np.asarray(labels, dtype=np.int64),
+        np.asarray(ids),
+        bootstrap_replicates=100,
+    )
+    assert len(result.evaluations) == 2
+    assert result.summary["coverage"]["eligible_rows"] == 360
+    assert result.passed is (result.status == "PASS")
+    assert result.status in {"PASS", "KILL"}
+    assert [record["name"] for record in result.predicates] == [
+        "coverage",
+        "raw_advantage",
+        "fold_consistency",
+        "control_superiority",
+        "material_effect",
+        "positive_similarity",
+        "one_sided_specificity",
+    ]
+
+
+def test_one_sided_projection_prevents_conflicting_margin_damage() -> None:
+    anchor = np.asarray([[1.0, 0.0]])
+    positive = np.asarray([[np.cos(0.15), np.sin(0.15)]])
+    foreign = np.asarray([[np.cos(-0.05), np.sin(-0.05)]])
+    peers = np.concatenate([positive, foreign], axis=0)
+    peer_labels = np.asarray([0, 1], dtype=np.int64)
+    nuisance = np.asarray([[0.0, -1.0]])
+    conflicting_gradient = -nuisance
+    projected, dots, skipped = project_one_sided(conflicting_gradient, nuisance)
+    assert dots[0] < 0.0
+    assert skipped[0] is np.False_
+    raw_anchor = geodesic_step(anchor, conflicting_gradient)[0]
+    idgp_anchor = geodesic_step(anchor, projected)[0]
+    raw_margin, _ = retrieval_geometry(raw_anchor, peers, peer_labels, 0)
+    idgp_margin, _ = retrieval_geometry(idgp_anchor, peers, peer_labels, 0)
+    assert idgp_margin > raw_margin
