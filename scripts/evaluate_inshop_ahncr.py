@@ -95,13 +95,24 @@ def load_train_archive(path: Path) -> TrainBundle:
     if actual_sha != EXPECTED_TRAIN_SHA256:
         raise ValueError("train input SHA-256 differs from the frozen archive")
     with np.load(path, allow_pickle=False) as payload:
-        if tuple(payload.files) != (
+        core_keys = (
             "embeddings",
             "labels",
             "example_ids",
             "split",
             "checkpoint_sha256",
-        ):
+        )
+        registered_keys = (
+            "embeddings",
+            "labels",
+            "example_ids",
+            "source_paths",
+            "artifact_selection",
+            "split",
+            "checkpoint_sha256",
+            "report_sha256",
+        )
+        if tuple(payload.files) not in (core_keys, registered_keys):
             raise ValueError("train archive keys or order differ")
         embeddings = np.array(payload["embeddings"], copy=True)
         labels = np.array(payload["labels"], copy=True)
@@ -376,6 +387,17 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             for key in ("raw_correct", "correct", "wrong_to_right", "right_to_wrong")
         }
         if (
+            ints["raw_correct"] > split["query_count"]
+            or ints["correct"] > split["query_count"]
+            or ints["wrong_to_right"] > split["query_count"]
+            or ints["right_to_wrong"] > split["query_count"]
+            or not 0.0 <= floats["raw_recall"] <= 1.0
+            or not 0.0 <= floats["recall"] <= 1.0
+            or not 0.0 <= floats["p_value"] <= 1.0
+            or not -1.0 <= floats["gain"] <= 1.0
+        ):
+            raise ValueError(f"arms.{name} bounds differ")
+        if (
             floats["raw_recall"] != ints["raw_correct"] / split["query_count"]
             or floats["recall"] != ints["correct"] / split["query_count"]
         ):
@@ -386,7 +408,16 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             raise ValueError(f"arms.{name} transitions differ")
         if floats["p_value"] != exact_mcnemar(ints["wrong_to_right"], ints["right_to_wrong"]):
             raise ValueError(f"arms.{name}.p_value differs")
-        lists: list[tuple[int, int, int, float]] = []
+        if any(
+            type(arm[key]) is not list or len(arm[key]) != 4
+            for key in (
+                "shard_counts",
+                "shard_raw_correct",
+                "shard_correct",
+                "shard_gains",
+            )
+        ):
+            raise ValueError(f"arms.{name} shard arrays differ")
         for index in range(4):
             count = arm["shard_counts"][index]
             raw_correct = arm["shard_raw_correct"][index]
@@ -396,14 +427,16 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             _int(raw_correct, "arm shard raw_correct")
             _int(correct, "arm shard correct")
             _finite_float(gain, "arm shard gain")
+            if raw_correct > count or correct > count:
+                raise ValueError(f"arms.{name} shard bounds differ")
             if count != split["shard_counts"][index] or gain != (correct - raw_correct) / count:
                 raise ValueError(f"arms.{name} shard relation differs")
-            lists.append((count, raw_correct, correct, gain))
-        if any(
-            type(arm[key]) is not list or len(arm[key]) != 4
-            for key in ("shard_counts", "shard_raw_correct", "shard_correct", "shard_gains")
+        if (
+            sum(arm["shard_counts"]) != split["query_count"]
+            or sum(arm["shard_raw_correct"]) != ints["raw_correct"]
+            or sum(arm["shard_correct"]) != ints["correct"]
         ):
-            raise ValueError(f"arms.{name} shard arrays differ")
+            raise ValueError(f"arms.{name} shard totals differ")
         arm_objects[name] = ArmComparison(
             floats["raw_recall"],
             floats["recall"],
@@ -418,6 +451,25 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             tuple(arm["shard_raw_correct"]),
             tuple(arm["shard_correct"]),
         )
+    raw = arm_objects["raw"]
+    if (
+        raw.recall != raw.raw_recall
+        or raw.correct != raw.raw_correct
+        or raw.wrong_to_right != 0
+        or raw.right_to_wrong != 0
+        or raw.gain != 0.0
+        or raw.shard_correct != raw.shard_raw_correct
+    ):
+        raise ValueError("raw arm differs from its baseline")
+    for name in ARM_NAMES[1:]:
+        arm = arm_objects[name]
+        if (
+            arm.raw_recall != raw.raw_recall
+            or arm.raw_correct != raw.raw_correct
+            or arm.shard_counts != raw.shard_counts
+            or arm.shard_raw_correct != raw.shard_raw_correct
+        ):
+            raise ValueError(f"arms.{name} shared raw baseline differs")
     null = _keys(report["null"], ("shuffled_gains", "shuffled_p95"), "null")
     if type(null["shuffled_gains"]) is not list or len(null["shuffled_gains"]) != PERMUTATION_COUNT:
         raise ValueError("null.shuffled_gains differs")

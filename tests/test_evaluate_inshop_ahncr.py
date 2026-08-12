@@ -48,6 +48,23 @@ def _archive(path: Path) -> None:
     )
 
 
+def _archive_with_registered_provenance(path: Path) -> None:
+    _archive(path)
+    with np.load(path, allow_pickle=False) as payload:
+        values = {name: np.array(payload[name], copy=True) for name in payload.files}
+    np.savez(
+        path,
+        embeddings=values["embeddings"],
+        labels=values["labels"],
+        example_ids=values["example_ids"],
+        source_paths=np.asarray(["source.py"]),
+        artifact_selection=np.asarray("frozen"),
+        split=values["split"],
+        checkpoint_sha256=values["checkpoint_sha256"],
+        report_sha256=np.asarray("b" * 64),
+    )
+
+
 @pytest.fixture
 def pinned_threads(monkeypatch: pytest.MonkeyPatch) -> None:
     for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
@@ -73,6 +90,16 @@ def test_cli_surface_has_no_query_gallery_or_result_inputs() -> None:
                 "forbidden.npz",
             ]
         )
+
+
+def test_loader_accepts_registered_provenance_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    train = tmp_path / "train.npz"
+    _archive_with_registered_provenance(train)
+    monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
+    loaded = CLI.load_train_archive(train)
+    assert loaded.embeddings.shape[0] == loaded.labels.size == loaded.example_ids.size
 
 
 def test_build_report_uses_only_registered_train_archive(
@@ -134,6 +161,51 @@ def test_validator_rejects_inconsistent_relations(
         cursor = cursor[key]
     cursor[path[-1]] = value
     with pytest.raises(ValueError):
+        CLI.validate_ahncr_report(payload)
+
+
+def test_validator_binds_every_arm_to_one_shared_raw_baseline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pinned_threads: None
+) -> None:
+    train = tmp_path / "train.npz"
+    _archive(train)
+    monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
+    payload = CLI.build_ahncr_report(train, block_size=7)
+    arm = payload["arms"]["global_mean"]
+    arm["raw_correct"] = 0
+    arm["raw_recall"] = 0.0
+    arm["gain"] = arm["recall"]
+    arm["wrong_to_right"] = arm["correct"]
+    arm["right_to_wrong"] = 0
+    arm["p_value"] = CLI.exact_mcnemar(arm["correct"], 0)
+    arm["shard_raw_correct"] = [0, 0, 0, 0]
+    arm["shard_gains"] = [
+        correct / count
+        for correct, count in zip(arm["shard_correct"], arm["shard_counts"], strict=True)
+    ]
+    with pytest.raises(ValueError, match="shared raw"):
+        CLI.validate_ahncr_report(payload)
+
+
+def test_validator_rejects_out_of_range_correct_counts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pinned_threads: None
+) -> None:
+    train = tmp_path / "train.npz"
+    _archive(train)
+    monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
+    payload = CLI.build_ahncr_report(train, block_size=7)
+    arm = payload["arms"]["ahncr"]
+    query_count = payload["split"]["query_count"]
+    arm["correct"] = query_count + 1
+    arm["recall"] = (query_count + 1) / query_count
+    arm["gain"] = arm["recall"] - arm["raw_recall"]
+    arm["wrong_to_right"] += 1
+    arm["p_value"] = CLI.exact_mcnemar(arm["wrong_to_right"], arm["right_to_wrong"])
+    arm["shard_correct"][0] += 1
+    arm["shard_gains"][0] = (arm["shard_correct"][0] - arm["shard_raw_correct"][0]) / arm[
+        "shard_counts"
+    ][0]
+    with pytest.raises(ValueError, match="bounds"):
         CLI.validate_ahncr_report(payload)
 
 
