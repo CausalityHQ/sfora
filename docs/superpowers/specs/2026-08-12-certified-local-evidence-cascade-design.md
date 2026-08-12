@@ -1,6 +1,6 @@
 # Certified Local-Evidence Cascade
 
-**Status:** approved design; implementation has not started
+**Status:** approved and self-reviewed design; implementation has not started
 
 ## 1. Goal
 
@@ -114,23 +114,28 @@ For every query:
 1. Retrieve the global top-`K` gallery items by `g(q)^T g(x)` using one
    maintained inner-product search path.
 2. Compute `[L,U]` for every candidate using the hot projected token store.
-3. Let `b` be the candidate with the largest lower bound. Discard any candidate
-   whose upper bound is strictly below `L(q,b)`.
+3. Let `b` be the stable candidate with the largest lower bound and define the
+   unresolved set `R = {x : U(q,x) >= L(q,b)}`. Every candidate outside `R`
+   is safely discarded because its exact score is strictly below the exact
+   score of `b`.
 4. If `L(q,b)` is strictly greater than every remaining competitor's upper
    bound, return `b`: the full-dimensional MaxSim winner inside the candidate
    pool is certified without a cold read.
-5. Otherwise fetch full tokens only for unresolved candidates, compute exact
-   full-dimensional MaxSim, and return their exact winner together with any
-   already certified candidate that still competes.
+5. Otherwise fetch full tokens for every member of `R`, including `b`, compute
+   their exact full-dimensional MaxSim with one registered implementation, and
+   return the stable exact argmax. No candidate outside `R` can tie or beat it.
 
 Ties use stable gallery order and are never certified by a non-strict
 inequality. NaN, infinity, shape drift, basis mismatch, or missing cold tokens
 is a structural failure, not a fallback score.
 
 The initial experiment freezes `K in {32, 64, 128}` and `d in {32, 64, 128}`
-using training identities. Test evaluation uses one selected pair. No adaptive
-query heuristic, test-label tuning, transductive neighborhood update, or
-gallery-label access is allowed.
+using training identities. Every training image is evaluated as a query against
+all other training images; self-matches are excluded, and labels are used only
+to choose the single `(K,d)` pair by the registered quality/latency rule. Ties
+choose smaller `K`, then smaller `d`. Test evaluation uses that pair once. No
+adaptive query heuristic, test-label tuning, transductive neighborhood update,
+or gallery-label access is allowed.
 
 The candidate pool limits what CLEC can recover. Therefore the report includes
 the label-free global top-`K` stability statistics and the descriptive
@@ -151,7 +156,9 @@ The evaluator reports, from identical frozen bytes:
    candidate reads;
 7. a MUVERA-style fixed-dimensional encoding when a reviewed implementation is
    available, otherwise explicitly `NOT_RUN`;
-8. shuffled patch-position and gallery-permuted token controls.
+8. within-image token permutation, which must be exactly invariant because
+   MaxSim is a set operator; and a gallery-item patch-set derangement, which is
+   the semantic negative control and must not silently preserve the gain.
 
 CLEC receives no quality credit over exact MaxSim; it receives efficiency
 credit only when it reproduces exact MaxSim rankings. It receives quality
@@ -168,8 +175,10 @@ available.
 Report R@1/10/20/30 where defined, top-`K` candidate recall, exactification
 rate, candidates exactified per query, hot/cold bytes, build time, query p50,
 p95, and p99 latency at batch 1 and 32, and peak host/GPU memory. Latency uses
-warm and cold-cache runs separately and includes token fetches, projection,
-bounds, and exact scoring.
+warm and cold-cache runs separately and includes global candidate generation,
+token fetches, projection, bounds, and exact scoring. Also report the local
+stage alone so an apparent end-to-end gain cannot be attributed to an omitted
+stage.
 
 Cluster bootstrap resampling uses query identity as the unit and persists the
 paired R@1 delta distribution. Selection uses training identities only.
@@ -179,11 +188,12 @@ CLEC advances from the no-training screen when either branch passes:
 - **quality-and-speed branch:** In-Shop R@1 is at least 0.50 percentage point
   above the global baseline, the one-sided 95% paired lower bound is above
   zero, exactification is at most 25% of queries, and p95 latency is at least
-  2x faster than exact MaxSim over the same candidate pool;
+  2x faster than exact MaxSim over the same candidate pool while end-to-end p95
+  is no more than 1.5x the global-only baseline;
 - **exact-efficiency branch:** CLEC's ranking and retrieval metrics equal exact
   candidate-pool MaxSim bit-for-bit, at least 75% of queries are certified
-  without cold reads, and p95 latency plus hot resident bytes each improve by
-  at least 2x.
+  without cold reads, and end-to-end p95 latency plus hot resident bytes each
+  improve by at least 2x relative to always-exact candidate-pool MaxSim.
 
 For cross-dataset continuation, Cars must be non-inferior to its global
 baseline within 0.40 R@1 point and must retain the same directional efficiency
@@ -225,4 +235,3 @@ smuggled into this no-training falsifier.
   bottleneck.
 - If Lorentz wins independently, report it as a compact global descriptor; do
   not attribute its gain to CLEC or combine the methods without a new design.
-
