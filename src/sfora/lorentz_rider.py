@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -38,6 +39,8 @@ class MaxInterval:
     standard_errors: float
     samples: int
     seed: int
+    replicates: tuple[float, ...]
+    replicates_sha256: str
 
 
 @dataclass(frozen=True)
@@ -248,9 +251,7 @@ def scale_for_target_median(train_projected: np.ndarray, target: float) -> float
     matrix = _require_matrix(train_projected, name="train_projected")
     if type(target) is not float or not np.isfinite(target) or target <= 0.0:
         raise ValueError("target must be a positive finite builtin float")
-    radii = np.sqrt(
-        np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64)
-    )
+    radii = np.sqrt(np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64))
     median = float(np.median(radii))
     if median <= 0.0:
         raise ValueError("train projected median radius must be positive")
@@ -265,9 +266,7 @@ def lorentz_lift(values: np.ndarray, scale: float, clip: float = 2.5) -> np.ndar
         raise ValueError("scale must be a positive finite builtin float")
     if type(clip) is not float or not np.isfinite(clip) or clip <= 0.0:
         raise ValueError("clip must be a positive finite builtin float")
-    radius64 = np.sqrt(
-        np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64)
-    )
+    radius64 = np.sqrt(np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64))
     lifted_radius = np.minimum(scale * radius64, clip).astype(np.float32)
     direction = np.zeros_like(matrix)
     nonzero = np.flatnonzero(radius64 > 0.0)
@@ -320,15 +319,11 @@ def lorentz_distance_block(
         raise ValueError("Lorentz dimensions differ")
     if type(gallery_chunk_size) is not int or gallery_chunk_size <= 0:
         raise ValueError("gallery_chunk_size must be a positive builtin integer")
-    result = np.empty(
-        (query_value.shape[0], gallery_value.shape[0]), dtype=np.float32
-    )
+    result = np.empty((query_value.shape[0], gallery_value.shape[0]), dtype=np.float32)
     for start in range(0, gallery_value.shape[0], gallery_chunk_size):
         stop = min(start + gallery_chunk_size, gallery_value.shape[0])
         gallery_chunk = gallery_value[start:stop]
-        spatial_difference = (
-            query_value[:, None, 1:] - gallery_chunk[None, :, 1:]
-        )
+        spatial_difference = query_value[:, None, 1:] - gallery_chunk[None, :, 1:]
         time_difference = query_value[:, None, 0] - gallery_chunk[None, :, 0]
         value = (
             np.sum(
@@ -341,9 +336,7 @@ def lorentz_distance_block(
         if float(np.min(value)) < -2e-5:
             raise ValueError("Lorentz distance intermediate is materially negative")
         np.maximum(value, np.float32(0.0), out=value)
-        result[:, start:stop] = np.log1p(
-            value + np.sqrt(value * (value + np.float32(2.0)))
-        )
+        result[:, start:stop] = np.log1p(value + np.sqrt(value * (value + np.float32(2.0))))
     return np.ascontiguousarray(result)
 
 
@@ -355,12 +348,10 @@ def score_control_blocks(
 ) -> dict[str, Iterable[np.ndarray]]:
     """Return the exact ordered L1 scorer and matched radial controls."""
 
-    query = _require_nonempty_matrix(query_projected, name="query_projected").astype(
+    query = _require_nonempty_matrix(query_projected, name="query_projected").astype(np.float32)
+    gallery = _require_nonempty_matrix(gallery_projected, name="gallery_projected").astype(
         np.float32
     )
-    gallery = _require_nonempty_matrix(
-        gallery_projected, name="gallery_projected"
-    ).astype(np.float32)
     if query.shape[1] != gallery.shape[1]:
         raise ValueError("query and gallery projected dimensions differ")
     if type(scale) is not float or not np.isfinite(scale) or scale <= 0.0:
@@ -369,9 +360,7 @@ def score_control_blocks(
         raise ValueError("clip must be a positive finite builtin float")
 
     gallery64 = gallery.astype(np.float64)
-    gallery_norm64 = np.sqrt(
-        np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
-    )
+    gallery_norm64 = np.sqrt(np.sum(gallery64 * gallery64, axis=1, dtype=np.float64))
     gallery_norm = gallery_norm64.astype(np.float32)
     gallery_direction = np.zeros_like(gallery)
     gallery_nonzero = gallery_norm > 0.0
@@ -387,22 +376,16 @@ def score_control_blocks(
         for start in range(0, query.shape[0], 256):
             query_chunk = query[start : start + 256]
             query64 = query_chunk.astype(np.float64)
-            query_norm64 = np.sqrt(
-                np.sum(query64 * query64, axis=1, dtype=np.float64)
-            )
+            query_norm64 = np.sqrt(np.sum(query64 * query64, axis=1, dtype=np.float64))
             query_norm = query_norm64.astype(np.float32)
             query_direction = np.zeros_like(query_chunk)
             nonzero = query_norm > 0.0
-            query_direction[nonzero] = (
-                query_chunk[nonzero] / query_norm[nonzero, None]
-            )
+            query_direction[nonzero] = query_chunk[nonzero] / query_norm[nonzero, None]
             cosine = query_direction @ gallery_direction.T
             query_radius = np.minimum(scale * query_norm64, clip).astype(np.float32)
             if control == "lorentz":
                 query_lifted = lorentz_lift(query_chunk, scale, clip)
-                score = lorentz_mips_scores(
-                    query_lifted, gallery_lifted
-                ) / query_lifted[:, :1]
+                score = lorentz_mips_scores(query_lifted, gallery_lifted) / query_lifted[:, :1]
             elif control == "pca_euclidean":
                 score = -(
                     np.sum(
@@ -417,22 +400,16 @@ def score_control_blocks(
                 score = cosine
             elif control == "spatial_only":
                 score = (
-                    np.sinh(query_radius)[:, None]
-                    * gallery_sinh[None, :]
-                    * cosine
+                    np.sinh(query_radius)[:, None] * gallery_sinh[None, :] * cosine
                     - np.float32(0.5) * gallery_sinh[None, :] ** 2
                 )
             else:
                 power = 1 if control == "power_1" else 3
                 query_h = query_radius**power
                 gallery_h = gallery_radius**power
-                score = (
-                    query_h[:, None]
-                    / np.sqrt(np.float32(1.0) + query_h[:, None] ** 2)
-                    * gallery_h[None, :]
-                    * cosine
-                    - np.sqrt(np.float32(1.0) + gallery_h[None, :] ** 2)
-                )
+                score = query_h[:, None] / np.sqrt(
+                    np.float32(1.0) + query_h[:, None] ** 2
+                ) * gallery_h[None, :] * cosine - np.sqrt(np.float32(1.0) + gallery_h[None, :] ** 2)
             yield np.ascontiguousarray(score.astype(np.float32, copy=False))
 
     return {
@@ -490,10 +467,7 @@ def paired_identity_max_interval(
         dtype=np.float64,
     )
     interior_sums = np.asarray(
-        [
-            [np.sum(row[group], dtype=np.int64) for group in groups]
-            for row in interior_correct
-        ],
+        [[np.sum(row[group], dtype=np.int64) for group in groups] for row in interior_correct],
         dtype=np.float64,
     )
     point = float(
@@ -507,19 +481,13 @@ def paired_identity_max_interval(
     chunk_size = 64
     for start in range(0, samples, chunk_size):
         stop = min(start + chunk_size, samples)
-        selected = generator.integers(
-            0, len(groups), size=(stop - start, len(groups))
-        )
+        selected = generator.integers(0, len(groups), size=(stop - start, len(groups)))
         denominator = np.sum(counts[selected], axis=1, dtype=np.float64)
-        baseline_mean = np.sum(
-            baseline_sums[selected], axis=1, dtype=np.float64
-        ) / denominator
-        interior_mean = np.sum(
-            interior_sums[:, selected], axis=2, dtype=np.float64
-        ) / denominator[None, :]
-        replicates[start:stop] = np.max(
-            interior_mean - baseline_mean[None, :], axis=0
+        baseline_mean = np.sum(baseline_sums[selected], axis=1, dtype=np.float64) / denominator
+        interior_mean = (
+            np.sum(interior_sums[:, selected], axis=2, dtype=np.float64) / denominator[None, :]
         )
+        replicates[start:stop] = np.max(interior_mean - baseline_mean[None, :], axis=0)
     lower, upper = np.percentile(replicates, [2.5, 97.5])
     deviation = float(np.std(replicates, ddof=1)) if samples > 1 else 0.0
     standard_errors = point / deviation if deviation > 0.0 else 0.0
@@ -530,6 +498,8 @@ def paired_identity_max_interval(
         standard_errors=standard_errors,
         samples=samples,
         seed=seed,
+        replicates=tuple(float(value) for value in replicates),
+        replicates_sha256=hashlib.sha256(replicates.tobytes(order="C")).hexdigest(),
     )
 
 
@@ -552,9 +522,7 @@ def l1_decision(
     )
     if any(type(value) is not float or not np.isfinite(value) for value in values):
         raise TypeError("L1 decision inputs must be finite builtin floats")
-    endpoint_passed = (
-        endpoint_gain > 0.0 and endpoint_lower > 0.0 and standard_errors >= 3.0
-    )
+    endpoint_passed = endpoint_gain > 0.0 and endpoint_lower > 0.0 and standard_errors >= 3.0
     spatial_passed = spatial_gain > 0.0
     power_passed = power_gain > 0.0
     return L1Decision(

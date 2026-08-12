@@ -36,9 +36,7 @@ def test_four_point_oracles_and_scale_invariance() -> None:
 
     assert delta_bruteforce(line) == 0.0
     assert 2.0 * delta_bruteforce(cycle4) / cycle4.max() == 1.0
-    assert 2.0 * delta_bruteforce(square) / square.max() == pytest.approx(
-        2.0 - np.sqrt(2.0)
-    )
+    assert 2.0 * delta_bruteforce(square) / square.max() == pytest.approx(2.0 - np.sqrt(2.0))
     base = medoid_index(square)
     assert gromov_delta_rel(cycle4, 0).relative == 1.0
     assert gromov_delta_rel(square, base).relative == pytest.approx(2.0 - np.sqrt(2.0))
@@ -112,9 +110,7 @@ def test_nulls_preserve_registered_structure() -> None:
     observed_spectrum = np.linalg.eigvalsh(
         np.cov(values.astype(np.float64), rowvar=False, bias=True)
     )
-    null_spectrum = np.linalg.eigvalsh(
-        np.cov(gaussian.astype(np.float64), rowvar=False, bias=True)
-    )
+    null_spectrum = np.linalg.eigvalsh(np.cov(gaussian.astype(np.float64), rowvar=False, bias=True))
     assert np.allclose(null_spectrum, observed_spectrum, rtol=2e-5, atol=2e-7)
     assert column_permutation_null(values.astype(np.float64), 7500).dtype == np.float32
     assert np.allclose(
@@ -162,18 +158,14 @@ def test_pca_component_sign_uses_lowest_loading_index_on_tie() -> None:
 
 
 def test_pca_components_diagonalize_covariance_in_descending_order() -> None:
-    train = np.random.Generator(np.random.PCG64(41)).normal(size=(12, 4)).astype(
-        np.float32
-    )
+    train = np.random.Generator(np.random.PCG64(41)).normal(size=(12, 4)).astype(np.float32)
 
     fit = fit_frozen_pca(train, 3)
 
     centered = train.astype(np.float64) - fit.mean.astype(np.float64)
     covariance = centered.T @ centered / train.shape[0]
     rotated = fit.components.astype(np.float64) @ covariance @ fit.components.T
-    assert np.allclose(
-        rotated - np.diag(np.diag(rotated)), np.zeros((3, 3)), atol=2e-7, rtol=0.0
-    )
+    assert np.allclose(rotated - np.diag(np.diag(rotated)), np.zeros((3, 3)), atol=2e-7, rtol=0.0)
     assert np.all(np.diff(np.diag(rotated)) < 0.0)
     assert np.allclose(
         fit.components @ fit.components.T,
@@ -184,9 +176,7 @@ def test_pca_components_diagonalize_covariance_in_descending_order() -> None:
 
 
 def test_pca_component_sign_uses_largest_loading_not_first_coordinate() -> None:
-    train = np.random.Generator(np.random.PCG64(1)).normal(size=(20, 4)).astype(
-        np.float32
-    )
+    train = np.random.Generator(np.random.PCG64(1)).normal(size=(20, 4)).astype(np.float32)
 
     fit = fit_frozen_pca(train, 3)
 
@@ -252,9 +242,7 @@ def test_lift_clips_radius_at_registered_maximum_without_changing_direction() ->
     radius = np.arccosh(lifted[:, 0].astype(np.float64))
     assert np.allclose(radius, 2.5, atol=2e-6, rtol=0.0)
     expected_directions = np.asarray([[0.6, 0.8], [-0.6, 0.8]], dtype=np.float32)
-    observed_directions = lifted[:, 1:] / np.linalg.norm(
-        lifted[:, 1:], axis=1, keepdims=True
-    )
+    observed_directions = lifted[:, 1:] / np.linalg.norm(lifted[:, 1:], axis=1, keepdims=True)
     assert np.allclose(observed_directions, expected_directions, atol=1e-7, rtol=0.0)
 
 
@@ -283,9 +271,7 @@ def test_ambient_euclidean_dot_is_not_a_lorentz_score() -> None:
 
 
 def test_fp32_distance_matches_nonnegative_fp64_oracle() -> None:
-    values = np.asarray(
-        [[1, 0], [np.cos(1e-4), np.sin(1e-4)], [-1, 0]], dtype=np.float32
-    )
+    values = np.asarray([[1, 0], [np.cos(1e-4), np.sin(1e-4)], [-1, 0]], dtype=np.float32)
     lifted = lorentz_lift(values, 2.5)
 
     actual = lorentz_distance_block(lifted, lifted)
@@ -329,9 +315,9 @@ def test_distance_uses_ordered_fp32_intermediates() -> None:
         np.sum(spatial * spatial, axis=2, dtype=np.float32) - temporal * temporal
     ) / np.float32(2.0)
     np.maximum(expected_u, np.float32(0.0), out=expected_u)
-    expected = np.log1p(
-        expected_u + np.sqrt(expected_u * (expected_u + np.float32(2.0)))
-    ).astype(np.float32)
+    expected = np.log1p(expected_u + np.sqrt(expected_u * (expected_u + np.float32(2.0)))).astype(
+        np.float32
+    )
 
     assert np.array_equal(actual, expected)
     spatial64 = spatial.astype(np.float64)
@@ -432,6 +418,7 @@ def test_l1_cannot_pass_from_endpoint_difference_alone() -> None:
 
     assert result.point <= 0.0
     assert result.lower <= 0.0
+    assert len(result.replicates_sha256) == 64
 
 
 def test_identity_bootstrap_resamples_whole_clusters_and_recomputes_maximum() -> None:
@@ -445,9 +432,7 @@ def test_identity_bootstrap_resamples_whole_clusters_and_recomputes_maximum() ->
         dtype=np.bool_,
     )
 
-    actual = paired_identity_max_interval(
-        baseline, interiors, labels, samples=32, seed=205
-    )
+    actual = paired_identity_max_interval(baseline, interiors, labels, samples=32, seed=205)
 
     groups = (np.asarray([0, 1]), np.asarray([2]), np.asarray([3, 4, 5]))
     generator = np.random.Generator(np.random.PCG64(205))
@@ -462,9 +447,7 @@ def test_identity_bootstrap_resamples_whole_clusters_and_recomputes_maximum() ->
     assert actual.point == point
     assert actual.lower == pytest.approx(float(bounds[0]))
     assert actual.upper == pytest.approx(float(bounds[1]))
-    assert actual.standard_errors == pytest.approx(
-        point / np.std(replicates, ddof=1)
-    )
+    assert actual.standard_errors == pytest.approx(point / np.std(replicates, ddof=1))
 
 
 def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
@@ -494,19 +477,14 @@ def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
     query_radius = np.minimum(scale * np.linalg.norm(query64, axis=1), clip)
     gallery_radius = np.minimum(scale * np.linalg.norm(gallery64, axis=1), clip)
     cosine = (query64 @ gallery64.T) / (
-        np.linalg.norm(query64, axis=1)[:, None]
-        * np.linalg.norm(gallery64, axis=1)[None, :]
+        np.linalg.norm(query64, axis=1)[:, None] * np.linalg.norm(gallery64, axis=1)[None, :]
     )
     expected_lorentz = (
-        np.tanh(query_radius)[:, None]
-        * np.sinh(gallery_radius)[None, :]
-        * cosine
+        np.tanh(query_radius)[:, None] * np.sinh(gallery_radius)[None, :] * cosine
         - np.cosh(gallery_radius)[None, :]
     )
     expected_spatial = (
-        np.sinh(query_radius)[:, None]
-        * np.sinh(gallery_radius)[None, :]
-        * cosine
+        np.sinh(query_radius)[:, None] * np.sinh(gallery_radius)[None, :] * cosine
         - 0.5 * np.sinh(gallery_radius)[None, :] ** 2
     )
     assert np.allclose(scores["lorentz"], expected_lorentz, atol=2e-7)
@@ -514,13 +492,9 @@ def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
     for power in (1, 3):
         query_h = query_radius**power
         gallery_h = gallery_radius**power
-        expected_power = (
-            query_h[:, None]
-            / np.sqrt(1.0 + query_h[:, None] ** 2)
-            * gallery_h[None, :]
-            * cosine
-            - np.sqrt(1.0 + gallery_h[None, :] ** 2)
-        )
+        expected_power = query_h[:, None] / np.sqrt(1.0 + query_h[:, None] ** 2) * gallery_h[
+            None, :
+        ] * cosine - np.sqrt(1.0 + gallery_h[None, :] ** 2)
         assert np.allclose(scores[f"power_{power}"], expected_power, atol=2e-7)
 
 
@@ -531,13 +505,9 @@ def test_score_control_endpoint_rankings_match_euclidean_and_cosine() -> None:
 
     small_chunks = score_control_blocks(query, gallery, 0.125, 2.5)
     saturated_chunks = score_control_blocks(query, gallery, 1e6, 2.5)
-    small = {
-        name: np.concatenate(tuple(chunks), axis=0)
-        for name, chunks in small_chunks.items()
-    }
+    small = {name: np.concatenate(tuple(chunks), axis=0) for name, chunks in small_chunks.items()}
     saturated = {
-        name: np.concatenate(tuple(chunks), axis=0)
-        for name, chunks in saturated_chunks.items()
+        name: np.concatenate(tuple(chunks), axis=0) for name, chunks in saturated_chunks.items()
     }
 
     assert np.array_equal(
