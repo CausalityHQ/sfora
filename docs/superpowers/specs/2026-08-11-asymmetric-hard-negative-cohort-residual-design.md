@@ -17,6 +17,12 @@ generation and cannot validate the method. The test below uses only a new,
 prospectively frozen held-out-label retrieval construction inside the training
 archive.
 
+The archive is the encoder's training split. Holding identities out from the
+cohort construction does **not** make them unseen to the already-trained
+encoder. This is therefore a closed-set geometry screen with 797 evaluation
+queries, not evidence of open-set generalization. A PASS can only justify a
+fresh frozen-embedding test on identities unseen during encoder training.
+
 ## Candidate
 
 Call the method **Asymmetric Hard-Negative Cohort Residual similarity
@@ -111,6 +117,12 @@ Persist Recall@1, gain versus raw, wrong-to-right, right-to-wrong, and exact
 two-sided binomial McNemar p-value for every named arm. Persist the 20 shuffled
 gains and their linear empirical 95th percentile.
 
+For each of the four causal controls, also compare AHNCR correctness directly
+against control correctness query by query. Persist AHNCR-wrong/control-right,
+AHNCR-right/control-wrong, and the exact two-sided McNemar p-value. This direct
+comparison prevents a one-query control gap in the 797-query screen from being
+mistaken for causal separation.
+
 ## Prospective decision
 
 AHNCR passes the held-out mechanism gate only if all conditions hold:
@@ -120,6 +132,9 @@ AHNCR passes the held-out mechanism gate only if all conditions hold:
 - at least three of four label-shard gains are strictly positive;
 - gain exceeds `global_mean`, `positive_expansion`,
   `unary_cohort_density`, and `symmetric_ad_norm` by at least `0.001` each;
+- for every one of those four direct AHNCR-versus-control comparisons, the
+  AHNCR-favoring transition count is larger and the exact paired McNemar
+  `p < 0.0125` (Bonferroni familywise `0.05 / 4`);
 - gain is strictly above the linear 95th percentile of the 20 shuffled-centroid
   gains;
 - wrong-to-right transitions exceed right-to-wrong transitions.
@@ -152,6 +167,15 @@ guaranteed class-disjoint training cohort, moves only the query away from its
 nearest hard-negative centroid, retains the gallery unchanged, and uses no
 evaluation graph.
 
+The coefficient `2` and local-neighborhood correction also place AHNCR close
+to Cross-domain Similarity Local Scaling (CSLS), whose symmetric score is
+`2 cos(x,y) - r_T(y) - r_S(x)`. AHNCR is not a new local-scaling family: it is
+a one-sided vector residual built from a class-disjoint training cohort. The
+`unary_cohort_density` control is explicitly a gallery-side, train-cohort CSLS
+term. AHNCR is an inference-time correction and is incompatible with any
+deployment protocol that bans cohort-dependent inference; this experiment is
+mechanism research, not an exception to such a deployment rule.
+
 The defensible contribution, if it survives independent datasets, is this
 specific asymmetric open-set retrieval rule and its use as a mechanism for
 hard-negative direction removal. Broad claims about cohort normalization,
@@ -159,3 +183,5 @@ negative feedback, or query expansion are not novel. Relevant primary sources
 include [Adaptive Data Normalization](https://www.isca-archive.org/interspeech_2023/cumani23_interspeech.pdf),
 [Rocchio relevance feedback](https://nlp.stanford.edu/IR-book/html/htmledition/the-rocchio71-algorithm-1.html),
 and [learned image query expansion](https://arxiv.org/abs/2007.08019).
+The closest local-scaling reference is
+[Conneau et al.'s CSLS formulation](https://arxiv.org/abs/1710.04087).

@@ -56,7 +56,7 @@
 - [ ] Write RED fixtures whose exact top-1 outcomes are independently enumerable for every named arm. Assert AHNCR is exactly `(2q-m(q)) @ g.T`, the gallery is unchanged, and the residual is not normalized.
 - [ ] Require every arm to reuse the same raw `q @ g.T` product. Independently verify stable first-index argmax, pooled/shard recall, transitions, and exact binomial McNemar p-values.
 - [ ] Add 20 fixed centroid-row permutations. Assert the same observed centroid matrix is reused, each permutation is a bijection, assignments are deterministic, and the linear empirical 95th percentile matches an independent oracle.
-- [ ] Parameterize every decision boundary: gain `>= .003`, `p < .01`, at least 3/4 positive shards, four control gaps `>= .001`, shuffled `p95` strictly lower, and W→R > R→W. Mutating any predicate must flip PASS to KILL.
+- [ ] Parameterize every decision boundary: gain `>= .003`, raw paired `p < .01`, at least 3/4 positive shards, four control gaps `>= .001`, every direct AHNCR-versus-control comparison favors AHNCR with Bonferroni `p < .0125`, shuffled `p95` strictly lower, and W→R > R→W. Mutating any predicate must flip PASS to KILL.
 - [ ] Implement the minimum code to make tests green, preserving exact predicate order.
 - [ ] Run pytest/Ruff/py_compile; commit `add AHNCR retrieval decision`.
 
@@ -75,7 +75,7 @@
 
 - [ ] Write archive RED tests for exact SHA, split name `train`, float32/unit/finite embeddings, int64 labels, unique nonempty Unicode IDs, and row alignment. Prove the parser rejects every extra CLI argument, especially `--query` and `--gallery`.
 - [ ] Freeze report order: `schema_version`, `input`, `environment`, `configuration`, `split`, `arms`, `null`, `decision`. Record input SHA, NumPy/thread runtime, every split/count/hash, all arm pooled/shard statistics, 20 null gains, percentile, predicates, and `passes_falsifier`.
-- [ ] Add exhaustive recursive mutations: missing/extra/reordered keys; wrong concrete types; NaN/infinity; inconsistent counts/hashes/recall/gains/transitions/p-values/shards/null percentile/predicates/final decision.
+- [ ] Add exhaustive recursive mutations: missing/extra/reordered keys; wrong concrete types; NaN/infinity; inconsistent counts/hashes/recall/gains/transitions/p-values/shards/direct-control comparisons/null percentile/predicates/final decision.
 - [ ] Add a deterministic synthetic end-to-end archive in which the candidate succeeds and each causal control has a known weaker outcome. Independently recompute all top-1 vectors outside production code.
 - [ ] Add candidate-isolation tests: install read/open sentinels for the official query/gallery filenames and ALSP result, then execute `build_ahncr_report`; no forbidden path may be reached.
 - [ ] Add atomic-publication tests for success, existing destination/symlink, existing temp, link race, serialization/write/fsync/reload/validation failures, unchanged sentinel bytes, and owned-temp-only cleanup.
@@ -105,4 +105,3 @@ CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS
 - [ ] Independently strict-load and recompute the split hashes, cohort centroids, every arm’s top-1 vector, recalls/transitions/p-values, four shard gains, 20 permutations/percentile, all predicates, and final decision. Verify regular nonsymlink mode-0600 output and no temp.
 - [ ] Record PASS or KILL first in the result note. A KILL closes AHNCR without tuning. A PASS authorizes only a separately preregistered frozen-embedding replication on an independent dataset; GPU training remains unauthorized.
 - [ ] Commit the exact artifact and note as `record frozen AHNCR falsifier`.
-
