@@ -1,6 +1,48 @@
 # Full-Gallery Recall Kernel SOTA Program
 
-**Status:** selected design; implementation requires a separate reviewed plan.
+**Status:** rejected at adversarial design review; do not implement this
+additive-rank RS@k program.
+
+## Review outcome
+
+The systems direction survives, but this exact objective does not. No F0
+implementation, native kernel, snapshot refresh, or training arm is authorized
+by this document. A replacement must use an objective with useful gradient
+support across the full rank range and must receive its own design and review.
+
+The blocking findings are:
+
+1. With `tau_member=1` and maximum `k=16`, the membership derivative is already
+   below one percent by soft rank 21 and effectively zero by rank 34. Moving
+   from batch 180 to all 25,882 rows therefore shrinks the global
+   gradient-visible horizon from roughly 3,000 ranks to about 21. The proposed
+   full membership removes the hard-positive curriculum instead of exposing
+   useful distant ranking errors.
+2. F0 would pass on that destructive attenuation because its kill predicate
+   treats a low norm ratio and changed direction as evidence to continue. It
+   also changes sampler distribution, live/detached gradient roles, and
+   membership simultaneously, so its result is not attributable to gallery
+   size.
+3. The queued UNICOM export is the 74.6 zero-shot artifact, not the unavailable
+   95.5 supervised checkpoint. It cannot establish a gradient mechanism at the
+   claimed frontier altitude.
+4. Periodic full refresh that stays under the 15-percent overhead budget leaves
+   rows about one epoch stale on average. EMA refresh additionally confounds the
+   loss with weight averaging. A future bank method needs rolling refresh and
+   identical EMA settings in every arm.
+5. The proposed `B x N x P` streaming kernel attacks a broadcast artifact. A
+   sorted score sweep or binned prefix implementation plus two GEMMs is the
+   mandatory maintained baseline before native code can be justified.
+6. The full-class fraction-of-positives surrogate is not the benchmark's
+   any-positive Recall@k, and the proposed unit-cosine deployment does not match
+   UNICOM's official normalize-full, truncate-to-512, unrenormalized Euclidean
+   evaluator. Those mismatches become larger, not smaller, at full membership.
+
+Two replacement families remain eligible for research: full-rank-support
+log-rank/Smooth-AP objectives accelerated by a sorted or fused kernel, and
+full-gallery listwise distillation for a compact quality-speed Pareto model.
+Non-Euclidean mixing remains a diagnostic until it beats an equivalently
+weighted Euclidean control.
 
 ## 1. Objective
 
