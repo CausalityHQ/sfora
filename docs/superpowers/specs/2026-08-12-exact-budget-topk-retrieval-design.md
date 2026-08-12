@@ -1,9 +1,11 @@
 # Exact-Budget Top-k Retrieval (EBTR) Design
 
-**Status:** proposed replacement for the rejected full-gallery additive-rank
-RS@k design. This document authorizes only the staged falsifiers below. It does
-not authorize a native kernel or a long training run until its preceding gates
-pass.
+**Status:** non-novel engineering ablation replacing the rejected full-gallery
+additive-rank RS@k design. Repository candidate 199 already closed the same
+Easy-Positive/noisy-OR over RS@k composition as a scientific novelty claim.
+This document therefore authorizes only the staged quality/compute falsifiers
+below. It does not authorize a native kernel or a long training run until its
+preceding gates pass, and no outcome may be reported as a new loss.
 
 ## 1. Outcome and scope
 
@@ -75,8 +77,9 @@ The project does not claim this operator or multistage backpropagation: LapSum
 is ICML 2025, its official repository already contains CUDA code, Fast LapSum
 (arXiv:2608.06912) is a 2026 exact-budget GPU method, and Revaud et al./RS@k and
 GradCache precede this live-batch mechanism. DFTopK (arXiv:2510.11472) is a
-mandatory relaxed-budget speed/quality control. The candidate contribution is
-only the any-positive union objective and a measured quality/compute result.
+mandatory relaxed-budget speed/quality control. The any-positive union is an
+engineering configuration, not a contribution. Only a measured, reproducible
+quality/compute Pareto result can survive.
 
 ### 3.2 Log-domain any-positive union loss
 
@@ -141,10 +144,14 @@ must match a true single-pass full-batch backward within a frozen numerical
 tolerance, and sampled production steps must match replayed descriptors within
 that tolerance. CUDA training is not claimed bitwise deterministic.
 
-The reference arm applies the existing source-faithful RS@k and Smooth-AP to
-the same live descriptors, sampler, augmentation bytes, optimizer, EMA policy,
-and gradient-cache machinery. Ordinary Proxy-Anchor or the official UNICOM
-margin-softmax objective is retained as the reproduced backbone anchor.
+The reference arm applies the existing source-faithful RS@k to the same live
+descriptors, sampler, augmentation bytes, optimizer, EMA policy, and
+gradient-cache machinery. Smooth-AP and ROADMAP are not implemented locally:
+G0 must pin their official upstream revisions, reproduce their published
+reference behavior within a frozen tolerance, and record any unavoidable
+adaptation before either can serve as a control. Ordinary Proxy-Anchor or the
+official UNICOM margin-softmax objective is retained as the reproduced
+backbone anchor.
 
 ## 4. Kernel and systems design
 
@@ -161,13 +168,16 @@ Before custom code, benchmark:
 
 A naive `B x B x P` broadcast is forbidden as a performance baseline.
 
-On the registered GB10, a B=16384 ViT-B cached step is estimated at 11--19 s,
-while the complete score/select/reduce/backward operator is estimated at
-0.2--0.4 s. These are planning estimates, not measurements: they make a custom
-training kernel unlikely to pass K1 and require profiling before any kernel
-work. Fast LapSum's million-score-per-row bracket is inapplicable at these
-batch sizes. A deployment search kernel is assessed separately because search,
-not the backbone, dominates that workload.
+The dataset caps forbid the earlier B=16384 planning point. Initial legal
+ladders are In-Shop `{1024,4096,6470}`, SOP `{1024,4096,14887}`, CUB
+`{256,366}`, and Cars `{256,503}`, further reduced by measured memory limits.
+At B=6470 the complete score/select/reduce/backward operator is provisionally
+estimated at 0.03--0.06 s against a 4--8 s ViT-B cached step. These are planning
+estimates, not measurements: they make a custom training kernel unlikely to
+pass K1 and require profiling before any kernel work. Fast LapSum's
+million-score-per-row bracket is inapplicable at these batch sizes. Deployment
+search is assessed independently and is not presumed to dominate until a real
+trace proves it.
 
 ### 4.2 Candidate fused operator
 
@@ -190,8 +200,10 @@ is authorized only for a measured Triton limitation.
 Correctness requires exact mask budget within registered FP32 tolerance,
 reference forward/backward agreement, finite-value rejection, stable tie
 semantics, both descriptor gradient roles, arbitrary non-contiguous labels,
-and identical results across legal tiles. TF32 is not used in the correctness
-oracle.
+and forward/backward agreement across legal tiles within a frozen absolute and
+relative tolerance. Bitwise identity is required only for repeated execution
+of the same fixed reduction tree; cooperative scans with different legal tile
+trees are compared numerically. TF32 is not used in the correctness oracle.
 
 ### 4.3 Compact deployment rung
 
@@ -216,9 +228,11 @@ jointly; kernel speed alone is not a method claim.
 Before training, finish the UNICOM geometry audit and refresh the primary-source
 leaderboard and contamination audit. Freeze the trained head dimension and
 selected score geometry. Separate released zero-shot weights, reproduced
-supervised weights, and paper-only numbers. The first trainable anchor must
-reproduce its published pipeline within a prospectively declared tolerance.
-Otherwise stop rather than calling a weak local baseline SOTA.
+supervised weights, and paper-only numbers. Pin official upstream commits for
+Smooth-AP and ROADMAP and require source-fidelity fixtures before using them as
+controls. The first trainable anchor must reproduce its published pipeline
+within a prospectively declared tolerance. Otherwise stop rather than calling
+a weak local baseline SOTA.
 
 ### G1: zero-training objective falsifier
 
@@ -243,28 +257,39 @@ Kill EBTR if any is true:
 2. finite differences, autograd, or the FP64 log-domain oracle disagree beyond
    the frozen tolerance, or finite inputs underflow to zero loss/gradient;
 3. after magnitude matching, its gradient cosine with ROADMAP, the tuned
-   hard-negative, or Smooth-AP control is at least 0.98 on the held-out fold;
+   hard-negative, Smooth-AP, raw union EBTR, or DFTopK-union control is at
+   least 0.98 on the held-out fold;
 4. a multi-positive hard miss receives zero loss or zero gradient at finite
    temperature; or
 5. the selected temperature fails a prospectively frozen hard-top-k agreement
    bound.
 
-Temperature is chosen from a training-identity calibration split by maximizing
-hard top-k agreement subject to the gradient-support constraint. Test retrieval
+For each `|P| in {1,3,7}`, define gradient support as the L2 norm of the moved
+positive descriptor's gradient when its best positive is at rank
+`floor(0.25B)`, divided by the corresponding norm at rank 2 under the same
+frozen negatives. A `(temperature,c)` pair satisfies support only when every
+ratio is finite and at least 0.10. At least one pair must simultaneously meet
+that support rule and the 20-percent loss-concentration rule, otherwise G1
+closes. Temperature is chosen from a training-identity calibration split by
+maximizing hard top-k agreement within the surviving pairs. Test retrieval
 outcomes may not tune it.
 
 ### G2: tiny matched training
 
 Run a short, fixed-step experiment on the strongest locally reproducible
-backbone with at least three paired training seeds per arm: anchor, ROADMAP,
+backbone with five paired training seeds per arm: anchor, ROADMAP,
 large-batch RS@k, large-batch Smooth-AP, and EBTR. Every arm has identical live
 logical batch, microbatches, augmentation bytes, optimizer, EMA, step count,
 tuning budget, and GPU-hour cap. Report FLOPs and wall time separately. EBTR
-continues only if the across-seed paired lower bound exceeds every listwise
-control by at least the larger of `+0.10` Recall@1 point and the registered
-anchor seed standard deviation, or reaches statistically equivalent quality
-with at least 20 percent less end-to-end time under equally mature maintained
-implementations. An evaluation identity bootstrap alone is insufficient.
+continues only if a one-sided 95-percent hierarchical paired-bootstrap lower
+bound—resampling the five paired seeds first and evaluation identities within
+each seed—exceeds every listwise control by at least the larger of `+0.10`
+Recall@1 point and the registered anchor seed standard deviation. The same
+registered resamples and seed pairing are used for every comparison. The
+alternative lane requires its two-sided 95-percent interval to remain inside a
+predeclared equivalence margin while end-to-end time falls at least 20 percent
+under equally mature maintained implementations. An evaluation-identity-only
+bootstrap is insufficient.
 
 ### K1: kernel gate
 
@@ -283,8 +308,12 @@ maintained implementation and close the kernel claim.
 
 After a quality model exists, profile exact and approximate search separately.
 A fused Triton or native CUDA squared-Euclidean/top-k operator is authorized
-only when search is at least 30 percent of end-to-end serving latency and the
-maintained exact/ANN baselines leave a measured gap. The custom kernel must
+only for a named consumer with at least one million gallery rows, a recorded
+request trace, a pre-embedded query stream, and a denominator that includes
+search plus device/host transfer p95. Search must be at least 30 percent of
+that end-to-end serving latency and maintained exact/ANN baselines must leave a
+measured gap. In-Shop, SOP, CUB, and Cars alone cannot authorize K2. The custom
+kernel must
 preserve the selected geometry, match the reference ranking at the registered
 dtype tolerance, and improve end-to-end p50 and p95 latency by at least 15
 percent at matched recall and batch/concurrency. Triton is tried first; CUDA is
@@ -334,9 +363,12 @@ This ladder deliberately makes the cheapest decisive failure occur first.
 
 The implementation plan must pin primary sources and executable revisions for
 LapSum, DFTopK, ROADMAP, RS@k/Revaud multistage backpropagation, GradCache,
-Smooth-AP, and Matryoshka representation learning. Fast LapSum is treated as
-paper-only until an executable artifact is authenticated. EBTR claims none of
-their operators, caching mechanism, or nested representation scheme. Its only
-scientific novelty candidate is the robust log-domain noisy-OR composition of
-exact-budget top-k memberships, tested against those controls; any native
-kernel claim is a separate measured systems result.
+Smooth-AP, Easy Positive/MIL aggregation, and Matryoshka representation
+learning. Fast LapSum is treated as paper-only until an executable artifact is
+authenticated. Repository candidate 199 and
+`docs/existential_recall_audit_2026-08-02.md` already establish that noisy-OR
+over smooth rank is an Easy-Positive/RS@k composition; this program does not
+reopen that scientific novelty claim. EBTR claims none of the prior operators,
+caching mechanisms, aggregation primitives, or nested representation schemes.
+Any surviving statement is an engineering quality/compute result; any native
+kernel statement is a separate measured systems result.
