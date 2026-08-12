@@ -88,7 +88,7 @@ Fit the Gaussian null to the observed mean and covariance eigenvalues with PCG64
 
 - [ ] **Step 5: Run Task 1 GREEN and commit**
 
-Run: `.venv/bin/pytest -q tests/test_lorentz_rider.py -k 'four_point or l0_subsample or null' && .venv/bin/ruff check src/sfora/lorentz_rider.py tests/test_lorentz_rider.py`
+Run: `.venv/bin/pytest -q tests/test_lorentz_rider.py && .venv/bin/ruff check src/sfora/lorentz_rider.py tests/test_lorentz_rider.py`
 
 ```bash
 git add src/sfora/lorentz_rider.py tests/test_lorentz_rider.py

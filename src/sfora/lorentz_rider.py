@@ -112,7 +112,7 @@ def gromov_delta_rel(distances: np.ndarray, base: int) -> DeltaEstimate:
 def column_permutation_null(values: np.ndarray, seed: int) -> np.ndarray:
     """Independently permute every coordinate while preserving its values."""
 
-    matrix = _require_matrix(values, name="values")
+    matrix = _require_matrix(values, name="values").astype(np.float32)
     if type(seed) is not int:
         raise TypeError("seed must be a builtin integer")
     generator = np.random.Generator(np.random.PCG64(seed))
@@ -126,6 +126,8 @@ def spectrum_gaussian_null(values: np.ndarray, seed: int) -> np.ndarray:
     """Draw a Gaussian null with the observed mean and covariance spectrum."""
 
     matrix = _require_matrix(values, name="values")
+    if matrix.shape[0] <= matrix.shape[1]:
+        raise ValueError("Gaussian null requires more rows than coordinates")
     if type(seed) is not int:
         raise TypeError("seed must be a builtin integer")
     values64 = matrix.astype(np.float64)
@@ -134,7 +136,13 @@ def spectrum_gaussian_null(values: np.ndarray, seed: int) -> np.ndarray:
     covariance = (centered.T @ centered) / matrix.shape[0]
     eigenvalues, eigenvectors = np.linalg.eigh(covariance)
     eigenvalues = np.maximum(eigenvalues, 0.0)
+    for column in range(eigenvectors.shape[1]):
+        pivot = int(np.argmax(np.abs(eigenvectors[:, column])))
+        if eigenvectors[pivot, column] < 0.0:
+            eigenvectors[:, column] *= -1.0
     generator = np.random.Generator(np.random.PCG64(seed))
     scores = generator.standard_normal(size=matrix.shape)
-    result = mean + (scores * np.sqrt(eigenvalues)) @ eigenvectors.T
+    scores -= np.mean(scores, axis=0, dtype=np.float64)
+    orthonormal, _ = np.linalg.qr(scores, mode="reduced")
+    result = mean + (np.sqrt(matrix.shape[0]) * orthonormal * np.sqrt(eigenvalues)) @ eigenvectors.T
     return np.ascontiguousarray(result.astype(np.float32))
