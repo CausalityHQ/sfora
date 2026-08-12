@@ -193,8 +193,10 @@ S_lambda(q,g) = <h_q,h_g> + lambda r_q r_g
 ```
 
 `P` is the fixed top-50 **head-only-inner-product** neighbor set among training
-identities; it cannot select on the tail-product response being fitted. Labels
-are never used. The result is an ordinary `(d+1)`-dimensional inner
+rows; it cannot select on the tail-product response being fitted. Labels are
+never used for pair selection or the point coefficient; train identities are
+used only for the two-way clustered uncertainty calculation described below.
+The result is an ordinary `(d+1)`-dimensional inner
 product, compatible with maintained GEMM/FAISS/cuVS kernels. At `d=128`, FP32
 gallery storage is 129 values instead of a 512-D anchor, a 3.97x reduction.
 The encoder still emits the full descriptor: this is a gallery/search saving,
@@ -210,13 +212,24 @@ cosine on a renormalized prefix.
 
 The zero-training test freezes the subset of `{64, 128, 256, 512}` strictly
 below the export's full width, the basis (native and train-only PCA), and
-`lambda` before test evaluation. Same-byte controls are
+`lambda` before test evaluation. Matched row-width controls are
 renormalized `(d+1)` truncation, plain `(d+1)` truncation, `lambda=0`, UNICOM's
-`r_g^2/2` form, PCA `(d+1)` renormalization, sign/permuted-pair controls, and
-the full-width ceiling. The published Hyp-ViT 128-D 92.6 row is a labelled
+`r_g^2/2` form, PCA `(d+1)` renormalization, and sign/permuted-pair controls.
+The PCA mean and matrix are charged to its total deployment storage, so PCA is
+not called same-total-byte even though its row width matches. UNICOM has two
+distinct ceilings: the published `official_512` geometry (full normalize,
+first 512 coordinates, unrenormalized Euclidean) and a separately labelled
+`full_width_768` diagnostic. The published Hyp-ViT 128-D 92.6 row is a labelled
 same-storage frontier reference, not a matched control. The test runs first on
-the UNICOM export, then on a registered Cars196 export and local PA export;
+the UNICOM export. Cars196 and local PA require explicit adapters for their
+existing split-specific archive schemas; they are not passed to the UNICOM
+three-split loader. Cars196 remains required before a general claim, and
 DADA/VPTSP-G follow only after reproduction.
+
+Native CTM at `d=128` is the primary 129-value candidate. PCA-CTM is reported
+as a diagnostic from the frozen basis grid; if it alone passes the quality
+gates, it requires its own total-storage Pareto calculation including the PCA
+mean and matrix and cannot inherit the native 3.97x claim.
 
 At `d=128`, continuation requires all of:
 
@@ -225,18 +238,28 @@ At `d=128`, continuation requires all of:
   the gallery fixed, with 95% lower bound above zero;
 - no mAP@R loss larger than 0.10 point versus renormalized 129-D truncation;
 - recovery of at least 50% of the
-  full-width-minus-renormalized-129 R@1 gap;
-- superiority to every same-byte control, including PCA; and
+  `official_512`-minus-renormalized-129 R@1 gap;
+- superiority to every matched row-width quality control, including PCA, while
+  separately passing the native CTM total-storage comparison; and
 - replication on Cars196 before a general claim.
 
-If renormalized 128-D already matches or exceeds full-width R@1, use that
+If renormalized 129-D already matches or exceeds `official_512` R@1, use that
 simpler compressed descriptor and close this hypothesis; the 50% recovery
-quantity is evaluated only for a strictly positive full-width gap. Otherwise,
-kill it if an identity-cluster bootstrap confidence interval for train-only
-`lambda_raw` includes or lies below zero, or if `lambda_raw` does not exceed
-the upper confidence bound of a tail-permuted null fitted under the identical
-head-only selection rule. Also kill it if every
-width gains less than 0.10 point, a simpler same-byte control matches it, the
+quantity is evaluated only for a strictly positive `official_512` gap. If the
+fitted coefficient clips to zero, or its encoded FP32 scalar is identically
+zero, close before any query/gallery grid is evaluated. Otherwise, kill it if
+a two-way train-identity cluster bootstrap confidence interval for
+`lambda_raw` includes or lies below zero. The bootstrap freezes the observed
+head-only pairs and weights each pair by the product of the resampled counts of
+its query and gallery identities, accounting for both appearances of a row.
+
+The tail null freezes the same head pairs and every row's tail radius, then
+permutes only nonzero tail directions with PCG64 seeds 206 through 237. Its
+one-sided exact permutation p-value is
+`(1 + count(null_lambda_raw >= observed_lambda_raw)) / 33`; continuation
+requires `p <= 0.05`. This is a falsification diagnostic rather than a source
+of coefficient tuning. Also kill CTM if every
+width gains less than 0.10 point, a simpler equal-total-storage control matches it, the
 external replication fails, or an exact predecessor ranking by partial inner
 product plus a fitted `lambda r_q r_g` term is found. Do not tune width or
 `lambda` on test. Composition with INT8 screening is later engineering and does
@@ -500,8 +523,9 @@ Allowed after evidence:
 - a quality-equivalent training speedup under TOST;
 - an exact same-device retrieval speedup with identical registered top-k;
 - a deployment-storage Pareto point, stated as `X` R@1 at `d+1` FP32 values
-  versus `Y` R@1 at full width, with recovered truncation-gap fraction and all
-  same-byte controls disclosed;
+  versus `Y` R@1 at the registered deployment anchor, with recovered
+  truncation-gap fraction, matched row-width controls, and total storage
+  (including any PCA basis) disclosed;
 - a combined Pareto point whose quality and systems components each passed.
 
 Stop or prohibit:
