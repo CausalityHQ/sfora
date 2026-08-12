@@ -26,6 +26,7 @@
 - Create: `src/sfora/foundation_pareto.py`
 - Create: `tests/test_foundation_pareto.py`
 - Create: `docs/foundation_metric_tolerances.json`
+- Create: `docs/foundation_native_fixtures.json`
 
 **Interfaces:**
 - Produces: `RemoteFoundationModelSpec`, `LocalCheckpointFoundationSpec`, `FoundationEncoderAudit`, `FoundationFidelityAudit`, `load_foundation_encoder(spec)`, and `verify_native_fixture(encoder, fixture)`.
@@ -76,7 +77,18 @@ def load_foundation_encoder(
 
 Compute observed processor/config/weight-file digests before returning a remote encoder and the checkpoint digest before returning a local encoder; fail closed on mismatch. Record gated/unavailable models as structured unavailable audit rows; never substitute a model.
 
-Add a frozen native-fixture record and `docs/foundation_metric_tolerances.json`, with exact arm, metric, tolerance, and `frozen_before_execution=true` fields. `verify_native_fixture` compares repository output with frozen native output before the screen: test an in-tolerance pass, an out-of-tolerance rejection, and explicit `repository_only` provenance for R@10/R@100 rows when the native source reports only R@1. No tolerance may be inferred from the F0/F1 run.
+Add the committed frozen-fixture register
+`docs/foundation_native_fixtures.json` and
+`docs/foundation_metric_tolerances.json`, with exact arm, metric, native value,
+fixture/source digest, tolerance, and `frozen_before_execution=true` fields.
+The fixture register has exactly one row for every registered arm: either a
+frozen native value or `native_cross_check="unavailable"` plus a nonempty
+reason. Missing or extra arms reject the register. `verify_native_fixture`
+compares repository output with frozen native output before the screen: test an
+in-tolerance pass, an out-of-tolerance rejection, a missing-arm rejection, and
+explicit `repository_only` provenance for R@10/R@100 rows when the native
+source reports only R@1. No tolerance or native value may be inferred from the
+F0/F1 run.
 
 - [ ] **Step 4: Run GREEN and static checks**
 
@@ -85,7 +97,7 @@ Run: `pytest -q tests/test_foundation_pareto.py -k 'model_spec or revision_pinne
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sfora/foundation_pareto.py tests/test_foundation_pareto.py docs/foundation_metric_tolerances.json
+git add src/sfora/foundation_pareto.py tests/test_foundation_pareto.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json
 git commit -m "add revision-pinned foundation encoders"
 ```
 
@@ -230,6 +242,8 @@ git commit -m "add same-split foundation probe gate"
 - Modify: `src/sfora/foundation_pareto.py`
 - Modify: `tests/test_cli.py`
 - Modify: `tests/test_foundation_pareto.py`
+- Modify: `docs/foundation_metric_tolerances.json`
+- Modify: `docs/foundation_native_fixtures.json`
 - Create: `docs/foundation_test_read_register.json`
 
 **Interfaces:**
@@ -237,7 +251,15 @@ git commit -m "add same-split foundation probe gate"
 
 - [ ] **Step 1: Write end-to-end RED tests**
 
-Invoke the CLI with fake pinned encoders and a tiny identity-disjoint bundle. Assert order `authenticate -> export/cache -> F0 profile -> validation probe -> decision`; official test evaluation must fail when its exact arm is absent from the register and succeed once for a registered arm. Assert report strict reload, no-clobber publication, unavailable-arm rows, and no adapter/student/kernel fields.
+Invoke the CLI with fake pinned encoders and a tiny identity-disjoint bundle.
+Assert order `authenticate -> native fidelity -> export/cache -> F0 profile ->
+validation probe -> decision`; official test evaluation must fail when its exact
+arm is absent from the register and succeed once for a registered arm. Assert
+the strict report contains, for every arm and metric, the native value,
+repository value, tolerance, provenance (`native_cross_check` or
+`repository_only`), and pass/fail decision. An out-of-tolerance arm must close
+before export or probe. Assert report strict reload, no-clobber publication,
+unavailable-arm rows, and no adapter/student/kernel fields.
 
 - [ ] **Step 2: Run RED**
 
@@ -247,7 +269,15 @@ Run: `pytest -q tests/test_foundation_pareto.py`
 
 - [ ] **Step 3: Implement the command and report validator**
 
-Add explicit options for dataset root, model-spec JSON, cache directory, report path, validation seed, and `--allow-registered-test-read`. Require the committed register's exact model revision, checkpoint digest, metric list, purpose, and one permitted evaluation before loading official query/gallery rows. Publish via the cache-v2 no-clobber writer and strict-reload the report.
+Add explicit options for dataset root, model-spec JSON, cache directory, report
+path, validation seed, and `--allow-registered-test-read`. Authenticate the
+complete native-fixture/tolerance registers and call `verify_native_fixture`
+before any export or probe; an unavailable native cross-check remains explicit,
+while a missing row or failed available cross-check closes the arm. Require the
+committed test-read register's exact model revision, checkpoint digest, metric
+list, purpose, and one permitted evaluation before loading official
+query/gallery rows. Publish the fidelity audit rows with the F0/F1 evidence via
+the cache-v2 no-clobber writer and strict-reload the report.
 
 - [ ] **Step 4: Run affected and full assurance**
 
@@ -270,7 +300,7 @@ Review must verify source fidelity, cache completeness, split isolation, test-re
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sfora/foundation_pareto.py src/sfora/image_benchmark.py src/sfora/cli.py tests/test_foundation_pareto.py tests/test_image_benchmark.py tests/test_cli.py docs/foundation_metric_tolerances.json docs/foundation_test_read_register.json
+git add src/sfora/foundation_pareto.py src/sfora/image_benchmark.py src/sfora/cli.py tests/test_foundation_pareto.py tests/test_image_benchmark.py tests/test_cli.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json docs/foundation_test_read_register.json
 git commit -m "add reproducible foundation F0 F1 screen"
 ```
 
@@ -285,7 +315,17 @@ git commit -m "add reproducible foundation F0 F1 screen"
 
 - [ ] **Step 1: Freeze the execution ledger and availability preflight**
 
-Record exact already-spent GB10 hours, remaining F0 cap (at most 6), accessible model revisions, disk estimate, dataset hashes, and absence of destination/temp files. Close unavailable arms without substitution.
+Record exact already-spent GB10 hours, remaining F0 cap (at most 6), accessible
+remote model revisions, disk estimate, dataset hashes, and absence of
+destination/temp files. The same preflight must resolve the local comparator's
+registered checkpoint path, provenance receipt, observed SHA-256 against the
+registered digest, transform ID, and embedding width, then prove it is F0-green.
+The checkpoint may come only from an already registered artifact receipt or
+from a separately reviewed run charged to the conditional Section 7
+DADA/VPTSP-G fidelity line; that fidelity run is not part of this F0 process.
+If no such local comparator is resolvable, publish/record
+`UNAVAILABLE_COMPARATOR` before any model export or GB10 allocation and stop.
+Close other unavailable arms without substitution.
 
 - [ ] **Step 2: Run source-fidelity smoke without official-test access**
 
