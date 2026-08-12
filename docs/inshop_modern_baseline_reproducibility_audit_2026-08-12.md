@@ -10,14 +10,16 @@ training budget can replace that matched control.
 
 If MCPS-PG clears its frozen three-seed gates, the first modern external anchor
 will be **PA + DADA on ResNet-50**, reproduced from the authors' In-Shop config.
-The second will be **HIER + PA on ResNet-50**.  These are external capability
-checks, not substitutes for the paired BN-Inception experiment and not a basis
-for claiming global state of the art.
+The first frontier-model anchor will be **UNICOM ViT-B/16**, followed by
+**HIER + PA on ResNet-50**.  These are external capability checks, not
+substitutes for the paired BN-Inception experiment and not by themselves a
+basis for claiming global state of the art.
 
 ## Audited methods
 
 | Method | Primary source and official code | In-Shop recipe | Published In-Shop R@1 | Reproduction assessment |
 |---|---|---:|---:|---|
+| UNICOM (ICLR 2023) | [paper](https://arxiv.org/abs/2304.05884), [code and weights](https://github.com/deepglint/unicom) | Exact scripts for 128-epoch supervised fine-tuning: ViT-B/16 and ViT-L/14 use 4 GPUs; ViT-L/14@336 uses 8 GPUs | 95.5 (B/16), 96.0 (L/14), 96.7 (L/14@336) | Strongest audited frontier-model anchor. Official model loading, In-Shop dataset support, fine-tuning scripts, worker seeding, and deterministic cuDNN settings are present. Its LAION-400M pretraining, ViT architecture, ArcFace/PartialFC objective, and 4–8 GPU recipe make it a different compute/data regime rather than a matched loss baseline. |
 | PA + DADA (AAAI 2024) | [paper](https://ojs.aaai.org/index.php/AAAI/article/view/29400), [code](https://github.com/Noahsark/DADA) | `configs/inshop.yaml`: 200 epochs, batch 180, `resnet50_layernorm_double`, `fd_fc1_dim=512`, `fc_fc2_dim=4096`, single GPU | 93.0 | Best audited modern proxy-based anchor. Exact config is present and the code seeds Python, NumPy, and Torch and enables deterministic cuDNN. No In-Shop checkpoint or log is supplied; only a CUB demo checkpoint is linked. The authors warn that GPU/environment changes can alter results. |
 | HIER + PA (CVPR 2023) | [paper/project](https://cvlab.postech.ac.kr/project/HIER/), [code](https://github.com/sung-yeon-kim/HIER-CVPR23) | `scripts/Resnet50/hier_Inshop.sh`: 2 GPUs, 150 epochs, batch 90, 512 hierarchical proxies, IPC 2, 512-dimensional embedding | 92.4 | Runnable official source and exact In-Shop script under MIT. It requires an old Torch/timm environment, provides neither In-Shop logs nor checkpoints, and sets `cudnn.benchmark=True`; paired multi-seed reporting is therefore required. |
 | DFML (CVPR 2023) | [paper](https://openaccess.thecvf.com/content/CVPR2023/papers/Wang_Deep_Factorized_Metric_Learning_CVPR_2023_paper.pdf), [code](https://github.com/wangck20/DFML) | None | Not reported | Official code covers CUB, Cars, and SOP only. It is not an In-Shop reproduction anchor. |
@@ -27,6 +29,7 @@ Repository snapshots inspected read-only:
 
 - HIER: `3986a744a1a54fd357e307d1cb3f2e81910b9ffc`
 - DADA: `726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8`
+- UNICOM: `d71992ed969e6c271436ac0a0ee1f3ca61474ac0`
 
 ## Baseline ladder
 
@@ -39,9 +42,14 @@ Repository snapshots inspected read-only:
 3. **Modern proxy anchor:** reproduce PA + DADA from the exact official
    ResNet-50 In-Shop config.  First run seed 0 to validate the pipeline; proceed
    to seeds 1 and 2 only if the reproduction is credible.
-4. **Different mechanism:** reproduce HIER + PA on ResNet-50 only after DADA.
+4. **Frontier representation anchor:** first reproduce UNICOM's released-weight
+   In-Shop evaluation.  Then reproduce ViT-B/16 supervised fine-tuning from its
+   exact 4-GPU script.  A one-GPU adaptation is a port, not an exact
+   reproduction.  This is the starting tier for a future frontier-oriented
+   method, but its LAION-400M pretraining must never be credited to MCPS-PG.
+5. **Different mechanism:** reproduce HIER + PA on ResNet-50 only after DADA.
    Its 2-GPU, 150-epoch cost and nondeterministic backend make it a later check.
-5. **Cross-dataset claim:** require at least one additional standard retrieval
+6. **Cross-dataset claim:** require at least one additional standard retrieval
    dataset and matched modern baselines before describing the method as a
    general DML improvement.
 
@@ -65,6 +73,13 @@ For HIER, the equivalent cheap anchor is a one-epoch dry run of the exact
 ResNet-50 In-Shop script after changing only device allocation.  Any single-GPU
 adaptation is a port and must be compared against the unchanged distributed
 configuration before its score is treated as a reproduction.
+
+For UNICOM, the cheapest anchor is not training.  Load the released ViT-B/16
+weights and exact transform through the public package, reproduce the official
+In-Shop split and retrieval metric, and record zero-shot R@1 before touching
+the model.  Only then dry-run the supervised script for one epoch.  The
+published supervised target is 95.5 R@1 for ViT-B/16; the 96.7 number belongs
+to the substantially larger 336-pixel ViT-L/14 and eight-GPU recipe.
 
 ## Claims prohibited by this evidence
 
