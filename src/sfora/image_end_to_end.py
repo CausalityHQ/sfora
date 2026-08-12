@@ -5960,7 +5960,7 @@ def _mcps_pg_embedding_gradient(
         squared_norms = tangents.square().sum(dim=1)
         eligible = squared_norms.ge(1e-16)
     dots = (gradient * tangents).sum(dim=1)
-    conflict = eligible & dots.gt(0.0)
+    conflict = memory_mask & eligible & dots.gt(0.0)
     if diagnostics is not None:
         values = torch_module.stack(
             (

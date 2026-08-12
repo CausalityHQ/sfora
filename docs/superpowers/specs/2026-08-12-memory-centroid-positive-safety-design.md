@@ -43,10 +43,11 @@ For batch embeddings `z` and labels `y`:
 
 1. normalize `z` as in ordinary PA;
 2. read targets before the current batch updates memory;
-3. for a seen label use its stopped memory centroid; for an unseen label use
-   the stopped normalized live class proxy;
+3. for a seen label use its stopped memory centroid; for an unseen label retain
+   the stopped normalized live class proxy only as an explicit fallback marker;
 4. construct the tangent `p = target - z * <z,target>`;
-5. project the live embedding cotangent only when `<g,p> > 0`:
+5. project the live embedding cotangent only for a seen-memory row when
+   `<g,p> > 0`; an unseen row receives the exact ordinary-PA cotangent:
 
 ```text
 g' = g - <g,p> p / ||p||^2.
@@ -66,6 +67,13 @@ normalize(0.9 * old_centroid + 0.1 * batch_mean).
 
 This order forbids the current example from constructing its own constraint.
 Memory persists across epochs and is never used at inference.
+
+The unseen-row rule was fixed before the training smoke after a read-only
+seed-0 PA checkpoint measurement showed that trained proxies are not usable as
+centroid substitutes: across 3,997 labels, proxy-to-train-centroid cosine had
+median `0.17410265895949872`, maximum `0.27493258948194943`, and zero values at
+or above `0.98`. The measurement therefore rejected proxy-based projection but
+strongly preserved the distinct historical-centroid hypothesis.
 
 ## Objective and controls
 
@@ -99,6 +107,7 @@ validator recomputes all three rates from counts.
 CPU tests must prove:
 
 - unseen proxy fallback and pre-update memory reads;
+- an eligible conflicting unseen row retains the exact PA cotangent;
 - exact `0.9/0.1` normalized updates and per-class batch means;
 - no current-batch self leakage;
 - exact conflict projection and non-conflict/degenerate identity;
@@ -138,4 +147,3 @@ Only final-epoch R@1 feeds the decision. MCPS passes only if:
 Best-over-training R@1 is reported descriptively and never gates. A failure
 keeps the reproducible PA plus validated fixed local-scaling retrieval
 correction as the operating point.
-

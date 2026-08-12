@@ -1632,7 +1632,7 @@ def test_mcps_embedding_gradient_projects_only_live_memory_conflicts() -> None:
     from sfora.image_end_to_end import _mcps_pg_embedding_gradient
 
     embeddings = torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=torch.float64)
-    targets = torch.tensor([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], dtype=torch.float64)
+    targets = torch.tensor([[0.0, 1.0], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64)
     gradients = torch.tensor([[0.0, 2.0], [0.0, -2.0], [3.0, 4.0]], dtype=torch.float64)
     memory_mask = torch.tensor([True, True, False])
     diagnostics: list[dict[str, float]] = []
@@ -1652,7 +1652,7 @@ def test_mcps_embedding_gradient_projects_only_live_memory_conflicts() -> None:
             "rows": 3.0,
             "memory_target_rows": 2.0,
             "proxy_fallback_rows": 1.0,
-            "eligible_rows": 2.0,
+            "eligible_rows": 3.0,
             "conflict_rows": 1.0,
             "memory_eligible_rows": 2.0,
             "memory_conflict_rows": 1.0,

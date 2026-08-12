@@ -19,6 +19,8 @@ Diagnostics flow through the existing method metrics and JSON report.
 - Memory momentum is exactly `0.9`; update weight is exactly `0.1`.
 - Current-batch embeddings cannot enter their own target.
 - Proxy loss and proxy gradients are unchanged.
+- Unseen classes receive the exact ordinary-PA encoder cotangent; projection
+  begins only after a class has a pre-batch memory target.
 - Official In-Shop recipe and cosine inference are unchanged.
 - Implementation uses ordinary commits; no provenance or authentication work.
 
@@ -34,7 +36,8 @@ Diagnostics flow through the existing method metrics and JSON report.
 - Produces: `_MCPSCentroidState.targets(labels, proxies, proxy_labels)` and
   `.update(embeddings, labels)`; `_mcps_pg_embedding_gradient(...)`.
 
-- [ ] Add RED tests using literal tensors for unseen proxy fallback, seen
+- [ ] Add RED tests using literal tensors for unseen proxy fallback, exact
+  PA identity for an eligible conflicting unseen row, seen
   pre-update targets, exact normalized 0.9/0.1 update, per-label batch means,
   conflict projection, safe identity, and degenerate identity.
 - [ ] Run only those tests and confirm missing-symbol failures.
@@ -100,4 +103,3 @@ Diagnostics flow through the existing method metrics and JSON report.
   descriptively.
 - [ ] Request read-only review with `models=["opus","gpt-5.6-sol"]`, verify
   concrete findings, and commit `record MCPS-PG training comparison`.
-
