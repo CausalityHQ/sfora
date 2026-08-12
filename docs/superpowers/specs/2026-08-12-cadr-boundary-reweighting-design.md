@@ -76,6 +76,9 @@ Before the official query/gallery arrays may be opened, all must hold:
 
 WCCN uses `u_j = 1/(within_variance_j + tau)`, normalized to mean one, with
 `tau/median(within_variance)` in `[0.1,0.3,1,3,10]`; ties choose larger tau.
+For each fixed WCCN vector, fit only a Platt scale and intercept on fit pairs
+before computing validation log loss; this prevents arbitrary score scale from
+handicapping the control.
 Failure closes CADR without touching the official pair.
 
 ## One official unseen-identity evaluation
