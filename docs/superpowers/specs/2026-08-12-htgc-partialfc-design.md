@@ -1,16 +1,36 @@
 # PE-HTGC PartialFC: Positive-Exact Gauge-Calibrated Feature Sampling
 
-**Status:** approved for deterministic falsification; training is conditional on
-the gates below
+**Status:** rejected at adversarial design review; do not implement
+
+**Closure (2026-08-12):** the independently reviewed source defect is real, but
+PE-HTGC is not the right repair for In-Shop. At the official ViT-B/16 operating
+point, moving from 512 to 768 classifier coordinates adds roughly 16.4 million
+multiply-accumulates per rank versus roughly 279 billion for the backbone
+forward pass. The sampling saving that PE-HTGC was designed to retain is thus
+about 0.006% of forward compute. Full-768 training is the dominant simpler
+control. Full-vector normalization also removes UNICOM's intentional
+random-subspace self-sufficiency pressure, making the registered 512-D
+deployment lane mechanistically mismatched. The original HT negative estimator
+is additionally an inverted-feature-dropout variant, and its static Monte Carlo
+bias gate was tighter than its own sampling standard error. A positive-exact
+follow-up removed the worst ArcFace saturation case but did not repair the
+economic or deployment mismatch. This document is retained as negative
+research evidence; none of its falsifier or training stages is authorized.
+
+The source-supported actions that survive are operational controls, not a new
+method: synchronize feature masks across class shards, seed the main process,
+compare full-768 training, correct post-slice evaluation normalization, and
+report R@K beyond R@1. A new learning candidate must improve compact retrieval
+directly rather than justify negligible classifier savings.
 
 **Target:** improve UNICOM-style supervised image retrieval without changing
 the backbone, descriptor width, class sampling, or retrieval protocol, while
 repairing a source-confirmed inconsistency in class-sharded feature sampling.
 
-## 1. Decision
+## 1. Rejected design
 
-The selected candidate is **PE-HTGC PartialFC**. It combines three changes that must
-remain separately attributable:
+The rejected candidate was **PE-HTGC PartialFC**. It combined three changes
+that were intended to remain separately attributable:
 
 1. **coherent masks:** every class shard evaluates the same sampled feature
    coordinates on a distributed step; and
@@ -20,14 +40,9 @@ remain separately attributable:
    inverse-probability-scaled sampled inner products divided by full-vector
    norms rather than independently re-normalizing each sampled subspace.
 
-The first change is a distributed-correctness repair and is a no-op at world
-size one. The positive-exact/HT-negative estimator is the research mechanism
-and remains testable on one GPU. Neither change is described as a SOTA
-improvement until it beats the controls under the evidence ladder in Section 9.
-
-The operator has instructed the research loop to choose the recommended path
-without waiting for repeated decisions. This design therefore proceeds to its
-falsifier after review; it does not authorize a training claim in advance.
+The first change remains a distributed-correctness repair and is a no-op at
+world size one. The positive-exact/HT-negative estimator was the proposed
+research mechanism. The closure above supersedes every prospective gate below.
 
 ## 2. Source-confirmed problem
 
@@ -144,8 +159,12 @@ required: unbiased marginal logits do not remove the class-partition
 dependence induced by rank-correlated logit noise inside `logsumexp`.
 
 Computing exact positives adds `O(BD)` work for a global batch of `B`; the
-negative classifier remains `O(B C K)` for `C` classes. The cost is negligible
-when `C` is large but is measured rather than assumed.
+negative classifier remains `O(B C K)` for `C` classes. Computing full
+prototype norms adds `O(CD)` work and reads every prototype coordinate. It also
+gives unsampled coordinates dense gradients through the denominator, so
+PE-HTGC is not claimed to preserve UNICOM's sparse-coordinate optimization
+effect. Both cost and gradient-density changes are measured rather than
+assumed negligible.
 
 The ArcFace margin, scale, class sampling, distributed cross-entropy, optimizer,
 backbone, image transforms, and training schedule remain unchanged.
@@ -175,6 +194,8 @@ For every view, compute Recall@1, Recall@10, Recall@20, Recall@30, and mAP@R.
 Recall@K means that at least one of the first `K` gallery identities equals the
 query identity. Stable gallery order breaks exact distance ties. No test-time
 augmentation, gallery fitting, reranking, or learned post-processing is used.
+All persisted metrics and decision thresholds use fractions in `[0, 1]`; only
+human-facing tables may multiply them by 100 and label them as percentages.
 
 The corrected candidate deployment view is selected before training:
 
@@ -271,6 +292,15 @@ On one GPU, `U-OFF` and `U-SYNC` are byte-semantic aliases and only one is
 executed. On at least four GPUs, both are required. Record clipping, coordinate
 coverage, throughput, peak memory, and final registered metrics.
 
+For matched runs, initialize one deterministic global prototype matrix and then
+take the official contiguous class shards. Set Python, NumPy, CPU Torch, and
+CUDA seeds before model/prototype construction. `U-OFF` draws masks from
+explicit rank-specific generators seeded as `mask_seed + rank`; coherent arms
+draw only on rank zero and broadcast. This is a reproducibility-fixed port of
+the official recipe because the shipped `setup_seed` helper is never called.
+The unmodified source remains a separate faithfulness check, not a paired
+statistical control.
+
 PE-HTGC passes the smoke only if:
 
 1. final R@1 improves over the matched official control by at least `0.002`;
@@ -296,6 +326,13 @@ Only a passing smoke proceeds to the official 128-epoch ViT-B/16 In-Shop
 recipe for seeds 0, 1, and 2. GPU training is statistically reproducible rather
 than bitwise deterministic. All arms use paired initializations, data order,
 checkpoint epochs, and evaluation.
+
+If only one GPU is available, preserve the official global batch of 64 through
+batch size or gradient accumulation and label the run a one-GPU mechanism
+port. Such a run can compare PE-HTGC with sampled/full controls but cannot test
+the distributed coherence repair or count as an exact reproduction of the
+published four-GPU point. The full distributed claim requires at least four
+GPUs.
 
 The candidate counts as a matched mechanism improvement only if:
 
