@@ -263,11 +263,11 @@ def global_tangent(
     total = peer_z.sum(axis=0, dtype=np.float64)
     label_sums = {
         int(label): peer_z[peer_label_array == label].sum(axis=0, dtype=np.float64)
-        for label in np.unique(peer_label_array)
+        for label in np.unique(label_array)
     }
     label_counts = {
         int(label): int(np.count_nonzero(peer_label_array == label))
-        for label in np.unique(peer_label_array)
+        for label in np.unique(label_array)
     }
     for index in range(z.shape[0]):
         label = int(label_array[index])
@@ -308,14 +308,9 @@ def local_excess_tangent(
         if len(foreign_indices) < k:
             raise ValueError("anchor has fewer than k foreign peers")
         similarities = similarity_matrix[index, foreign_indices]
-        ranked = sorted(
-            range(len(foreign_indices)),
-            key=lambda position: (
-                -float(similarities[position]),
-                str(id_array[foreign_indices[position]]),
-            ),
-        )
-        top_positions = ranked[:k]
+        top_positions = np.lexsort(
+            (id_array[foreign_indices], -similarities)
+        )[:k]
         foreign = peer_z[foreign_indices]
         top = foreign[top_positions]
         global_mean = foreign.mean(axis=0)
