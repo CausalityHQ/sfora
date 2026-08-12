@@ -423,7 +423,7 @@ def test_l1_cannot_pass_from_endpoint_difference_alone() -> None:
     interiors = np.stack([euclidean, cosine])
 
     result = paired_identity_max_interval(
-        np.maximum(euclidean, cosine),
+        euclidean,
         interiors,
         labels,
         samples=200,

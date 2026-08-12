@@ -189,7 +189,7 @@ def test_l1_cannot_pass_from_endpoint_difference_alone():
     cosine = np.asarray([0,0,1,1], bool)
     interiors = np.stack([euclidean, cosine])
     result = paired_identity_max_interval(
-        np.maximum(euclidean, cosine), interiors, labels, samples=200, seed=205
+        euclidean, interiors, labels, samples=200, seed=205
     )
     assert result.point <= 0.0
     assert result.lower <= 0.0
@@ -205,6 +205,10 @@ def test_function_family_tie_closes_geometry_claim():
 - [ ] **Step 2: Verify RED and implement one-resample max statistic**
 
 For each replicate, sample identity indices once, compute every interior-minus-best-endpoint R@1 difference on that same resample, then store the maximum. The reported point uses the same maximum over full arrays; lower/upper are 2.5/97.5 percentiles and `standard_errors = point / std(replicates, ddof=1)`.
+
+The caller fixes `baseline_correct` to the endpoint with larger full-sample
+R@1, breaking an exact tie in favor of PCA-Euclidean. Persist that endpoint
+name. Never use an elementwise union of endpoint correctness vectors.
 
 - [ ] **Step 3: Add exact score-family tests and implement controls**
 

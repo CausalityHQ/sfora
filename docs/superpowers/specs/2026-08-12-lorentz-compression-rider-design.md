@@ -104,6 +104,12 @@ shows that apparent hyperbolic gains can come from implicit negative weighting.
    bootstrap standard errors on at least two datasets, and the winning
    sinh/cosh scorer beats both the spatial-only and power-law controls. If L0
    and L1 both fail, close.
+
+For the paired bootstrap, choose the single endpoint correctness vector whose
+full-sample R@1 is larger, breaking an exact tie in favor of PCA-Euclidean.
+Resample that fixed vector with every interior vector.  Do not replace it by
+the per-query union of endpoint successes, which is a different and overly
+conservative estimand.
 3. `L2`, frozen-head training only: three seeds per method/dimension. At 16 and
    32 dimensions, Lorentz must beat the best matched control by at least 0.5
    R@1 point and three paired-bootstrap standard errors on label-disjoint
