@@ -101,19 +101,52 @@ def test_nulls_preserve_registered_structure() -> None:
     assert column_permutation_null(values.astype(np.float64), 7500).dtype == np.float32
 
 
-def test_pca_uses_train_only_and_has_canonical_signs() -> None:
-    train = np.asarray([[2, 0], [1, 0], [-1, 0], [-2, 0]], dtype=np.float32)
+def test_pca_uses_descending_variance_components_in_coordinate_order() -> None:
+    train = np.asarray(
+        [
+            [10, 0, 0],
+            [-10, 0, 0],
+            [0, 3, 0],
+            [0, -3, 0],
+            [0, 0, 1],
+            [0, 0, -1],
+        ],
+        dtype=np.float32,
+    )
+
+    fit = fit_frozen_pca(train, 2)
+
+    assert type(fit) is FrozenPCA
+    assert fit.mean.tolist() == [0.0, 0.0, 0.0]
+    assert np.array_equal(
+        fit.components,
+        np.asarray([[1, 0, 0], [0, 1, 0]], dtype=np.float32),
+    )
+
+
+def test_pca_component_sign_uses_lowest_loading_index_on_tie() -> None:
+    train = np.asarray([[1, -1], [-1, 1], [2, -2], [-2, 2]], dtype=np.float32)
 
     fit = fit_frozen_pca(train, 1)
 
-    assert type(fit) is FrozenPCA
-    assert fit.mean.tolist() == [0.0, 0.0]
-    assert fit.components.shape == (1, 2)
-    pivot = int(np.argmax(np.abs(fit.components[0])))
-    assert fit.components[0, pivot] > 0.0
-    projected = apply_frozen_pca(np.asarray([[10, 7]], dtype=np.float32), fit)
-    assert projected.shape == (1, 1)
-    assert projected.dtype == np.float32
+    expected = np.float32(1.0 / np.sqrt(2.0))
+    assert fit.components[0, 0] == pytest.approx(expected)
+    assert fit.components[0, 1] == pytest.approx(-expected)
+
+
+def test_apply_frozen_pca_uses_frozen_train_mean_not_eval_mean() -> None:
+    fit = FrozenPCA(
+        mean=np.asarray([1, 2], dtype=np.float32),
+        components=np.asarray([[1, 0], [0, 1]], dtype=np.float32),
+    )
+    evaluation = np.asarray([[10, 7], [14, -1], [-2, 11]], dtype=np.float32)
+
+    projected = apply_frozen_pca(evaluation, fit)
+
+    assert np.array_equal(
+        projected,
+        np.asarray([[9, 5], [13, -3], [-3, 9]], dtype=np.float32),
+    )
 
 
 def test_pca_canonicalization_rejects_eval_leakage_and_mutants() -> None:
@@ -147,6 +180,20 @@ def test_lift_satisfies_hyperboloid_and_mips_selects_nearest() -> None:
     assert lifted[2].tolist() == [1.0, 0.0, 0.0]
     scores = lorentz_mips_scores(lifted[:1], lifted)
     assert int(np.argmax(scores[0])) == 0
+
+
+def test_lift_clips_radius_at_registered_maximum_without_changing_direction() -> None:
+    values = np.asarray([[30, 40], [-6, 8]], dtype=np.float32)
+
+    lifted = lorentz_lift(values, 1.0)
+
+    radius = np.arccosh(lifted[:, 0].astype(np.float64))
+    assert np.allclose(radius, 2.5, atol=2e-6, rtol=0.0)
+    expected_directions = np.asarray([[0.6, 0.8], [-0.6, 0.8]], dtype=np.float32)
+    observed_directions = lifted[:, 1:] / np.linalg.norm(
+        lifted[:, 1:], axis=1, keepdims=True
+    )
+    assert np.allclose(observed_directions, expected_directions, atol=1e-7, rtol=0.0)
 
 
 def test_wrong_sign_selects_farthest() -> None:
@@ -201,6 +248,76 @@ def test_fp32_distance_matches_nonnegative_fp64_oracle() -> None:
     )
     oracle = np.log1p(oracle_u + np.sqrt(oracle_u * (oracle_u + 2.0)))
     assert np.allclose(actual.astype(np.float64), oracle, atol=3e-4, rtol=3e-4)
+
+
+def test_distance_uses_ordered_fp32_intermediates() -> None:
+    values = np.asarray(
+        [
+            [-0.9891214, -0.36778665, 1.2879252, 0.19397442, 0.9202309],
+            [0.09716732, -1.5259304, 1.1921661, -0.67108965, 1.0002694],
+        ],
+        dtype=np.float32,
+    )
+    lifted = lorentz_lift(values, 0.30731173920785104)
+
+    actual = lorentz_distance_block(lifted[:1], lifted[1:])
+    spatial = lifted[:1, None, 1:] - lifted[None, 1:, 1:]
+    temporal = lifted[:1, None, 0] - lifted[None, 1:, 0]
+    expected_u = (
+        np.sum(spatial * spatial, axis=2, dtype=np.float32) - temporal * temporal
+    ) / np.float32(2.0)
+    np.maximum(expected_u, np.float32(0.0), out=expected_u)
+    expected = np.log1p(
+        expected_u + np.sqrt(expected_u * (expected_u + np.float32(2.0)))
+    ).astype(np.float32)
+
+    assert np.array_equal(actual, expected)
+    spatial64 = spatial.astype(np.float64)
+    temporal64 = temporal.astype(np.float64)
+    u64 = (np.sum(spatial64 * spatial64, axis=2) - temporal64 * temporal64) / 2.0
+    widened = np.log1p(u64 + np.sqrt(u64 * (u64 + 2.0))).astype(np.float32)
+    assert not np.array_equal(actual, widened)
+
+
+def test_distance_clips_accepted_negative_roundoff_to_zero() -> None:
+    query = np.asarray([[1.0, 0.0]], dtype=np.float32)
+    gallery = np.asarray([[np.nextafter(np.float32(1.0), np.float32(2.0)), 0.0]], dtype=np.float32)
+
+    distance = lorentz_distance_block(query, gallery)
+
+    assert np.array_equal(distance, np.zeros((1, 1), dtype=np.float32))
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        np.asfortranarray(np.ones((3, 2), dtype=np.float32)),
+        np.ones((3, 2), dtype=np.float16),
+        np.asarray([[1, 0], [np.nan, 1]], dtype=np.float32),
+    ],
+)
+def test_public_arithmetic_rejects_noncanonical_matrices(bad: np.ndarray) -> None:
+    with pytest.raises((TypeError, ValueError)):
+        fit_frozen_pca(bad, 1)
+
+
+def test_public_arithmetic_rejects_ndarray_subclasses() -> None:
+    class ArraySubclass(np.ndarray):
+        pass
+
+    bad = np.ones((3, 2), dtype=np.float32).view(ArraySubclass)
+
+    with pytest.raises(TypeError):
+        fit_frozen_pca(bad, 1)
+
+
+def test_lorentz_scoring_rejects_off_manifold_inputs() -> None:
+    valid = lorentz_lift(np.asarray([[1, 0], [0, 1]], dtype=np.float32), 1.0)
+    invalid = valid.copy()
+    invalid[0, 0] += np.float32(1e-3)
+
+    with pytest.raises(ValueError, match="constraint"):
+        lorentz_mips_scores(invalid, valid)
 
 
 def test_small_scale_distance_converges_to_euclidean() -> None:
