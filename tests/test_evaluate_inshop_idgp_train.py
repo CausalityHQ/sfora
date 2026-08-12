@@ -70,12 +70,19 @@ def test_build_report_is_train_only_and_relationally_validates(
     _write_train_archive(path)
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", digest)
+    monkeypatch.setattr(CLI, "DENSITY_POOL_SIZE", 180)
     report = CLI.build_report(path)
     assert CLI.validate_report(report) is report
     assert report["input"]["sha256"] == digest
     assert report["decision"]["status"] in {"PASS", "KILL"}
     assert report["input"]["rows"] == 360
     assert report["configuration"]["cohort_rows"] == 180
+    assert report["configuration"]["density_pool_size"] == 180
+    assert report["density_pools"]["primary_rows"] == 180
+    assert report["density_pools"]["alternate_rows"] == 180
+    assert len(report["density_pools"]["primary_sha256"]) == 64
+    assert len(report["density_pools"]["alternate_sha256"]) == 64
+    assert report["cohorts"][0]["specificity_records"]
 
     mutated = copy.deepcopy(report)
     mutated["pooled"]["metrics"]["raw_advantage_mean"] += 0.01
@@ -97,6 +104,14 @@ def test_build_report_is_train_only_and_relationally_validates(
     mutated = copy.deepcopy(report)
     mutated["cohorts"][0]["diagnostics"]["reference_cosine_mean"] += 0.1
     with pytest.raises(ValueError, match="diagnostics"):
+        CLI.validate_report(mutated)
+    mutated = copy.deepcopy(report)
+    mutated["density_pools"]["primary_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="density pools"):
+        CLI.validate_report(mutated)
+    mutated = copy.deepcopy(report)
+    mutated["cohorts"][0]["specificity_records"][0]["two_sided"] += 0.1
+    with pytest.raises(ValueError, match="pooled"):
         CLI.validate_report(mutated)
 
 

@@ -13,9 +13,11 @@ from sfora.training import ProjectionTrainingConfig, _proxy_anchor_gradient
 
 FOLD_DOMAIN = b"LE-IDGP-fold-v1:"
 ROW_DOMAIN = b"LE-IDGP-row-v1:"
+POOL_DOMAIN = b"LE-IDGP-pool-v1:"
 COHORT_LABELS = 45
 ROWS_PER_LABEL = 4
 LOCAL_K = 50
+DENSITY_POOL_SIZE = 12_612
 CONTROL_SHUFFLE_SEED = 20260812
 CONTROL_RANDOM_SEED = 20260814
 BOOTSTRAP_SEED = 20260813
@@ -32,13 +34,22 @@ ARM_ORDER = (
 
 @dataclass(frozen=True)
 class Cohort:
-    """One deterministic 45-label by four-row cohort and its disjoint reference."""
+    """One deterministic 45-label by four-row PA-surrogate cohort."""
 
     fold: int
     index: int
     row_indices: NDArray[np.int64]
-    reference_row_indices: NDArray[np.int64]
     ordered_sha256: str
+
+
+@dataclass(frozen=True)
+class DensityPools:
+    """Deterministically ordered primary and alternate density pools."""
+
+    primary_row_indices: NDArray[np.int64]
+    alternate_row_indices: NDArray[np.int64]
+    primary_sha256: str
+    alternate_sha256: str
 
 
 @dataclass(frozen=True)
@@ -52,6 +63,7 @@ class CohortEvaluation:
     pre_margins: NDArray[np.float64]
     conflict_dots: NDArray[np.float64]
     skipped_mask: NDArray[np.bool_]
+    bottom_mask: NDArray[np.bool_]
     primary_mask: NDArray[np.bool_]
     margin_changes: Mapping[str, NDArray[np.float64]]
     positive_similarity_changes: Mapping[str, NDArray[np.float64]]
@@ -83,6 +95,10 @@ class IDGPEvaluation:
     """Full core evaluation before JSON report conversion."""
 
     evaluations: tuple[CohortEvaluation, ...]
+    density_pool_rows: int
+    density_pool_sha256: str
+    alternate_pool_rows: int
+    alternate_pool_sha256: str
     summary: Mapping[str, object]
     predicates: tuple[dict[str, object], ...]
     passed: bool
@@ -165,25 +181,59 @@ def build_cohorts(labels: NDArray[np.int64], example_ids: NDArray[np.str_]) -> t
                 selected.extend(candidates[:ROWS_PER_LABEL])
             groups.append(np.asarray(selected, dtype=np.int64))
         if groups:
-            if len(groups) < 2:
-                raise ValueError("each represented fold requires two complete cohorts")
             complete_rows.append((fold, groups))
 
     cohorts: list[Cohort] = []
     for fold, groups in complete_rows:
         for index, rows in enumerate(groups):
-            reference = groups[(index + 1) % len(groups)]
             ordered_ids = "\0".join(str(value) for value in id_array[rows]).encode("utf-8")
             cohorts.append(
                 Cohort(
                     fold=fold,
                     index=index,
                     row_indices=rows,
-                    reference_row_indices=reference,
                     ordered_sha256=hashlib.sha256(ordered_ids).hexdigest(),
                 )
             )
     return tuple(cohorts)
+
+
+def build_density_pools(
+    labels: NDArray[np.int64],
+    example_ids: NDArray[np.str_],
+    *,
+    pool_size: int = DENSITY_POOL_SIZE,
+) -> DensityPools:
+    """Split eligible rows into one fixed primary pool and an alternate remainder."""
+
+    label_array = _validate_labels(labels)
+    id_array = np.asarray(example_ids)
+    if id_array.shape != label_array.shape or id_array.dtype.kind != "U":
+        raise ValueError("density-pool IDs must be aligned Unicode values")
+    if np.unique(id_array).size != id_array.size or any(not value for value in id_array.tolist()):
+        raise ValueError("density-pool IDs must be unique and nonempty")
+    if type(pool_size) is not int or pool_size < LOCAL_K or pool_size >= label_array.size:
+        raise ValueError("density pool size must leave a nonempty alternate pool")
+    ordered = sorted(
+        range(label_array.size),
+        key=lambda row: (
+            hashlib.sha256(POOL_DOMAIN + str(id_array[row]).encode("utf-8")).digest(),
+            str(id_array[row]),
+        ),
+    )
+    primary = np.asarray(ordered[:pool_size], dtype=np.int64)
+    alternate = np.asarray(ordered[pool_size:], dtype=np.int64)
+
+    def digest(rows: NDArray[np.int64]) -> str:
+        data = "\0".join(str(value) for value in id_array[rows]).encode("utf-8")
+        return hashlib.sha256(data).hexdigest()
+
+    return DensityPools(
+        primary_row_indices=primary,
+        alternate_row_indices=alternate,
+        primary_sha256=digest(primary),
+        alternate_sha256=digest(alternate),
+    )
 
 
 def _validate_geometry_inputs(
@@ -198,43 +248,66 @@ def _validate_geometry_inputs(
 
 
 def global_tangent(
-    embeddings: NDArray[np.floating], labels: NDArray[np.int64]
+    anchors: NDArray[np.floating],
+    anchor_labels: NDArray[np.int64],
+    pool: NDArray[np.floating],
+    pool_labels: NDArray[np.int64],
 ) -> NDArray[np.float64]:
     """Return the stopped-peer all-foreign mean tangent for every anchor."""
 
-    z, label_array = _validate_geometry_inputs(embeddings, labels)
+    z, label_array = _validate_geometry_inputs(anchors, anchor_labels)
+    peer_z, peer_label_array = _validate_geometry_inputs(pool, pool_labels)
+    if peer_z.shape[1] != z.shape[1]:
+        raise ValueError("density pool dimension differs from anchors")
     result = np.empty_like(z)
+    total = peer_z.sum(axis=0, dtype=np.float64)
+    label_sums = {
+        int(label): peer_z[peer_label_array == label].sum(axis=0, dtype=np.float64)
+        for label in np.unique(peer_label_array)
+    }
+    label_counts = {
+        int(label): int(np.count_nonzero(peer_label_array == label))
+        for label in np.unique(peer_label_array)
+    }
     for index in range(z.shape[0]):
-        foreign = z[label_array != label_array[index]]
-        if foreign.shape[0] == 0:
+        label = int(label_array[index])
+        same_count = label_counts.get(label, 0)
+        foreign_count = peer_z.shape[0] - same_count
+        if foreign_count == 0:
             raise ValueError("every anchor requires a foreign label")
-        direction = foreign.mean(axis=0)
+        direction = (total - label_sums.get(label, 0.0)) / foreign_count
         result[index] = direction - z[index] * float(z[index] @ direction)
     return result
 
 
 def local_excess_tangent(
-    embeddings: NDArray[np.floating],
-    labels: NDArray[np.int64],
-    example_ids: NDArray[np.str_],
+    anchors: NDArray[np.floating],
+    anchor_labels: NDArray[np.int64],
+    pool: NDArray[np.floating],
+    pool_labels: NDArray[np.int64],
+    pool_ids: NDArray[np.str_],
     *,
     k: int = 50,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Return top-k-minus-global density tangents and scalar densities."""
 
-    z, label_array = _validate_geometry_inputs(embeddings, labels)
-    id_array = np.asarray(example_ids)
-    if id_array.ndim != 1 or id_array.shape[0] != z.shape[0] or id_array.dtype.kind != "U":
-        raise ValueError("example IDs must be aligned Unicode values")
+    z, label_array = _validate_geometry_inputs(anchors, anchor_labels)
+    peer_z, peer_label_array = _validate_geometry_inputs(pool, pool_labels)
+    if peer_z.shape[1] != z.shape[1]:
+        raise ValueError("density pool dimension differs from anchors")
+    id_array = np.asarray(pool_ids)
+    if id_array.ndim != 1 or id_array.shape[0] != peer_z.shape[0] or id_array.dtype.kind != "U":
+        raise ValueError("pool IDs must be aligned Unicode values")
     if type(k) is not int or k < 1:
         raise ValueError("k must be a positive builtin int")
     tangent = np.empty_like(z)
     density = np.empty(z.shape[0], dtype=np.float64)
+    similarity_matrix = z @ peer_z.T
     for index in range(z.shape[0]):
-        foreign_indices = np.flatnonzero(label_array != label_array[index]).tolist()
+        foreign_indices = np.flatnonzero(peer_label_array != label_array[index]).tolist()
         if len(foreign_indices) < k:
             raise ValueError("anchor has fewer than k foreign peers")
-        similarities = z[foreign_indices] @ z[index]
+        similarities = similarity_matrix[index, foreign_indices]
         ranked = sorted(
             range(len(foreign_indices)),
             key=lambda position: (
@@ -243,7 +316,7 @@ def local_excess_tangent(
             ),
         )
         top_positions = ranked[:k]
-        foreign = z[foreign_indices]
+        foreign = peer_z[foreign_indices]
         top = foreign[top_positions]
         global_mean = foreign.mean(axis=0)
         local_mean = top.mean(axis=0)
@@ -366,34 +439,6 @@ def retrieval_geometry(
     return nearest_positive - nearest_foreign, nearest_positive
 
 
-def _cross_local_excess_tangent(
-    anchors: NDArray[np.float64],
-    anchor_labels: NDArray[np.int64],
-    peers: NDArray[np.float64],
-    peer_labels: NDArray[np.int64],
-    peer_ids: NDArray[np.str_],
-    *,
-    k: int = LOCAL_K,
-) -> NDArray[np.float64]:
-    result = np.empty_like(anchors)
-    for index in range(anchors.shape[0]):
-        foreign_indices = np.flatnonzero(peer_labels != anchor_labels[index]).tolist()
-        if len(foreign_indices) < k:
-            raise ValueError("reference cohort has fewer than k foreign peers")
-        similarities = peers[foreign_indices] @ anchors[index]
-        ranked = sorted(
-            range(len(foreign_indices)),
-            key=lambda position: (
-                -float(similarities[position]),
-                str(peer_ids[foreign_indices[position]]),
-            ),
-        )
-        foreign = peers[foreign_indices]
-        direction = foreign[ranked[:k]].mean(axis=0) - foreign.mean(axis=0)
-        result[index] = direction - anchors[index] * float(anchors[index] @ direction)
-    return result
-
-
 def _all_retrieval_geometry(
     embeddings: NDArray[np.float64], labels: NDArray[np.int64]
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
@@ -426,9 +471,12 @@ def evaluate_cohort(
     *,
     fold: int,
     index: int,
-    reference_embeddings: NDArray[np.floating],
-    reference_labels: NDArray[np.int64],
-    reference_ids: NDArray[np.str_],
+    density_embeddings: NDArray[np.floating],
+    density_labels: NDArray[np.int64],
+    density_ids: NDArray[np.str_],
+    alternate_embeddings: NDArray[np.floating],
+    alternate_labels: NDArray[np.int64],
+    alternate_ids: NDArray[np.str_],
 ) -> CohortEvaluation:
     """Evaluate all single-anchor arms and non-gating system diagnostics."""
 
@@ -438,18 +486,26 @@ def evaluate_cohort(
         raise ValueError("primary cohort must contain exactly 180 rows")
     if id_array.shape != (z.shape[0],) or id_array.dtype.kind != "U":
         raise ValueError("primary example IDs must be aligned Unicode values")
-    reference_z, reference_label_array = _validate_geometry_inputs(
-        reference_embeddings, reference_labels
+    density_z, density_label_array = _validate_geometry_inputs(
+        density_embeddings, density_labels
     )
-    reference_id_array = np.asarray(reference_ids)
-    if reference_z.shape[0] != z.shape[0] or reference_id_array.shape != (z.shape[0],):
-        raise ValueError("reference cohort must align with primary cohort size")
-    if reference_id_array.dtype.kind != "U":
-        raise ValueError("reference IDs must be Unicode values")
+    density_id_array = np.asarray(density_ids)
+    alternate_z, alternate_label_array = _validate_geometry_inputs(
+        alternate_embeddings, alternate_labels
+    )
+    alternate_id_array = np.asarray(alternate_ids)
+    if density_z.shape[1] != z.shape[1] or alternate_z.shape[1] != z.shape[1]:
+        raise ValueError("density pool dimensions must match primary cohort")
+    if density_id_array.shape != (density_z.shape[0],) or density_id_array.dtype.kind != "U":
+        raise ValueError("density IDs must be aligned Unicode values")
+    if alternate_id_array.shape != (alternate_z.shape[0],) or alternate_id_array.dtype.kind != "U":
+        raise ValueError("alternate IDs must be aligned Unicode values")
 
     gradients = proxy_anchor_surrogate_tangent(z, label_array)
-    local, _ = local_excess_tangent(z, label_array, id_array, k=LOCAL_K)
-    global_value = global_tangent(z, label_array)
+    local, _ = local_excess_tangent(
+        z, label_array, density_z, density_label_array, density_id_array, k=LOCAL_K
+    )
+    global_value = global_tangent(z, label_array, density_z, density_label_array)
     le_idgp, dots, skipped = project_one_sided(gradients, local)
     rng_shuffle = np.random.default_rng(CONTROL_SHUFFLE_SEED + 10_000 * fold + index)
     shuffled = local[rng_shuffle.permutation(z.shape[0])]
@@ -503,12 +559,13 @@ def evaluate_cohort(
     idgp_collective, _ = _all_retrieval_geometry(moved_idgp, label_array)
     collective_advantage = float(np.mean(idgp_collective - zero_collective))
 
-    reference_local = _cross_local_excess_tangent(
+    reference_local, _ = local_excess_tangent(
         z,
         label_array,
-        reference_z,
-        reference_label_array,
-        reference_id_array,
+        alternate_z,
+        alternate_label_array,
+        alternate_id_array,
+        k=LOCAL_K,
     )
     reference_dots = np.sum(gradients * reference_local, axis=1)
     reference_norms = np.linalg.norm(reference_local, axis=1)
@@ -523,6 +580,7 @@ def evaluate_cohort(
         pre_margins=pre_margins,
         conflict_dots=dots,
         skipped_mask=skipped,
+        bottom_mask=bottom,
         primary_mask=primary,
         margin_changes=margin_changes,
         positive_similarity_changes=positive_changes,
@@ -609,6 +667,12 @@ def summarize_evaluations(
     zero_changes: list[NDArray[np.float64]] = []
     fold_values: dict[int, list[NDArray[np.float64]]] = {}
     for evaluation in ordered:
+        specificity = evaluation.bottom_mask & ~evaluation.skipped_mask
+        if np.any(specificity):
+            two_sided_values.append(
+                evaluation.margin_changes["le_idgp"][specificity]
+                - evaluation.margin_changes["two_sided"][specificity]
+            )
         primary = evaluation.primary_mask
         if not np.any(primary):
             continue
@@ -625,7 +689,6 @@ def summarize_evaluations(
             evaluation.positive_similarity_changes["le_idgp"][primary]
             - evaluation.positive_similarity_changes["zero"][primary]
         )
-        two_sided_values.append(le - evaluation.margin_changes["two_sided"][primary])
         zero_changes.append(zero)
         fold_values.setdefault(evaluation.fold, []).append(raw)
     if not primary_labels:
@@ -690,7 +753,7 @@ def summarize_evaluations(
     }
     raw = contrasts["raw"]
     positive = contrasts["positive"]
-    two_sided = np.concatenate(two_sided_values)
+    two_sided = np.concatenate(two_sided_values) if two_sided_values else np.asarray([0.0])
     zero = np.concatenate(zero_changes)
     eligible_rows = sum(evaluation.labels.size for evaluation in ordered)
     conflicting_rows = sum(
@@ -784,6 +847,7 @@ def evaluate_idgp(
     labels: NDArray[np.int64],
     example_ids: NDArray[np.str_],
     *,
+    density_pool_size: int = DENSITY_POOL_SIZE,
     bootstrap_replicates: int = BOOTSTRAP_REPLICATES,
 ) -> IDGPEvaluation:
     """Evaluate every complete deterministic cohort and apply the frozen gate."""
@@ -801,6 +865,13 @@ def evaluate_idgp(
     cohorts = build_cohorts(eligible_label_array, eligible_ids)
     if not cohorts:
         raise ValueError("input has no complete LE-IDGP cohorts")
+    pools = build_density_pools(
+        eligible_label_array,
+        eligible_ids,
+        pool_size=density_pool_size,
+    )
+    density_rows = pools.primary_row_indices
+    alternate_rows = pools.alternate_row_indices
     evaluations: list[CohortEvaluation] = []
     for cohort in cohorts:
         evaluations.append(
@@ -810,15 +881,22 @@ def evaluate_idgp(
                 eligible_ids[cohort.row_indices],
                 fold=cohort.fold,
                 index=cohort.index,
-                reference_embeddings=eligible_z[cohort.reference_row_indices],
-                reference_labels=eligible_label_array[cohort.reference_row_indices],
-                reference_ids=eligible_ids[cohort.reference_row_indices],
+                density_embeddings=eligible_z[density_rows],
+                density_labels=eligible_label_array[density_rows],
+                density_ids=eligible_ids[density_rows],
+                alternate_embeddings=eligible_z[alternate_rows],
+                alternate_labels=eligible_label_array[alternate_rows],
+                alternate_ids=eligible_ids[alternate_rows],
             )
         )
     summary = summarize_evaluations(evaluations, bootstrap_replicates=bootstrap_replicates)
     passed, predicates = decide_idgp(summary)
     return IDGPEvaluation(
         evaluations=tuple(evaluations),
+        density_pool_rows=int(density_rows.size),
+        density_pool_sha256=pools.primary_sha256,
+        alternate_pool_rows=int(alternate_rows.size),
+        alternate_pool_sha256=pools.alternate_sha256,
         summary=summary,
         predicates=predicates,
         passed=passed,

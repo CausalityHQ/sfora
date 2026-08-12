@@ -10,8 +10,10 @@ from sfora.idgp import (
     ARM_ORDER,
     BootstrapSummary,
     CohortEvaluation,
+    DensityPools,
     assign_label_folds,
     build_cohorts,
+    build_density_pools,
     cluster_bootstrap,
     decide_idgp,
     evaluate_cohort,
@@ -67,10 +69,6 @@ def test_build_cohorts_is_order_invariant_and_uses_exact_rows() -> None:
     assert len(cohorts) == 2
     assert [(cohort.fold, cohort.index) for cohort in cohorts] == [(2, 0), (2, 1)]
     assert all(cohort.row_indices.shape == (180,) for cohort in cohorts)
-    assert all(cohort.reference_row_indices.shape == (180,) for cohort in cohorts)
-    assert set(labels[cohorts[0].row_indices].tolist()).isdisjoint(
-        labels[cohorts[0].reference_row_indices].tolist()
-    )
 
     for label in np.unique(labels[cohorts[0].row_indices]):
         candidates = ids[labels == label].tolist()
@@ -93,11 +91,10 @@ def test_build_cohorts_is_order_invariant_and_uses_exact_rows() -> None:
     assert [c.ordered_sha256 for c in cohorts] == [c.ordered_sha256 for c in permuted]
 
 
-def test_build_cohorts_rejects_invalid_ids_and_insufficient_complete_cohorts() -> None:
-    labels = np.repeat(np.asarray(_labels_in_fold(0, 45), dtype=np.int64), 4)
+def test_build_cohorts_rejects_invalid_ids_and_discards_incomplete_tail() -> None:
+    labels = np.repeat(np.asarray(_labels_in_fold(0, 44), dtype=np.int64), 4)
     ids = np.asarray([f"id-{index}" for index in range(labels.size)])
-    with pytest.raises(ValueError, match="two complete cohorts"):
-        build_cohorts(labels, ids)
+    assert build_cohorts(labels, ids) == ()
 
     enough_labels = np.repeat(np.asarray(_labels_in_fold(0, 90), dtype=np.int64), 4)
     duplicate_ids = np.asarray([f"id-{index}" for index in range(enough_labels.size)])
@@ -106,6 +103,23 @@ def test_build_cohorts_rejects_invalid_ids_and_insufficient_complete_cohorts() -
         build_cohorts(enough_labels, duplicate_ids)
     with pytest.raises(ValueError, match="Unicode"):
         build_cohorts(enough_labels, np.arange(enough_labels.size, dtype=np.int64))
+
+
+def test_build_density_pools_is_order_invariant_and_disjoint() -> None:
+    labels = np.repeat(np.arange(60, dtype=np.int64), 4)
+    ids = np.asarray([f"pool-{label}-{sample}" for label in range(60) for sample in range(4)])
+    pools = build_density_pools(labels, ids, pool_size=130)
+    assert isinstance(pools, DensityPools)
+    assert pools.primary_row_indices.shape == (130,)
+    assert pools.alternate_row_indices.shape == (110,)
+    assert set(pools.primary_row_indices.tolist()).isdisjoint(pools.alternate_row_indices.tolist())
+    permutation = np.random.default_rng(61).permutation(labels.size)
+    permuted = build_density_pools(labels[permutation], ids[permutation], pool_size=130)
+    assert ids[pools.primary_row_indices].tolist() == ids[permutation][
+        permuted.primary_row_indices
+    ].tolist()
+    assert pools.primary_sha256 == permuted.primary_sha256
+    assert pools.alternate_sha256 == permuted.alternate_sha256
 
 
 def _density(anchor: np.ndarray, peers: np.ndarray, peer_ids: np.ndarray, k: int) -> float:
@@ -130,7 +144,9 @@ def test_local_excess_tangent_matches_stopped_peer_finite_difference() -> None:
     )
     labels = np.asarray([0, 0, 1, 1, 2, 2], dtype=np.int64)
     ids = np.asarray(["a", "b", "c", "d", "e", "f"])
-    tangent, density = local_excess_tangent(z, labels, ids, k=2)
+    tangent, density = local_excess_tangent(
+        z[:2], labels[:2], z[2:], labels[2:], ids[2:], k=2
+    )
 
     peers = z[labels != labels[0]]
     peer_ids = ids[labels != labels[0]]
@@ -144,7 +160,7 @@ def test_local_excess_tangent_matches_stopped_peer_finite_difference() -> None:
             _density(plus, peers, peer_ids, 2) - _density(minus, peers, peer_ids, 2)
         ) / (2e-6)
     np.testing.assert_allclose(tangent[0], numeric, rtol=2e-5, atol=2e-7)
-    np.testing.assert_allclose(np.sum(tangent * z, axis=1), 0.0, atol=1e-12)
+    np.testing.assert_allclose(np.sum(tangent * z[:2], axis=1), 0.0, atol=1e-12)
     np.testing.assert_allclose(density[0], _density(z[0], peers, peer_ids, 2), rtol=0.0, atol=1e-15)
 
 
@@ -157,8 +173,8 @@ def test_local_plus_global_recovers_topk_mean_tangent_with_stable_ties() -> None
     )
     labels = np.asarray([0, 0, 1, 2, 3], dtype=np.int64)
     ids = np.asarray(["anchor", "positive", "z-tie", "a-tie", "far"])
-    local, _ = local_excess_tangent(z, labels, ids, k=1)
-    global_value = global_tangent(z, labels)
+    local, _ = local_excess_tangent(z[:2], labels[:2], z[2:], labels[2:], ids[2:], k=1)
+    global_value = global_tangent(z[:2], labels[:2], z[2:], labels[2:])
     selected = z[3]
     expected_top = selected - z[0] * float(z[0] @ selected)
     np.testing.assert_allclose(local[0] + global_value[0], expected_top, atol=1e-12)
@@ -250,9 +266,12 @@ def test_evaluate_cohort_uses_fixed_arms_primary_rows_and_independent_controls()
         ids,
         fold=1,
         index=2,
-        reference_embeddings=reference_z,
-        reference_labels=reference_labels,
-        reference_ids=reference_ids,
+        density_embeddings=reference_z,
+        density_labels=reference_labels,
+        density_ids=reference_ids,
+        alternate_embeddings=_synthetic_cohort(200, 14)[0],
+        alternate_labels=_synthetic_cohort(200, 14)[1],
+        alternate_ids=_synthetic_cohort(200, 14)[2],
     )
     repeated = evaluate_cohort(
         z,
@@ -260,9 +279,12 @@ def test_evaluate_cohort_uses_fixed_arms_primary_rows_and_independent_controls()
         ids,
         fold=1,
         index=2,
-        reference_embeddings=reference_z,
-        reference_labels=reference_labels,
-        reference_ids=reference_ids,
+        density_embeddings=reference_z,
+        density_labels=reference_labels,
+        density_ids=reference_ids,
+        alternate_embeddings=_synthetic_cohort(200, 14)[0],
+        alternate_labels=_synthetic_cohort(200, 14)[1],
+        alternate_ids=_synthetic_cohort(200, 14)[2],
     )
     np.testing.assert_array_equal(z, z_before)
     assert tuple(evaluation.margin_changes) == ARM_ORDER
@@ -272,8 +294,9 @@ def test_evaluate_cohort_uses_fixed_arms_primary_rows_and_independent_controls()
     bottom[ordered[:45]] = True
     np.testing.assert_array_equal(
         evaluation.primary_mask,
-        bottom & (evaluation.conflict_dots < 0.0) & ~evaluation.skipped_mask,
+        evaluation.bottom_mask & (evaluation.conflict_dots < 0.0) & ~evaluation.skipped_mask,
     )
+    np.testing.assert_array_equal(evaluation.bottom_mask, bottom)
     for arm in ARM_ORDER:
         np.testing.assert_array_equal(evaluation.margin_changes[arm], repeated.margin_changes[arm])
     assert not np.array_equal(
@@ -282,9 +305,16 @@ def test_evaluate_cohort_uses_fixed_arms_primary_rows_and_independent_controls()
     )
     assert np.isfinite(evaluation.reference_conflict_fraction)
     assert np.isfinite(evaluation.reference_cosine_mean)
+    np.testing.assert_array_equal(
+        evaluation.margin_changes["le_idgp"][evaluation.primary_mask],
+        evaluation.margin_changes["two_sided"][evaluation.primary_mask],
+    )
+    assert not np.array_equal(
+        evaluation.margin_changes["le_idgp"], evaluation.margin_changes["two_sided"]
+    )
 
 
-def test_reference_cohort_changes_only_reference_diagnostics() -> None:
+def test_alternate_pool_changes_only_reference_diagnostics() -> None:
     z, labels, ids = _synthetic_cohort(0, 18)
     reference_a = _synthetic_cohort(100, 19)
     reference_b = _synthetic_cohort(200, 20)
@@ -294,9 +324,12 @@ def test_reference_cohort_changes_only_reference_diagnostics() -> None:
         ids,
         fold=0,
         index=0,
-        reference_embeddings=reference_a[0],
-        reference_labels=reference_a[1],
-        reference_ids=reference_a[2],
+        density_embeddings=reference_a[0],
+        density_labels=reference_a[1],
+        density_ids=reference_a[2],
+        alternate_embeddings=reference_b[0],
+        alternate_labels=reference_b[1],
+        alternate_ids=reference_b[2],
     )
     second = evaluate_cohort(
         z,
@@ -304,9 +337,12 @@ def test_reference_cohort_changes_only_reference_diagnostics() -> None:
         ids,
         fold=0,
         index=0,
-        reference_embeddings=reference_b[0],
-        reference_labels=reference_b[1],
-        reference_ids=reference_b[2],
+        density_embeddings=reference_a[0],
+        density_labels=reference_a[1],
+        density_ids=reference_a[2],
+        alternate_embeddings=_synthetic_cohort(300, 21)[0],
+        alternate_labels=_synthetic_cohort(300, 21)[1],
+        alternate_ids=_synthetic_cohort(300, 21)[2],
     )
     for arm in ARM_ORDER:
         np.testing.assert_array_equal(first.margin_changes[arm], second.margin_changes[arm])
@@ -430,7 +466,9 @@ def _evaluation_for_summary(fold: int, advantage: float) -> CohortEvaluation:
         "shuffled_local": zero + advantage / 4.0,
         "random_tangent": zero + advantage / 5.0,
         "global_centering": zero + advantage / 3.0,
-        "two_sided": zero + advantage / 2.0,
+        # One- and two-sided projections coincide on conflict rows.  Safe
+        # bottom-quartile rows carry the actual specificity contrast.
+        "two_sided": np.concatenate([le[:4], zero[4:] - advantage]),
     }
     positive = {arm: np.zeros(rows, dtype=np.float64) for arm in ARM_ORDER}
     return CohortEvaluation(
@@ -441,6 +479,7 @@ def _evaluation_for_summary(fold: int, advantage: float) -> CohortEvaluation:
         pre_margins=np.linspace(-1.0, 1.0, rows),
         conflict_dots=np.asarray([-1.0] * 4 + [1.0] * 4),
         skipped_mask=np.zeros(rows, dtype=np.bool_),
+        bottom_mask=np.ones(rows, dtype=np.bool_),
         primary_mask=primary,
         margin_changes=margin_changes,
         positive_similarity_changes=positive,
@@ -463,7 +502,7 @@ def test_summarize_evaluations_recomputes_primary_contrasts() -> None:
     assert summary["coverage"]["primary_labels"] == 8
     np.testing.assert_allclose(summary["fold_mean_advantages"], [0.01, 0.011, 0.012, 0.013])
     assert summary["pooled"]["raw_advantage_mean"] == pytest.approx(0.0115)
-    assert summary["pooled"]["le_minus_two_sided_mean"] == pytest.approx(0.00575)
+    assert summary["pooled"]["le_minus_two_sided_mean"] == pytest.approx(0.0115)
 
 
 def test_evaluate_idgp_builds_complete_cohorts_and_frozen_decision() -> None:
@@ -482,6 +521,7 @@ def test_evaluate_idgp_builds_complete_cohorts_and_frozen_decision() -> None:
         normalize_rows(np.asarray(rows)),
         np.asarray(labels, dtype=np.int64),
         np.asarray(ids),
+        density_pool_size=180,
         bootstrap_replicates=100,
     )
     assert len(result.evaluations) == 2

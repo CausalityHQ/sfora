@@ -20,8 +20,10 @@ from sfora.idgp import (
     COHORT_LABELS,
     CONTROL_RANDOM_SEED,
     CONTROL_SHUFFLE_SEED,
+    DENSITY_POOL_SIZE,
     LOCAL_K,
     ROWS_PER_LABEL,
+    build_density_pools,
     cluster_bootstrap,
     decide_idgp,
     evaluate_idgp,
@@ -106,6 +108,15 @@ def _cohort_record(evaluation: Any) -> dict[str, Any]:
                 "analytic_density_reduction": float(evaluation.analytic_density_reduction[row]),
             }
         )
+    specificity_records = [
+        {
+            "example_id": str(evaluation.example_ids[row]),
+            "label": int(evaluation.labels[row]),
+            "le_idgp": float(evaluation.margin_changes["le_idgp"][row]),
+            "two_sided": float(evaluation.margin_changes["two_sided"][row]),
+        }
+        for row in np.flatnonzero(evaluation.bottom_mask & ~evaluation.skipped_mask).tolist()
+    ]
     ordered_ids = "\0".join(evaluation.example_ids.tolist()).encode("utf-8")
     return {
         "fold": evaluation.fold,
@@ -117,6 +128,7 @@ def _cohort_record(evaluation: Any) -> dict[str, Any]:
         ),
         "skipped_rows": int(np.count_nonzero(evaluation.skipped_mask)),
         "primary_records": primary_records,
+        "specificity_records": specificity_records,
         "diagnostics": {
             "local_norm_mean": float(evaluation.local_norms.mean()),
             "global_norm_mean": float(evaluation.global_norms.mean()),
@@ -132,7 +144,12 @@ def build_report(path: Path) -> dict[str, Any]:
     """Evaluate the registered train archive and build an exact JSON-ready report."""
 
     payload = load_train_archive(path)
-    evaluation = evaluate_idgp(payload["embeddings"], payload["labels"], payload["example_ids"])
+    evaluation = evaluate_idgp(
+        payload["embeddings"],
+        payload["labels"],
+        payload["example_ids"],
+        density_pool_size=DENSITY_POOL_SIZE,
+    )
     summary = evaluation.summary
     cohorts = [_cohort_record(value) for value in evaluation.evaluations]
     diagnostics = {
@@ -173,12 +190,19 @@ def build_report(path: Path) -> dict[str, Any]:
             "rows_per_label": ROWS_PER_LABEL,
             "cohort_rows": COHORT_LABELS * ROWS_PER_LABEL,
             "local_k": LOCAL_K,
+            "density_pool_size": DENSITY_POOL_SIZE,
             "epsilon": 0.01,
             "tangent_cutoff": 1e-8,
             "shuffle_seed": CONTROL_SHUFFLE_SEED,
             "random_seed": CONTROL_RANDOM_SEED,
             "bootstrap_seed": BOOTSTRAP_SEED,
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
+        },
+        "density_pools": {
+            "primary_rows": evaluation.density_pool_rows,
+            "primary_sha256": evaluation.density_pool_sha256,
+            "alternate_rows": evaluation.alternate_pool_rows,
+            "alternate_sha256": evaluation.alternate_pool_sha256,
         },
         "cohorts": cohorts,
         "pooled": {
@@ -208,6 +232,9 @@ def _bootstrap_json(values: np.ndarray, labels: np.ndarray, seed: int) -> dict[s
 
 def _recompute_pooled(value: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
     records = [record for cohort in value["cohorts"] for record in cohort["primary_records"]]
+    specificity_records = [
+        record for cohort in value["cohorts"] for record in cohort["specificity_records"]
+    ]
     eligible = sum(cohort["eligible_rows"] for cohort in value["cohorts"])
     conflicting = sum(cohort["conflicting_rows"] for cohort in value["cohorts"])
     if not records:
@@ -283,7 +310,10 @@ def _recompute_pooled(value: Mapping[str, Any]) -> tuple[dict[str, Any], dict[st
             )
     raw = values["raw"]
     positive = values["positive"]
-    two = le - np.asarray([record["two_sided"] for record in records], dtype=np.float64)
+    two = np.asarray(
+        [record["le_idgp"] - record["two_sided"] for record in specificity_records],
+        dtype=np.float64,
+    )
     return (
         {
             "coverage": {
@@ -304,7 +334,7 @@ def _recompute_pooled(value: Mapping[str, Any]) -> tuple[dict[str, Any], dict[st
                 "zero_abs_margin_change_median": float(np.median(np.abs(zero))),
                 "positive_similarity_mean": float(positive.mean()),
                 "positive_similarity_lower": bootstrap["positive"]["lower_bound"],
-                "le_minus_two_sided_mean": float(two.mean()),
+                "le_minus_two_sided_mean": float(two.mean()) if two.size else 0.0,
             },
         },
         bootstrap,
@@ -319,6 +349,7 @@ def validate_report(value: object) -> dict[str, Any]:
         "input",
         "environment",
         "configuration",
+        "density_pools",
         "cohorts",
         "pooled",
         "controls",
@@ -349,6 +380,7 @@ def validate_report(value: object) -> dict[str, Any]:
         "rows_per_label": 4,
         "cohort_rows": 180,
         "local_k": 50,
+        "density_pool_size": DENSITY_POOL_SIZE,
         "epsilon": 0.01,
         "tangent_cutoff": 1e-8,
         "shuffle_seed": 20260812,
@@ -361,6 +393,40 @@ def validate_report(value: object) -> dict[str, Any]:
         or value["configuration"] != expected_configuration
     ):
         raise ValueError("report configuration differs")
+    density_pools = value["density_pools"]
+    if (
+        not isinstance(density_pools, dict)
+        or list(density_pools)
+        != ["primary_rows", "primary_sha256", "alternate_rows", "alternate_sha256"]
+        or type(density_pools["primary_rows"]) is not int
+        or density_pools["primary_rows"] != DENSITY_POOL_SIZE
+        or type(density_pools["alternate_rows"]) is not int
+        or density_pools["alternate_rows"] != value["input"]["rows"] - DENSITY_POOL_SIZE
+        or any(
+            type(density_pools[key]) is not str
+            or len(density_pools[key]) != 64
+            or any(character not in "0123456789abcdef" for character in density_pools[key])
+            for key in ("primary_sha256", "alternate_sha256")
+        )
+    ):
+        raise ValueError("report density pools differ")
+    input_payload = load_train_archive(Path(value["input"]["path"]))
+    if input_payload["sha256"] != value["input"]["sha256"]:
+        raise ValueError("report input digest differs")
+    input_labels = np.asarray(input_payload["labels"], dtype=np.int64)
+    input_ids = np.asarray(input_payload["example_ids"])
+    unique_labels, label_counts = np.unique(input_labels, return_counts=True)
+    eligible = np.isin(input_labels, unique_labels[label_counts >= ROWS_PER_LABEL])
+    expected_pools = build_density_pools(
+        input_labels[eligible], input_ids[eligible], pool_size=DENSITY_POOL_SIZE
+    )
+    if density_pools != {
+        "primary_rows": int(expected_pools.primary_row_indices.size),
+        "primary_sha256": expected_pools.primary_sha256,
+        "alternate_rows": int(expected_pools.alternate_row_indices.size),
+        "alternate_sha256": expected_pools.alternate_sha256,
+    }:
+        raise ValueError("report density pools differ")
     if list(value["controls"]) != ["arm_order"] or value["controls"] != {
         "arm_order": list(ARM_ORDER)
     }:
@@ -375,6 +441,7 @@ def validate_report(value: object) -> dict[str, Any]:
         "conflicting_rows",
         "skipped_rows",
         "primary_records",
+        "specificity_records",
         "diagnostics",
     ]
     diagnostic_keys = [
@@ -398,6 +465,7 @@ def validate_report(value: object) -> dict[str, Any]:
         "positive_le_idgp",
         "analytic_density_reduction",
     ]
+    specificity_keys = ["example_id", "label", "le_idgp", "two_sided"]
     previous_pair: tuple[int, int] | None = None
     primary_ids: set[str] = set()
     for cohort in value["cohorts"]:
@@ -439,6 +507,22 @@ def validate_report(value: object) -> dict[str, Any]:
             primary_ids.add(record["example_id"])
             if any(type(record[key]) is not float for key in primary_keys[2:]):
                 raise ValueError("report cohort primary scalar types differ")
+        if not isinstance(cohort["specificity_records"], list):
+            raise ValueError("report cohort specificity records differ")
+        specificity_ids: set[str] = set()
+        for record in cohort["specificity_records"]:
+            if not isinstance(record, dict) or list(record) != specificity_keys:
+                raise ValueError("report cohort specificity schema differs")
+            if (
+                type(record["example_id"]) is not str
+                or not record["example_id"]
+                or record["example_id"] in specificity_ids
+                or type(record["label"]) is not int
+                or type(record["le_idgp"]) is not float
+                or type(record["two_sided"]) is not float
+            ):
+                raise ValueError("report cohort specificity values differ")
+            specificity_ids.add(record["example_id"])
         diagnostics = cohort["diagnostics"]
         if not isinstance(diagnostics, dict) or list(diagnostics) != diagnostic_keys:
             raise ValueError("report cohort diagnostics schema differs")
