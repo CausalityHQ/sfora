@@ -54,6 +54,7 @@ def test_l0_subsamples_are_exact_sorted_and_reproducible() -> None:
     assert first.dtype == np.int64
     assert np.array_equal(first, np.sort(first))
     assert np.unique(first).size == 2_000
+    assert first[:5].tolist() == [5, 20, 26, 32, 51]
     assert np.array_equal(first, l0_subsample_indices(25_882, 0, 0))
     assert not np.array_equal(first, l0_subsample_indices(25_882, 0, 1))
     assert not np.array_equal(first, l0_subsample_indices(25_882, 1, 0))
@@ -80,6 +81,20 @@ def test_fixed_base_estimate_is_bounded_by_bruteforce() -> None:
         assert exact <= 2.0 * estimate.delta + 1e-12
 
 
+@pytest.mark.parametrize(
+    "bad",
+    [
+        np.asarray([[0.0, 1.0], [2.0, 0.0]], dtype=np.float64),
+        np.asarray([[0.0, -1.0], [-1.0, 0.0]], dtype=np.float64),
+        np.asarray([[1.0, 1.0], [0.0, 0.0]], dtype=np.float64),
+    ],
+)
+def test_distance_consumers_reject_invalid_metric_matrices(bad: np.ndarray) -> None:
+    for consumer in (medoid_index, delta_bruteforce):
+        with pytest.raises(ValueError):
+            consumer(bad)
+
+
 def test_nulls_preserve_registered_structure() -> None:
     generator = np.random.Generator(np.random.PCG64(9))
     values = generator.normal(size=(40, 5)).astype(np.float32)
@@ -102,6 +117,15 @@ def test_nulls_preserve_registered_structure() -> None:
     )
     assert np.allclose(null_spectrum, observed_spectrum, rtol=2e-5, atol=2e-7)
     assert column_permutation_null(values.astype(np.float64), 7500).dtype == np.float32
+    assert np.allclose(
+        gaussian[0],
+        np.asarray(
+            [0.7399556, 0.7399556, 0.9934853, -0.47605044, 0.6247305],
+            dtype=np.float32,
+        ),
+        atol=5e-7,
+        rtol=0.0,
+    )
 
 
 def test_pca_uses_descending_variance_components_in_coordinate_order() -> None:
@@ -135,6 +159,41 @@ def test_pca_component_sign_uses_lowest_loading_index_on_tie() -> None:
     expected = np.float32(1.0 / np.sqrt(2.0))
     assert fit.components[0, 0] == pytest.approx(expected)
     assert fit.components[0, 1] == pytest.approx(-expected)
+
+
+def test_pca_components_diagonalize_covariance_in_descending_order() -> None:
+    train = np.random.Generator(np.random.PCG64(41)).normal(size=(12, 4)).astype(
+        np.float32
+    )
+
+    fit = fit_frozen_pca(train, 3)
+
+    centered = train.astype(np.float64) - fit.mean.astype(np.float64)
+    covariance = centered.T @ centered / train.shape[0]
+    rotated = fit.components.astype(np.float64) @ covariance @ fit.components.T
+    assert np.allclose(
+        rotated - np.diag(np.diag(rotated)), np.zeros((3, 3)), atol=2e-7, rtol=0.0
+    )
+    assert np.all(np.diff(np.diag(rotated)) < 0.0)
+    assert np.allclose(
+        fit.components @ fit.components.T,
+        np.eye(3, dtype=np.float32),
+        atol=2e-7,
+        rtol=0.0,
+    )
+
+
+def test_pca_component_sign_uses_largest_loading_not_first_coordinate() -> None:
+    train = np.random.Generator(np.random.PCG64(1)).normal(size=(20, 4)).astype(
+        np.float32
+    )
+
+    fit = fit_frozen_pca(train, 3)
+
+    for component in fit.components:
+        pivot = int(np.argmax(np.abs(component)))
+        assert component[pivot] > 0.0
+    assert int(np.argmax(np.abs(fit.components[1]))) == 2
 
 
 def test_apply_frozen_pca_uses_frozen_train_mean_not_eval_mean() -> None:
@@ -302,6 +361,14 @@ def test_distance_clips_accepted_negative_roundoff_to_zero() -> None:
 def test_public_arithmetic_rejects_noncanonical_matrices(bad: np.ndarray) -> None:
     with pytest.raises((TypeError, ValueError)):
         fit_frozen_pca(bad, 1)
+    fit = FrozenPCA(
+        mean=np.zeros(2, dtype=np.float32),
+        components=np.eye(2, dtype=np.float32),
+    )
+    with pytest.raises((TypeError, ValueError)):
+        apply_frozen_pca(bad, fit)
+    with pytest.raises((TypeError, ValueError)):
+        lorentz_lift(bad, 1.0)
 
 
 def test_public_arithmetic_rejects_ndarray_subclasses() -> None:
@@ -312,6 +379,14 @@ def test_public_arithmetic_rejects_ndarray_subclasses() -> None:
 
     with pytest.raises(TypeError):
         fit_frozen_pca(bad, 1)
+    fit = FrozenPCA(
+        mean=np.zeros(2, dtype=np.float32),
+        components=np.eye(2, dtype=np.float32),
+    )
+    with pytest.raises(TypeError):
+        apply_frozen_pca(bad, fit)
+    with pytest.raises(TypeError):
+        lorentz_lift(bad, 1.0)
 
 
 def test_lorentz_scoring_rejects_off_manifold_inputs() -> None:
@@ -321,6 +396,15 @@ def test_lorentz_scoring_rejects_off_manifold_inputs() -> None:
 
     with pytest.raises(ValueError, match="constraint"):
         lorentz_mips_scores(invalid, valid)
+
+
+def test_lorentz_scoring_rejects_lower_hyperboloid_sheet() -> None:
+    valid = lorentz_lift(np.asarray([[1, 0], [0, 1]], dtype=np.float32), 1.0)
+    lower_sheet = valid.copy()
+    lower_sheet[:, 0] *= np.float32(-1.0)
+
+    with pytest.raises(ValueError, match="time coordinates"):
+        lorentz_mips_scores(lower_sheet, valid)
 
 
 def test_small_scale_distance_converges_to_euclidean() -> None:
