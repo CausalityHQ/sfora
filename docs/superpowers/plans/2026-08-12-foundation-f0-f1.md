@@ -27,9 +27,10 @@
 - Create: `tests/test_foundation_pareto.py`
 - Create: `docs/foundation_metric_tolerances.json`
 - Create: `docs/foundation_native_fixtures.json`
+- Create: `docs/foundation_published_metric_register.json`
 
 **Interfaces:**
-- Produces: `RemoteFoundationModelSpec`, `LocalCheckpointFoundationSpec`, `FoundationEncoderAudit`, `FoundationFidelityAudit`, `load_foundation_encoder(spec)`, and `verify_native_fixture(encoder, fixture)`.
+- Produces: `RemoteFoundationModelSpec`, `LocalCheckpointFoundationSpec`, `FoundationEncoderAudit`, `FoundationFidelityAudit`, `PublishedMetricAudit`, `load_foundation_encoder(spec)`, `verify_native_fixture(encoder, fixture)`, and `cross_check_published_metrics(...)`.
 
 - [ ] **Step 1: Write failing registry and loader tests**
 
@@ -37,7 +38,7 @@ Create literal remote specs in the test for DINOv3-S, DINOv3 ConvNeXt-Tiny, and 
 
 - [ ] **Step 2: Run the RED tests**
 
-Run: `pytest -q tests/test_foundation_pareto.py -k 'model_spec or revision_pinned'`
+Run: `pytest -q tests/test_foundation_pareto.py -k 'model_spec or revision_pinned or native_fixture or published_metric'`
 
 Expected: collection failure because `sfora.foundation_pareto` does not exist.
 
@@ -58,7 +59,9 @@ class RemoteFoundationModelSpec:
 @dataclass(frozen=True)
 class LocalCheckpointFoundationSpec:
     checkpoint_path: Path
-    weight_sha256: str
+    checkpoint_sha256: str
+    resolved_config_sha256: str
+    pretrained_backbone_sha256: str
     transform_id: str
     embedding_width: int
     pooling: Literal["embedding"]
@@ -75,29 +78,46 @@ def load_foundation_encoder(
     return TransformersFoundationEncoder(spec, processor, model)
 ```
 
-Compute observed processor/config/weight-file digests before returning a remote encoder and the checkpoint digest before returning a local encoder; fail closed on mismatch. Record gated/unavailable models as structured unavailable audit rows; never substitute a model.
+Compute observed processor/config/weight-file digests before returning a remote
+encoder. Before returning a local encoder, authenticate the trained checkpoint,
+its resolved training configuration, and the pinned pretrained BN-Inception
+backbone digest, then load the exact registered head/pooling configuration; fail
+closed on mismatch. Record gated/unavailable models as structured unavailable
+audit rows; never substitute a model.
 
-Add the committed frozen-fixture register
-`docs/foundation_native_fixtures.json` and
-`docs/foundation_metric_tolerances.json`, with exact arm, metric, native value,
-fixture/source digest, tolerance, and `frozen_before_execution=true` fields.
-The fixture register has exactly one row for every registered arm: either a
-frozen native value or `native_cross_check="unavailable"` plus a nonempty
-reason. Missing or extra arms reject the register. `verify_native_fixture`
-compares repository output with frozen native output before the screen: test an
-in-tolerance pass, an out-of-tolerance rejection, a missing-arm rejection, and
-explicit `repository_only` provenance for R@10/R@100 rows when the native
-source reports only R@1. No tolerance or native value may be inferred from the
-F0/F1 run.
+Add two distinct prospective fidelity authorities. The fixture-level authority
+uses `docs/foundation_native_fixtures.json` plus
+`docs/foundation_metric_tolerances.json`: every row has exact arm, fixture
+metric, native output/value, input-fixture and source digests, tolerance, and
+`frozen_before_execution=true`. There is exactly one row for every `(registered
+arm, registered fixture metric)` pair, both files have identical ordered
+`(arm, metric)` key sets, and a missing or extra pair rejects the registers. An
+unavailable fixture cross-check is an explicit row with
+`native_cross_check="unavailable"` and a nonempty reason; absence never implies
+unavailable. `verify_native_fixture` runs the encoder and repository metric
+implementation on those frozen fixture inputs before any dataset export.
+
+The published-benchmark authority is separate:
+`docs/foundation_published_metric_register.json` contains the registered
+published arm/metric/value/source and prospective comparison tolerance.
+`cross_check_published_metrics` runs only after the one registered official-test
+evaluation. It records `repository_only` provenance for R@10/R@100 when a
+native source publishes only R@1; an available out-of-tolerance R@1 invalidates
+the confirmatory arm but cannot retroactively block its export. Test fixture
+in-tolerance/out-of-tolerance behavior, missing and extra fixture `(arm,
+metric)` rows, unequal fixture/tolerance key sets, published-metric
+in-tolerance/out-of-tolerance behavior, and repository-only published rows. No
+tolerance, fixture value, or published value may be inferred from the F0/F1
+run.
 
 - [ ] **Step 4: Run GREEN and static checks**
 
-Run: `pytest -q tests/test_foundation_pareto.py -k 'model_spec or revision_pinned' && ruff check src/sfora/foundation_pareto.py tests/test_foundation_pareto.py`
+Run: `pytest -q tests/test_foundation_pareto.py -k 'model_spec or revision_pinned or native_fixture or published_metric' && ruff check src/sfora/foundation_pareto.py tests/test_foundation_pareto.py`
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/sfora/foundation_pareto.py tests/test_foundation_pareto.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json
+git add src/sfora/foundation_pareto.py tests/test_foundation_pareto.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json docs/foundation_published_metric_register.json
 git commit -m "add revision-pinned foundation encoders"
 ```
 
@@ -244,6 +264,7 @@ git commit -m "add same-split foundation probe gate"
 - Modify: `tests/test_foundation_pareto.py`
 - Modify: `docs/foundation_metric_tolerances.json`
 - Modify: `docs/foundation_native_fixtures.json`
+- Modify: `docs/foundation_published_metric_register.json`
 - Create: `docs/foundation_test_read_register.json`
 
 **Interfaces:**
@@ -252,14 +273,17 @@ git commit -m "add same-split foundation probe gate"
 - [ ] **Step 1: Write end-to-end RED tests**
 
 Invoke the CLI with fake pinned encoders and a tiny identity-disjoint bundle.
-Assert order `authenticate -> native fidelity -> export/cache -> F0 profile ->
-validation probe -> decision`; official test evaluation must fail when its exact
-arm is absent from the register and succeed once for a registered arm. Assert
-the strict report contains, for every arm and metric, the native value,
-repository value, tolerance, provenance (`native_cross_check` or
-`repository_only`), and pass/fail decision. An out-of-tolerance arm must close
-before export or probe. Assert report strict reload, no-clobber publication,
-unavailable-arm rows, and no adapter/student/kernel fields.
+Assert order `authenticate -> native fixture fidelity -> export/cache -> F0
+profile -> validation probe -> decision -> registered published-metric
+cross-check`; official test evaluation must fail when its exact arm is absent
+from the register and succeed once for a registered arm. Assert the strict
+report contains separate fixture-fidelity and published-metric audit rows with
+native value, repository value, tolerance, provenance
+(`native_cross_check`/`repository_only`), and pass/fail decision. An available
+out-of-tolerance fixture row must close before export or probe; an available
+out-of-tolerance published row must invalidate the confirmatory arm after its
+single registered evaluation. Assert report strict reload, no-clobber
+publication, unavailable-arm rows, and no adapter/student/kernel fields.
 
 - [ ] **Step 2: Run RED**
 
@@ -271,13 +295,15 @@ Run: `pytest -q tests/test_foundation_pareto.py`
 
 Add explicit options for dataset root, model-spec JSON, cache directory, report
 path, validation seed, and `--allow-registered-test-read`. Authenticate the
-complete native-fixture/tolerance registers and call `verify_native_fixture`
-before any export or probe; an unavailable native cross-check remains explicit,
-while a missing row or failed available cross-check closes the arm. Require the
+complete fixture/tolerance registers and call `verify_native_fixture` before
+any export or probe; an unavailable fixture cross-check remains explicit,
+while a missing pair or failed available check closes the arm. Require the
 committed test-read register's exact model revision, checkpoint digest, metric
 list, purpose, and one permitted evaluation before loading official
-query/gallery rows. Publish the fidelity audit rows with the F0/F1 evidence via
-the cache-v2 no-clobber writer and strict-reload the report.
+query/gallery rows. After that evaluation, authenticate the separate
+published-metric register and call `cross_check_published_metrics`. Publish both
+audit domains with the F0/F1 evidence via the cache-v2 no-clobber writer and
+strict-reload the report.
 
 - [ ] **Step 4: Run affected and full assurance**
 
@@ -300,7 +326,7 @@ Review must verify source fidelity, cache completeness, split isolation, test-re
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/sfora/foundation_pareto.py src/sfora/image_benchmark.py src/sfora/cli.py tests/test_foundation_pareto.py tests/test_image_benchmark.py tests/test_cli.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json docs/foundation_test_read_register.json
+git add src/sfora/foundation_pareto.py src/sfora/image_benchmark.py src/sfora/cli.py tests/test_foundation_pareto.py tests/test_image_benchmark.py tests/test_cli.py docs/foundation_metric_tolerances.json docs/foundation_native_fixtures.json docs/foundation_published_metric_register.json docs/foundation_test_read_register.json
 git commit -m "add reproducible foundation F0 F1 screen"
 ```
 
@@ -319,22 +345,36 @@ Record exact already-spent GB10 hours, remaining F0 cap (at most 6), accessible
 remote model revisions, disk estimate, dataset hashes, and absence of
 destination/temp files. The same preflight must resolve the local comparator's
 registered checkpoint path, provenance receipt, observed SHA-256 against the
-registered digest, transform ID, and embedding width, then prove it is F0-green.
+registered digest, transform ID, and embedding width. Record its F0 state as
+`pending` unless the receipt cites a strict-reloadable F0 report path and digest
+whose complete anchor evidence validates under the current source.
 The checkpoint may come only from an already registered artifact receipt or
 from a separately reviewed run charged to the conditional Section 7
 DADA/VPTSP-G fidelity line; that fidelity run is not part of this F0 process.
-If no such local comparator is resolvable, publish/record
+If no such local comparator checkpoint is resolvable, publish/record
 `UNAVAILABLE_COMPARATOR` before any model export or GB10 allocation and stop.
 Close other unavailable arms without substitution.
 
 - [ ] **Step 2: Run source-fidelity smoke without official-test access**
 
-Execute one tiny train/validation export for each accessible arm. Stop on digest, native-fixture, cache-roundtrip, nonfinite, or metric mismatch.
+Execute the fixture-level native-output check and one tiny train/validation
+export for each accessible arm. Stop on digest, fixture-output disagreement,
+cache-roundtrip, nonfinite, or fixture-metric mismatch. Published benchmark R@1
+is not evaluated in this smoke.
 
 - [ ] **Step 3: Run the bounded frozen screen and probe**
 
-Run In-Shop and SOP train/validation exports, cost profiles, and identical 512-D probes. Do not enable official-test access until the committed register is complete.
+If the comparator entered as `pending`, first spend only an explicitly bounded
+anchor-only slice of the same 6-hour F0 cap to produce its cache-v2 reload,
+fixture audit, and cost profile. Stop as `UNAVAILABLE_COMPARATOR` if that anchor
+is not F0-green. Only then run the remaining In-Shop and SOP train/validation
+exports, cost profiles, and identical 512-D probes. Do not enable official-test
+access until the committed register is complete.
 
 - [ ] **Step 4: Validate and apply the gate**
 
-Strict-reload the report, independently recompute cache hashes, retrieval metrics, cost summaries, and the same-split decision. If F1 closes, do not start adapter/student/kernel work; only the separately budgeted fidelity comparator remains authorized.
+Strict-reload the report, independently recompute cache hashes, retrieval
+metrics, cost summaries, the same-split decision, and the post-evaluation
+published-metric cross-check. If F1 closes, do not start
+adapter/student/kernel work; only the separately budgeted fidelity comparator
+remains authorized.
