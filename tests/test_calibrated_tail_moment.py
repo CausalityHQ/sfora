@@ -4,9 +4,13 @@ import numpy as np
 import pytest
 
 from sfora.calibrated_tail_moment import (
+    cluster_lambda_interval,
     encode_tail_moment,
+    fit_projection_basis,
     fit_tail_moment,
     head_neighbor_pairs,
+    permuted_tail_null,
+    project_unit,
 )
 
 
@@ -161,3 +165,120 @@ def test_fit_rejects_invalid_width_or_neighbor_count(width, neighbors) -> None:
         fit_tail_moment(
             _unit_fixture(), width=width, basis_kind="native", neighbors=neighbors
         )
+
+
+def test_pca_basis_is_fit_from_train_only_and_is_sign_canonical() -> None:
+    train = np.asarray([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=np.float32)
+
+    basis = fit_projection_basis(train, kind="pca")
+
+    assert basis.kind == "pca"
+    assert basis.mean.dtype == np.float32
+    assert basis.matrix.dtype == np.float32
+    assert basis.mean.flags.c_contiguous
+    assert basis.matrix.flags.c_contiguous
+    for column in basis.matrix.T:
+        pivot = int(np.argmax(np.abs(column)))
+        assert column[pivot] >= 0.0
+
+
+def test_native_projection_returns_the_already_normalized_input_unchanged() -> None:
+    train = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+    query = np.asarray([[0.6, 0.8]], dtype=np.float32)
+    basis = fit_projection_basis(train, kind="native")
+
+    projected = project_unit(query, basis)
+
+    assert projected is query
+
+
+def test_pca_projection_subtracts_only_the_frozen_train_mean() -> None:
+    train = np.asarray([[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]], dtype=np.float32)
+    query = np.asarray([[0.6, 0.8]], dtype=np.float32)
+    basis = fit_projection_basis(train, kind="pca")
+    expected = (query.astype(np.float64) - basis.mean.astype(np.float64)) @ basis.matrix
+    expected /= np.linalg.norm(expected, axis=1, keepdims=True)
+
+    projected = project_unit(query, basis)
+
+    assert np.allclose(projected, expected.astype(np.float32), rtol=0.0, atol=2e-7)
+
+
+def test_cluster_interval_reuses_observed_pairs_and_uses_two_way_identity_weights(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    unit = _unit_fixture()
+    labels = np.asarray(["a", "b", "a", "b"])
+    calls = 0
+    original = head_neighbor_pairs
+
+    def counted(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr("sfora.calibrated_tail_moment.head_neighbor_pairs", counted)
+
+    interval = cluster_lambda_interval(
+        unit,
+        labels,
+        width=2,
+        basis_kind="native",
+        samples=1,
+        seed=205,
+        neighbors=1,
+    )
+
+    assert calls == 1
+    assert interval.samples == 1
+    assert interval.seed == 205
+    assert interval.lower == 0.0
+    assert interval.upper == 0.0
+
+
+def test_tail_null_keeps_radii_and_pairs_fixed_and_reports_exact_p_value() -> None:
+    unit = np.asarray(
+        [
+            [0.8, 0.0, 0.6, 0.0],
+            [0.6, 0.0, 0.0, 0.8],
+            [0.0, 0.9539392, 0.3, 0.0],
+        ],
+        dtype=np.float32,
+    )
+    observed = fit_tail_moment(unit, width=2, basis_kind="native", neighbors=1)
+
+    null = permuted_tail_null(
+        unit,
+        width=2,
+        basis_kind="native",
+        neighbors=1,
+        seeds=range(206, 210),
+    )
+
+    tail = unit[:, 2:].astype(np.float64)
+    radius = np.linalg.norm(tail, axis=1)
+    direction = tail / radius[:, None]
+    permutation = np.random.Generator(np.random.PCG64(206)).permutation(unit.shape[0])
+    permuted_tail = radius[:, None] * direction[permutation]
+    pairs = observed.pairs
+    x = radius[pairs[:, 0]] * radius[pairs[:, 1]]
+    y = np.sum(
+        permuted_tail[pairs[:, 0]] * permuted_tail[pairs[:, 1]],
+        axis=1,
+        dtype=np.float64,
+    )
+    expected_first = float(np.sum(x * y) / np.sum(x * x))
+    expected_p = (
+        1 + sum(value >= observed.lambda_raw for value in null.lambda_raw_values)
+    ) / 5
+
+    assert np.array_equal(null.pairs, observed.pairs)
+    assert null.seeds == (206, 207, 208, 209)
+    assert null.lambda_raw_values[0] == expected_first
+    assert null.p_value == expected_p
+
+
+@pytest.mark.parametrize("kind", ["", "PCA", 1, True])
+def test_projection_rejects_unknown_basis_kind(kind) -> None:
+    with pytest.raises((TypeError, ValueError), match="kind"):
+        fit_projection_basis(_unit_fixture(), kind=kind)
