@@ -112,8 +112,11 @@ git commit -m "add pinned DADA reproduction contract"
 
 ```python
 def test_command_preserves_official_cli_contract(request):
-    assert dada.build_dada_command(request) == (
-        str(request.python), "-I", "-B", str(request.source.checkout / "main.py"),
+    command = dada.build_dada_command(request)
+    assert command[:3] == (str(request.python), "-I", "-B")
+    assert command[3] == "-c"
+    assert "runpy.run_path" in command[4]
+    assert command[5:] == (
         "--source_path", str(request.dataset_root),
         "--save_path", str(request.output_root),
         "--save_name", "dada-inshop-smoke-seed0",
@@ -130,6 +133,11 @@ def test_log_parser_requires_finite_loss_and_optimizer_progress():
 ```
 
 Add negatives for shell strings, missing `-I/-B`, extra CLI flags, NaN/Inf, zero optimizer steps, incomplete epoch six, traceback, CUDA OOM, killed process, and absent evaluation R@1.
+
+The `-c` bootstrap inserts exactly the pinned checkout into `sys.path` and
+executes its `main.py` through `runpy.run_path`. Directly invoking `main.py`
+under `-I` is prohibited because isolated mode removes DADA's local
+`parameters`, `architectures`, and `criteria` modules from import resolution.
 
 - [ ] **Step 2: Run the tests to verify RED**
 
