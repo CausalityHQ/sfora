@@ -1,6 +1,6 @@
 # Foundation-to-Edge Similarity Pareto Design
 
-**Status:** proposed engineering-SOTA program pending adversarial review.
+**Status:** proposed reproducible-Pareto program under adversarial repair.
 
 ## 1. Decision
 
@@ -58,6 +58,7 @@ resolutions, pooling rules, and output dimensions for:
 - `facebook/dinov3-vits16-pretrain-lvd1689m`;
 - `facebook/dinov3-vitb16-pretrain-lvd1689m` when access and memory permit;
 - `facebook/dinov3-convnext-tiny-pretrain-lvd1689m`;
+- MobileCLIP-S2 as the ungated compact fallback;
 - `google/siglip2-base-patch16-256`;
 - the code-backed MLCD B/L exports from the UNICOM successor repository;
 - Marqo FashionSigLIP as a domain-specific collision control, never as clean
@@ -68,7 +69,10 @@ resolutions, pooling rules, and output dimensions for:
   time of execution.
 
 An unavailable gated weight is recorded as unavailable; it is never silently
-replaced. Paper-only values remain context, not acceptance thresholds.
+replaced. If neither DINOv3 compact model is accessible, MobileCLIP-S2 becomes
+the registered student null; if no compact source-fidelity model is available,
+the student lane closes and the adapted anchor is the terminal result.
+Paper-only values remain context, not acceptance thresholds.
 
 ### 3.2 Source-fidelity gate F0
 
@@ -77,11 +81,15 @@ For every executable anchor:
 - authenticate model and processor bytes/revisions;
 - compare framework output against the upstream example or a frozen fixture;
 - record exact preprocessing, pooling, dtype, and normalization;
+- key every cache by model revision and weight digest, processor-config digest,
+  transform/view ID, resolution, dtype, normalization, dataset-row digest, and
+  split; invalidate every cache written under the older mutable-tag schema;
 - verify cache reload is byte- and row-order stable;
 - measure batch-1/8/32 encoder p50/p95 after warm-up, peak memory, parameters,
   MACs, descriptor width, and descriptor bytes; and
-- reject any arm whose native and repository evaluators disagree outside a
-  prospectively frozen tolerance.
+- reject any arm whose cross-checkable native and repository metrics disagree
+  outside a metric-specific prospectively frozen tolerance. UNICOM and DADA
+  are cross-checked only at R@1; repository R@10+ values are labelled as such.
 
 No training begins until F0 is green.
 
@@ -91,17 +99,23 @@ Export train/query/gallery descriptors once for In-Shop and SOP. Evaluate the
 native geometry plus a label-blind grid of normalized cosine, normalized
 Euclidean, and native unnormalized geometry. Geometry and any linear adapter
 hyperparameters are selected only from identity-disjoint training identities.
-The official test split is read once after freezing.
+Before the first official-test access, commit a test-read register listing each
+arm, checkpoint, metric, purpose, and single permitted evaluation. Any
+unregistered read invalidates the confirmatory claim.
 
 Report R@1/10/20/30 for In-Shop, R@1/10/100 for SOP, mAP@R where defined, and
-the full quality/cost table. Continue only if at least one foundation anchor
-either beats the strongest faithful local anchor or offers a strict encoder or
-descriptor Pareto point within a frozen 0.40 R@1 equivalence margin.
+the full quality/cost table. Raw-frozen rows are descriptive. Fit the same
+bias-free 512-D linear probe to every F0-green anchor using cached
+training-identity features and select only on the identity-disjoint validation
+split. Continue only if at least one probe comes within 1.0 validation R@1
+point of the strongest faithful local anchor, or is strictly Pareto-dominant on
+encoder p95 or descriptor bytes while inside the 0.40-point margin.
 
-Because DeepFashion images may overlap web-scale pretraining, an In-Shop-only
-zero-shot win is contamination-suspect. Cars196 replication is mandatory for
-the adapter and SOP or ILIAS replication is mandatory before a general
-instance-retrieval claim.
+Because closed LVD/WebLI corpora make contamination unfalsifiable, In-Shop,
+Cars196, and SOP are reproduction/generality rows, not contamination evidence.
+ILIAS's post-cutoff construction is mandatory and non-substitutable before a
+zero-shot or general foundation-transfer claim. SOP remains a separate
+generality check.
 
 ## 4. Cached-feature Matryoshka adapter
 
@@ -116,20 +130,30 @@ and flip/multi-crop views are cached once. Every adapter receives the same
 sampler, steps, optimizer search budget, cached views, and identity-disjoint
 selection split.
 
-The adapter is retained only if its paired training-identity bootstrap lower
-bound on validation R@1 exceeds zero and its mean validation gain is at least
-0.50 R@1 point. The held-out test result must not lose to its frozen source.
-The 128-D prefix is additionally compared with the published 92.6 Hyp-ViT
-128-D capability row, clearly labelled unmatched until reproduced. Test
-outcomes cannot select the adapter.
+Run three paired adapter seeds. Retention is decided only on the
+identity-disjoint validation split: resample validation query identities while
+holding its gallery fixed, require the one-sided 95% paired-bootstrap lower
+bound above zero, mean gain at least 0.50 R@1 point, and all three seed gains
+positive. The registered official-test result is descriptive and cannot
+trigger fallback. The 128-D prefix is additionally compared with the published
+92.7 Hyp-ViT 128-D capability row, clearly labelled unmatched until
+reproduced.
+
+Descriptor storage is a Section 4 claim: compare teacher/teacher retrieval at
+the validation-selected prefix with the same teacher at 512 dimensions and
+with PCA/PQ/OPQ/INT8 controls. Require quality inside the registered 0.40-point
+equivalence margin and at least 2x smaller gallery rows. It is not credited to
+the later student.
 
 ### 4.2 Optional complementary teacher
 
 Only after the single-anchor adapter passes, concatenate the two strongest
 validation-selected normalized anchors from different pretraining families,
 fit one 512-D adapter on training identities, and normalize. At inference
-evaluation this teacher is reported honestly as a two-encoder upper bound; it
-is never a deployed candidate.
+evaluation this teacher is reported honestly as a two-encoder upper bound. It
+is not used as the deployed gallery, query encoder, or student teacher; the
+deployable lane uses the strongest single adapted teacher. This diagnostic
+therefore cannot authorize extra student tuning or inherit any speed claim.
 
 Kill fusion before student training if either is true:
 
@@ -154,10 +178,16 @@ small student against the adapted P2 teacher. Add one 512-D head whose prefixes
 
 The primary deployment is explicitly asymmetric: gallery rows are encoded
 offline by the teacher adapter and queries by the faster student into the same
-selected prefix. A symmetric student/student index is a required control. The
-system reports gallery build cost and cannot claim the teacher's speed as the
-query encoder's speed. There is no reranker, ensemble at query time, query
-expansion, or gallery-dependent transform.
+selected prefix. Coordinate semantics are frozen by the teacher: gallery
+vectors are the normalized first `d` coordinates of the adapted teacher and
+student outputs are trained directly against those exact coordinates. No
+independent rotation or projection is fitted on either side after distillation.
+A mixed teacher-gallery/student-query evaluator and a symmetric student/student
+index are required controls. The system reports gallery build cost and cannot
+claim the teacher's speed as the query encoder's speed. There is no reranker,
+ensemble at query time, query expansion, or gallery-dependent transform.
+A gallery contains rows from exactly one encoder; mixed teacher/student rows
+are prohibited because their within-space scores are not comparable.
 
 ### 5.2 Cached targets and loss
 
@@ -176,9 +206,10 @@ L_d = L_supervised(z_d, y)
 L = sum_{d in {128,256,512}} alpha_d L_d
 ```
 
-`t_d` is a train-only learned linear projection of the 512-D teacher into the
-student prefix, fitted before student optimization and then frozen. `S_t` and
-`S_d` exclude self entries and use the same live identity-balanced batch.
+`t_d` is exactly the independently normalized first `d` coordinates of the
+frozen adapted teacher; it is also the gallery representation in asymmetric
+serving. `S_t` and `S_d` exclude self entries and use the same live
+identity-balanced batch.
 Teacher logits, student logits, and reductions are FP32. The backbone and head
 are trained together unless the F2 cost gate chooses the explicitly labelled
 head-only diagnostic.
@@ -195,44 +226,87 @@ Run, in order:
 3. supervised MRL student;
 4. single-teacher feature distillation;
 5. single-teacher feature plus relational distillation;
-6. dual-teacher feature plus relational distillation;
-7. post-hoc PCA and INT8 quantization of the best full-width descriptor.
+6. a frozen compact encoder plus a cached-feature linear alignment into the
+   teacher's serving coordinates;
+7. MobileCLIP-S2 as an external compact retrieval null; and
+8. post-hoc PCA, INT8, PQ, and OPQ compression of the best full-width
+   descriptor.
 
 Every trainable control uses identical initialization, sampler, transforms,
-optimizer, steps, EMA policy, and GPU-hour cap. The dual teacher cannot receive
-extra tuning trials.
+optimizer, steps, EMA policy, and GPU-hour cap. Cached discrete views are used
+by every adapter control; live student augmentations are used by every student
+control. The distillation grid is frozen to
+`lambda_feature in {0.25,1}`, `lambda_relation in {0,0.25}`, `tau in {0.05,0.1}`
+with uniform `alpha_d`; the same eight-trial cap applies to matched controls.
+The dual-teacher diagnostic cannot receive student trials. PCA/whitening and
+every alignment map are fitted on training-identity features only.
 
 ### 5.4 Student falsifier F2
 
-Run one structural smoke, then three paired short-run seeds. Continue to full
-training only if one prefix satisfies all:
+Run one structural smoke, then three paired short-run screening seeds. F2 is
+non-confirmatory; F3 uses disjoint seeds. Select one primary prefix and the
+single primary In-Shop R@1 endpoint from validation; all other prefixes and
+datasets are descriptive. Continue to full training only if that prefix
+satisfies all:
 
 - mean validation R@1 is at least the supervised MRL student's value plus
   0.30 point, with all three seed differences positive; and
-- measured encoder p95 plus exact-search p95 is at least 20% lower than the
-  best teacher at matched hardware, or descriptor storage is at least 2x
-  smaller with quality inside the 0.40-point equivalence margin; and
+- measured query-side encoder p95 plus search p95 is at least 20% lower than
+  the strongest single-encoder teacher at matched hardware; and
 - the trained student beats the frozen small-backbone-plus-adapter null by at
-  least 0.50 R@1 point at matched query latency. Otherwise use the null and
-  close additional distillation.
+  least 0.50 R@1 point at matched query latency and serving mode. A separate
+  cached-feature linear alignment must not recover 90% of that gain. Otherwise
+  use the aligned null and close additional distillation.
 
-Kill dual-teacher distillation if the single-teacher arm recovers at least 90%
-of its gain. Kill relational distillation if feature-only recovers at least
-90%. Kill MRL if independently trained fixed-width heads dominate every
-prefix at matched width and training cost.
+Kill relational distillation if feature-only recovers at least 90% of its gain.
+Kill MRL if independently trained fixed-width heads dominate every prefix at
+matched width and training cost.
 
 ### 5.5 Full claim F3
 
-Use six paired seeds for the surviving student and strongest matched control.
-Quality improvement requires mean In-Shop R@1 gain at least 0.50 point and a
-one-sided 95% paired lower bound above zero. A cost claim requires a two-sided
-90% paired interval entirely inside `[-0.40,+0.40]` R@1 point and at least 20%
-improvement in encoder-plus-search p95 or descriptor storage. SOP is a hard
-secondary non-inferiority gate once its exact recipe is available. Report all
-seeds, final and selected checkpoints, FLOPs, wall time, GPU-hours, memory,
-latency, width, bytes, and build time.
+The quality branch starts with six paired seeds and imports the parent
+program's variance-only extension to at most 12: mean In-Shop R@1 gain at least
+0.50 point, one-sided 95% paired lower bound above zero, and disclosed paired
+SD/MDE. The cost branch starts with eight paired seeds and permits one
+variance-only extension to 12; its 90% paired interval must lie entirely in
+`[-0.40,+0.40]` R@1 point while query-side encoder-plus-search p95 improves at
+least 20%. Failure to power either branch closes it; non-significance is not
+equivalence. Storage is credited separately to the Section 4 teacher-prefix
+result, or to a symmetric student/student comparison—never to asymmetric
+query distillation. SOP is a hard secondary non-inferiority gate once its exact
+recipe is available. Report all seeds, final and selected checkpoints, FLOPs,
+wall time, GPU-hours, memory, latency, width, bytes, and build time.
 
 ## 6. Search and native-kernel lane
+
+### 6.0 Training acceleration and kernel trigger T0
+
+FAISS/cuVS are inference-search baselines; they do not accelerate learning.
+Training speed is measured as **wall-clock time to a frozen validation-quality
+target**, plus final quality at a frozen GPU-hour budget. The first training
+accelerator is algorithmic: cached foundation features remove backbone
+forward/backward entirely from Section 4 adapter optimization. The later
+student uses maintained BF16, channels-last, compiled graph, fused optimizer,
+and supported attention/MLP kernels, each profiled separately before
+composition.
+
+A custom Triton/CUDA training operator is authorized when a profiler on the
+actual surviving student shows one uncovered similarity, relational-logit,
+normalization, or reduction region consumes at least 10% of steady-state step
+time, or its materialized intermediates prevent the registered useful batch.
+The candidate may tile and fuse normalization, similarity GEMM epilogues,
+self-mask, teacher/student log-softmax, KL reduction, and analytical descriptor
+gradients without storing the full pair matrix. Dense GEMMs remain cuBLASLt
+unless fusion around them creates the measured gain.
+
+The training kernel must match an FP64/ordinary-PyTorch forward/backward oracle,
+preserve both query and database descriptor-gradient roles, support arbitrary
+labels and legal batch tails, reject nonfinite inputs, and pass fixed-tree
+repeatability plus cross-tile tolerance tests. Keep it only if it provides at
+least 1.5x operator speed, at least 10% end-to-end step speed, and at least 15%
+lower median time-to-the-frozen-quality-target over paired runs. A larger batch
+counts only if it improves quality at matched GPU-hours. Otherwise retain the
+maintained implementation.
 
 ### 6.1 Workloads
 
@@ -240,8 +314,7 @@ In-Shop and SOP are quality/correctness workloads and cannot authorize custom
 search. The systems lane requires:
 
 - a named consumer and recorded request trace;
-- at least 1M real gallery vectors, with ILIAS 5M/100M as the preferred public
-  characterization benchmark when its assets are available;
+- at least 1M real vectors from that named consumer's own gallery;
 - pre-embedded query vectors;
 - batches 1 and 8 as decisive;
 - `k in {1,10,100}`;
@@ -249,6 +322,10 @@ search. The systems lane requires:
 - search at least 30% of this end-to-end p95.
 
 Without those facts the kernel lane remains closed.
+ILIAS, LAION, SIFT1M, and synthetic vectors are characterization only and can
+never authorize K0. On one 128-GB GB10, in-memory characterization is capped at
+ILIAS-5M at the deployed prefix; 100M x 512-D FP32 is 204.8 GB and out of
+scope. Any public-set embedding cost is separately budgeted before execution.
 
 ### 6.2 Maintained baselines
 
@@ -258,55 +335,80 @@ matched recall grid. Record index build time, storage, recall@k, p50/p95/p99,
 queries/s, and bytes transferred. CPU/GPU latency is never divided into an
 algorithmic speedup.
 
+FAISS and cuVS must be pinned and built/imported for CUDA 13 and `sm_121` before
+the gate. If either is unavailable, disclose it and use the registered tiled
+FP32 same-device primitive; never fabricate the missing row. ScaNN is included
+only if an authenticated aarch64 build exists, otherwise it is recorded as
+unavailable.
+
 ### 6.3 Kernel trigger K0
 
-A custom operator is authorized only if the strongest maintained same-device
-baseline leaves at least a 20% measured p95 gap to a roofline estimate and the
-profile identifies a fusible scan/dequantize/top-k bottleneck. Triton is tried
-first. Native CUDA follows only for a measured missing primitive, register or
-shared-memory limit, synchronization pattern, or code-generation failure.
+A custom operator is authorized only if the profiler assigns at least 30% of
+search p95 to a named fusible scan/dequantize/top-k stage, the gap is measured
+against achieved effective bandwidth of a same-access-pattern streaming
+reference on this device, and the projected post-fusion p95 still clears the
+1.5x search and 15% end-to-end keep gates below. Triton is tried first. Native
+CUDA follows only for a measured missing primitive, register/shared-memory
+limit, synchronization pattern, or code-generation failure.
 
 ### 6.4 Candidate kernel
 
-The first candidate is a fused rowwise-INT8 inner-product scan with FP32 query
-scales, blockwise top-k, and a final stable merge. It emits exact results for
-the registered quantized score, not approximate claims about the FP32 model.
-An optional exact-FP32 refinement reranks a prospectively bounded survivor set
-and is compared with maintained IVF-PQ/RaBitQ refinement.
+The first candidate is a fused rowwise-INT8 inner-product scan. Gallery and
+query coordinates use symmetric round-to-nearest INT8 codes in `[-127,127]`
+with `-128` prohibited, one registered FP32 scale per vector, exact INT32
+products/accumulation, a canonical fixed-order scale application, blockwise
+top-k, and a final stable merge. It emits bit-exact results for that registered
+quantized score, not exact claims about the FP32 model. Optional FP32 reranking
+of a bounded approximate survivor set reports recall against exhaustive FP32;
+it is called exact only if it reuses the parent's certified `L/U/theta`
+containment construction.
 
 Correctness requires:
 
 - an INT32 overflow proof for every supported width;
-- stable `(score descending,row_id ascending)` ties;
+- bit-exact INT32 accumulator agreement across legal tiles and stable
+  `(canonical quantized score descending,row_id ascending)` ties;
 - reference agreement on random, adversarial, saturation, zero, and duplicate
   vectors;
 - no out-of-bounds access under sanitizers;
-- forward agreement across legal tiles within frozen tolerance; and
+- FP32-scale application agreement with the fixed rounding schedule; and
 - identical results for repeated execution of the fixed reduction tree.
 
-Keep the kernel only if it delivers at least 1.5x search p95 and 15% end-to-end
-p95 improvement over the strongest maintained same-device control at matched
-recall, with no regression hidden at another claimed batch or k. Otherwise
+Recall is measured against registered exhaustive FP32 top-k, and the INT8 path
+is always labelled approximate relative to that target. Keep the kernel only
+if it delivers at least 1.5x search p95 and 15% end-to-end p95 improvement over
+the strongest maintained same-device control at matched FP32 recall, with no
+regression hidden at another claimed batch or k. Otherwise
 delete the custom path and ship the maintained index.
 
 ## 7. Budget and order
 
 1. Finish already running jobs without duplication.
-2. Implement only the F0 model/processor/export audit and existing evaluator
-   adapters.
-3. Run F1 frozen screens; close unavailable or weak anchors.
-4. Fit single and dual linear adapters; close fusion if complementarity fails.
+2. Implement the missing F0 surface explicitly: revision-addressed model and
+   processor loading; content-addressed multi-view cache v2; asynchronous
+   export; batch latency/memory/MAC instrumentation; SOP R@100; and
+   metric-specific native-evaluator fixtures.
+3. Implement and test a PyTorch linear/MLP Matryoshka adapter; run F1 frozen
+   screens plus cheap linear probes and close unavailable or weak anchors.
+4. Fit the single adapter and optional two-encoder diagnostic; close fusion if
+   complementarity fails.
 5. Run the three-seed F2 student falsifier.
-6. Spend the six-seed F3 budget only on the surviving prefix/control pair.
+6. Before F2, implement cached external-teacher targets, the small-backbone
+   training path, asymmetric aligned-space evaluator, and matched nulls. Spend
+   F3 only on the validation-selected prefix/control pair.
 7. Acquire or name a real 1M+ workload and benchmark maintained search.
 8. Write Triton/CUDA only after K0.
 
-The first local implementation budget is CPU tests plus at most 6 GB10 hours
-for F0/F1 exports. Cached adapter work is capped at 4 GB10 hours, and F2 is
-capped at 25 GB10 hours total. F3 receives a separate
-prospective cap after measured short-run throughput. Search characterization is
-read-only over frozen embeddings. Kernel work receives no GPU budget before
-K0.
+This design supersedes the parent's unlaunched post-queue allocation while
+retaining its gross 120-GB10-hour ceiling; already spent protocol-identical
+hours are charged against it. Frozen exports/F0 receive 6 hours, cached
+adapters 4, F2 student screening 25, confirmatory F3 at most 50, conditional
+DADA/VPTSP-G fidelity work 25 only if no current probe reaches the local
+anchor, and 10 remain reserve. The conditional fidelity and F3 allocations
+cannot both exceed the gross ceiling; measured short-run throughput may shrink
+but never enlarge them. Public 5M characterization requires its own prospective
+encoding estimate within the reserve; otherwise it does not run. Kernel work
+receives no GPU budget before T0/K0.
 
 ## 8. Claims and stop rules
 
@@ -317,6 +419,8 @@ speedup. They remain separate until each gate passes.
 Prohibited:
 
 - calling distillation, MRL, linear adaptation, or INT8 search novel;
+- calling asymmetric metric transfer or backward-compatible representation
+  learning novel;
 - comparing a two-encoder teacher's quality with a one-encoder student's speed
   without showing both full system rows;
 - tuning geometry, teacher choice, prefix, or temperature on test identities;
@@ -326,6 +430,11 @@ Prohibited:
 - using hyperbolic geometry to rescue a failed Euclidean student; or
 - calling a local gain SOTA without reproducing the contemporary anchor and
   matching its data, evaluator, and inference contract.
+
+Every quality row reports its absolute distance to published 95.5 supervised
+UNICOM B/16 and 96.5 VPTSP-G ViT-L/14 capability rows. The document and result
+use “reproducible Pareto” rather than “SOTA” until a contemporary operating
+point is reproduced under matched data, evaluator, and inference contracts.
 
 ## 9. Primary sources
 
@@ -339,3 +448,5 @@ Prohibited:
   <https://proceedings.neurips.cc/paper_files/paper/2022/hash/c32319f4868da7613d78af9993100e42-Abstract-Conference.html>
 - FAISS, cuVS, ScaNN, and official model repositories are pinned to exact
   revisions during F0/K0 rather than cited only by mutable main branches.
+- Asymmetric Metric Learning for Knowledge Transfer (CVPR 2021) and
+  Backward-Compatible Training (CVPR 2020) bound the asymmetric serving claim.
