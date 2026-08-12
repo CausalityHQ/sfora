@@ -101,9 +101,7 @@ def test_pair_selection_cannot_observe_tail() -> None:
 
 
 def test_negative_raw_fit_clips_to_zero_and_encoding_is_exact_lambda_zero() -> None:
-    unit = np.asarray(
-        [[0.8, 0.0, 0.6, 0.0], [0.8, 0.0, -0.6, 0.0]], dtype=np.float32
-    )
+    unit = np.asarray([[0.8, 0.0, 0.6, 0.0], [0.8, 0.0, -0.6, 0.0]], dtype=np.float32)
     fit = fit_tail_moment(unit, width=2, basis_kind="native", neighbors=1)
 
     encoded = encode_tail_moment(unit, fit, basis_kind="native")
@@ -126,9 +124,7 @@ def test_neighbor_selection_only_sorts_the_requested_boundary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     angles = np.linspace(0.0, 2.0 * np.pi, 64, endpoint=False, dtype=np.float32)
-    unit = np.stack((np.cos(angles), np.sin(angles), np.zeros(64)), axis=1).astype(
-        np.float32
-    )
+    unit = np.stack((np.cos(angles), np.sin(angles), np.zeros(64)), axis=1).astype(np.float32)
     original = np.lexsort
     sizes: list[int] = []
 
@@ -156,9 +152,7 @@ def test_neighbor_selection_only_sorts_the_requested_boundary(
 )
 def test_fit_rejects_invalid_embedding_contract(mutation, message: str) -> None:
     with pytest.raises((TypeError, ValueError), match=message):
-        fit_tail_moment(
-            mutation(_unit_fixture()), width=2, basis_kind="native", neighbors=1
-        )
+        fit_tail_moment(mutation(_unit_fixture()), width=2, basis_kind="native", neighbors=1)
 
 
 @pytest.mark.parametrize(
@@ -167,9 +161,7 @@ def test_fit_rejects_invalid_embedding_contract(mutation, message: str) -> None:
 )
 def test_fit_rejects_invalid_width_or_neighbor_count(width, neighbors) -> None:
     with pytest.raises((TypeError, ValueError)):
-        fit_tail_moment(
-            _unit_fixture(), width=width, basis_kind="native", neighbors=neighbors
-        )
+        fit_tail_moment(_unit_fixture(), width=width, basis_kind="native", neighbors=neighbors)
 
 
 def test_pca_basis_is_fit_from_train_only_and_is_sign_canonical() -> None:
@@ -212,8 +204,16 @@ def test_pca_projection_subtracts_only_the_frozen_train_mean() -> None:
 def test_cluster_interval_reuses_observed_pairs_and_uses_two_way_identity_weights(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    unit = _unit_fixture()
-    labels = np.asarray(["a", "b", "a", "b"])
+    unit = np.asarray(
+        [
+            [0.8, 0.0, 0.6, 0.0],
+            [0.8, 0.0, 0.6, 0.0],
+            [0.0, 0.8, 0.6, 0.0],
+            [0.0, 0.8, 0.0, 0.6],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.asarray(["a", "a", "b", "b"])
     calls = 0
     original = head_neighbor_pairs
 
@@ -230,13 +230,14 @@ def test_cluster_interval_reuses_observed_pairs_and_uses_two_way_identity_weight
         width=2,
         basis_kind="native",
         samples=1,
-        seed=205,
+        seed=1,
         neighbors=1,
     )
 
     assert calls == 1
     assert interval.samples == 1
-    assert interval.seed == 205
+    assert interval.seed == 1
+    assert interval.point == 0.5
     assert interval.lower == 0.0
     assert interval.upper == 0.0
 
@@ -273,9 +274,7 @@ def test_tail_null_keeps_radii_and_pairs_fixed_and_reports_exact_p_value() -> No
         dtype=np.float64,
     )
     expected_first = float(np.sum(x * y) / np.sum(x * x))
-    expected_p = (
-        1 + sum(value >= observed.lambda_raw for value in null.lambda_raw_values)
-    ) / 5
+    expected_p = (1 + sum(value >= observed.lambda_raw for value in null.lambda_raw_values)) / 5
 
     assert np.array_equal(null.pairs, observed.pairs)
     assert null.seeds == (206, 207, 208, 209)
@@ -307,9 +306,7 @@ def test_inner_product_breaks_score_ties_by_gallery_row() -> None:
 
 def test_inner_product_matches_existing_unit_evaluator_metrics() -> None:
     query = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
-    gallery = np.asarray(
-        [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [0.6, 0.8]], dtype=np.float32
-    )
+    gallery = np.asarray([[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [0.6, 0.8]], dtype=np.float32)
     query_labels = np.asarray(["a", "b"])
     gallery_labels = np.asarray(["a", "x", "b", "b"])
     existing = retrieval_view(
@@ -342,9 +339,7 @@ def test_query_bootstrap_keeps_gallery_fixed_and_clusters_identity_rows() -> Non
     baseline = np.asarray([False, True, False, True], dtype=np.bool_)
     candidate = np.asarray([True, True, False, True], dtype=np.bool_)
 
-    result = query_identity_interval(
-        baseline, candidate, labels, samples=10_000, seed=205
-    )
+    result = query_identity_interval(baseline, candidate, labels, samples=10_000, seed=205)
 
     assert result.samples == 10_000
     assert result.seed == 205
@@ -400,6 +395,11 @@ def test_width_grid_has_exact_controls_and_storage_accounting() -> None:
     assert views["pca_renormalized_prefix_plus_zero"].fixed_bytes == pca_bytes
     assert views["official_512"].values_per_row == 3
     assert views["full_width_768"].values_per_row == 4
+    for view in views.values():
+        assert type(view.descriptor_build_seconds) is float
+        assert view.descriptor_build_seconds >= 0.0
+        assert type(view.search_seconds) is float
+        assert view.search_seconds >= 0.0
     assert native_basis.kind == "native"
 
 
@@ -482,6 +482,22 @@ def test_decision_uses_simpler_descriptor_when_it_matches_official_anchor() -> N
     decision = _passing_decision(renormalized_r1=0.912, official_512_r1=0.912)
 
     assert decision.status == "USE_RENORMALIZED"
+
+
+def test_decision_rejects_a_storage_mismatched_control() -> None:
+    control_bytes = {
+        "renormalized_prefix_plus_zero": 516,
+        "plain_prefix_plus_zero": 516,
+        "lambda_zero": 516,
+        "unicom_tail_energy": 516,
+        "tail_sign_control": 516,
+        "tail_permuted_control": 520,
+    }
+
+    decision = _passing_decision(control_total_bytes=control_bytes)
+
+    assert decision.equal_storage_passed is False
+    assert decision.status == "CLOSE"
 
 
 @pytest.mark.parametrize(

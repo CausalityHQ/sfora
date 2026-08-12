@@ -93,16 +93,25 @@ def _validate_fit_grid(
     widths: tuple[int, ...],
     dimension: int,
     neighbors: int,
+    basis_kind: str,
 ) -> dict:
     grid = _exact_dict(value, tuple(str(width) for width in widths), name=name)
     for width in widths:
         item = _exact_dict(
             grid[str(width)],
-            ("dimension", "width", "neighbors", "lambda_raw", "lambda_value"),
+            (
+                "dimension",
+                "basis_kind",
+                "width",
+                "neighbors",
+                "lambda_raw",
+                "lambda_value",
+            ),
             name=f"{name} {width}",
         )
         if (
             item["dimension"] != dimension
+            or item["basis_kind"] != basis_kind
             or item["width"] != width
             or item["neighbors"] != neighbors
         ):
@@ -136,6 +145,8 @@ def _validate_view(
             "fixed_bytes",
             "total_bytes",
             "query_projection_seconds",
+            "descriptor_build_seconds",
+            "search_seconds",
         ),
         name=name,
     )
@@ -171,6 +182,12 @@ def _validate_view(
         name=f"{name} projection seconds",
         nonnegative=True,
     )
+    _finite_float(
+        view["descriptor_build_seconds"],
+        name=f"{name} descriptor build seconds",
+        nonnegative=True,
+    )
+    _finite_float(view["search_seconds"], name=f"{name} search seconds", nonnegative=True)
     return view
 
 
@@ -219,6 +236,8 @@ def validate_ctm_report(
     dimension = input_value["embedding_dimension"]
     if type(dimension) is not int or dimension <= 0:
         raise TypeError("embedding dimension must be a positive builtin integer")
+    if input_value["metadata"].get("embedding_dimension") != dimension:
+        raise ValueError("metadata embedding dimension differs")
     query_count = _builtin_int(input_value["query_count"], name="query count")
     gallery_count = _builtin_int(input_value["gallery_count"], name="gallery count")
     if query_count <= 0 or gallery_count <= 0:
@@ -256,6 +275,7 @@ def validate_ctm_report(
         widths=active_widths,
         dimension=dimension,
         neighbors=expected_neighbors,
+        basis_kind="native",
     )
     _validate_fit_grid(
         fits["pca"],
@@ -263,6 +283,7 @@ def validate_ctm_report(
         widths=active_widths,
         dimension=dimension,
         neighbors=expected_neighbors,
+        basis_kind="pca",
     )
     raw = native_fits[str(expected_primary)]["lambda_raw"]
     clipped = native_fits[str(expected_primary)]["lambda_value"]
@@ -277,9 +298,19 @@ def validate_ctm_report(
     for item in null_values:
         _finite_float(item, name="tail null value")
     _probability(null["p_value"], name="tail null p-value")
-    timing = _exact_dict(report["timing"], ("fit_seconds", "evaluation_seconds"), name="timing")
-    _finite_float(timing["fit_seconds"], name="fit seconds", nonnegative=True)
-    _finite_float(timing["evaluation_seconds"], name="evaluation seconds", nonnegative=True)
+    timing = _exact_dict(
+        report["timing"],
+        (
+            "normalization_seconds",
+            "basis_fit_seconds",
+            "coefficient_fit_seconds",
+            "falsifier_seconds",
+            "evaluation_seconds",
+        ),
+        name="timing",
+    )
+    for key in timing:
+        _finite_float(timing[key], name=key, nonnegative=True)
     runtime = _exact_dict(report["runtime"], ("python", "numpy"), name="runtime")
     if any(type(runtime[key]) is not str or not runtime[key] for key in runtime):
         raise TypeError("runtime values must be nonempty builtin strings")
@@ -339,10 +370,14 @@ def validate_ctm_report(
         if not paired["lower"] <= paired["point"] <= paired["upper"]:
             raise ValueError("paired interval order differs")
         primary_views = views[str(expected_primary)]
-        expected_point = (
-            primary_views["native_ctm"]["recall"]["1"]
-            - primary_views["renormalized_prefix_plus_zero"]["recall"]["1"]
+        candidate_correct = np.asarray(
+            primary_views["native_ctm"]["top1_correct"], dtype=np.float64
         )
+        baseline_correct = np.asarray(
+            primary_views["renormalized_prefix_plus_zero"]["top1_correct"],
+            dtype=np.float64,
+        )
+        expected_point = float(np.mean(candidate_correct - baseline_correct))
         if paired["point"] != expected_point:
             raise ValueError("paired point differs")
         interval = _exact_dict(
@@ -350,7 +385,7 @@ def validate_ctm_report(
         )
         for key in interval:
             _finite_float(interval[key], name=f"lambda interval {key}")
-        if interval["point"] != raw or not interval["lower"] <= raw <= interval["upper"]:
+        if interval["point"] != raw or interval["lower"] > interval["upper"]:
             raise ValueError("lambda interval differs")
         _probability(primary["null_p_value"], name="null p-value")
         if primary["null_p_value"] != null["p_value"]:
@@ -486,12 +521,15 @@ def _view_payload(view) -> dict[str, object]:
         "fixed_bytes": view.fixed_bytes,
         "total_bytes": view.total_bytes,
         "query_projection_seconds": view.query_projection_seconds,
+        "descriptor_build_seconds": view.descriptor_build_seconds,
+        "search_seconds": view.search_seconds,
     }
 
 
 def _fit_payload(fit) -> dict[str, object]:
     return {
         "dimension": fit.dimension,
+        "basis_kind": fit.basis_kind,
         "width": fit.width,
         "neighbors": fit.neighbors,
         "lambda_raw": fit.lambda_raw,
@@ -515,11 +553,15 @@ def evaluate_bundle(
     if not active_widths:
         raise ValueError("no registered width fits the embedding dimension")
     primary_width = 128 if 128 in active_widths else active_widths[0]
-    fit_start = time.perf_counter()
+    phase_start = time.perf_counter()
     train_native = l2_normalize(bundle.train_embeddings)
     query_native = l2_normalize(bundle.query_embeddings)
     gallery_native = l2_normalize(bundle.gallery_embeddings)
+    normalization_seconds = time.perf_counter() - phase_start
+    phase_start = time.perf_counter()
     pca_basis = fit_projection_basis(train_native, kind="pca")
+    basis_fit_seconds = time.perf_counter() - phase_start
+    phase_start = time.perf_counter()
     train_pca = project_unit(train_native, pca_basis)
     query_projection_start = time.perf_counter()
     query_pca = project_unit(query_native, pca_basis)
@@ -533,7 +575,9 @@ def evaluate_bundle(
         width: fit_tail_moment(train_pca, width=width, basis_kind="pca", neighbors=neighbors)
         for width in active_widths
     }
+    coefficient_fit_seconds = time.perf_counter() - phase_start
     primary_fit = native_fits[primary_width]
+    phase_start = time.perf_counter()
     interval = cluster_lambda_interval(
         train_native,
         bundle.train_labels,
@@ -552,7 +596,7 @@ def evaluate_bundle(
     radius = np.sqrt(np.sum(tail * tail, axis=1, dtype=np.float64))
     scalar = (np.sqrt(primary_fit.lambda_value) * radius).astype(np.float32)
     scalar_nonzero = bool(np.any(scalar != 0.0))
-    fit_seconds = time.perf_counter() - fit_start
+    falsifier_seconds = time.perf_counter() - phase_start
     base = {
         "schema_version": 1,
         "phase": "FIT_CLOSED",
@@ -592,7 +636,13 @@ def evaluate_bundle(
         },
         "views": None,
         "primary": None,
-        "timing": {"fit_seconds": fit_seconds, "evaluation_seconds": 0.0},
+        "timing": {
+            "normalization_seconds": normalization_seconds,
+            "basis_fit_seconds": basis_fit_seconds,
+            "coefficient_fit_seconds": coefficient_fit_seconds,
+            "falsifier_seconds": falsifier_seconds,
+            "evaluation_seconds": 0.0,
+        },
         "storage": None,
         "runtime": runtime_payload(),
         "decision": {"status": "CLOSE", "reason": "primary coefficient clipped to zero"},

@@ -7,6 +7,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from sfora.calibrated_tail_moment import (
+    EQUAL_TOTAL_STORAGE_CONTROLS,
+    MATCHED_ROW_WIDTH_CONTROLS,
+    ctm_decision,
+)
 from sfora.calibrated_tail_moment_io import (
     evaluate_bundle,
     publish_ctm_report,
@@ -47,6 +52,7 @@ def _fit_closed_report() -> dict[str, object]:
             "native": {
                 str(width): {
                     "dimension": 768,
+                    "basis_kind": "native",
                     "width": width,
                     "neighbors": 50,
                     "lambda_raw": -0.1,
@@ -57,6 +63,7 @@ def _fit_closed_report() -> dict[str, object]:
             "pca": {
                 str(width): {
                     "dimension": 768,
+                    "basis_kind": "pca",
                     "width": width,
                     "neighbors": 50,
                     "lambda_raw": -0.1,
@@ -73,7 +80,13 @@ def _fit_closed_report() -> dict[str, object]:
         },
         "views": None,
         "primary": None,
-        "timing": {"fit_seconds": 1.0, "evaluation_seconds": 0.0},
+        "timing": {
+            "normalization_seconds": 0.1,
+            "basis_fit_seconds": 0.2,
+            "coefficient_fit_seconds": 0.3,
+            "falsifier_seconds": 0.4,
+            "evaluation_seconds": 0.0,
+        },
         "storage": None,
         "runtime": {"python": "3.12.3", "numpy": "2.5.0"},
         "decision": {"status": "CLOSE", "reason": "primary coefficient clipped to zero"},
@@ -185,6 +198,13 @@ def test_evaluate_bundle_builds_a_strict_reduced_report(tmp_path: Path) -> None:
     assert report["phase"] in {"FIT_CLOSED", "EVALUATED"}
     assert report["input"]["bundle_sha256"] == "a" * 64
     assert report["constants"]["widths"] == [2]
+    assert tuple(report["timing"]) == (
+        "normalization_seconds",
+        "basis_fit_seconds",
+        "coefficient_fit_seconds",
+        "falsifier_seconds",
+        "evaluation_seconds",
+    )
 
 
 def _evaluated_bundle(tmp_path: Path) -> EmbeddingBundle:
@@ -222,6 +242,32 @@ def _evaluated_report(tmp_path: Path) -> dict[str, object]:
     return report
 
 
+def _refresh_decision(report: dict[str, object]) -> None:
+    width = str(report["fits"]["primary_width"])
+    views = report["views"][width]
+    paired = report["primary"]["paired"]
+    interval = report["primary"]["lambda_interval"]
+    decision = ctm_decision(
+        ctm_r1=views["native_ctm"]["recall"]["1"],
+        ctm_map_at_r=views["native_ctm"]["map_at_r"],
+        renormalized_r1=views["renormalized_prefix_plus_zero"]["recall"]["1"],
+        renormalized_map_at_r=views["renormalized_prefix_plus_zero"]["map_at_r"],
+        official_512_r1=views["official_512"]["recall"]["1"],
+        paired_lower=paired["lower"],
+        control_r1={key: views[key]["recall"]["1"] for key in MATCHED_ROW_WIDTH_CONTROLS},
+        ctm_total_bytes=views["native_ctm"]["total_bytes"],
+        control_total_bytes={
+            key: views[key]["total_bytes"] for key in EQUAL_TOTAL_STORAGE_CONTROLS
+        },
+        lambda_raw=report["fits"]["native"][width]["lambda_raw"],
+        lambda_lower=interval["lower"],
+        null_p_value=report["primary"]["null_p_value"],
+        width_gains=tuple(tuple(item) for item in report["primary"]["width_gains"]),
+        replication_status=report["primary"]["replication_status"],
+    )
+    report["decision"] = {"status": decision.status, "reason": decision.reason}
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -243,3 +289,33 @@ def test_evaluated_report_rejects_relational_mutations(tmp_path: Path, mutate) -
         validate_ctm_report(
             report, expected_widths=(2,), expected_neighbors=1, expected_null_count=4
         )
+
+
+def test_paired_point_recomputes_from_persisted_correctness_order(tmp_path: Path) -> None:
+    report = _evaluated_report(tmp_path)
+    report["input"]["query_count"] = 7
+    baseline = [True, True, True, True, True, False, False]
+    candidate = [True, True, False, False, False, False, False]
+    for view in report["views"]["2"].values():
+        view["top1_indices"] = [0] * 7
+        view["top1_correct"] = list(baseline)
+        view["recall"]["1"] = float(np.mean(baseline))
+    report["views"]["2"]["native_ctm"]["top1_correct"] = candidate
+    report["views"]["2"]["native_ctm"]["recall"]["1"] = float(np.mean(candidate))
+    difference = np.asarray(candidate, dtype=np.float64) - np.asarray(baseline, dtype=np.float64)
+    point = float(np.mean(difference))
+    assert point != float(np.mean(candidate)) - float(np.mean(baseline))
+    report["primary"]["paired"].update({"point": point, "lower": point - 0.1, "upper": point + 0.1})
+    report["primary"]["width_gains"] = [[2, float(np.mean(candidate)) - float(np.mean(baseline))]]
+    _refresh_decision(report)
+
+    validate_ctm_report(report, expected_widths=(2,), expected_neighbors=1, expected_null_count=4)
+
+
+def test_lambda_interval_need_not_contain_unweighted_point(tmp_path: Path) -> None:
+    report = _evaluated_report(tmp_path)
+    raw = report["primary"]["lambda_interval"]["point"]
+    report["primary"]["lambda_interval"].update({"lower": raw + 0.01, "upper": raw + 0.02})
+    _refresh_decision(report)
+
+    validate_ctm_report(report, expected_widths=(2,), expected_neighbors=1, expected_null_count=4)

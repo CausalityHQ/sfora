@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
@@ -115,6 +116,8 @@ class ScoreView:
     fixed_bytes: int
     total_bytes: int
     query_projection_seconds: float
+    descriptor_build_seconds: float
+    search_seconds: float
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ScoreView):
@@ -128,6 +131,8 @@ class ScoreView:
             and self.fixed_bytes == other.fixed_bytes
             and self.total_bytes == other.total_bytes
             and self.query_projection_seconds == other.query_projection_seconds
+            and self.descriptor_build_seconds == other.descriptor_build_seconds
+            and self.search_seconds == other.search_seconds
         )
 
 
@@ -209,9 +214,7 @@ def head_neighbor_pairs(
             above = np.flatnonzero(row > boundary)
             tied = np.flatnonzero(row == boundary)[: neighbors - above.size]
             candidates = np.concatenate((above, tied))
-            order = candidates[
-                np.lexsort((gallery_indices[candidates], -row[candidates]))
-            ]
+            order = candidates[np.lexsort((gallery_indices[candidates], -row[candidates]))]
             pairs[query_index, :, 0] = query_index
             pairs[query_index, :, 1] = order
     result = np.ascontiguousarray(pairs.reshape(-1, 2))
@@ -237,9 +240,7 @@ def _row_sufficient_statistics(
         query_indices = selected[:, :, 0]
         gallery_indices = selected[:, :, 1]
         x = radius[query_indices] * radius[gallery_indices]
-        y = np.sum(
-            tail[query_indices] * tail[gallery_indices], axis=2, dtype=np.float64
-        )
+        y = np.sum(tail[query_indices] * tail[gallery_indices], axis=2, dtype=np.float64)
         numerator[start:stop] = np.sum(x * y, axis=1, dtype=np.float64)
         denominator[start:stop] = np.sum(x * x, axis=1, dtype=np.float64)
     return numerator, denominator
@@ -263,9 +264,7 @@ def _pair_sufficient_statistics(
         query_indices = selected[:, :, 0]
         gallery_indices = selected[:, :, 1]
         x = radius[query_indices] * radius[gallery_indices]
-        y = np.sum(
-            tail[query_indices] * tail[gallery_indices], axis=2, dtype=np.float64
-        )
+        y = np.sum(tail[query_indices] * tail[gallery_indices], axis=2, dtype=np.float64)
         destination = slice(start * neighbors, stop * neighbors)
         numerator[destination] = (x * y).reshape(-1)
         denominator[destination] = (x * x).reshape(-1)
@@ -396,9 +395,7 @@ def cluster_lambda_interval(
     if type(samples) is not int or samples <= 0 or type(seed) is not int:
         raise ValueError("samples and seed must be builtin integers with samples positive")
     label_values = _require_train_labels(labels, rows=unit.shape[0])
-    fit = fit_tail_moment(
-        unit, width=width, basis_kind=basis_kind, neighbors=neighbors
-    )
+    fit = fit_tail_moment(unit, width=width, basis_kind=basis_kind, neighbors=neighbors)
     tail = unit[:, width:].astype(np.float64)
     radius = np.sqrt(np.sum(tail * tail, axis=1, dtype=np.float64))
     numerators, denominators = _pair_sufficient_statistics(
@@ -412,9 +409,11 @@ def cluster_lambda_interval(
     generator = np.random.Generator(np.random.PCG64(seed))
     draws = np.empty(samples, dtype=np.float64)
     for draw_index in range(samples):
-        sampled = generator.integers(0, len(identities), size=len(identities))
-        counts = np.bincount(sampled, minlength=len(identities)).astype(np.float64)
-        weights = counts[query_identity] * counts[gallery_identity]
+        sampled_query = generator.integers(0, len(identities), size=len(identities))
+        sampled_gallery = generator.integers(0, len(identities), size=len(identities))
+        query_counts = np.bincount(sampled_query, minlength=len(identities)).astype(np.float64)
+        gallery_counts = np.bincount(sampled_gallery, minlength=len(identities)).astype(np.float64)
+        weights = query_counts[query_identity] * gallery_counts[gallery_identity]
         denominator = float(np.sum(denominators * weights, dtype=np.float64))
         draws[draw_index] = (
             0.0
@@ -446,17 +445,13 @@ def permuted_tail_null(
     seed_values = tuple(seeds)
     if any(type(seed) is not int or seed < 0 for seed in seed_values):
         raise ValueError("null seeds must be nonnegative builtin integers")
-    fit = fit_tail_moment(
-        unit, width=width, basis_kind=basis_kind, neighbors=neighbors
-    )
+    fit = fit_tail_moment(unit, width=width, basis_kind=basis_kind, neighbors=neighbors)
     tail = unit[:, width:].astype(np.float64)
     radius = np.sqrt(np.sum(tail * tail, axis=1, dtype=np.float64))
     direction = np.zeros_like(tail)
     nonzero = np.flatnonzero(radius > 0.0)
     direction[nonzero] = tail[nonzero] / radius[nonzero, None]
-    denominator_by_row = _row_sufficient_statistics(
-        tail, radius, fit.pairs, neighbors=neighbors
-    )[1]
+    denominator_by_row = _row_sufficient_statistics(tail, radius, fit.pairs, neighbors=neighbors)[1]
     denominator = float(np.sum(denominator_by_row, dtype=np.float64))
     raw_values: list[float] = []
     for seed in seed_values:
@@ -469,9 +464,7 @@ def permuted_tail_null(
         )[0]
         numerator = float(np.sum(numerator_by_row, dtype=np.float64))
         raw_values.append(0.0 if denominator == 0.0 else numerator / denominator)
-    p_value = (
-        1 + sum(value >= fit.lambda_raw for value in raw_values)
-    ) / (len(raw_values) + 1)
+    p_value = (1 + sum(value >= fit.lambda_raw for value in raw_values)) / (len(raw_values) + 1)
     return TailNull(
         seeds=seed_values,
         pairs=fit.pairs,
@@ -500,6 +493,7 @@ def evaluate_inner_product(
     values_per_row: int,
     fixed_bytes: int = 0,
     query_projection_seconds: float = 0.0,
+    descriptor_build_seconds: float = 0.0,
     chunk_size: int = 256,
 ) -> ScoreView:
     """Evaluate stable inner-product retrieval through the shared metric reducer."""
@@ -520,6 +514,12 @@ def evaluate_inner_product(
         raise ValueError("query_projection_seconds must be a nonnegative builtin float")
     if type(chunk_size) is not int or chunk_size <= 0:
         raise ValueError("chunk_size must be a positive builtin integer")
+    if (
+        type(descriptor_build_seconds) is not float
+        or not np.isfinite(descriptor_build_seconds)
+        or descriptor_build_seconds < 0.0
+    ):
+        raise ValueError("descriptor_build_seconds must be a nonnegative builtin float")
     gallery64 = gallery.astype(np.float64)
 
     def score_chunks():
@@ -527,9 +527,9 @@ def evaluate_inner_product(
             query64 = query[start : start + chunk_size].astype(np.float64)
             yield np.ascontiguousarray(query64 @ gallery64.T)
 
-    metrics = retrieval_metrics_from_score_chunks(
-        score_chunks(), query_labels, gallery_labels
-    )
+    search_start = time.perf_counter()
+    metrics = retrieval_metrics_from_score_chunks(score_chunks(), query_labels, gallery_labels)
+    search_seconds = time.perf_counter() - search_start
     return ScoreView(
         recall=metrics.recall,
         map_at_r=metrics.map_at_r,
@@ -539,6 +539,8 @@ def evaluate_inner_product(
         fixed_bytes=fixed_bytes,
         total_bytes=gallery.shape[0] * values_per_row * 4 + fixed_bytes,
         query_projection_seconds=query_projection_seconds,
+        descriptor_build_seconds=descriptor_build_seconds,
+        search_seconds=search_seconds,
     )
 
 
@@ -550,8 +552,11 @@ def _evaluate_score_chunks(
     values_per_row: int,
     fixed_bytes: int = 0,
     query_projection_seconds: float = 0.0,
+    descriptor_build_seconds: float = 0.0,
 ) -> ScoreView:
+    search_start = time.perf_counter()
     metrics = retrieval_metrics_from_score_chunks(chunks, query_labels, gallery_labels)
+    search_seconds = time.perf_counter() - search_start
     return ScoreView(
         recall=metrics.recall,
         map_at_r=metrics.map_at_r,
@@ -561,6 +566,8 @@ def _evaluate_score_chunks(
         fixed_bytes=fixed_bytes,
         total_bytes=gallery_labels.shape[0] * values_per_row * 4 + fixed_bytes,
         query_projection_seconds=query_projection_seconds,
+        descriptor_build_seconds=descriptor_build_seconds,
+        search_seconds=search_seconds,
     )
 
 
@@ -598,24 +605,34 @@ def evaluate_width(
     if type(pca_fixed_bytes) is not int or pca_fixed_bytes < 0:
         raise ValueError("pca_fixed_bytes must be a nonnegative builtin integer")
 
+    build_start = time.perf_counter()
     native_query = encode_tail_moment(query_native, native_fit, basis_kind="native")
     native_gallery = encode_tail_moment(gallery_native, native_fit, basis_kind="native")
+    native_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     pca_query = encode_tail_moment(query_pca, pca_fit, basis_kind="pca")
     pca_gallery = encode_tail_moment(gallery_pca, pca_fit, basis_kind="pca")
+    pca_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     native_prefix_query = np.ascontiguousarray(query_native[:, : width + 1])
     native_prefix_gallery = np.ascontiguousarray(gallery_native[:, : width + 1])
+    prefix_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     renormalized_query = l2_normalize(native_prefix_query)
     renormalized_gallery = l2_normalize(native_prefix_gallery)
+    renormalized_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     zero_query = np.ascontiguousarray(
         np.column_stack((query_native[:, :width], np.zeros(query_native.shape[0], np.float32)))
     )
     zero_gallery = np.ascontiguousarray(
-        np.column_stack(
-            (gallery_native[:, :width], np.zeros(gallery_native.shape[0], np.float32))
-        )
+        np.column_stack((gallery_native[:, :width], np.zeros(gallery_native.shape[0], np.float32)))
     )
+    zero_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     pca_prefix_query = l2_normalize(np.ascontiguousarray(query_pca[:, : width + 1]))
     pca_prefix_gallery = l2_normalize(np.ascontiguousarray(gallery_pca[:, : width + 1]))
+    pca_prefix_build_seconds = time.perf_counter() - build_start
 
     def unicom_chunks() -> Iterable[np.ndarray]:
         gallery_head = gallery_native[:, :width].astype(np.float64)
@@ -625,11 +642,15 @@ def evaluate_width(
             query_head = query_native[start : start + 256, :width].astype(np.float64)
             yield np.ascontiguousarray(query_head @ gallery_head.T + reward[None, :])
 
+    build_start = time.perf_counter()
     sign_gallery = native_gallery.copy()
     sign_gallery[1::2, -1] *= np.float32(-1.0)
+    sign_build_seconds = time.perf_counter() - build_start
+    build_start = time.perf_counter()
     permuted_gallery = native_gallery.copy()
     permutation = np.random.Generator(np.random.PCG64(238)).permutation(gallery_native.shape[0])
     permuted_gallery[:, -1] = native_gallery[permutation, -1]
+    permuted_build_seconds = time.perf_counter() - build_start
 
     def official_chunks() -> Iterable[np.ndarray]:
         query64 = query_native[:, :official_width].astype(np.float64)
@@ -643,47 +664,84 @@ def evaluate_width(
 
     return {
         "native_ctm": evaluate_inner_product(
-            native_query, native_gallery, query_labels, gallery_labels,
+            native_query,
+            native_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=native_build_seconds,
         ),
         "pca_ctm": evaluate_inner_product(
-            pca_query, pca_gallery, query_labels, gallery_labels,
-            values_per_row=width + 1, fixed_bytes=pca_fixed_bytes,
+            pca_query,
+            pca_gallery,
+            query_labels,
+            gallery_labels,
+            values_per_row=width + 1,
+            fixed_bytes=pca_fixed_bytes,
             query_projection_seconds=pca_query_projection_seconds,
+            descriptor_build_seconds=pca_build_seconds,
         ),
         "renormalized_prefix_plus_zero": evaluate_inner_product(
-            renormalized_query, renormalized_gallery, query_labels, gallery_labels,
+            renormalized_query,
+            renormalized_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=renormalized_build_seconds,
         ),
         "plain_prefix_plus_zero": evaluate_inner_product(
-            native_prefix_query, native_prefix_gallery, query_labels, gallery_labels,
+            native_prefix_query,
+            native_prefix_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=prefix_build_seconds,
         ),
         "lambda_zero": evaluate_inner_product(
-            zero_query, zero_gallery, query_labels, gallery_labels,
+            zero_query,
+            zero_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=zero_build_seconds,
         ),
         "unicom_tail_energy": _evaluate_score_chunks(
             unicom_chunks(), query_labels, gallery_labels, values_per_row=width + 1
         ),
         "pca_renormalized_prefix_plus_zero": evaluate_inner_product(
-            pca_prefix_query, pca_prefix_gallery, query_labels, gallery_labels,
-            values_per_row=width + 1, fixed_bytes=pca_fixed_bytes,
+            pca_prefix_query,
+            pca_prefix_gallery,
+            query_labels,
+            gallery_labels,
+            values_per_row=width + 1,
+            fixed_bytes=pca_fixed_bytes,
             query_projection_seconds=pca_query_projection_seconds,
+            descriptor_build_seconds=pca_prefix_build_seconds,
         ),
         "tail_sign_control": evaluate_inner_product(
-            native_query, sign_gallery, query_labels, gallery_labels,
+            native_query,
+            sign_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=sign_build_seconds,
         ),
         "tail_permuted_control": evaluate_inner_product(
-            native_query, permuted_gallery, query_labels, gallery_labels,
+            native_query,
+            permuted_gallery,
+            query_labels,
+            gallery_labels,
             values_per_row=width + 1,
+            descriptor_build_seconds=permuted_build_seconds,
         ),
         "official_512": _evaluate_score_chunks(
             official_chunks(), query_labels, gallery_labels, values_per_row=official_width
         ),
         "full_width_768": evaluate_inner_product(
-            query_native, gallery_native, query_labels, gallery_labels,
+            query_native,
+            gallery_native,
+            query_labels,
+            gallery_labels,
             values_per_row=dimension,
         ),
     }
@@ -715,8 +773,10 @@ def query_identity_interval(
     differences = candidate_correct.astype(np.float64) - baseline_correct.astype(np.float64)
     identities = tuple(dict.fromkeys(labels))
     sums = np.asarray(
-        [sum(differences[index] for index, value in enumerate(labels) if value == identity)
-         for identity in identities],
+        [
+            sum(differences[index] for index, value in enumerate(labels) if value == identity)
+            for identity in identities
+        ],
         dtype=np.float64,
     )
     counts = np.asarray(
@@ -757,8 +817,15 @@ def ctm_decision(
     """Apply the frozen CTM quality, uncertainty, and storage gates."""
 
     scalar_values = (
-        ctm_r1, ctm_map_at_r, renormalized_r1, renormalized_map_at_r,
-        official_512_r1, paired_lower, lambda_raw, lambda_lower, null_p_value,
+        ctm_r1,
+        ctm_map_at_r,
+        renormalized_r1,
+        renormalized_map_at_r,
+        official_512_r1,
+        paired_lower,
+        lambda_raw,
+        lambda_lower,
+        null_p_value,
     )
     if any(type(value) is not float or not np.isfinite(value) for value in scalar_values):
         raise TypeError("decision scalars must be finite builtin floats")
@@ -771,17 +838,23 @@ def ctm_decision(
         or tuple(control_total_bytes) != EQUAL_TOTAL_STORAGE_CONTROLS
     ):
         raise ValueError("storage-control order differs")
-    if type(ctm_total_bytes) is not int or ctm_total_bytes <= 0 or any(
-        type(value) is not int or value <= 0 for value in control_total_bytes.values()
+    if (
+        type(ctm_total_bytes) is not int
+        or ctm_total_bytes <= 0
+        or any(type(value) is not int or value <= 0 for value in control_total_bytes.values())
     ):
         raise TypeError("storage values must be positive builtin integers")
-    if type(width_gains) is not tuple or not width_gains or any(
-        type(item) is not tuple
-        or len(item) != 2
-        or type(item[0]) is not int
-        or type(item[1]) is not float
-        or not np.isfinite(item[1])
-        for item in width_gains
+    if (
+        type(width_gains) is not tuple
+        or not width_gains
+        or any(
+            type(item) is not tuple
+            or len(item) != 2
+            or type(item[0]) is not int
+            or type(item[1]) is not float
+            or not np.isfinite(item[1])
+            for item in width_gains
+        )
     ):
         raise TypeError("width gains must be ordered builtin int/float pairs")
     if replication_status not in {"PENDING", "PASSED", "FAILED"}:
@@ -799,8 +872,14 @@ def ctm_decision(
     width_signal = any(gain >= 0.001 - 1e-15 for _, gain in width_gains)
     replication_passed = replication_status == "PASSED"
     gates = (
-        r1_gain, r1_lower, map_passed, gap_recovery, controls_passed,
-        storage_passed, coefficient_passed, width_signal,
+        r1_gain,
+        r1_lower,
+        map_passed,
+        gap_recovery,
+        controls_passed,
+        storage_passed,
+        coefficient_passed,
+        width_signal,
     )
     if simpler:
         status, reason = "USE_RENORMALIZED", "renormalized descriptor matches official anchor"
