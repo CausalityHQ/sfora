@@ -40,6 +40,13 @@ class LambdaRecord:
     iterations: int
 
 
+@dataclass(frozen=True)
+class ScoreCalibration:
+    scale: float
+    intercept: float
+    loss: float
+
+
 def split_labels(labels: np.ndarray) -> LabelSplit:
     if not isinstance(labels, np.ndarray) or labels.dtype != np.int64 or labels.ndim != 1:
         raise ValueError("labels must be a rank-1 int64 array")
@@ -221,3 +228,62 @@ def select_lambda(
         key=lambda index: (records[index].validation_loss, -records[index].lambda_value),
     )
     return models[selected], tuple(records)
+
+
+def fit_score_calibration(scores: np.ndarray, targets: np.ndarray) -> ScoreCalibration:
+    values = np.asarray(scores, dtype=np.float64)
+    y = np.asarray(targets, dtype=np.float64)
+    positive = y == 1.0
+    if values.ndim != 1 or y.shape != values.shape or not positive.any() or positive.all():
+        raise ValueError("calibration inputs require both classes")
+    sample_weight = np.where(positive, 0.5 / positive.sum(), 0.5 / (~positive).sum())
+
+    def objective(parameters: np.ndarray) -> tuple[float, np.ndarray]:
+        signed = y * (parameters[0] * values + parameters[1])
+        losses = np.logaddexp(0.0, -signed)
+        derivative = sample_weight * (-y / (1.0 + np.exp(np.clip(signed, -700, 700))))
+        return float(sample_weight @ losses), np.asarray(
+            [derivative @ values, derivative.sum()], dtype=np.float64
+        )
+
+    result = minimize(
+        objective,
+        np.asarray([1.0, 0.0]),
+        method="L-BFGS-B",
+        jac=True,
+        options={"maxiter": 500, "ftol": 1e-12, "gtol": 1e-8},
+    )
+    if not result.success:
+        raise ValueError(f"score calibration did not converge: {result.message}")
+    return ScoreCalibration(float(result.x[0]), float(result.x[1]), float(result.fun))
+
+
+def calibrated_log_loss(
+    scores: np.ndarray, targets: np.ndarray, calibration: ScoreCalibration
+) -> float:
+    values = np.asarray(scores, dtype=np.float64)
+    y = np.asarray(targets, dtype=np.float64)
+    positive = y == 1.0
+    losses = np.logaddexp(
+        0.0, -y * (calibration.scale * values + calibration.intercept)
+    )
+    return float(0.5 * losses[positive].mean() + 0.5 * losses[~positive].mean())
+
+
+def decide_train_gate(
+    selected_lambda: float,
+    weights: np.ndarray,
+    cadr_loss: float,
+    platt_loss: float,
+    wccn_loss: float,
+) -> tuple[bool, dict[str, bool]]:
+    vector = np.asarray(weights, dtype=np.float64)
+    mean = float(vector.mean())
+    predicates = {
+        "lambda_below_max": selected_lambda < 1.0,
+        "positive_mean": mean > 0.0,
+        "contrast_at_least_0_01": mean > 0.0 and float(vector.std()) / abs(mean) >= 0.01,
+        "beats_platt_by_1pct": (platt_loss - cadr_loss) / platt_loss >= 0.01,
+        "beats_wccn_by_0_5pct": (wccn_loss - cadr_loss) / wccn_loss >= 0.005,
+    }
+    return all(predicates.values()), predicates

@@ -5,7 +5,15 @@ import hashlib
 import numpy as np
 import pytest
 
-from sfora.cadr import balanced_log_loss, build_pairs, fit_cadr, select_lambda, split_labels
+from sfora.cadr import (
+    balanced_log_loss,
+    build_pairs,
+    decide_train_gate,
+    fit_cadr,
+    fit_score_calibration,
+    select_lambda,
+    split_labels,
+)
 
 
 def _unit(values: list[list[float]]) -> np.ndarray:
@@ -84,3 +92,13 @@ def test_balanced_log_loss_and_lambda_selection_are_deterministic() -> None:
     assert balanced_log_loss(features, targets, model) == min(
         record.validation_loss for record in records
     )
+
+
+def test_score_calibration_and_train_gate_boundaries() -> None:
+    scores = np.asarray([0.9, 0.7, -0.8, -0.6], dtype=np.float64)
+    targets = np.asarray([1.0, 1.0, -1.0, -1.0])
+    calibration = fit_score_calibration(scores, targets)
+    assert calibration.scale > 0
+    assert decide_train_gate(0.1, np.asarray([1.2, 0.8]), 0.19, 0.2, 0.195)[0]
+    assert not decide_train_gate(1.0, np.asarray([1.2, 0.8]), 0.19, 0.2, 0.195)[0]
+    assert not decide_train_gate(0.1, np.ones(2), 0.19, 0.2, 0.195)[0]
