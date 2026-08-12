@@ -210,6 +210,12 @@ For each replicate, sample identity indices once, compute every interior-minus-b
 
 Assert the small-radius Lorentz ranking equals PCA Euclidean, the fully clipped equal-radius ranking equals PCA cosine, and the spatial-only control differs from Lorentz only by the time-coordinate term. Assert a power-family tie prevents `GEOMETRY_SURVIVES` even when Lorentz beats both endpoints.
 
+Use the literal registered formulas.  With clipped radii `a,b`, cosine `c`,
+and `h_p(r)=r**p`, `t_p(r)=sqrt(1+h_p(r)**2)`, spatial-only is
+`sinh(a)*sinh(b)*c - sinh(b)**2/2`; power `p` is
+`h_p(a)/t_p(a)*h_p(b)*c - t_p(b)`.  Do not fit a power, reuse a winning scale,
+or silently substitute negative squared distance on the original PCA rows.
+
 - [ ] **Step 4: Run Task 3 GREEN and commit**
 
 Run: `.venv/bin/pytest -q tests/test_lorentz_rider.py && .venv/bin/ruff check src/sfora/lorentz_rider.py tests/test_lorentz_rider.py`

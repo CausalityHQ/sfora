@@ -62,6 +62,25 @@ functions while retaining the same angular and radial inputs. A result matched
 by either family is norm-weighted rescoring, not evidence for hyperbolic
 geometry.
 
+The controls are exact, not fitted.  For clipped projected radii `a` and `b`
+and angular cosine `c`, spatial-only ranks by
+
+```text
+sinh(a) sinh(b) c - sinh(b)^2 / 2.
+```
+
+For `p in {1,3}`, define `h_p(r)=r^p` and
+`t_p(r)=sqrt(1+h_p(r)^2)`.  The power control ranks by
+
+```text
+h_p(a) / t_p(a) * h_p(b) * c - t_p(b).
+```
+
+This preserves the Lorentz scorer's normalized query factor, gallery radial
+weight, and additive radial penalty while replacing its exponential radial
+map by a fixed power map.  A power tie therefore falsifies attribution to the
+specific `sinh/cosh` map rather than merely offering an easier endpoint.
+
 The matched hard-negative control is load-bearing because published analysis
 shows that apparent hyperbolic gains can come from implicit negative weighting.
 
