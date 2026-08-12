@@ -29,6 +29,24 @@ class FrozenPCA:
         )
 
 
+@dataclass(frozen=True)
+class MaxInterval:
+    point: float
+    lower: float
+    upper: float
+    standard_errors: float
+    samples: int
+    seed: int
+
+
+@dataclass(frozen=True)
+class L1Decision:
+    status: str
+    endpoint_passed: bool
+    spatial_passed: bool
+    power_passed: bool
+
+
 def _require_matrix(values: np.ndarray, *, name: str) -> np.ndarray:
     if type(values) is not np.ndarray or values.dtype not in (np.float32, np.float64):
         raise TypeError(f"{name} must be a float32 or float64 NumPy array")
@@ -308,3 +326,206 @@ def lorentz_distance_block(query: np.ndarray, gallery: np.ndarray) -> np.ndarray
     np.maximum(value, np.float32(0.0), out=value)
     distance = np.log1p(value + np.sqrt(value * (value + np.float32(2.0))))
     return np.ascontiguousarray(distance.astype(np.float32, copy=False))
+
+
+def score_control_blocks(
+    query_projected: np.ndarray,
+    gallery_projected: np.ndarray,
+    scale: float,
+    clip: float,
+) -> dict[str, np.ndarray]:
+    """Return the exact ordered L1 scorer and matched radial controls."""
+
+    query = _require_nonempty_matrix(query_projected, name="query_projected").astype(
+        np.float32
+    )
+    gallery = _require_nonempty_matrix(
+        gallery_projected, name="gallery_projected"
+    ).astype(np.float32)
+    if query.shape[1] != gallery.shape[1]:
+        raise ValueError("query and gallery projected dimensions differ")
+    if type(scale) is not float or not np.isfinite(scale) or scale <= 0.0:
+        raise ValueError("scale must be a positive finite builtin float")
+    if type(clip) is not float or not np.isfinite(clip) or clip <= 0.0:
+        raise ValueError("clip must be a positive finite builtin float")
+
+    query64 = query.astype(np.float64)
+    gallery64 = gallery.astype(np.float64)
+    query_norm64 = np.sqrt(np.sum(query64 * query64, axis=1, dtype=np.float64))
+    gallery_norm64 = np.sqrt(
+        np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
+    )
+    query_norm = query_norm64.astype(np.float32)
+    gallery_norm = gallery_norm64.astype(np.float32)
+    query_direction = np.zeros_like(query)
+    gallery_direction = np.zeros_like(gallery)
+    query_nonzero = query_norm > 0.0
+    gallery_nonzero = gallery_norm > 0.0
+    query_direction[query_nonzero] = (
+        query[query_nonzero] / query_norm[query_nonzero, None]
+    )
+    gallery_direction[gallery_nonzero] = (
+        gallery[gallery_nonzero] / gallery_norm[gallery_nonzero, None]
+    )
+    cosine = query_direction @ gallery_direction.T
+    query_radius = np.minimum(scale * query_norm64, clip).astype(np.float32)
+    gallery_radius = np.minimum(scale * gallery_norm64, clip).astype(np.float32)
+
+    query_sinh = np.sinh(query_radius)
+    gallery_sinh = np.sinh(gallery_radius)
+    query_lifted = lorentz_lift(query, scale, clip)
+    gallery_lifted = lorentz_lift(gallery, scale, clip)
+    lorentz = lorentz_mips_scores(query_lifted, gallery_lifted) / query_lifted[
+        :, :1
+    ]
+    squared_distance = (
+        np.sum(query * query, axis=1, dtype=np.float32)[:, None]
+        + np.sum(gallery * gallery, axis=1, dtype=np.float32)[None, :]
+        - np.float32(2.0) * (query @ gallery.T)
+    )
+    spatial_only = (
+        query_sinh[:, None] * gallery_sinh[None, :] * cosine
+        - np.float32(0.5) * gallery_sinh[None, :] ** 2
+    )
+
+    result: dict[str, np.ndarray] = {
+        "lorentz": np.ascontiguousarray(lorentz.astype(np.float32)),
+        "pca_euclidean": np.ascontiguousarray((-squared_distance).astype(np.float32)),
+        "pca_cosine": np.ascontiguousarray(cosine.astype(np.float32)),
+        "spatial_only": np.ascontiguousarray(spatial_only.astype(np.float32)),
+    }
+    for power in (1, 3):
+        query_h = query_radius**power
+        gallery_h = gallery_radius**power
+        power_score = (
+            query_h[:, None]
+            / np.sqrt(np.float32(1.0) + query_h[:, None] ** 2)
+            * gallery_h[None, :]
+            * cosine
+            - np.sqrt(np.float32(1.0) + gallery_h[None, :] ** 2)
+        )
+        result[f"power_{power}"] = np.ascontiguousarray(
+            power_score.astype(np.float32)
+        )
+    return result
+
+
+def paired_identity_max_interval(
+    baseline_correct: np.ndarray,
+    interior_correct: np.ndarray,
+    labels: np.ndarray,
+    *,
+    samples: int = 10_000,
+    seed: int = 205,
+) -> MaxInterval:
+    """Bootstrap the selected interior gain by resampling whole identities."""
+
+    if (
+        type(baseline_correct) is not np.ndarray
+        or baseline_correct.dtype != np.bool_
+        or baseline_correct.ndim != 1
+        or baseline_correct.size == 0
+        or type(interior_correct) is not np.ndarray
+        or interior_correct.dtype != np.bool_
+        or interior_correct.ndim != 2
+        or interior_correct.shape[1] != baseline_correct.size
+        or interior_correct.shape[0] == 0
+    ):
+        raise TypeError("correctness arrays must be matching nonempty boolean arrays")
+    if (
+        type(labels) is not np.ndarray
+        or labels.ndim != 1
+        or labels.shape != baseline_correct.shape
+        or labels.dtype.kind not in {"U", "S"}
+    ):
+        raise TypeError("labels must be a matching string vector")
+    if type(samples) is not int or samples <= 0 or type(seed) is not int:
+        raise ValueError("samples and seed must be builtin integers with samples positive")
+
+    label_rows: dict[str, list[int]] = {}
+    for row, label in enumerate(labels.tolist()):
+        label_rows.setdefault(label, []).append(row)
+    groups = tuple(np.asarray(rows, dtype=np.int64) for rows in label_rows.values())
+    counts = np.asarray([group.size for group in groups], dtype=np.float64)
+    baseline_sums = np.asarray(
+        [np.sum(baseline_correct[group], dtype=np.int64) for group in groups],
+        dtype=np.float64,
+    )
+    interior_sums = np.asarray(
+        [
+            [np.sum(row[group], dtype=np.int64) for group in groups]
+            for row in interior_correct
+        ],
+        dtype=np.float64,
+    )
+    point = float(
+        np.max(
+            np.sum(interior_sums, axis=1, dtype=np.float64) / np.sum(counts)
+            - np.sum(baseline_sums, dtype=np.float64) / np.sum(counts)
+        )
+    )
+    generator = np.random.Generator(np.random.PCG64(seed))
+    replicates = np.empty(samples, dtype=np.float64)
+    chunk_size = 64
+    for start in range(0, samples, chunk_size):
+        stop = min(start + chunk_size, samples)
+        selected = generator.integers(
+            0, len(groups), size=(stop - start, len(groups))
+        )
+        denominator = np.sum(counts[selected], axis=1, dtype=np.float64)
+        baseline_mean = np.sum(
+            baseline_sums[selected], axis=1, dtype=np.float64
+        ) / denominator
+        interior_mean = np.sum(
+            interior_sums[:, selected], axis=2, dtype=np.float64
+        ) / denominator[None, :]
+        replicates[start:stop] = np.max(
+            interior_mean - baseline_mean[None, :], axis=0
+        )
+    lower, upper = np.percentile(replicates, [2.5, 97.5])
+    deviation = float(np.std(replicates, ddof=1)) if samples > 1 else 0.0
+    standard_errors = point / deviation if deviation > 0.0 else 0.0
+    return MaxInterval(
+        point=point,
+        lower=float(lower),
+        upper=float(upper),
+        standard_errors=standard_errors,
+        samples=samples,
+        seed=seed,
+    )
+
+
+def l1_decision(
+    *,
+    endpoint_gain: float,
+    endpoint_lower: float,
+    standard_errors: float,
+    spatial_gain: float,
+    power_gain: float,
+) -> L1Decision:
+    """Apply the one-dataset attribution gate without cross-dataset promotion."""
+
+    values = (
+        endpoint_gain,
+        endpoint_lower,
+        standard_errors,
+        spatial_gain,
+        power_gain,
+    )
+    if any(type(value) is not float or not np.isfinite(value) for value in values):
+        raise TypeError("L1 decision inputs must be finite builtin floats")
+    endpoint_passed = (
+        endpoint_gain > 0.0 and endpoint_lower > 0.0 and standard_errors >= 3.0
+    )
+    spatial_passed = spatial_gain > 0.0
+    power_passed = power_gain > 0.0
+    return L1Decision(
+        status=(
+            "GEOMETRY_SURVIVES"
+            if endpoint_passed and spatial_passed and power_passed
+            else "CLOSE_GEOMETRY"
+        ),
+        endpoint_passed=endpoint_passed,
+        spatial_passed=spatial_passed,
+        power_passed=power_passed,
+    )

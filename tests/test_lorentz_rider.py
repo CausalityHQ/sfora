@@ -11,12 +11,15 @@ from sfora.lorentz_rider import (
     fit_frozen_pca,
     gromov_delta_rel,
     l0_subsample_indices,
+    l1_decision,
     lorentz_distance_block,
     lorentz_lift,
     lorentz_mips_scores,
     medoid_index,
+    paired_identity_max_interval,
     pairwise_chord_distances,
     scale_for_target_median,
+    score_control_blocks,
     spectrum_gaussian_null,
 )
 
@@ -327,3 +330,140 @@ def test_small_scale_distance_converges_to_euclidean() -> None:
     distance = float(lorentz_distance_block(lifted[:1], lifted[1:])[0, 0])
     expected = float(np.linalg.norm(values[0].astype(np.float64) - values[1]))
     assert distance / scale == pytest.approx(expected, rel=2e-4)
+
+
+def test_l1_cannot_pass_from_endpoint_difference_alone() -> None:
+    labels = np.asarray(["a", "a", "b", "b"])
+    euclidean = np.asarray([True, True, False, False])
+    cosine = np.asarray([False, False, True, True])
+    interiors = np.stack([euclidean, cosine])
+
+    result = paired_identity_max_interval(
+        np.maximum(euclidean, cosine),
+        interiors,
+        labels,
+        samples=200,
+        seed=205,
+    )
+
+    assert result.point <= 0.0
+    assert result.lower <= 0.0
+
+
+def test_identity_bootstrap_resamples_whole_clusters_and_recomputes_maximum() -> None:
+    labels = np.asarray(["a", "a", "b", "c", "c", "c"])
+    baseline = np.asarray([True, False, True, False, False, False])
+    interiors = np.asarray(
+        [
+            [True, True, False, False, False, True],
+            [False, False, True, True, True, False],
+        ],
+        dtype=np.bool_,
+    )
+
+    actual = paired_identity_max_interval(
+        baseline, interiors, labels, samples=32, seed=205
+    )
+
+    groups = (np.asarray([0, 1]), np.asarray([2]), np.asarray([3, 4, 5]))
+    generator = np.random.Generator(np.random.PCG64(205))
+    replicates = []
+    for sampled in generator.integers(0, 3, size=(32, 3)):
+        indices = np.concatenate([groups[index] for index in sampled])
+        gains = interiors[:, indices].mean(axis=1) - baseline[indices].mean()
+        replicates.append(float(np.max(gains)))
+    bounds = np.percentile(np.asarray(replicates), [2.5, 97.5])
+    point = float(np.max(interiors.mean(axis=1) - baseline.mean()))
+
+    assert actual.point == point
+    assert actual.lower == pytest.approx(float(bounds[0]))
+    assert actual.upper == pytest.approx(float(bounds[1]))
+    assert actual.standard_errors == pytest.approx(
+        point / np.std(replicates, ddof=1)
+    )
+
+
+def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
+    query = np.asarray([[3, 4], [0, 2]], dtype=np.float32)
+    gallery = np.asarray([[4, 3], [-3, 4], [0, 1]], dtype=np.float32)
+    scale = 0.2
+    clip = 2.5
+
+    scores = score_control_blocks(query, gallery, scale, clip)
+
+    assert list(scores) == [
+        "lorentz",
+        "pca_euclidean",
+        "pca_cosine",
+        "spatial_only",
+        "power_1",
+        "power_3",
+    ]
+    query64 = query.astype(np.float64)
+    gallery64 = gallery.astype(np.float64)
+    query_radius = np.minimum(scale * np.linalg.norm(query64, axis=1), clip)
+    gallery_radius = np.minimum(scale * np.linalg.norm(gallery64, axis=1), clip)
+    cosine = (query64 @ gallery64.T) / (
+        np.linalg.norm(query64, axis=1)[:, None]
+        * np.linalg.norm(gallery64, axis=1)[None, :]
+    )
+    expected_lorentz = (
+        np.tanh(query_radius)[:, None]
+        * np.sinh(gallery_radius)[None, :]
+        * cosine
+        - np.cosh(gallery_radius)[None, :]
+    )
+    expected_spatial = (
+        np.sinh(query_radius)[:, None]
+        * np.sinh(gallery_radius)[None, :]
+        * cosine
+        - 0.5 * np.sinh(gallery_radius)[None, :] ** 2
+    )
+    assert np.allclose(scores["lorentz"], expected_lorentz, atol=2e-7)
+    assert np.allclose(scores["spatial_only"], expected_spatial, atol=2e-7)
+    for power in (1, 3):
+        query_h = query_radius**power
+        gallery_h = gallery_radius**power
+        expected_power = (
+            query_h[:, None]
+            / np.sqrt(1.0 + query_h[:, None] ** 2)
+            * gallery_h[None, :]
+            * cosine
+            - np.sqrt(1.0 + gallery_h[None, :] ** 2)
+        )
+        assert np.allclose(scores[f"power_{power}"], expected_power, atol=2e-7)
+
+
+def test_score_control_endpoint_rankings_match_euclidean_and_cosine() -> None:
+    query = np.asarray([[1.0, 0.2]], dtype=np.float32)
+    gallery = np.asarray([[0.9, 0.4], [2.0, 0.1], [-0.2, 1.0]], dtype=np.float32)
+
+    small = score_control_blocks(query, gallery, 1e-5, 2.5)
+    saturated = score_control_blocks(query, gallery, 1e6, 2.5)
+
+    assert int(np.argmax(small["lorentz"][0])) == int(
+        np.argmax(small["pca_euclidean"][0])
+    )
+    assert int(np.argmax(saturated["lorentz"][0])) == int(
+        np.argmax(saturated["pca_cosine"][0])
+    )
+
+
+def test_function_family_tie_closes_geometry_claim() -> None:
+    tied = l1_decision(
+        endpoint_gain=0.02,
+        endpoint_lower=0.01,
+        standard_errors=4.0,
+        spatial_gain=0.01,
+        power_gain=0.0,
+    )
+    surviving = l1_decision(
+        endpoint_gain=0.02,
+        endpoint_lower=0.01,
+        standard_errors=4.0,
+        spatial_gain=0.01,
+        power_gain=0.01,
+    )
+
+    assert tied.status == "CLOSE_GEOMETRY"
+    assert surviving.status == "GEOMETRY_SURVIVES"
