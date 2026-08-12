@@ -44,6 +44,18 @@ Repository snapshots inspected read-only:
 - CCP-DML: `204b22c8fcbb0a4723151e8df37f423af40bb249`
 - VPTSP-G: `54687e56e76a00b4b3cc98e21206c5f69f570e62`
 
+Systems source inspected read-only:
+
+- FAISS: [facebookresearch/faiss](https://github.com/facebookresearch/faiss),
+  release `v1.13.2` at
+  `070fbcdd93ee086ddacb1bbd0aa078e31864cdd9`, and current inspected upstream
+  `a424dcb809fd725c44dd976d9063febd4837d16a`. The release contains
+  `faiss/impl/Panorama.h`, `faiss/impl/Panorama.cpp`,
+  `faiss/IndexRaBitQ.h`, `faiss/IndexRaBitQ.cpp`, and
+  `faiss/IndexRaBitQFastScan.h`; each path returned exact source bytes from the
+  pinned revision during the audit. This verifies source availability, not a
+  successful CUDA-13/aarch64 build or GB10 performance result.
+
 ## Baseline ladder
 
 1. **Mechanism gate:** paired BN-Inception PA versus MCPS-PG on the official
