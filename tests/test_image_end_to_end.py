@@ -1548,7 +1548,14 @@ def test_lops_pg_embedding_gradient_projects_only_conflicts() -> None:
     gradient = torch.tensor(
         [[0.0, 2.0], [0.6, -0.8], [2.0, 0.0], [-0.8, -0.6]], dtype=torch.float64
     )
-    actual = _lops_pg_embedding_gradient(gradient, embeddings, labels, torch_module=torch)
+    diagnostics: list[dict[str, float]] = []
+    actual = _lops_pg_embedding_gradient(
+        gradient,
+        embeddings,
+        labels,
+        torch_module=torch,
+        diagnostics=diagnostics,
+    )
     assert actual.dtype == gradient.dtype
     assert actual.shape == gradient.shape
     with torch.no_grad():
@@ -1562,6 +1569,9 @@ def test_lops_pg_embedding_gradient_projects_only_conflicts() -> None:
         )
     dots = (actual * tangent).sum(dim=1)
     assert bool((dots <= 1e-12).all())
+    assert diagnostics == [
+        {"rows": 4.0, "eligible_rows": 4.0, "conflict_rows": 2.0}
+    ]
 
 
 def test_positive_compactness_stops_sibling_centroids() -> None:
@@ -1664,6 +1674,18 @@ def test_lops_and_compactness_objectives_complete_tiny_training() -> None:
         "proxy_anchor_compactness_end_to_end:tiny",
     }
     assert all(len(method.loss_history) == 1 for method in result.methods.values())
+    lops_diagnostics = result.methods[
+        "proxy_anchor_lops_pg_end_to_end:tiny"
+    ].lops_diagnostics
+    assert lops_diagnostics is not None
+    assert lops_diagnostics["rows"] == 8.0
+    assert lops_diagnostics["eligible_rows"] == 8.0
+    assert lops_diagnostics["skip_rate"] == 0.0
+    assert 0.0 <= lops_diagnostics["conflict_rows"] <= 8.0
+    assert lops_diagnostics["conflict_rate"] == pytest.approx(
+        lops_diagnostics["conflict_rows"] / 8.0
+    )
+    assert result.methods["proxy_anchor_compactness_end_to_end:tiny"].lops_diagnostics is None
 
 
 def test_end_to_end_config_accepts_group_potential_objectives() -> None:

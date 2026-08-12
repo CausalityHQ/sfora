@@ -1858,7 +1858,15 @@ def image_end_to_end(
             # is authoritative for the objective that actually executes.  Keeping
             # the CLI selector here silently turned derived objectives such as CIS
             # back into plain Proxy Anchor while retaining their recipe labels.
-            resolved_objectives = base_config.objectives
+            requested_objective = resolved_objectives[0]
+            if (
+                recipe == "auto"
+                and requested_objective in _DERIVED_OBJECTIVE_BASE
+                and base_config.objectives == (base_method,)
+            ):
+                resolved_objectives = (requested_objective,)
+            else:
+                resolved_objectives = base_config.objectives
             resolved_protocol = base_config.protocol
             console.print(
                 {
@@ -2328,6 +2336,8 @@ def image_end_to_end(
                 explicit_recipe_fields.append("limit_per_class")
             if max_classes is not None:
                 explicit_recipe_fields.append("max_classes")
+            if config.objectives != base_config.objectives:
+                explicit_recipe_fields.append("objectives")
             config = mark_recipe_config_modified(
                 base_config,
                 config,
@@ -2370,6 +2380,8 @@ def image_end_to_end(
 # declared objective is `local_nca`, which is then rejected as "not a base method".
 _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
     "proxy_anchor_cem": "proxy_anchor",
+    "proxy_anchor_lops_pg": "proxy_anchor",
+    "proxy_anchor_compactness": "proxy_anchor",
     # Lennard--Jones is an additive finite-shell term on Proxy Anchor.  Treat it
     # as a derived Proxy Anchor objective so matched recipe mode can resolve the
     # base BN-Inception/optimizer/schedule rather than silently falling back to

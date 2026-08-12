@@ -476,6 +476,7 @@ class EndToEndMethodMetrics:
     interference: dict[str, float] | None = None
     train_interference: dict[str, float] | None = None
     gsi_diagnostics: dict[str, float] | None = None
+    lops_diagnostics: dict[str, float] | None = None
     selected_step: int | None = None
     selection_metric: str | None = None
     selection_score: float | None = None
@@ -968,6 +969,7 @@ def run_image_end_to_end_benchmark(
         eval_model = model
         history: list[float] = []
         gsi_step_diagnostics: list[dict[str, float]] = []
+        lops_step_diagnostics: list[dict[str, float]] = []
         best_test_recall_at_1: float | None = None
         best_test_epoch: int | None = None
         best_test_retrieval: ImageRetrievalMetrics | None = None
@@ -1452,11 +1454,13 @@ def run_image_end_to_end_benchmark(
                         embeddings.register_hook(
                             lambda gradient,
                             frozen_embeddings=hook_embeddings,
-                            frozen_labels=hook_labels: _lops_pg_embedding_gradient(
+                            frozen_labels=hook_labels,
+                            diagnostics=lops_step_diagnostics: _lops_pg_embedding_gradient(
                                 gradient,
                                 frozen_embeddings,
                                 frozen_labels,
                                 torch_module=torch,
+                                diagnostics=diagnostics,
                             )
                         )
                     teacher_embeddings = None
@@ -1800,6 +1804,7 @@ def run_image_end_to_end_benchmark(
             proxy_axis_diagnostics=proxy_axis_diagnostics,
             boundary_axis_diagnostics=boundary_axis_diagnostics,
         )
+        lops_diagnostics = _summarize_lops_training_diagnostics(lops_step_diagnostics)
         method_key = f"{objective}_end_to_end:{config.backbone_name}"
         methods[method_key] = EndToEndMethodMetrics(
             model_name=config.backbone_name,
@@ -1817,6 +1822,7 @@ def run_image_end_to_end_benchmark(
             interference=interference,
             train_interference=train_interference,
             gsi_diagnostics=gsi_diagnostics,
+            lops_diagnostics=lops_diagnostics,
             selected_step=selected_step,
             selection_metric=selection_metric,
             selection_score=selection_score,
@@ -5760,7 +5766,12 @@ def _positive_centroid_tangents(
 
 
 def _lops_pg_embedding_gradient(
-    gradient: Any, embeddings: Any, labels: Any, *, torch_module: Any
+    gradient: Any,
+    embeddings: Any,
+    labels: Any,
+    *,
+    torch_module: Any,
+    diagnostics: list[dict[str, float]] | None = None,
 ) -> Any:
     """Project conflicting live embedding cotangents onto positive safety."""
 
@@ -5770,9 +5781,42 @@ def _lops_pg_embedding_gradient(
     dots = (gradient * tangents).sum(dim=1)
     squared_norms = tangents.square().sum(dim=1)
     conflict = active & dots.gt(0.0)
+    if diagnostics is not None:
+        counts = torch_module.stack(
+            (
+                torch_module.as_tensor(gradient.shape[0], device=gradient.device),
+                active.sum(),
+                conflict.sum(),
+            )
+        ).to(dtype=torch_module.float64)
+        rows, eligible_rows, conflict_rows = counts.detach().cpu().tolist()
+        diagnostics.append(
+            {
+                "rows": float(rows),
+                "eligible_rows": float(eligible_rows),
+                "conflict_rows": float(conflict_rows),
+            }
+        )
     scale = torch_module.zeros_like(dots)
     scale[conflict] = dots[conflict] / squared_norms[conflict]
     return gradient - scale[:, None] * tangents
+
+
+def _summarize_lops_training_diagnostics(
+    records: list[dict[str, float]],
+) -> dict[str, float] | None:
+    if not records:
+        return None
+    rows = sum(record["rows"] for record in records)
+    eligible_rows = sum(record["eligible_rows"] for record in records)
+    conflict_rows = sum(record["conflict_rows"] for record in records)
+    return {
+        "rows": rows,
+        "eligible_rows": eligible_rows,
+        "conflict_rows": conflict_rows,
+        "conflict_rate": conflict_rows / eligible_rows if eligible_rows else 0.0,
+        "skip_rate": (rows - eligible_rows) / rows if rows else 0.0,
+    }
 
 
 def _positive_compactness_loss(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
@@ -8537,6 +8581,7 @@ def _to_payload(result: ImageEndToEndResult) -> dict[str, Any]:
                 "interference": metrics.interference,
                 "train_interference": metrics.train_interference,
                 "gsi_diagnostics": metrics.gsi_diagnostics,
+                "lops_diagnostics": metrics.lops_diagnostics,
                 "selected_step": metrics.selected_step,
                 "selection_metric": metrics.selection_metric,
                 "selection_score": metrics.selection_score,
