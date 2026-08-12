@@ -2379,6 +2379,9 @@ def image_end_to_end(
 # they are derived from. Without this, `--recipe local_nca` resolves a recipe whose
 # declared objective is `local_nca`, which is then rejected as "not a base method".
 _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
+    # Matched-loss controls intentionally reuse the complete Proxy Anchor recipe;
+    # only the objective is marked as modified in the emitted runtime config.
+    "batch_hard_triplet": "proxy_anchor",
     "proxy_anchor_cem": "proxy_anchor",
     "proxy_anchor_lops_pg": "proxy_anchor",
     "proxy_anchor_compactness": "proxy_anchor",
