@@ -1,4 +1,4 @@
-# HTGC-PartialFC: Horvitz–Thompson Gauge-Calibrated Feature Sampling
+# PE-HTGC PartialFC: Positive-Exact Gauge-Calibrated Feature Sampling
 
 **Status:** approved for deterministic falsification; training is conditional on
 the gates below
@@ -9,19 +9,21 @@ repairing a source-confirmed inconsistency in class-sharded feature sampling.
 
 ## 1. Decision
 
-The selected candidate is **HTGC-PartialFC**. It combines two changes that must
+The selected candidate is **PE-HTGC PartialFC**. It combines three changes that must
 remain separately attributable:
 
 1. **coherent masks:** every class shard evaluates the same sampled feature
    coordinates on a distributed step; and
-2. **gauge-calibrated logits:** sampled inner products are inverse-probability
-   scaled and divided by full-vector norms rather than independently
-   re-normalized inside each sampled subspace.
+2. **positive-exact margins:** each sample's target-class cosine is computed in
+   all `D` coordinates before ArcFace; and
+3. **gauge-calibrated negatives:** the large negative-class matrix uses
+   inverse-probability-scaled sampled inner products divided by full-vector
+   norms rather than independently re-normalizing each sampled subspace.
 
 The first change is a distributed-correctness repair and is a no-op at world
-size one. The second is the research mechanism and remains testable on one
-GPU. Neither change is described as a SOTA improvement until it beats the
-controls under the evidence ladder in Section 9.
+size one. The positive-exact/HT-negative estimator is the research mechanism
+and remains testable on one GPU. Neither change is described as a SOTA
+improvement until it beats the controls under the evidence ladder in Section 9.
 
 The operator has instructed the research loop to choose the recommended path
 without waiting for repeated decisions. This design therefore proceeds to its
@@ -82,20 +84,22 @@ This reduces within-step mask variance and restores coordinate coverage, but it
 multiplies classifier work and collides closely with multi-sample dropout and
 multi-mask gradient averaging. It remains a variance/coverage control.
 
-### 3.3 HTGC-PartialFC (selected)
+### 3.3 PE-HTGC PartialFC (selected)
 
-Use a coherent mask and estimate the full-space cosine numerator with
-Horvitz–Thompson inverse-probability scaling while retaining the exact
-full-vector norms. This removes the random selected-norm temperature, keeps the
-`K/D` classifier-matmul saving, and is measurable at world size one. Its known
-failure mode is variance: the estimator can leave `[-1, 1]` and ArcFace then
-requires clipping. That failure is measured prospectively rather than hidden.
+Use a coherent mask, compute the target-class full-space cosine exactly, and
+estimate only negative full-space cosine numerators with Horvitz–Thompson
+inverse-probability scaling while retaining exact full-vector norms. This
+removes the random selected-norm temperature, gives ArcFace an exact bounded
+positive cosine, keeps almost all of the `K/D` classifier-matmul saving, and is
+measurable at world size one. Its known failure mode is negative-logit
+variance: an estimate can leave `[-1, 1]` and require clipping. That failure is
+measured prospectively rather than hidden.
 
 ### 3.4 Full-768 PartialFC
 
 Disable feature sampling. This is the simplest scientific control and may be
 the best method despite 50% more feature-side classifier work than `K=512`.
-HTGC has no value if it cannot outperform or meaningfully match this control at
+PE-HTGC has no value if it cannot outperform or meaningfully match this control at
 lower measured cost.
 
 ## 4. Method
@@ -108,17 +112,22 @@ uniform subset of `K` coordinates sampled without replacement. Let
 n_ic(R) = sum_{j in R} z_ij w_cj
 d_ic    = clamp(||z_i||_2, 1e-12) * clamp(||w_c||_2, 1e-12)
 h_ic(R) = (1/pi) * n_ic(R) / d_ic
+q_iy    = <z_i, w_y> / d_iy
 ```
 
-The candidate logit is
+The candidate pre-margin logit is
 
 ```text
-s_ic(R) = clamp(h_ic(R), -1 + eps_arc, 1 - eps_arc)
+s_ic(R) = q_iy                                      if c = y_i
+          clamp(h_ic(R), -1 + eps_arc, 1 - eps_arc) otherwise
 ```
 
 with `eps_arc` equal to the smallest frozen FP32 safety constant that keeps the
-existing ArcFace `arccos` finite. The initial implementation uses
-`eps_arc=1e-7`; alternatives are not tuned after outcome inspection.
+existing ArcFace `arccos` finite for estimated negatives. The initial
+implementation uses `eps_arc=1e-7`; alternatives are not tuned after outcome
+inspection. Exact positive cosines use the existing numerical clamp only for
+roundoff at the unit boundary; a positive value outside `[-1-1e-6, 1+1e-6]`
+is a structural failure rather than an estimator clipping event.
 
 Because every coordinate has inclusion probability `pi`, before clipping,
 
@@ -126,12 +135,17 @@ Because every coordinate has inclusion probability `pi`, before clipping,
 E_R[h_ic(R) | z_i, w_c] = <z_i, w_c> / (||z_i||_2 ||w_c||_2).
 ```
 
-The expected sampled **logit** and, under ordinary interchange conditions, its
-gradient equal the full-space cosine logit and gradient. The nonlinear
-cross-entropy of sampled logits is not claimed to be an unbiased estimator of
-the full-softmax loss. Rank-shared masks are still required: unbiased marginal
-logits do not remove the class-partition dependence induced by rank-correlated
-logit noise inside `logsumexp`.
+For negative classes, the expected sampled **logit** and, under ordinary
+interchange conditions, its gradient equal the full-space cosine logit and
+gradient. The positive logit and its gradient are exact for every mask. The
+nonlinear cross-entropy of sampled negative logits is not claimed to be an
+unbiased estimator of the full-softmax loss. Rank-shared masks are still
+required: unbiased marginal logits do not remove the class-partition
+dependence induced by rank-correlated logit noise inside `logsumexp`.
+
+Computing exact positives adds `O(BD)` work for a global batch of `B`; the
+negative classifier remains `O(B C K)` for `C` classes. The cost is negligible
+when `C` is large but is measured rather than assumed.
 
 The ArcFace margin, scale, class sampling, distributed cross-entropy, optimizer,
 backbone, image transforms, and training schedule remain unchanged.
@@ -181,8 +195,9 @@ for production-parity checks.
 For energy-concentrated embeddings and prototypes, enumerate all `K`-of-`D`
 masks at `D=8, K=4`.
 
-- the mean unclipped HTGC logit must equal the full cosine to `1e-12` in FP64;
-- the mean HTGC logit gradient must equal the full-cosine gradient to `1e-11`;
+- the mean unclipped HT negative logit must equal the full cosine to `1e-12` in FP64;
+- its mean gradient must equal the full-cosine gradient to `1e-11`;
+- the positive logit and gradient must equal full cosine for every mask;
 - the official selected-subspace cosine must show a nonzero bias on at least
   one frozen pair; and
 - the test must fail if the `D/K` factor or full norms are removed.
@@ -193,7 +208,7 @@ Use four Gloo ranks, eight classes, a fixed global batch, and a fixed shared
 mask. Compute the distributed loss under two class-to-rank permutations while
 permuting prototypes and labels consistently.
 
-- synchronized official logits and synchronized HTGC logits must be invariant
+- synchronized official logits and synchronized PE-HTGC logits must be invariant
   to `1e-6` in FP32;
 - independent-rank masks must violate invariance by at least `1e-4` for the
   frozen adversarial fixture; and
@@ -210,18 +225,18 @@ Across 4,096 frozen masks on deterministic synthetic tensors, record:
 
 - logit bias and variance;
 - gradient mean-squared error versus full-768;
-- fraction of logits that would clip;
-- fraction of positive logits that would clip; and
+- fraction of negative logits that would clip;
+- exact-positive numerical-bound violations; and
 - coverage for one, two, three, and four coherent masks.
 
-HTGC proceeds only if all are true:
+PE-HTGC proceeds only if all are true:
 
 1. absolute mean logit bias is at most `1e-4` before clipping;
-2. clipped fraction is at most `0.02` overall and `0.02` for positives;
+2. clipped negative fraction is at most `0.02` and positive bound violations are zero;
 3. gradient MSE is lower than official selected-subspace cosine; and
 4. no nonfinite loss or gradient occurs.
 
-If clipping exceeds the threshold, single-mask HTGC closes. A multi-mask HTGC
+If negative clipping exceeds the threshold, single-mask PE-HTGC closes. A multi-mask PE-HTGC
 variant is a new conditional arm, not an automatic threshold relaxation.
 
 ## 8. No-training checkpoint gate
@@ -249,29 +264,30 @@ Run from the same official initialization:
 
 - `U-OFF`: official independent-rank selected-subspace cosine;
 - `U-SYNC`: coherent selected-subspace cosine;
-- `HTGC-1`: coherent one-mask HTGC;
+- `PE-HTGC-1`: coherent one-mask positive-exact HTGC;
 - `FULL-768`: no feature sampling.
 
 On one GPU, `U-OFF` and `U-SYNC` are byte-semantic aliases and only one is
 executed. On at least four GPUs, both are required. Record clipping, coordinate
 coverage, throughput, peak memory, and final registered metrics.
 
-HTGC passes the smoke only if:
+PE-HTGC passes the smoke only if:
 
 1. final R@1 improves over the matched official control by at least `0.002`;
 2. final R@10 is not lower than the control;
-3. clipping remains below `0.02` overall and for positives;
+3. negative clipping remains below `0.02` and positive bound violations remain zero;
 4. epoch time is no more than `1.10` times the official sampled path; and
 5. all losses and gradients remain finite.
 
 ### 9.2 Conditional variance control
 
-If HTGC-1 is finite and directionally positive but its paired improvement is
-below `0.002`, run `HTGC-M3`: three coherent masks on the same batch, average
-the three ArcFace losses, and perform one optimizer step. This arm is explicitly
-a multi-sample variance control and carries no standalone novelty claim.
+If PE-HTGC-1 is finite and directionally positive but its paired improvement is
+below `0.002`, run `PE-HTGC-M3`: compute the exact positive once, evaluate
+negative logits under three coherent masks on the same batch, average the three
+ArcFace losses, and perform one optimizer step. This arm is explicitly a
+multi-sample variance control and carries no standalone novelty claim.
 
-HTGC-M3 survives only if it beats HTGC-1 and its measured gain justifies its
+PE-HTGC-M3 survives only if it beats PE-HTGC-1 and its measured gain justifies its
 classifier-time increase. Otherwise the multi-mask branch closes.
 
 ### 9.3 Full paired experiment
@@ -292,7 +308,7 @@ The candidate counts as a matched mechanism improvement only if:
 - no best-epoch or test-selected checkpoint replaces the registered final
   checkpoint.
 
-`FULL-768` is a mandatory control. If it matches or beats HTGC at acceptable
+`FULL-768` is a mandatory control. If it matches or beats PE-HTGC at acceptable
 cost, the sampling mechanism is not the preferred method.
 
 ## 10. SOTA boundary
@@ -322,22 +338,23 @@ mechanism result, or a matched In-Shop improvement—not SOTA.
   replicated tensor regions; mask broadcast is a correctness repair.
 - Horvitz–Thompson inverse-probability estimation is classical and is not new.
 - Multi-sample dropout and multi-mask gradient averaging occupy loss averaging
-  over several masks; HTGC-M3 is only a control.
+  over several masks; PE-HTGC-M3 is only a control.
 - Nested Dropout, Slimmable Networks, and Matryoshka Representation Learning
-  occupy ordered/nested deployable subspaces; HTGC uses uniform coordinates and
+  occupy ordered/nested deployable subspaces; PE-HTGC uses uniform coordinates and
   does not claim that territory.
 - Partial FC samples classes rather than feature coordinates.
 
 The narrow research claim, if experiments support it, is that combining a
-globally coherent feature mask with a full-norm inverse-probability cosine
-estimator corrects the gauge and selected-norm defects of coordinate-sampled,
-class-sharded margin softmax while retaining its classifier-compute saving.
+globally coherent feature mask, an exact positive cosine, and full-norm
+inverse-probability negative cosines corrects the gauge and selected-norm
+defects of coordinate-sampled, class-sharded margin softmax while retaining
+nearly all of its classifier-compute saving.
 
 ## 12. Components
 
 Implementation has four isolated units:
 
-1. a pure sampled-logit function with official and HTGC modes;
+1. a pure sampled-logit function with official and PE-HTGC modes;
 2. a distributed mask provider with an explicit broadcast contract;
 3. a CPU/Gloo falsifier with fixed fixtures and JSON output; and
 4. an evaluator that computes the frozen official, corrected-prefix, and
