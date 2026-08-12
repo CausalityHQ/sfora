@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 from pathlib import Path
@@ -14,6 +15,9 @@ SPEC.loader.exec_module(CLI)
 
 
 def test_build_train_report_uses_train_only_and_validates(tmp_path: Path, monkeypatch) -> None:
+    for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
+        monkeypatch.setenv(name, "1")
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
     rows: list[list[float]] = []
     labels: list[int] = []
     for label in range(10):
@@ -38,3 +42,18 @@ def test_build_train_report_uses_train_only_and_validates(tmp_path: Path, monkey
     validated = CLI.validate_train_report(report)
     assert validated["decision"]["status"] in {"PASS", "KILL"}
     assert validated["input"]["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    mutated = copy.deepcopy(report)
+    mutated["cadr"]["validation_loss"] += 0.01
+    with np.testing.assert_raises(ValueError):
+        CLI.validate_train_report(mutated)
+
+
+def test_atomic_writer_rolls_back_only_its_publication(tmp_path: Path, monkeypatch) -> None:
+    destination = tmp_path / "result.json"
+    monkeypatch.setattr(
+        CLI, "validate_train_report", lambda _value: (_ for _ in ()).throw(ValueError("bad"))
+    )
+    with np.testing.assert_raises(ValueError):
+        CLI._write(destination, {"x": 1})
+    assert not destination.exists()
+    assert not list(tmp_path.glob(".*.tmp.*"))

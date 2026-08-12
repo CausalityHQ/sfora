@@ -115,7 +115,13 @@ def build_train_report(path: Path, *, k: int = 10, block_size: int = 256) -> dic
             "rows": int(labels.size),
             "dimension": int(embeddings.shape[1]),
         },
-        "environment": {"numpy_version": str(np.__version__)},
+        "environment": {
+            "numpy_version": str(np.__version__),
+            "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+            "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
+            "mkl_num_threads": os.environ.get("MKL_NUM_THREADS"),
+            "openblas_num_threads": os.environ.get("OPENBLAS_NUM_THREADS"),
+        },
         "configuration": {"k": k, "block_size": block_size, "lambda_grid": list(LAMBDA_GRID)},
         "split": {
             "fit_labels": int(split.fit_labels.size),
@@ -161,11 +167,72 @@ def validate_train_report(value: object) -> dict[str, Any]:
         raise ValueError("report schema differs")
     if value["schema_version"] != "inshop-cadr-train-v1":
         raise ValueError("schema version differs")
+    environment = value["environment"]
+    if list(environment) != [
+        "numpy_version",
+        "cuda_visible_devices",
+        "omp_num_threads",
+        "mkl_num_threads",
+        "openblas_num_threads",
+    ] or [
+        environment["cuda_visible_devices"],
+        environment["omp_num_threads"],
+        environment["mkl_num_threads"],
+        environment["openblas_num_threads"],
+    ] != ["", "1", "1", "1"]:
+        raise ValueError("environment differs")
+    configuration = value["configuration"]
+    if configuration["lambda_grid"] != list(LAMBDA_GRID):
+        raise ValueError("lambda grid differs")
+    cadr = value["cadr"]
+    records = cadr["records"]
+    if len(records) != len(LAMBDA_GRID) or [r["lambda_value"] for r in records] != list(
+        LAMBDA_GRID
+    ):
+        raise ValueError("lambda records differ")
+    best_index = min(
+        range(len(records)),
+        key=lambda i: (records[i]["validation_loss"], -records[i]["lambda_value"]),
+    )
+    if (
+        cadr["selected_lambda"] != records[best_index]["lambda_value"]
+        or cadr["validation_loss"] != records[best_index]["validation_loss"]
+    ):
+        raise ValueError("selected CADR record differs")
+    controls = value["controls"]
+    if [r["tau_factor"] for r in controls["wccn"]] != list(TAU_FACTORS):
+        raise ValueError("WCCN records differ")
+    selected_wccn = min(
+        controls["wccn"], key=lambda item: (item["validation_loss"], -item["tau_factor"])
+    )["validation_loss"]
+    if controls["selected_wccn_validation_loss"] != selected_wccn:
+        raise ValueError("selected WCCN differs")
     decision = value["decision"]
-    if decision["status"] not in {"PASS", "KILL"} or (decision["status"] == "PASS") != all(
-        decision["predicates"].values()
+    expected_pass, expected_predicates = decide_train_gate(
+        cadr["selected_lambda"],
+        np.asarray(
+            [cadr["weights_mean"] - cadr["weights_std"], cadr["weights_mean"] + cadr["weights_std"]]
+        ),
+        cadr["validation_loss"],
+        controls["platt_validation_loss"],
+        selected_wccn,
+    )
+    if decision["predicates"] != expected_predicates or decision["status"] != (
+        "PASS" if expected_pass else "KILL"
     ):
         raise ValueError("decision differs")
+
+    def check_finite(node: object) -> None:
+        if type(node) is float and not np.isfinite(node):
+            raise ValueError("nonfinite report value")
+        if isinstance(node, dict):
+            for child in node.values():
+                check_finite(child)
+        elif isinstance(node, list):
+            for child in node:
+                check_finite(child)
+
+    check_finite(value)
     return value
 
 
@@ -174,6 +241,7 @@ def _write(path: Path, report: dict[str, Any]) -> None:
         raise FileExistsError(path)
     temp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     owned = False
+    published = False
     try:
         data = (json.dumps(report, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
         with temp.open("xb") as handle:
@@ -183,8 +251,18 @@ def _write(path: Path, report: dict[str, Any]) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.link(temp, path)
+        published = True
         loaded = json.loads(path.read_text())
         validate_train_report(loaded)
+    except Exception:
+        if (
+            published
+            and path.exists()
+            and temp.exists()
+            and path.stat().st_ino == temp.stat().st_ino
+        ):
+            path.unlink()
+        raise
     finally:
         if owned:
             temp.unlink(missing_ok=True)
