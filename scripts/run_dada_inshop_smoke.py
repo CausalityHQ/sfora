@@ -9,6 +9,7 @@ from pathlib import Path
 
 from sfora.dada_reproduction import (
     DadaSmokeRequest,
+    active_python_executable,
     build_smoke_config,
     publish_dada_smoke_report,
     run_dada_smoke,
@@ -44,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         smoke_config = work_root / "inshop-smoke.yaml"
         build_smoke_config(source, smoke_config)
         request = DadaSmokeRequest(
-            python=Path(sys.executable).resolve(),
+            python=active_python_executable(),
             source=source,
             smoke_config=smoke_config,
             dataset_root=validate_inshop_dataset_root(args.dataset_root),

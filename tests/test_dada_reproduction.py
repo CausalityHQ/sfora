@@ -199,11 +199,11 @@ def test_command_preserves_official_cli_contract(tmp_path: Path) -> None:
     )
 
     command = dada.build_dada_command(request)
-    assert command[:3] == ("/opt/dada/bin/python", "-I", "-B")
-    assert command[3] == "-c"
-    assert "runpy.run_path" in command[4]
-    assert "/work/DADA" in command[4]
-    assert command[5:] == (
+    assert command[:4] == ("/opt/dada/bin/python", "-I", "-B", "-u")
+    assert command[4] == "-c"
+    assert "runpy.run_path" in command[5]
+    assert "/work/DADA" in command[5]
+    assert command[6:] == (
         "--source_path",
         "/data",
         "--save_path",
@@ -222,6 +222,7 @@ def test_command_preserves_official_cli_contract(tmp_path: Path) -> None:
 def test_isolated_command_loads_only_the_pinned_upstream_checkout(tmp_path: Path) -> None:
     checkout = tmp_path / "DADA"
     checkout.mkdir()
+    (checkout / "pandas.py").write_text("def read_table(*args,**kwargs): return None\n")
     (checkout / "helper.py").write_text("VALUE = 'from-pinned-checkout'\n")
     (checkout / "main.py").write_text("import helper\nprint(helper.VALUE)\n")
     smoke = tmp_path / "smoke.yaml"
@@ -255,6 +256,54 @@ def test_isolated_command_loads_only_the_pinned_upstream_checkout(tmp_path: Path
     assert completed.stdout.strip() == "from-pinned-checkout"
 
 
+def test_isolated_command_translates_removed_pandas_delim_whitespace(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "DADA"
+    checkout.mkdir()
+    dependency = tmp_path / "deps"
+    dependency.mkdir()
+    (dependency / "pandas.py").write_text(
+        "LAST=None\n"
+        "def read_table(path,**kwargs):\n"
+        " global LAST\n"
+        " if 'delim_whitespace' in kwargs: raise TypeError('removed')\n"
+        " LAST=kwargs\n"
+    )
+    table = tmp_path / "table.txt"
+    table.write_text("a b\n1 2\n")
+    (checkout / "main.py").write_text(
+        "import pandas as pd,sys\n"
+        "pd.read_table(sys.argv[1],delim_whitespace=True)\n"
+        "print(pd.LAST['sep'])\n"
+    )
+    smoke = tmp_path / "smoke.yaml"
+    smoke.write_text("n_epochs: 6\n")
+    request = dada.DadaSmokeRequest(
+        python=Path(sys.executable),
+        source=dada.DadaSource(
+            checkout=checkout,
+            revision=dada.DADA_REVISION,
+            config_path=checkout / "configs" / "inshop.yaml",
+            config_sha256=dada.INSHOP_CONFIG_SHA256,
+            config={},
+        ),
+        smoke_config=smoke,
+        dataset_root=tmp_path,
+        output_root=tmp_path / "results",
+        save_name="smoke",
+        gpu=0,
+        seed=0,
+        dependency_root=dependency,
+    )
+    command = (*dada.build_dada_command(request), str(table))
+
+    completed = subprocess.run(command, check=False, capture_output=True, text=True)
+
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == r"\s+"
+
+
 def test_checkpoint_reload_command_inserts_pinned_checkout(tmp_path: Path) -> None:
     request = _request(tmp_path)
     checkpoint = tmp_path / "checkpoint.pth.tar"
@@ -264,6 +313,54 @@ def test_checkpoint_reload_command_inserts_pinned_checkout(tmp_path: Path) -> No
     assert str(request.source.checkout) in command[4]
     assert "sys.path.insert" in command[4]
     assert command[-1] == str(checkpoint)
+
+
+def test_active_python_executable_preserves_virtual_environment_symlink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = tmp_path / "python3"
+    base.write_bytes(b"base")
+    virtual = tmp_path / "venv" / "bin" / "python"
+    virtual.parent.mkdir(parents=True)
+    virtual.symlink_to(base)
+    monkeypatch.setattr(dada.sys, "executable", str(virtual))
+
+    assert dada.active_python_executable() == virtual
+    assert dada.active_python_executable() != virtual.resolve()
+
+
+def test_environment_probe_imports_exact_upstream_graph_through_registered_paths(
+    tmp_path: Path,
+) -> None:
+    request = _request(tmp_path)
+    dependency_root = tmp_path / "deps"
+    dependency_root.mkdir()
+    request = dada.DadaSmokeRequest(**{**request.__dict__, "dependency_root": dependency_root})
+
+    command = dada._build_environment_probe_command(request)
+
+    assert command[:4] == (str(request.python), "-I", "-B", "-c")
+    assert command[4].index(str(dependency_root)) < command[4].index(
+        str(request.source.checkout)
+    )
+    for module in (
+        "faiss",
+        "sklearn",
+        "pandas",
+        "pretrainedmodels",
+        "termcolor",
+        "tqdm",
+        "yaml",
+        "torchvision",
+        "parameters",
+        "metrics",
+        "evaluation",
+        "architectures",
+        "datasampler",
+        "datasets",
+        "criteria",
+    ):
+        assert module in command[4]
 
 
 def test_command_inserts_dedicated_dependency_root_without_changing_torch(
@@ -276,8 +373,8 @@ def test_command_inserts_dedicated_dependency_root_without_changing_torch(
 
     command = dada.build_dada_command(request)
 
-    assert str(dependency_root) in command[4]
-    assert command[4].index(str(dependency_root)) < command[4].index(str(request.source.checkout))
+    assert str(dependency_root) in command[5]
+    assert command[5].index(str(dependency_root)) < command[5].index(str(request.source.checkout))
 
 
 @pytest.mark.parametrize(("field", "value"), [("seed", 1), ("gpu", 1)])
@@ -312,6 +409,7 @@ def test_log_parser_requires_finite_loss_and_optimizer_progress() -> None:
     assert progress.optimizer_steps == 5 * 143
     assert math.isfinite(progress.last_loss)
     assert progress.last_recall_at_1 == pytest.approx(0.85)
+    assert progress.best_recall_at_1 == pytest.approx(0.85)
     assert progress.last_epoch_seconds == pytest.approx(12.5)
 
 
@@ -508,10 +606,55 @@ def test_success_report_recomputes_runtime_and_budget_fields(
     assert report["projection"]["projected_full_run_seconds"] == pytest.approx(2500.0)
     assert report["progress"]["optimizer_steps"] == 715
     assert report["evaluation"]["last_recall_at_1"] == pytest.approx(0.85)
+    assert report["evaluation"]["best_recall_at_1"] == pytest.approx(0.85)
+    assert report["evaluation"]["best_checkpoint"] == str(checkpoint)
+    assert report["config"]["smoke_config_sha256"] == hashlib.sha256(
+        request.smoke_config.read_bytes()
+    ).hexdigest()
     assert report["progress"]["last_epoch_seconds"] == pytest.approx(12.5)
     missing_peak = copy.deepcopy(report)
     missing_peak["resources"]["peak_gpu_memory_mib"] = None
     dada.validate_dada_smoke_report(missing_peak)
+
+
+@pytest.mark.parametrize(
+    ("stdout", "expected"),
+    (
+        ("CUDA out of memory", "CUDA out of memory"),
+        ("Traceback (most recent call last):\nRuntimeError: boom", "traceback"),
+        ("plain failure", "plain failure"),
+    ),
+)
+def test_nonzero_child_report_preserves_bounded_diagnosis(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    stdout: str,
+    expected: str,
+) -> None:
+    request = _request(tmp_path)
+    request.output_root.mkdir()
+    monkeypatch.setattr(
+        dada,
+        "_execute_dada_child",
+        lambda _request: dada.DadaChildResult(1, stdout, 3.0, None),
+    )
+    monkeypatch.setattr(
+        dada,
+        "_probe_environment",
+        lambda _request: {
+            "python": "3.12.3",
+            "torch": "2.12.1+cu130",
+            "cuda": "13.0",
+            "device": "NVIDIA GB10",
+        },
+    )
+
+    report = dada.run_dada_smoke(request)
+
+    assert report["status"] == "INCOMPATIBLE"
+    assert expected in report["failure"]
+    assert len(report["failure"]) <= 1024
+    dada.validate_dada_smoke_report(report)
 
 
 def test_runtime_parse_failure_returns_invalid_report(

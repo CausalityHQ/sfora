@@ -16,6 +16,7 @@
 - Use dataset root `/home/riomus/dada-data`, whose `inshop/img` and `list_eval_partition.txt` resolve to the registered In-Shop bytes.
 - Preserve batch size 180, ResNet-50 LayerNorm-double backbone, 512-D embedding, optimizer/scheduler, sampler, loss weights, warmup, augmentation, and evaluation geometry.
 - Install only `termcolor==3.2.0`, `pretrainedmodels==0.7.4`, and `faiss-cpu==1.14.3` with `uv pip --no-deps --target /home/riomus/dada-smoke-deps`; insert that dedicated directory after the pinned DADA checkout in child import precedence. Do not modify or shadow the shared Torch/CUDA environment.
+- Preserve upstream source bytes while translating pandas' removed `delim_whitespace=True` call to its identical modern spelling `sep=r"\s+"` in the isolated child bootstrap. No other API or recipe adaptation is authorized.
 - GPU nondeterminism is reported, not misrepresented as bitwise reproducibility.
 - Run one structural smoke only. Do not launch a full 200-epoch run until the smoke report is reviewed and its measured step rate is converted into a frozen GPU-hour estimate.
 - Do not overlap the active PA/compactness/UNICOM/Lorentz/CTM queue.
@@ -182,7 +183,7 @@ def test_success_report_recomputes_runtime_and_budget_fields(successful_request,
     dada.validate_dada_smoke_report(json.loads(json.dumps(asdict(report))))
     assert report.status == "PASS"
     assert report.projected_full_run_seconds == pytest.approx(
-        report.train_seconds * 200.0 / 6.0
+        report.last_epoch_seconds * 200.0
     )
 
 

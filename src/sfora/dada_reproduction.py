@@ -11,6 +11,7 @@ import re
 import secrets
 import stat
 import subprocess
+import sys
 import time
 from collections.abc import Iterable
 from contextlib import suppress
@@ -77,6 +78,7 @@ class DadaProgress:
     optimizer_steps: int
     last_loss: float
     last_recall_at_1: float
+    best_recall_at_1: float
     last_epoch_seconds: float
 
 
@@ -86,6 +88,10 @@ class DadaChildResult:
     stdout: str
     elapsed_seconds: float
     peak_gpu_memory_mib: int | None
+
+
+def active_python_executable() -> Path:
+    return Path(sys.executable)
 
 
 def _run_git(checkout: Path, *args: str) -> str:
@@ -216,12 +222,22 @@ def build_dada_command(request: DadaSmokeRequest) -> tuple[str, ...]:
         "import runpy,sys;"
         f"{dependency}"
         f"sys.path.insert(0,{checkout!r});"
+        "import pandas as _dada_pd;"
+        "_dada_original_read_table=_dada_pd.read_table;"
+        "exec(\"def _dada_read_table(*args,**kwargs):\\n"
+        "    delim=kwargs.pop('delim_whitespace',False)\\n"
+        "    if delim:\\n"
+        "        if 'sep' in kwargs: raise TypeError('sep and delim_whitespace conflict')\\n"
+        "        kwargs['sep']=r'\\\\s+'\\n"
+        "    return _dada_original_read_table(*args,**kwargs)\",globals());"
+        "_dada_pd.read_table=_dada_read_table;"
         f"runpy.run_path({main_path!r},run_name='__main__')"
     )
     return (
         str(request.python),
         "-I",
         "-B",
+        "-u",
         "-c",
         bootstrap,
         "--source_path",
@@ -299,6 +315,7 @@ def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
         optimizer_steps=sum(done for done, _total, _loss in ordered[1:]),
         last_loss=ordered[-1][2],
         last_recall_at_1=recalls[-1],
+        best_recall_at_1=max(recalls),
         last_epoch_seconds=epoch_runtimes[-1],
     )
 
@@ -319,7 +336,7 @@ def _execute_dada_child(request: DadaSmokeRequest) -> DadaChildResult:
                 memory = _query_gpu_memory(pid=process.pid)
                 if memory is not None:
                     peak = memory if peak is None else max(peak, memory)
-                time.sleep(0.5)
+                time.sleep(5.0)
             returncode = process.wait()
         except BaseException:
             if process.poll() is None:
@@ -373,15 +390,29 @@ def _query_gpu_memory(*, pid: int) -> int | None:
     return _parse_gpu_memory(observed.stdout, pid=pid)
 
 
-def _probe_environment(request: DadaSmokeRequest) -> dict[str, object]:
+def _build_environment_probe_command(request: DadaSmokeRequest) -> tuple[str, ...]:
+    checkout = str(request.source.checkout)
+    dependency = ""
+    if request.dependency_root is not None:
+        dependency_root = request.dependency_root.resolve(strict=True)
+        dependency = f"sys.path.insert(0,{str(dependency_root)!r});"
     code = (
+        "import sys;"
+        f"{dependency}"
+        f"sys.path.insert(0,{checkout!r});"
+        "import faiss,sklearn,pandas,pretrainedmodels,termcolor,tqdm,yaml,torchvision;"
+        "import parameters,metrics,evaluation,architectures,datasampler,datasets,criteria;"
         "import json,platform,torch;"
         "print(json.dumps({'python':platform.python_version(),"
         "'torch':str(torch.__version__),'cuda':str(torch.version.cuda),"
         "'device':torch.cuda.get_device_name(0)}))"
     )
+    return (str(request.python), "-I", "-B", "-c", code)
+
+
+def _probe_environment(request: DadaSmokeRequest) -> dict[str, object]:
     completed = subprocess.run(
-        (str(request.python), "-I", "-B", "-c", code),
+        _build_environment_probe_command(request),
         check=True,
         capture_output=True,
         text=True,
@@ -454,7 +485,13 @@ def _base_report(status: str, failure: str | None) -> dict[str, object]:
             "revision": DADA_REVISION,
             "config_sha256": INSHOP_CONFIG_SHA256,
         },
-        "config": {"dataset": "inshop", "epochs": 6, "batch_size": 180, "seed": 0},
+        "config": {
+            "dataset": "inshop",
+            "epochs": 6,
+            "batch_size": 180,
+            "seed": 0,
+            "smoke_config_sha256": None,
+        },
         "command": [],
         "environment": {
             "python": platform.python_version(),
@@ -469,7 +506,11 @@ def _base_report(status: str, failure: str | None) -> dict[str, object]:
             "last_loss": None,
             "last_epoch_seconds": None,
         },
-        "evaluation": {"last_recall_at_1": None, "checkpoint": None},
+        "evaluation": {
+            "last_recall_at_1": None,
+            "best_recall_at_1": None,
+            "best_checkpoint": None,
+        },
         "resources": {"peak_gpu_memory_mib": None},
         "projection": {"projected_full_run_seconds": None},
         "failure": failure,
@@ -500,7 +541,13 @@ def validate_dada_smoke_report(value: object) -> None:
         raise ValueError("DADA smoke status differs")
     expected_nested = {
         "source": ("revision", "config_sha256"),
-        "config": ("dataset", "epochs", "batch_size", "seed"),
+        "config": (
+            "dataset",
+            "epochs",
+            "batch_size",
+            "seed",
+            "smoke_config_sha256",
+        ),
         "environment": ("python", "torch", "cuda", "device"),
         "process": ("returncode", "elapsed_seconds"),
         "progress": (
@@ -509,7 +556,11 @@ def validate_dada_smoke_report(value: object) -> None:
             "last_loss",
             "last_epoch_seconds",
         ),
-        "evaluation": ("last_recall_at_1", "checkpoint"),
+        "evaluation": (
+            "last_recall_at_1",
+            "best_recall_at_1",
+            "best_checkpoint",
+        ),
         "resources": ("peak_gpu_memory_mib",),
         "projection": ("projected_full_run_seconds",),
     }
@@ -572,6 +623,9 @@ def validate_dada_smoke_report(value: object) -> None:
             progress["last_epoch_seconds"], "last_epoch_seconds", positive=True
         )
         _finite_float(evaluation["last_recall_at_1"], "last_recall_at_1")
+        best_recall = _finite_float(evaluation["best_recall_at_1"], "best_recall_at_1")
+        if best_recall < evaluation["last_recall_at_1"]:
+            raise ValueError("DADA best recall differs")
         projected = _finite_float(
             projection["projected_full_run_seconds"],
             "projected_full_run_seconds",
@@ -580,8 +634,15 @@ def validate_dada_smoke_report(value: object) -> None:
         expected = last_epoch_seconds * 200.0
         if projected != expected:
             raise ValueError("DADA projected full-run duration differs")
-        if type(evaluation["checkpoint"]) is not str or not evaluation["checkpoint"]:
+        if type(evaluation["best_checkpoint"]) is not str or not evaluation["best_checkpoint"]:
             raise ValueError("DADA checkpoint differs")
+        smoke_digest = config["smoke_config_sha256"]
+        if (
+            type(smoke_digest) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", smoke_digest) is None
+            or smoke_digest == INSHOP_CONFIG_SHA256
+        ):
+            raise ValueError("DADA smoke config digest differs")
         if report["failure"] is not None:
             raise ValueError("DADA PASS failure must be null")
     elif type(report["failure"]) is not str or not report["failure"]:
@@ -592,13 +653,14 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
     environment = _probe_environment(request)
     child = _execute_dada_child(request)
     if child.returncode != 0:
-        report = _base_report("INCOMPATIBLE", f"DADA child exited {child.returncode}")
+        report = _base_report("INCOMPATIBLE", _child_failure(child))
         report["command"] = list(build_dada_command(request))
         report["environment"] = environment
         report["process"] = {
             "returncode": child.returncode,
             "elapsed_seconds": float(child.elapsed_seconds),
         }
+        report["config"]["smoke_config_sha256"] = _sha256_file(request.smoke_config)
         validate_dada_smoke_report(report)
         return report
     try:
@@ -636,7 +698,13 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
             "revision": request.source.revision,
             "config_sha256": request.source.config_sha256,
         },
-        "config": {"dataset": "inshop", "epochs": 6, "batch_size": 180, "seed": request.seed},
+        "config": {
+            "dataset": "inshop",
+            "epochs": 6,
+            "batch_size": 180,
+            "seed": request.seed,
+            "smoke_config_sha256": _sha256_file(request.smoke_config),
+        },
         "command": list(build_dada_command(request)),
         "environment": environment,
         "process": {"returncode": 0, "elapsed_seconds": elapsed},
@@ -648,7 +716,8 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
         },
         "evaluation": {
             "last_recall_at_1": float(progress.last_recall_at_1),
-            "checkpoint": str(checkpoint),
+            "best_recall_at_1": float(progress.best_recall_at_1),
+            "best_checkpoint": str(checkpoint),
         },
         "resources": {"peak_gpu_memory_mib": child.peak_gpu_memory_mib},
         "projection": {
@@ -674,8 +743,20 @@ def _invalid_after_child(
         "elapsed_seconds": float(child.elapsed_seconds),
     }
     report["resources"] = {"peak_gpu_memory_mib": child.peak_gpu_memory_mib}
+    report["config"]["smoke_config_sha256"] = _sha256_file(request.smoke_config)
     validate_dada_smoke_report(report)
     return report
+
+
+def _child_failure(child: DadaChildResult) -> str:
+    if "CUDA out of memory" in child.stdout:
+        diagnosis = "CUDA out of memory"
+    elif "Traceback (most recent call last):" in child.stdout:
+        diagnosis = "DADA child traceback"
+    else:
+        tail = child.stdout.strip()[-900:] or "no child output"
+        diagnosis = tail
+    return f"DADA child exited {child.returncode}: {diagnosis}"[:1024]
 
 
 def _strict_json_object(data: bytes) -> dict[str, object]:
