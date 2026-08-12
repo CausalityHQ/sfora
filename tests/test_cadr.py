@@ -5,7 +5,7 @@ import hashlib
 import numpy as np
 import pytest
 
-from sfora.cadr import build_pairs, fit_cadr, split_labels
+from sfora.cadr import balanced_log_loss, build_pairs, fit_cadr, select_lambda, split_labels
 
 
 def _unit(values: list[list[float]]) -> np.ndarray:
@@ -71,3 +71,16 @@ def test_fit_cadr_gradient_and_diagonal_signal() -> None:
     model = fit_cadr(features, targets, lambda_value=0.01)
     assert model.weights[0] > model.weights[1]
     assert model.converged
+
+
+def test_balanced_log_loss_and_lambda_selection_are_deterministic() -> None:
+    features = np.asarray(
+        [[0.6, 0.0], [0.5, 0.0], [-0.6, 0.0], [-0.5, 0.0]], dtype=np.float64
+    )
+    targets = np.asarray([1.0, 1.0, -1.0, -1.0])
+    model, records = select_lambda(features, targets, features, targets, (0.01, 1.0))
+    assert [record.lambda_value for record in records] == [0.01, 1.0]
+    assert model.weights.shape == (2,)
+    assert balanced_log_loss(features, targets, model) == min(
+        record.validation_loss for record in records
+    )

@@ -32,6 +32,14 @@ class CadrModel:
     converged: bool
 
 
+@dataclass(frozen=True)
+class LambdaRecord:
+    lambda_value: float
+    fit_loss: float
+    validation_loss: float
+    iterations: int
+
+
 def split_labels(labels: np.ndarray) -> LabelSplit:
     if not isinstance(labels, np.ndarray) or labels.dtype != np.int64 or labels.ndim != 1:
         raise ValueError("labels must be a rank-1 int64 array")
@@ -90,9 +98,15 @@ def build_pairs(
     allowed_labels: np.ndarray,
     *,
     k: int = 10,
+    block_size: int = 256,
 ) -> PairSet:
     _validate_arrays(embeddings, labels, example_ids)
-    if allowed_labels.dtype != np.int64 or allowed_labels.ndim != 1 or k < 1:
+    if (
+        allowed_labels.dtype != np.int64
+        or allowed_labels.ndim != 1
+        or k < 1
+        or block_size < 1
+    ):
         raise ValueError("allowed labels and k differ")
     pool = np.flatnonzero(np.isin(labels, allowed_labels))
     positives: list[tuple[int, int]] = []
@@ -106,16 +120,15 @@ def build_pairs(
         candidates.sort(key=lambda pair: _positive_key(pair[0], pair[1], example_ids))
         positives.extend(candidates[:30])
     negatives: set[tuple[int, int]] = set()
-    if pool.size:
-        matrix = embeddings[pool] @ embeddings[pool].T
-        for local_i, global_i in enumerate(pool.tolist()):
-            candidates = [
-                (float(matrix[local_i, local_j]), int(global_j))
-                for local_j, global_j in enumerate(pool.tolist())
-                if labels[global_j] != labels[global_i]
-            ]
-            candidates.sort(key=lambda item: (-item[0], item[1]))
-            for _, global_j in candidates[:k]:
+    for start in range(0, pool.size, block_size):
+        block = pool[start : start + block_size]
+        matrix = embeddings[block] @ embeddings[pool].T
+        for local_i, global_i in enumerate(block.tolist()):
+            permitted = labels[pool] != labels[global_i]
+            candidate_rows = pool[permitted]
+            candidate_scores = matrix[local_i, permitted]
+            order = np.lexsort((candidate_rows, -candidate_scores))[:k]
+            for global_j in candidate_rows[order].tolist():
                 negatives.add(tuple(sorted((global_i, global_j))))
     positive_array = np.asarray(positives, dtype=np.int64).reshape(-1, 2)
     negative_array = np.asarray(sorted(negatives), dtype=np.int64).reshape(-1, 2)
@@ -169,3 +182,42 @@ def fit_cadr(features: np.ndarray, targets: np.ndarray, *, lambda_value: float) 
     return CadrModel(
         result.x[:-1].copy(), float(result.x[-1]), float(result.fun), int(result.nit), True
     )
+
+
+def balanced_log_loss(features: np.ndarray, targets: np.ndarray, model: CadrModel) -> float:
+    x = np.asarray(features, dtype=np.float64)
+    y = np.asarray(targets, dtype=np.float64)
+    positive = y == 1.0
+    if x.ndim != 2 or y.shape != (x.shape[0],) or not positive.any() or positive.all():
+        raise ValueError("loss inputs require both classes")
+    losses = np.logaddexp(0.0, -y * (x @ model.weights + model.intercept))
+    return float(0.5 * np.mean(losses[positive]) + 0.5 * np.mean(losses[~positive]))
+
+
+def select_lambda(
+    fit_features: np.ndarray,
+    fit_targets: np.ndarray,
+    validation_features: np.ndarray,
+    validation_targets: np.ndarray,
+    lambda_grid: tuple[float, ...],
+) -> tuple[CadrModel, tuple[LambdaRecord, ...]]:
+    if not lambda_grid or any(value <= 0 for value in lambda_grid):
+        raise ValueError("lambda grid differs")
+    models: list[CadrModel] = []
+    records: list[LambdaRecord] = []
+    for lambda_value in lambda_grid:
+        model = fit_cadr(fit_features, fit_targets, lambda_value=lambda_value)
+        models.append(model)
+        records.append(
+            LambdaRecord(
+                lambda_value,
+                balanced_log_loss(fit_features, fit_targets, model),
+                balanced_log_loss(validation_features, validation_targets, model),
+                model.iterations,
+            )
+        )
+    selected = min(
+        range(len(records)),
+        key=lambda index: (records[index].validation_loss, -records[index].lambda_value),
+    )
+    return models[selected], tuple(records)
