@@ -222,3 +222,68 @@ Because the external recipes above use 128, 150, 200, or 400 epochs and often
 different backbones/pretraining, the active 60-epoch score cannot be compared
 raw with their published R@1 values.  It answers only the matched PA-versus-
 MCPS-PG mechanism question under the local recipe.
+
+## Calibrated Tail Moment evaluator readiness
+
+The zero-training CTM compression evaluator is implemented on branch
+`devbox/similarity-ghc` in commits `9d96771`, `dae0f2c`, `b18da7e`, `5ce0882`,
+and statistical/cost-accounting repair `2997daf`. It fits native and train-only
+PCA bases and coefficients without query/gallery access, evaluates the frozen
+control grid with stable ranking, records separated fit, descriptor-build,
+storage, projection, and search costs, and publishes one strict no-clobber JSON
+report.
+
+Final inference-cost attribution repair `19ed082` separates train/query/gallery
+PCA projection from coefficient fitting, charges gallery projection to each PCA
+view, and charges gallery FP64 conversion/precomputation consistently across
+dense, UNICOM-tail-energy, and official-geometry search paths. Consequently,
+`coefficient_fit_seconds` in any future report has the narrower literal meaning
+of coefficient fitting only; it is not comparable to a pre-`19ed082` timing
+sample. No committed CTM result predates this schema change.
+
+Focused assurance is 103 passed with Ruff, py_compile, and diff-check clean.
+The broad suite excluding the known cgroup-reclaim-pathological
+`tests/test_cli.py` completed with 2,288 passed and one CUDA-unavailable skip;
+its five failures are outside CTM: historical source-chain tests that reject a
+descendant worktree, runtime tests bound to a different Python invocation path,
+and one pre-existing IPSR missing-`objective` failure. The unexcluded run
+reached the same CLI boundary and stopped making logical progress under the
+host memory-high reclaim limit, so it was terminated rather than duplicate
+hundreds of GB of page reads.
+
+Claude's first adversarial review reproduced two self-validation defects:
+floating-point operation-order mismatch in paired R@1 and a non-independent
+two-way identity bootstrap. Both are fixed with dedicated RED/GREEN tests.
+Equal-storage is a matched-design invariant enforced by construction and strict
+schema checks, while a mutation test proves any persisted mismatch closes the
+decision. Two subsequent Claude re-reviews found no remaining Critical or
+Important issue after the timing repairs; the reviewer also reproduced
+bit-identical retrieval outputs against the pre-repair implementation.
+
+UNICOM is the first real decision. Run only after its immutable export exists
+and the active GPU queue is idle:
+
+```bash
+.venv/bin/python -I -B scripts/evaluate_calibrated_tail_moment.py \
+  --bundle reports/generated/unicom_inshop_embeddings.npz \
+  --output reports/generated/unicom_inshop_ctm.json
+```
+
+At the final readiness check, controller PID `1082289` was still active on
+`spark-2751`, compactness PID `1222540` held 11,268 MiB of GPU memory, and no
+`unicom_inshop_embeddings.npz` export existed. CTM therefore remained unrun;
+starting it early would either consume a nonexistent bundle or overlap the
+already registered queue.
+
+The current Cars196 and PA exporters have incompatible split-specific archive
+schemas. This CLI must reject them until separate reviewed adapters reproduce
+their native evaluation protocols. No CTM quality/storage win is claimed before
+a strict persisted In-Shop result passes; no general claim is permitted before
+prospective Cars196 replication.
+
+The separate Lorentz Compression Rider in
+`docs/superpowers/specs/2026-08-12-lorentz-compression-rider-design.md` is a
+low-dimensional efficiency hypothesis over the same frozen exports. It is not
+a hyperbolic SOTA claim and cannot start full training: train-only hierarchy and
+zero-parameter curvature probes must pass first, followed by equal-parameter
+cosine, Matryoshka, and WCCN controls.
