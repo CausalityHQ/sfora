@@ -7,11 +7,18 @@ import numpy as np
 import pytest
 
 from sfora.idgp import (
+    ARM_ORDER,
     assign_label_folds,
     build_cohorts,
+    evaluate_cohort,
+    geodesic_step,
     global_tangent,
     local_excess_tangent,
     normalize_rows,
+    project_one_sided,
+    project_two_sided,
+    proxy_anchor_surrogate_tangent,
+    retrieval_geometry,
 )
 
 
@@ -149,3 +156,155 @@ def test_local_plus_global_recovers_topk_mean_tangent_with_stable_ties() -> None
     selected = z[3]
     expected_top = selected - z[0] * float(z[0] @ selected)
     np.testing.assert_allclose(local[0] + global_value[0], expected_top, atol=1e-12)
+
+
+def test_one_sided_projection_removes_only_conflicting_components() -> None:
+    g = np.asarray([[-1.0, 2.0], [1.0, 2.0], [3.0, 4.0], [2.0, 1.0]])
+    h = np.asarray([[1.0, 0.0], [1.0, 0.0], [0.0, 0.0], [1e-10, 0.0]])
+    projected, dots, skipped = project_one_sided(g, h, cutoff=1e-8)
+    np.testing.assert_allclose(dots, [-1.0, 1.0, 0.0, 2e-10])
+    np.testing.assert_allclose(projected[0] @ h[0], 0.0, atol=1e-15)
+    np.testing.assert_array_equal(projected[1:], g[1:])
+    np.testing.assert_array_equal(skipped, [False, False, True, True])
+
+    two_sided = project_two_sided(g, h, cutoff=1e-8)
+    np.testing.assert_allclose(two_sided[0] @ h[0], 0.0, atol=1e-15)
+    np.testing.assert_allclose(two_sided[1] @ h[1], 0.0, atol=1e-15)
+    np.testing.assert_array_equal(two_sided[2:], g[2:])
+
+
+def test_geodesic_step_tangent_matches_all_nonzero_arm_distances() -> None:
+    z = normalize_rows(np.asarray([[1.0, 1.0, 0.0], [0.0, 1.0, 1.0]]))
+    directions = np.asarray([[4.0, -1.0, 2.0], [3.0, 7.0, -2.0]])
+    stepped = geodesic_step(z, directions, epsilon=0.01)
+    angles = np.arccos(np.clip(np.sum(z * stepped, axis=1), -1.0, 1.0))
+    np.testing.assert_allclose(angles, 0.01, atol=2e-14)
+    np.testing.assert_allclose(np.linalg.norm(stepped, axis=1), 1.0, atol=1e-15)
+
+    radial = geodesic_step(z, z * 5.0, epsilon=0.01)
+    np.testing.assert_allclose(radial, z, rtol=0.0, atol=2e-16)
+
+
+def test_retrieval_geometry_moves_only_the_supplied_anchor() -> None:
+    anchor = normalize_rows(np.asarray([[1.0, 0.2]]))[0]
+    peers = normalize_rows(np.asarray([[0.9, 0.1], [0.7, 0.7], [-1.0, 0.0]]))
+    labels = np.asarray([0, 1, 2], dtype=np.int64)
+    peers_before = peers.copy()
+    margin_before, positive_before = retrieval_geometry(anchor, peers, labels, 0)
+    moved = geodesic_step(anchor[None, :], np.asarray([[0.0, 1.0]]), epsilon=0.01)[0]
+    margin_after, positive_after = retrieval_geometry(moved, peers, labels, 0)
+    np.testing.assert_array_equal(peers, peers_before)
+    assert margin_before != margin_after
+    assert positive_before != positive_after
+
+
+def test_proxy_anchor_surrogate_gradient_is_sphere_tangent() -> None:
+    z = normalize_rows(
+        np.asarray(
+            [
+                [1.0, 0.0, 0.1],
+                [0.9, 0.1, 0.0],
+                [0.0, 1.0, 0.1],
+                [0.1, 0.9, 0.0],
+            ]
+        )
+    )
+    labels = np.asarray([0, 0, 1, 1], dtype=np.int64)
+    gradient = proxy_anchor_surrogate_tangent(z, labels)
+    np.testing.assert_allclose(np.sum(gradient * z, axis=1), 0.0, atol=1e-12)
+    assert np.linalg.norm(gradient) > 0.0
+
+
+def _synthetic_cohort(label_offset: int, seed: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    rng = np.random.default_rng(seed)
+    bases = normalize_rows(rng.normal(size=(45, 16)))
+    rows: list[np.ndarray] = []
+    labels: list[int] = []
+    ids: list[str] = []
+    for position, base in enumerate(bases):
+        label = label_offset + position
+        for sample in range(4):
+            rows.append(base + 0.08 * rng.normal(size=16))
+            labels.append(label)
+            ids.append(f"label-{label}-sample-{sample}")
+    return (
+        normalize_rows(np.asarray(rows)),
+        np.asarray(labels, dtype=np.int64),
+        np.asarray(ids),
+    )
+
+
+def test_evaluate_cohort_uses_fixed_arms_primary_rows_and_independent_controls() -> None:
+    z, labels, ids = _synthetic_cohort(0, 12)
+    reference_z, reference_labels, reference_ids = _synthetic_cohort(100, 13)
+    z_before = z.copy()
+    evaluation = evaluate_cohort(
+        z,
+        labels,
+        ids,
+        fold=1,
+        index=2,
+        reference_embeddings=reference_z,
+        reference_labels=reference_labels,
+        reference_ids=reference_ids,
+    )
+    repeated = evaluate_cohort(
+        z,
+        labels,
+        ids,
+        fold=1,
+        index=2,
+        reference_embeddings=reference_z,
+        reference_labels=reference_labels,
+        reference_ids=reference_ids,
+    )
+    np.testing.assert_array_equal(z, z_before)
+    assert tuple(evaluation.margin_changes) == ARM_ORDER
+    assert tuple(evaluation.positive_similarity_changes) == ARM_ORDER
+    bottom = np.zeros(180, dtype=np.bool_)
+    ordered = sorted(range(180), key=lambda row: (evaluation.pre_margins[row], ids[row]))
+    bottom[ordered[:45]] = True
+    np.testing.assert_array_equal(
+        evaluation.primary_mask,
+        bottom & (evaluation.conflict_dots < 0.0) & ~evaluation.skipped_mask,
+    )
+    for arm in ARM_ORDER:
+        np.testing.assert_array_equal(evaluation.margin_changes[arm], repeated.margin_changes[arm])
+    assert not np.array_equal(
+        evaluation.margin_changes["shuffled_local"],
+        evaluation.margin_changes["random_tangent"],
+    )
+    assert np.isfinite(evaluation.reference_conflict_fraction)
+    assert np.isfinite(evaluation.reference_cosine_mean)
+
+
+def test_reference_cohort_changes_only_reference_diagnostics() -> None:
+    z, labels, ids = _synthetic_cohort(0, 18)
+    reference_a = _synthetic_cohort(100, 19)
+    reference_b = _synthetic_cohort(200, 20)
+    first = evaluate_cohort(
+        z,
+        labels,
+        ids,
+        fold=0,
+        index=0,
+        reference_embeddings=reference_a[0],
+        reference_labels=reference_a[1],
+        reference_ids=reference_a[2],
+    )
+    second = evaluate_cohort(
+        z,
+        labels,
+        ids,
+        fold=0,
+        index=0,
+        reference_embeddings=reference_b[0],
+        reference_labels=reference_b[1],
+        reference_ids=reference_b[2],
+    )
+    for arm in ARM_ORDER:
+        np.testing.assert_array_equal(first.margin_changes[arm], second.margin_changes[arm])
+    assert (
+        first.reference_conflict_fraction != second.reference_conflict_fraction
+        or first.reference_cosine_mean != second.reference_cosine_mean
+    )
