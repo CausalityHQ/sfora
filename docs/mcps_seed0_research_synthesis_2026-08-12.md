@@ -87,9 +87,31 @@ Do not add a new BN-Inception training arm.  The next evidence is:
    the 93--95.5 R@1 frontier rather than polishing a 91.x baseline.
 
 Checkpoint averaging or EMA/SWA should be included as a conventional stability
-control in any future baseline training design.  Existing seed-0 directories
+control in any future baseline training design.  This is not merely a proposed
+implementation: `ImageEndToEndConfig.ema_weight_averaging` and the
+`ema_weight_average` evaluation-model path already exist in
+`src/sfora/image_end_to_end.py`, but the frozen PA and MCPS-PG recipes leave the
+switch off.  Because roughly 90% of the seed-0 final-score delta is reduced
+late-training decay, any later MCPS attribution must include an EMA-on PA arm
+before crediting the memory-centroid mechanism.  Existing seed-0 directories
 contain only the final checkpoint, so a post-hoc last-k average cannot be
 constructed honestly from the current run.
+
+The official UNICOM source also exposes a sharper conditional candidate than a
+new BN-Inception loss.  In its four-rank PartialFC path, each rank samples a
+different 512-of-768 coordinate subset but the class-shard logits are combined
+inside one global softmax.  This means the denominator compares logits computed
+in different similarity spaces.  Separately, the evaluator normalizes all 768
+coordinates, truncates to 512, and does not renormalize, introducing a
+gallery-dependent prefix-energy term into Euclidean ranking.  The existing E1
+and E2 audit is the prospective falsifier: evaluator renormalization or full
+768 dimensions are simpler controls, while synchronized feature masks are a
+training candidate only if E2 shows material independent-mask sensitivity that
+the coherent-mask control removes.  Matryoshka Representation Learning covers
+[prefix-consistent normalized embeddings](https://arxiv.org/abs/2205.13147),
+and [PartialFC](https://arxiv.org/abs/2203.15565) covers class-center sampling;
+neither makes cross-rank feature sketches coherent.  This is a defect-repair
+hypothesis, not yet an improved method or a SOTA result.
 
 This closure is deliberately reversible: a three-seed MCPS ceiling gain, a
 compactness-control separation, or the UNICOM audit can supply new evidence.
