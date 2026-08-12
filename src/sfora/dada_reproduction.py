@@ -524,24 +524,30 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
     try:
         progress = parse_dada_log(child.stdout.splitlines())
     except ValueError as exc:
-        report = _base_report("INVALID", str(exc))
-        report["command"] = list(build_dada_command(request))
-        report["environment"] = environment
-        report["process"] = {
-            "returncode": child.returncode,
-            "elapsed_seconds": float(child.elapsed_seconds),
-        }
-        report["resources"] = {"peak_gpu_memory_mib": child.peak_gpu_memory_mib}
-        validate_dada_smoke_report(report)
-        return report
+        return _invalid_after_child(request, environment, child, str(exc))
     if progress.completed_epochs != 6:
-        raise ValueError("DADA smoke did not complete exactly six epochs")
+        return _invalid_after_child(
+            request,
+            environment,
+            child,
+            "DADA smoke did not complete exactly six epochs",
+        )
     checkpoints = sorted(request.output_root.rglob("*.pth.tar"))
     if not checkpoints:
-        raise ValueError("DADA smoke produced no checkpoint")
+        return _invalid_after_child(
+            request,
+            environment,
+            child,
+            "DADA smoke produced no checkpoint",
+        )
     checkpoint = checkpoints[0]
     if not _checkpoint_is_reloadable(request, checkpoint):
-        raise ValueError("DADA smoke checkpoint is not reloadable")
+        return _invalid_after_child(
+            request,
+            environment,
+            child,
+            "DADA smoke checkpoint is not reloadable",
+        )
     elapsed = float(child.elapsed_seconds)
     report: dict[str, object] = {
         "schema_version": 1,
@@ -567,6 +573,24 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
         "projection": {"projected_full_run_seconds": elapsed * 200.0 / 6.0},
         "failure": None,
     }
+    validate_dada_smoke_report(report)
+    return report
+
+
+def _invalid_after_child(
+    request: DadaSmokeRequest,
+    environment: dict[str, object],
+    child: DadaChildResult,
+    failure: str,
+) -> dict[str, object]:
+    report = _base_report("INVALID", failure)
+    report["command"] = list(build_dada_command(request))
+    report["environment"] = environment
+    report["process"] = {
+        "returncode": child.returncode,
+        "elapsed_seconds": float(child.elapsed_seconds),
+    }
+    report["resources"] = {"peak_gpu_memory_mib": child.peak_gpu_memory_mib}
     validate_dada_smoke_report(report)
     return report
 

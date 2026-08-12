@@ -423,6 +423,39 @@ def test_runtime_parse_failure_returns_invalid_report(
     dada.validate_dada_smoke_report(report)
 
 
+def test_missing_checkpoint_returns_invalid_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    request = _request(tmp_path)
+    request.output_root.mkdir()
+    monkeypatch.setattr(
+        dada,
+        "_execute_dada_child",
+        lambda _request: dada.DadaChildResult(
+            returncode=0,
+            stdout=_successful_log(),
+            elapsed_seconds=75.0,
+            peak_gpu_memory_mib=12_345,
+        ),
+    )
+    monkeypatch.setattr(
+        dada,
+        "_probe_environment",
+        lambda _request: {
+            "python": "3.12.3",
+            "torch": "2.12.1+cu130",
+            "cuda": "13.0",
+            "device": "NVIDIA GB10",
+        },
+    )
+
+    report = dada.run_dada_smoke(request)
+
+    assert report["status"] == "INVALID"
+    assert report["failure"] == "DADA smoke produced no checkpoint"
+    dada.validate_dada_smoke_report(report)
+
+
 def test_publish_report_never_clobbers_existing_destination(tmp_path: Path) -> None:
     destination = tmp_path / "report.json"
     destination.write_bytes(b"sentinel")
