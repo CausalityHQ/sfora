@@ -84,8 +84,7 @@ def _cohort_record(value: CohortEvaluation) -> dict[str, Any]:
         "skipped_mask": value.skipped_mask.tolist(),
         "primary_mask": value.primary_mask.tolist(),
         "constraint_dots": value.constraint_dots.tolist(),
-        "positive_tangents": value.positive_tangents.tolist(),
-        "directions": {arm: value.directions[arm].tolist() for arm in ARM_ORDER},
+        "projected_constraint_dots": value.projected_constraint_dots.tolist(),
         "margin_changes": {arm: value.margin_changes[arm].tolist() for arm in ARM_ORDER},
         "positive_similarity_changes": {
             arm: value.positive_similarity_changes[arm].tolist() for arm in ARM_ORDER
@@ -105,9 +104,10 @@ def _from_record(value: Mapping[str, Any]) -> CohortEvaluation:
         skipped_mask=np.asarray(value["skipped_mask"], dtype=np.bool_),
         primary_mask=np.asarray(value["primary_mask"], dtype=np.bool_),
         constraint_dots=np.asarray(value["constraint_dots"], dtype=np.float64),
-        positive_tangents=np.asarray(value["positive_tangents"], dtype=np.float64),
+        projected_constraint_dots=np.asarray(value["projected_constraint_dots"], dtype=np.float64),
+        positive_tangents=np.zeros((len(value["labels"]), 1), dtype=np.float64),
         directions={
-            arm: np.asarray(value["directions"][arm], dtype=np.float64) for arm in ARM_ORDER
+            arm: np.zeros((len(value["labels"]), 1), dtype=np.float64) for arm in ARM_ORDER
         },
         margin_changes={
             arm: np.asarray(value["margin_changes"][arm], dtype=np.float64) for arm in ARM_ORDER

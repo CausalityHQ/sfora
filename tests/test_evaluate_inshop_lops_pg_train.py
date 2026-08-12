@@ -45,6 +45,9 @@ def test_build_report_is_confirmation_only_and_relational(tmp_path: Path) -> Non
     assert validated["protocol"]["folds"] == [1, 2, 3]
     assert {row["fold"] for row in validated["rows"]} == {1, 2, 3}
     assert validated["status"] in {"PASS", "KILL"}
+    assert "directions" not in validated["rows"][0]
+    assert "positive_tangents" not in validated["rows"][0]
+    assert len(validated["rows"][0]["projected_constraint_dots"]) == 180
 
     mutated = cli.json.loads(cli.json.dumps(report))
     cohort = next(row for row in mutated["rows"] if any(row["primary_mask"]))

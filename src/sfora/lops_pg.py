@@ -32,6 +32,7 @@ class CohortEvaluation:
     skipped_mask: NDArray[np.bool_]
     primary_mask: NDArray[np.bool_]
     constraint_dots: NDArray[np.float64]
+    projected_constraint_dots: NDArray[np.float64]
     positive_tangents: NDArray[np.float64]
     directions: Mapping[str, NDArray[np.float64]]
     margin_changes: Mapping[str, NDArray[np.float64]]
@@ -263,6 +264,7 @@ def evaluate_cohort(
         skipped_mask=skipped,
         primary_mask=bottom & ~skipped,
         constraint_dots=dots,
+        projected_constraint_dots=np.sum(lops * positive, axis=1),
         positive_tangents=positive.copy(),
         directions={name: value.copy() for name, value in directions.items()},
         margin_changes=margin_changes,
@@ -322,8 +324,7 @@ def summarize_evaluations(
             hard.append(value.margin_changes["batch_hard_triplet"][mask] - zero)
             nearest.append(value.margin_changes["nearest_positive_safe"][mask] - zero)
             fold_raw.setdefault(value.fold, []).append(contrast)
-        projected_dots = np.sum(value.directions["lops_pg"] * value.positive_tangents, axis=1)
-        constraint_ok &= bool(np.all(projected_dots[value.conflict_mask] <= 1e-12))
+        constraint_ok &= bool(np.all(value.projected_constraint_dots[value.conflict_mask] <= 1e-12))
         constraint_ok &= bool(np.all(value.constraint_dots[value.conflict_mask] > 0.0))
     if not labels:
         raise ValueError("confirmation has no primary rows")
