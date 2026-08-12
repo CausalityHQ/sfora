@@ -116,3 +116,25 @@ hypothesis, not yet an improved method or a SOTA result.
 This closure is deliberately reversible: a three-seed MCPS ceiling gain, a
 compactness-control separation, or the UNICOM audit can supply new evidence.
 Absent one of those, another train-time mechanism is not justified.
+
+## Seed-1 checkpoint
+
+The unchanged seed-1 pair completed after this note's prospective decisions
+were frozen:
+
+| Quantity | Proxy Anchor | MCPS-PG | MCPS minus PA |
+|---|---:|---:|---:|
+| final R@1 | 0.9160219440146293 | 0.9180616120410747 | +0.0020396680264454 |
+| best R@1 | 0.9189759459839640 | 0.9199606133070756 | +0.0009846673231115 |
+| best minus final | 0.0029540019693347 | 0.0018990012660008 | -0.0010550007033339 |
+| final mAP@R | 0.6517248216313138 | 0.6523812637090788 | +0.0006564420777649 |
+
+Seeds 0 and 1 are both positive in final R@1; their provisional paired mean is
+`+0.002426501617667798`.  This clears the frozen `+0.0015` effect-size floor at
+the two-seed checkpoint but cannot be evaluated against the three-seed standard
+error or compactness control yet.  Seed 1 again contradicts the proposed
+conflict mechanism: memory-target rate is `0.9973510748510749` and skip rate is
+zero, but conflict rate is only `0.0013315510069732762`, versus the frozen
+`0.05` requirement.  The final effect remains potentially useful, but any
+surviving explanation must be stability/regularization rather than the claimed
+conflict-projection activation.
