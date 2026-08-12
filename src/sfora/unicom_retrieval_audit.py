@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
+
+RECALL_AT_K = (1, 10, 20, 30)
 
 
 @dataclass(frozen=True)
@@ -158,6 +161,20 @@ def _selected_view(
     return l2_normalize(selected)
 
 
+def _stable_top_indices(distances: np.ndarray, count: int) -> np.ndarray:
+    """Select the exact stable distance prefix without sorting the full gallery."""
+
+    if count >= distances.size:
+        candidates = np.arange(distances.size, dtype=np.int64)
+    else:
+        partition = np.argpartition(distances, count - 1)[:count]
+        boundary = np.max(distances[partition])
+        lower = np.flatnonzero(distances < boundary)
+        tied = np.flatnonzero(distances == boundary)[: count - lower.size]
+        candidates = np.concatenate((lower, tied))
+    return candidates[np.lexsort((candidates, distances[candidates]))]
+
+
 def retrieval_view(
     query_embeddings: np.ndarray,
     gallery_embeddings: np.ndarray,
@@ -184,10 +201,10 @@ def retrieval_view(
     gallery = _selected_view(gallery_embeddings, coordinates, normalize_before=normalize_before)
     gallery64 = gallery.astype(np.float64)
     gallery_norms = np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
-    gallery_order = np.arange(gallery.shape[0], dtype=np.int64)
-    recall_hits = {key: [] for key in (1, 10, 20, 30)}
+    recall_hits = {key: [] for key in RECALL_AT_K}
     average_precisions: list[float] = []
     top1_indices: list[int] = []
+    gallery_label_counts = Counter(gallery_labels.tolist())
 
     for start in range(0, query.shape[0], chunk_size):
         query_chunk = query[start : start + chunk_size].astype(np.float64)
@@ -197,14 +214,15 @@ def retrieval_view(
         )
         for offset, row in enumerate(distances):
             query_index = start + offset
-            order = np.lexsort((gallery_order, row))
+            relevant = gallery_label_counts.get(query_labels[query_index], 0)
+            if relevant == 0:
+                raise ValueError("query identity has no relevant gallery item")
+            required = min(max(max(recall_hits), relevant), gallery.shape[0])
+            order = _stable_top_indices(row, required)
             matches = gallery_labels[order] == query_labels[query_index]
             top1_indices.append(int(order[0]))
             for key in recall_hits:
                 recall_hits[key].append(bool(np.any(matches[: min(key, matches.size)])))
-            relevant = int(np.count_nonzero(gallery_labels == query_labels[query_index]))
-            if relevant == 0:
-                raise ValueError("query identity has no relevant gallery item")
             truncated = matches[:relevant]
             precision = np.cumsum(truncated, dtype=np.int64) / np.arange(1, relevant + 1)
             average_precisions.append(float(np.sum(precision * truncated) / relevant))

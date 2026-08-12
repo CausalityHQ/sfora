@@ -3,7 +3,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+import sfora.unicom_retrieval_audit as retrieval_audit
 from sfora.unicom_retrieval_audit import (
+    _stable_top_indices,
     audit_deployment_geometry,
     geometry_decision,
     l2_normalize,
@@ -91,6 +93,90 @@ def test_recall_and_map_at_r_match_hand_computed_fixture() -> None:
     assert result.recall[20] == 1.0
     assert result.recall[30] == 1.0
     assert result.map_at_r == 1.0
+
+
+def test_retrieval_only_stably_sorts_the_registered_metric_prefix(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    angles = np.linspace(0.0, 2.0 * np.pi, 64, endpoint=False, dtype=np.float32)
+    gallery = np.stack((np.cos(angles), np.sin(angles)), axis=1).astype(np.float32)
+    labels = np.asarray(["match", *[f"other-{index}" for index in range(1, 64)]])
+    original_lexsort = np.lexsort
+    sorted_lengths: list[int] = []
+
+    def bounded_lexsort(keys):
+        sorted_lengths.append(len(keys[0]))
+        assert len(keys[0]) <= 30
+        return original_lexsort(keys)
+
+    monkeypatch.setattr(np, "lexsort", bounded_lexsort)
+
+    result = retrieval_view(
+        np.array([[1.0, 0.0]], dtype=np.float32),
+        gallery,
+        np.array(["match"]),
+        labels,
+        coordinates=np.array([0, 1]),
+        normalize_before=False,
+    )
+
+    assert result.recall[1] == 1.0
+    assert sorted_lengths == [30]
+
+
+def test_stable_partial_selection_matches_full_sort_at_boundary_ties() -> None:
+    distances = np.asarray([0.0] * 25 + [1.0] * 20 + [2.0] * 19)
+    full_order = np.lexsort((np.arange(distances.size), distances))
+
+    assert np.array_equal(_stable_top_indices(distances, 30), full_order[:30])
+
+
+def test_map_at_r_requests_more_than_thirty_results_when_identity_requires_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gallery = np.repeat(np.array([[1.0, 0.0]], dtype=np.float32), 64, axis=0)
+    labels = np.asarray(["other"] * 64)
+    labels[:40] = "match"
+    original_lexsort = np.lexsort
+    sorted_lengths: list[int] = []
+
+    def measured_lexsort(keys, *args, **kwargs):
+        sorted_lengths.append(len(keys[0]))
+        return original_lexsort(keys, *args, **kwargs)
+
+    monkeypatch.setattr(np, "lexsort", measured_lexsort)
+
+    result = retrieval_view(
+        np.array([[1.0, 0.0]], dtype=np.float32),
+        gallery,
+        np.array(["match"]),
+        labels,
+        coordinates=np.array([0, 1]),
+        normalize_before=False,
+    )
+
+    assert result.map_at_r == 1.0
+    assert sorted_lengths == [40]
+
+
+def test_selection_width_is_derived_from_registered_recall_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gallery = np.repeat(np.array([[1.0, 0.0]], dtype=np.float32), 64, axis=0)
+    labels = np.asarray([f"other-{index}" for index in range(64)])
+    labels[40] = "match"
+    monkeypatch.setattr(retrieval_audit, "RECALL_AT_K", (1, 50))
+
+    result = retrieval_view(
+        np.array([[1.0, 0.0]], dtype=np.float32),
+        gallery,
+        np.array(["match"]),
+        labels,
+        coordinates=np.array([0, 1]),
+        normalize_before=False,
+    )
+
+    assert result.recall == {1: 0.0, 50: 1.0}
 
 
 @pytest.mark.parametrize(
