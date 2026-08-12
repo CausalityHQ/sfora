@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import os
+import re
 import stat
 import subprocess
+from collections.abc import Iterable
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -49,6 +52,26 @@ class DadaSource:
     config_path: Path
     config_sha256: str
     config: dict[str, object]
+
+
+@dataclass(frozen=True)
+class DadaSmokeRequest:
+    python: Path
+    source: DadaSource
+    smoke_config: Path
+    dataset_root: Path
+    output_root: Path
+    save_name: str
+    gpu: int
+    seed: int
+
+
+@dataclass(frozen=True)
+class DadaProgress:
+    completed_epochs: int
+    optimizer_steps: int
+    last_loss: float
+    last_recall_at_1: float
 
 
 def _run_git(checkout: Path, *args: str) -> str:
@@ -135,3 +158,71 @@ def build_smoke_config(
             destination.unlink()
         raise
     return _sha256_file(destination)
+
+
+def build_dada_command(request: DadaSmokeRequest) -> tuple[str, ...]:
+    return (
+        str(request.python),
+        "-I",
+        "-B",
+        str(request.source.checkout / "main.py"),
+        "--source_path",
+        str(request.dataset_root),
+        "--save_path",
+        str(request.output_root),
+        "--save_name",
+        request.save_name,
+        "--config",
+        str(request.smoke_config),
+        "--gpu",
+        str(request.gpu),
+        "--seed",
+        str(request.seed),
+    )
+
+
+_TRAIN_RE = re.compile(
+    r"\[Train Epoch (?P<epoch>\d+)\].*\[(?P<done>\d+)/(?P<total>\d+).*"
+    r"DML:(?P<loss>[-+A-Za-z0-9.eE]+)"
+)
+_RECALL_RE = re.compile(r"e_recall@1:\s*(?P<recall>[-+A-Za-z0-9.eE]+)")
+
+
+def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
+    epochs: dict[int, int] = {}
+    losses: list[float] = []
+    recalls: list[float] = []
+    for raw_line in lines:
+        line = str(raw_line)
+        if "Traceback (most recent call last):" in line:
+            raise ValueError("DADA child traceback")
+        if "CUDA out of memory" in line:
+            raise ValueError("DADA child CUDA out of memory")
+        for fragment in line.split("\r"):
+            train_match = _TRAIN_RE.search(fragment)
+            if train_match is not None:
+                done = int(train_match.group("done"))
+                total = int(train_match.group("total"))
+                if done <= 0 or total <= 0 or done != total:
+                    raise ValueError("DADA optimizer progress is incomplete")
+                loss = float(train_match.group("loss"))
+                if not math.isfinite(loss):
+                    raise ValueError("DADA loss is non-finite")
+                epochs[int(train_match.group("epoch"))] = done
+                losses.append(loss)
+            recall_match = _RECALL_RE.search(fragment)
+            if recall_match is not None:
+                recall = float(recall_match.group("recall"))
+                if not math.isfinite(recall):
+                    raise ValueError("DADA recall is non-finite")
+                recalls.append(recall)
+    if not epochs or not losses:
+        raise ValueError("DADA optimizer progress is absent")
+    if not recalls:
+        raise ValueError("DADA evaluation R@1 is absent")
+    return DadaProgress(
+        completed_epochs=len(epochs),
+        optimizer_steps=sum(epochs.values()),
+        last_loss=losses[-1],
+        last_recall_at_1=recalls[-1],
+    )

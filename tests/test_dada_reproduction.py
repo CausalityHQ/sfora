@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import subprocess
 from pathlib import Path
 
@@ -150,3 +151,92 @@ def test_build_smoke_config_never_clobbers(tmp_path: Path, monkeypatch: pytest.M
         dada.build_smoke_config(source, destination)
 
     assert destination.read_bytes() == b"sentinel"
+
+
+def test_command_preserves_official_cli_contract(tmp_path: Path) -> None:
+    request = dada.DadaSmokeRequest(
+        python=Path("/opt/dada/bin/python"),
+        source=dada.DadaSource(
+            checkout=Path("/work/DADA"),
+            revision=dada.DADA_REVISION,
+            config_path=Path("/work/DADA/configs/inshop.yaml"),
+            config_sha256=dada.INSHOP_CONFIG_SHA256,
+            config={},
+        ),
+        smoke_config=Path("/work/smoke.yaml"),
+        dataset_root=Path("/data"),
+        output_root=tmp_path / "results",
+        save_name="dada-inshop-smoke-seed0",
+        gpu=0,
+        seed=0,
+    )
+
+    assert dada.build_dada_command(request) == (
+        "/opt/dada/bin/python",
+        "-I",
+        "-B",
+        "/work/DADA/main.py",
+        "--source_path",
+        "/data",
+        "--save_path",
+        str(tmp_path / "results"),
+        "--save_name",
+        "dada-inshop-smoke-seed0",
+        "--config",
+        "/work/smoke.yaml",
+        "--gpu",
+        "0",
+        "--seed",
+        "0",
+    )
+
+
+def test_log_parser_requires_finite_loss_and_optimizer_progress() -> None:
+    lines = []
+    for epoch in range(6):
+        lines.extend(
+            (
+                f"[Train Epoch {epoch}]: 100.00% [143/143, 00:10<00:00, "
+                f"DisL:0.5000, DML:{1.0 / (epoch + 1):.4f}]",
+                "Embed-Type: embeds:",
+                f"e_recall@1: {0.80 + epoch / 100:.4f}",
+                "Total Epoch Runtime: 12.50s",
+            )
+        )
+
+    progress = dada.parse_dada_log(lines)
+
+    assert progress.completed_epochs == 6
+    assert progress.optimizer_steps == 6 * 143
+    assert math.isfinite(progress.last_loss)
+    assert progress.last_recall_at_1 == pytest.approx(0.85)
+
+
+@pytest.mark.parametrize(
+    ("replacement", "message"),
+    [
+        ("DML:nan", "non-finite"),
+        ("DML:inf", "non-finite"),
+        ("[0/143", "optimizer progress"),
+        ("Traceback (most recent call last):", "traceback"),
+        ("CUDA out of memory", "CUDA out of memory"),
+    ],
+)
+def test_log_parser_rejects_structural_training_failures(
+    replacement: str,
+    message: str,
+) -> None:
+    baseline = (
+        "[Train Epoch 0]: 100.00% [143/143, 00:10<00:00, DisL:0.5, DML:0.4]",
+        "e_recall@1: 0.8",
+        "Total Epoch Runtime: 12.5s",
+    )
+    if replacement.startswith("DML:"):
+        lines = (baseline[0].replace("DML:0.4", replacement), *baseline[1:])
+    elif replacement.startswith("["):
+        lines = (baseline[0].replace("[143/143", replacement), *baseline[1:])
+    else:
+        lines = (*baseline, replacement)
+
+    with pytest.raises(ValueError, match=message):
+        dada.parse_dada_log(lines)
