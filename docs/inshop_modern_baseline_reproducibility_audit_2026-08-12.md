@@ -10,7 +10,10 @@ training budget can replace that matched control.
 
 If MCPS-PG clears its frozen three-seed gates, the first modern external anchor
 will be **PA + DADA on ResNet-50**, reproduced from the authors' In-Shop config.
-The cheap frontier-representation check will be **UNICOM ViT-B/16 zero-shot**;
+An `oproxy` arm under that config bounds the official-pipeline gap but does not
+isolate DADA: the source also changes proxy-loss weight and optimizer, proxy
+learning rate, positive mixing, and compute.  The cheap frontier-representation
+check will be **UNICOM ViT-B/16 zero-shot**;
 **HIER with a PA base on ResNet-50** follows as a published-pipeline check.  The
 128-epoch, four-GPU UNICOM supervised run is a separate, later experiment.
 These are external capability checks, not substitutes for the paired
@@ -25,7 +28,7 @@ state of the art.
 | SAGA (arXiv 2026 preprint) | [paper](https://arxiv.org/abs/2606.15134); no official implementation located | Qwen3-VL-8B vision tower and frozen language supervisor, GRPO group size 8, eight contributing pairs per optimizer step, attention-pooler distillation, one H200 141 GB | 87.9 +/- 0.3 CUB, 97.0 +/- 0.3 Cars, 83.5 +/- 0.4 Aircraft, 60.1 +/- 0.4 iNat-Aves R@1 over three seeds | Current fine-grained attribute-supervision frontier, but explicitly not an In-Shop/SOP result: the authors exclude both product-identity datasets because their classes are not attribute-defined. On a shared Qwen3-VL-8B tower, its largest gain comes from GRPO (about +5 points), while attention alignment adds only about +0.5--0.7. The main embedding is 4096-D and training needs repeated 8B-MLLM rollouts plus differentiable replay; lower-dimensional ablations remain strong but do not remove the training cost. With no released code and hardware beyond the available GB10, this is a published capability reference and a warning that class-label-only DML is no longer the fine-grained frontier, not a reproducible In-Shop baseline or a fair comparator for MCPS. |
 | VPTSP-G / semantic proxies (ICLR 2024) | [paper](https://openreview.net/forum?id=TWVMVPx2wO), [official code](https://github.com/Noahsark/ParameterEfficient-DML) | Released `config/inshop_basic.yaml`: one GPU, ViT-B/16 ImageNet-21K, 512-D head, batch 32, 75 epochs, AdamW, visual prompts plus BitFit/head and class-conditioned semantic proxies | 92.5 for the released ViT-B/16 lane; 96.5 only for a supplemental ViT-L/14 CLIP-vision model pretrained on LAION-2B | Useful one-GPU parameter-efficient transformer anchor, but not a reproducible 96.5 frontier recipe. The official README explicitly warns that reproduced values vary with environment/hardware/randomness and supplies neither logs nor an In-Shop checkpoint. The repository has no committed CLIP/LAION ViT-L/14 In-Shop config or loader matching the supplemental 96.5 row; its released configs use `timm` ImageNet-family models. Therefore 92.5 is the code-backed reproduction target and 96.5 remains a different-pretraining published reference until its exact recipe is recovered. Class-conditioned prompt banks also scale with the training identities, so this is a semantic-proxy/PEFT lane rather than a compact-descriptor-only control. |
 | LOCORE (CVPR 2025) | [paper](https://arxiv.org/abs/2503.21772), [code and pretrained reranker](https://github.com/MrZilinXiao/LongContextReranker) | Re-ranks the top 100 images jointly from 50 DINOv2 local descriptors per image; the published trainer uses 8 GPUs and a GLDv2-trained long-context model | 88.5 global descriptor baseline; 89.1 tiny, **89.4 small**, 87.9 base after reranking | Reproducible second-stage anchor, not a global-descriptor SOTA row. The authors release extraction/evaluation code and a pretrained base checkpoint, but the reported In-Shop experiment consumes a fixed first-stage ranking plus local descriptors and changes inference complexity and gallery dependence. Its best In-Shop R@1 gain is +0.9 point for the small reranker, while the base model lowers R@1 despite improving mAP@R. Keep it in a separate reranking lane; do not compare 89.4 to UNICOM's 95.5 as if they were the same retrieval system. |
-| PA + DADA (AAAI 2024) | [paper](https://ojs.aaai.org/index.php/AAAI/article/view/29400), [code](https://github.com/Noahsark/DADA) | `configs/inshop.yaml`: 200 epochs, batch 180, `resnet50_layernorm_double`, `fd_fc1_dim=512`, `fc_fc2_dim=4096`, single GPU; embedding dimension 512 comes from the CLI default, not the YAML | 90.4 PA (BN-Inception); 93.0 PA+DADA (ResNet-50) | Strong audited modern proxy-based pipeline, but the published In-Shop table does **not** report a matched method delta: its PA row uses BN-Inception while PA+DADA uses ResNet-50. The 2.6-point subtraction is therefore invalid. Exact DADA config is present; evaluation uses normalized cosine similarity; and the code seeds Python, NumPy, and Torch and enables deterministic cuDNN. A same-config `oproxy` ResNet-50 arm is required locally to attribute any gain to DADA. `fc_fc2_dim=4096` is a discriminator-head width, not the retrieval embedding dimension. No In-Shop checkpoint or log is supplied; only a CUB demo checkpoint is linked. The authors warn that GPU/environment changes can alter results. |
+| PA + DADA (AAAI 2024) | [paper](https://ojs.aaai.org/index.php/AAAI/article/view/29400), [code](https://github.com/Noahsark/DADA) | `configs/inshop.yaml`: 200 epochs, batch 180, `resnet50_layernorm_double`, `fd_fc1_dim=512`, `fc_fc2_dim=4096`, single GPU; embedding dimension 512 comes from the CLI default, not the YAML | 90.4 PA (BN-Inception); 93.0 PA+DADA (ResNet-50) | Strong audited modern proxy-based pipeline, but the published In-Shop table does **not** report a matched method delta: its PA row uses BN-Inception while PA+DADA uses ResNet-50. The 2.6-point subtraction is therefore invalid. Exact DADA config is present and evaluation uses normalized cosine similarity, but a same-config `oproxy` arm still does not isolate the adversarial mechanism: DADA multiplies the PA term by 0.0075, uses a separate proxy Adam at 0.04 rather than the control's 0.024, adds positive-class mixes, and performs three discriminator updates plus repeated nuclear-norm SVDs. It bounds an official-pipeline gap; mechanism attribution needs prospectively labelled ablations. The seeding is also not bitwise determinism on CUDA. `fc_fc2_dim=4096` is a discriminator-head width, not the retrieval embedding dimension. No In-Shop checkpoint or log is supplied; only a CUB demo checkpoint is linked. |
 | HIER (PA base, CVPR 2023) | [paper/project](https://cvlab.postech.ac.kr/project/HIER/), [code](https://github.com/sung-yeon-kim/HIER-CVPR23) | `scripts/Resnet50/hier_Inshop.sh`: 2 GPUs, 150 epochs, batch 90 per rank (effective 180), 512 hierarchical proxies, IPC 2, 512-dimensional embedding, `hyp_c=0.1` | 92.4 | Runnable official source and exact In-Shop script under MIT, but this is a published-pipeline anchor rather than a cosine-matched control: `hier/helpers.py` ranks by negative hyperbolic distance when `hyp_c > 0`. The table's 91.5 PA row uses BN-Inception while HIER's 92.4 row uses ResNet-50, so their difference is not even a same-backbone comparison; it also is not a PA retraining under HIER's AdamW/IPC/BN/150-epoch recipe. The repo requires old Torch/timm, provides neither In-Shop logs nor checkpoints, and sets `cudnn.benchmark=True`; paired multi-seed reporting is required. |
 | Hyp-ViT (CVPR 2022) | [paper](https://openaccess.thecvf.com/content/CVPR2022/html/Ermolov_Hyperbolic_Vision_Transformers_Combining_Improvements_in_Metric_Learning_CVPR_2022_paper.html), [code](https://github.com/htdt/hyp_metric) | README commands for ViT-S/16, DINO ViT-S/16, and DeiT-S on In-Shop: 400 epochs on 1 GPU with total batch 900; `--hyp_c 0 --t 0.1` selects the published spherical version | 92.6 (Hyp-DINO head, 128-D), 92.7 (Hyp-ViT head, 128-D) | Official MIT source and literal In-Shop commands make this reproducible in principle. The strongest rows use transformer architecture and DINO or ImageNet-21k pretraining, 400 epochs, batch 900, and hyperbolic retrieval; they are representation/protocol anchors, not matched evidence for MCPS-PG. The code defines batch size per GPU, so using the README's four-GPU launcher unchanged would silently produce effective batch 3,600 rather than the paper's 900. The official training path imports NVIDIA Apex and its README requires a CUDA-extension Apex build, an additional reproduction blocker. No target-trained checkpoint or log is supplied. |
 | CCP-DML (WACV 2024) | [paper](https://openaccess.thecvf.com/content/WACV2024/html/Gurbuz_Deep_Metric_Learning_With_Chance_Constraints_WACV_2024_paper.html), [code](https://github.com/yetigurbuz/ccp-dml) | Repository implements generic In-Shop loading, but supplies no exact In-Shop command/config; its detailed training guide is marked forthcoming | 91.84 (BN-Inception MS-CCP-L), 92.71 (ResNet-50 MS-CCP-L) | Relevant novelty collision for multi-proxy or chance-constrained candidates, but not selected as the next reproduction anchor because the exact In-Shop training protocol is not committed. Treat its numbers as published references until a complete recipe is recovered. |
@@ -52,9 +55,10 @@ Repository snapshots inspected read-only:
 3. **Modern proxy anchor:** reproduce PA + DADA from the exact official
    ResNet-50 In-Shop config and pair it with `oproxy` under that same config,
    backbone, seed, and runtime.  The DADA arm tests the published 93.0 pipeline;
-   only the paired R50 arm can measure DADA's contribution.  First run seed 0
-   to validate both paths; proceed to seeds 1 and 2 only if the reproduction is
-   credible.
+   the paired R50 arm bounds the aggregate official-pipeline gap but cannot
+   isolate the adversarial component because loss weight, proxy optimizer/LR,
+   mixing, and compute also differ.  First run seed 0 to validate both paths;
+   proceed to seeds 1 and 2 only if the reproduction is credible.
 4. **One-GPU transformer/PEFT anchor:** reproduce VPTSP-G from the released
    ViT-B/16 In-Shop config, targeting its code-backed 92.5 rather than importing
    the supplemental CLIP ViT-L/14 96.5 result.  This tests a modern frozen-backbone
@@ -89,20 +93,28 @@ Repository snapshots inspected read-only:
 ## Cheapest reproduction anchors
 
 For DADA, do not begin with a full hyperparameter search.  Use the committed
-`configs/inshop.yaml` unchanged and first verify:
+`configs/inshop.yaml` unchanged apart from a copied smoke-only epoch count and
+first verify:
 
 - official train/query/gallery counts and Recall@K implementation;
 - the ImageNet-pretrained `resnet50_layernorm_double` construction;
-- one finite seed-0 epoch and a reloadable checkpoint;
-- a same-recipe `--loss oproxy` R50 control, because the paper's 90.4 PA row is
-  BN-Inception rather than a matched R50 baseline;
-- deterministic seed plumbing and identical evaluation on a reloaded
-  checkpoint;
-- memory and time per epoch on the available GPU.
+- offline construction of the exact legacy pretrained ResNet-50, including the
+  weight-file hash, plus availability of the FP32 GradScaler and nuclear-norm
+  CUDA backward used by the compatibility port;
+- six finite seed-0 epochs per arm, because epoch 0 performs no ordinary-proxy
+  update and only epoch 5 reaches an unfrozen backbone;
+- a same-config `--loss oproxy` R50 control, explicitly described as a bound on
+  the official-pipeline gap rather than a clean DADA ablation;
+- nonzero finite objective updates from epoch 1 and peak memory/time measured
+  only at epoch 5 or later;
+- an R@1-only reload check.  The shipped In-Shop checkpoint omits proxies and
+  loss state, while its standalone evaluator differs from the training-loop
+  evaluator at R@10 and above.
 
-Only a structurally valid seed-0 run authorizes the 200-epoch reproduction.
-Its published 93.0 R@1 is a reproduction target, not a pass threshold and not a
-number to tune toward.
+Only a structurally valid six-epoch seed-0 pair authorizes the 200-epoch
+reproduction.  Its published 93.0 R@1 is a reproduction target, not a pass
+threshold and not a number to tune toward.  Report best-epoch-on-test and final
+epoch separately; the official source selects checkpoints on test R@1.
 
 The code-side preflight is now concrete.  Commit
 `726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8` imports under a separate
@@ -114,28 +126,21 @@ images / 3,985 identities, and 12,612 gallery images / 3,985 identities.  This
 does not yet validate model construction or training: the authors' exact
 PyTorch-1.12/CUDA-11.3 environment predates the available GB10, while the
 prepared PyTorch-2.13/CUDA-13 environment is necessarily a compatibility port.
-The first GPU action remains a one-epoch structural run, separately labelled as
-a port, before any 200-epoch result is attempted.
+The initially queued one-epoch pair was cancelled before launch after source
+review proved it would perform zero Proxy Anchor optimizer steps.  Its output
+directory was never created.  The replacement six-epoch pair will remain
+strictly after the active PA/MCPS, compactness, and UNICOM jobs and will never
+run concurrently with them.  Both arms will use the same copied official
+config, seed 0, ResNet-50 construction, data view, and compatibility runtime;
+the only arm selector is `--loss oproxy` versus `--loss dadaproxy`, and the only
+smoke-only config change is `n_epochs: 200 -> 6`.  The package tree resolves
+Python 3.13.9, Torch 2.13.0+cu130, torchvision 0.28.0+cu130, and pandas 2.3.3.
 
-That structural pair is queued after the active PA/MCPS, compactness, and
-UNICOM jobs, never concurrently with them.  Both arms use the same official
-`inshop.yaml`, seed 0, ResNet-50 construction, data view, and compatibility
-runtime; the only arm difference is `--loss oproxy` versus
-`--loss dadaproxy`, and the only smoke-only config change is
-`n_epochs: 200 -> 1`.  The package tree is loaded explicitly through
-`PYTHONPATH` from the Python-3.13 runner; it currently resolves Torch
-2.13.0+cu130, torchvision 0.28.0+cu130, and pandas 2.3.3.
-
-This one-epoch result is deliberately **not** an optimization comparison.
-The source sets `d_warmup=1`; at epoch 0 the ordinary-proxy arm appends a zero
-DML loss without calling its criterion, while the DADA arm trains only its
-discriminator.  A pass therefore establishes environment, pretrained-model,
-dataset, discriminator, full query/gallery evaluation, and checkpoint
-compatibility, but it does not establish that either full objective can train
-for 200 epochs.  Before a long run, a second bounded smoke must cross the
-warmup boundary and demonstrate finite nonzero DML updates in both arms with
-identical update counts.  The one-epoch scores themselves have no method-value
-interpretation.
+Even this pair is a compatibility and cost gate, not a causal method result.
+The training-loop field named `MAP` ranks only the top 50 and is not standard
+mAP or mAP@R, so it must not be compared with published mAP.  GPU variability
+will be measured empirically with repeated seeds rather than inferred from the
+source's partial deterministic-cuDNN setup.
 
 For HIER, the equivalent cheap anchor is a one-epoch dry run of the exact
 ResNet-50 In-Shop script after changing only device allocation.  Any single-GPU
