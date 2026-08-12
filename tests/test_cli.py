@@ -1002,8 +1002,10 @@ def test_image_end_to_end_derived_recipe_executes_its_declared_objective(
     "objective",
     ["proxy_anchor_lops_pg", "proxy_anchor_compactness", "batch_hard_triplet"],
 )
-def test_image_end_to_end_proxy_anchor_experiment_keeps_requested_objective_with_auto_recipe(
+@pytest.mark.parametrize("recipe", ["auto", "proxy_anchor.inshop.official-51db570"])
+def test_image_end_to_end_proxy_anchor_experiment_keeps_requested_objective_with_matched_recipe(
     objective: str,
+    recipe: str,
     tmp_path: Path,
     monkeypatch: Any,
 ) -> None:
@@ -1052,7 +1054,7 @@ def test_image_end_to_end_proxy_anchor_experiment_keeps_requested_objective_with
             "--objectives",
             objective,
             "--recipe",
-            "auto",
+            recipe,
         ],
     )
 

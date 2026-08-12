@@ -1860,8 +1860,7 @@ def image_end_to_end(
             # back into plain Proxy Anchor while retaining their recipe labels.
             requested_objective = resolved_objectives[0]
             if (
-                recipe == "auto"
-                and requested_objective in _DERIVED_OBJECTIVE_BASE
+                requested_objective in _DERIVED_OBJECTIVE_BASE
                 and base_config.objectives == (base_method,)
             ):
                 resolved_objectives = (requested_objective,)
