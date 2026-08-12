@@ -135,6 +135,13 @@ config, seed 0, ResNet-50 construction, data view, and compatibility runtime;
 the only arm selector is `--loss oproxy` versus `--loss dadaproxy`, and the only
 smoke-only config change is `n_epochs: 200 -> 6`.  The package tree resolves
 Python 3.13.9, Torch 2.13.0+cu130, torchvision 0.28.0+cu130, and pandas 2.3.3.
+With CUDA hidden, the exact `pretrainedmodels` constructor successfully built
+the legacy torchvision ResNet-50 (25,557,032 parameters) from cached
+`resnet50-19c8e357.pth`, whose SHA-256 is
+`19c8e3572231adff6824a2da93fd67b5986919a2e65f8b6007eab4edee220097`.
+Both old and new GradScaler entry points exist, and a CPU nuclear-norm backward
+is finite.  The decisive `(270, 3997)` CUDA nuclear-norm backward remains
+deferred until the active GPU queue is idle.
 
 Even this pair is a compatibility and cost gate, not a causal method result.
 The training-loop field named `MAP` ranks only the top 50 and is not standard
