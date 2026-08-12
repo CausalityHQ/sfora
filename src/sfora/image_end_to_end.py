@@ -50,6 +50,8 @@ EndToEndObjective = Literal[
     "proxy_anchor",
     "proxy_anchor_lops_pg",
     "proxy_anchor_compactness",
+    "proxy_anchor_mcps_pg",
+    "proxy_anchor_proxy_compactness",
     "proxy_anchor_coalition",
     "proxy_anchor_cem",
     "tversky_proxy_anchor",
@@ -477,6 +479,7 @@ class EndToEndMethodMetrics:
     train_interference: dict[str, float] | None = None
     gsi_diagnostics: dict[str, float] | None = None
     lops_diagnostics: dict[str, float] | None = None
+    mcps_diagnostics: dict[str, float] | None = None
     selected_step: int | None = None
     selection_metric: str | None = None
     selection_score: float | None = None
@@ -962,6 +965,19 @@ def run_image_end_to_end_benchmark(
             model = model.to(device)
             if config.freeze_batch_norm_affine:
                 _freeze_batch_norm_affine_parameters(model)
+        mcps_state: _MCPSCentroidState | None = None
+        if objective == "proxy_anchor_mcps_pg":
+            proxy_embeddings = _metric_proxy_embeddings(model)
+            proxy_labels = _metric_proxy_labels(model)
+            if proxy_embeddings is None or proxy_labels is None:
+                raise RuntimeError("MCPS-PG requires live class proxies")
+            mcps_state = _MCPSCentroidState(
+                proxy_labels,
+                dimensions=int(proxy_embeddings.shape[1]),
+                device=device,
+                dtype=proxy_embeddings.dtype,
+                torch_module=torch,
+            )
         # Whatever retrieval is scored from. Defaults to the student, and is rebound to
         # the EMA copy below when `ema_weight_averaging` is set. Bound here rather than
         # beside the teacher because objectives that skip training (frozen_pretrained)
@@ -970,6 +986,7 @@ def run_image_end_to_end_benchmark(
         history: list[float] = []
         gsi_step_diagnostics: list[dict[str, float]] = []
         lops_step_diagnostics: list[dict[str, float]] = []
+        mcps_step_diagnostics: list[dict[str, float]] = []
         best_test_recall_at_1: float | None = None
         best_test_epoch: int | None = None
         best_test_retrieval: ImageRetrievalMetrics | None = None
@@ -1244,6 +1261,7 @@ def run_image_end_to_end_benchmark(
                     model.train()
                     if config.freeze_batch_norm:
                         _freeze_batch_norm_layers(model)
+                mcps_embeddings_to_update = None
                 if config.mead_weight > 0.0:
                     if not isinstance(images, tuple) or len(images) != 2:
                         raise ValueError(
@@ -1463,6 +1481,28 @@ def run_image_end_to_end_benchmark(
                                 diagnostics=diagnostics,
                             )
                         )
+                    if objective == "proxy_anchor_mcps_pg":
+                        assert mcps_state is not None
+                        proxy_embeddings = _metric_proxy_embeddings(model)
+                        if proxy_embeddings is None:
+                            raise RuntimeError("MCPS-PG lost its class proxies")
+                        mcps_embeddings_to_update = embeddings.detach()
+                        targets, memory_mask = mcps_state.targets(labels, proxy_embeddings)
+                        hook_embeddings = embeddings.detach()
+                        embeddings.register_hook(
+                            lambda gradient,
+                            frozen_embeddings=hook_embeddings,
+                            frozen_targets=targets,
+                            frozen_memory_mask=memory_mask,
+                            diagnostics=mcps_step_diagnostics: _mcps_pg_embedding_gradient(
+                                gradient,
+                                frozen_embeddings,
+                                frozen_targets,
+                                frozen_memory_mask,
+                                torch_module=torch,
+                                diagnostics=diagnostics,
+                            )
+                        )
                     teacher_embeddings = None
                     if teacher_model is not None:
                         with torch.no_grad():
@@ -1557,6 +1597,10 @@ def run_image_end_to_end_benchmark(
                     torch_module=torch,
                 )
                 optimizer.step()
+                if mcps_state is not None:
+                    if mcps_embeddings_to_update is None:
+                        raise RuntimeError("MCPS-PG did not capture its pre-step embeddings")
+                    mcps_state.update(mcps_embeddings_to_update, labels)
                 if ema_teacher is not None:
                     _update_ema_teacher(
                         ema_teacher,
@@ -1805,6 +1849,7 @@ def run_image_end_to_end_benchmark(
             boundary_axis_diagnostics=boundary_axis_diagnostics,
         )
         lops_diagnostics = _summarize_lops_training_diagnostics(lops_step_diagnostics)
+        mcps_diagnostics = _summarize_mcps_training_diagnostics(mcps_step_diagnostics)
         method_key = f"{objective}_end_to_end:{config.backbone_name}"
         methods[method_key] = EndToEndMethodMetrics(
             model_name=config.backbone_name,
@@ -1823,6 +1868,7 @@ def run_image_end_to_end_benchmark(
             train_interference=train_interference,
             gsi_diagnostics=gsi_diagnostics,
             lops_diagnostics=lops_diagnostics,
+            mcps_diagnostics=mcps_diagnostics,
             selected_step=selected_step,
             selection_metric=selection_metric,
             selection_score=selection_score,
@@ -3077,6 +3123,8 @@ def _uses_metric_proxies(objective: str, config: ImageEndToEndConfig) -> bool:
         "proxy_anchor",
         "proxy_anchor_lops_pg",
         "proxy_anchor_compactness",
+        "proxy_anchor_mcps_pg",
+        "proxy_anchor_proxy_compactness",
         "proxy_anchor_coalition",
         "proxy_anchor_cem",
         "tversky_proxy_anchor",
@@ -3747,6 +3795,14 @@ def _proxy_anchor_objective_loss(**kwargs: Any) -> Any:
     if kwargs["objective"] == "proxy_anchor_compactness":
         loss = loss + 0.1 * _positive_compactness_loss(
             embeddings, labels, torch_module=torch_module
+        )
+    if kwargs["objective"] == "proxy_anchor_proxy_compactness":
+        loss = loss + 0.1 * _proxy_compactness_loss(
+            embeddings,
+            labels,
+            proxy_embeddings=proxy_embeddings,
+            proxy_labels=proxy_labels,
+            torch_module=torch_module,
         )
     if config.ipsr_weight > 0.0 and kwargs.get("ipsr_state") is not None:
         sample_indices = kwargs.get("sample_indices")
@@ -4581,6 +4637,8 @@ _OBJECTIVE_LOSSES: dict[str, Callable[..., Any]] = {
     "proxy_anchor": _proxy_anchor_objective_loss,
     "proxy_anchor_lops_pg": _proxy_anchor_objective_loss,
     "proxy_anchor_compactness": _proxy_anchor_objective_loss,
+    "proxy_anchor_mcps_pg": _proxy_anchor_objective_loss,
+    "proxy_anchor_proxy_compactness": _proxy_anchor_objective_loss,
     "proxy_anchor_coalition": _proxy_anchor_coalition_objective_loss,
     "proxy_anchor_cem": _proxy_anchor_cem_objective_loss,
     "tversky_proxy_anchor": _tversky_proxy_anchor_objective_loss,
@@ -4690,6 +4748,8 @@ def _objective_display_name(objective: str) -> str:
         "proxy_anchor": "Proxy Anchor",
         "proxy_anchor_lops_pg": "Proxy Anchor + LOPS-PG",
         "proxy_anchor_compactness": "Proxy Anchor + Positive Compactness",
+        "proxy_anchor_mcps_pg": "Proxy Anchor + MCPS-PG",
+        "proxy_anchor_proxy_compactness": "Proxy Anchor + Proxy Compactness",
         "proxy_anchor_coalition": "Proxy Anchor + Coalition Supervision",
         "proxy_anchor_cem": "Proxy Anchor + Confusion-Edge Margin",
         "tversky_proxy_anchor": "Tversky contrast similarity",
@@ -5934,6 +5994,49 @@ def _mcps_pg_embedding_gradient(
     scale = torch_module.zeros_like(dots)
     scale[conflict] = dots[conflict] / squared_norms[conflict]
     return gradient - scale[:, None] * tangents
+
+
+def _summarize_mcps_training_diagnostics(
+    records: list[dict[str, float]],
+) -> dict[str, float] | None:
+    if not records:
+        return None
+    keys = tuple(records[0])
+    totals = {key: sum(record[key] for record in records) for key in keys}
+    rows = totals["rows"]
+    memory_rows = totals["memory_target_rows"]
+    memory_eligible = totals["memory_eligible_rows"]
+    totals.update(
+        {
+            "memory_target_rate": memory_rows / rows if rows else 0.0,
+            "conflict_rate": (
+                totals["memory_conflict_rows"] / memory_eligible
+                if memory_eligible
+                else 0.0
+            ),
+            "skip_rate": (rows - totals["eligible_rows"]) / rows if rows else 0.0,
+        }
+    )
+    return totals
+
+
+def _proxy_compactness_loss(
+    embeddings: Any,
+    labels: Any,
+    *,
+    proxy_embeddings: Any | None,
+    proxy_labels: Any | None,
+    torch_module: Any,
+) -> Any:
+    if proxy_embeddings is None or proxy_labels is None:
+        raise ValueError("proxy compactness requires class proxies")
+    matches = labels[:, None].eq(proxy_labels[None, :])
+    if not bool(matches.any(dim=1).all()) or bool(matches.sum(dim=1).ne(1).any()):
+        raise ValueError("proxy compactness requires exactly one matching proxy per row")
+    indices = matches.to(torch_module.long).argmax(dim=1)
+    targets = _normalize(proxy_embeddings.detach(), torch_module)[indices]
+    normalized = _normalize(embeddings, torch_module)
+    return (1.0 - (normalized * targets).sum(dim=1)).mean()
 
 
 def _positive_compactness_loss(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
@@ -8699,6 +8802,7 @@ def _to_payload(result: ImageEndToEndResult) -> dict[str, Any]:
                 "train_interference": metrics.train_interference,
                 "gsi_diagnostics": metrics.gsi_diagnostics,
                 "lops_diagnostics": metrics.lops_diagnostics,
+                "mcps_diagnostics": metrics.mcps_diagnostics,
                 "selected_step": metrics.selected_step,
                 "selection_metric": metrics.selection_metric,
                 "selection_score": metrics.selection_score,

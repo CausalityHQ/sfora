@@ -1000,7 +1000,13 @@ def test_image_end_to_end_derived_recipe_executes_its_declared_objective(
 
 @pytest.mark.parametrize(
     "objective",
-    ["proxy_anchor_lops_pg", "proxy_anchor_compactness", "batch_hard_triplet"],
+    [
+        "proxy_anchor_lops_pg",
+        "proxy_anchor_compactness",
+        "proxy_anchor_mcps_pg",
+        "proxy_anchor_proxy_compactness",
+        "batch_hard_triplet",
+    ],
 )
 @pytest.mark.parametrize("recipe", ["auto", "proxy_anchor.inshop.official-51db570"])
 def test_image_end_to_end_proxy_anchor_experiment_keeps_requested_objective_with_matched_recipe(

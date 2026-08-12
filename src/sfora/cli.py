@@ -2384,6 +2384,8 @@ _DERIVED_OBJECTIVE_BASE: dict[str, str] = {
     "proxy_anchor_cem": "proxy_anchor",
     "proxy_anchor_lops_pg": "proxy_anchor",
     "proxy_anchor_compactness": "proxy_anchor",
+    "proxy_anchor_mcps_pg": "proxy_anchor",
+    "proxy_anchor_proxy_compactness": "proxy_anchor",
     # Lennard--Jones is an additive finite-shell term on Proxy Anchor.  Treat it
     # as a derived Proxy Anchor objective so matched recipe mode can resolve the
     # base BN-Inception/optimizer/schedule rather than silently falling back to
