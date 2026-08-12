@@ -13,6 +13,7 @@ from sfora.dada_reproduction import (
     publish_dada_smoke_report,
     run_dada_smoke,
     validate_dada_source,
+    validate_inshop_dataset_root,
 )
 
 
@@ -21,6 +22,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--dada-checkout", required=True, type=Path)
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--work-root", required=True, type=Path)
+    parser.add_argument("--dependency-root", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--gpu", required=True, type=int)
     parser.add_argument("--seed", required=True, type=int)
@@ -45,11 +47,12 @@ def main(argv: list[str] | None = None) -> int:
             python=Path(sys.executable).resolve(),
             source=source,
             smoke_config=smoke_config,
-            dataset_root=args.dataset_root.resolve(strict=True),
+            dataset_root=validate_inshop_dataset_root(args.dataset_root),
             output_root=result_root,
             save_name=f"dada-inshop-smoke-seed{args.seed}",
             gpu=args.gpu,
             seed=args.seed,
+            dependency_root=args.dependency_root,
         )
         report = run_dada_smoke(request)
         publish_dada_smoke_report(output, report)

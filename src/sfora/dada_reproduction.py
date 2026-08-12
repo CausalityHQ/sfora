@@ -68,6 +68,7 @@ class DadaSmokeRequest:
     save_name: str
     gpu: int
     seed: int
+    dependency_root: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,7 @@ class DadaProgress:
     optimizer_steps: int
     last_loss: float
     last_recall_at_1: float
+    last_epoch_seconds: float
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,17 @@ def validate_dada_source(checkout: Path) -> DadaSource:
     )
 
 
+def validate_inshop_dataset_root(dataset_root: Path) -> Path:
+    root = dataset_root.resolve(strict=True)
+    try:
+        inshop = (root / "inshop").resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise ValueError("DADA In-Shop dataset is missing") from exc
+    if not inshop.is_dir():
+        raise ValueError("DADA In-Shop dataset is not a directory")
+    return root
+
+
 def build_smoke_config(
     source: DadaSource,
     destination: Path,
@@ -179,8 +192,15 @@ def build_dada_command(request: DadaSmokeRequest) -> tuple[str, ...]:
         raise ValueError("gpu must be exactly 0")
     checkout = str(request.source.checkout)
     main_path = str(request.source.checkout / "main.py")
+    dependency = ""
+    if request.dependency_root is not None:
+        dependency_root = request.dependency_root.resolve(strict=True)
+        if not dependency_root.is_dir() or dependency_root.is_symlink():
+            raise ValueError("DADA dependency root must be a real directory")
+        dependency = f"sys.path.insert(0,{str(dependency_root)!r});"
     bootstrap = (
         "import runpy,sys;"
+        f"{dependency}"
         f"sys.path.insert(0,{checkout!r});"
         f"runpy.run_path({main_path!r},run_name='__main__')"
     )
@@ -210,12 +230,15 @@ _TRAIN_RE = re.compile(
     r"DML:(?P<loss>[-+A-Za-z0-9.eE]+)"
 )
 _RECALL_RE = re.compile(r"e_recall@1:\s*(?P<recall>[-+A-Za-z0-9.eE]+)")
+_EPOCH_RUNTIME_RE = re.compile(
+    r"Total Epoch Runtime:\s*(?P<seconds>[-+A-Za-z0-9.eE]+)s"
+)
 
 
 def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
-    epochs: dict[int, int] = {}
-    losses: list[float] = []
+    epochs: dict[int, tuple[int, int, float]] = {}
     recalls: list[float] = []
+    epoch_runtimes: list[float] = []
     for raw_line in lines:
         line = str(raw_line)
         if "Traceback (most recent call last):" in line:
@@ -227,29 +250,42 @@ def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
             if train_match is not None:
                 done = int(train_match.group("done"))
                 total = int(train_match.group("total"))
-                if done <= 0 or total <= 0 or done != total:
+                if done < 0 or total <= 0 or done > total:
                     raise ValueError("DADA optimizer progress is incomplete")
                 loss = float(train_match.group("loss"))
                 if not math.isfinite(loss):
                     raise ValueError("DADA loss is non-finite")
                 epoch = int(train_match.group("epoch"))
-                epochs[epoch] = 0 if epoch == 0 else done
-                losses.append(loss)
+                epochs[epoch] = (done, total, loss)
             recall_match = _RECALL_RE.search(fragment)
             if recall_match is not None:
                 recall = float(recall_match.group("recall"))
                 if not math.isfinite(recall):
                     raise ValueError("DADA recall is non-finite")
                 recalls.append(recall)
-    if not epochs or not losses:
+            runtime_match = _EPOCH_RUNTIME_RE.search(fragment)
+            if runtime_match is not None:
+                runtime = float(runtime_match.group("seconds"))
+                if not math.isfinite(runtime) or runtime <= 0.0:
+                    raise ValueError("DADA epoch runtime is invalid")
+                epoch_runtimes.append(runtime)
+    if not epochs:
         raise ValueError("DADA optimizer progress is absent")
     if not recalls:
         raise ValueError("DADA evaluation R@1 is absent")
+    if sorted(epochs) != list(range(len(epochs))):
+        raise ValueError("DADA epoch sequence differs")
+    if len(recalls) != len(epochs) or len(epoch_runtimes) != len(epochs):
+        raise ValueError("DADA per-epoch evidence differs")
+    ordered = [epochs[epoch] for epoch in sorted(epochs)]
+    if any(done != total for done, total, _loss in ordered):
+        raise ValueError("DADA optimizer progress is incomplete")
     return DadaProgress(
         completed_epochs=len(epochs),
-        optimizer_steps=sum(epochs.values()),
-        last_loss=losses[-1],
+        optimizer_steps=sum(done for done, _total, _loss in ordered[1:]),
+        last_loss=ordered[-1][2],
         last_recall_at_1=recalls[-1],
+        last_epoch_seconds=epoch_runtimes[-1],
     )
 
 
@@ -264,24 +300,22 @@ def _execute_dada_child(request: DadaSmokeRequest) -> DadaChildResult:
             stdout=log_handle,
             stderr=subprocess.STDOUT,
         )
-        while process.poll() is None:
-            observed = subprocess.run(
-                (
-                    "nvidia-smi",
-                    "--query-compute-apps=pid,used_memory",
-                    "--format=csv,noheader,nounits",
-                ),
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if observed.returncode == 0:
-                memory = _parse_gpu_memory(observed.stdout, pid=process.pid)
+        try:
+            while process.poll() is None:
+                memory = _query_gpu_memory(pid=process.pid)
                 if memory is not None:
                     peak = memory if peak is None else max(peak, memory)
-            time.sleep(0.5)
-        returncode = process.wait()
+                time.sleep(0.5)
+            returncode = process.wait()
+        except BaseException:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            raise
     return DadaChildResult(
         returncode=returncode,
         stdout=log_path.read_text(encoding="utf-8", errors="replace"),
@@ -303,6 +337,26 @@ def _parse_gpu_memory(output: str, *, pid: int) -> int | None:
         if observed_pid == pid and memory > 0:
             return memory
     return None
+
+
+def _query_gpu_memory(*, pid: int) -> int | None:
+    try:
+        observed = subprocess.run(
+            (
+                "nvidia-smi",
+                "--query-compute-apps=pid,used_memory",
+                "--format=csv,noheader,nounits",
+            ),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if observed.returncode != 0:
+        return None
+    return _parse_gpu_memory(observed.stdout, pid=pid)
 
 
 def _probe_environment(request: DadaSmokeRequest) -> dict[str, object]:
@@ -340,8 +394,13 @@ def _build_checkpoint_reload_command(
     request: DadaSmokeRequest, checkpoint: Path
 ) -> tuple[str, ...]:
     checkout = str(request.source.checkout)
+    dependency = ""
+    if request.dependency_root is not None:
+        dependency_root = request.dependency_root.resolve(strict=True)
+        dependency = f"sys.path.insert(0,{str(dependency_root)!r});"
     code = (
         "import sys;"
+        f"{dependency}"
         f"sys.path.insert(0,{checkout!r});"
         "import torch;"
         "x=torch.load(sys.argv[1],map_location='cpu',weights_only=False);"
@@ -394,6 +453,7 @@ def _base_report(status: str, failure: str | None) -> dict[str, object]:
             "completed_epochs": 0,
             "optimizer_steps": 0,
             "last_loss": None,
+            "last_epoch_seconds": None,
         },
         "evaluation": {"last_recall_at_1": None, "checkpoint": None},
         "resources": {"peak_gpu_memory_mib": None},
@@ -429,7 +489,12 @@ def validate_dada_smoke_report(value: object) -> None:
         "config": ("dataset", "epochs", "batch_size", "seed"),
         "environment": ("python", "torch", "cuda", "device"),
         "process": ("returncode", "elapsed_seconds"),
-        "progress": ("completed_epochs", "optimizer_steps", "last_loss"),
+        "progress": (
+            "completed_epochs",
+            "optimizer_steps",
+            "last_loss",
+            "last_epoch_seconds",
+        ),
         "evaluation": ("last_recall_at_1", "checkpoint"),
         "resources": ("peak_gpu_memory_mib",),
         "projection": ("projected_full_run_seconds",),
@@ -489,21 +554,22 @@ def validate_dada_smoke_report(value: object) -> None:
         if progress["completed_epochs"] != 6 or progress["optimizer_steps"] <= 0:
             raise ValueError("DADA PASS progress differs")
         _finite_float(progress["last_loss"], "last_loss")
+        last_epoch_seconds = _finite_float(
+            progress["last_epoch_seconds"], "last_epoch_seconds", positive=True
+        )
         _finite_float(evaluation["last_recall_at_1"], "last_recall_at_1")
         projected = _finite_float(
             projection["projected_full_run_seconds"],
             "projected_full_run_seconds",
             positive=True,
         )
-        expected = process["elapsed_seconds"] * 200.0 / 6.0
+        expected = last_epoch_seconds * 200.0
         if projected != expected:
             raise ValueError("DADA projected full-run duration differs")
         if type(evaluation["checkpoint"]) is not str or not evaluation["checkpoint"]:
             raise ValueError("DADA checkpoint differs")
         if report["failure"] is not None:
             raise ValueError("DADA PASS failure must be null")
-        if peak is None:
-            raise ValueError("DADA PASS peak GPU memory is absent")
     elif type(report["failure"]) is not str or not report["failure"]:
         raise ValueError("DADA failed report needs a failure string")
 
@@ -564,13 +630,16 @@ def run_dada_smoke(request: DadaSmokeRequest) -> dict[str, object]:
             "completed_epochs": progress.completed_epochs,
             "optimizer_steps": progress.optimizer_steps,
             "last_loss": float(progress.last_loss),
+            "last_epoch_seconds": float(progress.last_epoch_seconds),
         },
         "evaluation": {
             "last_recall_at_1": float(progress.last_recall_at_1),
             "checkpoint": str(checkpoint),
         },
         "resources": {"peak_gpu_memory_mib": child.peak_gpu_memory_mib},
-        "projection": {"projected_full_run_seconds": elapsed * 200.0 / 6.0},
+        "projection": {
+            "projected_full_run_seconds": progress.last_epoch_seconds * 200.0
+        },
         "failure": None,
     }
     validate_dada_smoke_report(report)

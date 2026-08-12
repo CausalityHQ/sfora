@@ -156,6 +156,18 @@ def test_build_smoke_config_never_clobbers(tmp_path: Path, monkeypatch: pytest.M
     assert destination.read_bytes() == b"sentinel"
 
 
+def test_inshop_dataset_preflight_requires_real_registered_subdirectory(
+    tmp_path: Path,
+) -> None:
+    dataset_root = tmp_path / "data"
+    dataset_root.mkdir()
+    with pytest.raises(ValueError, match="In-Shop dataset"):
+        dada.validate_inshop_dataset_root(dataset_root)
+
+    (dataset_root / "inshop").mkdir()
+    assert dada.validate_inshop_dataset_root(dataset_root) == dataset_root.resolve()
+
+
 def test_command_preserves_official_cli_contract(tmp_path: Path) -> None:
     request = dada.DadaSmokeRequest(
         python=Path("/opt/dada/bin/python"),
@@ -242,6 +254,20 @@ def test_checkpoint_reload_command_inserts_pinned_checkout(tmp_path: Path) -> No
     assert command[-1] == str(checkpoint)
 
 
+def test_command_inserts_dedicated_dependency_root_without_changing_torch(
+    tmp_path: Path,
+) -> None:
+    request = _request(tmp_path)
+    dependency_root = tmp_path / "deps"
+    dependency_root.mkdir()
+    request = dada.DadaSmokeRequest(**{**request.__dict__, "dependency_root": dependency_root})
+
+    command = dada.build_dada_command(request)
+
+    assert str(dependency_root) in command[4]
+    assert command[4].index(str(dependency_root)) < command[4].index(str(request.source.checkout))
+
+
 @pytest.mark.parametrize(("field", "value"), [("seed", 1), ("gpu", 1)])
 def test_command_rejects_unregistered_seed_or_gpu(
     tmp_path: Path, field: str, value: int
@@ -274,12 +300,98 @@ def test_log_parser_requires_finite_loss_and_optimizer_progress() -> None:
     assert progress.optimizer_steps == 5 * 143
     assert math.isfinite(progress.last_loss)
     assert progress.last_recall_at_1 == pytest.approx(0.85)
+    assert progress.last_epoch_seconds == pytest.approx(12.5)
+
+
+def test_log_parser_accepts_real_tqdm_intermediate_frames() -> None:
+    frames = []
+    for epoch in range(6):
+        frames.extend(
+            (
+                f"[Train Epoch {epoch}]: 0.00% [0/8, 00:00/?, DisL:0.5, DML:0.4]",
+                f"[Train Epoch {epoch}]: 50.00% [4/8, 00:01/00:01, DisL:0.4, DML:0.3]",
+                f"[Train Epoch {epoch}]: 100.00% [8/8, 00:02/00:00, DisL:0.3, DML:0.2]",
+                "e_recall@1: 0.8",
+                "Total Epoch Runtime: 12.50s",
+            )
+        )
+
+    progress = dada.parse_dada_log("\r".join(frames).splitlines())
+
+    assert progress.completed_epochs == 6
+    assert progress.optimizer_steps == 5 * 8
+    assert progress.last_loss == pytest.approx(0.2)
+
+
+def test_log_parser_rejects_incomplete_last_tqdm_frame() -> None:
+    with pytest.raises(ValueError, match="optimizer progress"):
+        dada.parse_dada_log(
+            (
+                "[Train Epoch 0]: 0.00% [0/8, 00:00/?, DisL:0.5, DML:0.4]",
+                "[Train Epoch 0]: 50.00% [4/8, 00:01/00:01, DisL:0.4, DML:0.3]",
+                "e_recall@1: 0.8",
+                "Total Epoch Runtime: 12.50s",
+            )
+        )
 
 
 def test_gpu_memory_parser_selects_only_the_training_pid() -> None:
     output = "111, 1024\n222, 35396\n333, 2048\n"
     assert dada._parse_gpu_memory(output, pid=222) == 35_396
     assert dada._parse_gpu_memory(output, pid=444) is None
+
+
+@pytest.mark.parametrize(
+    "failure",
+    (FileNotFoundError("nvidia-smi"), subprocess.TimeoutExpired("nvidia-smi", 5)),
+)
+def test_gpu_memory_telemetry_failure_is_nonfatal(
+    monkeypatch: pytest.MonkeyPatch, failure: BaseException
+) -> None:
+    def fail(*_args: object, **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        raise failure
+
+    monkeypatch.setattr(dada.subprocess, "run", fail)
+
+    assert dada._query_gpu_memory(pid=123) is None
+
+
+def test_child_is_terminated_and_reaped_when_monitoring_is_interrupted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    request = _request(tmp_path)
+    request.output_root.mkdir()
+
+    class Process:
+        pid = 321
+        terminated = False
+        waited = False
+
+        def poll(self) -> None:
+            return None
+
+        def terminate(self) -> None:
+            self.terminated = True
+
+        def wait(self, timeout: float | None = None) -> int:
+            del timeout
+            self.waited = True
+            return -15
+
+    process = Process()
+    monkeypatch.setattr(dada.subprocess, "Popen", lambda *_args, **_kwargs: process)
+    monkeypatch.setattr(dada, "_query_gpu_memory", lambda **_kwargs: None)
+
+    def interrupt(_seconds: float) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(dada.time, "sleep", interrupt)
+
+    with pytest.raises(KeyboardInterrupt):
+        dada._execute_dada_child(request)
+
+    assert process.terminated is True
+    assert process.waited is True
 
 
 @pytest.mark.parametrize(
@@ -360,7 +472,7 @@ def test_success_report_recomputes_runtime_and_budget_fields(
         lambda _request: dada.DadaChildResult(
             returncode=0,
             stdout=_successful_log(),
-            elapsed_seconds=75.0,
+            elapsed_seconds=90.0,
             peak_gpu_memory_mib=12_345,
         ),
     )
@@ -384,10 +496,10 @@ def test_success_report_recomputes_runtime_and_budget_fields(
     assert report["projection"]["projected_full_run_seconds"] == pytest.approx(2500.0)
     assert report["progress"]["optimizer_steps"] == 715
     assert report["evaluation"]["last_recall_at_1"] == pytest.approx(0.85)
+    assert report["progress"]["last_epoch_seconds"] == pytest.approx(12.5)
     missing_peak = copy.deepcopy(report)
     missing_peak["resources"]["peak_gpu_memory_mib"] = None
-    with pytest.raises(ValueError, match="peak GPU memory"):
-        dada.validate_dada_smoke_report(missing_peak)
+    dada.validate_dada_smoke_report(missing_peak)
 
 
 def test_runtime_parse_failure_returns_invalid_report(
@@ -468,6 +580,31 @@ def test_publish_report_never_clobbers_existing_destination(tmp_path: Path) -> N
     assert not list(tmp_path.glob(".*.tmp"))
 
 
+def test_publish_report_reloads_mode_0600_and_preserves_foreign_temp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "report.json"
+    foreign_temp = tmp_path / ".report.json.foreign.tmp"
+    foreign_temp.write_bytes(b"foreign")
+    payload = dada.invalid_dada_smoke_report("fixture failure")
+    original = dada.validate_dada_smoke_report
+    validations = 0
+
+    def count_validations(value: object) -> None:
+        nonlocal validations
+        validations += 1
+        original(value)
+
+    monkeypatch.setattr(dada, "validate_dada_smoke_report", count_validations)
+
+    dada.publish_dada_smoke_report(destination, payload)
+
+    assert validations == 2
+    assert destination.stat().st_mode & 0o777 == 0o600
+    assert dada._strict_json_object(destination.read_bytes()) == payload
+    assert foreign_temp.read_bytes() == b"foreign"
+
+
 @pytest.mark.parametrize(
     ("path", "replacement"),
     [
@@ -511,6 +648,8 @@ def test_cli_refuses_existing_report_before_reading_source(tmp_path: Path) -> No
             str(tmp_path / "missing-data"),
             "--work-root",
             str(tmp_path / "work"),
+            "--dependency-root",
+            str(tmp_path / "missing-deps"),
             "--output",
             str(destination),
             "--gpu",

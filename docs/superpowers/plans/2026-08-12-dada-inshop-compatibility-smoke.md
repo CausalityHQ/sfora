@@ -15,6 +15,7 @@
 - The faithful config is upstream `configs/inshop.yaml`; the smoke changes only `n_epochs: 200` to `n_epochs: 6`.
 - Use dataset root `/home/riomus/dada-data`, whose `inshop/img` and `list_eval_partition.txt` resolve to the registered In-Shop bytes.
 - Preserve batch size 180, ResNet-50 LayerNorm-double backbone, 512-D embedding, optimizer/scheduler, sampler, loss weights, warmup, augmentation, and evaluation geometry.
+- Install only `termcolor==3.2.0` and `pretrainedmodels==0.7.4` with `uv pip --no-deps --target /home/riomus/dada-smoke-deps`; insert that dedicated directory after the pinned DADA checkout in child import precedence. Do not modify or shadow the shared Torch/CUDA environment.
 - GPU nondeterminism is reported, not misrepresented as bitwise reproducibility.
 - Run one structural smoke only. Do not launch a full 200-epoch run until the smoke report is reviewed and its measured step rate is converted into a frozen GPU-hour estimate.
 - Do not overlap the active PA/compactness/UNICOM/Lorentz/CTM queue.
@@ -209,7 +210,7 @@ schema_version, status, source, config, command, environment, process,
 progress, evaluation, resources, projection, failure
 ```
 
-`status` is one of `PASS`, `INCOMPATIBLE`, or `INVALID`. `PASS` requires child exit 0, six completed epochs, finite loss, positive optimizer progress, a reloadable checkpoint, and finite In-Shop R@1. `projection` records measured six-epoch train seconds and the linear 200-epoch estimate; it is a budget estimate, not a promise. Capture observed Python/PyTorch/CUDA/device versions and peak GPU memory without requiring determinism.
+`status` is one of `PASS`, `INCOMPATIBLE`, or `INVALID`. `PASS` requires child exit 0, six completed epochs, finite loss, positive optimizer progress, a reloadable checkpoint, and finite In-Shop R@1. `projection` records the sixth (first fully unfrozen) epoch's end-to-end runtime multiplied by 200; it includes evaluation and is a conservative budget estimate, not a promise. Capture observed Python/PyTorch/CUDA/device versions and peak GPU memory when telemetry is available, without requiring either telemetry or determinism.
 
 - [ ] **Step 4: Run focused and affected checks**
 
@@ -259,10 +260,12 @@ Clone DADA at the pinned commit into `/home/riomus/DADA-726ee8b`; require clean 
 
 ```bash
 cd /home/riomus/sfora-dada-smoke
-.venv/bin/python -I -B scripts/run_dada_inshop_smoke.py \
+/home/riomus/group-learning/.venv/bin/python -I -B -c \
+  "import runpy,sys;sys.path.insert(0,'/home/riomus/sfora-dada-smoke/src');runpy.run_path('/home/riomus/sfora-dada-smoke/scripts/run_dada_inshop_smoke.py',run_name='__main__')" \
   --dada-checkout /home/riomus/DADA-726ee8b \
   --dataset-root /home/riomus/dada-data \
   --work-root /home/riomus/dada-smoke-work \
+  --dependency-root /home/riomus/dada-smoke-deps \
   --output reports/generated/dada_inshop_smoke_seed0.json \
   --gpu 0 --seed 0
 ```
