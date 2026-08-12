@@ -22,6 +22,7 @@ state of the art.
 | Method | Primary source and official code | In-Shop recipe | Published In-Shop R@1 | Reproduction assessment |
 |---|---|---:|---:|---|
 | UNICOM (ICLR 2023) | [paper](https://arxiv.org/abs/2304.05884), [code and weights](https://github.com/deepglint/unicom) | Exact scripts for 128-epoch supervised fine-tuning: ViT-B/16 and ViT-L/14 use 4 GPUs; ViT-L/14@336 uses 8 GPUs | 74.6 zero-shot and 95.5 supervised (B/16); 96.0 supervised (L/14); 96.7 supervised (L/14@336) | Strongest audited frontier-model anchor. Official model loading, In-Shop dataset support, fine-tuning scripts, and worker seeding are present. The main-process `setup_seed` helper that enables deterministic cuDNN is defined but never called, so the official training path is not deterministically seeded. In the four-rank PartialFC path, each rank independently samples its own 512-of-768 feature mask, computes logits for its class shard in that subspace, and then participates in one global distributed softmax. Evaluation normalizes the full 768-D embedding, truncates it to the scripted 512 dimensions, and then ranks by Euclidean distance; the truncated vectors are not renormalized, so this must not be described as exact cosine retrieval. Only pretrained backbones are released, not an In-Shop-fine-tuned checkpoint, and the evaluator reports R@1 only. Its LAION-400M pretraining used 128 V100 GPUs across 16 nodes; that pretraining, ViT architecture, ArcFace/PartialFC objective, and 4–8 GPU fine-tuning recipe make it a different compute/data regime rather than a matched loss baseline. |
+| VPTSP-G / semantic proxies (ICLR 2024) | [paper](https://openreview.net/forum?id=TWVMVPx2wO), [official code](https://github.com/Noahsark/ParameterEfficient-DML) | Released `config/inshop_basic.yaml`: one GPU, ViT-B/16 ImageNet-21K, 512-D head, batch 32, 75 epochs, AdamW, visual prompts plus BitFit/head and class-conditioned semantic proxies | 92.5 for the released ViT-B/16 lane; 96.5 only for a supplemental ViT-L/14 CLIP-vision model pretrained on LAION-2B | Useful one-GPU parameter-efficient transformer anchor, but not a reproducible 96.5 frontier recipe. The official README explicitly warns that reproduced values vary with environment/hardware/randomness and supplies neither logs nor an In-Shop checkpoint. The repository has no committed CLIP/LAION ViT-L/14 In-Shop config or loader matching the supplemental 96.5 row; its released configs use `timm` ImageNet-family models. Therefore 92.5 is the code-backed reproduction target and 96.5 remains a different-pretraining published reference until its exact recipe is recovered. Class-conditioned prompt banks also scale with the training identities, so this is a semantic-proxy/PEFT lane rather than a compact-descriptor-only control. |
 | LOCORE (CVPR 2025) | [paper](https://arxiv.org/abs/2503.21772), [code and pretrained reranker](https://github.com/MrZilinXiao/LongContextReranker) | Re-ranks the top 100 images jointly from 50 DINOv2 local descriptors per image; the published trainer uses 8 GPUs and a GLDv2-trained long-context model | 88.5 global descriptor baseline; 89.1 tiny, **89.4 small**, 87.9 base after reranking | Reproducible second-stage anchor, not a global-descriptor SOTA row. The authors release extraction/evaluation code and a pretrained base checkpoint, but the reported In-Shop experiment consumes a fixed first-stage ranking plus local descriptors and changes inference complexity and gallery dependence. Its best In-Shop R@1 gain is +0.9 point for the small reranker, while the base model lowers R@1 despite improving mAP@R. Keep it in a separate reranking lane; do not compare 89.4 to UNICOM's 95.5 as if they were the same retrieval system. |
 | PA + DADA (AAAI 2024) | [paper](https://ojs.aaai.org/index.php/AAAI/article/view/29400), [code](https://github.com/Noahsark/DADA) | `configs/inshop.yaml`: 200 epochs, batch 180, `resnet50_layernorm_double`, `fd_fc1_dim=512`, `fc_fc2_dim=4096`, single GPU; embedding dimension 512 comes from the CLI default, not the YAML | 90.4 PA; 93.0 PA+DADA | Best audited modern proxy-based anchor. Exact config is present; evaluation uses normalized cosine similarity; and the code seeds Python, NumPy, and Torch and enables deterministic cuDNN. `fc_fc2_dim=4096` is a discriminator-head width, not the retrieval embedding dimension. No In-Shop checkpoint or log is supplied; only a CUB demo checkpoint is linked. The authors warn that GPU/environment changes can alter results. |
 | HIER (PA base, CVPR 2023) | [paper/project](https://cvlab.postech.ac.kr/project/HIER/), [code](https://github.com/sung-yeon-kim/HIER-CVPR23) | `scripts/Resnet50/hier_Inshop.sh`: 2 GPUs, 150 epochs, batch 90 per rank (effective 180), 512 hierarchical proxies, IPC 2, 512-dimensional embedding, `hyp_c=0.1` | 92.4 | Runnable official source and exact In-Shop script under MIT, but this is a published-pipeline anchor rather than a cosine-matched control: `hier/helpers.py` ranks by negative hyperbolic distance when `hyp_c > 0`. The table's 91.5 PA row uses BN-Inception while HIER's 92.4 row uses ResNet-50, so their difference is not even a same-backbone comparison; it also is not a PA retraining under HIER's AdamW/IPC/BN/150-epoch recipe. The repo requires old Torch/timm, provides neither In-Shop logs nor checkpoints, and sets `cudnn.benchmark=True`; paired multi-seed reporting is required. |
@@ -37,6 +38,7 @@ Repository snapshots inspected read-only:
 - DADA: `726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8`
 - UNICOM: `d71992ed969e6c271436ac0a0ee1f3ca61474ac0`
 - CCP-DML: `204b22c8fcbb0a4723151e8df37f423af40bb249`
+- VPTSP-G: `54687e56e76a00b4b3cc98e21206c5f69f570e62`
 
 ## Baseline ladder
 
@@ -49,30 +51,34 @@ Repository snapshots inspected read-only:
 3. **Modern proxy anchor:** reproduce PA + DADA from the exact official
    ResNet-50 In-Shop config.  First run seed 0 to validate the pipeline; proceed
    to seeds 1 and 2 only if the reproduction is credible.
-4. **Frontier representation anchor:** reproduce UNICOM's released-backbone
+4. **One-GPU transformer/PEFT anchor:** reproduce VPTSP-G from the released
+   ViT-B/16 In-Shop config, targeting its code-backed 92.5 rather than importing
+   the supplemental CLIP ViT-L/14 96.5 result.  This tests a modern frozen-backbone
+   adaptation lane but does not isolate MCPS-PG.
+5. **Frontier representation anchor:** reproduce UNICOM's released-backbone
    zero-shot In-Shop evaluation, targeting 74.6 R@1 for ViT-B/16.  This is the
    cheapest external check, but measures pretrained representation quality, not
    MCPS-PG or the supervised 95.5 pipeline.
-5. **Different geometry and recipe:** reproduce HIER with its PA base on
+6. **Different geometry and recipe:** reproduce HIER with its PA base on
    ResNet-50 only after DADA.  The ordering is based on DADA being the closer
    modern proxy comparator and on HIER's hyperbolic metric, distributed recipe,
    old dependency stack, absent checkpoint/log, and nondeterministic backend;
    it is not a claim that 150 epochs is intrinsically more expensive than
    DADA's 200.  A separately labelled cosine evaluation can diagnose geometry
    dependence but is not the published HIER result.
-6. **Transformer geometry anchor:** Hyp-ViT is useful only after the cheaper
+7. **Transformer geometry anchor:** Hyp-ViT is useful only after the cheaper
    released-weight UNICOM check.  If run, preserve the official 400-epoch
    command and report spherical and hyperbolic variants separately; neither is
    evidence about MCPS-PG on BN-Inception.
-7. **Supervised frontier pipeline:** reproduce UNICOM ViT-B/16 fine-tuning from
+8. **Supervised frontier pipeline:** reproduce UNICOM ViT-B/16 fine-tuning from
    its exact 128-epoch, four-GPU script only after the cheaper checks.  A
    one-GPU adaptation is a port, not an exact reproduction, and the 128-V100
    LAION-400M pretraining must never be credited to MCPS-PG.
-8. **Separate reranking lane:** reproduce LOCORE only as a two-stage local-
+9. **Separate reranking lane:** reproduce LOCORE only as a two-stage local-
    descriptor system, beginning with the released checkpoint and the paper's
    fixed top-100 protocol.  Its 89.4 best In-Shop R@1 is not a stronger global
    descriptor than UNICOM and does not support a descriptor-only claim.
-9. **Cross-dataset claim:** require at least one additional standard retrieval
+10. **Cross-dataset claim:** require at least one additional standard retrieval
    dataset and matched modern baselines before describing the method as a
    general DML improvement.
 
