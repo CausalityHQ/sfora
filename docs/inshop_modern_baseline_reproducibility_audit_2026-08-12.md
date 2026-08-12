@@ -117,6 +117,26 @@ prepared PyTorch-2.13/CUDA-13 environment is necessarily a compatibility port.
 The first GPU action remains a one-epoch structural run, separately labelled as
 a port, before any 200-epoch result is attempted.
 
+That structural pair is queued after the active PA/MCPS, compactness, and
+UNICOM jobs, never concurrently with them.  Both arms use the same official
+`inshop.yaml`, seed 0, ResNet-50 construction, data view, and compatibility
+runtime; the only arm difference is `--loss oproxy` versus
+`--loss dadaproxy`, and the only smoke-only config change is
+`n_epochs: 200 -> 1`.  The package tree is loaded explicitly through
+`PYTHONPATH` from the Python-3.13 runner; it currently resolves Torch
+2.13.0+cu130, torchvision 0.28.0+cu130, and pandas 2.3.3.
+
+This one-epoch result is deliberately **not** an optimization comparison.
+The source sets `d_warmup=1`; at epoch 0 the ordinary-proxy arm appends a zero
+DML loss without calling its criterion, while the DADA arm trains only its
+discriminator.  A pass therefore establishes environment, pretrained-model,
+dataset, discriminator, full query/gallery evaluation, and checkpoint
+compatibility, but it does not establish that either full objective can train
+for 200 epochs.  Before a long run, a second bounded smoke must cross the
+warmup boundary and demonstrate finite nonzero DML updates in both arms with
+identical update counts.  The one-epoch scores themselves have no method-value
+interpretation.
+
 For HIER, the equivalent cheap anchor is a one-epoch dry run of the exact
 ResNet-50 In-Shop script after changing only device allocation.  Any single-GPU
 adaptation is a port and must be compared against the unchanged distributed
