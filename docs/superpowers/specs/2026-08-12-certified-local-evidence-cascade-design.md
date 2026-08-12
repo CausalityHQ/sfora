@@ -1,6 +1,31 @@
 # Certified Local-Evidence Cascade
 
-**Status:** approved and self-reviewed design; implementation has not started
+**Status:** rejected at adversarial review; do not implement
+
+**Closure (2026-08-12):** CLEC is closed before implementation.  Its proposed
+PCA/orthogonal projection, Cauchy--Schwarz residual interval, threshold
+pruning, and exact survivor reranking duplicate the same search tuple already
+closed by the repository's ORBIT review (Panorama, FEXIPRO, BOND, L2AP, and
+PDX), while PLAID and EMVB already occupy bound/decompress/rerank execution for
+MaxSim.  Lifting a pairwise interval through `max` and `mean` is correct in
+exact arithmetic but is not a distinct algorithmic contribution.
+
+The design also fails as an engineering lane.  It certifies only the first
+rank while claiming an exact top-30 order; it has no outward-rounded
+finite-precision error contract; the 7.59 GB cold patch store plus projected
+hot index is over 200x the deployed global gallery; and a global top-64 stage
+already reduces exact MaxSim below the ViT encoder cost, leaving no credible
+end-to-end p95 speedup.  At a 25% exactification rate the p95 query is in the
+cold tail, so the stated p95 gate is internally inconsistent.
+
+Finally, the motivating `+6.67` measurement was an evaluation repair inside a
+regional arm that still lost Proxy Anchor; it was not evidence that local
+MaxSim beats the global descriptor.  The independent Cars probe also lost by
+1.47 R@1 points.  No CLEC source or implementation plan is authorized.  The
+useful work continues through the existing modern Pareto program: reproduce a
+modern anchor, finish the frozen UNICOM geometry audit, and evaluate the
+already queued compactness, Lorentz, and calibrated-tail falsifiers before
+inventing another loss or search kernel.
 
 ## 1. Goal
 
@@ -53,9 +78,11 @@ the phrase "novel method" may be used.
 
 For image `x`, export from the same frozen forward pass:
 
-- a unit global descriptor `g(x) in R^D`;
-- `m` unit patch descriptors `T(x) = {t_j(x)}_(j=1..m)` from the final ViT
-  patch-token layer before global pooling;
+- a unit global descriptor `g(x) in R^D` from UNICOM's official learned
+  flatten-and-feature head;
+- `m=196` unit patch descriptors `T(x) = {t_j(x)}_(j=1..m)` from the pinned
+  ViT-B/16 `model.norm` output immediately before UNICOM reshapes all
+  `196x768` tokens and applies that head;
 - stable image and split identifiers.
 
 The export grid, layer, token normalization, input transform, and checkpoint
