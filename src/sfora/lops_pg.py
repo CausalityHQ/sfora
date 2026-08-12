@@ -177,6 +177,7 @@ def evaluate_cohort(
         raise ValueError("confirmation cohorts require fold 1, 2, or 3 and nonnegative index")
     gradients = proxy_anchor_surrogate_tangent(z, label_array)
     positive = np.empty_like(z)
+    centroids = np.empty_like(z)
     nearest = np.empty_like(z)
     triplet = np.empty_like(z)
     pre_margins = np.empty(z.shape[0], dtype=np.float64)
@@ -187,6 +188,8 @@ def evaluate_cohort(
         peer_labels = label_array[keep]
         peer_ids = ids[keep]
         same = peers[peer_labels == label_array[row]]
+        centroid = same.mean(axis=0, dtype=np.float64)
+        centroids[row] = centroid / np.linalg.norm(centroid)
         positive[row] = positive_centroid_tangent(z[row], same)
         nearest[row] = _nearest_positive_tangent(
             z[row], peers, peer_labels, peer_ids, int(label_array[row])
@@ -213,7 +216,7 @@ def evaluate_cohort(
             break
     else:
         raise ValueError("could not construct shuffled-label derangement")
-    shuffled_tangent = positive[permutation].copy()
+    shuffled_tangent = centroids[permutation].copy()
     shuffled_tangent -= z * np.sum(shuffled_tangent * z, axis=1, keepdims=True)
     shuffled = gradients.copy()
     shuffled_dots = np.sum(shuffled * shuffled_tangent, axis=1)

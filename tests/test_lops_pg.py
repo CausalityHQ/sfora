@@ -86,6 +86,28 @@ def test_evaluate_cohort_builds_independent_equal_arc_arms() -> None:
         assert values.shape == (8,)
         assert np.isfinite(values).all()
     assert not np.shares_memory(result.directions["lops_pg"], result.directions["proxy_anchor"])
+    centroids = np.empty_like(embeddings)
+    for row in range(embeddings.shape[0]):
+        siblings = embeddings[(labels == labels[row]) & (np.arange(labels.size) != row)]
+        centroid = siblings.mean(axis=0)
+        centroids[row] = centroid / np.linalg.norm(centroid)
+    rng = np.random.Generator(np.random.PCG64(20260821 + 7))
+    while True:
+        permutation = rng.permutation(labels.size)
+        if np.all(labels[permutation] != labels):
+            break
+    shuffled_tangent = centroids[permutation] - embeddings * np.sum(
+        centroids[permutation] * embeddings, axis=1, keepdims=True
+    )
+    shuffled_dots = np.sum(result.directions["proxy_anchor"] * shuffled_tangent, axis=1)
+    expected_shuffled = result.directions["proxy_anchor"].copy()
+    active_shuffled = shuffled_dots > 0.0
+    expected_shuffled[active_shuffled] -= (
+        shuffled_dots[active_shuffled] / np.sum(shuffled_tangent[active_shuffled] ** 2, axis=1)
+    )[:, None] * shuffled_tangent[active_shuffled]
+    np.testing.assert_allclose(
+        result.directions["shuffled_centroid"], expected_shuffled, rtol=0.0, atol=1e-15
+    )
     active = np.linalg.norm(result.directions["lops_pg"], axis=1) >= 1e-8
     stepped = np.sum(
         embeddings[active]
