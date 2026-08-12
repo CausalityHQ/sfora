@@ -231,6 +231,17 @@ def test_isolated_command_loads_only_the_pinned_upstream_checkout(tmp_path: Path
     assert completed.stdout.strip() == "from-pinned-checkout"
 
 
+def test_checkpoint_reload_command_inserts_pinned_checkout(tmp_path: Path) -> None:
+    request = _request(tmp_path)
+    checkpoint = tmp_path / "checkpoint.pth.tar"
+    command = dada._build_checkpoint_reload_command(request, checkpoint)
+
+    assert command[:4] == (str(request.python), "-I", "-B", "-c")
+    assert str(request.source.checkout) in command[4]
+    assert "sys.path.insert" in command[4]
+    assert command[-1] == str(checkpoint)
+
+
 @pytest.mark.parametrize(("field", "value"), [("seed", 1), ("gpu", 1)])
 def test_command_rejects_unregistered_seed_or_gpu(
     tmp_path: Path, field: str, value: int
@@ -260,7 +271,7 @@ def test_log_parser_requires_finite_loss_and_optimizer_progress() -> None:
     progress = dada.parse_dada_log(lines)
 
     assert progress.completed_epochs == 6
-    assert progress.optimizer_steps == 6 * 143
+    assert progress.optimizer_steps == 5 * 143
     assert math.isfinite(progress.last_loss)
     assert progress.last_recall_at_1 == pytest.approx(0.85)
 
@@ -371,7 +382,7 @@ def test_success_report_recomputes_runtime_and_budget_fields(
     dada.validate_dada_smoke_report(persisted)
     assert report["status"] == "PASS"
     assert report["projection"]["projected_full_run_seconds"] == pytest.approx(2500.0)
-    assert report["progress"]["optimizer_steps"] == 858
+    assert report["progress"]["optimizer_steps"] == 715
     assert report["evaluation"]["last_recall_at_1"] == pytest.approx(0.85)
     missing_peak = copy.deepcopy(report)
     missing_peak["resources"]["peak_gpu_memory_mib"] = None

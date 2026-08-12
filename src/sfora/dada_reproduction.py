@@ -232,7 +232,8 @@ def parse_dada_log(lines: Iterable[str]) -> DadaProgress:
                 loss = float(train_match.group("loss"))
                 if not math.isfinite(loss):
                     raise ValueError("DADA loss is non-finite")
-                epochs[int(train_match.group("epoch"))] = done
+                epoch = int(train_match.group("epoch"))
+                epochs[epoch] = 0 if epoch == 0 else done
                 losses.append(loss)
             recall_match = _RECALL_RE.search(fragment)
             if recall_match is not None:
@@ -326,18 +327,34 @@ def _probe_environment(request: DadaSmokeRequest) -> dict[str, object]:
 
 
 def _checkpoint_is_reloadable(request: DadaSmokeRequest, checkpoint: Path) -> bool:
-    code = (
-        "import sys,torch;"
-        "x=torch.load(sys.argv[1],map_location='cpu',weights_only=False);"
-        "assert type(x) is dict and 'state_dict' in x"
-    )
     completed = subprocess.run(
-        (str(request.python), "-I", "-B", "-c", code, str(checkpoint)),
+        _build_checkpoint_reload_command(request, checkpoint),
         check=False,
         capture_output=True,
         text=True,
     )
     return completed.returncode == 0
+
+
+def _build_checkpoint_reload_command(
+    request: DadaSmokeRequest, checkpoint: Path
+) -> tuple[str, ...]:
+    checkout = str(request.source.checkout)
+    code = (
+        "import sys;"
+        f"sys.path.insert(0,{checkout!r});"
+        "import torch;"
+        "x=torch.load(sys.argv[1],map_location='cpu',weights_only=False);"
+        "assert type(x) is dict and 'state_dict' in x"
+    )
+    return (
+        str(request.python),
+        "-I",
+        "-B",
+        "-c",
+        code,
+        str(checkpoint),
+    )
 
 
 _REPORT_KEYS = (
