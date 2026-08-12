@@ -186,6 +186,24 @@ def validate_report(value: object, *, bootstrap_replicates: int = 10_000) -> dic
     evaluations = tuple(_from_record(record) for record in value["rows"])
     if any(item.fold not in (1, 2, 3) for item in evaluations):
         raise ValueError("discovery fold leaked into confirmation")
+    for item in evaluations:
+        if item.labels.shape != (180,) or item.example_ids.shape != (180,):
+            raise ValueError("confirmation cohort shape differs")
+        ordered = sorted(
+            range(180), key=lambda row: (item.pre_margins[row], str(item.example_ids[row]))
+        )
+        expected_bottom = np.zeros(180, dtype=np.bool_)
+        expected_bottom[ordered[:45]] = True
+        expected_conflict = (item.constraint_dots > 0.0) & ~item.skipped_mask
+        expected_primary = expected_bottom & ~item.skipped_mask
+        if (
+            not np.array_equal(item.bottom_mask, expected_bottom)
+            or not np.array_equal(item.conflict_mask, expected_conflict)
+            or not np.array_equal(item.primary_mask, expected_primary)
+        ):
+            raise ValueError("report row masks differ")
+        if np.any(item.projected_constraint_dots[item.conflict_mask] > 1e-12):
+            raise ValueError("report projected constraints differ")
     recomputed = summarize_evaluations(evaluations, bootstrap_replicates=bootstrap_replicates)
     predicates, status = decide_lops_pg(recomputed)
     if value["summary"] != recomputed or value["bootstrap"] != recomputed["bootstrap"]:

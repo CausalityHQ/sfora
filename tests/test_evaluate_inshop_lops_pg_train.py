@@ -56,6 +56,12 @@ def test_build_report_is_confirmation_only_and_relational(tmp_path: Path) -> Non
     with pytest.raises(ValueError):
         cli.validate_report(mutated, bootstrap_replicates=100)
 
+    for field in ("bottom_mask", "conflict_mask", "primary_mask"):
+        mutated = cli.json.loads(cli.json.dumps(report))
+        mutated["rows"][0][field][0] = not mutated["rows"][0][field][0]
+        with pytest.raises(ValueError, match="row masks differ"):
+            cli.validate_report(mutated, bootstrap_replicates=100)
+
 
 def test_parser_rejects_query_gallery_and_writer_is_no_clobber(tmp_path: Path) -> None:
     parser = cli.build_parser()
