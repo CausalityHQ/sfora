@@ -16,11 +16,34 @@ class DeltaEstimate:
     base: int
 
 
+@dataclass(frozen=True, eq=False)
+class FrozenPCA:
+    mean: np.ndarray
+    components: np.ndarray
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FrozenPCA):
+            return NotImplemented
+        return np.array_equal(self.mean, other.mean) and np.array_equal(
+            self.components, other.components
+        )
+
+
 def _require_matrix(values: np.ndarray, *, name: str) -> np.ndarray:
     if type(values) is not np.ndarray or values.dtype not in (np.float32, np.float64):
         raise TypeError(f"{name} must be a float32 or float64 NumPy array")
     if values.ndim != 2 or values.shape[0] < 2 or values.shape[1] == 0:
         raise ValueError(f"{name} must be a nonempty matrix with at least two rows")
+    if not values.flags.c_contiguous or not np.isfinite(values).all():
+        raise ValueError(f"{name} must be finite and C-contiguous")
+    return values
+
+
+def _require_nonempty_matrix(values: np.ndarray, *, name: str) -> np.ndarray:
+    if type(values) is not np.ndarray or values.dtype not in (np.float32, np.float64):
+        raise TypeError(f"{name} must be a float32 or float64 NumPy array")
+    if values.ndim != 2 or values.shape[0] == 0 or values.shape[1] == 0:
+        raise ValueError(f"{name} must be a nonempty matrix")
     if not values.flags.c_contiguous or not np.isfinite(values).all():
         raise ValueError(f"{name} must be finite and C-contiguous")
     return values
@@ -146,3 +169,142 @@ def spectrum_gaussian_null(values: np.ndarray, seed: int) -> np.ndarray:
     orthonormal, _ = np.linalg.qr(scores, mode="reduced")
     result = mean + (np.sqrt(matrix.shape[0]) * orthonormal * np.sqrt(eigenvalues)) @ eigenvectors.T
     return np.ascontiguousarray(result.astype(np.float32))
+
+
+def _canonicalize_component_signs(components: np.ndarray) -> np.ndarray:
+    result = np.ascontiguousarray(components.copy())
+    for row in range(result.shape[0]):
+        pivot = int(np.argmax(np.abs(result[row])))
+        if result[row, pivot] < 0.0:
+            result[row] *= -1.0
+    return result
+
+
+def fit_frozen_pca(train: np.ndarray, dimension: int) -> FrozenPCA:
+    """Fit one deterministic PCA basis using train rows only."""
+
+    matrix = _require_matrix(train, name="train")
+    if type(dimension) is not int or not 0 < dimension <= matrix.shape[1]:
+        raise ValueError("dimension must be a positive builtin integer within input width")
+    values64 = matrix.astype(np.float64)
+    mean64 = np.mean(values64, axis=0, dtype=np.float64)
+    centered = values64 - mean64
+    covariance = (centered.T @ centered) / matrix.shape[0]
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+    order = np.argsort(-eigenvalues, kind="stable")[:dimension]
+    components64 = _canonicalize_component_signs(eigenvectors[:, order].T)
+    return FrozenPCA(
+        mean=np.ascontiguousarray(mean64.astype(np.float32)),
+        components=np.ascontiguousarray(components64.astype(np.float32)),
+    )
+
+
+def apply_frozen_pca(values: np.ndarray, fit: FrozenPCA) -> np.ndarray:
+    """Apply a frozen PCA mean and component matrix without refitting."""
+
+    matrix = _require_nonempty_matrix(values, name="values")
+    if type(fit) is not FrozenPCA:
+        raise TypeError("fit must be a FrozenPCA")
+    if (
+        type(fit.mean) is not np.ndarray
+        or fit.mean.dtype != np.float32
+        or fit.mean.shape != (matrix.shape[1],)
+        or type(fit.components) is not np.ndarray
+        or fit.components.dtype != np.float32
+        or fit.components.ndim != 2
+        or fit.components.shape[1] != matrix.shape[1]
+        or not fit.mean.flags.c_contiguous
+        or not fit.components.flags.c_contiguous
+        or not np.isfinite(fit.mean).all()
+        or not np.isfinite(fit.components).all()
+    ):
+        raise ValueError("frozen PCA schema differs")
+    centered = matrix.astype(np.float32) - fit.mean
+    return np.ascontiguousarray(centered @ fit.components.T)
+
+
+def scale_for_target_median(train_projected: np.ndarray, target: float) -> float:
+    """Choose the scale that maps the median train radius to one fixed target."""
+
+    matrix = _require_matrix(train_projected, name="train_projected")
+    if type(target) is not float or not np.isfinite(target) or target <= 0.0:
+        raise ValueError("target must be a positive finite builtin float")
+    radii = np.sqrt(
+        np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64)
+    )
+    median = float(np.median(radii))
+    if median <= 0.0:
+        raise ValueError("train projected median radius must be positive")
+    return target / median
+
+
+def lorentz_lift(values: np.ndarray, scale: float, clip: float = 2.5) -> np.ndarray:
+    """Lift one Euclidean matrix to the unit Lorentz hyperboloid in FP32."""
+
+    matrix = _require_nonempty_matrix(values, name="values").astype(np.float32)
+    if type(scale) is not float or not np.isfinite(scale) or scale <= 0.0:
+        raise ValueError("scale must be a positive finite builtin float")
+    if type(clip) is not float or not np.isfinite(clip) or clip <= 0.0:
+        raise ValueError("clip must be a positive finite builtin float")
+    radius64 = np.sqrt(
+        np.sum(matrix.astype(np.float64) ** 2, axis=1, dtype=np.float64)
+    )
+    lifted_radius = np.minimum(scale * radius64, clip).astype(np.float32)
+    direction = np.zeros_like(matrix)
+    nonzero = np.flatnonzero(radius64 > 0.0)
+    direction[nonzero] = matrix[nonzero] / radius64[nonzero, None].astype(np.float32)
+    result = np.column_stack(
+        (
+            np.cosh(lifted_radius),
+            np.sinh(lifted_radius)[:, None] * direction,
+        )
+    ).astype(np.float32)
+    if not np.isfinite(result).all():
+        raise ValueError("Lorentz lift produced nonfinite values")
+    return np.ascontiguousarray(result)
+
+
+def _require_lorentz(values: np.ndarray, *, name: str) -> np.ndarray:
+    matrix = _require_nonempty_matrix(values, name=name)
+    if matrix.dtype != np.float32 or matrix.shape[1] < 2:
+        raise TypeError(f"{name} must be a float32 Lorentz matrix")
+    if np.any(matrix[:, 0] < 1.0):
+        raise ValueError(f"{name} time coordinates differ")
+    constraint = -(matrix[:, 0].astype(np.float64) ** 2) + np.sum(
+        matrix[:, 1:].astype(np.float64) ** 2, axis=1, dtype=np.float64
+    )
+    if np.any(np.abs(constraint + 1.0) > 3e-5):
+        raise ValueError(f"{name} hyperboloid constraint differs")
+    return matrix
+
+
+def lorentz_mips_scores(query: np.ndarray, gallery: np.ndarray) -> np.ndarray:
+    """Score nearest Lorentz neighbors with one ordinary FP32 inner product."""
+
+    query_value = _require_lorentz(query, name="query")
+    gallery_value = _require_lorentz(gallery, name="gallery")
+    if query_value.shape[1] != gallery_value.shape[1]:
+        raise ValueError("Lorentz dimensions differ")
+    transformed = query_value.copy()
+    transformed[:, 0] *= np.float32(-1.0)
+    return np.ascontiguousarray(transformed @ gallery_value.T)
+
+
+def lorentz_distance_block(query: np.ndarray, gallery: np.ndarray) -> np.ndarray:
+    """Compute stable unit-curvature Lorentz distances in FP32."""
+
+    query_value = _require_lorentz(query, name="query")
+    gallery_value = _require_lorentz(gallery, name="gallery")
+    if query_value.shape[1] != gallery_value.shape[1]:
+        raise ValueError("Lorentz dimensions differ")
+    spatial_difference = query_value[:, None, 1:] - gallery_value[None, :, 1:]
+    time_difference = query_value[:, None, 0] - gallery_value[None, :, 0]
+    value = (
+        np.sum(spatial_difference * spatial_difference, axis=2, dtype=np.float32)
+        - time_difference * time_difference
+    ) / np.float32(2.0)
+    if float(np.min(value)) < -2e-5:
+        raise ValueError("Lorentz distance intermediate is materially negative")
+    np.maximum(value, np.float32(0.0), out=value)
+    distance = np.log1p(value + np.sqrt(value * (value + np.float32(2.0))))
+    return np.ascontiguousarray(distance.astype(np.float32, copy=False))
