@@ -6,9 +6,11 @@ import pytest
 from sfora.lops_pg import (
     ARM_ORDER,
     batch_hard_triplet_tangent,
+    decide_lops_pg,
     evaluate_cohort,
     positive_centroid_tangent,
     project_positive_safe,
+    summarize_evaluations,
 )
 
 
@@ -19,9 +21,7 @@ def _unit(value: list[float]) -> np.ndarray:
 
 def test_positive_centroid_tangent_matches_independent_finite_difference() -> None:
     anchor = _unit([1.0, 0.3, -0.2])
-    siblings = np.stack(
-        [_unit([0.8, 0.5, -0.1]), _unit([0.9, 0.2, 0.1]), _unit([0.7, 0.6, -0.2])]
-    )
+    siblings = np.stack([_unit([0.8, 0.5, -0.1]), _unit([0.9, 0.2, 0.1]), _unit([0.7, 0.6, -0.2])])
     centroid = _unit(siblings.mean(axis=0).tolist())
     expected = centroid - anchor * float(anchor @ centroid)
 
@@ -98,3 +98,28 @@ def test_evaluate_cohort_builds_independent_equal_arc_arms() -> None:
         axis=1,
     )
     np.testing.assert_allclose(np.arccos(stepped), 0.01, rtol=0.0, atol=2e-14)
+
+
+def test_summary_and_decision_are_driven_by_paired_primary_rows() -> None:
+    evaluations = []
+    for fold in (1, 2, 3):
+        angles = np.linspace(0.0, 2.6, 180, dtype=np.float64) + fold * 1e-3
+        embeddings = np.stack([np.cos(angles), np.sin(angles)], axis=1)
+        labels = np.repeat(np.arange(45, dtype=np.int64) + fold * 100, 4)
+        ids = np.asarray([f"f{fold}-r{row}" for row in range(180)])
+        evaluations.append(evaluate_cohort(embeddings, labels, ids, fold=fold, index=0))
+    summary = summarize_evaluations(evaluations, bootstrap_replicates=100)
+    assert summary["coverage"]["eligible_rows"] == 540
+    assert summary["coverage"]["primary_rows"] == 135
+    assert len(summary["fold_mean_advantages"]) == 3
+    predicates, status = decide_lops_pg(summary)
+    assert [item["name"] for item in predicates] == [
+        "coverage",
+        "raw_advantage",
+        "fold_consistency",
+        "control_superiority",
+        "material_effect",
+        "positive_similarity",
+        "constraint_integrity",
+    ]
+    assert status in {"PASS", "KILL"}
