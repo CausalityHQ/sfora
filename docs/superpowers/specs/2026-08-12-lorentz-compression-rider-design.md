@@ -37,9 +37,13 @@ d_L(x,y) = log1p(u + sqrt(u(u+2))).
 No Riemannian optimizer or FP64 fallback is allowed.
 
 At inference, nearest Lorentz distance is maximum inner product after the
-query sign transform `q_tilde = (q0, -qs)`. Therefore exact retrieval uses one
-ordinary GEMM or FAISS `METRIC_INNER_PRODUCT`; IVF-PQ remains additive over
-subquantizers. The geometry is not an excuse for a custom distance kernel.
+query sign transform `q_tilde = (-q0, qs)`. With signature `(-,+,...,+)`, this
+score is `<q,g>_L = -cosh(d_L(q,g))`, so its maximum is the nearest item. The
+opposite transform `(q0,-qs)` yields `cosh(d_L)` and would make MIPS select the
+farthest item; it is forbidden and must be a regression-test mutant. Therefore
+exact retrieval uses one ordinary GEMM or FAISS `METRIC_INNER_PRODUCT`; IVF-PQ
+remains additive over subquantizers. The geometry is not an excuse for a custom
+distance kernel.
 
 ## Controls
 
@@ -86,4 +90,3 @@ The preferred implementation path is maintained GEMM plus a compiled
 elementwise lift. A custom native kernel is considered only after profiling a
 winning head and only if one unsupported operation consumes at least 10% of
 step or query time after maintained fusion.
-
