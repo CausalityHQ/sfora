@@ -298,10 +298,12 @@ def test_inner_product_breaks_score_ties_by_gallery_row() -> None:
         np.asarray(["x"]),
         np.asarray(["y", "x"]),
         values_per_row=2,
+        descriptor_build_seconds=2.0,
     )
 
     assert view.top1_indices.tolist() == [0]
     assert view.top1_correct.tolist() == [False]
+    assert view.descriptor_build_seconds > 2.0
 
 
 def test_inner_product_matches_existing_unit_evaluator_metrics() -> None:
@@ -374,6 +376,7 @@ def test_width_grid_has_exact_controls_and_storage_accounting() -> None:
         pca_fit=pca_fit,
         pca_fixed_bytes=pca_bytes,
         official_width=3,
+        pca_gallery_projection_seconds=2.0,
     )
 
     assert tuple(views) == (
@@ -393,6 +396,10 @@ def test_width_grid_has_exact_controls_and_storage_accounting() -> None:
     assert views["native_ctm"].total_bytes == gallery.shape[0] * 3 * 4
     assert views["pca_ctm"].total_bytes == gallery.shape[0] * 3 * 4 + pca_bytes
     assert views["pca_renormalized_prefix_plus_zero"].fixed_bytes == pca_bytes
+    assert views["pca_ctm"].descriptor_build_seconds >= 2.0
+    assert views["pca_renormalized_prefix_plus_zero"].descriptor_build_seconds >= 2.0
+    assert views["unicom_tail_energy"].descriptor_build_seconds > 0.0
+    assert views["official_512"].descriptor_build_seconds > 0.0
     assert views["official_512"].values_per_row == 3
     assert views["full_width_768"].values_per_row == 4
     for view in views.values():

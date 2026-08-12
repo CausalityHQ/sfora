@@ -303,6 +303,7 @@ def validate_ctm_report(
         (
             "normalization_seconds",
             "basis_fit_seconds",
+            "projection_seconds",
             "coefficient_fit_seconds",
             "falsifier_seconds",
             "evaluation_seconds",
@@ -566,7 +567,11 @@ def evaluate_bundle(
     query_projection_start = time.perf_counter()
     query_pca = project_unit(query_native, pca_basis)
     query_projection_seconds = time.perf_counter() - query_projection_start
+    gallery_projection_start = time.perf_counter()
     gallery_pca = project_unit(gallery_native, pca_basis)
+    gallery_projection_seconds = time.perf_counter() - gallery_projection_start
+    projection_seconds = time.perf_counter() - phase_start
+    phase_start = time.perf_counter()
     native_fits = {
         width: fit_tail_moment(train_native, width=width, basis_kind="native", neighbors=neighbors)
         for width in active_widths
@@ -639,6 +644,7 @@ def evaluate_bundle(
         "timing": {
             "normalization_seconds": normalization_seconds,
             "basis_fit_seconds": basis_fit_seconds,
+            "projection_seconds": projection_seconds,
             "coefficient_fit_seconds": coefficient_fit_seconds,
             "falsifier_seconds": falsifier_seconds,
             "evaluation_seconds": 0.0,
@@ -673,6 +679,7 @@ def evaluate_bundle(
             pca_fixed_bytes=pca_fixed_bytes,
             official_width=official_width,
             pca_query_projection_seconds=query_projection_seconds,
+            pca_gallery_projection_seconds=gallery_projection_seconds,
         )
         for width in active_widths
     }

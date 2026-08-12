@@ -83,6 +83,7 @@ def _fit_closed_report() -> dict[str, object]:
         "timing": {
             "normalization_seconds": 0.1,
             "basis_fit_seconds": 0.2,
+            "projection_seconds": 0.25,
             "coefficient_fit_seconds": 0.3,
             "falsifier_seconds": 0.4,
             "evaluation_seconds": 0.0,
@@ -201,6 +202,7 @@ def test_evaluate_bundle_builds_a_strict_reduced_report(tmp_path: Path) -> None:
     assert tuple(report["timing"]) == (
         "normalization_seconds",
         "basis_fit_seconds",
+        "projection_seconds",
         "coefficient_fit_seconds",
         "falsifier_seconds",
         "evaluation_seconds",

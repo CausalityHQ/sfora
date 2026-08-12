@@ -520,7 +520,9 @@ def evaluate_inner_product(
         or descriptor_build_seconds < 0.0
     ):
         raise ValueError("descriptor_build_seconds must be a nonnegative builtin float")
+    gallery_conversion_start = time.perf_counter()
     gallery64 = gallery.astype(np.float64)
+    descriptor_build_seconds += time.perf_counter() - gallery_conversion_start
 
     def score_chunks():
         for start in range(0, query.shape[0], chunk_size):
@@ -585,6 +587,7 @@ def evaluate_width(
     pca_fixed_bytes: int,
     official_width: int = 512,
     pca_query_projection_seconds: float = 0.0,
+    pca_gallery_projection_seconds: float = 0.0,
 ) -> dict[str, ScoreView]:
     """Evaluate one registered width under every matched control."""
 
@@ -604,6 +607,12 @@ def evaluate_width(
         raise ValueError("official_width must be positive and fit the dimension")
     if type(pca_fixed_bytes) is not int or pca_fixed_bytes < 0:
         raise ValueError("pca_fixed_bytes must be a nonnegative builtin integer")
+    if (
+        type(pca_gallery_projection_seconds) is not float
+        or not np.isfinite(pca_gallery_projection_seconds)
+        or pca_gallery_projection_seconds < 0.0
+    ):
+        raise ValueError("PCA gallery projection seconds must be a nonnegative builtin float")
 
     build_start = time.perf_counter()
     native_query = encode_tail_moment(query_native, native_fit, basis_kind="native")
@@ -634,10 +643,13 @@ def evaluate_width(
     pca_prefix_gallery = l2_normalize(np.ascontiguousarray(gallery_pca[:, : width + 1]))
     pca_prefix_build_seconds = time.perf_counter() - build_start
 
+    build_start = time.perf_counter()
+    gallery_head = gallery_native[:, :width].astype(np.float64)
+    gallery_tail = gallery_native[:, width:].astype(np.float64)
+    reward = np.sum(gallery_tail * gallery_tail, axis=1, dtype=np.float64) / 2.0
+    unicom_build_seconds = time.perf_counter() - build_start
+
     def unicom_chunks() -> Iterable[np.ndarray]:
-        gallery_head = gallery_native[:, :width].astype(np.float64)
-        gallery_tail = gallery_native[:, width:].astype(np.float64)
-        reward = np.sum(gallery_tail * gallery_tail, axis=1, dtype=np.float64) / 2.0
         for start in range(0, query_native.shape[0], 256):
             query_head = query_native[start : start + 256, :width].astype(np.float64)
             yield np.ascontiguousarray(query_head @ gallery_head.T + reward[None, :])
@@ -652,10 +664,13 @@ def evaluate_width(
     permuted_gallery[:, -1] = native_gallery[permutation, -1]
     permuted_build_seconds = time.perf_counter() - build_start
 
+    build_start = time.perf_counter()
+    gallery64 = gallery_native[:, :official_width].astype(np.float64)
+    gallery_norm = np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
+    official_build_seconds = time.perf_counter() - build_start
+
     def official_chunks() -> Iterable[np.ndarray]:
         query64 = query_native[:, :official_width].astype(np.float64)
-        gallery64 = gallery_native[:, :official_width].astype(np.float64)
-        gallery_norm = np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
         for start in range(0, query64.shape[0], 256):
             current = query64[start : start + 256]
             query_norm = np.sum(current * current, axis=1, dtype=np.float64)
@@ -679,7 +694,7 @@ def evaluate_width(
             values_per_row=width + 1,
             fixed_bytes=pca_fixed_bytes,
             query_projection_seconds=pca_query_projection_seconds,
-            descriptor_build_seconds=pca_build_seconds,
+            descriptor_build_seconds=pca_gallery_projection_seconds + pca_build_seconds,
         ),
         "renormalized_prefix_plus_zero": evaluate_inner_product(
             renormalized_query,
@@ -706,7 +721,11 @@ def evaluate_width(
             descriptor_build_seconds=zero_build_seconds,
         ),
         "unicom_tail_energy": _evaluate_score_chunks(
-            unicom_chunks(), query_labels, gallery_labels, values_per_row=width + 1
+            unicom_chunks(),
+            query_labels,
+            gallery_labels,
+            values_per_row=width + 1,
+            descriptor_build_seconds=unicom_build_seconds,
         ),
         "pca_renormalized_prefix_plus_zero": evaluate_inner_product(
             pca_prefix_query,
@@ -716,7 +735,7 @@ def evaluate_width(
             values_per_row=width + 1,
             fixed_bytes=pca_fixed_bytes,
             query_projection_seconds=pca_query_projection_seconds,
-            descriptor_build_seconds=pca_prefix_build_seconds,
+            descriptor_build_seconds=pca_gallery_projection_seconds + pca_prefix_build_seconds,
         ),
         "tail_sign_control": evaluate_inner_product(
             native_query,
@@ -735,7 +754,11 @@ def evaluate_width(
             descriptor_build_seconds=permuted_build_seconds,
         ),
         "official_512": _evaluate_score_chunks(
-            official_chunks(), query_labels, gallery_labels, values_per_row=official_width
+            official_chunks(),
+            query_labels,
+            gallery_labels,
+            values_per_row=official_width,
+            descriptor_build_seconds=official_build_seconds,
         ),
         "full_width_768": evaluate_inner_product(
             query_native,
