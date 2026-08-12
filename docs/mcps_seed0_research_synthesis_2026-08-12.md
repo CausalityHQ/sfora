@@ -138,3 +138,28 @@ zero, but conflict rate is only `0.0013315510069732762`, versus the frozen
 `0.05` requirement.  The final effect remains potentially useful, but any
 surviving explanation must be stability/regularization rather than the claimed
 conflict-projection activation.
+
+## Late-trajectory noise diagnostic
+
+The apparent best-to-final decay was checked without another GPU run.  For each
+completed 60-epoch trajectory, fit an OLS line to epochs 45--59, detrend those
+15 values, and circular-block-bootstrap the residuals with length-three blocks,
+100,000 `PCG64(212)` draws.  The null statistic is the bootstrapped window
+maximum minus its final value.  This is an exploratory attribution diagnostic,
+not a replacement for the frozen three-seed decision.
+
+| Arm | late slope / epoch | residual SD | observed late max-final | fitted drift contribution | null p(gap >= observed) |
+|---|---:|---:|---:|---:|---:|
+| PA seed 0 | +0.0000497357 | 0.001390012 | 0.003446336 | 0 | 0.41040 |
+| MCPS seed 0 | -0.0000464703 | 0.001173043 | 0.000914334 | 0.000650584 | 0.66747 |
+| PA seed 1 | -0.0001477001 | 0.001116667 | 0.002954002 | 0.002067801 | 0.24980 |
+| MCPS seed 1 | -0.0000195929 | 0.001053594 | 0.001899001 | 0.000274300 | 0.46544 |
+
+None of the observed gaps is unusual under its stationary residual null.
+Seed-0 PA even has a slightly positive fitted late slope; seed-1 PA has a
+negative slope, but its max-final gap remains within ordinary evaluation
+fluctuation.  Consequently, reduced best-to-final decay cannot currently be
+claimed as MCPS's causal benefit.  The positive paired final deltas remain real
+observations, but their mechanism is unresolved and must be compared against
+EMA-on PA and proxy compactness.  No additional BN-Inception stability
+mechanism is authorized by these curves.
