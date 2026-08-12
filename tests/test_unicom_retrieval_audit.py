@@ -11,6 +11,7 @@ from sfora.unicom_retrieval_audit import (
     l2_normalize,
     paired_r1_interval,
     random_masks,
+    retrieval_metrics_from_score_chunks,
     retrieval_view,
 )
 
@@ -71,6 +72,24 @@ def test_stable_gallery_order_breaks_exact_distance_ties() -> None:
 
     assert result.top1_indices.tolist() == [0]
     assert result.top1_correct.tolist() == [False]
+
+
+def test_score_chunk_metrics_use_the_same_recall_map_and_tie_contract() -> None:
+    chunks = (
+        np.asarray([[1.0, 1.0, 0.0], [0.1, 0.9, 0.8]], dtype=np.float64),
+    )
+
+    result = retrieval_metrics_from_score_chunks(
+        chunks,
+        np.asarray(["a", "b"]),
+        np.asarray(["x", "a", "b"]),
+    )
+
+    assert result.top1_indices.tolist() == [0, 1]
+    assert result.top1_correct.tolist() == [False, False]
+    assert result.recall[1] == 0.0
+    assert result.recall[10] == 1.0
+    assert result.map_at_r == 0.0
 
 
 def test_recall_and_map_at_r_match_hand_computed_fixture() -> None:

@@ -5,13 +5,18 @@ import pytest
 
 from sfora.calibrated_tail_moment import (
     cluster_lambda_interval,
+    ctm_decision,
     encode_tail_moment,
+    evaluate_inner_product,
+    evaluate_width,
     fit_projection_basis,
     fit_tail_moment,
     head_neighbor_pairs,
     permuted_tail_null,
     project_unit,
+    query_identity_interval,
 )
+from sfora.unicom_retrieval_audit import retrieval_view
 
 
 def _unit_fixture() -> np.ndarray:
@@ -282,3 +287,194 @@ def test_tail_null_keeps_radii_and_pairs_fixed_and_reports_exact_p_value() -> No
 def test_projection_rejects_unknown_basis_kind(kind) -> None:
     with pytest.raises((TypeError, ValueError), match="kind"):
         fit_projection_basis(_unit_fixture(), kind=kind)
+
+
+def test_inner_product_breaks_score_ties_by_gallery_row() -> None:
+    query = np.asarray([[1.0, 0.0]], dtype=np.float32)
+    gallery = np.asarray([[1.0, 0.0], [1.0, 0.0]], dtype=np.float32)
+
+    view = evaluate_inner_product(
+        query,
+        gallery,
+        np.asarray(["x"]),
+        np.asarray(["y", "x"]),
+        values_per_row=2,
+    )
+
+    assert view.top1_indices.tolist() == [0]
+    assert view.top1_correct.tolist() == [False]
+
+
+def test_inner_product_matches_existing_unit_evaluator_metrics() -> None:
+    query = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
+    gallery = np.asarray(
+        [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0], [0.6, 0.8]], dtype=np.float32
+    )
+    query_labels = np.asarray(["a", "b"])
+    gallery_labels = np.asarray(["a", "x", "b", "b"])
+    existing = retrieval_view(
+        query,
+        gallery,
+        query_labels,
+        gallery_labels,
+        coordinates=np.asarray([0, 1], dtype=np.int64),
+        normalize_before=False,
+    )
+
+    candidate = evaluate_inner_product(
+        query,
+        gallery,
+        query_labels,
+        gallery_labels,
+        values_per_row=2,
+    )
+
+    assert candidate.recall == existing.recall
+    assert candidate.map_at_r == existing.map_at_r
+    assert np.array_equal(candidate.top1_indices, existing.top1_indices)
+    assert np.array_equal(candidate.top1_correct, existing.top1_correct)
+    assert candidate.values_per_row == 2
+    assert candidate.total_bytes == gallery.nbytes
+
+
+def test_query_bootstrap_keeps_gallery_fixed_and_clusters_identity_rows() -> None:
+    labels = np.asarray(["a", "a", "b", "c"])
+    baseline = np.asarray([False, True, False, True], dtype=np.bool_)
+    candidate = np.asarray([True, True, False, True], dtype=np.bool_)
+
+    result = query_identity_interval(
+        baseline, candidate, labels, samples=10_000, seed=205
+    )
+
+    assert result.samples == 10_000
+    assert result.seed == 205
+    assert result.point == 0.25
+    assert result.lower <= result.point <= result.upper
+
+
+def test_width_grid_has_exact_controls_and_storage_accounting() -> None:
+    train = _unit_fixture()
+    query = train[:2]
+    gallery = train[2:]
+    query_labels = np.asarray(["a", "b"])
+    gallery_labels = np.asarray(["a", "b"])
+    native_basis = fit_projection_basis(train, kind="native")
+    pca_basis = fit_projection_basis(train, kind="pca")
+    train_pca = project_unit(train, pca_basis)
+    query_pca = project_unit(query, pca_basis)
+    gallery_pca = project_unit(gallery, pca_basis)
+    native_fit = fit_tail_moment(train, width=2, basis_kind="native", neighbors=1)
+    pca_fit = fit_tail_moment(train_pca, width=2, basis_kind="pca", neighbors=1)
+    pca_bytes = pca_basis.mean.nbytes + pca_basis.matrix.nbytes
+
+    views = evaluate_width(
+        query,
+        gallery,
+        query_pca,
+        gallery_pca,
+        query_labels,
+        gallery_labels,
+        width=2,
+        native_fit=native_fit,
+        pca_fit=pca_fit,
+        pca_fixed_bytes=pca_bytes,
+        official_width=3,
+    )
+
+    assert tuple(views) == (
+        "native_ctm",
+        "pca_ctm",
+        "renormalized_prefix_plus_zero",
+        "plain_prefix_plus_zero",
+        "lambda_zero",
+        "unicom_tail_energy",
+        "pca_renormalized_prefix_plus_zero",
+        "tail_sign_control",
+        "tail_permuted_control",
+        "official_512",
+        "full_width_768",
+    )
+    assert views["native_ctm"].values_per_row == 3
+    assert views["native_ctm"].total_bytes == gallery.shape[0] * 3 * 4
+    assert views["pca_ctm"].total_bytes == gallery.shape[0] * 3 * 4 + pca_bytes
+    assert views["pca_renormalized_prefix_plus_zero"].fixed_bytes == pca_bytes
+    assert views["official_512"].values_per_row == 3
+    assert views["full_width_768"].values_per_row == 4
+    assert native_basis.kind == "native"
+
+
+def _passing_decision(**changes):
+    values = {
+        "ctm_r1": 0.91,
+        "ctm_map_at_r": 0.70,
+        "renormalized_r1": 0.906,
+        "renormalized_map_at_r": 0.70,
+        "official_512_r1": 0.912,
+        "paired_lower": 0.001,
+        "control_r1": {
+            "renormalized_prefix_plus_zero": 0.906,
+            "plain_prefix_plus_zero": 0.905,
+            "lambda_zero": 0.905,
+            "unicom_tail_energy": 0.904,
+            "pca_renormalized_prefix_plus_zero": 0.908,
+            "tail_sign_control": 0.90,
+            "tail_permuted_control": 0.899,
+        },
+        "ctm_total_bytes": 516,
+        "control_total_bytes": {
+            "renormalized_prefix_plus_zero": 516,
+            "plain_prefix_plus_zero": 516,
+            "lambda_zero": 516,
+            "unicom_tail_energy": 516,
+            "tail_sign_control": 516,
+            "tail_permuted_control": 516,
+        },
+        "lambda_raw": 0.2,
+        "lambda_lower": 0.1,
+        "null_p_value": 1.0 / 33.0,
+        "width_gains": ((64, 0.0), (128, 0.004), (256, 0.0), (512, 0.0)),
+        "replication_status": "PENDING",
+    }
+    values.update(changes)
+    return ctm_decision(**values)
+
+
+def test_decision_passes_exact_boundaries_and_waits_for_replication() -> None:
+    decision = _passing_decision(
+        ctm_r1=0.909,
+        ctm_map_at_r=0.699,
+        official_512_r1=0.912,
+        width_gains=((64, 0.0), (128, 0.003), (256, 0.0), (512, 0.0)),
+        null_p_value=0.05,
+    )
+
+    assert decision.status == "REPLICATE"
+    assert decision.r1_gain_passed is True
+    assert decision.map_passed is True
+    assert decision.gap_recovery_passed is True
+    assert decision.some_width_signal_passed is True
+
+
+def test_decision_uses_simpler_descriptor_when_it_matches_official_anchor() -> None:
+    decision = _passing_decision(renormalized_r1=0.912, official_512_r1=0.912)
+
+    assert decision.status == "USE_RENORMALIZED"
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"lambda_raw": 0.0},
+        {"lambda_lower": 0.0},
+        {"null_p_value": 0.051},
+        {"paired_lower": 0.0},
+        {"width_gains": ((64, 0.0009), (128, 0.0009))},
+        {"replication_status": "FAILED"},
+    ],
+)
+def test_decision_closes_on_each_falsifier(changes) -> None:
+    assert _passing_decision(**changes).status == "CLOSE"
+
+
+def test_decision_becomes_general_only_after_replication() -> None:
+    assert _passing_decision(replication_status="PASSED").status == "GENERAL_CLAIM_READY"
