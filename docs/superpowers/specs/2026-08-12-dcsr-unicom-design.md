@@ -1,6 +1,16 @@
 # DCSR-UNICOM: Deployment-Consistent Subspace Risk
 
-**Status:** prospective design; no DCSR outcome has been observed
+**Status:** rejected at design review; do not implement
+
+**Closure (2026-08-12):** adversarial review found that the objective is a
+hard two-group DRO variant overlapping slimmable/sandwich training, nested
+dropout, and Group-DRO, while its authorization statistic tests coordinate
+non-exchangeability that UNICOM's uniform mask objective should remove.  The
+review also discovered that the official four-rank implementation samples a
+different feature mask on each rank before combining the class-shard logits in
+one distributed softmax.  That source-level distributed objective, not DCSR,
+is the next mechanism-audit target.  This document is retained as negative
+research evidence; none of its experiment stages is authorized.
 
 **Target:** improve UNICOM's supervised In-Shop retrieval frontier while
 preserving a single 512-dimensional, gallery-independent descriptor.
@@ -22,8 +32,9 @@ Consequently:
 1. training sees a random subspace while deployment always sees one prefix;
 2. training uses unit vectors within the selected subspace while deployment
    permits prefix-energy variation to alter Euclidean ranking; and
-3. checkpoint selection repeatedly observes that fixed prefix even though it is
-   not an explicit training view.
+3. test-split R@1 is exposed every epoch and embedded in checkpoint filenames,
+   creating a selection affordance even though the code does not automatically
+   select a best checkpoint.
 
 This is source evidence, not yet evidence that the mismatch harms R@1. The first
 stage is therefore a no-training falsifier.
@@ -63,14 +74,17 @@ mechanism.
 
 Let the encoder emit `z_i in R^768` and let the PartialFC prototype for class
 `c` be `w_c in R^768`. Let `P` select coordinates `[0, 512)`. At each training
-step, let `R_t` be a uniformly sampled set of 512 distinct coordinates, shared
-by the entire minibatch as in UNICOM.
+step, let `R_t` be a uniformly sampled set of 512 distinct coordinates.  The
+official implementation samples `R_t` independently in each rank's PartialFC
+process; it is shared by the gathered minibatch only within that rank.  The
+resulting rank-local class-shard logits are then combined by one distributed
+softmax.
 
 For a selector `S`, define
 
 ```text
-u_i^S = S z_i / max(||S z_i||_2, eps)
-q_c^S = S w_c / max(||S w_c||_2, eps)
+u_i^S = S z_i / clamp(||S z_i||_2, min=1e-12)
+q_c^S = S w_c / clamp(||S w_c||_2, min=1e-12)
 s_ic^S = <u_i^S, q_c^S>
 ell_S  = ArcFaceCrossEntropy(s^S, y)
 ```
@@ -285,4 +299,3 @@ falsifier must not modify model weights or launch training.
 - A failed premise closes this exact mechanism; it does not authorize threshold
   changes, mask cherry-picking, or a different prefix selected from test data.
 - Any new mechanism after closure receives a new prospective design and gates.
-
