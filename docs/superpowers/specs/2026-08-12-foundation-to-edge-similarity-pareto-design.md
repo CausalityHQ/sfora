@@ -243,8 +243,10 @@ Run, in order:
 3. supervised MRL student;
 4. single-teacher feature distillation;
 5. single-teacher feature plus relational distillation;
-6. a frozen compact encoder plus a cached-feature linear alignment into the
-   teacher's serving coordinates;
+6. a frozen compact encoder plus a cached-feature alignment into the teacher's
+   serving coordinates, using the same at-most-5M-parameter `D -> 1024 -> 512`
+   adapter class, optimizer-search budget, and training identities as Section
+   4.1; a bias-free linear alignment is a required nested ablation;
 7. MobileCLIP-S2 as an external compact retrieval null; and
 8. post-hoc PCA, INT8, PQ, and OPQ compression of the best full-width
    descriptor.
@@ -267,19 +269,22 @@ datasets are descriptive. Continue to full training only if that prefix
 satisfies all:
 
 - mean validation R@1 is at least the supervised MRL student's value plus
-  0.30 point, with all three seed differences positive; and
+  0.30 point in the primary asymmetric serving configuration, with all three
+  seed differences positive; and
 - measured query-side encoder p95 plus search p95 is at least 20% lower than
   the strongest single-encoder teacher at matched hardware; and
-- the trained student beats the frozen small-backbone-plus-adapter null by at
-  least 0.50 R@1 point at matched query latency and serving mode. A separate
-  symmetric own-adapter comparison is reported but cannot satisfy this gate.
-  Otherwise use the aligned null and close additional distillation.
+- the trained student beats the Section 5.3 control-6 nonlinear aligned null by
+  at least 0.50 R@1 point at matched query latency and serving mode; and
+- in the symmetric student/student versus own-adapter/own-adapter comparison,
+  the 90% query-identity paired-bootstrap interval for the student's R@1
+  difference lies wholly above `-0.40` point. Otherwise use the winning null
+  and close additional distillation.
 
 For the asymmetric comparison, the matched null is Section 5.3 control 6 in
 the teacher's serving coordinates. The Section 5.1 own-adapter null is compared
 only in the symmetric student/student versus null/null configuration. Bullet 3
-is gating only in the primary asymmetric configuration; the symmetric
-own-adapter comparison is a required descriptive control.
+is gating in the primary asymmetric configuration, and bullet 4 is a separate
+gating non-inferiority requirement for the symmetric configuration.
 
 Kill relational distillation if feature-only recovers at least 90% of its gain.
 Kill MRL if independently trained fixed-width heads dominate every prefix at
