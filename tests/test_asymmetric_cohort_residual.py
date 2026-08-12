@@ -7,7 +7,10 @@ import pytest
 
 from sfora.asymmetric_cohort_residual import (
     ArmComparison,
+    DirectComparison,
     Evaluation,
+    _assignment_permutations,
+    _comparison,
     decide_ahncr,
     evaluate_ahncr,
     exact_mcnemar,
@@ -83,6 +86,12 @@ def test_hard_negative_centroids_matches_stable_literal_topk_and_blocks() -> Non
     )
     assert hard_negative_centroids(queries, cohort, k=2, block_size=1) == pytest.approx(expected)
     assert hard_negative_centroids(queries, cohort, k=2, block_size=8) == pytest.approx(expected)
+
+
+def test_hard_negative_centroid_breaks_kth_boundary_tie_by_first_index() -> None:
+    cohort = _unit([[0.8, 0.6], [0.8, -0.6], [0, 1]])
+    query = _unit([[1, 0]])
+    assert hard_negative_centroids(query, cohort, k=1, block_size=1) == pytest.approx(cohort[[0]])
 
 
 def test_unary_cohort_density_matches_literal_topk_mean() -> None:
@@ -202,14 +211,30 @@ def test_evaluate_ahncr_matches_literal_scores_and_controls() -> None:
 
     rng = np.random.Generator(np.random.PCG64(20260814))
     expected_null = []
-    for _ in range(20):
+    while len(expected_null) < 20:
         permutation = rng.permutation(len(queries))
+        if np.any(permutation == np.arange(len(queries))):
+            continue
         indices = np.argmax(2 * raw - q_centroids[permutation] @ gallery.T, axis=1)
         expected_null.append(
             _literal_comparison(raw_indices, indices, query_labels, gallery_labels, shards)[0]
         )
     assert result.shuffled_gains == pytest.approx(expected_null)
     assert result.shuffled_p95 == pytest.approx(np.quantile(expected_null, 0.95, method="linear"))
+    ahncr_correct = gallery_labels[np.argmax(score_matrices["ahncr"], axis=1)] == query_labels
+    for name in (
+        "global_mean",
+        "positive_expansion",
+        "unary_cohort_density",
+        "symmetric_ad_norm",
+    ):
+        control_correct = gallery_labels[np.argmax(score_matrices[name], axis=1)] == query_labels
+        expected_favor = int(np.sum(~control_correct & ahncr_correct))
+        expected_against = int(np.sum(control_correct & ~ahncr_correct))
+        comparison = result.control_comparisons[name]
+        assert comparison.control_wrong_ahncr_right == expected_favor
+        assert comparison.control_right_ahncr_wrong == expected_against
+        assert comparison.p_value == exact_mcnemar(expected_favor, expected_against)
 
 
 def test_exact_mcnemar_uses_exact_two_sided_binomial_tail() -> None:
@@ -217,10 +242,35 @@ def test_exact_mcnemar_uses_exact_two_sided_binomial_tail() -> None:
     assert exact_mcnemar(2, 10) == pytest.approx(158 / 4096)
 
 
+def test_assignment_null_uses_fixed_derangements() -> None:
+    first = _assignment_permutations(11, 20, 20260814)
+    second = _assignment_permutations(11, 20, 20260814)
+    assert len(first) == 20
+    for permutation, repeated in zip(first, second, strict=True):
+        assert permutation.tolist() == repeated.tolist()
+        assert sorted(permutation.tolist()) == list(range(11))
+        assert np.all(permutation != np.arange(11))
+
+
+def test_shard_gain_uses_one_exact_count_quotient() -> None:
+    query_labels = np.zeros(216, dtype=np.int64)
+    gallery_labels = np.asarray([0, 1], dtype=np.int64)
+    raw_indices = np.ones(216, dtype=np.int64)
+    raw_indices[:117] = 0
+    corrected = np.ones(216, dtype=np.int64)
+    corrected[:112] = 0
+    raw_indices[213:] = 0
+    corrected[213:] = 0
+    shards = np.asarray([0] * 213 + [1, 2, 3], dtype=np.int64)
+    value = _comparison(raw_indices, corrected, query_labels, gallery_labels, shards)
+    assert value.shard_gains[0] == (112 - 117) / 213
+
+
 def _passing_evaluation() -> Evaluation:
     raw = ArmComparison(0.70, 0.70, 0.0, 0, 0, 1.0, (0.0, 0.0, 0.0, 0.0))
     candidate = ArmComparison(0.70, 0.71, 0.01, 20, 10, 0.009, (0.01, 0.01, 0.01, -0.001))
     control = ArmComparison(0.70, 0.7089, 0.0089, 10, 1, 0.02, (0, 0, 0, 0))
+    direct = DirectComparison(12, 0, exact_mcnemar(12, 0))
     return Evaluation(
         arms={
             "raw": raw,
@@ -232,12 +282,29 @@ def _passing_evaluation() -> Evaluation:
         },
         shuffled_gains=(0.001,) * 19 + (0.008,),
         shuffled_p95=0.00135,
+        control_comparisons={
+            "global_mean": direct,
+            "positive_expansion": direct,
+            "unary_cohort_density": direct,
+            "symmetric_ad_norm": direct,
+        },
     )
 
 
 @pytest.mark.parametrize(
     "mutation",
-    ["gain", "p", "shards", "global", "positive", "unary", "symmetric", "null", "direction"],
+    [
+        "gain",
+        "p",
+        "shards",
+        "global",
+        "positive",
+        "unary",
+        "symmetric",
+        "null",
+        "direction",
+        "direct_control",
+    ],
 )
 def test_decide_ahncr_rejects_every_failed_boundary(mutation: str) -> None:
     value = _passing_evaluation()
@@ -261,9 +328,18 @@ def test_decide_ahncr_rejects_every_failed_boundary(mutation: str) -> None:
         arms[key] = ArmComparison(0.70, 0.709000000001, 0.009000000001, 10, 1, 0.02, (0, 0, 0, 0))
     arms["ahncr"] = candidate
     if mutation == "null":
-        value = Evaluation(arms, value.shuffled_gains, 0.01)
+        value = Evaluation(arms, value.shuffled_gains, 0.01, value.control_comparisons)
+    elif mutation == "direct_control":
+        comparisons = dict(value.control_comparisons)
+        comparisons["global_mean"] = DirectComparison(5, 5, 1.0)
+        value = Evaluation(arms, value.shuffled_gains, value.shuffled_p95, comparisons)
     else:
-        value = Evaluation(arms, value.shuffled_gains, value.shuffled_p95)
+        value = Evaluation(
+            arms,
+            value.shuffled_gains,
+            value.shuffled_p95,
+            value.control_comparisons,
+        )
     passed, predicates = decide_ahncr(value)
     assert not passed
     assert not all(predicates.values())

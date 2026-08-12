@@ -17,6 +17,7 @@ import numpy as np
 
 from sfora.asymmetric_cohort_residual import (
     ArmComparison,
+    DirectComparison,
     Evaluation,
     decide_ahncr,
     evaluate_ahncr,
@@ -39,6 +40,7 @@ ARM_NAMES = (
     "unary_cohort_density",
     "symmetric_ad_norm",
 )
+DIRECT_CONTROL_NAMES = ARM_NAMES[2:]
 PREDICATE_NAMES = (
     "pooled_gain",
     "paired_significance",
@@ -49,6 +51,10 @@ PREDICATE_NAMES = (
     "symmetric_normalization_control",
     "assignment_null",
     "transition_direction",
+    "global_mean_paired",
+    "positive_expansion_paired",
+    "unary_cohort_density_paired",
+    "symmetric_ad_norm_paired",
 )
 
 
@@ -163,6 +169,14 @@ def _arm_dict(value: ArmComparison) -> dict[str, Any]:
     }
 
 
+def _direct_dict(value: DirectComparison) -> dict[str, int | float]:
+    return {
+        "control_wrong_ahncr_right": value.control_wrong_ahncr_right,
+        "control_right_ahncr_wrong": value.control_right_ahncr_wrong,
+        "p_value": value.p_value,
+    }
+
+
 def build_ahncr_report(train_path: Path, *, block_size: int = 256) -> dict[str, Any]:
     if type(block_size) is not int or block_size <= 0:
         raise ValueError("block_size must be a positive concrete integer")
@@ -229,6 +243,10 @@ def build_ahncr_report(train_path: Path, *, block_size: int = 256) -> dict[str, 
             "shard_counts": [int(np.sum(shards == shard)) for shard in range(4)],
         },
         "arms": {name: _arm_dict(evaluation.arms[name]) for name in ARM_NAMES},
+        "control_comparisons": {
+            name: _direct_dict(evaluation.control_comparisons[name])
+            for name in DIRECT_CONTROL_NAMES
+        },
         "null": {
             "shuffled_gains": list(evaluation.shuffled_gains),
             "shuffled_p95": evaluation.shuffled_p95,
@@ -269,6 +287,7 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             "configuration",
             "split",
             "arms",
+            "control_comparisons",
             "null",
             "decision",
         ),
@@ -470,6 +489,39 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
             or arm.shard_raw_correct != raw.shard_raw_correct
         ):
             raise ValueError(f"arms.{name} shared raw baseline differs")
+    direct_value = _keys(
+        report["control_comparisons"],
+        DIRECT_CONTROL_NAMES,
+        "control_comparisons",
+    )
+    direct_objects: dict[str, DirectComparison] = {}
+    for name in DIRECT_CONTROL_NAMES:
+        comparison = _keys(
+            direct_value[name],
+            (
+                "control_wrong_ahncr_right",
+                "control_right_ahncr_wrong",
+                "p_value",
+            ),
+            f"control_comparisons.{name}",
+        )
+        favor = _int(
+            comparison["control_wrong_ahncr_right"],
+            f"control_comparisons.{name}.control_wrong_ahncr_right",
+        )
+        against = _int(
+            comparison["control_right_ahncr_wrong"],
+            f"control_comparisons.{name}.control_right_ahncr_wrong",
+        )
+        p_value = _finite_float(comparison["p_value"], f"control_comparisons.{name}.p_value")
+        if (
+            favor > split["query_count"]
+            or against > split["query_count"]
+            or p_value != exact_mcnemar(favor, against)
+            or arm_objects["ahncr"].correct - arm_objects[name].correct != favor - against
+        ):
+            raise ValueError(f"control_comparisons.{name} relations differ")
+        direct_objects[name] = DirectComparison(favor, against, p_value)
     null = _keys(report["null"], ("shuffled_gains", "shuffled_p95"), "null")
     if type(null["shuffled_gains"]) is not list or len(null["shuffled_gains"]) != PERMUTATION_COUNT:
         raise ValueError("null.shuffled_gains differs")
@@ -479,7 +531,9 @@ def validate_ahncr_report(value: object) -> dict[str, Any]:
     p95 = _finite_float(null["shuffled_p95"], "null.shuffled_p95")
     if p95 != float(np.quantile(gains, 0.95, method="linear")):
         raise ValueError("null.shuffled_p95 differs")
-    expected_pass, expected_predicates = decide_ahncr(Evaluation(arm_objects, gains, p95))
+    expected_pass, expected_predicates = decide_ahncr(
+        Evaluation(arm_objects, gains, p95, direct_objects)
+    )
     decision = _keys(report["decision"], ("predicates", "passes_falsifier"), "decision")
     if _keys(decision["predicates"], PREDICATE_NAMES, "decision.predicates") != expected_predicates:
         raise ValueError("decision.predicates differ")
@@ -500,10 +554,12 @@ def write_json_atomic(
     encoded = (json.dumps(payload, separators=(",", ":"), allow_nan=False) + "\n").encode()
     temporary = path.parent / f".{path.name}.{os.getpid()}.tmp"
     descriptor: int | None = None
+    temporary_owned = False
     owned: os.stat_result | None = None
     published = False
     try:
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        temporary_owned = True
         with os.fdopen(descriptor, "wb", closefd=True) as handle:
             descriptor = None
             handle.write(encoded)
@@ -534,7 +590,8 @@ def write_json_atomic(
     finally:
         if descriptor is not None:
             os.close(descriptor)
-        temporary.unlink(missing_ok=True)
+        if temporary_owned:
+            temporary.unlink(missing_ok=True)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

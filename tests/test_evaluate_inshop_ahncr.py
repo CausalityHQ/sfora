@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import builtins
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -110,13 +112,23 @@ def test_build_report_uses_only_registered_train_archive(
     monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
     forbidden = {"query.npz", "gallery.npz", "inshop_alsp_seed0.json"}
     original_open = Path.open
+    original_builtin_open = builtins.open
 
     def guarded_open(path: Path, *args: object, **kwargs: object):
         if path.name in forbidden:
             raise AssertionError(f"forbidden input reached: {path}")
         return original_open(path, *args, **kwargs)
 
+    def guarded_builtin_open(path: object, *args: object, **kwargs: object):
+        candidate = Path(os.fspath(path))
+        if candidate.name in forbidden:
+            raise AssertionError(f"forbidden input reached: {candidate}")
+        return original_builtin_open(path, *args, **kwargs)
+
     monkeypatch.setattr(Path, "open", guarded_open)
+    monkeypatch.setattr(builtins, "open", guarded_builtin_open)
+    with pytest.raises(AssertionError, match="forbidden input"):
+        np.load(tmp_path / "query.npz", allow_pickle=False)
     report = CLI.build_ahncr_report(train, block_size=7)
     validated = CLI.validate_ahncr_report(json.loads(json.dumps(report)))
     assert validated["schema_version"] == "inshop-ahncr-v1"
@@ -141,6 +153,7 @@ def test_build_report_uses_only_registered_train_archive(
         (("decision", "passes_falsifier"), True),
         (("arms", "ahncr", "gain"), 0.123),
         (("arms", "ahncr", "p_value"), 0.123),
+        (("control_comparisons", "global_mean", "p_value"), 0.123),
         (("null", "shuffled_p95"), 0.123),
         (("split", "query_count"), 999),
     ],
@@ -225,3 +238,67 @@ def test_atomic_writer_reloads_and_does_not_clobber(
         CLI.write_json_atomic(output, payload, validator=CLI.validate_ahncr_report)
     assert output.read_bytes() == first
     assert list(tmp_path.glob(f".{output.name}.*.tmp")) == []
+
+
+def test_atomic_writer_preserves_foreign_preexisting_temp(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pinned_threads: None
+) -> None:
+    train = tmp_path / "train.npz"
+    _archive(train)
+    monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
+    payload = CLI.build_ahncr_report(train, block_size=7)
+    output = tmp_path / "foreign-result.json"
+    temporary = tmp_path / f".{output.name}.{os.getpid()}.tmp"
+    temporary.write_bytes(b"foreign-sentinel")
+    with pytest.raises(FileExistsError):
+        CLI.write_json_atomic(output, payload, validator=CLI.validate_ahncr_report)
+    assert temporary.read_bytes() == b"foreign-sentinel"
+    assert not output.exists()
+
+
+def test_atomic_writer_strictly_reloads_a_passing_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, pinned_threads: None
+) -> None:
+    train = tmp_path / "train.npz"
+    _archive(train)
+    monkeypatch.setattr(CLI, "EXPECTED_TRAIN_SHA256", _sha256(train))
+    payload = CLI.build_ahncr_report(train, block_size=7)
+    query_count = payload["split"]["query_count"]
+    shard_counts = payload["split"]["shard_counts"]
+    for name, arm in payload["arms"].items():
+        is_candidate = name == "ahncr"
+        correct = query_count if is_candidate else 0
+        arm.update(
+            {
+                "raw_recall": 0.0,
+                "recall": 1.0 if is_candidate else 0.0,
+                "gain": 1.0 if is_candidate else 0.0,
+                "raw_correct": 0,
+                "correct": correct,
+                "wrong_to_right": correct,
+                "right_to_wrong": 0,
+                "p_value": CLI.exact_mcnemar(correct, 0),
+                "shard_counts": list(shard_counts),
+                "shard_raw_correct": [0, 0, 0, 0],
+                "shard_correct": list(shard_counts) if is_candidate else [0, 0, 0, 0],
+                "shard_gains": [1.0, 1.0, 1.0, 1.0] if is_candidate else [0.0, 0.0, 0.0, 0.0],
+            }
+        )
+    for comparison in payload["control_comparisons"].values():
+        comparison.update(
+            {
+                "control_wrong_ahncr_right": query_count,
+                "control_right_ahncr_wrong": 0,
+                "p_value": CLI.exact_mcnemar(query_count, 0),
+            }
+        )
+    payload["null"] = {"shuffled_gains": [0.0] * 20, "shuffled_p95": 0.0}
+    payload["decision"] = {
+        "predicates": {name: True for name in CLI.PREDICATE_NAMES},
+        "passes_falsifier": True,
+    }
+    CLI.validate_ahncr_report(payload)
+    output = tmp_path / "passing.json"
+    CLI.write_json_atomic(output, payload, validator=CLI.validate_ahncr_report)
+    persisted = CLI.validate_ahncr_report(json.loads(output.read_text()))
+    assert persisted["decision"]["passes_falsifier"] is True

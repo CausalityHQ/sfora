@@ -46,12 +46,22 @@ class ArmComparison:
 
 
 @dataclass(frozen=True)
+class DirectComparison:
+    """Paired AHNCR correctness against one causal control."""
+
+    control_wrong_ahncr_right: int
+    control_right_ahncr_wrong: int
+    p_value: float
+
+
+@dataclass(frozen=True)
 class Evaluation:
-    """All frozen arms and the centroid-assignment null distribution."""
+    """All frozen arms, direct controls, and assignment null evidence."""
 
     arms: dict[str, ArmComparison]
     shuffled_gains: tuple[float, ...]
     shuffled_p95: float
+    control_comparisons: dict[str, DirectComparison]
 
 
 def _labels(value: np.ndarray, *, name: str = "labels") -> np.ndarray:
@@ -258,16 +268,15 @@ def _comparison(
     recall = float(np.mean(corrected, dtype=np.float64))
     wrong_to_right = int(np.sum(~raw_correct & corrected))
     right_to_wrong = int(np.sum(raw_correct & ~corrected))
-    shard_gains = tuple(
-        float(
-            np.mean(corrected[shard_ids == shard], dtype=np.float64)
-            - np.mean(raw_correct[shard_ids == shard], dtype=np.float64)
-        )
-        for shard in range(4)
-    )
     shard_counts = tuple(int(np.sum(shard_ids == shard)) for shard in range(4))
     shard_raw_correct = tuple(int(np.sum(raw_correct[shard_ids == shard])) for shard in range(4))
     shard_correct = tuple(int(np.sum(corrected[shard_ids == shard])) for shard in range(4))
+    shard_gains = tuple(
+        (correct_count - raw_count) / count
+        for correct_count, raw_count, count in zip(
+            shard_correct, shard_raw_correct, shard_counts, strict=True
+        )
+    )
     return ArmComparison(
         raw_recall=raw_recall,
         recall=recall,
@@ -290,6 +299,30 @@ def _normalized_residual(values: np.ndarray, centroids: np.ndarray) -> np.ndarra
     if np.any(norms == 0.0) or not np.isfinite(norms).all():
         raise ValueError("symmetric residual norms must be finite and nonzero")
     return np.asarray(residual / norms[:, None], dtype=np.float32)
+
+
+def _assignment_permutations(
+    row_count: int, permutation_count: int, seed: int
+) -> tuple[np.ndarray, ...]:
+    """Generate fixed PCG64 derangements for the assignment null."""
+
+    if (
+        type(row_count) is not int
+        or row_count < 2
+        or type(permutation_count) is not int
+        or permutation_count <= 0
+        or type(seed) is not int
+        or seed < 0
+    ):
+        raise ValueError("derangement arguments differ")
+    generator = np.random.Generator(np.random.PCG64(seed))
+    identity = np.arange(row_count, dtype=np.int64)
+    values: list[np.ndarray] = []
+    while len(values) < permutation_count:
+        candidate = generator.permutation(row_count)
+        if np.all(candidate != identity):
+            values.append(np.asarray(candidate, dtype=np.int64))
+    return tuple(values)
 
 
 def evaluate_ahncr(
@@ -353,20 +386,35 @@ def evaluate_ahncr(
         "symmetric_ad_norm": symmetric_scores,
     }
     raw_indices = np.argmax(raw_scores, axis=1)
+    arm_indices = {name: np.argmax(arm_scores, axis=1) for name, arm_scores in scores.items()}
     arms = {
         name: _comparison(
             raw_indices,
-            np.argmax(arm_scores, axis=1),
+            arm_indices[name],
             query_targets,
             gallery_targets,
             shards,
         )
-        for name, arm_scores in scores.items()
+        for name in scores
     }
-    generator = np.random.Generator(np.random.PCG64(permutation_seed))
+    ahncr_correct = gallery_targets[arm_indices["ahncr"]] == query_targets
+    control_comparisons: dict[str, DirectComparison] = {}
+    for name in (
+        "global_mean",
+        "positive_expansion",
+        "unary_cohort_density",
+        "symmetric_ad_norm",
+    ):
+        control_correct = gallery_targets[arm_indices[name]] == query_targets
+        favor = int(np.sum(~control_correct & ahncr_correct))
+        against = int(np.sum(control_correct & ~ahncr_correct))
+        control_comparisons[name] = DirectComparison(
+            control_wrong_ahncr_right=favor,
+            control_right_ahncr_wrong=against,
+            p_value=exact_mcnemar(favor, against),
+        )
     shuffled_gains: list[float] = []
-    for _ in range(20):
-        permutation = generator.permutation(query_matrix.shape[0])
+    for permutation in _assignment_permutations(query_matrix.shape[0], 20, permutation_seed):
         shuffled_scores = np.asarray(
             2.0 * raw_scores - query_centroids[permutation] @ gallery_matrix.T,
             dtype=np.float32,
@@ -385,6 +433,7 @@ def evaluate_ahncr(
         arms=arms,
         shuffled_gains=gains,
         shuffled_p95=float(np.quantile(gains, 0.95, method="linear")),
+        control_comparisons=control_comparisons,
     )
 
 
@@ -403,6 +452,9 @@ def decide_ahncr(evaluation: Evaluation) -> tuple[bool, dict[str, bool]]:
     )
     if tuple(evaluation.arms) != required:
         raise ValueError("evaluation arms differ from the frozen order")
+    control_names = required[2:]
+    if tuple(evaluation.control_comparisons) != control_names:
+        raise ValueError("direct control comparisons differ from the frozen order")
     candidate = evaluation.arms["ahncr"]
     predicates = {
         "pooled_gain": candidate.gain >= 0.003,
@@ -421,4 +473,10 @@ def decide_ahncr(evaluation: Evaluation) -> tuple[bool, dict[str, bool]]:
         "assignment_null": candidate.gain > evaluation.shuffled_p95,
         "transition_direction": candidate.wrong_to_right > candidate.right_to_wrong,
     }
+    for name in control_names:
+        comparison = evaluation.control_comparisons[name]
+        predicates[f"{name}_paired"] = (
+            comparison.control_wrong_ahncr_right > comparison.control_right_ahncr_wrong
+            and comparison.p_value < 0.0125
+        )
     return all(predicates.values()), predicates
