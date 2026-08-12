@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
@@ -308,24 +309,42 @@ def lorentz_mips_scores(query: np.ndarray, gallery: np.ndarray) -> np.ndarray:
     return np.ascontiguousarray(transformed @ gallery_value.T)
 
 
-def lorentz_distance_block(query: np.ndarray, gallery: np.ndarray) -> np.ndarray:
+def lorentz_distance_block(
+    query: np.ndarray, gallery: np.ndarray, *, gallery_chunk_size: int = 256
+) -> np.ndarray:
     """Compute stable unit-curvature Lorentz distances in FP32."""
 
     query_value = _require_lorentz(query, name="query")
     gallery_value = _require_lorentz(gallery, name="gallery")
     if query_value.shape[1] != gallery_value.shape[1]:
         raise ValueError("Lorentz dimensions differ")
-    spatial_difference = query_value[:, None, 1:] - gallery_value[None, :, 1:]
-    time_difference = query_value[:, None, 0] - gallery_value[None, :, 0]
-    value = (
-        np.sum(spatial_difference * spatial_difference, axis=2, dtype=np.float32)
-        - time_difference * time_difference
-    ) / np.float32(2.0)
-    if float(np.min(value)) < -2e-5:
-        raise ValueError("Lorentz distance intermediate is materially negative")
-    np.maximum(value, np.float32(0.0), out=value)
-    distance = np.log1p(value + np.sqrt(value * (value + np.float32(2.0))))
-    return np.ascontiguousarray(distance.astype(np.float32, copy=False))
+    if type(gallery_chunk_size) is not int or gallery_chunk_size <= 0:
+        raise ValueError("gallery_chunk_size must be a positive builtin integer")
+    result = np.empty(
+        (query_value.shape[0], gallery_value.shape[0]), dtype=np.float32
+    )
+    for start in range(0, gallery_value.shape[0], gallery_chunk_size):
+        stop = min(start + gallery_chunk_size, gallery_value.shape[0])
+        gallery_chunk = gallery_value[start:stop]
+        spatial_difference = (
+            query_value[:, None, 1:] - gallery_chunk[None, :, 1:]
+        )
+        time_difference = query_value[:, None, 0] - gallery_chunk[None, :, 0]
+        value = (
+            np.sum(
+                spatial_difference * spatial_difference,
+                axis=2,
+                dtype=np.float32,
+            )
+            - time_difference * time_difference
+        ) / np.float32(2.0)
+        if float(np.min(value)) < -2e-5:
+            raise ValueError("Lorentz distance intermediate is materially negative")
+        np.maximum(value, np.float32(0.0), out=value)
+        result[:, start:stop] = np.log1p(
+            value + np.sqrt(value * (value + np.float32(2.0)))
+        )
+    return np.ascontiguousarray(result)
 
 
 def score_control_blocks(
@@ -333,7 +352,7 @@ def score_control_blocks(
     gallery_projected: np.ndarray,
     scale: float,
     clip: float,
-) -> dict[str, np.ndarray]:
+) -> dict[str, Iterable[np.ndarray]]:
     """Return the exact ordered L1 scorer and matched radial controls."""
 
     query = _require_nonempty_matrix(query_projected, name="query_projected").astype(
@@ -349,65 +368,84 @@ def score_control_blocks(
     if type(clip) is not float or not np.isfinite(clip) or clip <= 0.0:
         raise ValueError("clip must be a positive finite builtin float")
 
-    query64 = query.astype(np.float64)
     gallery64 = gallery.astype(np.float64)
-    query_norm64 = np.sqrt(np.sum(query64 * query64, axis=1, dtype=np.float64))
     gallery_norm64 = np.sqrt(
         np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
     )
-    query_norm = query_norm64.astype(np.float32)
     gallery_norm = gallery_norm64.astype(np.float32)
-    query_direction = np.zeros_like(query)
     gallery_direction = np.zeros_like(gallery)
-    query_nonzero = query_norm > 0.0
     gallery_nonzero = gallery_norm > 0.0
-    query_direction[query_nonzero] = (
-        query[query_nonzero] / query_norm[query_nonzero, None]
-    )
     gallery_direction[gallery_nonzero] = (
         gallery[gallery_nonzero] / gallery_norm[gallery_nonzero, None]
     )
-    cosine = query_direction @ gallery_direction.T
-    query_radius = np.minimum(scale * query_norm64, clip).astype(np.float32)
     gallery_radius = np.minimum(scale * gallery_norm64, clip).astype(np.float32)
-
-    query_sinh = np.sinh(query_radius)
     gallery_sinh = np.sinh(gallery_radius)
-    query_lifted = lorentz_lift(query, scale, clip)
     gallery_lifted = lorentz_lift(gallery, scale, clip)
-    lorentz = lorentz_mips_scores(query_lifted, gallery_lifted) / query_lifted[
-        :, :1
-    ]
-    squared_distance = (
-        np.sum(query * query, axis=1, dtype=np.float32)[:, None]
-        + np.sum(gallery * gallery, axis=1, dtype=np.float32)[None, :]
-        - np.float32(2.0) * (query @ gallery.T)
-    )
-    spatial_only = (
-        query_sinh[:, None] * gallery_sinh[None, :] * cosine
-        - np.float32(0.5) * gallery_sinh[None, :] ** 2
-    )
+    gallery_squared = np.sum(gallery * gallery, axis=1, dtype=np.float32)
 
-    result: dict[str, np.ndarray] = {
-        "lorentz": np.ascontiguousarray(lorentz.astype(np.float32)),
-        "pca_euclidean": np.ascontiguousarray((-squared_distance).astype(np.float32)),
-        "pca_cosine": np.ascontiguousarray(cosine.astype(np.float32)),
-        "spatial_only": np.ascontiguousarray(spatial_only.astype(np.float32)),
+    def chunks(control: str) -> Iterable[np.ndarray]:
+        for start in range(0, query.shape[0], 256):
+            query_chunk = query[start : start + 256]
+            query64 = query_chunk.astype(np.float64)
+            query_norm64 = np.sqrt(
+                np.sum(query64 * query64, axis=1, dtype=np.float64)
+            )
+            query_norm = query_norm64.astype(np.float32)
+            query_direction = np.zeros_like(query_chunk)
+            nonzero = query_norm > 0.0
+            query_direction[nonzero] = (
+                query_chunk[nonzero] / query_norm[nonzero, None]
+            )
+            cosine = query_direction @ gallery_direction.T
+            query_radius = np.minimum(scale * query_norm64, clip).astype(np.float32)
+            if control == "lorentz":
+                query_lifted = lorentz_lift(query_chunk, scale, clip)
+                score = lorentz_mips_scores(
+                    query_lifted, gallery_lifted
+                ) / query_lifted[:, :1]
+            elif control == "pca_euclidean":
+                score = -(
+                    np.sum(
+                        query_chunk * query_chunk,
+                        axis=1,
+                        dtype=np.float32,
+                    )[:, None]
+                    + gallery_squared[None, :]
+                    - np.float32(2.0) * (query_chunk @ gallery.T)
+                )
+            elif control == "pca_cosine":
+                score = cosine
+            elif control == "spatial_only":
+                score = (
+                    np.sinh(query_radius)[:, None]
+                    * gallery_sinh[None, :]
+                    * cosine
+                    - np.float32(0.5) * gallery_sinh[None, :] ** 2
+                )
+            else:
+                power = 1 if control == "power_1" else 3
+                query_h = query_radius**power
+                gallery_h = gallery_radius**power
+                score = (
+                    query_h[:, None]
+                    / np.sqrt(np.float32(1.0) + query_h[:, None] ** 2)
+                    * gallery_h[None, :]
+                    * cosine
+                    - np.sqrt(np.float32(1.0) + gallery_h[None, :] ** 2)
+                )
+            yield np.ascontiguousarray(score.astype(np.float32, copy=False))
+
+    return {
+        name: chunks(name)
+        for name in (
+            "lorentz",
+            "pca_euclidean",
+            "pca_cosine",
+            "spatial_only",
+            "power_1",
+            "power_3",
+        )
     }
-    for power in (1, 3):
-        query_h = query_radius**power
-        gallery_h = gallery_radius**power
-        power_score = (
-            query_h[:, None]
-            / np.sqrt(np.float32(1.0) + query_h[:, None] ** 2)
-            * gallery_h[None, :]
-            * cosine
-            - np.sqrt(np.float32(1.0) + gallery_h[None, :] ** 2)
-        )
-        result[f"power_{power}"] = np.ascontiguousarray(
-            power_score.astype(np.float32)
-        )
-    return result
 
 
 def paired_identity_max_interval(

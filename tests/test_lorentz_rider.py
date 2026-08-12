@@ -473,9 +473,9 @@ def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
     scale = 0.2
     clip = 2.5
 
-    scores = score_control_blocks(query, gallery, scale, clip)
+    score_chunks = score_control_blocks(query, gallery, scale, clip)
 
-    assert list(scores) == [
+    assert list(score_chunks) == [
         "lorentz",
         "pca_euclidean",
         "pca_cosine",
@@ -483,6 +483,12 @@ def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
         "power_1",
         "power_3",
     ]
+    scores = {}
+    for name, chunks in score_chunks.items():
+        materialized = tuple(chunks)
+        assert materialized
+        assert all(chunk.ndim == 2 for chunk in materialized)
+        scores[name] = np.concatenate(materialized, axis=0)
     query64 = query.astype(np.float64)
     gallery64 = gallery.astype(np.float64)
     query_radius = np.minimum(scale * np.linalg.norm(query64, axis=1), clip)
@@ -521,16 +527,52 @@ def test_score_controls_follow_registered_radial_formulas_and_order() -> None:
 def test_score_control_endpoint_rankings_match_euclidean_and_cosine() -> None:
     query = np.asarray([[1.0, 0.2]], dtype=np.float32)
     gallery = np.asarray([[0.9, 0.4], [2.0, 0.1], [-0.2, 1.0]], dtype=np.float32)
+    gallery = gallery[[2, 0, 1]]
 
-    small = score_control_blocks(query, gallery, 1e-5, 2.5)
-    saturated = score_control_blocks(query, gallery, 1e6, 2.5)
+    small_chunks = score_control_blocks(query, gallery, 0.125, 2.5)
+    saturated_chunks = score_control_blocks(query, gallery, 1e6, 2.5)
+    small = {
+        name: np.concatenate(tuple(chunks), axis=0)
+        for name, chunks in small_chunks.items()
+    }
+    saturated = {
+        name: np.concatenate(tuple(chunks), axis=0)
+        for name, chunks in saturated_chunks.items()
+    }
 
-    assert int(np.argmax(small["lorentz"][0])) == int(
-        np.argmax(small["pca_euclidean"][0])
+    assert np.array_equal(
+        np.argsort(-small["lorentz"][0], kind="stable"),
+        np.argsort(-small["pca_euclidean"][0], kind="stable"),
     )
-    assert int(np.argmax(saturated["lorentz"][0])) == int(
-        np.argmax(saturated["pca_cosine"][0])
+    assert np.array_equal(
+        np.argsort(-saturated["lorentz"][0], kind="stable"),
+        np.argsort(-saturated["pca_cosine"][0], kind="stable"),
     )
+
+
+def test_score_controls_stream_bounded_query_chunks() -> None:
+    query = np.ones((513, 2), dtype=np.float32)
+    gallery = np.asarray([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+
+    controls = score_control_blocks(query, gallery, 0.5, 2.5)
+
+    for chunks in controls.values():
+        materialized = tuple(chunks)
+        assert [chunk.shape for chunk in materialized] == [
+            (256, 3),
+            (256, 3),
+            (1, 3),
+        ]
+
+
+def test_distance_gallery_chunking_preserves_stable_formula() -> None:
+    values = np.asarray([[1, 0], [0, 1], [-1, 0], [0, -1]], dtype=np.float32)
+    lifted = lorentz_lift(values, 1.0)
+
+    chunked = lorentz_distance_block(lifted[:2], lifted, gallery_chunk_size=1)
+    ordinary = lorentz_distance_block(lifted[:2], lifted, gallery_chunk_size=4)
+
+    assert np.array_equal(chunked, ordinary)
 
 
 def test_function_family_tie_closes_geometry_claim() -> None:
