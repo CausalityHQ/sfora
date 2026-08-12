@@ -1574,6 +1574,92 @@ def test_lops_pg_embedding_gradient_projects_only_conflicts() -> None:
     ]
 
 
+def test_mcps_centroid_state_reads_before_exact_stopped_update() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _MCPSCentroidState
+
+    proxy_labels = torch.tensor([10, 20], dtype=torch.long)
+    proxies = torch.tensor([[1.0, 0.0], [0.0, 2.0]], dtype=torch.float64)
+    state = _MCPSCentroidState(
+        proxy_labels,
+        dimensions=2,
+        device=torch.device("cpu"),
+        dtype=torch.float64,
+        torch_module=torch,
+    )
+    labels = torch.tensor([10, 20, 10], dtype=torch.long)
+    fallback, memory_mask = state.targets(labels, proxies)
+    torch.testing.assert_close(
+        fallback,
+        torch.tensor([[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64),
+    )
+    assert memory_mask.tolist() == [False, False, False]
+
+    embeddings = torch.tensor(
+        [[0.8, 0.6], [0.0, 1.0], [0.6, 0.8]], dtype=torch.float64
+    )
+    state.update(embeddings, labels)
+    first_targets, first_mask = state.targets(labels, proxies)
+    expected_ten = torch.tensor([0.7, 0.7], dtype=torch.float64)
+    expected_ten /= expected_ten.norm()
+    torch.testing.assert_close(first_targets[0], expected_ten)
+    torch.testing.assert_close(first_targets[2], expected_ten)
+    torch.testing.assert_close(first_targets[1], torch.tensor([0.0, 1.0], dtype=torch.float64))
+    assert first_mask.tolist() == [True, True, True]
+
+    old_targets = first_targets.clone()
+    state.update(
+        torch.tensor([[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]], dtype=torch.float64),
+        labels,
+    )
+    second_targets, _ = state.targets(labels, proxies)
+    expected_ten = 0.9 * old_targets[0] + 0.1 * torch.tensor(
+        [1.0, 0.0], dtype=torch.float64
+    )
+    expected_ten /= expected_ten.norm()
+    expected_twenty = 0.9 * old_targets[1] + 0.1 * torch.tensor(
+        [1.0, 0.0], dtype=torch.float64
+    )
+    expected_twenty /= expected_twenty.norm()
+    torch.testing.assert_close(second_targets[0], expected_ten)
+    torch.testing.assert_close(second_targets[2], expected_ten)
+    torch.testing.assert_close(second_targets[1], expected_twenty)
+    assert not first_targets.requires_grad and not second_targets.requires_grad
+
+
+def test_mcps_embedding_gradient_projects_only_live_memory_conflicts() -> None:
+    torch = pytest.importorskip("torch")
+    from sfora.image_end_to_end import _mcps_pg_embedding_gradient
+
+    embeddings = torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=torch.float64)
+    targets = torch.tensor([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], dtype=torch.float64)
+    gradients = torch.tensor([[0.0, 2.0], [0.0, -2.0], [3.0, 4.0]], dtype=torch.float64)
+    memory_mask = torch.tensor([True, True, False])
+    diagnostics: list[dict[str, float]] = []
+    actual = _mcps_pg_embedding_gradient(
+        gradients,
+        embeddings,
+        targets,
+        memory_mask,
+        torch_module=torch,
+        diagnostics=diagnostics,
+    )
+    torch.testing.assert_close(actual[0], torch.tensor([0.0, 0.0], dtype=torch.float64))
+    torch.testing.assert_close(actual[1], gradients[1])
+    torch.testing.assert_close(actual[2], gradients[2])
+    assert diagnostics == [
+        {
+            "rows": 3.0,
+            "memory_target_rows": 2.0,
+            "proxy_fallback_rows": 1.0,
+            "eligible_rows": 2.0,
+            "conflict_rows": 1.0,
+            "memory_eligible_rows": 2.0,
+            "memory_conflict_rows": 1.0,
+        }
+    ]
+
+
 def test_positive_compactness_stops_sibling_centroids() -> None:
     torch = pytest.importorskip("torch")
     from sfora.image_end_to_end import _positive_compactness_loss

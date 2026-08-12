@@ -5819,6 +5819,123 @@ def _summarize_lops_training_diagnostics(
     }
 
 
+class _MCPSCentroidState:
+    """Stopped per-class centroid memory read before the current batch update."""
+
+    def __init__(
+        self,
+        proxy_labels: Any,
+        *,
+        dimensions: int,
+        device: Any,
+        dtype: Any,
+        torch_module: Any,
+    ) -> None:
+        label_values = [int(value) for value in proxy_labels.detach().cpu().tolist()]
+        if len(set(label_values)) != len(label_values):
+            raise ValueError("MCPS requires exactly one proxy per class")
+        self._label_to_index = {label: index for index, label in enumerate(label_values)}
+        self._centroids = torch_module.zeros(
+            (len(label_values), dimensions), device=device, dtype=dtype
+        )
+        self._seen = torch_module.zeros(len(label_values), device=device, dtype=torch_module.bool)
+        self._torch = torch_module
+
+    def _indices(self, labels: Any) -> Any:
+        try:
+            values = [self._label_to_index[int(label)] for label in labels.detach().cpu().tolist()]
+        except KeyError as error:
+            raise ValueError("MCPS label has no matching proxy") from error
+        return self._torch.tensor(values, device=labels.device, dtype=self._torch.long)
+
+    def targets(self, labels: Any, proxy_embeddings: Any) -> tuple[Any, Any]:
+        indices = self._indices(labels)
+        if tuple(proxy_embeddings.shape) != tuple(self._centroids.shape):
+            raise ValueError("MCPS proxies must align with centroid memory")
+        with self._torch.no_grad():
+            fallback = _normalize(proxy_embeddings.detach(), self._torch)[indices]
+            memory_mask = self._seen[indices]
+            targets = self._torch.where(
+                memory_mask[:, None], self._centroids[indices], fallback
+            )
+        return targets.detach(), memory_mask.detach()
+
+    def update(self, embeddings: Any, labels: Any) -> None:
+        indices = self._indices(labels)
+        with self._torch.no_grad():
+            normalized = _normalize(embeddings.detach(), self._torch)
+            for index in self._torch.unique(indices, sorted=True).tolist():
+                state_index = int(index)
+                batch_mean = _normalize(
+                    normalized[indices == state_index].mean(dim=0, keepdim=True),
+                    self._torch,
+                )[0]
+                if bool(self._seen[state_index]):
+                    batch_mean = _normalize(
+                        (
+                            0.9 * self._centroids[state_index]
+                            + 0.1 * batch_mean
+                        )[None, :],
+                        self._torch,
+                    )[0]
+                self._centroids[state_index].copy_(batch_mean)
+                self._seen[state_index] = True
+
+
+def _mcps_pg_embedding_gradient(
+    gradient: Any,
+    embeddings: Any,
+    targets: Any,
+    memory_mask: Any,
+    *,
+    torch_module: Any,
+    diagnostics: list[dict[str, float]] | None = None,
+) -> Any:
+    with torch_module.no_grad():
+        normalized = _normalize(embeddings.detach(), torch_module)
+        target_rows = _normalize(targets.detach(), torch_module)
+        tangents = target_rows - normalized * (normalized * target_rows).sum(
+            dim=1, keepdim=True
+        )
+        squared_norms = tangents.square().sum(dim=1)
+        eligible = squared_norms.ge(1e-16)
+    dots = (gradient * tangents).sum(dim=1)
+    conflict = eligible & dots.gt(0.0)
+    if diagnostics is not None:
+        values = torch_module.stack(
+            (
+                torch_module.as_tensor(gradient.shape[0], device=gradient.device),
+                memory_mask.sum(),
+                (~memory_mask).sum(),
+                eligible.sum(),
+                conflict.sum(),
+                (eligible & memory_mask).sum(),
+                (conflict & memory_mask).sum(),
+            )
+        ).to(dtype=torch_module.float64)
+        counts = [float(value) for value in values.detach().cpu().tolist()]
+        diagnostics.append(
+            dict(
+                zip(
+                    (
+                        "rows",
+                        "memory_target_rows",
+                        "proxy_fallback_rows",
+                        "eligible_rows",
+                        "conflict_rows",
+                        "memory_eligible_rows",
+                        "memory_conflict_rows",
+                    ),
+                    counts,
+                    strict=True,
+                )
+            )
+        )
+    scale = torch_module.zeros_like(dots)
+    scale[conflict] = dots[conflict] / squared_norms[conflict]
+    return gradient - scale[:, None] * tangents
+
+
 def _positive_compactness_loss(embeddings: Any, labels: Any, *, torch_module: Any) -> Any:
     """Mean cosine distance to stopped leave-one-out same-class centroids."""
 
