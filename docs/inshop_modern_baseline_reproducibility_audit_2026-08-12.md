@@ -99,6 +99,19 @@ Only a structurally valid seed-0 run authorizes the 200-epoch reproduction.
 Its published 93.0 R@1 is a reproduction target, not a pass threshold and not a
 number to tune toward.
 
+The code-side preflight is now concrete.  Commit
+`726ee8b9c94371e37beeeeeb9a50e6a0fec1d1c8` imports under a separate
+Python-3.13 environment after installing its undeclared runtime dependencies
+and pinning `pandas==2.3.3` (pandas 3 removes the source's
+`delim_whitespace` argument).  A symlink-only view over the unchanged official
+dataset parses exactly 25,882 train images / 3,997 identities, 14,218 query
+images / 3,985 identities, and 12,612 gallery images / 3,985 identities.  This
+does not yet validate model construction or training: the authors' exact
+PyTorch-1.12/CUDA-11.3 environment predates the available GB10, while the
+prepared PyTorch-2.13/CUDA-13 environment is necessarily a compatibility port.
+The first GPU action remains a one-epoch structural run, separately labelled as
+a port, before any 200-epoch result is attempted.
+
 For HIER, the equivalent cheap anchor is a one-epoch dry run of the exact
 ResNet-50 In-Shop script after changing only device allocation.  Any single-GPU
 adaptation is a port and must be compared against the unchanged distributed
