@@ -32,6 +32,11 @@ def test_foundation_screen_command_forwards_explicit_authorities(
     report = tmp_path / "screen.json"
 
     def fake_run(**kwargs: object) -> Path:
+        cache_dir = kwargs["cache_dir"]
+        assert isinstance(cache_dir, Path)
+        assert cache_dir.is_dir()
+        assert not cache_dir.is_symlink()
+        assert cache_dir.stat().st_mode & 0o777 == 0o700
         calls.append(kwargs)
         report.write_text("{}\n", encoding="utf-8")
         return report
@@ -90,6 +95,50 @@ def test_foundation_screen_command_forwards_explicit_authorities(
         }
     ]
     assert str(report) in result.output
+
+
+@pytest.mark.parametrize("existing_kind", ["directory", "symlink"])
+def test_foundation_screen_official_cache_is_no_clobber(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    existing_kind: str,
+) -> None:
+    cache = tmp_path / "cache"
+    if existing_kind == "directory":
+        cache.mkdir()
+    else:
+        target = tmp_path / "target"
+        target.mkdir()
+        cache.symlink_to(target, target_is_directory=True)
+
+    monkeypatch.setattr(
+        cli_module.foundation_pareto,
+        "run_foundation_screen",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("official runner reached a preexisting cache")
+        ),
+    )
+    result = CliRunner().invoke(
+        app,
+        [
+            "foundation-screen",
+            "--dataset",
+            "cars",
+            "--dataset-root",
+            str(tmp_path / "data"),
+            "--model-specs",
+            str(tmp_path / "models.json"),
+            "--cache-dir",
+            str(cache),
+            "--report",
+            str(tmp_path / "screen.json"),
+            "--allow-registered-test-read",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Error:" in result.output
+    assert cache.exists()
 
 
 def test_foundation_screen_command_reports_no_clobber_without_changing_destination(

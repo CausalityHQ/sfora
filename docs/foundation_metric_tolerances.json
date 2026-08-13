@@ -17,7 +17,7 @@
     {
       "arm": "inshop-pa-bninception-seed2",
       "metric": "embedding_cosine",
-      "tolerance": 1e-06,
+      "tolerance": 0.0,
       "frozen_before_execution": true
     }
   ]
