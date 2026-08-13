@@ -1,0 +1,232 @@
+"""Small cached-feature adapters for foundation retrieval experiments."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import isfinite
+from typing import Any, cast
+
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+
+@dataclass(frozen=True)
+class AdapterConfig:
+    """Configuration shared by the nested adapter and its margin-softmax loss."""
+
+    input_dim: int
+    hidden_dim: int = 1_024
+    output_dim: int = 512
+    prefixes: tuple[int, ...] = (64, 128, 256, 512)
+    class_count: int = 1
+    margin: float = 0.2
+    scale: float = 32.0
+
+    def __post_init__(self) -> None:
+        for name in ("input_dim", "hidden_dim", "output_dim", "class_count"):
+            value = getattr(self, name)
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"{name} must be a positive builtin integer")
+        if (
+            type(self.prefixes) is not tuple
+            or not self.prefixes
+            or any(type(width) is not int or width <= 0 for width in self.prefixes)
+            or tuple(sorted(set(self.prefixes))) != self.prefixes
+            or self.prefixes[-1] != self.output_dim
+        ):
+            raise ValueError("prefixes must be increasing unique widths ending at output_dim")
+        if (
+            type(self.margin) is not float
+            or not isfinite(self.margin)
+            or not 0.0 <= self.margin < 1.0
+        ):
+            raise ValueError("margin must be a finite builtin float in [0, 1)")
+        if type(self.scale) is not float or not isfinite(self.scale) or self.scale <= 0.0:
+            raise ValueError("scale must be a positive finite builtin float")
+
+
+class NestedResidualAdapter(nn.Module):
+    """A compact residual MLP whose ordered coordinates form nested descriptors."""
+
+    def __init__(self, config: AdapterConfig) -> None:
+        super().__init__()
+        self.config = config
+        self.input_norm = nn.LayerNorm(config.input_dim)
+        self.hidden = nn.Linear(config.input_dim, config.hidden_dim)
+        self.output = nn.Linear(config.hidden_dim, config.output_dim)
+        self.skip = nn.Linear(config.input_dim, config.output_dim, bias=False)
+        self.residual_scale = nn.Parameter(torch.tensor(0.1, dtype=torch.float32))
+        self.class_proxies = nn.Parameter(torch.empty(config.class_count, config.output_dim))
+        nn.init.normal_(self.class_proxies, std=0.02)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        _validate_adapter_inputs(inputs, input_dim=self.config.input_dim)
+        normalized = self.input_norm(inputs)
+        residual = self.output(F.gelu(self.hidden(normalized)))
+        return cast(torch.Tensor, self.skip(inputs) + self.residual_scale * residual)
+
+
+class NestedLinearAdapter(nn.Module):
+    """Bias-free linear control trained with the same proxies and nested loss."""
+
+    def __init__(self, config: AdapterConfig) -> None:
+        super().__init__()
+        self.config = config
+        self.projection = nn.Linear(config.input_dim, config.output_dim, bias=False)
+        self.class_proxies = nn.Parameter(torch.empty(config.class_count, config.output_dim))
+        nn.init.normal_(self.class_proxies, std=0.02)
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        _validate_adapter_inputs(inputs, input_dim=self.config.input_dim)
+        return cast(torch.Tensor, self.projection(inputs))
+
+
+def _validate_adapter_inputs(inputs: torch.Tensor, *, input_dim: int) -> None:
+    if not torch.is_tensor(inputs) or inputs.dtype != torch.float32:
+        raise ValueError("adapter inputs must be FP32 tensors")
+    if inputs.ndim != 2 or inputs.shape[1] != input_dim:
+        raise ValueError("adapter inputs have the wrong rank or width")
+    if not bool(torch.isfinite(inputs).all()):
+        raise ValueError("adapter inputs must be finite")
+
+
+def nested_embeddings(
+    embeddings: torch.Tensor,
+    prefixes: tuple[int, ...],
+) -> dict[int, torch.Tensor]:
+    """Return independently normalized ordered prefixes."""
+
+    if not torch.is_tensor(embeddings) or embeddings.dtype != torch.float32:
+        raise ValueError("embeddings must be an FP32 tensor")
+    if embeddings.ndim != 2 or not bool(torch.isfinite(embeddings).all()):
+        raise ValueError("embeddings must be finite rank-2 values")
+    if (
+        type(prefixes) is not tuple
+        or not prefixes
+        or tuple(sorted(set(prefixes))) != prefixes
+        or prefixes[-1] != embeddings.shape[1]
+    ):
+        raise ValueError("prefixes differ from the embedding width")
+    return {width: F.normalize(embeddings[:, :width], p=2, dim=1) for width in prefixes}
+
+
+def identity_balanced_batches(
+    labels: np.ndarray,
+    *,
+    identities_per_batch: int,
+    images_per_identity: int,
+    seed: int,
+) -> tuple[np.ndarray, ...]:
+    """Build one deterministic epoch of P-by-K cached-feature batches."""
+
+    if type(labels) is not np.ndarray or labels.dtype != np.dtype("int64") or labels.ndim != 1:
+        raise ValueError("labels must be a rank-1 int64 NumPy array")
+    if type(seed) is not int or seed < 0:
+        raise ValueError("seed must be a nonnegative builtin integer")
+    for name, value in (
+        ("identities_per_batch", identities_per_batch),
+        ("images_per_identity", images_per_identity),
+    ):
+        if type(value) is not int or value <= 0:
+            raise ValueError(f"{name} must be a positive builtin integer")
+    groups = {
+        int(label): np.flatnonzero(labels == label)
+        for label in np.unique(labels)
+        if int(np.count_nonzero(labels == label)) >= images_per_identity
+    }
+    eligible = np.asarray(sorted(groups), dtype=np.int64)
+    if eligible.size < identities_per_batch:
+        raise ValueError("too few eligible identities for one balanced batch")
+    rng = np.random.default_rng(seed)
+    identity_order = rng.permutation(eligible)
+    usable = (identity_order.size // identities_per_batch) * identities_per_batch
+    batches: list[np.ndarray] = []
+    for start in range(0, usable, identities_per_batch):
+        indexes = [
+            rng.choice(groups[int(label)], size=images_per_identity, replace=False)
+            for label in identity_order[start : start + identities_per_batch]
+        ]
+        batches.append(np.concatenate(indexes).astype(np.int64, copy=False))
+    return tuple(batches)
+
+
+def retrieval_recall_at_1(
+    query: torch.Tensor,
+    query_labels: np.ndarray,
+    gallery: torch.Tensor,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 2_048,
+) -> float:
+    """Compute exact cosine Recall@1 without materializing the full score matrix."""
+
+    if type(chunk_size) is not int or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive builtin integer")
+    for name, value in (("query_labels", query_labels), ("gallery_labels", gallery_labels)):
+        if type(value) is not np.ndarray or value.dtype != np.dtype("int64") or value.ndim != 1:
+            raise ValueError(f"{name} must be a rank-1 int64 NumPy array")
+    if (
+        not torch.is_tensor(query)
+        or not torch.is_tensor(gallery)
+        or query.dtype != torch.float32
+        or gallery.dtype != torch.float32
+        or query.ndim != 2
+        or gallery.ndim != 2
+        or query.shape[1] != gallery.shape[1]
+        or query.shape[0] != query_labels.shape[0]
+        or gallery.shape[0] != gallery_labels.shape[0]
+    ):
+        raise ValueError("query/gallery tensors and labels differ")
+    query = F.normalize(query, p=2, dim=1)
+    gallery = F.normalize(gallery, p=2, dim=1)
+    correct = 0
+    for start in range(0, query.shape[0], chunk_size):
+        neighbors = (query[start : start + chunk_size] @ gallery.T).argmax(dim=1)
+        predicted = gallery_labels[neighbors.detach().cpu().numpy()]
+        correct += int(np.count_nonzero(predicted == query_labels[start : start + chunk_size]))
+    return float(correct / query.shape[0])
+
+
+def cosine_margin_loss(
+    embeddings: torch.Tensor,
+    labels: torch.Tensor,
+    class_proxies: torch.Tensor,
+    config: AdapterConfig,
+) -> tuple[torch.Tensor, dict[int, torch.Tensor]]:
+    """Average CosFace classification over all registered nested prefixes."""
+
+    if (
+        not torch.is_tensor(labels)
+        or labels.dtype != torch.int64
+        or labels.ndim != 1
+        or labels.shape[0] != embeddings.shape[0]
+        or bool((labels < 0).any())
+        or bool((labels >= config.class_count).any())
+    ):
+        raise ValueError("labels must be valid contiguous int64 class indexes")
+    if (
+        not torch.is_tensor(class_proxies)
+        or class_proxies.dtype != torch.float32
+        or class_proxies.shape != (config.class_count, config.output_dim)
+        or not bool(torch.isfinite(class_proxies).all())
+    ):
+        raise ValueError("class proxies differ from the configured FP32 matrix")
+    outputs = nested_embeddings(embeddings, config.prefixes)
+    losses: dict[int, torch.Tensor] = {}
+    for width, output in outputs.items():
+        proxies = F.normalize(class_proxies[:, :width], p=2, dim=1)
+        logits = output @ proxies.T
+        target = F.one_hot(labels, num_classes=config.class_count).to(dtype=logits.dtype)
+        logits = config.scale * (logits - config.margin * target)
+        losses[width] = F.cross_entropy(logits, labels)
+    return torch.stack(tuple(losses.values())).mean(), losses
+
+
+def trainable_parameter_count(module: Any) -> int:
+    """Count trainable parameters without accepting arbitrary iterables."""
+
+    if not isinstance(module, nn.Module):
+        raise ValueError("module must be a torch.nn.Module")
+    return sum(parameter.numel() for parameter in module.parameters() if parameter.requires_grad)
