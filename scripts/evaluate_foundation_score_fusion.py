@@ -17,6 +17,7 @@ from sfora.foundation_adapter import (
     fit_ridge_stitch,
     fuse_normalized_embeddings,
     hardened_retrieval_folds,
+    mean_score_embeddings,
     retrieval_map_at_r,
     retrieval_recall_at_1,
     select_fusion_weight,
@@ -75,10 +76,14 @@ def screen(args: argparse.Namespace) -> dict[str, object]:
         ridge_output = ridge.transform(source)
     rows: dict[float, list[tuple[float, float]]] = {weight: [] for weight in GRID}
     per_seed: list[dict[str, object]] = []
+    cosine_outputs: list[torch.Tensor] = []
     for seed, checkpoint in enumerate(args.checkpoint):
         model = load_linear(checkpoint, device)
         with torch.no_grad():
             cosine_output = model(torch.nn.functional.normalize(source, dim=1))
+        cosine_outputs.append(cosine_output)
+        if args.ensemble:
+            continue
         seed_rows: dict[str, list[dict[str, float]]] = {str(weight): [] for weight in GRID}
         for fold in folds:
             gallery = np.concatenate((fold.gallery, fold.distractor))
@@ -94,6 +99,25 @@ def screen(args: argparse.Namespace) -> dict[str, object]:
                     {"recall_at_1": recall, "map_at_r": map_at_r}
                 )
         per_seed.append({"seed": seed, "weights": seed_rows})
+    if args.ensemble:
+        ensemble_output = mean_score_embeddings(tuple(cosine_outputs))
+        ensemble_rows: dict[str, list[dict[str, float]]] = {
+            str(weight): [] for weight in GRID
+        }
+        for fold in folds:
+            gallery = np.concatenate((fold.gallery, fold.distractor))
+            for weight in GRID:
+                fused = fuse_normalized_embeddings(
+                    ensemble_output, ridge_output, weight=weight
+                )
+                recall, map_at_r = metrics(
+                    fused[fold.query], labels[fold.query], fused[gallery], labels[gallery]
+                )
+                rows[weight].append((recall, map_at_r))
+                ensemble_rows[str(weight)].append(
+                    {"recall_at_1": recall, "map_at_r": map_at_r}
+                )
+        per_seed.append({"seed": "ensemble", "weights": ensemble_rows})
     immutable_rows = {weight: tuple(values) for weight, values in rows.items()}
     selected = select_fusion_weight(immutable_rows)
     summary = {
@@ -109,6 +133,7 @@ def screen(args: argparse.Namespace) -> dict[str, object]:
         "target_arm": target_arm,
         "grid": list(GRID),
         "selection_rule": "mean_recall_at_1_then_mean_map_at_r_then_grid_order",
+        "ensemble": args.ensemble,
         "selected_weight": selected,
         "summary": summary,
         "per_seed": per_seed,
@@ -116,8 +141,11 @@ def screen(args: argparse.Namespace) -> dict[str, object]:
 
 
 def official(args: argparse.Namespace) -> dict[str, object]:
-    if len(args.checkpoint) != 1 or args.weight is None:
-        raise ValueError("official fusion requires one checkpoint and one selected weight")
+    expected_checkpoints = 4 if args.ensemble else 1
+    if len(args.checkpoint) != expected_checkpoints or args.weight is None:
+        raise ValueError(
+            "official fusion requires the registered checkpoint count and selected weight"
+        )
     source, source_ids, labels, source_arm = load_cache(args.source_train)
     target, target_ids, target_labels, target_arm = load_cache(args.target_train)
     query, _, query_labels, query_arm = load_cache(args.source_query)
@@ -135,10 +163,17 @@ def official(args: argparse.Namespace) -> dict[str, object]:
         hardened_retrieval_folds(labels, seed=0)[0].optimization
     ).to(device)
     ridge = fit_ridge_stitch(source, target, optimization, regularization=0.1)
-    model = load_linear(args.checkpoint[0], device)
     with torch.no_grad():
-        cosine_query = model(torch.nn.functional.normalize(query, dim=1))
-        cosine_gallery = model(torch.nn.functional.normalize(gallery, dim=1))
+        models = [load_linear(checkpoint, device) for checkpoint in args.checkpoint]
+        cosine_query = mean_score_embeddings(
+            tuple(model(torch.nn.functional.normalize(query, dim=1)) for model in models)
+        )
+        cosine_gallery = mean_score_embeddings(
+            tuple(model(torch.nn.functional.normalize(gallery, dim=1)) for model in models)
+        )
+        if not args.ensemble:
+            cosine_query = cosine_query[:, : models[0].config.output_dim]
+            cosine_gallery = cosine_gallery[:, : models[0].config.output_dim]
         ridge_query = ridge.transform(query)
         ridge_gallery = ridge.transform(gallery)
         fused_query = fuse_normalized_embeddings(
@@ -155,6 +190,7 @@ def official(args: argparse.Namespace) -> dict[str, object]:
         "source_arm": source_arm,
         "target_arm": target_arm,
         "selected_weight": args.weight,
+        "ensemble": args.ensemble,
         "recall_at_1": recall,
         "map_at_r": map_at_r,
         "descriptor_dimensions": fused_query.shape[1],
@@ -170,6 +206,7 @@ def main() -> None:
     parser.add_argument("--source-query", type=Path)
     parser.add_argument("--source-gallery", type=Path)
     parser.add_argument("--weight", type=float)
+    parser.add_argument("--ensemble", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()

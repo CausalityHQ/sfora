@@ -16,6 +16,7 @@ from sfora.foundation_adapter import (
     hardened_retrieval_folds,
     identity_balanced_batches,
     initialize_residual_from_linear,
+    mean_score_embeddings,
     nested_embeddings,
     retrieval_map_at_r,
     retrieval_recall_at_1,
@@ -282,3 +283,21 @@ def test_fusion_weight_selection_uses_mean_recall_then_map_then_grid_order() -> 
     selected = select_fusion_weight(rows)
 
     assert selected == 0.5
+
+
+def test_mean_score_embeddings_equal_the_average_cosine_score() -> None:
+    first = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
+    second = torch.tensor([[1.0, 1.0], [1.0, -1.0]], dtype=torch.float32)
+    first_gallery = torch.tensor([[0.8, 0.2], [0.2, 0.8]], dtype=torch.float32)
+    second_gallery = torch.tensor([[1.0, 0.0], [0.0, -1.0]], dtype=torch.float32)
+
+    query = mean_score_embeddings((first, second))
+    gallery = mean_score_embeddings((first_gallery, second_gallery))
+
+    expected = 0.5 * (
+        torch.nn.functional.normalize(first, dim=1)
+        @ torch.nn.functional.normalize(first_gallery, dim=1).T
+        + torch.nn.functional.normalize(second, dim=1)
+        @ torch.nn.functional.normalize(second_gallery, dim=1).T
+    )
+    torch.testing.assert_close(query @ gallery.T, expected, atol=1e-6, rtol=0)

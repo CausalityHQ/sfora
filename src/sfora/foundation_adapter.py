@@ -221,6 +221,29 @@ def fuse_normalized_embeddings(
     )
 
 
+def mean_score_embeddings(geometries: tuple[torch.Tensor, ...]) -> torch.Tensor:
+    """Concatenate equally weighted geometries so cosine averages their scores."""
+
+    if type(geometries) is not tuple or not geometries:
+        raise ValueError("score ensemble requires a nonempty tuple of geometries")
+    first = geometries[0]
+    for geometry in geometries:
+        if (
+            not torch.is_tensor(geometry)
+            or geometry.dtype != torch.float32
+            or geometry.ndim != 2
+            or geometry.shape[0] != first.shape[0]
+            or geometry.device != first.device
+            or not bool(torch.isfinite(geometry).all())
+        ):
+            raise ValueError("score ensemble geometries must be aligned finite FP32 tensors")
+    scale = len(geometries) ** -0.5
+    return torch.cat(
+        tuple(scale * F.normalize(geometry, p=2, dim=1) for geometry in geometries),
+        dim=1,
+    )
+
+
 def select_fusion_weight(
     rows: dict[float, tuple[tuple[float, float], ...]],
 ) -> float:
