@@ -93,3 +93,16 @@ def load_oml_vit(checkpoint_path: str, *, device: Any) -> Any:
     model = timm.create_model("vit_small_patch16_224", pretrained=False, num_classes=0)
     model.load_state_dict(oml_vit_state_dict(checkpoint), strict=True)
     return model.to(device).eval()
+
+
+def configure_oml_input_size(model: Any, *, input_size: int) -> None:
+    """Use timm's positional-embedding resize for a fixed square input."""
+
+    if type(input_size) is not int or input_size < 224 or input_size % 16:
+        raise ValueError("OML input size must be a multiple of the patch size")
+    if input_size == 224:
+        return
+    setter = getattr(model, "set_input_size", None)
+    if not callable(setter):
+        raise ValueError("OML model cannot resize its positional embedding")
+    setter((input_size, input_size))

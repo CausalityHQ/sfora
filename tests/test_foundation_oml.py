@@ -30,6 +30,23 @@ def test_oml_vit_state_dict_rejects_foreign_checkpoint_keys() -> None:
         oml_vit_state_dict({"state_dict": {"encoder.weight": torch.ones(2)}})
 
 
+def test_configure_oml_input_size_uses_timm_positional_resize() -> None:
+    class Resizable(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.observed: tuple[int, int] | None = None
+
+        def set_input_size(self, size: tuple[int, int]) -> None:
+            self.observed = size
+
+    model = Resizable()
+
+    foundation_oml.configure_oml_input_size(model, input_size=224)
+    assert model.observed is None
+    foundation_oml.configure_oml_input_size(model, input_size=288)
+    assert model.observed == (288, 288)
+
+
 def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path) -> None:
     partition = tmp_path / "list_eval_partition.txt"
     partition.write_text(
