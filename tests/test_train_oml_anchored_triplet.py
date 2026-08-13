@@ -14,6 +14,8 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
 registered_seed0_screen_decision = _MODULE.registered_seed0_screen_decision
+registered_screen_baseline_recall = _MODULE.registered_screen_baseline_recall
+validate_registered_initial = _MODULE.validate_registered_initial
 OMLCrossResolutionTrainingViews = _MODULE.OMLCrossResolutionTrainingViews
 
 
@@ -57,6 +59,28 @@ def test_registered_seed0_screen_decision_rejects_baseline_drift() -> None:
         raise AssertionError("baseline drift was accepted")
 
 
+def test_fixres_initial_validation_uses_the_288_baseline() -> None:
+    assert registered_screen_baseline_recall(student_input_size=288) == 0.9674027339642481
+    validate_registered_initial(
+        seed=0,
+        evaluation_role="screen",
+        student_input_size=288,
+        initial={"recall_at_1": 0.9674027339642481},
+    )
+
+    try:
+        validate_registered_initial(
+            seed=0,
+            evaluation_role="screen",
+            student_input_size=288,
+            initial={"recall_at_1": 0.961093585699264},
+        )
+    except ValueError as error:
+        assert str(error) == "measured screen baseline differs"
+    else:
+        raise AssertionError("the 224 baseline was accepted for a 288 run")
+
+
 def test_cross_resolution_training_views_share_one_augmented_crop(tmp_path: Path) -> None:
     image_path = tmp_path / "row.jpg"
     Image.new("RGB", (400, 320), color=(80, 120, 160)).save(image_path)
@@ -76,3 +100,17 @@ def test_cross_resolution_training_views_share_one_augmented_crop(tmp_path: Path
     )[0]
     torch.testing.assert_close(teacher, expected_teacher)
     assert label == 7
+
+
+def test_same_resolution_training_views_are_identical(tmp_path: Path) -> None:
+    image_path = tmp_path / "row.jpg"
+    Image.new("RGB", (400, 320), color=(80, 120, 160)).save(image_path)
+    dataset = OMLCrossResolutionTrainingViews(
+        [ImageExample(example_id="row", image=image_path, label=7)],
+        student_input_size=288,
+        teacher_input_size=288,
+    )
+
+    student, teacher, _ = dataset[0]
+
+    assert torch.equal(student, teacher)

@@ -42,6 +42,30 @@ REGISTERED_MINIMUM_MAP_DELTA = 0.004
 REGISTERED_MAXIMUM_RECALL_DROP = 0.0007
 
 
+def registered_screen_baseline_recall(*, student_input_size: int) -> float:
+    if student_input_size == 288:
+        return REGISTERED_FIXRES_SCREEN_BASELINE_RECALL
+    if student_input_size == 224:
+        return REGISTERED_SCREEN_BASELINE_RECALL
+    raise ValueError("unsupported registered student input size")
+
+
+def validate_registered_initial(
+    *,
+    seed: int,
+    evaluation_role: str,
+    student_input_size: int,
+    initial: dict[str, float],
+) -> None:
+    """Fail before training when a registered screen does not reproduce its baseline."""
+
+    if seed != 0 or evaluation_role != "screen":
+        return
+    baseline = registered_screen_baseline_recall(student_input_size=student_input_size)
+    if abs(initial["recall_at_1"] - baseline) > 1.0e-12:
+        raise ValueError("measured screen baseline differs")
+
+
 def registered_seed0_screen_decision(
     *,
     seed: int,
@@ -243,7 +267,7 @@ def main() -> None:
         or args.warmup_steps < 0
         or args.trainable_blocks <= 0
         or args.student_input_size not in (224, 288)
-        or args.teacher_input_size != 224
+        or args.teacher_input_size not in (224, args.student_input_size)
     ):
         raise ValueError("anchored continuation configuration differs")
     total_started = time.perf_counter()
@@ -269,6 +293,7 @@ def main() -> None:
     student = load_oml_vit(str(args.checkpoint), device=device)
     teacher = load_oml_vit(str(args.checkpoint), device=device)
     configure_oml_input_size(student, input_size=args.student_input_size)
+    configure_oml_input_size(teacher, input_size=args.teacher_input_size)
     teacher.requires_grad_(False).eval()
     trainable_names = configure_vit_trainable_layers(
         student, trainable_blocks=args.trainable_blocks
@@ -284,6 +309,12 @@ def main() -> None:
         batch_size=args.evaluation_batch_size,
         workers=args.workers,
         input_size=args.student_input_size,
+    )
+    validate_registered_initial(
+        seed=args.seed,
+        evaluation_role=args.evaluation_role,
+        student_input_size=args.student_input_size,
+        initial=initial,
     )
     sampler = IdentityBalancedBatchSampler(
         [row.label for row in optimization],
@@ -473,10 +504,8 @@ def main() -> None:
             initial=initial,
             final=final,
             paired=paired,
-            registered_baseline_recall=(
-                REGISTERED_FIXRES_SCREEN_BASELINE_RECALL
-                if args.student_input_size == 288
-                else REGISTERED_SCREEN_BASELINE_RECALL
+            registered_baseline_recall=registered_screen_baseline_recall(
+                student_input_size=args.student_input_size
             ),
         ),
         "registered_minimum_map_delta": REGISTERED_MINIMUM_MAP_DELTA,
