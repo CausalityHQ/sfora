@@ -2076,6 +2076,11 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     test_reads = foundation_pareto.load_test_read_register(
         root / "docs/foundation_test_read_register.json"
     )
+    comparator_receipt = json.loads(
+        (root / "docs/foundation_identity_disjoint_comparator_seed2_receipt.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     assert registered_arms == (
         "siglip2-base-patch16-256",
@@ -2087,6 +2092,16 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
         "comparator",
         "contaminated_control",
     )
+    comparator = arms[1].spec
+    assert isinstance(comparator, LocalCheckpointFoundationSpec)
+    assert str(comparator.checkpoint_path) == comparator_receipt["checkpoint"]["path"]
+    assert comparator.checkpoint_sha256 == comparator_receipt["checkpoint"]["sha256"]
+    assert (
+        comparator.resolved_config_sha256
+        == comparator_receipt["checkpoint"]["resolved_config_sha256"]
+    )
+    assert comparator_receipt["split"]["identity_disjoint"] is True
+    assert comparator_receipt["official_test"] == {"consumed": False, "receipts": []}
     assert [(row.arm, row.metric) for row in fixtures] == list(fixture_pairs)
     assert [(row.arm, row.metric) for row in tolerances] == list(fixture_pairs)
     assert published == ()
