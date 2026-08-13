@@ -5,9 +5,10 @@
 The frozen SigLIP2 representation is not competitive by itself, but train-only
 ridge and CosFace maps recover most of the official quality gap. Neither is yet
 a Pareto winner: both exceed the comparator's official mAP@R, while the stronger
-CosFace head remains 1.78 Recall@1 points below it. A validation-selected
-ridge/CosFace fusion is the strongest candidate at 89.84 R@1 / 66.13 mAP@R,
-but still misses the comparator by 0.84 R@1 point. There is no SOTA claim.
+CosFace head remains 1.78 Recall@1 points below the original comparator arm. A
+validation-selected ridge/CosFace fusion is the strongest candidate at 89.84
+R@1 / 66.13 mAP@R, but it is 0.84 point below that arm and 1.70 points below
+the stronger corrected four-seed local reference. There is no SOTA claim.
 
 ## Official results
 
@@ -20,7 +21,16 @@ but still misses the comparator by 0.84 R@1 point. There is no SOTA claim.
 | validation-selected ridge + one CosFace score fusion, 1024-D | 89.8368 | 66.1339 |
 | validation-selected ridge + four-CosFace ensemble, 2560-D | 89.7806 | 66.7463 |
 | identity-disjoint BN-Inception ProxyAnchor | 90.6808 | 62.9518 |
+| corrected four-seed BN-Inception ProxyAnchor final mean | 91.5389 | — |
 | released UNICOM ViT-B/16 zero-shot | 75.4959 | 47.6457 |
+
+The 90.6808 row is a frozen foundation-comparator arm, not the strongest local
+baseline. The corrected four-seed final-state reference is the local quality
+floor. Published OML results use a different pixel corpus: its released
+ViT-S/16 checkpoint reproduces **92.1016 R@1 / 68.5386 mAP@R** on the OML
+converter's full `img_highres` images. The same checkpoint scores 83.0989 R@1
+on the standard 256-pixel retrieval corpus, so these protocols must not be
+mixed in a single quality ranking.
 
 The ridge map uses 20,638 optimization rows from the original 80% training-
 identity split. Its fixed regularization is 0.1. Query and gallery pixels were
@@ -108,5 +118,8 @@ Cached heads are now closed: neither selected fusion closes the R@1 gap, and
 the ensemble worsens storage and inference. Move to image-level training with a
 compact or partially unfrozen encoder, using the successful ridge/CosFace
 geometry as teacher supervision and ProxyAnchor as the matched baseline.
-UNICOM remains an alternate retrieval-native anchor, but its 75.50% zero-shot
-R@1 does not by itself justify expensive full-image training.
+The next image-level candidate must report both the standard 256-pixel protocol
+against the 91.5389 local reference and the OML `img_highres` protocol against
+the reproduced 92.1016 released baseline. UNICOM remains an alternate
+retrieval-native anchor, but its 75.50% zero-shot R@1 does not by itself justify
+expensive full-image training.

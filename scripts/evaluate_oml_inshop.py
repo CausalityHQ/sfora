@@ -15,9 +15,9 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
-from sfora.data import ImageExample, load_image_retrieval_examples, materialize_image
+from sfora.data import ImageExample, materialize_image
 from sfora.foundation_adapter import retrieval_map_at_r, retrieval_recall_at_1
-from sfora.foundation_oml import load_oml_vit
+from sfora.foundation_oml import load_oml_inshop_examples, load_oml_vit
 
 
 class ImageRows(Dataset[tuple[torch.Tensor, int]]):
@@ -84,6 +84,12 @@ def latency_ms(model: torch.nn.Module, *, device: torch.device, batch_size: int)
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-root", type=Path, required=True)
+    parser.add_argument(
+        "--image-root",
+        type=Path,
+        required=True,
+        help="OML img_highres directory (the released model's evaluation corpus)",
+    )
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--batch-size", type=int, default=128)
@@ -94,11 +100,12 @@ def main() -> None:
         raise FileExistsError(args.output)
     device = torch.device(args.device)
     model = load_oml_vit(str(args.checkpoint), device=device)
-    query = load_image_retrieval_examples(
-        dataset_name="inshop", split="query", dataset_root=args.dataset_root
+    partition = args.dataset_root / "Eval" / "list_eval_partition.txt"
+    query = load_oml_inshop_examples(
+        partition, image_root=args.image_root, split="query"
     )
-    gallery = load_image_retrieval_examples(
-        dataset_name="inshop", split="gallery", dataset_root=args.dataset_root
+    gallery = load_oml_inshop_examples(
+        partition, image_root=args.image_root, split="gallery"
     )
     query_features, query_labels = extract(
         model, query, device=device, batch_size=args.batch_size, workers=args.workers
@@ -109,6 +116,7 @@ def main() -> None:
     checkpoint_sha = sha256(args.checkpoint.read_bytes()).hexdigest()
     payload = {
         "model": "OML vits16_inshop",
+        "protocol": "OML img_highres full-image query/gallery",
         "checkpoint_sha256": checkpoint_sha,
         "query_rows": len(query),
         "gallery_rows": len(gallery),

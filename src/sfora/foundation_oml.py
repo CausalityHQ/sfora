@@ -4,9 +4,54 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 import torch
+
+from sfora.data import ImageExample
+
+
+def load_oml_inshop_examples(
+    partition_path: Path, *, image_root: Path, split: str
+) -> list[ImageExample]:
+    """Load the released OML protocol, which maps ``img/`` into ``img_highres``."""
+
+    if split not in {"query", "gallery"}:
+        raise ValueError("OML In-Shop split must be query or gallery")
+    lines = partition_path.read_text(encoding="utf-8").splitlines()
+    if len(lines) < 3 or lines[1].split() != [
+        "image_name",
+        "item_id",
+        "evaluation_status",
+    ]:
+        raise ValueError("invalid In-Shop evaluation partition")
+    try:
+        declared_rows = int(lines[0])
+    except ValueError as error:
+        raise ValueError("invalid In-Shop evaluation partition count") from error
+    parsed = [line.split() for line in lines[2:] if line.strip()]
+    if len(parsed) != declared_rows or any(len(row) != 3 for row in parsed):
+        raise ValueError("In-Shop evaluation partition row count differs")
+    item_ids = sorted({row[1] for row in parsed if row[2] in {"query", "gallery"}})
+    label_by_item = {item_id: label for label, item_id in enumerate(item_ids)}
+    examples: list[ImageExample] = []
+    for image_name, item_id, status in parsed:
+        if status != split:
+            continue
+        if not image_name.startswith("img/"):
+            raise ValueError("OML In-Shop image path must start with img/")
+        image_path = image_root / image_name.removeprefix("img/")
+        if not image_path.is_file():
+            raise ValueError(f"missing OML In-Shop image: {image_path}")
+        examples.append(
+            ImageExample(
+                example_id=f"oml-inshop-{split}-{image_name}",
+                image=image_path,
+                label=label_by_item[item_id],
+            )
+        )
+    return examples
 
 
 def oml_vit_state_dict(checkpoint: object) -> dict[str, torch.Tensor]:

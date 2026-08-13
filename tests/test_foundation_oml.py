@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from pathlib import Path
 
 import pytest
 import torch
 
+from sfora import foundation_oml
 from sfora.foundation_oml import oml_vit_state_dict
 
 
@@ -26,3 +28,39 @@ def test_oml_vit_state_dict_removes_only_the_lightning_wrapper() -> None:
 def test_oml_vit_state_dict_rejects_foreign_checkpoint_keys() -> None:
     with pytest.raises(ValueError, match="wrapper"):
         oml_vit_state_dict({"state_dict": {"encoder.weight": torch.ones(2)}})
+
+
+def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path) -> None:
+    partition = tmp_path / "list_eval_partition.txt"
+    partition.write_text(
+        "4\n"
+        "image_name item_id evaluation_status\n"
+        "img/WOMEN/Tops/id_00000002/q.jpg id_00000002 query\n"
+        "img/WOMEN/Tops/id_00000002/g.jpg id_00000002 gallery\n"
+        "img/MEN/Tees/id_00000007/q.jpg id_00000007 query\n"
+        "img/MEN/Tees/id_00000007/g.jpg id_00000007 gallery\n"
+    )
+    image_root = tmp_path / "img_highres"
+    for relative in (
+        "WOMEN/Tops/id_00000002/q.jpg",
+        "WOMEN/Tops/id_00000002/g.jpg",
+        "MEN/Tees/id_00000007/q.jpg",
+        "MEN/Tees/id_00000007/g.jpg",
+    ):
+        path = image_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"image")
+
+    query = foundation_oml.load_oml_inshop_examples(
+        partition, image_root=image_root, split="query"
+    )
+    gallery = foundation_oml.load_oml_inshop_examples(
+        partition, image_root=image_root, split="gallery"
+    )
+
+    assert [row.image for row in query] == [
+        image_root / "WOMEN/Tops/id_00000002/q.jpg",
+        image_root / "MEN/Tees/id_00000007/q.jpg",
+    ]
+    assert [row.label for row in query] == [0, 1]
+    assert [row.label for row in gallery] == [0, 1]
