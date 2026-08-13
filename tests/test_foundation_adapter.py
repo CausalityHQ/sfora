@@ -15,6 +15,7 @@ from sfora.foundation_adapter import (
     nested_embeddings,
     retrieval_map_at_r,
     retrieval_recall_at_1,
+    ridge_stitch,
 )
 
 
@@ -178,3 +179,14 @@ def test_chunked_map_at_r_uses_each_query_relevant_count() -> None:
     )
 
     assert score == 1.0
+
+
+def test_ridge_stitch_recovers_a_linear_target_without_leaking_eval_rows() -> None:
+    generator = torch.Generator().manual_seed(4)
+    source = torch.randn(20, 5, generator=generator)
+    transform = torch.randn(5, 3, generator=generator)
+    target = source @ transform + torch.tensor([0.3, -0.2, 0.1])
+
+    predicted = ridge_stitch(source, target, torch.arange(15), regularization=1e-8)
+
+    torch.testing.assert_close(predicted, target, atol=2e-5, rtol=2e-5)

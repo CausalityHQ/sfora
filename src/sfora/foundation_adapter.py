@@ -336,6 +336,56 @@ def _validate_retrieval_inputs(
         raise ValueError("query/gallery tensors and labels differ")
 
 
+def ridge_stitch(
+    source: torch.Tensor,
+    target: torch.Tensor,
+    optimization_indexes: torch.Tensor,
+    *,
+    regularization: float,
+) -> torch.Tensor:
+    """Fit a centered ridge map on optimization rows and transform every source row."""
+
+    if (
+        not torch.is_tensor(source)
+        or not torch.is_tensor(target)
+        or source.dtype != torch.float32
+        or target.dtype != torch.float32
+        or source.ndim != 2
+        or target.ndim != 2
+        or source.shape[0] != target.shape[0]
+        or not bool(torch.isfinite(source).all())
+        or not bool(torch.isfinite(target).all())
+    ):
+        raise ValueError("ridge source and target must be aligned finite FP32 matrices")
+    if (
+        not torch.is_tensor(optimization_indexes)
+        or optimization_indexes.dtype != torch.int64
+        or optimization_indexes.ndim != 1
+        or optimization_indexes.numel() < source.shape[1]
+        or bool((optimization_indexes < 0).any())
+        or bool((optimization_indexes >= source.shape[0]).any())
+        or torch.unique(optimization_indexes).numel() != optimization_indexes.numel()
+    ):
+        raise ValueError("ridge optimization indexes differ from unique valid int64 rows")
+    if (
+        type(regularization) is not float
+        or not isfinite(regularization)
+        or regularization <= 0.0
+    ):
+        raise ValueError("ridge regularization must be a positive finite builtin float")
+    fit_source = source[optimization_indexes]
+    fit_target = target[optimization_indexes]
+    source_mean = fit_source.mean(dim=0, keepdim=True)
+    target_mean = fit_target.mean(dim=0, keepdim=True)
+    x = fit_source - source_mean
+    y = fit_target - target_mean
+    gram = x.T @ x
+    scale = torch.trace(gram) / gram.shape[0]
+    identity = torch.eye(gram.shape[0], dtype=gram.dtype, device=gram.device)
+    weight = torch.linalg.solve(gram + regularization * scale * identity, x.T @ y)
+    return cast(torch.Tensor, (source - source_mean) @ weight + target_mean)
+
+
 def cosine_margin_loss(
     embeddings: torch.Tensor,
     labels: torch.Tensor,
