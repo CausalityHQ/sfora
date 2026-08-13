@@ -2788,6 +2788,18 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     assert persisted["dataset"] == "cars"
     assert persisted["overall_status"] == "CONTINUE"
     assert persisted["registered_arms"] == ["candidate", "comparator"]
+    assert [row["arm"] for row in persisted["fixture_fidelity_audits"]] == [
+        "candidate",
+        "comparator",
+    ]
+    assert [row["arm"] for row in persisted["cache_records"]] == [
+        "candidate",
+        "comparator",
+    ]
+    assert [row["arm"] for row in persisted["probe_audits"]] == [
+        "candidate",
+        "comparator",
+    ]
     assert persisted["official_test_reads"] == []
     assert persisted["published_metric_audits"] == []
     original_bytes = report.read_bytes()
@@ -2838,6 +2850,10 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     bad_probe_digest = json.loads(json.dumps(persisted))
     bad_probe_digest["probe_audits"][0]["weight_sha256"] = "BAD"
     nested_mutations.append(bad_probe_digest)
+    for field in ("fixture_fidelity_audits", "cache_records", "probe_audits"):
+        wrong_arm_order = json.loads(json.dumps(persisted))
+        wrong_arm_order[field] = list(reversed(wrong_arm_order[field]))
+        nested_mutations.append(wrong_arm_order)
     bad_profile_batch = json.loads(json.dumps(persisted))
     bad_profile_batch["cost_profiles"][0]["profile"]["batches"] = [{}]
     nested_mutations.append(bad_profile_batch)

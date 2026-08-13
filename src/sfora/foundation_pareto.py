@@ -3115,6 +3115,9 @@ def validate_foundation_screen_report(value: object) -> None:
                 raise ValueError("unavailable fixture fidelity relation differs")
         else:
             raise ValueError("fixture fidelity provenance differs")
+    _require_registered_arm_order(
+        value["fixture_fidelity_audits"], arms, name="fixture fidelity audit"
+    )
     for row in value["cache_records"]:
         _require_report_row(
             row,
@@ -3130,6 +3133,7 @@ def validate_foundation_screen_report(value: object) -> None:
             raise ValueError("cache path differs")
         _require_positive_int("cache rows", row["rows"])
         _require_sha256("cache embedding_sha256", row["embedding_sha256"])
+    _require_registered_arm_order(value["cache_records"], arms, name="cache record")
     for row in value["cost_profiles"]:
         _require_report_row(row, ("arm", "profile"), name="cost profile")
         _require_report_arm(row, arm_set, name="cost profile")
@@ -3175,6 +3179,7 @@ def validate_foundation_screen_report(value: object) -> None:
         _require_points("probe validation_recall_at_1_points", row["validation_recall_at_1_points"])
     if len(set(probe_arms)) != len(probe_arms):
         raise ValueError("probe audit arms must be unique")
+    _require_registered_arm_order(value["probe_audits"], arms, name="probe audit")
     decision_keys = ("arm",) + tuple(F1Decision.__dataclass_fields__)
     for row in value["f1_decisions"]:
         _require_report_row(row, decision_keys, name="F1 decision")
@@ -3291,6 +3296,15 @@ def _require_report_arm(value: dict[str, Any], arms: set[str], *, name: str) -> 
         raise ValueError(f"{name} arm differs from registered arms")
 
 
+def _require_registered_arm_order(
+    rows: Sequence[dict[str, Any]], registered_arms: Sequence[str], *, name: str
+) -> None:
+    positions = {arm: index for index, arm in enumerate(registered_arms)}
+    observed = [positions[row["arm"]] for row in rows]
+    if observed != sorted(observed):
+        raise ValueError(f"{name} order differs from registered arms")
+
+
 def _report_float(value: object, name: str) -> float:
     if type(value) is not float or not isfinite(value):
         raise ValueError(f"{name} must be a finite builtin float")
@@ -3379,9 +3393,9 @@ def run_foundation_screen(
     probes: dict[str, BiasFreeProbeResult] = {}
     profiles: dict[str, EncoderCostProfile] = {}
     encoder_rows_by_arm: dict[str, dict[str, object]] = {}
-    fixture_rows: list[dict[str, object]] = []
-    cache_rows: list[dict[str, object]] = []
-    probe_rows: list[dict[str, object]] = []
+    fixture_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
+    cache_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
+    probe_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
     execution_arms = tuple(
         sorted(arms, key=lambda arm_spec: 0 if arm_spec.role == "comparator" else 1)
     )
@@ -3433,7 +3447,7 @@ def run_foundation_screen(
             tolerances=tolerances,
             registered_pairs=fixture_pairs,
         )
-        fixture_rows.extend(asdict(row) for row in fidelity)
+        fixture_rows_by_arm[arm].extend(asdict(row) for row in fidelity)
         if any(row.passed is False for row in fidelity):
             if arm_spec.role == "comparator":
                 comparator_unavailable = True
@@ -3446,7 +3460,7 @@ def run_foundation_screen(
             cache_dir=cache_dir,
             dataset=dataset,
         )
-        cache_rows.extend(cached.records)
+        cache_rows_by_arm[arm].extend(cached.records)
         profile = profile_foundation_encoder(
             encoder,
             [materialize_image(row.image) for row in train_examples[:32]],
@@ -3461,7 +3475,7 @@ def run_foundation_screen(
             config=config,
         )
         probes[arm] = probe
-        probe_rows.append(_serialize_probe(probe))
+        probe_rows_by_arm[arm].append(_serialize_probe(probe))
     if comparator_unavailable:
         for arm_spec in arms:
             arm = arm_spec.spec.arm
@@ -3520,7 +3534,11 @@ def run_foundation_screen(
             ledger=test_reads,
             published_register_path=published_register_path,
         )
-        cache_rows.extend(official_cache_rows)
+        for row in official_cache_rows:
+            cache_rows_by_arm[cast(str, row["arm"])].append(row)
+    fixture_rows = [row for arm in registered_arms for row in fixture_rows_by_arm[arm]]
+    cache_rows = [row for arm in registered_arms for row in cache_rows_by_arm[arm]]
+    probe_rows = [row for arm in registered_arms for row in probe_rows_by_arm[arm]]
     payload: dict[str, object] = {
         "schema_version": "foundation-screen-report-v2",
         "source_commit": source_commit,
