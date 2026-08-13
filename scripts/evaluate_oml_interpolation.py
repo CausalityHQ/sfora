@@ -41,6 +41,16 @@ def bootstrap_seed(*, alpha: float, checkpoint_sha256: str) -> int:
     material = f"{checkpoint_sha256}:{alpha.hex()}".encode()
     return int.from_bytes(sha256(material).digest()[:4], "big")
 
+
+def is_registered_screen(
+    *, evaluation_fraction: float, evaluation_seed: int, evaluation_role: str
+) -> bool:
+    return (
+        evaluation_fraction == 0.2
+        and evaluation_seed == 17
+        and evaluation_role == "screen"
+    )
+
 def interpolate_state_dict(
     base: Mapping[str, torch.Tensor],
     trained: Mapping[str, torch.Tensor],
@@ -72,6 +82,7 @@ def main() -> None:
     parser.add_argument("--base-checkpoint", type=Path, required=True)
     parser.add_argument("--trained-checkpoint", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output-checkpoint", type=Path)
     parser.add_argument("--alphas", type=float, nargs="+", required=True)
     parser.add_argument("--input-size", type=int, default=288)
     parser.add_argument("--evaluation-fraction", type=float, default=0.2)
@@ -82,6 +93,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
+    if args.output_checkpoint is not None and args.output_checkpoint.exists():
+        raise FileExistsError(args.output_checkpoint)
     if sorted(set(args.alphas)) != args.alphas or any(
         alpha <= 0.0 or alpha >= 1.0 for alpha in args.alphas
     ):
@@ -123,12 +136,17 @@ def main() -> None:
         workers=args.workers,
         input_size=args.input_size,
     )
-    validate_registered_initial(
-        seed=0,
+    if is_registered_screen(
+        evaluation_fraction=args.evaluation_fraction,
+        evaluation_seed=args.evaluation_seed,
         evaluation_role=args.evaluation_role,
-        student_input_size=args.input_size,
-        initial=initial,
-    )
+    ):
+        validate_registered_initial(
+            seed=0,
+            evaluation_role=args.evaluation_role,
+            student_input_size=args.input_size,
+            initial=initial,
+        )
     rows: list[dict[str, object]] = []
     for alpha in args.alphas:
         model.load_state_dict(interpolate_state_dict(base_model, trained_model, alpha=alpha))
@@ -183,6 +201,21 @@ def main() -> None:
         "rows": rows,
     }
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    if args.output_checkpoint is not None:
+        if len(args.alphas) != 1:
+            raise ValueError("checkpoint output requires exactly one alpha")
+        torch.save(
+            {
+                "model": model.state_dict(),
+                "neck": neck.state_dict(),
+                "alpha": args.alphas[0],
+                "base_checkpoint": str(args.base_checkpoint.resolve()),
+                "trained_checkpoint": str(args.trained_checkpoint.resolve()),
+                "trained_checkpoint_sha256": trained_checkpoint_sha256,
+                "input_size": args.input_size,
+            },
+            args.output_checkpoint,
+        )
 
 
 if __name__ == "__main__":

@@ -64,3 +64,12 @@ def test_bootstrap_seed_is_stable_per_alpha_and_checkpoint() -> None:
     assert _MODULE.bootstrap_seed(
         alpha=0.75, checkpoint_sha256=digest
     ) != _MODULE.bootstrap_seed(alpha=0.5, checkpoint_sha256=digest)
+
+
+def test_registered_baseline_check_only_applies_to_the_fixed_screen() -> None:
+    assert _MODULE.is_registered_screen(
+        evaluation_fraction=0.2, evaluation_seed=17, evaluation_role="screen"
+    )
+    assert not _MODULE.is_registered_screen(
+        evaluation_fraction=1.0, evaluation_seed=17, evaluation_role="screen"
+    )
