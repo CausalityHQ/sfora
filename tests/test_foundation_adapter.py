@@ -10,6 +10,7 @@ from sfora.foundation_adapter import (
     NestedResidualAdapter,
     cosine_margin_loss,
     identity_balanced_batches,
+    initialize_residual_from_linear,
     nested_embeddings,
     retrieval_recall_at_1,
 )
@@ -46,6 +47,22 @@ def test_linear_control_has_no_hidden_path() -> None:
 
     assert sum(parameter.numel() for parameter in model.parameters()) == 8_704
     assert model(torch.randn(3, 12)).shape == (3, 512)
+
+
+def test_residual_adapter_can_start_exactly_from_linear_control() -> None:
+    torch.manual_seed(3)
+    config = AdapterConfig(
+        input_dim=12, hidden_dim=16, output_dim=8, prefixes=(2, 4, 8), class_count=5
+    )
+    linear = NestedLinearAdapter(config)
+    residual = NestedResidualAdapter(config)
+    inputs = torch.randn(7, 12)
+
+    initialize_residual_from_linear(residual, linear)
+
+    torch.testing.assert_close(residual(inputs), linear(inputs), atol=0, rtol=0)
+    torch.testing.assert_close(residual.class_proxies, linear.class_proxies, atol=0, rtol=0)
+    assert residual.residual_scale.item() == 0.0
 
 
 def test_cosine_margin_loss_uses_every_registered_prefix() -> None:

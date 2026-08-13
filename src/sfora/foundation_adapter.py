@@ -83,6 +83,24 @@ class NestedLinearAdapter(nn.Module):
         return cast(torch.Tensor, self.projection(inputs))
 
 
+def initialize_residual_from_linear(
+    residual: NestedResidualAdapter,
+    linear: NestedLinearAdapter,
+) -> None:
+    """Warm-start a nonlinear adapter as the exact fitted linear mapping."""
+
+    if not isinstance(residual, NestedResidualAdapter) or not isinstance(
+        linear, NestedLinearAdapter
+    ):
+        raise ValueError("warm start requires residual and linear adapter instances")
+    if residual.config != linear.config:
+        raise ValueError("warm-start adapter configurations differ")
+    with torch.no_grad():
+        residual.skip.weight.copy_(linear.projection.weight)
+        residual.class_proxies.copy_(linear.class_proxies)
+        residual.residual_scale.zero_()
+
+
 def _validate_adapter_inputs(inputs: torch.Tensor, *, input_dim: int) -> None:
     if not torch.is_tensor(inputs) or inputs.dtype != torch.float32:
         raise ValueError("adapter inputs must be FP32 tensors")

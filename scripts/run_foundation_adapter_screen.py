@@ -21,6 +21,7 @@ from sfora.foundation_adapter import (
     NestedResidualAdapter,
     cosine_margin_loss,
     identity_balanced_batches,
+    initialize_residual_from_linear,
     nested_embeddings,
     retrieval_recall_at_1,
     trainable_parameter_count,
@@ -112,6 +113,15 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     )
     model_class = NestedResidualAdapter if args.model == "mlp" else NestedLinearAdapter
     model = model_class(config)
+    if args.initialize_from_linear is not None:
+        if not isinstance(model, NestedResidualAdapter):
+            raise ValueError("linear warm start is only valid for the MLP adapter")
+        saved = torch.load(args.initialize_from_linear, map_location="cpu", weights_only=False)
+        if saved["model"] != "linear" or saved["config"] != asdict(config):
+            raise ValueError("linear warm-start checkpoint differs from this experiment")
+        linear = NestedLinearAdapter(config)
+        linear.load_state_dict(saved["state_dict"])
+        initialize_residual_from_linear(model, linear)
     device = torch.device(args.device)
     model.to(device)
     normalized = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
@@ -225,6 +235,7 @@ def main() -> None:
     parser.add_argument("--margin", type=float, default=0.2)
     parser.add_argument("--scale", type=float, default=32.0)
     parser.add_argument("--hidden-dim", type=int, default=1_024)
+    parser.add_argument("--initialize-from-linear", type=Path)
     parser.add_argument("--identities-per-batch", type=int, default=32)
     parser.add_argument("--images-per-identity", type=int, default=2)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
