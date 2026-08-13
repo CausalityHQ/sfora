@@ -84,9 +84,7 @@ def interpolate_model_states(
             )
             result[key] = mixed.to(base.dtype)
         else:
-            if not torch.equal(base, trained):
-                raise ValueError(f"non-floating tensor differs: {key}")
-            result[key] = base.clone()
+            result[key] = trained.clone()
     return result
 
 

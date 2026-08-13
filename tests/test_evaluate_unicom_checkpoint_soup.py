@@ -73,6 +73,16 @@ def test_interpolation_uses_initial_plus_alpha_times_soup_delta() -> None:
     assert result["counter"].item() == 3
 
 
+def test_interpolation_carries_trained_nonfloating_buffers() -> None:
+    module = _load_script()
+    initial = OrderedDict(counter=torch.tensor(0, dtype=torch.int64))
+    soup = OrderedDict(counter=torch.tensor(16, dtype=torch.int64))
+
+    result = module.interpolate_model_states(initial, soup, alpha=0.5)
+
+    assert result["counter"].item() == 16
+
+
 def test_candidate_selection_is_metric_first_and_stable_on_ties() -> None:
     module = _load_script()
     candidates = [
