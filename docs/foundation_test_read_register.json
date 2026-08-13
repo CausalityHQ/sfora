@@ -1,6 +1,46 @@
 {
-  "schema_version": "foundation-test-read-register-v3",
+  "schema_version": "foundation-test-read-register-v4",
   "status": "frozen",
   "receipt_root": "/home/riomus/group-learning/reports/generated/foundation_test_read_receipts",
-  "records": []
+  "reviewed_source_commit": "eb1384ed3f3a5a0ed10faa1cf088dd3ec333e68f",
+  "addendum_path": "docs/superpowers/specs/2026-08-13-foundation-f1-official-read-review-correction.md",
+  "addendum_sha256": "d5e3f8601d62105a3c7a7559c6f150b52b08081bd7037e31b066c938325bbcaf",
+  "train_report_path": "docs/foundation_f1_identity_disjoint_inshop_train_only_report.json",
+  "train_report_sha256": "791cd1499327bd95abb5093d993a68c7192d44965af8669073bf35ad5b6ae066",
+  "train_decision_sha256": "a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8",
+  "train_split_sha256": "7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45",
+  "records": [
+    {
+      "dataset": "inshop",
+      "arm": "siglip2-base-patch16-256",
+      "model_revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+      "checkpoint_sha256": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
+      "metrics": [
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "recall_at_100",
+        "map_at_r"
+      ],
+      "purpose": "registered_f1_quality_evaluation",
+      "permitted_evaluations": 1
+    },
+    {
+      "dataset": "inshop",
+      "arm": "inshop-pa-bninception-disjoint-seed2",
+      "model_revision": "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
+      "checkpoint_sha256": "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
+      "metrics": [
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "recall_at_100",
+        "map_at_r"
+      ],
+      "purpose": "registered_f1_quality_evaluation",
+      "permitted_evaluations": 1
+    }
+  ]
 }
