@@ -207,7 +207,21 @@ def test_chunked_map_at_r_uses_each_query_relevant_count() -> None:
     assert score == 1.0
 
 
-def test_ridge_stitch_recovers_a_linear_target_without_leaking_eval_rows() -> None:
+def test_map_at_r_fractional_case_uses_only_first_r_ranks() -> None:
+    query = torch.tensor([[1.0, 0.0]], dtype=torch.float32)
+    gallery = torch.tensor([[1.0, 0.0], [0.9, 0.1], [0.8, 0.2]], dtype=torch.float32)
+
+    score = retrieval_map_at_r(
+        query,
+        np.array([7], dtype=np.int64),
+        gallery,
+        np.array([7, 99, 7], dtype=np.int64),
+    )
+
+    assert score == 0.5
+
+
+def test_ridge_stitch_recovers_a_linear_target_from_optimization_rows() -> None:
     generator = torch.Generator().manual_seed(4)
     source = torch.randn(20, 5, generator=generator)
     transform = torch.randn(5, 3, generator=generator)

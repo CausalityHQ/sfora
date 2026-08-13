@@ -130,14 +130,15 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     model_class = NestedResidualAdapter if args.model == "mlp" else NestedLinearAdapter
     model = model_class(config)
     if args.initialize_from_linear is not None:
-        if not isinstance(model, NestedResidualAdapter):
-            raise ValueError("linear warm start is only valid for the MLP adapter")
         saved = torch.load(args.initialize_from_linear, map_location="cpu", weights_only=False)
         if saved["model"] != "linear" or saved["config"] != asdict(config):
             raise ValueError("linear warm-start checkpoint differs from this experiment")
         linear = NestedLinearAdapter(config)
         linear.load_state_dict(saved["state_dict"])
-        initialize_residual_from_linear(model, linear)
+        if isinstance(model, NestedResidualAdapter):
+            initialize_residual_from_linear(model, linear)
+        else:
+            model.load_state_dict(linear.state_dict())
     device = torch.device(args.device)
     model.to(device)
     normalized = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
