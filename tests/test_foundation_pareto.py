@@ -1,6 +1,9 @@
 import gc
 import hashlib
 import json
+import platform
+from collections.abc import Sequence
+from importlib.metadata import version
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -27,6 +30,7 @@ from sfora.foundation_pareto import (
     load_foundation_encoder,
     load_native_fixture_authority,
     load_published_metric_register,
+    profile_foundation_encoder,
     validate_native_fixture_authority,
     verify_native_fixture,
 )
@@ -1706,3 +1710,148 @@ def test_geometry_evaluator_retains_only_registered_retrieval_depth() -> None:
 
     assert all(len(row.gallery_order[0]) == 100 for row in rows)
     assert all(row.metrics.recall_at_100 == 1.0 for row in rows)
+
+
+def test_profile_foundation_encoder_excludes_warmups_and_records_exact_costs() -> None:
+    events: list[str] = []
+
+    class Parameter:
+        def __init__(self, count: int) -> None:
+            self.count = count
+
+        def numel(self) -> int:
+            return self.count
+
+    class Encoder:
+        model = SimpleNamespace(parameters=lambda: (Parameter(5), Parameter(7)))
+        device = torch.device("cpu")
+
+        def encode(
+            self,
+            images: list[object],
+            *,
+            batch_size: int,
+            normalize_embeddings: bool,
+        ) -> np.ndarray:
+            assert batch_size == len(images)
+            assert normalize_embeddings is True
+            events.append(f"encode:{batch_size}")
+            return np.ones((len(images), 3), dtype=np.float32)
+
+    clock_values = iter(value * 1_000_000 for value in (0, 1, 2, 6, 7, 16, 20, 22, 23, 28, 30, 38))
+    peak_values = iter((111, 222))
+
+    def read_peak_memory_bytes() -> int:
+        events.append("read-memory")
+        return next(peak_values)
+
+    def count_macs(_encoder: object, images: Sequence[object]) -> int:
+        events.append("count-macs")
+        return len(images) * 100
+
+    profile = profile_foundation_encoder(
+        Encoder(),
+        fixtures=("a", "b", "c", "d"),
+        batch_sizes=(1, 2),
+        warmup_iterations=2,
+        measured_iterations=3,
+        clock_ns=lambda: next(clock_values),
+        synchronize=lambda: events.append("sync"),
+        reset_peak_memory=lambda: events.append("reset"),
+        read_peak_memory_bytes=read_peak_memory_bytes,
+        mac_counter=count_macs,
+    )
+
+    assert [row.batch_size for row in profile.batches] == [1, 2]
+    assert profile.batches[0].latency_samples_ms == (1.0, 4.0, 9.0)
+    assert profile.batches[0].latency_p50_ms == 4.0
+    assert profile.batches[0].latency_p95_ms == 8.5
+    assert profile.batches[0].peak_memory_bytes == 111
+    assert profile.batches[0].macs == 100
+    assert profile.batches[0].mac_status == "available"
+    assert profile.batches[1].latency_samples_ms == (2.0, 5.0, 8.0)
+    assert profile.batches[1].latency_p50_ms == 5.0
+    assert profile.batches[1].latency_p95_ms == pytest.approx(7.7)
+    assert profile.batches[1].peak_memory_bytes == 222
+    assert profile.batches[1].macs == 200
+    assert profile.parameter_count == 12
+    assert profile.warmup_iterations == 2
+    assert profile.measured_iterations == 3
+    assert profile.descriptor_rows == 4
+    assert profile.descriptor_width == 3
+    assert profile.descriptor_dtype == "float32"
+    assert profile.descriptor_bytes == 48
+    assert profile.device_type == "cpu"
+    assert profile.torch_version == str(torch.__version__)
+    assert profile.numpy_version == str(np.__version__)
+    assert profile.python_version == platform.python_version()
+    assert profile.cuda_version == (
+        str(torch.version.cuda) if torch.version.cuda is not None else None
+    )
+    assert profile.transformers_version == version("transformers")
+    assert profile.device_name != "cpu"
+    assert [event for event in events if event.startswith("encode:")] == [
+        *(["encode:1"] * 5),
+        *(["encode:2"] * 5),
+    ]
+    assert events == [
+        "encode:1",
+        "encode:1",
+        "reset",
+        "sync",
+        "encode:1",
+        "sync",
+        "sync",
+        "encode:1",
+        "sync",
+        "sync",
+        "encode:1",
+        "sync",
+        "read-memory",
+        "count-macs",
+        "encode:2",
+        "encode:2",
+        "reset",
+        "sync",
+        "encode:2",
+        "sync",
+        "sync",
+        "encode:2",
+        "sync",
+        "sync",
+        "encode:2",
+        "sync",
+        "read-memory",
+        "count-macs",
+    ]
+
+
+def test_profile_foundation_encoder_records_missing_macs_as_unavailable() -> None:
+    class Encoder:
+        model = SimpleNamespace(parameters=lambda: ())
+        device = torch.device("cpu")
+
+        def encode(
+            self,
+            images: list[object],
+            *,
+            batch_size: int,
+            normalize_embeddings: bool,
+        ) -> np.ndarray:
+            return np.zeros((len(images), 2), dtype=np.float32)
+
+    times = iter((0, 1_000_000))
+    profile = profile_foundation_encoder(
+        Encoder(),
+        fixtures=("a",),
+        batch_sizes=(1,),
+        warmup_iterations=0,
+        measured_iterations=1,
+        clock_ns=lambda: next(times),
+        synchronize=lambda: None,
+        reset_peak_memory=lambda: None,
+        read_peak_memory_bytes=lambda: 0,
+    )
+
+    assert profile.batches[0].mac_status == "unavailable"
+    assert profile.batches[0].macs is None

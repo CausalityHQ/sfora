@@ -403,6 +403,204 @@ class FoundationGeometryEvaluation:
     metrics: Any
 
 
+@dataclass(frozen=True)
+class EncoderBatchCost:
+    batch_size: int
+    latency_samples_ms: tuple[float, ...]
+    latency_p50_ms: float
+    latency_p95_ms: float
+    peak_memory_bytes: int | None
+    mac_status: Literal["available", "unavailable"]
+    macs: int | None
+
+
+@dataclass(frozen=True)
+class EncoderCostProfile:
+    batches: tuple[EncoderBatchCost, ...]
+    parameter_count: int
+    warmup_iterations: int
+    measured_iterations: int
+    descriptor_rows: int
+    descriptor_width: int
+    descriptor_dtype: str
+    descriptor_bytes: int
+    python_version: str
+    torch_version: str
+    numpy_version: str
+    transformers_version: str | None
+    cuda_version: str | None
+    device_type: str
+    device_name: str
+
+
+def _cpu_device_identity() -> str:
+    import platform
+
+    fields: dict[str, str] = {}
+    try:
+        for line in Path("/proc/cpuinfo").read_text(encoding="utf-8").splitlines():
+            key, separator, value = line.partition(":")
+            normalized = key.strip()
+            if separator and normalized in {
+                "model name",
+                "Hardware",
+                "CPU implementer",
+                "CPU architecture",
+                "CPU variant",
+                "CPU part",
+                "CPU revision",
+            }:
+                fields.setdefault(normalized, value.strip())
+    except OSError:
+        pass
+    if fields:
+        return ";".join(f"{key}={value}" for key, value in fields.items())
+    return platform.processor() or platform.machine() or "unknown-cpu"
+
+
+def profile_foundation_encoder(
+    encoder: Any,
+    fixtures: Sequence[object],
+    batch_sizes: Sequence[int] = (1, 8, 32),
+    *,
+    warmup_iterations: int = 10,
+    measured_iterations: int = 50,
+    clock_ns: Callable[[], int] | None = None,
+    synchronize: Callable[[], None] | None = None,
+    reset_peak_memory: Callable[[], None] | None = None,
+    read_peak_memory_bytes: Callable[[], int] | None = None,
+    mac_counter: Callable[[Any, Sequence[object]], int | None] | None = None,
+) -> EncoderCostProfile:
+    """Measure registered end-to-end encoder costs without timing warm-ups."""
+
+    import platform
+    import time
+    from importlib.metadata import PackageNotFoundError, version
+
+    import numpy as np
+    import torch
+
+    if not fixtures:
+        raise ValueError("profiling fixtures must be nonempty")
+    if not batch_sizes or any(type(value) is not int or value <= 0 for value in batch_sizes):
+        raise ValueError("profiling batch sizes must be positive builtin integers")
+    if max(batch_sizes) > len(fixtures):
+        raise ValueError("profiling fixtures must cover the largest batch size")
+    if type(warmup_iterations) is not int or warmup_iterations < 0:
+        raise ValueError("warmup_iterations must be a nonnegative builtin integer")
+    if type(measured_iterations) is not int or measured_iterations <= 0:
+        raise ValueError("measured_iterations must be a positive builtin integer")
+    if (reset_peak_memory is None) != (read_peak_memory_bytes is None):
+        raise ValueError("peak-memory reset and reader must be supplied together")
+
+    device = getattr(encoder, "device", torch.device("cpu"))
+    device_type = str(getattr(device, "type", device))
+    is_cuda = device_type == "cuda"
+    if clock_ns is None:
+        clock_ns = time.perf_counter_ns
+    if synchronize is None:
+        synchronize = (lambda: torch.cuda.synchronize(device)) if is_cuda else (lambda: None)
+    if reset_peak_memory is None:
+        reset_peak_memory = (
+            (lambda: torch.cuda.reset_peak_memory_stats(device)) if is_cuda else (lambda: None)
+        )
+    if read_peak_memory_bytes is None:
+        memory_reader: Callable[[], int | None] = (
+            (lambda: int(torch.cuda.max_memory_allocated(device))) if is_cuda else (lambda: None)
+        )
+    else:
+        memory_reader = read_peak_memory_bytes
+
+    model = getattr(encoder, "model", None)
+    parameters = getattr(model, "parameters", None)
+    if not callable(parameters):
+        raise ValueError("profiled encoder must expose model.parameters()")
+    parameter_count = sum(int(parameter.numel()) for parameter in parameters())
+    normalize = bool(getattr(getattr(encoder, "spec", None), "normalize", True))
+    batch_rows: list[EncoderBatchCost] = []
+    descriptor_width: int | None = None
+    descriptor_dtype: str | None = None
+    for batch_size in batch_sizes:
+        batch = list(fixtures[:batch_size])
+        for _ in range(warmup_iterations):
+            encoder.encode(
+                batch,
+                batch_size=batch_size,
+                normalize_embeddings=normalize,
+            )
+        reset_peak_memory()
+        samples: list[float] = []
+        for _ in range(measured_iterations):
+            synchronize()
+            started = clock_ns()
+            output = encoder.encode(
+                batch,
+                batch_size=batch_size,
+                normalize_embeddings=normalize,
+            )
+            synchronize()
+            elapsed_ns = clock_ns() - started
+            if type(elapsed_ns) is not int or elapsed_ns < 0:
+                raise ValueError("profiling clock must return monotonic integer nanoseconds")
+            samples.append(elapsed_ns / 1_000_000.0)
+            output_array = np.asarray(output)
+            if (
+                output_array.ndim != 2
+                or output_array.shape[0] != batch_size
+                or not np.issubdtype(output_array.dtype, np.floating)
+            ):
+                raise ValueError("profiled encoder output must be a floating rank-2 batch")
+            current_width = int(output_array.shape[1])
+            current_dtype = output_array.dtype.name
+            if descriptor_width is None:
+                descriptor_width = current_width
+                descriptor_dtype = current_dtype
+            elif current_width != descriptor_width or current_dtype != descriptor_dtype:
+                raise ValueError("profiled descriptor shape/dtype changed across batch sizes")
+        p50, p95 = np.percentile(np.asarray(samples, dtype=np.float64), (50, 95))
+        peak_memory = memory_reader()
+        if peak_memory is not None and (type(peak_memory) is not int or peak_memory < 0):
+            raise ValueError("peak memory must be a nonnegative builtin integer or null")
+        macs = mac_counter(encoder, batch) if mac_counter is not None else None
+        if macs is not None and (type(macs) is not int or macs < 0):
+            raise ValueError("MAC counter must return a nonnegative builtin integer or null")
+        batch_rows.append(
+            EncoderBatchCost(
+                batch_size=batch_size,
+                latency_samples_ms=tuple(samples),
+                latency_p50_ms=float(p50),
+                latency_p95_ms=float(p95),
+                peak_memory_bytes=peak_memory,
+                mac_status="available" if macs is not None else "unavailable",
+                macs=macs,
+            )
+        )
+    assert descriptor_width is not None and descriptor_dtype is not None
+    descriptor_itemsize = int(np.dtype(descriptor_dtype).itemsize)
+    device_name = torch.cuda.get_device_name(device) if is_cuda else _cpu_device_identity()
+    try:
+        transformers_version = version("transformers")
+    except PackageNotFoundError:
+        transformers_version = None
+    return EncoderCostProfile(
+        batches=tuple(batch_rows),
+        parameter_count=parameter_count,
+        warmup_iterations=warmup_iterations,
+        measured_iterations=measured_iterations,
+        descriptor_rows=len(fixtures),
+        descriptor_width=descriptor_width,
+        descriptor_dtype=descriptor_dtype,
+        descriptor_bytes=len(fixtures) * descriptor_width * descriptor_itemsize,
+        python_version=platform.python_version(),
+        torch_version=str(torch.__version__),
+        numpy_version=str(np.__version__),
+        transformers_version=transformers_version,
+        cuda_version=str(torch.version.cuda) if torch.version.cuda is not None else None,
+        device_type=device_type,
+        device_name=str(device_name),
+    )
+
+
 def _normalize_rows(values: Any) -> Any:
     import numpy as np
 
