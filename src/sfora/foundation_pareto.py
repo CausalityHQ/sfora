@@ -2603,7 +2603,7 @@ def _load_local_checkpoint_model(
         "pretrained_weights": "bn_inception_52deb4733",
         "head_pooling": "avg_max",
         "embedding_dimensions": spec.embedding_width,
-        "embedding_head_init": "default",
+        "embedding_head_init": "kaiming_normal",
         "embedding_layer_norm": False,
     }
     if expected_arch != supported_arch:

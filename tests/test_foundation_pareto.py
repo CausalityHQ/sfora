@@ -338,7 +338,7 @@ def test_local_model_loader_reconstructs_exact_checkpoint_architecture(
         "pretrained_weights": "bn_inception_52deb4733",
         "embedding_dimensions": 512,
         "head_pooling": "avg_max",
-        "embedding_head_init": "default",
+        "embedding_head_init": "kaiming_normal",
         "embedding_layer_norm": False,
     }
     checkpoint.write_bytes(b"authenticated-bytes")
@@ -367,7 +367,7 @@ def test_local_model_loader_reconstructs_exact_checkpoint_architecture(
                 "pretrained_weights": "bn_inception_52deb4733",
                 "embedding_dimensions": 512,
                 "head_pooling": "avg_max",
-                "embedding_head_init": "default",
+                "embedding_head_init": "kaiming_normal",
                 "embedding_layer_norm": False,
             },
             "training_config": training_config,
@@ -416,7 +416,7 @@ def test_local_model_loader_rejects_architecture_metadata_drift(
         "pretrained_weights": "bn_inception_52deb4733",
         "embedding_dimensions": 512,
         "head_pooling": "avg_max",
-        "embedding_head_init": "default",
+        "embedding_head_init": "kaiming_normal",
         "embedding_layer_norm": False,
     }
     checkpoint.write_bytes(b"authenticated-bytes")
@@ -461,7 +461,7 @@ def test_local_checkpoint_loader_reconstructs_real_bn_inception_state(
         "pretrained_weights": "bn_inception_52deb4733",
         "embedding_dimensions": 2,
         "head_pooling": "avg_max",
-        "embedding_head_init": "default",
+        "embedding_head_init": "kaiming_normal",
         "embedding_layer_norm": False,
     }
     source_model = foundation_pareto._build_local_bn_inception(
