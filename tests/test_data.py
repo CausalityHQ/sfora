@@ -16,6 +16,7 @@ from sfora.data import (
     load_imdb_examples,
     mine_group_triplets,
     mine_triplets,
+    preflight_official_image_retrieval_split,
     select_balanced_examples,
     select_labeled_image_examples,
 )
@@ -143,6 +144,46 @@ def test_load_sop_bundle_forwards_local_archive_to_both_splits(
         "sop-test-100001-0",
         "sop-test-100002-1",
     ]
+
+
+def test_sop_official_preflight_constructs_only_the_registered_test_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    def local_records(
+        root: Path,
+        *,
+        split: str,
+        expected_rows: int,
+        expected_classes: int,
+    ) -> list[dict[str, object]]:
+        del expected_rows, expected_classes
+        assert root == tmp_path.resolve()
+        calls.append(split)
+        if split != "test":
+            raise AssertionError("SOP train archive reached during official preflight")
+        return [
+            {"image": tmp_path / "test-a.jpg", "id": "100001_0"},
+            {"image": tmp_path / "test-b.jpg", "id": "100002_0"},
+        ]
+
+    monkeypatch.setattr(data_module, "_read_local_sop_metadata", local_records)
+
+    bundle = preflight_official_image_retrieval_split(
+        dataset_name="sop",
+        dataset_root=tmp_path,
+    )
+
+    assert calls == ["test"]
+    assert bundle.train == []
+    assert [row.example_id for row in bundle.query] == [
+        "sop-test-100001-0",
+        "sop-test-100002-1",
+    ]
+    assert bundle.gallery is None
+    assert bundle.protocol == "self"
 
 
 def test_load_inat2018_bundle_builds_disjoint_zero_shot_species_protocol(

@@ -17,7 +17,6 @@ from typing import Any, Literal, cast
 from sfora.data import (
     ImageDatasetName,
     ImageExample,
-    load_image_retrieval_bundle,
     load_image_retrieval_examples,
     materialize_image,
     preflight_official_image_retrieval_split,
@@ -3355,6 +3354,12 @@ def run_foundation_screen(
         registered_pairs=fixture_pairs,
     )
     test_reads = load_test_read_register(test_read_register_path)
+    if allow_registered_test_read:
+        _validate_registered_receipt_root(
+            receipt_root=test_reads.receipt_root,
+            ledger=test_reads,
+            cache_dir=cache_dir,
+        )
     train_examples = load_image_retrieval_examples(
         dataset_name=cast(ImageDatasetName, dataset),
         split="train",
@@ -3536,18 +3541,20 @@ def _run_registered_official_reads(
     ledger: FoundationTestReadLedger,
     published_register_path: Path,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
-    if receipt_root.resolve().is_relative_to(cache_dir.resolve()):
-        raise ValueError("official test receipts cannot use the rebuildable cache directory")
-    if receipt_root != ledger.receipt_root:
-        raise ValueError("official test receipt root differs from frozen authority")
-    if receipt_root.is_symlink() or not receipt_root.is_dir():
-        raise ValueError("official test receipt root must be a real directory")
-    preflight_official_image_retrieval_split(
-        dataset_name=cast(ImageDatasetName, dataset),
-        dataset_root=dataset_root,
+    _validate_registered_receipt_root(
+        receipt_root=receipt_root,
+        ledger=ledger,
+        cache_dir=cache_dir,
     )
     registered_pairs = tuple(
         (arm.spec.arm, metric) for arm in arms for metric in FOUNDATION_PUBLISHED_METRICS
+    )
+    published_records = load_published_metric_register(published_register_path)
+    if _record_keys(published_records) != registered_pairs:
+        raise ValueError("published metric register differs from screen arm/metric order")
+    official_bundle = preflight_official_image_retrieval_split(
+        dataset_name=cast(ImageDatasetName, dataset),
+        dataset_root=dataset_root,
     )
     reads: list[dict[str, object]] = []
     audits: list[dict[str, object]] = []
@@ -3576,11 +3583,7 @@ def _run_registered_official_reads(
             dataset=dataset,
             arm=arm,
             metrics=FOUNDATION_PUBLISHED_METRICS,
-            loader=lambda: load_image_retrieval_bundle(
-                dataset_name=cast(ImageDatasetName, dataset),
-                dataset_root=dataset_root,
-                seed=validation_seed,
-            ),
+            loader=lambda: official_bundle,
         )
         repository_values, arm_cache_rows, geometry_rows = _evaluate_official_foundation_arm(
             arm_spec=arm_spec,
@@ -3610,9 +3613,6 @@ def _run_registered_official_reads(
         )
         cache_rows.extend(arm_cache_rows)
         evaluated.append((arm, repository_values))
-    published_records = load_published_metric_register(published_register_path)
-    if _record_keys(published_records) != registered_pairs:
-        raise ValueError("published metric register differs from screen arm/metric order")
     for arm, repository_values in evaluated:
         arm_audits = cross_check_published_metrics(
             arm=arm,
@@ -3622,6 +3622,20 @@ def _run_registered_official_reads(
         )
         audits.extend(asdict(row) for row in arm_audits)
     return reads, audits, cache_rows
+
+
+def _validate_registered_receipt_root(
+    *,
+    receipt_root: Path,
+    ledger: FoundationTestReadLedger,
+    cache_dir: Path,
+) -> None:
+    if receipt_root.resolve().is_relative_to(cache_dir.resolve()):
+        raise ValueError("official test receipts cannot use the rebuildable cache directory")
+    if receipt_root != ledger.receipt_root:
+        raise ValueError("official test receipt root differs from frozen authority")
+    if receipt_root.is_symlink() or not receipt_root.is_dir():
+        raise ValueError("official test receipt root must be a real directory")
 
 
 def _test_read_identity(

@@ -357,6 +357,15 @@ If no such local comparator checkpoint is resolvable, publish/record
 `UNAVAILABLE_COMPARATOR` before any model export or GB10 allocation and stop.
 Close other unavailable arms without substitution.
 
+On the registered execution host `riomus@spark-2751`, verify
+`/home/riomus/group-learning/reports/generated` and every existing parent of
+the frozen receipt root are real non-symlink directories. Create only the
+absent frozen leaf
+`/home/riomus/group-learning/reports/generated/foundation_test_read_receipts`
+before the screen, then reverify it is a real non-symlink directory and that no
+registered receipt exists. The `/home/rb` review checkout is not the execution
+host and must not be used to reinterpret this target-host authority.
+
 - [ ] **Step 2: Run source-fidelity smoke without official-test access**
 
 Execute the fixture-level native-output check and one tiny train/validation

@@ -2958,13 +2958,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     monkeypatch.setattr(
         foundation_pareto,
-        "load_image_retrieval_bundle",
-        lambda **kwargs: SimpleNamespace(protocol="query_gallery"),
-    )
-    monkeypatch.setattr(
-        foundation_pareto,
         "preflight_official_image_retrieval_split",
-        lambda **kwargs: None,
+        lambda **kwargs: SimpleNamespace(protocol="query_gallery"),
     )
     monkeypatch.setattr(
         foundation_pareto,
@@ -3062,10 +3057,6 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     trace: list[str] = []
     bundle = SimpleNamespace(protocol="query_gallery")
 
-    def fake_bundle(**kwargs: object) -> object:
-        trace.append("load")
-        return bundle
-
     def fake_evaluate(
         **kwargs: object,
     ) -> tuple[dict[str, float], tuple[dict[str, object], ...], list[dict[str, object]]]:
@@ -3097,11 +3088,10 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
         trace.append("published-register")
         return records
 
-    monkeypatch.setattr(foundation_pareto, "load_image_retrieval_bundle", fake_bundle)
     monkeypatch.setattr(
         foundation_pareto,
         "preflight_official_image_retrieval_split",
-        lambda **kwargs: trace.append("preflight"),
+        lambda **kwargs: (trace.append("preflight"), bundle)[1],
     )
     monkeypatch.setattr(
         foundation_pareto,
@@ -3138,12 +3128,10 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     )
 
     assert trace == [
-        "preflight",
-        "load",
-        "candidate:official",
-        "load",
-        "comparator:official",
         "published-register",
+        "preflight",
+        "candidate:official",
+        "comparator:official",
         "candidate:published",
         "comparator:published",
     ]
@@ -3187,6 +3175,21 @@ def test_official_split_preflight_fails_before_consuming_or_publishing(
         lambda **kwargs: (_ for _ in ()).throw(ValueError("official split unreachable")),
         raising=False,
     )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_published_metric_register",
+        lambda path: tuple(
+            PublishedMetricRecord(
+                arm="candidate",
+                metric=metric,
+                native_value=None,
+                tolerance=None,
+                source="repository",
+                provenance="repository_only",
+            )
+            for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
+        ),
+    )
     cache_dir = tmp_path / "cache"
     receipt_root = tmp_path / "receipts"
     cache_dir.mkdir()
@@ -3216,6 +3219,120 @@ def test_official_split_preflight_fails_before_consuming_or_publishing(
         purpose="registered_f1_quality_evaluation",
     )
     assert audit.evaluation_number == 1
+
+
+def test_published_register_fails_before_official_preflight_or_receipt_consumption(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = foundation_pareto.FoundationScreenArmSpec(
+        kind="remote",
+        spec=_remote_spec(arm="candidate"),
+        cache_resolution=224,
+        role="candidate",
+    )
+    model_revision, checkpoint_sha256 = foundation_pareto._test_read_identity(spec.spec)
+    ledger = foundation_pareto.FoundationTestReadLedger(
+        (
+            foundation_pareto.FoundationTestReadRecord(
+                dataset="sop",
+                arm="candidate",
+                model_revision=model_revision,
+                checkpoint_sha256=checkpoint_sha256,
+                metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+                purpose="registered_f1_quality_evaluation",
+                permitted_evaluations=1,
+            ),
+        ),
+        receipt_root=tmp_path / "receipts",
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_published_metric_register",
+        lambda path: (_ for _ in ()).throw(ValueError("published authority differs")),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "preflight_official_image_retrieval_split",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("official metadata reached before published authority")
+        ),
+    )
+    cache_dir = tmp_path / "cache"
+    receipt_root = tmp_path / "receipts"
+    cache_dir.mkdir()
+    receipt_root.mkdir()
+
+    with pytest.raises(ValueError, match="published authority differs"):
+        foundation_pareto._run_registered_official_reads(
+            dataset="sop",
+            dataset_root=tmp_path,
+            validation_seed=23,
+            arms=(spec,),
+            encoders={"candidate": object()},
+            cache_dir=cache_dir,
+            receipt_root=receipt_root,
+            decision_sha256="c" * 64,
+            ledger=ledger,
+            published_register_path=tmp_path / "published.json",
+        )
+
+    assert not tuple(receipt_root.glob("official-test-read-*.json"))
+    audit = ledger.consume(
+        dataset="sop",
+        arm="candidate",
+        model_revision=model_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+        purpose="registered_f1_quality_evaluation",
+    )
+    assert audit.evaluation_number == 1
+
+
+def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_training(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    missing_receipt_root = tmp_path / "missing-receipts"
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: "f" * 40)
+    monkeypatch.setattr(foundation_pareto, "load_foundation_model_specs", lambda path: ())
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_native_fixture_authority",
+        lambda *args, **kwargs: ((), ()),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_test_read_register",
+        lambda path: foundation_pareto.FoundationTestReadLedger(
+            (), receipt_root=missing_receipt_root
+        ),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_examples",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("training data reached before receipt-root validation")
+        ),
+    )
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    with pytest.raises(ValueError, match="receipt root must be a real directory"):
+        foundation_pareto.run_foundation_screen(
+            dataset="sop",
+            dataset_root=tmp_path,
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=tmp_path / "report.json",
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=True,
+        )
 
 
 def test_foundation_geometry_excludes_self_for_self_retrieval_protocol() -> None:

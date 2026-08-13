@@ -478,20 +478,25 @@ def preflight_official_image_retrieval_split(
     *,
     dataset_name: ImageDatasetName,
     dataset_root: Path | None,
-) -> None:
-    """Validate registered evaluation metadata and paths without decoding pixels."""
+) -> ImageRetrievalBundle:
+    """Construct registered evaluation metadata and paths without decoding pixels."""
 
     root = _required_dataset_root(dataset_name, dataset_root)
     if dataset_name == "sop":
-        _read_local_sop_metadata(
-            root,
+        test = load_image_retrieval_examples(
+            dataset_name="sop",
+            dataset_root=root,
             split="test",
-            expected_rows=60_502,
-            expected_classes=11_316,
         )
-        return
+        return ImageRetrievalBundle(
+            train=[],
+            query=test,
+            gallery=None,
+            protocol="self",
+            protocol_name="sop-standard-zero-shot",
+        )
     if dataset_name == "inshop":
-        _load_inshop_bundle(
+        return _load_inshop_bundle(
             root,
             limit_per_class=None,
             train_min_per_class=None,
@@ -499,7 +504,6 @@ def preflight_official_image_retrieval_split(
             max_classes=None,
             seed=0,
         )
-        return
     raise ValueError(f"official split preflight is not registered for dataset {dataset_name!r}")
 
 
@@ -603,7 +607,8 @@ def _load_inshop_bundle(
         seed=seed,
     )
     if train_only:
-        query, gallery = [], []
+        query: list[ImageExample] = []
+        gallery: list[ImageExample] = []
     else:
         query, gallery = _select_paired_query_gallery_examples(
             by_status["query"],
