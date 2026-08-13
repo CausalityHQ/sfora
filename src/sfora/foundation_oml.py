@@ -12,8 +12,8 @@ import torch
 def oml_vit_state_dict(checkpoint: object) -> dict[str, torch.Tensor]:
     """Remove the exact Lightning/OML wrapper from a released extractor state."""
 
-    if type(checkpoint) is not dict or type(checkpoint.get("state_dict")) is not dict:
-        raise ValueError("OML checkpoint must contain a builtin state_dict")
+    if type(checkpoint) is not dict or not isinstance(checkpoint.get("state_dict"), Mapping):
+        raise ValueError("OML checkpoint must contain a state_dict mapping")
     wrapped = checkpoint["state_dict"]
     assert isinstance(wrapped, Mapping)
     prefix = "model.model."
