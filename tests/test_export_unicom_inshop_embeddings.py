@@ -37,9 +37,9 @@ def _records(module, root: Path):
     return tuple(records)
 
 
-def _metadata() -> dict[str, object]:
+def _metadata(model_identifier: str = "UNICOM-ViT-B/16") -> dict[str, object]:
     return {
-        "model_identifier": "UNICOM-ViT-B/16",
+        "model_identifier": model_identifier,
         "model_revision": "a" * 40,
         "checkpoint_sha256": "b" * 64,
         "image_list_sha256": "c" * 64,
@@ -189,3 +189,67 @@ def test_official_encoder_rejects_checkpoint_filename_upstream_would_ignore(
 
     with pytest.raises(ValueError, match="FP16-ViT-B-16.pt"):
         module._official_encoder(tmp_path / "checkout", checkpoint)
+
+
+def test_l14_336_model_spec_binds_official_name_file_and_digest() -> None:
+    module = _load_script()
+
+    spec = module._model_spec("ViT-L/14@336px")
+
+    assert spec.model_identifier == "UNICOM-ViT-L/14@336px"
+    assert spec.checkpoint_filename == "FP16-ViT-L-14-336px.pt"
+    assert spec.checkpoint_sha256 == (
+        "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+    )
+
+
+def test_official_encoder_loads_l14_336_from_matching_checkpoint(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _load_script()
+    checkout = tmp_path / "unicom-checkout"
+    package = checkout / "unicom" / "unicom"
+    package.mkdir(parents=True)
+    package_file = package / "__init__.py"
+    package_file.write_text("")
+    checkpoint = tmp_path / "FP16-ViT-L-14-336px.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    observed: list[tuple[object, ...]] = []
+
+    class Model:
+        def cuda(self):
+            return self
+
+        def eval(self):
+            return self
+
+    fake_unicom = SimpleNamespace(
+        __file__=str(package_file),
+        load=lambda *args, **kwargs: observed.append((*args, kwargs))
+        or (Model(), object()),
+    )
+    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "PIL", SimpleNamespace(Image=object()))
+    monkeypatch.setattr(module.importlib, "import_module", lambda name: fake_unicom)
+
+    module._official_encoder(
+        checkout, checkpoint, model_name="ViT-L/14@336px"
+    )
+
+    assert observed == [
+        ("ViT-L/14@336px", {"download_root": str(checkpoint.parent)})
+    ]
+
+
+def test_export_metadata_accepts_registered_l14_336_identifier(tmp_path: Path) -> None:
+    module = _load_script()
+    records = _records(module, tmp_path)
+
+    module.export_embeddings(
+        records,
+        lambda paths: np.ones((len(paths), 3), dtype=np.float32),
+        _metadata("UNICOM-ViT-L/14@336px"),
+        tmp_path / "bundle.npz",
+        batch_size=2,
+        expected_counts=(4, 2, 3),
+    )

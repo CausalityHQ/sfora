@@ -21,6 +21,9 @@ from sfora.unicom_audit_io import load_embedding_bundle
 
 UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 UNICOM_B16_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
+UNICOM_L14_336_SHA256 = (
+    "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+)
 EXPECTED_COUNTS = (25_882, 14_218, 12_612)
 
 
@@ -29,6 +32,34 @@ class InshopRecord:
     split: str
     image_path: Path
     label: str
+
+
+@dataclass(frozen=True)
+class ModelSpec:
+    model_identifier: str
+    checkpoint_filename: str
+    checkpoint_sha256: str
+
+
+_MODEL_SPECS = {
+    "ViT-B/16": ModelSpec(
+        model_identifier="UNICOM-ViT-B/16",
+        checkpoint_filename="FP16-ViT-B-16.pt",
+        checkpoint_sha256=UNICOM_B16_SHA256,
+    ),
+    "ViT-L/14@336px": ModelSpec(
+        model_identifier="UNICOM-ViT-L/14@336px",
+        checkpoint_filename="FP16-ViT-L-14-336px.pt",
+        checkpoint_sha256=UNICOM_L14_336_SHA256,
+    ),
+}
+
+
+def _model_spec(model_name: str) -> ModelSpec:
+    try:
+        return _MODEL_SPECS[model_name]
+    except KeyError as error:
+        raise ValueError(f"unsupported UNICOM model: {model_name}") from error
 
 
 def _sha256_file(path: Path) -> str:
@@ -94,7 +125,9 @@ def _validate_metadata_base(metadata: Mapping[str, object]) -> None:
     )
     if type(metadata) is not dict or tuple(metadata) != keys:
         raise ValueError("export metadata key order differs")
-    if metadata["model_identifier"] != "UNICOM-ViT-B/16":
+    if metadata["model_identifier"] not in {
+        spec.model_identifier for spec in _MODEL_SPECS.values()
+    }:
         raise ValueError("export model identifier differs")
     for key, length in (
         ("model_revision", 40),
@@ -246,6 +279,7 @@ def _parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--model-name", choices=tuple(_MODEL_SPECS), default="ViT-B/16")
     return parser.parse_args(arguments)
 
 
@@ -258,9 +292,14 @@ def _git_revision(checkout: Path) -> str:
     ).stdout.strip()
 
 
-def _official_encoder(checkout: Path, checkpoint: Path):
-    if checkpoint.name != "FP16-ViT-B-16.pt":
-        raise ValueError("checkpoint filename must be FP16-ViT-B-16.pt")
+def _official_encoder(
+    checkout: Path, checkpoint: Path, *, model_name: str = "ViT-B/16"
+):
+    model_spec = _model_spec(model_name)
+    if checkpoint.name != model_spec.checkpoint_filename:
+        raise ValueError(
+            f"checkpoint filename must be {model_spec.checkpoint_filename}"
+        )
     import torch
     from PIL import Image
 
@@ -273,7 +312,7 @@ def _official_encoder(checkout: Path, checkpoint: Path):
     if Path(unicom.__file__).resolve().parent != package_root / "unicom":
         raise ValueError("imported UNICOM package does not come from the pinned checkout")
     model, transform = unicom.load(
-        "ViT-B/16", download_root=str(checkpoint.parent)
+        model_name, download_root=str(checkpoint.parent)
     )
     model = model.cuda().eval()
 
@@ -295,20 +334,25 @@ def main(arguments: Sequence[str] | None = None) -> int:
     try:
         if _git_revision(args.unicom_checkout) != UNICOM_REVISION:
             raise ValueError("UNICOM checkout revision differs")
-        if _sha256_file(args.checkpoint) != UNICOM_B16_SHA256:
+        model_spec = _model_spec(args.model_name)
+        if _sha256_file(args.checkpoint) != model_spec.checkpoint_sha256:
             raise ValueError("UNICOM checkpoint SHA-256 differs")
         partition = args.dataset_root / "Eval" / "list_eval_partition.txt"
         records = parse_inshop_partition(args.dataset_root)
-        encode = _official_encoder(args.unicom_checkout, args.checkpoint)
+        encode = _official_encoder(
+            args.unicom_checkout, args.checkpoint, model_name=args.model_name
+        )
         export_embeddings(
             records,
             encode,
             {
-                "model_identifier": "UNICOM-ViT-B/16",
+                "model_identifier": model_spec.model_identifier,
                 "model_revision": UNICOM_REVISION,
-                "checkpoint_sha256": UNICOM_B16_SHA256,
+                "checkpoint_sha256": model_spec.checkpoint_sha256,
                 "image_list_sha256": _sha256_file(partition),
-                "transform": "official UNICOM ViT-B/16 load_model_and_transform",
+                "transform": (
+                    f"official UNICOM {args.model_name} load_model_and_transform"
+                ),
             },
             args.output,
             batch_size=args.batch_size,
