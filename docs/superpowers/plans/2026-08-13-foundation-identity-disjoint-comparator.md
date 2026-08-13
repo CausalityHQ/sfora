@@ -253,7 +253,12 @@ contaminated control.
 
 - [ ] **Step 3: Run authority tests and full affected assurance**
 
-Run exact authority loaders/mutation tests, the three affected test files, Ruff, mypy, py_compile, JSON parse, and diff check. Require every source hash still matches `S_D`.
+Run exact authority loaders/mutation tests, the three affected test files, Ruff,
+mypy, py_compile, JSON parse, and diff check. Require the two checkpoint-producing
+production hashes, `src/sfora/foundation_pareto.py` and `src/sfora/cli.py`, still
+match `S_D`. The prospectively authorized
+`tests/test_foundation_pareto.py` authority-coverage edit advances its test hash
+at `H_F1`; it does not refreeze or alter either production source hash.
 
 - [ ] **Step 4: Commit authority only and review**
 
