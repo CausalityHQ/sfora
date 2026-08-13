@@ -6,6 +6,7 @@ import numpy as np
 import typer
 from rich.console import Console
 
+from sfora import foundation_pareto
 from sfora.ablation import (
     SyntheticAblationConfig,
     run_synthetic_ablation,
@@ -102,6 +103,65 @@ _CLI_END_TO_END_OBJECTIVES = cast(
 @app.callback()
 def main() -> None:
     """Group learning research utilities."""
+
+
+@app.command()
+def foundation_screen(
+    dataset: Annotated[str, typer.Option(help="Registered image-retrieval dataset.")],
+    dataset_root: Annotated[Path, typer.Option(help="Dataset root.")],
+    model_specs: Annotated[Path, typer.Option(help="Frozen model-spec authority JSON.")],
+    cache_dir: Annotated[Path, typer.Option(help="Content-addressed cache directory.")],
+    report: Annotated[Path, typer.Option(help="Strict no-clobber F0/F1 report path.")],
+    fixture_authority: Annotated[
+        Path,
+        typer.Option(help="Frozen native-fixture authority JSON."),
+    ] = Path("docs/foundation_native_fixtures.json"),
+    tolerance_authority: Annotated[
+        Path,
+        typer.Option(help="Frozen metric-tolerance authority JSON."),
+    ] = Path("docs/foundation_metric_tolerances.json"),
+    published_register: Annotated[
+        Path,
+        typer.Option(help="Frozen published-metric register JSON."),
+    ] = Path("docs/foundation_published_metric_register.json"),
+    test_read_register: Annotated[
+        Path,
+        typer.Option(help="Frozen one-read official-test register JSON."),
+    ] = Path("docs/foundation_test_read_register.json"),
+    validation_seed: Annotated[int, typer.Option(help="Identity-disjoint split seed.")] = 0,
+    validation_fraction: Annotated[
+        float,
+        typer.Option(help="Fraction of training identities reserved for validation."),
+    ] = 0.20,
+    allow_registered_test_read: Annotated[
+        bool,
+        typer.Option(help="Consume each arm's registered one-shot official-test read."),
+    ] = False,
+) -> None:
+    """Run the revision-pinned foundation F0/F1 screen."""
+
+    if dataset not in _IMAGE_DATASET_NAMES:
+        console.print(f"Error: unsupported image dataset {dataset}")
+        raise typer.Exit(1)
+    try:
+        written = foundation_pareto.run_foundation_screen(
+            dataset=dataset,
+            dataset_root=dataset_root,
+            model_specs_path=model_specs,
+            cache_dir=cache_dir,
+            report_path=report,
+            fixture_authority_path=fixture_authority,
+            tolerance_authority_path=tolerance_authority,
+            published_register_path=published_register,
+            test_read_register_path=test_read_register,
+            validation_seed=validation_seed,
+            validation_fraction=validation_fraction,
+            allow_registered_test_read=allow_registered_test_read,
+        )
+    except (OSError, RuntimeError, ValueError) as error:
+        console.print(f"Error: {error}")
+        raise typer.Exit(1) from error
+    console.print({"name": "foundation-screen", "output": str(written)})
 
 
 @app.command()
@@ -1825,8 +1885,7 @@ def image_end_to_end(
         if recipe is not None:
             if objectives is None:
                 raise ValueError(
-                    "recipe mode requires --objectives proxy_anchor, hist, "
-                    "or recall_at_k_surrogate"
+                    "recipe mode requires --objectives proxy_anchor, hist, or recall_at_k_surrogate"
                 )
             resolved_objectives = _parse_end_to_end_objectives(objectives)
             # A recipe is looked up by its BASE method, but a derived recipe may declare
@@ -1859,9 +1918,8 @@ def image_end_to_end(
             # the CLI selector here silently turned derived objectives such as CIS
             # back into plain Proxy Anchor while retaining their recipe labels.
             requested_objective = resolved_objectives[0]
-            if (
-                requested_objective in _DERIVED_OBJECTIVE_BASE
-                and base_config.objectives == (base_method,)
+            if requested_objective in _DERIVED_OBJECTIVE_BASE and base_config.objectives == (
+                base_method,
             ):
                 resolved_objectives = (requested_objective,)
             else:
@@ -2270,14 +2328,10 @@ def image_end_to_end(
                 ),
                 "potential_weight": potential_weight,
                 "potential_delta": (
-                    potential_delta
-                    if potential_delta is not None
-                    else base_config.potential_delta
+                    potential_delta if potential_delta is not None else base_config.potential_delta
                 ),
                 "potential_alpha": (
-                    potential_alpha
-                    if potential_alpha is not None
-                    else base_config.potential_alpha
+                    potential_alpha if potential_alpha is not None else base_config.potential_alpha
                 ),
                 "teacher_similarity_weight": teacher_similarity_weight,
                 "label_noise_fraction": label_noise_fraction,

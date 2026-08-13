@@ -76,6 +76,50 @@ def _remote_spec(**changes: object) -> RemoteFoundationModelSpec:
     return RemoteFoundationModelSpec(**values)  # type: ignore[arg-type]
 
 
+def _local_spec(**changes: object) -> LocalCheckpointFoundationSpec:
+    values: dict[str, object] = {
+        "arm": "comparator",
+        "checkpoint_path": Path("artifacts/comparator.pt"),
+        "pretrained_backbone_path": Path("artifacts/backbone.pth"),
+        "checkpoint_sha256": "e" * 64,
+        "resolved_config_sha256": "f" * 64,
+        "pretrained_backbone_sha256": "1" * 64,
+        "transform_id": "proxy-anchor-eval-224-v1",
+        "embedding_width": 8,
+        "pooling": "embedding",
+        "dtype": "float32",
+        "normalize": True,
+    }
+    values.update(changes)
+    return LocalCheckpointFoundationSpec(**values)  # type: ignore[arg-type]
+
+
+def _geometry_rows() -> list[dict[str, object]]:
+    metrics = {
+        "precision_at_1": 0.5,
+        "recall_at_1": 0.5,
+        "recall_at_2": 0.5,
+        "recall_at_4": 0.5,
+        "recall_at_8": 0.5,
+        "map_at_r": 0.5,
+        "mean_relevant_items": 1.0,
+        "evaluated_queries": 2,
+        "total_queries": 2,
+        "recall_at_10": 0.5,
+        "recall_at_20": 0.5,
+        "recall_at_30": 0.5,
+        "recall_at_100": 0.5,
+    }
+    return [
+        {"geometry": geometry, "metrics": dict(metrics)}
+        for geometry in (
+            "normalized_cosine",
+            "normalized_euclidean",
+            "native_unnormalized_euclidean",
+        )
+    ]
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -1298,10 +1342,15 @@ def test_repository_fidelity_authorities_are_strict_and_prospectively_empty() ->
         root / "docs/foundation_published_metric_register.json",
         require_frozen=False,
     )
+    test_reads = foundation_pareto.load_test_read_register(
+        root / "docs/foundation_test_read_register.json",
+        require_frozen=False,
+    )
 
     assert fixtures == ()
     assert tolerances == ()
     assert published == ()
+    assert test_reads.records == ()
 
     with pytest.raises(ValueError, match="authority is not frozen"):
         load_native_fixture_authority(
@@ -1311,6 +1360,8 @@ def test_repository_fidelity_authorities_are_strict_and_prospectively_empty() ->
         )
     with pytest.raises(ValueError, match="authority is not frozen"):
         load_published_metric_register(root / "docs/foundation_published_metric_register.json")
+    with pytest.raises(ValueError, match="authority is not frozen"):
+        foundation_pareto.load_test_read_register(root / "docs/foundation_test_read_register.json")
 
 
 def test_unfrozen_authorities_cannot_carry_values_even_for_inspection(
@@ -2103,6 +2154,907 @@ def test_probe_training_config_freezes_registered_supcon_protocol() -> None:
     assert config.adam_eps == 1e-8
     assert config.weight_decay == 0.0
     assert config.protocol_id == "f1-bias-free-512-supcon-v1"
+
+
+def test_test_read_register_authenticates_and_allows_exactly_one_registered_read(
+    tmp_path: Path,
+) -> None:
+    register_path = tmp_path / "test-read.json"
+    register_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "foundation-test-read-register-v1",
+                "status": "frozen",
+                "records": [
+                    {
+                        "arm": "candidate",
+                        "model_revision": "a" * 40,
+                        "checkpoint_sha256": "b" * 64,
+                        "metrics": ["recall_at_1", "recall_at_10"],
+                        "purpose": "confirmatory_published_metric_cross_check",
+                        "permitted_evaluations": 1,
+                    }
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    ledger = foundation_pareto.load_test_read_register(register_path)
+    audit = ledger.consume(
+        arm="candidate",
+        model_revision="a" * 40,
+        checkpoint_sha256="b" * 64,
+        metrics=("recall_at_1", "recall_at_10"),
+        purpose="confirmatory_published_metric_cross_check",
+    )
+
+    assert audit.arm == "candidate"
+    assert audit.evaluation_number == 1
+    assert audit.metrics == ("recall_at_1", "recall_at_10")
+    with pytest.raises(ValueError, match="already consumed"):
+        ledger.consume(
+            arm="candidate",
+            model_revision="a" * 40,
+            checkpoint_sha256="b" * 64,
+            metrics=("recall_at_1", "recall_at_10"),
+            purpose="confirmatory_published_metric_cross_check",
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("model_revision", "c" * 40),
+        ("checkpoint_sha256", "d" * 64),
+        ("metrics", ("recall_at_1",)),
+        ("purpose", "selection"),
+    ],
+)
+def test_test_read_register_rejects_unregistered_official_read(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    register_path = tmp_path / "test-read.json"
+    register_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "foundation-test-read-register-v1",
+                "status": "frozen",
+                "records": [
+                    {
+                        "arm": "candidate",
+                        "model_revision": "a" * 40,
+                        "checkpoint_sha256": "b" * 64,
+                        "metrics": ["recall_at_1", "recall_at_10"],
+                        "purpose": "confirmatory_published_metric_cross_check",
+                        "permitted_evaluations": 1,
+                    }
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    ledger = foundation_pareto.load_test_read_register(register_path)
+    request = {
+        "arm": "candidate",
+        "model_revision": "a" * 40,
+        "checkpoint_sha256": "b" * 64,
+        "metrics": ("recall_at_1", "recall_at_10"),
+        "purpose": "confirmatory_published_metric_cross_check",
+    }
+    request[field] = value
+
+    with pytest.raises(ValueError, match="registered test read"):
+        ledger.consume(**request)
+
+
+def test_model_spec_authority_freezes_arm_order_roles_and_local_resolution(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "models.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "foundation-model-specs-v1",
+                "status": "frozen",
+                "arms": [
+                    {
+                        "kind": "remote",
+                        "spec": {
+                            "arm": "candidate",
+                            "model_id": "org/model",
+                            "revision": "a" * 40,
+                            "weight_sha256": "b" * 64,
+                            "processor_sha256": "c" * 64,
+                            "config_sha256": "d" * 64,
+                            "pooling": "cls",
+                            "resolution": 224,
+                            "embedding_width": 8,
+                            "license": "Apache-2.0",
+                            "dtype": "float32",
+                            "normalize": True,
+                        },
+                        "cache_resolution": 224,
+                        "role": "candidate",
+                    },
+                    {
+                        "kind": "local",
+                        "spec": {
+                            "arm": "comparator",
+                            "checkpoint_path": "artifacts/comparator.pt",
+                            "pretrained_backbone_path": "artifacts/backbone.pth",
+                            "checkpoint_sha256": "e" * 64,
+                            "resolved_config_sha256": "f" * 64,
+                            "pretrained_backbone_sha256": "1" * 64,
+                            "transform_id": "proxy-anchor-eval-224-v1",
+                            "embedding_width": 8,
+                            "pooling": "embedding",
+                            "dtype": "float32",
+                            "normalize": True,
+                        },
+                        "cache_resolution": 224,
+                        "role": "comparator",
+                    },
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    arms = foundation_pareto.load_foundation_model_specs(path)
+
+    assert [arm.spec.arm for arm in arms] == ["candidate", "comparator"]
+    assert [arm.role for arm in arms] == ["candidate", "comparator"]
+    assert isinstance(arms[0].spec, RemoteFoundationModelSpec)
+    assert isinstance(arms[1].spec, LocalCheckpointFoundationSpec)
+    assert arms[1].cache_resolution == 224
+    assert arms[1].spec.checkpoint_path == Path("artifacts/comparator.pt")
+
+    remote_comparator = json.loads(path.read_text(encoding="utf-8"))
+    remote_comparator["arms"][1] = {
+        **remote_comparator["arms"][0],
+        "spec": {**remote_comparator["arms"][0]["spec"], "arm": "comparator"},
+        "role": "comparator",
+    }
+    path.write_text(json.dumps(remote_comparator) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="local anchor"):
+        foundation_pareto.load_foundation_model_specs(path)
+
+
+def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
+    tmp_path: Path,
+) -> None:
+    record = foundation_pareto.FoundationTestReadRecord(
+        arm="candidate",
+        model_revision="a" * 40,
+        checkpoint_sha256="b" * 64,
+        metrics=("recall_at_1",),
+        purpose="confirmatory_published_metric_cross_check",
+        permitted_evaluations=1,
+    )
+    first_ledger = foundation_pareto.FoundationTestReadLedger((record,))
+    audit = first_ledger.consume(
+        arm="candidate",
+        model_revision="a" * 40,
+        checkpoint_sha256="b" * 64,
+        metrics=("recall_at_1",),
+        purpose="confirmatory_published_metric_cross_check",
+    )
+    receipt = foundation_pareto.publish_official_test_read_receipt(
+        tmp_path,
+        audit,
+        decision_sha256="c" * 64,
+    )
+    loader_calls: list[str] = []
+    value = foundation_pareto.load_registered_official_test(
+        receipt,
+        arm="candidate",
+        metrics=("recall_at_1",),
+        loader=lambda: loader_calls.append("loaded") or "official rows",
+    )
+
+    assert value == "official rows"
+    assert loader_calls == ["loaded"]
+    assert receipt.decision_sha256 == "c" * 64
+    assert receipt.receipt_path.is_file()
+    assert receipt.receipt_path.stat().st_mode & 0o777 == 0o600
+
+    assert list(tmp_path.glob(f".{receipt.receipt_path.name}.tmp.*")) == []
+    persisted = json.loads(receipt.receipt_path.read_text(encoding="utf-8"))
+    assert persisted["decision_sha256"] == "c" * 64
+
+    second_ledger = foundation_pareto.FoundationTestReadLedger((record,))
+    second_audit = second_ledger.consume(
+        arm="candidate",
+        model_revision="a" * 40,
+        checkpoint_sha256="b" * 64,
+        metrics=("recall_at_1",),
+        purpose="confirmatory_published_metric_cross_check",
+    )
+    with pytest.raises(FileExistsError):
+        foundation_pareto.publish_official_test_read_receipt(
+            tmp_path,
+            second_audit,
+            decision_sha256="c" * 64,
+        )
+
+
+def test_source_commit_uses_module_checkout_and_rejects_dirty_tracked_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def clean_run(command: list[str], **kwargs: object) -> object:
+        calls.append(command)
+        output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else ""
+        return SimpleNamespace(stdout=output)
+
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", clean_run)
+    assert foundation_pareto._source_commit() == "a" * 40
+    repository = str(Path(foundation_pareto.__file__).resolve().parents[2])
+    assert all(command[1:3] == ["-C", repository] for command in calls)
+
+    def dirty_run(command: list[str], **kwargs: object) -> object:
+        output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else " M src/x.py\n"
+        return SimpleNamespace(stdout=output)
+
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", dirty_run)
+    with pytest.raises(ValueError, match="dirty tracked bytes"):
+        foundation_pareto._source_commit()
+
+
+def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Path) -> None:
+    ledger = foundation_pareto.FoundationTestReadLedger(
+        (
+            foundation_pareto.FoundationTestReadRecord(
+                arm="candidate",
+                model_revision="a" * 40,
+                checkpoint_sha256="b" * 64,
+                metrics=("recall_at_1",),
+                purpose="confirmatory_published_metric_cross_check",
+                permitted_evaluations=1,
+            ),
+        )
+    )
+    receipt = foundation_pareto.publish_official_test_read_receipt(
+        tmp_path,
+        ledger.consume(
+            arm="candidate",
+            model_revision="a" * 40,
+            checkpoint_sha256="b" * 64,
+            metrics=("recall_at_1",),
+            purpose="confirmatory_published_metric_cross_check",
+        ),
+        decision_sha256="c" * 64,
+    )
+    called = False
+
+    def forbidden_loader() -> object:
+        nonlocal called
+        called = True
+        return object()
+
+    with pytest.raises(ValueError, match="receipt differs"):
+        foundation_pareto.load_registered_official_test(
+            receipt,
+            arm="other",
+            metrics=("recall_at_1",),
+            loader=forbidden_loader,
+        )
+    assert called is False
+
+
+def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate_probe, comparator_probe = decision_probes
+    candidate_spec = _remote_spec(arm="candidate")
+    comparator_spec = _local_spec()
+    arms = (
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="remote",
+            spec=candidate_spec,
+            cache_resolution=224,
+            role="candidate",
+        ),
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="local",
+            spec=comparator_spec,
+            cache_resolution=224,
+            role="comparator",
+        ),
+    )
+    train = _identity_blocks(identities=8, examples_per_identity=2)
+    trace: list[str] = []
+
+    monkeypatch.setattr(foundation_pareto, "load_foundation_model_specs", lambda path: arms)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_native_fixture_authority",
+        lambda *args, **kwargs: ((), ()),
+    )
+
+    def forbidden_published_register(*args: object, **kwargs: object) -> object:
+        raise AssertionError("published outcomes are unreachable before an official test read")
+
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_published_metric_register",
+        forbidden_published_register,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_test_read_register",
+        lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(()),
+    )
+
+    def fake_train_examples(**kwargs: object) -> object:
+        assert kwargs["dataset_root"] == tmp_path / "data"
+        return train
+
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_examples",
+        fake_train_examples,
+        raising=False,
+    )
+
+    def fake_load(spec: object) -> object:
+        trace.append(f"{spec.arm}:authenticate")
+        if isinstance(spec, LocalCheckpointFoundationSpec):
+            return SimpleNamespace(
+                spec=spec,
+                audit=foundation_pareto.LocalFoundationEncoderAudit(
+                    checkpoint_sha256=spec.checkpoint_sha256,
+                    resolved_config_sha256=spec.resolved_config_sha256,
+                    pretrained_backbone_sha256=spec.pretrained_backbone_sha256,
+                ),
+            )
+        return SimpleNamespace(
+            spec=spec,
+            audit=FoundationEncoderAudit(
+                status="available",
+                model_id=spec.model_id,
+                revision=spec.revision,
+                weight_sha256=spec.weight_sha256,
+                processor_sha256=spec.processor_sha256,
+                config_sha256=spec.config_sha256,
+                reason=None,
+            ),
+        )
+
+    def fake_fixture(**kwargs: object) -> tuple[object, ...]:
+        arm = str(kwargs["arm"])
+        trace.append(f"{arm}:fixture")
+        return (
+            foundation_pareto.FoundationFidelityAudit(
+                arm=arm,
+                metric="embedding_cosine",
+                native_value=1.0,
+                repository_value=1.0,
+                tolerance=0.0,
+                provenance="native_cross_check",
+                passed=True,
+            ),
+        )
+
+    def fake_cache(**kwargs: object) -> object:
+        arm = kwargs["arm_spec"].spec.arm
+        trace.append(f"{arm}:cache")
+        embeddings = {row.example_id: np.eye(8, dtype=np.float32)[row.label % 8] for row in train}
+        return SimpleNamespace(
+            train_embeddings=embeddings,
+            records=(
+                {
+                    "arm": arm,
+                    "split": "train",
+                    "status": "exported",
+                    "path": f"cache/{arm}.npz",
+                    "rows": len(train),
+                    "embedding_sha256": "a" * 64,
+                },
+            ),
+        )
+
+    def fake_profile(encoder: object, fixtures: object) -> object:
+        trace.append(f"{encoder.spec.arm}:profile")
+        return foundation_pareto.EncoderCostProfile(
+            batches=(),
+            parameter_count=1,
+            warmup_iterations=10,
+            measured_iterations=50,
+            descriptor_rows=1,
+            descriptor_width=8,
+            descriptor_dtype="float32",
+            descriptor_bytes=32,
+            python_version="3.12.3",
+            torch_version="2.12.1",
+            numpy_version="2.5.0",
+            transformers_version=None,
+            cuda_version=None,
+            device_type="cpu",
+            device_name="test-cpu",
+        )
+
+    def fake_probe(*args: object, **kwargs: object) -> object:
+        arm = str(kwargs["arm_key"])
+        trace.append(f"{arm}:probe")
+        return candidate_probe if arm == "candidate" else comparator_probe
+
+    real_decide = foundation_pareto.decide_f1
+
+    def traced_decision(**kwargs: object) -> object:
+        trace.append("candidate:decision")
+        return real_decide(**kwargs)
+
+    monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", fake_load)
+    monkeypatch.setattr(foundation_pareto, "verify_native_fixture", fake_fixture)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_prepare_foundation_train_cache",
+        fake_cache,
+        raising=False,
+    )
+    monkeypatch.setattr(foundation_pareto, "profile_foundation_encoder", fake_profile)
+    monkeypatch.setattr(foundation_pareto, "fit_bias_free_probe_512", fake_probe)
+    monkeypatch.setattr(foundation_pareto, "decide_f1", traced_decision)
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: "f" * 40, raising=False)
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    report = tmp_path / "report.json"
+
+    written = foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+
+    assert written == report
+    assert trace == [
+        "candidate:authenticate",
+        "candidate:fixture",
+        "candidate:cache",
+        "candidate:profile",
+        "candidate:probe",
+        "comparator:authenticate",
+        "comparator:fixture",
+        "comparator:cache",
+        "comparator:profile",
+        "comparator:probe",
+        "candidate:decision",
+    ]
+    persisted = foundation_pareto.load_foundation_screen_report(report)
+    assert persisted["overall_status"] == "CONTINUE"
+    assert persisted["registered_arms"] == ["candidate", "comparator"]
+    assert persisted["official_test_reads"] == []
+    assert persisted["published_metric_audits"] == []
+    original_bytes = report.read_bytes()
+    trace_before_no_clobber = list(trace)
+    with pytest.raises(FileExistsError):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=True,
+        )
+    assert trace == trace_before_no_clobber
+    with pytest.raises(FileExistsError):
+        foundation_pareto.publish_foundation_screen_report(report, persisted)
+    assert report.read_bytes() == original_bytes
+
+    drifted = json.loads(json.dumps(persisted))
+    drifted["f1_decisions"][0]["status"] = "CLOSE_FOUNDATION_TRANSFER"
+    with pytest.raises(ValueError, match="decision digest"):
+        foundation_pareto.validate_foundation_screen_report(drifted)
+
+    forbidden = json.loads(json.dumps(persisted))
+    forbidden["encoder_audits"][0]["kernel"] = "not-computed"
+    with pytest.raises(ValueError, match="forbidden report key"):
+        foundation_pareto.validate_foundation_screen_report(forbidden)
+
+    nested_mutations: list[dict[str, object]] = []
+    extra_encoder = json.loads(json.dumps(persisted))
+    extra_encoder["encoder_audits"][0]["drift"] = True
+    nested_mutations.append(extra_encoder)
+    empty_encoder_audit = json.loads(json.dumps(persisted))
+    empty_encoder_audit["encoder_audits"][0]["audit"] = {}
+    nested_mutations.append(empty_encoder_audit)
+    inconsistent_fixture = json.loads(json.dumps(persisted))
+    inconsistent_fixture["fixture_fidelity_audits"][0]["passed"] = False
+    nested_mutations.append(inconsistent_fixture)
+    bad_cache_digest = json.loads(json.dumps(persisted))
+    bad_cache_digest["cache_records"][0]["embedding_sha256"] = "BAD"
+    nested_mutations.append(bad_cache_digest)
+    bad_probe_digest = json.loads(json.dumps(persisted))
+    bad_probe_digest["probe_audits"][0]["weight_sha256"] = "BAD"
+    nested_mutations.append(bad_probe_digest)
+    bad_profile_batch = json.loads(json.dumps(persisted))
+    bad_profile_batch["cost_profiles"][0]["profile"]["batches"] = [{}]
+    nested_mutations.append(bad_profile_batch)
+    extra_decision = json.loads(json.dumps(persisted))
+    extra_decision["f1_decisions"][0]["drift"] = True
+    extra_decision["decision_sha256"] = foundation_pareto._decision_sha256(
+        extra_decision["f1_decisions"], extra_decision["overall_status"]
+    )
+    nested_mutations.append(extra_decision)
+    for mutation in nested_mutations:
+        with pytest.raises(ValueError):
+            foundation_pareto.validate_foundation_screen_report(mutation)
+
+    def failing_candidate_fixture(**kwargs: object) -> tuple[object, ...]:
+        arm = str(kwargs["arm"])
+        trace.append(f"{arm}:fixture")
+        return (
+            foundation_pareto.FoundationFidelityAudit(
+                arm=arm,
+                metric="embedding_cosine",
+                native_value=1.0,
+                repository_value=0.0 if arm == "candidate" else 1.0,
+                tolerance=0.0,
+                provenance="native_cross_check",
+                passed=arm != "candidate",
+            ),
+        )
+
+    monkeypatch.setattr(
+        foundation_pareto,
+        "verify_native_fixture",
+        failing_candidate_fixture,
+    )
+    trace.clear()
+    closed_report = tmp_path / "closed.json"
+    with pytest.raises(ValueError, match="candidate decision"):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=closed_report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=True,
+        )
+    assert trace[:2] == ["candidate:authenticate", "candidate:fixture"]
+    assert "candidate:cache" not in trace
+    assert "candidate:probe" not in trace
+    assert not closed_report.exists()
+    assert not tuple(tmp_path.glob("official-test-read-*.json"))
+
+    def candidate_unavailable(spec: object) -> object:
+        trace.append(f"{spec.arm}:authenticate")
+        if spec.arm == "candidate":
+            raise OSError("gated weights unavailable")
+        return fake_load(spec)
+
+    monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", candidate_unavailable)
+    monkeypatch.setattr(foundation_pareto, "verify_native_fixture", fake_fixture)
+    trace.clear()
+    unavailable_report = tmp_path / "unavailable.json"
+    with pytest.raises(ValueError, match="candidate decision"):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=unavailable_report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=False,
+        )
+    assert not unavailable_report.exists()
+    assert "candidate:fixture" not in trace
+
+    published_records = tuple(
+        PublishedMetricRecord(
+            arm=arm.spec.arm,
+            metric=metric,
+            native_value=None,
+            tolerance=None,
+            source="repository",
+            provenance="repository_only",
+        )
+        for arm in arms
+        for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
+    )
+    monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", fake_load)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_published_metric_register",
+        lambda *args, **kwargs: published_records,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_test_read_register",
+        lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(
+            tuple(
+                foundation_pareto.FoundationTestReadRecord(
+                    arm=arm.spec.arm,
+                    model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
+                    checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
+                    metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+                    purpose="confirmatory_published_metric_cross_check",
+                    permitted_evaluations=1,
+                )
+                for arm in arms
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_bundle",
+        lambda **kwargs: SimpleNamespace(protocol="query_gallery"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_evaluate_official_foundation_arm",
+        lambda **kwargs: (
+            {metric: 0.5 for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS},
+            (
+                {
+                    "arm": kwargs["arm_spec"].spec.arm,
+                    "split": "official",
+                    "status": "exported",
+                    "path": f"cache/{kwargs['arm_spec'].spec.arm}-official.npz",
+                    "rows": 2,
+                    "embedding_sha256": "d" * 64,
+                },
+            ),
+            _geometry_rows(),
+        ),
+    )
+    trace.clear()
+    official_report = tmp_path / "official.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=official_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=True,
+    )
+    official = foundation_pareto.load_foundation_screen_report(official_report)
+    assert len(official["official_test_reads"]) == 2
+    assert len(official["published_metric_audits"]) == 12
+    assert all(
+        row["decision_sha256"] == official["decision_sha256"]
+        for row in official["official_test_reads"]
+    )
+
+
+def test_registered_official_reads_publish_receipts_before_loading_and_cross_check(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    specs = (
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="remote",
+            spec=_remote_spec(arm="candidate"),
+            cache_resolution=224,
+            role="candidate",
+        ),
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="local",
+            spec=_local_spec(),
+            cache_resolution=224,
+            role="comparator",
+        ),
+    )
+    metrics = foundation_pareto.FOUNDATION_PUBLISHED_METRICS
+    ledger = foundation_pareto.FoundationTestReadLedger(
+        tuple(
+            foundation_pareto.FoundationTestReadRecord(
+                arm=arm.spec.arm,
+                model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
+                checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
+                metrics=metrics,
+                purpose="confirmatory_published_metric_cross_check",
+                permitted_evaluations=1,
+            )
+            for arm in specs
+        )
+    )
+    records = tuple(
+        PublishedMetricRecord(
+            arm=arm.spec.arm,
+            metric=metric,
+            native_value=(0.9 if arm.spec.arm == "candidate" and metric == "recall_at_1" else None),
+            tolerance=(0.0 if arm.spec.arm == "candidate" and metric == "recall_at_1" else None),
+            source="repository",
+            provenance=(
+                "native_cross_check"
+                if arm.spec.arm == "candidate" and metric == "recall_at_1"
+                else "repository_only"
+            ),
+        )
+        for arm in specs
+        for metric in metrics
+    )
+    trace: list[str] = []
+    bundle = SimpleNamespace(protocol="query_gallery")
+
+    def fake_bundle(**kwargs: object) -> object:
+        trace.append("load")
+        return bundle
+
+    def fake_evaluate(
+        **kwargs: object,
+    ) -> tuple[dict[str, float], tuple[dict[str, object], ...], list[dict[str, object]]]:
+        arm = kwargs["arm_spec"].spec.arm
+        trace.append(f"{arm}:official")
+        return (
+            {metric: 0.5 for metric in metrics},
+            (
+                {
+                    "arm": arm,
+                    "split": "official",
+                    "status": "exported",
+                    "path": f"cache/{arm}-official.npz",
+                    "rows": 2,
+                    "embedding_sha256": "d" * 64,
+                },
+            ),
+            _geometry_rows(),
+        )
+
+    real_cross_check = foundation_pareto.cross_check_published_metrics
+
+    def traced_cross_check(**kwargs: object) -> object:
+        trace.append(f"{kwargs['arm']}:published")
+        return real_cross_check(**kwargs)
+
+    def fake_published_register(path: Path) -> tuple[PublishedMetricRecord, ...]:
+        assert path == tmp_path / "published.json"
+        trace.append("published-register")
+        return records
+
+    monkeypatch.setattr(foundation_pareto, "load_image_retrieval_bundle", fake_bundle)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_published_metric_register",
+        fake_published_register,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_evaluate_official_foundation_arm",
+        fake_evaluate,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "cross_check_published_metrics",
+        traced_cross_check,
+    )
+
+    receipt_root = tmp_path / "receipts"
+    receipt_root.mkdir()
+    official_cache = tmp_path / "cache"
+    official_cache.mkdir()
+    reads, audits, cache_rows = foundation_pareto._run_registered_official_reads(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        validation_seed=17,
+        arms=specs,
+        encoders={"candidate": object(), "comparator": object()},
+        cache_dir=official_cache,
+        receipt_root=receipt_root,
+        decision_sha256="c" * 64,
+        ledger=ledger,
+        published_register_path=tmp_path / "published.json",
+    )
+
+    assert trace == [
+        "load",
+        "candidate:official",
+        "load",
+        "comparator:official",
+        "published-register",
+        "candidate:published",
+        "comparator:published",
+    ]
+    assert len(reads) == 2
+    assert len(audits) == 12
+    assert len(cache_rows) == 2
+    assert all(row["decision_sha256"] == "c" * 64 for row in reads)
+    assert all(Path(row["receipt_path"]).is_file() for row in reads)
+    assert audits[0]["invalidates_confirmatory_claim"] is True
+    assert audits[0]["passed"] is False
+
+
+def test_foundation_geometry_excludes_self_for_self_retrieval_protocol() -> None:
+    embeddings = np.asarray(
+        [
+            [1.0, 0.0],
+            [0.9, 0.1],
+            [0.0, 1.0],
+            [0.1, 0.9],
+        ],
+        dtype=np.float32,
+    )
+    labels = np.asarray([0, 0, 1, 1], dtype=np.int64)
+
+    rows = foundation_pareto.evaluate_foundation_geometries(
+        embeddings,
+        labels,
+        embeddings,
+        labels,
+        exclude_self=True,
+    )
+
+    assert all(index not in row.gallery_order[index] for row in rows for index in range(4))
+    assert all(row.metrics.recall_at_1 == 1.0 for row in rows)
+    assert all(row.metrics.mean_relevant_items == 1.0 for row in rows)
+
+
+def test_official_split_cache_preserves_native_unnormalized_embeddings(tmp_path: Path) -> None:
+    import numpy as np
+
+    calls: list[bool] = []
+    encoder = SimpleNamespace(
+        encode=lambda images, *, batch_size, normalize_embeddings: (
+            calls.append(normalize_embeddings)
+            or np.asarray([[3.0, 4.0], [0.0, 2.0]], dtype=np.float32)
+        )
+    )
+    examples = [
+        ImageExample("a", np.zeros((2, 2, 3), dtype=np.uint8), 0),
+        ImageExample("b", np.ones((2, 2, 3), dtype=np.uint8), 1),
+    ]
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    embeddings, _ = foundation_pareto._official_split_cache(
+        arm_spec=foundation_pareto.FoundationScreenArmSpec(
+            kind="remote",
+            spec=_remote_spec(arm="candidate", normalize=True),
+            cache_resolution=224,
+            role="candidate",
+        ),
+        encoder=encoder,
+        examples=examples,
+        cache_dir=cache,
+        dataset="cars",
+        split_name="query",
+    )
+
+    assert calls == [False]
+    np.testing.assert_array_equal(embeddings, np.asarray([[3.0, 4.0], [0.0, 2.0]]))
 
 
 def test_bias_free_probe_is_scale_and_mapping_order_invariant_and_auditable() -> None:

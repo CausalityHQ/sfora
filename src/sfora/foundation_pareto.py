@@ -6,14 +6,21 @@ import json
 import os
 import re
 import secrets
+import subprocess
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 from math import isfinite
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-from sfora.data import ImageExample
+from sfora.data import (
+    ImageDatasetName,
+    ImageExample,
+    load_image_retrieval_bundle,
+    load_image_retrieval_examples,
+    materialize_image,
+)
 from sfora.image_recipes import (
     RecipeSelectionSplit,
     class_disjoint_recipe_selection_split,
@@ -21,6 +28,15 @@ from sfora.image_recipes import (
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _GIT_REVISION = re.compile(r"[0-9a-f]{40,64}")
+FOUNDATION_FIXTURE_METRICS = ("embedding_cosine",)
+FOUNDATION_PUBLISHED_METRICS = (
+    "recall_at_1",
+    "recall_at_10",
+    "recall_at_20",
+    "recall_at_30",
+    "recall_at_100",
+    "map_at_r",
+)
 _REMOTE_ALLOW_PATTERNS = (
     "config.json",
     "preprocessor_config.json",
@@ -704,6 +720,29 @@ class LocalCheckpointFoundationSpec:
 
 
 @dataclass(frozen=True)
+class FoundationScreenArmSpec:
+    kind: Literal["remote", "local"]
+    spec: RemoteFoundationModelSpec | LocalCheckpointFoundationSpec
+    cache_resolution: int
+    role: Literal["candidate", "comparator"]
+
+    def __post_init__(self) -> None:
+        if self.kind == "remote":
+            if type(self.spec) is not RemoteFoundationModelSpec:
+                raise ValueError("remote screen arm requires a remote model spec")
+            if self.cache_resolution != self.spec.resolution:
+                raise ValueError("remote cache resolution differs from model spec")
+        elif self.kind == "local":
+            if type(self.spec) is not LocalCheckpointFoundationSpec:
+                raise ValueError("local screen arm requires a local checkpoint spec")
+            _require_positive_int("local cache_resolution", self.cache_resolution)
+        else:
+            raise ValueError("foundation screen arm kind differs from exact choices")
+        if self.role not in {"candidate", "comparator"}:
+            raise ValueError("foundation screen arm role differs from exact choices")
+
+
+@dataclass(frozen=True)
 class FoundationEncoderAudit:
     """Observed source authority for a foundation encoder."""
 
@@ -985,6 +1024,110 @@ class PublishedMetricAudit:
 
 
 @dataclass(frozen=True)
+class FoundationTestReadRecord:
+    """Prospective authority for one arm's single official-test evaluation."""
+
+    arm: str
+    model_revision: str
+    checkpoint_sha256: str
+    metrics: tuple[str, ...]
+    purpose: Literal["confirmatory_published_metric_cross_check"]
+    permitted_evaluations: Literal[1]
+
+    def __post_init__(self) -> None:
+        _require_nonempty("test-read arm", self.arm)
+        if (
+            type(self.model_revision) is not str
+            or _GIT_REVISION.fullmatch(self.model_revision) is None
+        ):
+            raise ValueError("test-read model_revision must be an immutable object ID")
+        _require_sha256("test-read checkpoint_sha256", self.checkpoint_sha256)
+        if type(self.metrics) is not tuple or not self.metrics:
+            raise ValueError("test-read metrics must be a nonempty builtin tuple")
+        if len(set(self.metrics)) != len(self.metrics):
+            raise ValueError("test-read metrics must be unique and ordered")
+        for metric in self.metrics:
+            _require_nonempty("test-read metric", metric)
+        if self.purpose != "confirmatory_published_metric_cross_check":
+            raise ValueError("test-read purpose differs from registered purpose")
+        if type(self.permitted_evaluations) is not int or self.permitted_evaluations != 1:
+            raise ValueError("test-read permitted_evaluations must be exactly one")
+
+
+@dataclass(frozen=True)
+class OfficialTestReadAudit:
+    arm: str
+    model_revision: str
+    checkpoint_sha256: str
+    metrics: tuple[str, ...]
+    purpose: Literal["confirmatory_published_metric_cross_check"]
+    evaluation_number: Literal[1]
+
+
+@dataclass(frozen=True)
+class OfficialTestReadReceipt:
+    arm: str
+    model_revision: str
+    checkpoint_sha256: str
+    metrics: tuple[str, ...]
+    purpose: Literal["confirmatory_published_metric_cross_check"]
+    evaluation_number: Literal[1]
+    decision_sha256: str
+    receipt_path: Path
+
+
+class FoundationTestReadLedger:
+    """In-process one-shot capability over a frozen test-read register."""
+
+    def __init__(self, records: tuple[FoundationTestReadRecord, ...]) -> None:
+        if type(records) is not tuple:
+            raise ValueError("test-read records must be a builtin tuple")
+        arms = tuple(record.arm for record in records)
+        if len(set(arms)) != len(arms):
+            raise ValueError("test-read register contains duplicate arms")
+        self.records = records
+        self._consumed: set[str] = set()
+
+    def consume(
+        self,
+        *,
+        arm: str,
+        model_revision: str,
+        checkpoint_sha256: str,
+        metrics: tuple[str, ...],
+        purpose: str,
+    ) -> OfficialTestReadAudit:
+        record = next((value for value in self.records if value.arm == arm), None)
+        if record is None:
+            raise ValueError("official evaluation is not a registered test read")
+        if arm in self._consumed:
+            raise ValueError("registered test read was already consumed")
+        request = (
+            model_revision,
+            checkpoint_sha256,
+            metrics,
+            purpose,
+        )
+        expected = (
+            record.model_revision,
+            record.checkpoint_sha256,
+            record.metrics,
+            record.purpose,
+        )
+        if request != expected:
+            raise ValueError("official evaluation differs from registered test read")
+        self._consumed.add(arm)
+        return OfficialTestReadAudit(
+            arm=arm,
+            model_revision=model_revision,
+            checkpoint_sha256=checkpoint_sha256,
+            metrics=metrics,
+            purpose="confirmatory_published_metric_cross_check",
+            evaluation_number=1,
+        )
+
+
+@dataclass(frozen=True)
 class FoundationGeometryEvaluation:
     geometry: Literal[
         "normalized_cosine",
@@ -1023,6 +1166,12 @@ class EncoderCostProfile:
     cuda_version: str | None
     device_type: str
     device_name: str
+
+
+@dataclass(frozen=True)
+class FoundationTrainCacheResult:
+    train_embeddings: Mapping[str, Any]
+    records: tuple[dict[str, object], ...]
 
 
 def _cpu_device_identity() -> str:
@@ -1226,12 +1375,19 @@ def _gallery_order(
     *,
     geometry: Literal["cosine", "euclidean"],
     depth: int,
+    exclude_self: bool = False,
 ) -> tuple[tuple[int, ...], ...]:
     import numpy as np
 
     if type(depth) is not int or depth <= 0:
         raise ValueError("geometry ranking depth must be a positive builtin integer")
-    depth = min(depth, gallery.shape[0])
+    if type(exclude_self) is not bool:
+        raise ValueError("exclude_self must be a builtin boolean")
+    if exclude_self and query.shape[0] != gallery.shape[0]:
+        raise ValueError("self-excluding geometry requires equal query/gallery rows")
+    depth = min(depth, gallery.shape[0] - int(exclude_self))
+    if depth <= 0:
+        raise ValueError("geometry ranking has no eligible gallery rows")
     gallery_norms = np.sum(gallery * gallery, axis=1)
     rows: list[tuple[int, ...]] = []
     for start in range(0, query.shape[0], 256):
@@ -1247,6 +1403,9 @@ def _gallery_order(
             values = np.maximum(values, 0.0)
         if not bool(np.isfinite(values).all()):
             raise ValueError("geometry ranking produced non-finite values")
+        if exclude_self:
+            local_rows = np.arange(chunk.shape[0])
+            values[local_rows, start + local_rows] = np.inf
         rows.extend(
             tuple(int(index) for index in _stable_top_indices(row, depth=depth)) for row in values
         )
@@ -1257,6 +1416,8 @@ def _metrics_from_gallery_order(
     gallery_order: tuple[tuple[int, ...], ...],
     query_labels: Any,
     gallery_labels: Any,
+    *,
+    exclude_self: bool = False,
 ) -> Any:
     import numpy as np
 
@@ -1268,6 +1429,9 @@ def _metrics_from_gallery_order(
     relevant_counts: list[int] = []
     for query_index, order in enumerate(gallery_order):
         matches = gallery_labels == query_labels[query_index]
+        if exclude_self:
+            matches = matches.copy()
+            matches[query_index] = False
         relevant_count = int(matches.sum())
         if relevant_count == 0:
             continue
@@ -1305,6 +1469,8 @@ def evaluate_foundation_geometries(
     query_labels: Any,
     gallery_embeddings: Any,
     gallery_labels: Any,
+    *,
+    exclude_self: bool = False,
 ) -> tuple[FoundationGeometryEvaluation, ...]:
     """Evaluate every preregistered geometry without selecting a winner."""
 
@@ -1342,18 +1508,21 @@ def evaluate_foundation_geometries(
         normalized_gallery,
         geometry="cosine",
         depth=depth,
+        exclude_self=exclude_self,
     )
     normalized_euclidean_order = _gallery_order(
         normalized_query,
         normalized_gallery,
         geometry="euclidean",
         depth=depth,
+        exclude_self=exclude_self,
     )
     native_order = _gallery_order(
         query,
         gallery,
         geometry="euclidean",
         depth=depth,
+        exclude_self=exclude_self,
     )
     return (
         FoundationGeometryEvaluation(
@@ -1363,6 +1532,7 @@ def evaluate_foundation_geometries(
                 cosine_order,
                 query_label_array,
                 gallery_label_array,
+                exclude_self=exclude_self,
             ),
         ),
         FoundationGeometryEvaluation(
@@ -1372,6 +1542,7 @@ def evaluate_foundation_geometries(
                 normalized_euclidean_order,
                 query_label_array,
                 gallery_label_array,
+                exclude_self=exclude_self,
             ),
         ),
         FoundationGeometryEvaluation(
@@ -1381,6 +1552,7 @@ def evaluate_foundation_geometries(
                 native_order,
                 query_label_array,
                 gallery_label_array,
+                exclude_self=exclude_self,
             ),
         ),
     )
@@ -1431,7 +1603,11 @@ class EmbeddingCacheKeyV2:
         dataset_rows_sha256: str,
         split: str,
         resolution: int | None = None,
+        normalize: bool | None = None,
     ) -> EmbeddingCacheKeyV2:
+        resolved_normalize = spec.normalize if normalize is None else normalize
+        if type(resolved_normalize) is not bool:
+            raise ValueError("cache normalize override must be a builtin boolean")
         if isinstance(spec, RemoteFoundationModelSpec):
             if resolution is not None and resolution != spec.resolution:
                 raise ValueError("explicit remote resolution differs from model spec")
@@ -1444,7 +1620,7 @@ class EmbeddingCacheKeyV2:
                 resolution=spec.resolution,
                 dtype=spec.dtype,
                 storage_dtype="float32",
-                normalize=spec.normalize,
+                normalize=resolved_normalize,
                 dataset_rows_sha256=dataset_rows_sha256,
                 split=split,
             )
@@ -1459,7 +1635,7 @@ class EmbeddingCacheKeyV2:
             resolution=resolution,
             dtype=spec.dtype,
             storage_dtype="float32",
-            normalize=spec.normalize,
+            normalize=resolved_normalize,
             dataset_rows_sha256=dataset_rows_sha256,
             split=split,
         )
@@ -1496,6 +1672,117 @@ def _canonical_json_bytes(value: object) -> bytes:
         ).encode("utf-8")
     except (TypeError, ValueError) as error:
         raise ValueError("value is not canonical JSON data") from error
+
+
+def _publish_json_no_clobber(path: Path, payload: dict[str, object]) -> None:
+    if path.parent.is_symlink() or not path.parent.is_dir():
+        raise ValueError("JSON output parent must be a real directory")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    encoded = _canonical_json_bytes(payload) + b"\n"
+    temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}.{secrets.token_hex(8)}")
+    published_identity: tuple[int, int] | None = None
+    try:
+        with temporary.open("xb") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_stat = temporary.stat()
+        published_identity = (temporary_stat.st_dev, temporary_stat.st_ino)
+        os.link(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+            temporary.unlink()
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        persisted = _load_strict_json(path)
+        if persisted != payload or path.read_bytes() != encoded:
+            raise ValueError("persisted JSON output differs from canonical input")
+    except BaseException:
+        if published_identity is not None and path.is_file() and not path.is_symlink():
+            path_stat = path.stat()
+            if (path_stat.st_dev, path_stat.st_ino) == published_identity:
+                path.unlink()
+        if temporary.is_file() and not temporary.is_symlink():
+            temporary.unlink()
+        raise
+
+
+def _official_test_receipt_payload(
+    audit: OfficialTestReadAudit,
+    *,
+    decision_sha256: str,
+) -> dict[str, object]:
+    if type(audit) is not OfficialTestReadAudit:
+        raise ValueError("official test read requires an exact consumed audit")
+    _require_sha256("decision_sha256", decision_sha256)
+    return {
+        "schema_version": "foundation-official-test-read-v1",
+        "arm": audit.arm,
+        "model_revision": audit.model_revision,
+        "checkpoint_sha256": audit.checkpoint_sha256,
+        "metrics": list(audit.metrics),
+        "purpose": audit.purpose,
+        "evaluation_number": audit.evaluation_number,
+        "decision_sha256": decision_sha256,
+    }
+
+
+def publish_official_test_read_receipt(
+    root: Path,
+    audit: OfficialTestReadAudit,
+    *,
+    decision_sha256: str,
+) -> OfficialTestReadReceipt:
+    payload = _official_test_receipt_payload(audit, decision_sha256=decision_sha256)
+    identity_payload = {key: payload[key] for key in tuple(payload)[1:-1]}
+    receipt_id = sha256(_canonical_json_bytes(identity_payload)).hexdigest()
+    path = root / f"official-test-read-{receipt_id}.json"
+    _publish_json_no_clobber(path, payload)
+    return OfficialTestReadReceipt(
+        arm=audit.arm,
+        model_revision=audit.model_revision,
+        checkpoint_sha256=audit.checkpoint_sha256,
+        metrics=audit.metrics,
+        purpose=audit.purpose,
+        evaluation_number=1,
+        decision_sha256=decision_sha256,
+        receipt_path=path,
+    )
+
+
+def load_registered_official_test(
+    receipt: OfficialTestReadReceipt,
+    *,
+    arm: str,
+    metrics: tuple[str, ...],
+    loader: Callable[[], Any],
+) -> Any:
+    """Call an official-test loader only after its durable receipt matches."""
+
+    if type(receipt) is not OfficialTestReadReceipt:
+        raise ValueError("official test receipt differs from exact type")
+    if receipt.arm != arm or receipt.metrics != metrics:
+        raise ValueError("official test receipt differs from requested read")
+    persisted = _load_strict_json(receipt.receipt_path)
+    audit = OfficialTestReadAudit(
+        arm=receipt.arm,
+        model_revision=receipt.model_revision,
+        checkpoint_sha256=receipt.checkpoint_sha256,
+        metrics=receipt.metrics,
+        purpose=receipt.purpose,
+        evaluation_number=1,
+    )
+    expected = _official_test_receipt_payload(
+        audit,
+        decision_sha256=receipt.decision_sha256,
+    )
+    if persisted != expected:
+        raise ValueError("official test receipt differs from persisted authority")
+    return loader()
 
 
 def _ordered_nonempty_strings(name: str, values: Sequence[str]) -> tuple[str, ...]:
@@ -1940,6 +2227,148 @@ def load_published_metric_register(
     return tuple(records)
 
 
+def load_test_read_register(
+    path: Path,
+    *,
+    require_frozen: bool = True,
+) -> FoundationTestReadLedger:
+    """Load the exact prospective one-read authority for official test data."""
+
+    value = _load_strict_json(path)
+    _require_ordered_keys(
+        value,
+        ("schema_version", "status", "records"),
+        name="test-read authority",
+    )
+    if value["schema_version"] != "foundation-test-read-register-v1":
+        raise ValueError("test-read schema version differs")
+    if value["status"] not in {"prospective_unfrozen", "frozen"}:
+        raise ValueError("test-read authority status differs")
+    if require_frozen and value["status"] != "frozen":
+        raise ValueError("test-read authority is not frozen")
+    if value["status"] == "prospective_unfrozen" and value["records"] != []:
+        raise ValueError("prospective unfrozen test-read authority must be empty")
+    if type(value["records"]) is not list:
+        raise ValueError("test-read records must be a JSON array")
+    records: list[FoundationTestReadRecord] = []
+    for raw in value["records"]:
+        if type(raw) is not dict:
+            raise ValueError("test-read record must be a JSON object")
+        _require_ordered_keys(
+            raw,
+            (
+                "arm",
+                "model_revision",
+                "checkpoint_sha256",
+                "metrics",
+                "purpose",
+                "permitted_evaluations",
+            ),
+            name="test-read record",
+        )
+        metrics = raw["metrics"]
+        if type(metrics) is not list:
+            raise ValueError("test-read metrics must be a JSON array")
+        records.append(
+            FoundationTestReadRecord(
+                arm=raw["arm"],
+                model_revision=raw["model_revision"],
+                checkpoint_sha256=raw["checkpoint_sha256"],
+                metrics=tuple(metrics),
+                purpose=raw["purpose"],
+                permitted_evaluations=raw["permitted_evaluations"],
+            )
+        )
+    return FoundationTestReadLedger(tuple(records))
+
+
+def load_foundation_model_specs(path: Path) -> tuple[FoundationScreenArmSpec, ...]:
+    """Load the frozen ordered candidate/comparator authority for one F0/F1 screen."""
+
+    value = _load_strict_json(path)
+    _require_ordered_keys(
+        value,
+        ("schema_version", "status", "arms"),
+        name="foundation model authority",
+    )
+    if value["schema_version"] != "foundation-model-specs-v1":
+        raise ValueError("foundation model schema version differs")
+    if value["status"] != "frozen":
+        raise ValueError("foundation model authority is not frozen")
+    if type(value["arms"]) is not list or not value["arms"]:
+        raise ValueError("foundation model arms must be a nonempty JSON array")
+    remote_keys = (
+        "arm",
+        "model_id",
+        "revision",
+        "weight_sha256",
+        "processor_sha256",
+        "config_sha256",
+        "pooling",
+        "resolution",
+        "embedding_width",
+        "license",
+        "dtype",
+        "normalize",
+    )
+    local_keys = (
+        "arm",
+        "checkpoint_path",
+        "pretrained_backbone_path",
+        "checkpoint_sha256",
+        "resolved_config_sha256",
+        "pretrained_backbone_sha256",
+        "transform_id",
+        "embedding_width",
+        "pooling",
+        "dtype",
+        "normalize",
+    )
+    arms: list[FoundationScreenArmSpec] = []
+    for raw in value["arms"]:
+        if type(raw) is not dict:
+            raise ValueError("foundation model arm must be a JSON object")
+        _require_ordered_keys(
+            raw,
+            ("kind", "spec", "cache_resolution", "role"),
+            name="foundation model arm",
+        )
+        raw_spec = raw["spec"]
+        if type(raw_spec) is not dict:
+            raise ValueError("foundation model spec must be a JSON object")
+        if raw["kind"] == "remote":
+            _require_ordered_keys(raw_spec, remote_keys, name="remote model spec")
+            spec: RemoteFoundationModelSpec | LocalCheckpointFoundationSpec = (
+                RemoteFoundationModelSpec(**raw_spec)
+            )
+        elif raw["kind"] == "local":
+            _require_ordered_keys(raw_spec, local_keys, name="local model spec")
+            local_value = dict(raw_spec)
+            local_value["checkpoint_path"] = Path(local_value["checkpoint_path"])
+            local_value["pretrained_backbone_path"] = Path(local_value["pretrained_backbone_path"])
+            spec = LocalCheckpointFoundationSpec(**local_value)
+        else:
+            raise ValueError("foundation model arm kind differs from exact choices")
+        arms.append(
+            FoundationScreenArmSpec(
+                kind=raw["kind"],
+                spec=spec,
+                cache_resolution=raw["cache_resolution"],
+                role=raw["role"],
+            )
+        )
+    arm_names = tuple(arm.spec.arm for arm in arms)
+    if len(set(arm_names)) != len(arm_names):
+        raise ValueError("foundation model arm names must be unique")
+    if sum(arm.role == "comparator" for arm in arms) != 1:
+        raise ValueError("foundation model authority requires exactly one comparator")
+    if next(arm for arm in arms if arm.role == "comparator").kind != "local":
+        raise ValueError("foundation model comparator must be the local anchor")
+    if not any(arm.role == "candidate" for arm in arms):
+        raise ValueError("foundation model authority requires at least one candidate")
+    return tuple(arms)
+
+
 def _load_transformers_dependencies() -> tuple[Any, Any]:
     try:
         from transformers import AutoImageProcessor, AutoModel
@@ -2270,4 +2699,967 @@ def load_foundation_encoder(
         model=model,
         device=device,
         audit=remote_audit,
+    )
+
+
+_FOUNDATION_REPORT_KEYS = (
+    "schema_version",
+    "source_commit",
+    "registered_arms",
+    "stage_order",
+    "encoder_audits",
+    "fixture_fidelity_audits",
+    "cache_records",
+    "cost_profiles",
+    "probe_audits",
+    "f1_decisions",
+    "overall_status",
+    "decision_sha256",
+    "official_test_reads",
+    "published_metric_audits",
+)
+_FOUNDATION_STAGE_ORDER = (
+    "authenticate",
+    "fixture",
+    "cache",
+    "profile",
+    "probe",
+    "decision",
+    "published",
+)
+_FOUNDATION_FORBIDDEN_REPORT_KEYS = (
+    "student",
+    "kernel",
+    "distill",
+    "compression",
+    "adapter_weights",
+)
+
+
+def _source_commit() -> str:
+    repository = Path(__file__).resolve().parents[2]
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        dirty = subprocess.run(
+            ["git", "-C", str(repository), "status", "--porcelain", "--untracked-files=no"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    except subprocess.CalledProcessError as error:
+        raise ValueError("foundation source checkout is not authenticatable") from error
+    if dirty:
+        raise ValueError("foundation source checkout has dirty tracked bytes")
+    if _GIT_REVISION.fullmatch(revision) is None:
+        raise ValueError("source revision is not an immutable Git object ID")
+    return revision
+
+
+def _dataset_rows_sha256(examples: Sequence[ImageExample]) -> str:
+    return sha256(
+        _canonical_json_bytes(
+            [{"example_id": row.example_id, "label": int(row.label)} for row in examples]
+        )
+    ).hexdigest()
+
+
+def _prepare_foundation_train_cache(
+    *,
+    arm_spec: FoundationScreenArmSpec,
+    encoder: Any,
+    train_examples: Sequence[ImageExample],
+    cache_dir: Path,
+    dataset: str,
+) -> FoundationTrainCacheResult:
+    import numpy as np
+
+    ids = tuple(row.example_id for row in train_examples)
+    labels = tuple(str(int(row.label)) for row in train_examples)
+    key = EmbeddingCacheKeyV2.from_model_spec(
+        arm_spec.spec,
+        dataset_rows_sha256=_dataset_rows_sha256(train_examples),
+        split=f"{dataset}:train",
+        resolution=(arm_spec.cache_resolution if arm_spec.kind == "local" else None),
+    )
+    path = key.cache_path(cache_dir)
+    if path.exists() or path.is_symlink():
+        embeddings = load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=ids,
+            expected_labels=labels,
+        )
+        status = "reused"
+    else:
+        images = [materialize_image(row.image) for row in train_examples]
+        embeddings = np.asarray(
+            encoder.encode(
+                images,
+                batch_size=min(32, len(images)),
+                normalize_embeddings=arm_spec.spec.normalize,
+            ),
+            dtype=np.float32,
+        )
+        export_embeddings_v2(
+            path,
+            key=key,
+            embeddings=embeddings,
+            ids=ids,
+            labels=labels,
+        )
+        status = "exported"
+    embedding_bytes = _embedding_bytes(embeddings, storage_dtype="float32")
+    return FoundationTrainCacheResult(
+        train_embeddings={example_id: embeddings[index] for index, example_id in enumerate(ids)},
+        records=(
+            {
+                "arm": arm_spec.spec.arm,
+                "split": "train",
+                "status": status,
+                "path": str(path),
+                "rows": len(ids),
+                "embedding_sha256": sha256(embedding_bytes).hexdigest(),
+            },
+        ),
+    )
+
+
+def _repository_fixture_metric(
+    encoder: Any,
+    input_path: Path,
+    source_path: Path,
+    metric: str,
+) -> float:
+    import numpy as np
+
+    del source_path
+    if metric != "embedding_cosine":
+        raise ValueError(f"unsupported foundation fixture metric {metric}")
+    value = _load_strict_json(input_path)
+    _require_ordered_keys(
+        value,
+        ("schema_version", "image_paths", "reference_embedding"),
+        name="embedding fixture",
+    )
+    if value["schema_version"] != "foundation-embedding-fixture-v1":
+        raise ValueError("embedding fixture schema version differs")
+    if type(value["image_paths"]) is not list or not value["image_paths"]:
+        raise ValueError("embedding fixture image_paths must be a nonempty array")
+    reference = np.asarray(value["reference_embedding"], dtype=np.float64)
+    images = [materialize_image(input_path.parent / Path(name)) for name in value["image_paths"]]
+    observed = np.asarray(
+        encoder.encode(
+            images,
+            batch_size=len(images),
+            normalize_embeddings=encoder.spec.normalize,
+        ),
+        dtype=np.float64,
+    )
+    if reference.shape != observed.shape or reference.ndim != 2:
+        raise ValueError("embedding fixture reference shape differs")
+    denominator = float(np.linalg.norm(reference.ravel()) * np.linalg.norm(observed.ravel()))
+    if denominator == 0.0:
+        raise ValueError("embedding fixture cosine denominator is zero")
+    result = float(np.dot(reference.ravel(), observed.ravel()) / denominator)
+    if not isfinite(result):
+        raise ValueError("embedding fixture cosine is nonfinite")
+    return result
+
+
+def _serialize_probe(probe: BiasFreeProbeResult) -> dict[str, object]:
+    return {
+        "arm": probe.arm_key,
+        "dataset": probe.dataset,
+        "input_dim": probe.input_dim,
+        "output_dim": probe.output_dim,
+        "split_seed": probe.split_seed,
+        "split_sha256": probe.split_sha256,
+        "protocol_id": probe.protocol_id,
+        "selection_evaluations": probe.selection_evaluations,
+        "selected_learning_rate": probe.selected_learning_rate,
+        "selected_temperature": probe.selected_temperature,
+        "selected_epoch": probe.selected_epoch,
+        "validation_recall_at_1_points": probe.validation_recall_at_1_points,
+        "weight_sha256": probe.weight_sha256,
+        "parameter_count": probe.parameter_count,
+        "device_type": probe.device_type,
+        "device_name": probe.device_name,
+    }
+
+
+def _decision_payload(
+    decisions: Sequence[dict[str, object]],
+    overall_status: str,
+) -> dict[str, object]:
+    return {"f1_decisions": list(decisions), "overall_status": overall_status}
+
+
+def _decision_sha256(decisions: Sequence[dict[str, object]], overall_status: str) -> str:
+    return sha256(_canonical_json_bytes(_decision_payload(decisions, overall_status))).hexdigest()
+
+
+def _walk_report_keys(value: object) -> Sequence[str]:
+    keys: list[str] = []
+    if type(value) is dict:
+        for key, item in value.items():
+            keys.append(key)
+            keys.extend(_walk_report_keys(item))
+    elif type(value) is list:
+        for item in value:
+            keys.extend(_walk_report_keys(item))
+    return keys
+
+
+def _json_ready(value: object) -> object:
+    if type(value) is dict:
+        mapping = cast(Mapping[str, object], value)
+        return {key: _json_ready(item) for key, item in mapping.items()}
+    if type(value) in {list, tuple}:
+        return [_json_ready(item) for item in cast(Sequence[object], value)]
+    if isinstance(value, Path):
+        return str(value)
+    return value
+
+
+def validate_foundation_screen_report(value: object) -> None:
+    if type(value) is not dict:
+        raise ValueError("foundation screen report must be a JSON object")
+    _require_ordered_keys(value, _FOUNDATION_REPORT_KEYS, name="foundation screen report")
+    if value["schema_version"] != "foundation-screen-report-v1":
+        raise ValueError("foundation screen report schema version differs")
+    if (
+        type(value["source_commit"]) is not str
+        or _GIT_REVISION.fullmatch(value["source_commit"]) is None
+    ):
+        raise ValueError("foundation screen source_commit differs")
+    arms = value["registered_arms"]
+    if (
+        type(arms) is not list
+        or not arms
+        or any(type(arm) is not str or not arm for arm in arms)
+        or len(set(arms)) != len(arms)
+    ):
+        raise ValueError("foundation screen registered_arms differ")
+    if value["stage_order"] != list(_FOUNDATION_STAGE_ORDER):
+        raise ValueError("foundation screen stage order differs")
+    for name in _FOUNDATION_REPORT_KEYS[4:10] + _FOUNDATION_REPORT_KEYS[12:]:
+        if type(value[name]) is not list:
+            raise ValueError(f"foundation screen {name} must be a JSON array")
+    if value["overall_status"] not in {
+        "CONTINUE",
+        "CLOSE_FOUNDATION_TRANSFER",
+        "UNAVAILABLE_COMPARATOR",
+    }:
+        raise ValueError("foundation screen overall_status differs")
+    expected_digest = _decision_sha256(value["f1_decisions"], value["overall_status"])
+    if value["decision_sha256"] != expected_digest:
+        raise ValueError("foundation screen decision digest differs")
+    for row in value["official_test_reads"]:
+        if type(row) is not dict or row.get("decision_sha256") != expected_digest:
+            raise ValueError("official test read is not bound to the frozen decision")
+    for key in _walk_report_keys(value):
+        normalized = key.lower()
+        if any(token in normalized for token in _FOUNDATION_FORBIDDEN_REPORT_KEYS):
+            raise ValueError(f"foundation screen contains forbidden report key {key}")
+    arm_set = set(arms)
+    encoder_arms: list[str] = []
+    for row in value["encoder_audits"]:
+        _require_report_row(
+            row,
+            ("arm", "status", "audit", "reason"),
+            name="encoder audit",
+        )
+        arm = row["arm"]
+        if arm not in arm_set:
+            raise ValueError("encoder audit arm differs from registered arms")
+        encoder_arms.append(arm)
+        if row["status"] == "available":
+            if type(row["audit"]) is not dict or row["reason"] is not None:
+                raise ValueError("available encoder audit relation differs")
+            audit = row["audit"]
+            remote_keys = tuple(FoundationEncoderAudit.__dataclass_fields__)
+            local_keys = tuple(LocalFoundationEncoderAudit.__dataclass_fields__)
+            if tuple(audit) == remote_keys:
+                if audit["status"] != "available":
+                    raise ValueError("available remote encoder audit status differs")
+                _require_nonempty("encoder audit model_id", audit["model_id"])
+                if (
+                    type(audit["revision"]) is not str
+                    or _GIT_REVISION.fullmatch(audit["revision"]) is None
+                    or audit["reason"] is not None
+                ):
+                    raise ValueError("available remote encoder audit relation differs")
+                for name in ("weight_sha256", "processor_sha256", "config_sha256"):
+                    _require_sha256(f"encoder audit {name}", audit[name])
+            elif tuple(audit) == local_keys:
+                for name in local_keys:
+                    _require_sha256(f"encoder audit {name}", audit[name])
+            else:
+                raise ValueError("available encoder audit schema differs")
+        elif row["status"] == "unavailable":
+            if row["audit"] is not None or type(row["reason"]) is not str or not row["reason"]:
+                raise ValueError("unavailable encoder audit relation differs")
+        else:
+            raise ValueError("encoder audit status differs")
+    if encoder_arms != arms:
+        raise ValueError("encoder audit order differs from registered arms")
+    for row in value["fixture_fidelity_audits"]:
+        _require_report_row(
+            row,
+            (
+                "arm",
+                "metric",
+                "native_value",
+                "repository_value",
+                "tolerance",
+                "provenance",
+                "passed",
+            ),
+            name="fixture fidelity audit",
+        )
+        _require_report_arm(row, arm_set, name="fixture fidelity audit")
+        repository_value = _report_float(row["repository_value"], "fixture repository_value")
+        tolerance = _report_float(row["tolerance"], "fixture tolerance")
+        if tolerance < 0.0:
+            raise ValueError("fixture tolerance must be nonnegative")
+        if row["provenance"] == "native_cross_check":
+            native_value = _report_float(row["native_value"], "fixture native_value")
+            expected_passed = abs(repository_value - native_value) <= tolerance
+            if type(row["passed"]) is not bool or row["passed"] is not expected_passed:
+                raise ValueError("fixture fidelity decision differs")
+        elif row["provenance"] == "unavailable":
+            if row["native_value"] is not None or row["passed"] is not None:
+                raise ValueError("unavailable fixture fidelity relation differs")
+        else:
+            raise ValueError("fixture fidelity provenance differs")
+    for row in value["cache_records"]:
+        _require_report_row(
+            row,
+            ("arm", "split", "status", "path", "rows", "embedding_sha256"),
+            name="cache record",
+        )
+        _require_report_arm(row, arm_set, name="cache record")
+        if row["status"] not in {"exported", "reused"}:
+            raise ValueError("cache status differs")
+        if type(row["split"]) is not str or not row["split"]:
+            raise ValueError("cache split differs")
+        if type(row["path"]) is not str or not row["path"]:
+            raise ValueError("cache path differs")
+        _require_positive_int("cache rows", row["rows"])
+        _require_sha256("cache embedding_sha256", row["embedding_sha256"])
+    for row in value["cost_profiles"]:
+        _require_report_row(row, ("arm", "profile"), name="cost profile")
+        _require_report_arm(row, arm_set, name="cost profile")
+        profile = row["profile"]
+        _require_report_row(
+            profile,
+            tuple(EncoderCostProfile.__dataclass_fields__),
+            name="cost profile value",
+        )
+        if type(profile["batches"]) is not list:
+            raise ValueError("cost profile batches must be a JSON array")
+        for batch in profile["batches"]:
+            _require_report_row(
+                batch,
+                tuple(EncoderBatchCost.__dataclass_fields__),
+                name="cost profile batch",
+            )
+    probe_arms: list[str] = []
+    probe_keys = (
+        "arm",
+        "dataset",
+        "input_dim",
+        "output_dim",
+        "split_seed",
+        "split_sha256",
+        "protocol_id",
+        "selection_evaluations",
+        "selected_learning_rate",
+        "selected_temperature",
+        "selected_epoch",
+        "validation_recall_at_1_points",
+        "weight_sha256",
+        "parameter_count",
+        "device_type",
+        "device_name",
+    )
+    for row in value["probe_audits"]:
+        _require_report_row(row, probe_keys, name="probe audit")
+        _require_report_arm(row, arm_set, name="probe audit")
+        probe_arms.append(row["arm"])
+        _require_sha256("probe split_sha256", row["split_sha256"])
+        _require_sha256("probe weight_sha256", row["weight_sha256"])
+        _require_points("probe validation_recall_at_1_points", row["validation_recall_at_1_points"])
+    if len(set(probe_arms)) != len(probe_arms):
+        raise ValueError("probe audit arms must be unique")
+    decision_keys = ("arm",) + tuple(F1Decision.__dataclass_fields__)
+    for row in value["f1_decisions"]:
+        _require_report_row(row, decision_keys, name="F1 decision")
+        _require_report_arm(row, arm_set, name="F1 decision")
+    if value["overall_status"] == "UNAVAILABLE_COMPARATOR":
+        if value["f1_decisions"]:
+            raise ValueError("unavailable comparator cannot carry F1 decisions")
+        expected_overall = "UNAVAILABLE_COMPARATOR"
+    else:
+        if not value["f1_decisions"]:
+            raise ValueError("available comparator requires a candidate decision")
+        expected_overall = (
+            "CONTINUE"
+            if any(row["status"] == "CONTINUE" for row in value["f1_decisions"])
+            else "CLOSE_FOUNDATION_TRANSFER"
+        )
+    if value["overall_status"] != expected_overall:
+        raise ValueError("foundation screen aggregate decision differs")
+    official_keys = (
+        "arm",
+        "model_revision",
+        "checkpoint_sha256",
+        "metrics",
+        "purpose",
+        "evaluation_number",
+        "decision_sha256",
+        "receipt_path",
+        "selected_geometry",
+        "geometry_evaluations",
+    )
+    for row in value["official_test_reads"]:
+        _require_report_row(row, official_keys, name="official test read")
+        _require_report_arm(row, arm_set, name="official test read")
+        if (
+            type(row["model_revision"]) is not str
+            or _GIT_REVISION.fullmatch(row["model_revision"]) is None
+        ):
+            raise ValueError("official model_revision differs")
+        _require_sha256("official checkpoint_sha256", row["checkpoint_sha256"])
+        if row["metrics"] != list(FOUNDATION_PUBLISHED_METRICS):
+            raise ValueError("official metrics differ from registered order")
+        if row["purpose"] != "confirmatory_published_metric_cross_check":
+            raise ValueError("official purpose differs")
+        if type(row["evaluation_number"]) is not int or row["evaluation_number"] != 1:
+            raise ValueError("official evaluation number differs")
+        if type(row["receipt_path"]) is not str or not row["receipt_path"]:
+            raise ValueError("official receipt path differs")
+        if row["selected_geometry"] not in {
+            "normalized_cosine",
+            "native_unnormalized_euclidean",
+        }:
+            raise ValueError("official selected geometry differs")
+        geometries = row["geometry_evaluations"]
+        expected_geometries = (
+            "normalized_cosine",
+            "normalized_euclidean",
+            "native_unnormalized_euclidean",
+        )
+        if type(geometries) is not list or len(geometries) != 3:
+            raise ValueError("official geometry evaluations differ")
+        for geometry, expected_geometry in zip(geometries, expected_geometries, strict=True):
+            _require_report_row(geometry, ("geometry", "metrics"), name="geometry evaluation")
+            if geometry["geometry"] != expected_geometry or type(geometry["metrics"]) is not dict:
+                raise ValueError("official geometry evaluation differs")
+            metric_keys = (
+                "precision_at_1",
+                "recall_at_1",
+                "recall_at_2",
+                "recall_at_4",
+                "recall_at_8",
+                "map_at_r",
+                "mean_relevant_items",
+                "evaluated_queries",
+                "total_queries",
+                "recall_at_10",
+                "recall_at_20",
+                "recall_at_30",
+                "recall_at_100",
+            )
+            _require_ordered_keys(geometry["metrics"], metric_keys, name="geometry metrics")
+    published_keys = tuple(PublishedMetricAudit.__dataclass_fields__)
+    for row in value["published_metric_audits"]:
+        _require_report_row(row, published_keys, name="published metric audit")
+        _require_report_arm(row, arm_set, name="published metric audit")
+        repository_value = _report_float(row["repository_value"], "published repository_value")
+        if row["provenance"] == "native_cross_check":
+            native_value = _report_float(row["native_value"], "published native_value")
+            tolerance = _report_float(row["tolerance"], "published tolerance")
+            expected_passed = abs(repository_value - native_value) <= tolerance
+            if type(row["passed"]) is not bool or row["passed"] is not expected_passed:
+                raise ValueError("published metric decision differs")
+        elif row["provenance"] == "repository_only":
+            if row["native_value"] is not None or row["tolerance"] is not None:
+                raise ValueError("repository-only published relation differs")
+            if row["passed"] is not None:
+                raise ValueError("repository-only published decision must be null")
+        else:
+            raise ValueError("published metric provenance differs")
+        if row["invalidates_confirmatory_claim"] is not (row["passed"] is False):
+            raise ValueError("published metric invalidation relation differs")
+
+
+def _require_report_row(value: object, keys: tuple[str, ...], *, name: str) -> None:
+    if type(value) is not dict:
+        raise ValueError(f"{name} must be a JSON object")
+    _require_ordered_keys(value, keys, name=name)
+
+
+def _require_report_arm(value: dict[str, Any], arms: set[str], *, name: str) -> None:
+    if value["arm"] not in arms:
+        raise ValueError(f"{name} arm differs from registered arms")
+
+
+def _report_float(value: object, name: str) -> float:
+    if type(value) is not float or not isfinite(value):
+        raise ValueError(f"{name} must be a finite builtin float")
+    return value
+
+
+def load_foundation_screen_report(path: Path) -> dict[str, Any]:
+    value = _load_strict_json(path)
+    validate_foundation_screen_report(value)
+    return value
+
+
+def publish_foundation_screen_report(path: Path, payload: dict[str, object]) -> Path:
+    validate_foundation_screen_report(payload)
+    _publish_json_no_clobber(path, payload)
+    persisted = load_foundation_screen_report(path)
+    if persisted != payload:
+        raise ValueError("persisted foundation screen report differs")
+    return path
+
+
+def run_foundation_screen(
+    *,
+    dataset: str,
+    dataset_root: Path,
+    model_specs_path: Path,
+    cache_dir: Path,
+    report_path: Path,
+    fixture_authority_path: Path,
+    tolerance_authority_path: Path,
+    published_register_path: Path,
+    test_read_register_path: Path,
+    validation_seed: int,
+    validation_fraction: float,
+    allow_registered_test_read: bool,
+) -> Path:
+    """Run F0/F1 using train identities only until a durable official-read receipt exists."""
+
+    if dataset not in {"cub", "cars", "sop", "inshop", "inat2018"}:
+        raise ValueError("foundation screen dataset differs from registered choices")
+    if type(validation_seed) is not int or validation_seed < 0:
+        raise ValueError("validation_seed must be a nonnegative builtin integer")
+    if type(validation_fraction) is not float or not 0.0 < validation_fraction < 1.0:
+        raise ValueError("validation_fraction must be a builtin float in (0, 1)")
+    if type(allow_registered_test_read) is not bool:
+        raise ValueError("allow_registered_test_read must be a builtin boolean")
+    if cache_dir.is_symlink() or not cache_dir.is_dir():
+        raise ValueError("foundation cache directory must be a real directory")
+    if report_path.parent.is_symlink() or not report_path.parent.is_dir():
+        raise ValueError("foundation report parent must be a real directory")
+    if report_path.exists() or report_path.is_symlink():
+        raise FileExistsError(report_path)
+    source_commit = _source_commit()
+    arms = load_foundation_model_specs(model_specs_path)
+    registered_arms = tuple(arm.spec.arm for arm in arms)
+    fixture_pairs = tuple(
+        (arm, metric) for arm in registered_arms for metric in FOUNDATION_FIXTURE_METRICS
+    )
+    fixtures, tolerances = load_native_fixture_authority(
+        fixture_authority_path,
+        tolerance_authority_path,
+        registered_pairs=fixture_pairs,
+    )
+    test_reads = load_test_read_register(test_read_register_path)
+    train_examples = load_image_retrieval_examples(
+        dataset_name=cast(ImageDatasetName, dataset),
+        split="train",
+        seed=validation_seed,
+        dataset_root=dataset_root,
+    )
+    split = build_identity_disjoint_validation_split(
+        train_examples,
+        fraction=validation_fraction,
+        seed=validation_seed,
+    )
+    config = ProbeTrainingConfig()
+    encoders: dict[str, Any] = {}
+    probes: dict[str, BiasFreeProbeResult] = {}
+    profiles: dict[str, EncoderCostProfile] = {}
+    encoder_rows: list[dict[str, object]] = []
+    fixture_rows: list[dict[str, object]] = []
+    cache_rows: list[dict[str, object]] = []
+    probe_rows: list[dict[str, object]] = []
+    for arm_spec in arms:
+        arm = arm_spec.spec.arm
+        try:
+            encoder = load_foundation_encoder(arm_spec.spec)
+        except (OSError, RuntimeError, ValueError) as error:
+            encoder_rows.append(
+                {
+                    "arm": arm,
+                    "status": "unavailable",
+                    "audit": None,
+                    "reason": str(error),
+                }
+            )
+            continue
+        encoders[arm] = encoder
+        audit = getattr(encoder, "audit", None)
+        if not isinstance(audit, FoundationEncoderAudit | LocalFoundationEncoderAudit):
+            raise ValueError("foundation encoder lacks an exact source audit")
+        encoder_rows.append(
+            {
+                "arm": arm,
+                "status": "available",
+                "audit": asdict(audit),
+                "reason": None,
+            }
+        )
+        fixture_inputs = {
+            metric: fixture_authority_path.parent
+            / "foundation_native_inputs"
+            / f"{arm}__{metric}.json"
+            for metric in FOUNDATION_FIXTURE_METRICS
+        }
+        native_sources = {
+            metric: fixture_authority_path.parent
+            / "foundation_native_sources"
+            / f"{arm}__{metric}.py"
+            for metric in FOUNDATION_FIXTURE_METRICS
+        }
+        fidelity = verify_native_fixture(
+            arm=arm,
+            encoder=encoder,
+            fixture_inputs=fixture_inputs,
+            native_sources=native_sources,
+            repository_metric=_repository_fixture_metric,
+            fixtures=fixtures,
+            tolerances=tolerances,
+            registered_pairs=fixture_pairs,
+        )
+        fixture_rows.extend(asdict(row) for row in fidelity)
+        if any(row.passed is False for row in fidelity):
+            continue
+        cached = _prepare_foundation_train_cache(
+            arm_spec=arm_spec,
+            encoder=encoder,
+            train_examples=train_examples,
+            cache_dir=cache_dir,
+            dataset=dataset,
+        )
+        cache_rows.extend(cached.records)
+        profile = profile_foundation_encoder(
+            encoder,
+            [materialize_image(row.image) for row in train_examples[:32]],
+        )
+        profiles[arm] = profile
+        probe = fit_bias_free_probe_512(
+            cached.train_embeddings,
+            split,
+            arm_key=arm,
+            dataset=dataset,
+            split_seed=validation_seed,
+            config=config,
+        )
+        probes[arm] = probe
+        probe_rows.append(_serialize_probe(probe))
+    comparator_arm = next(arm.spec.arm for arm in arms if arm.role == "comparator")
+    comparator_probe = probes.get(comparator_arm)
+    decisions: list[dict[str, object]] = []
+    if comparator_probe is None:
+        overall_status = "UNAVAILABLE_COMPARATOR"
+    else:
+        for arm_spec in arms:
+            if arm_spec.role != "candidate" or arm_spec.spec.arm not in probes:
+                continue
+            arm = arm_spec.spec.arm
+            decision = decide_f1(
+                candidate_probe=probes[arm],
+                comparator_probe=comparator_probe,
+                candidate_encoder_p95_ms=_profile_batch_one_p95(profiles[arm]),
+                comparator_encoder_p95_ms=_profile_batch_one_p95(profiles[comparator_arm]),
+                candidate_descriptor_bytes_per_image=probes[arm].output_dim * 4,
+                comparator_descriptor_bytes_per_image=comparator_probe.output_dim * 4,
+            )
+            decisions.append({"arm": arm, **asdict(decision)})
+        if not decisions:
+            raise ValueError("available comparator requires at least one candidate decision")
+        overall_status = (
+            "CONTINUE"
+            if any(row["status"] == "CONTINUE" for row in decisions)
+            else "CLOSE_FOUNDATION_TRANSFER"
+        )
+    decision_digest = _decision_sha256(decisions, overall_status)
+    official_rows: list[dict[str, object]] = []
+    published_rows: list[dict[str, object]] = []
+    if allow_registered_test_read and overall_status != "UNAVAILABLE_COMPARATOR":
+        receipt_root = report_path.parent
+        if receipt_root.resolve() == cache_dir.resolve():
+            raise ValueError("official test receipts cannot use the rebuildable cache directory")
+        official_rows, published_rows, official_cache_rows = _run_registered_official_reads(
+            dataset=dataset,
+            dataset_root=dataset_root,
+            validation_seed=validation_seed,
+            arms=arms,
+            encoders={arm: encoders[arm] for arm in probes},
+            cache_dir=cache_dir,
+            receipt_root=receipt_root,
+            decision_sha256=decision_digest,
+            ledger=test_reads,
+            published_register_path=published_register_path,
+        )
+        cache_rows.extend(official_cache_rows)
+    payload: dict[str, object] = {
+        "schema_version": "foundation-screen-report-v1",
+        "source_commit": source_commit,
+        "registered_arms": list(registered_arms),
+        "stage_order": list(_FOUNDATION_STAGE_ORDER),
+        "encoder_audits": encoder_rows,
+        "fixture_fidelity_audits": fixture_rows,
+        "cache_records": cache_rows,
+        "cost_profiles": [
+            {"arm": arm, "profile": _json_ready(asdict(profiles[arm]))}
+            for arm in registered_arms
+            if arm in profiles
+        ],
+        "probe_audits": probe_rows,
+        "f1_decisions": decisions,
+        "overall_status": overall_status,
+        "decision_sha256": decision_digest,
+        "official_test_reads": official_rows,
+        "published_metric_audits": published_rows,
+    }
+    return publish_foundation_screen_report(report_path, payload)
+
+
+def _profile_batch_one_p95(profile: EncoderCostProfile) -> float | None:
+    row = next((batch for batch in profile.batches if batch.batch_size == 1), None)
+    return row.latency_p95_ms if row is not None else None
+
+
+def _run_registered_official_reads(
+    *,
+    dataset: str,
+    dataset_root: Path,
+    validation_seed: int,
+    arms: Sequence[FoundationScreenArmSpec],
+    encoders: Mapping[str, Any],
+    cache_dir: Path,
+    receipt_root: Path,
+    decision_sha256: str,
+    ledger: FoundationTestReadLedger,
+    published_register_path: Path,
+) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    if receipt_root.resolve().is_relative_to(cache_dir.resolve()):
+        raise ValueError("official test receipts cannot use the rebuildable cache directory")
+    registered_pairs = tuple(
+        (arm.spec.arm, metric) for arm in arms for metric in FOUNDATION_PUBLISHED_METRICS
+    )
+    reads: list[dict[str, object]] = []
+    audits: list[dict[str, object]] = []
+    cache_rows: list[dict[str, object]] = []
+    evaluated: list[tuple[str, dict[str, float]]] = []
+    for arm_spec in arms:
+        arm = arm_spec.spec.arm
+        if arm not in encoders:
+            continue
+        model_revision, checkpoint_sha256 = _test_read_identity(arm_spec.spec)
+        consumed = ledger.consume(
+            arm=arm,
+            model_revision=model_revision,
+            checkpoint_sha256=checkpoint_sha256,
+            metrics=FOUNDATION_PUBLISHED_METRICS,
+            purpose="confirmatory_published_metric_cross_check",
+        )
+        receipt = publish_official_test_read_receipt(
+            receipt_root,
+            consumed,
+            decision_sha256=decision_sha256,
+        )
+        bundle = load_registered_official_test(
+            receipt,
+            arm=arm,
+            metrics=FOUNDATION_PUBLISHED_METRICS,
+            loader=lambda: load_image_retrieval_bundle(
+                dataset_name=cast(ImageDatasetName, dataset),
+                dataset_root=dataset_root,
+                seed=validation_seed,
+            ),
+        )
+        repository_values, arm_cache_rows, geometry_rows = _evaluate_official_foundation_arm(
+            arm_spec=arm_spec,
+            encoder=encoders[arm],
+            bundle=bundle,
+            cache_dir=cache_dir,
+            dataset=dataset,
+        )
+        reads.append(
+            {
+                "arm": arm,
+                "model_revision": model_revision,
+                "checkpoint_sha256": checkpoint_sha256,
+                "metrics": list(FOUNDATION_PUBLISHED_METRICS),
+                "purpose": consumed.purpose,
+                "evaluation_number": 1,
+                "decision_sha256": decision_sha256,
+                "receipt_path": str(receipt.receipt_path),
+                "selected_geometry": (
+                    "normalized_cosine"
+                    if arm_spec.spec.normalize
+                    else "native_unnormalized_euclidean"
+                ),
+                "geometry_evaluations": geometry_rows,
+            }
+        )
+        cache_rows.extend(arm_cache_rows)
+        evaluated.append((arm, repository_values))
+    published_records = load_published_metric_register(published_register_path)
+    if _record_keys(published_records) != registered_pairs:
+        raise ValueError("published metric register differs from screen arm/metric order")
+    for arm, repository_values in evaluated:
+        arm_audits = cross_check_published_metrics(
+            arm=arm,
+            repository_values=repository_values,
+            records=published_records,
+            registered_pairs=registered_pairs,
+        )
+        audits.extend(asdict(row) for row in arm_audits)
+    return reads, audits, cache_rows
+
+
+def _test_read_identity(
+    spec: RemoteFoundationModelSpec | LocalCheckpointFoundationSpec,
+) -> tuple[str, str]:
+    if type(spec) is RemoteFoundationModelSpec:
+        return spec.revision, spec.weight_sha256
+    if type(spec) is LocalCheckpointFoundationSpec:
+        return spec.checkpoint_sha256, spec.checkpoint_sha256
+    raise ValueError("test-read identity requires an exact foundation model spec")
+
+
+def _official_split_cache(
+    *,
+    arm_spec: FoundationScreenArmSpec,
+    encoder: Any,
+    examples: Sequence[ImageExample],
+    cache_dir: Path,
+    dataset: str,
+    split_name: str,
+) -> tuple[Any, dict[str, object]]:
+    import numpy as np
+
+    ids = tuple(row.example_id for row in examples)
+    labels = tuple(str(int(row.label)) for row in examples)
+    key = EmbeddingCacheKeyV2.from_model_spec(
+        arm_spec.spec,
+        dataset_rows_sha256=_dataset_rows_sha256(examples),
+        split=f"{dataset}:{split_name}",
+        resolution=(arm_spec.cache_resolution if arm_spec.kind == "local" else None),
+        normalize=False,
+    )
+    path = key.cache_path(cache_dir)
+    if path.exists() or path.is_symlink():
+        embeddings = load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=ids,
+            expected_labels=labels,
+        )
+        status = "reused"
+    else:
+        images = [materialize_image(row.image) for row in examples]
+        embeddings = np.asarray(
+            encoder.encode(
+                images,
+                batch_size=min(32, len(images)),
+                normalize_embeddings=False,
+            ),
+            dtype=np.float32,
+        )
+        export_embeddings_v2(
+            path,
+            key=key,
+            embeddings=embeddings,
+            ids=ids,
+            labels=labels,
+        )
+        status = "exported"
+    return embeddings, {
+        "arm": arm_spec.spec.arm,
+        "split": split_name,
+        "status": status,
+        "path": str(path),
+        "rows": len(ids),
+        "embedding_sha256": sha256(
+            _embedding_bytes(embeddings, storage_dtype="float32")
+        ).hexdigest(),
+    }
+
+
+def _evaluate_official_foundation_arm(
+    *,
+    arm_spec: FoundationScreenArmSpec,
+    encoder: Any,
+    bundle: Any,
+    cache_dir: Path,
+    dataset: str,
+) -> tuple[dict[str, float], tuple[dict[str, object], ...], list[dict[str, object]]]:
+    import numpy as np
+
+    query_embeddings, query_record = _official_split_cache(
+        arm_spec=arm_spec,
+        encoder=encoder,
+        examples=bundle.query,
+        cache_dir=cache_dir,
+        dataset=dataset,
+        split_name="query",
+    )
+    records: tuple[dict[str, object], ...]
+    if bundle.gallery is None:
+        gallery_embeddings = query_embeddings
+        gallery_examples = bundle.query
+        records = (query_record,)
+        exclude_self = True
+    else:
+        gallery_examples = bundle.gallery
+        gallery_embeddings, gallery_record = _official_split_cache(
+            arm_spec=arm_spec,
+            encoder=encoder,
+            examples=gallery_examples,
+            cache_dir=cache_dir,
+            dataset=dataset,
+            split_name="gallery",
+        )
+        records = (query_record, gallery_record)
+        exclude_self = False
+    geometries = evaluate_foundation_geometries(
+        query_embeddings,
+        np.asarray([int(row.label) for row in bundle.query], dtype=np.int64),
+        gallery_embeddings,
+        np.asarray([int(row.label) for row in gallery_examples], dtype=np.int64),
+        exclude_self=exclude_self,
+    )
+    selected_geometry = (
+        "normalized_cosine" if arm_spec.spec.normalize else "native_unnormalized_euclidean"
+    )
+    selected = next(row for row in geometries if row.geometry == selected_geometry)
+    metrics = selected.metrics
+    return (
+        {
+            "recall_at_1": float(metrics.recall_at_1),
+            "recall_at_10": float(metrics.recall_at_10),
+            "recall_at_20": float(metrics.recall_at_20),
+            "recall_at_30": float(metrics.recall_at_30),
+            "recall_at_100": float(metrics.recall_at_100),
+            "map_at_r": float(metrics.map_at_r),
+        },
+        records,
+        [
+            {"geometry": row.geometry, "metrics": _json_ready(asdict(row.metrics))}
+            for row in geometries
+        ],
     )

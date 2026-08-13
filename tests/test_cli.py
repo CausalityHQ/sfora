@@ -9,6 +9,7 @@ import pytest
 from numpy.typing import NDArray
 from typer.testing import CliRunner
 
+import sfora.cli as cli_module
 from sfora.cli import _default_report_artifacts, app
 from sfora.data import ImageExample, ImageRetrievalBundle, TextExample
 from sfora.encoder_training import EncoderObjective, EncoderTrainingConfig
@@ -21,6 +22,107 @@ def test_smoke_command_runs_as_subcommand() -> None:
     assert result.exit_code == 0
     assert "triplet_loss" in result.output
     assert "linear_probe_accuracy" in result.output
+
+
+def test_foundation_screen_command_forwards_explicit_authorities(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[dict[str, object]] = []
+    report = tmp_path / "screen.json"
+
+    def fake_run(**kwargs: object) -> Path:
+        calls.append(kwargs)
+        report.write_text("{}\n", encoding="utf-8")
+        return report
+
+    monkeypatch.setattr(
+        cli_module.foundation_pareto,
+        "run_foundation_screen",
+        fake_run,
+        raising=False,
+    )
+    result = CliRunner().invoke(
+        app,
+        [
+            "foundation-screen",
+            "--dataset",
+            "cars",
+            "--dataset-root",
+            str(tmp_path / "data"),
+            "--model-specs",
+            str(tmp_path / "models.json"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--report",
+            str(report),
+            "--fixture-authority",
+            str(tmp_path / "fixtures.json"),
+            "--tolerance-authority",
+            str(tmp_path / "tolerances.json"),
+            "--published-register",
+            str(tmp_path / "published.json"),
+            "--test-read-register",
+            str(tmp_path / "test-reads.json"),
+            "--validation-seed",
+            "17",
+            "--validation-fraction",
+            "0.25",
+            "--allow-registered-test-read",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls == [
+        {
+            "dataset": "cars",
+            "dataset_root": tmp_path / "data",
+            "model_specs_path": tmp_path / "models.json",
+            "cache_dir": tmp_path / "cache",
+            "report_path": report,
+            "fixture_authority_path": tmp_path / "fixtures.json",
+            "tolerance_authority_path": tmp_path / "tolerances.json",
+            "published_register_path": tmp_path / "published.json",
+            "test_read_register_path": tmp_path / "test-reads.json",
+            "validation_seed": 17,
+            "validation_fraction": 0.25,
+            "allow_registered_test_read": True,
+        }
+    ]
+    assert str(report) in result.output
+
+
+def test_foundation_screen_command_reports_no_clobber_without_changing_destination(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report = tmp_path / "screen.json"
+    report.write_bytes(b"sentinel\n")
+
+    def no_clobber(**kwargs: object) -> Path:
+        raise FileExistsError(kwargs["report_path"])
+
+    monkeypatch.setattr(cli_module.foundation_pareto, "run_foundation_screen", no_clobber)
+    result = CliRunner().invoke(
+        app,
+        [
+            "foundation-screen",
+            "--dataset",
+            "cars",
+            "--dataset-root",
+            str(tmp_path / "data"),
+            "--model-specs",
+            str(tmp_path / "models.json"),
+            "--cache-dir",
+            str(tmp_path / "cache"),
+            "--report",
+            str(report),
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert report.read_bytes() == b"sentinel\n"
+    assert "Error:" in result.output
 
 
 def test_synthetic_command_writes_report(tmp_path: Path) -> None:
@@ -893,7 +995,7 @@ def test_image_end_to_end_auto_recipe_accepts_recall_at_k_surrogate(
     )
     captured: dict[str, Any] = {}
 
-    monkeypatch.setattr("sfora.cli.load_image_retrieval_bundle", lambda **kwargs: bundle)
+    monkeypatch.setattr("sfora.cli._load_cli_image_retrieval_bundle", lambda **kwargs: bundle)
 
     def fake_run(**kwargs: Any) -> Any:
         captured["config"] = kwargs["config"]
