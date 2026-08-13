@@ -125,6 +125,96 @@ def test_foundation_screen_command_reports_no_clobber_without_changing_destinati
     assert "Error:" in result.output
 
 
+def test_foundation_comparator_train_forwards_exact_frozen_request(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: list[object] = []
+    output = tmp_path / "output"
+    output.mkdir()
+    dataset = (tmp_path / "dataset").resolve()
+    checkpoint = (output / "comparator.pt").resolve()
+    receipt = (output / "comparator.json").resolve()
+    backbone = (tmp_path / "backbone.pth").resolve()
+
+    def run(request: object) -> Path:
+        observed.append(request)
+        return receipt
+
+    monkeypatch.setattr(
+        cli_module.foundation_pareto,
+        "run_identity_disjoint_comparator_training",
+        run,
+        raising=False,
+    )
+    result = CliRunner().invoke(
+        app,
+        [
+            "foundation-comparator-train",
+            "--dataset-root",
+            str(dataset),
+            "--source-commit",
+            "a" * 40,
+            "--recipe-digest",
+            "b" * 64,
+            "--checkpoint",
+            str(checkpoint),
+            "--receipt",
+            str(receipt),
+            "--pretrained-backbone",
+            str(backbone),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert len(observed) == 1
+    request = observed[0]
+    assert request.dataset == "inshop"
+    assert request.dataset_root == dataset
+    assert request.outer_seed == 0
+    assert request.outer_fraction == 0.2
+    assert request.training_seed == 2
+    assert request.epochs == 60
+    assert request.wall_clock_ceiling_seconds == 9000
+    assert request.checkpoint_path == checkpoint
+    assert request.receipt_path == receipt
+    assert request.pretrained_backbone_path == backbone
+    assert "foundation-comparator-train" in result.output
+
+
+def test_foundation_comparator_train_returns_structural_exit_two(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        cli_module.foundation_pareto,
+        "run_identity_disjoint_comparator_training",
+        lambda request: (_ for _ in ()).throw(RuntimeError("structural")),
+        raising=False,
+    )
+    result = CliRunner().invoke(
+        app,
+        [
+            "foundation-comparator-train",
+            "--dataset-root",
+            str((tmp_path / "dataset").resolve()),
+            "--source-commit",
+            "a" * 40,
+            "--recipe-digest",
+            "b" * 64,
+            "--checkpoint",
+            str((tmp_path / "comparator.pt").resolve()),
+            "--receipt",
+            str((tmp_path / "comparator.json").resolve()),
+            "--pretrained-backbone",
+            str((tmp_path / "backbone.pth").resolve()),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "structural" in result.output
+
+
 def test_synthetic_command_writes_report(tmp_path: Path) -> None:
     output_path = tmp_path / "synthetic.json"
 

@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import platform
+from collections import OrderedDict
 from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import replace
@@ -38,6 +39,7 @@ from sfora.foundation_pareto import (
     validate_native_fixture_authority,
     verify_native_fixture,
 )
+from sfora.image_recipes import config_for_recipe, recipe_digest, reference_recipe
 
 _SHA_A = "a" * 64
 _SHA_B = "b" * 64
@@ -323,6 +325,291 @@ def test_identity_disjoint_request_rejects_protocol_drift(
     request = _valid_identity_disjoint_request(tmp_path)
     with pytest.raises(ValueError):
         replace(request, **{field: value})
+
+
+def test_identity_disjoint_training_uses_only_outer_optimization_identities(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    backbone = tmp_path / "backbone.pth"
+    backbone.write_bytes(b"registered-backbone")
+    recipe = reference_recipe("proxy_anchor", "inshop")
+    request = replace(
+        _valid_identity_disjoint_request(tmp_path),
+        recipe_digest=recipe_digest(recipe),
+    )
+    examples = list(_identity_disjoint_examples())
+    expected_split = foundation_pareto.build_identity_disjoint_validation_split(
+        examples,
+        fraction=0.2,
+        seed=0,
+    )
+    calls: list[tuple[object, ...]] = []
+
+    def load_examples(**kwargs: object) -> list[ImageExample]:
+        calls.append(("load", kwargs))
+        assert kwargs == {
+            "dataset_name": "inshop",
+            "split": "train",
+            "dataset_root": request.dataset_root,
+        }
+        return examples
+
+    def run_benchmark(**kwargs: object) -> object:
+        config = kwargs["config"]
+        calls.append(("run", kwargs))
+        assert kwargs["train_examples"] == expected_split.optimization
+        assert kwargs["test_examples"] == expected_split.query
+        assert kwargs["gallery_examples"] == expected_split.gallery
+        assert config.seed == 2
+        assert config.train_epochs == 60
+        assert config.checkpoint_selection_interval == 0
+        assert config.eval_test_interval_epochs == 0
+        assert config.deterministic is True
+        checkpoint_temp = Path(config.save_model_path)
+        assert checkpoint_temp.parent == request.checkpoint_path.parent
+        assert checkpoint_temp != request.checkpoint_path
+        checkpoint_temp.write_bytes(b"checkpoint")
+        return SimpleNamespace(
+            methods={"proxy_anchor_end_to_end:bn_inception": SimpleNamespace(recall_at_1=0.91)}
+        )
+
+    def load_checkpoint(path: Path) -> dict[str, object]:
+        assert path.name.startswith(f".{request.checkpoint_path.name}.tmp.{os.getpid()}.")
+        run_call = next(row for row in calls if row[0] == "run")
+        config = run_call[1]["config"]
+        return {
+            "state_dict": OrderedDict({"embedding.weight": torch.zeros((2, 2))}),
+            "arch": {
+                "backbone_name": "bn_inception",
+                "pretrained_weights": "bn_inception_52deb4733",
+                "head_pooling": "avg_max",
+                "embedding_dimensions": 512,
+                "embedding_head_init": "kaiming_normal",
+                "embedding_layer_norm": False,
+            },
+            "artifact_selection": "final_training_state",
+            "training_step": 120,
+            "evaluation_model_source": "student",
+            "training_config": config.model_dump(mode="json"),
+        }
+
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(foundation_pareto, "load_image_retrieval_examples", load_examples)
+    monkeypatch.setattr(foundation_pareto, "reference_recipe", lambda *_: recipe, raising=False)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "config_for_recipe",
+        lambda value: config_for_recipe(value),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "run_image_end_to_end_benchmark",
+        run_benchmark,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_load_identity_disjoint_checkpoint",
+        load_checkpoint,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_identity_disjoint_backbone",
+        lambda path: path,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_identity_disjoint_environment",
+        lambda: {
+            "python_version": "3.12.3",
+            "torch_version": "2.12.1+cu130",
+            "numpy_version": "2.5.0",
+            "device_type": "cuda",
+            "device_name": "NVIDIA GB10",
+            "cublas_workspace_config": ":4096:8",
+            "deterministic_algorithms": True,
+        },
+        raising=False,
+    )
+
+    written = foundation_pareto.run_identity_disjoint_comparator_training(request)
+
+    assert written == request.receipt_path
+    assert request.checkpoint_path.read_bytes() == b"checkpoint"
+    receipt = json.loads(request.receipt_path.read_text(encoding="utf-8"))
+    assert receipt["split"] == foundation_pareto.identity_disjoint_role_digests(expected_split)
+    assert receipt["official_test"] == {"consumed": False, "receipts": []}
+    assert [row[0] for row in calls] == ["load", "run"]
+
+
+def test_identity_disjoint_training_is_no_clobber_before_loading_data(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    request = _valid_identity_disjoint_request(tmp_path)
+    request.checkpoint_path.write_bytes(b"sentinel")
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_examples",
+        lambda **kwargs: pytest.fail("data loaded after no-clobber failure"),
+    )
+
+    with pytest.raises(FileExistsError):
+        foundation_pareto.run_identity_disjoint_comparator_training(request)
+
+    assert request.checkpoint_path.read_bytes() == b"sentinel"
+    assert not request.receipt_path.exists()
+    assert list(output.glob(".*.tmp.*")) == []
+
+
+def test_identity_disjoint_training_rejects_wrong_cublas_before_data_or_torch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "output").mkdir()
+    request = _valid_identity_disjoint_request(tmp_path)
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_identity_disjoint_backbone",
+        lambda path: pytest.fail("backbone validation reached after bad CUBLAS preflight"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_examples",
+        lambda **kwargs: pytest.fail("data loaded after bad CUBLAS preflight"),
+    )
+
+    with pytest.raises(ValueError, match="CUBLAS"):
+        foundation_pareto.run_identity_disjoint_comparator_training(request)
+
+
+@pytest.mark.parametrize("failure_call", [1, 2])
+def test_identity_disjoint_training_rolls_back_owned_outputs_when_receipt_rejects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_call: int,
+) -> None:
+    output = tmp_path / "output"
+    output.mkdir()
+    backbone = tmp_path / "backbone.pth"
+    backbone.write_bytes(b"registered-backbone")
+    recipe = reference_recipe("proxy_anchor", "inshop")
+    request = replace(
+        _valid_identity_disjoint_request(tmp_path),
+        recipe_digest=recipe_digest(recipe),
+    )
+    examples = list(_identity_disjoint_examples())
+
+    def run_benchmark(**kwargs: object) -> object:
+        Path(kwargs["config"].save_model_path).write_bytes(b"checkpoint")
+        return SimpleNamespace(methods={"proxy": SimpleNamespace(recall_at_1=0.91)})
+
+    def load_checkpoint(path: Path) -> dict[str, object]:
+        config = config_for_recipe(recipe).model_copy(
+            update={
+                "dataset_root": request.dataset_root,
+                "seed": 2,
+                "train_epochs": 60,
+                "checkpoint_selection_interval": 0,
+                "eval_test_interval_epochs": 0,
+                "deterministic": True,
+                "save_model_path": str(path),
+            }
+        )
+        return {
+            "state_dict": OrderedDict({"weight": torch.zeros(1)}),
+            "arch": {
+                "backbone_name": "bn_inception",
+                "pretrained_weights": "bn_inception_52deb4733",
+                "head_pooling": "avg_max",
+                "embedding_dimensions": 512,
+                "embedding_head_init": "kaiming_normal",
+                "embedding_layer_norm": False,
+            },
+            "artifact_selection": "final_training_state",
+            "training_step": 120,
+            "evaluation_model_source": "student",
+            "training_config": config.model_dump(mode="json"),
+        }
+
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_image_retrieval_examples",
+        lambda **kwargs: examples,
+    )
+    monkeypatch.setattr(foundation_pareto, "reference_recipe", lambda *_: recipe, raising=False)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "config_for_recipe",
+        lambda value: config_for_recipe(value),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto, "run_image_end_to_end_benchmark", run_benchmark, raising=False
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_load_identity_disjoint_checkpoint",
+        load_checkpoint,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_identity_disjoint_backbone",
+        lambda path: path,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_identity_disjoint_environment",
+        lambda: {
+            "python_version": "3.12.3",
+            "torch_version": "2.12.1+cu130",
+            "numpy_version": "2.5.0",
+            "device_type": "cuda",
+            "device_name": "NVIDIA GB10",
+            "cublas_workspace_config": ":4096:8",
+            "deterministic_algorithms": True,
+        },
+        raising=False,
+    )
+    validation_calls = 0
+
+    def reject_selected_call(value: object, **kwargs: object) -> object:
+        nonlocal validation_calls
+        validation_calls += 1
+        if validation_calls == failure_call:
+            raise ValueError("receipt rejected")
+        return value
+
+    monkeypatch.setattr(
+        foundation_pareto,
+        "validate_identity_disjoint_comparator_receipt",
+        reject_selected_call,
+    )
+
+    with pytest.raises(ValueError, match="receipt rejected"):
+        foundation_pareto.run_identity_disjoint_comparator_training(request)
+
+    assert not request.checkpoint_path.exists()
+    assert not request.receipt_path.exists()
+    assert list(output.glob(".*.tmp.*")) == []
 
 
 def _remote_spec(**changes: object) -> RemoteFoundationModelSpec:

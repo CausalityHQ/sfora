@@ -165,6 +165,55 @@ def foundation_screen(
 
 
 @app.command()
+def foundation_comparator_train(
+    dataset_root: Annotated[Path, typer.Option(help="Absolute In-Shop dataset root.")],
+    source_commit: Annotated[str, typer.Option(help="Reviewed source Git revision.")],
+    recipe_digest: Annotated[str, typer.Option(help="Frozen Proxy Anchor recipe digest.")],
+    checkpoint: Annotated[Path, typer.Option(help="Absolute no-clobber checkpoint path.")],
+    receipt: Annotated[Path, typer.Option(help="Absolute no-clobber receipt path.")],
+    pretrained_backbone: Annotated[
+        Path,
+        typer.Option(help="Absolute registered BN-Inception checkpoint path."),
+    ],
+    outer_seed: Annotated[int, typer.Option(help="Frozen outer identity-split seed.")] = 0,
+    outer_fraction: Annotated[
+        float,
+        typer.Option(help="Frozen held-out identity fraction."),
+    ] = 0.2,
+    training_seed: Annotated[int, typer.Option(help="Frozen training seed.")] = 2,
+    epochs: Annotated[int, typer.Option(help="Frozen final-state epoch count.")] = 60,
+    wall_clock_ceiling_seconds: Annotated[
+        int,
+        typer.Option(help="Frozen training wall-clock ceiling."),
+    ] = 9000,
+) -> None:
+    """Train one identity-disjoint In-Shop Proxy Anchor comparator."""
+
+    try:
+        request = foundation_pareto.IdentityDisjointComparatorRequest(
+            schema_version="foundation-identity-disjoint-comparator-request-v1",
+            dataset="inshop",
+            dataset_root=dataset_root,
+            source_commit=source_commit,
+            recipe_id="proxy_anchor.inshop.official-51db570",
+            recipe_digest=recipe_digest,
+            outer_seed=outer_seed,
+            outer_fraction=outer_fraction,
+            training_seed=training_seed,
+            epochs=epochs,
+            checkpoint_path=checkpoint,
+            receipt_path=receipt,
+            pretrained_backbone_path=pretrained_backbone,
+            wall_clock_ceiling_seconds=wall_clock_ceiling_seconds,
+        )
+        written = foundation_pareto.run_identity_disjoint_comparator_training(request)
+    except Exception as error:
+        console.print(f"structural failure: {error}")
+        raise typer.Exit(2) from error
+    console.print({"name": "foundation-comparator-train", "output": str(written)})
+
+
+@app.command()
 def hf_publish(
     repo_id: Annotated[str, typer.Option(help="Hugging Face repo id, e.g. user/name.")],
     output_dir: Annotated[

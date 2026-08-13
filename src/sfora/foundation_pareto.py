@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
 import secrets
 import subprocess
+import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from hashlib import sha256
 from math import isfinite
 from pathlib import Path
@@ -21,9 +24,13 @@ from sfora.data import (
     materialize_image,
     preflight_official_image_retrieval_split,
 )
+from sfora.image_end_to_end import run_image_end_to_end_benchmark
 from sfora.image_recipes import (
     RecipeSelectionSplit,
     class_disjoint_recipe_selection_split,
+    config_for_recipe,
+    recipe_digest,
+    reference_recipe,
 )
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -508,6 +515,256 @@ def validate_identity_disjoint_comparator_receipt(
     if process["exit_code"] != 0 or type(process["exit_code"]) is not int:
         raise ValueError("identity-disjoint process exit code differs")
     return value
+
+
+def _validate_identity_disjoint_backbone(path: Path) -> Path:
+    expected = "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("identity-disjoint pretrained backbone must be a regular file")
+    if sha256(path.read_bytes()).hexdigest() != expected:
+        raise ValueError("identity-disjoint pretrained backbone digest differs")
+    return path
+
+
+def _load_identity_disjoint_checkpoint(path: Path) -> dict[str, object]:
+    return cast(dict[str, object], _torch_load_checkpoint(path))
+
+
+def _identity_disjoint_environment() -> dict[str, object]:
+    import numpy as np
+    import torch
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("identity-disjoint comparator training requires CUDA")
+    return {
+        "python_version": platform.python_version(),
+        "torch_version": str(torch.__version__),
+        "numpy_version": str(np.__version__),
+        "device_type": "cuda",
+        "device_name": str(torch.cuda.get_device_name(0)),
+        "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG", ""),
+        "deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
+    }
+
+
+def _identity_disjoint_source_files() -> list[dict[str, object]]:
+    root = Path(__file__).resolve().parents[2]
+    paths = ("src/sfora/foundation_pareto.py", "src/sfora/cli.py")
+    return [
+        {"path": relative, "sha256": sha256((root / relative).read_bytes()).hexdigest()}
+        for relative in paths
+    ]
+
+
+def _validate_identity_disjoint_checkpoint(
+    checkpoint: object,
+    *,
+    config: Any,
+) -> dict[str, object]:
+    if type(checkpoint) is not dict:
+        raise ValueError("identity-disjoint checkpoint root differs")
+    expected_keys = (
+        "state_dict",
+        "arch",
+        "artifact_selection",
+        "training_step",
+        "evaluation_model_source",
+        "training_config",
+    )
+    if tuple(checkpoint) != expected_keys:
+        raise ValueError("identity-disjoint checkpoint schema differs")
+    if not isinstance(checkpoint["state_dict"], Mapping) or not checkpoint["state_dict"]:
+        raise ValueError("identity-disjoint checkpoint state differs")
+    expected_arch = {
+        "backbone_name": config.backbone_name,
+        "pretrained_weights": config.pretrained_weights,
+        "head_pooling": config.head_pooling,
+        "embedding_dimensions": config.embedding_dimensions,
+        "embedding_head_init": config.embedding_head_init,
+        "embedding_layer_norm": config.embedding_layer_norm,
+    }
+    _require_exact_typed_json(
+        "identity-disjoint checkpoint architecture",
+        checkpoint["arch"],
+        expected_arch,
+    )
+    if checkpoint["artifact_selection"] != "final_training_state":
+        raise ValueError("identity-disjoint checkpoint is not the final training state")
+    if type(checkpoint["training_step"]) is not int or checkpoint["training_step"] <= 0:
+        raise ValueError("identity-disjoint checkpoint step differs")
+    if checkpoint["evaluation_model_source"] != "student":
+        raise ValueError("identity-disjoint checkpoint evaluation model differs")
+    expected_config = config.model_dump(mode="json")
+    _require_exact_typed_json(
+        "identity-disjoint checkpoint training config",
+        checkpoint["training_config"],
+        expected_config,
+    )
+    return checkpoint
+
+
+def _fsync_directory(path: Path) -> None:
+    directory_fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
+def run_identity_disjoint_comparator_training(
+    request: IdentityDisjointComparatorRequest,
+) -> Path:
+    """Train and atomically publish one final-state identity-disjoint comparator."""
+
+    if not isinstance(request, IdentityDisjointComparatorRequest):
+        raise TypeError("identity-disjoint training request differs")
+    if _source_commit() != request.source_commit:
+        raise ValueError("identity-disjoint executing source commit differs")
+    for output in (request.checkpoint_path, request.receipt_path):
+        if output.parent.is_symlink() or not output.parent.is_dir():
+            raise ValueError("identity-disjoint output parent must be a real directory")
+        if output.exists() or output.is_symlink():
+            raise FileExistsError(output)
+    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+        raise ValueError("identity-disjoint CUBLAS workspace must be :4096:8 before launch")
+    _validate_identity_disjoint_backbone(request.pretrained_backbone_path)
+    recipe = reference_recipe("proxy_anchor", "inshop")
+    if recipe.recipe_id != request.recipe_id or recipe_digest(recipe) != request.recipe_digest:
+        raise ValueError("identity-disjoint recipe authority differs")
+
+    examples = load_image_retrieval_examples(
+        dataset_name="inshop",
+        split="train",
+        dataset_root=request.dataset_root,
+    )
+    split = build_identity_disjoint_validation_split(
+        examples,
+        fraction=request.outer_fraction,
+        seed=request.outer_seed,
+    )
+    role_digests = identity_disjoint_role_digests(split)
+    checkpoint_temp = request.checkpoint_path.with_name(
+        f".{request.checkpoint_path.name}.tmp.{os.getpid()}.{secrets.token_hex(8)}"
+    )
+    if checkpoint_temp.exists() or checkpoint_temp.is_symlink():
+        raise FileExistsError(checkpoint_temp)
+    config = config_for_recipe(recipe).model_copy(
+        update={
+            "dataset_root": request.dataset_root,
+            "seed": request.training_seed,
+            "train_epochs": request.epochs,
+            "checkpoint_selection_interval": 0,
+            "eval_test_interval_epochs": 0,
+            "deterministic": True,
+            "save_model_path": str(checkpoint_temp),
+        }
+    )
+
+    started = time.monotonic()
+    started_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    published_identity: tuple[int, int] | None = None
+    receipt_identity: tuple[int, int] | None = None
+    try:
+        result = run_image_end_to_end_benchmark(
+            train_examples=split.optimization,
+            test_examples=split.query,
+            gallery_examples=split.gallery,
+            config=config,
+        )
+        if checkpoint_temp.is_symlink() or not checkpoint_temp.is_file():
+            raise ValueError("identity-disjoint training did not create a checkpoint")
+        os.chmod(checkpoint_temp, 0o600)
+        with checkpoint_temp.open("rb") as handle:
+            os.fsync(handle.fileno())
+        checkpoint = _validate_identity_disjoint_checkpoint(
+            _load_identity_disjoint_checkpoint(checkpoint_temp),
+            config=config,
+        )
+        temporary_stat = checkpoint_temp.stat()
+        published_identity = (temporary_stat.st_dev, temporary_stat.st_ino)
+        os.link(checkpoint_temp, request.checkpoint_path)
+        _fsync_directory(request.checkpoint_path.parent)
+
+        methods = list(result.methods.values())
+        if len(methods) != 1:
+            raise ValueError("identity-disjoint training method result differs")
+        heldout_recall = float(methods[0].recall_at_1)
+        finished_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        elapsed = float(time.monotonic() - started)
+        resolved_config = config.model_dump(mode="json")
+        resolved_config_sha256 = sha256(_identity_disjoint_json_bytes(resolved_config)).hexdigest()
+        payload: dict[str, object] = {
+            "schema_version": _IDENTITY_DISJOINT_RECEIPT_SCHEMA,
+            "status": "VALID",
+            "request": _identity_disjoint_request_payload(request),
+            "source": {
+                "commit": request.source_commit,
+                "files": _identity_disjoint_source_files(),
+            },
+            "recipe": {
+                "id": request.recipe_id,
+                "digest": request.recipe_digest,
+                "resolved_config": resolved_config,
+                "resolved_config_sha256": resolved_config_sha256,
+            },
+            "split": role_digests,
+            "training": {
+                "seed": request.training_seed,
+                "epochs": request.epochs,
+                "steps": checkpoint["training_step"],
+                "artifact_selection": checkpoint["artifact_selection"],
+                "checkpoint_selection_interval": config.checkpoint_selection_interval,
+                "eval_test_interval_epochs": config.eval_test_interval_epochs,
+            },
+            "environment": _identity_disjoint_environment(),
+            "checkpoint": {
+                "path": str(request.checkpoint_path),
+                "sha256": sha256(request.checkpoint_path.read_bytes()).hexdigest(),
+                "mode": request.checkpoint_path.stat().st_mode & 0o777,
+                "size_bytes": request.checkpoint_path.stat().st_size,
+                "resolved_config_sha256": resolved_config_sha256,
+            },
+            "diagnostic": {"heldout_recall_at_1": heldout_recall},
+            "official_test": {"consumed": False, "receipts": []},
+            "process": {
+                "pid": os.getpid(),
+                "started_at_utc": started_at,
+                "finished_at_utc": finished_at,
+                "elapsed_seconds": elapsed,
+                "exit_code": 0,
+            },
+        }
+        validate_identity_disjoint_comparator_receipt(payload, request=request)
+        _publish_json_no_clobber(request.receipt_path, payload)
+        receipt_stat = request.receipt_path.stat()
+        receipt_identity = (receipt_stat.st_dev, receipt_stat.st_ino)
+        persisted = _load_strict_json(request.receipt_path)
+        validate_identity_disjoint_comparator_receipt(persisted, request=request)
+        if persisted != payload:
+            raise ValueError("persisted identity-disjoint receipt differs")
+        checkpoint_temp.unlink()
+        _fsync_directory(request.checkpoint_path.parent)
+        return request.receipt_path
+    except BaseException:
+        if (
+            receipt_identity is not None
+            and request.receipt_path.is_file()
+            and not request.receipt_path.is_symlink()
+        ):
+            receipt_stat = request.receipt_path.stat()
+            if (receipt_stat.st_dev, receipt_stat.st_ino) == receipt_identity:
+                request.receipt_path.unlink()
+        if (
+            published_identity is not None
+            and request.checkpoint_path.is_file()
+            and not request.checkpoint_path.is_symlink()
+        ):
+            output_stat = request.checkpoint_path.stat()
+            if (output_stat.st_dev, output_stat.st_ino) == published_identity:
+                request.checkpoint_path.unlink()
+        if checkpoint_temp.is_file() and not checkpoint_temp.is_symlink():
+            checkpoint_temp.unlink()
+        raise
 
 
 def build_identity_disjoint_validation_split(
