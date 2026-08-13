@@ -44,7 +44,7 @@ def _validate_matching_states(states: tuple[Mapping[str, torch.Tensor], ...]) ->
 def average_model_states(
     states: tuple[Mapping[str, torch.Tensor], ...],
 ) -> OrderedDict[str, torch.Tensor]:
-    """Average floating tensors in FP64 while requiring exact non-floating buffers."""
+    """Average floating tensors in FP64 and carry latest non-floating buffers."""
 
     keys = _validate_matching_states(states)
     result: OrderedDict[str, torch.Tensor] = OrderedDict()
@@ -57,9 +57,7 @@ def average_model_states(
                 accumulator.add_(value.to(torch.float64))
             result[key] = accumulator.div_(len(values)).to(first.dtype)
         else:
-            if any(not torch.equal(first, value) for value in values[1:]):
-                raise ValueError(f"non-floating tensor differs: {key}")
-            result[key] = first.clone()
+            result[key] = values[-1].clone()
     return result
 
 
@@ -176,12 +174,20 @@ def _load_trainer():
 
 def _load_checkpoint_states(
     paths: tuple[Path, ...],
+    *,
+    holdout_seed: int,
+    holdout_fraction: float,
 ) -> tuple[tuple[Path, Mapping[str, torch.Tensor]], ...]:
     result: list[tuple[Path, Mapping[str, torch.Tensor]]] = []
     for path in paths:
         checkpoint = torch.load(path, map_location="cpu", weights_only=False, mmap=True)
         if type(checkpoint) is not dict or checkpoint.get("epoch") != _epoch(path):
             raise ValueError(f"training checkpoint epoch differs: {path}")
+        if checkpoint.get("selection_holdout") != {
+            "seed": holdout_seed,
+            "fraction": holdout_fraction,
+        }:
+            raise ValueError(f"training checkpoint selection holdout differs: {path}")
         state = checkpoint.get("model")
         if type(state) not in (dict, OrderedDict):
             raise ValueError(f"training checkpoint model state differs: {path}")
@@ -244,7 +250,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     device = torch.device("cuda")
     model = model.to(device)
-    checkpoints = _load_checkpoint_states(tuple(args.trajectory_checkpoints))
+    checkpoints = _load_checkpoint_states(
+        tuple(args.trajectory_checkpoints),
+        holdout_seed=args.holdout_seed,
+        holdout_fraction=args.holdout_fraction,
+    )
     candidates = evaluate_grid(
         model,
         initial,

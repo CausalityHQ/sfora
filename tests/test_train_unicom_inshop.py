@@ -279,6 +279,7 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         checkpoint_every=1,
         output_dir=tmp_path,
         evaluate=lambda epoch: evaluations.append(epoch) or {"recall_at_1": epoch / 2},
+        selection_holdout={"seed": 0, "fraction": 0.2},
     )
 
     assert evaluations == [1, 2]
@@ -298,6 +299,7 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         "mask_generator",
         "torch_rng_state",
         "cuda_rng_states",
+        "selection_holdout",
         "history",
     )
     assert checkpoint["epoch"] == 2
@@ -345,6 +347,7 @@ def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> No
         checkpoint_every=2,
         output_dir=tmp_path,
         evaluate=lambda epoch: {"recall_at_1": epoch / 3},
+        selection_holdout={"seed": 0, "fraction": 0.2},
     )
 
     assert sorted(path.name for path in tmp_path.glob("epoch-*.pt")) == [
@@ -383,6 +386,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         scheduler=None,
         scaler=scaler,
         mask_generator=mask_generator,
+        selection_holdout={"seed": 0, "fraction": 0.2},
         history=[{"epoch": 7, "train": {"steps": 1, "mean_loss": 2.0}, "metrics": None}],
     )
     with torch.no_grad():
@@ -400,6 +404,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         scaler=scaler,
         mask_generator=mask_generator,
         device=torch.device("meta"),
+        selection_holdout={"seed": 0, "fraction": 0.2},
     )
 
     assert epoch == 7

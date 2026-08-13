@@ -51,13 +51,14 @@ def test_average_model_states_uses_fp64_accumulation_and_exact_buffers() -> None
     assert averaged["counter"].item() == 7
 
 
-def test_average_model_states_rejects_changed_integer_buffer() -> None:
+def test_average_model_states_carries_latest_nonfloating_buffer() -> None:
     module = _load_script()
     left = OrderedDict(counter=torch.tensor(1, dtype=torch.int64))
     right = OrderedDict(counter=torch.tensor(2, dtype=torch.int64))
 
-    with pytest.raises(ValueError, match="non-floating tensor differs"):
-        module.average_model_states((left, right))
+    result = module.average_model_states((left, right))
+
+    assert result["counter"].item() == 2
 
 
 def test_interpolation_uses_initial_plus_alpha_times_soup_delta() -> None:
@@ -127,3 +128,19 @@ def test_evaluate_grid_loads_each_real_interpolated_state() -> None:
         1.0,
         2.0,
     ]
+
+
+def test_checkpoint_loader_rejects_holdout_mismatch(tmp_path: Path) -> None:
+    module = _load_script()
+    path = tmp_path / "epoch-0001.pt"
+    torch.save(
+        {
+            "epoch": 1,
+            "model": OrderedDict(weight=torch.tensor([1.0])),
+            "selection_holdout": {"seed": 5, "fraction": 0.2},
+        },
+        path,
+    )
+
+    with pytest.raises(ValueError, match="selection holdout differs"):
+        module._load_checkpoint_states((path,), holdout_seed=0, holdout_fraction=0.2)
