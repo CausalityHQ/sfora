@@ -3379,6 +3379,16 @@ def test_official_handoff_authenticates_direct_manifest_child_and_committed_evid
         train_split_sha256=("7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45"),
     )
 
+    with pytest.raises(ValueError, match="detached HEAD"):
+        foundation_pareto._authenticate_official_read_handoff(
+            binding,
+            executing_revision=handoff,
+            repository=repository,
+        )
+    subprocess.run(
+        ["git", "-C", str(repository), "checkout", "--detach", "-q", handoff],
+        check=True,
+    )
     observed = foundation_pareto._authenticate_official_read_handoff(
         binding,
         executing_revision=handoff,

@@ -3253,6 +3253,16 @@ def _authenticate_official_read_handoff(
     observed_head = cast(str, _git_capture(root, "rev-parse", "HEAD")).strip()
     if observed_head != executing_revision:
         raise ValueError("official executing revision differs from HEAD")
+    attached = subprocess.run(
+        ["git", "-C", str(root), "symbolic-ref", "-q", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if attached.returncode == 0:
+        raise ValueError("official handoff requires a detached HEAD")
+    if attached.returncode != 1:
+        raise ValueError("official detached HEAD state is not authenticatable")
     parents = cast(
         str, _git_capture(root, "rev-list", "--parents", "-n", "1", executing_revision)
     ).split()
