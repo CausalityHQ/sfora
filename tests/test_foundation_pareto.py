@@ -900,10 +900,26 @@ def test_local_encoder_applies_registered_transform_batches_and_normalizes() -> 
         actual,
         np.asarray([[0.6, 0.8], [0.0, 1.0], [0.8, 0.6]], dtype=np.float32),
     )
-    assert transformed == [[3.0, 4.0], [0.0, 5.0], [4.0, 3.0]]
+    raw = encoder.encode(
+        [[3.0, 4.0], [0.0, 5.0], [4.0, 3.0]],
+        batch_size=2,
+        normalize_embeddings=False,
+    )
+    np.testing.assert_allclose(
+        raw,
+        np.asarray([[6.0, 8.0], [0.0, 10.0], [8.0, 6.0]], dtype=np.float32),
+    )
+    assert transformed == [
+        [3.0, 4.0],
+        [0.0, 5.0],
+        [4.0, 3.0],
+        [3.0, 4.0],
+        [0.0, 5.0],
+        [4.0, 3.0],
+    ]
 
 
-def test_encoder_enforces_registered_normalization_and_compute_dtype() -> None:
+def test_remote_encoder_supports_registered_and_raw_cache_normalization() -> None:
     class Processor:
         def __call__(
             self,
@@ -942,8 +958,8 @@ def test_encoder_enforces_registered_normalization_and_compute_dtype() -> None:
 
     np.testing.assert_allclose(actual, np.asarray([[0.6, 0.8]]), atol=0.005)
     assert actual.dtype == np.float32
-    with pytest.raises(ValueError, match="normalization"):
-        encoder.encode([[3.0, 4.0]], batch_size=1, normalize_embeddings=False)
+    raw = encoder.encode([[3.0, 4.0]], batch_size=1, normalize_embeddings=False)
+    np.testing.assert_allclose(raw, np.asarray([[3.0, 4.0]]), atol=0.005)
 
 
 def test_remote_encoder_rejects_wrong_rank_or_embedding_width() -> None:

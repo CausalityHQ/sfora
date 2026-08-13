@@ -796,8 +796,6 @@ class TransformersFoundationEncoder:
         import torch
 
         _validate_encode_request(images, batch_size, normalize_embeddings)
-        if normalize_embeddings is not self.spec.normalize:
-            raise ValueError("requested normalization differs from registered normalization")
         dtype = torch.float32 if self.spec.dtype == "float32" else torch.bfloat16
         batches: list[Any] = []
         with torch.no_grad():
@@ -875,8 +873,6 @@ class LocalCheckpointFoundationEncoder:
         import torch
 
         _validate_encode_request(images, batch_size, normalize_embeddings)
-        if normalize_embeddings is not self.spec.normalize:
-            raise ValueError("requested normalization differs from registered normalization")
         dtype = torch.float32 if self.spec.dtype == "float32" else torch.bfloat16
         batches: list[Any] = []
         with torch.no_grad():
