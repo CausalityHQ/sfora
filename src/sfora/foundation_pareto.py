@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import secrets
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
@@ -200,7 +202,7 @@ class TransformersFoundationEncoder:
                 )
                 if normalize_embeddings:
                     output = torch.nn.functional.normalize(output, p=2, dim=-1)
-                batches.append(output.detach().cpu().float().numpy().astype(np.float64))
+                batches.append(output.detach().cpu().float().numpy())
         return np.concatenate(batches, axis=0)
 
 
@@ -259,7 +261,7 @@ class LocalCheckpointFoundationEncoder:
                 )
                 if normalize_embeddings:
                     output = torch.nn.functional.normalize(output, p=2, dim=-1)
-                batches.append(output.detach().cpu().float().numpy().astype(np.float64))
+                batches.append(output.detach().cpu().float().numpy())
         return np.concatenate(batches, axis=0)
 
 
@@ -388,6 +390,277 @@ class PublishedMetricAudit:
     provenance: Literal["native_cross_check", "repository_only"]
     passed: bool | None
     invalidates_confirmatory_claim: bool
+
+
+@dataclass(frozen=True)
+class EmbeddingCacheKeyV2:
+    """Complete content identity for one stable foundation embedding export."""
+
+    arm: str
+    model_revision: str
+    weight_sha256: str
+    processor_sha256: str
+    transform_id: str
+    resolution: int
+    dtype: Literal["float32", "bfloat16"]
+    storage_dtype: Literal["float32"]
+    normalize: bool
+    dataset_rows_sha256: str
+    split: str
+
+    def __post_init__(self) -> None:
+        _require_nonempty("cache arm", self.arm)
+        if (
+            type(self.model_revision) is not str
+            or _GIT_REVISION.fullmatch(self.model_revision) is None
+        ):
+            raise ValueError("cache model_revision must be an immutable lowercase object ID")
+        _require_sha256("cache weight_sha256", self.weight_sha256)
+        _require_sha256("cache processor_sha256", self.processor_sha256)
+        _require_nonempty("cache transform_id", self.transform_id)
+        if type(self.resolution) is not int or self.resolution <= 0:
+            raise ValueError("cache resolution must be a positive builtin integer")
+        if self.dtype not in {"float32", "bfloat16"}:
+            raise ValueError("cache dtype differs from registered choices")
+        if self.storage_dtype != "float32":
+            raise ValueError("cache storage_dtype must be float32")
+        if type(self.normalize) is not bool:
+            raise ValueError("cache normalize must be a builtin boolean")
+        _require_sha256("cache dataset_rows_sha256", self.dataset_rows_sha256)
+        _require_nonempty("cache split", self.split)
+
+    @classmethod
+    def from_model_spec(
+        cls,
+        spec: RemoteFoundationModelSpec | LocalCheckpointFoundationSpec,
+        *,
+        dataset_rows_sha256: str,
+        split: str,
+        resolution: int | None = None,
+    ) -> EmbeddingCacheKeyV2:
+        if isinstance(spec, RemoteFoundationModelSpec):
+            if resolution is not None and resolution != spec.resolution:
+                raise ValueError("explicit remote resolution differs from model spec")
+            return cls(
+                arm=spec.arm,
+                model_revision=spec.revision,
+                weight_sha256=spec.weight_sha256,
+                processor_sha256=spec.processor_sha256,
+                transform_id=f"{spec.model_id}:{spec.pooling}",
+                resolution=spec.resolution,
+                dtype=spec.dtype,
+                storage_dtype="float32",
+                normalize=spec.normalize,
+                dataset_rows_sha256=dataset_rows_sha256,
+                split=split,
+            )
+        if resolution is None:
+            raise ValueError("local cache identity requires an explicit resolution")
+        return cls(
+            arm=spec.arm,
+            model_revision=spec.checkpoint_sha256,
+            weight_sha256=spec.pretrained_backbone_sha256,
+            processor_sha256=spec.resolved_config_sha256,
+            transform_id=spec.transform_id,
+            resolution=resolution,
+            dtype=spec.dtype,
+            storage_dtype="float32",
+            normalize=spec.normalize,
+            dataset_rows_sha256=dataset_rows_sha256,
+            split=split,
+        )
+
+    def _json_object(self) -> dict[str, object]:
+        return {
+            "arm": self.arm,
+            "model_revision": self.model_revision,
+            "weight_sha256": self.weight_sha256,
+            "processor_sha256": self.processor_sha256,
+            "transform_id": self.transform_id,
+            "resolution": self.resolution,
+            "dtype": self.dtype,
+            "storage_dtype": self.storage_dtype,
+            "normalize": self.normalize,
+            "dataset_rows_sha256": self.dataset_rows_sha256,
+            "split": self.split,
+        }
+
+    def cache_path(self, root: Path) -> Path:
+        if not isinstance(root, Path):
+            raise ValueError("cache root must be a concrete pathlib.Path")
+        digest = sha256(_canonical_json_bytes(self._json_object())).hexdigest()
+        return root / f"foundation-cache-v2-{digest}.npz"
+
+
+def _canonical_json_bytes(value: object) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ValueError("value is not canonical JSON data") from error
+
+
+def _ordered_nonempty_strings(name: str, values: Sequence[str]) -> tuple[str, ...]:
+    if type(values) is not tuple or not values:
+        raise ValueError(f"{name} must be a nonempty builtin tuple")
+    for value in values:
+        _require_nonempty(name, value)
+    return tuple(values)
+
+
+def _embedding_bytes(embeddings: Any, *, storage_dtype: str) -> bytes:
+    import numpy as np
+
+    if type(embeddings) is not np.ndarray or embeddings.ndim != 2:
+        raise ValueError("embeddings must be a rank-2 NumPy array")
+    if storage_dtype != "float32" or embeddings.dtype != np.dtype("float32"):
+        raise ValueError("embedding array dtype differs from registered export dtype")
+    if not bool(np.isfinite(embeddings).all()):
+        raise ValueError("embeddings must contain only finite values")
+    return np.ascontiguousarray(embeddings).tobytes(order="C")
+
+
+def _cache_metadata(
+    *,
+    key: EmbeddingCacheKeyV2,
+    embeddings: Any,
+    ids: tuple[str, ...],
+    labels: tuple[str, ...],
+) -> dict[str, object]:
+    embedding_bytes = _embedding_bytes(embeddings, storage_dtype=key.storage_dtype)
+    return {
+        "schema_version": "foundation-embedding-cache-v2",
+        "key": key._json_object(),
+        "ids": list(ids),
+        "labels": list(labels),
+        "shape": list(embeddings.shape),
+        "dtype": key.storage_dtype,
+        "embedding_sha256": sha256(embedding_bytes).hexdigest(),
+    }
+
+
+def load_embeddings_v2(
+    path: Path,
+    *,
+    key: EmbeddingCacheKeyV2,
+    expected_ids: tuple[str, ...],
+    expected_labels: tuple[str, ...],
+) -> Any:
+    import numpy as np
+
+    ids = _ordered_nonempty_strings("expected row IDs", expected_ids)
+    labels = _ordered_nonempty_strings("expected labels", expected_labels)
+    if path != key.cache_path(path.parent):
+        raise ValueError("cache-v2 path differs from content-addressed key")
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("cache-v2 path must be a regular non-symlink file")
+    try:
+        with np.load(path, allow_pickle=False) as value:
+            if set(value.files) != {"embeddings", "metadata_json"}:
+                raise ValueError("cache-v2 members differ from exact schema")
+            embeddings = value["embeddings"]
+            metadata_array = value["metadata_json"]
+    except (OSError, ValueError) as error:
+        if isinstance(error, ValueError) and "cache-v2" in str(error):
+            raise
+        raise ValueError("cache-v2 archive is invalid") from error
+    if metadata_array.dtype != np.dtype("uint8") or metadata_array.ndim != 1:
+        raise ValueError("cache-v2 metadata bytes differ from exact schema")
+    if embeddings.ndim != 2:
+        raise ValueError("cache-v2 embeddings must be rank-2")
+    if embeddings.shape[0] != len(ids) or len(ids) != len(labels):
+        raise ValueError("cache-v2 embedding, ID, and label row counts differ")
+    expected = _cache_metadata(key=key, embeddings=embeddings, ids=ids, labels=labels)
+    expected_metadata_bytes = _canonical_json_bytes(expected)
+    try:
+        metadata = json.loads(
+            bytes(metadata_array).decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("cache-v2 metadata is not strict UTF-8 JSON") from error
+    if type(metadata) is not dict:
+        raise ValueError("cache-v2 metadata root must be a JSON object")
+    if metadata.get("schema_version") != "foundation-embedding-cache-v2":
+        raise ValueError("cache-v2 schema version differs")
+    if metadata.get("ids") != list(ids):
+        raise ValueError("cache-v2 row IDs differ")
+    if metadata.get("labels") != list(labels):
+        raise ValueError("cache-v2 labels differ")
+    if bytes(metadata_array) != expected_metadata_bytes:
+        raise ValueError("cache-v2 metadata bytes are not canonical or differ")
+    if metadata != expected:
+        raise ValueError("cache-v2 metadata or embedding digest differs")
+    return embeddings
+
+
+def export_embeddings_v2(
+    path: Path,
+    *,
+    key: EmbeddingCacheKeyV2,
+    embeddings: Any,
+    ids: tuple[str, ...],
+    labels: tuple[str, ...],
+) -> Path:
+    import numpy as np
+
+    ordered_ids = _ordered_nonempty_strings("row IDs", ids)
+    ordered_labels = _ordered_nonempty_strings("labels", labels)
+    if path != key.cache_path(path.parent):
+        raise ValueError("cache-v2 path differs from content-addressed key")
+    if len(ordered_ids) != len(ordered_labels) or len(ordered_ids) != embeddings.shape[0]:
+        raise ValueError("embedding, ID, and label row counts differ")
+    metadata = _cache_metadata(
+        key=key,
+        embeddings=embeddings,
+        ids=ordered_ids,
+        labels=ordered_labels,
+    )
+    if path.parent.is_symlink() or not path.parent.is_dir():
+        raise ValueError("cache-v2 parent must be a real directory")
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    temp = path.with_name(f".{path.name}.tmp.{os.getpid()}.{secrets.token_hex(8)}")
+    published_identity: tuple[int, int] | None = None
+    try:
+        with temp.open("xb") as handle:
+            os.fchmod(handle.fileno(), 0o600)
+            np.savez_compressed(
+                handle,
+                embeddings=np.ascontiguousarray(embeddings),
+                metadata_json=np.frombuffer(_canonical_json_bytes(metadata), dtype=np.uint8),
+            )
+            handle.flush()
+            os.fsync(handle.fileno())
+        temp_stat = temp.stat()
+        published_identity = (temp_stat.st_dev, temp_stat.st_ino)
+        os.link(temp, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+            temp.unlink()
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=ordered_ids,
+            expected_labels=ordered_labels,
+        )
+    except BaseException:
+        if published_identity is not None and path.is_file() and not path.is_symlink():
+            path_stat = path.stat()
+            if (path_stat.st_dev, path_stat.st_ino) == published_identity:
+                path.unlink()
+        if temp.is_file() and not temp.is_symlink():
+            temp.unlink()
+        raise
+    return path
 
 
 def _record_keys(records: Sequence[Any]) -> tuple[tuple[str, str], ...]:

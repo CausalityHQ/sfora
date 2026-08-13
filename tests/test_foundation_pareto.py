@@ -10,6 +10,7 @@ import torch
 
 import sfora.foundation_pareto as foundation_pareto
 from sfora.foundation_pareto import (
+    EmbeddingCacheKeyV2,
     FoundationEncoderAudit,
     LocalCheckpointFoundationEncoder,
     LocalCheckpointFoundationSpec,
@@ -20,6 +21,8 @@ from sfora.foundation_pareto import (
     RemoteFoundationModelSpec,
     TransformersFoundationEncoder,
     cross_check_published_metrics,
+    export_embeddings_v2,
+    load_embeddings_v2,
     load_foundation_encoder,
     load_native_fixture_authority,
     load_published_metric_register,
@@ -797,8 +800,8 @@ def test_remote_encoder_batches_and_uses_only_registered_pooling(
         normalize_embeddings=False,
     )
 
-    np.testing.assert_allclose(actual, np.asarray(expected, dtype=np.float64))
-    assert actual.dtype == np.float64
+    np.testing.assert_allclose(actual, np.asarray(expected, dtype=np.float32))
+    assert actual.dtype == np.float32
 
 
 def test_local_encoder_applies_registered_transform_batches_and_normalizes() -> None:
@@ -845,7 +848,7 @@ def test_local_encoder_applies_registered_transform_batches_and_normalizes() -> 
 
     np.testing.assert_allclose(
         actual,
-        np.asarray([[0.6, 0.8], [0.0, 1.0], [0.8, 0.6]], dtype=np.float64),
+        np.asarray([[0.6, 0.8], [0.0, 1.0], [0.8, 0.6]], dtype=np.float32),
     )
     assert transformed == [[3.0, 4.0], [0.0, 5.0], [4.0, 3.0]]
 
@@ -888,7 +891,7 @@ def test_encoder_enforces_registered_normalization_and_compute_dtype() -> None:
     actual = encoder.encode([[3.0, 4.0]], batch_size=1, normalize_embeddings=True)
 
     np.testing.assert_allclose(actual, np.asarray([[0.6, 0.8]]), atol=0.005)
-    assert actual.dtype == np.float64
+    assert actual.dtype == np.float32
     with pytest.raises(ValueError, match="normalization"):
         encoder.encode([[3.0, 4.0]], batch_size=1, normalize_embeddings=False)
 
@@ -1371,3 +1374,277 @@ def test_unfrozen_authorities_cannot_carry_values_even_for_inspection(
         )
     with pytest.raises(ValueError, match="must be empty"):
         load_published_metric_register(published_path, require_frozen=False)
+
+
+def _cache_key(**changes: object) -> EmbeddingCacheKeyV2:
+    values: dict[str, object] = {
+        "arm": "siglip2",
+        "model_revision": "1" * 40,
+        "weight_sha256": _SHA_A,
+        "processor_sha256": _SHA_B,
+        "transform_id": "official-eval-view-v1",
+        "resolution": 256,
+        "dtype": "float32",
+        "storage_dtype": "float32",
+        "normalize": True,
+        "dataset_rows_sha256": _SHA_C,
+        "split": "query",
+    }
+    values.update(changes)
+    return EmbeddingCacheKeyV2(**values)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("model_revision", "2" * 40),
+        ("weight_sha256", "d" * 64),
+        ("processor_sha256", "e" * 64),
+        ("transform_id", "official-eval-view-v2"),
+        ("resolution", 224),
+        ("dtype", "bfloat16"),
+        ("normalize", False),
+        ("dataset_rows_sha256", "f" * 64),
+        ("split", "gallery"),
+    ],
+)
+def test_cache_v2_every_registered_identity_mutation_changes_path(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    baseline = _cache_key()
+    mutated = _cache_key(**{field: value})
+
+    assert baseline.cache_path(tmp_path) != mutated.cache_path(tmp_path)
+
+
+def test_cache_v2_rejects_legacy_schema_and_row_order_drift(tmp_path: Path) -> None:
+    key = _cache_key()
+    path = key.cache_path(tmp_path)
+    np.savez(
+        path,
+        embeddings=np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32),
+        ids=np.asarray(["a", "b"]),
+        labels=np.asarray(["x", "y"]),
+    )
+    with pytest.raises(ValueError, match="cache-v2"):
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=("a", "b"),
+            expected_labels=("x", "y"),
+        )
+
+    path.unlink()
+    export_embeddings_v2(
+        path,
+        key=key,
+        embeddings=np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32),
+        ids=("a", "b"),
+        labels=("x", "y"),
+    )
+    with pytest.raises(ValueError, match="row IDs"):
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=("b", "a"),
+            expected_labels=("x", "y"),
+        )
+    with pytest.raises(ValueError, match="labels"):
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=("a", "b"),
+            expected_labels=("y", "x"),
+        )
+
+
+def test_cache_v2_maps_local_checkpoint_identity_without_remote_coercion() -> None:
+    spec = LocalCheckpointFoundationSpec(
+        arm="proxy-anchor",
+        checkpoint_path=Path("anchor.pt"),
+        pretrained_backbone_path=Path("backbone.pt"),
+        checkpoint_sha256=_SHA_A,
+        resolved_config_sha256=_SHA_B,
+        pretrained_backbone_sha256=_SHA_C,
+        transform_id="proxy-anchor-eval-224-v1",
+        embedding_width=512,
+        pooling="embedding",
+        dtype="float32",
+        normalize=True,
+    )
+
+    key = EmbeddingCacheKeyV2.from_model_spec(
+        spec,
+        dataset_rows_sha256="d" * 64,
+        split="gallery",
+        resolution=224,
+    )
+
+    assert key.model_revision == spec.checkpoint_sha256
+    assert key.weight_sha256 == spec.pretrained_backbone_sha256
+    assert key.processor_sha256 == spec.resolved_config_sha256
+    assert key.transform_id == spec.transform_id
+
+
+def test_cache_v2_publication_is_no_clobber_and_strictly_reloads(tmp_path: Path) -> None:
+    key = _cache_key()
+    path = key.cache_path(tmp_path)
+    embeddings = np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+    export_embeddings_v2(
+        path,
+        key=key,
+        embeddings=embeddings,
+        ids=("a", "b"),
+        labels=("x", "y"),
+    )
+    original = path.read_bytes()
+
+    actual = load_embeddings_v2(
+        path,
+        key=key,
+        expected_ids=("a", "b"),
+        expected_labels=("x", "y"),
+    )
+    np.testing.assert_array_equal(actual, embeddings)
+    assert path.stat().st_mode & 0o777 == 0o600
+
+    with pytest.raises(FileExistsError):
+        export_embeddings_v2(
+            path,
+            key=key,
+            embeddings=np.zeros_like(embeddings),
+            ids=("a", "b"),
+            labels=("x", "y"),
+        )
+    assert path.read_bytes() == original
+    assert list(tmp_path.glob(f".{path.name}.tmp.*")) == []
+
+
+def test_cache_v2_rolls_back_owned_publication_when_strict_reload_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    key = _cache_key()
+    path = key.cache_path(tmp_path)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_embeddings_v2",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("reload failed")),
+    )
+
+    with pytest.raises(ValueError, match="reload failed"):
+        export_embeddings_v2(
+            path,
+            key=key,
+            embeddings=np.asarray([[1.0, 2.0]], dtype=np.float32),
+            ids=("a",),
+            labels=("x",),
+        )
+
+    assert not path.exists()
+    assert list(tmp_path.glob(f".{path.name}.tmp.*")) == []
+
+
+def test_cache_v2_roundtrips_real_bfloat_compute_encoder_output(tmp_path: Path) -> None:
+    class Processor:
+        def __call__(self, **kwargs: object) -> dict[str, torch.Tensor]:
+            return {"pixel_values": torch.tensor([[3.0, 4.0]], dtype=torch.float32)}
+
+    class Model:
+        def get_image_features(self, *, pixel_values: torch.Tensor) -> torch.Tensor:
+            assert pixel_values.dtype is torch.bfloat16
+            return pixel_values
+
+    spec = _remote_spec(
+        pooling="image_features",
+        dtype="bfloat16",
+        normalize=True,
+    )
+    encoder = TransformersFoundationEncoder(
+        spec=spec,
+        processor=Processor(),
+        model=Model(),
+        device=torch.device("cpu"),
+        audit=FoundationEncoderAudit(
+            status="available",
+            model_id=spec.model_id,
+            revision=spec.revision,
+            weight_sha256=spec.weight_sha256,
+            processor_sha256=spec.processor_sha256,
+            config_sha256=spec.config_sha256,
+            reason=None,
+        ),
+    )
+    embeddings = encoder.encode(
+        [[3.0, 4.0]],
+        batch_size=1,
+        normalize_embeddings=True,
+    )
+    key = EmbeddingCacheKeyV2.from_model_spec(
+        spec,
+        dataset_rows_sha256="d" * 64,
+        split="query",
+    )
+    path = key.cache_path(tmp_path)
+
+    export_embeddings_v2(
+        path,
+        key=key,
+        embeddings=embeddings,
+        ids=("a",),
+        labels=("x",),
+    )
+    actual = load_embeddings_v2(
+        path,
+        key=key,
+        expected_ids=("a",),
+        expected_labels=("x",),
+    )
+
+    assert key.dtype == "bfloat16"
+    assert key.storage_dtype == "float32"
+    assert actual.dtype == np.float32
+    np.testing.assert_allclose(actual, embeddings)
+
+
+def test_cache_v2_rejects_row_count_and_nonobject_metadata(tmp_path: Path) -> None:
+    key = _cache_key()
+    path = key.cache_path(tmp_path)
+    embeddings = np.zeros((3, 2), dtype=np.float32)
+    metadata = foundation_pareto._cache_metadata(
+        key=key,
+        embeddings=embeddings,
+        ids=("a", "b"),
+        labels=("x", "y"),
+    )
+    np.savez(
+        path,
+        embeddings=embeddings,
+        metadata_json=np.frombuffer(
+            foundation_pareto._canonical_json_bytes(metadata),
+            dtype=np.uint8,
+        ),
+    )
+    with pytest.raises(ValueError, match="row counts"):
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=("a", "b"),
+            expected_labels=("x", "y"),
+        )
+
+    path.unlink()
+    np.savez(
+        path,
+        embeddings=np.zeros((2, 2), dtype=np.float32),
+        metadata_json=np.frombuffer(b"[]", dtype=np.uint8),
+    )
+    with pytest.raises(ValueError, match="metadata root"):
+        load_embeddings_v2(
+            path,
+            key=key,
+            expected_ids=("a", "b"),
+            expected_labels=("x", "y"),
+        )
