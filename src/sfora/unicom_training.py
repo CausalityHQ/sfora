@@ -8,6 +8,45 @@ import torch
 from torch.nn import functional as F
 
 
+def padded_epoch_indices(
+    *, size: int, global_batch: int, epoch: int, seed: int
+) -> tuple[int, ...]:
+    """Return the global union/order of UNICOM's distributed epoch sampler."""
+
+    if any(type(value) is not int for value in (size, global_batch, epoch, seed)):
+        raise TypeError("sampler values must be builtin integers")
+    if size <= 0 or global_batch <= 0 or epoch < 0:
+        raise ValueError("sampler size/batch must be positive and epoch nonnegative")
+    total = math.ceil(size / global_batch) * global_batch
+    generator = torch.Generator().manual_seed(seed + epoch)
+    shuffled = torch.randperm(size, generator=generator).tolist()
+    return tuple((shuffled * math.ceil(total / size))[:total])
+
+
+def sample_shard_masks(
+    *,
+    dimension: int,
+    selected: int,
+    shards: int,
+    generator: torch.Generator,
+    device: torch.device,
+) -> torch.Tensor:
+    """Draw the official argsort-of-uniform feature mask independently per shard."""
+
+    if any(type(value) is not int for value in (dimension, selected, shards)):
+        raise TypeError("mask dimensions must be builtin integers")
+    if dimension <= 0 or not 0 < selected <= dimension or shards <= 0:
+        raise ValueError("mask dimensions differ")
+    return torch.stack(
+        [
+            torch.argsort(torch.rand(dimension, generator=generator, device=device))[
+                :selected
+            ]
+            for _ in range(shards)
+        ]
+    )
+
+
 def _class_slices(class_count: int, shard_count: int) -> tuple[slice, ...]:
     quotient, remainder = divmod(class_count, shard_count)
     start = 0

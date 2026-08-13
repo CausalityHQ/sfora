@@ -3,7 +3,11 @@ from __future__ import annotations
 import torch
 from torch.nn import functional as F
 
-from sfora.unicom_training import sharded_mask_arcface_loss
+from sfora.unicom_training import (
+    padded_epoch_indices,
+    sample_shard_masks,
+    sharded_mask_arcface_loss,
+)
 
 
 def _manual_arcface(
@@ -105,3 +109,23 @@ def test_eight_shards_recover_gradient_coverage_lost_by_one_mask() -> None:
 
     assert torch.count_nonzero(one.grad[:, 4:]) == 0
     assert torch.count_nonzero(many.grad[:, 4:]) > 0
+
+
+def test_padded_epoch_indices_match_distributed_sampler_global_union() -> None:
+    actual = padded_epoch_indices(size=10, global_batch=8, epoch=3, seed=1024)
+    generator = torch.Generator().manual_seed(1027)
+    shuffled = torch.randperm(10, generator=generator).tolist()
+
+    assert actual == tuple((shuffled * 2)[:16])
+    assert len(actual) % 8 == 0
+
+
+def test_sample_shard_masks_use_one_official_noise_sort_per_shard() -> None:
+    generator = torch.Generator().manual_seed(44)
+    actual = sample_shard_masks(
+        dimension=8, selected=4, shards=3, generator=generator, device=torch.device("cpu")
+    )
+    oracle = torch.Generator().manual_seed(44)
+    expected = torch.stack([torch.argsort(torch.rand(8, generator=oracle))[:4] for _ in range(3)])
+
+    assert torch.equal(actual, expected)
