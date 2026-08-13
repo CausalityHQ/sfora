@@ -1,0 +1,22 @@
+{
+  "batch_size": 32,
+  "device": "NVIDIA GB10",
+  "input_size": 288,
+  "measurement": "five alternating calls to evaluate_oml_inshop.latency_ms; each call uses 20 warmups and 100 timed forwards",
+  "released_mean_ms": 59.771822827868164,
+  "released_ms": [
+    58.92535025253892,
+    59.35973663814366,
+    60.034407172352076,
+    60.148958577774465,
+    60.3906614985317
+  ],
+  "promoted_mean_ms": 59.93843871355057,
+  "promoted_ms": [
+    59.1922772815451,
+    59.651534240692854,
+    60.1897639920935,
+    60.25661587715149,
+    60.40200217626989
+  ]
+}

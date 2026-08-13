@@ -2,8 +2,9 @@
 
 ## Outcome
 
-The promoted recipe improves the released OML DINO ViT-S/16 at the same 288 px
-inference architecture. It is a strong, reproducible In-Shop result, but it is
+The promoted recipe improves the released OML DINO ViT-S/16 with the same 288 px
+backbone. Its evaluation neck is a fixed identity matrix and can be removed at
+deployment. It is a strong, reproducible In-Shop result, but it is
 not claimed as overall SOTA: larger and fashion-specific systems report higher
 Recall@1.
 
@@ -53,11 +54,14 @@ Recall has 128 gained and 90 lost queries (exact McNemar `p=0.0120`).
 - Throughput after the shared-view copy fix: about 361 images/s.
 - Peak allocated GPU memory: 3,615,269,888 bytes.
 - Trainable parameters: 7,246,080.
-- Batch-32 288 px latency on NVIDIA GB10, five alternating measurements:
-  released 59.772 ms, promoted 59.938 ms. The 0.28% difference is measurement
-  noise; both use the identical inference graph.
+- Batch-32 288 px backbone latency on NVIDIA GB10, five alternating
+  measurements: released 59.772 ms, promoted 59.938 ms. The 0.28% difference
+  is within run-to-run variation. Raw samples and the measurement procedure are
+  stored in `reports/oml_wise_triplet_latency_2026-08-13.json`.
 - Packaged promoted state: 87,512,201 bytes. It replaces the original weights;
-  interpolation and the teacher are training-time only.
+  interpolation and the teacher are training-time only. The packaged file also
+  contains the fixed identity neck for evaluator compatibility; deployment may
+  omit it without changing descriptors.
 
 The promoted seed-0 checkpoint is
 `reports/generated/oml_anchored_triplet/promoted-seed0-alpha075-6582e6d.pt`
