@@ -144,18 +144,6 @@ def foundation_screen(
         console.print(f"Error: unsupported image dataset {dataset}")
         raise typer.Exit(1)
     try:
-        if allow_registered_test_read:
-            if cache_dir.exists() or cache_dir.is_symlink():
-                raise FileExistsError(cache_dir)
-            if cache_dir.parent.is_symlink() or not cache_dir.parent.is_dir():
-                raise ValueError("official cache parent must be a real directory")
-            cache_dir.mkdir(mode=0o700)
-            if (
-                cache_dir.is_symlink()
-                or not cache_dir.is_dir()
-                or cache_dir.stat().st_mode & 0o777 != 0o700
-            ):
-                raise ValueError("official cache directory must be a real mode-0700 directory")
         written = foundation_pareto.run_foundation_screen(
             dataset=dataset,
             dataset_root=dataset_root,

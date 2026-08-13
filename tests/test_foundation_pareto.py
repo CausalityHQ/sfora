@@ -4616,11 +4616,12 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     trace.clear()
     official_report = tmp_path / "official.json"
+    official_cache_dir = tmp_path / "official-cache"
     foundation_pareto.run_foundation_screen(
         dataset="cars",
         dataset_root=tmp_path / "data",
         model_specs_path=tmp_path / "models.json",
-        cache_dir=cache_dir,
+        cache_dir=official_cache_dir,
         report_path=official_report,
         fixture_authority_path=tmp_path / "fixtures.json",
         tolerance_authority_path=tmp_path / "tolerances.json",
@@ -4630,6 +4631,9 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         validation_fraction=0.2,
         allow_registered_test_read=True,
     )
+    assert official_cache_dir.is_dir()
+    assert not official_cache_dir.is_symlink()
+    assert official_cache_dir.stat().st_mode & 0o777 == 0o700
     official = foundation_pareto.load_foundation_screen_report(official_report)
     assert official["registered_arms"] == [
         "candidate",
@@ -4678,12 +4682,13 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         ),
     )
     failed_control_report = tmp_path / "control-replay-failed.json"
+    failed_control_cache_dir = tmp_path / "failed-control-cache"
     with pytest.raises(ValueError, match="fixture fidelity"):
         foundation_pareto.run_foundation_screen(
             dataset="cars",
             dataset_root=tmp_path / "data",
             model_specs_path=tmp_path / "models.json",
-            cache_dir=cache_dir,
+            cache_dir=failed_control_cache_dir,
             report_path=failed_control_report,
             fixture_authority_path=tmp_path / "fixtures.json",
             tolerance_authority_path=tmp_path / "tolerances.json",
@@ -4794,11 +4799,12 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         ),
     )
     close_gate_report = tmp_path / "close-gate.json"
+    close_gate_cache_dir = tmp_path / "close-gate-cache"
     foundation_pareto.run_foundation_screen(
         dataset="cars",
         dataset_root=tmp_path / "data",
         model_specs_path=tmp_path / "models.json",
-        cache_dir=cache_dir,
+        cache_dir=close_gate_cache_dir,
         report_path=close_gate_report,
         fixture_authority_path=tmp_path / "fixtures.json",
         tolerance_authority_path=tmp_path / "tolerances.json",
@@ -5164,7 +5170,6 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
         ),
     )
     cache_dir = tmp_path / "cache"
-    cache_dir.mkdir()
 
     with pytest.raises(ValueError, match="receipt root must be a real directory"):
         foundation_pareto.run_foundation_screen(
@@ -5213,6 +5218,113 @@ def test_foundation_screen_rejects_wrong_cublas_workspace_before_authority_loadi
             validation_fraction=0.2,
             allow_registered_test_read=False,
         )
+
+
+def test_official_foundation_screen_authenticates_before_creating_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    cache_dir = tmp_path / "official-cache"
+    binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit="a" * 40,
+        addendum_path="addendum.md",
+        addendum_sha256="b" * 64,
+        train_report_path="train.json",
+        train_report_sha256="c" * 64,
+        train_decision_sha256="d" * 64,
+        train_split_sha256="e" * 64,
+    )
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: "f" * 40)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_official_repository_root",
+        lambda path: tmp_path,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_executing_sources",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_authority_paths",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_load_official_read_binding",
+        lambda *args, **kwargs: binding,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_binding_constants",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_read_handoff",
+        lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("official handoff rejected")),
+    )
+
+    with pytest.raises(ValueError, match="official handoff rejected"):
+        foundation_pareto.run_foundation_screen(
+            dataset="sop",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=tmp_path / "report.json",
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=0,
+            validation_fraction=0.2,
+            allow_registered_test_read=True,
+        )
+
+    assert not cache_dir.exists()
+    assert not cache_dir.is_symlink()
+
+
+@pytest.mark.parametrize("existing_kind", ["directory", "symlink"])
+def test_official_foundation_screen_cache_is_no_clobber(
+    tmp_path: Path,
+    existing_kind: str,
+) -> None:
+    cache_dir = tmp_path / "official-cache"
+    if existing_kind == "directory":
+        cache_dir.mkdir()
+        sentinel = cache_dir / "sentinel"
+        sentinel.write_bytes(b"directory-sentinel\n")
+    else:
+        target = tmp_path / "target"
+        target.mkdir()
+        sentinel = target / "sentinel"
+        sentinel.write_bytes(b"symlink-sentinel\n")
+        cache_dir.symlink_to(target, target_is_directory=True)
+
+    with pytest.raises(FileExistsError):
+        foundation_pareto.run_foundation_screen(
+            dataset="sop",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=tmp_path / "report.json",
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=0,
+            validation_fraction=0.2,
+            allow_registered_test_read=True,
+        )
+
+    if existing_kind == "symlink":
+        assert cache_dir.is_symlink()
+    else:
+        assert cache_dir.is_dir()
+        assert not cache_dir.is_symlink()
+    assert sentinel.read_bytes() == f"{existing_kind}-sentinel\n".encode()
 
 
 def test_foundation_geometry_excludes_self_for_self_retrieval_protocol() -> None:

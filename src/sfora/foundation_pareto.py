@@ -8,6 +8,7 @@ import os
 import platform
 import re
 import secrets
+import stat
 import subprocess
 import time
 from collections.abc import Callable, Mapping, Sequence
@@ -4509,7 +4510,12 @@ def run_foundation_screen(
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     if os.environ["CUBLAS_WORKSPACE_CONFIG"] != ":4096:8":
         raise ValueError("CUBLAS_WORKSPACE_CONFIG differs from registered :4096:8")
-    if cache_dir.is_symlink() or not cache_dir.is_dir():
+    if allow_registered_test_read:
+        if cache_dir.exists() or cache_dir.is_symlink():
+            raise FileExistsError(cache_dir)
+        if cache_dir.parent.is_symlink() or not cache_dir.parent.is_dir():
+            raise ValueError("official cache parent must be a real directory")
+    elif cache_dir.is_symlink() or not cache_dir.is_dir():
         raise ValueError("foundation cache directory must be a real directory")
     if report_path.parent.is_symlink() or not report_path.parent.is_dir():
         raise ValueError("foundation report parent must be a real directory")
@@ -4562,6 +4568,13 @@ def run_foundation_screen(
             ledger=test_reads,
             cache_dir=cache_dir,
         )
+        cache_dir.mkdir(mode=0o700)
+        created = cache_dir.stat(follow_symlinks=False)
+        if not stat.S_ISDIR(created.st_mode) or created.st_mode & 0o777 != 0o700:
+            current = cache_dir.stat(follow_symlinks=False)
+            if (current.st_dev, current.st_ino) == (created.st_dev, created.st_ino):
+                cache_dir.rmdir()
+            raise ValueError("official cache directory must be a real mode-0700 directory")
     train_examples = load_image_retrieval_examples(
         dataset_name=cast(ImageDatasetName, dataset),
         split="train",
