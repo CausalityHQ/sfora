@@ -332,6 +332,7 @@ def fit_model(
     output_dir: Path,
     evaluate: Callable[[int], dict[str, float]],
     selection_holdout: dict[str, int | float],
+    training_protocol: dict[str, object],
     history: list[dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     """Fit and persist sparse raw-model checkpoints for later trajectory soups."""
@@ -381,6 +382,7 @@ def fit_model(
                 scaler=scaler,
                 mask_generator=mask_generator,
                 selection_holdout=selection_holdout,
+                training_protocol=training_protocol,
                 history=history,
             )
     return history
@@ -397,6 +399,7 @@ def save_training_checkpoint(
     scaler: torch.amp.GradScaler | None,
     mask_generator: torch.Generator,
     selection_holdout: dict[str, int | float],
+    training_protocol: dict[str, object],
     history: list[dict[str, object]],
 ) -> None:
     """Atomically persist all mutable state needed to resume an epoch boundary."""
@@ -412,6 +415,7 @@ def save_training_checkpoint(
         "torch_rng_state": torch.get_rng_state(),
         "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
         "selection_holdout": selection_holdout,
+        "training_protocol": training_protocol,
         "history": history,
     }
     temporary = path.with_name(f"{path.name}.tmp")
@@ -439,6 +443,7 @@ def restore_training_checkpoint(
     mask_generator: torch.Generator,
     device: torch.device,
     selection_holdout: dict[str, int | float],
+    training_protocol: dict[str, object],
 ) -> tuple[int, list[dict[str, object]]]:
     """Restore an epoch-boundary checkpoint and return its epoch and history."""
 
@@ -454,12 +459,15 @@ def restore_training_checkpoint(
         "torch_rng_state",
         "cuda_rng_states",
         "selection_holdout",
+        "training_protocol",
         "history",
     )
     if type(checkpoint) is not dict or tuple(checkpoint) != expected:
         raise ValueError("training checkpoint schema differs")
     if checkpoint["selection_holdout"] != selection_holdout:
         raise ValueError("training checkpoint selection holdout differs")
+    if checkpoint["training_protocol"] != training_protocol:
+        raise ValueError("training checkpoint training protocol differs")
     raw_model.load_state_dict(checkpoint["model"], strict=True)
     if checkpoint["classifier"].shape != classifier.shape:
         raise ValueError("training checkpoint classifier shape differs")
@@ -598,6 +606,31 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "seed": args.holdout_seed,
         "fraction": args.holdout_fraction,
     }
+    training_protocol: dict[str, object] = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": _sha256_file(Path(__file__)),
+        "unicom_revision": UNICOM_REVISION,
+        "initial_checkpoint_sha256": UNICOM_L14_336_SHA256,
+        "partition_sha256": _sha256_file(
+            args.dataset_root / "Eval" / "list_eval_partition.txt"
+        ),
+        "seed": args.seed,
+        "epochs": args.epochs,
+        "batch_size": args.batch_size,
+        "workers": args.workers,
+        "learning_rate": args.learning_rate,
+        "classifier_learning_rate": args.classifier_learning_rate,
+        "margin": args.margin,
+        "scale": args.scale,
+        "objective": args.objective,
+        "selected_features": args.selected_features,
+        "holdout_seed": args.holdout_seed,
+        "holdout_fraction": args.holdout_fraction,
+        "max_steps": args.max_steps,
+        "bf16": args.bf16,
+        "compile": args.compile,
+        "fused": args.fused,
+    }
     if args.resume is not None:
         start_epoch, history = restore_training_checkpoint(
             args.resume,
@@ -609,6 +642,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             mask_generator=mask_generator,
             device=device,
             selection_holdout=selection_holdout,
+            training_protocol=training_protocol,
         )
         if start_epoch >= args.epochs:
             raise ValueError("resume checkpoint already reached requested epochs")
@@ -646,6 +680,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         ),
         history=history,
         selection_holdout=selection_holdout,
+        training_protocol=training_protocol,
     )
 
 

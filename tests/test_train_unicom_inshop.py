@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 import torch
 from PIL import Image
 from torch.utils.data import DataLoader, TensorDataset
@@ -280,6 +281,7 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         output_dir=tmp_path,
         evaluate=lambda epoch: evaluations.append(epoch) or {"recall_at_1": epoch / 2},
         selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"seed": 0, "objective": "official-eight-mask"},
     )
 
     assert evaluations == [1, 2]
@@ -300,6 +302,7 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         "torch_rng_state",
         "cuda_rng_states",
         "selection_holdout",
+        "training_protocol",
         "history",
     )
     assert checkpoint["epoch"] == 2
@@ -348,6 +351,7 @@ def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> No
         output_dir=tmp_path,
         evaluate=lambda epoch: {"recall_at_1": epoch / 3},
         selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"seed": 0, "objective": "official-eight-mask"},
     )
 
     assert sorted(path.name for path in tmp_path.glob("epoch-*.pt")) == [
@@ -387,6 +391,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         scaler=scaler,
         mask_generator=mask_generator,
         selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"seed": 0, "objective": "official-eight-mask"},
         history=[{"epoch": 7, "train": {"steps": 1, "mean_loss": 2.0}, "metrics": None}],
     )
     with torch.no_grad():
@@ -405,6 +410,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         mask_generator=mask_generator,
         device=torch.device("meta"),
         selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"seed": 0, "objective": "official-eight-mask"},
     )
 
     assert epoch == 7
@@ -414,6 +420,89 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
     assert torch.equal(classifier, expected_classifier)
     assert torch.equal(mask_generator.get_state(), expected_mask_state)
     assert torch.equal(torch.rand(3), expected_next_random)
+
+
+def test_restore_checkpoint_rejects_training_protocol_mismatch(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(2, 2, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(3, 2))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    path = tmp_path / "resume.pt"
+    module.save_training_checkpoint(
+        path,
+        epoch=1,
+        raw_model=raw_model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator().manual_seed(1),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={"seed": 0, "objective": "official-eight-mask"},
+        history=[],
+    )
+
+    with pytest.raises(ValueError, match="training protocol differs"):
+        module.restore_training_checkpoint(
+            path,
+            raw_model=raw_model,
+            classifier=classifier,
+            optimizer=optimizer,
+            scheduler=None,
+            scaler=None,
+            mask_generator=torch.Generator().manual_seed(2),
+            device=torch.device("cpu"),
+            selection_holdout={"seed": 0, "fraction": 0.2},
+            training_protocol={"seed": 1, "objective": "official-eight-mask"},
+        )
+
+
+def test_restore_checkpoint_rejects_selection_holdout_mismatch(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(2, 2, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(3, 2))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    path = tmp_path / "resume.pt"
+    protocol = {"seed": 0, "objective": "official-eight-mask"}
+    module.save_training_checkpoint(
+        path,
+        epoch=1,
+        raw_model=raw_model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator().manual_seed(1),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol=protocol,
+        history=[],
+    )
+
+    with pytest.raises(ValueError, match="selection holdout differs"):
+        module.restore_training_checkpoint(
+            path,
+            raw_model=raw_model,
+            classifier=classifier,
+            optimizer=optimizer,
+            scheduler=None,
+            scaler=None,
+            mask_generator=torch.Generator().manual_seed(2),
+            device=torch.device("cpu"),
+            selection_holdout={"seed": 1, "fraction": 0.2},
+            training_protocol=protocol,
+        )
 
 
 def test_main_fails_before_training_when_inputs_are_missing(tmp_path: Path, capsys) -> None:

@@ -106,6 +106,7 @@ def evaluate_grid(
     checkpoints: tuple[tuple[Path, Mapping[str, torch.Tensor]], ...],
     *,
     alphas: tuple[float, ...],
+    prepare: Callable[[], None] = lambda: None,
     evaluate: Callable[[], dict[str, float]],
 ) -> list[dict[str, Any]]:
     """Evaluate every suffix soup and interpolation in a stable registered order."""
@@ -113,7 +114,8 @@ def evaluate_grid(
     if not checkpoints:
         raise ValueError("at least one trajectory checkpoint is required")
     paths = tuple(path for path, _state in checkpoints)
-    if tuple(sorted(paths, key=_epoch)) != paths or len(set(paths)) != len(paths):
+    epochs = tuple(_epoch(path) for path in paths)
+    if tuple(sorted(paths, key=_epoch)) != paths or len(set(epochs)) != len(epochs):
         raise ValueError("trajectory checkpoints must have unique increasing epochs")
     if not alphas or any(
         type(alpha) is not float or not math.isfinite(alpha) or not 0.0 <= alpha <= 1.0
@@ -128,6 +130,7 @@ def evaluate_grid(
         for alpha in alphas:
             state = interpolate_model_states(initial, soup, alpha=alpha)
             model.load_state_dict(state, strict=True)
+            prepare()
             metrics = evaluate()
             if tuple(metrics) != (
                 "recall_at_1",
@@ -177,8 +180,12 @@ def _load_checkpoint_states(
     *,
     holdout_seed: int,
     holdout_fraction: float,
-) -> tuple[tuple[Path, Mapping[str, torch.Tensor]], ...]:
+) -> tuple[
+    tuple[tuple[Path, Mapping[str, torch.Tensor]], ...],
+    dict[str, object],
+]:
     result: list[tuple[Path, Mapping[str, torch.Tensor]]] = []
+    training_protocol: dict[str, object] | None = None
     for path in paths:
         checkpoint = torch.load(path, map_location="cpu", weights_only=False, mmap=True)
         if type(checkpoint) is not dict or checkpoint.get("epoch") != _epoch(path):
@@ -188,11 +195,60 @@ def _load_checkpoint_states(
             "fraction": holdout_fraction,
         }:
             raise ValueError(f"training checkpoint selection holdout differs: {path}")
+        checkpoint_protocol = checkpoint.get("training_protocol")
+        if type(checkpoint_protocol) is not dict or not checkpoint_protocol:
+            raise ValueError(f"training checkpoint training protocol differs: {path}")
+        if training_protocol is None:
+            training_protocol = checkpoint_protocol
+        elif checkpoint_protocol != training_protocol:
+            raise ValueError(f"training checkpoint training protocol differs: {path}")
         state = checkpoint.get("model")
         if type(state) not in (dict, OrderedDict):
             raise ValueError(f"training checkpoint model state differs: {path}")
         result.append((path, state))
-    return tuple(result)
+    if training_protocol is None:
+        raise ValueError("at least one trajectory checkpoint is required")
+    return tuple(result), training_protocol
+
+
+def recalibrate_batch_norm(model: torch.nn.Module, loader, *, device: torch.device) -> None:
+    """Recompute candidate BatchNorm statistics on optimization identities only."""
+
+    batch_norms = tuple(
+        module
+        for module in model.modules()
+        if isinstance(
+            module,
+            (
+                torch.nn.BatchNorm1d,
+                torch.nn.BatchNorm2d,
+                torch.nn.BatchNorm3d,
+                torch.nn.SyncBatchNorm,
+            ),
+        )
+    )
+    if not batch_norms:
+        model.eval()
+        return
+    momenta = tuple(module.momentum for module in batch_norms)
+    model.eval()
+    for module in batch_norms:
+        module.reset_running_stats()
+        module.momentum = None
+        module.train()
+    batches = 0
+    try:
+        with torch.inference_mode():
+            for batch in loader:
+                images = batch[0] if isinstance(batch, (tuple, list)) else batch
+                model(images.to(device, non_blocking=True))
+                batches += 1
+        if batches == 0:
+            raise ValueError("BatchNorm recalibration loader is empty")
+    finally:
+        for module, momentum in zip(batch_norms, momenta, strict=True):
+            module.momentum = momentum
+        model.eval()
 
 
 def _atomic_torch_save(value: object, path: Path) -> None:
@@ -231,6 +287,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from sfora.unicom_training import identity_holdout
 
     trainer = _load_trainer()
+    model_path = args.output_dir / "selected-model.pt"
+    report_path = args.output_dir / "selection.json"
+    for path in (model_path, report_path):
+        if path.exists() or path.with_name(f"{path.name}.tmp").exists():
+            raise FileExistsError(f"selection output already exists: {path}")
     if trainer._git_revision(args.unicom_checkout) != trainer.UNICOM_REVISION:
         raise ValueError("UNICOM checkout revision differs")
     if trainer._sha256_file(args.initial_checkpoint) != trainer.UNICOM_L14_336_SHA256:
@@ -239,7 +300,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("CUDA is required for UNICOM soup evaluation")
     records = parse_inshop_partition(args.dataset_root)
     train_records = tuple(record for record in records if record.split == "train")
-    _optimization, query, gallery, _labels = identity_holdout(
+    optimization, query, gallery, _labels = identity_holdout(
         train_records, fraction=args.holdout_fraction, seed=args.holdout_seed
     )
     if not query or not gallery:
@@ -250,16 +311,39 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     device = torch.device("cuda")
     model = model.to(device)
-    checkpoints = _load_checkpoint_states(
+    checkpoints, training_protocol = _load_checkpoint_states(
         tuple(args.trajectory_checkpoints),
         holdout_seed=args.holdout_seed,
         holdout_fraction=args.holdout_fraction,
+    )
+    expected_protocol_fields = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "unicom_revision": trainer.UNICOM_REVISION,
+        "initial_checkpoint_sha256": trainer.UNICOM_L14_336_SHA256,
+        "partition_sha256": trainer._sha256_file(
+            args.dataset_root / "Eval" / "list_eval_partition.txt"
+        ),
+        "holdout_seed": args.holdout_seed,
+        "holdout_fraction": args.holdout_fraction,
+        "selected_features": args.selected_features,
+    }
+    if any(training_protocol.get(key) != value for key, value in expected_protocol_fields.items()):
+        raise ValueError("training checkpoint protocol differs from soup inputs")
+    calibration_loader = torch.utils.data.DataLoader(
+        trainer.InshopEvalDataset(optimization, transform),
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.workers,
+        pin_memory=True,
+        drop_last=True,
+        persistent_workers=args.workers > 0,
     )
     candidates = evaluate_grid(
         model,
         initial,
         checkpoints,
         alphas=tuple(args.alphas),
+        prepare=lambda: recalibrate_batch_norm(model, calibration_loader, device=device),
         evaluate=lambda: trainer.evaluate_holdout(
             model,
             query,
@@ -275,17 +359,22 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint_by_epoch = {_epoch(path): state for path, state in checkpoints}
     soup = average_model_states(tuple(checkpoint_by_epoch[epoch] for epoch in selected["epochs"]))
     selected_state = interpolate_model_states(initial, soup, alpha=selected["alpha"])
+    model.load_state_dict(selected_state, strict=True)
+    recalibrate_batch_norm(model, calibration_loader, device=device)
+    selected_state = OrderedDict(
+        (name, value.detach().cpu().clone()) for name, value in model.state_dict().items()
+    )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    model_path = args.output_dir / "selected-model.pt"
-    report_path = args.output_dir / "selection.json"
     _atomic_torch_save(
         {"model": selected_state, "selection": selected},
         model_path,
     )
     report = {
-        "protocol": "unicom-train-identity-holdout-suffix-soup-wise-v1",
+        "protocol": "unicom-train-identity-holdout-suffix-soup-wise-v2",
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
+        "training_protocol": training_protocol,
+        "batch_norm_recalibration": "full-optimization-cumulative-batches",
         "selected": selected,
         "candidates": candidates,
         "model_path": str(model_path),

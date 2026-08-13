@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 SCRIPT = Path(__file__).parents[1] / "scripts/evaluate_unicom_checkpoint_soup.py"
 
@@ -130,6 +131,75 @@ def test_evaluate_grid_loads_each_real_interpolated_state() -> None:
     ]
 
 
+def test_evaluate_grid_rejects_duplicate_epoch_names_across_directories() -> None:
+    module = _load_script()
+    model = torch.nn.Linear(1, 1, bias=False)
+    initial = OrderedDict(weight=torch.tensor([[0.0]]))
+    checkpoints = (
+        (Path("run-a/epoch-0004.pt"), OrderedDict(weight=torch.tensor([[1.0]]))),
+        (Path("run-b/epoch-0004.pt"), OrderedDict(weight=torch.tensor([[2.0]]))),
+    )
+
+    with pytest.raises(ValueError, match="unique increasing epochs"):
+        module.evaluate_grid(
+            model,
+            initial,
+            checkpoints,
+            alphas=(1.0,),
+            prepare=lambda: None,
+            evaluate=lambda: {"recall_at_1": 1.0, "map_at_r": 1.0},
+        )
+
+
+def test_evaluate_grid_prepares_every_candidate_before_scoring() -> None:
+    module = _load_script()
+    model = torch.nn.Linear(1, 1, bias=False)
+    initial = OrderedDict(weight=torch.tensor([[0.0]]))
+    checkpoints = (
+        (Path("epoch-0001.pt"), OrderedDict(weight=torch.tensor([[1.0]]))),
+        (Path("epoch-0002.pt"), OrderedDict(weight=torch.tensor([[3.0]]))),
+    )
+    prepared: list[float] = []
+
+    candidates = module.evaluate_grid(
+        model,
+        initial,
+        checkpoints,
+        alphas=(1.0,),
+        prepare=lambda: prepared.append(float(model.weight.item())),
+        evaluate=lambda: {"recall_at_1": prepared[-1], "map_at_r": 0.0},
+    )
+
+    assert prepared == [3.0, 2.0]
+    assert [row["metrics"]["recall_at_1"] for row in candidates] == prepared
+
+
+def test_recalibrate_batch_norm_resets_and_updates_only_bn_statistics() -> None:
+    module = _load_script()
+    model = torch.nn.Sequential(
+        torch.nn.Linear(2, 2, bias=False),
+        torch.nn.BatchNorm1d(2, momentum=0.1),
+    )
+    with torch.no_grad():
+        model[0].weight.copy_(torch.eye(2))
+        model[1].running_mean.fill_(99.0)
+    model.eval()
+    loader = DataLoader(
+        TensorDataset(
+            torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]),
+            torch.arange(4),
+        ),
+        batch_size=2,
+    )
+
+    module.recalibrate_batch_norm(model, loader, device=torch.device("cpu"))
+
+    assert torch.equal(model[1].running_mean, torch.tensor([4.0, 5.0]))
+    assert model[1].num_batches_tracked.item() == 2
+    assert model[1].momentum == 0.1
+    assert not model.training and not model[1].training
+
+
 def test_checkpoint_loader_rejects_holdout_mismatch(tmp_path: Path) -> None:
     module = _load_script()
     path = tmp_path / "epoch-0001.pt"
@@ -144,3 +214,21 @@ def test_checkpoint_loader_rejects_holdout_mismatch(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="selection holdout differs"):
         module._load_checkpoint_states((path,), holdout_seed=0, holdout_fraction=0.2)
+
+
+def test_checkpoint_loader_rejects_mixed_training_protocols(tmp_path: Path) -> None:
+    module = _load_script()
+    paths = tuple(tmp_path / f"epoch-{epoch:04d}.pt" for epoch in (1, 2))
+    for epoch, path in enumerate(paths, start=1):
+        torch.save(
+            {
+                "epoch": epoch,
+                "model": OrderedDict(weight=torch.tensor([float(epoch)])),
+                "selection_holdout": {"seed": 0, "fraction": 0.2},
+                "training_protocol": {"seed": epoch - 1, "objective": "official-eight-mask"},
+            },
+            path,
+        )
+
+    with pytest.raises(ValueError, match="training protocol differs"):
+        module._load_checkpoint_states(paths, holdout_seed=0, holdout_fraction=0.2)
