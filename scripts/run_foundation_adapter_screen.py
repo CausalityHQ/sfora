@@ -20,9 +20,11 @@ from sfora.foundation_adapter import (
     NestedLinearAdapter,
     NestedResidualAdapter,
     cosine_margin_loss,
+    hardened_retrieval_folds,
     identity_balanced_batches,
     initialize_residual_from_linear,
     nested_embeddings,
+    retrieval_map_at_r,
     retrieval_recall_at_1,
     trainable_parameter_count,
 )
@@ -68,15 +70,20 @@ def _evaluate(
     gallery: torch.Tensor,
     gallery_labels: np.ndarray,
     prefixes: tuple[int, ...],
-) -> dict[int, float]:
+) -> dict[int, dict[str, float]]:
     model.eval()
     with torch.no_grad():
         query_outputs = nested_embeddings(model(query), prefixes)
         gallery_outputs = nested_embeddings(model(gallery), prefixes)
     return {
-        width: retrieval_recall_at_1(
-            query_outputs[width], query_labels, gallery_outputs[width], gallery_labels
-        )
+        width: {
+            "recall_at_1": retrieval_recall_at_1(
+                query_outputs[width], query_labels, gallery_outputs[width], gallery_labels
+            ),
+            "map_at_r": retrieval_map_at_r(
+                query_outputs[width], query_labels, gallery_outputs[width], gallery_labels
+            ),
+        }
         for width in prefixes
     }
 
@@ -89,9 +96,18 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     embeddings, ids, labels, metadata = _load_cache(args.train_cache)
-    optimization, query, gallery = _split_indexes(
-        ids, labels, fraction=args.validation_fraction, seed=args.split_seed
-    )
+    if args.hardened_fold is None:
+        optimization, query, gallery = _split_indexes(
+            ids, labels, fraction=args.validation_fraction, seed=args.split_seed
+        )
+    else:
+        folds = hardened_retrieval_folds(labels, seed=args.split_seed)
+        if not 0 <= args.hardened_fold < len(folds):
+            raise ValueError("hardened fold index differs from the four registered folds")
+        fold = folds[args.hardened_fold]
+        optimization = fold.optimization
+        query = fold.query
+        gallery = np.concatenate((fold.gallery, fold.distractor))
     train_labels_original = labels[optimization]
     eligible = sorted(
         int(label)
@@ -133,6 +149,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
     raw_recall = retrieval_recall_at_1(
         validation_query, query_labels, validation_gallery, gallery_labels
     )
+    raw_map = retrieval_map_at_r(
+        validation_query, query_labels, validation_gallery, gallery_labels
+    )
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
@@ -151,10 +170,14 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             config.prefixes,
         )
         history.append(
-            {"epoch": epoch, "recall_at_1": {str(width): recalls[width] for width in recalls}}
+            {
+                "epoch": epoch,
+                "metrics": {str(width): recalls[width] for width in recalls},
+            }
         )
-        if epoch > 0 and recalls[config.output_dim] > best_recall:
-            best_recall = recalls[config.output_dim]
+        selection_score = recalls[config.output_dim]["map_at_r"]
+        if epoch > 0 and selection_score > best_recall:
+            best_recall = selection_score
             best_epoch = epoch
             best_state = {
                 name: value.detach().cpu().clone() for name, value in model.state_dict().items()
@@ -209,8 +232,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "validation_query_rows": int(validation_query.shape[0]),
         "validation_gallery_rows": int(validation_gallery.shape[0]),
         "raw_recall_at_1": raw_recall,
+        "raw_map_at_r": raw_map,
         "best_epoch": best_epoch,
-        "validation_recall_at_1": {
+        "validation_metrics": {
             str(width): final_recalls[width] for width in config.prefixes
         },
         "trainable_parameters": trainable_parameter_count(model),
@@ -229,6 +253,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--split-seed", type=int, default=0)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
+    parser.add_argument("--hardened-fold", type=int)
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--learning-rate", type=float, default=0.001)
     parser.add_argument("--weight-decay", type=float, default=0.0001)
@@ -248,7 +273,7 @@ def main() -> None:
         "model",
         "seed",
         "best_epoch",
-        "validation_recall_at_1",
+        "validation_metrics",
         "training_seconds",
     )
     print(json.dumps({key: payload[key] for key in summary_keys}))

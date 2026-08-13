@@ -143,6 +143,9 @@ def test_hardened_folds_hold_out_a_permanent_distractor_pool() -> None:
         set(np.concatenate([labels[fold.query] for fold in folds]))
     )
     for fold in folds:
+        assert set(fold.optimization).isdisjoint(
+            np.concatenate((fold.query, fold.gallery, fold.distractor))
+        )
         assert set(fold.query).isdisjoint(fold.gallery)
         assert set(labels[fold.query]) == set(labels[fold.gallery])
 

@@ -51,6 +51,7 @@ class AdapterConfig:
 class HardenedRetrievalFold:
     """One unseen-identity evaluation fold with a permanent distractor pool."""
 
+    optimization: np.ndarray
     query: np.ndarray
     gallery: np.ndarray
     distractor: np.ndarray
@@ -200,6 +201,7 @@ def hardened_retrieval_folds(
     rng = np.random.default_rng(seed)
     identity_folds = tuple(np.array_split(rng.permutation(sorted(groups)), 5))
     distractor = np.concatenate([groups[int(label)] for label in identity_folds[4]])
+    all_rows = np.arange(labels.shape[0], dtype=np.int64)
     result = []
     for identity_fold in identity_folds[:4]:
         query_rows = []
@@ -209,8 +211,16 @@ def hardened_retrieval_folds(
             query_count = max(1, len(order) // 2)
             query_rows.append(order[:query_count])
             gallery_rows.append(order[query_count:])
+        evaluation_rows = np.concatenate(
+            (np.concatenate(query_rows), np.concatenate(gallery_rows), distractor)
+        )
         result.append(
             HardenedRetrievalFold(
+                optimization=np.setdiff1d(
+                    all_rows,
+                    evaluation_rows,
+                    assume_unique=True,
+                ),
                 query=np.concatenate(query_rows).astype(np.int64, copy=False),
                 gallery=np.concatenate(gallery_rows).astype(np.int64, copy=False),
                 distractor=distractor.astype(np.int64, copy=False),
