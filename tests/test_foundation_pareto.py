@@ -4,6 +4,7 @@ import json
 import os
 import platform
 from collections.abc import Sequence
+from copy import deepcopy
 from dataclasses import replace
 from importlib.metadata import version
 from pathlib import Path
@@ -56,6 +57,272 @@ def _canonical_json_digest(value: object) -> str:
         sort_keys=True,
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _identity_disjoint_examples() -> tuple[ImageExample, ...]:
+    return tuple(
+        ImageExample(example_id=f"label-{label}-row-{row}", image=None, label=label)
+        for label in (7, 19, 31, 47, 61, 89)
+        for row in range(3)
+    )
+
+
+def _valid_identity_disjoint_request(tmp_path: Path):
+    return foundation_pareto.IdentityDisjointComparatorRequest(
+        schema_version="foundation-identity-disjoint-comparator-request-v1",
+        dataset="inshop",
+        dataset_root=(tmp_path / "dataset").resolve(),
+        source_commit="a" * 40,
+        recipe_id="proxy_anchor.inshop.official-51db570",
+        recipe_digest="b" * 64,
+        outer_seed=0,
+        outer_fraction=0.2,
+        training_seed=2,
+        epochs=60,
+        checkpoint_path=(tmp_path / "output" / "comparator.pt").resolve(),
+        receipt_path=(tmp_path / "output" / "comparator.json").resolve(),
+        pretrained_backbone_path=(tmp_path / "backbone.pth").resolve(),
+        wall_clock_ceiling_seconds=9000,
+    )
+
+
+def _valid_identity_disjoint_receipt(
+    tmp_path: Path,
+    request: object,
+    split: object,
+) -> dict[str, object]:
+    role_digests = foundation_pareto.identity_disjoint_role_digests(split)
+    request_payload = {
+        **request.__dict__,
+        "dataset_root": str(request.dataset_root),
+        "checkpoint_path": str(request.checkpoint_path),
+        "receipt_path": str(request.receipt_path),
+        "pretrained_backbone_path": str(request.pretrained_backbone_path),
+    }
+    resolved_config = {
+        "seed": 2,
+        "train_epochs": 60,
+        "checkpoint_selection_interval": 0,
+        "eval_test_interval_epochs": 0,
+    }
+    resolved_config_sha256 = _canonical_json_digest(resolved_config)
+    return {
+        "schema_version": "foundation-identity-disjoint-comparator-receipt-v1",
+        "status": "VALID",
+        "request": request_payload,
+        "source": {
+            "commit": request.source_commit,
+            "files": [
+                {"path": "src/sfora/foundation_pareto.py", "sha256": "c" * 64},
+                {"path": "src/sfora/cli.py", "sha256": "d" * 64},
+            ],
+        },
+        "recipe": {
+            "id": request.recipe_id,
+            "digest": request.recipe_digest,
+            "resolved_config": resolved_config,
+            "resolved_config_sha256": resolved_config_sha256,
+        },
+        "split": role_digests,
+        "training": {
+            "seed": 2,
+            "epochs": 60,
+            "steps": 120,
+            "artifact_selection": "final_training_state",
+            "checkpoint_selection_interval": 0,
+            "eval_test_interval_epochs": 0,
+        },
+        "environment": {
+            "python_version": "3.12.3",
+            "torch_version": "2.12.1+cu130",
+            "numpy_version": "2.5.0",
+            "device_type": "cuda",
+            "device_name": "NVIDIA GB10",
+            "cublas_workspace_config": ":4096:8",
+            "deterministic_algorithms": True,
+        },
+        "checkpoint": {
+            "path": str(request.checkpoint_path),
+            "sha256": "e" * 64,
+            "mode": 0o600,
+            "size_bytes": 1024,
+            "resolved_config_sha256": resolved_config_sha256,
+        },
+        "diagnostic": {"heldout_recall_at_1": 0.91},
+        "official_test": {"consumed": False, "receipts": []},
+        "process": {
+            "pid": 123,
+            "started_at_utc": "2026-08-13T00:00:00Z",
+            "finished_at_utc": "2026-08-13T01:00:00Z",
+            "elapsed_seconds": 3600.0,
+            "exit_code": 0,
+        },
+    }
+
+
+def test_identity_disjoint_role_digests_bind_exact_order_and_labels() -> None:
+    split = foundation_pareto.build_identity_disjoint_validation_split(
+        _identity_disjoint_examples(),
+        fraction=0.2,
+        seed=0,
+    )
+
+    observed = foundation_pareto.identity_disjoint_role_digests(split)
+    roles = {
+        "optimization": [
+            {"example_id": row.example_id, "label": int(row.label)} for row in split.optimization
+        ],
+        "query": [{"example_id": row.example_id, "label": int(row.label)} for row in split.query],
+        "gallery": [
+            {"example_id": row.example_id, "label": int(row.label)} for row in split.gallery
+        ],
+    }
+    expected = {
+        "split_sha256": _canonical_json_digest(roles),
+        "optimization_example_ids_sha256": _canonical_json_digest(
+            [row["example_id"] for row in roles["optimization"]]
+        ),
+        "query_example_ids_sha256": _canonical_json_digest(
+            [row["example_id"] for row in roles["query"]]
+        ),
+        "gallery_example_ids_sha256": _canonical_json_digest(
+            [row["example_id"] for row in roles["gallery"]]
+        ),
+        "optimization_count": len(split.optimization),
+        "query_count": len(split.query),
+        "gallery_count": len(split.gallery),
+        "optimization_label_count": len({int(row.label) for row in split.optimization}),
+        "heldout_label_count": len({int(row.label) for row in split.query}),
+        "identity_disjoint": True,
+    }
+    assert observed == expected
+    assert list(observed) == list(expected)
+
+    reordered = replace(split, optimization=list(reversed(split.optimization)))
+    assert (
+        foundation_pareto.identity_disjoint_role_digests(reordered)["split_sha256"]
+        != observed["split_sha256"]
+    )
+    overlapping = replace(
+        split,
+        query=[replace(split.query[0], label=split.optimization[0].label), *split.query[1:]],
+    )
+    with pytest.raises(ValueError, match="identity-disjoint"):
+        foundation_pareto.identity_disjoint_role_digests(overlapping)
+
+
+def test_identity_disjoint_comparator_receipt_schema_is_exact(tmp_path: Path) -> None:
+    request = _valid_identity_disjoint_request(tmp_path)
+    split = foundation_pareto.build_identity_disjoint_validation_split(
+        _identity_disjoint_examples(),
+        fraction=0.2,
+        seed=0,
+    )
+    receipt = _valid_identity_disjoint_receipt(tmp_path, request, split)
+
+    validated = foundation_pareto.validate_identity_disjoint_comparator_receipt(
+        receipt,
+        request=request,
+    )
+    assert validated == receipt
+
+    mutations: list[dict[str, object]] = []
+    missing = json.loads(json.dumps(receipt))
+    del missing["checkpoint"]["sha256"]
+    mutations.append(missing)
+    extra = json.loads(json.dumps(receipt))
+    extra["split"]["unexpected"] = True
+    mutations.append(extra)
+    wrong_order = {key: receipt[key] for key in reversed(receipt)}
+    mutations.append(wrong_order)
+    wrong_request = json.loads(json.dumps(receipt))
+    wrong_request["request"]["training_seed"] = 0
+    mutations.append(wrong_request)
+    wrong_config = json.loads(json.dumps(receipt))
+    wrong_config["recipe"]["resolved_config_sha256"] = "f" * 64
+    mutations.append(wrong_config)
+    wrong_checkpoint_config = json.loads(json.dumps(receipt))
+    wrong_checkpoint_config["checkpoint"]["resolved_config_sha256"] = "f" * 64
+    mutations.append(wrong_checkpoint_config)
+    wrong_selection = json.loads(json.dumps(receipt))
+    wrong_selection["training"]["artifact_selection"] = "best_validation_state"
+    mutations.append(wrong_selection)
+    consumed = json.loads(json.dumps(receipt))
+    consumed["official_test"]["consumed"] = True
+    mutations.append(consumed)
+    wrong_elapsed = json.loads(json.dumps(receipt))
+    wrong_elapsed["process"]["elapsed_seconds"] = 9000.0001
+    mutations.append(wrong_elapsed)
+    wrong_float_type = json.loads(json.dumps(receipt))
+    wrong_float_type["diagnostic"]["heldout_recall_at_1"] = 1
+    mutations.append(wrong_float_type)
+
+    for mutation in mutations:
+        with pytest.raises((TypeError, ValueError)):
+            foundation_pareto.validate_identity_disjoint_comparator_receipt(
+                mutation,
+                request=request,
+            )
+
+
+@pytest.mark.parametrize(
+    ("path", "equal_wrong_type"),
+    [
+        (("schema_version",), np.str_("foundation-identity-disjoint-comparator-receipt-v1")),
+        (("status",), np.str_("VALID")),
+        (("request", "outer_seed"), False),
+        (("request", "outer_fraction"), np.float64(0.2)),
+        (("training", "checkpoint_selection_interval"), False),
+        (("training", "eval_test_interval_epochs"), False),
+        (("environment", "device_type"), np.str_("cuda")),
+        (("environment", "cublas_workspace_config"), np.str_(":4096:8")),
+        (("training", "artifact_selection"), np.str_("final_training_state")),
+    ],
+)
+def test_identity_disjoint_receipt_rejects_equal_wrong_builtin_types(
+    tmp_path: Path,
+    path: tuple[str, ...],
+    equal_wrong_type: object,
+) -> None:
+    request = _valid_identity_disjoint_request(tmp_path)
+    split = foundation_pareto.build_identity_disjoint_validation_split(
+        _identity_disjoint_examples(),
+        fraction=0.2,
+        seed=0,
+    )
+    mutation = deepcopy(_valid_identity_disjoint_receipt(tmp_path, request, split))
+    cursor = mutation
+    for key in path[:-1]:
+        cursor = cursor[key]
+    cursor[path[-1]] = equal_wrong_type
+
+    with pytest.raises((TypeError, ValueError)):
+        foundation_pareto.validate_identity_disjoint_comparator_receipt(
+            mutation,
+            request=request,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("dataset", "sop"),
+        ("outer_seed", 1),
+        ("outer_fraction", 0.25),
+        ("training_seed", 0),
+        ("epochs", 59),
+        ("wall_clock_ceiling_seconds", 8999),
+        ("checkpoint_path", Path("relative.pt")),
+    ],
+)
+def test_identity_disjoint_request_rejects_protocol_drift(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    request = _valid_identity_disjoint_request(tmp_path)
+    with pytest.raises(ValueError):
+        replace(request, **{field: value})
 
 
 def _remote_spec(**changes: object) -> RemoteFoundationModelSpec:

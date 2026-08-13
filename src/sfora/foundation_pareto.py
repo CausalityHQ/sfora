@@ -40,6 +40,9 @@ FOUNDATION_PUBLISHED_METRICS = (
 FOUNDATION_DATASETS = ("cub", "cars", "sop", "inshop", "inat2018")
 FOUNDATION_TEST_READ_PURPOSE = "registered_f1_quality_evaluation"
 
+_IDENTITY_DISJOINT_REQUEST_SCHEMA = "foundation-identity-disjoint-comparator-request-v1"
+_IDENTITY_DISJOINT_RECEIPT_SCHEMA = "foundation-identity-disjoint-comparator-receipt-v1"
+
 
 def _require_foundation_dataset(value: object) -> str:
     if type(value) is not str or value not in FOUNDATION_DATASETS:
@@ -85,6 +88,426 @@ class F1Decision:
         "resolve_local_comparator",
     ]
     fidelity_only: bool
+
+
+@dataclass(frozen=True)
+class IdentityDisjointComparatorRequest:
+    """Prospective authority for one identity-disjoint Proxy Anchor training run."""
+
+    schema_version: str
+    dataset: str
+    dataset_root: Path
+    source_commit: str
+    recipe_id: str
+    recipe_digest: str
+    outer_seed: int
+    outer_fraction: float
+    training_seed: int
+    epochs: int
+    checkpoint_path: Path
+    receipt_path: Path
+    pretrained_backbone_path: Path
+    wall_clock_ceiling_seconds: int
+
+    def __post_init__(self) -> None:
+        if self.schema_version != _IDENTITY_DISJOINT_REQUEST_SCHEMA:
+            raise ValueError("identity-disjoint request schema differs")
+        if self.dataset != "inshop":
+            raise ValueError("identity-disjoint comparator is registered only for inshop")
+        if (
+            type(self.source_commit) is not str
+            or _GIT_REVISION.fullmatch(self.source_commit) is None
+        ):
+            raise ValueError("identity-disjoint source commit differs")
+        if self.recipe_id != "proxy_anchor.inshop.official-51db570":
+            raise ValueError("identity-disjoint recipe differs")
+        _require_sha256("identity-disjoint recipe digest", self.recipe_digest)
+        if type(self.outer_seed) is not int or self.outer_seed != 0:
+            raise ValueError("identity-disjoint outer seed differs")
+        if type(self.outer_fraction) is not float or self.outer_fraction != 0.2:
+            raise ValueError("identity-disjoint outer fraction differs")
+        if type(self.training_seed) is not int or self.training_seed != 2:
+            raise ValueError("identity-disjoint training seed differs")
+        if type(self.epochs) is not int or self.epochs != 60:
+            raise ValueError("identity-disjoint epoch count differs")
+        if (
+            type(self.wall_clock_ceiling_seconds) is not int
+            or self.wall_clock_ceiling_seconds != 9000
+        ):
+            raise ValueError("identity-disjoint wall-clock ceiling differs")
+        for name in (
+            "dataset_root",
+            "checkpoint_path",
+            "receipt_path",
+            "pretrained_backbone_path",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, Path) or not value.is_absolute() or value != value.resolve():
+                raise ValueError(f"identity-disjoint {name} must be an absolute normalized Path")
+        if self.checkpoint_path == self.receipt_path:
+            raise ValueError("identity-disjoint checkpoint and receipt paths must differ")
+
+
+def _identity_disjoint_request_payload(
+    request: IdentityDisjointComparatorRequest,
+) -> dict[str, object]:
+    return {
+        "schema_version": request.schema_version,
+        "dataset": request.dataset,
+        "dataset_root": str(request.dataset_root),
+        "source_commit": request.source_commit,
+        "recipe_id": request.recipe_id,
+        "recipe_digest": request.recipe_digest,
+        "outer_seed": request.outer_seed,
+        "outer_fraction": request.outer_fraction,
+        "training_seed": request.training_seed,
+        "epochs": request.epochs,
+        "checkpoint_path": str(request.checkpoint_path),
+        "receipt_path": str(request.receipt_path),
+        "pretrained_backbone_path": str(request.pretrained_backbone_path),
+        "wall_clock_ceiling_seconds": request.wall_clock_ceiling_seconds,
+    }
+
+
+def identity_disjoint_role_digests(split: RecipeSelectionSplit) -> dict[str, object]:
+    """Bind exact outer-role order, IDs, labels, and identity separation."""
+
+    if not isinstance(split, RecipeSelectionSplit):
+        raise ValueError("identity-disjoint split must be a RecipeSelectionSplit")
+    roles = {
+        "optimization": [
+            {"example_id": row.example_id, "label": int(row.label)} for row in split.optimization
+        ],
+        "query": [{"example_id": row.example_id, "label": int(row.label)} for row in split.query],
+        "gallery": [
+            {"example_id": row.example_id, "label": int(row.label)} for row in split.gallery
+        ],
+    }
+    flattened = [row["example_id"] for rows in roles.values() for row in rows]
+    if any(type(value) is not str or not value for value in flattened):
+        raise ValueError("identity-disjoint example IDs must be nonempty builtin strings")
+    if len(flattened) != len(set(flattened)):
+        raise ValueError("identity-disjoint example IDs must be unique across roles")
+    optimization_labels = {int(row.label) for row in split.optimization}
+    query_labels = {int(row.label) for row in split.query}
+    gallery_labels = {int(row.label) for row in split.gallery}
+    if not optimization_labels.isdisjoint(query_labels | gallery_labels):
+        raise ValueError("identity-disjoint optimization and heldout labels overlap")
+    if query_labels != gallery_labels or not query_labels:
+        raise ValueError("identity-disjoint query/gallery labels differ")
+    if not split.optimization:
+        raise ValueError("identity-disjoint optimization role is empty")
+    return {
+        "split_sha256": sha256(_identity_disjoint_json_bytes(roles)).hexdigest(),
+        "optimization_example_ids_sha256": sha256(
+            _canonical_json_bytes([row["example_id"] for row in roles["optimization"]])
+        ).hexdigest(),
+        "query_example_ids_sha256": sha256(
+            _canonical_json_bytes([row["example_id"] for row in roles["query"]])
+        ).hexdigest(),
+        "gallery_example_ids_sha256": sha256(
+            _canonical_json_bytes([row["example_id"] for row in roles["gallery"]])
+        ).hexdigest(),
+        "optimization_count": len(split.optimization),
+        "query_count": len(split.query),
+        "gallery_count": len(split.gallery),
+        "optimization_label_count": len(optimization_labels),
+        "heldout_label_count": len(query_labels),
+        "identity_disjoint": True,
+    }
+
+
+def _require_exact_builtin_float(
+    name: str,
+    value: object,
+    *,
+    minimum: float,
+    maximum: float,
+) -> float:
+    if type(value) is not float or not isfinite(value) or not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be a finite builtin float in [{minimum}, {maximum}]")
+    return value
+
+
+def _identity_disjoint_json_bytes(value: object) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ValueError("identity-disjoint value is not canonical JSON data") from error
+
+
+def _require_exact_typed_json(name: str, observed: object, expected: object) -> None:
+    if type(observed) is not type(expected):
+        raise TypeError(f"{name} has a non-builtin or incorrect JSON type")
+    if type(expected) is dict:
+        observed_dict = cast(dict[str, object], observed)
+        expected_dict = cast(dict[str, object], expected)
+        if tuple(observed_dict) != tuple(expected_dict):
+            raise ValueError(f"{name} key order differs")
+        for key in expected_dict:
+            _require_exact_typed_json(
+                f"{name}.{key}",
+                observed_dict[key],
+                expected_dict[key],
+            )
+        return
+    if type(expected) is list:
+        observed_list = cast(list[object], observed)
+        expected_list = cast(list[object], expected)
+        if len(observed_list) != len(expected_list):
+            raise ValueError(f"{name} list length differs")
+        for index, (observed_item, expected_item) in enumerate(
+            zip(observed_list, expected_list, strict=True)
+        ):
+            _require_exact_typed_json(
+                f"{name}[{index}]",
+                observed_item,
+                expected_item,
+            )
+        return
+    if observed != expected:
+        raise ValueError(f"{name} value differs")
+
+
+def validate_identity_disjoint_comparator_receipt(
+    value: object,
+    *,
+    request: IdentityDisjointComparatorRequest,
+) -> dict[str, object]:
+    """Strictly validate one persisted identity-disjoint comparator receipt."""
+
+    if type(value) is not dict:
+        raise TypeError("identity-disjoint receipt must be a builtin dictionary")
+    _require_ordered_keys(
+        value,
+        (
+            "schema_version",
+            "status",
+            "request",
+            "source",
+            "recipe",
+            "split",
+            "training",
+            "environment",
+            "checkpoint",
+            "diagnostic",
+            "official_test",
+            "process",
+        ),
+        name="identity-disjoint receipt",
+    )
+    if (
+        type(value["schema_version"]) is not str
+        or value["schema_version"] != _IDENTITY_DISJOINT_RECEIPT_SCHEMA
+    ):
+        raise ValueError("identity-disjoint receipt schema differs")
+    if type(value["status"]) is not str or value["status"] != "VALID":
+        raise ValueError("identity-disjoint receipt status differs")
+    request_value = value["request"]
+    _require_exact_typed_json(
+        "identity-disjoint receipt request",
+        request_value,
+        _identity_disjoint_request_payload(request),
+    )
+
+    source = value["source"]
+    if type(source) is not dict:
+        raise TypeError("identity-disjoint source audit must be a builtin dictionary")
+    _require_ordered_keys(source, ("commit", "files"), name="identity-disjoint source audit")
+    if source["commit"] != request.source_commit:
+        raise ValueError("identity-disjoint source commit differs")
+    files = source["files"]
+    if type(files) is not list or not files:
+        raise ValueError("identity-disjoint source files differ")
+    observed_paths: set[str] = set()
+    for row in files:
+        if type(row) is not dict:
+            raise TypeError("identity-disjoint source row must be a builtin dictionary")
+        _require_ordered_keys(row, ("path", "sha256"), name="identity-disjoint source row")
+        _require_nonempty("identity-disjoint source path", row["path"])
+        _require_sha256("identity-disjoint source sha256", row["sha256"])
+        if row["path"] in observed_paths:
+            raise ValueError("identity-disjoint source paths must be unique")
+        observed_paths.add(row["path"])
+
+    recipe = value["recipe"]
+    if type(recipe) is not dict:
+        raise TypeError("identity-disjoint recipe audit must be a builtin dictionary")
+    _require_ordered_keys(
+        recipe,
+        ("id", "digest", "resolved_config", "resolved_config_sha256"),
+        name="identity-disjoint recipe audit",
+    )
+    if recipe["id"] != request.recipe_id or recipe["digest"] != request.recipe_digest:
+        raise ValueError("identity-disjoint recipe authority differs")
+    if type(recipe["resolved_config"]) is not dict:
+        raise TypeError("identity-disjoint resolved config must be a builtin dictionary")
+    expected_config_sha = sha256(
+        _identity_disjoint_json_bytes(recipe["resolved_config"])
+    ).hexdigest()
+    if recipe["resolved_config_sha256"] != expected_config_sha:
+        raise ValueError("identity-disjoint resolved config digest differs")
+
+    split = value["split"]
+    if type(split) is not dict:
+        raise TypeError("identity-disjoint split audit must be a builtin dictionary")
+    split_keys = (
+        "split_sha256",
+        "optimization_example_ids_sha256",
+        "query_example_ids_sha256",
+        "gallery_example_ids_sha256",
+        "optimization_count",
+        "query_count",
+        "gallery_count",
+        "optimization_label_count",
+        "heldout_label_count",
+        "identity_disjoint",
+    )
+    _require_ordered_keys(split, split_keys, name="identity-disjoint split audit")
+    for key in split_keys[:4]:
+        _require_sha256(f"identity-disjoint {key}", split[key])
+    for key in split_keys[4:9]:
+        if type(split[key]) is not int or split[key] <= 0:
+            raise ValueError(f"identity-disjoint {key} must be a positive builtin integer")
+    if split["identity_disjoint"] is not True:
+        raise ValueError("identity-disjoint split relation differs")
+
+    training = value["training"]
+    if type(training) is not dict:
+        raise TypeError("identity-disjoint training audit must be a builtin dictionary")
+    _require_ordered_keys(
+        training,
+        (
+            "seed",
+            "epochs",
+            "steps",
+            "artifact_selection",
+            "checkpoint_selection_interval",
+            "eval_test_interval_epochs",
+        ),
+        name="identity-disjoint training audit",
+    )
+    if training["seed"] != request.training_seed or type(training["seed"]) is not int:
+        raise ValueError("identity-disjoint observed training seed differs")
+    if training["epochs"] != request.epochs or type(training["epochs"]) is not int:
+        raise ValueError("identity-disjoint observed epochs differ")
+    if type(training["steps"]) is not int or training["steps"] <= 0:
+        raise ValueError("identity-disjoint training steps differ")
+    if (
+        type(training["artifact_selection"]) is not str
+        or training["artifact_selection"] != "final_training_state"
+    ):
+        raise ValueError("identity-disjoint artifact selection differs")
+    if (
+        type(training["checkpoint_selection_interval"]) is not int
+        or training["checkpoint_selection_interval"] != 0
+    ):
+        raise ValueError("identity-disjoint checkpoint selection must be disabled")
+    if (
+        type(training["eval_test_interval_epochs"]) is not int
+        or training["eval_test_interval_epochs"] != 0
+    ):
+        raise ValueError("identity-disjoint periodic heldout evaluation must be disabled")
+
+    environment = value["environment"]
+    if type(environment) is not dict:
+        raise TypeError("identity-disjoint environment must be a builtin dictionary")
+    _require_ordered_keys(
+        environment,
+        (
+            "python_version",
+            "torch_version",
+            "numpy_version",
+            "device_type",
+            "device_name",
+            "cublas_workspace_config",
+            "deterministic_algorithms",
+        ),
+        name="identity-disjoint environment",
+    )
+    for key in ("python_version", "torch_version", "numpy_version", "device_name"):
+        _require_nonempty(f"identity-disjoint {key}", environment[key])
+    if type(environment["device_type"]) is not str or environment["device_type"] != "cuda":
+        raise ValueError("identity-disjoint device type differs")
+    if (
+        type(environment["cublas_workspace_config"]) is not str
+        or environment["cublas_workspace_config"] != ":4096:8"
+    ):
+        raise ValueError("identity-disjoint CUBLAS workspace differs")
+    if environment["deterministic_algorithms"] is not True:
+        raise ValueError("identity-disjoint deterministic algorithms differ")
+
+    checkpoint = value["checkpoint"]
+    if type(checkpoint) is not dict:
+        raise TypeError("identity-disjoint checkpoint audit must be a builtin dictionary")
+    _require_ordered_keys(
+        checkpoint,
+        ("path", "sha256", "mode", "size_bytes", "resolved_config_sha256"),
+        name="identity-disjoint checkpoint audit",
+    )
+    if checkpoint["path"] != str(request.checkpoint_path):
+        raise ValueError("identity-disjoint checkpoint path differs")
+    _require_sha256("identity-disjoint checkpoint sha256", checkpoint["sha256"])
+    if type(checkpoint["mode"]) is not int or checkpoint["mode"] != 0o600:
+        raise ValueError("identity-disjoint checkpoint mode differs")
+    if type(checkpoint["size_bytes"]) is not int or checkpoint["size_bytes"] <= 0:
+        raise ValueError("identity-disjoint checkpoint size differs")
+    if checkpoint["resolved_config_sha256"] != expected_config_sha:
+        raise ValueError("identity-disjoint checkpoint config digest differs")
+
+    diagnostic = value["diagnostic"]
+    if type(diagnostic) is not dict:
+        raise TypeError("identity-disjoint diagnostic must be a builtin dictionary")
+    _require_ordered_keys(
+        diagnostic,
+        ("heldout_recall_at_1",),
+        name="identity-disjoint diagnostic",
+    )
+    _require_exact_builtin_float(
+        "identity-disjoint heldout R@1",
+        diagnostic["heldout_recall_at_1"],
+        minimum=0.0,
+        maximum=1.0,
+    )
+
+    official = value["official_test"]
+    if type(official) is not dict:
+        raise TypeError("identity-disjoint official-test audit must be a builtin dictionary")
+    _require_ordered_keys(
+        official,
+        ("consumed", "receipts"),
+        name="identity-disjoint official-test audit",
+    )
+    if official["consumed"] is not False or official["receipts"] != []:
+        raise ValueError("identity-disjoint training consumed official-test capability")
+
+    process = value["process"]
+    if type(process) is not dict:
+        raise TypeError("identity-disjoint process audit must be a builtin dictionary")
+    _require_ordered_keys(
+        process,
+        ("pid", "started_at_utc", "finished_at_utc", "elapsed_seconds", "exit_code"),
+        name="identity-disjoint process audit",
+    )
+    if type(process["pid"]) is not int or process["pid"] <= 0:
+        raise ValueError("identity-disjoint process PID differs")
+    for key in ("started_at_utc", "finished_at_utc"):
+        _require_nonempty(f"identity-disjoint {key}", process[key])
+    _require_exact_builtin_float(
+        "identity-disjoint elapsed seconds",
+        process["elapsed_seconds"],
+        minimum=0.0,
+        maximum=float(request.wall_clock_ceiling_seconds),
+    )
+    if process["exit_code"] != 0 or type(process["exit_code"]) is not int:
+        raise ValueError("identity-disjoint process exit code differs")
+    return value
 
 
 def build_identity_disjoint_validation_split(
