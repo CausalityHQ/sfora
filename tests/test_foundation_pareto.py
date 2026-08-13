@@ -3414,6 +3414,38 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
         )
 
 
+def test_foundation_screen_rejects_wrong_cublas_workspace_before_authority_loading(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_foundation_model_specs",
+        lambda path: (_ for _ in ()).throw(
+            AssertionError("authority loading reached with wrong CUBLAS configuration")
+        ),
+    )
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+
+    with pytest.raises(ValueError, match="CUBLAS_WORKSPACE_CONFIG differs"):
+        foundation_pareto.run_foundation_screen(
+            dataset="sop",
+            dataset_root=tmp_path,
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=tmp_path / "report.json",
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=0,
+            validation_fraction=0.2,
+            allow_registered_test_read=False,
+        )
+
+
 def test_foundation_geometry_excludes_self_for_self_retrieval_protocol() -> None:
     embeddings = np.asarray(
         [

@@ -3337,6 +3337,8 @@ def run_foundation_screen(
     if type(allow_registered_test_read) is not bool:
         raise ValueError("allow_registered_test_read must be a builtin boolean")
     os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    if os.environ["CUBLAS_WORKSPACE_CONFIG"] != ":4096:8":
+        raise ValueError("CUBLAS_WORKSPACE_CONFIG differs from registered :4096:8")
     if cache_dir.is_symlink() or not cache_dir.is_dir():
         raise ValueError("foundation cache directory must be a real directory")
     if report_path.parent.is_symlink() or not report_path.parent.is_dir():
