@@ -23,8 +23,8 @@
     "reviewed_commit": "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
     "implementation_plan": {
       "path": "docs/superpowers/plans/2026-08-13-foundation-identity-disjoint-comparator.md",
-      "commit": "71b5885f516ab74352dcd73f42a22f53ddb3c1d0",
-      "sha256": "f1c9e23c4a2136c35743684cdc72e904b37c0e9d904aa12a180bc154313c07de"
+      "commit": "a4e69a0dcad15f551d6715d234ada834f59acc0b",
+      "sha256": "5de6048581a45fe79dcdee99ed3547e049779bf02b70648060b02d403dee338c"
     },
     "files": [
       {"path": "src/sfora/foundation_pareto.py", "sha256": "b0083a07982264584d18bc445d3a125f75e546a9075b5e11f4c8605020670ecf"},
