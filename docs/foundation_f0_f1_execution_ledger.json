@@ -1,6 +1,6 @@
 {
   "schema_version": "foundation-f0-f1-execution-ledger-v1",
-  "status": "frozen",
+  "status": "superseded_before_execution",
   "frozen_at_utc": "2026-08-13T11:00:19Z",
   "execution_host": {
     "ssh_target": "riomus@spark-2751",
@@ -25,6 +25,17 @@
     "remaining": 6.0,
     "concurrent_processes": 1
   },
+  "chronology": {
+    "old_comparator_review_completed": true,
+    "old_comparator_identity_exposure_defect_found_before_execution": true,
+    "old_authority_authorized_execution": false,
+    "train_only_processes_launched": 0,
+    "official_test_reads_consumed": 0,
+    "superseding_amendment_commit": "e82f77a4ab444c49e32784e98633a28c1fe09cdb",
+    "superseding_reviewed_source_commit": "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
+    "deciding_dataset": "inshop",
+    "sop_conjoined": false
+  },
   "screen_parameters": {
     "validation_seed": 0,
     "validation_fraction": 0.2,
@@ -36,7 +47,7 @@
     "quality_gap_points": "round(candidate_validation_recall_at_1_points - comparator_validation_recall_at_1_points, 9)",
     "quality_margin_continue": "quality_gap_points >= -1.0",
     "pareto_equivalent_continue": "abs(quality_gap_points) <= 0.40 and candidate_p95_ms <= comparator_p95_ms and candidate_descriptor_bytes <= comparator_descriptor_bytes and at least one cost inequality is strict",
-    "overall_continue": "every dataset train-only report is CONTINUE before any official read addendum may be proposed",
+    "overall_continue": "the single In-Shop train-only report is CONTINUE before any official read addendum may be proposed",
     "otherwise": "CLOSE_FOUNDATION_TRANSFER or UNAVAILABLE_COMPARATOR; no official read"
   },
   "authorities": [
@@ -126,11 +137,11 @@
     "reverify_existing_registered_receipt_root_is_real_mode_0700_and_empty",
     "start_exact_inshop_train_only_command_without_official_test_access",
     "treat_its_comparator_first_fixture_cache_profile_probe_prefix_as_the_source_fidelity_and_anchor_f0_gate",
-    "train_validation_inshop",
-    "train_validation_sop",
+    "train_validation_inshop_only",
     "strict_reload_and_decide_f1",
+    "require_each_report_source_commit_equals_c480bc61ce278b708d742ab097d1516268928450",
     "stop_if_f1_close_or_unavailable",
-    "if_f1_continue_commit_and_review_a_separate_official_read_addendum_binding_both_train_report_hashes_and_decision_hashes",
+    "if_f1_continue_commit_and_review_a_separate_official_read_addendum_binding_the_inshop_train_report_hash_and_decision_hash",
     "registered_official_reads_only_under_that_addendum"
   ],
   "train_only_commands": [
@@ -138,18 +149,13 @@
       "env", "PYTHONPATH=/home/riomus/foundation-f0-f1-c480bc61/src", "CUBLAS_WORKSPACE_CONFIG=:4096:8", "CUDA_VISIBLE_DEVICES=0",
       "/home/riomus/group-learning/.venv/bin/python", "-m", "sfora.cli", "foundation-screen",
       "--dataset", "inshop", "--dataset-root", "/home/riomus/datasets/inshop_official_standard",
-      "--model-specs", "docs/foundation_model_specs.json",
+      "--model-specs", "/home/riomus/foundation-f0-f1-c480bc61/docs/foundation_model_specs.json",
+      "--fixture-authority", "/home/riomus/foundation-f0-f1-c480bc61/docs/foundation_native_fixtures.json",
+      "--tolerance-authority", "/home/riomus/foundation-f0-f1-c480bc61/docs/foundation_metric_tolerances.json",
+      "--published-register", "/home/riomus/foundation-f0-f1-c480bc61/docs/foundation_published_metric_register.json",
+      "--test-read-register", "/home/riomus/foundation-f0-f1-c480bc61/docs/foundation_test_read_register.json",
       "--cache-dir", "/home/riomus/group-learning/reports/generated/foundation_f0_f1_c480bc61ce278b708d742ab097d1516268928450_cache",
       "--report", "/home/riomus/group-learning/reports/generated/foundation_f0_f1_c480bc61ce278b708d742ab097d1516268928450_inshop.json",
-      "--validation-seed", "0", "--validation-fraction", "0.2"
-    ],
-    [
-      "env", "PYTHONPATH=/home/riomus/foundation-f0-f1-c480bc61/src", "CUBLAS_WORKSPACE_CONFIG=:4096:8", "CUDA_VISIBLE_DEVICES=0",
-      "/home/riomus/group-learning/.venv/bin/python", "-m", "sfora.cli", "foundation-screen",
-      "--dataset", "sop", "--dataset-root", "/home/riomus/datasets/Stanford_Online_Products",
-      "--model-specs", "docs/foundation_model_specs.json",
-      "--cache-dir", "/home/riomus/group-learning/reports/generated/foundation_f0_f1_c480bc61ce278b708d742ab097d1516268928450_cache",
-      "--report", "/home/riomus/group-learning/reports/generated/foundation_f0_f1_c480bc61ce278b708d742ab097d1516268928450_sop.json",
       "--validation-seed", "0", "--validation-fraction", "0.2"
     ]
   ],

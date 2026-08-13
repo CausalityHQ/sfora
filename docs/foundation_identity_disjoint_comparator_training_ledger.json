@@ -1,0 +1,145 @@
+{
+  "schema_version": "foundation-identity-disjoint-comparator-training-ledger-v1",
+  "status": "frozen_before_execution",
+  "frozen_at_utc": "2026-08-13T13:29:00Z",
+  "execution_host": {
+    "ssh_target": "riomus@spark-2751",
+    "hostname": "spark-2751",
+    "repository_checkout": "/home/riomus/foundation-comparator-3267fc6e",
+    "working_directory": "/home/riomus/foundation-comparator-3267fc6e",
+    "reviewed_source_commit": "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
+    "runtime": {
+      "base_venv": "/home/riomus/group-learning/.venv",
+      "isolated_venv": "/home/riomus/foundation-comparator-3267fc6e/.venv",
+      "interpreter": "/home/riomus/foundation-comparator-3267fc6e/.venv/bin/python",
+      "python": "3.13.9",
+      "torch": "2.12.1+cu130",
+      "numpy": "2.5.0",
+      "cuda": "13.0",
+      "device": "NVIDIA GB10"
+    }
+  },
+  "source": {
+    "reviewed_commit": "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
+    "implementation_plan": {
+      "path": "docs/superpowers/plans/2026-08-13-foundation-identity-disjoint-comparator.md",
+      "commit": "71b5885f516ab74352dcd73f42a22f53ddb3c1d0",
+      "sha256": "f1c9e23c4a2136c35743684cdc72e904b37c0e9d904aa12a180bc154313c07de"
+    },
+    "files": [
+      {"path": "src/sfora/foundation_pareto.py", "sha256": "b0083a07982264584d18bc445d3a125f75e546a9075b5e11f4c8605020670ecf"},
+      {"path": "src/sfora/cli.py", "sha256": "421ab3112c082ea29359b2289be71649781fcb56088b174cf9679339c4c0d57e"},
+      {"path": "tests/test_foundation_pareto.py", "sha256": "344c0469ce2b30bc60f77a20de2281b470b86dbadcf6565b343ccde435c485c2"},
+      {"path": "tests/test_cli.py", "sha256": "d641e694939f3c40cf59e30e8eb4bd43aceb357445f0b936dc8563760744744f"}
+    ]
+  },
+  "amendment": {
+    "path": "docs/superpowers/specs/2026-08-13-foundation-identity-disjoint-comparator-amendment.md",
+    "commit": "e82f77a4ab444c49e32784e98633a28c1fe09cdb",
+    "sha256": "539f677b452c35d1cd638d10eb95d753904715ce634d8f9de82bbb93dc459fb8"
+  },
+  "dataset": {
+    "name": "inshop",
+    "root": "/home/riomus/datasets/inshop_official_standard",
+    "partition": "train",
+    "metadata_path": "/home/riomus/datasets/inshop_official_standard/Eval/list_eval_partition.txt",
+    "metadata_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+    "official_query_gallery_consumption_authorized": false
+  },
+  "recipe": {
+    "id": "proxy_anchor.inshop.official-51db570",
+    "digest": "97c0fe91ae527b5d3fb3be643e139524584981f5124d706f11341506be547361",
+    "outer_seed": 0,
+    "outer_fraction": 0.2,
+    "training_seed": 2,
+    "epochs": 60,
+    "artifact_selection": "final_training_state"
+  },
+  "pretrained_backbone": {
+    "path": "/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth",
+    "sha256": "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353",
+    "size_bytes": 90583868,
+    "mode": "0644"
+  },
+  "budget": {
+    "unit": "GB10 wall-clock seconds",
+    "spent_before_this_ledger": 0,
+    "maximum_training_seconds": 9000,
+    "maximum_concurrent_training_processes": 1,
+    "attempts_authorized": 1
+  },
+  "environment": {
+    "cublas_workspace_config": ":4096:8",
+    "cuda_visible_devices": "0",
+    "deterministic_algorithms_required": true,
+    "isolated_python_required": true,
+    "dont_write_bytecode_required": true
+  },
+  "destinations": {
+    "checkpoint": "/home/riomus/group-learning/reports/checkpoints/foundation_identity_disjoint_comparator_3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9_seed2.pt",
+    "receipt": "/home/riomus/group-learning/reports/generated/foundation_identity_disjoint_comparator_3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9_seed2.json",
+    "checkpoint_absent_at_freeze": true,
+    "receipt_absent_at_freeze": true,
+    "owned_temps_absent_at_freeze": true
+  },
+  "checkout_environment_preparation": [
+    [
+      "/home/riomus/group-learning/.venv/bin/python", "-I", "-B", "-m", "venv", "--system-site-packages",
+      "/home/riomus/foundation-comparator-3267fc6e/.venv"
+    ],
+    [
+      "/home/riomus/group-learning/.venv/bin/python", "-I", "-B", "-c",
+      "from pathlib import Path; Path('/home/riomus/foundation-comparator-3267fc6e/.venv/lib/python3.13/site-packages/sfora-reviewed.pth').write_text('import sys; sys.path[:0] = [\"/home/riomus/foundation-comparator-3267fc6e/src\", \"/home/riomus/group-learning/.venv/lib/python3.13/site-packages\"]\\n', encoding='utf-8')"
+    ]
+  ],
+  "command": [
+    "env", "CUBLAS_WORKSPACE_CONFIG=:4096:8", "CUDA_VISIBLE_DEVICES=0",
+    "/home/riomus/foundation-comparator-3267fc6e/.venv/bin/python", "-I", "-B", "-m", "sfora.cli", "foundation-comparator-train",
+    "--dataset-root", "/home/riomus/datasets/inshop_official_standard",
+    "--source-commit", "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
+    "--recipe-digest", "97c0fe91ae527b5d3fb3be643e139524584981f5124d706f11341506be547361",
+    "--checkpoint", "/home/riomus/group-learning/reports/checkpoints/foundation_identity_disjoint_comparator_3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9_seed2.pt",
+    "--receipt", "/home/riomus/group-learning/reports/generated/foundation_identity_disjoint_comparator_3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9_seed2.json",
+    "--pretrained-backbone", "/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth",
+    "--outer-seed", "0", "--outer-fraction", "0.2", "--training-seed", "2", "--epochs", "60", "--wall-clock-ceiling-seconds", "9000"
+  ],
+  "preflight": [
+    "authenticate_reviewed_source_as_ancestor_of_docs_only_execution_head",
+    "require_entire_src_sfora_tree_equal_reviewed_source",
+    "require_clean_detached_checkout_and_exact_worktree_blobs",
+    "create_exact_isolated_venv_and_single_literal_pth_then_require_sfora_module_origin_under_checkout_and_torch_numpy_origins_under_base_venv",
+    "require_runtime_versions_and_cuda_device_equal_ledger",
+    "require_dataset_metadata_and_backbone_sha256_equal_ledger",
+    "require_checkpoint_receipt_and_owned_temps_absent",
+    "require_no_foundation_comparator_process_and_no_gpu_compute_process",
+    "require_output_parents_real_nonsymlink_directories",
+    "require_at_least_12000000000_free_bytes_and_12000000000_available_memory_bytes"
+  ],
+  "monitor": {
+    "retain_original_pid_and_session": true,
+    "poll_original_process_only": true,
+    "external_wall_clock_kill_at_seconds": 9000,
+    "timeout_outcome": "INVALID_BUDGET",
+    "rerun_after_timeout": false
+  },
+  "receipt": {
+    "schema_version": "foundation-identity-disjoint-comparator-receipt-v1",
+    "strict_reload_required": true,
+    "production_validator_required": true,
+    "independent_split_hash_config_final_state_checks_required": true,
+    "official_test_consumed_must_equal": false
+  },
+  "stop_conditions": [
+    "source_authority_environment_dataset_or_backbone_binding_differs",
+    "checkout_or_output_parent_is_not_real_clean_and_nonsymlink",
+    "active_gpu_process_or_duplicate_comparator_process",
+    "destination_or_owned_temp_preexists",
+    "training_or_validation_returns_nonzero",
+    "nonfinite_or_schema_or_hash_relation_failure",
+    "official_test_capability_consumed",
+    "wall_clock_ceiling_reached"
+  ],
+  "single_attempt_rule": "A retry is forbidden after any optimizer step or observed held-out metric; only a separately documented and reviewed pre-optimizer structural failure may authorize another attempt.",
+  "official_test_accessed_before_freeze": false,
+  "gpu_process_launched_before_freeze": false
+}

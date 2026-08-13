@@ -342,6 +342,14 @@ git commit -m "add reproducible foundation F0 F1 screen"
 - Consumes: reviewed source commit, exact model revisions/digests, registered dataset paths.
 - Produces: authenticated F0/F1 report and `CONTINUE`/`CLOSE_FOUNDATION_TRANSFER` decision.
 
+**2026-08-13 chronology correction.** The original full-train comparator was
+found to have learned the identities that F1 treated as held out. Its review
+therefore authorized no F1 execution, and no train-only or official-test
+process was launched from that authority. The prospective identity-disjoint
+comparator amendment and training ledger supersede the old comparator before
+execution. In-Shop alone decides this gate; SOP is not conjoined and may not
+close or rescue it without a separate prospective comparator authority.
+
 - [ ] **Step 1: Freeze the execution ledger and availability preflight**
 
 Record exact already-spent GB10 hours, remaining F0 cap (at most 6), accessible
@@ -359,22 +367,24 @@ If no such local comparator checkpoint is resolvable, publish/record
 Close other unavailable arms without substitution.
 
 Freeze the exact command arrays, including validation seed `0`, validation
-fraction `0.2`, source checkout, environment, dataset roots, cache, and report
-paths. Train-only commands omit `--allow-registered-test-read`. If and only if
-both train-only reports return `CONTINUE`, commit and independently review a
-separate prospective official-read addendum binding both strict-reloaded report
-hashes and decision hashes before any registered capability is consumed.
+fraction `0.2`, source checkout, environment, dataset roots, cache, report, and
+all five absolute authority paths. Train-only commands omit
+`--allow-registered-test-read`. Strict reload must require each report's
+`source_commit` to equal the ledger's exact reviewed source. If and only if the
+single In-Shop train-only report returns `CONTINUE`, commit and independently
+review a separate prospective official-read addendum binding its strict-reloaded
+report hash and decision hash before any registered capability is consumed.
 `CLOSE_FOUNDATION_TRANSFER` and `UNAVAILABLE_COMPARATOR` never authorize an
 official read.
 
 On the registered execution host `riomus@spark-2751`, verify
 `/home/riomus/group-learning/reports/generated` and every existing parent of
-the frozen receipt root are real non-symlink directories. Create only the
-absent frozen leaf
-`/home/riomus/group-learning/reports/generated/foundation_test_read_receipts`
-before the screen, then reverify it is a real non-symlink directory and that no
-registered receipt exists. The `/home/rb` review checkout is not the execution
-host and must not be used to reinterpret this target-host authority.
+the frozen receipt root are real non-symlink directories. The frozen receipt
+root `/home/riomus/group-learning/reports/generated/foundation_test_read_receipts`
+already exists; do not recreate or replace it. Reverify it is real,
+non-symlink, mode `0700`, and empty before the screen. The `/home/rb` review
+checkout is not the execution host and must not be used to reinterpret this
+target-host authority.
 
 - [ ] **Step 2: Run the source-fidelity prefix without official-test access**
 
@@ -395,9 +405,9 @@ the registered report order. It produces the comparator's cache-v2 reload,
 fixture audit, cost profile, and probe before reaching the candidate, and it
 does not reach the candidate if comparator loading fails. Stop as
 `UNAVAILABLE_COMPARATOR` if that anchor is not F0-green. Only then run the
-remaining In-Shop and SOP train/validation
-exports, cost profiles, and identical 512-D probes. Do not enable official-test
-access until the committed register is complete.
+remaining In-Shop train/validation export, cost profile, and identical 512-D
+probe. SOP is outside this decision. Do not enable official-test access until
+the committed register is complete.
 
 - [ ] **Step 4: Validate and apply the gate**
 
