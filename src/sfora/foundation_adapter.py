@@ -77,6 +77,38 @@ class RidgeStitchModel:
         return (source - self.source_mean) @ self.weight + self.target_mean
 
 
+class NonlinearRidgeStitch(nn.Module):
+    """Frozen ridge map plus a small trainable nonlinear correction."""
+
+    source_mean: torch.Tensor
+    target_mean: torch.Tensor
+
+    def __init__(self, ridge: RidgeStitchModel, *, hidden_dim: int = 1_024) -> None:
+        super().__init__()
+        if type(hidden_dim) is not int or hidden_dim <= 0:
+            raise ValueError("hidden_dim must be a positive builtin integer")
+        input_dim, output_dim = ridge.weight.shape
+        self.register_buffer("source_mean", ridge.source_mean.detach().clone())
+        self.register_buffer("target_mean", ridge.target_mean.detach().clone())
+        self.base = nn.Linear(input_dim, output_dim, bias=False)
+        with torch.no_grad():
+            self.base.weight.copy_(ridge.weight.T)
+        self.base.requires_grad_(False)
+        self.norm = nn.LayerNorm(input_dim)
+        self.hidden = nn.Linear(input_dim, hidden_dim)
+        self.output = nn.Linear(hidden_dim, output_dim)
+        self.residual_scale = nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
+
+    def forward(self, source: torch.Tensor) -> torch.Tensor:
+        _validate_adapter_inputs(source, input_dim=self.base.in_features)
+        centered = source - self.source_mean
+        residual = self.output(F.gelu(self.hidden(self.norm(source))))
+        return cast(
+            torch.Tensor,
+            self.base(centered) + self.target_mean + self.residual_scale * residual,
+        )
+
+
 class NestedResidualAdapter(nn.Module):
     """A compact residual MLP whose ordered coordinates form nested descriptors."""
 

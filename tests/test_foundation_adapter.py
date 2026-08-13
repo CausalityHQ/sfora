@@ -9,6 +9,7 @@ from sfora.foundation_adapter import (
     AdapterConfig,
     NestedLinearAdapter,
     NestedResidualAdapter,
+    NonlinearRidgeStitch,
     cosine_margin_loss,
     fit_ridge_stitch,
     hardened_retrieval_folds,
@@ -234,3 +235,16 @@ def test_ridge_stitch_recovers_a_linear_target_from_optimization_rows() -> None:
 
     model = fit_ridge_stitch(source, target, torch.arange(15), regularization=1e-8)
     torch.testing.assert_close(model.transform(source[15:]), target[15:], atol=2e-5, rtol=2e-5)
+
+
+def test_nonlinear_stitch_starts_as_exact_frozen_ridge_map() -> None:
+    generator = torch.Generator().manual_seed(5)
+    source = torch.randn(30, 6, generator=generator)
+    target = torch.randn(30, 4, generator=generator)
+    ridge = fit_ridge_stitch(source, target, torch.arange(20), regularization=0.1)
+
+    model = NonlinearRidgeStitch(ridge, hidden_dim=8)
+
+    torch.testing.assert_close(model(source), ridge.transform(source), atol=0, rtol=0)
+    assert model.residual_scale.item() == 0.0
+    assert all(not parameter.requires_grad for parameter in model.base.parameters())
