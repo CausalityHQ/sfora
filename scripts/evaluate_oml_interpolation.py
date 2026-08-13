@@ -51,6 +51,12 @@ def is_registered_screen(
         and evaluation_role == "screen"
     )
 
+
+def uses_identity_subset(*, evaluation_fraction: float) -> bool:
+    if not 0.0 < evaluation_fraction <= 1.0:
+        raise ValueError("evaluation fraction must be in (0, 1]")
+    return evaluation_fraction < 1.0
+
 def interpolate_state_dict(
     base: Mapping[str, torch.Tensor],
     trained: Mapping[str, torch.Tensor],
@@ -119,13 +125,14 @@ def main() -> None:
 
     query = load_oml_inshop_examples(args.partition, image_root=args.image_root, split="query")
     gallery = load_oml_inshop_examples(args.partition, image_root=args.image_root, split="gallery")
-    query, gallery = select_query_gallery_identity_subset(
-        query,
-        gallery,
-        seed=args.evaluation_seed,
-        fraction=args.evaluation_fraction,
-        complement=args.evaluation_role == "holdout",
-    )
+    if uses_identity_subset(evaluation_fraction=args.evaluation_fraction):
+        query, gallery = select_query_gallery_identity_subset(
+            query,
+            gallery,
+            seed=args.evaluation_seed,
+            fraction=args.evaluation_fraction,
+            complement=args.evaluation_role == "holdout",
+        )
     initial, initial_hits, initial_ap = evaluation_values(
         model,
         neck,

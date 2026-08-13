@@ -73,3 +73,5 @@ def test_registered_baseline_check_only_applies_to_the_fixed_screen() -> None:
     assert not _MODULE.is_registered_screen(
         evaluation_fraction=1.0, evaluation_seed=17, evaluation_role="screen"
     )
+    assert _MODULE.uses_identity_subset(evaluation_fraction=0.2)
+    assert not _MODULE.uses_identity_subset(evaluation_fraction=1.0)
