@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 
+from sfora.data import ImageExample
 from sfora.foundation_adapter import (
     AdapterConfig,
     NestedLinearAdapter,
@@ -17,6 +18,7 @@ from sfora.foundation_adapter import (
     retrieval_recall_at_1,
     ridge_stitch,
 )
+from sfora.image_recipes import class_disjoint_recipe_selection_split
 
 
 def test_registered_adapter_is_under_five_million_parameters() -> None:
@@ -132,14 +134,14 @@ def test_identity_balanced_batches_are_deterministic_and_balanced() -> None:
 
 
 def test_hardened_folds_hold_out_a_permanent_distractor_pool() -> None:
-    labels = np.repeat(np.arange(10, dtype=np.int64), 4)
+    labels = np.repeat(np.arange(30, dtype=np.int64), 4)
 
     folds = hardened_retrieval_folds(labels, seed=17)
 
     assert len(folds) == 4
     distractors = folds[0].distractor
     assert all(np.array_equal(fold.distractor, distractors) for fold in folds)
-    assert len(set(labels[distractors])) == 2
+    assert len(set(labels[distractors])) >= 1
     assert set(labels[distractors]).isdisjoint(
         set(np.concatenate([labels[fold.query] for fold in folds]))
     )
@@ -149,6 +151,30 @@ def test_hardened_folds_hold_out_a_permanent_distractor_pool() -> None:
         )
         assert set(fold.query).isdisjoint(fold.gallery)
         assert set(labels[fold.query]) == set(labels[fold.gallery])
+        assert set(labels[fold.optimization]).isdisjoint(
+            set(labels[np.concatenate((fold.query, fold.gallery, fold.distractor))])
+        )
+
+
+def test_hardened_folds_use_only_the_original_identity_disjoint_holdout() -> None:
+    labels = np.repeat(np.arange(30, dtype=np.int64), 4)
+    examples = tuple(
+        ImageExample(example_id=f"{index}", image=None, label=int(label))
+        for index, label in enumerate(labels)
+    )
+    original = class_disjoint_recipe_selection_split(examples, fraction=0.2, seed=0)
+    original_train = {int(row.label) for row in original.optimization}
+    original_holdout = {int(row.label) for row in original.query + original.gallery}
+
+    folds = hardened_retrieval_folds(labels, seed=0, heldout_fraction=0.2)
+
+    assert {int(labels[index]) for index in folds[0].optimization} == original_train
+    observed_holdout = {
+        int(labels[index])
+        for fold in folds
+        for index in np.concatenate((fold.query, fold.gallery, fold.distractor))
+    }
+    assert observed_holdout == original_holdout
 
 
 def test_chunked_recall_at_1_matches_exact_neighbors() -> None:

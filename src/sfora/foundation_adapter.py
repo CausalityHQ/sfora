@@ -184,24 +184,40 @@ def hardened_retrieval_folds(
     labels: np.ndarray,
     *,
     seed: int,
+    heldout_fraction: float = 0.2,
 ) -> tuple[HardenedRetrievalFold, ...]:
-    """Create four evaluation folds and one never-fitted identity distractor pool."""
+    """Split the original unseen identities into four eval folds and distractors."""
 
     if type(labels) is not np.ndarray or labels.dtype != np.dtype("int64") or labels.ndim != 1:
         raise ValueError("labels must be a rank-1 int64 NumPy array")
     if type(seed) is not int or seed < 0:
         raise ValueError("seed must be a nonnegative builtin integer")
+    if (
+        type(heldout_fraction) is not float
+        or not isfinite(heldout_fraction)
+        or not 0.0 < heldout_fraction < 1.0
+    ):
+        raise ValueError("heldout_fraction must be a finite builtin float in (0, 1)")
     groups = {
         int(label): np.flatnonzero(labels == label)
         for label in np.unique(labels)
         if int(np.count_nonzero(labels == label)) >= 2
     }
-    if len(groups) < 10:
-        raise ValueError("hardened retrieval requires at least ten eligible identities")
+    if len(groups) < 25:
+        raise ValueError("hardened retrieval requires at least 25 eligible identities")
     rng = np.random.default_rng(seed)
-    identity_folds = tuple(np.array_split(rng.permutation(sorted(groups)), 5))
+    eligible = np.asarray(sorted(groups), dtype=np.int64)
+    heldout_count = min(
+        max(5, int(round(len(eligible) * heldout_fraction))),
+        len(eligible) - 5,
+    )
+    heldout = eligible[rng.permutation(len(eligible))[:heldout_count]]
+    heldout_set = {int(label) for label in heldout}
+    optimization = np.concatenate(
+        [groups[label] for label in sorted(set(groups) - heldout_set)]
+    ).astype(np.int64, copy=False)
+    identity_folds = tuple(np.array_split(rng.permutation(heldout), 5))
     distractor = np.concatenate([groups[int(label)] for label in identity_folds[4]])
-    all_rows = np.arange(labels.shape[0], dtype=np.int64)
     result = []
     for identity_fold in identity_folds[:4]:
         query_rows = []
@@ -211,16 +227,9 @@ def hardened_retrieval_folds(
             query_count = max(1, len(order) // 2)
             query_rows.append(order[:query_count])
             gallery_rows.append(order[query_count:])
-        evaluation_rows = np.concatenate(
-            (np.concatenate(query_rows), np.concatenate(gallery_rows), distractor)
-        )
         result.append(
             HardenedRetrievalFold(
-                optimization=np.setdiff1d(
-                    all_rows,
-                    evaluation_rows,
-                    assume_unique=True,
-                ),
+                optimization=optimization,
                 query=np.concatenate(query_rows).astype(np.int64, copy=False),
                 gallery=np.concatenate(gallery_rows).astype(np.int64, copy=False),
                 distractor=distractor.astype(np.int64, copy=False),
