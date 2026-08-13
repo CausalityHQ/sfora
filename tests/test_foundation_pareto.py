@@ -21,6 +21,7 @@ from sfora.foundation_pareto import (
     RemoteFoundationModelSpec,
     TransformersFoundationEncoder,
     cross_check_published_metrics,
+    evaluate_foundation_geometries,
     export_embeddings_v2,
     load_embeddings_v2,
     load_foundation_encoder,
@@ -322,6 +323,7 @@ def test_local_model_loader_reconstructs_exact_checkpoint_architecture(
             "training_config": training_config,
         },
     )
+
     class FakeModel:
         loaded: tuple[object, bool] | None = None
         evaluated = False
@@ -662,9 +664,7 @@ def test_remote_artifact_observer_authenticates_huggingface_cache_symlinks(
     )
     spec = _remote_spec(
         weight_sha256=hashlib.sha256(payloads["model.safetensors"]).hexdigest(),
-        processor_sha256=hashlib.sha256(
-            payloads["preprocessor_config.json"]
-        ).hexdigest(),
+        processor_sha256=hashlib.sha256(payloads["preprocessor_config.json"]).hexdigest(),
         config_sha256=hashlib.sha256(payloads["config.json"]).hexdigest(),
     )
 
@@ -1304,9 +1304,7 @@ def test_repository_fidelity_authorities_are_strict_and_prospectively_empty() ->
             registered_pairs=(),
         )
     with pytest.raises(ValueError, match="authority is not frozen"):
-        load_published_metric_register(
-            root / "docs/foundation_published_metric_register.json"
-        )
+        load_published_metric_register(root / "docs/foundation_published_metric_register.json")
 
 
 def test_unfrozen_authorities_cannot_carry_values_even_for_inspection(
@@ -1648,3 +1646,63 @@ def test_cache_v2_rejects_row_count_and_nonobject_metadata(tmp_path: Path) -> No
             expected_ids=("a", "b"),
             expected_labels=("x", "y"),
         )
+
+
+def test_geometry_evaluator_returns_all_registered_rankings_without_selection() -> None:
+    query = np.asarray([[2.0, 0.0], [0.0, 3.0]], dtype=np.float32)
+    query_labels = np.asarray([10, 20], dtype=np.int64)
+    gallery = np.asarray(
+        [
+            [100.0, 1.0],
+            [1.0, 0.0],
+            [0.0, 2.0],
+            [1.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    gallery_labels = np.asarray([10, 99, 20, 98], dtype=np.int64)
+
+    rows = evaluate_foundation_geometries(
+        query,
+        query_labels,
+        gallery,
+        gallery_labels,
+    )
+
+    assert [row.geometry for row in rows] == [
+        "normalized_cosine",
+        "normalized_euclidean",
+        "native_unnormalized_euclidean",
+    ]
+    # Hand-computed: after normalization, query 0 ranks collinear gallery 1 then 0;
+    # native Euclidean instead ranks gallery 1 then gallery 3, with huge gallery 0 last.
+    assert rows[0].gallery_order[0] == (1, 0, 3, 2)
+    assert rows[1].gallery_order == rows[0].gallery_order
+    assert rows[2].gallery_order[0] == (1, 3, 2, 0)
+    assert rows[0].metrics.recall_at_2 == 1.0
+    assert rows[1].metrics.recall_at_2 == 1.0
+    assert rows[2].metrics.recall_at_2 == 0.5
+    assert rows[0].metrics is not rows[1].metrics
+
+
+def test_geometry_evaluator_retains_only_registered_retrieval_depth() -> None:
+    query = np.asarray([[1.0, 0.0]], dtype=np.float32)
+    query_labels = np.asarray([7], dtype=np.int64)
+    gallery = np.column_stack(
+        (
+            np.arange(1.0, 152.0, dtype=np.float32),
+            np.ones(151, dtype=np.float32),
+        )
+    )
+    gallery_labels = np.arange(1000, 1151, dtype=np.int64)
+    gallery_labels[99] = 7
+
+    rows = evaluate_foundation_geometries(
+        query,
+        query_labels,
+        gallery,
+        gallery_labels,
+    )
+
+    assert all(len(row.gallery_order[0]) == 100 for row in rows)
+    assert all(row.metrics.recall_at_100 == 1.0 for row in rows)

@@ -67,6 +67,41 @@ def test_query_gallery_retrieval_reports_canonical_inshop_cutoffs() -> None:
     assert metrics.recall_at_30 == pytest.approx(1.0)
 
 
+def test_query_gallery_retrieval_recall_at_100_for_item_exactly_at_rank_100() -> None:
+    query_embeddings = np.asarray([[0.0]], dtype=np.float64)
+    query_labels = np.asarray([7], dtype=np.int64)
+    gallery_embeddings = np.arange(1.0, 102.0, dtype=np.float64)[:, None]
+    gallery_labels = np.arange(1000, 1101, dtype=np.int64)
+    gallery_labels[99] = 7
+
+    metrics = image_query_gallery_retrieval_score(
+        query_embeddings,
+        query_labels,
+        gallery_embeddings,
+        gallery_labels,
+    )
+
+    assert metrics.recall_at_10 == 0.0
+    assert metrics.recall_at_100 == 1.0
+
+
+def test_query_gallery_retrieval_recall_at_100_excludes_item_at_rank_101() -> None:
+    query_embeddings = np.asarray([[0.0]], dtype=np.float64)
+    query_labels = np.asarray([7], dtype=np.int64)
+    gallery_embeddings = np.arange(1.0, 102.0, dtype=np.float64)[:, None]
+    gallery_labels = np.arange(1000, 1101, dtype=np.int64)
+    gallery_labels[100] = 7
+
+    metrics = image_query_gallery_retrieval_score(
+        query_embeddings,
+        query_labels,
+        gallery_embeddings,
+        gallery_labels,
+    )
+
+    assert metrics.recall_at_100 == 0.0
+
+
 def test_query_gallery_retrieval_skips_queries_absent_from_gallery() -> None:
     # Query label 9 has no gallery match -> skipped; the one matchable query scores.
     gallery_emb = np.array([[1.0, 0.0], [1.0, 0.0]])
@@ -176,6 +211,20 @@ def test_image_self_retrieval_map_at_r_penalizes_late_relevant_neighbors() -> No
     assert score.mean_relevant_items == pytest.approx(1.0)
 
 
+def test_image_self_retrieval_recall_at_100_reaches_beyond_rank_30() -> None:
+    embeddings = np.asarray(
+        [[-100.0], [100.0], *[[float(value)] for value in range(-30, 30)]],
+        dtype=np.float64,
+    )
+    labels = np.asarray([7, 7, *range(1000, 1060)], dtype=np.int64)
+
+    score = image_self_retrieval_score(embeddings, labels)
+
+    assert score.evaluated_queries == 2
+    assert score.recall_at_30 == 0.0
+    assert score.recall_at_100 == 1.0
+
+
 def test_image_self_retrieval_matches_independent_full_sort_reference() -> None:
     """Exercise the chunk/argpartition implementation against literal retrieval math."""
     rng = np.random.default_rng(20260803)
@@ -185,9 +234,9 @@ def test_image_self_retrieval_matches_independent_full_sort_reference() -> None:
 
     observed = image_self_retrieval_score(embeddings, labels)
 
-    recalls = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
-    average_precisions = []
-    relevant_counts = []
+    recalls: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30, 100)}
+    average_precisions: list[float] = []
+    relevant_counts: list[int] = []
     for query_index, query in enumerate(embeddings):
         distances = np.sum((embeddings - query) ** 2, axis=1)
         distances[query_index] = np.inf
@@ -200,8 +249,7 @@ def test_image_self_retrieval_matches_independent_full_sort_reference() -> None:
         top_r = ordered_matches[:relevant_count]
         relevant_ranks = np.flatnonzero(top_r) + 1
         average_precisions.append(
-            sum(float(top_r[:rank].sum() / rank) for rank in relevant_ranks)
-            / relevant_count
+            sum(float(top_r[:rank].sum() / rank) for rank in relevant_ranks) / relevant_count
         )
 
     assert observed.recall_at_1 == pytest.approx(np.mean(recalls[1]))
@@ -211,6 +259,7 @@ def test_image_self_retrieval_matches_independent_full_sort_reference() -> None:
     assert observed.recall_at_10 == pytest.approx(np.mean(recalls[10]))
     assert observed.recall_at_20 == pytest.approx(np.mean(recalls[20]))
     assert observed.recall_at_30 == pytest.approx(np.mean(recalls[30]))
+    assert observed.recall_at_100 == pytest.approx(np.mean(recalls[100]))
     assert observed.map_at_r == pytest.approx(np.mean(average_precisions))
     assert observed.mean_relevant_items == pytest.approx(np.mean(relevant_counts))
     assert observed.evaluated_queries == labels.size
@@ -534,4 +583,5 @@ def test_write_image_benchmark_report_persists_retrieval_metrics(tmp_path: Path)
         "Hybrid + XBM + Radius"
     )
     assert "recall_at_1" in payload["methods"]["frozen:fake-dino"]
+    assert "recall_at_100" in payload["methods"]["frozen:fake-dino"]["retrieval"]
     assert "map_at_r_delta" in payload["methods"]["hybrid_xbm_radius_projection:fake-dino"]

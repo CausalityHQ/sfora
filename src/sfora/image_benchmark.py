@@ -124,6 +124,7 @@ class ImageRetrievalMetrics:
     recall_at_10: float = 0.0
     recall_at_20: float = 0.0
     recall_at_30: float = 0.0
+    recall_at_100: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -443,7 +444,9 @@ def image_self_retrieval_score(
         )
 
     precision_at_1_values: list[float] = []
-    recall_at_k_values: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
+    recall_at_k_values: dict[int, list[float]] = {
+        cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30, 100)
+    }
     average_precisions: list[float] = []
     relevant_counts: list[int] = []
     label_counts = {
@@ -455,7 +458,7 @@ def image_self_retrieval_score(
         dtype=np.int64,
     )
     max_relevant_count = int(query_relevant_counts.max(initial=0))
-    top_k = min(embedding_array.shape[0] - 1, max(30, max_relevant_count))
+    top_k = min(embedding_array.shape[0] - 1, max(100, max_relevant_count))
     embedding_norms = np.sum(embedding_array * embedding_array, axis=1)
     chunk_size = 1024
     for start in range(0, query_indices.shape[0], chunk_size):
@@ -517,6 +520,7 @@ def image_self_retrieval_score(
         recall_at_10=float(np.mean(recall_at_k_values[10])),
         recall_at_20=float(np.mean(recall_at_k_values[20])),
         recall_at_30=float(np.mean(recall_at_k_values[30])),
+        recall_at_100=float(np.mean(recall_at_k_values[100])),
     )
 
 
@@ -535,9 +539,9 @@ def image_query_gallery_retrieval_score(
     as relevant to a gallery item when they share the identity label.
 
     This is a standalone scoring **primitive** (no dataset loader wires it yet). It
-    returns the project's uniform ``ImageRetrievalMetrics`` — recall at **1/2/4/8** and
-    MAP@R — so ``recall_at_1`` is directly comparable; note the In-Shop *paper* headline
-    is R@1/10/20/30, which this fixed-cutoff metric does not report."""
+    returns the project's uniform ``ImageRetrievalMetrics`` — recall at
+    **1/2/4/8/10/20/30/100** and MAP@R — so ``recall_at_1`` is directly comparable
+    to the In-Shop paper headline while R@100 supports the SOP R@1/10/100 cutoffs."""
     q_emb = np.asarray(query_embeddings, dtype=np.float64)
     g_emb = np.asarray(gallery_embeddings, dtype=np.float64)
     q_lab = np.asarray(query_labels, dtype=np.int64)
@@ -568,10 +572,12 @@ def image_query_gallery_retrieval_score(
         dtype=np.int64,
     )
     max_relevant_count = int(query_relevant_counts.max(initial=0))
-    top_k = min(g_emb.shape[0], max(30, max_relevant_count))
+    top_k = min(g_emb.shape[0], max(100, max_relevant_count))
 
     precision_at_1_values: list[float] = []
-    recall_at_k_values: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30)}
+    recall_at_k_values: dict[int, list[float]] = {
+        cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30, 100)
+    }
     average_precisions: list[float] = []
     relevant_counts: list[int] = []
     gallery_norms = np.sum(g_emb * g_emb, axis=1)
@@ -623,6 +629,7 @@ def image_query_gallery_retrieval_score(
         recall_at_10=float(np.mean(recall_at_k_values[10])),
         recall_at_20=float(np.mean(recall_at_k_values[20])),
         recall_at_30=float(np.mean(recall_at_k_values[30])),
+        recall_at_100=float(np.mean(recall_at_k_values[100])),
     )
 
 

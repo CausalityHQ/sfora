@@ -393,6 +393,210 @@ class PublishedMetricAudit:
 
 
 @dataclass(frozen=True)
+class FoundationGeometryEvaluation:
+    geometry: Literal[
+        "normalized_cosine",
+        "normalized_euclidean",
+        "native_unnormalized_euclidean",
+    ]
+    gallery_order: tuple[tuple[int, ...], ...]
+    metrics: Any
+
+
+def _normalize_rows(values: Any) -> Any:
+    import numpy as np
+
+    array = np.asarray(values, dtype=np.float64)
+    if array.ndim != 2 or array.shape[0] == 0 or array.shape[1] == 0:
+        raise ValueError("geometry embeddings must be nonempty rank-2 arrays")
+    if not bool(np.isfinite(array).all()):
+        raise ValueError("geometry embeddings must contain only finite values")
+    norms = np.linalg.norm(array, axis=1, keepdims=True)
+    if bool((norms == 0.0).any()):
+        raise ValueError("normalized geometry cannot contain zero-norm rows")
+    return array / norms
+
+
+def _stable_top_indices(values: Any, *, depth: int) -> Any:
+    import numpy as np
+
+    if depth >= values.shape[0]:
+        return np.argsort(values, kind="stable")
+    candidates = np.argpartition(values, kth=depth - 1)[:depth]
+    boundary = values[candidates].max()
+    below = np.flatnonzero(values < boundary)
+    ties = np.flatnonzero(values == boundary)[: depth - below.shape[0]]
+    selected = np.concatenate((below, ties))
+    return selected[np.lexsort((selected, values[selected]))]
+
+
+def _gallery_order(
+    query: Any,
+    gallery: Any,
+    *,
+    geometry: Literal["cosine", "euclidean"],
+    depth: int,
+) -> tuple[tuple[int, ...], ...]:
+    import numpy as np
+
+    if type(depth) is not int or depth <= 0:
+        raise ValueError("geometry ranking depth must be a positive builtin integer")
+    depth = min(depth, gallery.shape[0])
+    gallery_norms = np.sum(gallery * gallery, axis=1)
+    rows: list[tuple[int, ...]] = []
+    for start in range(0, query.shape[0], 256):
+        chunk = query[start : start + 256]
+        if geometry == "cosine":
+            values = -(chunk @ gallery.T)
+        else:
+            values = (
+                np.sum(chunk * chunk, axis=1, keepdims=True)
+                + gallery_norms[np.newaxis, :]
+                - (2.0 * chunk @ gallery.T)
+            )
+            values = np.maximum(values, 0.0)
+        if not bool(np.isfinite(values).all()):
+            raise ValueError("geometry ranking produced non-finite values")
+        rows.extend(
+            tuple(int(index) for index in _stable_top_indices(row, depth=depth)) for row in values
+        )
+    return tuple(rows)
+
+
+def _metrics_from_gallery_order(
+    gallery_order: tuple[tuple[int, ...], ...],
+    query_labels: Any,
+    gallery_labels: Any,
+) -> Any:
+    import numpy as np
+
+    from sfora.image_benchmark import ImageRetrievalMetrics
+
+    precision_at_1: list[float] = []
+    recalls: dict[int, list[float]] = {cutoff: [] for cutoff in (1, 2, 4, 8, 10, 20, 30, 100)}
+    average_precisions: list[float] = []
+    relevant_counts: list[int] = []
+    for query_index, order in enumerate(gallery_order):
+        matches = gallery_labels == query_labels[query_index]
+        relevant_count = int(matches.sum())
+        if relevant_count == 0:
+            continue
+        ordered_matches = matches[np.asarray(order, dtype=np.int64)]
+        precision_at_1.append(float(ordered_matches[0]))
+        for cutoff in recalls:
+            recalls[cutoff].append(float(bool(ordered_matches[:cutoff].any())))
+        top_r = ordered_matches[:relevant_count]
+        relevant_ranks = np.flatnonzero(top_r) + 1
+        average_precisions.append(
+            sum(float(top_r[:rank].sum() / rank) for rank in relevant_ranks) / relevant_count
+        )
+        relevant_counts.append(relevant_count)
+    if not average_precisions:
+        raise ValueError("no query shares an identity label with any gallery item")
+    return ImageRetrievalMetrics(
+        precision_at_1=float(np.mean(precision_at_1)),
+        recall_at_1=float(np.mean(recalls[1])),
+        recall_at_2=float(np.mean(recalls[2])),
+        recall_at_4=float(np.mean(recalls[4])),
+        recall_at_8=float(np.mean(recalls[8])),
+        map_at_r=float(np.mean(average_precisions)),
+        mean_relevant_items=float(np.mean(relevant_counts)),
+        evaluated_queries=len(average_precisions),
+        total_queries=len(gallery_order),
+        recall_at_10=float(np.mean(recalls[10])),
+        recall_at_20=float(np.mean(recalls[20])),
+        recall_at_30=float(np.mean(recalls[30])),
+        recall_at_100=float(np.mean(recalls[100])),
+    )
+
+
+def evaluate_foundation_geometries(
+    query_embeddings: Any,
+    query_labels: Any,
+    gallery_embeddings: Any,
+    gallery_labels: Any,
+) -> tuple[FoundationGeometryEvaluation, ...]:
+    """Evaluate every preregistered geometry without selecting a winner."""
+
+    import numpy as np
+
+    query = np.asarray(query_embeddings, dtype=np.float64)
+    gallery = np.asarray(gallery_embeddings, dtype=np.float64)
+    if query.ndim != 2 or gallery.ndim != 2 or query.shape[1] != gallery.shape[1]:
+        raise ValueError("query/gallery geometry arrays must share a rank-2 feature shape")
+    normalized_query = _normalize_rows(query)
+    normalized_gallery = _normalize_rows(gallery)
+    query_label_array = np.asarray(query_labels, dtype=np.int64)
+    gallery_label_array = np.asarray(gallery_labels, dtype=np.int64)
+    if query_label_array.ndim != 1 or gallery_label_array.ndim != 1:
+        raise ValueError("query/gallery labels must be rank-1 arrays")
+    if (
+        query.shape[0] != query_label_array.shape[0]
+        or gallery.shape[0] != gallery_label_array.shape[0]
+    ):
+        raise ValueError("geometry embeddings and labels must have matching row counts")
+    gallery_label_counts = {
+        int(label): int(count)
+        for label, count in zip(
+            *np.unique(gallery_label_array, return_counts=True),
+            strict=True,
+        )
+    }
+    max_relevant_count = max(
+        (gallery_label_counts.get(int(label), 0) for label in query_label_array),
+        default=0,
+    )
+    depth = max(100, max_relevant_count)
+    cosine_order = _gallery_order(
+        normalized_query,
+        normalized_gallery,
+        geometry="cosine",
+        depth=depth,
+    )
+    normalized_euclidean_order = _gallery_order(
+        normalized_query,
+        normalized_gallery,
+        geometry="euclidean",
+        depth=depth,
+    )
+    native_order = _gallery_order(
+        query,
+        gallery,
+        geometry="euclidean",
+        depth=depth,
+    )
+    return (
+        FoundationGeometryEvaluation(
+            geometry="normalized_cosine",
+            gallery_order=cosine_order,
+            metrics=_metrics_from_gallery_order(
+                cosine_order,
+                query_label_array,
+                gallery_label_array,
+            ),
+        ),
+        FoundationGeometryEvaluation(
+            geometry="normalized_euclidean",
+            gallery_order=normalized_euclidean_order,
+            metrics=_metrics_from_gallery_order(
+                normalized_euclidean_order,
+                query_label_array,
+                gallery_label_array,
+            ),
+        ),
+        FoundationGeometryEvaluation(
+            geometry="native_unnormalized_euclidean",
+            gallery_order=native_order,
+            metrics=_metrics_from_gallery_order(
+                native_order,
+                query_label_array,
+                gallery_label_array,
+            ),
+        ),
+    )
+
+
+@dataclass(frozen=True)
 class EmbeddingCacheKeyV2:
     """Complete content identity for one stable foundation embedding export."""
 
@@ -992,9 +1196,7 @@ def _remote_artifact_bytes(root: Path, path: Path) -> bytes:
         raise ValueError(f"remote artifact is not a file: {path}")
     resolved_root = root.resolve(strict=True)
     cache_scope = (
-        resolved_root.parent.parent
-        if resolved_root.parent.name == "snapshots"
-        else resolved_root
+        resolved_root.parent.parent if resolved_root.parent.name == "snapshots" else resolved_root
     )
     resolved_path = path.resolve(strict=True)
     if not resolved_path.is_relative_to(cache_scope):
