@@ -1,5 +1,18 @@
 {
   "schema_version": "foundation-metric-tolerances-v1",
-  "status": "prospective_unfrozen",
-  "records": []
+  "status": "frozen",
+  "records": [
+    {
+      "arm": "siglip2-base-patch16-256",
+      "metric": "embedding_cosine",
+      "tolerance": 1e-06,
+      "frozen_before_execution": true
+    },
+    {
+      "arm": "inshop-pa-bninception-seed2",
+      "metric": "embedding_cosine",
+      "tolerance": 0.0,
+      "frozen_before_execution": true
+    }
+  ]
 }

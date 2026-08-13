@@ -1,0 +1,43 @@
+{
+  "schema_version": "foundation-model-specs-v1",
+  "status": "frozen",
+  "arms": [
+    {
+      "kind": "remote",
+      "spec": {
+        "arm": "siglip2-base-patch16-256",
+        "model_id": "google/siglip2-base-patch16-256",
+        "revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+        "weight_sha256": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
+        "processor_sha256": "d14ba2ee3fd816f3de8abaddc31953565128eaf37c73ad4bed32101a98465aff",
+        "config_sha256": "7b5aedcb8893e31376e129c1ffd7a5392f1a806dbc793ce53eda220c2ec59edf",
+        "pooling": "image_features",
+        "resolution": 256,
+        "embedding_width": 768,
+        "license": "Apache-2.0",
+        "dtype": "float32",
+        "normalize": true
+      },
+      "cache_resolution": 256,
+      "role": "candidate"
+    },
+    {
+      "kind": "local",
+      "spec": {
+        "arm": "inshop-pa-bninception-seed2",
+        "checkpoint_path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt",
+        "pretrained_backbone_path": "/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth",
+        "checkpoint_sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
+        "resolved_config_sha256": "e64cdb33c7bc694671c20693a4babdbed201c53afbabca42c2e2e7ac8b189880",
+        "pretrained_backbone_sha256": "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353",
+        "transform_id": "proxy-anchor-eval-224-v1",
+        "embedding_width": 512,
+        "pooling": "embedding",
+        "dtype": "float32",
+        "normalize": true
+      },
+      "cache_resolution": 224,
+      "role": "comparator"
+    }
+  ]
+}

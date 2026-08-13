@@ -1384,39 +1384,52 @@ def test_published_metric_register_rejects_duplicate_json_keys(tmp_path: Path) -
         load_published_metric_register(path)
 
 
-def test_repository_fidelity_authorities_are_strict_and_prospectively_empty() -> None:
+def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     root = Path(__file__).resolve().parents[1]
+    arms = foundation_pareto.load_foundation_model_specs(root / "docs/foundation_model_specs.json")
+    registered_arms = tuple(arm.spec.arm for arm in arms)
+    fixture_pairs = tuple(
+        (arm, metric)
+        for arm in registered_arms
+        for metric in foundation_pareto.FOUNDATION_FIXTURE_METRICS
+    )
 
     fixtures, tolerances = load_native_fixture_authority(
         root / "docs/foundation_native_fixtures.json",
         root / "docs/foundation_metric_tolerances.json",
-        registered_pairs=(),
-        require_frozen=False,
+        registered_pairs=fixture_pairs,
     )
     published = load_published_metric_register(
-        root / "docs/foundation_published_metric_register.json",
-        require_frozen=False,
+        root / "docs/foundation_published_metric_register.json"
     )
     test_reads = foundation_pareto.load_test_read_register(
-        root / "docs/foundation_test_read_register.json",
-        require_frozen=False,
+        root / "docs/foundation_test_read_register.json"
     )
 
-    assert fixtures == ()
-    assert tolerances == ()
-    assert published == ()
-    assert test_reads.records == ()
-
-    with pytest.raises(ValueError, match="authority is not frozen"):
-        load_native_fixture_authority(
-            root / "docs/foundation_native_fixtures.json",
-            root / "docs/foundation_metric_tolerances.json",
-            registered_pairs=(),
-        )
-    with pytest.raises(ValueError, match="authority is not frozen"):
-        load_published_metric_register(root / "docs/foundation_published_metric_register.json")
-    with pytest.raises(ValueError, match="authority is not frozen"):
-        foundation_pareto.load_test_read_register(root / "docs/foundation_test_read_register.json")
+    assert registered_arms == (
+        "siglip2-base-patch16-256",
+        "inshop-pa-bninception-seed2",
+    )
+    assert [(row.arm, row.metric) for row in fixtures] == list(fixture_pairs)
+    assert [(row.arm, row.metric) for row in tolerances] == list(fixture_pairs)
+    published_pairs = tuple(
+        (arm, metric)
+        for arm in registered_arms
+        for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
+    )
+    assert [(row.arm, row.metric) for row in published] == list(published_pairs)
+    assert tuple(row.arm for row in test_reads.records) == registered_arms
+    assert all(
+        row.metrics == foundation_pareto.FOUNDATION_PUBLISHED_METRICS for row in test_reads.records
+    )
+    for row in fixtures:
+        input_path = root / "docs/foundation_native_inputs" / f"{row.arm}__{row.metric}.json"
+        source_path = root / "docs/foundation_native_sources" / f"{row.arm}__{row.metric}.py"
+        assert _sha256(input_path) == row.input_sha256
+        assert _sha256(source_path) == row.source_sha256
+        value = json.loads(input_path.read_text(encoding="utf-8"))
+        assert value["schema_version"] == "foundation-embedding-fixture-v1"
+        assert value["image_paths"] == ["../../assets/sfora-logo.png"]
 
 
 def test_unfrozen_authorities_cannot_carry_values_even_for_inspection(
