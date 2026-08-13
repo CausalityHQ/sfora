@@ -3435,6 +3435,9 @@ def run_foundation_screen(
         )
         fixture_rows.extend(asdict(row) for row in fidelity)
         if any(row.passed is False for row in fidelity):
+            if arm_spec.role == "comparator":
+                comparator_unavailable = True
+                break
             continue
         cached = _prepare_foundation_train_cache(
             arm_spec=arm_spec,

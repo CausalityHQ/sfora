@@ -2960,6 +2960,49 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         == "UNAVAILABLE_COMPARATOR"
     )
 
+    def failing_comparator_fixture(**kwargs: object) -> tuple[object, ...]:
+        arm = str(kwargs["arm"])
+        trace.append(f"{arm}:fixture")
+        return (
+            foundation_pareto.FoundationFidelityAudit(
+                arm=arm,
+                metric="embedding_cosine",
+                native_value=1.0,
+                repository_value=0.0,
+                tolerance=0.0,
+                provenance="native_cross_check",
+                passed=False,
+            ),
+        )
+
+    monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", fake_load)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "verify_native_fixture",
+        failing_comparator_fixture,
+    )
+    trace.clear()
+    comparator_fixture_report = tmp_path / "comparator-fixture-failed.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=comparator_fixture_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+    assert trace == ["comparator:authenticate", "comparator:fixture"]
+    assert (
+        foundation_pareto.load_foundation_screen_report(comparator_fixture_report)["overall_status"]
+        == "UNAVAILABLE_COMPARATOR"
+    )
+
     published_records = tuple(
         PublishedMetricRecord(
             arm=arm.spec.arm,
@@ -2973,6 +3016,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
     )
     monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", fake_load)
+    monkeypatch.setattr(foundation_pareto, "verify_native_fixture", fake_fixture)
     monkeypatch.setattr(
         foundation_pareto,
         "load_published_metric_register",
