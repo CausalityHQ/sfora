@@ -33,8 +33,11 @@ def test_oml_vit_state_dict_rejects_foreign_checkpoint_keys() -> None:
 def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path) -> None:
     partition = tmp_path / "list_eval_partition.txt"
     partition.write_text(
-        "4\n"
+        "7\n"
         "image_name item_id evaluation_status\n"
+        "img/WOMEN/Tops/id_00000001/a.jpg id_00000001 train\n"
+        "img/WOMEN/Tops/id_00000001/b.jpg id_00000001 train\n"
+        "img/WOMEN/Tops/id_00000003/only.jpg id_00000003 train\n"
         "img/WOMEN/Tops/id_00000002/q.jpg id_00000002 query\n"
         "img/WOMEN/Tops/id_00000002/g.jpg id_00000002 gallery\n"
         "img/MEN/Tees/id_00000007/q.jpg id_00000007 query\n"
@@ -42,6 +45,9 @@ def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path)
     )
     image_root = tmp_path / "img_highres"
     for relative in (
+        "WOMEN/Tops/id_00000001/a.jpg",
+        "WOMEN/Tops/id_00000001/b.jpg",
+        "WOMEN/Tops/id_00000003/only.jpg",
         "WOMEN/Tops/id_00000002/q.jpg",
         "WOMEN/Tops/id_00000002/g.jpg",
         "MEN/Tees/id_00000007/q.jpg",
@@ -51,9 +57,8 @@ def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"image")
 
-    query = foundation_oml.load_oml_inshop_examples(
-        partition, image_root=image_root, split="query"
-    )
+    train = foundation_oml.load_oml_inshop_examples(partition, image_root=image_root, split="train")
+    query = foundation_oml.load_oml_inshop_examples(partition, image_root=image_root, split="query")
     gallery = foundation_oml.load_oml_inshop_examples(
         partition, image_root=image_root, split="gallery"
     )
@@ -62,5 +67,6 @@ def test_load_oml_inshop_examples_uses_released_highres_protocol(tmp_path: Path)
         image_root / "WOMEN/Tops/id_00000002/q.jpg",
         image_root / "MEN/Tees/id_00000007/q.jpg",
     ]
+    assert [row.label for row in train] == [0, 0]
     assert [row.label for row in query] == [0, 1]
     assert [row.label for row in gallery] == [0, 1]
