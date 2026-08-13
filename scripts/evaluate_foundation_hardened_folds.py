@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from sklearn.decomposition import PCA
 
 from sfora.foundation_adapter import (
     hardened_retrieval_folds,
@@ -31,11 +32,25 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--projection", choices=("raw", "truncate512", "pca512"), default="raw")
     args = parser.parse_args()
     embeddings, labels, arm = load_cache(args.cache)
-    values = torch.from_numpy(embeddings)
     rows = []
     for index, fold in enumerate(hardened_retrieval_folds(labels, seed=args.seed)):
+        if args.projection == "truncate512":
+            projected = embeddings[:, :512]
+        elif args.projection == "pca512":
+            pca = PCA(
+                n_components=512,
+                whiten=False,
+                svd_solver="randomized",
+                random_state=args.seed,
+            )
+            pca.fit(embeddings[fold.optimization])
+            projected = pca.transform(embeddings).astype(np.float32, copy=False)
+        else:
+            projected = embeddings
+        values = torch.from_numpy(projected)
         gallery_index = np.concatenate((fold.gallery, fold.distractor))
         query = values[fold.query]
         gallery = values[gallery_index]
@@ -58,6 +73,7 @@ def main() -> None:
     output = {
         "arm": arm,
         "seed": args.seed,
+        "projection": args.projection,
         "folds": rows,
         "mean_recall_at_1": float(np.mean([row["recall_at_1"] for row in rows])),
         "mean_map_at_r": float(np.mean([row["map_at_r"] for row in rows])),
