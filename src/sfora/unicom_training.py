@@ -12,6 +12,19 @@ from torch.nn import functional as F
 from sfora.unicom_inshop import InshopRecord
 
 
+def experiment_stream_seed(seed: int, offset: int) -> int:
+    """Namespace stochastic streams across experiments without adjacent-seed aliases."""
+
+    if type(seed) is not int or type(offset) is not int:
+        raise TypeError("experiment seed and stream offset must be builtin integers")
+    if seed < 0 or offset < 0 or offset >= 1_000_003:
+        raise ValueError("experiment seed/stream offset is outside the registered range")
+    result = seed * 1_000_003 + offset
+    if result > 2**63 - 1:
+        raise ValueError("derived experiment stream seed exceeds int64")
+    return result
+
+
 def identity_holdout(
     records: tuple[InshopRecord, ...], *, fraction: float, seed: int
 ) -> tuple[
@@ -74,7 +87,7 @@ def padded_epoch_indices(
     if total == 0:
         raise ValueError("sampler has no complete distributed batch")
     distributed_total = rank_samples * shards
-    generator = torch.Generator().manual_seed(seed * 1_000_003 + epoch)
+    generator = torch.Generator().manual_seed(experiment_stream_seed(seed, 1_000 + epoch))
     shuffled = torch.randperm(size, generator=generator).tolist()
     padded = (shuffled * math.ceil(distributed_total / size))[:distributed_total]
     return tuple(padded[:total])

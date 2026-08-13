@@ -5,6 +5,7 @@ from torch.nn import functional as F
 
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_training import (
+    experiment_stream_seed,
     identity_holdout,
     padded_epoch_indices,
     sample_shard_masks,
@@ -108,7 +109,7 @@ def test_eight_shards_recover_gradient_coverage_lost_by_one_mask() -> None:
 
 def test_padded_epoch_indices_match_distributed_sampler_global_union() -> None:
     actual = padded_epoch_indices(size=10, global_batch=8, epoch=3, seed=0)
-    generator = torch.Generator().manual_seed(3)
+    generator = torch.Generator().manual_seed(1_003)
     shuffled = torch.randperm(10, generator=generator).tolist()
 
     assert actual == tuple((shuffled * 2)[:16])
@@ -120,6 +121,16 @@ def test_padded_epoch_indices_do_not_alias_adjacent_experiment_seeds() -> None:
     seed_one_epoch_zero = padded_epoch_indices(size=97, global_batch=16, epoch=0, seed=1)
 
     assert seed_zero_epoch_one != seed_one_epoch_zero
+
+
+def test_experiment_rng_stream_namespaces_are_disjoint_across_paired_seeds() -> None:
+    seeds = {
+        experiment_stream_seed(seed, offset)
+        for seed in range(4)
+        for offset in (0, 1_000, 2_000, 2_001, 2_002, 2_003, 3_000)
+    }
+
+    assert len(seeds) == 4 * 7
 
 
 def test_padded_epoch_indices_match_eight_rank_drop_last_tail() -> None:

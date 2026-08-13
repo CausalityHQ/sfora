@@ -28,7 +28,7 @@ def test_epoch_sampler_matches_padded_global_order() -> None:
     sampler = module.PaddedEpochSampler(size=10, batch_size=8, seed=0)
     sampler.set_epoch(3)
 
-    generator = torch.Generator().manual_seed(3)
+    generator = torch.Generator().manual_seed(1_003)
     shuffled = torch.randperm(10, generator=generator).tolist()
     assert list(sampler) == (shuffled * 2)[:16]
     assert len(sampler) == 16
@@ -296,6 +296,8 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         "scheduler",
         "scaler",
         "mask_generator",
+        "torch_rng_state",
+        "cuda_rng_states",
         "history",
     )
     assert checkpoint["epoch"] == 2
@@ -369,6 +371,8 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
     }
     expected_classifier = classifier.detach().clone()
     expected_mask_state = mask_generator.get_state().clone()
+    expected_next_random = torch.rand(3, generator=torch.Generator().manual_seed(123))
+    torch.manual_seed(123)
     path = tmp_path / "resume.pt"
     module.save_training_checkpoint(
         path,
@@ -385,6 +389,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         raw_model.weight.zero_()
         classifier.zero_()
     mask_generator.manual_seed(99)
+    torch.rand(19)
 
     epoch, history = module.restore_training_checkpoint(
         path,
@@ -394,7 +399,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         scheduler=None,
         scaler=scaler,
         mask_generator=mask_generator,
-        device=torch.device("cpu"),
+        device=torch.device("meta"),
     )
 
     assert epoch == 7
@@ -403,6 +408,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         assert torch.equal(value, expected_model[name])
     assert torch.equal(classifier, expected_classifier)
     assert torch.equal(mask_generator.get_state(), expected_mask_state)
+    assert torch.equal(torch.rand(3), expected_next_random)
 
 
 def test_main_fails_before_training_when_inputs_are_missing(tmp_path: Path, capsys) -> None:

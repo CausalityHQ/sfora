@@ -22,6 +22,7 @@ from torch.utils.data import Dataset, Sampler
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_retrieval_audit import retrieval_view
 from sfora.unicom_training import (
+    experiment_stream_seed,
     identity_holdout,
     padded_epoch_indices,
     sample_shard_masks,
@@ -405,6 +406,8 @@ def save_training_checkpoint(
         "scheduler": None if scheduler is None else scheduler.state_dict(),
         "scaler": None if scaler is None else scaler.state_dict(),
         "mask_generator": mask_generator.get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
         "history": history,
     }
     temporary = path.with_name(f"{path.name}.tmp")
@@ -434,7 +437,7 @@ def restore_training_checkpoint(
 ) -> tuple[int, list[dict[str, object]]]:
     """Restore an epoch-boundary checkpoint and return its epoch and history."""
 
-    checkpoint = torch.load(path, map_location=device, weights_only=False)
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
     expected = (
         "epoch",
         "model",
@@ -443,6 +446,8 @@ def restore_training_checkpoint(
         "scheduler",
         "scaler",
         "mask_generator",
+        "torch_rng_state",
+        "cuda_rng_states",
         "history",
     )
     if type(checkpoint) is not dict or tuple(checkpoint) != expected:
@@ -464,6 +469,12 @@ def restore_training_checkpoint(
     else:
         scaler.load_state_dict(checkpoint["scaler"])
     mask_generator.set_state(checkpoint["mask_generator"])
+    torch.set_rng_state(checkpoint["torch_rng_state"])
+    cuda_rng_states = checkpoint["cuda_rng_states"]
+    if cuda_rng_states is not None:
+        if not torch.cuda.is_available() or device.type != "cuda":
+            raise ValueError("training checkpoint CUDA RNG state differs")
+        torch.cuda.set_rng_state_all(cuda_rng_states)
     epoch = checkpoint["epoch"]
     history = checkpoint["history"]
     if type(epoch) is not int or epoch < 1 or type(history) is not list:
@@ -569,7 +580,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         epochs=args.epochs,
         pct_start=0.1,
     )
-    mask_generator = torch.Generator(device=device).manual_seed(args.seed)
+    mask_generator = torch.Generator(device=device).manual_seed(
+        experiment_stream_seed(args.seed, 3_000)
+    )
     scaler = None if args.bf16 else torch.amp.GradScaler("cuda", growth_interval=200)
     start_epoch = 0
     history: list[dict[str, object]] = []
@@ -623,7 +636,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
 
 
 def _seed_worker(worker_id: int, *, seed: int) -> None:
-    worker_seed = seed + worker_id
+    worker_seed = experiment_stream_seed(seed, 2_000 + worker_id)
     random.seed(worker_seed)
     torch.manual_seed(worker_seed)
     import numpy as np
