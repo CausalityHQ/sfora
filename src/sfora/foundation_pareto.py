@@ -526,9 +526,16 @@ def validate_identity_disjoint_comparator_receipt(
 
 
 def _validate_identity_disjoint_backbone(path: Path) -> Path:
+    import torch
+
     expected = "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
     if path.is_symlink() or not path.is_file():
         raise ValueError("identity-disjoint pretrained backbone must be a regular file")
+    consumed_path = (
+        Path(torch.hub.get_dir()) / "checkpoints" / "bn_inception-52deb4733.pth"
+    ).resolve()
+    if path.resolve() != consumed_path:
+        raise ValueError("identity-disjoint pretrained backbone differs from Torch cache input")
     if sha256(path.read_bytes()).hexdigest() != expected:
         raise ValueError("identity-disjoint pretrained backbone digest differs")
     return path
@@ -562,6 +569,54 @@ def _identity_disjoint_source_files() -> list[dict[str, object]]:
         {"path": relative, "sha256": sha256((root / relative).read_bytes()).hexdigest()}
         for relative in paths
     ]
+
+
+def _authenticate_identity_disjoint_source(reviewed_revision: str) -> None:
+    if type(reviewed_revision) is not str or _GIT_REVISION.fullmatch(reviewed_revision) is None:
+        raise ValueError("identity-disjoint reviewed source revision differs")
+    root = Path(__file__).resolve().parents[2]
+    executing_revision = _source_commit()
+    try:
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "merge-base",
+                "--is-ancestor",
+                reviewed_revision,
+                executing_revision,
+            ],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "diff",
+                "--quiet",
+                reviewed_revision,
+                executing_revision,
+                "--",
+                "src/sfora",
+            ],
+            check=True,
+            capture_output=True,
+        )
+        for relative in ("src/sfora/foundation_pareto.py", "src/sfora/cli.py"):
+            reviewed_bytes = subprocess.run(
+                ["git", "-C", str(root), "show", f"{reviewed_revision}:{relative}"],
+                check=True,
+                capture_output=True,
+            ).stdout
+            if reviewed_bytes != (root / relative).read_bytes():
+                raise ValueError("identity-disjoint reviewed source bytes differ")
+    except subprocess.CalledProcessError as error:
+        raise ValueError(
+            "identity-disjoint reviewed source ancestry or production tree differs"
+        ) from error
 
 
 def _validate_identity_disjoint_checkpoint(
@@ -624,10 +679,11 @@ def run_identity_disjoint_comparator_training(
 ) -> Path:
     """Train and atomically publish one final-state identity-disjoint comparator."""
 
+    started = time.monotonic()
+    started_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     if not isinstance(request, IdentityDisjointComparatorRequest):
         raise TypeError("identity-disjoint training request differs")
-    if _source_commit() != request.source_commit:
-        raise ValueError("identity-disjoint executing source commit differs")
+    _authenticate_identity_disjoint_source(request.source_commit)
     for output in (request.checkpoint_path, request.receipt_path):
         if output.parent.is_symlink() or not output.parent.is_dir():
             raise ValueError("identity-disjoint output parent must be a real directory")
@@ -668,8 +724,6 @@ def run_identity_disjoint_comparator_training(
         }
     )
 
-    started = time.monotonic()
-    started_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     published_identity: tuple[int, int] | None = None
     receipt_identity: tuple[int, int] | None = None
     try:
@@ -3919,6 +3973,10 @@ def validate_foundation_screen_report(value: object) -> None:
             expected_overall = "CLOSE_FOUNDATION_TRANSFER"
     if value["overall_status"] != expected_overall:
         raise ValueError("foundation screen aggregate decision differs")
+    if value["overall_status"] != "CONTINUE" and (
+        value["official_test_reads"] or value["published_metric_audits"]
+    ):
+        raise ValueError("non-continuing foundation screen cannot carry official test evidence")
     official_keys = (
         "dataset",
         "arm",
@@ -4052,6 +4110,12 @@ def _foundation_execution_arms(
 ) -> tuple[FoundationScreenArmSpec, ...]:
     priority = {"comparator": 0, "contaminated_control": 1, "candidate": 2}
     return tuple(sorted(arms, key=lambda arm_spec: priority[arm_spec.role]))
+
+
+def _foundation_official_read_arms(
+    arms: Sequence[FoundationScreenArmSpec],
+) -> tuple[FoundationScreenArmSpec, ...]:
+    return tuple(arm for arm in arms if arm.role != "contaminated_control")
 
 
 def run_foundation_screen(
@@ -4252,12 +4316,17 @@ def run_foundation_screen(
         receipt_root = test_reads.receipt_root
         if receipt_root.resolve() == cache_dir.resolve():
             raise ValueError("official test receipts cannot use the rebuildable cache directory")
+        official_arms = _foundation_official_read_arms(arms)
         official_rows, published_rows, official_cache_rows = _run_registered_official_reads(
             dataset=dataset,
             dataset_root=dataset_root,
             validation_seed=validation_seed,
-            arms=arms,
-            encoders={arm: encoders[arm] for arm in probes},
+            arms=official_arms,
+            encoders={
+                arm.spec.arm: encoders[arm.spec.arm]
+                for arm in official_arms
+                if arm.spec.arm in probes
+            },
             cache_dir=cache_dir,
             receipt_root=receipt_root,
             decision_sha256=decision_digest,

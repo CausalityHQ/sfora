@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import platform
+import subprocess
 from collections import OrderedDict
 from collections.abc import Sequence
 from copy import deepcopy
@@ -347,8 +348,15 @@ def test_identity_disjoint_training_uses_only_outer_optimization_identities(
         seed=0,
     )
     calls: list[tuple[object, ...]] = []
+    clock_calls: list[float] = []
+
+    def monotonic() -> float:
+        value = 10.0 if not clock_calls else 20.0
+        clock_calls.append(value)
+        return value
 
     def load_examples(**kwargs: object) -> list[ImageExample]:
+        assert clock_calls == [10.0]
         calls.append(("load", kwargs))
         assert kwargs == {
             "dataset_name": "inshop",
@@ -396,8 +404,16 @@ def test_identity_disjoint_training_uses_only_outer_optimization_identities(
             "training_config": config.model_dump(mode="json"),
         }
 
-    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    authenticated_sources: list[str] = []
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: "d" * 40)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_identity_disjoint_source",
+        lambda revision: authenticated_sources.append(revision),
+        raising=False,
+    )
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    monkeypatch.setattr(foundation_pareto.time, "monotonic", monotonic)
     monkeypatch.setattr(foundation_pareto, "load_image_retrieval_examples", load_examples)
     monkeypatch.setattr(foundation_pareto, "reference_recipe", lambda *_: recipe, raising=False)
     monkeypatch.setattr(
@@ -446,7 +462,9 @@ def test_identity_disjoint_training_uses_only_outer_optimization_identities(
     receipt = json.loads(request.receipt_path.read_text(encoding="utf-8"))
     assert receipt["split"] == foundation_pareto.identity_disjoint_role_digests(expected_split)
     assert receipt["official_test"] == {"consumed": False, "receipts": []}
+    assert receipt["process"]["elapsed_seconds"] == 10.0
     assert [row[0] for row in calls] == ["load", "run"]
+    assert authenticated_sources == [request.source_commit]
 
 
 def test_identity_disjoint_training_is_no_clobber_before_loading_data(
@@ -457,7 +475,11 @@ def test_identity_disjoint_training_is_no_clobber_before_loading_data(
     output.mkdir()
     request = _valid_identity_disjoint_request(tmp_path)
     request.checkpoint_path.write_bytes(b"sentinel")
-    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_identity_disjoint_source",
+        lambda revision: None,
+    )
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     monkeypatch.setattr(
         foundation_pareto,
@@ -479,7 +501,11 @@ def test_identity_disjoint_training_rejects_wrong_cublas_before_data_or_torch(
 ) -> None:
     (tmp_path / "output").mkdir()
     request = _valid_identity_disjoint_request(tmp_path)
-    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_identity_disjoint_source",
+        lambda revision: None,
+    )
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
     monkeypatch.setattr(
         foundation_pareto,
@@ -495,6 +521,92 @@ def test_identity_disjoint_training_rejects_wrong_cublas_before_data_or_torch(
 
     with pytest.raises(ValueError, match="CUBLAS"):
         foundation_pareto.run_identity_disjoint_comparator_training(request)
+
+
+def test_identity_disjoint_backbone_is_the_exact_torch_consumed_cache_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    hub = tmp_path / "hub"
+    expected = hub / "checkpoints" / "bn_inception-52deb4733.pth"
+    expected.parent.mkdir(parents=True)
+    expected.write_bytes(b"registered")
+    unconsumed = tmp_path / "other" / "bn_inception-52deb4733.pth"
+    unconsumed.parent.mkdir()
+    unconsumed.write_bytes(b"registered")
+    monkeypatch.setattr(torch.hub, "get_dir", lambda: str(hub))
+    monkeypatch.setattr(
+        foundation_pareto,
+        "sha256",
+        lambda value=b"": SimpleNamespace(
+            hexdigest=lambda: "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353"
+        ),
+    )
+
+    assert foundation_pareto._validate_identity_disjoint_backbone(expected) == expected
+    with pytest.raises(ValueError, match="Torch cache"):
+        foundation_pareto._validate_identity_disjoint_backbone(unconsumed)
+
+
+def test_identity_disjoint_source_authentication_binds_ancestor_and_exact_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = Path(foundation_pareto.__file__).resolve().parents[2]
+    reviewed = "a" * 40
+    executing = "b" * 40
+    source_paths = ("src/sfora/foundation_pareto.py", "src/sfora/cli.py")
+    source_tree_checks: list[tuple[str, ...]] = []
+
+    def authenticated_run(command: list[str], **kwargs: object) -> object:
+        assert kwargs == {"check": True, "capture_output": True}
+        if command[3:5] == ["merge-base", "--is-ancestor"]:
+            assert command[5:] == [reviewed, executing]
+            return SimpleNamespace(stdout=b"")
+        if command[3:5] == ["diff", "--quiet"]:
+            assert command[5:] == [reviewed, executing, "--", "src/sfora"]
+            source_tree_checks.append(tuple(command[5:]))
+            return SimpleNamespace(stdout=b"")
+        revision_path = command[-1]
+        revision, relative = revision_path.split(":", 1)
+        assert revision == reviewed
+        assert relative in source_paths
+        return SimpleNamespace(stdout=(root / relative).read_bytes())
+
+    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: executing)
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", authenticated_run)
+
+    foundation_pareto._authenticate_identity_disjoint_source(reviewed)
+    assert source_tree_checks == [(reviewed, executing, "--", "src/sfora")]
+
+    def mismatched_run(command: list[str], **kwargs: object) -> object:
+        result = authenticated_run(command, **kwargs)
+        if command[-1].endswith("src/sfora/cli.py"):
+            return SimpleNamespace(stdout=b"different reviewed bytes")
+        return result
+
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", mismatched_run)
+    with pytest.raises(ValueError, match="source bytes"):
+        foundation_pareto._authenticate_identity_disjoint_source(reviewed)
+
+    def non_ancestor_run(command: list[str], **kwargs: object) -> object:
+        if command[3:5] == ["merge-base", "--is-ancestor"]:
+            raise subprocess.CalledProcessError(1, command)
+        raise AssertionError("reviewed bytes reached after ancestry failure")
+
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", non_ancestor_run)
+    with pytest.raises(ValueError, match="ancestry"):
+        foundation_pareto._authenticate_identity_disjoint_source(reviewed)
+
+    def drifted_source_tree_run(command: list[str], **kwargs: object) -> object:
+        if command[3:5] == ["merge-base", "--is-ancestor"]:
+            return SimpleNamespace(stdout=b"")
+        if command[3:5] == ["diff", "--quiet"]:
+            raise subprocess.CalledProcessError(1, command)
+        raise AssertionError("reviewed files reached after production source drift")
+
+    monkeypatch.setattr(foundation_pareto.subprocess, "run", drifted_source_tree_run)
+    with pytest.raises(ValueError, match="ancestry"):
+        foundation_pareto._authenticate_identity_disjoint_source(reviewed)
 
 
 @pytest.mark.parametrize("failure_call", [1, 2])
@@ -546,7 +658,11 @@ def test_identity_disjoint_training_rolls_back_owned_outputs_when_receipt_reject
             "training_config": config.model_dump(mode="json"),
         }
 
-    monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: request.source_commit)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_identity_disjoint_source",
+        lambda revision: None,
+    )
     monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     monkeypatch.setattr(
         foundation_pareto,
@@ -2781,6 +2897,10 @@ def test_contaminated_control_execution_order_precedes_candidate_but_not_compara
         "comparator",
         "contaminated_control",
     ]
+    assert [arm.role for arm in foundation_pareto._foundation_official_read_arms(arms)] == [
+        "candidate",
+        "comparator",
+    ]
 
 
 def test_f1_decision_rejects_unavailable_comparator() -> None:
@@ -3295,6 +3415,10 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     train = _identity_blocks(identities=8, examples_per_identity=2)
     trace: list[str] = []
+    control_available = [True]
+    control_fixture_pass = [True]
+    control_cache_digest = ["a" * 64]
+    control_profile_parameters = [1]
     monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
 
     monkeypatch.setattr(foundation_pareto, "load_foundation_model_specs", lambda path: arms)
@@ -3334,6 +3458,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     def fake_load(spec: object) -> object:
         assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
         trace.append(f"{spec.arm}:authenticate")
+        if spec.arm == "contaminated-control" and not control_available[0]:
+            raise OSError("descriptive control unavailable")
         if isinstance(spec, LocalCheckpointFoundationSpec):
             return SimpleNamespace(
                 spec=spec,
@@ -3359,15 +3485,16 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     def fake_fixture(**kwargs: object) -> tuple[object, ...]:
         arm = str(kwargs["arm"])
         trace.append(f"{arm}:fixture")
+        passed = arm != "contaminated-control" or control_fixture_pass[0]
         return (
             foundation_pareto.FoundationFidelityAudit(
                 arm=arm,
                 metric="embedding_cosine",
                 native_value=1.0,
-                repository_value=1.0,
+                repository_value=1.0 if passed else 0.0,
                 tolerance=0.0,
                 provenance="native_cross_check",
-                passed=True,
+                passed=passed,
             ),
         )
 
@@ -3384,7 +3511,9 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
                     "status": "exported",
                     "path": f"cache/{arm}.npz",
                     "rows": len(train),
-                    "embedding_sha256": "a" * 64,
+                    "embedding_sha256": (
+                        control_cache_digest[0] if arm == "contaminated-control" else "a" * 64
+                    ),
                 },
             ),
         )
@@ -3393,7 +3522,9 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         trace.append(f"{encoder.spec.arm}:profile")
         return foundation_pareto.EncoderCostProfile(
             batches=(),
-            parameter_count=1,
+            parameter_count=(
+                control_profile_parameters[0] if encoder.spec.arm == "contaminated-control" else 1
+            ),
             warmup_iterations=10,
             measured_iterations=50,
             descriptor_rows=1,
@@ -3409,10 +3540,20 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             device_name="test-cpu",
         )
 
+    control_probe_points = [0.0]
+
     def fake_probe(*args: object, **kwargs: object) -> object:
         arm = str(kwargs["arm_key"])
         trace.append(f"{arm}:probe")
-        return candidate_probe if arm == "candidate" else comparator_probe
+        if arm == "candidate":
+            return candidate_probe
+        if arm == "contaminated-control":
+            return replace(
+                comparator_probe,
+                arm_key=arm,
+                validation_recall_at_1_points=control_probe_points[0],
+            )
+        return comparator_probe
 
     real_decide = foundation_pareto.decide_f1
 
@@ -3700,6 +3841,24 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         == "UNAVAILABLE_COMPARATOR"
     )
 
+    control_arm = foundation_pareto.FoundationScreenArmSpec(
+        kind="local",
+        spec=_local_spec(
+            arm="contaminated-control",
+            checkpoint_path=Path("artifacts/contaminated-control.pt"),
+        ),
+        cache_resolution=224,
+        role="contaminated_control",
+    )
+    official_stage_arms = (*arms, control_arm)
+    official_read_arms = tuple(
+        arm for arm in official_stage_arms if arm.role != "contaminated_control"
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_foundation_model_specs",
+        lambda path: official_stage_arms,
+    )
     published_records = tuple(
         PublishedMetricRecord(
             arm=arm.spec.arm,
@@ -3709,7 +3868,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             source="repository",
             provenance="repository_only",
         )
-        for arm in arms
+        for arm in official_read_arms
         for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
     )
     monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", fake_load)
@@ -3733,7 +3892,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
                     purpose="registered_f1_quality_evaluation",
                     permitted_evaluations=1,
                 )
-                for arm in arms
+                for arm in official_read_arms
             ),
             receipt_root=tmp_path,
         ),
@@ -3778,12 +3937,102 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         allow_registered_test_read=True,
     )
     official = foundation_pareto.load_foundation_screen_report(official_report)
+    assert official["registered_arms"] == [
+        "candidate",
+        "comparator",
+        "contaminated-control",
+    ]
     assert len(official["official_test_reads"]) == 2
     assert len(official["published_metric_audits"]) == 12
     assert all(
         row["decision_sha256"] == official["decision_sha256"]
         for row in official["official_test_reads"]
     )
+    assert {row["arm"] for row in official["official_test_reads"]} == {
+        "candidate",
+        "comparator",
+    }
+
+    control_probe_points[0] = 100.0
+    control_cache_digest[0] = "e" * 64
+    control_profile_parameters[0] = 10_000_000
+    control_mutation_report = tmp_path / "control-mutation.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=control_mutation_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+    control_mutation = foundation_pareto.load_foundation_screen_report(control_mutation_report)
+    assert control_mutation["f1_decisions"] == official["f1_decisions"]
+    assert control_mutation["overall_status"] == official["overall_status"]
+    assert control_mutation["decision_sha256"] == official["decision_sha256"]
+
+    control_fixture_pass[0] = False
+    control_fixture_failure_report = tmp_path / "control-fixture-failure.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=control_fixture_failure_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+    control_fixture_failure = foundation_pareto.load_foundation_screen_report(
+        control_fixture_failure_report
+    )
+    assert control_fixture_failure["f1_decisions"] == official["f1_decisions"]
+    assert control_fixture_failure["decision_sha256"] == official["decision_sha256"]
+
+    control_fixture_pass[0] = True
+    control_available[0] = False
+    control_unavailable_report = tmp_path / "control-unavailable.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=control_unavailable_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+    control_unavailable = foundation_pareto.load_foundation_screen_report(
+        control_unavailable_report
+    )
+    assert control_unavailable["f1_decisions"] == official["f1_decisions"]
+    assert control_unavailable["decision_sha256"] == official["decision_sha256"]
+
+    invalid_with_official_rows = json.loads(json.dumps(official))
+    invalid_with_official_rows["f1_decisions"][0]["status"] = "INVALID_SPLIT_POWER"
+    invalid_with_official_rows["overall_status"] = "INVALID_SPLIT_POWER"
+    invalid_digest = foundation_pareto._decision_sha256(
+        invalid_with_official_rows["f1_decisions"],
+        invalid_with_official_rows["overall_status"],
+    )
+    invalid_with_official_rows["decision_sha256"] = invalid_digest
+    for row in invalid_with_official_rows["official_test_reads"]:
+        row["decision_sha256"] = invalid_digest
+    with pytest.raises(ValueError, match="cannot carry official"):
+        foundation_pareto.validate_foundation_screen_report(invalid_with_official_rows)
 
     close_decision = foundation_pareto.F1Decision(
         status="CLOSE_FOUNDATION_TRANSFER",
