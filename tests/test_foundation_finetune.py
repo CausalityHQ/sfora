@@ -11,14 +11,17 @@ from sfora.foundation_finetune import (
     IdentityBalancedBatchSampler,
     IdentityNeck,
     TokenResidualGate,
+    TrainableParameterEMA,
     batch_hard_soft_triplet,
     configure_vit_trainable_layers,
     identity_disjoint_train_validation,
+    normalized_feature_anchor,
     paired_retrieval_statistics,
     query_gallery_from_identities,
     retrieval_query_values,
     select_query_gallery_identity_subset,
     split_cls_patch_tokens,
+    warmup_cosine_learning_rate_factor,
 )
 
 
@@ -185,6 +188,17 @@ def test_identity_balanced_sampler_maximizes_distinct_examples_when_tiling() -> 
         assert len(set(indexes)) == expected_distinct
 
 
+def test_identity_balanced_sampler_padding_keeps_distinct_labels_in_final_batch() -> None:
+    labels = [label for label in range(7) for _ in range(2)]
+    sampler = IdentityBalancedBatchSampler(
+        labels, labels_per_batch=3, instances_per_label=2, seed=0
+    )
+
+    final_batch = list(sampler)[-1]
+
+    assert len({labels[index] for index in final_batch}) == 3
+
+
 def test_split_cls_patch_tokens_excludes_cls_from_the_local_mean() -> None:
     tokens = torch.tensor(
         [[[3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0], [9.0, 10.0]]],
@@ -220,3 +234,41 @@ def test_retrieval_query_values_and_paired_statistics_preserve_query_pairing() -
     assert stats["map_at_r_delta"] == 0.25
     assert stats["map_at_r_delta_ci95_lower"] <= 0.25
     assert stats["map_at_r_delta_ci95_upper"] >= 0.25
+
+
+def test_normalized_feature_anchor_is_zero_at_teacher_and_penalizes_rotation() -> None:
+    teacher = torch.tensor([[3.0, 4.0], [0.0, 2.0]], dtype=torch.float32)
+    rotated = torch.tensor([[4.0, -3.0], [2.0, 0.0]], dtype=torch.float32)
+
+    torch.testing.assert_close(normalized_feature_anchor(teacher, teacher), torch.tensor(0.0))
+    torch.testing.assert_close(normalized_feature_anchor(rotated, teacher), torch.tensor(1.0))
+    student = teacher.clone().requires_grad_(True)
+    normalized_feature_anchor(student, teacher).backward()
+    assert student.grad is not None
+    assert float(student.grad.abs().max()) < 1.0e-6
+
+
+def test_trainable_parameter_ema_tracks_only_trainable_parameters_and_can_apply() -> None:
+    module = nn.Sequential(nn.Linear(2, 2, bias=False), nn.Linear(2, 1, bias=False))
+    module[0].requires_grad_(False)
+    with torch.no_grad():
+        module[0].weight.fill_(7.0)
+        module[1].weight.fill_(1.0)
+    ema = TrainableParameterEMA(module, decay=0.5)
+    with torch.no_grad():
+        module[0].weight.fill_(9.0)
+        module[1].weight.fill_(3.0)
+
+    ema.update(module)
+    ema.apply(module)
+
+    torch.testing.assert_close(module[0].weight, torch.full((2, 2), 9.0))
+    torch.testing.assert_close(module[1].weight, torch.full((1, 2), 2.0))
+
+
+def test_warmup_cosine_schedule_uses_every_update_and_reaches_zero_after_training() -> None:
+    observed = [
+        warmup_cosine_learning_rate_factor(step, warmup_steps=2, total_steps=6) for step in range(7)
+    ]
+
+    assert observed == [0.5, 1.0, 1.0, 0.8535533905932737, 0.5, 0.14644660940672627, 0.0]

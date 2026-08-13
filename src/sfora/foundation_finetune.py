@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
-from math import ceil, comb, isfinite
+from math import ceil, comb, cos, isfinite, pi
 
 import numpy as np
 import torch
@@ -348,6 +348,73 @@ def batch_hard_soft_triplet(embeddings: torch.Tensor, labels: torch.Tensor) -> t
     return F.softplus(hardest_positive - hardest_negative).mean()
 
 
+def normalized_feature_anchor(student: torch.Tensor, teacher: torch.Tensor) -> torch.Tensor:
+    """Penalize angular drift from a frozen teacher descriptor."""
+
+    if (
+        student.dtype != torch.float32
+        or teacher.dtype != torch.float32
+        or student.ndim != 2
+        or student.shape != teacher.shape
+    ):
+        raise ValueError("feature anchor inputs differ")
+    return (1.0 - (F.normalize(student, dim=1) * F.normalize(teacher, dim=1)).sum(dim=1)).mean()
+
+
+def warmup_cosine_learning_rate_factor(step: int, *, warmup_steps: int, total_steps: int) -> float:
+    """Return the learning-rate multiplier used by an update-indexed schedule."""
+
+    if (
+        type(step) is not int
+        or type(warmup_steps) is not int
+        or type(total_steps) is not int
+        or step < 0
+        or warmup_steps < 0
+        or warmup_steps >= total_steps
+    ):
+        raise ValueError("learning-rate schedule configuration differs")
+    if step < warmup_steps:
+        return float((step + 1) / max(1, warmup_steps))
+    progress = (step - warmup_steps) / (total_steps - warmup_steps)
+    return float(0.5 * (1.0 + cos(pi * progress)))
+
+
+class TrainableParameterEMA:
+    """Track an exponential moving average of only a module's trainable parameters."""
+
+    def __init__(self, module: nn.Module, *, decay: float) -> None:
+        if type(decay) is not float or not isfinite(decay) or not 0.0 < decay < 1.0:
+            raise ValueError("EMA decay differs")
+        self.decay = decay
+        self.shadow = {
+            name: parameter.detach().clone()
+            for name, parameter in module.named_parameters()
+            if parameter.requires_grad
+        }
+        if not self.shadow:
+            raise ValueError("EMA requires trainable parameters")
+
+    @torch.no_grad()
+    def update(self, module: nn.Module) -> None:
+        observed = {
+            name: parameter
+            for name, parameter in module.named_parameters()
+            if parameter.requires_grad
+        }
+        if tuple(observed) != tuple(self.shadow):
+            raise ValueError("EMA trainable parameter set differs")
+        for name, parameter in observed.items():
+            self.shadow[name].lerp_(parameter.detach(), 1.0 - self.decay)
+
+    @torch.no_grad()
+    def apply(self, module: nn.Module) -> None:
+        observed = dict(module.named_parameters())
+        if any(name not in observed for name in self.shadow):
+            raise ValueError("EMA target parameter set differs")
+        for name, value in self.shadow.items():
+            observed[name].copy_(value)
+
+
 class IdentityBalancedBatchSampler(Sampler[list[int]]):
     """Yield deterministic P-by-K identity batches, resampling examples when needed."""
 
@@ -395,7 +462,11 @@ class IdentityBalancedBatchSampler(Sampler[list[int]]):
         ordered = rng.permutation(available)
         padding = len(self) * self.labels_per_batch - ordered.size
         if padding:
-            ordered = np.concatenate([ordered, rng.choice(available, size=padding, replace=False)])
+            final_partial = ordered[-(self.labels_per_batch - padding) :]
+            padding_candidates = np.setdiff1d(available, final_partial, assume_unique=True)
+            ordered = np.concatenate(
+                [ordered, rng.choice(padding_candidates, size=padding, replace=False)]
+            )
         for start in range(0, ordered.size, self.labels_per_batch):
             selected = ordered[start : start + self.labels_per_batch]
             batch: list[int] = []
