@@ -815,8 +815,14 @@ class TransformersFoundationEncoder:
                     )
                     for name, value in values.items()
                 }
+                output: Any
                 if self.spec.pooling == "image_features":
-                    output = self.model.get_image_features(**values)
+                    result = self.model.get_image_features(**values)
+                    output = (
+                        result
+                        if torch.is_tensor(result)
+                        else getattr(result, "pooler_output", None)
+                    )
                 else:
                     result = self.model(**values)
                     output = (

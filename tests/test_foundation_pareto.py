@@ -854,6 +854,37 @@ def test_remote_encoder_batches_and_uses_only_registered_pooling(
     assert actual.dtype == np.float32
 
 
+def test_remote_image_features_accepts_transformers_pooling_output() -> None:
+    class Processor:
+        def __call__(self, **kwargs: object) -> dict[str, torch.Tensor]:
+            return {"pixel_values": torch.tensor([[3.0, 4.0]], dtype=torch.float32)}
+
+    class Model:
+        def get_image_features(self, *, pixel_values: torch.Tensor) -> object:
+            return SimpleNamespace(pooler_output=pixel_values)
+
+    spec = _remote_spec(pooling="image_features", normalize=False)
+    encoder = TransformersFoundationEncoder(
+        spec=spec,
+        processor=Processor(),
+        model=Model(),
+        device=torch.device("cpu"),
+        audit=FoundationEncoderAudit(
+            status="available",
+            model_id=spec.model_id,
+            revision=spec.revision,
+            weight_sha256=spec.weight_sha256,
+            processor_sha256=spec.processor_sha256,
+            config_sha256=spec.config_sha256,
+            reason=None,
+        ),
+    )
+
+    actual = encoder.encode([[3.0, 4.0]], batch_size=1, normalize_embeddings=False)
+
+    np.testing.assert_array_equal(actual, np.asarray([[3.0, 4.0]], dtype=np.float32))
+
+
 def test_local_encoder_applies_registered_transform_batches_and_normalizes() -> None:
     transformed: list[object] = []
 
