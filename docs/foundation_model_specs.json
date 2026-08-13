@@ -24,6 +24,24 @@
     {
       "kind": "local",
       "spec": {
+        "arm": "inshop-pa-bninception-disjoint-seed2",
+        "checkpoint_path": "/home/riomus/group-learning/reports/checkpoints/foundation_identity_disjoint_comparator_3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9_seed2.pt",
+        "pretrained_backbone_path": "/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth",
+        "checkpoint_sha256": "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
+        "resolved_config_sha256": "0e6b2030f661b61b62502de1cd02f3294a0b5f61d116156b34bd02260538a7b0",
+        "pretrained_backbone_sha256": "52deb473314542a5c2f87e9e6f26f4ca42fe863d15f986414dbae8c2dfdd2353",
+        "transform_id": "proxy-anchor-eval-224-v1",
+        "embedding_width": 512,
+        "pooling": "embedding",
+        "dtype": "float32",
+        "normalize": true
+      },
+      "cache_resolution": 224,
+      "role": "comparator"
+    },
+    {
+      "kind": "local",
+      "spec": {
         "arm": "inshop-pa-bninception-seed2",
         "checkpoint_path": "/home/riomus/sfora-inshop-seed2/reports/checkpoints/inshop_corrected_pa_seed2.pt",
         "pretrained_backbone_path": "/home/riomus/.cache/torch/hub/checkpoints/bn_inception-52deb4733.pth",
@@ -37,7 +55,7 @@
         "normalize": true
       },
       "cache_resolution": 224,
-      "role": "comparator"
+      "role": "contaminated_control"
     }
   ]
 }

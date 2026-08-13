@@ -9,6 +9,12 @@
       "frozen_before_execution": true
     },
     {
+      "arm": "inshop-pa-bninception-disjoint-seed2",
+      "metric": "embedding_cosine",
+      "tolerance": 0.0,
+      "frozen_before_execution": true
+    },
+    {
       "arm": "inshop-pa-bninception-seed2",
       "metric": "embedding_cosine",
       "tolerance": 0.0,

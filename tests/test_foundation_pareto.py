@@ -2079,21 +2079,22 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
 
     assert registered_arms == (
         "siglip2-base-patch16-256",
+        "inshop-pa-bninception-disjoint-seed2",
         "inshop-pa-bninception-seed2",
+    )
+    assert tuple(arm.role for arm in arms) == (
+        "candidate",
+        "comparator",
+        "contaminated_control",
     )
     assert [(row.arm, row.metric) for row in fixtures] == list(fixture_pairs)
     assert [(row.arm, row.metric) for row in tolerances] == list(fixture_pairs)
-    published_pairs = tuple(
-        (arm, metric)
-        for arm in registered_arms
-        for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
-    )
-    assert [(row.arm, row.metric) for row in published] == list(published_pairs)
-    assert tuple((row.dataset, row.arm) for row in test_reads.records) == tuple(
-        (dataset, arm) for dataset in ("inshop", "sop") for arm in registered_arms
-    )
-    assert all(
-        row.metrics == foundation_pareto.FOUNDATION_PUBLISHED_METRICS for row in test_reads.records
+    assert published == ()
+    assert test_reads.records == ()
+    official_arms = foundation_pareto._foundation_official_read_arms(arms)
+    assert tuple(arm.spec.arm for arm in official_arms) == (
+        "siglip2-base-patch16-256",
+        "inshop-pa-bninception-disjoint-seed2",
     )
     for row in fixtures:
         input_path = root / "docs/foundation_native_inputs" / f"{row.arm}__{row.metric}.json"

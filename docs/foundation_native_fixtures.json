@@ -12,6 +12,15 @@
       "reason": null
     },
     {
+      "arm": "inshop-pa-bninception-disjoint-seed2",
+      "metric": "embedding_cosine",
+      "native_value": null,
+      "input_sha256": "c2faef5f66ef1d2a8570c5876bf89cbd178ef338480f9c4c2e5acfe9e5412695",
+      "source_sha256": "7ea2843e30ef903e4d539f522b93fa39eb7ce8009af280f99a5453ee1d428912",
+      "native_cross_check": "unavailable",
+      "reason": "No independent upstream fixture exists for this exact identity-disjoint locally trained checkpoint; the persisted embedding is repository-only structural evidence."
+    },
+    {
       "arm": "inshop-pa-bninception-seed2",
       "metric": "embedding_cosine",
       "native_value": null,
