@@ -1,13 +1,14 @@
 {
   "schema_version": "foundation-identity-disjoint-comparator-training-ledger-v1",
   "status": "frozen_before_execution",
-  "frozen_at_utc": "2026-08-13T12:08:12Z",
+  "frozen_at_utc": "2026-08-13T12:24:00Z",
   "execution_host": {
     "ssh_target": "riomus@spark-2751",
     "hostname": "spark-2751",
     "repository_checkout": "/home/riomus/foundation-comparator-3267fc6e",
     "working_directory": "/home/riomus/foundation-comparator-3267fc6e",
     "reviewed_source_commit": "3267fc6e2a21c1d346a5fe98f4bbd42e292cafb9",
+    "observed_at_utc": "2026-08-13T12:24:00Z",
     "runtime": {
       "base_venv": "/home/riomus/group-learning/.venv",
       "isolated_venv": "/home/riomus/foundation-comparator-3267fc6e/.venv",
