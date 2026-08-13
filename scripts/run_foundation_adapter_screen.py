@@ -156,9 +156,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay
     )
     history: list[dict[str, object]] = []
-    best_recall = -1.0
-    best_epoch = 0
-    best_state: dict[str, torch.Tensor] | None = None
     started = time.perf_counter()
     for epoch in range(args.epochs + 1):
         recalls = _evaluate(
@@ -175,13 +172,6 @@ def run(args: argparse.Namespace) -> dict[str, object]:
                 "metrics": {str(width): recalls[width] for width in recalls},
             }
         )
-        selection_score = recalls[config.output_dim]["map_at_r"]
-        if epoch > 0 and selection_score > best_recall:
-            best_recall = selection_score
-            best_epoch = epoch
-            best_state = {
-                name: value.detach().cpu().clone() for name, value in model.state_dict().items()
-            }
         if epoch == args.epochs:
             break
         model.train()
@@ -200,22 +190,16 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             optimizer.zero_grad(set_to_none=True)
             torch.autograd.backward(loss)
             optimizer.step()
-    assert best_state is not None
     elapsed = time.perf_counter() - started
-    model.load_state_dict(best_state)
-    final_recalls = _evaluate(
-        model,
-        validation_query,
-        query_labels,
-        validation_gallery,
-        gallery_labels,
-        config.prefixes,
-    )
+    final_metrics = recalls
+    fixed_state = {
+        name: value.detach().cpu().clone() for name, value in model.state_dict().items()
+    }
     checkpoint = {
         "config": asdict(config),
         "model": args.model,
-        "state_dict": best_state,
-        "best_epoch": best_epoch,
+        "state_dict": fixed_state,
+        "fixed_epoch": args.epochs,
     }
     if args.checkpoint.exists():
         raise FileExistsError(args.checkpoint)
@@ -233,9 +217,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         "validation_gallery_rows": int(validation_gallery.shape[0]),
         "raw_recall_at_1": raw_recall,
         "raw_map_at_r": raw_map,
-        "best_epoch": best_epoch,
+        "fixed_epoch": args.epochs,
         "validation_metrics": {
-            str(width): final_recalls[width] for width in config.prefixes
+            str(width): final_metrics[width] for width in config.prefixes
         },
         "trainable_parameters": trainable_parameter_count(model),
         "training_seconds": elapsed,
@@ -272,7 +256,7 @@ def main() -> None:
     summary_keys = (
         "model",
         "seed",
-        "best_epoch",
+        "fixed_epoch",
         "validation_metrics",
         "training_seconds",
     )
