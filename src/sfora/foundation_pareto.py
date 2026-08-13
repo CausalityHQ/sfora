@@ -3336,6 +3336,7 @@ def run_foundation_screen(
         raise ValueError("validation_fraction must be a builtin float in (0, 1)")
     if type(allow_registered_test_read) is not bool:
         raise ValueError("allow_registered_test_read must be a builtin boolean")
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
     if cache_dir.is_symlink() or not cache_dir.is_dir():
         raise ValueError("foundation cache directory must be a real directory")
     if report_path.parent.is_symlink() or not report_path.parent.is_dir():
@@ -3375,36 +3376,39 @@ def run_foundation_screen(
     encoders: dict[str, Any] = {}
     probes: dict[str, BiasFreeProbeResult] = {}
     profiles: dict[str, EncoderCostProfile] = {}
-    encoder_rows: list[dict[str, object]] = []
+    encoder_rows_by_arm: dict[str, dict[str, object]] = {}
     fixture_rows: list[dict[str, object]] = []
     cache_rows: list[dict[str, object]] = []
     probe_rows: list[dict[str, object]] = []
-    for arm_spec in arms:
+    execution_arms = tuple(
+        sorted(arms, key=lambda arm_spec: 0 if arm_spec.role == "comparator" else 1)
+    )
+    comparator_unavailable = False
+    for arm_spec in execution_arms:
         arm = arm_spec.spec.arm
         try:
             encoder = load_foundation_encoder(arm_spec.spec)
         except (OSError, RuntimeError, ValueError) as error:
-            encoder_rows.append(
-                {
-                    "arm": arm,
-                    "status": "unavailable",
-                    "audit": None,
-                    "reason": str(error),
-                }
-            )
+            encoder_rows_by_arm[arm] = {
+                "arm": arm,
+                "status": "unavailable",
+                "audit": None,
+                "reason": str(error),
+            }
+            if arm_spec.role == "comparator":
+                comparator_unavailable = True
+                break
             continue
         encoders[arm] = encoder
         audit = getattr(encoder, "audit", None)
         if not isinstance(audit, FoundationEncoderAudit | LocalFoundationEncoderAudit):
             raise ValueError("foundation encoder lacks an exact source audit")
-        encoder_rows.append(
-            {
-                "arm": arm,
-                "status": "available",
-                "audit": asdict(audit),
-                "reason": None,
-            }
-        )
+        encoder_rows_by_arm[arm] = {
+            "arm": arm,
+            "status": "available",
+            "audit": asdict(audit),
+            "reason": None,
+        }
         fixture_inputs = {
             metric: fixture_authority_path.parent
             / "foundation_native_inputs"
@@ -3453,6 +3457,19 @@ def run_foundation_screen(
         )
         probes[arm] = probe
         probe_rows.append(_serialize_probe(probe))
+    if comparator_unavailable:
+        for arm_spec in arms:
+            arm = arm_spec.spec.arm
+            encoder_rows_by_arm.setdefault(
+                arm,
+                {
+                    "arm": arm,
+                    "status": "unavailable",
+                    "audit": None,
+                    "reason": "not attempted because the registered comparator is unavailable",
+                },
+            )
+    encoder_rows = [encoder_rows_by_arm[arm] for arm in registered_arms]
     comparator_arm = next(arm.spec.arm for arm in arms if arm.role == "comparator")
     comparator_probe = probes.get(comparator_arm)
     decisions: list[dict[str, object]] = []
@@ -3482,7 +3499,7 @@ def run_foundation_screen(
     decision_digest = _decision_sha256(decisions, overall_status)
     official_rows: list[dict[str, object]] = []
     published_rows: list[dict[str, object]] = []
-    if allow_registered_test_read and overall_status != "UNAVAILABLE_COMPARATOR":
+    if allow_registered_test_read and overall_status == "CONTINUE":
         receipt_root = test_reads.receipt_root
         if receipt_root.resolve() == cache_dir.resolve():
             raise ValueError("official test receipts cannot use the rebuildable cache directory")

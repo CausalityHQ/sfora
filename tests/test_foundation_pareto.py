@@ -1,6 +1,7 @@
 import gc
 import hashlib
 import json
+import os
 import platform
 from collections.abc import Sequence
 from dataclasses import replace
@@ -2613,6 +2614,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     train = _identity_blocks(identities=8, examples_per_identity=2)
     trace: list[str] = []
+    monkeypatch.delenv("CUBLAS_WORKSPACE_CONFIG", raising=False)
 
     monkeypatch.setattr(foundation_pareto, "load_foundation_model_specs", lambda path: arms)
     monkeypatch.setattr(
@@ -2649,6 +2651,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
 
     def fake_load(spec: object) -> object:
+        assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
         trace.append(f"{spec.arm}:authenticate")
         if isinstance(spec, LocalCheckpointFoundationSpec):
             return SimpleNamespace(
@@ -2769,16 +2772,16 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
 
     assert written == report
     assert trace == [
-        "candidate:authenticate",
-        "candidate:fixture",
-        "candidate:cache",
-        "candidate:profile",
-        "candidate:probe",
         "comparator:authenticate",
         "comparator:fixture",
         "comparator:cache",
         "comparator:profile",
         "comparator:probe",
+        "candidate:authenticate",
+        "candidate:fixture",
+        "candidate:cache",
+        "candidate:profile",
+        "candidate:probe",
         "candidate:decision",
     ]
     persisted = foundation_pareto.load_foundation_screen_report(report)
@@ -2885,7 +2888,14 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             validation_fraction=0.25,
             allow_registered_test_read=True,
         )
-    assert trace[:2] == ["candidate:authenticate", "candidate:fixture"]
+    assert trace[:5] == [
+        "comparator:authenticate",
+        "comparator:fixture",
+        "comparator:cache",
+        "comparator:profile",
+        "comparator:probe",
+    ]
+    assert trace[5:7] == ["candidate:authenticate", "candidate:fixture"]
     assert "candidate:cache" not in trace
     assert "candidate:probe" not in trace
     assert not closed_report.exists()
@@ -2918,6 +2928,37 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         )
     assert not unavailable_report.exists()
     assert "candidate:fixture" not in trace
+
+    def comparator_unavailable(spec: object) -> object:
+        trace.append(f"{spec.arm}:authenticate")
+        if spec.arm == comparator_spec.arm:
+            raise OSError("registered comparator unavailable")
+        raise AssertionError("candidate reached before comparator availability")
+
+    monkeypatch.setattr(foundation_pareto, "load_foundation_encoder", comparator_unavailable)
+    trace.clear()
+    comparator_unavailable_report = tmp_path / "comparator-unavailable.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=comparator_unavailable_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=False,
+    )
+    assert trace == ["comparator:authenticate"]
+    assert (
+        foundation_pareto.load_foundation_screen_report(comparator_unavailable_report)[
+            "overall_status"
+        ]
+        == "UNAVAILABLE_COMPARATOR"
+    )
 
     published_records = tuple(
         PublishedMetricRecord(
@@ -3002,6 +3043,44 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         row["decision_sha256"] == official["decision_sha256"]
         for row in official["official_test_reads"]
     )
+
+    close_decision = foundation_pareto.F1Decision(
+        status="CLOSE_FOUNDATION_TRANSFER",
+        quality_gap_points=-1.1,
+        quality_within_one_point=False,
+        quality_within_point_four=False,
+        cost_pareto_dominant=False,
+        cost_status="available",
+        continuation_kind="none",
+        authorized_followup="dada_vptsp_fidelity_comparator_only",
+        fidelity_only=True,
+    )
+    monkeypatch.setattr(foundation_pareto, "decide_f1", lambda **kwargs: close_decision)
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_run_registered_official_reads",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("closed F1 decision reached irreversible official reads")
+        ),
+    )
+    close_gate_report = tmp_path / "close-gate.json"
+    foundation_pareto.run_foundation_screen(
+        dataset="cars",
+        dataset_root=tmp_path / "data",
+        model_specs_path=tmp_path / "models.json",
+        cache_dir=cache_dir,
+        report_path=close_gate_report,
+        fixture_authority_path=tmp_path / "fixtures.json",
+        tolerance_authority_path=tmp_path / "tolerances.json",
+        published_register_path=tmp_path / "published.json",
+        test_read_register_path=tmp_path / "test-reads.json",
+        validation_seed=23,
+        validation_fraction=0.25,
+        allow_registered_test_read=True,
+    )
+    closed = foundation_pareto.load_foundation_screen_report(close_gate_report)
+    assert closed["overall_status"] == "CLOSE_FOUNDATION_TRANSFER"
+    assert closed["official_test_reads"] == []
 
 
 def test_registered_official_reads_publish_receipts_before_loading_and_cross_check(
