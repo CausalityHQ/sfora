@@ -10,6 +10,7 @@ from sfora.foundation_adapter import (
     NestedLinearAdapter,
     NestedResidualAdapter,
     cosine_margin_loss,
+    fit_ridge_stitch,
     hardened_retrieval_folds,
     identity_balanced_batches,
     initialize_residual_from_linear,
@@ -230,3 +231,6 @@ def test_ridge_stitch_recovers_a_linear_target_from_optimization_rows() -> None:
     predicted = ridge_stitch(source, target, torch.arange(15), regularization=1e-8)
 
     torch.testing.assert_close(predicted, target, atol=2e-5, rtol=2e-5)
+
+    model = fit_ridge_stitch(source, target, torch.arange(15), regularization=1e-8)
+    torch.testing.assert_close(model.transform(source[15:]), target[15:], atol=2e-5, rtol=2e-5)

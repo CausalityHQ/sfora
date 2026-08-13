@@ -57,6 +57,26 @@ class HardenedRetrievalFold:
     distractor: np.ndarray
 
 
+@dataclass(frozen=True)
+class RidgeStitchModel:
+    """Centered linear map learned from source features into target geometry."""
+
+    source_mean: torch.Tensor
+    target_mean: torch.Tensor
+    weight: torch.Tensor
+
+    def transform(self, source: torch.Tensor) -> torch.Tensor:
+        if (
+            not torch.is_tensor(source)
+            or source.dtype != torch.float32
+            or source.ndim != 2
+            or source.shape[1] != self.weight.shape[0]
+            or not bool(torch.isfinite(source).all())
+        ):
+            raise ValueError("ridge transform source differs from the fitted FP32 width")
+        return (source - self.source_mean) @ self.weight + self.target_mean
+
+
 class NestedResidualAdapter(nn.Module):
     """A compact residual MLP whose ordered coordinates form nested descriptors."""
 
@@ -354,6 +374,23 @@ def ridge_stitch(
 ) -> torch.Tensor:
     """Fit a centered ridge map on optimization rows and transform every source row."""
 
+    return fit_ridge_stitch(
+        source,
+        target,
+        optimization_indexes,
+        regularization=regularization,
+    ).transform(source)
+
+
+def fit_ridge_stitch(
+    source: torch.Tensor,
+    target: torch.Tensor,
+    optimization_indexes: torch.Tensor,
+    *,
+    regularization: float,
+) -> RidgeStitchModel:
+    """Fit a reusable centered ridge map using optimization rows only."""
+
     if (
         not torch.is_tensor(source)
         or not torch.is_tensor(target)
@@ -392,7 +429,7 @@ def ridge_stitch(
     scale = torch.trace(gram) / gram.shape[0]
     identity = torch.eye(gram.shape[0], dtype=gram.dtype, device=gram.device)
     weight = torch.linalg.solve(gram + regularization * scale * identity, x.T @ y)
-    return cast(torch.Tensor, (source - source_mean) @ weight + target_mean)
+    return RidgeStitchModel(source_mean=source_mean, target_mean=target_mean, weight=weight)
 
 
 def cosine_margin_loss(
