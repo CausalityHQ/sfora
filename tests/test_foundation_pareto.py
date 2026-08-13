@@ -2233,8 +2233,9 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
     register_path.write_text(
         json.dumps(
             {
-                "schema_version": "foundation-test-read-register-v2",
+                "schema_version": "foundation-test-read-register-v3",
                 "status": "frozen",
+                "receipt_root": str(tmp_path / "durable-receipts"),
                 "records": [
                     {
                         "dataset": "cars",
@@ -2242,7 +2243,7 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
                         "model_revision": "a" * 40,
                         "checkpoint_sha256": "b" * 64,
                         "metrics": ["recall_at_1", "recall_at_10"],
-                        "purpose": "confirmatory_published_metric_cross_check",
+                        "purpose": "registered_f1_quality_evaluation",
                         "permitted_evaluations": 1,
                     }
                 ],
@@ -2259,10 +2260,12 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
         metrics=("recall_at_1", "recall_at_10"),
-        purpose="confirmatory_published_metric_cross_check",
+        purpose="registered_f1_quality_evaluation",
     )
 
     assert audit.arm == "candidate"
+    assert audit.purpose == "registered_f1_quality_evaluation"
+    assert ledger.receipt_root == tmp_path / "durable-receipts"
     assert audit.evaluation_number == 1
     assert audit.metrics == ("recall_at_1", "recall_at_10")
     with pytest.raises(ValueError, match="already consumed"):
@@ -2272,7 +2275,7 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
             metrics=("recall_at_1", "recall_at_10"),
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
         )
 
 
@@ -2294,8 +2297,9 @@ def test_test_read_register_rejects_unregistered_official_read(
     register_path.write_text(
         json.dumps(
             {
-                "schema_version": "foundation-test-read-register-v2",
+                "schema_version": "foundation-test-read-register-v3",
                 "status": "frozen",
+                "receipt_root": str(tmp_path / "durable-receipts"),
                 "records": [
                     {
                         "dataset": "cars",
@@ -2303,7 +2307,7 @@ def test_test_read_register_rejects_unregistered_official_read(
                         "model_revision": "a" * 40,
                         "checkpoint_sha256": "b" * 64,
                         "metrics": ["recall_at_1", "recall_at_10"],
-                        "purpose": "confirmatory_published_metric_cross_check",
+                        "purpose": "registered_f1_quality_evaluation",
                         "permitted_evaluations": 1,
                     }
                 ],
@@ -2319,7 +2323,7 @@ def test_test_read_register_rejects_unregistered_official_read(
         "model_revision": "a" * 40,
         "checkpoint_sha256": "b" * 64,
         "metrics": ("recall_at_1", "recall_at_10"),
-        "purpose": "confirmatory_published_metric_cross_check",
+        "purpose": "registered_f1_quality_evaluation",
     }
     request[field] = value
 
@@ -2410,17 +2414,17 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
         metrics=("recall_at_1",),
-        purpose="confirmatory_published_metric_cross_check",
+        purpose="registered_f1_quality_evaluation",
         permitted_evaluations=1,
     )
-    first_ledger = foundation_pareto.FoundationTestReadLedger((record,))
+    first_ledger = foundation_pareto.FoundationTestReadLedger((record,), receipt_root=tmp_path)
     audit = first_ledger.consume(
         dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
         metrics=("recall_at_1",),
-        purpose="confirmatory_published_metric_cross_check",
+        purpose="registered_f1_quality_evaluation",
     )
     receipt = foundation_pareto.publish_official_test_read_receipt(
         tmp_path,
@@ -2446,14 +2450,14 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
     persisted = json.loads(receipt.receipt_path.read_text(encoding="utf-8"))
     assert persisted["decision_sha256"] == "c" * 64
 
-    second_ledger = foundation_pareto.FoundationTestReadLedger((record,))
+    second_ledger = foundation_pareto.FoundationTestReadLedger((record,), receipt_root=tmp_path)
     second_audit = second_ledger.consume(
         dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
         metrics=("recall_at_1",),
-        purpose="confirmatory_published_metric_cross_check",
+        purpose="registered_f1_quality_evaluation",
     )
     with pytest.raises(FileExistsError):
         foundation_pareto.publish_official_test_read_receipt(
@@ -2471,12 +2475,12 @@ def test_official_test_reads_are_one_shot_per_dataset_and_arm(tmp_path: Path) ->
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
             metrics=("recall_at_1",),
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
             permitted_evaluations=1,
         )
         for dataset in ("inshop", "sop")
     )
-    ledger = foundation_pareto.FoundationTestReadLedger(records)
+    ledger = foundation_pareto.FoundationTestReadLedger(records, receipt_root=tmp_path)
     receipts = []
     for dataset in ("inshop", "sop"):
         audit = ledger.consume(
@@ -2485,7 +2489,7 @@ def test_official_test_reads_are_one_shot_per_dataset_and_arm(tmp_path: Path) ->
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
             metrics=("recall_at_1",),
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
         )
         receipt = foundation_pareto.publish_official_test_read_receipt(
             tmp_path,
@@ -2512,7 +2516,7 @@ def test_official_test_reads_are_one_shot_per_dataset_and_arm(tmp_path: Path) ->
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
             metrics=("recall_at_1",),
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
         )
 
 
@@ -2549,10 +2553,11 @@ def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Pa
                 model_revision="a" * 40,
                 checkpoint_sha256="b" * 64,
                 metrics=("recall_at_1",),
-                purpose="confirmatory_published_metric_cross_check",
+                purpose="registered_f1_quality_evaluation",
                 permitted_evaluations=1,
             ),
-        )
+        ),
+        receipt_root=tmp_path,
     )
     receipt = foundation_pareto.publish_official_test_read_receipt(
         tmp_path,
@@ -2562,7 +2567,7 @@ def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Pa
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
             metrics=("recall_at_1",),
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
         ),
         decision_sha256="c" * 64,
     )
@@ -2627,7 +2632,9 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     monkeypatch.setattr(
         foundation_pareto,
         "load_test_read_register",
-        lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(()),
+        lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(
+            (), receipt_root=tmp_path
+        ),
     )
 
     def fake_train_examples(**kwargs: object) -> object:
@@ -2941,17 +2948,23 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
                     model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
                     checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
                     metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
-                    purpose="confirmatory_published_metric_cross_check",
+                    purpose="registered_f1_quality_evaluation",
                     permitted_evaluations=1,
                 )
                 for arm in arms
-            )
+            ),
+            receipt_root=tmp_path,
         ),
     )
     monkeypatch.setattr(
         foundation_pareto,
         "load_image_retrieval_bundle",
         lambda **kwargs: SimpleNamespace(protocol="query_gallery"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "preflight_official_image_retrieval_split",
+        lambda **kwargs: None,
     )
     monkeypatch.setattr(
         foundation_pareto,
@@ -3023,11 +3036,12 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
                 model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
                 checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
                 metrics=metrics,
-                purpose="confirmatory_published_metric_cross_check",
+                purpose="registered_f1_quality_evaluation",
                 permitted_evaluations=1,
             )
             for arm in specs
-        )
+        ),
+        receipt_root=tmp_path / "receipts",
     )
     records = tuple(
         PublishedMetricRecord(
@@ -3086,6 +3100,11 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     monkeypatch.setattr(foundation_pareto, "load_image_retrieval_bundle", fake_bundle)
     monkeypatch.setattr(
         foundation_pareto,
+        "preflight_official_image_retrieval_split",
+        lambda **kwargs: trace.append("preflight"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
         "load_published_metric_register",
         fake_published_register,
     )
@@ -3119,6 +3138,7 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     )
 
     assert trace == [
+        "preflight",
         "load",
         "candidate:official",
         "load",
@@ -3134,6 +3154,68 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     assert all(Path(row["receipt_path"]).is_file() for row in reads)
     assert audits[0]["invalidates_confirmatory_claim"] is True
     assert audits[0]["passed"] is False
+
+
+def test_official_split_preflight_fails_before_consuming_or_publishing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = foundation_pareto.FoundationScreenArmSpec(
+        kind="remote",
+        spec=_remote_spec(arm="candidate"),
+        cache_resolution=224,
+        role="candidate",
+    )
+    model_revision, checkpoint_sha256 = foundation_pareto._test_read_identity(spec.spec)
+    ledger = foundation_pareto.FoundationTestReadLedger(
+        (
+            foundation_pareto.FoundationTestReadRecord(
+                dataset="sop",
+                arm="candidate",
+                model_revision=model_revision,
+                checkpoint_sha256=checkpoint_sha256,
+                metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+                purpose="registered_f1_quality_evaluation",
+                permitted_evaluations=1,
+            ),
+        ),
+        receipt_root=tmp_path / "receipts",
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "preflight_official_image_retrieval_split",
+        lambda **kwargs: (_ for _ in ()).throw(ValueError("official split unreachable")),
+        raising=False,
+    )
+    cache_dir = tmp_path / "cache"
+    receipt_root = tmp_path / "receipts"
+    cache_dir.mkdir()
+    receipt_root.mkdir()
+
+    with pytest.raises(ValueError, match="official split unreachable"):
+        foundation_pareto._run_registered_official_reads(
+            dataset="sop",
+            dataset_root=tmp_path,
+            validation_seed=23,
+            arms=(spec,),
+            encoders={"candidate": object()},
+            cache_dir=cache_dir,
+            receipt_root=receipt_root,
+            decision_sha256="c" * 64,
+            ledger=ledger,
+            published_register_path=tmp_path / "published.json",
+        )
+
+    assert not tuple(receipt_root.glob("official-test-read-*.json"))
+    audit = ledger.consume(
+        dataset="sop",
+        arm="candidate",
+        model_revision=model_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+        purpose="registered_f1_quality_evaluation",
+    )
+    assert audit.evaluation_number == 1
 
 
 def test_foundation_geometry_excludes_self_for_self_retrieval_protocol() -> None:

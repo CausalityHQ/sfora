@@ -135,7 +135,7 @@ def foundation_screen(
     ] = 0.20,
     allow_registered_test_read: Annotated[
         bool,
-        typer.Option(help="Consume each arm's registered one-shot official-test read."),
+        typer.Option(help="Consume each dataset/arm's registered one-shot quality read."),
     ] = False,
 ) -> None:
     """Run the revision-pinned foundation F0/F1 screen."""

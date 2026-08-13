@@ -20,6 +20,7 @@ from sfora.data import (
     load_image_retrieval_bundle,
     load_image_retrieval_examples,
     materialize_image,
+    preflight_official_image_retrieval_split,
 )
 from sfora.image_recipes import (
     RecipeSelectionSplit,
@@ -38,6 +39,7 @@ FOUNDATION_PUBLISHED_METRICS = (
     "map_at_r",
 )
 FOUNDATION_DATASETS = ("cub", "cars", "sop", "inshop", "inat2018")
+FOUNDATION_TEST_READ_PURPOSE = "registered_f1_quality_evaluation"
 
 
 def _require_foundation_dataset(value: object) -> str:
@@ -1043,7 +1045,7 @@ class FoundationTestReadRecord:
     model_revision: str
     checkpoint_sha256: str
     metrics: tuple[str, ...]
-    purpose: Literal["confirmatory_published_metric_cross_check"]
+    purpose: Literal["registered_f1_quality_evaluation"]
     permitted_evaluations: Literal[1]
 
     def __post_init__(self) -> None:
@@ -1061,7 +1063,7 @@ class FoundationTestReadRecord:
             raise ValueError("test-read metrics must be unique and ordered")
         for metric in self.metrics:
             _require_nonempty("test-read metric", metric)
-        if self.purpose != "confirmatory_published_metric_cross_check":
+        if self.purpose != FOUNDATION_TEST_READ_PURPOSE:
             raise ValueError("test-read purpose differs from registered purpose")
         if type(self.permitted_evaluations) is not int or self.permitted_evaluations != 1:
             raise ValueError("test-read permitted_evaluations must be exactly one")
@@ -1074,7 +1076,7 @@ class OfficialTestReadAudit:
     model_revision: str
     checkpoint_sha256: str
     metrics: tuple[str, ...]
-    purpose: Literal["confirmatory_published_metric_cross_check"]
+    purpose: Literal["registered_f1_quality_evaluation"]
     evaluation_number: Literal[1]
 
 
@@ -1085,7 +1087,7 @@ class OfficialTestReadReceipt:
     model_revision: str
     checkpoint_sha256: str
     metrics: tuple[str, ...]
-    purpose: Literal["confirmatory_published_metric_cross_check"]
+    purpose: Literal["registered_f1_quality_evaluation"]
     evaluation_number: Literal[1]
     decision_sha256: str
     receipt_path: Path
@@ -1094,13 +1096,21 @@ class OfficialTestReadReceipt:
 class FoundationTestReadLedger:
     """In-process one-shot capability over a frozen test-read register."""
 
-    def __init__(self, records: tuple[FoundationTestReadRecord, ...]) -> None:
+    def __init__(
+        self,
+        records: tuple[FoundationTestReadRecord, ...],
+        *,
+        receipt_root: Path,
+    ) -> None:
         if type(records) is not tuple:
             raise ValueError("test-read records must be a builtin tuple")
         identities = tuple((record.dataset, record.arm) for record in records)
         if len(set(identities)) != len(identities):
             raise ValueError("test-read register contains duplicate dataset/arm identities")
+        if not isinstance(receipt_root, Path) or not receipt_root.is_absolute():
+            raise ValueError("test-read receipt_root must be an absolute Path")
         self.records = records
+        self.receipt_root = receipt_root
         self._consumed: set[tuple[str, str]] = set()
 
     def consume(
@@ -1143,7 +1153,7 @@ class FoundationTestReadLedger:
             model_revision=model_revision,
             checkpoint_sha256=checkpoint_sha256,
             metrics=metrics,
-            purpose="confirmatory_published_metric_cross_check",
+            purpose="registered_f1_quality_evaluation",
             evaluation_number=1,
         )
 
@@ -2262,10 +2272,10 @@ def load_test_read_register(
     value = _load_strict_json(path)
     _require_ordered_keys(
         value,
-        ("schema_version", "status", "records"),
+        ("schema_version", "status", "receipt_root", "records"),
         name="test-read authority",
     )
-    if value["schema_version"] != "foundation-test-read-register-v2":
+    if value["schema_version"] != "foundation-test-read-register-v3":
         raise ValueError("test-read schema version differs")
     if value["status"] not in {"prospective_unfrozen", "frozen"}:
         raise ValueError("test-read authority status differs")
@@ -2273,6 +2283,11 @@ def load_test_read_register(
         raise ValueError("test-read authority is not frozen")
     if value["status"] == "prospective_unfrozen" and value["records"] != []:
         raise ValueError("prospective unfrozen test-read authority must be empty")
+    if type(value["receipt_root"]) is not str or not value["receipt_root"]:
+        raise ValueError("test-read receipt_root must be a nonempty string")
+    receipt_root = Path(value["receipt_root"])
+    if not receipt_root.is_absolute():
+        raise ValueError("test-read receipt_root must be absolute")
     if type(value["records"]) is not list:
         raise ValueError("test-read records must be a JSON array")
     records: list[FoundationTestReadRecord] = []
@@ -2306,7 +2321,7 @@ def load_test_read_register(
                 permitted_evaluations=raw["permitted_evaluations"],
             )
         )
-    return FoundationTestReadLedger(tuple(records))
+    return FoundationTestReadLedger(tuple(records), receipt_root=receipt_root)
 
 
 def load_foundation_model_specs(path: Path) -> tuple[FoundationScreenArmSpec, ...]:
@@ -3205,7 +3220,7 @@ def validate_foundation_screen_report(value: object) -> None:
         _require_sha256("official checkpoint_sha256", row["checkpoint_sha256"])
         if row["metrics"] != list(FOUNDATION_PUBLISHED_METRICS):
             raise ValueError("official metrics differ from registered order")
-        if row["purpose"] != "confirmatory_published_metric_cross_check":
+        if row["purpose"] != FOUNDATION_TEST_READ_PURPOSE:
             raise ValueError("official purpose differs")
         if type(row["evaluation_number"]) is not int or row["evaluation_number"] != 1:
             raise ValueError("official evaluation number differs")
@@ -3463,7 +3478,7 @@ def run_foundation_screen(
     official_rows: list[dict[str, object]] = []
     published_rows: list[dict[str, object]] = []
     if allow_registered_test_read and overall_status != "UNAVAILABLE_COMPARATOR":
-        receipt_root = report_path.parent
+        receipt_root = test_reads.receipt_root
         if receipt_root.resolve() == cache_dir.resolve():
             raise ValueError("official test receipts cannot use the rebuildable cache directory")
         official_rows, published_rows, official_cache_rows = _run_registered_official_reads(
@@ -3523,6 +3538,14 @@ def _run_registered_official_reads(
 ) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
     if receipt_root.resolve().is_relative_to(cache_dir.resolve()):
         raise ValueError("official test receipts cannot use the rebuildable cache directory")
+    if receipt_root != ledger.receipt_root:
+        raise ValueError("official test receipt root differs from frozen authority")
+    if receipt_root.is_symlink() or not receipt_root.is_dir():
+        raise ValueError("official test receipt root must be a real directory")
+    preflight_official_image_retrieval_split(
+        dataset_name=cast(ImageDatasetName, dataset),
+        dataset_root=dataset_root,
+    )
     registered_pairs = tuple(
         (arm.spec.arm, metric) for arm in arms for metric in FOUNDATION_PUBLISHED_METRICS
     )
@@ -3541,7 +3564,7 @@ def _run_registered_official_reads(
             model_revision=model_revision,
             checkpoint_sha256=checkpoint_sha256,
             metrics=FOUNDATION_PUBLISHED_METRICS,
-            purpose="confirmatory_published_metric_cross_check",
+            purpose=FOUNDATION_TEST_READ_PURPOSE,
         )
         receipt = publish_official_test_read_receipt(
             receipt_root,

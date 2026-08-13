@@ -4,6 +4,7 @@ from typing import cast
 
 import pytest
 
+import sfora.data as data_module
 from sfora.data import (
     ImageExample,
     TextExample,
@@ -76,6 +77,72 @@ def test_load_inshop_bundle_rejects_highres_segmentation_corpus(tmp_path: Path) 
 
     with pytest.raises(ValueError, match=r"requires the standard Img/img\.zip"):
         load_image_retrieval_bundle(dataset_name="inshop", dataset_root=tmp_path)
+
+
+def test_load_inshop_train_does_not_construct_official_evaluation_rows(
+    tmp_path: Path,
+) -> None:
+    partition = tmp_path / "Eval/list_eval_partition.txt"
+    partition.parent.mkdir(parents=True)
+    partition.write_text(
+        "4\nimage_name item_id evaluation_status\n"
+        "img/MEN/Denim/id_00000008/01_1_front.jpg id_00000008 train\n"
+        "img/MEN/Denim/id_00000009/01_1_front.jpg id_00000009 train\n"
+        "img/WOMEN/Tees/id_00000001/01_1_front.jpg id_00000001 query\n"
+        "img/WOMEN/Tees/id_00000001/01_2_side.jpg id_00000001 gallery\n",
+        encoding="utf-8",
+    )
+    _touch(tmp_path / "Img", "img/MEN/Denim/id_00000008/01_1_front.jpg")
+    _touch(tmp_path / "Img", "img/MEN/Denim/id_00000009/01_1_front.jpg")
+
+    train = load_image_retrieval_examples(
+        dataset_name="inshop",
+        split="train",
+        dataset_root=tmp_path,
+    )
+
+    assert [(row.example_id, row.label) for row in train] == [
+        ("inshop-train-img/MEN/Denim/id_00000008/01_1_front.jpg", 0),
+        ("inshop-train-img/MEN/Denim/id_00000009/01_1_front.jpg", 1),
+    ]
+
+
+def test_load_sop_bundle_forwards_local_archive_to_both_splits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[Path, str]] = []
+
+    def local_records(
+        root: Path,
+        *,
+        split: str,
+        expected_rows: int,
+        expected_classes: int,
+    ) -> list[dict[str, object]]:
+        del expected_rows, expected_classes
+        calls.append((root, split))
+        items = ("900001_0", "900002_0") if split == "train" else ("100001_0", "100002_0")
+        return [{"image": object(), "id": item} for item in items]
+
+    monkeypatch.setattr(data_module, "_read_local_sop_metadata", local_records)
+    monkeypatch.setattr(
+        data_module,
+        "_load_original_sop_records",
+        lambda split: (_ for _ in ()).throw(AssertionError(f"remote SOP {split} reached")),
+    )
+
+    bundle = load_image_retrieval_bundle(dataset_name="sop", dataset_root=tmp_path)
+
+    assert calls == [(tmp_path.resolve(), "train"), (tmp_path.resolve(), "test")]
+    assert [row.example_id for row in bundle.train] == [
+        "sop-train-900001-0",
+        "sop-train-900002-1",
+    ]
+    assert [row.example_id for row in bundle.query] == [
+        "sop-test-100001-0",
+        "sop-test-100002-1",
+    ]
 
 
 def test_load_inat2018_bundle_builds_disjoint_zero_shot_species_protocol(

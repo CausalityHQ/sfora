@@ -139,15 +139,26 @@ def load_image_retrieval_examples(
 ) -> list[ImageExample]:
     """Load a standard image metric-learning split through Hugging Face datasets."""
     if dataset_name in {"inshop", "inat2018"}:
-        bundle = load_image_retrieval_bundle(
-            dataset_name=dataset_name,
-            dataset_root=dataset_root,
-            limit_per_class=limit_per_class,
-            train_min_per_class=min_per_class if split == "train" else None,
-            evaluation_min_per_class=min_per_class if split != "train" else None,
-            max_classes=max_classes,
-            seed=seed,
-        )
+        if dataset_name == "inshop" and split == "train":
+            bundle = _load_inshop_bundle(
+                _required_dataset_root(dataset_name, dataset_root),
+                limit_per_class=limit_per_class,
+                train_min_per_class=min_per_class,
+                evaluation_min_per_class=None,
+                max_classes=max_classes,
+                seed=seed,
+                train_only=True,
+            )
+        else:
+            bundle = load_image_retrieval_bundle(
+                dataset_name=dataset_name,
+                dataset_root=dataset_root,
+                limit_per_class=limit_per_class,
+                train_min_per_class=min_per_class if split == "train" else None,
+                evaluation_min_per_class=min_per_class if split != "train" else None,
+                max_classes=max_classes,
+                seed=seed,
+            )
         if split == "train":
             return bundle.train
         if split in {"test", "query"}:
@@ -436,6 +447,7 @@ def load_image_retrieval_bundle(
         )
     train = load_image_retrieval_examples(
         dataset_name=dataset_name,
+        dataset_root=dataset_root,
         split="train",
         limit_per_class=limit_per_class,
         min_per_class=train_min_per_class,
@@ -445,6 +457,7 @@ def load_image_retrieval_bundle(
     )
     test = load_image_retrieval_examples(
         dataset_name=dataset_name,
+        dataset_root=dataset_root,
         split="test",
         limit_per_class=limit_per_class,
         min_per_class=evaluation_min_per_class,
@@ -459,6 +472,35 @@ def load_image_retrieval_bundle(
         protocol="self",
         protocol_name=f"{dataset_name}-standard-zero-shot",
     )
+
+
+def preflight_official_image_retrieval_split(
+    *,
+    dataset_name: ImageDatasetName,
+    dataset_root: Path | None,
+) -> None:
+    """Validate registered evaluation metadata and paths without decoding pixels."""
+
+    root = _required_dataset_root(dataset_name, dataset_root)
+    if dataset_name == "sop":
+        _read_local_sop_metadata(
+            root,
+            split="test",
+            expected_rows=60_502,
+            expected_classes=11_316,
+        )
+        return
+    if dataset_name == "inshop":
+        _load_inshop_bundle(
+            root,
+            limit_per_class=None,
+            train_min_per_class=None,
+            evaluation_min_per_class=None,
+            max_classes=None,
+            seed=0,
+        )
+        return
+    raise ValueError(f"official split preflight is not registered for dataset {dataset_name!r}")
 
 
 def materialize_image(image: object) -> object:
@@ -490,6 +532,7 @@ def _load_inshop_bundle(
     evaluation_min_per_class: int | None,
     max_classes: int | None,
     seed: int,
+    train_only: bool = False,
 ) -> ImageRetrievalBundle:
     image_tree = root / "Img" / "img"
     # The DeepFashion release contains two pixel corpora with identical relative
@@ -530,14 +573,17 @@ def _load_inshop_bundle(
         raise ValueError(
             f"In-Shop partition declares {declared_count} images but contains {len(rows)} rows"
         )
-    label_by_item = {item_id: index for index, item_id in enumerate(sorted({r[1] for r in rows}))}
+    label_items = {item_id for _, item_id, status in rows if not train_only or status == "train"}
+    label_by_item = {item_id: index for index, item_id in enumerate(sorted(label_items))}
     by_status: dict[str, list[ImageExample]] = {"train": [], "query": [], "gallery": []}
     items_by_status: dict[str, set[str]] = {"train": set(), "query": set(), "gallery": set()}
     for image_name, item_id, status in rows:
+        items_by_status[status].add(item_id)
+        if train_only and status != "train":
+            continue
         image_path = root / "Img" / image_name
         if not image_path.is_file():
             raise ValueError(f"In-Shop partition references missing image: {image_path}")
-        items_by_status[status].add(item_id)
         by_status[status].append(
             ImageExample(
                 example_id=f"inshop-{status}-{image_name}",
@@ -556,14 +602,17 @@ def _load_inshop_bundle(
         max_classes=max_classes,
         seed=seed,
     )
-    query, gallery = _select_paired_query_gallery_examples(
-        by_status["query"],
-        by_status["gallery"],
-        limit_per_class=limit_per_class,
-        min_per_class=evaluation_min_per_class,
-        max_classes=max_classes,
-        seed=seed,
-    )
+    if train_only:
+        query, gallery = [], []
+    else:
+        query, gallery = _select_paired_query_gallery_examples(
+            by_status["query"],
+            by_status["gallery"],
+            limit_per_class=limit_per_class,
+            min_per_class=evaluation_min_per_class,
+            max_classes=max_classes,
+            seed=seed,
+        )
     return ImageRetrievalBundle(
         train=train,
         query=query,

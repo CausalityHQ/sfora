@@ -103,6 +103,9 @@ hyperparameters are selected only from identity-disjoint training identities.
 Before the first official-test access, commit a test-read register listing each
 dataset/arm pair, checkpoint, metric, purpose, and single permitted evaluation. Any
 unregistered read invalidates the confirmatory claim.
+The register also freezes one absolute durable receipt root shared by every
+process. Its purpose is a registered F1 quality evaluation; published-value
+cross-checks are reported only where a dataset-specific native value exists.
 
 Report R@1/10/20/30 for In-Shop, R@1/10/100 for SOP, mAP@R where defined, and
 the full quality/cost table. Raw-frozen rows are descriptive. Fit the same
