@@ -192,6 +192,71 @@ def nested_embeddings(
     return {width: F.normalize(embeddings[:, :width], p=2, dim=1) for width in prefixes}
 
 
+def fuse_normalized_embeddings(
+    left: torch.Tensor,
+    right: torch.Tensor,
+    *,
+    weight: float,
+) -> torch.Tensor:
+    """Concatenate normalized geometries so cosine equals their weighted score sum."""
+
+    for name, value in (("left", left), ("right", right)):
+        if (
+            not torch.is_tensor(value)
+            or value.dtype != torch.float32
+            or value.ndim != 2
+            or not bool(torch.isfinite(value).all())
+        ):
+            raise ValueError(f"{name} embeddings must be finite rank-2 FP32 tensors")
+    if left.shape[0] != right.shape[0] or left.device != right.device:
+        raise ValueError("fusion geometries must have matching rows and devices")
+    if type(weight) is not float or not isfinite(weight) or not 0.0 <= weight <= 1.0:
+        raise ValueError("fusion weight must be a finite builtin float in [0, 1]")
+    return torch.cat(
+        (
+            weight**0.5 * F.normalize(left, p=2, dim=1),
+            (1.0 - weight) ** 0.5 * F.normalize(right, p=2, dim=1),
+        ),
+        dim=1,
+    )
+
+
+def select_fusion_weight(
+    rows: dict[float, tuple[tuple[float, float], ...]],
+) -> float:
+    """Select by mean Recall@1, then mAP@R, preserving grid order for ties."""
+
+    if type(rows) is not dict or not rows:
+        raise ValueError("fusion rows must be a nonempty builtin dictionary")
+    ranked: list[tuple[float, float, float]] = []
+    expected_count: int | None = None
+    for weight, metrics in rows.items():
+        if type(weight) is not float or not isfinite(weight) or not 0.0 <= weight <= 1.0:
+            raise ValueError("fusion grid weights must be finite builtin floats in [0, 1]")
+        if type(metrics) is not tuple or not metrics:
+            raise ValueError("each fusion weight requires a nonempty metric tuple")
+        if expected_count is None:
+            expected_count = len(metrics)
+        elif len(metrics) != expected_count:
+            raise ValueError("fusion weights must have equal metric counts")
+        for pair in metrics:
+            if (
+                type(pair) is not tuple
+                or len(pair) != 2
+                or any(type(value) is not float or not isfinite(value) for value in pair)
+            ):
+                raise ValueError("fusion metrics must be finite builtin float pairs")
+        ranked.append(
+            (
+                sum(pair[0] for pair in metrics) / len(metrics),
+                sum(pair[1] for pair in metrics) / len(metrics),
+                weight,
+            )
+        )
+    best_index = max(range(len(ranked)), key=lambda index: ranked[index][:2])
+    return ranked[best_index][2]
+
+
 def identity_balanced_batches(
     labels: np.ndarray,
     *,

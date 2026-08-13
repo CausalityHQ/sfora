@@ -12,6 +12,7 @@ from sfora.foundation_adapter import (
     NonlinearRidgeStitch,
     cosine_margin_loss,
     fit_ridge_stitch,
+    fuse_normalized_embeddings,
     hardened_retrieval_folds,
     identity_balanced_batches,
     initialize_residual_from_linear,
@@ -19,6 +20,7 @@ from sfora.foundation_adapter import (
     retrieval_map_at_r,
     retrieval_recall_at_1,
     ridge_stitch,
+    select_fusion_weight,
 )
 from sfora.image_recipes import class_disjoint_recipe_selection_split
 
@@ -248,3 +250,35 @@ def test_nonlinear_stitch_starts_as_exact_frozen_ridge_map() -> None:
     torch.testing.assert_close(model(source), ridge.transform(source), atol=0, rtol=0)
     assert model.residual_scale.item() == 0.0
     assert all(not parameter.requires_grad for parameter in model.base.parameters())
+
+
+def test_fused_embeddings_equal_a_weighted_cosine_score_sum() -> None:
+    left = torch.tensor([[3.0, 4.0], [0.0, 2.0]], dtype=torch.float32)
+    right = torch.tensor([[1.0, 0.0, 0.0], [1.0, 1.0, 0.0]], dtype=torch.float32)
+    left_gallery = torch.tensor([[4.0, 3.0], [2.0, 0.0]], dtype=torch.float32)
+    right_gallery = torch.tensor([[0.0, 1.0, 0.0], [1.0, -1.0, 0.0]], dtype=torch.float32)
+
+    query = fuse_normalized_embeddings(left, right, weight=0.25)
+    gallery = fuse_normalized_embeddings(left_gallery, right_gallery, weight=0.25)
+
+    expected = 0.25 * (
+        torch.nn.functional.normalize(left, dim=1)
+        @ torch.nn.functional.normalize(left_gallery, dim=1).T
+    ) + 0.75 * (
+        torch.nn.functional.normalize(right, dim=1)
+        @ torch.nn.functional.normalize(right_gallery, dim=1).T
+    )
+    torch.testing.assert_close(query @ gallery.T, expected, atol=1e-6, rtol=0)
+    torch.testing.assert_close(query.norm(dim=1), torch.ones(2), atol=1e-6, rtol=0)
+
+
+def test_fusion_weight_selection_uses_mean_recall_then_map_then_grid_order() -> None:
+    rows = {
+        0.0: ((0.80, 0.70), (0.82, 0.72)),
+        0.25: ((0.84, 0.68), (0.82, 0.70)),
+        0.5: ((0.83, 0.75), (0.83, 0.73)),
+    }
+
+    selected = select_fusion_weight(rows)
+
+    assert selected == 0.5
