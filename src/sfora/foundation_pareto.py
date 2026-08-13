@@ -7,11 +7,17 @@ import os
 import re
 import secrets
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 from math import isfinite
 from pathlib import Path
 from typing import Any, Literal
+
+from sfora.data import ImageExample
+from sfora.image_recipes import (
+    RecipeSelectionSplit,
+    class_disjoint_recipe_selection_split,
+)
 
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _GIT_REVISION = re.compile(r"[0-9a-f]{40,64}")
@@ -34,6 +40,592 @@ def _require_nonempty(name: str, value: str) -> None:
 def _require_sha256(name: str, value: str) -> None:
     if type(value) is not str or _SHA256.fullmatch(value) is None:
         raise ValueError(f"{name} must be a lowercase SHA-256 digest")
+
+
+@dataclass(frozen=True)
+class F1Decision:
+    """Prospective foundation-transfer gate decision."""
+
+    status: Literal["CONTINUE", "CLOSE_FOUNDATION_TRANSFER", "UNAVAILABLE_COMPARATOR"]
+    quality_gap_points: float | None
+    quality_within_one_point: bool
+    quality_within_point_four: bool
+    cost_pareto_dominant: bool
+    cost_status: Literal["available", "unavailable"]
+    continuation_kind: Literal["quality_margin", "pareto_equivalent", "both", "none"]
+    authorized_followup: Literal[
+        "matryoshka_adapter_lane",
+        "dada_vptsp_fidelity_comparator_only",
+        "resolve_local_comparator",
+    ]
+    fidelity_only: bool
+
+
+def build_identity_disjoint_validation_split(
+    examples: Sequence[ImageExample],
+    *,
+    fraction: float,
+    seed: int,
+) -> RecipeSelectionSplit:
+    """Build the registered train-only, identity-disjoint probe-selection split."""
+
+    return class_disjoint_recipe_selection_split(examples, fraction=fraction, seed=seed)
+
+
+def decide_f1(
+    *,
+    candidate_probe: BiasFreeProbeResult | None,
+    comparator_probe: BiasFreeProbeResult | None,
+    candidate_encoder_p95_ms: float | None,
+    comparator_encoder_p95_ms: float | None,
+    candidate_descriptor_bytes_per_image: int | None,
+    comparator_descriptor_bytes_per_image: int | None,
+) -> F1Decision:
+    """Apply the preregistered F1 quality-or-efficiency continuation gate."""
+
+    if comparator_probe is None:
+        return F1Decision(
+            status="UNAVAILABLE_COMPARATOR",
+            quality_gap_points=None,
+            quality_within_one_point=False,
+            quality_within_point_four=False,
+            cost_pareto_dominant=False,
+            cost_status="unavailable",
+            continuation_kind="none",
+            authorized_followup="resolve_local_comparator",
+            fidelity_only=False,
+        )
+    if candidate_probe is None:
+        raise ValueError("available comparator requires a candidate probe")
+    if (
+        type(candidate_probe) is not BiasFreeProbeResult
+        or type(comparator_probe) is not BiasFreeProbeResult
+    ):
+        raise ValueError("F1 decision requires exact BiasFreeProbeResult objects")
+    if (
+        candidate_probe.config != comparator_probe.config
+        or candidate_probe.dataset != comparator_probe.dataset
+        or candidate_probe.split_sha256 != comparator_probe.split_sha256
+        or candidate_probe.device_type != comparator_probe.device_type
+    ):
+        raise ValueError("candidate and comparator must use the same probe protocol and split")
+    candidate_validation_recall_at_1_points = candidate_probe.validation_recall_at_1_points
+    comparator_validation_recall_at_1_points = comparator_probe.validation_recall_at_1_points
+    _require_points(
+        "candidate_validation_recall_at_1_points",
+        candidate_validation_recall_at_1_points,
+    )
+    _require_points(
+        "comparator_validation_recall_at_1_points",
+        comparator_validation_recall_at_1_points,
+    )
+    gap = round(
+        candidate_validation_recall_at_1_points - comparator_validation_recall_at_1_points,
+        9,
+    )
+    within_one = gap >= -1.0
+    within_point_four = abs(gap) <= 0.40
+    costs = (
+        candidate_encoder_p95_ms,
+        comparator_encoder_p95_ms,
+        candidate_descriptor_bytes_per_image,
+        comparator_descriptor_bytes_per_image,
+    )
+    cost_status: Literal["available", "unavailable"] = (
+        "available" if all(value is not None for value in costs) else "unavailable"
+    )
+    for name, value, validator in (
+        ("candidate_encoder_p95_ms", candidate_encoder_p95_ms, _require_positive_float),
+        ("comparator_encoder_p95_ms", comparator_encoder_p95_ms, _require_positive_float),
+        (
+            "candidate_descriptor_bytes_per_image",
+            candidate_descriptor_bytes_per_image,
+            _require_positive_int,
+        ),
+        (
+            "comparator_descriptor_bytes_per_image",
+            comparator_descriptor_bytes_per_image,
+            _require_positive_int,
+        ),
+    ):
+        if value is not None:
+            validator(name, value)  # type: ignore[arg-type]
+    pareto = False
+    if cost_status == "available":
+        assert candidate_encoder_p95_ms is not None
+        assert comparator_encoder_p95_ms is not None
+        assert candidate_descriptor_bytes_per_image is not None
+        assert comparator_descriptor_bytes_per_image is not None
+        pareto = (
+            candidate_encoder_p95_ms <= comparator_encoder_p95_ms
+            and candidate_descriptor_bytes_per_image <= comparator_descriptor_bytes_per_image
+            and (
+                candidate_encoder_p95_ms < comparator_encoder_p95_ms
+                or candidate_descriptor_bytes_per_image < comparator_descriptor_bytes_per_image
+            )
+        )
+    pareto_equivalent = within_point_four and pareto
+    status: Literal["CONTINUE", "CLOSE_FOUNDATION_TRANSFER"] = (
+        "CONTINUE" if within_one or pareto_equivalent else "CLOSE_FOUNDATION_TRANSFER"
+    )
+    if within_one and pareto_equivalent:
+        continuation_kind: Literal["quality_margin", "pareto_equivalent", "both", "none"] = "both"
+    elif within_one:
+        continuation_kind = "quality_margin"
+    elif pareto_equivalent:
+        continuation_kind = "pareto_equivalent"
+    else:
+        continuation_kind = "none"
+    return F1Decision(
+        status=status,
+        quality_gap_points=gap,
+        quality_within_one_point=within_one,
+        quality_within_point_four=within_point_four,
+        cost_pareto_dominant=pareto,
+        cost_status=cost_status,
+        continuation_kind=continuation_kind,
+        authorized_followup=(
+            "matryoshka_adapter_lane"
+            if status == "CONTINUE"
+            else "dada_vptsp_fidelity_comparator_only"
+        ),
+        fidelity_only=status == "CLOSE_FOUNDATION_TRANSFER",
+    )
+
+
+def _require_points(name: str, value: float) -> None:
+    if type(value) is not float or not isfinite(value) or not 0.0 <= value <= 100.0:
+        raise ValueError(f"{name} must be a finite builtin float in [0, 100]")
+
+
+def _require_positive_float(name: str, value: float) -> None:
+    if type(value) is not float or not isfinite(value) or value <= 0.0:
+        raise ValueError(f"{name} must be a positive finite builtin float")
+
+
+def _require_positive_int(name: str, value: int) -> None:
+    if type(value) is not int or value <= 0:
+        raise ValueError(f"{name} must be a positive builtin integer")
+
+
+@dataclass(frozen=True)
+class ProbeTrainingConfig:
+    """Registered bias-free supervised-contrastive probe protocol."""
+
+    output_dim: int = 512
+    identities_per_batch: int = 32
+    images_per_identity: int = 2
+    epochs: int = 20
+    learning_rates: tuple[float, ...] = (0.001, 0.003, 0.01)
+    temperatures: tuple[float, ...] = (0.05, 0.10)
+    adam_betas: tuple[float, float] = (0.9, 0.999)
+    adam_eps: float = 1e-8
+    weight_decay: float = 0.0
+    protocol_id: str = "f1-bias-free-512-supcon-v1"
+
+    def __post_init__(self) -> None:
+        if self.output_dim != 512:
+            raise ValueError("bias-free probe output_dim must be exactly 512")
+        _require_positive_int("identities_per_batch", self.identities_per_batch)
+        if self.images_per_identity != 2:
+            raise ValueError("bias-free probe images_per_identity must be exactly 2")
+        _require_positive_int("epochs", self.epochs)
+        _validate_positive_float_tuple("learning_rates", self.learning_rates)
+        _validate_positive_float_tuple("temperatures", self.temperatures)
+        if (
+            type(self.adam_betas) is not tuple
+            or len(self.adam_betas) != 2
+            or any(type(value) is not float or not 0.0 < value < 1.0 for value in self.adam_betas)
+        ):
+            raise ValueError("adam_betas must be two builtin floats in (0, 1)")
+        _require_positive_float("adam_eps", self.adam_eps)
+        if type(self.weight_decay) is not float or self.weight_decay != 0.0:
+            raise ValueError("bias-free probe weight_decay must be exactly 0.0")
+        _require_nonempty("protocol_id", self.protocol_id)
+        registered_values = (
+            self.output_dim == 512
+            and self.identities_per_batch == 32
+            and self.images_per_identity == 2
+            and self.epochs == 20
+            and self.learning_rates == (0.001, 0.003, 0.01)
+            and self.temperatures == (0.05, 0.10)
+            and self.adam_betas == (0.9, 0.999)
+            and self.adam_eps == 1e-8
+            and self.weight_decay == 0.0
+        )
+        if self.protocol_id == "f1-bias-free-512-supcon-v1" and not registered_values:
+            raise ValueError("custom probe config requires a distinct protocol_id")
+
+
+@dataclass(frozen=True)
+class ProbeEpochEvaluation:
+    epoch: int
+    validation_recall_at_1: float
+
+
+@dataclass(frozen=True)
+class ProbeGridEvaluation:
+    learning_rate: float
+    temperature: float
+    sampler_seed: int
+    epochs: tuple[ProbeEpochEvaluation, ...]
+
+
+@dataclass(frozen=True)
+class BiasFreeProbeResult:
+    """Selected probe and complete validation-selection audit."""
+
+    arm_key: str
+    dataset: str
+    input_dim: int
+    output_dim: int
+    split_seed: int
+    split_sha256: str
+    initialization_seed: int
+    excluded_singleton_identities: int
+    dropped_tail_identities: int
+    selection_evaluations: int
+    grid_evaluations: tuple[ProbeGridEvaluation, ...]
+    selected_learning_rate: float
+    selected_temperature: float
+    selected_epoch: int
+    validation_recall_at_1: float
+    validation_recall_at_1_points: float
+    validation_metrics: Any
+    selected_weight_bytes: bytes
+    weight_sha256: str
+    parameter_count: int
+    fitted: bool
+    bias: bool
+    input_normalized: bool
+    output_normalized: bool
+    loss: Literal["supervised_infonce"]
+    protocol_id: str
+    config: ProbeTrainingConfig
+    cublas_workspace_config: str
+    torch_version: str
+    device_type: str
+    device_name: str
+
+
+def _validate_positive_float_tuple(name: str, values: tuple[float, ...]) -> None:
+    if type(values) is not tuple or not values:
+        raise ValueError(f"{name} must be a nonempty builtin tuple")
+    if len(set(values)) != len(values):
+        raise ValueError(f"{name} cannot contain duplicates")
+    for value in values:
+        _require_positive_float(name, value)
+
+
+_DEFAULT_PROBE_TRAINING_CONFIG = ProbeTrainingConfig()
+
+
+def _probe_seed(*parts: object) -> int:
+    payload = "|".join(str(part) for part in parts).encode("utf-8")
+    return int.from_bytes(sha256(payload).digest()[:8], "big")
+
+
+def _probe_vector(value: Any, *, expected_dim: int | None) -> Any:
+    import numpy as np
+
+    row = np.asarray(value, dtype=np.float32)
+    if row.ndim != 1 or row.shape[0] == 0:
+        raise ValueError("probe embeddings must be nonempty rank-1 rows")
+    if expected_dim is not None and row.shape[0] != expected_dim:
+        raise ValueError("probe embedding widths differ")
+    if not bool(np.isfinite(row).all()):
+        raise ValueError("probe embeddings must contain only finite values")
+    norm = float(np.linalg.norm(row.astype(np.float64)))
+    if norm == 0.0:
+        raise ValueError("probe embeddings cannot contain zero-norm rows")
+    return row
+
+
+def _supervised_infonce_loss(output: Any, labels: Any, *, temperature: float) -> Any:
+    import torch
+
+    logits = (output @ output.T) / temperature
+    identity = torch.eye(output.shape[0], dtype=torch.bool, device=output.device)
+    logits = logits.masked_fill(identity, -torch.inf)
+    positive = labels[:, None].eq(labels[None, :]) & ~identity
+    positive_count = positive.sum(dim=1)
+    if bool((positive_count == 0).any()):
+        raise ValueError("every supervised InfoNCE anchor requires a positive")
+    log_prob = logits - torch.logsumexp(logits, dim=1, keepdim=True)
+    positive_log_prob = torch.where(positive, log_prob, torch.zeros_like(log_prob))
+    return -(positive_log_prob.sum(dim=1) / positive_count).mean()
+
+
+def _probe_weight_bytes(weight: Any) -> bytes:
+    value = weight.detach().cpu().contiguous().numpy().astype("<f4", copy=False).tobytes(order="C")
+    if type(value) is not bytes:
+        raise ValueError("probe weight serialization did not produce builtin bytes")
+    return value
+
+
+def _probe_validation_metrics(
+    model: Any,
+    query: Any,
+    query_labels: Any,
+    gallery: Any,
+    gallery_labels: Any,
+) -> Any:
+    import torch
+
+    with torch.no_grad():
+        query_output = torch.nn.functional.normalize(model(query), p=2, dim=1)
+        gallery_output = torch.nn.functional.normalize(model(gallery), p=2, dim=1)
+    query_array = _normalize_rows(query_output.detach().cpu().numpy())
+    gallery_array = _normalize_rows(gallery_output.detach().cpu().numpy())
+    relevant = max(int((gallery_labels == label).sum()) for label in query_labels)
+    order = _gallery_order(
+        query_array,
+        gallery_array,
+        geometry="cosine",
+        depth=max(100, relevant),
+    )
+    return _metrics_from_gallery_order(order, query_labels, gallery_labels)
+
+
+def fit_bias_free_probe_512(
+    embeddings_by_example_id: Mapping[str, Any],
+    split: RecipeSelectionSplit,
+    *,
+    arm_key: str,
+    dataset: str,
+    split_seed: int,
+    config: ProbeTrainingConfig = _DEFAULT_PROBE_TRAINING_CONFIG,
+) -> BiasFreeProbeResult:
+    """Fit the registered train-only supervised-contrastive linear probe."""
+
+    import numpy as np
+
+    os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+    if os.environ["CUBLAS_WORKSPACE_CONFIG"] != ":4096:8":
+        raise ValueError("CUBLAS_WORKSPACE_CONFIG differs from registered :4096:8")
+    import torch
+
+    _require_nonempty("arm_key", arm_key)
+    _require_nonempty("dataset", dataset)
+    if type(split_seed) is not int or split_seed < 0:
+        raise ValueError("split_seed must be a nonnegative builtin integer")
+    if not isinstance(split, RecipeSelectionSplit):
+        raise ValueError("split must be a registered RecipeSelectionSplit")
+    role_rows = (split.optimization, split.query, split.gallery)
+    role_ids = [[row.example_id for row in rows] for rows in role_rows]
+    flattened_ids = [example_id for ids in role_ids for example_id in ids]
+    if len(flattened_ids) != len(set(flattened_ids)):
+        raise ValueError("probe split example IDs must be unique across roles")
+    optimization_labels = {int(row.label) for row in split.optimization}
+    validation_labels = {int(row.label) for row in split.query + split.gallery}
+    if not optimization_labels.isdisjoint(validation_labels):
+        raise ValueError("probe optimization and validation identities must be identity-disjoint")
+    if {int(row.label) for row in split.query} != {int(row.label) for row in split.gallery}:
+        raise ValueError("probe validation query/gallery identities must match")
+    split_sha256 = sha256(
+        _canonical_json_bytes(
+            {
+                "config": asdict(config),
+                "dataset": dataset,
+                "split_seed": split_seed,
+                "roles": [
+                    [{"example_id": row.example_id, "label": int(row.label)} for row in rows]
+                    for rows in role_rows
+                ],
+            }
+        )
+    ).hexdigest()
+
+    expected_dim: int | None = None
+    rows_by_id: dict[str, Any] = {}
+    for example_id in flattened_ids:
+        if example_id not in embeddings_by_example_id:
+            raise ValueError(f"probe cache lacks example ID {example_id}")
+        row = _probe_vector(embeddings_by_example_id[example_id], expected_dim=expected_dim)
+        expected_dim = int(row.shape[0]) if expected_dim is None else expected_dim
+        rows_by_id[example_id] = row
+    assert expected_dim is not None
+
+    grouped: dict[int, list[ImageExample]] = {}
+    for example in sorted(split.optimization, key=lambda row: row.example_id):
+        grouped.setdefault(int(example.label), []).append(example)
+    eligible_labels = sorted(label for label, rows in grouped.items() if len(rows) >= 2)
+    excluded_singletons = len(grouped) - len(eligible_labels)
+    if len(eligible_labels) < config.identities_per_batch:
+        raise ValueError("probe has fewer eligible identities than identities_per_batch")
+    dropped_tail = len(eligible_labels) % config.identities_per_batch
+
+    canonical_optimization = [
+        row
+        for label in eligible_labels
+        for row in sorted(grouped[label], key=lambda item: item.example_id)
+    ]
+    optimization_index = {row.example_id: index for index, row in enumerate(canonical_optimization)}
+    optimization_array = np.stack([rows_by_id[row.example_id] for row in canonical_optimization])
+    optimization_array /= np.linalg.norm(optimization_array, axis=1, keepdims=True)
+    query_array = np.stack([rows_by_id[row.example_id] for row in split.query])
+    query_array /= np.linalg.norm(query_array, axis=1, keepdims=True)
+    gallery_array = np.stack([rows_by_id[row.example_id] for row in split.gallery])
+    gallery_array /= np.linalg.norm(gallery_array, axis=1, keepdims=True)
+    query_labels = np.asarray([int(row.label) for row in split.query], dtype=np.int64)
+    gallery_labels = np.asarray([int(row.label) for row in split.gallery], dtype=np.int64)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    input_tensor = torch.from_numpy(optimization_array).to(device=device, dtype=torch.float32)
+    query_tensor = torch.from_numpy(query_array).to(device=device, dtype=torch.float32)
+    gallery_tensor = torch.from_numpy(gallery_array).to(device=device, dtype=torch.float32)
+    initialization_seed = _probe_seed(
+        config.protocol_id,
+        arm_key,
+        dataset,
+        split_seed,
+        "initialization",
+    )
+    initialization_generator = torch.Generator(device="cpu").manual_seed(initialization_seed)
+    initial_weight = torch.empty((config.output_dim, expected_dim), dtype=torch.float32)
+    torch.nn.init.orthogonal_(initial_weight, generator=initialization_generator)
+
+    grid_evaluations: list[ProbeGridEvaluation] = []
+    best_candidate: tuple[float, int, float, float, bytes, Any] | None = None
+    previous_deterministic = torch.are_deterministic_algorithms_enabled()
+    previous_warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    previous_tf32_matmul = torch.backends.cuda.matmul.allow_tf32
+    previous_tf32_cudnn = torch.backends.cudnn.allow_tf32
+    try:
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+        for learning_rate in sorted(config.learning_rates):
+            for temperature in sorted(config.temperatures):
+                with torch.random.fork_rng(devices=[]):
+                    model = torch.nn.Linear(expected_dim, config.output_dim, bias=False)
+                model.weight.data.copy_(initial_weight)
+                model.to(device)
+                optimizer = torch.optim.AdamW(
+                    model.parameters(),
+                    lr=learning_rate,
+                    betas=config.adam_betas,
+                    eps=config.adam_eps,
+                    weight_decay=config.weight_decay,
+                )
+                sampler_seed = _probe_seed(
+                    config.protocol_id,
+                    arm_key,
+                    dataset,
+                    split_seed,
+                    "sampler",
+                )
+                generator = torch.Generator(device="cpu").manual_seed(sampler_seed)
+                epoch_rows: list[ProbeEpochEvaluation] = []
+                for epoch in range(config.epochs + 1):
+                    metrics = _probe_validation_metrics(
+                        model,
+                        query_tensor,
+                        query_labels,
+                        gallery_tensor,
+                        gallery_labels,
+                    )
+                    recall = float(metrics.recall_at_1)
+                    epoch_rows.append(
+                        ProbeEpochEvaluation(epoch=epoch, validation_recall_at_1=recall)
+                    )
+                    candidate_key = (-recall, epoch, learning_rate, temperature)
+                    if epoch > 0 and (best_candidate is None or candidate_key < best_candidate[:4]):
+                        best_candidate = (
+                            *candidate_key,
+                            _probe_weight_bytes(model.weight),
+                            metrics,
+                        )
+                    if epoch == config.epochs:
+                        continue
+                    identity_order = torch.randperm(
+                        len(eligible_labels), generator=generator
+                    ).tolist()
+                    usable = len(eligible_labels) - dropped_tail
+                    for start in range(0, usable, config.identities_per_batch):
+                        labels = [
+                            eligible_labels[index]
+                            for index in identity_order[start : start + config.identities_per_batch]
+                        ]
+                        batch_indexes: list[int] = []
+                        batch_labels: list[int] = []
+                        for label in labels:
+                            examples = sorted(grouped[label], key=lambda row: row.example_id)
+                            example_order = torch.randperm(
+                                len(examples), generator=generator
+                            ).tolist()[: config.images_per_identity]
+                            for index in example_order:
+                                batch_indexes.append(optimization_index[examples[index].example_id])
+                                batch_labels.append(label)
+                        batch_index_tensor = torch.tensor(
+                            batch_indexes, dtype=torch.long, device=device
+                        )
+                        batch_label_tensor = torch.tensor(
+                            batch_labels, dtype=torch.long, device=device
+                        )
+                        output = torch.nn.functional.normalize(
+                            model(input_tensor[batch_index_tensor]), p=2, dim=1
+                        )
+                        loss = _supervised_infonce_loss(
+                            output, batch_label_tensor, temperature=temperature
+                        )
+                        optimizer.zero_grad(set_to_none=True)
+                        loss.backward()
+                        optimizer.step()
+                grid_evaluations.append(
+                    ProbeGridEvaluation(
+                        learning_rate=learning_rate,
+                        temperature=temperature,
+                        sampler_seed=sampler_seed,
+                        epochs=tuple(epoch_rows),
+                    )
+                )
+    finally:
+        torch.use_deterministic_algorithms(
+            previous_deterministic,
+            warn_only=previous_warn_only,
+        )
+        torch.backends.cuda.matmul.allow_tf32 = previous_tf32_matmul
+        torch.backends.cudnn.allow_tf32 = previous_tf32_cudnn
+
+    assert best_candidate is not None
+    _, selected_epoch, selected_lr, selected_temperature, weight_bytes, metrics = best_candidate
+    device_name = (
+        torch.cuda.get_device_name(device) if device.type == "cuda" else _cpu_device_identity()
+    )
+    return BiasFreeProbeResult(
+        arm_key=arm_key,
+        dataset=dataset,
+        input_dim=expected_dim,
+        output_dim=config.output_dim,
+        split_seed=split_seed,
+        split_sha256=split_sha256,
+        initialization_seed=initialization_seed,
+        excluded_singleton_identities=excluded_singletons,
+        dropped_tail_identities=dropped_tail,
+        selection_evaluations=len(config.learning_rates) * len(config.temperatures) * config.epochs,
+        grid_evaluations=tuple(grid_evaluations),
+        selected_learning_rate=selected_lr,
+        selected_temperature=selected_temperature,
+        selected_epoch=selected_epoch,
+        validation_recall_at_1=float(metrics.recall_at_1),
+        validation_recall_at_1_points=float(metrics.recall_at_1) * 100.0,
+        validation_metrics=metrics,
+        selected_weight_bytes=weight_bytes,
+        weight_sha256=sha256(weight_bytes).hexdigest(),
+        parameter_count=config.output_dim * expected_dim,
+        fitted=True,
+        bias=False,
+        input_normalized=True,
+        output_normalized=True,
+        loss="supervised_infonce",
+        protocol_id=config.protocol_id,
+        config=config,
+        cublas_workspace_config=os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        torch_version=str(torch.__version__),
+        device_type=device.type,
+        device_name=str(device_name),
+    )
 
 
 @dataclass(frozen=True)

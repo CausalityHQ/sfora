@@ -3,6 +3,7 @@ import hashlib
 import json
 import platform
 from collections.abc import Sequence
+from dataclasses import replace
 from importlib.metadata import version
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,6 +13,7 @@ import pytest
 import torch
 
 import sfora.foundation_pareto as foundation_pareto
+from sfora.data import ImageExample
 from sfora.foundation_pareto import (
     EmbeddingCacheKeyV2,
     FoundationEncoderAudit,
@@ -1855,3 +1857,428 @@ def test_profile_foundation_encoder_records_missing_macs_as_unavailable() -> Non
 
     assert profile.batches[0].mac_status == "unavailable"
     assert profile.batches[0].macs is None
+
+
+def _identity_blocks(*, identities: int = 8, examples_per_identity: int = 4) -> list[ImageExample]:
+    return [
+        ImageExample(
+            example_id=f"identity-{label}-example-{index}",
+            image=(label, index),
+            label=label,
+        )
+        for label in range(identities)
+        for index in range(examples_per_identity)
+    ]
+
+
+def test_probe_validation_split_is_identity_disjoint_repeatable_and_uses_registered_split(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    examples = _identity_blocks()
+    calls: list[tuple[Sequence[ImageExample], float, int]] = []
+    registered = foundation_pareto.class_disjoint_recipe_selection_split
+
+    def observed_split(
+        values: Sequence[ImageExample],
+        *,
+        fraction: float,
+        seed: int,
+    ) -> object:
+        calls.append((values, fraction, seed))
+        return registered(values, fraction=fraction, seed=seed)
+
+    monkeypatch.setattr(
+        foundation_pareto,
+        "class_disjoint_recipe_selection_split",
+        observed_split,
+    )
+
+    first = foundation_pareto.build_identity_disjoint_validation_split(
+        examples,
+        fraction=0.25,
+        seed=17,
+    )
+    second = foundation_pareto.build_identity_disjoint_validation_split(
+        examples,
+        fraction=0.25,
+        seed=17,
+    )
+
+    assert calls == [(examples, 0.25, 17), (examples, 0.25, 17)]
+    optimization_labels = {row.label for row in first.optimization}
+    validation_labels = {row.label for row in first.query + first.gallery}
+    assert optimization_labels.isdisjoint(validation_labels)
+    assert [row.example_id for row in first.optimization] == [
+        row.example_id for row in second.optimization
+    ]
+    assert [row.example_id for row in first.query] == [row.example_id for row in second.query]
+    assert [row.example_id for row in first.gallery] == [row.example_id for row in second.gallery]
+
+
+@pytest.mark.parametrize(
+    (
+        "candidate_recall_points",
+        "candidate_p95_ms",
+        "candidate_descriptor_bytes_per_image",
+        "expected_status",
+        "expected_pareto",
+        "expected_kind",
+    ),
+    [
+        (1.14, 12.0, 2048, "CONTINUE", False, "quality_margin"),
+        (79.6, 9.0, 2048, "CONTINUE", True, "both"),
+        (79.75, 10.0, 2048, "CONTINUE", False, "quality_margin"),
+        (80.5, 9.0, 2048, "CONTINUE", True, "quality_margin"),
+        (78.999999, 1.0, 1, "CLOSE_FOUNDATION_TRANSFER", True, "none"),
+    ],
+)
+def test_f1_decision_uses_exact_quality_and_strict_pareto_boundaries(
+    candidate_recall_points: float,
+    candidate_p95_ms: float,
+    candidate_descriptor_bytes_per_image: int,
+    expected_status: str,
+    expected_pareto: bool,
+    expected_kind: str,
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate_base, comparator_base = decision_probes
+    comparator_points = 2.14 if candidate_recall_points == 1.14 else 80.0
+    decision = foundation_pareto.decide_f1(
+        candidate_probe=replace(
+            candidate_base,
+            validation_recall_at_1_points=candidate_recall_points,
+        ),
+        comparator_probe=replace(
+            comparator_base,
+            validation_recall_at_1_points=comparator_points,
+        ),
+        candidate_encoder_p95_ms=candidate_p95_ms,
+        comparator_encoder_p95_ms=10.0,
+        candidate_descriptor_bytes_per_image=candidate_descriptor_bytes_per_image,
+        comparator_descriptor_bytes_per_image=2048,
+    )
+
+    assert decision.status == expected_status
+    assert decision.cost_pareto_dominant is expected_pareto
+    assert decision.fidelity_only is (expected_status == "CLOSE_FOUNDATION_TRANSFER")
+    assert decision.continuation_kind == expected_kind
+
+
+def test_f1_decision_accepts_realistic_decimal_point_four_pareto_boundary(
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate_base, comparator_base = decision_probes
+    decision = foundation_pareto.decide_f1(
+        candidate_probe=replace(candidate_base, validation_recall_at_1_points=80.4),
+        comparator_probe=replace(comparator_base, validation_recall_at_1_points=80.0),
+        candidate_encoder_p95_ms=9.0,
+        comparator_encoder_p95_ms=10.0,
+        candidate_descriptor_bytes_per_image=2048,
+        comparator_descriptor_bytes_per_image=2048,
+    )
+
+    assert decision.quality_within_point_four is True
+    assert decision.cost_pareto_dominant is True
+    assert decision.continuation_kind == "both"
+
+
+def test_f1_decision_rejects_unavailable_comparator() -> None:
+    decision = foundation_pareto.decide_f1(
+        candidate_probe=None,
+        comparator_probe=None,
+        candidate_encoder_p95_ms=-1.0,
+        comparator_encoder_p95_ms=None,
+        candidate_descriptor_bytes_per_image=-1,
+        comparator_descriptor_bytes_per_image=None,
+    )
+
+    assert decision.status == "UNAVAILABLE_COMPARATOR"
+    assert decision.quality_gap_points is None
+    assert decision.fidelity_only is False
+    assert decision.authorized_followup == "resolve_local_comparator"
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("config", "different_config"),
+        ("dataset", "sop"),
+        ("split_sha256", "b" * 64),
+        ("device_type", "cuda"),
+    ],
+)
+def test_f1_decision_rejects_mismatched_probe_protocol_or_split(
+    field: str,
+    replacement: object,
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate, comparator = decision_probes
+    if replacement == "different_config":
+        replacement = replace(comparator.config, epochs=comparator.config.epochs + 1)
+    with pytest.raises(ValueError, match="same probe protocol"):
+        foundation_pareto.decide_f1(
+            candidate_probe=candidate,
+            comparator_probe=replace(comparator, **{field: replacement}),
+            candidate_encoder_p95_ms=9.0,
+            comparator_encoder_p95_ms=10.0,
+            candidate_descriptor_bytes_per_image=2048,
+            comparator_descriptor_bytes_per_image=2048,
+        )
+
+
+@pytest.mark.parametrize("invalid_side", ["candidate", "comparator"])
+def test_f1_decision_requires_exact_probe_result_types(
+    invalid_side: str,
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate, comparator = decision_probes
+    invalid = SimpleNamespace(**vars(candidate))
+
+    with pytest.raises(ValueError, match="exact BiasFreeProbeResult"):
+        foundation_pareto.decide_f1(
+            candidate_probe=invalid if invalid_side == "candidate" else candidate,
+            comparator_probe=invalid if invalid_side == "comparator" else comparator,
+            candidate_encoder_p95_ms=9.0,
+            comparator_encoder_p95_ms=10.0,
+            candidate_descriptor_bytes_per_image=2048,
+            comparator_descriptor_bytes_per_image=2048,
+        )
+
+
+def _probe_train_only_fixture() -> tuple[object, dict[str, np.ndarray]]:
+    examples = _identity_blocks(identities=8, examples_per_identity=2)
+    examples.append(ImageExample(example_id="singleton", image=None, label=99))
+    split = foundation_pareto.build_identity_disjoint_validation_split(
+        examples,
+        fraction=0.25,
+        seed=23,
+    )
+    embeddings: dict[str, np.ndarray] = {}
+    for example in examples:
+        vector = np.zeros(8, dtype=np.float32)
+        vector[example.label % 8] = 1.0
+        embeddings[example.example_id] = vector
+    return split, embeddings
+
+
+@pytest.fixture(scope="module")
+def decision_probes() -> tuple[object, object]:
+    split, embeddings = _probe_train_only_fixture()
+    config = foundation_pareto.ProbeTrainingConfig(
+        identities_per_batch=4,
+        epochs=1,
+        learning_rates=(0.001,),
+        temperatures=(0.05,),
+        protocol_id="f1-bias-free-512-supcon-decision-test-v1",
+    )
+    candidate = foundation_pareto.fit_bias_free_probe_512(
+        embeddings,
+        split,
+        arm_key="candidate",
+        dataset="cars",
+        split_seed=23,
+        config=config,
+    )
+    comparator = foundation_pareto.fit_bias_free_probe_512(
+        embeddings,
+        split,
+        arm_key="comparator",
+        dataset="cars",
+        split_seed=23,
+        config=config,
+    )
+    return candidate, comparator
+
+
+def test_probe_training_config_freezes_registered_supcon_protocol() -> None:
+    config = foundation_pareto.ProbeTrainingConfig()
+
+    assert config.output_dim == 512
+    assert config.identities_per_batch == 32
+    assert config.images_per_identity == 2
+    assert config.epochs == 20
+    assert config.learning_rates == (0.001, 0.003, 0.01)
+    assert config.temperatures == (0.05, 0.10)
+    assert config.adam_betas == (0.9, 0.999)
+    assert config.adam_eps == 1e-8
+    assert config.weight_decay == 0.0
+    assert config.protocol_id == "f1-bias-free-512-supcon-v1"
+
+
+def test_bias_free_probe_is_scale_and_mapping_order_invariant_and_auditable() -> None:
+    split, embeddings = _probe_train_only_fixture()
+    config = foundation_pareto.ProbeTrainingConfig(
+        identities_per_batch=4,
+        epochs=2,
+        learning_rates=(0.001,),
+        temperatures=(0.05,),
+        protocol_id="f1-bias-free-512-supcon-test-v1",
+    )
+    first = foundation_pareto.fit_bias_free_probe_512(
+        embeddings,
+        split,
+        arm_key="synthetic-arm",
+        dataset="cars",
+        split_seed=23,
+        config=config,
+    )
+    scaled = {
+        key: embeddings[key] * float(2 ** (index % 4 + 1))
+        for index, key in enumerate(reversed(tuple(embeddings)))
+    }
+    second = foundation_pareto.fit_bias_free_probe_512(
+        scaled,
+        split,
+        arm_key="synthetic-arm",
+        dataset="cars",
+        split_seed=23,
+        config=config,
+    )
+
+    assert first == second
+    assert first.bias is False
+    assert first.input_normalized is True
+    assert first.output_normalized is True
+    assert first.output_dim == 512
+    assert first.parameter_count == 512 * 8
+    assert first.excluded_singleton_identities == 1
+    assert first.dropped_tail_identities == 2
+    assert first.validation_recall_at_1 == 1.0
+    assert first.validation_recall_at_1_points == 100.0
+    assert len(first.grid_evaluations) == 1
+    assert [row.epoch for row in first.grid_evaluations[0].epochs] == [0, 1, 2]
+    assert first.selected_epoch == 1
+    assert first.fitted is True
+    assert first.selection_evaluations == 2
+    assert first.config == config
+    assert hashlib.sha256(first.selected_weight_bytes).hexdigest() == first.weight_sha256
+    assert not any("official" in name for name in first.__dataclass_fields__)
+
+
+def test_bias_free_probe_rejects_optimization_validation_identity_overlap() -> None:
+    split, embeddings = _probe_train_only_fixture()
+    overlap_label = split.optimization[0].label
+    query = ImageExample(example_id="overlap-query", image=None, label=overlap_label)
+    gallery = ImageExample(example_id="overlap-gallery", image=None, label=overlap_label)
+    embeddings[query.example_id] = embeddings[split.optimization[0].example_id]
+    embeddings[gallery.example_id] = embeddings[split.optimization[1].example_id]
+    overlapping = type(split)(
+        optimization=split.optimization,
+        query=[query],
+        gallery=[gallery],
+    )
+
+    with pytest.raises(ValueError, match="identity-disjoint"):
+        foundation_pareto.fit_bias_free_probe_512(
+            embeddings,
+            overlapping,
+            arm_key="synthetic-arm",
+            dataset="cars",
+            split_seed=23,
+            config=foundation_pareto.ProbeTrainingConfig(
+                identities_per_batch=4,
+                epochs=1,
+                learning_rates=(0.001,),
+                temperatures=(0.05,),
+                protocol_id="f1-bias-free-512-supcon-test-v1",
+            ),
+        )
+
+
+def test_bias_free_probe_learns_transferable_metric_on_held_out_identities() -> None:
+    optimization: list[ImageExample] = []
+    embeddings: dict[str, np.ndarray] = {}
+    for label, signal in enumerate((-4.0, -2.0, 2.0, 4.0)):
+        for index, nuisance in enumerate((-10.0, 10.0)):
+            example = ImageExample(
+                example_id=f"optimization-{label}-{index}",
+                image=None,
+                label=label,
+            )
+            optimization.append(example)
+            embeddings[example.example_id] = np.asarray([signal, nuisance], dtype=np.float32)
+    query = [
+        ImageExample(example_id="query-100", image=None, label=100),
+        ImageExample(example_id="query-101", image=None, label=101),
+    ]
+    gallery = [
+        ImageExample(example_id="gallery-100", image=None, label=100),
+        ImageExample(example_id="gallery-101", image=None, label=101),
+    ]
+    embeddings.update(
+        {
+            "query-100": np.asarray([1.0, 10.0], dtype=np.float32),
+            "query-101": np.asarray([-1.0, -10.0], dtype=np.float32),
+            "gallery-100": np.asarray([1.0, -10.0], dtype=np.float32),
+            "gallery-101": np.asarray([-1.0, 10.0], dtype=np.float32),
+        }
+    )
+    split_type = type(_probe_train_only_fixture()[0])
+
+    result = foundation_pareto.fit_bias_free_probe_512(
+        embeddings,
+        split_type(optimization=optimization, query=query, gallery=gallery),
+        arm_key="metric-learning-canary",
+        dataset="cars",
+        split_seed=31,
+        config=foundation_pareto.ProbeTrainingConfig(
+            identities_per_batch=4,
+            epochs=20,
+            learning_rates=(0.01,),
+            temperatures=(0.05,),
+            protocol_id="f1-bias-free-512-supcon-canary-v1",
+        ),
+    )
+
+    epoch_recalls = [row.validation_recall_at_1 for row in result.grid_evaluations[0].epochs]
+    assert epoch_recalls[0] == 0.0
+    assert result.validation_recall_at_1 == 1.0
+    assert result.selected_epoch > 0
+
+
+def test_probe_custom_config_cannot_claim_registered_protocol_id() -> None:
+    with pytest.raises(ValueError, match="custom probe config"):
+        foundation_pareto.ProbeTrainingConfig(epochs=1)
+
+
+def test_probe_grid_uses_one_matched_sampler_stream() -> None:
+    split, embeddings = _probe_train_only_fixture()
+    result = foundation_pareto.fit_bias_free_probe_512(
+        embeddings,
+        split,
+        arm_key="matched-grid",
+        dataset="cars",
+        split_seed=23,
+        config=foundation_pareto.ProbeTrainingConfig(
+            identities_per_batch=4,
+            epochs=1,
+            learning_rates=(0.001, 0.003),
+            temperatures=(0.05, 0.10),
+            protocol_id="f1-bias-free-512-supcon-grid-test-v1",
+        ),
+    )
+
+    assert len({row.sampler_seed for row in result.grid_evaluations}) == 1
+
+
+def test_probe_rejects_incompatible_cublas_determinism_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    split, embeddings = _probe_train_only_fixture()
+    monkeypatch.setenv("CUBLAS_WORKSPACE_CONFIG", ":16:8")
+
+    with pytest.raises(ValueError, match="CUBLAS_WORKSPACE_CONFIG"):
+        foundation_pareto.fit_bias_free_probe_512(
+            embeddings,
+            split,
+            arm_key="environment-canary",
+            dataset="cars",
+            split_seed=23,
+            config=foundation_pareto.ProbeTrainingConfig(
+                identities_per_batch=4,
+                epochs=1,
+                learning_rates=(0.001,),
+                temperatures=(0.05,),
+                protocol_id="f1-bias-free-512-supcon-env-test-v1",
+            ),
+        )
