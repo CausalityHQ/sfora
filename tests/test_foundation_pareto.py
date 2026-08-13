@@ -2107,6 +2107,15 @@ def test_published_metric_register_rejects_duplicate_json_keys(tmp_path: Path) -
 
 def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     root = Path(__file__).resolve().parents[1]
+    raw_tolerances = json.loads(
+        (root / "docs/foundation_metric_tolerances.json").read_text(encoding="utf-8")
+    )
+    raw_published = json.loads(
+        (root / "docs/foundation_published_metric_register.json").read_text(encoding="utf-8")
+    )
+    raw_test_reads = json.loads(
+        (root / "docs/foundation_test_read_register.json").read_text(encoding="utf-8")
+    )
     arms = foundation_pareto.load_foundation_model_specs(root / "docs/foundation_model_specs.json")
     registered_arms = tuple(arm.spec.arm for arm in arms)
     fixture_pairs = tuple(
@@ -2233,6 +2242,68 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     )
     assert observed_test_reads in ((), expected_test_reads)
     assert bool(published) is bool(test_reads.records)
+    expected_tolerances = [1e-6, 0.0, 1e-6 if test_reads.records else 0.0]
+    assert [row["tolerance"] for row in raw_tolerances["records"]] == expected_tolerances
+    if test_reads.records:
+        reviewed_source = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD^"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        common = {
+            "reviewed_source_commit": reviewed_source,
+            "addendum_path": (
+                "docs/superpowers/specs/2026-08-13-foundation-f1-official-read-review-correction.md"
+            ),
+            "addendum_sha256": ("d5e3f8601d62105a3c7a7559c6f150b52b08081bd7037e31b066c938325bbcaf"),
+            "train_report_path": (
+                "docs/foundation_f1_identity_disjoint_inshop_train_only_report.json"
+            ),
+            "train_report_sha256": (
+                "791cd1499327bd95abb5093d993a68c7192d44965af8669073bf35ad5b6ae066"
+            ),
+            "train_decision_sha256": (
+                "a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8"
+            ),
+            "train_split_sha256": (
+                "7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45"
+            ),
+        }
+        assert tuple(raw_test_reads) == (
+            "schema_version",
+            "status",
+            "receipt_root",
+            *common,
+            "records",
+        )
+        assert raw_test_reads["schema_version"] == "foundation-test-read-register-v4"
+        assert raw_test_reads["receipt_root"] == (
+            "/home/riomus/group-learning/reports/generated/foundation_test_read_receipts"
+        )
+        assert {key: raw_test_reads[key] for key in common} == common
+        assert tuple(raw_published) == (
+            "schema_version",
+            "status",
+            *common,
+            "records",
+        )
+        assert raw_published["schema_version"] == "foundation-published-metrics-v4"
+        assert {key: raw_published[key] for key in common} == common
+    else:
+        assert raw_test_reads == {
+            "schema_version": "foundation-test-read-register-v3",
+            "status": "frozen",
+            "receipt_root": (
+                "/home/riomus/group-learning/reports/generated/foundation_test_read_receipts"
+            ),
+            "records": [],
+        }
+        assert raw_published == {
+            "schema_version": "foundation-published-metrics-v1",
+            "status": "frozen",
+            "records": [],
+        }
     with pytest.raises(ValueError, match="not a registered test read"):
         test_reads.consume(
             dataset="inshop",
@@ -3287,6 +3358,107 @@ def test_official_read_binding_requires_matching_v4_authorities_and_train_eviden
         foundation_pareto._load_official_read_binding(test_read, published)
 
 
+def test_official_authority_paths_must_be_the_authenticated_checkout_files(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "checkout"
+    docs = root / "docs"
+    docs.mkdir(parents=True)
+    paths = {
+        "model_specs_path": docs / "foundation_model_specs.json",
+        "fixture_authority_path": docs / "foundation_native_fixtures.json",
+        "tolerance_authority_path": docs / "foundation_metric_tolerances.json",
+        "published_register_path": docs / "foundation_published_metric_register.json",
+        "test_read_register_path": docs / "foundation_test_read_register.json",
+    }
+    for path in paths.values():
+        path.write_text("{}\n", encoding="utf-8")
+
+    foundation_pareto._authenticate_official_authority_paths(root, **paths)
+
+    rogue = tmp_path / "rogue-test-read.json"
+    rogue.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="test-read authority path differs"):
+        foundation_pareto._authenticate_official_authority_paths(
+            root,
+            **{**paths, "test_read_register_path": rogue},
+        )
+
+
+def test_official_repository_root_is_discovered_from_a_nested_install(tmp_path: Path) -> None:
+    root = tmp_path / "checkout"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    nested = root / ".venv/lib/python3.12/site-packages/sfora/foundation_pareto.py"
+    nested.parent.mkdir(parents=True)
+    nested.write_text("# installed module\n", encoding="utf-8")
+
+    assert foundation_pareto._official_repository_root(nested) == root.resolve()
+
+
+def test_source_commit_is_discovered_from_a_nested_install(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "checkout"
+    root.mkdir()
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    nested = root / ".venv/lib/python3.12/site-packages/sfora/foundation_pareto.py"
+    nested.parent.mkdir(parents=True)
+    nested.write_text("# installed module\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "fixture"], check=True)
+    expected = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    monkeypatch.setattr(foundation_pareto, "__file__", str(nested))
+
+    assert foundation_pareto._source_commit() == expected
+
+
+def test_official_binding_requires_the_frozen_train_evidence_literals() -> None:
+    valid = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit="a" * 40,
+        addendum_path=(
+            "docs/superpowers/specs/2026-08-13-foundation-f1-official-read-review-correction.md"
+        ),
+        addendum_sha256=("d5e3f8601d62105a3c7a7559c6f150b52b08081bd7037e31b066c938325bbcaf"),
+        train_report_path="docs/foundation_f1_identity_disjoint_inshop_train_only_report.json",
+        train_report_sha256=("791cd1499327bd95abb5093d993a68c7192d44965af8669073bf35ad5b6ae066"),
+        train_decision_sha256=("a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8"),
+        train_split_sha256=("7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45"),
+    )
+    foundation_pareto._validate_official_binding_constants(valid)
+
+    for field in (
+        "addendum_path",
+        "addendum_sha256",
+        "train_report_path",
+        "train_report_sha256",
+        "train_decision_sha256",
+        "train_split_sha256",
+    ):
+        mutation = replace(valid, **{field: "f" * 64})
+        with pytest.raises(ValueError, match="official binding differs from frozen evidence"):
+            foundation_pareto._validate_official_binding_constants(mutation)
+
+
+def test_official_receipt_root_is_the_frozen_durable_directory() -> None:
+    foundation_pareto._validate_official_receipt_root(
+        Path("/home/riomus/group-learning/reports/generated/foundation_test_read_receipts")
+    )
+    with pytest.raises(ValueError, match="official receipt root differs"):
+        foundation_pareto._validate_official_receipt_root(Path("/tmp/rogue-receipts"))
+
+
 def test_official_pre_read_gate_rejects_decision_split_and_protocol_drift() -> None:
     binding = foundation_pareto.FoundationOfficialReadBinding(
         reviewed_source_commit="a" * 40,
@@ -3320,6 +3492,15 @@ def test_official_pre_read_gate_rejects_decision_split_and_protocol_drift() -> N
         request[field] = value
         with pytest.raises(ValueError, match=match):
             foundation_pareto._validate_official_pre_read_gate(binding, **request)
+
+    with pytest.raises(ValueError, match="three probe splits"):
+        foundation_pareto._validate_official_pre_read_gate(
+            binding,
+            validation_seed=0,
+            validation_fraction=0.2,
+            decision_sha256="d" * 64,
+            probe_split_sha256s=("e" * 64, "e" * 64),
+        )
 
 
 def test_official_handoff_authenticates_direct_manifest_child_and_committed_evidence(
@@ -3398,6 +3579,85 @@ def test_official_handoff_authenticates_direct_manifest_child_and_committed_evid
     assert observed["overall_status"] == "CONTINUE"
     (repository / "docs/correction.md").write_text("dirty\n", encoding="utf-8")
     with pytest.raises(ValueError, match="addendum worktree digest"):
+        foundation_pareto._authenticate_official_read_handoff(
+            binding,
+            executing_revision=handoff,
+            repository=repository,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "match"),
+    [
+        ("wrong_parent", "direct reviewed-source child"),
+        ("merge", "direct reviewed-source child"),
+        ("extra_path", "path set differs"),
+        ("dirty", "tracked worktree is dirty"),
+    ],
+)
+def test_official_handoff_rejects_topology_scope_and_dirty_mutations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    match: str,
+) -> None:
+    repository = tmp_path / "repository"
+    (repository / "docs").mkdir(parents=True)
+    correction = repository / "docs/correction.md"
+    correction.write_text("prospective correction\n", encoding="utf-8")
+    report = repository / "docs/train.json"
+    report.write_text("{}\n", encoding="utf-8")
+    reviewed_source = "a" * 40
+    handoff = "b" * 40
+    binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit=reviewed_source,
+        addendum_path="docs/correction.md",
+        addendum_sha256=_sha256(correction),
+        train_report_path="docs/train.json",
+        train_report_sha256=_sha256(report),
+        train_decision_sha256="c" * 64,
+        train_split_sha256="d" * 64,
+    )
+    exact_paths = "\n".join(foundation_pareto._OFFICIAL_HANDOFF_PATHS) + "\n"
+
+    def fake_git_capture(
+        root: Path,
+        *arguments: str,
+        binary: bool = False,
+    ) -> str | bytes:
+        assert root == repository
+        if arguments == ("rev-parse", "HEAD"):
+            return handoff
+        if arguments == ("rev-list", "--parents", "-n", "1", handoff):
+            if mutation == "wrong_parent":
+                return f"{handoff} {'e' * 40}\n"
+            if mutation == "merge":
+                return f"{handoff} {reviewed_source} {'e' * 40}\n"
+            return f"{handoff} {reviewed_source}\n"
+        if arguments == (
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            handoff,
+        ):
+            return exact_paths + ("src/extra.py\n" if mutation == "extra_path" else "")
+        if arguments == ("show", f"{handoff}:docs/correction.md"):
+            return correction.read_bytes()
+        if arguments == ("show", f"{handoff}:docs/train.json"):
+            return report.read_bytes()
+        if arguments == ("status", "--porcelain", "--untracked-files=no"):
+            return " M src/sfora/foundation_pareto.py\n" if mutation == "dirty" else ""
+        raise AssertionError(arguments)
+
+    monkeypatch.setattr(foundation_pareto, "_git_capture", fake_git_capture)
+    monkeypatch.setattr(
+        foundation_pareto.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=1),
+    )
+
+    with pytest.raises(ValueError, match=match):
         foundation_pareto._authenticate_official_read_handoff(
             binding,
             executing_revision=handoff,
@@ -3650,19 +3910,26 @@ def test_source_commit_uses_module_checkout_and_rejects_dirty_tracked_bytes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     calls: list[list[str]] = []
+    repository = str(Path(foundation_pareto.__file__).resolve().parents[2])
 
     def clean_run(command: list[str], **kwargs: object) -> object:
         calls.append(command)
-        output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else ""
+        if command[-2:] == ["rev-parse", "--show-toplevel"]:
+            output = repository + "\n"
+        else:
+            output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else ""
         return SimpleNamespace(stdout=output)
 
     monkeypatch.setattr(foundation_pareto.subprocess, "run", clean_run)
     assert foundation_pareto._source_commit() == "a" * 40
-    repository = str(Path(foundation_pareto.__file__).resolve().parents[2])
-    assert all(command[1:3] == ["-C", repository] for command in calls)
+    assert calls[0][-2:] == ["rev-parse", "--show-toplevel"]
+    assert all(command[1:3] == ["-C", repository] for command in calls[1:])
 
     def dirty_run(command: list[str], **kwargs: object) -> object:
-        output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else " M src/x.py\n"
+        if command[-2:] == ["rev-parse", "--show-toplevel"]:
+            output = repository + "\n"
+        else:
+            output = "a" * 40 + "\n" if command[-2:] == ["rev-parse", "HEAD"] else " M src/x.py\n"
         return SimpleNamespace(stdout=output)
 
     monkeypatch.setattr(foundation_pareto.subprocess, "run", dirty_run)
@@ -4235,22 +4502,39 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     monkeypatch.setattr(
         foundation_pareto,
         "_load_official_read_binding",
-        lambda *args: official_binding,
+        lambda *args: trace.append("official:binding-load") or official_binding,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_authority_paths",
+        lambda *args, **kwargs: trace.append("official:path-auth"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_binding_constants",
+        lambda *args, **kwargs: trace.append("official:binding-auth"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_receipt_root",
+        lambda *args, **kwargs: trace.append("official:receipt-root"),
     )
     monkeypatch.setattr(
         foundation_pareto,
         "_authenticate_official_read_handoff",
-        lambda *args, **kwargs: {},
+        lambda *args, **kwargs: trace.append("official:handoff-auth") or {},
     )
     monkeypatch.setattr(
         foundation_pareto,
         "_validate_official_pre_read_gate",
-        lambda *args, **kwargs: None,
+        lambda *args, **kwargs: trace.append("official:pre-read"),
     )
     monkeypatch.setattr(
         foundation_pareto,
         "preflight_official_image_retrieval_split",
-        lambda **kwargs: SimpleNamespace(protocol="query_gallery"),
+        lambda **kwargs: (
+            trace.append("official:metadata") or SimpleNamespace(protocol="query_gallery")
+        ),
     )
     monkeypatch.setattr(
         foundation_pareto,
@@ -4302,6 +4586,54 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         "candidate",
         "comparator",
     }
+    assert trace.index("official:path-auth") < trace.index("official:binding-load")
+    assert trace.index("official:binding-load") < trace.index("official:binding-auth")
+    assert trace.index("official:binding-auth") < trace.index("official:handoff-auth")
+    assert trace.index("official:handoff-auth") < trace.index("candidate:authenticate")
+    assert trace.index("official:receipt-root") < trace.index("candidate:authenticate")
+    assert trace.index("candidate:decision") < trace.index("official:pre-read")
+    assert trace.index("official:pre-read") < trace.index("official:metadata")
+
+    control_fixture_pass[0] = False
+    failed_control_receipts = tmp_path / "failed-control-receipts"
+    failed_control_receipts.mkdir()
+    monkeypatch.setattr(
+        foundation_pareto,
+        "load_test_read_register",
+        lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(
+            tuple(
+                foundation_pareto.FoundationTestReadRecord(
+                    dataset="cars",
+                    arm=arm.spec.arm,
+                    model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
+                    checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
+                    metrics=foundation_pareto.FOUNDATION_PUBLISHED_METRICS,
+                    purpose="registered_f1_quality_evaluation",
+                    permitted_evaluations=1,
+                )
+                for arm in official_read_arms
+            ),
+            receipt_root=failed_control_receipts,
+        ),
+    )
+    failed_control_report = tmp_path / "control-replay-failed.json"
+    with pytest.raises(ValueError, match="fixture fidelity"):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=failed_control_report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=0,
+            validation_fraction=0.2,
+            allow_registered_test_read=True,
+        )
+    assert not failed_control_report.exists()
+    control_fixture_pass[0] = True
 
     control_probe_points[0] = 100.0
     control_cache_digest[0] = "e" * 64
@@ -4727,6 +5059,21 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
         foundation_pareto,
         "_load_official_read_binding",
         lambda *args: binding,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_authority_paths",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_binding_constants",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_receipt_root",
+        lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
         foundation_pareto,

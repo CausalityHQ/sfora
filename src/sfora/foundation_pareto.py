@@ -3159,6 +3159,85 @@ _OFFICIAL_BINDING_KEYS = (
     "train_split_sha256",
 )
 
+_OFFICIAL_CORRECTION_PATH = (
+    "docs/superpowers/specs/2026-08-13-foundation-f1-official-read-review-correction.md"
+)
+_OFFICIAL_CORRECTION_SHA256 = "d5e3f8601d62105a3c7a7559c6f150b52b08081bd7037e31b066c938325bbcaf"
+_OFFICIAL_TRAIN_REPORT_PATH = "docs/foundation_f1_identity_disjoint_inshop_train_only_report.json"
+_OFFICIAL_TRAIN_REPORT_SHA256 = "791cd1499327bd95abb5093d993a68c7192d44965af8669073bf35ad5b6ae066"
+_OFFICIAL_TRAIN_DECISION_SHA256 = "a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8"
+_OFFICIAL_TRAIN_SPLIT_SHA256 = "7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45"
+_OFFICIAL_RECEIPT_ROOT = Path(
+    "/home/riomus/group-learning/reports/generated/foundation_test_read_receipts"
+)
+
+
+def _validate_official_binding_constants(binding: FoundationOfficialReadBinding) -> None:
+    if type(binding) is not FoundationOfficialReadBinding:
+        raise ValueError("official binding differs from exact type")
+    observed = (
+        binding.addendum_path,
+        binding.addendum_sha256,
+        binding.train_report_path,
+        binding.train_report_sha256,
+        binding.train_decision_sha256,
+        binding.train_split_sha256,
+    )
+    expected = (
+        _OFFICIAL_CORRECTION_PATH,
+        _OFFICIAL_CORRECTION_SHA256,
+        _OFFICIAL_TRAIN_REPORT_PATH,
+        _OFFICIAL_TRAIN_REPORT_SHA256,
+        _OFFICIAL_TRAIN_DECISION_SHA256,
+        _OFFICIAL_TRAIN_SPLIT_SHA256,
+    )
+    if observed != expected:
+        raise ValueError("official binding differs from frozen evidence")
+
+
+def _validate_official_receipt_root(receipt_root: Path) -> None:
+    if not isinstance(receipt_root, Path) or receipt_root != _OFFICIAL_RECEIPT_ROOT:
+        raise ValueError("official receipt root differs from frozen durable directory")
+
+
+_OFFICIAL_AUTHORITY_PATHS = {
+    "model_specs_path": "docs/foundation_model_specs.json",
+    "fixture_authority_path": "docs/foundation_native_fixtures.json",
+    "tolerance_authority_path": "docs/foundation_metric_tolerances.json",
+    "published_register_path": "docs/foundation_published_metric_register.json",
+    "test_read_register_path": "docs/foundation_test_read_register.json",
+}
+
+
+def _authenticate_official_authority_paths(
+    root: Path,
+    *,
+    model_specs_path: Path,
+    fixture_authority_path: Path,
+    tolerance_authority_path: Path,
+    published_register_path: Path,
+    test_read_register_path: Path,
+) -> None:
+    supplied = {
+        "model_specs_path": model_specs_path,
+        "fixture_authority_path": fixture_authority_path,
+        "tolerance_authority_path": tolerance_authority_path,
+        "published_register_path": published_register_path,
+        "test_read_register_path": test_read_register_path,
+    }
+    labels = {
+        "model_specs_path": "model-spec authority",
+        "fixture_authority_path": "fixture authority",
+        "tolerance_authority_path": "tolerance authority",
+        "published_register_path": "published-metric authority",
+        "test_read_register_path": "test-read authority",
+    }
+    for name, relative in _OFFICIAL_AUTHORITY_PATHS.items():
+        path = supplied[name]
+        expected = root / relative
+        if path.is_symlink() or not path.is_file() or path.resolve() != expected.resolve():
+            raise ValueError(f"official {labels[name]} path differs")
+
 
 def _load_official_read_binding(
     test_read_register_path: Path,
@@ -3211,9 +3290,9 @@ def _validate_official_pre_read_gate(
         raise ValueError("official validation fraction differs from reviewed 0.2")
     if decision_sha256 != binding.train_decision_sha256:
         raise ValueError("official train-only decision differs from reviewed decision")
-    if not probe_split_sha256s or any(
-        value != binding.train_split_sha256 for value in probe_split_sha256s
-    ):
+    if len(probe_split_sha256s) != 3:
+        raise ValueError("official pre-read gate requires exactly three probe splits")
+    if any(value != binding.train_split_sha256 for value in probe_split_sha256s):
         raise ValueError("official train-only split differs from reviewed split")
 
 
@@ -3237,6 +3316,15 @@ def _git_capture(repository: Path, *arguments: str, binary: bool = False) -> str
     return cast(bytes, completed.stdout) if binary else cast(str, completed.stdout)
 
 
+def _official_repository_root(source_path: Path) -> Path:
+    start = source_path if source_path.is_dir() else source_path.parent
+    observed = cast(str, _git_capture(start, "rev-parse", "--show-toplevel")).strip()
+    root = Path(observed).resolve()
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("official repository must be a real directory")
+    return root
+
+
 def _authenticate_official_read_handoff(
     binding: FoundationOfficialReadBinding,
     *,
@@ -3247,7 +3335,7 @@ def _authenticate_official_read_handoff(
         raise ValueError("official binding differs from exact type")
     if _GIT_REVISION.fullmatch(executing_revision) is None:
         raise ValueError("official executing revision differs")
-    root = Path(__file__).resolve().parents[2] if repository is None else repository
+    root = _official_repository_root(Path(__file__).resolve()) if repository is None else repository
     if root.is_symlink() or not root.is_dir():
         raise ValueError("official repository must be a real directory")
     observed_head = cast(str, _git_capture(root, "rev-parse", "HEAD")).strip()
@@ -3808,7 +3896,7 @@ _FOUNDATION_FORBIDDEN_REPORT_KEYS = (
 
 
 def _source_commit() -> str:
-    repository = Path(__file__).resolve().parents[2]
+    repository = _official_repository_root(Path(__file__).resolve())
     try:
         revision = subprocess.run(
             ["git", "-C", str(repository), "rev-parse", "HEAD"],
@@ -4394,10 +4482,20 @@ def run_foundation_screen(
     source_commit = _source_commit()
     official_binding: FoundationOfficialReadBinding | None = None
     if allow_registered_test_read:
+        official_root = _official_repository_root(Path(__file__).resolve())
+        _authenticate_official_authority_paths(
+            official_root,
+            model_specs_path=model_specs_path,
+            fixture_authority_path=fixture_authority_path,
+            tolerance_authority_path=tolerance_authority_path,
+            published_register_path=published_register_path,
+            test_read_register_path=test_read_register_path,
+        )
         official_binding = _load_official_read_binding(
             test_read_register_path,
             published_register_path,
         )
+        _validate_official_binding_constants(official_binding)
         _authenticate_official_read_handoff(
             official_binding,
             executing_revision=source_commit,
@@ -4418,6 +4516,7 @@ def run_foundation_screen(
     )
     test_reads = load_test_read_register(test_read_register_path)
     if allow_registered_test_read:
+        _validate_official_receipt_root(test_reads.receipt_root)
         _validate_registered_receipt_root(
             receipt_root=test_reads.receipt_root,
             ledger=test_reads,
@@ -4493,6 +4592,8 @@ def run_foundation_screen(
         )
         fixture_rows_by_arm[arm].extend(asdict(row) for row in fidelity)
         if any(row.passed is False for row in fidelity):
+            if official_binding is not None:
+                raise ValueError("official fixture fidelity replay failed")
             if arm_spec.role == "comparator":
                 comparator_unavailable = True
                 break
