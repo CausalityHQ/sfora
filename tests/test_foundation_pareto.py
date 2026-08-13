@@ -6,7 +6,7 @@ import platform
 from collections import OrderedDict
 from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 from importlib.metadata import version
 from pathlib import Path
 from types import SimpleNamespace
@@ -2601,11 +2601,11 @@ def test_probe_validation_split_is_identity_disjoint_repeatable_and_uses_registe
         "expected_kind",
     ),
     [
-        (1.14, 12.0, 2048, "CONTINUE", False, "quality_margin"),
+        (1.14, 12.0, 2048, "BOUNDARY_REPLICATION_REQUIRED", False, "none"),
         (79.6, 9.0, 2048, "CONTINUE", True, "both"),
         (79.75, 10.0, 2048, "CONTINUE", False, "quality_margin"),
         (80.5, 9.0, 2048, "CONTINUE", True, "quality_margin"),
-        (78.999999, 1.0, 1, "CLOSE_FOUNDATION_TRANSFER", True, "none"),
+        (78.999999, 1.0, 1, "BOUNDARY_REPLICATION_REQUIRED", True, "none"),
     ],
 )
 def test_f1_decision_uses_exact_quality_and_strict_pareto_boundaries(
@@ -2656,6 +2656,131 @@ def test_f1_decision_accepts_realistic_decimal_point_four_pareto_boundary(
     assert decision.quality_within_point_four is True
     assert decision.cost_pareto_dominant is True
     assert decision.continuation_kind == "both"
+
+
+@pytest.mark.parametrize(
+    ("candidate_points", "comparator_points", "expected_status"),
+    [
+        (90.0, 99.499999999, "CLOSE_FOUNDATION_TRANSFER"),
+        (90.0, 99.5, "INVALID_SPLIT_POWER"),
+        (78.499999999, 80.0, "CLOSE_FOUNDATION_TRANSFER"),
+        (78.5, 80.0, "BOUNDARY_REPLICATION_REQUIRED"),
+        (79.5, 80.0, "BOUNDARY_REPLICATION_REQUIRED"),
+        (79.500000001, 80.0, "CONTINUE"),
+    ],
+)
+def test_f1_decision_applies_split_power_and_replication_boundaries(
+    candidate_points: float,
+    comparator_points: float,
+    expected_status: str,
+    decision_probes: tuple[object, object],
+) -> None:
+    candidate_base, comparator_base = decision_probes
+
+    decision = foundation_pareto.decide_f1(
+        candidate_probe=replace(
+            candidate_base,
+            validation_recall_at_1_points=candidate_points,
+        ),
+        comparator_probe=replace(
+            comparator_base,
+            validation_recall_at_1_points=comparator_points,
+        ),
+        candidate_encoder_p95_ms=10.0,
+        comparator_encoder_p95_ms=10.0,
+        candidate_descriptor_bytes_per_image=2048,
+        comparator_descriptor_bytes_per_image=2048,
+    )
+
+    assert decision.status == expected_status
+    assert decision.fidelity_only is (expected_status == "CLOSE_FOUNDATION_TRANSFER")
+
+
+def test_foundation_model_authority_requires_candidate_comparator_contaminated_control_order(
+    tmp_path: Path,
+) -> None:
+    candidate = _remote_spec(arm="candidate")
+    comparator = _local_spec(arm="disjoint-comparator")
+    control = _local_spec(
+        arm="contaminated-control",
+        checkpoint_path=Path("artifacts/control.pt"),
+    )
+
+    def row(kind: str, spec: object, role: str) -> dict[str, object]:
+        spec_value = asdict(spec)
+        for key in ("checkpoint_path", "pretrained_backbone_path"):
+            if key in spec_value:
+                spec_value[key] = str(spec_value[key])
+        return {
+            "kind": kind,
+            "spec": spec_value,
+            "cache_resolution": 224,
+            "role": role,
+        }
+
+    authority = {
+        "schema_version": "foundation-model-specs-v1",
+        "status": "frozen",
+        "arms": [
+            row("remote", candidate, "candidate"),
+            row("local", comparator, "comparator"),
+            row("local", control, "contaminated_control"),
+        ],
+    }
+    path = tmp_path / "models.json"
+    path.write_text(json.dumps(authority), encoding="utf-8")
+
+    loaded = foundation_pareto.load_foundation_model_specs(path)
+    assert [arm.role for arm in loaded] == [
+        "candidate",
+        "comparator",
+        "contaminated_control",
+    ]
+    assert [arm.kind for arm in loaded] == ["remote", "local", "local"]
+
+    authority["arms"] = [authority["arms"][1], authority["arms"][0], authority["arms"][2]]
+    path.write_text(json.dumps(authority), encoding="utf-8")
+    with pytest.raises(ValueError, match="order"):
+        foundation_pareto.load_foundation_model_specs(path)
+
+
+def test_contaminated_control_execution_order_precedes_candidate_but_not_comparator() -> None:
+    arms = (
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="remote",
+            spec=_remote_spec(arm="candidate"),
+            cache_resolution=224,
+            role="candidate",
+        ),
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="local",
+            spec=_local_spec(arm="disjoint-comparator"),
+            cache_resolution=224,
+            role="comparator",
+        ),
+        foundation_pareto.FoundationScreenArmSpec(
+            kind="local",
+            spec=_local_spec(
+                arm="contaminated-control",
+                checkpoint_path=Path("artifacts/control.pt"),
+            ),
+            cache_resolution=224,
+            role="contaminated_control",
+        ),
+    )
+
+    executed = foundation_pareto._foundation_execution_arms(arms)
+
+    assert [arm.role for arm in executed] == [
+        "comparator",
+        "contaminated_control",
+        "candidate",
+    ]
+    assert [arm.role for arm in arms] == [
+        "candidate",
+        "comparator",
+        "contaminated_control",
+    ]
 
 
 def test_f1_decision_rejects_unavailable_comparator() -> None:
@@ -3150,6 +3275,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     decision_probes: tuple[object, object],
 ) -> None:
     candidate_probe, comparator_probe = decision_probes
+    candidate_probe = replace(candidate_probe, validation_recall_at_1_points=80.0)
+    comparator_probe = replace(comparator_probe, validation_recall_at_1_points=80.0)
     candidate_spec = _remote_spec(arm="candidate")
     comparator_spec = _local_spec()
     arms = (

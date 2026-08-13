@@ -82,7 +82,13 @@ def _require_sha256(name: str, value: str) -> None:
 class F1Decision:
     """Prospective foundation-transfer gate decision."""
 
-    status: Literal["CONTINUE", "CLOSE_FOUNDATION_TRANSFER", "UNAVAILABLE_COMPARATOR"]
+    status: Literal[
+        "CONTINUE",
+        "CLOSE_FOUNDATION_TRANSFER",
+        "UNAVAILABLE_COMPARATOR",
+        "INVALID_SPLIT_POWER",
+        "BOUNDARY_REPLICATION_REQUIRED",
+    ]
     quality_gap_points: float | None
     quality_within_one_point: bool
     quality_within_point_four: bool
@@ -93,6 +99,8 @@ class F1Decision:
         "matryoshka_adapter_lane",
         "dada_vptsp_fidelity_comparator_only",
         "resolve_local_comparator",
+        "redesign_split_power_gate",
+        "replicate_comparator_seed_zero",
     ]
     fidelity_only: bool
 
@@ -871,17 +879,42 @@ def decide_f1(
             )
         )
     pareto_equivalent = within_point_four and pareto
-    status: Literal["CONTINUE", "CLOSE_FOUNDATION_TRANSFER"] = (
-        "CONTINUE" if within_one or pareto_equivalent else "CLOSE_FOUNDATION_TRANSFER"
-    )
-    if within_one and pareto_equivalent:
-        continuation_kind: Literal["quality_margin", "pareto_equivalent", "both", "none"] = "both"
+    if comparator_validation_recall_at_1_points >= 99.5:
+        status: Literal[
+            "CONTINUE",
+            "CLOSE_FOUNDATION_TRANSFER",
+            "INVALID_SPLIT_POWER",
+            "BOUNDARY_REPLICATION_REQUIRED",
+        ] = "INVALID_SPLIT_POWER"
+    elif -1.5 <= gap <= -0.5:
+        status = "BOUNDARY_REPLICATION_REQUIRED"
+    else:
+        status = "CONTINUE" if within_one or pareto_equivalent else "CLOSE_FOUNDATION_TRANSFER"
+    continuation_kind: Literal["quality_margin", "pareto_equivalent", "both", "none"]
+    if status != "CONTINUE":
+        continuation_kind = "none"
+    elif within_one and pareto_equivalent:
+        continuation_kind = "both"
     elif within_one:
         continuation_kind = "quality_margin"
     elif pareto_equivalent:
         continuation_kind = "pareto_equivalent"
     else:
         continuation_kind = "none"
+    authorized_followup: Literal[
+        "matryoshka_adapter_lane",
+        "dada_vptsp_fidelity_comparator_only",
+        "redesign_split_power_gate",
+        "replicate_comparator_seed_zero",
+    ]
+    if status == "CONTINUE":
+        authorized_followup = "matryoshka_adapter_lane"
+    elif status == "CLOSE_FOUNDATION_TRANSFER":
+        authorized_followup = "dada_vptsp_fidelity_comparator_only"
+    elif status == "INVALID_SPLIT_POWER":
+        authorized_followup = "redesign_split_power_gate"
+    else:
+        authorized_followup = "replicate_comparator_seed_zero"
     return F1Decision(
         status=status,
         quality_gap_points=gap,
@@ -890,11 +923,7 @@ def decide_f1(
         cost_pareto_dominant=pareto,
         cost_status=cost_status,
         continuation_kind=continuation_kind,
-        authorized_followup=(
-            "matryoshka_adapter_lane"
-            if status == "CONTINUE"
-            else "dada_vptsp_fidelity_comparator_only"
-        ),
+        authorized_followup=authorized_followup,
         fidelity_only=status == "CLOSE_FOUNDATION_TRANSFER",
     )
 
@@ -1414,7 +1443,7 @@ class FoundationScreenArmSpec:
     kind: Literal["remote", "local"]
     spec: RemoteFoundationModelSpec | LocalCheckpointFoundationSpec
     cache_resolution: int
-    role: Literal["candidate", "comparator"]
+    role: Literal["candidate", "comparator", "contaminated_control"]
 
     def __post_init__(self) -> None:
         if self.kind == "remote":
@@ -1428,7 +1457,7 @@ class FoundationScreenArmSpec:
             _require_positive_int("local cache_resolution", self.cache_resolution)
         else:
             raise ValueError("foundation screen arm kind differs from exact choices")
-        if self.role not in {"candidate", "comparator"}:
+        if self.role not in {"candidate", "comparator", "contaminated_control"}:
             raise ValueError("foundation screen arm role differs from exact choices")
 
 
@@ -3087,6 +3116,12 @@ def load_foundation_model_specs(path: Path) -> tuple[FoundationScreenArmSpec, ..
         raise ValueError("foundation model comparator must be the local anchor")
     if not any(arm.role == "candidate" for arm in arms):
         raise ValueError("foundation model authority requires at least one candidate")
+    roles = tuple(arm.role for arm in arms)
+    if "contaminated_control" in roles:
+        if roles != ("candidate", "comparator", "contaminated_control"):
+            raise ValueError("foundation model arm role order differs")
+        if arms[2].kind != "local":
+            raise ValueError("foundation contaminated control must be local")
     return tuple(arms)
 
 
@@ -3712,6 +3747,8 @@ def validate_foundation_screen_report(value: object) -> None:
         "CONTINUE",
         "CLOSE_FOUNDATION_TRANSFER",
         "UNAVAILABLE_COMPARATOR",
+        "INVALID_SPLIT_POWER",
+        "BOUNDARY_REPLICATION_REQUIRED",
     }:
         raise ValueError("foundation screen overall_status differs")
     expected_digest = _decision_sha256(value["f1_decisions"], value["overall_status"])
@@ -3871,11 +3908,15 @@ def validate_foundation_screen_report(value: object) -> None:
     else:
         if not value["f1_decisions"]:
             raise ValueError("available comparator requires a candidate decision")
-        expected_overall = (
-            "CONTINUE"
-            if any(row["status"] == "CONTINUE" for row in value["f1_decisions"])
-            else "CLOSE_FOUNDATION_TRANSFER"
-        )
+        decision_statuses = {row["status"] for row in value["f1_decisions"]}
+        if "INVALID_SPLIT_POWER" in decision_statuses:
+            expected_overall = "INVALID_SPLIT_POWER"
+        elif "BOUNDARY_REPLICATION_REQUIRED" in decision_statuses:
+            expected_overall = "BOUNDARY_REPLICATION_REQUIRED"
+        elif "CONTINUE" in decision_statuses:
+            expected_overall = "CONTINUE"
+        else:
+            expected_overall = "CLOSE_FOUNDATION_TRANSFER"
     if value["overall_status"] != expected_overall:
         raise ValueError("foundation screen aggregate decision differs")
     official_keys = (
@@ -4006,6 +4047,13 @@ def publish_foundation_screen_report(path: Path, payload: dict[str, object]) -> 
     return path
 
 
+def _foundation_execution_arms(
+    arms: Sequence[FoundationScreenArmSpec],
+) -> tuple[FoundationScreenArmSpec, ...]:
+    priority = {"comparator": 0, "contaminated_control": 1, "candidate": 2}
+    return tuple(sorted(arms, key=lambda arm_spec: priority[arm_spec.role]))
+
+
 def run_foundation_screen(
     *,
     dataset: str,
@@ -4076,9 +4124,7 @@ def run_foundation_screen(
     fixture_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
     cache_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
     probe_rows_by_arm: dict[str, list[dict[str, object]]] = {arm: [] for arm in registered_arms}
-    execution_arms = tuple(
-        sorted(arms, key=lambda arm_spec: 0 if arm_spec.role == "comparator" else 1)
-    )
+    execution_arms = _foundation_execution_arms(arms)
     comparator_unavailable = False
     for arm_spec in execution_arms:
         arm = arm_spec.spec.arm
@@ -4190,11 +4236,15 @@ def run_foundation_screen(
             decisions.append({"arm": arm, **asdict(decision)})
         if not decisions:
             raise ValueError("available comparator requires at least one candidate decision")
-        overall_status = (
-            "CONTINUE"
-            if any(row["status"] == "CONTINUE" for row in decisions)
-            else "CLOSE_FOUNDATION_TRANSFER"
-        )
+        decision_statuses = {row["status"] for row in decisions}
+        if "INVALID_SPLIT_POWER" in decision_statuses:
+            overall_status = "INVALID_SPLIT_POWER"
+        elif "BOUNDARY_REPLICATION_REQUIRED" in decision_statuses:
+            overall_status = "BOUNDARY_REPLICATION_REQUIRED"
+        elif "CONTINUE" in decision_statuses:
+            overall_status = "CONTINUE"
+        else:
+            overall_status = "CLOSE_FOUNDATION_TRANSFER"
     decision_digest = _decision_sha256(decisions, overall_status)
     official_rows: list[dict[str, object]] = []
     published_rows: list[dict[str, object]] = []
