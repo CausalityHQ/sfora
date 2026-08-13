@@ -302,8 +302,9 @@ committed test-read register's exact dataset, model revision, checkpoint digest,
 metric list, purpose, and one permitted evaluation before loading official
 query/gallery rows. Preflight only metadata/path reachability before consuming
 the capability, and publish every receipt under the register's one absolute
-durable receipt root rather than a report-selected directory. After that evaluation, authenticate the separate
-published-metric register and call `cross_check_published_metrics`. Publish both
+durable receipt root rather than a report-selected directory. Authenticate the
+separate published-metric register before that evaluation, then call
+`cross_check_published_metrics` afterward. Publish both
 audit domains with the F0/F1 evidence via the cache-v2 no-clobber writer and
 strict-reload the report.
 
