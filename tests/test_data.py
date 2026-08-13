@@ -314,11 +314,7 @@ def test_cub_huggingface_mirror_is_revision_pinned(
 
     monkeypatch.setattr(datasets, "load_dataset", fake_load_dataset)
 
-    assert list(
-        _load_huggingface_dataset(
-            "bentrevett/caltech-ucsd-birds-200-2011", "train"
-        )
-    ) == []
+    assert list(_load_huggingface_dataset("bentrevett/caltech-ucsd-birds-200-2011", "train")) == []
     assert calls == [
         (
             "bentrevett/caltech-ucsd-birds-200-2011",
@@ -357,9 +353,7 @@ def test_pinned_cub_runtime_guard_checks_zero_shot_partition_counts() -> None:
     records = [
         {"label": label}
         for label in range(200)
-        for _ in range(
-            (58 + (label < 64)) if label < 100 else (59 + (label < 124))
-        )
+        for _ in range((58 + (label < 64)) if label < 100 else (59 + (label < 124)))
     ]
 
     _validate_pinned_cub_records(records, label_key="label")
@@ -567,6 +561,63 @@ def test_parse_sop_metadata_uses_product_path_not_class_sort_order(tmp_path: Pat
     )
 
     assert _parse_sop_metadata(metadata, expected_count=2) == {"900001", "100007"}
+
+
+def test_local_sop_root_preserves_official_rows_and_paths(tmp_path: Path) -> None:
+    from sfora.data import _read_local_sop_metadata
+
+    root = tmp_path / "Stanford_Online_Products"
+    (root / "chair_final").mkdir(parents=True)
+    (root / "bicycle_final").mkdir()
+    (root / "chair_final/900001_0.JPG").write_bytes(b"chair-zero")
+    (root / "chair_final/900001_1.JPG").write_bytes(b"chair-one")
+    (root / "bicycle_final/100007_0.JPG").write_bytes(b"bicycle")
+    (root / "Ebay_train.txt").write_text(
+        "image_id class_id super_class_id path\n"
+        "1 9 2 chair_final/900001_0.JPG\n"
+        "2 9 2 chair_final/900001_1.JPG\n"
+        "3 2 1 bicycle_final/100007_0.JPG\n",
+        encoding="utf-8",
+    )
+
+    records = _read_local_sop_metadata(
+        root,
+        split="train",
+        expected_rows=3,
+        expected_classes=2,
+    )
+
+    assert records == [
+        {"image": root / "chair_final/900001_0.JPG", "id": "900001_0"},
+        {"image": root / "chair_final/900001_1.JPG", "id": "900001_1"},
+        {"image": root / "bicycle_final/100007_0.JPG", "id": "100007_0"},
+    ]
+
+
+def test_sop_dataset_root_bypasses_huggingface_loader(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "Stanford_Online_Products"
+    root.mkdir()
+    monkeypatch.setattr(
+        "sfora.data._read_local_sop_metadata",
+        lambda *args, **kwargs: [
+            {"image": root / f"{label}_{index}.JPG", "id": f"{label}_{index}"}
+            for label in (100, 200)
+            for index in range(2)
+        ],
+    )
+
+    examples = load_image_retrieval_examples(
+        dataset_name="sop",
+        split="train",
+        seed=0,
+        dataset_root=root,
+        dataset_loader=lambda *args: (_ for _ in ()).throw(AssertionError(args)),
+    )
+
+    assert len(examples) == 4
+    assert {row.label for row in examples} == {100, 200}
 
 
 def test_original_sop_records_materialize_pinned_image_bytes(

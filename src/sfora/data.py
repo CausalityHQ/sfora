@@ -54,9 +54,7 @@ IMDB_DATASET_ID = "stanfordnlp/imdb"
 # Community mirrors are executable inputs to a benchmark.  Pin them just like model
 # code: otherwise the same command can silently train on different pixels later.
 _HF_DATASET_REVISIONS = {
-    "bentrevett/caltech-ucsd-birds-200-2011": (
-        "1ef09e021b0b65b40337f6f285909656f407f6e0"
-    ),
+    "bentrevett/caltech-ucsd-birds-200-2011": ("1ef09e021b0b65b40337f6f285909656f407f6e0"),
     "tanganke/stanford_cars": "9abf6cf7d6dfa7b95152a0d6e791ea9435b47a40",
 }
 
@@ -168,7 +166,17 @@ def load_image_retrieval_examples(
         else (spec.source_split_name or split,)
     )
     records: list[dict[str, object]] = []
-    if dataset_name == "sop" and dataset_loader is None:
+    local_sop = dataset_name == "sop" and dataset_root is not None
+    if local_sop:
+        records.extend(
+            _read_local_sop_metadata(
+                _required_dataset_root(dataset_name, dataset_root),
+                split=split,
+                expected_rows=59_551 if split == "train" else 60_502,
+                expected_classes=11_318 if split == "train" else 11_316,
+            )
+        )
+    elif dataset_name == "sop" and dataset_loader is None:
         records.extend(_load_original_sop_records(split))
     else:
         for source_split in source_splits:
@@ -186,16 +194,14 @@ def load_image_retrieval_examples(
         _validate_pinned_cub_records(records, label_key=spec.label_key)
     if dataset_name == "cars" and dataset_loader is None:
         _validate_pinned_cars_records(records, label_key=spec.label_key)
-    if dataset_name == "sop" and dataset_loader is None:
+    if dataset_name == "sop" and dataset_loader is None and not local_sop:
         official_products = _sop_official_product_ids(split)
         records = [
             record
             for record in records
             if str(record[spec.label_key]).rsplit("_", 1)[0] in official_products
         ]
-        observed_products = {
-            str(record[spec.label_key]).rsplit("_", 1)[0] for record in records
-        }
+        observed_products = {str(record[spec.label_key]).rsplit("_", 1)[0] for record in records}
         missing = official_products - observed_products
         if missing:
             raise ValueError(
@@ -218,7 +224,7 @@ def load_image_retrieval_examples(
             None
             if class_ids is not None
             or max_classes is not None
-            or (dataset_name == "sop" and dataset_loader is None)
+            or (dataset_name == "sop" and (dataset_loader is None or local_sop))
             else ("first_half" if split == "train" else "second_half")
         ),
         skip_classes=0 if split == "train" or class_ids is not None else (max_classes or 0),
@@ -228,9 +234,7 @@ def load_image_retrieval_examples(
     )
 
 
-def _validate_pinned_cub_records(
-    records: Sequence[dict[str, object]], *, label_key: str
-) -> None:
+def _validate_pinned_cub_records(records: Sequence[dict[str, object]], *, label_key: str) -> None:
     """Reject a corrupt or schema-drifted CUB mirror before training begins."""
     if len(records) != 11_788:
         raise ValueError(f"pinned CUB mirror has {len(records)} images; expected 11788")
@@ -243,14 +247,11 @@ def _validate_pinned_cub_records(
     test_count = sum(count for label, count in counts.items() if label >= 100)
     if (train_count, test_count) != (5_864, 5_924):
         raise ValueError(
-            "pinned CUB DML split has "
-            f"{train_count}/{test_count} images; expected 5864/5924"
+            f"pinned CUB DML split has {train_count}/{test_count} images; expected 5864/5924"
         )
 
 
-def _validate_pinned_cars_records(
-    records: Sequence[dict[str, object]], *, label_key: str
-) -> None:
+def _validate_pinned_cars_records(records: Sequence[dict[str, object]], *, label_key: str) -> None:
     """Reject a corrupt or schema-drifted Cars196 mirror before training begins."""
     if len(records) != 16_185:
         raise ValueError(f"pinned Cars196 mirror has {len(records)} images; expected 16185")
@@ -263,8 +264,7 @@ def _validate_pinned_cars_records(
     test_count = sum(count for label, count in counts.items() if label >= 98)
     if (train_count, test_count) != (8_054, 8_131):
         raise ValueError(
-            "pinned Cars196 DML split has "
-            f"{train_count}/{test_count} images; expected 8054/8131"
+            f"pinned Cars196 DML split has {train_count}/{test_count} images; expected 8054/8131"
         )
 
 
@@ -301,9 +301,7 @@ def _load_original_sop_records(split: str) -> Iterable[dict[str, object]]:
     try:
         from datasets import Image, load_dataset
     except ImportError as error:
-        raise RuntimeError(
-            "Install the research extra to load original SOP images"
-        ) from error
+        raise RuntimeError("Install the research extra to load original SOP images") from error
 
     revision = "24a1b9b8ec6c0b1fc4dd324f24b2d829413a6c69"
     dataset = load_dataset(
@@ -329,9 +327,7 @@ def _load_original_sop_records(split: str) -> Iterable[dict[str, object]]:
         if relative.is_absolute() or ".." in relative.parts:
             raise ValueError(f"unsafe SOP image path at row {index}: {relative}")
         if relative.stem.rsplit("_", 1)[0] != item_id:
-            raise ValueError(
-                f"SOP item/path mismatch at row {index}: {item_id} versus {relative}"
-            )
+            raise ValueError(f"SOP item/path mismatch at row {index}: {item_id} versus {relative}")
         target = cache_root / relative
         if not target.is_file():
             raw_image = record["image"]
@@ -353,10 +349,57 @@ def _parse_sop_metadata(path: Path, *, expected_count: int) -> set[str]:
             raise ValueError(f"invalid SOP metadata row {line_number}: {line!r}")
         products.add(Path(fields[3]).stem.rsplit("_", 1)[0])
     if len(products) != expected_count:
-        raise ValueError(
-            f"SOP metadata has {len(products)} products; expected {expected_count}"
-        )
+        raise ValueError(f"SOP metadata has {len(products)} products; expected {expected_count}")
     return products
+
+
+def _read_local_sop_metadata(
+    root: Path,
+    *,
+    split: str,
+    expected_rows: int,
+    expected_classes: int,
+) -> list[dict[str, object]]:
+    """Read the original Stanford archive without touching the other official split."""
+    if split not in {"train", "test"}:
+        raise ValueError(f"unknown SOP split: {split!r}")
+    metadata = root / f"Ebay_{split}.txt"
+    if metadata.is_symlink() or not metadata.is_file():
+        raise ValueError(f"missing local SOP metadata: {metadata}")
+    lines = metadata.read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0] != "image_id class_id super_class_id path":
+        raise ValueError("local SOP metadata header differs")
+    records: list[dict[str, object]] = []
+    products_by_class: dict[int, str] = {}
+    classes_by_product: dict[str, int] = {}
+    for line_number, line in enumerate(lines[1:], start=2):
+        fields = line.split(maxsplit=3)
+        if len(fields) != 4:
+            raise ValueError(f"invalid SOP metadata row {line_number}: {line!r}")
+        image_id_text, class_id_text, _super_class_id, path_text = fields
+        image_id = int(image_id_text)
+        class_id = int(class_id_text)
+        relative = Path(path_text)
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError(f"unsafe local SOP image path at row {line_number}")
+        image = root / relative
+        if image.is_symlink() or not image.is_file():
+            raise ValueError(f"missing local SOP image at row {line_number}: {relative}")
+        product = relative.stem.rsplit("_", 1)[0]
+        if not product or image_id <= 0 or class_id <= 0:
+            raise ValueError(f"invalid local SOP identity at row {line_number}")
+        prior_product = products_by_class.setdefault(class_id, product)
+        prior_class = classes_by_product.setdefault(product, class_id)
+        if prior_product != product or prior_class != class_id:
+            raise ValueError(f"local SOP class/product mapping differs at row {line_number}")
+        records.append({"image": image, "id": relative.stem})
+    if len(records) != expected_rows:
+        raise ValueError(f"local SOP {split} has {len(records)} rows; expected {expected_rows}")
+    if len(products_by_class) != expected_classes:
+        raise ValueError(
+            f"local SOP {split} has {len(products_by_class)} classes; expected {expected_classes}"
+        )
+    return records
 
 
 def load_image_retrieval_bundle(
