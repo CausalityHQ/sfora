@@ -2076,6 +2076,10 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     test_reads = foundation_pareto.load_test_read_register(
         root / "docs/foundation_test_read_register.json"
     )
+    train_only_report_path = (
+        root / "docs/foundation_f1_identity_disjoint_inshop_train_only_report.json"
+    )
+    train_only_report = foundation_pareto.load_foundation_screen_report(train_only_report_path)
     comparator_receipt = json.loads(
         (root / "docs/foundation_identity_disjoint_comparator_seed2_receipt.json").read_text(
             encoding="utf-8"
@@ -2104,8 +2108,83 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     assert comparator_receipt["official_test"] == {"consumed": False, "receipts": []}
     assert [(row.arm, row.metric) for row in fixtures] == list(fixture_pairs)
     assert [(row.arm, row.metric) for row in tolerances] == list(fixture_pairs)
-    assert published == ()
-    assert test_reads.records == ()
+    assert _sha256(train_only_report_path) == (
+        "791cd1499327bd95abb5093d993a68c7192d44965af8669073bf35ad5b6ae066"
+    )
+    assert train_only_report["source_commit"] == ("7c898354d0f897d5226098d06ee19349e21701a8")
+    assert train_only_report["overall_status"] == "CONTINUE"
+    assert train_only_report["decision_sha256"] == (
+        "a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8"
+    )
+    assert train_only_report["official_test_reads"] == []
+    assert train_only_report["published_metric_audits"] == []
+    metrics = (
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "recall_at_100",
+        "map_at_r",
+    )
+    assert tuple((row.arm, row.metric) for row in published) == tuple(
+        (arm, metric)
+        for arm in (
+            "siglip2-base-patch16-256",
+            "inshop-pa-bninception-disjoint-seed2",
+        )
+        for metric in metrics
+    )
+    assert all(row.native_value is None for row in published)
+    assert all(row.tolerance is None for row in published)
+    assert all(row.provenance == "repository_only" for row in published)
+    assert all(
+        row.source
+        == (
+            "No independent published value exists for this exact checkpoint and protocol; "
+            "repository evaluation only."
+        )
+        for row in published
+    )
+    assert tuple(
+        (
+            row.dataset,
+            row.arm,
+            row.model_revision,
+            row.checkpoint_sha256,
+            row.metrics,
+            row.purpose,
+            row.permitted_evaluations,
+        )
+        for row in test_reads.records
+    ) == (
+        (
+            "inshop",
+            "siglip2-base-patch16-256",
+            "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+            "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
+            metrics,
+            "registered_f1_quality_evaluation",
+            1,
+        ),
+        (
+            "inshop",
+            "inshop-pa-bninception-disjoint-seed2",
+            "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
+            "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
+            metrics,
+            "registered_f1_quality_evaluation",
+            1,
+        ),
+    )
+    with pytest.raises(ValueError, match="not a registered test read"):
+        test_reads.consume(
+            dataset="inshop",
+            arm="inshop-pa-bninception-seed2",
+            model_revision="f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
+            checkpoint_sha256="f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
+            metrics=metrics,
+            purpose="registered_f1_quality_evaluation",
+        )
     official_arms = foundation_pareto._foundation_official_read_arms(arms)
     assert tuple(arm.spec.arm for arm in official_arms) == (
         "siglip2-base-patch16-256",
