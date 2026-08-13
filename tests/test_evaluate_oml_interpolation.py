@@ -33,3 +33,34 @@ def test_interpolate_state_dict_rejects_nonfloat_buffer_drift() -> None:
         assert "non-floating state differs" in str(error)
     else:
         raise AssertionError("non-floating drift was accepted")
+
+
+def test_registered_interpolation_decision_uses_paired_map_and_recall_floor() -> None:
+    initial = {"recall_at_1": 0.96}
+    paired = {"map_at_r_delta": 0.0041, "map_at_r_delta_ci95_lower": 0.0002}
+
+    assert _MODULE.registered_interpolation_decision(
+        initial=initial,
+        final={"recall_at_1": 0.9593},
+        paired=paired,
+    )
+    assert not _MODULE.registered_interpolation_decision(
+        initial=initial,
+        final={"recall_at_1": 0.9592},
+        paired=paired,
+    )
+    assert not _MODULE.registered_interpolation_decision(
+        initial=initial,
+        final={"recall_at_1": 0.96},
+        paired={"map_at_r_delta": 0.0041, "map_at_r_delta_ci95_lower": -0.0001},
+    )
+
+
+def test_bootstrap_seed_is_stable_per_alpha_and_checkpoint() -> None:
+    digest = "ab" * 32
+    assert _MODULE.bootstrap_seed(alpha=0.75, checkpoint_sha256=digest) == _MODULE.bootstrap_seed(
+        alpha=0.75, checkpoint_sha256=digest
+    )
+    assert _MODULE.bootstrap_seed(
+        alpha=0.75, checkpoint_sha256=digest
+    ) != _MODULE.bootstrap_seed(alpha=0.5, checkpoint_sha256=digest)

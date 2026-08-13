@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 from collections.abc import Mapping
+from hashlib import sha256
 from pathlib import Path
 
 import torch
-from train_oml_anchored_triplet import evaluation_values
+from train_oml_anchored_triplet import evaluation_values, validate_registered_initial
 
 from sfora.foundation_finetune import (
     IdentityNeck,
@@ -18,6 +20,26 @@ from sfora.foundation_finetune import (
 )
 from sfora.foundation_oml import configure_oml_input_size, load_oml_inshop_examples, load_oml_vit
 
+REGISTERED_MINIMUM_MAP_DELTA = 0.004
+REGISTERED_MAXIMUM_RECALL_DROP = 0.0007
+
+
+def registered_interpolation_decision(
+    *,
+    initial: Mapping[str, float],
+    final: Mapping[str, float],
+    paired: Mapping[str, float | int],
+) -> bool:
+    return bool(
+        paired["map_at_r_delta"] >= REGISTERED_MINIMUM_MAP_DELTA
+        and paired["map_at_r_delta_ci95_lower"] > 0.0
+        and final["recall_at_1"] >= initial["recall_at_1"] - REGISTERED_MAXIMUM_RECALL_DROP
+    )
+
+
+def bootstrap_seed(*, alpha: float, checkpoint_sha256: str) -> int:
+    material = f"{checkpoint_sha256}:{alpha.hex()}".encode()
+    return int.from_bytes(sha256(material).digest()[:4], "big")
 
 def interpolate_state_dict(
     base: Mapping[str, torch.Tensor],
@@ -54,6 +76,7 @@ def main() -> None:
     parser.add_argument("--input-size", type=int, default=288)
     parser.add_argument("--evaluation-fraction", type=float, default=0.2)
     parser.add_argument("--evaluation-seed", type=int, default=17)
+    parser.add_argument("--evaluation-role", choices=("screen", "holdout"), default="screen")
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--workers", type=int, default=8)
     args = parser.parse_args()
@@ -71,6 +94,13 @@ def main() -> None:
     base_model = {name: value.detach().clone() for name, value in model.state_dict().items()}
     base_neck = {name: value.detach().clone() for name, value in neck.state_dict().items()}
     saved = torch.load(args.trained_checkpoint, map_location=device, weights_only=False)
+    trained_checkpoint_sha256 = sha256(args.trained_checkpoint.read_bytes()).hexdigest()
+    if Path(saved["base_checkpoint"]).resolve() != args.base_checkpoint.resolve():
+        raise ValueError("trained checkpoint base differs")
+    if saved["student_input_size"] != args.input_size:
+        raise ValueError("trained checkpoint input size differs")
+    if saved["ema_decay"] != 0.995 or saved["epoch"] != 10:
+        raise ValueError("trained checkpoint schedule differs")
     trained_model = saved["model"]
     trained_neck = saved["neck"]
 
@@ -81,7 +111,7 @@ def main() -> None:
         gallery,
         seed=args.evaluation_seed,
         fraction=args.evaluation_fraction,
-        complement=False,
+        complement=args.evaluation_role == "holdout",
     )
     initial, initial_hits, initial_ap = evaluation_values(
         model,
@@ -93,8 +123,14 @@ def main() -> None:
         workers=args.workers,
         input_size=args.input_size,
     )
+    validate_registered_initial(
+        seed=0,
+        evaluation_role=args.evaluation_role,
+        student_input_size=args.input_size,
+        initial=initial,
+    )
     rows: list[dict[str, object]] = []
-    for index, alpha in enumerate(args.alphas):
+    for alpha in args.alphas:
         model.load_state_dict(interpolate_state_dict(base_model, trained_model, alpha=alpha))
         neck.load_state_dict(interpolate_state_dict(base_neck, trained_neck, alpha=alpha))
         metrics, hits, average_precision = evaluation_values(
@@ -112,14 +148,37 @@ def main() -> None:
             final_hits=hits,
             initial_ap=initial_ap,
             final_ap=average_precision,
-            seed=20_260_900 + index,
+            seed=bootstrap_seed(
+                alpha=alpha, checkpoint_sha256=trained_checkpoint_sha256
+            ),
             bootstrap_replicates=10_000,
         )
-        rows.append({"alpha": alpha, "metrics": metrics, "paired": paired})
+        rows.append(
+            {
+                "alpha": alpha,
+                "metrics": metrics,
+                "paired": paired,
+                "passed": registered_interpolation_decision(
+                    initial=initial, final=metrics, paired=paired
+                ),
+            }
+        )
         print(json.dumps(rows[-1], sort_keys=True), flush=True)
     payload = {
         "method": "linear weight interpolation from released OML to EMA continuation",
         "input_size": args.input_size,
+        "base_checkpoint": str(args.base_checkpoint.resolve()),
+        "trained_checkpoint": str(args.trained_checkpoint.resolve()),
+        "trained_checkpoint_sha256": trained_checkpoint_sha256,
+        "evaluation_fraction": args.evaluation_fraction,
+        "evaluation_seed": args.evaluation_seed,
+        "evaluation_role": args.evaluation_role,
+        "batch_size": args.batch_size,
+        "torch_version": str(torch.__version__),
+        "timm_version": importlib.metadata.version("timm"),
+        "device_name": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
+        "trained_ema_decay": saved["ema_decay"],
+        "trained_epochs": saved["epoch"],
         "initial": initial,
         "rows": rows,
     }
