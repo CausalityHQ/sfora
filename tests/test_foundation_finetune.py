@@ -14,7 +14,9 @@ from sfora.foundation_finetune import (
     batch_hard_soft_triplet,
     configure_vit_trainable_layers,
     identity_disjoint_train_validation,
+    paired_retrieval_statistics,
     query_gallery_from_identities,
+    retrieval_query_values,
     select_query_gallery_identity_subset,
     split_cls_patch_tokens,
 )
@@ -116,15 +118,36 @@ def test_token_residual_gate_starts_at_the_normalized_cls_descriptor() -> None:
     torch.testing.assert_close(output, torch.nn.functional.normalize(cls, dim=1))
     assert gate.gate.numel() == 3
     assert gate.gate.requires_grad
+    with torch.no_grad():
+        gate.gate.copy_(torch.tensor([0.5, -0.25, 0.75]))
+    expected = torch.nn.functional.normalize(
+        torch.nn.functional.normalize(cls, dim=1)
+        + torch.tanh(gate.gate) * torch.nn.functional.normalize(patches, dim=1),
+        dim=1,
+    )
+    torch.testing.assert_close(gate(cls, patches), expected)
 
 
 def test_batch_hard_soft_triplet_uses_farthest_positive_and_nearest_negative() -> None:
-    embeddings = torch.tensor([[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [2.0, 3.0]], dtype=torch.float32)
-    labels = torch.tensor([0, 0, 1, 1], dtype=torch.int64)
+    embeddings = torch.tensor(
+        [[0.0, 0.0], [2.0, 0.0], [6.0, 0.0], [0.0, 10.0], [2.0, 10.0]],
+        dtype=torch.float32,
+    )
+    labels = torch.tensor([0, 0, 0, 1, 1], dtype=torch.int64)
 
     loss = batch_hard_soft_triplet(embeddings, labels)
 
-    torch.testing.assert_close(loss, torch.nn.functional.softplus(torch.tensor(-1.0)))
+    distances = torch.cdist(embeddings, embeddings)
+    expected = torch.stack(
+        [
+            torch.nn.functional.softplus(distances[0, 2] - distances[0, 3]),
+            torch.nn.functional.softplus(distances[1, 2] - distances[1, 4]),
+            torch.nn.functional.softplus(distances[2, 0] - distances[2, 4]),
+            torch.nn.functional.softplus(distances[3, 4] - distances[3, 0]),
+            torch.nn.functional.softplus(distances[4, 3] - distances[4, 1]),
+        ]
+    ).mean()
+    torch.testing.assert_close(loss, expected)
 
 
 def test_identity_balanced_sampler_is_epoch_deterministic_and_preserves_pk_batches() -> None:
@@ -140,6 +163,26 @@ def test_identity_balanced_sampler_is_epoch_deterministic_and_preserves_pk_batch
     assert sorted(observed.count(label) for label in set(observed)) == [2, 2, 2]
     first.set_epoch(1)
     assert next(iter(first)) != batch
+    assert set(labels) == {labels[index] for rows in first for index in rows}
+    other_seed = IdentityBalancedBatchSampler(
+        labels, labels_per_batch=3, instances_per_label=2, seed=8
+    )
+    assert list(first) != list(other_seed)
+
+
+def test_identity_balanced_sampler_maximizes_distinct_examples_when_tiling() -> None:
+    labels = [0, 0, 1, 1, 1]
+    sampler = IdentityBalancedBatchSampler(
+        labels, labels_per_batch=2, instances_per_label=4, seed=3
+    )
+
+    batch = next(iter(sampler))
+
+    for label in (0, 1):
+        indexes = [index for index in batch if labels[index] == label]
+        assert len(indexes) == 4
+        expected_distinct = len({i for i, observed in enumerate(labels) if observed == label})
+        assert len(set(indexes)) == expected_distinct
 
 
 def test_split_cls_patch_tokens_excludes_cls_from_the_local_mean() -> None:
@@ -152,3 +195,28 @@ def test_split_cls_patch_tokens_excludes_cls_from_the_local_mean() -> None:
 
     torch.testing.assert_close(cls, torch.tensor([[3.0, 4.0], [5.0, 6.0]]))
     torch.testing.assert_close(patches, torch.tensor([[2.0, 3.0], [8.0, 9.0]]))
+
+
+def test_retrieval_query_values_and_paired_statistics_preserve_query_pairing() -> None:
+    query = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
+    gallery = torch.tensor([[1.0, 0.0], [0.8, 0.2], [0.0, 1.0]], dtype=torch.float32)
+    query_labels = torch.tensor([0, 1], dtype=torch.int64).numpy()
+    gallery_labels = torch.tensor([0, 0, 1], dtype=torch.int64).numpy()
+
+    hits, average_precision = retrieval_query_values(query, query_labels, gallery, gallery_labels)
+    stats = paired_retrieval_statistics(
+        initial_hits=torch.tensor([False, True, False, True]).numpy(),
+        final_hits=torch.tensor([True, True, True, False]).numpy(),
+        initial_ap=torch.tensor([0.0, 1.0, 0.0, 1.0], dtype=torch.float64).numpy(),
+        final_ap=torch.tensor([1.0, 1.0, 1.0, 0.0], dtype=torch.float64).numpy(),
+        seed=5,
+        bootstrap_replicates=1000,
+    )
+
+    assert hits.tolist() == [True, True]
+    assert average_precision.tolist() == [1.0, 1.0]
+    assert stats["recall_lost"] == 1
+    assert stats["recall_gained"] == 2
+    assert stats["map_at_r_delta"] == 0.25
+    assert stats["map_at_r_delta_ci95_lower"] <= 0.25
+    assert stats["map_at_r_delta_ci95_upper"] >= 0.25

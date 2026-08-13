@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
-from math import ceil, isfinite
+from math import ceil, comb, isfinite
 
 import numpy as np
 import torch
@@ -208,6 +208,124 @@ def split_cls_patch_tokens(tokens: torch.Tensor) -> tuple[torch.Tensor, torch.Te
     return tokens[:, 0], tokens[:, 1:].mean(dim=1)
 
 
+def retrieval_query_values(
+    query: torch.Tensor,
+    query_labels: np.ndarray,
+    gallery: torch.Tensor,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 512,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return exact per-query R@1 hits and AP@R for paired comparisons."""
+
+    if (
+        type(query_labels) is not np.ndarray
+        or type(gallery_labels) is not np.ndarray
+        or query_labels.dtype != np.dtype("int64")
+        or gallery_labels.dtype != np.dtype("int64")
+        or query_labels.ndim != 1
+        or gallery_labels.ndim != 1
+        or query.dtype != torch.float32
+        or gallery.dtype != torch.float32
+        or query.ndim != 2
+        or gallery.ndim != 2
+        or query.shape[1] != gallery.shape[1]
+        or query.shape[0] != query_labels.shape[0]
+        or gallery.shape[0] != gallery_labels.shape[0]
+        or type(chunk_size) is not int
+        or chunk_size <= 0
+    ):
+        raise ValueError("retrieval query inputs differ")
+    query = F.normalize(query, dim=1)
+    gallery = F.normalize(gallery, dim=1)
+    relevant_counts = np.asarray(
+        [np.count_nonzero(gallery_labels == label) for label in query_labels], dtype=np.int64
+    )
+    if bool((relevant_counts == 0).any()):
+        raise ValueError("every query requires a gallery match")
+    hits: list[np.ndarray] = []
+    average_precision: list[np.ndarray] = []
+    for start in range(0, query.shape[0], chunk_size):
+        stop = min(start + chunk_size, query.shape[0])
+        maximum_r = int(relevant_counts[start:stop].max())
+        top = (
+            torch.topk(
+                query[start:stop] @ gallery.T,
+                k=maximum_r,
+                dim=1,
+                largest=True,
+                sorted=True,
+            )
+            .indices.detach()
+            .cpu()
+            .numpy()
+        )
+        matches = gallery_labels[top] == query_labels[start:stop, None]
+        hits.append(matches[:, 0].copy())
+        precision = np.cumsum(matches, axis=1) / np.arange(1, maximum_r + 1)[None, :]
+        rows = [
+            float((precision[row, :relevant] * matches[row, :relevant]).sum() / relevant)
+            for row, relevant in enumerate(relevant_counts[start:stop])
+        ]
+        average_precision.append(np.asarray(rows, dtype=np.float64))
+    return np.concatenate(hits), np.concatenate(average_precision)
+
+
+def paired_retrieval_statistics(
+    *,
+    initial_hits: np.ndarray,
+    final_hits: np.ndarray,
+    initial_ap: np.ndarray,
+    final_ap: np.ndarray,
+    seed: int,
+    bootstrap_replicates: int,
+) -> dict[str, float | int]:
+    """Summarize paired retrieval changes with exact McNemar and bootstrap uncertainty."""
+
+    if (
+        type(initial_hits) is not np.ndarray
+        or type(final_hits) is not np.ndarray
+        or type(initial_ap) is not np.ndarray
+        or type(final_ap) is not np.ndarray
+        or initial_hits.dtype != np.dtype("bool")
+        or final_hits.dtype != np.dtype("bool")
+        or initial_ap.dtype != np.dtype("float64")
+        or final_ap.dtype != np.dtype("float64")
+        or initial_hits.ndim != 1
+        or not (initial_hits.shape == final_hits.shape == initial_ap.shape == final_ap.shape)
+        or initial_hits.size == 0
+        or type(seed) is not int
+        or type(bootstrap_replicates) is not int
+        or bootstrap_replicates < 100
+    ):
+        raise ValueError("paired retrieval inputs differ")
+    lost = int(np.count_nonzero(initial_hits & ~final_hits))
+    gained = int(np.count_nonzero(~initial_hits & final_hits))
+    discordant = lost + gained
+    if discordant:
+        tail = sum(comb(discordant, k) for k in range(min(lost, gained) + 1)) / (2**discordant)
+        mcnemar_p = min(1.0, 2.0 * tail)
+    else:
+        mcnemar_p = 1.0
+    delta = final_ap - initial_ap
+    rng = np.random.default_rng(seed)
+    bootstrap = np.empty(bootstrap_replicates, dtype=np.float64)
+    for replicate in range(bootstrap_replicates):
+        indexes = rng.integers(0, delta.size, size=delta.size)
+        bootstrap[replicate] = delta[indexes].mean()
+    lower, upper = np.quantile(bootstrap, [0.025, 0.975])
+    return {
+        "recall_lost": lost,
+        "recall_gained": gained,
+        "mcnemar_exact_p": float(mcnemar_p),
+        "map_at_r_delta": float(delta.mean()),
+        "map_at_r_delta_ci95_lower": float(lower),
+        "map_at_r_delta_ci95_upper": float(upper),
+        "bootstrap_replicates": bootstrap_replicates,
+        "bootstrap_seed": seed,
+    }
+
+
 def batch_hard_soft_triplet(embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     """Return the softplus loss for each anchor's batch-hard positive and negative."""
 
@@ -272,17 +390,17 @@ class IdentityBalancedBatchSampler(Sampler[list[int]]):
         self.epoch = epoch
 
     def __iter__(self) -> Iterator[list[int]]:
-        rng = np.random.default_rng(self.seed + self.epoch)
+        rng = np.random.default_rng([self.seed, self.epoch])
         available = np.asarray(list(self._by_label), dtype=np.int64)
-        for _ in range(len(self)):
-            selected = rng.choice(available, size=self.labels_per_batch, replace=False)
+        ordered = rng.permutation(available)
+        padding = len(self) * self.labels_per_batch - ordered.size
+        if padding:
+            ordered = np.concatenate([ordered, rng.choice(available, size=padding, replace=False)])
+        for start in range(0, ordered.size, self.labels_per_batch):
+            selected = ordered[start : start + self.labels_per_batch]
             batch: list[int] = []
             for raw_label in selected:
                 candidates = self._by_label[int(raw_label)]
-                chosen = rng.choice(
-                    candidates,
-                    size=self.instances_per_label,
-                    replace=len(candidates) < self.instances_per_label,
-                )
+                chosen = np.resize(rng.permutation(candidates), self.instances_per_label)
                 batch.extend(int(index) for index in chosen)
             yield batch

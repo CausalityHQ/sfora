@@ -17,11 +17,12 @@ from torchvision import transforms
 from torchvision.transforms import InterpolationMode
 
 from sfora.data import ImageExample, materialize_image
-from sfora.foundation_adapter import retrieval_map_at_r, retrieval_recall_at_1
 from sfora.foundation_finetune import (
     IdentityBalancedBatchSampler,
     TokenResidualGate,
     batch_hard_soft_triplet,
+    paired_retrieval_statistics,
+    retrieval_query_values,
     select_query_gallery_identity_subset,
     split_cls_patch_tokens,
 )
@@ -64,12 +65,13 @@ def extract_token_pairs(
         shuffle=False,
         num_workers=workers,
         pin_memory=device.type == "cuda",
-        persistent_workers=workers > 0,
     )
     all_cls: list[torch.Tensor] = []
     all_patches: list[torch.Tensor] = []
     all_labels: list[torch.Tensor] = []
     model.eval()
+    if getattr(model, "num_prefix_tokens", None) != 1:
+        raise ValueError("OML ViT must expose exactly one CLS prefix token")
     with torch.inference_mode():
         for images, labels in loader:
             tokens = model.forward_features(images.to(device, non_blocking=True)).float()
@@ -107,15 +109,18 @@ def retrieval_metrics(
     query_labels: torch.Tensor,
     gallery_features: torch.Tensor,
     gallery_labels: torch.Tensor,
-) -> dict[str, float]:
-    return {
-        "recall_at_1": retrieval_recall_at_1(
-            query_features, query_labels.numpy(), gallery_features, gallery_labels.numpy()
-        ),
-        "map_at_r": retrieval_map_at_r(
-            query_features, query_labels.numpy(), gallery_features, gallery_labels.numpy()
-        ),
-    }
+) -> tuple[dict[str, float], np.ndarray, np.ndarray]:
+    hits, average_precision = retrieval_query_values(
+        query_features,
+        query_labels.numpy(),
+        gallery_features,
+        gallery_labels.numpy(),
+    )
+    return (
+        {"recall_at_1": float(hits.mean()), "map_at_r": float(average_precision.mean())},
+        hits,
+        average_precision,
+    )
 
 
 def main() -> None:
@@ -140,8 +145,14 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists() or args.output_checkpoint.exists():
         raise FileExistsError("output or checkpoint already exists")
-    if args.epochs <= 0 or args.learning_rate <= 0.0 or args.geometry_weight < 0.0:
+    if (
+        args.epochs <= 0
+        or args.learning_rate <= 0.0
+        or args.geometry_weight < 0.0
+        or args.gate_weight < 0.0
+    ):
         raise ValueError("training configuration differs")
+    total_started = time.perf_counter()
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -190,7 +201,7 @@ def main() -> None:
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     extraction_seconds = time.perf_counter() - extraction_started
-    initial = retrieval_metrics(
+    initial, initial_hits, initial_ap = retrieval_metrics(
         F.normalize(query_cls, dim=1),
         query_labels,
         F.normalize(gallery_cls, dim=1),
@@ -250,30 +261,41 @@ def main() -> None:
             "metric_loss": metric_sum / examples_seen,
             "geometry_loss": geometry_sum / examples_seen,
             "seconds": seconds,
-            "images_per_second": examples_seen / seconds,
+            "descriptor_rows_per_second": examples_seen / seconds,
             "gate_mean_abs": float(torch.tanh(gate.gate).detach().abs().mean()),
             "gate_max_abs": float(torch.tanh(gate.gate).detach().abs().max()),
         }
         epoch_rows.append(row)
         print(json.dumps(row, sort_keys=True), flush=True)
     training_seconds = time.perf_counter() - training_started
-    final = retrieval_metrics(
-        apply_gate(
-            gate,
-            query_cls,
-            query_patches,
-            device=device,
-            batch_size=args.extraction_batch_size,
-        ),
+    training_peak_memory = torch.cuda.max_memory_allocated(device) if device.type == "cuda" else 0
+    final_query_features = apply_gate(
+        gate,
+        query_cls,
+        query_patches,
+        device=device,
+        batch_size=args.extraction_batch_size,
+    )
+    final_gallery_features = apply_gate(
+        gate,
+        gallery_cls,
+        gallery_patches,
+        device=device,
+        batch_size=args.extraction_batch_size,
+    )
+    final, final_hits, final_ap = retrieval_metrics(
+        final_query_features,
         query_labels,
-        apply_gate(
-            gate,
-            gallery_cls,
-            gallery_patches,
-            device=device,
-            batch_size=args.extraction_batch_size,
-        ),
+        final_gallery_features,
         gallery_labels,
+    )
+    paired = paired_retrieval_statistics(
+        initial_hits=initial_hits,
+        final_hits=final_hits,
+        initial_ap=initial_ap,
+        final_ap=final_ap,
+        seed=args.seed + 20_260_813,
+        bootstrap_replicates=10_000,
     )
     torch.save(
         {
@@ -297,17 +319,24 @@ def main() -> None:
         "evaluation_fraction": args.evaluation_fraction,
         "optimization_rows": len(optimization),
         "evaluation_identities": len({row.label for row in query}),
+        "query_rows": len(query),
+        "gallery_rows": len(gallery),
         "trainable_parameters": sum(parameter.numel() for parameter in gate.parameters()),
         "initial": initial,
         "epochs_detail": epoch_rows,
         "final": final,
         "final_recall_delta": final["recall_at_1"] - initial["recall_at_1"],
         "final_map_at_r_delta": final["map_at_r"] - initial["map_at_r"],
+        "paired_statistics": paired,
+        "seed0_screen_passed": bool(
+            paired["map_at_r_delta"] >= 0.0025
+            and paired["map_at_r_delta_ci95_lower"] > 0.0
+            and final["recall_at_1"] >= initial["recall_at_1"] - 0.0007
+        ),
         "extraction_seconds": extraction_seconds,
         "training_seconds": training_seconds,
-        "peak_gate_training_gpu_memory_bytes": (
-            torch.cuda.max_memory_allocated(device) if device.type == "cuda" else 0
-        ),
+        "total_wall_seconds": time.perf_counter() - total_started,
+        "peak_gate_training_gpu_memory_bytes": training_peak_memory,
     }
     args.output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
     print(json.dumps(payload, sort_keys=True))
