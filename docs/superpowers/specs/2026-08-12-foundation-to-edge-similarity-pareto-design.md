@@ -101,7 +101,7 @@ native geometry plus a label-blind grid of normalized cosine, normalized
 Euclidean, and native unnormalized geometry. Geometry and any linear adapter
 hyperparameters are selected only from identity-disjoint training identities.
 Before the first official-test access, commit a test-read register listing each
-arm, checkpoint, metric, purpose, and single permitted evaluation. Any
+dataset/arm pair, checkpoint, metric, purpose, and single permitted evaluation. Any
 unregistered read invalidates the confirmatory claim.
 
 Report R@1/10/20/30 for In-Shop, R@1/10/100 for SOP, mAP@R where defined, and

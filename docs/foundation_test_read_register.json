@@ -1,8 +1,9 @@
 {
-  "schema_version": "foundation-test-read-register-v1",
+  "schema_version": "foundation-test-read-register-v2",
   "status": "frozen",
   "records": [
     {
+      "dataset": "inshop",
       "arm": "siglip2-base-patch16-256",
       "model_revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
       "checkpoint_sha256": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
@@ -11,6 +12,25 @@
       "permitted_evaluations": 1
     },
     {
+      "dataset": "inshop",
+      "arm": "inshop-pa-bninception-seed2",
+      "model_revision": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
+      "checkpoint_sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
+      "metrics": ["recall_at_1", "recall_at_10", "recall_at_20", "recall_at_30", "recall_at_100", "map_at_r"],
+      "purpose": "confirmatory_published_metric_cross_check",
+      "permitted_evaluations": 1
+    },
+    {
+      "dataset": "sop",
+      "arm": "siglip2-base-patch16-256",
+      "model_revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
+      "checkpoint_sha256": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
+      "metrics": ["recall_at_1", "recall_at_10", "recall_at_20", "recall_at_30", "recall_at_100", "map_at_r"],
+      "purpose": "confirmatory_published_metric_cross_check",
+      "permitted_evaluations": 1
+    },
+    {
+      "dataset": "sop",
       "arm": "inshop-pa-bninception-seed2",
       "model_revision": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",
       "checkpoint_sha256": "f11aaf526efa4ce690a01ee19c5587842c27f78ac47be6943221c2b9f20acf7f",

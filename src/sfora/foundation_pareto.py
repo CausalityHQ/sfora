@@ -37,6 +37,15 @@ FOUNDATION_PUBLISHED_METRICS = (
     "recall_at_100",
     "map_at_r",
 )
+FOUNDATION_DATASETS = ("cub", "cars", "sop", "inshop", "inat2018")
+
+
+def _require_foundation_dataset(value: object) -> str:
+    if type(value) is not str or value not in FOUNDATION_DATASETS:
+        raise ValueError("foundation dataset differs from registered choices")
+    return value
+
+
 _REMOTE_ALLOW_PATTERNS = (
     "config.json",
     "preprocessor_config.json",
@@ -1029,6 +1038,7 @@ class PublishedMetricAudit:
 class FoundationTestReadRecord:
     """Prospective authority for one arm's single official-test evaluation."""
 
+    dataset: str
     arm: str
     model_revision: str
     checkpoint_sha256: str
@@ -1037,6 +1047,7 @@ class FoundationTestReadRecord:
     permitted_evaluations: Literal[1]
 
     def __post_init__(self) -> None:
+        _require_foundation_dataset(self.dataset)
         _require_nonempty("test-read arm", self.arm)
         if (
             type(self.model_revision) is not str
@@ -1058,6 +1069,7 @@ class FoundationTestReadRecord:
 
 @dataclass(frozen=True)
 class OfficialTestReadAudit:
+    dataset: str
     arm: str
     model_revision: str
     checkpoint_sha256: str
@@ -1068,6 +1080,7 @@ class OfficialTestReadAudit:
 
 @dataclass(frozen=True)
 class OfficialTestReadReceipt:
+    dataset: str
     arm: str
     model_revision: str
     checkpoint_sha256: str
@@ -1084,25 +1097,30 @@ class FoundationTestReadLedger:
     def __init__(self, records: tuple[FoundationTestReadRecord, ...]) -> None:
         if type(records) is not tuple:
             raise ValueError("test-read records must be a builtin tuple")
-        arms = tuple(record.arm for record in records)
-        if len(set(arms)) != len(arms):
-            raise ValueError("test-read register contains duplicate arms")
+        identities = tuple((record.dataset, record.arm) for record in records)
+        if len(set(identities)) != len(identities):
+            raise ValueError("test-read register contains duplicate dataset/arm identities")
         self.records = records
-        self._consumed: set[str] = set()
+        self._consumed: set[tuple[str, str]] = set()
 
     def consume(
         self,
         *,
+        dataset: str,
         arm: str,
         model_revision: str,
         checkpoint_sha256: str,
         metrics: tuple[str, ...],
         purpose: str,
     ) -> OfficialTestReadAudit:
-        record = next((value for value in self.records if value.arm == arm), None)
+        identity = (dataset, arm)
+        record = next(
+            (value for value in self.records if (value.dataset, value.arm) == identity),
+            None,
+        )
         if record is None:
             raise ValueError("official evaluation is not a registered test read")
-        if arm in self._consumed:
+        if identity in self._consumed:
             raise ValueError("registered test read was already consumed")
         request = (
             model_revision,
@@ -1118,8 +1136,9 @@ class FoundationTestReadLedger:
         )
         if request != expected:
             raise ValueError("official evaluation differs from registered test read")
-        self._consumed.add(arm)
+        self._consumed.add(identity)
         return OfficialTestReadAudit(
+            dataset=dataset,
             arm=arm,
             model_revision=model_revision,
             checkpoint_sha256=checkpoint_sha256,
@@ -1722,7 +1741,8 @@ def _official_test_receipt_payload(
         raise ValueError("official test read requires an exact consumed audit")
     _require_sha256("decision_sha256", decision_sha256)
     return {
-        "schema_version": "foundation-official-test-read-v1",
+        "schema_version": "foundation-official-test-read-v2",
+        "dataset": audit.dataset,
         "arm": audit.arm,
         "model_revision": audit.model_revision,
         "checkpoint_sha256": audit.checkpoint_sha256,
@@ -1745,6 +1765,7 @@ def publish_official_test_read_receipt(
     path = root / f"official-test-read-{receipt_id}.json"
     _publish_json_no_clobber(path, payload)
     return OfficialTestReadReceipt(
+        dataset=audit.dataset,
         arm=audit.arm,
         model_revision=audit.model_revision,
         checkpoint_sha256=audit.checkpoint_sha256,
@@ -1759,6 +1780,7 @@ def publish_official_test_read_receipt(
 def load_registered_official_test(
     receipt: OfficialTestReadReceipt,
     *,
+    dataset: str,
     arm: str,
     metrics: tuple[str, ...],
     loader: Callable[[], Any],
@@ -1767,10 +1789,11 @@ def load_registered_official_test(
 
     if type(receipt) is not OfficialTestReadReceipt:
         raise ValueError("official test receipt differs from exact type")
-    if receipt.arm != arm or receipt.metrics != metrics:
+    if receipt.dataset != dataset or receipt.arm != arm or receipt.metrics != metrics:
         raise ValueError("official test receipt differs from requested read")
     persisted = _load_strict_json(receipt.receipt_path)
     audit = OfficialTestReadAudit(
+        dataset=receipt.dataset,
         arm=receipt.arm,
         model_revision=receipt.model_revision,
         checkpoint_sha256=receipt.checkpoint_sha256,
@@ -2242,7 +2265,7 @@ def load_test_read_register(
         ("schema_version", "status", "records"),
         name="test-read authority",
     )
-    if value["schema_version"] != "foundation-test-read-register-v1":
+    if value["schema_version"] != "foundation-test-read-register-v2":
         raise ValueError("test-read schema version differs")
     if value["status"] not in {"prospective_unfrozen", "frozen"}:
         raise ValueError("test-read authority status differs")
@@ -2259,6 +2282,7 @@ def load_test_read_register(
         _require_ordered_keys(
             raw,
             (
+                "dataset",
                 "arm",
                 "model_revision",
                 "checkpoint_sha256",
@@ -2273,6 +2297,7 @@ def load_test_read_register(
             raise ValueError("test-read metrics must be a JSON array")
         records.append(
             FoundationTestReadRecord(
+                dataset=raw["dataset"],
                 arm=raw["arm"],
                 model_revision=raw["model_revision"],
                 checkpoint_sha256=raw["checkpoint_sha256"],
@@ -2733,6 +2758,7 @@ def load_foundation_encoder(
 _FOUNDATION_REPORT_KEYS = (
     "schema_version",
     "source_commit",
+    "dataset",
     "registered_arms",
     "stage_order",
     "encoder_audits",
@@ -2958,13 +2984,14 @@ def validate_foundation_screen_report(value: object) -> None:
     if type(value) is not dict:
         raise ValueError("foundation screen report must be a JSON object")
     _require_ordered_keys(value, _FOUNDATION_REPORT_KEYS, name="foundation screen report")
-    if value["schema_version"] != "foundation-screen-report-v1":
+    if value["schema_version"] != "foundation-screen-report-v2":
         raise ValueError("foundation screen report schema version differs")
     if (
         type(value["source_commit"]) is not str
         or _GIT_REVISION.fullmatch(value["source_commit"]) is None
     ):
         raise ValueError("foundation screen source_commit differs")
+    _require_foundation_dataset(value["dataset"])
     arms = value["registered_arms"]
     if (
         type(arms) is not list
@@ -2975,7 +3002,16 @@ def validate_foundation_screen_report(value: object) -> None:
         raise ValueError("foundation screen registered_arms differ")
     if value["stage_order"] != list(_FOUNDATION_STAGE_ORDER):
         raise ValueError("foundation screen stage order differs")
-    for name in _FOUNDATION_REPORT_KEYS[4:10] + _FOUNDATION_REPORT_KEYS[12:]:
+    for name in (
+        "encoder_audits",
+        "fixture_fidelity_audits",
+        "cache_records",
+        "cost_profiles",
+        "probe_audits",
+        "f1_decisions",
+        "official_test_reads",
+        "published_metric_audits",
+    ):
         if type(value[name]) is not list:
             raise ValueError(f"foundation screen {name} must be a JSON array")
     if value["overall_status"] not in {
@@ -3144,6 +3180,7 @@ def validate_foundation_screen_report(value: object) -> None:
     if value["overall_status"] != expected_overall:
         raise ValueError("foundation screen aggregate decision differs")
     official_keys = (
+        "dataset",
         "arm",
         "model_revision",
         "checkpoint_sha256",
@@ -3157,6 +3194,8 @@ def validate_foundation_screen_report(value: object) -> None:
     )
     for row in value["official_test_reads"]:
         _require_report_row(row, official_keys, name="official test read")
+        if row["dataset"] != value["dataset"]:
+            raise ValueError("official test read dataset differs from report")
         _require_report_arm(row, arm_set, name="official test read")
         if (
             type(row["model_revision"]) is not str
@@ -3276,8 +3315,7 @@ def run_foundation_screen(
 ) -> Path:
     """Run F0/F1 using train identities only until a durable official-read receipt exists."""
 
-    if dataset not in {"cub", "cars", "sop", "inshop", "inat2018"}:
-        raise ValueError("foundation screen dataset differs from registered choices")
+    _require_foundation_dataset(dataset)
     if type(validation_seed) is not int or validation_seed < 0:
         raise ValueError("validation_seed must be a nonnegative builtin integer")
     if type(validation_fraction) is not float or not 0.0 < validation_fraction < 1.0:
@@ -3442,8 +3480,9 @@ def run_foundation_screen(
         )
         cache_rows.extend(official_cache_rows)
     payload: dict[str, object] = {
-        "schema_version": "foundation-screen-report-v1",
+        "schema_version": "foundation-screen-report-v2",
         "source_commit": source_commit,
+        "dataset": dataset,
         "registered_arms": list(registered_arms),
         "stage_order": list(_FOUNDATION_STAGE_ORDER),
         "encoder_audits": encoder_rows,
@@ -3497,6 +3536,7 @@ def _run_registered_official_reads(
             continue
         model_revision, checkpoint_sha256 = _test_read_identity(arm_spec.spec)
         consumed = ledger.consume(
+            dataset=dataset,
             arm=arm,
             model_revision=model_revision,
             checkpoint_sha256=checkpoint_sha256,
@@ -3510,6 +3550,7 @@ def _run_registered_official_reads(
         )
         bundle = load_registered_official_test(
             receipt,
+            dataset=dataset,
             arm=arm,
             metrics=FOUNDATION_PUBLISHED_METRICS,
             loader=lambda: load_image_retrieval_bundle(
@@ -3527,6 +3568,7 @@ def _run_registered_official_reads(
         )
         reads.append(
             {
+                "dataset": dataset,
                 "arm": arm,
                 "model_revision": model_revision,
                 "checkpoint_sha256": checkpoint_sha256,

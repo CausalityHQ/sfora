@@ -275,8 +275,8 @@ git commit -m "add same-split foundation probe gate"
 Invoke the CLI with fake pinned encoders and a tiny identity-disjoint bundle.
 Assert order `authenticate -> native fixture fidelity -> export/cache -> F0
 profile -> validation probe -> decision -> registered published-metric
-cross-check`; official test evaluation must fail when its exact arm is absent
-from the register and succeed once for a registered arm. Assert the strict
+cross-check`; official test evaluation must fail when its exact dataset/arm pair is absent
+from the register and succeed once for each registered dataset/arm pair. Assert the strict
 report contains separate fixture-fidelity and published-metric audit rows with
 native value, repository value, tolerance, provenance
 (`native_cross_check`/`repository_only`), and pass/fail decision. An available
@@ -298,8 +298,8 @@ path, validation seed, and `--allow-registered-test-read`. Authenticate the
 complete fixture/tolerance registers and call `verify_native_fixture` before
 any export or probe; an unavailable fixture cross-check remains explicit,
 while a missing pair or failed available check closes the arm. Require the
-committed test-read register's exact model revision, checkpoint digest, metric
-list, purpose, and one permitted evaluation before loading official
+committed test-read register's exact dataset, model revision, checkpoint digest,
+metric list, purpose, and one permitted evaluation before loading official
 query/gallery rows. After that evaluation, authenticate the separate
 published-metric register and call `cross_check_published_metrics`. Publish both
 audit domains with the F0/F1 evidence via the cache-v2 no-clobber writer and

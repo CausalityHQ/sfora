@@ -1418,7 +1418,9 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
         for metric in foundation_pareto.FOUNDATION_PUBLISHED_METRICS
     )
     assert [(row.arm, row.metric) for row in published] == list(published_pairs)
-    assert tuple(row.arm for row in test_reads.records) == registered_arms
+    assert tuple((row.dataset, row.arm) for row in test_reads.records) == tuple(
+        (dataset, arm) for dataset in ("inshop", "sop") for arm in registered_arms
+    )
     assert all(
         row.metrics == foundation_pareto.FOUNDATION_PUBLISHED_METRICS for row in test_reads.records
     )
@@ -2231,10 +2233,11 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
     register_path.write_text(
         json.dumps(
             {
-                "schema_version": "foundation-test-read-register-v1",
+                "schema_version": "foundation-test-read-register-v2",
                 "status": "frozen",
                 "records": [
                     {
+                        "dataset": "cars",
                         "arm": "candidate",
                         "model_revision": "a" * 40,
                         "checkpoint_sha256": "b" * 64,
@@ -2251,6 +2254,7 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
 
     ledger = foundation_pareto.load_test_read_register(register_path)
     audit = ledger.consume(
+        dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
@@ -2263,6 +2267,7 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
     assert audit.metrics == ("recall_at_1", "recall_at_10")
     with pytest.raises(ValueError, match="already consumed"):
         ledger.consume(
+            dataset="cars",
             arm="candidate",
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
@@ -2289,10 +2294,11 @@ def test_test_read_register_rejects_unregistered_official_read(
     register_path.write_text(
         json.dumps(
             {
-                "schema_version": "foundation-test-read-register-v1",
+                "schema_version": "foundation-test-read-register-v2",
                 "status": "frozen",
                 "records": [
                     {
+                        "dataset": "cars",
                         "arm": "candidate",
                         "model_revision": "a" * 40,
                         "checkpoint_sha256": "b" * 64,
@@ -2308,6 +2314,7 @@ def test_test_read_register_rejects_unregistered_official_read(
     )
     ledger = foundation_pareto.load_test_read_register(register_path)
     request = {
+        "dataset": "cars",
         "arm": "candidate",
         "model_revision": "a" * 40,
         "checkpoint_sha256": "b" * 64,
@@ -2398,6 +2405,7 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
     tmp_path: Path,
 ) -> None:
     record = foundation_pareto.FoundationTestReadRecord(
+        dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
@@ -2407,6 +2415,7 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
     )
     first_ledger = foundation_pareto.FoundationTestReadLedger((record,))
     audit = first_ledger.consume(
+        dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
@@ -2421,6 +2430,7 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
     loader_calls: list[str] = []
     value = foundation_pareto.load_registered_official_test(
         receipt,
+        dataset="cars",
         arm="candidate",
         metrics=("recall_at_1",),
         loader=lambda: loader_calls.append("loaded") or "official rows",
@@ -2438,6 +2448,7 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
 
     second_ledger = foundation_pareto.FoundationTestReadLedger((record,))
     second_audit = second_ledger.consume(
+        dataset="cars",
         arm="candidate",
         model_revision="a" * 40,
         checkpoint_sha256="b" * 64,
@@ -2449,6 +2460,59 @@ def test_official_test_read_receipt_is_durable_no_clobber_and_precedes_loader(
             tmp_path,
             second_audit,
             decision_sha256="c" * 64,
+        )
+
+
+def test_official_test_reads_are_one_shot_per_dataset_and_arm(tmp_path: Path) -> None:
+    records = tuple(
+        foundation_pareto.FoundationTestReadRecord(
+            dataset=dataset,
+            arm="candidate",
+            model_revision="a" * 40,
+            checkpoint_sha256="b" * 64,
+            metrics=("recall_at_1",),
+            purpose="confirmatory_published_metric_cross_check",
+            permitted_evaluations=1,
+        )
+        for dataset in ("inshop", "sop")
+    )
+    ledger = foundation_pareto.FoundationTestReadLedger(records)
+    receipts = []
+    for dataset in ("inshop", "sop"):
+        audit = ledger.consume(
+            dataset=dataset,
+            arm="candidate",
+            model_revision="a" * 40,
+            checkpoint_sha256="b" * 64,
+            metrics=("recall_at_1",),
+            purpose="confirmatory_published_metric_cross_check",
+        )
+        receipt = foundation_pareto.publish_official_test_read_receipt(
+            tmp_path,
+            audit,
+            decision_sha256="c" * 64,
+        )
+        observed = foundation_pareto.load_registered_official_test(
+            receipt,
+            dataset=dataset,
+            arm="candidate",
+            metrics=("recall_at_1",),
+            loader=lambda dataset=dataset: dataset,
+        )
+        assert observed == dataset
+        receipts.append(receipt)
+
+    assert receipts[0].receipt_path != receipts[1].receipt_path
+    assert {receipt.dataset for receipt in receipts} == {"inshop", "sop"}
+
+    with pytest.raises(ValueError, match="already consumed"):
+        ledger.consume(
+            dataset="sop",
+            arm="candidate",
+            model_revision="a" * 40,
+            checkpoint_sha256="b" * 64,
+            metrics=("recall_at_1",),
+            purpose="confirmatory_published_metric_cross_check",
         )
 
 
@@ -2480,6 +2544,7 @@ def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Pa
     ledger = foundation_pareto.FoundationTestReadLedger(
         (
             foundation_pareto.FoundationTestReadRecord(
+                dataset="cars",
                 arm="candidate",
                 model_revision="a" * 40,
                 checkpoint_sha256="b" * 64,
@@ -2492,6 +2557,7 @@ def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Pa
     receipt = foundation_pareto.publish_official_test_read_receipt(
         tmp_path,
         ledger.consume(
+            dataset="cars",
             arm="candidate",
             model_revision="a" * 40,
             checkpoint_sha256="b" * 64,
@@ -2510,6 +2576,7 @@ def test_official_test_loader_is_unreachable_for_mismatched_receipt(tmp_path: Pa
     with pytest.raises(ValueError, match="receipt differs"):
         foundation_pareto.load_registered_official_test(
             receipt,
+            dataset="cars",
             arm="other",
             metrics=("recall_at_1",),
             loader=forbidden_loader,
@@ -2708,6 +2775,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         "candidate:decision",
     ]
     persisted = foundation_pareto.load_foundation_screen_report(report)
+    assert persisted["dataset"] == "cars"
     assert persisted["overall_status"] == "CONTINUE"
     assert persisted["registered_arms"] == ["candidate", "comparator"]
     assert persisted["official_test_reads"] == []
@@ -2868,6 +2936,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         lambda *args, **kwargs: foundation_pareto.FoundationTestReadLedger(
             tuple(
                 foundation_pareto.FoundationTestReadRecord(
+                    dataset="cars",
                     arm=arm.spec.arm,
                     model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
                     checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
@@ -2949,6 +3018,7 @@ def test_registered_official_reads_publish_receipts_before_loading_and_cross_che
     ledger = foundation_pareto.FoundationTestReadLedger(
         tuple(
             foundation_pareto.FoundationTestReadRecord(
+                dataset="cars",
                 arm=arm.spec.arm,
                 model_revision=foundation_pareto._test_read_identity(arm.spec)[0],
                 checkpoint_sha256=foundation_pareto._test_read_identity(arm.spec)[1],
