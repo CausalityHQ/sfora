@@ -238,9 +238,9 @@ Copy exact receipt bytes opaquely, verify SHA and validator result, force-add on
 
 From the authenticated checkpoint, encode only `assets/sfora-logo.png`, persist the exact FP32 embedding, and bind input/source/checkpoint/config hashes. Mark the independent native cross-check unavailable with a nonempty reason; require repository output exact equality with tolerance `0.0`.
 
-- [ ] **Step 2: Update all ordered authorities**
+- [ ] **Step 2: Update the ordered train-only authorities and keep official capability empty**
 
-Freeze candidate, disjoint comparator, contaminated control in exact order across model, fixture, tolerance, published, and test-read authorities. The disjoint comparator paths/hashes come only from the validated receipt; the contaminated control retains prior bytes and is marked descriptive/non-deciding. No official evaluation becomes permitted by this edit.
+Freeze candidate, disjoint comparator, and contaminated control in exact order across the model, fixture, and tolerance authorities. The disjoint comparator paths/hashes come only from the validated receipt; the contaminated control retains prior bytes and is marked descriptive/non-deciding. Refreeze the published-metric register with exact `records=[]` and the test-read register with exact `records=[]` while preserving its registered receipt root. Those two empty registers are intentionally not three-arm authorities: the contaminated control may never receive official capability, and this amendment authorizes no candidate or comparator official read either. Only a later separately reviewed official-read addendum may populate them, and that addendum may bind candidate and disjoint comparator only.
 
 - [ ] **Step 3: Run authority tests and full affected assurance**
 
