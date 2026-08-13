@@ -9,9 +9,11 @@ from sfora.foundation_adapter import (
     NestedLinearAdapter,
     NestedResidualAdapter,
     cosine_margin_loss,
+    hardened_retrieval_folds,
     identity_balanced_batches,
     initialize_residual_from_linear,
     nested_embeddings,
+    retrieval_map_at_r,
     retrieval_recall_at_1,
 )
 
@@ -128,6 +130,23 @@ def test_identity_balanced_batches_are_deterministic_and_balanced() -> None:
         assert counts.tolist() == [2, 2, 2]
 
 
+def test_hardened_folds_hold_out_a_permanent_distractor_pool() -> None:
+    labels = np.repeat(np.arange(10, dtype=np.int64), 4)
+
+    folds = hardened_retrieval_folds(labels, seed=17)
+
+    assert len(folds) == 4
+    distractors = folds[0].distractor
+    assert all(np.array_equal(fold.distractor, distractors) for fold in folds)
+    assert len(set(labels[distractors])) == 2
+    assert set(labels[distractors]).isdisjoint(
+        set(np.concatenate([labels[fold.query] for fold in folds]))
+    )
+    for fold in folds:
+        assert set(fold.query).isdisjoint(fold.gallery)
+        assert set(labels[fold.query]) == set(labels[fold.gallery])
+
+
 def test_chunked_recall_at_1_matches_exact_neighbors() -> None:
     query = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
     gallery = torch.tensor([[0.9, 0.1], [0.1, 0.9], [-1.0, 0.0]], dtype=torch.float32)
@@ -141,3 +160,18 @@ def test_chunked_recall_at_1_matches_exact_neighbors() -> None:
     )
 
     assert recall == 1.0
+
+
+def test_chunked_map_at_r_uses_each_query_relevant_count() -> None:
+    query = torch.tensor([[1.0, 0.0], [0.0, 1.0]], dtype=torch.float32)
+    gallery = torch.tensor(
+        [[0.9, 0.1], [0.8, 0.2], [0.1, 0.9], [0.7, 0.3]], dtype=torch.float32
+    )
+    query_labels = np.array([7, 11], dtype=np.int64)
+    gallery_labels = np.array([7, 7, 11, 99], dtype=np.int64)
+
+    score = retrieval_map_at_r(
+        query, query_labels, gallery, gallery_labels, chunk_size=1
+    )
+
+    assert score == 1.0

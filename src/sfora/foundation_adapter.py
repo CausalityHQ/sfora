@@ -47,6 +47,15 @@ class AdapterConfig:
             raise ValueError("scale must be a positive finite builtin float")
 
 
+@dataclass(frozen=True)
+class HardenedRetrievalFold:
+    """One unseen-identity evaluation fold with a permanent distractor pool."""
+
+    query: np.ndarray
+    gallery: np.ndarray
+    distractor: np.ndarray
+
+
 class NestedResidualAdapter(nn.Module):
     """A compact residual MLP whose ordered coordinates form nested descriptors."""
 
@@ -170,6 +179,46 @@ def identity_balanced_batches(
     return tuple(batches)
 
 
+def hardened_retrieval_folds(
+    labels: np.ndarray,
+    *,
+    seed: int,
+) -> tuple[HardenedRetrievalFold, ...]:
+    """Create four evaluation folds and one never-fitted identity distractor pool."""
+
+    if type(labels) is not np.ndarray or labels.dtype != np.dtype("int64") or labels.ndim != 1:
+        raise ValueError("labels must be a rank-1 int64 NumPy array")
+    if type(seed) is not int or seed < 0:
+        raise ValueError("seed must be a nonnegative builtin integer")
+    groups = {
+        int(label): np.flatnonzero(labels == label)
+        for label in np.unique(labels)
+        if int(np.count_nonzero(labels == label)) >= 2
+    }
+    if len(groups) < 10:
+        raise ValueError("hardened retrieval requires at least ten eligible identities")
+    rng = np.random.default_rng(seed)
+    identity_folds = tuple(np.array_split(rng.permutation(sorted(groups)), 5))
+    distractor = np.concatenate([groups[int(label)] for label in identity_folds[4]])
+    result = []
+    for identity_fold in identity_folds[:4]:
+        query_rows = []
+        gallery_rows = []
+        for label in sorted(int(value) for value in identity_fold):
+            order = rng.permutation(groups[label])
+            query_count = max(1, len(order) // 2)
+            query_rows.append(order[:query_count])
+            gallery_rows.append(order[query_count:])
+        result.append(
+            HardenedRetrievalFold(
+                query=np.concatenate(query_rows).astype(np.int64, copy=False),
+                gallery=np.concatenate(gallery_rows).astype(np.int64, copy=False),
+                distractor=distractor.astype(np.int64, copy=False),
+            )
+        )
+    return tuple(result)
+
+
 def retrieval_recall_at_1(
     query: torch.Tensor,
     query_labels: np.ndarray,
@@ -205,6 +254,76 @@ def retrieval_recall_at_1(
         predicted = gallery_labels[neighbors.detach().cpu().numpy()]
         correct += int(np.count_nonzero(predicted == query_labels[start : start + chunk_size]))
     return float(correct / query.shape[0])
+
+
+def retrieval_map_at_r(
+    query: torch.Tensor,
+    query_labels: np.ndarray,
+    gallery: torch.Tensor,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int = 512,
+) -> float:
+    """Compute exact mAP@R, where R is each query's gallery relevant count."""
+
+    _validate_retrieval_inputs(
+        query, query_labels, gallery, gallery_labels, chunk_size=chunk_size
+    )
+    query = F.normalize(query, p=2, dim=1)
+    gallery = F.normalize(gallery, p=2, dim=1)
+    relevant_counts = np.asarray(
+        [np.count_nonzero(gallery_labels == label) for label in query_labels], dtype=np.int64
+    )
+    if bool((relevant_counts == 0).any()):
+        raise ValueError("every query must have at least one relevant gallery row")
+    average_precisions: list[np.ndarray] = []
+    for start in range(0, query.shape[0], chunk_size):
+        stop = min(start + chunk_size, query.shape[0])
+        maximum_r = int(relevant_counts[start:stop].max())
+        top = torch.topk(
+            query[start:stop] @ gallery.T,
+            k=maximum_r,
+            dim=1,
+            largest=True,
+            sorted=True,
+        ).indices.detach().cpu().numpy()
+        matches = gallery_labels[top] == query_labels[start:stop, None]
+        ranks = np.arange(1, maximum_r + 1, dtype=np.float64)
+        cumulative = np.cumsum(matches, axis=1)
+        precision = cumulative / ranks[None, :]
+        rows = []
+        for row, relevant in enumerate(relevant_counts[start:stop]):
+            numerator = (precision[row, :relevant] * matches[row, :relevant]).sum()
+            rows.append(float(numerator / relevant))
+        average_precisions.append(np.asarray(rows, dtype=np.float64))
+    return float(np.concatenate(average_precisions).mean())
+
+
+def _validate_retrieval_inputs(
+    query: torch.Tensor,
+    query_labels: np.ndarray,
+    gallery: torch.Tensor,
+    gallery_labels: np.ndarray,
+    *,
+    chunk_size: int,
+) -> None:
+    if type(chunk_size) is not int or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive builtin integer")
+    for name, value in (("query_labels", query_labels), ("gallery_labels", gallery_labels)):
+        if type(value) is not np.ndarray or value.dtype != np.dtype("int64") or value.ndim != 1:
+            raise ValueError(f"{name} must be a rank-1 int64 NumPy array")
+    if (
+        not torch.is_tensor(query)
+        or not torch.is_tensor(gallery)
+        or query.dtype != torch.float32
+        or gallery.dtype != torch.float32
+        or query.ndim != 2
+        or gallery.ndim != 2
+        or query.shape[1] != gallery.shape[1]
+        or query.shape[0] != query_labels.shape[0]
+        or gallery.shape[0] != gallery_labels.shape[0]
+    ):
+        raise ValueError("query/gallery tensors and labels differ")
 
 
 def cosine_margin_loss(
