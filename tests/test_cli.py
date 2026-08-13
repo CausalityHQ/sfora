@@ -42,12 +42,6 @@ def test_foundation_screen_command_forwards_explicit_authorities(
         fake_run,
         raising=False,
     )
-    monkeypatch.setattr(
-        cli_module,
-        "_require_official_isolated_runtime",
-        lambda: None,
-        raising=False,
-    )
     result = CliRunner().invoke(
         app,
         [
@@ -96,29 +90,6 @@ def test_foundation_screen_command_forwards_explicit_authorities(
         }
     ]
     assert str(report) in result.output
-
-
-def test_foundation_official_read_requires_isolated_no_bytecode_runtime(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    for isolated, dont_write_bytecode in ((0, 1), (1, 0)):
-        monkeypatch.setattr(
-            cli_module.sys,
-            "flags",
-            SimpleNamespace(
-                isolated=isolated,
-                dont_write_bytecode=dont_write_bytecode,
-            ),
-        )
-        with pytest.raises(ValueError, match="-I -B"):
-            cli_module._require_official_isolated_runtime()
-
-    monkeypatch.setattr(
-        cli_module.sys,
-        "flags",
-        SimpleNamespace(isolated=1, dont_write_bytecode=1),
-    )
-    cli_module._require_official_isolated_runtime()
 
 
 def test_foundation_screen_command_reports_no_clobber_without_changing_destination(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import platform
@@ -3239,6 +3240,41 @@ def _authenticate_official_authority_paths(
             raise ValueError(f"official {labels[name]} path differs")
 
 
+def _authenticate_official_executing_sources(
+    root: Path,
+    *,
+    executing_revision: str,
+    foundation_source_path: Path | None = None,
+    cli_source_path: Path | None = None,
+) -> None:
+    if _GIT_REVISION.fullmatch(executing_revision) is None:
+        raise ValueError("official executing revision differs")
+    cli_spec = importlib.util.find_spec("sfora.cli")
+    if cli_spec is None or cli_spec.origin is None:
+        raise ValueError("official executing src/sfora/cli.py path differs")
+    raw_actual_paths = {
+        "src/sfora/foundation_pareto.py": (
+            Path(__file__) if foundation_source_path is None else foundation_source_path
+        ),
+        "src/sfora/cli.py": (Path(cli_spec.origin) if cli_source_path is None else cli_source_path),
+    }
+    for relative, raw_actual in raw_actual_paths.items():
+        if raw_actual.is_symlink() or not raw_actual.is_file():
+            raise ValueError(f"official executing {relative} must be a regular file")
+        actual = raw_actual.resolve()
+        worktree = root / relative
+        if worktree.is_symlink() or not worktree.is_file():
+            raise ValueError(f"official {relative} worktree must be a regular file")
+        blob = cast(
+            bytes,
+            _git_capture(root, "show", f"{executing_revision}:{relative}", binary=True),
+        )
+        if actual.read_bytes() != blob:
+            raise ValueError(f"official executing {relative} differs from HEAD")
+        if worktree.read_bytes() != blob:
+            raise ValueError(f"official {relative} worktree differs from HEAD")
+
+
 def _load_official_read_binding(
     test_read_register_path: Path,
     published_register_path: Path,
@@ -4483,6 +4519,10 @@ def run_foundation_screen(
     official_binding: FoundationOfficialReadBinding | None = None
     if allow_registered_test_read:
         official_root = _official_repository_root(Path(__file__).resolve())
+        _authenticate_official_executing_sources(
+            official_root,
+            executing_revision=source_commit,
+        )
         _authenticate_official_authority_paths(
             official_root,
             model_specs_path=model_specs_path,
@@ -4592,12 +4632,7 @@ def run_foundation_screen(
         )
         fixture_rows_by_arm[arm].extend(asdict(row) for row in fidelity)
         if any(row.passed is False for row in fidelity):
-            if official_binding is not None:
-                raise ValueError("official fixture fidelity replay failed")
-            if arm_spec.role == "comparator":
-                comparator_unavailable = True
-                break
-            continue
+            raise ValueError("foundation fixture fidelity replay failed")
         cached = _prepare_foundation_train_cache(
             arm_spec=arm_spec,
             encoder=encoder,

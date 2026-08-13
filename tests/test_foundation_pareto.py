@@ -3396,6 +3396,63 @@ def test_official_repository_root_is_discovered_from_a_nested_install(tmp_path: 
     assert foundation_pareto._official_repository_root(nested) == root.resolve()
 
 
+def test_official_executing_sources_must_match_the_authenticated_head(tmp_path: Path) -> None:
+    root = tmp_path / "checkout"
+    source = root / "src/sfora/foundation_pareto.py"
+    cli = root / "src/sfora/cli.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("# reviewed foundation source\n", encoding="utf-8")
+    cli.write_text("# reviewed cli source\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True)
+    subprocess.run(
+        ["git", "-C", str(root), "config", "user.email", "test@example.invalid"],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(root), "commit", "-qm", "reviewed"], check=True)
+    revision = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    installed_source = root / ".venv/site-packages/sfora/foundation_pareto.py"
+    installed_cli = root / ".venv/site-packages/sfora/cli.py"
+    installed_source.parent.mkdir(parents=True)
+    installed_source.write_bytes(source.read_bytes())
+    installed_cli.write_bytes(cli.read_bytes())
+
+    foundation_pareto._authenticate_official_executing_sources(
+        root,
+        executing_revision=revision,
+        foundation_source_path=installed_source,
+        cli_source_path=installed_cli,
+    )
+
+    for path in (installed_source, installed_cli):
+        original = path.read_bytes()
+        path.write_text("# stale installed source\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="executing .* differs from HEAD"):
+            foundation_pareto._authenticate_official_executing_sources(
+                root,
+                executing_revision=revision,
+                foundation_source_path=installed_source,
+                cli_source_path=installed_cli,
+            )
+        path.write_bytes(original)
+
+    symlink_source = root / ".venv/site-packages/sfora/foundation-link.py"
+    symlink_source.symlink_to(installed_source)
+    with pytest.raises(ValueError, match="must be a regular file"):
+        foundation_pareto._authenticate_official_executing_sources(
+            root,
+            executing_revision=revision,
+            foundation_source_path=symlink_source,
+            cli_source_path=installed_cli,
+        )
+
+
 def test_source_commit_is_discovered_from_a_nested_install(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -4304,7 +4361,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     trace.clear()
     closed_report = tmp_path / "closed.json"
-    with pytest.raises(ValueError, match="candidate decision"):
+    with pytest.raises(ValueError, match="fixture fidelity"):
         foundation_pareto.run_foundation_screen(
             dataset="cars",
             dataset_root=tmp_path / "data",
@@ -4414,25 +4471,23 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     trace.clear()
     comparator_fixture_report = tmp_path / "comparator-fixture-failed.json"
-    foundation_pareto.run_foundation_screen(
-        dataset="cars",
-        dataset_root=tmp_path / "data",
-        model_specs_path=tmp_path / "models.json",
-        cache_dir=cache_dir,
-        report_path=comparator_fixture_report,
-        fixture_authority_path=tmp_path / "fixtures.json",
-        tolerance_authority_path=tmp_path / "tolerances.json",
-        published_register_path=tmp_path / "published.json",
-        test_read_register_path=tmp_path / "test-reads.json",
-        validation_seed=23,
-        validation_fraction=0.25,
-        allow_registered_test_read=False,
-    )
+    with pytest.raises(ValueError, match="fixture fidelity"):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=comparator_fixture_report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=False,
+        )
     assert trace == ["comparator:authenticate", "comparator:fixture"]
-    assert (
-        foundation_pareto.load_foundation_screen_report(comparator_fixture_report)["overall_status"]
-        == "UNAVAILABLE_COMPARATOR"
-    )
+    assert not comparator_fixture_report.exists()
 
     control_arm = foundation_pareto.FoundationScreenArmSpec(
         kind="local",
@@ -4511,6 +4566,11 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
     )
     monkeypatch.setattr(
         foundation_pareto,
+        "_authenticate_official_executing_sources",
+        lambda *args, **kwargs: trace.append("official:source-auth"),
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
         "_validate_official_binding_constants",
         lambda *args, **kwargs: trace.append("official:binding-auth"),
     )
@@ -4586,6 +4646,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         "candidate",
         "comparator",
     }
+    assert trace.index("official:source-auth") < trace.index("official:path-auth")
     assert trace.index("official:path-auth") < trace.index("official:binding-load")
     assert trace.index("official:binding-load") < trace.index("official:binding-auth")
     assert trace.index("official:binding-auth") < trace.index("official:handoff-auth")
@@ -4660,25 +4721,22 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
 
     control_fixture_pass[0] = False
     control_fixture_failure_report = tmp_path / "control-fixture-failure.json"
-    foundation_pareto.run_foundation_screen(
-        dataset="cars",
-        dataset_root=tmp_path / "data",
-        model_specs_path=tmp_path / "models.json",
-        cache_dir=cache_dir,
-        report_path=control_fixture_failure_report,
-        fixture_authority_path=tmp_path / "fixtures.json",
-        tolerance_authority_path=tmp_path / "tolerances.json",
-        published_register_path=tmp_path / "published.json",
-        test_read_register_path=tmp_path / "test-reads.json",
-        validation_seed=23,
-        validation_fraction=0.25,
-        allow_registered_test_read=False,
-    )
-    control_fixture_failure = foundation_pareto.load_foundation_screen_report(
-        control_fixture_failure_report
-    )
-    assert control_fixture_failure["f1_decisions"] == official["f1_decisions"]
-    assert control_fixture_failure["decision_sha256"] == official["decision_sha256"]
+    with pytest.raises(ValueError, match="fixture fidelity"):
+        foundation_pareto.run_foundation_screen(
+            dataset="cars",
+            dataset_root=tmp_path / "data",
+            model_specs_path=tmp_path / "models.json",
+            cache_dir=cache_dir,
+            report_path=control_fixture_failure_report,
+            fixture_authority_path=tmp_path / "fixtures.json",
+            tolerance_authority_path=tmp_path / "tolerances.json",
+            published_register_path=tmp_path / "published.json",
+            test_read_register_path=tmp_path / "test-reads.json",
+            validation_seed=23,
+            validation_fraction=0.25,
+            allow_registered_test_read=False,
+        )
+    assert not control_fixture_failure_report.exists()
 
     control_fixture_pass[0] = True
     control_available[0] = False
@@ -5063,6 +5121,11 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
     monkeypatch.setattr(
         foundation_pareto,
         "_authenticate_official_authority_paths",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_executing_sources",
         lambda *args, **kwargs: None,
     )
     monkeypatch.setattr(
