@@ -42,6 +42,10 @@ REGISTERED_MINIMUM_MAP_DELTA = 0.004
 REGISTERED_MAXIMUM_RECALL_DROP = 0.0007
 
 
+def resolved_teacher_input_size(*, student_input_size: int, requested: int | None) -> int:
+    return student_input_size if requested is None else requested
+
+
 def registered_screen_baseline_recall(*, student_input_size: int) -> float:
     if student_input_size == 288:
         return REGISTERED_FIXRES_SCREEN_BASELINE_RECALL
@@ -153,6 +157,8 @@ class OMLCrossResolutionTrainingViews(Dataset[tuple[torch.Tensor, torch.Tensor, 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, int]:
         row = self.examples[index]
         student = self.student_transform(materialize_image(row.image))
+        if self.teacher_input_size == student.shape[-1]:
+            return student, student, row.label
         teacher = F.interpolate(
             student[None],
             size=(self.teacher_input_size, self.teacher_input_size),
@@ -247,7 +253,7 @@ def main() -> None:
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--trainable-blocks", type=int, default=4)
     parser.add_argument("--student-input-size", type=int, default=224)
-    parser.add_argument("--teacher-input-size", type=int, default=224)
+    parser.add_argument("--teacher-input-size", type=int)
     parser.add_argument("--labels-per-batch", type=int, default=32)
     parser.add_argument("--instances-per-label", type=int, default=4)
     parser.add_argument("--evaluation-batch-size", type=int, default=256)
@@ -256,6 +262,9 @@ def main() -> None:
     parser.add_argument("--evaluation-seed", type=int, default=17)
     parser.add_argument("--evaluation-role", choices=("screen", "holdout"), default="screen")
     args = parser.parse_args()
+    args.teacher_input_size = resolved_teacher_input_size(
+        student_input_size=args.student_input_size, requested=args.teacher_input_size
+    )
     if args.output.exists() or args.output_checkpoint.exists():
         raise FileExistsError("output or checkpoint already exists")
     if (

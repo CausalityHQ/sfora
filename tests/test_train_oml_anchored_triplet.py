@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import numpy as np
 import torch
 from PIL import Image
 
@@ -16,6 +17,7 @@ _SPEC.loader.exec_module(_MODULE)
 registered_seed0_screen_decision = _MODULE.registered_seed0_screen_decision
 registered_screen_baseline_recall = _MODULE.registered_screen_baseline_recall
 validate_registered_initial = _MODULE.validate_registered_initial
+resolved_teacher_input_size = _MODULE.resolved_teacher_input_size
 OMLCrossResolutionTrainingViews = _MODULE.OMLCrossResolutionTrainingViews
 
 
@@ -104,7 +106,8 @@ def test_cross_resolution_training_views_share_one_augmented_crop(tmp_path: Path
 
 def test_same_resolution_training_views_are_identical(tmp_path: Path) -> None:
     image_path = tmp_path / "row.jpg"
-    Image.new("RGB", (400, 320), color=(80, 120, 160)).save(image_path)
+    pixels = np.random.default_rng(7).integers(0, 256, size=(320, 400, 3), dtype=np.uint8)
+    Image.fromarray(pixels, mode="RGB").save(image_path)
     dataset = OMLCrossResolutionTrainingViews(
         [ImageExample(example_id="row", image=image_path, label=7)],
         student_input_size=288,
@@ -114,3 +117,9 @@ def test_same_resolution_training_views_are_identical(tmp_path: Path) -> None:
     student, teacher, _ = dataset[0]
 
     assert torch.equal(student, teacher)
+    assert student.data_ptr() == teacher.data_ptr()
+
+
+def test_teacher_input_size_defaults_to_student_resolution() -> None:
+    assert resolved_teacher_input_size(student_input_size=288, requested=None) == 288
+    assert resolved_teacher_input_size(student_input_size=288, requested=224) == 224
