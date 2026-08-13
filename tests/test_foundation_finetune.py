@@ -8,11 +8,15 @@ from torch import nn
 from sfora.data import ImageExample
 from sfora.foundation_finetune import (
     CosFaceHead,
+    IdentityBalancedBatchSampler,
     IdentityNeck,
+    TokenResidualGate,
+    batch_hard_soft_triplet,
     configure_vit_trainable_layers,
     identity_disjoint_train_validation,
     query_gallery_from_identities,
     select_query_gallery_identity_subset,
+    split_cls_patch_tokens,
 )
 
 
@@ -100,3 +104,51 @@ def test_cosface_head_applies_margin_only_to_target_logit() -> None:
     logits = head(torch.tensor([[1.0, 0.0]], dtype=torch.float32), torch.tensor([0]))
 
     torch.testing.assert_close(logits, torch.tensor([[8.0, 0.0]]))
+
+
+def test_token_residual_gate_starts_at_the_normalized_cls_descriptor() -> None:
+    gate = TokenResidualGate(3)
+    cls = torch.tensor([[3.0, 4.0, 0.0], [0.0, -5.0, 12.0]], dtype=torch.float32)
+    patches = torch.tensor([[4.0, 0.0, 3.0], [5.0, 12.0, 0.0]], dtype=torch.float32)
+
+    output = gate(cls, patches)
+
+    torch.testing.assert_close(output, torch.nn.functional.normalize(cls, dim=1))
+    assert gate.gate.numel() == 3
+    assert gate.gate.requires_grad
+
+
+def test_batch_hard_soft_triplet_uses_farthest_positive_and_nearest_negative() -> None:
+    embeddings = torch.tensor([[0.0, 0.0], [2.0, 0.0], [0.0, 3.0], [2.0, 3.0]], dtype=torch.float32)
+    labels = torch.tensor([0, 0, 1, 1], dtype=torch.int64)
+
+    loss = batch_hard_soft_triplet(embeddings, labels)
+
+    torch.testing.assert_close(loss, torch.nn.functional.softplus(torch.tensor(-1.0)))
+
+
+def test_identity_balanced_sampler_is_epoch_deterministic_and_preserves_pk_batches() -> None:
+    labels = [0, 0, 1, 1, 1, 2, 2, 3, 3]
+    first = IdentityBalancedBatchSampler(labels, labels_per_batch=3, instances_per_label=2, seed=7)
+    second = IdentityBalancedBatchSampler(labels, labels_per_batch=3, instances_per_label=2, seed=7)
+
+    batch = next(iter(first))
+
+    assert batch == next(iter(second))
+    assert len(batch) == 6
+    observed = [labels[index] for index in batch]
+    assert sorted(observed.count(label) for label in set(observed)) == [2, 2, 2]
+    first.set_epoch(1)
+    assert next(iter(first)) != batch
+
+
+def test_split_cls_patch_tokens_excludes_cls_from_the_local_mean() -> None:
+    tokens = torch.tensor(
+        [[[3.0, 4.0], [1.0, 2.0], [3.0, 4.0]], [[5.0, 6.0], [7.0, 8.0], [9.0, 10.0]]],
+        dtype=torch.float32,
+    )
+
+    cls, patches = split_cls_patch_tokens(tokens)
+
+    torch.testing.assert_close(cls, torch.tensor([[3.0, 4.0], [5.0, 6.0]]))
+    torch.testing.assert_close(patches, torch.tensor([[2.0, 3.0], [8.0, 9.0]]))

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from math import isfinite
+from collections.abc import Iterator, Sequence
+from math import ceil, isfinite
 
 import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
+from torch.utils.data import Sampler
 
 from sfora.data import ImageExample
 
@@ -173,3 +175,114 @@ class IdentityNeck(nn.Module):
 
     def forward(self, embeddings: torch.Tensor) -> torch.Tensor:
         return self.projection(embeddings)
+
+
+class TokenResidualGate(nn.Module):
+    """Mix local patch evidence into a CLS descriptor with an identity start."""
+
+    def __init__(self, dimension: int) -> None:
+        super().__init__()
+        if type(dimension) is not int or dimension <= 0:
+            raise ValueError("token gate dimension must be a positive builtin integer")
+        self.gate = nn.Parameter(torch.zeros(dimension, dtype=torch.float32))
+
+    def forward(self, cls: torch.Tensor, patches: torch.Tensor) -> torch.Tensor:
+        if (
+            cls.dtype != torch.float32
+            or patches.dtype != torch.float32
+            or cls.ndim != 2
+            or cls.shape != patches.shape
+            or cls.shape[1] != self.gate.numel()
+        ):
+            raise ValueError("token gate inputs differ")
+        base = F.normalize(cls, dim=1)
+        local = F.normalize(patches, dim=1)
+        return F.normalize(base + torch.tanh(self.gate) * local, dim=1)
+
+
+def split_cls_patch_tokens(tokens: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the CLS token and mean of only the local patch tokens."""
+
+    if tokens.dtype != torch.float32 or tokens.ndim != 3 or tokens.shape[1] < 2:
+        raise ValueError("ViT token tensor differs")
+    return tokens[:, 0], tokens[:, 1:].mean(dim=1)
+
+
+def batch_hard_soft_triplet(embeddings: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """Return the softplus loss for each anchor's batch-hard positive and negative."""
+
+    if (
+        embeddings.dtype != torch.float32
+        or embeddings.ndim != 2
+        or labels.dtype != torch.int64
+        or labels.shape != (embeddings.shape[0],)
+    ):
+        raise ValueError("batch-hard inputs differ")
+    same = labels[:, None] == labels[None, :]
+    same.fill_diagonal_(False)
+    if not bool(same.any(dim=1).all()) or labels.unique().numel() < 2:
+        raise ValueError("batch-hard labels require positives and negatives")
+    distances = torch.cdist(embeddings, embeddings, p=2)
+    hardest_positive = distances.masked_fill(~same, -torch.inf).amax(dim=1)
+    hardest_negative = distances.masked_fill(
+        same | torch.eye(labels.numel(), dtype=torch.bool, device=labels.device), torch.inf
+    ).amin(dim=1)
+    return F.softplus(hardest_positive - hardest_negative).mean()
+
+
+class IdentityBalancedBatchSampler(Sampler[list[int]]):
+    """Yield deterministic P-by-K identity batches, resampling examples when needed."""
+
+    def __init__(
+        self,
+        labels: Sequence[int],
+        *,
+        labels_per_batch: int,
+        instances_per_label: int,
+        seed: int,
+    ) -> None:
+        if (
+            not labels
+            or type(labels_per_batch) is not int
+            or type(instances_per_label) is not int
+            or type(seed) is not int
+            or labels_per_batch < 2
+            or instances_per_label < 2
+        ):
+            raise ValueError("identity-balanced sampler configuration differs")
+        by_label: dict[int, list[int]] = defaultdict(list)
+        for index, label in enumerate(labels):
+            if type(label) is not int:
+                raise ValueError("identity-balanced labels must be builtin integers")
+            by_label[label].append(index)
+        if len(by_label) < labels_per_batch:
+            raise ValueError("identity-balanced sampler has too few identities")
+        self._by_label = dict(sorted(by_label.items()))
+        self.labels_per_batch = labels_per_batch
+        self.instances_per_label = instances_per_label
+        self.seed = seed
+        self.epoch = 0
+
+    def __len__(self) -> int:
+        return ceil(len(self._by_label) / self.labels_per_batch)
+
+    def set_epoch(self, epoch: int) -> None:
+        if type(epoch) is not int or epoch < 0:
+            raise ValueError("sampler epoch must be a nonnegative builtin integer")
+        self.epoch = epoch
+
+    def __iter__(self) -> Iterator[list[int]]:
+        rng = np.random.default_rng(self.seed + self.epoch)
+        available = np.asarray(list(self._by_label), dtype=np.int64)
+        for _ in range(len(self)):
+            selected = rng.choice(available, size=self.labels_per_batch, replace=False)
+            batch: list[int] = []
+            for raw_label in selected:
+                candidates = self._by_label[int(raw_label)]
+                chosen = rng.choice(
+                    candidates,
+                    size=self.instances_per_label,
+                    replace=len(candidates) < self.instances_per_label,
+                )
+                batch.extend(int(index) for index in chosen)
+            yield batch
