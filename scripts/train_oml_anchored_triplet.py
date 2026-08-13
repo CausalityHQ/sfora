@@ -30,9 +30,14 @@ from sfora.foundation_finetune import (
     select_query_gallery_identity_subset,
     warmup_cosine_learning_rate_factor,
 )
-from sfora.foundation_oml import load_oml_inshop_examples, load_oml_vit
+from sfora.foundation_oml import (
+    configure_oml_input_size,
+    load_oml_inshop_examples,
+    load_oml_vit,
+)
 
 REGISTERED_SCREEN_BASELINE_RECALL = 0.961093585699264
+REGISTERED_FIXRES_SCREEN_BASELINE_RECALL = 0.9674027339642481
 REGISTERED_MINIMUM_MAP_DELTA = 0.004
 REGISTERED_MAXIMUM_RECALL_DROP = 0.0007
 
@@ -44,29 +49,31 @@ def registered_seed0_screen_decision(
     initial: dict[str, float],
     final: dict[str, float],
     paired: dict[str, float | int],
+    registered_baseline_recall: float = REGISTERED_SCREEN_BASELINE_RECALL,
 ) -> bool | None:
     """Evaluate only the promotion screen for which the thresholds were chosen."""
 
     if seed != 0 or evaluation_role != "screen":
         return None
-    if abs(initial["recall_at_1"] - REGISTERED_SCREEN_BASELINE_RECALL) > 1.0e-12:
+    if abs(initial["recall_at_1"] - registered_baseline_recall) > 1.0e-12:
         raise ValueError("measured screen baseline differs")
     return bool(
         paired["map_at_r_delta"] >= REGISTERED_MINIMUM_MAP_DELTA
         and paired["map_at_r_delta_ci95_lower"] > 0.0
-        and final["recall_at_1"]
-        >= REGISTERED_SCREEN_BASELINE_RECALL - REGISTERED_MAXIMUM_RECALL_DROP
+        and final["recall_at_1"] >= registered_baseline_recall - REGISTERED_MAXIMUM_RECALL_DROP
     )
 
 
 class OMLImages(Dataset[tuple[torch.Tensor, int]]):
-    def __init__(self, examples: list[ImageExample], *, training: bool) -> None:
+    def __init__(
+        self, examples: list[ImageExample], *, training: bool, input_size: int = 224
+    ) -> None:
         self.examples = examples
         if training:
             self.transform = transforms.Compose(
                 [
                     transforms.RandomResizedCrop(
-                        224, scale=(0.5, 1.0), interpolation=InterpolationMode.BICUBIC
+                        input_size, scale=(0.5, 1.0), interpolation=InterpolationMode.BICUBIC
                     ),
                     transforms.RandomHorizontalFlip(),
                     transforms.ToTensor(),
@@ -76,8 +83,8 @@ class OMLImages(Dataset[tuple[torch.Tensor, int]]):
         else:
             self.transform = transforms.Compose(
                 [
-                    transforms.Resize(224, interpolation=InterpolationMode.BICUBIC),
-                    transforms.CenterCrop(224),
+                    transforms.Resize(input_size, interpolation=InterpolationMode.BICUBIC),
+                    transforms.CenterCrop(input_size),
                     transforms.ToTensor(),
                     transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
                 ]
@@ -91,6 +98,47 @@ class OMLImages(Dataset[tuple[torch.Tensor, int]]):
         return self.transform(materialize_image(row.image)), row.label
 
 
+class OMLCrossResolutionTrainingViews(Dataset[tuple[torch.Tensor, torch.Tensor, int]]):
+    """Produce one augmented view at student and teacher resolutions."""
+
+    def __init__(
+        self,
+        examples: list[ImageExample],
+        *,
+        student_input_size: int,
+        teacher_input_size: int,
+    ) -> None:
+        self.examples = examples
+        self.teacher_input_size = teacher_input_size
+        self.student_transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(
+                    student_input_size,
+                    scale=(0.5, 1.0),
+                    interpolation=InterpolationMode.BICUBIC,
+                ),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+            ]
+        )
+
+    def __len__(self) -> int:
+        return len(self.examples)
+
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, int]:
+        row = self.examples[index]
+        student = self.student_transform(materialize_image(row.image))
+        teacher = F.interpolate(
+            student[None],
+            size=(self.teacher_input_size, self.teacher_input_size),
+            mode="bicubic",
+            align_corners=False,
+            antialias=True,
+        )[0]
+        return student, teacher, row.label
+
+
 def extract(
     model: nn.Module,
     neck: nn.Module,
@@ -99,9 +147,10 @@ def extract(
     device: torch.device,
     batch_size: int,
     workers: int,
+    input_size: int,
 ) -> tuple[torch.Tensor, np.ndarray]:
     loader = DataLoader(
-        OMLImages(examples, training=False),
+        OMLImages(examples, training=False, input_size=input_size),
         batch_size=batch_size,
         shuffle=False,
         num_workers=workers,
@@ -128,12 +177,25 @@ def evaluation_values(
     device: torch.device,
     batch_size: int,
     workers: int,
+    input_size: int,
 ) -> tuple[dict[str, float], np.ndarray, np.ndarray]:
     query_features, query_labels = extract(
-        model, neck, query, device=device, batch_size=batch_size, workers=workers
+        model,
+        neck,
+        query,
+        device=device,
+        batch_size=batch_size,
+        workers=workers,
+        input_size=input_size,
     )
     gallery_features, gallery_labels = extract(
-        model, neck, gallery, device=device, batch_size=batch_size, workers=workers
+        model,
+        neck,
+        gallery,
+        device=device,
+        batch_size=batch_size,
+        workers=workers,
+        input_size=input_size,
     )
     hits, average_precision = retrieval_query_values(
         query_features, query_labels, gallery_features, gallery_labels
@@ -160,6 +222,8 @@ def main() -> None:
     parser.add_argument("--ema-decay", type=float, default=0.995)
     parser.add_argument("--warmup-steps", type=int, default=50)
     parser.add_argument("--trainable-blocks", type=int, default=4)
+    parser.add_argument("--student-input-size", type=int, default=224)
+    parser.add_argument("--teacher-input-size", type=int, default=224)
     parser.add_argument("--labels-per-batch", type=int, default=32)
     parser.add_argument("--instances-per-label", type=int, default=4)
     parser.add_argument("--evaluation-batch-size", type=int, default=256)
@@ -178,6 +242,8 @@ def main() -> None:
         or not 0.0 < args.ema_decay < 1.0
         or args.warmup_steps < 0
         or args.trainable_blocks <= 0
+        or args.student_input_size not in (224, 288)
+        or args.teacher_input_size != 224
     ):
         raise ValueError("anchored continuation configuration differs")
     total_started = time.perf_counter()
@@ -202,6 +268,7 @@ def main() -> None:
     )
     student = load_oml_vit(str(args.checkpoint), device=device)
     teacher = load_oml_vit(str(args.checkpoint), device=device)
+    configure_oml_input_size(student, input_size=args.student_input_size)
     teacher.requires_grad_(False).eval()
     trainable_names = configure_vit_trainable_layers(
         student, trainable_blocks=args.trainable_blocks
@@ -216,6 +283,7 @@ def main() -> None:
         device=device,
         batch_size=args.evaluation_batch_size,
         workers=args.workers,
+        input_size=args.student_input_size,
     )
     sampler = IdentityBalancedBatchSampler(
         [row.label for row in optimization],
@@ -224,7 +292,11 @@ def main() -> None:
         seed=args.seed,
     )
     loader = DataLoader(
-        OMLImages(optimization, training=True),
+        OMLCrossResolutionTrainingViews(
+            optimization,
+            student_input_size=args.student_input_size,
+            teacher_input_size=args.teacher_input_size,
+        ),
         batch_sampler=sampler,
         num_workers=args.workers,
         pin_memory=device.type == "cuda",
@@ -262,16 +334,17 @@ def main() -> None:
         rows_seen = 0
         started = time.perf_counter()
         last_update_learning_rate = 0.0
-        for images, labels in loader:
-            images = images.to(device, non_blocking=True)
+        for student_images, teacher_images, labels in loader:
+            student_images = student_images.to(device, non_blocking=True)
+            teacher_images = teacher_images.to(device, non_blocking=True)
             labels = labels.to(device, non_blocking=True)
             optimizer.zero_grad(set_to_none=True)
             with torch.autocast(
                 device_type=device.type, dtype=torch.bfloat16, enabled=device.type == "cuda"
             ):
-                student_raw = student(images)
+                student_raw = student(student_images)
                 with torch.no_grad():
-                    teacher_raw = teacher(images)
+                    teacher_raw = teacher(teacher_images)
             with torch.autocast(device_type=device.type, enabled=False):
                 student_features = neck(student_raw.float())
                 teacher_features = teacher_raw.float()
@@ -315,6 +388,7 @@ def main() -> None:
         device=device,
         batch_size=args.evaluation_batch_size,
         workers=args.workers,
+        input_size=args.student_input_size,
     )
     paired_raw = paired_retrieval_statistics(
         initial_hits=initial_hits,
@@ -333,6 +407,7 @@ def main() -> None:
         device=device,
         batch_size=args.evaluation_batch_size,
         workers=args.workers,
+        input_size=args.student_input_size,
     )
     paired = paired_retrieval_statistics(
         initial_hits=initial_hits,
@@ -347,6 +422,8 @@ def main() -> None:
             "model": student.state_dict(),
             "neck": neck.state_dict(),
             "base_checkpoint": str(args.checkpoint),
+            "student_input_size": args.student_input_size,
+            "teacher_input_size": args.teacher_input_size,
             "epoch": args.epochs,
             "ema_decay": args.ema_decay,
         },
@@ -362,6 +439,8 @@ def main() -> None:
         "ema_decay": args.ema_decay,
         "warmup_steps": args.warmup_steps,
         "trainable_blocks": args.trainable_blocks,
+        "student_input_size": args.student_input_size,
+        "teacher_input_size": args.teacher_input_size,
         "trainable_modules": trainable_names,
         "labels_per_batch": args.labels_per_batch,
         "instances_per_label": args.instances_per_label,
@@ -394,6 +473,11 @@ def main() -> None:
             initial=initial,
             final=final,
             paired=paired,
+            registered_baseline_recall=(
+                REGISTERED_FIXRES_SCREEN_BASELINE_RECALL
+                if args.student_input_size == 288
+                else REGISTERED_SCREEN_BASELINE_RECALL
+            ),
         ),
         "registered_minimum_map_delta": REGISTERED_MINIMUM_MAP_DELTA,
         "registered_maximum_recall_drop": REGISTERED_MAXIMUM_RECALL_DROP,
