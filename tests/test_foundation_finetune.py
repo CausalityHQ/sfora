@@ -20,7 +20,7 @@ class TinyVit(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.stem = nn.Linear(2, 2)
-        self.blocks = nn.ModuleList(nn.Linear(2, 2) for _ in range(6))
+        self.blocks = nn.Sequential(*(nn.Linear(2, 2) for _ in range(6)))
         self.norm = nn.LayerNorm(2)
 
 

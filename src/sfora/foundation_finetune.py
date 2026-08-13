@@ -19,7 +19,7 @@ def configure_vit_trainable_layers(model: nn.Module, *, trainable_blocks: int) -
     blocks = getattr(model, "blocks", None)
     norm = getattr(model, "norm", None)
     if (
-        not isinstance(blocks, nn.ModuleList)
+        not isinstance(blocks, (nn.ModuleList, nn.Sequential))
         or not isinstance(norm, nn.Module)
         or type(trainable_blocks) is not int
         or not 0 <= trainable_blocks <= len(blocks)
