@@ -1829,6 +1829,56 @@ def test_native_fixture_failure_gates_before_export(tmp_path: Path) -> None:
     assert [name for _, name in calls] == ["embedding_cosine", "recall_at_1"]
 
 
+def test_unavailable_native_embedding_fixture_enforces_repository_replay(
+    tmp_path: Path,
+) -> None:
+    fixture_input = tmp_path / "fixture.bin"
+    native_source = tmp_path / "native-source.bin"
+    fixture_input.write_bytes(b"registered-fixture-input")
+    native_source.write_bytes(b"registered-native-source")
+    fixture = NativeFixtureRecord(
+        arm="local",
+        metric="embedding_cosine",
+        native_value=None,
+        input_sha256=_sha256(fixture_input),
+        source_sha256=_sha256(native_source),
+        native_cross_check="unavailable",
+        reason="no independent implementation",
+    )
+    tolerance = MetricToleranceRecord(
+        arm="local",
+        metric="embedding_cosine",
+        tolerance=0.000001,
+        frozen_before_execution=True,
+    )
+
+    passing = verify_native_fixture(
+        arm="local",
+        encoder=SimpleNamespace(spec=SimpleNamespace(arm="local")),
+        fixture_inputs={"embedding_cosine": fixture_input},
+        native_sources={"embedding_cosine": native_source},
+        repository_metric=lambda *_: 0.99999925,
+        fixtures=(fixture,),
+        tolerances=(tolerance,),
+        registered_pairs=(("local", "embedding_cosine"),),
+    )
+    failing = verify_native_fixture(
+        arm="local",
+        encoder=SimpleNamespace(spec=SimpleNamespace(arm="local")),
+        fixture_inputs={"embedding_cosine": fixture_input},
+        native_sources={"embedding_cosine": native_source},
+        repository_metric=lambda *_: 0.999998,
+        fixtures=(fixture,),
+        tolerances=(tolerance,),
+        registered_pairs=(("local", "embedding_cosine"),),
+    )
+
+    assert passing[0].provenance == "repository_replay"
+    assert passing[0].passed is True
+    assert failing[0].provenance == "repository_replay"
+    assert failing[0].passed is False
+
+
 def test_native_fixture_rejects_unregistered_or_missing_arm_and_accepts_boundary(
     tmp_path: Path,
 ) -> None:
@@ -2126,13 +2176,17 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
         "recall_at_100",
         "map_at_r",
     )
-    assert tuple((row.arm, row.metric) for row in published) == tuple(
+    expected_published_pairs = tuple(
         (arm, metric)
         for arm in (
             "siglip2-base-patch16-256",
             "inshop-pa-bninception-disjoint-seed2",
         )
         for metric in metrics
+    )
+    assert tuple((row.arm, row.metric) for row in published) in (
+        (),
+        expected_published_pairs,
     )
     assert all(row.native_value is None for row in published)
     assert all(row.tolerance is None for row in published)
@@ -2145,7 +2199,7 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
         )
         for row in published
     )
-    assert tuple(
+    observed_test_reads = tuple(
         (
             row.dataset,
             row.arm,
@@ -2156,7 +2210,8 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
             row.permitted_evaluations,
         )
         for row in test_reads.records
-    ) == (
+    )
+    expected_test_reads = (
         (
             "inshop",
             "siglip2-base-patch16-256",
@@ -2176,6 +2231,8 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
             1,
         ),
     )
+    assert observed_test_reads in ((), expected_test_reads)
+    assert bool(published) is bool(test_reads.records)
     with pytest.raises(ValueError, match="not a registered test read"):
         test_reads.consume(
             dataset="inshop",
@@ -3174,6 +3231,170 @@ def test_test_read_register_authenticates_and_allows_exactly_one_registered_read
         )
 
 
+def test_official_read_binding_requires_matching_v4_authorities_and_train_evidence(
+    tmp_path: Path,
+) -> None:
+    correction = tmp_path / "correction.md"
+    correction.write_text("prospective correction\n", encoding="utf-8")
+    report = tmp_path / "train-report.json"
+    report.write_text("{}\n", encoding="utf-8")
+    common = {
+        "reviewed_source_commit": "a" * 40,
+        "addendum_path": "docs/correction.md",
+        "addendum_sha256": _sha256(correction),
+        "train_report_path": "docs/train-report.json",
+        "train_report_sha256": _sha256(report),
+        "train_decision_sha256": "b" * 64,
+        "train_split_sha256": "c" * 64,
+    }
+    test_read = tmp_path / "test-read.json"
+    published = tmp_path / "published.json"
+    test_read.write_text(
+        json.dumps(
+            {
+                "schema_version": "foundation-test-read-register-v4",
+                "status": "frozen",
+                "receipt_root": str(tmp_path / "receipts"),
+                **common,
+                "records": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    published.write_text(
+        json.dumps(
+            {
+                "schema_version": "foundation-published-metrics-v4",
+                "status": "frozen",
+                **common,
+                "records": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    binding = foundation_pareto._load_official_read_binding(test_read, published)
+
+    assert binding.reviewed_source_commit == "a" * 40
+    assert binding.train_decision_sha256 == "b" * 64
+    assert binding.train_split_sha256 == "c" * 64
+    mutation = json.loads(published.read_text(encoding="utf-8"))
+    mutation["train_decision_sha256"] = "d" * 64
+    published.write_text(json.dumps(mutation) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="official authority bindings differ"):
+        foundation_pareto._load_official_read_binding(test_read, published)
+
+
+def test_official_pre_read_gate_rejects_decision_split_and_protocol_drift() -> None:
+    binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit="a" * 40,
+        addendum_path="docs/correction.md",
+        addendum_sha256="b" * 64,
+        train_report_path="docs/train.json",
+        train_report_sha256="c" * 64,
+        train_decision_sha256="d" * 64,
+        train_split_sha256="e" * 64,
+    )
+
+    foundation_pareto._validate_official_pre_read_gate(
+        binding,
+        validation_seed=0,
+        validation_fraction=0.2,
+        decision_sha256="d" * 64,
+        probe_split_sha256s=("e" * 64, "e" * 64, "e" * 64),
+    )
+    for field, value, match in (
+        ("validation_seed", 1, "seed"),
+        ("validation_fraction", 0.2000000001, "fraction"),
+        ("decision_sha256", "f" * 64, "decision"),
+        ("probe_split_sha256s", ("e" * 64, "f" * 64), "split"),
+    ):
+        request = {
+            "validation_seed": 0,
+            "validation_fraction": 0.2,
+            "decision_sha256": "d" * 64,
+            "probe_split_sha256s": ("e" * 64, "e" * 64, "e" * 64),
+        }
+        request[field] = value
+        with pytest.raises(ValueError, match=match):
+            foundation_pareto._validate_official_pre_read_gate(binding, **request)
+
+
+def test_official_handoff_authenticates_direct_manifest_child_and_committed_evidence(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    subprocess.run(
+        ["git", "-C", str(repository), "config", "user.email", "test@example.com"],
+        check=True,
+    )
+    subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
+    (repository / "docs").mkdir()
+    correction = repository / "docs/correction.md"
+    correction.write_text("prospective correction\n", encoding="utf-8")
+    report = repository / "docs/train.json"
+    report.write_bytes(
+        (
+            Path(__file__).resolve().parents[1]
+            / "docs/foundation_f1_identity_disjoint_inshop_train_only_report.json"
+        ).read_bytes()
+    )
+    subprocess.run(["git", "-C", str(repository), "add", "docs"], check=True)
+    subprocess.run(["git", "-C", str(repository), "commit", "-qm", "authority base"], check=True)
+    (repository / "src").mkdir()
+    (repository / "src/source.py").write_text("SOURCE = 1\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repository), "add", "src/source.py"], check=True)
+    subprocess.run(["git", "-C", str(repository), "commit", "-qm", "reviewed source"], check=True)
+    reviewed_source = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    for relative in (
+        "docs/foundation_test_read_register.json",
+        "docs/foundation_published_metric_register.json",
+        "docs/foundation_metric_tolerances.json",
+    ):
+        (repository / relative).write_text(f"{relative}\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repository), "add", "docs"], check=True)
+    subprocess.run(["git", "-C", str(repository), "commit", "-qm", "manifest handoff"], check=True)
+    handoff = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit=reviewed_source,
+        addendum_path="docs/correction.md",
+        addendum_sha256=_sha256(correction),
+        train_report_path="docs/train.json",
+        train_report_sha256=_sha256(report),
+        train_decision_sha256=("a3400169c6b94dbde2a2ecbb329a839ffba9edd43679587877133c5f3c83a9c8"),
+        train_split_sha256=("7b075d601dbfa0b3f3587f80af169a378621cd4ba93aca35c2c9be745eac1f45"),
+    )
+
+    observed = foundation_pareto._authenticate_official_read_handoff(
+        binding,
+        executing_revision=handoff,
+        repository=repository,
+    )
+
+    assert observed["overall_status"] == "CONTINUE"
+    (repository / "docs/correction.md").write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="addendum worktree digest"):
+        foundation_pareto._authenticate_official_read_handoff(
+            binding,
+            executing_revision=handoff,
+            repository=repository,
+        )
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -3732,8 +3953,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             tolerance_authority_path=tmp_path / "tolerances.json",
             published_register_path=tmp_path / "published.json",
             test_read_register_path=tmp_path / "test-reads.json",
-            validation_seed=23,
-            validation_fraction=0.25,
+            validation_seed=0,
+            validation_fraction=0.2,
             allow_registered_test_read=True,
         )
     assert trace == trace_before_no_clobber
@@ -3819,7 +4040,7 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             test_read_register_path=tmp_path / "test-reads.json",
             validation_seed=23,
             validation_fraction=0.25,
-            allow_registered_test_read=True,
+            allow_registered_test_read=False,
         )
     assert trace[:5] == [
         "comparator:authenticate",
@@ -3992,6 +4213,30 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
             receipt_root=tmp_path,
         ),
     )
+    official_binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit="e" * 40,
+        addendum_path="docs/correction.md",
+        addendum_sha256="a" * 64,
+        train_report_path="docs/train.json",
+        train_report_sha256="b" * 64,
+        train_decision_sha256="c" * 64,
+        train_split_sha256="d" * 64,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_load_official_read_binding",
+        lambda *args: official_binding,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_read_handoff",
+        lambda *args, **kwargs: {},
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_validate_official_pre_read_gate",
+        lambda *args, **kwargs: None,
+    )
     monkeypatch.setattr(
         foundation_pareto,
         "preflight_official_image_retrieval_split",
@@ -4027,8 +4272,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         tolerance_authority_path=tmp_path / "tolerances.json",
         published_register_path=tmp_path / "published.json",
         test_read_register_path=tmp_path / "test-reads.json",
-        validation_seed=23,
-        validation_fraction=0.25,
+        validation_seed=0,
+        validation_fraction=0.2,
         allow_registered_test_read=True,
     )
     official = foundation_pareto.load_foundation_screen_report(official_report)
@@ -4159,8 +4404,8 @@ def test_foundation_screen_orders_f0_probe_decision_and_strict_report(
         tolerance_authority_path=tmp_path / "tolerances.json",
         published_register_path=tmp_path / "published.json",
         test_read_register_path=tmp_path / "test-reads.json",
-        validation_seed=23,
-        validation_fraction=0.25,
+        validation_seed=0,
+        validation_fraction=0.2,
         allow_registered_test_read=True,
     )
     closed = foundation_pareto.load_foundation_screen_report(close_gate_report)
@@ -4459,6 +4704,25 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
 ) -> None:
     missing_receipt_root = tmp_path / "missing-receipts"
     monkeypatch.setattr(foundation_pareto, "_source_commit", lambda: "f" * 40)
+    binding = foundation_pareto.FoundationOfficialReadBinding(
+        reviewed_source_commit="e" * 40,
+        addendum_path="docs/correction.md",
+        addendum_sha256="a" * 64,
+        train_report_path="docs/train.json",
+        train_report_sha256="b" * 64,
+        train_decision_sha256="c" * 64,
+        train_split_sha256="d" * 64,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_load_official_read_binding",
+        lambda *args: binding,
+    )
+    monkeypatch.setattr(
+        foundation_pareto,
+        "_authenticate_official_read_handoff",
+        lambda *args, **kwargs: {},
+    )
     monkeypatch.setattr(foundation_pareto, "load_foundation_model_specs", lambda path: ())
     monkeypatch.setattr(
         foundation_pareto,
@@ -4493,8 +4757,8 @@ def test_foundation_screen_rejects_unprepared_registered_receipt_root_before_tra
             tolerance_authority_path=tmp_path / "tolerances.json",
             published_register_path=tmp_path / "published.json",
             test_read_register_path=tmp_path / "test-reads.json",
-            validation_seed=23,
-            validation_fraction=0.25,
+            validation_seed=0,
+            validation_fraction=0.2,
             allow_registered_test_read=True,
         )
 

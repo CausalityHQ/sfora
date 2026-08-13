@@ -2,38 +2,5 @@
   "schema_version": "foundation-test-read-register-v3",
   "status": "frozen",
   "receipt_root": "/home/riomus/group-learning/reports/generated/foundation_test_read_receipts",
-  "records": [
-    {
-      "dataset": "inshop",
-      "arm": "siglip2-base-patch16-256",
-      "model_revision": "3f9f96cb90da5dbc758b01813f2f6f1aee24c1ab",
-      "checkpoint_sha256": "6125cacc01fa93bdc98a0c5101cefcd69b2ed1f8ab4f38d86f4ad5984f5dc863",
-      "metrics": [
-        "recall_at_1",
-        "recall_at_10",
-        "recall_at_20",
-        "recall_at_30",
-        "recall_at_100",
-        "map_at_r"
-      ],
-      "purpose": "registered_f1_quality_evaluation",
-      "permitted_evaluations": 1
-    },
-    {
-      "dataset": "inshop",
-      "arm": "inshop-pa-bninception-disjoint-seed2",
-      "model_revision": "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
-      "checkpoint_sha256": "2eb588846cde6846fbd1ca7f9894a60eb1491239f23e099dd2136bfe739fe08b",
-      "metrics": [
-        "recall_at_1",
-        "recall_at_10",
-        "recall_at_20",
-        "recall_at_30",
-        "recall_at_100",
-        "map_at_r"
-      ],
-      "purpose": "registered_f1_quality_evaluation",
-      "permitted_evaluations": 1
-    }
-  ]
+  "records": []
 }

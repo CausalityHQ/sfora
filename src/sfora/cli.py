@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 from typing import Annotated, Any, cast, get_args
 
@@ -100,6 +101,11 @@ _CLI_END_TO_END_OBJECTIVES = cast(
 )
 
 
+def _require_official_isolated_runtime() -> None:
+    if sys.flags.isolated != 1 or sys.flags.dont_write_bytecode != 1:
+        raise ValueError("foundation official read requires Python -I -B")
+
+
 @app.callback()
 def main() -> None:
     """Group learning research utilities."""
@@ -144,6 +150,8 @@ def foundation_screen(
         console.print(f"Error: unsupported image dataset {dataset}")
         raise typer.Exit(1)
     try:
+        if allow_registered_test_read:
+            _require_official_isolated_runtime()
         written = foundation_pareto.run_foundation_screen(
             dataset=dataset,
             dataset_root=dataset_root,

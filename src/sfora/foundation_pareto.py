@@ -1755,7 +1755,7 @@ class FoundationFidelityAudit:
     native_value: float | None
     repository_value: float
     tolerance: float
-    provenance: Literal["native_cross_check", "unavailable"]
+    provenance: Literal["native_cross_check", "repository_replay", "unavailable"]
     passed: bool | None
 
 
@@ -1853,6 +1853,36 @@ class OfficialTestReadReceipt:
     evaluation_number: Literal[1]
     decision_sha256: str
     receipt_path: Path
+
+
+@dataclass(frozen=True)
+class FoundationOfficialReadBinding:
+    """Reviewed source and train-only evidence required before official pixels."""
+
+    reviewed_source_commit: str
+    addendum_path: str
+    addendum_sha256: str
+    train_report_path: str
+    train_report_sha256: str
+    train_decision_sha256: str
+    train_split_sha256: str
+
+    def __post_init__(self) -> None:
+        if _GIT_REVISION.fullmatch(self.reviewed_source_commit) is None:
+            raise ValueError("official reviewed_source_commit differs")
+        for name, value in (
+            ("addendum_path", self.addendum_path),
+            ("train_report_path", self.train_report_path),
+        ):
+            if type(value) is not str or not value or Path(value).is_absolute():
+                raise ValueError(f"official {name} must be a nonempty repository path")
+        for name, value in (
+            ("addendum_sha256", self.addendum_sha256),
+            ("train_report_sha256", self.train_report_sha256),
+            ("train_decision_sha256", self.train_decision_sha256),
+            ("train_split_sha256", self.train_split_sha256),
+        ):
+            _require_sha256(f"official {name}", value)
 
 
 class FoundationTestReadLedger:
@@ -2826,11 +2856,20 @@ def verify_native_fixture(
                 f"repository value for {fixture.metric} must be a finite builtin float"
             )
         available = fixture.native_cross_check == "available"
-        passed = (
-            abs(repository_value - fixture.native_value) <= tolerance.tolerance
-            if available and fixture.native_value is not None
-            else None
-        )
+        repository_replay = not available and fixture.metric == "embedding_cosine"
+        if available and fixture.native_value is not None:
+            passed: bool | None = (
+                abs(repository_value - fixture.native_value) <= tolerance.tolerance
+            )
+            provenance: Literal["native_cross_check", "repository_replay", "unavailable"] = (
+                "native_cross_check"
+            )
+        elif repository_replay:
+            passed = abs(repository_value - 1.0) <= tolerance.tolerance
+            provenance = "repository_replay"
+        else:
+            passed = None
+            provenance = "unavailable"
         audits.append(
             FoundationFidelityAudit(
                 arm=arm,
@@ -2838,7 +2877,7 @@ def verify_native_fixture(
                 native_value=fixture.native_value,
                 repository_value=repository_value,
                 tolerance=tolerance.tolerance,
-                provenance="native_cross_check" if available else "unavailable",
+                provenance=provenance,
                 passed=passed,
             )
         )
@@ -2996,12 +3035,21 @@ def load_published_metric_register(
     require_frozen: bool = True,
 ) -> tuple[PublishedMetricRecord, ...]:
     value = _load_strict_json(path)
+    schema_version = value.get("schema_version") if type(value) is dict else None
+    authority_keys = (
+        ("schema_version", "status", *_OFFICIAL_BINDING_KEYS, "records")
+        if schema_version == "foundation-published-metrics-v4"
+        else ("schema_version", "status", "records")
+    )
     _require_ordered_keys(
         value,
-        ("schema_version", "status", "records"),
+        authority_keys,
         name="published metric authority",
     )
-    if value["schema_version"] != "foundation-published-metrics-v1":
+    if value["schema_version"] not in {
+        "foundation-published-metrics-v1",
+        "foundation-published-metrics-v4",
+    }:
         raise ValueError("published metric schema version differs")
     if value["status"] not in {"prospective_unfrozen", "frozen"}:
         raise ValueError("published metric authority status differs")
@@ -3032,12 +3080,27 @@ def load_test_read_register(
     """Load the exact prospective one-read authority for official test data."""
 
     value = _load_strict_json(path)
+    schema_version = value.get("schema_version") if type(value) is dict else None
+    authority_keys = (
+        (
+            "schema_version",
+            "status",
+            "receipt_root",
+            *_OFFICIAL_BINDING_KEYS,
+            "records",
+        )
+        if schema_version == "foundation-test-read-register-v4"
+        else ("schema_version", "status", "receipt_root", "records")
+    )
     _require_ordered_keys(
         value,
-        ("schema_version", "status", "receipt_root", "records"),
+        authority_keys,
         name="test-read authority",
     )
-    if value["schema_version"] != "foundation-test-read-register-v3":
+    if value["schema_version"] not in {
+        "foundation-test-read-register-v3",
+        "foundation-test-read-register-v4",
+    }:
         raise ValueError("test-read schema version differs")
     if value["status"] not in {"prospective_unfrozen", "frozen"}:
         raise ValueError("test-read authority status differs")
@@ -3084,6 +3147,167 @@ def load_test_read_register(
             )
         )
     return FoundationTestReadLedger(tuple(records), receipt_root=receipt_root)
+
+
+_OFFICIAL_BINDING_KEYS = (
+    "reviewed_source_commit",
+    "addendum_path",
+    "addendum_sha256",
+    "train_report_path",
+    "train_report_sha256",
+    "train_decision_sha256",
+    "train_split_sha256",
+)
+
+
+def _load_official_read_binding(
+    test_read_register_path: Path,
+    published_register_path: Path,
+) -> FoundationOfficialReadBinding:
+    test_read = _load_strict_json(test_read_register_path)
+    published = _load_strict_json(published_register_path)
+    _require_ordered_keys(
+        test_read,
+        (
+            "schema_version",
+            "status",
+            "receipt_root",
+            *_OFFICIAL_BINDING_KEYS,
+            "records",
+        ),
+        name="official test-read authority",
+    )
+    _require_ordered_keys(
+        published,
+        ("schema_version", "status", *_OFFICIAL_BINDING_KEYS, "records"),
+        name="official published-metric authority",
+    )
+    if test_read["schema_version"] != "foundation-test-read-register-v4":
+        raise ValueError("official test-read authority is not v4")
+    if published["schema_version"] != "foundation-published-metrics-v4":
+        raise ValueError("official published-metric authority is not v4")
+    if test_read["status"] != "frozen" or published["status"] != "frozen":
+        raise ValueError("official authorities are not frozen")
+    test_binding = tuple(test_read[key] for key in _OFFICIAL_BINDING_KEYS)
+    published_binding = tuple(published[key] for key in _OFFICIAL_BINDING_KEYS)
+    if test_binding != published_binding:
+        raise ValueError("official authority bindings differ")
+    return FoundationOfficialReadBinding(**{key: test_read[key] for key in _OFFICIAL_BINDING_KEYS})
+
+
+def _validate_official_pre_read_gate(
+    binding: FoundationOfficialReadBinding,
+    *,
+    validation_seed: int,
+    validation_fraction: float,
+    decision_sha256: str,
+    probe_split_sha256s: Sequence[str],
+) -> None:
+    if type(binding) is not FoundationOfficialReadBinding:
+        raise ValueError("official binding differs from exact type")
+    if type(validation_seed) is not int or validation_seed != 0:
+        raise ValueError("official validation seed differs from reviewed zero")
+    if type(validation_fraction) is not float or validation_fraction != 0.2:
+        raise ValueError("official validation fraction differs from reviewed 0.2")
+    if decision_sha256 != binding.train_decision_sha256:
+        raise ValueError("official train-only decision differs from reviewed decision")
+    if not probe_split_sha256s or any(
+        value != binding.train_split_sha256 for value in probe_split_sha256s
+    ):
+        raise ValueError("official train-only split differs from reviewed split")
+
+
+_OFFICIAL_HANDOFF_PATHS = (
+    "docs/foundation_metric_tolerances.json",
+    "docs/foundation_published_metric_register.json",
+    "docs/foundation_test_read_register.json",
+)
+
+
+def _git_capture(repository: Path, *arguments: str, binary: bool = False) -> str | bytes:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repository), *arguments],
+            check=True,
+            capture_output=True,
+            text=not binary,
+        )
+    except subprocess.CalledProcessError as error:
+        raise ValueError("official handoff Git authentication failed") from error
+    return cast(bytes, completed.stdout) if binary else cast(str, completed.stdout)
+
+
+def _authenticate_official_read_handoff(
+    binding: FoundationOfficialReadBinding,
+    *,
+    executing_revision: str,
+    repository: Path | None = None,
+) -> dict[str, Any]:
+    if type(binding) is not FoundationOfficialReadBinding:
+        raise ValueError("official binding differs from exact type")
+    if _GIT_REVISION.fullmatch(executing_revision) is None:
+        raise ValueError("official executing revision differs")
+    root = Path(__file__).resolve().parents[2] if repository is None else repository
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("official repository must be a real directory")
+    observed_head = cast(str, _git_capture(root, "rev-parse", "HEAD")).strip()
+    if observed_head != executing_revision:
+        raise ValueError("official executing revision differs from HEAD")
+    parents = cast(
+        str, _git_capture(root, "rev-list", "--parents", "-n", "1", executing_revision)
+    ).split()
+    if parents != [executing_revision, binding.reviewed_source_commit]:
+        raise ValueError("official handoff is not a direct reviewed-source child")
+    changed_paths = tuple(
+        sorted(
+            cast(
+                str,
+                _git_capture(
+                    root,
+                    "diff-tree",
+                    "--no-commit-id",
+                    "--name-only",
+                    "-r",
+                    executing_revision,
+                ),
+            ).splitlines()
+        )
+    )
+    if changed_paths != _OFFICIAL_HANDOFF_PATHS:
+        raise ValueError("official handoff path set differs")
+    for name, relative, expected_digest in (
+        ("addendum", binding.addendum_path, binding.addendum_sha256),
+        ("train report", binding.train_report_path, binding.train_report_sha256),
+    ):
+        path = root / relative
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"official {name} must be a regular file")
+        worktree_digest = sha256(path.read_bytes()).hexdigest()
+        if worktree_digest != expected_digest:
+            raise ValueError(f"official {name} worktree digest differs")
+        blob = cast(
+            bytes,
+            _git_capture(root, "show", f"{executing_revision}:{relative}", binary=True),
+        )
+        if sha256(blob).hexdigest() != expected_digest:
+            raise ValueError(f"official {name} Git blob digest differs")
+    dirty = cast(
+        str,
+        _git_capture(root, "status", "--porcelain", "--untracked-files=no"),
+    )
+    if dirty:
+        raise ValueError("official handoff tracked worktree is dirty")
+    report = load_foundation_screen_report(root / binding.train_report_path)
+    if report["overall_status"] != "CONTINUE":
+        raise ValueError("official train-only report did not continue")
+    if report["decision_sha256"] != binding.train_decision_sha256:
+        raise ValueError("official train-only report decision differs")
+    if report["official_test_reads"] != [] or report["published_metric_audits"] != []:
+        raise ValueError("official train-only report already contains official evidence")
+    splits = tuple(row["split_sha256"] for row in report["probe_audits"])
+    if not splits or any(value != binding.train_split_sha256 for value in splits):
+        raise ValueError("official train-only report split differs")
+    return report
 
 
 def load_foundation_model_specs(path: Path) -> tuple[FoundationScreenArmSpec, ...]:
@@ -3881,6 +4105,12 @@ def validate_foundation_screen_report(value: object) -> None:
             expected_passed = abs(repository_value - native_value) <= tolerance
             if type(row["passed"]) is not bool or row["passed"] is not expected_passed:
                 raise ValueError("fixture fidelity decision differs")
+        elif row["provenance"] == "repository_replay":
+            if row["native_value"] is not None:
+                raise ValueError("repository replay cannot carry a native value")
+            expected_passed = abs(repository_value - 1.0) <= tolerance
+            if type(row["passed"]) is not bool or row["passed"] is not expected_passed:
+                raise ValueError("repository replay decision differs")
         elif row["provenance"] == "unavailable":
             if row["native_value"] is not None or row["passed"] is not None:
                 raise ValueError("unavailable fixture fidelity relation differs")
@@ -4152,6 +4382,20 @@ def run_foundation_screen(
     if report_path.exists() or report_path.is_symlink():
         raise FileExistsError(report_path)
     source_commit = _source_commit()
+    official_binding: FoundationOfficialReadBinding | None = None
+    if allow_registered_test_read:
+        official_binding = _load_official_read_binding(
+            test_read_register_path,
+            published_register_path,
+        )
+        _authenticate_official_read_handoff(
+            official_binding,
+            executing_revision=source_commit,
+        )
+        if validation_seed != 0:
+            raise ValueError("official validation seed differs from reviewed zero")
+        if validation_fraction != 0.2:
+            raise ValueError("official validation fraction differs from reviewed 0.2")
     arms = load_foundation_model_specs(model_specs_path)
     registered_arms = tuple(arm.spec.arm for arm in arms)
     fixture_pairs = tuple(
@@ -4310,6 +4554,16 @@ def run_foundation_screen(
         else:
             overall_status = "CLOSE_FOUNDATION_TRANSFER"
     decision_digest = _decision_sha256(decisions, overall_status)
+    if official_binding is not None:
+        _validate_official_pre_read_gate(
+            official_binding,
+            validation_seed=validation_seed,
+            validation_fraction=validation_fraction,
+            decision_sha256=decision_digest,
+            probe_split_sha256s=tuple(
+                probes[arm].split_sha256 for arm in registered_arms if arm in probes
+            ),
+        )
     official_rows: list[dict[str, object]] = []
     published_rows: list[dict[str, object]] = []
     if allow_registered_test_read and overall_status == "CONTINUE":
