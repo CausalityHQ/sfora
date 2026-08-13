@@ -3,9 +3,54 @@
 from __future__ import annotations
 
 import math
+from collections import defaultdict
 
+import numpy as np
 import torch
 from torch.nn import functional as F
+
+from sfora.unicom_inshop import InshopRecord
+
+
+def identity_holdout(
+    records: tuple[InshopRecord, ...], *, fraction: float, seed: int
+) -> tuple[
+    tuple[InshopRecord, ...],
+    tuple[InshopRecord, ...],
+    tuple[InshopRecord, ...],
+    dict[str, int],
+]:
+    """Hold out complete train identities and choose one query per held-out identity."""
+
+    if type(records) is not tuple or not records or any(row.split != "train" for row in records):
+        raise ValueError("holdout records must be a nonempty train tuple")
+    if type(fraction) is not float or not math.isfinite(fraction) or not 0.0 < fraction < 1.0:
+        raise ValueError("holdout fraction must be finite and in (0, 1)")
+    if type(seed) is not int:
+        raise TypeError("holdout seed must be a builtin integer")
+    grouped: dict[str, list[InshopRecord]] = defaultdict(list)
+    for row in records:
+        grouped[row.label].append(row)
+    eligible = sorted(label for label, rows in grouped.items() if len(rows) >= 2)
+    if len(grouped) < 2 or not eligible:
+        raise ValueError("holdout needs at least one identity with two images")
+    labels = np.asarray(eligible, dtype=np.str_)
+    generator = np.random.Generator(np.random.PCG64(seed))
+    generator.shuffle(labels)
+    count = max(1, min(labels.size, round(len(grouped) * fraction)))
+    heldout = set(labels[:count].tolist())
+    optimization = tuple(row for row in records if row.label not in heldout)
+    query: list[InshopRecord] = []
+    gallery: list[InshopRecord] = []
+    for label in sorted(heldout):
+        rows = sorted(grouped[label], key=lambda row: str(row.image_path))
+        query_index = int(generator.integers(0, len(rows)))
+        query.append(rows[query_index])
+        gallery.extend(row for index, row in enumerate(rows) if index != query_index)
+    optimization_labels = sorted({row.label for row in optimization})
+    return optimization, tuple(query), tuple(gallery), {
+        label: index for index, label in enumerate(optimization_labels)
+    }
 
 
 def padded_epoch_indices(

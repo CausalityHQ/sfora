@@ -3,7 +3,9 @@ from __future__ import annotations
 import torch
 from torch.nn import functional as F
 
+from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_training import (
+    identity_holdout,
     padded_epoch_indices,
     sample_shard_masks,
     sharded_mask_arcface_loss,
@@ -129,3 +131,47 @@ def test_sample_shard_masks_use_one_official_noise_sort_per_shard() -> None:
     expected = torch.stack([torch.argsort(torch.rand(8, generator=oracle))[:4] for _ in range(3)])
 
     assert torch.equal(actual, expected)
+
+
+def test_identity_holdout_is_deterministic_complete_and_train_disjoint(tmp_path) -> None:
+    records = tuple(
+        InshopRecord(split="train", image_path=tmp_path / f"{label}-{index}.jpg", label=label)
+        for label in ("a", "b", "c", "d", "e")
+        for index in range(3)
+    )
+
+    first = identity_holdout(records, fraction=0.4, seed=19)
+    second = identity_holdout(records, fraction=0.4, seed=19)
+
+    assert first == second
+    optimization, query, gallery, label_map = first
+    optimization_labels = {row.label for row in optimization}
+    heldout_labels = {row.label for row in query}
+    assert optimization_labels.isdisjoint(heldout_labels)
+    assert {row.label for row in gallery} == heldout_labels
+    assert len(query) == 2
+    assert len(gallery) == 4
+    assert label_map == {label: index for index, label in enumerate(sorted(optimization_labels))}
+
+
+def test_identity_holdout_keeps_singleton_identity_in_optimization(tmp_path) -> None:
+    repeated = tuple(
+        InshopRecord(
+            split="train",
+            image_path=tmp_path / f"{label}-{index}.jpg",
+            label=label,
+        )
+        for label in ("a", "b")
+        for index in range(2)
+    )
+    singleton = InshopRecord(
+        split="train", image_path=tmp_path / "singleton.jpg", label="singleton"
+    )
+
+    optimization, query, gallery, label_map = identity_holdout(
+        (*repeated, singleton), fraction=0.5, seed=3
+    )
+
+    assert singleton in optimization
+    assert "singleton" not in {row.label for row in (*query, *gallery)}
+    assert "singleton" in label_map

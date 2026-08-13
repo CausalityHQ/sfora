@@ -33,6 +33,7 @@ research = [
   "matplotlib>=3.9",
   "pandas>=2.2",
   "sentence-transformers>=3.0",
+  "timm==1.0.22",
   "torch>=2.4",
   "torchvision>=0.19",
   "transformers>=4.44",

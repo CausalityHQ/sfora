@@ -18,22 +18,13 @@ from pathlib import Path
 import numpy as np
 
 from sfora.unicom_audit_io import load_embedding_bundle
+from sfora.unicom_inshop import EXPECTED_COUNTS, InshopRecord, parse_inshop_partition
 
 UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 UNICOM_B16_SHA256 = "c04f324f7c3b4435667236ec6c0eca1cd62f9d64fbfc2d06f8e8e60e6497edef"
 UNICOM_L14_336_SHA256 = (
     "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
 )
-EXPECTED_COUNTS = (25_882, 14_218, 12_612)
-
-
-@dataclass(frozen=True)
-class InshopRecord:
-    split: str
-    image_path: Path
-    label: str
-
-
 @dataclass(frozen=True)
 class ModelSpec:
     model_identifier: str
@@ -72,47 +63,6 @@ def _sha256_file(path: Path) -> str:
 
 def _sha256_array(values: np.ndarray) -> str:
     return hashlib.sha256(values.tobytes(order="C")).hexdigest()
-
-
-def parse_inshop_partition(
-    dataset_root: Path,
-    *,
-    expected_counts: tuple[int, int, int] | None = EXPECTED_COUNTS,
-) -> tuple[InshopRecord, ...]:
-    dataset_root = Path(dataset_root)
-    partition = dataset_root / "Eval" / "list_eval_partition.txt"
-    lines = partition.read_text(encoding="utf-8").splitlines()
-    if len(lines) < 3:
-        raise ValueError("In-Shop partition is truncated")
-    try:
-        declared = int(lines[0].strip())
-    except ValueError as error:
-        raise ValueError("In-Shop partition count is invalid") from error
-    if lines[1].split() != ["image_name", "item_id", "evaluation_status"]:
-        raise ValueError("In-Shop partition header differs")
-    records: list[InshopRecord] = []
-    counts = {"train": 0, "query": 0, "gallery": 0}
-    for line_number, line in enumerate(lines[2:], start=3):
-        fields = line.split()
-        if len(fields) != 3:
-            raise ValueError(f"In-Shop partition row {line_number} differs")
-        image_name, label, split = fields
-        if split not in counts or not label:
-            raise ValueError(f"In-Shop partition row {line_number} differs")
-        image_path = dataset_root / "Img" / image_name
-        if not image_path.is_file() or image_path.is_symlink():
-            raise ValueError(f"In-Shop image is missing or not regular: {image_path}")
-        records.append(InshopRecord(split=split, image_path=image_path, label=label))
-        counts[split] += 1
-    if len(records) != declared:
-        raise ValueError("In-Shop partition declared count differs")
-    if expected_counts is not None and tuple(counts.values()) != expected_counts:
-        raise ValueError("In-Shop split counts differ")
-    query_labels = {record.label for record in records if record.split == "query"}
-    gallery_labels = {record.label for record in records if record.split == "gallery"}
-    if query_labels != gallery_labels:
-        raise ValueError("In-Shop query/gallery identity membership differs")
-    return tuple(records)
 
 
 def _validate_metadata_base(metadata: Mapping[str, object]) -> None:
