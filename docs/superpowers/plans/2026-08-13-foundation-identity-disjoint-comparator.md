@@ -229,7 +229,7 @@ Copy exact receipt bytes opaquely, verify SHA and validator result, force-add on
 - Modify: `docs/foundation_test_read_register.json`
 - Create: `docs/foundation_native_inputs/inshop-pa-bninception-disjoint-seed2__embedding_cosine.json`
 - Create: `docs/foundation_native_sources/inshop-pa-bninception-disjoint-seed2__embedding_cosine.py`
-- Modify tests only if exact authority fixture literals require the observed hashes.
+- Modify: `tests/test_foundation_pareto.py`
 
 **Interfaces:**
 - Produces: reviewed F1 handoff `H_F1` with three exact arms and observed comparator checkpoint/config hashes.
@@ -241,6 +241,15 @@ From the authenticated checkpoint, encode only `assets/sfora-logo.png`, persist 
 - [ ] **Step 2: Update the ordered train-only authorities and keep official capability empty**
 
 Freeze candidate, disjoint comparator, and contaminated control in exact order across the model, fixture, and tolerance authorities. The disjoint comparator paths/hashes come only from the validated receipt; the contaminated control retains prior bytes and is marked descriptive/non-deciding. Refreeze the published-metric register with exact `records=[]` and the test-read register with exact `records=[]` while preserving its registered receipt root. Those two empty registers are intentionally not three-arm authorities: the contaminated control may never receive official capability, and this amendment authorizes no candidate or comparator official read either. Only a later separately reviewed official-read addendum may populate them, and that addendum may bind candidate and disjoint comparator only.
+
+Update `test_repository_fidelity_authorities_are_frozen_and_complete` and its
+mutation coverage prospectively: model/fixture/tolerance coverage remains the
+exact three-arm product, while published-metric and test-read coverage is
+deliberately decoupled from registered arms and must equal exact empty tuples at
+this handoff. Do not weaken the register loaders or generic nonempty-register
+cross-product checks. Add a focused assertion that any later populated official
+register can contain only the candidate and disjoint comparator, never the
+contaminated control.
 
 - [ ] **Step 3: Run authority tests and full affected assurance**
 
