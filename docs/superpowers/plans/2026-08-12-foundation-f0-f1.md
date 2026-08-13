@@ -358,6 +358,15 @@ If no such local comparator checkpoint is resolvable, publish/record
 `UNAVAILABLE_COMPARATOR` before any model export or GB10 allocation and stop.
 Close other unavailable arms without substitution.
 
+Freeze the exact command arrays, including validation seed `0`, validation
+fraction `0.2`, source checkout, environment, dataset roots, cache, and report
+paths. Train-only commands omit `--allow-registered-test-read`. If and only if
+both train-only reports return `CONTINUE`, commit and independently review a
+separate prospective official-read addendum binding both strict-reloaded report
+hashes and decision hashes before any registered capability is consumed.
+`CLOSE_FOUNDATION_TRANSFER` and `UNAVAILABLE_COMPARATOR` never authorize an
+official read.
+
 On the registered execution host `riomus@spark-2751`, verify
 `/home/riomus/group-learning/reports/generated` and every existing parent of
 the frozen receipt root are real non-symlink directories. Create only the
@@ -367,19 +376,26 @@ before the screen, then reverify it is a real non-symlink directory and that no
 registered receipt exists. The `/home/rb` review checkout is not the execution
 host and must not be used to reinterpret this target-host authority.
 
-- [ ] **Step 2: Run source-fidelity smoke without official-test access**
+- [ ] **Step 2: Run the source-fidelity prefix without official-test access**
 
-Execute the fixture-level native-output check and one tiny train/validation
-export for each accessible arm. Stop on digest, fixture-output disagreement,
-cache-roundtrip, nonfinite, or fixture-metric mismatch. Published benchmark R@1
-is not evaluated in this smoke.
+Do not launch a separate, underspecified smoke process. The first exact
+train-only command is the sole In-Shop process. Treat its comparator-first
+authentication, fixture-level native-output check, cache-v2 export/profile,
+and probe as the source-fidelity and anchor-F0 prefix. It stops before reaching
+the candidate on comparator load or fixture failure. The candidate then runs
+the same checks in that process. Stop on digest, fixture-output disagreement,
+cache-roundtrip, nonfinite, or fixture-metric mismatch. Published benchmark
+R@1 is not evaluated because the command omits
+`--allow-registered-test-read`.
 
 - [ ] **Step 3: Run the bounded frozen screen and probe**
 
-If the comparator entered as `pending`, first spend only an explicitly bounded
-anchor-only slice of the same 6-hour F0 cap to produce its cache-v2 reload,
-fixture audit, and cost profile. Stop as `UNAVAILABLE_COMPARATOR` if that anchor
-is not F0-green. Only then run the remaining In-Shop and SOP train/validation
+The reviewed runner executes the registered comparator first while retaining
+the registered report order. It produces the comparator's cache-v2 reload,
+fixture audit, cost profile, and probe before reaching the candidate, and it
+does not reach the candidate if comparator loading fails. Stop as
+`UNAVAILABLE_COMPARATOR` if that anchor is not F0-green. Only then run the
+remaining In-Shop and SOP train/validation
 exports, cost profiles, and identical 512-D probes. Do not enable official-test
 access until the committed register is complete.
 
