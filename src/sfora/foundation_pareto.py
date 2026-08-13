@@ -2574,6 +2574,8 @@ def _load_local_checkpoint_model(
     spec: LocalCheckpointFoundationSpec,
     checkpoint: dict[str, Any] | None = None,
 ) -> Any:
+    import torch
+
     if checkpoint is None:
         checkpoint = _torch_load_checkpoint(spec.checkpoint_path)
     required = ("state_dict", "arch", "training_config")
@@ -2612,7 +2614,31 @@ def _load_local_checkpoint_model(
         embedding_size=spec.embedding_width,
         add_gmp=True,
     )
-    model.load_state_dict(checkpoint["state_dict"], strict=True)
+    state_dict = checkpoint["state_dict"]
+    if not isinstance(state_dict, Mapping):
+        raise ValueError("local checkpoint state_dict must be a mapping")
+    training_only = ("metric_proxies", "metric_proxy_labels")
+    if any(name not in state_dict for name in training_only):
+        raise ValueError("local checkpoint lacks registered proxy training state")
+    proxies = state_dict["metric_proxies"]
+    proxy_labels = state_dict["metric_proxy_labels"]
+    if (
+        not torch.is_tensor(proxies)
+        or proxies.dtype != torch.float32
+        or proxies.ndim != 2
+        or proxies.shape[1] != spec.embedding_width
+        or not bool(torch.isfinite(proxies).all())
+    ):
+        raise ValueError("local checkpoint metric proxies differ from registered shape/type")
+    if (
+        not torch.is_tensor(proxy_labels)
+        or proxy_labels.dtype != torch.int64
+        or proxy_labels.ndim != 1
+        or proxy_labels.shape[0] != proxies.shape[0]
+    ):
+        raise ValueError("local checkpoint proxy labels differ from registered shape/type")
+    encoder_state = {name: value for name, value in state_dict.items() if name not in training_only}
+    model.load_state_dict(encoder_state, strict=True)
     model.eval()
     return model
 

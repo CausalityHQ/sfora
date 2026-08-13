@@ -356,7 +356,12 @@ def test_local_model_loader_reconstructs_exact_checkpoint_architecture(
         dtype="float32",
         normalize=True,
     )
-    state_dict = {"embedding.weight": object()}
+    encoder_state = {"embedding.weight": object()}
+    state_dict = {
+        **encoder_state,
+        "metric_proxies": torch.zeros(3, 512, dtype=torch.float32),
+        "metric_proxy_labels": torch.arange(3, dtype=torch.int64),
+    }
     monkeypatch.setattr(
         foundation_pareto,
         "_torch_load_checkpoint",
@@ -401,7 +406,7 @@ def test_local_model_loader_reconstructs_exact_checkpoint_architecture(
 
     assert loaded is model
     assert builds == [(512, True)]
-    assert model.loaded == (state_dict, True)
+    assert model.loaded == (encoder_state, True)
     assert model.evaluated is True
 
 
@@ -470,9 +475,12 @@ def test_local_checkpoint_loader_reconstructs_real_bn_inception_state(
     )
     expected = source_model.state_dict()["model.embedding.bias"].clone()
     checkpoint = tmp_path / "anchor.pt"
+    state_dict = dict(source_model.state_dict())
+    state_dict["metric_proxies"] = torch.zeros(3, 2, dtype=torch.float32)
+    state_dict["metric_proxy_labels"] = torch.arange(3, dtype=torch.int64)
     torch.save(
         {
-            "state_dict": source_model.state_dict(),
+            "state_dict": state_dict,
             "arch": dict(training_config),
             "training_config": dict(training_config),
         },
