@@ -24,20 +24,23 @@ def identity_holdout(
 
     if type(records) is not tuple or not records or any(row.split != "train" for row in records):
         raise ValueError("holdout records must be a nonempty train tuple")
-    if type(fraction) is not float or not math.isfinite(fraction) or not 0.0 < fraction < 1.0:
-        raise ValueError("holdout fraction must be finite and in (0, 1)")
+    if type(fraction) is not float or not math.isfinite(fraction) or not 0.0 <= fraction < 1.0:
+        raise ValueError("holdout fraction must be finite and in [0, 1)")
     if type(seed) is not int:
         raise TypeError("holdout seed must be a builtin integer")
     grouped: dict[str, list[InshopRecord]] = defaultdict(list)
     for row in records:
         grouped[row.label].append(row)
+    if fraction == 0.0:
+        labels = sorted(grouped)
+        return records, (), (), {label: index for index, label in enumerate(labels)}
     eligible = sorted(label for label, rows in grouped.items() if len(rows) >= 2)
     if len(grouped) < 2 or not eligible:
         raise ValueError("holdout needs at least one identity with two images")
     labels = np.asarray(eligible, dtype=np.str_)
     generator = np.random.Generator(np.random.PCG64(seed))
     generator.shuffle(labels)
-    count = max(1, min(labels.size, round(len(grouped) * fraction)))
+    count = max(1, min(labels.size, round(len(eligible) * fraction)))
     heldout = set(labels[:count].tolist())
     optimization = tuple(row for row in records if row.label not in heldout)
     query: list[InshopRecord] = []
@@ -48,24 +51,33 @@ def identity_holdout(
         query.append(rows[query_index])
         gallery.extend(row for index, row in enumerate(rows) if index != query_index)
     optimization_labels = sorted({row.label for row in optimization})
-    return optimization, tuple(query), tuple(gallery), {
-        label: index for index, label in enumerate(optimization_labels)
-    }
+    return (
+        optimization,
+        tuple(query),
+        tuple(gallery),
+        {label: index for index, label in enumerate(optimization_labels)},
+    )
 
 
 def padded_epoch_indices(
-    *, size: int, global_batch: int, epoch: int, seed: int
+    *, size: int, global_batch: int, epoch: int, seed: int, shards: int = 8
 ) -> tuple[int, ...]:
     """Return the global union/order of UNICOM's distributed epoch sampler."""
 
-    if any(type(value) is not int for value in (size, global_batch, epoch, seed)):
+    if any(type(value) is not int for value in (size, global_batch, epoch, seed, shards)):
         raise TypeError("sampler values must be builtin integers")
-    if size <= 0 or global_batch <= 0 or epoch < 0:
+    if size <= 0 or global_batch <= 0 or epoch < 0 or shards <= 0 or global_batch % shards != 0:
         raise ValueError("sampler size/batch must be positive and epoch nonnegative")
-    total = math.ceil(size / global_batch) * global_batch
-    generator = torch.Generator().manual_seed(seed + epoch)
+    rank_samples = math.ceil(size / shards)
+    local_batch = global_batch // shards
+    total = (rank_samples // local_batch) * global_batch
+    if total == 0:
+        raise ValueError("sampler has no complete distributed batch")
+    distributed_total = rank_samples * shards
+    generator = torch.Generator().manual_seed(seed * 1_000_003 + epoch)
     shuffled = torch.randperm(size, generator=generator).tolist()
-    return tuple((shuffled * math.ceil(total / size))[:total])
+    padded = (shuffled * math.ceil(distributed_total / size))[:distributed_total]
+    return tuple(padded[:total])
 
 
 def sample_shard_masks(
@@ -84,9 +96,7 @@ def sample_shard_masks(
         raise ValueError("mask dimensions differ")
     return torch.stack(
         [
-            torch.argsort(torch.rand(dimension, generator=generator, device=device))[
-                :selected
-            ]
+            torch.argsort(torch.rand(dimension, generator=generator, device=device))[:selected]
             for _ in range(shards)
         ]
     )
@@ -147,9 +157,7 @@ def sharded_mask_arcface_loss(
         _class_slices(weights.shape[0], masks.shape[0]), masks, strict=True
     ):
         selected_embeddings = F.normalize(embeddings.index_select(1, coordinates), dim=1)
-        selected_weights = F.normalize(
-            weights[class_slice].index_select(1, coordinates), dim=1
-        )
+        selected_weights = F.normalize(weights[class_slice].index_select(1, coordinates), dim=1)
         shard_logits.append(F.linear(selected_embeddings, selected_weights))
     logits = torch.cat(shard_logits, dim=1).clamp(-1.0, 1.0)
     rows = torch.arange(labels.numel(), device=labels.device)

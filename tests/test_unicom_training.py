@@ -21,9 +21,10 @@ def _manual_arcface(
     margin: float = 0.25,
     scale: float = 32.0,
 ) -> torch.Tensor:
-    cosine = F.normalize(embeddings[:, coordinates], dim=1) @ F.normalize(
-        weights[:, coordinates], dim=1
-    ).T
+    cosine = (
+        F.normalize(embeddings[:, coordinates], dim=1)
+        @ F.normalize(weights[:, coordinates], dim=1).T
+    )
     rows = torch.arange(labels.numel())
     target = cosine[rows, labels].clamp(-1.0, 1.0)
     cosine = cosine.clone()
@@ -32,9 +33,7 @@ def _manual_arcface(
 
 
 def test_one_shard_matches_official_selected_subspace_arcface() -> None:
-    embeddings = torch.tensor(
-        [[0.2, 0.4, -0.1, 0.7], [-0.3, 0.8, 0.5, 0.1]], dtype=torch.float64
-    )
+    embeddings = torch.tensor([[0.2, 0.4, -0.1, 0.7], [-0.3, 0.8, 0.5, 0.1]], dtype=torch.float64)
     weights = torch.tensor(
         [[0.7, -0.2, 0.4, 0.1], [0.3, 0.6, -0.5, 0.2], [-0.4, 0.1, 0.8, 0.5]],
         dtype=torch.float64,
@@ -55,9 +54,7 @@ def test_repeated_mask_shards_equal_one_global_mask() -> None:
     labels = torch.tensor([0, 2, 3, 5, 7])
     mask = torch.tensor([0, 2, 3, 5])
 
-    sharded = sharded_mask_arcface_loss(
-        embeddings, weights, labels, mask.repeat(4, 1)
-    )
+    sharded = sharded_mask_arcface_loss(embeddings, weights, labels, mask.repeat(4, 1))
     unsharded = _manual_arcface(embeddings, weights, labels, mask)
 
     torch.testing.assert_close(sharded, unsharded, rtol=1e-12, atol=1e-12)
@@ -65,15 +62,11 @@ def test_repeated_mask_shards_equal_one_global_mask() -> None:
 
 def test_independent_shard_masks_route_each_class_through_its_coordinates() -> None:
     embeddings = torch.tensor([[2.0, 1.0, 3.0, -2.0]], dtype=torch.float64)
-    weights = torch.tensor(
-        [[1.0, 4.0, 2.0, 0.5], [-3.0, 1.0, 0.25, 2.0]], dtype=torch.float64
-    )
+    weights = torch.tensor([[1.0, 4.0, 2.0, 0.5], [-3.0, 1.0, 0.25, 2.0]], dtype=torch.float64)
     labels = torch.tensor([1])
     masks = torch.tensor([[0, 1], [2, 3]])
 
-    actual = sharded_mask_arcface_loss(
-        embeddings, weights, labels, masks, margin=0.0, scale=1.0
-    )
+    actual = sharded_mask_arcface_loss(embeddings, weights, labels, masks, margin=0.0, scale=1.0)
     logits = torch.stack(
         [
             F.cosine_similarity(embeddings[:, masks[0]], weights[0:1, masks[0]]),
@@ -114,12 +107,26 @@ def test_eight_shards_recover_gradient_coverage_lost_by_one_mask() -> None:
 
 
 def test_padded_epoch_indices_match_distributed_sampler_global_union() -> None:
-    actual = padded_epoch_indices(size=10, global_batch=8, epoch=3, seed=1024)
-    generator = torch.Generator().manual_seed(1027)
+    actual = padded_epoch_indices(size=10, global_batch=8, epoch=3, seed=0)
+    generator = torch.Generator().manual_seed(3)
     shuffled = torch.randperm(10, generator=generator).tolist()
 
     assert actual == tuple((shuffled * 2)[:16])
     assert len(actual) % 8 == 0
+
+
+def test_padded_epoch_indices_do_not_alias_adjacent_experiment_seeds() -> None:
+    seed_zero_epoch_one = padded_epoch_indices(size=97, global_batch=16, epoch=1, seed=0)
+    seed_one_epoch_zero = padded_epoch_indices(size=97, global_batch=16, epoch=0, seed=1)
+
+    assert seed_zero_epoch_one != seed_one_epoch_zero
+
+
+def test_padded_epoch_indices_match_eight_rank_drop_last_tail() -> None:
+    actual = padded_epoch_indices(size=25_882, global_batch=128, epoch=0, seed=0)
+
+    assert len(actual) == 25_856
+    assert len(set(actual)) == 25_856
 
 
 def test_sample_shard_masks_use_one_official_noise_sort_per_shard() -> None:
@@ -175,3 +182,23 @@ def test_identity_holdout_keeps_singleton_identity_in_optimization(tmp_path) -> 
     assert singleton in optimization
     assert "singleton" not in {row.label for row in (*query, *gallery)}
     assert "singleton" in label_map
+    assert len(query) == 1
+
+
+def test_zero_holdout_fraction_returns_all_training_identities(tmp_path) -> None:
+    records = tuple(
+        InshopRecord(
+            split="train",
+            image_path=tmp_path / f"{label}-{index}.jpg",
+            label=label,
+        )
+        for label in ("a", "b")
+        for index in range(2)
+    )
+
+    optimization, query, gallery, label_map = identity_holdout(records, fraction=0.0, seed=99)
+
+    assert optimization == records
+    assert query == ()
+    assert gallery == ()
+    assert label_map == {"a": 0, "b": 1}

@@ -25,10 +25,10 @@ def _load_script():
 
 def test_epoch_sampler_matches_padded_global_order() -> None:
     module = _load_script()
-    sampler = module.PaddedEpochSampler(size=10, batch_size=8, seed=1024)
+    sampler = module.PaddedEpochSampler(size=10, batch_size=8, seed=0)
     sampler.set_epoch(3)
 
-    generator = torch.Generator().manual_seed(1027)
+    generator = torch.Generator().manual_seed(3)
     shuffled = torch.randperm(10, generator=generator).tolist()
     assert list(sampler) == (shuffled * 2)[:16]
     assert len(sampler) == 16
@@ -91,10 +91,12 @@ def test_cli_defaults_match_official_336_recipe() -> None:
     assert args.selected_features == 512
     assert args.workers == 4
     assert args.seed == 1024
+    assert args.holdout_seed == 0
     assert args.holdout_fraction == 0.2
     assert args.eval_every == 4
     assert args.checkpoint_every == 4
     assert args.max_steps is None
+    assert args.resume is None
     assert not args.bf16
     assert not args.compile
     assert not args.fused
@@ -292,14 +294,118 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         "classifier",
         "optimizer",
         "scheduler",
+        "scaler",
+        "mask_generator",
+        "history",
     )
     assert checkpoint["epoch"] == 2
     assert set(checkpoint["model"]) == set(raw_model.state_dict())
+    assert checkpoint["history"] == history
+    assert not list(tmp_path.glob("*.tmp"))
 
 
-def test_main_fails_before_training_when_inputs_are_missing(
-    tmp_path: Path, capsys
-) -> None:
+def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(3, 8, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(4, 8))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    loader = DataLoader(
+        TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
+        batch_size=4,
+    )
+
+    module.fit_model(
+        raw_model=raw_model,
+        train_model=raw_model,
+        classifier=classifier,
+        loader=loader,
+        optimizer=optimizer,
+        scheduler=None,
+        sampler=None,
+        mask_generator=torch.Generator().manual_seed(17),
+        device=torch.device("cpu"),
+        epochs=3,
+        start_epoch=0,
+        objective="official-eight-mask",
+        selected_features=4,
+        margin=0.25,
+        scale=32.0,
+        max_steps=1,
+        bf16=False,
+        scaler=None,
+        eval_every=3,
+        checkpoint_every=2,
+        output_dir=tmp_path,
+        evaluate=lambda epoch: {"recall_at_1": epoch / 3},
+    )
+
+    assert sorted(path.name for path in tmp_path.glob("epoch-*.pt")) == [
+        "epoch-0002.pt",
+        "epoch-0003.pt",
+    ]
+
+
+def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(2, 2, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(3, 2))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    mask_generator = torch.Generator().manual_seed(41)
+    scaler = torch.amp.GradScaler("cpu")
+    expected_model = {
+        name: value.detach().clone() for name, value in raw_model.state_dict().items()
+    }
+    expected_classifier = classifier.detach().clone()
+    expected_mask_state = mask_generator.get_state().clone()
+    path = tmp_path / "resume.pt"
+    module.save_training_checkpoint(
+        path,
+        epoch=7,
+        raw_model=raw_model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=scaler,
+        mask_generator=mask_generator,
+        history=[{"epoch": 7, "train": {"steps": 1, "mean_loss": 2.0}, "metrics": None}],
+    )
+    with torch.no_grad():
+        raw_model.weight.zero_()
+        classifier.zero_()
+    mask_generator.manual_seed(99)
+
+    epoch, history = module.restore_training_checkpoint(
+        path,
+        raw_model=raw_model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=scaler,
+        mask_generator=mask_generator,
+        device=torch.device("cpu"),
+    )
+
+    assert epoch == 7
+    assert history == [{"epoch": 7, "train": {"steps": 1, "mean_loss": 2.0}, "metrics": None}]
+    for name, value in raw_model.state_dict().items():
+        assert torch.equal(value, expected_model[name])
+    assert torch.equal(classifier, expected_classifier)
+    assert torch.equal(mask_generator.get_state(), expected_mask_state)
+
+
+def test_main_fails_before_training_when_inputs_are_missing(tmp_path: Path, capsys) -> None:
     module = _load_script()
 
     exit_code = module.main(

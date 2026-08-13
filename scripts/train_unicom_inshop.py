@@ -8,6 +8,7 @@ import hashlib
 import importlib
 import json
 import math
+import os
 import random
 import subprocess
 import sys
@@ -28,9 +29,7 @@ from sfora.unicom_training import (
 )
 
 UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
-UNICOM_L14_336_SHA256 = (
-    "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
-)
+UNICOM_L14_336_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
 UNICOM_MEAN = (0.48145466, 0.4578275, 0.40821073)
 UNICOM_STD = (0.26862954, 0.26130258, 0.27577711)
 
@@ -331,11 +330,12 @@ def fit_model(
     checkpoint_every: int,
     output_dir: Path,
     evaluate: Callable[[int], dict[str, float]],
+    history: list[dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     """Fit and persist sparse raw-model checkpoints for later trajectory soups."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    history: list[dict[str, object]] = []
+    history = [] if history is None else list(history)
     for epoch in range(start_epoch, epochs):
         if sampler is not None:
             sampler.set_epoch(epoch)
@@ -356,22 +356,119 @@ def fit_model(
             scaler=scaler,
         )
         completed_epoch = epoch + 1
-        metrics = evaluate(completed_epoch) if completed_epoch % eval_every == 0 else None
+        metrics = (
+            evaluate(completed_epoch)
+            if eval_every > 0 and completed_epoch % eval_every == 0
+            else None
+        )
         row = {"epoch": completed_epoch, "train": train_result, "metrics": metrics}
         history.append(row)
         print(json.dumps(row, sort_keys=True), flush=True)
-        if completed_epoch % checkpoint_every == 0:
-            torch.save(
-                {
-                    "epoch": completed_epoch,
-                    "model": raw_model.state_dict(),
-                    "classifier": classifier.detach(),
-                    "optimizer": optimizer.state_dict(),
-                    "scheduler": None if scheduler is None else scheduler.state_dict(),
-                },
+        if (
+            completed_epoch % checkpoint_every == 0
+            or metrics is not None
+            or completed_epoch == epochs
+        ):
+            save_training_checkpoint(
                 output_dir / f"epoch-{completed_epoch:04d}.pt",
+                epoch=completed_epoch,
+                raw_model=raw_model,
+                classifier=classifier,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                scaler=scaler,
+                mask_generator=mask_generator,
+                history=history,
             )
     return history
+
+
+def save_training_checkpoint(
+    path: Path,
+    *,
+    epoch: int,
+    raw_model: torch.nn.Module,
+    classifier: torch.nn.Parameter,
+    optimizer: torch.optim.Optimizer,
+    scheduler,
+    scaler: torch.amp.GradScaler | None,
+    mask_generator: torch.Generator,
+    history: list[dict[str, object]],
+) -> None:
+    """Atomically persist all mutable state needed to resume an epoch boundary."""
+
+    payload = {
+        "epoch": epoch,
+        "model": raw_model.state_dict(),
+        "classifier": classifier.detach(),
+        "optimizer": optimizer.state_dict(),
+        "scheduler": None if scheduler is None else scheduler.state_dict(),
+        "scaler": None if scaler is None else scaler.state_dict(),
+        "mask_generator": mask_generator.get_state(),
+        "history": history,
+    }
+    temporary = path.with_name(f"{path.name}.tmp")
+    if temporary.exists():
+        raise FileExistsError(f"checkpoint temporary already exists: {temporary}")
+    try:
+        with temporary.open("xb") as handle:
+            torch.save(payload, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def restore_training_checkpoint(
+    path: Path,
+    *,
+    raw_model: torch.nn.Module,
+    classifier: torch.nn.Parameter,
+    optimizer: torch.optim.Optimizer,
+    scheduler,
+    scaler: torch.amp.GradScaler | None,
+    mask_generator: torch.Generator,
+    device: torch.device,
+) -> tuple[int, list[dict[str, object]]]:
+    """Restore an epoch-boundary checkpoint and return its epoch and history."""
+
+    checkpoint = torch.load(path, map_location=device, weights_only=False)
+    expected = (
+        "epoch",
+        "model",
+        "classifier",
+        "optimizer",
+        "scheduler",
+        "scaler",
+        "mask_generator",
+        "history",
+    )
+    if type(checkpoint) is not dict or tuple(checkpoint) != expected:
+        raise ValueError("training checkpoint schema differs")
+    raw_model.load_state_dict(checkpoint["model"], strict=True)
+    if checkpoint["classifier"].shape != classifier.shape:
+        raise ValueError("training checkpoint classifier shape differs")
+    with torch.no_grad():
+        classifier.copy_(checkpoint["classifier"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+    if scheduler is None:
+        if checkpoint["scheduler"] is not None:
+            raise ValueError("training checkpoint scheduler differs")
+    else:
+        scheduler.load_state_dict(checkpoint["scheduler"])
+    if scaler is None:
+        if checkpoint["scaler"] is not None:
+            raise ValueError("training checkpoint scaler differs")
+    else:
+        scaler.load_state_dict(checkpoint["scaler"])
+    mask_generator.set_state(checkpoint["mask_generator"])
+    epoch = checkpoint["epoch"]
+    history = checkpoint["history"]
+    if type(epoch) is not int or epoch < 1 or type(history) is not list:
+        raise ValueError("training checkpoint progress differs")
+    return epoch, history
 
 
 def _sha256_file(path: Path) -> str:
@@ -427,8 +524,10 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         raise RuntimeError("CUDA is required for UNICOM training")
     if args.epochs <= 0 or args.batch_size <= 0 or args.workers < 0:
         raise ValueError("epochs/batch must be positive and workers nonnegative")
-    if args.eval_every <= 0 or args.checkpoint_every <= 0:
-        raise ValueError("evaluation and checkpoint cadence must be positive")
+    if args.eval_every < 0 or args.checkpoint_every <= 0:
+        raise ValueError("evaluation cadence must be nonnegative and checkpoint cadence positive")
+    if args.holdout_fraction == 0.0 and args.eval_every != 0:
+        raise ValueError("full-train mode requires --eval-every 0 to avoid test leakage")
 
     _seed_process(args.seed)
     device = torch.device("cuda")
@@ -437,19 +536,14 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     optimization, query, gallery, labels = identity_holdout(
         train_records,
         fraction=args.holdout_fraction,
-        seed=args.seed,
+        seed=args.holdout_seed,
     )
-    raw_model, eval_transform = _load_official_model(
-        args.unicom_checkout, args.checkpoint
-    )
+    raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
-    train_model = (
-        torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
-    )
-    classifier = torch.nn.Parameter(
-        torch.empty(len(labels), 768, device=device, dtype=torch.float32)
-    )
-    torch.nn.init.normal_(classifier, std=0.01)
+    train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
+    classifier_values = torch.empty(len(labels), 768, dtype=torch.float32)
+    torch.nn.init.normal_(classifier_values, std=0.01)
+    classifier = torch.nn.Parameter(classifier_values.to(device))
     optimizer = build_optimizer(
         raw_model,
         classifier,
@@ -457,9 +551,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         classifier_learning_rate=args.classifier_learning_rate,
         fused=args.fused,
     )
-    sampler = PaddedEpochSampler(
-        size=len(optimization), batch_size=args.batch_size, seed=args.seed
-    )
+    sampler = PaddedEpochSampler(size=len(optimization), batch_size=args.batch_size, seed=args.seed)
     worker_init = partial(_seed_worker, seed=args.seed)
     loader = torch.utils.data.DataLoader(
         InshopTrainDataset(optimization, labels, build_train_transform(336)),
@@ -478,7 +570,22 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         pct_start=0.1,
     )
     mask_generator = torch.Generator(device=device).manual_seed(args.seed)
-    scaler = torch.amp.GradScaler("cuda")
+    scaler = None if args.bf16 else torch.amp.GradScaler("cuda", growth_interval=200)
+    start_epoch = 0
+    history: list[dict[str, object]] = []
+    if args.resume is not None:
+        start_epoch, history = restore_training_checkpoint(
+            args.resume,
+            raw_model=raw_model,
+            classifier=classifier,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            scaler=scaler,
+            mask_generator=mask_generator,
+            device=device,
+        )
+        if start_epoch >= args.epochs:
+            raise ValueError("resume checkpoint already reached requested epochs")
     return fit_model(
         raw_model=raw_model,
         train_model=train_model,
@@ -490,7 +597,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         mask_generator=mask_generator,
         device=device,
         epochs=args.epochs,
-        start_epoch=0,
+        start_epoch=start_epoch,
         objective=args.objective,
         selected_features=args.selected_features,
         margin=args.margin,
@@ -511,6 +618,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             workers=args.workers,
             selected_features=args.selected_features,
         ),
+        history=history,
     )
 
 
@@ -543,10 +651,12 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--selected-features", type=int, default=512)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=1024)
+    parser.add_argument("--holdout-seed", type=int, default=0)
     parser.add_argument("--holdout-fraction", type=float, default=0.2)
     parser.add_argument("--eval-every", type=int, default=4)
     parser.add_argument("--checkpoint-every", type=int, default=4)
     parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--resume", type=Path)
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--fused", action="store_true")
