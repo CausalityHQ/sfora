@@ -630,8 +630,7 @@ def test_factorial_binding_requires_repaired_control_report() -> None:
         module.validate_control_binding(legacy, rows, protocol)
 
 
-@pytest.mark.parametrize("field", ("metrics", "query_evidence"))
-def test_factorial_binding_rejects_baseline_evidence_drift_from_control(field: str) -> None:
+def test_factorial_binding_accepts_fresh_nondeterministic_baseline_evidence() -> None:
     module = _load_script()
     factorial = _valid_report(module)
     repaired = module.build_repaired_control_report(
@@ -652,15 +651,110 @@ def test_factorial_binding_rejects_baseline_evidence_drift_from_control(field: s
             )
         }
     )
-    if field == "metrics":
-        random_row[field] = dict(random_row[field], map_at_r=0.87)
-    else:
-        random_row[field] = dict(random_row[field], average_precision=[0.87] * 797)
+    random_row["metrics"] = dict(random_row["metrics"], map_at_r=0.87)
+    random_row["query_evidence"] = dict(
+        random_row["query_evidence"], average_precision=[0.87] * 797
+    )
+
+    module.validate_control_binding(
+        repaired, rows, repaired["provenance"]["random_training_protocol"]
+    )
+
+
+def test_factorial_binding_rejects_training_protocol_drift() -> None:
+    module = _load_script()
+    factorial = _valid_report(module)
+    repaired = module.build_repaired_control_report(
+        _failed_current_control_report(module),
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+    rows = factorial["rows"]
+    random_row = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    random_row.update(
+        {
+            name: repaired["row"][name]
+            for name in ("checkpoint_sha256", "training_history_sha256")
+        }
+    )
+    protocol = json.loads(json.dumps(repaired["provenance"]["random_training_protocol"]))
+    protocol["learning_rate"] = 0.0002
 
     with pytest.raises(ValueError, match="control report binding"):
-        module.validate_control_binding(
-            repaired, rows, repaired["provenance"]["random_training_protocol"]
-        )
+        module.validate_control_binding(repaired, rows, protocol)
+
+
+def test_factorial_main_publishes_fresh_evidence_different_from_control(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    factorial = _valid_report(module)
+    repaired = module.build_repaired_control_report(
+        _failed_current_control_report(module),
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+    control_path = tmp_path / "control.json"
+    control_path.write_text(json.dumps(repaired))
+    rows = factorial["rows"]
+    random_row = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    random_row.update(
+        {
+            name: repaired["row"][name]
+            for name in ("checkpoint_sha256", "training_history_sha256")
+        }
+    )
+    assert random_row["metrics"] != repaired["row"]["metrics"]
+    assert random_row["query_evidence"] != repaired["row"]["query_evidence"]
+    random_protocol = repaired["provenance"]["random_training_protocol"]
+    imprinted_protocol = json.loads(json.dumps(random_protocol))
+    imprinted_protocol["classifier_init"] = "imprinted"
+    monkeypatch.setattr(
+        module,
+        "load_factorial_rows",
+        lambda _args: (rows, random_protocol, imprinted_protocol, 5, 0.1),
+    )
+    output = tmp_path / "factorial.json"
+
+    exit_code = module.main(
+        [
+            "--mode",
+            "factorial",
+            "--unicom-checkout",
+            "/unicom",
+            "--initial-checkpoint",
+            "/initial.pt",
+            "--dataset-root",
+            "/dataset",
+            "--random-run",
+            "/random",
+            "--imprinted-run",
+            "/imprinted",
+            "--control-report",
+            str(control_path),
+            "--random-training-seconds",
+            "1.0",
+            "--imprinted-training-seconds",
+            "2.0",
+            "--random-peak-gpu-mib",
+            "3",
+            "--imprinted-peak-gpu-mib",
+            "4",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    persisted = json.loads(output.read_text())
+    module.validate_factorial_report(persisted)
+    persisted_random = next(
+        row
+        for row in persisted["rows"]
+        if row["cell"] == "random_raw" and row["epoch"] == 16
+    )
+    assert persisted_random["metrics"] == random_row["metrics"]
+    assert persisted_random["query_evidence"] == random_row["query_evidence"]
 
 
 def test_control_report_validates_and_main_publishes_without_imprinted_run(

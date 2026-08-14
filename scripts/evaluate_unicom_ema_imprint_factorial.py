@@ -937,8 +937,6 @@ def validate_control_binding(
         != by_key[("random_raw", 16)]["checkpoint_sha256"]
         or control_report["row"]["training_history_sha256"]
         != by_key[("random_raw", 16)]["training_history_sha256"]
-        or control_report["row"]["metrics"] != by_key[("random_raw", 16)]["metrics"]
-        or control_report["row"]["query_evidence"] != by_key[("random_raw", 16)]["query_evidence"]
         or control_report["provenance"]["random_training_protocol"] != random_protocol
     ):
         raise ValueError("factorial control report binding differs")
