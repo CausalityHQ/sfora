@@ -29,15 +29,16 @@
 - Modify: `tests/test_train_unicom_inshop.py`
 
 **Interfaces:**
-- Produces: `StepEMA(backbone, classifier, decay=0.999)`, `StepEMA.update(...)`, `StepEMA.state_dict()`, and `StepEMA.load_state_dict(...)`.
-- Produces: `run_training_epoch(..., step_ema: StepEMA | None)` that updates EMA once per executed optimizer step and returns `optimizer_steps`.
+- Produces: `StepEMA(backbone, classifier, decay=0.999)`, `StepEMA.update()`,
+  `StepEMA.register_step_hook(optimizer)`, `StepEMA.state_dict()`, and
+  `StepEMA.load_state_dict(...)`.
 
 - [ ] **Step 1: Write failing EMA arithmetic and isolation tests**
 
-Test initialization is an exact detached FP32 copy, one update applies
+Test initialization is an exact detached same-device FP32 copy, one update applies
 `0.999 * old + 0.001 * current`, source mutation cannot mutate the shadow,
-integer buffers are excluded from averaging, and invalid decay/state shapes or
-keys are rejected.
+all buffers are excluded from averaging, and invalid decay/state shapes or keys
+are rejected.
 
 - [ ] **Step 2: Run the focused RED tests**
 
@@ -47,22 +48,25 @@ Expected: failure because `StepEMA` is absent.
 
 - [ ] **Step 3: Implement the minimal EMA state object**
 
-Keep ordered CPU FP32 tensors for every floating backbone state entry and the
-classifier. Update with explicit in-place `mul_(0.999).add_(current, alpha=0.001)`
-after type/key/shape checks. Materialization combines averaged floating entries
-with current non-floating state.
+Keep ordered same-device FP32 tensors for every trainable backbone parameter and
+the classifier. Update with explicit in-place
+`mul_(0.999).add_(current, alpha=0.001)` after type/key/shape/device checks.
+Materialization combines averaged parameters with every current raw buffer;
+only checkpoint serialization copies the shadow to CPU.
 
 - [ ] **Step 4: Write failing successful-step tests**
 
 Exercise ordinary optimizer steps and a fake GradScaler that skips one step.
-Assert EMA update count equals executed optimizer steps, not batches, scheduler
-steps, or scaler updates.
+Assert the registered optimizer post-step hook updates EMA exactly when
+`optimizer.step()` executes, not for batches, scheduler steps, scaler updates,
+or skipped steps. Assert registration rejects a second live hook.
 
 - [ ] **Step 5: Integrate update timing and make tests GREEN**
 
-For an unscaled step, update after `optimizer.step()`. For GradScaler, compare
-the scale before and after `update()`; a lower new scale means the optimizer
-step was skipped and EMA must not update. Return the exact executed-step count.
+Register EMA through `optimizer.register_step_post_hook` before the first batch.
+GradScaler bypasses `optimizer.step()` on overflow, so the hook does not run.
+Do not read the loss scale or synchronize the device per step. Remove the hook
+when training exits and persist the exact EMA update count.
 
 - [ ] **Step 6: Run focused tests and lint**
 
@@ -123,7 +127,8 @@ Run: `pytest -q tests/test_train_unicom_inshop.py -k 'imprinted_classifier or cl
 - Modify: `tests/test_train_unicom_inshop.py`
 
 **Interfaces:**
-- Extends training checkpoint with ordered keys `ema` and `ema_updates`.
+- Extends the training checkpoint with ordered key `ema`, whose exact nested
+  state contains `decay`, `updates`, `backbone`, and `classifier`.
 - `save_training_checkpoint(..., step_ema)` and `restore_training_checkpoint(..., step_ema)` round-trip the exact shadow and update count.
 
 - [ ] **Step 1: Write failing checkpoint schema tests**
@@ -356,4 +361,3 @@ State the exact verified baseline, protocol limits, paired effects and intervals
 costs, all negative evidence, and whether the method is Pareto-superior. Make no
 global-SOTA claim without exact official-protocol evidence. Resolve every
 Critical/Important review finding before completion.
-

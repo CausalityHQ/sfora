@@ -30,18 +30,23 @@ is permitted.
 
 ## Step EMA
 
-EMA is initialized from the complete FP32 backbone and classifier state before
-the first optimizer step. After each optimizer step that actually executes:
+EMA is initialized from every FP32 trainable backbone parameter and the FP32
+classifier before the first optimizer step. The shadow remains on the same
+device as its source tensors so tracking does not introduce a per-step
+device synchronization. After each optimizer step that actually executes:
 
 `shadow = 0.999 * shadow + 0.001 * current`
 
-The update covers every floating backbone state value and the classifier.
-Non-floating state is copied from the current model when an EMA checkpoint is
-materialized. BatchNorm running statistics are not averaged; every raw and EMA
-arm receives an independent full optimization-split cumulative-batch
-recalibration before encoding. An AMP-overflow-skipped optimizer step must not
-update EMA. EMA state is saved at epochs 4, 8, 12, and 16 and is fully restored
-on resume.
+The update covers trainable backbone parameters and the classifier only.
+Buffers, including BatchNorm running statistics and counters, are copied from
+the current raw model when an EMA state is materialized; every raw and EMA arm
+then receives an independent full optimization-split cumulative-batch
+recalibration before encoding. EMA is invoked by an optimizer post-step hook,
+which runs only when `optimizer.step()` executes; an AMP-overflow-skipped step
+therefore cannot update EMA and no per-step scale read or device synchronization
+is introduced. Checkpoint serialization copies the shadow to CPU only at the
+registered checkpoint boundary. EMA state is saved at epochs 4, 8, 12, and 16
+and is fully restored on resume.
 
 ## Imprinted classifier initialization
 
