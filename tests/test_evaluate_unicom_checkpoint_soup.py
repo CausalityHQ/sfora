@@ -88,6 +88,38 @@ def test_interpolation_carries_trained_nonfloating_buffers() -> None:
     assert result["counter"].item() == 16
 
 
+def test_selected_model_payload_carries_training_provenance() -> None:
+    module = _load_script()
+    state = OrderedDict(weight=torch.tensor([1.0]))
+    selected = {"epochs": [12, 16], "alpha": 0.9}
+    training_protocol = {
+        "initial_checkpoint_sha256": module.REGISTERED_INITIAL_CHECKPOINT_SHA256,
+    }
+
+    payload = module.selected_model_payload(state, selected, training_protocol)
+
+    assert tuple(payload) == ("model", "selection", "training_protocol")
+    assert payload["model"] is state
+    assert payload["selection"] is selected
+    assert payload["training_protocol"] is training_protocol
+
+
+def test_endpoint_model_payload_carries_recalibrated_candidate_provenance() -> None:
+    module = _load_script()
+    state = OrderedDict(weight=torch.tensor([1.0]))
+    endpoint = {"epochs": [16], "alpha": 1.0}
+    training_protocol = {
+        "initial_checkpoint_sha256": module.REGISTERED_INITIAL_CHECKPOINT_SHA256,
+    }
+
+    payload = module.endpoint_model_payload(state, endpoint, training_protocol)
+
+    assert tuple(payload) == ("model", "endpoint", "training_protocol")
+    assert payload["model"] is state
+    assert payload["endpoint"] is endpoint
+    assert payload["training_protocol"] is training_protocol
+
+
 def test_candidate_selection_is_map_first_then_recall_and_stable_on_ties() -> None:
     module = _load_script()
     candidates = [
@@ -887,6 +919,35 @@ def test_recalibrate_batch_norm_resets_and_updates_only_bn_statistics() -> None:
     assert model[1].num_batches_tracked.item() == 2
     assert model[1].momentum == 0.1
     assert not model.training and not model[1].training
+
+
+def test_recalibrated_model_state_uses_candidate_weights_and_returns_updated_bn() -> None:
+    module = _load_script()
+    model = torch.nn.Sequential(
+        torch.nn.Linear(2, 2, bias=False),
+        torch.nn.BatchNorm1d(2, momentum=0.1),
+    )
+    candidate = OrderedDict(
+        (name, value.detach().clone()) for name, value in model.state_dict().items()
+    )
+    candidate["0.weight"] = torch.eye(2)
+    candidate["1.running_mean"] = torch.full((2,), 99.0)
+    loader = DataLoader(
+        TensorDataset(
+            torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]]),
+            torch.arange(4),
+        ),
+        batch_size=2,
+    )
+
+    finalized = module.recalibrated_model_state(
+        model, candidate, loader, device=torch.device("cpu")
+    )
+
+    assert torch.equal(finalized["0.weight"], torch.eye(2))
+    assert torch.equal(finalized["1.running_mean"], torch.tensor([4.0, 5.0]))
+    assert finalized["1.num_batches_tracked"].item() == 2
+    assert all(value.device.type == "cpu" for value in finalized.values())
 
 
 def test_checkpoint_loader_rejects_holdout_mismatch(tmp_path: Path) -> None:

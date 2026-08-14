@@ -100,6 +100,30 @@ def interpolate_model_states(
     return result
 
 
+def selected_model_payload(
+    state: Mapping[str, torch.Tensor],
+    selected: Mapping[str, object],
+    training_protocol: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "model": state,
+        "selection": selected,
+        "training_protocol": training_protocol,
+    }
+
+
+def endpoint_model_payload(
+    state: Mapping[str, torch.Tensor],
+    endpoint: Mapping[str, object],
+    training_protocol: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "model": state,
+        "endpoint": endpoint,
+        "training_protocol": training_protocol,
+    }
+
+
 def _epoch(path: Path) -> int:
     try:
         value = int(path.stem.removeprefix("epoch-"))
@@ -787,6 +811,22 @@ def recalibrate_batch_norm(model: torch.nn.Module, loader, *, device: torch.devi
         model.eval()
 
 
+def recalibrated_model_state(
+    model: torch.nn.Module,
+    state: Mapping[str, torch.Tensor],
+    loader,
+    *,
+    device: torch.device,
+) -> OrderedDict[str, torch.Tensor]:
+    """Load one candidate and return its post-recalibration state on CPU."""
+
+    model.load_state_dict(state, strict=True)
+    recalibrate_batch_norm(model, loader, device=device)
+    return OrderedDict(
+        (name, value.detach().cpu().clone()) for name, value in model.state_dict().items()
+    )
+
+
 def _atomic_torch_save(value: object, path: Path) -> None:
     temporary = path.with_name(f"{path.name}.tmp")
     if path.exists() or temporary.exists():
@@ -833,8 +873,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _validate_selection_args(args)
     trainer = _load_trainer()
     model_path = args.output_dir / "selected-model.pt"
+    endpoint_model_path = args.output_dir / "endpoint-model.pt"
     report_path = args.output_dir / "selection.json"
-    for path in (model_path, report_path):
+    for path in (model_path, endpoint_model_path, report_path):
         if path.exists() or path.with_name(f"{path.name}.tmp").exists():
             raise FileExistsError(f"selection output already exists: {path}")
     if trainer._git_revision(args.unicom_checkout) != trainer.UNICOM_REVISION:
@@ -915,15 +956,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     checkpoint_by_epoch = {_epoch(path): state for path, state in checkpoints}
     soup = average_model_states(tuple(checkpoint_by_epoch[epoch] for epoch in selected["epochs"]))
     selected_state = interpolate_model_states(initial, soup, alpha=selected["alpha"])
-    model.load_state_dict(selected_state, strict=True)
-    recalibrate_batch_norm(model, calibration_loader, device=device)
-    selected_state = OrderedDict(
-        (name, value.detach().cpu().clone()) for name, value in model.state_dict().items()
+    selected_state = recalibrated_model_state(
+        model, selected_state, calibration_loader, device=device
+    )
+    endpoint_state = recalibrated_model_state(
+        model, checkpoint_by_epoch[16], calibration_loader, device=device
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
     _atomic_torch_save(
-        {"model": selected_state, "selection": selected},
+        selected_model_payload(selected_state, selected, training_protocol),
         model_path,
+    )
+    _atomic_torch_save(
+        endpoint_model_payload(endpoint_state, endpoint, training_protocol),
+        endpoint_model_path,
     )
     report = {
         "protocol": REPORT_PROTOCOL,
