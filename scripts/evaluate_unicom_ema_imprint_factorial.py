@@ -203,7 +203,7 @@ def factorial_gate(
     baseline_recall = baseline["metrics"]["recall_at_1"]
     selected_map = selected["metrics"]["map_at_r"]
     selected_recall = selected["metrics"]["recall_at_1"]
-    instrument_reproduced = (
+    instrument_lineage_noninferior = (
         baseline_map >= ARCHIVED_MAP_AT_R - 0.002
         and baseline_recall >= ARCHIVED_RECALL_AT_1 - 0.002
     )
@@ -219,15 +219,15 @@ def factorial_gate(
     imprint_time = time_to_quality(rows, cell="imprinted_raw", target=baseline_map)
     imprint_speedup = imprint_time["speedup"]
     promoted = (
-        instrument_reproduced
+        instrument_lineage_noninferior
         and map_gain >= 0.003
         and recall_delta >= -0.00125
         and bootstrap_interval[0] > 0.0
     )
     return {
-        "instrument_map_tolerance": 0.002,
-        "instrument_recall_at_1_tolerance": 0.002,
-        "instrument_reproduced": instrument_reproduced,
+        "instrument_map_noninferiority_tolerance": 0.002,
+        "instrument_recall_at_1_noninferiority_tolerance": 0.002,
+        "instrument_lineage_noninferior": instrument_lineage_noninferior,
         "selected_cell": selected["cell"],
         "selected_map_gain": map_gain,
         "selected_recall_at_1_delta": recall_delta,
@@ -242,7 +242,7 @@ def factorial_gate(
             imprint_delta < 0.0015 and (imprint_speedup is None or imprint_speedup < 1.5)
         ),
         "decision": "INVALID"
-        if not instrument_reproduced
+        if not instrument_lineage_noninferior
         else ("PROMOTE" if promoted else "CLOSE"),
         "promoted": promoted,
     }

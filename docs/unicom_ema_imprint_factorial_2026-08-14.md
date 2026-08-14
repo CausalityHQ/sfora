@@ -122,8 +122,11 @@ checkpoint and partition bindings. The v2 control row's metrics and per-query
 evidence must exactly equal the factorial's freshly evaluated `random_raw`
 epoch-16 row. The original v1 failure remains embedded in the v2 record.
 
-This amendment does not change candidate selection or any promotion, EMA-close,
-imprint-close, time-to-quality, epoch, seed, training, or evaluation threshold.
+This amendment replaces the cross-lineage instrument predicate that is conjoined with
+promotion, but does not change candidate selection or any numeric promotion, EMA-close,
+imprint-close, time-to-quality, epoch, seed, training, or evaluation threshold. The
+factorial output names the replacement `instrument_lineage_noninferior` rather than
+claiming the archived endpoint was reproduced.
 
 The epoch-16 candidate is selected from `random_ema`, `imprinted_raw`, and
 `imprinted_ema` by mAP@R, then Recall@1, then the fixed order just listed. It is

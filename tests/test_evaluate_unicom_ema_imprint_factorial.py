@@ -98,7 +98,7 @@ def test_factorial_gate_stops_when_current_lineage_is_inferior_to_archived_floor
 
     gate = module.factorial_gate(rows, bootstrap_interval=(0.001, 0.01))
 
-    assert gate["instrument_reproduced"] is False
+    assert gate["instrument_lineage_noninferior"] is False
     assert gate["promoted"] is False
     assert gate["decision"] == "INVALID"
 
@@ -511,7 +511,8 @@ def test_factorial_gate_uses_current_lineage_baseline_without_weakening_promotio
 
     gate = module.factorial_gate(rows, bootstrap_interval=(1e-12, 0.01))
 
-    assert gate["instrument_reproduced"] is True
+    assert gate["instrument_lineage_noninferior"] is True
+    assert "instrument_reproduced" not in gate
     assert gate["minimum_map_gain"] == 0.003
     assert gate["recall_at_1_guard"] == -0.00125
     assert gate["promoted"] is True
@@ -560,6 +561,16 @@ def test_repaired_control_rejects_coordinated_split_or_initial_checkpoint_drift(
 
     with pytest.raises(ValueError, match="repair"):
         module.validate_repaired_control_report(repaired)
+
+
+def test_archived_recomputation_report_rejects_byte_digest_drift(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script()
+    monkeypatch.setattr(module, "ARCHIVED_RECOMPUTATION_REPORT_SHA256", "f" * 64)
+
+    with pytest.raises(ValueError, match="report bytes"):
+        module._load_archived_recomputation_evidence()
 
 
 def test_repair_control_cli_derives_v2_without_gpu_or_candidate_inputs(
@@ -686,7 +697,8 @@ def test_control_report_validates_and_main_publishes_without_imprinted_run(
     assert json.loads(output.read_text()) == report
 
 
-def test_factorial_binding_rejects_control_from_other_random_checkpoint() -> None:
+@pytest.mark.parametrize("field", ("checkpoint_sha256", "training_history_sha256"))
+def test_factorial_binding_rejects_other_random_checkpoint_evidence(field: str) -> None:
     module = _load_script()
     factorial = _valid_report(module)
     control = module.build_repaired_control_report(
@@ -710,8 +722,8 @@ def test_factorial_binding_rejects_control_from_other_random_checkpoint() -> Non
     protocol = control["provenance"]["random_training_protocol"]
 
     module.validate_control_binding(control, rows, protocol)
-    control["row"]["checkpoint_sha256"] = "f" * 64
-    with pytest.raises(ValueError, match="control binding"):
+    random_row[field] = "f" * 64
+    with pytest.raises(ValueError, match="control report binding"):
         module.validate_control_binding(control, rows, protocol)
 
 

@@ -2,8 +2,9 @@
 
 ## Scope
 
-This repair changes only the instrument-continuation gate. It does not change training,
-the four factorial cells, registered epochs, candidate selection, or promotion criteria.
+This repair replaces the cross-lineage instrument predicate in both the v2 control and
+the factorial's promotion conjunction. It does not change training, the four factorial
+cells, registered epochs, candidate selection, or any numeric promotion threshold.
 
 The promotion criteria remain:
 
@@ -64,6 +65,8 @@ the archived metric constants as self-evidence.
 The factorial still compares every candidate with the current-lineage `random_raw` row.
 Consequently the higher current baseline makes promotion harder, not easier. The v2 report
 also records `candidate_values_observed=false` and `promotion_thresholds_unchanged=true`.
+The factorial artifact names this predicate `instrument_lineage_noninferior` and records
+non-inferiority tolerances; it does not claim that the archived endpoint was reproduced.
 
 The v2 report is derived without GPU work:
 
