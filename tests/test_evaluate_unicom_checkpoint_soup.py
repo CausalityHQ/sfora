@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from collections import OrderedDict
 from pathlib import Path
@@ -187,9 +188,34 @@ def test_screen_protocol_rejects_every_trajectory_drift() -> None:
             module._validate_screen_training_protocol(drifted, trainer, args)
 
 
-def test_selection_modes_freeze_screen_and_single_replication_candidates() -> None:
+def test_selection_modes_freeze_screen_and_bind_replication_to_winner(tmp_path: Path) -> None:
     module = _load_script()
     paths = tuple(Path(f"epoch-{epoch:04d}.pt") for epoch in (4, 8, 12, 16))
+    selected = {
+        "name": "epochs-12_16-alpha-0.9",
+        "epochs": [12, 16],
+        "checkpoints": [str(path) for path in paths[2:]],
+        "alpha": 0.9,
+        "metrics": {"recall_at_1": 0.8, "map_at_r": 0.7},
+    }
+    screen_report = tmp_path / "selection.json"
+    screen_report.write_text(
+        json.dumps(
+            {
+                "protocol": "unicom-train-identity-holdout-suffix-soup-wise-v2",
+                "mode": "screen",
+                "training_seed": 0,
+                "alphas": list(module.REGISTERED_SCREEN_ALPHAS),
+                "batch_size": 128,
+                "workers": 4,
+                "selected_features": 512,
+                "holdout_seed": 0,
+                "holdout_fraction": 0.2,
+                "selected": selected,
+                "candidates": [selected],
+            }
+        )
+    )
     screen = SimpleNamespace(
         mode="screen",
         training_seed=0,
@@ -200,6 +226,7 @@ def test_selection_modes_freeze_screen_and_single_replication_candidates() -> No
         batch_size=128,
         workers=4,
         selected_features=512,
+        screen_report=None,
     )
     fixed = SimpleNamespace(
         mode="fixed",
@@ -211,6 +238,7 @@ def test_selection_modes_freeze_screen_and_single_replication_candidates() -> No
         batch_size=128,
         workers=4,
         selected_features=512,
+        screen_report=screen_report,
     )
 
     module._validate_selection_args(screen)
@@ -228,6 +256,10 @@ def test_selection_modes_freeze_screen_and_single_replication_candidates() -> No
         setattr(drifted, field, value)
         with pytest.raises(ValueError, match="frozen protocol"):
             module._validate_selection_args(drifted)
+    wrong_winner = SimpleNamespace(**vars(fixed))
+    wrong_winner.alphas = [0.85]
+    with pytest.raises(ValueError, match="screen winner"):
+        module._validate_selection_args(wrong_winner)
 
 
 def test_fixed_replication_evaluates_only_the_registered_full_window() -> None:

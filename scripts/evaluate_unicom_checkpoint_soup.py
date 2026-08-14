@@ -262,13 +262,45 @@ def _validate_selection_args(args) -> None:
     epochs = tuple(_epoch(path) for path in args.trajectory_checkpoints)
     alphas = tuple(args.alphas)
     if args.mode == "screen":
+        if args.screen_report is not None:
+            raise ValueError("screen mode must not consume a prior screen report")
         if args.training_seed != 0 or epochs != (4, 8, 12, 16):
             raise ValueError("screen seed/checkpoints differ from frozen protocol")
         if alphas != REGISTERED_SCREEN_ALPHAS:
             raise ValueError("screen alpha grid differs from frozen protocol")
     elif args.mode == "fixed":
-        if args.training_seed not in (1, 2, 3) or len(alphas) != 1:
+        if (
+            args.training_seed not in (1, 2, 3)
+            or len(alphas) != 1
+            or not isinstance(args.screen_report, Path)
+        ):
             raise ValueError("fixed replication seed/alpha differs from frozen protocol")
+        screen = json.loads(args.screen_report.read_text())
+        if (
+            type(screen) is not dict
+            or screen.get("protocol")
+            != "unicom-train-identity-holdout-suffix-soup-wise-v2"
+            or screen.get("mode") != "screen"
+            or screen.get("training_seed") != 0
+            or screen.get("alphas") != list(REGISTERED_SCREEN_ALPHAS)
+            or screen.get("batch_size") != 128
+            or screen.get("workers") != 4
+            or screen.get("selected_features") != 512
+            or screen.get("holdout_seed") != 0
+            or screen.get("holdout_fraction") != 0.2
+            or type(screen.get("selected")) is not dict
+            or type(screen.get("candidates")) is not list
+            or not screen["candidates"]
+        ):
+            raise ValueError("fixed replication screen report differs")
+        selected = screen["selected"]
+        if (
+            selected not in screen["candidates"]
+            or select_candidate(screen["candidates"]) != selected
+        ):
+            raise ValueError("fixed replication screen winner differs")
+        if selected.get("epochs") != list(epochs) or selected.get("alpha") != alphas[0]:
+            raise ValueError("fixed replication differs from screen winner")
     else:
         raise ValueError("selection mode differs")
 
@@ -429,6 +461,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "batch_size": args.batch_size,
         "workers": args.workers,
         "selected_features": args.selected_features,
+        "screen_report": None if args.screen_report is None else str(args.screen_report),
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
         "training_protocol": training_protocol,
@@ -451,6 +484,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--alphas", required=True, type=float, nargs="+")
     parser.add_argument("--mode", required=True, choices=("screen", "fixed"))
     parser.add_argument("--training-seed", required=True, type=int)
+    parser.add_argument("--screen-report", type=Path)
     parser.add_argument("--holdout-seed", type=int, default=0)
     parser.add_argument("--holdout-fraction", type=float, default=0.2)
     parser.add_argument("--batch-size", type=int, default=128)
