@@ -160,7 +160,7 @@ def select_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any]:
         raise ValueError("candidate list is empty")
     return max(
         candidates,
-        key=lambda row: (row["metrics"]["recall_at_1"], row["metrics"]["map_at_r"]),
+        key=lambda row: (row["metrics"]["map_at_r"], row["metrics"]["recall_at_1"]),
     )
 
 

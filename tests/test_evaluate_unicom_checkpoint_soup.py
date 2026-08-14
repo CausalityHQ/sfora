@@ -85,16 +85,16 @@ def test_interpolation_carries_trained_nonfloating_buffers() -> None:
     assert result["counter"].item() == 16
 
 
-def test_candidate_selection_is_metric_first_and_stable_on_ties() -> None:
+def test_candidate_selection_is_map_first_then_recall_and_stable_on_ties() -> None:
     module = _load_script()
     candidates = [
         {"name": "first", "metrics": {"recall_at_1": 0.8, "map_at_r": 0.7}},
         {"name": "map-win", "metrics": {"recall_at_1": 0.8, "map_at_r": 0.71}},
         {"name": "recall-win", "metrics": {"recall_at_1": 0.81, "map_at_r": 0.6}},
-        {"name": "same", "metrics": {"recall_at_1": 0.81, "map_at_r": 0.6}},
+        {"name": "same-map", "metrics": {"recall_at_1": 0.8, "map_at_r": 0.71}},
     ]
 
-    assert module.select_candidate(candidates)["name"] == "recall-win"
+    assert module.select_candidate(candidates)["name"] == "map-win"
 
 
 def test_evaluate_grid_loads_each_real_interpolated_state() -> None:
