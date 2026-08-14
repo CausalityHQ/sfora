@@ -283,6 +283,38 @@ def test_fixed_replication_evaluates_only_the_registered_full_window() -> None:
     assert [row["epochs"] for row in candidates] == [[12, 16]]
 
 
+def test_query_evidence_is_persisted_and_drives_the_paired_gate() -> None:
+    module = _load_script()
+    model = torch.nn.Linear(1, 1, bias=False)
+    state = OrderedDict(weight=torch.tensor([[1.0]]))
+    evidence = {
+        "top1_correct": [True, False, True, False],
+        "average_precision": [0.51, 0.41, 0.31, 0.21],
+    }
+    candidates = module.evaluate_grid(
+        model,
+        state,
+        ((Path("epoch-0016.pt"), state),),
+        alphas=(1.0,),
+        evaluate=lambda: ({"recall_at_1": 0.5, "map_at_r": 0.36}, evidence),
+    )
+    endpoint = {
+        **candidates[0],
+        "query_evidence": {
+            "top1_correct": [True, False, True, False],
+            "average_precision": [0.5, 0.4, 0.3, 0.2],
+        },
+    }
+
+    gate = module.paired_candidate_gate(candidates[0], endpoint, seed=7, samples=100)
+
+    assert candidates[0]["query_evidence"] == evidence
+    assert gate["map_delta"] == pytest.approx(0.01)
+    assert gate["map_delta_95_interval"] == pytest.approx([0.01, 0.01])
+    assert gate["recall_at_1_delta"] == 0.0
+    assert gate["promoted"] is True
+
+
 def test_evaluate_grid_loads_each_real_interpolated_state() -> None:
     module = _load_script()
     model = torch.nn.Linear(1, 1, bias=False)

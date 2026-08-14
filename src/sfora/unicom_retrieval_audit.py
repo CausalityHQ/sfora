@@ -17,6 +17,7 @@ class RetrievalView:
     map_at_r: float
     top1_indices: np.ndarray
     top1_correct: np.ndarray
+    average_precision: np.ndarray | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,10 @@ class GeometryAudit:
                 and left.map_at_r == right.map_at_r
                 and np.array_equal(left.top1_indices, right.top1_indices)
                 and np.array_equal(left.top1_correct, right.top1_correct)
+                and (
+                    (left.average_precision is None and right.average_precision is None)
+                    or np.array_equal(left.average_precision, right.average_precision)
+                )
             )
 
         return (
@@ -263,6 +268,7 @@ def retrieval_metrics_from_score_chunks(
         map_at_r=float(np.mean(average_precisions)),
         top1_indices=top1,
         top1_correct=top1_correct,
+        average_precision=np.asarray(average_precisions, dtype=np.float64),
     )
 
 

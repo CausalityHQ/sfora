@@ -14,6 +14,7 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 
 REGISTERED_SCREEN_ALPHAS = (0.25, 0.5, 0.75, 0.85, 0.9, 0.95, 1.0)
@@ -110,7 +111,9 @@ def evaluate_grid(
     alphas: tuple[float, ...],
     all_suffixes: bool = True,
     prepare: Callable[[], None] = lambda: None,
-    evaluate: Callable[[], dict[str, float]],
+    evaluate: Callable[
+        [], dict[str, float] | tuple[dict[str, float], dict[str, list[object]]]
+    ],
 ) -> list[dict[str, Any]]:
     """Evaluate every suffix soup and interpolation in a stable registered order."""
 
@@ -137,7 +140,11 @@ def evaluate_grid(
             state = interpolate_model_states(initial, soup, alpha=alpha)
             model.load_state_dict(state, strict=True)
             prepare()
-            metrics = evaluate()
+            evaluation = evaluate()
+            if isinstance(evaluation, tuple):
+                metrics, query_evidence = evaluation
+            else:
+                metrics, query_evidence = evaluation, None
             if tuple(metrics) != (
                 "recall_at_1",
                 "recall_at_10",
@@ -146,8 +153,7 @@ def evaluate_grid(
                 "map_at_r",
             ) and tuple(metrics) != ("recall_at_1", "map_at_r"):
                 raise ValueError("candidate metric schema differs")
-            candidates.append(
-                {
+            candidate = {
                     "name": (
                         f"epochs-{'_'.join(str(epoch) for epoch in epochs)}"
                         f"-alpha-{_alpha_text(alpha)}"
@@ -157,8 +163,109 @@ def evaluate_grid(
                     "alpha": alpha,
                     "metrics": metrics,
                 }
-            )
+            if query_evidence is not None:
+                _validate_query_evidence(query_evidence)
+                candidate["query_evidence"] = query_evidence
+            candidates.append(candidate)
     return candidates
+
+
+def _validate_query_evidence(value: dict[str, list[object]]) -> None:
+    if type(value) is not dict or tuple(value) != ("top1_correct", "average_precision"):
+        raise ValueError("candidate query evidence schema differs")
+    top1 = value["top1_correct"]
+    average_precision = value["average_precision"]
+    if (
+        type(top1) is not list
+        or type(average_precision) is not list
+        or not top1
+        or len(top1) != len(average_precision)
+        or any(type(item) is not bool for item in top1)
+        or any(
+            type(item) is not float or not math.isfinite(item) or not 0.0 <= item <= 1.0
+            for item in average_precision
+        )
+    ):
+        raise ValueError("candidate query evidence differs")
+
+
+def evaluate_holdout_with_query_evidence(
+    trainer,
+    model: torch.nn.Module,
+    query,
+    gallery,
+    transform,
+    *,
+    device: torch.device,
+    batch_size: int,
+    workers: int,
+    selected_features: int,
+) -> tuple[dict[str, float], dict[str, list[object]]]:
+    query_values, query_labels = trainer._encode_records(
+        model, query, transform, device=device, batch_size=batch_size, workers=workers
+    )
+    gallery_values, gallery_labels = trainer._encode_records(
+        model, gallery, transform, device=device, batch_size=batch_size, workers=workers
+    )
+    result = trainer.retrieval_view(
+        query_values,
+        gallery_values,
+        query_labels,
+        gallery_labels,
+        coordinates=np.arange(selected_features),
+        normalize_before=True,
+    )
+    if result.average_precision is None:
+        raise ValueError("retrieval evaluator omitted per-query average precision")
+    metrics = {
+        "recall_at_1": result.recall[1],
+        "recall_at_10": result.recall[10],
+        "recall_at_20": result.recall[20],
+        "recall_at_30": result.recall[30],
+        "map_at_r": result.map_at_r,
+    }
+    evidence = {
+        "top1_correct": result.top1_correct.tolist(),
+        "average_precision": result.average_precision.tolist(),
+    }
+    _validate_query_evidence(evidence)
+    return metrics, evidence
+
+
+def paired_candidate_gate(
+    selected: dict[str, Any], endpoint: dict[str, Any], *, seed: int = 0, samples: int = 10_000
+) -> dict[str, object]:
+    for candidate in (selected, endpoint):
+        _validate_query_evidence(candidate.get("query_evidence"))
+    selected_evidence = selected["query_evidence"]
+    endpoint_evidence = endpoint["query_evidence"]
+    selected_ap = np.asarray(selected_evidence["average_precision"], dtype=np.float64)
+    endpoint_ap = np.asarray(endpoint_evidence["average_precision"], dtype=np.float64)
+    selected_top1 = np.asarray(selected_evidence["top1_correct"], dtype=np.float64)
+    endpoint_top1 = np.asarray(endpoint_evidence["top1_correct"], dtype=np.float64)
+    if selected_ap.shape != endpoint_ap.shape or selected_top1.shape != endpoint_top1.shape:
+        raise ValueError("selected/endpoint query evidence differs")
+    generator = np.random.Generator(np.random.PCG64(seed))
+    indices = generator.integers(0, selected_ap.size, size=(samples, selected_ap.size))
+    map_replicates = (selected_ap - endpoint_ap)[indices].mean(axis=1)
+    top1_replicates = (selected_top1 - endpoint_top1)[indices].mean(axis=1)
+    map_delta = float((selected_ap - endpoint_ap).mean())
+    top1_delta = float((selected_top1 - endpoint_top1).mean())
+    return {
+        "bootstrap_seed": seed,
+        "bootstrap_samples": samples,
+        "map_delta": map_delta,
+        "map_delta_95_interval": [
+            float(np.percentile(map_replicates, 2.5)),
+            float(np.percentile(map_replicates, 97.5)),
+        ],
+        "recall_at_1_delta": top1_delta,
+        "recall_at_1_delta_95_interval": [
+            float(np.percentile(top1_replicates, 2.5)),
+            float(np.percentile(top1_replicates, 97.5)),
+        ],
+        "promoted": map_delta >= 0.003 and top1_delta >= -0.00125,
+    }
 
 
 def select_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any]:
@@ -428,7 +535,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         alphas=tuple(args.alphas),
         all_suffixes=args.mode == "screen",
         prepare=lambda: recalibrate_batch_norm(model, calibration_loader, device=device),
-        evaluate=lambda: trainer.evaluate_holdout(
+        evaluate=lambda: evaluate_holdout_with_query_evidence(
+            trainer,
             model,
             query,
             gallery,
@@ -440,6 +548,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     )
     selected = select_candidate(candidates)
+    endpoint = next(
+        (
+            candidate
+            for candidate in candidates
+            if candidate["epochs"] == [16] and candidate["alpha"] == 1.0
+        ),
+        None,
+    )
+    gate = None if args.mode == "fixed" else paired_candidate_gate(selected, endpoint)
     checkpoint_by_epoch = {_epoch(path): state for path, state in checkpoints}
     soup = average_model_states(tuple(checkpoint_by_epoch[epoch] for epoch in selected["epochs"]))
     selected_state = interpolate_model_states(initial, soup, alpha=selected["alpha"])
@@ -467,6 +584,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "training_protocol": training_protocol,
         "batch_norm_recalibration": "full-optimization-cumulative-batches",
         "selected": selected,
+        "endpoint": endpoint,
+        "gate": gate,
         "candidates": candidates,
         "model_path": str(model_path),
     }

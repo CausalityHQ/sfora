@@ -90,6 +90,8 @@ def test_score_chunk_metrics_use_the_same_recall_map_and_tie_contract() -> None:
     assert result.recall[1] == 0.0
     assert result.recall[10] == 1.0
     assert result.map_at_r == 0.0
+    assert result.average_precision is not None
+    assert result.average_precision.tolist() == [0.0, 0.0]
 
 
 def test_recall_and_map_at_r_match_hand_computed_fixture() -> None:
