@@ -7,6 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
+from sfora import unicom_retrieval_audit
+
 SCRIPT = Path(__file__).parents[1] / "scripts" / "evaluate_unicom_ftra_falsifier.py"
 SPEC = importlib.util.spec_from_file_location("evaluate_unicom_ftra_falsifier", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
@@ -35,6 +37,38 @@ def test_deployment_scores_match_full_normalize_then_prefix_distance() -> None:
     np.testing.assert_array_equal(scores, expected)
     assert scores.dtype == np.float64
     assert scores.flags.c_contiguous
+
+
+def test_deployment_scores_match_registered_retrieval_view_chunks(monkeypatch) -> None:
+    generator = np.random.Generator(np.random.PCG64(0))
+    query = np.ascontiguousarray(generator.normal(size=(513, 768)).astype(np.float32))
+    gallery = np.ascontiguousarray(generator.normal(size=(700, 768)).astype(np.float32))
+    query_labels = np.asarray(["A"] * query.shape[0])
+    gallery_labels = np.asarray(["A"] * gallery.shape[0])
+    captured: list[np.ndarray] = []
+    original_reducer = unicom_retrieval_audit.retrieval_metrics_from_score_chunks
+
+    def capture(score_chunks, query_values, gallery_values):
+        chunks = tuple(score_chunks)
+        captured.extend(chunks)
+        return original_reducer(chunks, query_values, gallery_values)
+
+    monkeypatch.setattr(unicom_retrieval_audit, "retrieval_metrics_from_score_chunks", capture)
+
+    scores = ftra.deployment_scores(query, gallery, selected_features=512)
+    unicom_retrieval_audit.retrieval_view(
+        query,
+        gallery,
+        query_labels,
+        gallery_labels,
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    expected = np.ascontiguousarray(np.concatenate(captured, axis=0), dtype=np.float64)
+
+    assert ftra.SCREEN_QUERY_CHUNK_SIZE == 256
+    assert [chunk.shape[0] for chunk in captured] == [256, 256, 1]
+    np.testing.assert_array_equal(scores, expected)
 
 
 def test_blend_grid_uses_repository_metrics_and_prefers_lower_alpha_on_ties() -> None:

@@ -19,6 +19,7 @@ from sfora.unicom_retrieval_audit import retrieval_metrics_from_score_chunks
 
 REGISTERED_ALPHAS = (0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0)
 SOUP_PROTOCOL = "unicom-train-identity-holdout-suffix-soup-wise-v3"
+SCREEN_QUERY_CHUNK_SIZE = 256
 PROVENANCE_FIELDS = (
     "screen_report",
     "screen_report_sha256",
@@ -74,10 +75,14 @@ def deployment_scores(
 
     query = normalized_prefix(query_embeddings)
     gallery = normalized_prefix(gallery_embeddings)
-    query_norms = np.sum(query * query, axis=1, dtype=np.float64)
     gallery_norms = np.sum(gallery * gallery, axis=1, dtype=np.float64)
-    distances = query_norms[:, None] + gallery_norms[None, :] - 2.0 * (query @ gallery.T)
-    return np.ascontiguousarray(-distances, dtype=np.float64)
+    chunks = []
+    for start in range(0, query.shape[0], SCREEN_QUERY_CHUNK_SIZE):
+        query_chunk = query[start : start + SCREEN_QUERY_CHUNK_SIZE]
+        query_norms = np.sum(query_chunk * query_chunk, axis=1, dtype=np.float64)
+        distances = query_norms[:, None] + gallery_norms[None, :] - 2.0 * (query_chunk @ gallery.T)
+        chunks.append(np.ascontiguousarray(-distances, dtype=np.float64))
+    return np.ascontiguousarray(np.concatenate(chunks, axis=0), dtype=np.float64)
 
 
 def _score_matrix(values: np.ndarray, *, name: str) -> None:
