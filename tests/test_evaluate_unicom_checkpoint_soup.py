@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from collections import OrderedDict
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import torch
@@ -95,6 +96,159 @@ def test_candidate_selection_is_map_first_then_recall_and_stable_on_ties() -> No
     ]
 
     assert module.select_candidate(candidates)["name"] == "map-win"
+
+
+@pytest.mark.parametrize("alphas", [(0.5, 0.5), (1.0, 0.5)])
+def test_candidate_grid_rejects_duplicate_or_unsorted_alphas(alphas) -> None:
+    module = _load_script()
+    model = torch.nn.Linear(1, 1, bias=False)
+    state = OrderedDict(weight=torch.tensor([[1.0]]))
+
+    with pytest.raises(ValueError, match="unique increasing"):
+        module.evaluate_grid(
+            model,
+            state,
+            ((Path("epoch-0001.pt"), state),),
+            alphas=alphas,
+            evaluate=lambda: {"recall_at_1": 1.0, "map_at_r": 1.0},
+        )
+
+
+def test_cli_requires_an_explicit_alpha_grid() -> None:
+    module = _load_script()
+
+    with pytest.raises(SystemExit):
+        module.parse_args(
+            [
+                "--unicom-checkout",
+                "/tmp/unicom",
+                "--initial-checkpoint",
+                "/tmp/model.pt",
+                "--dataset-root",
+                "/tmp/inshop",
+                "--output-dir",
+                "/tmp/output",
+                "--trajectory-checkpoints",
+                "/tmp/epoch-0004.pt",
+            ]
+        )
+
+
+def test_screen_protocol_rejects_every_trajectory_drift() -> None:
+    module = _load_script()
+    args = SimpleNamespace(
+        batch_size=64,
+        workers=0,
+        holdout_seed=5,
+        holdout_fraction=0.3,
+        selected_features=768,
+        training_seed=0,
+        dataset_root=Path("/tmp/inshop"),
+    )
+    trainer = SimpleNamespace(
+        UNICOM_REVISION="official-revision",
+        UNICOM_L14_336_SHA256="checkpoint-sha",
+        __file__="/tmp/train_unicom_inshop.py",
+        _sha256_file=lambda path: {
+            Path("/tmp/train_unicom_inshop.py"): "trainer-sha",
+            Path("/tmp/inshop/Eval/list_eval_partition.txt"): "partition-sha",
+        }[Path(path)],
+    )
+    expected = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": "trainer-sha",
+        "unicom_revision": "official-revision",
+        "initial_checkpoint_sha256": "checkpoint-sha",
+        "partition_sha256": "partition-sha",
+        "seed": 0,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+    }
+
+    assert module._expected_screen_training_protocol(trainer, args) == expected
+    module._validate_screen_training_protocol(expected, trainer, args)
+    for key in expected:
+        drifted = dict(expected)
+        drifted[key] = object()
+        with pytest.raises(ValueError, match="protocol differs"):
+            module._validate_screen_training_protocol(drifted, trainer, args)
+
+
+def test_selection_modes_freeze_screen_and_single_replication_candidates() -> None:
+    module = _load_script()
+    paths = tuple(Path(f"epoch-{epoch:04d}.pt") for epoch in (4, 8, 12, 16))
+    screen = SimpleNamespace(
+        mode="screen",
+        training_seed=0,
+        trajectory_checkpoints=paths,
+        alphas=list(module.REGISTERED_SCREEN_ALPHAS),
+        holdout_seed=0,
+        holdout_fraction=0.2,
+        batch_size=128,
+        workers=4,
+        selected_features=512,
+    )
+    fixed = SimpleNamespace(
+        mode="fixed",
+        training_seed=1,
+        trajectory_checkpoints=paths[2:],
+        alphas=[0.9],
+        holdout_seed=0,
+        holdout_fraction=0.2,
+        batch_size=128,
+        workers=4,
+        selected_features=512,
+    )
+
+    module._validate_selection_args(screen)
+    module._validate_selection_args(fixed)
+    for field, value in (
+        ("training_seed", 2),
+        ("alphas", [0.25, 0.5, 0.75, 1.0]),
+        ("holdout_seed", 1),
+        ("holdout_fraction", 0.3),
+        ("batch_size", 64),
+        ("workers", 0),
+        ("selected_features", 768),
+    ):
+        drifted = SimpleNamespace(**vars(screen))
+        setattr(drifted, field, value)
+        with pytest.raises(ValueError, match="frozen protocol"):
+            module._validate_selection_args(drifted)
+
+
+def test_fixed_replication_evaluates_only_the_registered_full_window() -> None:
+    module = _load_script()
+    model = torch.nn.Linear(1, 1, bias=False)
+    initial = OrderedDict(weight=torch.tensor([[0.0]]))
+    checkpoints = tuple(
+        (Path(f"epoch-{epoch:04d}.pt"), OrderedDict(weight=torch.tensor([[float(epoch)]])))
+        for epoch in (12, 16)
+    )
+
+    candidates = module.evaluate_grid(
+        model,
+        initial,
+        checkpoints,
+        alphas=(0.9,),
+        all_suffixes=False,
+        evaluate=lambda: {"recall_at_1": 1.0, "map_at_r": 1.0},
+    )
+
+    assert [row["epochs"] for row in candidates] == [[12, 16]]
 
 
 def test_evaluate_grid_loads_each_real_interpolated_state() -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -103,6 +104,38 @@ def test_cli_defaults_match_official_336_recipe() -> None:
     assert not args.fused
 
 
+def test_worker_seed_preserves_the_epoch_varying_dataloader_seed(monkeypatch) -> None:
+    module = _load_script()
+    python_seeds: list[int] = []
+    numpy_seeds: list[int] = []
+    initial_seeds = iter((2**32 + 123, 2**32 + 456))
+    monkeypatch.setattr(module.torch, "initial_seed", lambda: next(initial_seeds))
+    monkeypatch.setattr(
+        module.torch,
+        "manual_seed",
+        lambda _seed: pytest.fail("worker init must not overwrite PyTorch's worker seed"),
+    )
+    monkeypatch.setattr(module.random, "seed", python_seeds.append)
+    monkeypatch.setattr(np.random, "seed", numpy_seeds.append)
+
+    module._seed_worker(0)
+    module._seed_worker(0)
+
+    assert python_seeds == [123, 456]
+    assert numpy_seeds == [123, 456]
+
+
+def test_training_loader_seed_is_epoch_derived_and_global_rng_independent() -> None:
+    module = _load_script()
+    loader = SimpleNamespace(generator=torch.Generator())
+    global_state = torch.get_rng_state().clone()
+
+    module._seed_training_loader(loader, seed=7, epoch=3)
+
+    assert loader.generator.initial_seed() == module.experiment_stream_seed(7, 2_003)
+    assert torch.equal(torch.get_rng_state(), global_state)
+
+
 def test_train_dataset_uses_optimization_label_mapping(tmp_path: Path) -> None:
     module = _load_script()
     image_path = tmp_path / "image.jpg"
@@ -165,6 +198,7 @@ def test_training_epoch_updates_backbone_with_official_mask_objective() -> None:
     loader = DataLoader(
         TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
         batch_size=4,
+        generator=torch.Generator(),
     )
     before = backbone.weight.detach().clone()
     scaler = torch.amp.GradScaler("cpu")
@@ -254,8 +288,15 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
     loader = DataLoader(
         TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
         batch_size=4,
+        generator=torch.Generator(),
     )
     evaluations: list[int] = []
+    data_seeds: list[int] = []
+
+    def evaluate(epoch: int) -> dict[str, float]:
+        evaluations.append(epoch)
+        data_seeds.append(loader.generator.initial_seed())
+        return {"recall_at_1": epoch / 2}
 
     history = module.fit_model(
         raw_model=raw_model,
@@ -279,12 +320,16 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         eval_every=1,
         checkpoint_every=1,
         output_dir=tmp_path,
-        evaluate=lambda epoch: evaluations.append(epoch) or {"recall_at_1": epoch / 2},
+        evaluate=evaluate,
         selection_holdout={"seed": 0, "fraction": 0.2},
         training_protocol={"seed": 0, "objective": "official-eight-mask"},
     )
 
     assert evaluations == [1, 2]
+    assert data_seeds == [
+        module.experiment_stream_seed(0, 2_000),
+        module.experiment_stream_seed(0, 2_001),
+    ]
     assert [row["epoch"] for row in history] == [1, 2]
     assert [row["metrics"] for row in history] == [
         {"recall_at_1": 0.5},
@@ -325,6 +370,7 @@ def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> No
     loader = DataLoader(
         TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
         batch_size=4,
+        generator=torch.Generator(),
     )
 
     module.fit_model(

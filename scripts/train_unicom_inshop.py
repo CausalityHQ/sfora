@@ -342,6 +342,7 @@ def fit_model(
     for epoch in range(start_epoch, epochs):
         if sampler is not None:
             sampler.set_epoch(epoch)
+        _seed_training_loader(loader, seed=int(training_protocol["seed"]), epoch=epoch)
         train_result = run_training_epoch(
             train_model,
             classifier,
@@ -386,6 +387,13 @@ def fit_model(
                 history=history,
             )
     return history
+
+
+def _seed_training_loader(loader, *, seed: int, epoch: int) -> None:
+    data_generator = getattr(loader, "generator", None)
+    if type(data_generator) is not torch.Generator:
+        raise ValueError("training loader must expose its dedicated generator")
+    data_generator.manual_seed(experiment_stream_seed(seed, 2_000 + epoch))
 
 
 def save_training_checkpoint(
@@ -537,8 +545,6 @@ def _seed_process(seed: int) -> None:
 
 
 def run(args: argparse.Namespace) -> list[dict[str, object]]:
-    from functools import partial
-
     from sfora.unicom_inshop import parse_inshop_partition
 
     if _git_revision(args.unicom_checkout) != UNICOM_REVISION:
@@ -579,7 +585,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         fused=args.fused,
     )
     sampler = PaddedEpochSampler(size=len(optimization), batch_size=args.batch_size, seed=args.seed)
-    worker_init = partial(_seed_worker, seed=args.seed)
+    data_generator = torch.Generator().manual_seed(experiment_stream_seed(args.seed, 2_000))
     loader = torch.utils.data.DataLoader(
         InshopTrainDataset(optimization, labels, build_train_transform(336)),
         batch_size=args.batch_size,
@@ -587,7 +593,8 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         num_workers=args.workers,
         pin_memory=True,
         drop_last=True,
-        worker_init_fn=worker_init,
+        worker_init_fn=_seed_worker,
+        generator=data_generator,
     )
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
@@ -684,10 +691,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     )
 
 
-def _seed_worker(worker_id: int, *, seed: int) -> None:
-    worker_seed = experiment_stream_seed(seed, 2_000 + worker_id)
+def _seed_worker(_worker_id: int) -> None:
+    worker_seed = torch.initial_seed() % 2**32
     random.seed(worker_seed)
-    torch.manual_seed(worker_seed)
     import numpy as np
 
     np.random.seed(worker_seed)

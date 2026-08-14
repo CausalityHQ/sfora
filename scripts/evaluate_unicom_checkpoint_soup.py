@@ -16,6 +16,8 @@ from typing import Any
 
 import torch
 
+REGISTERED_SCREEN_ALPHAS = (0.25, 0.5, 0.75, 0.85, 0.9, 0.95, 1.0)
+
 
 def suffix_windows(paths: tuple[Path, ...]) -> tuple[tuple[Path, ...], ...]:
     if not paths:
@@ -106,6 +108,7 @@ def evaluate_grid(
     checkpoints: tuple[tuple[Path, Mapping[str, torch.Tensor]], ...],
     *,
     alphas: tuple[float, ...],
+    all_suffixes: bool = True,
     prepare: Callable[[], None] = lambda: None,
     evaluate: Callable[[], dict[str, float]],
 ) -> list[dict[str, Any]]:
@@ -122,9 +125,12 @@ def evaluate_grid(
         for alpha in alphas
     ):
         raise ValueError("alphas must be finite builtin floats in [0, 1]")
+    if tuple(sorted(set(alphas))) != alphas:
+        raise ValueError("alphas must be unique increasing values")
     state_by_path = dict(checkpoints)
     candidates: list[dict[str, Any]] = []
-    for window in suffix_windows(paths):
+    windows = suffix_windows(paths) if all_suffixes else (paths,)
+    for window in windows:
         epochs = tuple(_epoch(path) for path in window)
         soup = average_model_states(tuple(state_by_path[path] for path in window))
         for alpha in alphas:
@@ -211,6 +217,62 @@ def _load_checkpoint_states(
     return tuple(result), training_protocol
 
 
+def _expected_screen_training_protocol(trainer, args) -> dict[str, object]:
+    return {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": trainer._sha256_file(Path(trainer.__file__)),
+        "unicom_revision": trainer.UNICOM_REVISION,
+        "initial_checkpoint_sha256": trainer.UNICOM_L14_336_SHA256,
+        "partition_sha256": trainer._sha256_file(
+            args.dataset_root / "Eval" / "list_eval_partition.txt"
+        ),
+        "seed": args.training_seed,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+    }
+
+
+def _validate_screen_training_protocol(training_protocol, trainer, args) -> None:
+    if training_protocol != _expected_screen_training_protocol(trainer, args):
+        raise ValueError("training checkpoint protocol differs from frozen screen")
+
+
+def _validate_selection_args(args) -> None:
+    if (
+        args.holdout_seed != 0
+        or args.holdout_fraction != 0.2
+        or args.batch_size != 128
+        or args.workers != 4
+        or args.selected_features != 512
+    ):
+        raise ValueError("selection data/evaluation settings differ from frozen protocol")
+    epochs = tuple(_epoch(path) for path in args.trajectory_checkpoints)
+    alphas = tuple(args.alphas)
+    if args.mode == "screen":
+        if args.training_seed != 0 or epochs != (4, 8, 12, 16):
+            raise ValueError("screen seed/checkpoints differ from frozen protocol")
+        if alphas != REGISTERED_SCREEN_ALPHAS:
+            raise ValueError("screen alpha grid differs from frozen protocol")
+    elif args.mode == "fixed":
+        if args.training_seed not in (1, 2, 3) or len(alphas) != 1:
+            raise ValueError("fixed replication seed/alpha differs from frozen protocol")
+    else:
+        raise ValueError("selection mode differs")
+
+
 def recalibrate_batch_norm(model: torch.nn.Module, loader, *, device: torch.device) -> None:
     """Recompute candidate BatchNorm statistics on optimization identities only."""
 
@@ -286,6 +348,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     from sfora.unicom_inshop import parse_inshop_partition
     from sfora.unicom_training import identity_holdout
 
+    _validate_selection_args(args)
     trainer = _load_trainer()
     model_path = args.output_dir / "selected-model.pt"
     report_path = args.output_dir / "selection.json"
@@ -316,19 +379,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         holdout_seed=args.holdout_seed,
         holdout_fraction=args.holdout_fraction,
     )
-    expected_protocol_fields = {
-        "protocol": "unicom-inshop-official-single-device-v1",
-        "unicom_revision": trainer.UNICOM_REVISION,
-        "initial_checkpoint_sha256": trainer.UNICOM_L14_336_SHA256,
-        "partition_sha256": trainer._sha256_file(
-            args.dataset_root / "Eval" / "list_eval_partition.txt"
-        ),
-        "holdout_seed": args.holdout_seed,
-        "holdout_fraction": args.holdout_fraction,
-        "selected_features": args.selected_features,
-    }
-    if any(training_protocol.get(key) != value for key, value in expected_protocol_fields.items()):
-        raise ValueError("training checkpoint protocol differs from soup inputs")
+    _validate_screen_training_protocol(training_protocol, trainer, args)
     calibration_loader = torch.utils.data.DataLoader(
         trainer.InshopEvalDataset(optimization, transform),
         batch_size=args.batch_size,
@@ -343,6 +394,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         initial,
         checkpoints,
         alphas=tuple(args.alphas),
+        all_suffixes=args.mode == "screen",
         prepare=lambda: recalibrate_batch_norm(model, calibration_loader, device=device),
         evaluate=lambda: trainer.evaluate_holdout(
             model,
@@ -371,6 +423,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
     report = {
         "protocol": "unicom-train-identity-holdout-suffix-soup-wise-v2",
+        "mode": args.mode,
+        "training_seed": args.training_seed,
+        "alphas": list(args.alphas),
+        "batch_size": args.batch_size,
+        "workers": args.workers,
+        "selected_features": args.selected_features,
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
         "training_protocol": training_protocol,
@@ -390,7 +448,9 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--trajectory-checkpoints", required=True, type=Path, nargs="+")
-    parser.add_argument("--alphas", type=float, nargs="+", default=(0.25, 0.5, 0.75, 1.0))
+    parser.add_argument("--alphas", required=True, type=float, nargs="+")
+    parser.add_argument("--mode", required=True, choices=("screen", "fixed"))
+    parser.add_argument("--training-seed", required=True, type=int)
     parser.add_argument("--holdout-seed", type=int, default=0)
     parser.add_argument("--holdout-fraction", type=float, default=0.2)
     parser.add_argument("--batch-size", type=int, default=128)
