@@ -91,7 +91,10 @@ Run: `ruff check scripts/train_unicom_inshop.py tests/test_train_unicom_inshop.p
 Use a tiny deterministic model and non-grouped records. Independently compute
 per-image FP32 normalization, dataset-order FP64 class sums, normalized means,
 and the exact row norm. Assert label-map order, bytes, source-model state, BN
-buffers, and training mode are preserved.
+buffers, training mode, Python/NumPy/Torch CPU/Torch CUDA RNG states, and the
+subsequent dedicated training-loader and mask streams are preserved.
+Assert both run modes first execute the same seeded random initialization and
+the imprinted mode only overwrites its values afterward.
 
 - [ ] **Step 2: Write failing rejection tests**
 
@@ -106,7 +109,8 @@ Run: `pytest -q tests/test_train_unicom_inshop.py -k 'imprinted_classifier'`
 
 Build a non-shuffled evaluation loader, temporarily set `model.eval()`, restore
 the original mode in `finally`, accumulate normalized embeddings on CPU in FP64
-in input order, normalize/cast, and multiply by `0.01 * math.sqrt(768)`.
+in input order, normalize/cast, and multiply by `0.01 * math.sqrt(768)`. Give
+the loader a dedicated generator and restore all parent RNG states in `finally`.
 
 - [ ] **Step 5: Add the frozen CLI choice**
 

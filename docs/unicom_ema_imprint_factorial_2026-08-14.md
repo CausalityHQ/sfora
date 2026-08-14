@@ -50,9 +50,12 @@ and is fully restored on resume.
 
 ## Imprinted classifier initialization
 
-Before training, the untouched pretrained model encodes every optimization
-record exactly once with the official deterministic evaluation transform. For
-each optimization identity `c`:
+Both runs first execute the existing seeded `normal_(std=0.01)` classifier
+initialization so the subsequent global RNG position is identical and the
+random arm exactly replays the old trainer. In the imprinted run only, those
+values are then overwritten: the untouched pretrained model encodes every
+optimization record exactly once with the official deterministic evaluation
+transform. For each optimization identity `c`:
 
 1. L2-normalize every finite nonzero 768-dimensional FP32 embedding.
 2. Accumulate the normalized embeddings in FP64 in dataset order and divide by
@@ -63,8 +66,11 @@ each optimization identity `c`:
 
 Every optimization identity must have at least one record and a finite nonzero
 mean. The label-map order is authoritative. The initialization pass must not
-mutate model parameters or BatchNorm state. The random arm retains the existing
-seeded `normal_(std=0.01)` initialization unchanged.
+mutate model parameters or BatchNorm state. It uses a dedicated DataLoader
+generator and restores the parent Python, NumPy, Torch CPU, and Torch CUDA RNG
+states exactly, so the two arms retain the same subsequent augmentation, mask,
+dropout, and optimizer streams. Thus initialization direction is the only
+between-run training difference.
 
 ## Evaluation and seed-0 decisions
 
