@@ -30,6 +30,7 @@ PROVENANCE_FIELDS = (
     "initial_checkpoint_sha256",
     "batch_norm_recalibration",
     "training_protocol",
+    "screen_endpoint_reproduction",
 )
 
 
@@ -181,7 +182,10 @@ def falsifier_gate(
     epoch8: dict[str, object],
     *,
     map_bootstrap_interval: tuple[float, float],
+    screen_endpoint_reproduced: bool,
 ) -> dict[str, object]:
+    if type(screen_endpoint_reproduced) is not bool:
+        raise TypeError("screen endpoint reproduction flag must be a builtin bool")
     endpoint_map = endpoint["metrics"]["map_at_r"]
     pretrained_map = pretrained["metrics"]["map_at_r"]
     epoch8_map = epoch8["metrics"]["map_at_r"]
@@ -217,7 +221,8 @@ def falsifier_gate(
         "bootstrap_seed": 0,
         "bootstrap_samples": 10_000,
         "pretrained_map_delta_query_bootstrap_95_interval": list(map_bootstrap_interval),
-        "interpretation": "exploratory_seed0_train_holdout_falsifier_only",
+        "screen_endpoint_reproduced": screen_endpoint_reproduced,
+        "interpretation": "exploratory_seed0_pinned_epoch16_endpoint_falsifier_only",
         "passed": (
             pretrained_gain >= 0.003
             and pure_teacher_gain >= 0.003
@@ -300,6 +305,9 @@ def evaluate_falsifier(
             pure_teacher,
             epoch8_best,
             map_bootstrap_interval=map_interval,
+            screen_endpoint_reproduced=provenance["screen_endpoint_reproduction"][
+                "within_tolerance"
+            ],
         ),
     }
     validate_falsifier_report(report)
@@ -359,6 +367,51 @@ def _validate_candidate(candidate: object, *, query_count: int | None = None) ->
     return len(top1)
 
 
+def _validate_endpoint_reproduction_audit(value: object, *, gate_baseline: object) -> None:
+    if type(value) is not dict or tuple(value) != (
+        "tolerance",
+        "recorded_metrics",
+        "recomputed_metrics",
+        "absolute_deltas",
+        "within_tolerance",
+    ):
+        raise ValueError("endpoint reproduction audit schema differs")
+    if value["tolerance"] != 1e-6 or type(value["tolerance"]) is not float:
+        raise ValueError("endpoint reproduction tolerance differs")
+    metric_names = (
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "map_at_r",
+    )
+    recorded = value["recorded_metrics"]
+    recomputed = value["recomputed_metrics"]
+    deltas = value["absolute_deltas"]
+    if any(
+        type(mapping) is not dict or tuple(mapping) != metric_names
+        for mapping in (recorded, recomputed, deltas)
+    ):
+        raise ValueError("endpoint reproduction metric schema differs")
+    if any(
+        type(number) is not float or not math.isfinite(number) or not 0.0 <= number <= 1.0
+        for mapping in (recorded, recomputed)
+        for number in mapping.values()
+    ):
+        raise ValueError("endpoint reproduction metric differs")
+    expected_deltas = {name: abs(recomputed[name] - recorded[name]) for name in metric_names}
+    if deltas != expected_deltas:
+        raise ValueError("endpoint reproduction delta differs")
+    expected_within = all(delta <= value["tolerance"] for delta in deltas.values())
+    if (
+        type(value["within_tolerance"]) is not bool
+        or value["within_tolerance"] is not expected_within
+    ):
+        raise ValueError("endpoint reproduction decision differs")
+    if recomputed != gate_baseline:
+        raise ValueError("endpoint reproduction baseline differs")
+
+
 def validate_falsifier_report(report: object) -> None:
     if type(report) is not dict or tuple(report) != (
         "protocol",
@@ -407,6 +460,10 @@ def validate_falsifier_report(report: object) -> None:
     if type(provenance["training_protocol"]) is not dict or not provenance["training_protocol"]:
         raise ValueError("falsifier provenance training protocol differs")
     query_count = _validate_candidate(report["endpoint"])
+    _validate_endpoint_reproduction_audit(
+        provenance["screen_endpoint_reproduction"],
+        gate_baseline=report["endpoint"]["metrics"],
+    )
     groups: list[tuple[str, dict[str, object]]] = []
     for name in ("pretrained", "epoch8_control"):
         group = report[name]
@@ -435,6 +492,7 @@ def validate_falsifier_report(report: object) -> None:
         map_bootstrap_interval=paired_map_bootstrap_interval(
             report["endpoint"], report["pretrained"]["best"]
         ),
+        screen_endpoint_reproduced=provenance["screen_endpoint_reproduction"]["within_tolerance"],
     )
     if report["gate"] != expected_gate:
         raise ValueError("falsifier gate differs")
@@ -582,9 +640,9 @@ def validate_epoch8_path(screen: dict[str, object], epoch8_path: Path) -> None:
         raise ValueError("epoch-8 control path is absent from screen")
 
 
-def validate_endpoint_reproduction(
+def endpoint_reproduction_audit(
     screen: dict[str, object], reproduced: dict[str, object]
-) -> None:
+) -> dict[str, object]:
     expected_metrics = screen["endpoint"]["metrics"]
     actual_metrics = reproduced.get("metrics")
     metric_names = (
@@ -594,16 +652,22 @@ def validate_endpoint_reproduction(
         "recall_at_30",
         "map_at_r",
     )
-    if (
-        type(actual_metrics) is not dict
-        or tuple(actual_metrics) != metric_names
-        or any(
-            type(actual_metrics[name]) is not float
-            or abs(actual_metrics[name] - expected_metrics[name]) > 1e-6
-            for name in metric_names
-        )
-    ):
-        raise ValueError("endpoint metrics do not reproduce the soup screen")
+    if type(actual_metrics) is not dict or tuple(actual_metrics) != metric_names:
+        raise ValueError("endpoint reproduction metrics schema differs")
+    values = tuple(expected_metrics[name] for name in metric_names) + tuple(
+        actual_metrics[name] for name in metric_names
+    )
+    if any(type(value) is not float or not math.isfinite(value) for value in values):
+        raise ValueError("endpoint reproduction metrics differ")
+    tolerance = 1e-6
+    deltas = {name: abs(actual_metrics[name] - expected_metrics[name]) for name in metric_names}
+    return {
+        "tolerance": tolerance,
+        "recorded_metrics": dict(expected_metrics),
+        "recomputed_metrics": dict(actual_metrics),
+        "absolute_deltas": deltas,
+        "within_tolerance": all(delta <= tolerance for delta in deltas.values()),
+    }
 
 
 def _sha256_file(path: Path) -> str:
@@ -742,7 +806,7 @@ def load_registered_scores(args: argparse.Namespace):
         gallery_labels,
         alphas=(0.0,),
     )[0]
-    validate_endpoint_reproduction(screen, endpoint_reproduction)
+    screen_endpoint_reproduction = endpoint_reproduction_audit(screen, endpoint_reproduction)
 
     epoch8_query, epoch8_gallery, epoch8_query_labels, epoch8_gallery_labels = (
         encode_recalibrated_arm(
@@ -769,6 +833,7 @@ def load_registered_scores(args: argparse.Namespace):
         "initial_checkpoint_sha256": _sha256_file(args.initial_checkpoint),
         "batch_norm_recalibration": "full-optimization-cumulative-batches-all-arms",
         "training_protocol": screen["training_protocol"],
+        "screen_endpoint_reproduction": screen_endpoint_reproduction,
     }
     return (
         endpoint_scores,

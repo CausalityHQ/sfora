@@ -148,6 +148,31 @@ def _provenance() -> dict[str, object]:
         "initial_checkpoint_sha256": "d" * 64,
         "batch_norm_recalibration": "full-optimization-cumulative-batches-all-arms",
         "training_protocol": {"protocol": "frozen-training"},
+        "screen_endpoint_reproduction": {
+            "tolerance": 1e-6,
+            "recorded_metrics": {
+                "recall_at_1": 1.0,
+                "recall_at_10": 1.0,
+                "recall_at_20": 1.0,
+                "recall_at_30": 1.0,
+                "map_at_r": 1.0,
+            },
+            "recomputed_metrics": {
+                "recall_at_1": 1.0,
+                "recall_at_10": 1.0,
+                "recall_at_20": 1.0,
+                "recall_at_30": 1.0,
+                "map_at_r": 1.0,
+            },
+            "absolute_deltas": {
+                "recall_at_1": 0.0,
+                "recall_at_10": 0.0,
+                "recall_at_20": 0.0,
+                "recall_at_30": 0.0,
+                "map_at_r": 0.0,
+            },
+            "within_tolerance": True,
+        },
     }
 
 
@@ -163,6 +188,7 @@ def test_falsifier_gate_passes_only_unique_safe_teacher_gain() -> None:
         pure_teacher,
         weak_control,
         map_bootstrap_interval=(0.001, 0.011),
+        screen_endpoint_reproduced=True,
     )
 
     assert gate == {
@@ -178,7 +204,8 @@ def test_falsifier_gate_passes_only_unique_safe_teacher_gain() -> None:
         "bootstrap_seed": 0,
         "bootstrap_samples": 10_000,
         "pretrained_map_delta_query_bootstrap_95_interval": [0.001, 0.011],
-        "interpretation": "exploratory_seed0_train_holdout_falsifier_only",
+        "screen_endpoint_reproduced": True,
+        "interpretation": "exploratory_seed0_pinned_epoch16_endpoint_falsifier_only",
         "passed": True,
     }
 
@@ -235,6 +262,7 @@ def test_falsifier_gate_rejects_each_registered_boundary_independently() -> None
             pure_teacher,
             control,
             map_bootstrap_interval=interval,
+            screen_endpoint_reproduced=True,
         )
         assert gate["passed"] is False
 
@@ -251,6 +279,7 @@ def test_falsifier_gate_rejects_control_explanation_over_boundary_and_r1_damage(
         pure_teacher,
         control_boundary,
         map_bootstrap_interval=(0.001, 0.008),
+        screen_endpoint_reproduced=True,
     )
 
     assert gate["epoch8_gain_fraction"] > 0.7
@@ -268,6 +297,7 @@ def test_falsifier_gate_rejects_pure_teacher_winner_and_nonpositive_interval() -
         pure_teacher,
         control,
         map_bootstrap_interval=(0.005, 0.015),
+        screen_endpoint_reproduced=True,
     )
     uncertain_gate = ftra.falsifier_gate(
         endpoint,
@@ -275,6 +305,7 @@ def test_falsifier_gate_rejects_pure_teacher_winner_and_nonpositive_interval() -
         _candidate(0.900, 0.980, alpha=1.0),
         control,
         map_bootstrap_interval=(-0.001, 0.011),
+        screen_endpoint_reproduced=True,
     )
 
     assert pure_gate["winner_is_interior"] is False
@@ -290,6 +321,17 @@ def test_evaluate_falsifier_builds_control_bound_report() -> None:
     epoch8 = np.ascontiguousarray([[0.6, 0.5, 0.55, 0.3], [0.2, 0.1, 0.9, 0.8]], dtype=np.float64)
     query_labels = np.asarray(["A", "B"])
     gallery_labels = np.asarray(["A", "A", "B", "B"])
+    provenance = _provenance()
+    endpoint_metrics = {
+        "recall_at_1": 0.5,
+        "recall_at_10": 1.0,
+        "recall_at_20": 1.0,
+        "recall_at_30": 1.0,
+        "map_at_r": 0.625,
+    }
+    reproduction = provenance["screen_endpoint_reproduction"]
+    reproduction["recorded_metrics"] = dict(endpoint_metrics)
+    reproduction["recomputed_metrics"] = dict(endpoint_metrics)
 
     report = ftra.evaluate_falsifier(
         endpoint,
@@ -298,7 +340,7 @@ def test_evaluate_falsifier_builds_control_bound_report() -> None:
         query_labels,
         gallery_labels,
         selected_features=512,
-        provenance=_provenance(),
+        provenance=provenance,
     )
 
     assert tuple(report) == (
@@ -360,6 +402,9 @@ def test_report_validator_rejects_provenance_and_feature_mutations() -> None:
         lambda value: value["provenance"].update(screen_report_sha256="a" * 63),
         lambda value: value["provenance"].update(batch_norm_recalibration="partial"),
         lambda value: value["provenance"].update(training_protocol={}),
+        lambda value: value["provenance"]["screen_endpoint_reproduction"].update(
+            within_tolerance=False
+        ),
         lambda value: value.update(selected_features=256),
     )
 
@@ -372,6 +417,57 @@ def test_report_validator_rejects_provenance_and_feature_mutations() -> None:
             pass
         else:
             raise AssertionError("validator accepted mutated registered evidence")
+
+
+def test_report_validator_binds_reproduction_audit_to_gate_endpoint() -> None:
+    labels = np.asarray(["A"])
+    scores = np.ascontiguousarray([[1.0]], dtype=np.float64)
+    report = ftra.evaluate_falsifier(
+        scores,
+        scores,
+        scores,
+        labels,
+        labels,
+        selected_features=512,
+        provenance=_provenance(),
+    )
+    changed = json.loads(json.dumps(report))
+    audit = changed["provenance"]["screen_endpoint_reproduction"]
+    audit["recomputed_metrics"]["map_at_r"] = 0.9
+    audit["absolute_deltas"]["map_at_r"] = 0.09999999999999998
+    audit["within_tolerance"] = False
+
+    try:
+        ftra.validate_falsifier_report(changed)
+    except ValueError as error:
+        assert str(error) == "endpoint reproduction baseline differs"
+    else:
+        raise AssertionError("validator accepted an audit for a different gate baseline")
+
+
+def test_gate_discloses_nonblocking_screen_endpoint_mismatch() -> None:
+    labels = np.asarray(["A"])
+    scores = np.ascontiguousarray([[1.0]], dtype=np.float64)
+    provenance = _provenance()
+    provenance["screen_endpoint_reproduction"]["recorded_metrics"]["map_at_r"] = 0.9
+    provenance["screen_endpoint_reproduction"]["absolute_deltas"]["map_at_r"] = 0.09999999999999998
+    provenance["screen_endpoint_reproduction"]["within_tolerance"] = False
+
+    report = ftra.evaluate_falsifier(
+        scores,
+        scores,
+        scores,
+        labels,
+        labels,
+        selected_features=512,
+        provenance=provenance,
+    )
+
+    assert report["gate"]["screen_endpoint_reproduced"] is False
+    assert report["gate"]["passed"] is False
+    assert report["gate"]["interpretation"] == (
+        "exploratory_seed0_pinned_epoch16_endpoint_falsifier_only"
+    )
 
 
 def test_report_validator_binds_both_groups_to_the_same_endpoint() -> None:
@@ -604,19 +700,24 @@ def test_screen_binding_rejects_truncated_grid_and_unregistered_epoch8_path() ->
         raise AssertionError("accepted an unregistered epoch-8 path")
 
 
-def test_endpoint_reproduction_must_match_screen_metrics() -> None:
+def test_endpoint_reproduction_audit_discloses_historical_mismatch() -> None:
     screen, _endpoint, _epoch8 = _screen_binding()
     reproduced = dict(screen["endpoint"])
     reproduced["metrics"] = dict(reproduced["metrics"])
-    ftra.validate_endpoint_reproduction(screen, reproduced)
+    assert ftra.endpoint_reproduction_audit(screen, reproduced)["within_tolerance"] is True
 
     reproduced["metrics"]["map_at_r"] -= 0.001
-    try:
-        ftra.validate_endpoint_reproduction(screen, reproduced)
-    except ValueError as error:
-        assert str(error) == "endpoint metrics do not reproduce the soup screen"
-    else:
-        raise AssertionError("accepted a mismatched endpoint reproduction")
+    audit = ftra.endpoint_reproduction_audit(screen, reproduced)
+    assert tuple(audit) == (
+        "tolerance",
+        "recorded_metrics",
+        "recomputed_metrics",
+        "absolute_deltas",
+        "within_tolerance",
+    )
+    assert audit["tolerance"] == 1e-6
+    assert audit["absolute_deltas"]["map_at_r"] == 0.0010000000000000009
+    assert audit["within_tolerance"] is False
 
 
 def test_each_model_arm_is_recalibrated_before_encoding() -> None:
