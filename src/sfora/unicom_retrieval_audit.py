@@ -304,9 +304,7 @@ def retrieval_view(
             query_chunk = query[start : start + chunk_size].astype(np.float64)
             query_norms = np.sum(query_chunk * query_chunk, axis=1, dtype=np.float64)
             distances = (
-                query_norms[:, None]
-                + gallery_norms[None, :]
-                - 2.0 * (query_chunk @ gallery64.T)
+                query_norms[:, None] + gallery_norms[None, :] - 2.0 * (query_chunk @ gallery64.T)
             )
             yield np.ascontiguousarray(-distances)
 

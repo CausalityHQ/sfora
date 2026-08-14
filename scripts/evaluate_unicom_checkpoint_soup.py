@@ -110,10 +110,9 @@ def evaluate_grid(
     *,
     alphas: tuple[float, ...],
     all_suffixes: bool = True,
+    registered_specs: tuple[tuple[tuple[Path, ...], float], ...] | None = None,
     prepare: Callable[[], None] = lambda: None,
-    evaluate: Callable[
-        [], dict[str, float] | tuple[dict[str, float], dict[str, list[object]]]
-    ],
+    evaluate: Callable[[], dict[str, float] | tuple[dict[str, float], dict[str, list[object]]]],
 ) -> list[dict[str, Any]]:
     """Evaluate every suffix soup and interpolation in a stable registered order."""
 
@@ -132,41 +131,47 @@ def evaluate_grid(
         raise ValueError("alphas must be unique increasing values")
     state_by_path = dict(checkpoints)
     candidates: list[dict[str, Any]] = []
-    windows = suffix_windows(paths) if all_suffixes else (paths,)
-    for window in windows:
+    specs = (
+        registered_specs
+        if registered_specs is not None
+        else tuple(
+            (window, alpha)
+            for window in (suffix_windows(paths) if all_suffixes else (paths,))
+            for alpha in alphas
+        )
+    )
+    for window, alpha in specs:
         epochs = tuple(_epoch(path) for path in window)
         soup = average_model_states(tuple(state_by_path[path] for path in window))
-        for alpha in alphas:
-            state = interpolate_model_states(initial, soup, alpha=alpha)
-            model.load_state_dict(state, strict=True)
-            prepare()
-            evaluation = evaluate()
-            if isinstance(evaluation, tuple):
-                metrics, query_evidence = evaluation
-            else:
-                metrics, query_evidence = evaluation, None
-            if tuple(metrics) != (
-                "recall_at_1",
-                "recall_at_10",
-                "recall_at_20",
-                "recall_at_30",
-                "map_at_r",
-            ) and tuple(metrics) != ("recall_at_1", "map_at_r"):
-                raise ValueError("candidate metric schema differs")
-            candidate = {
-                    "name": (
-                        f"epochs-{'_'.join(str(epoch) for epoch in epochs)}"
-                        f"-alpha-{_alpha_text(alpha)}"
-                    ),
-                    "epochs": list(epochs),
-                    "checkpoints": [str(path) for path in window],
-                    "alpha": alpha,
-                    "metrics": metrics,
-                }
-            if query_evidence is not None:
-                _validate_query_evidence(query_evidence)
-                candidate["query_evidence"] = query_evidence
-            candidates.append(candidate)
+        state = interpolate_model_states(initial, soup, alpha=alpha)
+        model.load_state_dict(state, strict=True)
+        prepare()
+        evaluation = evaluate()
+        if isinstance(evaluation, tuple):
+            metrics, query_evidence = evaluation
+        else:
+            metrics, query_evidence = evaluation, None
+        if tuple(metrics) != (
+            "recall_at_1",
+            "recall_at_10",
+            "recall_at_20",
+            "recall_at_30",
+            "map_at_r",
+        ) and tuple(metrics) != ("recall_at_1", "map_at_r"):
+            raise ValueError("candidate metric schema differs")
+        candidate = {
+            "name": (
+                f"epochs-{'_'.join(str(epoch) for epoch in epochs)}-alpha-{_alpha_text(alpha)}"
+            ),
+            "epochs": list(epochs),
+            "checkpoints": [str(path) for path in window],
+            "alpha": alpha,
+            "metrics": metrics,
+        }
+        if query_evidence is not None:
+            _validate_query_evidence(query_evidence)
+            candidate["query_evidence"] = query_evidence
+        candidates.append(candidate)
     return candidates
 
 
@@ -254,13 +259,14 @@ def paired_candidate_gate(
     return {
         "bootstrap_seed": seed,
         "bootstrap_samples": samples,
+        "resampling_unit": "holdout_query_within_training_seed",
         "map_delta": map_delta,
-        "map_delta_95_interval": [
+        "map_delta_query_bootstrap_95_interval": [
             float(np.percentile(map_replicates, 2.5)),
             float(np.percentile(map_replicates, 97.5)),
         ],
         "recall_at_1_delta": top1_delta,
-        "recall_at_1_delta_95_interval": [
+        "recall_at_1_delta_query_bootstrap_95_interval": [
             float(np.percentile(top1_replicates, 2.5)),
             float(np.percentile(top1_replicates, 97.5)),
         ],
@@ -380,13 +386,13 @@ def _validate_selection_args(args) -> None:
             args.training_seed not in (1, 2, 3)
             or len(alphas) != 1
             or not isinstance(args.screen_report, Path)
+            or epochs != (4, 8, 12, 16)
         ):
             raise ValueError("fixed replication seed/alpha differs from frozen protocol")
         screen = json.loads(args.screen_report.read_text())
         if (
             type(screen) is not dict
-            or screen.get("protocol")
-            != "unicom-train-identity-holdout-suffix-soup-wise-v2"
+            or screen.get("protocol") != "unicom-train-identity-holdout-suffix-soup-wise-v2"
             or screen.get("mode") != "screen"
             or screen.get("training_seed") != 0
             or screen.get("alphas") != list(REGISTERED_SCREEN_ALPHAS)
@@ -398,6 +404,8 @@ def _validate_selection_args(args) -> None:
             or type(screen.get("selected")) is not dict
             or type(screen.get("candidates")) is not list
             or not screen["candidates"]
+            or type(screen.get("gate")) is not dict
+            or screen["gate"].get("promoted") is not True
         ):
             raise ValueError("fixed replication screen report differs")
         selected = screen["selected"]
@@ -406,7 +414,8 @@ def _validate_selection_args(args) -> None:
             or select_candidate(screen["candidates"]) != selected
         ):
             raise ValueError("fixed replication screen winner differs")
-        if selected.get("epochs") != list(epochs) or selected.get("alpha") != alphas[0]:
+        valid_windows = ([16], [12, 16], [8, 12, 16], [4, 8, 12, 16])
+        if selected.get("epochs") not in valid_windows or selected.get("alpha") != alphas[0]:
             raise ValueError("fixed replication differs from screen winner")
     else:
         raise ValueError("selection mode differs")
@@ -519,6 +528,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         holdout_fraction=args.holdout_fraction,
     )
     _validate_screen_training_protocol(training_protocol, trainer, args)
+    registered_specs = None
+    if args.mode == "fixed":
+        screen_selected = json.loads(args.screen_report.read_text())["selected"]
+        path_by_epoch = {_epoch(path): path for path, _state in checkpoints}
+        winner_paths = tuple(path_by_epoch[epoch] for epoch in screen_selected["epochs"])
+        registered_specs = (
+            (winner_paths, screen_selected["alpha"]),
+            ((path_by_epoch[16],), 1.0),
+        )
     calibration_loader = torch.utils.data.DataLoader(
         trainer.InshopEvalDataset(optimization, transform),
         batch_size=args.batch_size,
@@ -534,6 +552,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         checkpoints,
         alphas=tuple(args.alphas),
         all_suffixes=args.mode == "screen",
+        registered_specs=registered_specs,
         prepare=lambda: recalibrate_batch_norm(model, calibration_loader, device=device),
         evaluate=lambda: evaluate_holdout_with_query_evidence(
             trainer,
@@ -547,7 +566,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             selected_features=args.selected_features,
         ),
     )
-    selected = select_candidate(candidates)
+    selected = select_candidate(candidates) if args.mode == "screen" else candidates[0]
     endpoint = next(
         (
             candidate
@@ -556,7 +575,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         None,
     )
-    gate = None if args.mode == "fixed" else paired_candidate_gate(selected, endpoint)
+    if endpoint is None:
+        raise ValueError("registered endpoint candidate is absent")
+    gate = paired_candidate_gate(selected, endpoint)
     checkpoint_by_epoch = {_epoch(path): state for path, state in checkpoints}
     soup = average_model_states(tuple(checkpoint_by_epoch[epoch] for epoch in selected["epochs"]))
     selected_state = interpolate_model_states(initial, soup, alpha=selected["alpha"])

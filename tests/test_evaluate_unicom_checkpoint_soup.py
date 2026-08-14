@@ -213,6 +213,7 @@ def test_selection_modes_freeze_screen_and_bind_replication_to_winner(tmp_path: 
                 "holdout_fraction": 0.2,
                 "selected": selected,
                 "candidates": [selected],
+                "gate": {"promoted": True},
             }
         )
     )
@@ -231,7 +232,7 @@ def test_selection_modes_freeze_screen_and_bind_replication_to_winner(tmp_path: 
     fixed = SimpleNamespace(
         mode="fixed",
         training_seed=1,
-        trajectory_checkpoints=paths[2:],
+        trajectory_checkpoints=paths,
         alphas=[0.9],
         holdout_seed=0,
         holdout_fraction=0.2,
@@ -276,11 +277,14 @@ def test_fixed_replication_evaluates_only_the_registered_full_window() -> None:
         initial,
         checkpoints,
         alphas=(0.9,),
-        all_suffixes=False,
+        registered_specs=(
+            (tuple(path for path, _state in checkpoints), 0.9),
+            ((checkpoints[1][0],), 1.0),
+        ),
         evaluate=lambda: {"recall_at_1": 1.0, "map_at_r": 1.0},
     )
 
-    assert [row["epochs"] for row in candidates] == [[12, 16]]
+    assert [row["epochs"] for row in candidates] == [[12, 16], [16]]
 
 
 def test_query_evidence_is_persisted_and_drives_the_paired_gate() -> None:
@@ -289,7 +293,7 @@ def test_query_evidence_is_persisted_and_drives_the_paired_gate() -> None:
     state = OrderedDict(weight=torch.tensor([[1.0]]))
     evidence = {
         "top1_correct": [True, False, True, False],
-        "average_precision": [0.51, 0.41, 0.31, 0.21],
+        "average_precision": [0.52, 0.4, 0.32, 0.2],
     }
     candidates = module.evaluate_grid(
         model,
@@ -310,9 +314,39 @@ def test_query_evidence_is_persisted_and_drives_the_paired_gate() -> None:
 
     assert candidates[0]["query_evidence"] == evidence
     assert gate["map_delta"] == pytest.approx(0.01)
-    assert gate["map_delta_95_interval"] == pytest.approx([0.01, 0.01])
+    assert gate["resampling_unit"] == "holdout_query_within_training_seed"
+    lower, upper = gate["map_delta_query_bootstrap_95_interval"]
+    assert lower < gate["map_delta"] < upper
     assert gate["recall_at_1_delta"] == 0.0
     assert gate["promoted"] is True
+
+
+@pytest.mark.parametrize(
+    ("map_value", "top1_failures", "promoted"),
+    [(0.503, 1, True), (0.5029, 0, False), (0.5031, 2, False)],
+)
+def test_paired_gate_enforces_both_promotion_boundaries(
+    map_value: float, top1_failures: int, promoted: bool
+) -> None:
+    module = _load_script()
+    endpoint_top1 = [True] * 800
+    selected_top1 = [False] * top1_failures + [True] * (800 - top1_failures)
+    endpoint = {
+        "query_evidence": {
+            "top1_correct": endpoint_top1,
+            "average_precision": [0.5] * 800,
+        }
+    }
+    selected = {
+        "query_evidence": {
+            "top1_correct": selected_top1,
+            "average_precision": [map_value] * 800,
+        }
+    }
+
+    gate = module.paired_candidate_gate(selected, endpoint, samples=100)
+
+    assert gate["promoted"] is promoted
 
 
 def test_evaluate_grid_loads_each_real_interpolated_state() -> None:

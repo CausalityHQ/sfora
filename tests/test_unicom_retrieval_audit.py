@@ -75,9 +75,7 @@ def test_stable_gallery_order_breaks_exact_distance_ties() -> None:
 
 
 def test_score_chunk_metrics_use_the_same_recall_map_and_tie_contract() -> None:
-    chunks = (
-        np.asarray([[1.0, 1.0, 0.0], [0.1, 0.9, 0.8]], dtype=np.float64),
-    )
+    chunks = (np.asarray([[1.0, 1.0, 0.0], [0.1, 0.9, 0.8]], dtype=np.float64),)
 
     result = retrieval_metrics_from_score_chunks(
         chunks,
