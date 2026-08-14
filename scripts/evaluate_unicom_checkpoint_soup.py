@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import math
@@ -18,6 +19,16 @@ import numpy as np
 import torch
 
 REGISTERED_SCREEN_ALPHAS = (0.25, 0.5, 0.75, 0.85, 0.9, 0.95, 1.0)
+REGISTERED_SCREEN_WINDOWS = ((16,), (12, 16), (8, 12, 16), (4, 8, 12, 16))
+REGISTERED_REPLICATION_SEEDS = (1, 2, 3, 4, 5, 6)
+REPORT_PROTOCOL = "unicom-train-identity-holdout-suffix-soup-wise-v3"
+STUDENT_T_CRITICAL_TWO_SIDED_95_DF5 = 2.5705818356363146
+REGISTERED_TRAINER_SHA256 = "b2cfdaed33d46ec445141bb40b1a3f28aed0d3ca859101843ddf825866640bb1"
+REGISTERED_UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+REGISTERED_INITIAL_CHECKPOINT_SHA256 = (
+    "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+)
+REGISTERED_PARTITION_SHA256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
 
 
 def suffix_windows(paths: tuple[Path, ...]) -> tuple[tuple[Path, ...], ...]:
@@ -274,6 +285,321 @@ def paired_candidate_gate(
     }
 
 
+def summarize_training_seed_replications(
+    screen_report_path: Path,
+    report_paths: Sequence[Path],
+) -> dict[str, object]:
+    """Load and summarize six fixed replications independent of the seed-0 screen."""
+
+    if not isinstance(screen_report_path, Path) or any(
+        not isinstance(path, Path) for path in report_paths
+    ):
+        raise TypeError("training seed summary inputs must be paths")
+    screen_report = json.loads(screen_report_path.read_text())
+    reports = [json.loads(path.read_text()) for path in report_paths]
+    return _summarize_training_seed_replication_payloads(
+        screen_report,
+        reports,
+        screen_report_sha256=_sha256_file(screen_report_path),
+    )
+
+
+def _summarize_training_seed_replication_payloads(
+    screen_report: Mapping[str, Any],
+    reports: Sequence[Mapping[str, Any]],
+    *,
+    screen_report_sha256: str,
+) -> dict[str, object]:
+    """Summarize six fixed replications independent of the seed-0 screen."""
+
+    if (
+        type(screen_report_sha256) is not str
+        or len(screen_report_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in screen_report_sha256)
+    ):
+        raise ValueError("seed-0 screen report SHA-256 differs")
+    if len(reports) != len(REGISTERED_REPLICATION_SEEDS):
+        raise ValueError("paired training seeds differ from frozen protocol")
+    if any(type(report) is not dict for report in reports):
+        raise ValueError("paired training seed report differs from frozen protocol")
+    seeds = [report["training_seed"] for report in reports]
+    if seeds != list(REGISTERED_REPLICATION_SEEDS):
+        raise ValueError("paired training seeds differ from frozen protocol")
+    if (
+        type(screen_report) is not dict
+        or screen_report.get("protocol") != REPORT_PROTOCOL
+        or screen_report.get("mode") != "screen"
+        or screen_report.get("training_seed") != 0
+        or screen_report.get("alphas") != list(REGISTERED_SCREEN_ALPHAS)
+        or screen_report.get("batch_size") != 128
+        or screen_report.get("workers") != 4
+        or screen_report.get("selected_features") != 512
+        or screen_report.get("screen_report") is not None
+        or screen_report.get("screen_report_sha256") is not None
+        or screen_report.get("holdout_seed") != 0
+        or screen_report.get("holdout_fraction") != 0.2
+    ):
+        raise ValueError("seed-0 screen report differs from frozen protocol")
+    screen_training_protocol = screen_report.get("training_protocol")
+    _validate_registered_training_protocol(screen_training_protocol, seed=0)
+    expected_training_protocol = dict(screen_training_protocol)
+    expected_training_protocol.pop("seed")
+    screen_selected = screen_report.get("selected")
+    screen_endpoint = screen_report.get("endpoint")
+    screen_candidates = screen_report.get("candidates")
+    screen_gate = screen_report.get("gate")
+    if (
+        type(screen_selected) is not dict
+        or type(screen_endpoint) is not dict
+        or type(screen_candidates) is not list
+        or screen_selected not in screen_candidates
+        or screen_endpoint not in screen_candidates
+        or select_candidate(screen_candidates) != screen_selected
+        or type(screen_gate) is not dict
+        or screen_gate.get("resampling_unit") != "holdout_query_within_training_seed"
+        or screen_gate.get("promoted") is not True
+    ):
+        raise ValueError("seed-0 screen winner differs")
+    screen_specs = tuple(
+        (tuple(_candidate_identity(candidate)["epochs"]), candidate["alpha"])
+        for candidate in screen_candidates
+    )
+    expected_screen_specs = tuple(
+        (epochs, alpha)
+        for epochs in REGISTERED_SCREEN_WINDOWS
+        for alpha in REGISTERED_SCREEN_ALPHAS
+    )
+    if screen_specs != expected_screen_specs:
+        raise ValueError("seed-0 screen winner differs")
+    expected_winner = _candidate_identity(screen_selected)
+    if _candidate_identity(screen_endpoint) != {"epochs": [16], "alpha": 1.0}:
+        raise ValueError("seed-0 screen winner differs")
+    _validate_reported_delta(screen_selected, screen_endpoint, screen_gate)
+    expected_query_count = len(screen_selected["query_evidence"]["top1_correct"])
+
+    map_deltas: list[float] = []
+    recall_deltas: list[float] = []
+    expected_screen_path: str | None = None
+    prior_seed_checkpoint_hashes: set[str] = set()
+    for seed, report in zip(REGISTERED_REPLICATION_SEEDS, reports, strict=True):
+        if (
+            report.get("alphas") != [expected_winner["alpha"]]
+            or report.get("batch_size") != 128
+            or report.get("workers") != 4
+            or report.get("selected_features") != 512
+            or report.get("holdout_seed") != 0
+            or report.get("holdout_fraction") != 0.2
+        ):
+            raise ValueError("paired training seed evaluation protocol differs")
+        if (
+            report.get("protocol") != REPORT_PROTOCOL
+            or report.get("mode") != "fixed"
+            or report.get("screen_report_sha256") != screen_report_sha256
+            or type(report.get("screen_report")) is not str
+            or not report["screen_report"]
+        ):
+            raise ValueError("paired training seed screen report differs")
+        if expected_screen_path is None:
+            expected_screen_path = report["screen_report"]
+        elif report["screen_report"] != expected_screen_path:
+            raise ValueError("paired training seed screen report differs")
+        training_protocol = report.get("training_protocol")
+        _validate_registered_training_protocol(training_protocol, seed=seed)
+        normalized_protocol = dict(training_protocol)
+        normalized_protocol.pop("seed")
+        if normalized_protocol != expected_training_protocol:
+            raise ValueError("paired training protocol differs")
+        selected = report.get("selected")
+        endpoint = report.get("endpoint")
+        candidates = report.get("candidates")
+        if (
+            type(selected) is not dict
+            or type(endpoint) is not dict
+            or type(candidates) is not list
+            or candidates != [selected, endpoint]
+        ):
+            raise ValueError("paired training seed winner differs")
+        winner = _candidate_identity(selected)
+        if winner != expected_winner or _candidate_identity(endpoint) != {
+            "epochs": [16],
+            "alpha": 1.0,
+        }:
+            raise ValueError("paired training seed winner differs")
+        seed_checkpoints = set(_candidate_checkpoint_evidence(selected)) | set(
+            _candidate_checkpoint_evidence(endpoint)
+        )
+        try:
+            seed_checkpoint_hashes = {
+                _sha256_file(Path(checkpoint)) for checkpoint in seed_checkpoints
+            }
+        except OSError as error:
+            raise ValueError("paired training seed checkpoint evidence differs") from error
+        if seed_checkpoint_hashes & prior_seed_checkpoint_hashes:
+            raise ValueError("paired training seed checkpoint evidence differs")
+        prior_seed_checkpoint_hashes.update(seed_checkpoint_hashes)
+        gate = report.get("gate")
+        if (
+            type(gate) is not dict
+            or gate.get("resampling_unit") != "holdout_query_within_training_seed"
+        ):
+            raise ValueError("paired training seed query evidence differs")
+        map_delta, recall_delta = _validate_reported_delta(selected, endpoint, gate)
+        if len(selected["query_evidence"]["top1_correct"]) != expected_query_count:
+            raise ValueError("paired training seed query count differs")
+        map_deltas.append(map_delta)
+        recall_deltas.append(recall_delta)
+
+    map_values = np.asarray(map_deltas, dtype=np.float64)
+    mean = float(map_values.mean())
+    sample_standard_deviation = float(map_values.std(ddof=1))
+    half_width = STUDENT_T_CRITICAL_TWO_SIDED_95_DF5 * sample_standard_deviation / math.sqrt(6)
+    lower = mean - half_width
+    upper = mean + half_width
+    positives = sum(delta > 0.0 for delta in map_deltas)
+    negatives = sum(delta < 0.0 for delta in map_deltas)
+    nonzero = positives + negatives
+    tail = min(positives, negatives)
+    sign_p_value = min(
+        1.0,
+        2.0 * sum(math.comb(nonzero, count) for count in range(tail + 1)) / (2**nonzero),
+    )
+    all_map_positive = positives == len(REGISTERED_REPLICATION_SEEDS)
+    recall_guard = all(delta >= -0.00125 for delta in recall_deltas)
+    nondegenerate_variation = sample_standard_deviation > 0.0
+    claim_supported = (
+        all_map_positive
+        and lower > 0.0
+        and sign_p_value <= 0.05
+        and recall_guard
+        and nondegenerate_variation
+    )
+    return {
+        "training_seeds": list(REGISTERED_REPLICATION_SEEDS),
+        "resampling_unit": "paired_training_seed",
+        "winner": expected_winner,
+        "map_deltas": map_deltas,
+        "map_delta_mean": mean,
+        "map_delta_sample_standard_deviation": sample_standard_deviation,
+        "student_t_degrees_of_freedom": 5,
+        "student_t_critical_two_sided_95": STUDENT_T_CRITICAL_TWO_SIDED_95_DF5,
+        "map_delta_paired_student_t_95_interval": [lower, upper],
+        "exact_two_sided_sign_p_value": sign_p_value,
+        "recall_at_1_deltas": recall_deltas,
+        "recall_at_1_guard": -0.00125,
+        "all_map_deltas_positive": all_map_positive,
+        "all_recall_at_1_deltas_above_guard": recall_guard,
+        "nondegenerate_training_seed_variation": nondegenerate_variation,
+        "claim_supported": claim_supported,
+    }
+
+
+def _registered_training_protocol(seed: int) -> dict[str, object]:
+    return {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": REGISTERED_TRAINER_SHA256,
+        "unicom_revision": REGISTERED_UNICOM_REVISION,
+        "initial_checkpoint_sha256": REGISTERED_INITIAL_CHECKPOINT_SHA256,
+        "partition_sha256": REGISTERED_PARTITION_SHA256,
+        "seed": seed,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+    }
+
+
+def _validate_registered_training_protocol(value: object, *, seed: int) -> None:
+    expected = _registered_training_protocol(seed)
+    if (
+        type(value) is not dict
+        or tuple(value) != tuple(expected)
+        or any(
+            type(value[key]) is not type(expected_value) for key, expected_value in expected.items()
+        )
+        or value != expected
+    ):
+        raise ValueError("paired training protocol differs")
+
+
+def _candidate_identity(candidate: Mapping[str, Any]) -> dict[str, object]:
+    epochs = candidate.get("epochs")
+    alpha = candidate.get("alpha")
+    if (
+        type(epochs) is not list
+        or not epochs
+        or any(type(epoch) is not int for epoch in epochs)
+        or type(alpha) is not float
+        or not math.isfinite(alpha)
+    ):
+        raise ValueError("paired training seed winner differs")
+    return {"epochs": epochs, "alpha": alpha}
+
+
+def _candidate_checkpoint_evidence(candidate: Mapping[str, Any]) -> tuple[str, ...]:
+    epochs = candidate.get("epochs")
+    checkpoints = candidate.get("checkpoints")
+    if (
+        type(epochs) is not list
+        or type(checkpoints) is not list
+        or len(checkpoints) != len(epochs)
+        or any(type(path) is not str or not path for path in checkpoints)
+        or len(set(checkpoints)) != len(checkpoints)
+        or any(_epoch(Path(path)) != epoch for epoch, path in zip(epochs, checkpoints, strict=True))
+    ):
+        raise ValueError("paired training seed checkpoint evidence differs")
+    return tuple(checkpoints)
+
+
+def _validate_reported_delta(
+    selected: dict[str, Any], endpoint: dict[str, Any], gate: dict[str, Any]
+) -> tuple[float, float]:
+    for candidate in (selected, endpoint):
+        _validate_query_evidence(candidate.get("query_evidence"))
+        metrics = candidate.get("metrics")
+        if type(metrics) is not dict:
+            raise ValueError("paired training seed candidate metrics differ")
+        evidence = candidate["query_evidence"]
+        expected_map = float(np.asarray(evidence["average_precision"], dtype=np.float64).mean())
+        expected_recall = float(np.asarray(evidence["top1_correct"], dtype=np.float64).mean())
+        if (
+            type(metrics.get("map_at_r")) is not float
+            or type(metrics.get("recall_at_1")) is not float
+            or abs(metrics["map_at_r"] - expected_map) > 1e-12
+            or abs(metrics["recall_at_1"] - expected_recall) > 1e-12
+        ):
+            raise ValueError("paired training seed candidate metrics differ")
+    selected_evidence = selected["query_evidence"]
+    endpoint_evidence = endpoint["query_evidence"]
+    selected_ap = np.asarray(selected_evidence["average_precision"], dtype=np.float64)
+    endpoint_ap = np.asarray(endpoint_evidence["average_precision"], dtype=np.float64)
+    selected_top1 = np.asarray(selected_evidence["top1_correct"], dtype=np.float64)
+    endpoint_top1 = np.asarray(endpoint_evidence["top1_correct"], dtype=np.float64)
+    if selected_ap.shape != endpoint_ap.shape or selected_top1.shape != endpoint_top1.shape:
+        raise ValueError("paired training seed query evidence differs")
+    map_delta = float((selected_ap - endpoint_ap).mean())
+    recall_delta = float((selected_top1 - endpoint_top1).mean())
+    if (
+        type(gate.get("map_delta")) is not float
+        or type(gate.get("recall_at_1_delta")) is not float
+        or abs(gate["map_delta"] - map_delta) > 1e-12
+        or abs(gate["recall_at_1_delta"] - recall_delta) > 1e-12
+        or gate.get("promoted") is not (map_delta >= 0.003 and recall_delta >= -0.00125)
+    ):
+        raise ValueError("paired training seed delta differs from recomputed evidence")
+    return map_delta, recall_delta
+
+
 def select_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any]:
     if not candidates:
         raise ValueError("candidate list is empty")
@@ -383,7 +709,7 @@ def _validate_selection_args(args) -> None:
             raise ValueError("screen alpha grid differs from frozen protocol")
     elif args.mode == "fixed":
         if (
-            args.training_seed not in (1, 2, 3)
+            args.training_seed not in REGISTERED_REPLICATION_SEEDS
             or len(alphas) != 1
             or not isinstance(args.screen_report, Path)
             or epochs != (4, 8, 12, 16)
@@ -392,7 +718,7 @@ def _validate_selection_args(args) -> None:
         screen = json.loads(args.screen_report.read_text())
         if (
             type(screen) is not dict
-            or screen.get("protocol") != "unicom-train-identity-holdout-suffix-soup-wise-v2"
+            or screen.get("protocol") != REPORT_PROTOCOL
             or screen.get("mode") != "screen"
             or screen.get("training_seed") != 0
             or screen.get("alphas") != list(REGISTERED_SCREEN_ALPHAS)
@@ -490,6 +816,14 @@ def _atomic_json(value: object, path: Path) -> None:
     finally:
         if temporary.exists():
             temporary.unlink()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
@@ -592,7 +926,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         model_path,
     )
     report = {
-        "protocol": "unicom-train-identity-holdout-suffix-soup-wise-v2",
+        "protocol": REPORT_PROTOCOL,
         "mode": args.mode,
         "training_seed": args.training_seed,
         "alphas": list(args.alphas),
@@ -600,6 +934,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "workers": args.workers,
         "selected_features": args.selected_features,
         "screen_report": None if args.screen_report is None else str(args.screen_report),
+        "screen_report_sha256": (
+            None if args.screen_report is None else _sha256_file(args.screen_report)
+        ),
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
         "training_protocol": training_protocol,
@@ -633,9 +970,31 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(arguments)
 
 
+def parse_aggregate_args(arguments: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--aggregate", action="store_true", required=True)
+    parser.add_argument("--screen-report", required=True, type=Path)
+    parser.add_argument("--replication-reports", required=True, type=Path, nargs="+")
+    parser.add_argument("--output", required=True, type=Path)
+    return parser.parse_args(arguments)
+
+
 def main(arguments: Sequence[str] | None = None) -> int:
+    values = list(sys.argv[1:] if arguments is None else arguments)
+    if values and values[0] == "--aggregate":
+        try:
+            aggregate_args = parse_aggregate_args(values)
+            summary = summarize_training_seed_replications(
+                aggregate_args.screen_report, aggregate_args.replication_reports
+            )
+            _atomic_json(summary, aggregate_args.output)
+        except Exception as error:
+            print(f"soup aggregation failed: {error}", file=sys.stderr)
+            return 2
+        print(json.dumps(summary, sort_keys=True))
+        return 0
     try:
-        report = run(parse_args(arguments))
+        report = run(parse_args(values))
     except Exception as error:
         print(f"soup evaluation failed: {error}", file=sys.stderr)
         return 2

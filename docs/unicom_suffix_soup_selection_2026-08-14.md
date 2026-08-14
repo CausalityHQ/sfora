@@ -19,9 +19,36 @@ checkpoint or any soup holdout score is observed.
 - Seed-0 promotion gate: selected-minus-endpoint holdout mAP at least `0.003`
   absolute, with Recall@1 no worse by more than `0.00125` absolute.
 - If promoted, freeze the selected window and alpha without further tuning and
-  run paired training seeds 1, 2, and 3. A quality claim requires all four
-  paired deltas positive and a paired 95% confidence interval above zero, plus
-  measured training time, inference latency, and storage cost.
+  run paired training seeds 1, 2, 3, 4, 5, and 6. Seed 0 is selection-only and
+  is excluded from every confirmatory statistic because its winner is selected
+  from the 28-candidate grid. The six fixed replications are the only
+  training-seed sample used for the claim; there is no outcome-adaptive seed
+  extension.
+- The primary method-level effect is selected-minus-endpoint holdout mAP for
+  each training seed. Report the six deltas, their mean, sample standard
+  deviation (`ddof=1`), and the two-sided 95% paired Student-t interval
+  `mean +/- 2.5705818356363146 * sample_sd / sqrt(6)` (five degrees of
+  freedom). This interval estimates uncertainty across training seeds. It is
+  distinct from every within-seed query bootstrap interval.
+- A quality claim requires all six mAP deltas strictly positive, the paired
+  Student-t lower bound strictly above zero, the exact two-sided sign-test
+  p-value at most 0.05 (six positive replication signs give
+  `2 / 64 = 0.03125`), and every
+  paired Recall@1 delta at least `-0.00125`. The sample standard deviation must
+  also be strictly positive: duplicated or relabelled evidence and an exactly
+  zero-variance six-run sample cannot support the claim. Each seed's selected
+  and endpoint checkpoint paths must be internally valid; the summary hashes
+  the actual checkpoint bytes and requires every seed's digest set to be
+  disjoint from every other seed. Renaming or copying one run cannot create an
+  independent replication.
+- The summary command consumes the seed-0 screen JSON and the six fixed-report
+  JSON paths, computes the screen file's SHA-256 itself, and requires every
+  fixed report to bind that exact digest and the same frozen training protocol.
+  It does not accept a caller-supplied digest or in-memory report mapping.
+- A quality claim also requires measured training time, inference latency, and
+  storage cost. Four runs are not used for a
+  confirmatory claim because even four positive signs have exact two-sided
+  p-value `2 / 16 = 0.125`.
 - If the gate fails, close checkpoint averaging for this trajectory and test
   the already researched next candidate: step-level EMA with class-mean
   classifier initialization. Do not tune this soup grid again on the same
