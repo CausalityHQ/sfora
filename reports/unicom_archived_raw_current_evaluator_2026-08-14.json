@@ -1,0 +1,29 @@
+{
+  "schema_version": "unicom-archived-raw-current-evaluator-v1",
+  "purpose": "locate the seed-0 control divergence without evaluating any candidate arm",
+  "archived_report": {
+    "path": "reports/archive/unicom_ftra_seed0_76f2290.remote.json",
+    "sha256": "c8bb65dcff33b09c40f602f1d243336d83a8d29f93c3c8c2e75236fed375140a"
+  },
+  "archived_raw_checkpoint": {
+    "path": "/home/riomus/unicom-screen-84df706-seed0-fp32-e16/epoch-0016.pt",
+    "sha256": "210d0113b40d2a5ef3bb836f818ed2d632d046f3e818b1bb5049e25ba845f0a5"
+  },
+  "evaluator": {
+    "revision": "d4f5f3e5029b2f29fe11d725545a56a3cf904b63",
+    "path": "scripts/evaluate_unicom_ema_imprint_factorial.py",
+    "sha256": "2adf842db58574fd6c8487743f2dab341881aad1d5ca5224e647022a4f168a4d"
+  },
+  "result": {
+    "query_count": 797,
+    "map_at_r": 0.8716329439260202,
+    "recall_at_1": 0.972396486825596,
+    "archived_map_exact": true,
+    "archived_recall_at_1_exact": true
+  },
+  "disclosure": {
+    "candidate_values_computed": false,
+    "artifact_created_after_original_control_invalidated": true,
+    "interpretation": "the evaluator reproduces the archived checkpoint; the new raw-control difference is a training-lineage difference"
+  }
+}

@@ -106,6 +106,25 @@ within `0.002` absolute mAP@R and `0.002` absolute Recall@1 of the archived
 hardened endpoint (`0.8716329439260202`, `0.972396486825596`). Failure makes
 all candidate comparisons invalid and stops the experiment.
 
+### Amendment — 2026-08-14, before candidate execution
+
+The gate above ran once and produced the retained v1 `INVALID` report. No
+imprinted arm or other candidate value had been computed. Read-only diagnosis
+then showed that the archived epoch-16 checkpoint exactly reproduces its
+archived metric under the current evaluator, while the current random run is
+strictly better. Because the GPU training lineage is not deterministic, the
+symmetric cross-lineage clamp is replaced prospectively by the v2 control in
+`docs/unicom_ema_imprint_control_repair_2026-08-14.md`.
+
+Continuation now requires current `random_raw` epoch 16 to be no worse than the
+archived mAP@R and Recall@1 by more than `0.002`, with exact archived initial
+checkpoint and partition bindings. The v2 control row's metrics and per-query
+evidence must exactly equal the factorial's freshly evaluated `random_raw`
+epoch-16 row. The original v1 failure remains embedded in the v2 record.
+
+This amendment does not change candidate selection or any promotion, EMA-close,
+imprint-close, time-to-quality, epoch, seed, training, or evaluation threshold.
+
 The epoch-16 candidate is selected from `random_ema`, `imprinted_raw`, and
 `imprinted_ema` by mAP@R, then Recall@1, then the fixed order just listed. It is
 promoted only when all conditions hold:

@@ -90,11 +90,11 @@ def test_factorial_gate_uses_exact_promotion_boundaries(
     assert gate["selected_cell"] == "imprinted_ema"
 
 
-def test_factorial_gate_stops_when_control_does_not_reproduce_endpoint() -> None:
+def test_factorial_gate_stops_when_current_lineage_is_inferior_to_archived_floor() -> None:
     module = _load_script()
     rows = _registered_rows()
     baseline = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
-    baseline["metrics"]["map_at_r"] += 0.0020001
+    baseline["metrics"]["map_at_r"] -= 0.0020001
 
     gate = module.factorial_gate(rows, bootstrap_interval=(0.001, 0.01))
 
@@ -439,6 +439,219 @@ def _valid_control_report(module) -> dict[str, object]:
     }
 
 
+def _failed_current_control_report(module) -> dict[str, object]:
+    report = _valid_control_report(module)
+    initial_checkpoint_sha256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+    partition_sha256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+    report["provenance"]["initial_checkpoint_sha256"] = initial_checkpoint_sha256
+    report["provenance"]["partition_sha256"] = partition_sha256
+    protocol = report["provenance"]["random_training_protocol"]
+    protocol["initial_checkpoint_sha256"] = initial_checkpoint_sha256
+    protocol["partition_sha256"] = partition_sha256
+    row = report["row"]
+    row["checkpoint_sha256"] = module.REGISTERED_RANDOM_E16_CHECKPOINT_SHA256
+    row["training_history_sha256"] = (
+        "de62f014367fdc492f84dc96d05f02d6c29bd711d46813e642181c476c37ef96"
+    )
+    map_at_r = 0.8854017757500122
+    top1 = [True] * 780 + [False] * 17
+    row["metrics"] = {
+        "recall_at_1": 780 / 797,
+        "recall_at_10": 0.9949811794228356,
+        "recall_at_20": 0.9962358845671268,
+        "recall_at_30": 0.9974905897114178,
+        "map_at_r": map_at_r,
+    }
+    row["query_evidence"] = {
+        "top1_correct": top1,
+        "average_precision": [map_at_r] * 797,
+    }
+    report["gate"] = module.control_gate(row)
+    assert report["gate"]["decision"] == "INVALID"
+    return report
+
+
+def test_repaired_control_gate_is_one_sided_and_keeps_candidate_thresholds() -> None:
+    module = _load_script()
+    current = _failed_current_control_report(module)["row"]
+
+    gate = module.repaired_control_gate(current)
+
+    assert gate == {
+        "archived_map_at_r": module.ARCHIVED_MAP_AT_R,
+        "archived_recall_at_1": module.ARCHIVED_RECALL_AT_1,
+        "map_noninferiority_tolerance": 0.002,
+        "recall_at_1_noninferiority_tolerance": 0.002,
+        "lineage_noninferior": True,
+        "minimum_candidate_map_gain": 0.003,
+        "candidate_recall_at_1_guard": -0.00125,
+        "candidate_bootstrap_lower_must_be_positive": True,
+        "decision": "CONTINUE",
+    }
+    current["metrics"]["map_at_r"] = module.ARCHIVED_MAP_AT_R - 0.0020001
+    assert module.repaired_control_gate(current)["decision"] == "INVALID"
+
+
+def test_factorial_gate_uses_current_lineage_baseline_without_weakening_promotion() -> None:
+    module = _load_script()
+    rows = _registered_rows()
+    baseline = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    baseline["metrics"] = {
+        "map_at_r": 0.8854017757500122,
+        "recall_at_1": 0.9786700125470514,
+    }
+    candidate = next(row for row in rows if row["cell"] == "imprinted_ema" and row["epoch"] == 16)
+    candidate["metrics"] = {
+        "map_at_r": baseline["metrics"]["map_at_r"] + 0.003,
+        "recall_at_1": baseline["metrics"]["recall_at_1"] - 0.00125,
+    }
+    for row in rows:
+        if row["epoch"] == 16 and row["cell"] in ("random_ema", "imprinted_raw"):
+            row["metrics"] = dict(baseline["metrics"])
+
+    gate = module.factorial_gate(rows, bootstrap_interval=(1e-12, 0.01))
+
+    assert gate["instrument_reproduced"] is True
+    assert gate["minimum_map_gain"] == 0.003
+    assert gate["recall_at_1_guard"] == -0.00125
+    assert gate["promoted"] is True
+
+
+def test_repaired_control_report_preserves_failed_legacy_gate_and_binds_disclosure() -> None:
+    module = _load_script()
+    legacy = _failed_current_control_report(module)
+
+    repaired = module.build_repaired_control_report(
+        legacy,
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+
+    module.validate_repaired_control_report(repaired)
+    assert repaired["legacy_gate"]["decision"] == "INVALID"
+    assert repaired["gate"]["decision"] == "CONTINUE"
+    assert repaired["repair"]["archived_raw_checkpoint_sha256"] == (
+        "210d0113b40d2a5ef3bb836f818ed2d632d046f3e818b1bb5049e25ba845f0a5"
+    )
+    assert repaired["repair"]["archived_recomputation_report"] == (
+        "reports/unicom_archived_raw_current_evaluator_2026-08-14.json"
+    )
+    assert repaired["repair"]["archived_recomputation_evaluator_revision"] == (
+        "d4f5f3e5029b2f29fe11d725545a56a3cf904b63"
+    )
+    assert repaired["repair"]["candidate_values_observed"] is False
+    assert repaired["repair"]["promotion_thresholds_unchanged"] is True
+    repaired["repair"]["promotion_thresholds_unchanged"] = False
+    with pytest.raises(ValueError, match="repair"):
+        module.validate_repaired_control_report(repaired)
+
+
+def test_repaired_control_rejects_coordinated_split_or_initial_checkpoint_drift() -> None:
+    module = _load_script()
+    legacy = _failed_current_control_report(module)
+    repaired = module.build_repaired_control_report(
+        legacy,
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+
+    repaired["provenance"]["partition_sha256"] = "f" * 64
+    repaired["provenance"]["random_training_protocol"]["partition_sha256"] = "f" * 64
+
+    with pytest.raises(ValueError, match="repair"):
+        module.validate_repaired_control_report(repaired)
+
+
+def test_repair_control_cli_derives_v2_without_gpu_or_candidate_inputs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    legacy_path = tmp_path / "legacy-control.json"
+    legacy_path.write_text(json.dumps(_failed_current_control_report(module)))
+    legacy_sha256 = hashlib.sha256(legacy_path.read_bytes()).hexdigest()
+    monkeypatch.setattr(module, "REGISTERED_LEGACY_CONTROL_SHA256", legacy_sha256)
+    output = tmp_path / "repaired-control.json"
+
+    exit_code = module.main(
+        [
+            "--mode",
+            "repair-control",
+            "--legacy-control-report",
+            str(legacy_path),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    repaired = json.loads(output.read_text())
+    module.validate_repaired_control_report(repaired)
+    assert repaired["repair"]["legacy_control_report_sha256"] == legacy_sha256
+    assert repaired["gate"]["decision"] == "CONTINUE"
+
+
+def test_factorial_binding_requires_repaired_control_report() -> None:
+    module = _load_script()
+    factorial = _valid_report(module)
+    legacy = _failed_current_control_report(module)
+    repaired = module.build_repaired_control_report(
+        legacy,
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+    rows = factorial["rows"]
+    random_row = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    random_row.update(
+        {
+            name: repaired["row"][name]
+            for name in (
+                "checkpoint_sha256",
+                "training_history_sha256",
+                "metrics",
+                "query_evidence",
+            )
+        }
+    )
+    protocol = repaired["provenance"]["random_training_protocol"]
+
+    module.validate_control_binding(repaired, rows, protocol)
+    with pytest.raises(ValueError, match="repaired"):
+        module.validate_control_binding(legacy, rows, protocol)
+
+
+@pytest.mark.parametrize("field", ("metrics", "query_evidence"))
+def test_factorial_binding_rejects_baseline_evidence_drift_from_control(field: str) -> None:
+    module = _load_script()
+    factorial = _valid_report(module)
+    repaired = module.build_repaired_control_report(
+        _failed_current_control_report(module),
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
+    rows = factorial["rows"]
+    random_row = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    random_row.update(
+        {
+            name: repaired["row"][name]
+            for name in (
+                "checkpoint_sha256",
+                "training_history_sha256",
+                "metrics",
+                "query_evidence",
+            )
+        }
+    )
+    if field == "metrics":
+        random_row[field] = dict(random_row[field], map_at_r=0.87)
+    else:
+        random_row[field] = dict(random_row[field], average_precision=[0.87] * 797)
+
+    with pytest.raises(ValueError, match="control report binding"):
+        module.validate_control_binding(
+            repaired, rows, repaired["provenance"]["random_training_protocol"]
+        )
+
+
 def test_control_report_validates_and_main_publishes_without_imprinted_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -476,13 +689,29 @@ def test_control_report_validates_and_main_publishes_without_imprinted_run(
 def test_factorial_binding_rejects_control_from_other_random_checkpoint() -> None:
     module = _load_script()
     factorial = _valid_report(module)
-    control = _valid_control_report(module)
+    control = module.build_repaired_control_report(
+        _failed_current_control_report(module),
+        legacy_control_report="random-seed0.control.json",
+        legacy_control_report_sha256=module.REGISTERED_LEGACY_CONTROL_SHA256,
+    )
     rows = factorial["rows"]
-    protocol = factorial["provenance"]["random_training_protocol"]
+    random_row = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    random_row.update(
+        {
+            name: control["row"][name]
+            for name in (
+                "checkpoint_sha256",
+                "training_history_sha256",
+                "metrics",
+                "query_evidence",
+            )
+        }
+    )
+    protocol = control["provenance"]["random_training_protocol"]
 
     module.validate_control_binding(control, rows, protocol)
     control["row"]["checkpoint_sha256"] = "f" * 64
-    with pytest.raises(ValueError, match="control report binding"):
+    with pytest.raises(ValueError, match="control binding"):
         module.validate_control_binding(control, rows, protocol)
 
 

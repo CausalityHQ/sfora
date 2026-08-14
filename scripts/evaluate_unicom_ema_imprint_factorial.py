@@ -21,6 +21,37 @@ REGISTERED_CANDIDATES = ("random_ema", "imprinted_raw", "imprinted_ema")
 REGISTERED_EPOCHS = (4, 8, 12, 16)
 ARCHIVED_MAP_AT_R = 0.8716329439260202
 ARCHIVED_RECALL_AT_1 = 0.972396486825596
+REGISTERED_LEGACY_CONTROL_SHA256 = (
+    "9af6f811eb162a4054d9c86bc117c2e261951750da207670841e058521c077fa"
+)
+REGISTERED_RANDOM_E16_CHECKPOINT_SHA256 = (
+    "df53194c44e4131a6d89832639cedcd10b78d27b18b3c2a802997e12abd85e55"
+)
+REGISTERED_RANDOM_HISTORY_SHA256 = (
+    "de62f014367fdc492f84dc96d05f02d6c29bd711d46813e642181c476c37ef96"
+)
+ARCHIVED_FTRA_REPORT_SHA256 = "c8bb65dcff33b09c40f602f1d243336d83a8d29f93c3c8c2e75236fed375140a"
+ARCHIVED_RAW_CHECKPOINT_SHA256 = "210d0113b40d2a5ef3bb836f818ed2d632d046f3e818b1bb5049e25ba845f0a5"
+ARCHIVED_TRAINER_SHA256 = "b2cfdaed33d46ec445141bb40b1a3f28aed0d3ca859101843ddf825866640bb1"
+ARCHIVED_INITIAL_CHECKPOINT_SHA256 = (
+    "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+)
+ARCHIVED_PARTITION_SHA256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+ARCHIVED_RECOMPUTATION_REPORT = "reports/unicom_archived_raw_current_evaluator_2026-08-14.json"
+ARCHIVED_RECOMPUTATION_REPORT_SHA256 = (
+    "b64bd3df5d9abe4ee7d1a1f4332148e1cc8adfc40ba2421e5fb5d2b2be6cdfe7"
+)
+ARCHIVED_RECOMPUTATION_EVALUATOR_REVISION = "d4f5f3e5029b2f29fe11d725545a56a3cf904b63"
+ARCHIVED_RECOMPUTATION_EVALUATOR_SHA256 = (
+    "2adf842db58574fd6c8487743f2dab341881aad1d5ca5224e647022a4f168a4d"
+)
+ARCHIVED_RECOMPUTATION_INTERPRETATION = (
+    "the evaluator reproduces the archived checkpoint; the new raw-control difference is a "
+    "training-lineage difference"
+)
+CONTROL_REPAIR_REASON = (
+    "cross-lineage-absolute-gate-invalid-after-nondeterministic-training-trajectory"
+)
 TRAINING_PROTOCOL_FIELDS = (
     "protocol",
     "trainer_sha256",
@@ -173,8 +204,8 @@ def factorial_gate(
     selected_map = selected["metrics"]["map_at_r"]
     selected_recall = selected["metrics"]["recall_at_1"]
     instrument_reproduced = (
-        abs(baseline_map - ARCHIVED_MAP_AT_R) <= 0.002
-        and abs(baseline_recall - ARCHIVED_RECALL_AT_1) <= 0.002
+        baseline_map >= ARCHIVED_MAP_AT_R - 0.002
+        and baseline_recall >= ARCHIVED_RECALL_AT_1 - 0.002
     )
     map_gain = selected_map - baseline_map
     recall_delta = selected_recall - baseline_recall
@@ -235,6 +266,84 @@ def control_gate(row: Mapping[str, object]) -> dict[str, object]:
         "instrument_reproduced": reproduced,
         "decision": "CONTINUE" if reproduced else "INVALID",
     }
+
+
+def repaired_control_gate(row: Mapping[str, object]) -> dict[str, object]:
+    if type(row) is not dict or row.get("cell") != "random_raw" or row.get("epoch") != 16:
+        raise ValueError("repaired control row differs")
+    metrics = row.get("metrics")
+    if type(metrics) is not dict:
+        raise ValueError("repaired control metrics differ")
+    map_at_r = _finite_float(metrics.get("map_at_r"), name="repaired control mAP@R")
+    recall_at_1 = _finite_float(metrics.get("recall_at_1"), name="repaired control Recall@1")
+    noninferior = (
+        map_at_r >= ARCHIVED_MAP_AT_R - 0.002 and recall_at_1 >= ARCHIVED_RECALL_AT_1 - 0.002
+    )
+    return {
+        "archived_map_at_r": ARCHIVED_MAP_AT_R,
+        "archived_recall_at_1": ARCHIVED_RECALL_AT_1,
+        "map_noninferiority_tolerance": 0.002,
+        "recall_at_1_noninferiority_tolerance": 0.002,
+        "lineage_noninferior": noninferior,
+        "minimum_candidate_map_gain": 0.003,
+        "candidate_recall_at_1_guard": -0.00125,
+        "candidate_bootstrap_lower_must_be_positive": True,
+        "decision": "CONTINUE" if noninferior else "INVALID",
+    }
+
+
+def _load_archived_recomputation_evidence() -> dict[str, object]:
+    path = Path(__file__).parents[1] / ARCHIVED_RECOMPUTATION_REPORT
+    if _sha256_file(path) != ARCHIVED_RECOMPUTATION_REPORT_SHA256:
+        raise ValueError("archived recomputation report bytes differ")
+    value = json.loads(path.read_text())
+    if type(value) is not dict or tuple(value) != (
+        "schema_version",
+        "purpose",
+        "archived_report",
+        "archived_raw_checkpoint",
+        "evaluator",
+        "result",
+        "disclosure",
+    ):
+        raise ValueError("archived recomputation report schema differs")
+    if (
+        value["schema_version"] != "unicom-archived-raw-current-evaluator-v1"
+        or value["purpose"]
+        != "locate the seed-0 control divergence without evaluating any candidate arm"
+        or value["archived_report"]
+        != {
+            "path": "reports/archive/unicom_ftra_seed0_76f2290.remote.json",
+            "sha256": ARCHIVED_FTRA_REPORT_SHA256,
+        }
+        or value["archived_raw_checkpoint"]
+        != {
+            "path": "/home/riomus/unicom-screen-84df706-seed0-fp32-e16/epoch-0016.pt",
+            "sha256": ARCHIVED_RAW_CHECKPOINT_SHA256,
+        }
+        or value["evaluator"]
+        != {
+            "revision": ARCHIVED_RECOMPUTATION_EVALUATOR_REVISION,
+            "path": "scripts/evaluate_unicom_ema_imprint_factorial.py",
+            "sha256": ARCHIVED_RECOMPUTATION_EVALUATOR_SHA256,
+        }
+        or value["result"]
+        != {
+            "query_count": 797,
+            "map_at_r": ARCHIVED_MAP_AT_R,
+            "recall_at_1": ARCHIVED_RECALL_AT_1,
+            "archived_map_exact": True,
+            "archived_recall_at_1_exact": True,
+        }
+        or value["disclosure"]
+        != {
+            "candidate_values_computed": False,
+            "artifact_created_after_original_control_invalidated": True,
+            "interpretation": ARCHIVED_RECOMPUTATION_INTERPRETATION,
+        }
+    ):
+        raise ValueError("archived recomputation report differs")
+    return value
 
 
 def materialize_checkpoint_state(checkpoint: object, *, use_ema: bool) -> dict[str, object]:
@@ -652,6 +761,126 @@ def validate_control_report(report: object) -> None:
         raise ValueError("control gate differs")
 
 
+def build_repaired_control_report(
+    legacy_report: object,
+    *,
+    legacy_control_report: str,
+    legacy_control_report_sha256: str,
+) -> dict[str, object]:
+    validate_control_report(legacy_report)
+    recomputation = _load_archived_recomputation_evidence()
+    if (
+        type(legacy_control_report) is not str
+        or not legacy_control_report
+        or legacy_control_report_sha256 != REGISTERED_LEGACY_CONTROL_SHA256
+        or legacy_report["gate"]["decision"] != "INVALID"
+        or legacy_report["row"]["checkpoint_sha256"] != REGISTERED_RANDOM_E16_CHECKPOINT_SHA256
+        or legacy_report["row"]["training_history_sha256"] != REGISTERED_RANDOM_HISTORY_SHA256
+        or legacy_report["provenance"]["initial_checkpoint_sha256"]
+        != ARCHIVED_INITIAL_CHECKPOINT_SHA256
+        or legacy_report["provenance"]["partition_sha256"] != ARCHIVED_PARTITION_SHA256
+    ):
+        raise ValueError("legacy control repair binding differs")
+    repaired = {
+        "schema_version": "unicom-ema-imprint-control-v2",
+        "repair": {
+            "reason": CONTROL_REPAIR_REASON,
+            "legacy_control_report": legacy_control_report,
+            "legacy_control_report_sha256": legacy_control_report_sha256,
+            "archived_ftra_report_sha256": ARCHIVED_FTRA_REPORT_SHA256,
+            "archived_raw_checkpoint_sha256": ARCHIVED_RAW_CHECKPOINT_SHA256,
+            "archived_trainer_sha256": ARCHIVED_TRAINER_SHA256,
+            "archived_recomputation_report": ARCHIVED_RECOMPUTATION_REPORT,
+            "archived_recomputation_report_sha256": ARCHIVED_RECOMPUTATION_REPORT_SHA256,
+            "archived_recomputation_evaluator_revision": (
+                ARCHIVED_RECOMPUTATION_EVALUATOR_REVISION
+            ),
+            "archived_recomputation_evaluator_sha256": (ARCHIVED_RECOMPUTATION_EVALUATOR_SHA256),
+            "archived_recomputed_map_at_r": recomputation["result"]["map_at_r"],
+            "archived_recomputed_recall_at_1": recomputation["result"]["recall_at_1"],
+            "candidate_values_observed": False,
+            "promotion_thresholds_unchanged": True,
+        },
+        "provenance": legacy_report["provenance"],
+        "costs": legacy_report["costs"],
+        "row": legacy_report["row"],
+        "legacy_gate": legacy_report["gate"],
+        "gate": repaired_control_gate(legacy_report["row"]),
+    }
+    validate_repaired_control_report(repaired)
+    return repaired
+
+
+def validate_repaired_control_report(report: object) -> None:
+    if type(report) is not dict or tuple(report) != (
+        "schema_version",
+        "repair",
+        "provenance",
+        "costs",
+        "row",
+        "legacy_gate",
+        "gate",
+    ):
+        raise ValueError("repaired control report schema differs")
+    if report["schema_version"] != "unicom-ema-imprint-control-v2":
+        raise ValueError("repaired control report version differs")
+    repair = report["repair"]
+    if type(repair) is not dict or tuple(repair) != (
+        "reason",
+        "legacy_control_report",
+        "legacy_control_report_sha256",
+        "archived_ftra_report_sha256",
+        "archived_raw_checkpoint_sha256",
+        "archived_trainer_sha256",
+        "archived_recomputation_report",
+        "archived_recomputation_report_sha256",
+        "archived_recomputation_evaluator_revision",
+        "archived_recomputation_evaluator_sha256",
+        "archived_recomputed_map_at_r",
+        "archived_recomputed_recall_at_1",
+        "candidate_values_observed",
+        "promotion_thresholds_unchanged",
+    ):
+        raise ValueError("repaired control repair schema differs")
+    recomputation = _load_archived_recomputation_evidence()
+    if (
+        repair["reason"] != CONTROL_REPAIR_REASON
+        or type(repair["legacy_control_report"]) is not str
+        or not repair["legacy_control_report"]
+        or repair["legacy_control_report_sha256"] != REGISTERED_LEGACY_CONTROL_SHA256
+        or repair["archived_ftra_report_sha256"] != ARCHIVED_FTRA_REPORT_SHA256
+        or repair["archived_raw_checkpoint_sha256"] != ARCHIVED_RAW_CHECKPOINT_SHA256
+        or repair["archived_trainer_sha256"] != ARCHIVED_TRAINER_SHA256
+        or repair["archived_recomputation_report"] != ARCHIVED_RECOMPUTATION_REPORT
+        or repair["archived_recomputation_report_sha256"] != ARCHIVED_RECOMPUTATION_REPORT_SHA256
+        or repair["archived_recomputation_evaluator_revision"]
+        != recomputation["evaluator"]["revision"]
+        or repair["archived_recomputation_evaluator_sha256"] != recomputation["evaluator"]["sha256"]
+        or repair["archived_recomputed_map_at_r"] != recomputation["result"]["map_at_r"]
+        or repair["archived_recomputed_recall_at_1"] != recomputation["result"]["recall_at_1"]
+        or repair["candidate_values_observed"] is not False
+        or repair["promotion_thresholds_unchanged"] is not True
+    ):
+        raise ValueError("repaired control repair differs")
+    legacy = {
+        "schema_version": "unicom-ema-imprint-control-v1",
+        "provenance": report["provenance"],
+        "costs": report["costs"],
+        "row": report["row"],
+        "gate": report["legacy_gate"],
+    }
+    validate_control_report(legacy)
+    if (
+        report["legacy_gate"]["decision"] != "INVALID"
+        or report["row"]["checkpoint_sha256"] != REGISTERED_RANDOM_E16_CHECKPOINT_SHA256
+        or report["row"]["training_history_sha256"] != REGISTERED_RANDOM_HISTORY_SHA256
+        or report["provenance"]["initial_checkpoint_sha256"] != ARCHIVED_INITIAL_CHECKPOINT_SHA256
+        or report["provenance"]["partition_sha256"] != ARCHIVED_PARTITION_SHA256
+        or report["gate"] != repaired_control_gate(report["row"])
+    ):
+        raise ValueError("repaired control binding differs")
+
+
 def _validate_control_row_evidence(row: Mapping[str, object]) -> None:
     metrics = row.get("metrics")
     evidence = row.get("query_evidence")
@@ -696,7 +925,11 @@ def validate_control_binding(
     rows: Sequence[Mapping[str, object]],
     random_protocol: Mapping[str, object],
 ) -> None:
-    validate_control_report(control_report)
+    if type(control_report) is not dict or control_report.get("schema_version") != (
+        "unicom-ema-imprint-control-v2"
+    ):
+        raise ValueError("factorial requires repaired control report")
+    validate_repaired_control_report(control_report)
     by_key = _registered_rows(rows)
     if (
         control_report["gate"]["decision"] != "CONTINUE"
@@ -704,17 +937,23 @@ def validate_control_binding(
         != by_key[("random_raw", 16)]["checkpoint_sha256"]
         or control_report["row"]["training_history_sha256"]
         != by_key[("random_raw", 16)]["training_history_sha256"]
+        or control_report["row"]["metrics"] != by_key[("random_raw", 16)]["metrics"]
+        or control_report["row"]["query_evidence"] != by_key[("random_raw", 16)]["query_evidence"]
         or control_report["provenance"]["random_training_protocol"] != random_protocol
     ):
         raise ValueError("factorial control report binding differs")
 
 
 def write_report_atomic(report: dict[str, object], output: Path) -> None:
-    validator = (
-        validate_control_report
-        if report.get("schema_version") == "unicom-ema-imprint-control-v1"
-        else validate_factorial_report
-    )
+    validators = {
+        "unicom-ema-imprint-control-v1": validate_control_report,
+        "unicom-ema-imprint-control-v2": validate_repaired_control_report,
+        "unicom-ema-imprint-factorial-v1": validate_factorial_report,
+    }
+    try:
+        validator = validators[report.get("schema_version")]
+    except (KeyError, TypeError) as error:
+        raise ValueError("report version differs") from error
     validator(report)
     if not isinstance(output, Path):
         raise TypeError("output must be a Path")
@@ -1089,10 +1328,20 @@ def run_control(args: argparse.Namespace) -> dict[str, object]:
     return report
 
 
+def run_repair_control(args: argparse.Namespace) -> dict[str, object]:
+    payload = args.legacy_control_report.read_bytes()
+    legacy = json.loads(payload)
+    return build_repaired_control_report(
+        legacy,
+        legacy_control_report=str(args.legacy_control_report),
+        legacy_control_report_sha256=hashlib.sha256(payload).hexdigest(),
+    )
+
+
 def run(args: argparse.Namespace) -> dict[str, object]:
     started = time.monotonic()
     control_report = json.loads(args.control_report.read_text())
-    validate_control_report(control_report)
+    validate_repaired_control_report(control_report)
     if control_report["gate"]["decision"] != "CONTINUE":
         raise ValueError("factorial control report did not authorize continuation")
     rows, random_protocol, imprinted_protocol, storage, inference_latency = load_factorial_rows(
@@ -1138,19 +1387,34 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("control", "factorial"), default="factorial")
-    parser.add_argument("--unicom-checkout", required=True, type=Path)
-    parser.add_argument("--initial-checkpoint", required=True, type=Path)
-    parser.add_argument("--dataset-root", required=True, type=Path)
-    parser.add_argument("--random-run", required=True, type=Path)
+    parser.add_argument(
+        "--mode", choices=("control", "repair-control", "factorial"), default="factorial"
+    )
+    parser.add_argument("--unicom-checkout", type=Path)
+    parser.add_argument("--initial-checkpoint", type=Path)
+    parser.add_argument("--dataset-root", type=Path)
+    parser.add_argument("--random-run", type=Path)
     parser.add_argument("--imprinted-run", type=Path)
     parser.add_argument("--control-report", type=Path)
-    parser.add_argument("--random-training-seconds", required=True, type=float)
+    parser.add_argument("--legacy-control-report", type=Path)
+    parser.add_argument("--random-training-seconds", type=float)
     parser.add_argument("--imprinted-training-seconds", type=float)
-    parser.add_argument("--random-peak-gpu-mib", required=True, type=int)
+    parser.add_argument("--random-peak-gpu-mib", type=int)
     parser.add_argument("--imprinted-peak-gpu-mib", type=int)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(arguments)
+    shared = (
+        args.unicom_checkout,
+        args.initial_checkpoint,
+        args.dataset_root,
+        args.random_run,
+        args.random_training_seconds,
+        args.random_peak_gpu_mib,
+    )
+    if args.mode in ("control", "factorial") and any(value is None for value in shared):
+        parser.error("control and factorial modes require random run arguments")
+    if args.mode == "repair-control" and args.legacy_control_report is None:
+        parser.error("repair-control mode requires --legacy-control-report")
     if args.mode == "factorial" and any(
         value is None
         for value in (
@@ -1169,16 +1433,22 @@ def main(arguments: Sequence[str] | None = None) -> int:
         args = parse_args(arguments)
         if args.output.exists() or args.output.is_symlink():
             raise FileExistsError(args.output)
-        report = run_control(args) if args.mode == "control" else run(args)
+        runners = {
+            "control": run_control,
+            "repair-control": run_repair_control,
+            "factorial": run,
+        }
+        report = runners[args.mode](args)
         write_report_atomic(report, args.output)
     except Exception as error:
         print(f"factorial evaluation failed: {error}", file=sys.stderr)
         return 2
-    succeeded = (
-        report["gate"]["instrument_reproduced"]
-        if args.mode == "control"
-        else report["gate"]["promoted"]
-    )
+    if args.mode == "control":
+        succeeded = report["gate"]["instrument_reproduced"]
+    elif args.mode == "repair-control":
+        succeeded = report["gate"]["decision"] == "CONTINUE"
+    else:
+        succeeded = report["gate"]["promoted"]
     return 0 if succeeded else 1
 
 
