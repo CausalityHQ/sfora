@@ -1,0 +1,769 @@
+#!/usr/bin/env python3
+"""Evaluate the frozen UniCOM step-EMA × imprinted-head factorial."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import importlib.util
+import json
+import math
+import os
+import sys
+import time
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+
+import numpy as np
+
+REGISTERED_CELLS = ("random_raw", "random_ema", "imprinted_raw", "imprinted_ema")
+REGISTERED_CANDIDATES = ("random_ema", "imprinted_raw", "imprinted_ema")
+REGISTERED_EPOCHS = (4, 8, 12, 16)
+ARCHIVED_MAP_AT_R = 0.8716329439260202
+ARCHIVED_RECALL_AT_1 = 0.972396486825596
+TRAINING_PROTOCOL_FIELDS = (
+    "protocol",
+    "trainer_sha256",
+    "unicom_revision",
+    "initial_checkpoint_sha256",
+    "partition_sha256",
+    "seed",
+    "epochs",
+    "batch_size",
+    "workers",
+    "learning_rate",
+    "classifier_learning_rate",
+    "margin",
+    "scale",
+    "objective",
+    "selected_features",
+    "holdout_seed",
+    "holdout_fraction",
+    "eval_every",
+    "checkpoint_every",
+    "max_steps",
+    "bf16",
+    "compile",
+    "fused",
+    "classifier_init",
+    "ema_decay",
+    "ema_update",
+)
+
+
+def _finite_float(value: object, *, name: str) -> float:
+    if type(value) is not float or not math.isfinite(value):
+        raise TypeError(f"{name} must be a finite builtin float")
+    return value
+
+
+def _registered_rows(
+    rows: Sequence[Mapping[str, object]],
+) -> dict[tuple[str, int], Mapping[str, object]]:
+    if type(rows) is not list or len(rows) != len(REGISTERED_CELLS) * len(REGISTERED_EPOCHS):
+        raise ValueError("factorial rows differ")
+    expected = tuple((cell, epoch) for cell in REGISTERED_CELLS for epoch in REGISTERED_EPOCHS)
+    observed = tuple((row.get("cell"), row.get("epoch")) for row in rows)
+    if observed != expected:
+        raise ValueError("factorial row order differs")
+    result = {}
+    for key, row in zip(expected, rows, strict=True):
+        metrics = row.get("metrics")
+        if type(metrics) is not dict:
+            raise ValueError("factorial row metrics differ")
+        _finite_float(metrics.get("map_at_r"), name="mAP@R")
+        _finite_float(metrics.get("recall_at_1"), name="Recall@1")
+        result[key] = row
+    return result
+
+
+def select_candidate(rows: Sequence[Mapping[str, object]]) -> Mapping[str, object]:
+    by_key = _registered_rows(rows)
+    candidates = [by_key[(cell, 16)] for cell in REGISTERED_CANDIDATES]
+    return max(
+        candidates,
+        key=lambda row: (
+            row["metrics"]["map_at_r"],
+            row["metrics"]["recall_at_1"],
+            -REGISTERED_CANDIDATES.index(row["cell"]),
+        ),
+    )
+
+
+def time_to_quality(
+    rows: Sequence[Mapping[str, object]], *, cell: str, target: float
+) -> dict[str, object]:
+    by_key = _registered_rows(rows)
+    if cell not in REGISTERED_CELLS:
+        raise ValueError("time-to-quality cell differs")
+    target = _finite_float(target, name="time-to-quality target")
+    first_epoch = next(
+        (
+            epoch
+            for epoch in REGISTERED_EPOCHS
+            if by_key[(cell, epoch)]["metrics"]["map_at_r"] >= target
+        ),
+        None,
+    )
+    return {
+        "target_map_at_r": target,
+        "first_epoch": first_epoch,
+        "speedup": None if first_epoch is None else 16.0 / first_epoch,
+    }
+
+
+def paired_map_bootstrap_interval(
+    baseline: Mapping[str, object],
+    candidate: Mapping[str, object],
+    *,
+    seed: int = 0,
+    samples: int = 10_000,
+    chunk_size: int = 64,
+) -> tuple[float, float]:
+    try:
+        baseline_values = np.asarray(
+            baseline["query_evidence"]["average_precision"], dtype=np.float64
+        )
+        candidate_values = np.asarray(
+            candidate["query_evidence"]["average_precision"], dtype=np.float64
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("paired mAP evidence differs") from error
+    if (
+        baseline_values.ndim != 1
+        or not baseline_values.size
+        or baseline_values.shape != candidate_values.shape
+        or not np.isfinite(baseline_values).all()
+        or not np.isfinite(candidate_values).all()
+        or type(seed) is not int
+        or type(samples) is not int
+        or samples <= 0
+        or type(chunk_size) is not int
+        or chunk_size <= 0
+    ):
+        raise ValueError("paired mAP evidence differs")
+    differences = candidate_values - baseline_values
+    generator = np.random.Generator(np.random.PCG64(seed))
+    means = np.empty(samples, dtype=np.float64)
+    for start in range(0, samples, chunk_size):
+        stop = min(samples, start + chunk_size)
+        indices = generator.integers(0, differences.size, size=(stop - start, differences.size))
+        means[start:stop] = differences[indices].mean(axis=1, dtype=np.float64)
+    bounds = np.percentile(means, [2.5, 97.5])
+    return float(bounds[0]), float(bounds[1])
+
+
+def factorial_gate(
+    rows: Sequence[Mapping[str, object]],
+    *,
+    bootstrap_interval: tuple[float, float],
+) -> dict[str, object]:
+    by_key = _registered_rows(rows)
+    if (
+        type(bootstrap_interval) is not tuple
+        or len(bootstrap_interval) != 2
+        or any(type(value) is not float or not math.isfinite(value) for value in bootstrap_interval)
+        or bootstrap_interval[0] > bootstrap_interval[1]
+    ):
+        raise ValueError("factorial bootstrap interval differs")
+    baseline = by_key[("random_raw", 16)]
+    selected = select_candidate(rows)
+    baseline_map = baseline["metrics"]["map_at_r"]
+    baseline_recall = baseline["metrics"]["recall_at_1"]
+    selected_map = selected["metrics"]["map_at_r"]
+    selected_recall = selected["metrics"]["recall_at_1"]
+    instrument_reproduced = (
+        abs(baseline_map - ARCHIVED_MAP_AT_R) <= 0.002
+        and abs(baseline_recall - ARCHIVED_RECALL_AT_1) <= 0.002
+    )
+    map_gain = selected_map - baseline_map
+    recall_delta = selected_recall - baseline_recall
+    ema_deltas = {
+        "random": by_key[("random_ema", 16)]["metrics"]["map_at_r"]
+        - by_key[("random_raw", 16)]["metrics"]["map_at_r"],
+        "imprinted": by_key[("imprinted_ema", 16)]["metrics"]["map_at_r"]
+        - by_key[("imprinted_raw", 16)]["metrics"]["map_at_r"],
+    }
+    imprint_delta = by_key[("imprinted_raw", 16)]["metrics"]["map_at_r"] - baseline_map
+    imprint_time = time_to_quality(rows, cell="imprinted_raw", target=baseline_map)
+    imprint_speedup = imprint_time["speedup"]
+    promoted = (
+        instrument_reproduced
+        and map_gain >= 0.003
+        and recall_delta >= -0.00125
+        and bootstrap_interval[0] > 0.0
+    )
+    return {
+        "instrument_map_tolerance": 0.002,
+        "instrument_recall_at_1_tolerance": 0.002,
+        "instrument_reproduced": instrument_reproduced,
+        "selected_cell": selected["cell"],
+        "selected_map_gain": map_gain,
+        "selected_recall_at_1_delta": recall_delta,
+        "map_delta_query_bootstrap_95_interval": list(bootstrap_interval),
+        "minimum_map_gain": 0.003,
+        "recall_at_1_guard": -0.00125,
+        "ema_map_deltas": ema_deltas,
+        "ema_closed": all(delta < 0.0015 for delta in ema_deltas.values()),
+        "imprint_raw_map_gain": imprint_delta,
+        "imprint_time_to_quality": imprint_time,
+        "imprint_closed": (
+            imprint_delta < 0.0015 and (imprint_speedup is None or imprint_speedup < 1.5)
+        ),
+        "decision": "INVALID"
+        if not instrument_reproduced
+        else ("PROMOTE" if promoted else "CLOSE"),
+        "promoted": promoted,
+    }
+
+
+def materialize_checkpoint_state(checkpoint: object, *, use_ema: bool) -> dict[str, object]:
+    import torch
+
+    if type(use_ema) is not bool or type(checkpoint) is not dict:
+        raise TypeError("checkpoint materialization arguments differ")
+    raw = checkpoint.get("model")
+    if not isinstance(raw, Mapping) or not raw:
+        raise ValueError("checkpoint raw model state differs")
+    state = {}
+    for name, value in raw.items():
+        if type(name) is not str or not name or type(value) is not torch.Tensor:
+            raise ValueError("checkpoint raw model state differs")
+        state[name] = value.detach().cpu().clone()
+    ema = checkpoint.get("ema")
+    if type(ema) is not dict or tuple(ema) != (
+        "decay",
+        "updates",
+        "backbone",
+        "classifier",
+    ):
+        raise ValueError("checkpoint EMA state differs")
+    if (
+        type(ema["decay"]) is not float
+        or ema["decay"] != 0.999
+        or type(ema["updates"]) is not int
+        or ema["updates"] < 0
+        or type(ema["backbone"]) is not dict
+        or not ema["backbone"]
+        or type(ema["classifier"]) is not torch.Tensor
+    ):
+        raise ValueError("checkpoint EMA state differs")
+    for name, value in ema["backbone"].items():
+        if (
+            type(name) is not str
+            or name not in state
+            or type(value) is not torch.Tensor
+            or value.dtype != torch.float32
+            or value.shape != state[name].shape
+            or state[name].dtype != torch.float32
+            or not torch.isfinite(value).all()
+        ):
+            raise ValueError("checkpoint EMA parameter differs")
+        if use_ema:
+            state[name] = value.detach().cpu().clone()
+    return state
+
+
+def _sha256(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def validate_training_protocol(value: object, *, classifier_init: str) -> None:
+    if type(value) is not dict or tuple(value) != TRAINING_PROTOCOL_FIELDS:
+        raise ValueError("factorial training protocol schema differs")
+    expected = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "seed": 0,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "classifier_init": classifier_init,
+        "ema_decay": 0.999,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+    }
+    if any(value[name] != expected_value for name, expected_value in expected.items()):
+        raise ValueError("factorial training protocol differs")
+    if (
+        not _sha256(value["trainer_sha256"])
+        or type(value["unicom_revision"]) is not str
+        or len(value["unicom_revision"]) != 40
+        or not _sha256(value["initial_checkpoint_sha256"])
+        or not _sha256(value["partition_sha256"])
+    ):
+        raise ValueError("factorial training protocol binding differs")
+
+
+def validate_factorial_report(report: object) -> None:
+    if type(report) is not dict or tuple(report) != (
+        "schema_version",
+        "provenance",
+        "costs",
+        "rows",
+        "gate",
+    ):
+        raise ValueError("factorial report schema differs")
+    if report["schema_version"] != "unicom-ema-imprint-factorial-v1":
+        raise ValueError("factorial report version differs")
+    provenance = report["provenance"]
+    if type(provenance) is not dict or tuple(provenance) != (
+        "unicom_revision",
+        "initial_checkpoint_sha256",
+        "partition_sha256",
+        "holdout_seed",
+        "holdout_fraction",
+        "batch_norm_recalibration",
+        "query_chunk_size",
+        "random_run",
+        "imprinted_run",
+        "random_training_protocol",
+        "imprinted_training_protocol",
+    ):
+        raise ValueError("factorial provenance schema differs")
+    if (
+        type(provenance["unicom_revision"]) is not str
+        or len(provenance["unicom_revision"]) != 40
+        or not _sha256(provenance["initial_checkpoint_sha256"])
+        or not _sha256(provenance["partition_sha256"])
+        or provenance["holdout_seed"] != 0
+        or provenance["holdout_fraction"] != 0.2
+        or provenance["batch_norm_recalibration"] != "full-optimization-cumulative-batches-all-arms"
+        or provenance["query_chunk_size"] != 256
+        or any(
+            type(provenance[name]) is not str or not provenance[name]
+            for name in ("random_run", "imprinted_run")
+        )
+    ):
+        raise ValueError("factorial provenance differs")
+    validate_training_protocol(provenance["random_training_protocol"], classifier_init="random")
+    validate_training_protocol(
+        provenance["imprinted_training_protocol"], classifier_init="imprinted"
+    )
+    random_protocol = provenance["random_training_protocol"]
+    imprinted_protocol = provenance["imprinted_training_protocol"]
+    for name in TRAINING_PROTOCOL_FIELDS:
+        if name != "classifier_init" and random_protocol[name] != imprinted_protocol[name]:
+            raise ValueError("factorial training protocols differ")
+    if (
+        random_protocol["unicom_revision"] != provenance["unicom_revision"]
+        or random_protocol["initial_checkpoint_sha256"] != provenance["initial_checkpoint_sha256"]
+        or random_protocol["partition_sha256"] != provenance["partition_sha256"]
+    ):
+        raise ValueError("factorial training provenance differs")
+    costs = report["costs"]
+    if type(costs) is not dict or tuple(costs) != (
+        "random_training_seconds",
+        "imprinted_training_seconds",
+        "random_peak_gpu_mib",
+        "imprinted_peak_gpu_mib",
+        "checkpoint_storage_bytes",
+        "inference_latency_ms_per_image",
+        "evaluator_seconds",
+    ):
+        raise ValueError("factorial cost schema differs")
+    for name in (
+        "random_training_seconds",
+        "imprinted_training_seconds",
+        "inference_latency_ms_per_image",
+        "evaluator_seconds",
+    ):
+        if type(costs[name]) is not float or not math.isfinite(costs[name]) or costs[name] < 0.0:
+            raise ValueError("factorial cost differs")
+    for name in ("random_peak_gpu_mib", "imprinted_peak_gpu_mib", "checkpoint_storage_bytes"):
+        if type(costs[name]) is not int or costs[name] < 0:
+            raise ValueError("factorial cost differs")
+
+    rows = report["rows"]
+    _registered_rows(rows)
+    query_count = None
+    for row in rows:
+        if tuple(row) != (
+            "cell",
+            "epoch",
+            "checkpoint",
+            "checkpoint_sha256",
+            "metrics",
+            "query_evidence",
+        ):
+            raise ValueError("factorial row schema differs")
+        if (
+            type(row["checkpoint"]) is not str
+            or not row["checkpoint"]
+            or not _sha256(row["checkpoint_sha256"])
+        ):
+            raise ValueError("factorial checkpoint evidence differs")
+        metrics = row["metrics"]
+        if tuple(metrics) != (
+            "recall_at_1",
+            "recall_at_10",
+            "recall_at_20",
+            "recall_at_30",
+            "map_at_r",
+        ):
+            raise ValueError("factorial metric schema differs")
+        if any(
+            type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0
+            for value in metrics.values()
+        ):
+            raise ValueError("factorial metric differs")
+        evidence = row["query_evidence"]
+        if type(evidence) is not dict or tuple(evidence) != (
+            "top1_correct",
+            "average_precision",
+        ):
+            raise ValueError("factorial query evidence schema differs")
+        top1 = evidence["top1_correct"]
+        average_precision = evidence["average_precision"]
+        if (
+            type(top1) is not list
+            or type(average_precision) is not list
+            or not top1
+            or len(top1) != len(average_precision)
+            or any(type(value) is not bool for value in top1)
+            or any(
+                type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0
+                for value in average_precision
+            )
+        ):
+            raise ValueError("factorial query evidence differs")
+        if query_count is None:
+            query_count = len(top1)
+        elif query_count != len(top1):
+            raise ValueError("factorial query evidence count differs")
+        expected_recall = sum(top1) / len(top1)
+        expected_map = math.fsum(average_precision) / len(average_precision)
+        if (
+            abs(metrics["recall_at_1"] - expected_recall) > 1e-15
+            or abs(metrics["map_at_r"] - expected_map) > 1e-12
+        ):
+            raise ValueError("factorial metric evidence differs")
+    selected = select_candidate(rows)
+    baseline = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    interval = paired_map_bootstrap_interval(baseline, selected)
+    expected_gate = factorial_gate(rows, bootstrap_interval=interval)
+    if report["gate"] != expected_gate:
+        raise ValueError("factorial gate differs")
+
+
+def write_report_atomic(report: dict[str, object], output: Path) -> None:
+    validate_factorial_report(report)
+    if not isinstance(output, Path):
+        raise TypeError("output must be a Path")
+    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    if output.exists() or output.is_symlink() or temporary.exists() or temporary.is_symlink():
+        raise FileExistsError(output)
+    payload = (json.dumps(report, indent=2, allow_nan=False) + "\n").encode()
+    descriptor = None
+    owned = None
+    directory_descriptor = None
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        info = os.fstat(descriptor)
+        owned = (info.st_dev, info.st_ino)
+        with os.fdopen(descriptor, "wb", closefd=True) as handle:
+            descriptor = None
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        persisted = json.loads(temporary.read_text())
+        validate_factorial_report(persisted)
+        os.link(temporary, output)
+        directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        os.fsync(directory_descriptor)
+        temporary.unlink()
+        os.fsync(directory_descriptor)
+        validate_factorial_report(json.loads(output.read_text()))
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if directory_descriptor is not None:
+            os.close(directory_descriptor)
+        try:
+            info = temporary.lstat()
+        except FileNotFoundError:
+            pass
+        else:
+            if owned is not None and (info.st_dev, info.st_ino) == owned:
+                temporary.unlink()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _load_local_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot load source: {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+def _checkpoint_paths(directory: Path) -> tuple[Path, ...]:
+    if not directory.is_dir() or directory.is_symlink():
+        raise ValueError("factorial run directory differs")
+    paths = tuple(directory / f"epoch-{epoch:04d}.pt" for epoch in REGISTERED_EPOCHS)
+    if any(not path.is_file() or path.is_symlink() for path in paths):
+        raise ValueError("factorial checkpoint path differs")
+    return paths
+
+
+def _load_registered_checkpoint(path: Path, *, epoch: int, classifier_init: str):
+    import torch
+
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False, mmap=True)
+    if type(checkpoint) is not dict or tuple(checkpoint) != (
+        "epoch",
+        "model",
+        "classifier",
+        "ema",
+        "optimizer",
+        "scheduler",
+        "scaler",
+        "mask_generator",
+        "torch_rng_state",
+        "cuda_rng_states",
+        "selection_holdout",
+        "training_protocol",
+        "history",
+    ):
+        raise ValueError("factorial checkpoint schema differs")
+    if checkpoint["epoch"] != epoch or checkpoint["selection_holdout"] != {
+        "seed": 0,
+        "fraction": 0.2,
+    }:
+        raise ValueError("factorial checkpoint registration differs")
+    validate_training_protocol(checkpoint["training_protocol"], classifier_init=classifier_init)
+    if checkpoint["ema"]["updates"] <= 0:
+        raise ValueError("factorial checkpoint EMA updates differ")
+    return checkpoint
+
+
+def _benchmark_inference_latency(model, calibration_loader, *, device) -> float:
+    import torch
+
+    try:
+        images, _labels = next(iter(calibration_loader))
+    except StopIteration as error:
+        raise ValueError("factorial latency batch is empty") from error
+    images = images.to(device)
+    model.eval()
+    with torch.inference_mode():
+        for _index in range(10):
+            model(images)
+        torch.cuda.synchronize(device)
+        started = time.perf_counter()
+        for _index in range(50):
+            model(images)
+        torch.cuda.synchronize(device)
+    elapsed = time.perf_counter() - started
+    return float(elapsed * 1_000.0 / (50 * images.shape[0]))
+
+
+def load_factorial_rows(args: argparse.Namespace):
+    import torch
+
+    from sfora.unicom_inshop import parse_inshop_partition
+    from sfora.unicom_training import identity_holdout
+
+    soup = _load_local_module(
+        Path(__file__).resolve().with_name("evaluate_unicom_checkpoint_soup.py"),
+        "_unicom_soup_for_ema_imprint",
+    )
+    trainer = soup._load_trainer()
+    if trainer._git_revision(args.unicom_checkout) != trainer.UNICOM_REVISION:
+        raise ValueError("UNICOM checkout revision differs")
+    if _sha256_file(args.initial_checkpoint) != trainer.UNICOM_L14_336_SHA256:
+        raise ValueError("UNICOM initial checkpoint SHA-256 differs")
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is required for the EMA imprint factorial")
+    random_paths = _checkpoint_paths(args.random_run)
+    imprinted_paths = _checkpoint_paths(args.imprinted_run)
+    if set(random_paths) & set(imprinted_paths):
+        raise ValueError("factorial run checkpoints overlap")
+
+    records = parse_inshop_partition(args.dataset_root)
+    train_records = tuple(record for record in records if record.split == "train")
+    optimization, query, gallery, _labels = identity_holdout(train_records, fraction=0.2, seed=0)
+    if not optimization or not query or not gallery:
+        raise ValueError("factorial train-only split differs")
+    model, transform = trainer._load_official_model(args.unicom_checkout, args.initial_checkpoint)
+    device = torch.device("cuda")
+    model = model.to(device)
+    calibration_loader = torch.utils.data.DataLoader(
+        trainer.InshopEvalDataset(optimization, transform),
+        batch_size=128,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        drop_last=True,
+        persistent_workers=True,
+    )
+
+    path_by_cell = {
+        "random_raw": random_paths,
+        "random_ema": random_paths,
+        "imprinted_raw": imprinted_paths,
+        "imprinted_ema": imprinted_paths,
+    }
+    rows = []
+    random_protocol = None
+    imprinted_protocol = None
+    prior_updates = {"random": 0, "imprinted": 0}
+    for cell in REGISTERED_CELLS:
+        classifier_init = "random" if cell.startswith("random_") else "imprinted"
+        use_ema = cell.endswith("_ema")
+        for epoch, path in zip(REGISTERED_EPOCHS, path_by_cell[cell], strict=True):
+            checkpoint = _load_registered_checkpoint(
+                path, epoch=epoch, classifier_init=classifier_init
+            )
+            protocol = checkpoint["training_protocol"]
+            if classifier_init == "random":
+                random_protocol = protocol if random_protocol is None else random_protocol
+                if protocol != random_protocol:
+                    raise ValueError("random factorial checkpoint protocols differ")
+            else:
+                imprinted_protocol = protocol if imprinted_protocol is None else imprinted_protocol
+                if protocol != imprinted_protocol:
+                    raise ValueError("imprinted factorial checkpoint protocols differ")
+            if use_ema:
+                run_name = classifier_init
+                updates = checkpoint["ema"]["updates"]
+                if updates <= prior_updates[run_name]:
+                    raise ValueError("factorial EMA update sequence differs")
+                prior_updates[run_name] = updates
+            state = materialize_checkpoint_state(checkpoint, use_ema=use_ema)
+            model.load_state_dict(state, strict=True)
+            soup.recalibrate_batch_norm(model, calibration_loader, device=device)
+            metrics, evidence = soup.evaluate_holdout_with_query_evidence(
+                trainer,
+                model,
+                query,
+                gallery,
+                transform,
+                device=device,
+                batch_size=128,
+                workers=4,
+                selected_features=512,
+            )
+            rows.append(
+                {
+                    "cell": cell,
+                    "epoch": epoch,
+                    "checkpoint": str(path),
+                    "checkpoint_sha256": _sha256_file(path),
+                    "metrics": metrics,
+                    "query_evidence": evidence,
+                }
+            )
+            del checkpoint, state
+    assert random_protocol is not None and imprinted_protocol is not None
+    trainer_sha256 = _sha256_file(Path(trainer.__file__))
+    if (
+        random_protocol["trainer_sha256"] != trainer_sha256
+        or imprinted_protocol["trainer_sha256"] != trainer_sha256
+    ):
+        raise ValueError("factorial executing trainer source differs")
+    for name in TRAINING_PROTOCOL_FIELDS:
+        if name != "classifier_init" and random_protocol[name] != imprinted_protocol[name]:
+            raise ValueError("factorial run protocols differ")
+    storage = sum(path.stat().st_size for path in (*random_paths, *imprinted_paths))
+    inference_latency = _benchmark_inference_latency(model, calibration_loader, device=device)
+    return rows, random_protocol, imprinted_protocol, storage, inference_latency
+
+
+def run(args: argparse.Namespace) -> dict[str, object]:
+    started = time.monotonic()
+    rows, random_protocol, imprinted_protocol, storage, inference_latency = load_factorial_rows(
+        args
+    )
+    selected = select_candidate(rows)
+    baseline = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
+    interval = paired_map_bootstrap_interval(baseline, selected)
+    report = {
+        "schema_version": "unicom-ema-imprint-factorial-v1",
+        "provenance": {
+            "unicom_revision": random_protocol["unicom_revision"],
+            "initial_checkpoint_sha256": random_protocol["initial_checkpoint_sha256"],
+            "partition_sha256": random_protocol["partition_sha256"],
+            "holdout_seed": 0,
+            "holdout_fraction": 0.2,
+            "batch_norm_recalibration": "full-optimization-cumulative-batches-all-arms",
+            "query_chunk_size": 256,
+            "random_run": str(args.random_run),
+            "imprinted_run": str(args.imprinted_run),
+            "random_training_protocol": random_protocol,
+            "imprinted_training_protocol": imprinted_protocol,
+        },
+        "costs": {
+            "random_training_seconds": args.random_training_seconds,
+            "imprinted_training_seconds": args.imprinted_training_seconds,
+            "random_peak_gpu_mib": args.random_peak_gpu_mib,
+            "imprinted_peak_gpu_mib": args.imprinted_peak_gpu_mib,
+            "checkpoint_storage_bytes": storage,
+            "inference_latency_ms_per_image": inference_latency,
+            "evaluator_seconds": float(time.monotonic() - started),
+        },
+        "rows": rows,
+        "gate": factorial_gate(rows, bootstrap_interval=interval),
+    }
+    validate_factorial_report(report)
+    return report
+
+
+def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--unicom-checkout", required=True, type=Path)
+    parser.add_argument("--initial-checkpoint", required=True, type=Path)
+    parser.add_argument("--dataset-root", required=True, type=Path)
+    parser.add_argument("--random-run", required=True, type=Path)
+    parser.add_argument("--imprinted-run", required=True, type=Path)
+    parser.add_argument("--random-training-seconds", required=True, type=float)
+    parser.add_argument("--imprinted-training-seconds", required=True, type=float)
+    parser.add_argument("--random-peak-gpu-mib", required=True, type=int)
+    parser.add_argument("--imprinted-peak-gpu-mib", required=True, type=int)
+    parser.add_argument("--output", required=True, type=Path)
+    return parser.parse_args(arguments)
+
+
+def main(arguments: Sequence[str] | None = None) -> int:
+    try:
+        args = parse_args(arguments)
+        if args.output.exists() or args.output.is_symlink():
+            raise FileExistsError(args.output)
+        report = run(args)
+        write_report_atomic(report, args.output)
+    except Exception as error:
+        print(f"factorial evaluation failed: {error}", file=sys.stderr)
+        return 2
+    return 0 if report["gate"]["promoted"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

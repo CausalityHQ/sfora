@@ -896,12 +896,15 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "selected_features": args.selected_features,
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
+        "eval_every": args.eval_every,
+        "checkpoint_every": args.checkpoint_every,
         "max_steps": args.max_steps,
         "bf16": args.bf16,
         "compile": args.compile,
         "fused": args.fused,
         "classifier_init": args.classifier_init,
         "ema_decay": EMA_DECAY,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
     }
     if args.resume is not None:
         start_epoch, history = restore_training_checkpoint(
