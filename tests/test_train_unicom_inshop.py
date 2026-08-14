@@ -672,7 +672,7 @@ def test_ema_checkpoint_roundtrip_restores_shadow_and_update_count(tmp_path: Pat
         scheduler=None,
         scaler=None,
         mask_generator=torch.Generator().manual_seed(2),
-        device=torch.device("cpu"),
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         selection_holdout={"seed": 0, "fraction": 0.2},
         training_protocol=protocol,
     )
@@ -846,7 +846,7 @@ def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) 
         scheduler=None,
         scaler=scaler,
         mask_generator=mask_generator,
-        device=torch.device("meta"),
+        device=torch.device("cuda" if torch.cuda.is_available() else "meta"),
         selection_holdout={"seed": 0, "fraction": 0.2},
         training_protocol={"seed": 0, "objective": "official-eight-mask"},
     )
