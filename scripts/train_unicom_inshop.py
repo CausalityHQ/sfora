@@ -33,6 +33,132 @@ UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 UNICOM_L14_336_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
 UNICOM_MEAN = (0.48145466, 0.4578275, 0.40821073)
 UNICOM_STD = (0.26862954, 0.26130258, 0.27577711)
+EMA_DECAY = 0.999
+
+
+class StepEMA:
+    """Same-device FP32 exponential average of trainable retrieval weights."""
+
+    def __init__(
+        self,
+        backbone: torch.nn.Module,
+        classifier: torch.nn.Parameter,
+        *,
+        decay: float = EMA_DECAY,
+    ) -> None:
+        if type(decay) is not float or decay != EMA_DECAY:
+            raise ValueError("EMA decay differs from the frozen protocol")
+        parameters = dict(backbone.named_parameters())
+        if not parameters or any(
+            parameter.dtype != torch.float32 for parameter in parameters.values()
+        ):
+            raise ValueError("EMA backbone parameters must be nonempty FP32 tensors")
+        if classifier.dtype != torch.float32:
+            raise ValueError("EMA classifier must be FP32")
+        self._backbone = backbone
+        self._classifier_source = classifier
+        self._parameter_names = tuple(parameters)
+        self._shadow = {name: parameter.detach().clone() for name, parameter in parameters.items()}
+        self._classifier = classifier.detach().clone()
+        self._updates = 0
+        self._hook = None
+
+    @torch.no_grad()
+    def update(self) -> None:
+        parameters = dict(self._backbone.named_parameters())
+        if tuple(parameters) != self._parameter_names:
+            raise ValueError("EMA backbone parameter order differs")
+        for name in self._parameter_names:
+            source = parameters[name]
+            shadow = self._shadow[name]
+            if (
+                source.dtype != torch.float32
+                or source.shape != shadow.shape
+                or source.device != shadow.device
+            ):
+                raise ValueError("EMA backbone parameter contract differs")
+            shadow.mul_(EMA_DECAY).add_(source, alpha=1.0 - EMA_DECAY)
+        source_classifier = self._classifier_source
+        if (
+            source_classifier.dtype != torch.float32
+            or source_classifier.shape != self._classifier.shape
+            or source_classifier.device != self._classifier.device
+        ):
+            raise ValueError("EMA classifier contract differs")
+        self._classifier.mul_(EMA_DECAY).add_(source_classifier, alpha=1.0 - EMA_DECAY)
+        self._updates += 1
+
+    def register_step_hook(self, optimizer: torch.optim.Optimizer):
+        if self._hook is not None:
+            raise RuntimeError("EMA optimizer hook is already registered")
+        self._hook = optimizer.register_step_post_hook(
+            lambda _optimizer, _args, _kwargs: self.update()
+        )
+        return self._hook
+
+    def release_step_hook(self) -> None:
+        if self._hook is not None:
+            self._hook.remove()
+            self._hook = None
+
+    def state_dict(self) -> dict[str, object]:
+        return {
+            "decay": EMA_DECAY,
+            "updates": self._updates,
+            "backbone": {
+                name: self._shadow[name].detach().cpu().clone() for name in self._parameter_names
+            },
+            "classifier": self._classifier.detach().cpu().clone(),
+        }
+
+    def load_state_dict(self, state: object) -> None:
+        if type(state) is not dict or tuple(state) != (
+            "decay",
+            "updates",
+            "backbone",
+            "classifier",
+        ):
+            raise ValueError("EMA state schema differs")
+        if type(state["decay"]) is not float or state["decay"] != EMA_DECAY:
+            raise ValueError("EMA state decay differs")
+        updates = state["updates"]
+        if type(updates) is not int or updates < 0:
+            raise TypeError("EMA state update count differs")
+        backbone = state["backbone"]
+        if type(backbone) is not dict or tuple(backbone) != self._parameter_names:
+            raise ValueError("EMA state parameter order differs")
+        for name in self._parameter_names:
+            value = backbone[name]
+            target = self._shadow[name]
+            if (
+                type(value) is not torch.Tensor
+                or value.dtype != torch.float32
+                or value.shape != target.shape
+                or not torch.isfinite(value).all()
+            ):
+                raise ValueError("EMA state parameter differs")
+        classifier = state["classifier"]
+        if (
+            type(classifier) is not torch.Tensor
+            or classifier.dtype != torch.float32
+            or classifier.shape != self._classifier.shape
+            or not torch.isfinite(classifier).all()
+        ):
+            raise ValueError("EMA state classifier differs")
+        with torch.no_grad():
+            for name in self._parameter_names:
+                self._shadow[name].copy_(backbone[name])
+            self._classifier.copy_(classifier)
+        self._updates = updates
+
+    def materialize_backbone_state(self) -> dict[str, torch.Tensor]:
+        state = {
+            name: value.detach().cpu().clone()
+            for name, value in self._backbone.state_dict().items()
+        }
+        for name in self._parameter_names:
+            state[name] = self._shadow[name].detach().cpu().clone()
+        return state
 
 
 class InshopTrainDataset(Dataset[tuple[torch.Tensor, int]]):
@@ -175,6 +301,113 @@ def build_optimizer(
         weight_decay=0.0,
         fused=fused,
     )
+
+
+@torch.inference_mode()
+def imprinted_classifier_values(
+    model: torch.nn.Module,
+    records: tuple[InshopRecord, ...],
+    labels: Mapping[str, int],
+    transform: Callable[[Image.Image], torch.Tensor],
+    *,
+    device: torch.device,
+    batch_size: int,
+    workers: int,
+) -> torch.Tensor:
+    """Build norm-matched class means without perturbing later training streams."""
+
+    import numpy as np
+
+    if (
+        type(records) is not tuple
+        or not records
+        or type(labels) is not dict
+        or not labels
+        or tuple(labels.values()) != tuple(range(len(labels)))
+        or any(type(label) is not str or not label for label in labels)
+    ):
+        raise ValueError("imprinted classifier label mapping differs")
+    if type(batch_size) is not int or batch_size <= 0 or type(workers) is not int or workers < 0:
+        raise ValueError("imprinted classifier loader configuration differs")
+
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.get_rng_state().clone()
+    cuda_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    was_training = model.training
+    sums = [torch.zeros(768, dtype=torch.float64) for _label in labels]
+    counts = [0 for _label in labels]
+    try:
+        loader = torch.utils.data.DataLoader(
+            InshopEvalDataset(records, transform),
+            batch_size=batch_size,
+            shuffle=False,
+            num_workers=workers,
+            generator=torch.Generator().manual_seed(experiment_stream_seed(0, 4_000)),
+        )
+        model.eval()
+        for images, batch_labels in loader:
+            embeddings = model(images.to(device)).float()
+            if (
+                embeddings.ndim != 2
+                or embeddings.shape != (len(batch_labels), 768)
+                or not torch.isfinite(embeddings).all()
+            ):
+                raise ValueError("imprinted classifier embeddings differ")
+            norms = torch.linalg.vector_norm(embeddings, dim=1)
+            if torch.any(norms == 0.0):
+                raise ValueError("imprinted classifier embedding has zero norm")
+            normalized = (embeddings / norms[:, None]).cpu()
+            for value, label in zip(normalized, batch_labels, strict=True):
+                if label not in labels:
+                    raise ValueError("imprinted classifier record label differs")
+                index = labels[label]
+                sums[index].add_(value.double())
+                counts[index] += 1
+    finally:
+        model.train(was_training)
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+        torch.set_rng_state(torch_state)
+        if cuda_states is not None:
+            torch.cuda.set_rng_state_all(cuda_states)
+
+    if any(count <= 0 for count in counts):
+        raise ValueError("imprinted classifier class is empty")
+    rows = []
+    for total, count in zip(sums, counts, strict=True):
+        mean = total / count
+        norm = torch.linalg.vector_norm(mean)
+        if not torch.isfinite(norm) or norm == 0.0:
+            raise ValueError("imprinted classifier class mean differs")
+        rows.append((mean / norm).float())
+    return torch.stack(rows) * (0.01 * math.sqrt(768.0))
+
+
+def initialize_classifier_values(
+    *,
+    labels: int,
+    mode: str,
+    imprinted: Callable[[], torch.Tensor],
+) -> torch.Tensor:
+    """Consume the official random-init stream in both factorial arms."""
+
+    if type(labels) is not int or labels <= 0 or mode not in ("random", "imprinted"):
+        raise ValueError("classifier initialization configuration differs")
+    values = torch.empty(labels, 768, dtype=torch.float32)
+    torch.nn.init.normal_(values, std=0.01)
+    if mode == "imprinted":
+        replacement = imprinted()
+        if (
+            type(replacement) is not torch.Tensor
+            or replacement.dtype != torch.float32
+            or replacement.device.type != "cpu"
+            or replacement.shape != values.shape
+            or not torch.isfinite(replacement).all()
+        ):
+            raise ValueError("imprinted classifier values differ")
+        values.copy_(replacement)
+    return values
 
 
 def run_training_epoch(
@@ -334,58 +567,66 @@ def fit_model(
     selection_holdout: dict[str, int | float],
     training_protocol: dict[str, object],
     history: list[dict[str, object]] | None = None,
+    step_ema: StepEMA | None = None,
 ) -> list[dict[str, object]]:
     """Fit and persist sparse raw-model checkpoints for later trajectory soups."""
 
     output_dir.mkdir(parents=True, exist_ok=True)
     history = [] if history is None else list(history)
-    for epoch in range(start_epoch, epochs):
-        if sampler is not None:
-            sampler.set_epoch(epoch)
-        _seed_training_loader(loader, seed=int(training_protocol["seed"]), epoch=epoch)
-        train_result = run_training_epoch(
-            train_model,
-            classifier,
-            loader,
-            optimizer,
-            scheduler=scheduler,
-            mask_generator=mask_generator,
-            device=device,
-            objective=objective,
-            selected_features=selected_features,
-            margin=margin,
-            scale=scale,
-            max_steps=max_steps,
-            bf16=bf16,
-            scaler=scaler,
-        )
-        completed_epoch = epoch + 1
-        metrics = (
-            evaluate(completed_epoch)
-            if eval_every > 0 and completed_epoch % eval_every == 0
-            else None
-        )
-        row = {"epoch": completed_epoch, "train": train_result, "metrics": metrics}
-        history.append(row)
-        print(json.dumps(row, sort_keys=True), flush=True)
-        if (
-            completed_epoch % checkpoint_every == 0
-            or metrics is not None
-            or completed_epoch == epochs
-        ):
-            save_training_checkpoint(
-                output_dir / f"epoch-{completed_epoch:04d}.pt",
-                epoch=completed_epoch,
-                raw_model=raw_model,
-                classifier=classifier,
-                optimizer=optimizer,
+    if step_ema is not None:
+        step_ema.register_step_hook(optimizer)
+    try:
+        for epoch in range(start_epoch, epochs):
+            if sampler is not None:
+                sampler.set_epoch(epoch)
+            _seed_training_loader(loader, seed=int(training_protocol["seed"]), epoch=epoch)
+            train_result = run_training_epoch(
+                train_model,
+                classifier,
+                loader,
+                optimizer,
                 scheduler=scheduler,
-                scaler=scaler,
                 mask_generator=mask_generator,
-                selection_holdout=selection_holdout,
-                training_protocol=training_protocol,
-                history=history,
+                device=device,
+                objective=objective,
+                selected_features=selected_features,
+                margin=margin,
+                scale=scale,
+                max_steps=max_steps,
+                bf16=bf16,
+                scaler=scaler,
             )
+            completed_epoch = epoch + 1
+            metrics = (
+                evaluate(completed_epoch)
+                if eval_every > 0 and completed_epoch % eval_every == 0
+                else None
+            )
+            row = {"epoch": completed_epoch, "train": train_result, "metrics": metrics}
+            history.append(row)
+            print(json.dumps(row, sort_keys=True), flush=True)
+            if (
+                completed_epoch % checkpoint_every == 0
+                or metrics is not None
+                or completed_epoch == epochs
+            ):
+                save_training_checkpoint(
+                    output_dir / f"epoch-{completed_epoch:04d}.pt",
+                    epoch=completed_epoch,
+                    raw_model=raw_model,
+                    classifier=classifier,
+                    step_ema=step_ema,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    scaler=scaler,
+                    mask_generator=mask_generator,
+                    selection_holdout=selection_holdout,
+                    training_protocol=training_protocol,
+                    history=history,
+                )
+    finally:
+        if step_ema is not None:
+            step_ema.release_step_hook()
     return history
 
 
@@ -409,6 +650,7 @@ def save_training_checkpoint(
     selection_holdout: dict[str, int | float],
     training_protocol: dict[str, object],
     history: list[dict[str, object]],
+    step_ema: StepEMA | None = None,
 ) -> None:
     """Atomically persist all mutable state needed to resume an epoch boundary."""
 
@@ -416,6 +658,7 @@ def save_training_checkpoint(
         "epoch": epoch,
         "model": raw_model.state_dict(),
         "classifier": classifier.detach(),
+        "ema": None if step_ema is None else step_ema.state_dict(),
         "optimizer": optimizer.state_dict(),
         "scheduler": None if scheduler is None else scheduler.state_dict(),
         "scaler": None if scaler is None else scaler.state_dict(),
@@ -452,6 +695,7 @@ def restore_training_checkpoint(
     device: torch.device,
     selection_holdout: dict[str, int | float],
     training_protocol: dict[str, object],
+    step_ema: StepEMA | None = None,
 ) -> tuple[int, list[dict[str, object]]]:
     """Restore an epoch-boundary checkpoint and return its epoch and history."""
 
@@ -460,6 +704,7 @@ def restore_training_checkpoint(
         "epoch",
         "model",
         "classifier",
+        "ema",
         "optimizer",
         "scheduler",
         "scaler",
@@ -476,6 +721,14 @@ def restore_training_checkpoint(
         raise ValueError("training checkpoint selection holdout differs")
     if checkpoint["training_protocol"] != training_protocol:
         raise ValueError("training checkpoint training protocol differs")
+    registered_ema = training_protocol.get("ema_decay")
+    if registered_ema is None:
+        if checkpoint["ema"] is not None or step_ema is not None:
+            raise ValueError("training checkpoint EMA state differs")
+    elif registered_ema != EMA_DECAY or step_ema is None:
+        raise ValueError("training checkpoint EMA protocol differs")
+    else:
+        step_ema.load_state_dict(checkpoint["ema"])
     raw_model.load_state_dict(checkpoint["model"], strict=True)
     if checkpoint["classifier"].shape != classifier.shape:
         raise ValueError("training checkpoint classifier shape differs")
@@ -574,9 +827,21 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
     train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
-    classifier_values = torch.empty(len(labels), 768, dtype=torch.float32)
-    torch.nn.init.normal_(classifier_values, std=0.01)
+    classifier_values = initialize_classifier_values(
+        labels=len(labels),
+        mode=args.classifier_init,
+        imprinted=lambda: imprinted_classifier_values(
+            raw_model,
+            optimization,
+            labels,
+            eval_transform,
+            device=device,
+            batch_size=args.batch_size,
+            workers=args.workers,
+        ),
+    )
     classifier = torch.nn.Parameter(classifier_values.to(device))
+    step_ema = StepEMA(raw_model, classifier)
     optimizer = build_optimizer(
         raw_model,
         classifier,
@@ -618,9 +883,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "trainer_sha256": _sha256_file(Path(__file__)),
         "unicom_revision": UNICOM_REVISION,
         "initial_checkpoint_sha256": UNICOM_L14_336_SHA256,
-        "partition_sha256": _sha256_file(
-            args.dataset_root / "Eval" / "list_eval_partition.txt"
-        ),
+        "partition_sha256": _sha256_file(args.dataset_root / "Eval" / "list_eval_partition.txt"),
         "seed": args.seed,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
@@ -637,6 +900,8 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "bf16": args.bf16,
         "compile": args.compile,
         "fused": args.fused,
+        "classifier_init": args.classifier_init,
+        "ema_decay": EMA_DECAY,
     }
     if args.resume is not None:
         start_epoch, history = restore_training_checkpoint(
@@ -650,6 +915,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             device=device,
             selection_holdout=selection_holdout,
             training_protocol=training_protocol,
+            step_ema=step_ema,
         )
         if start_epoch >= args.epochs:
             raise ValueError("resume checkpoint already reached requested epochs")
@@ -688,6 +954,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         history=history,
         selection_holdout=selection_holdout,
         training_protocol=training_protocol,
+        step_ema=step_ema,
     )
 
 
@@ -728,6 +995,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--fused", action="store_true")
+    parser.add_argument("--classifier-init", choices=("random", "imprinted"), default="random")
     return parser.parse_args(arguments)
 
 

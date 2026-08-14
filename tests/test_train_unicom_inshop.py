@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import random
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -102,6 +103,7 @@ def test_cli_defaults_match_official_336_recipe() -> None:
     assert not args.bf16
     assert not args.compile
     assert not args.fused
+    assert args.classifier_init == "random"
 
 
 def test_worker_seed_preserves_the_epoch_varying_dataloader_seed(monkeypatch) -> None:
@@ -169,6 +171,266 @@ def test_optimizer_binds_separate_backbone_and_classifier_rates() -> None:
 
     assert [group["lr"] for group in optimizer.param_groups] == [1e-5, 1e-4]
     assert optimizer.defaults["weight_decay"] == 0.0
+
+
+def test_step_ema_tracks_only_parameters_on_their_live_device() -> None:
+    module = _load_script()
+
+    class BufferedLinear(torch.nn.Linear):
+        def __init__(self) -> None:
+            super().__init__(2, 2, bias=False)
+            self.register_buffer("running", torch.tensor([3.0], dtype=torch.float32))
+            self.register_buffer("counter", torch.tensor(4, dtype=torch.int64))
+
+    backbone = BufferedLinear()
+    classifier = torch.nn.Parameter(torch.tensor([[1.0, 2.0]], dtype=torch.float32))
+    with torch.no_grad():
+        backbone.weight.copy_(torch.tensor([[1.0, 2.0], [3.0, 4.0]]))
+    ema = module.StepEMA(backbone, classifier)
+
+    initial = ema.state_dict()
+    assert tuple(initial) == ("decay", "updates", "backbone", "classifier")
+    assert initial["decay"] == 0.999
+    assert initial["updates"] == 0
+    assert tuple(initial["backbone"]) == ("weight",)
+    assert initial["backbone"]["weight"].device.type == "cpu"
+
+    with torch.no_grad():
+        backbone.weight.add_(10.0)
+        classifier.add_(20.0)
+        backbone.running.fill_(99.0)
+        backbone.counter.fill_(7)
+    ema.update()
+
+    state = ema.state_dict()
+    assert state["updates"] == 1
+    assert torch.equal(state["backbone"]["weight"], initial["backbone"]["weight"] + 0.01)
+    assert torch.equal(state["classifier"], initial["classifier"] + 0.02)
+    materialized = ema.materialize_backbone_state()
+    assert torch.equal(materialized["running"], torch.tensor([99.0]))
+    assert torch.equal(materialized["counter"], torch.tensor(7))
+    assert torch.equal(materialized["weight"], state["backbone"]["weight"])
+
+    with torch.no_grad():
+        backbone.weight.zero_()
+        classifier.zero_()
+    assert not torch.equal(state["backbone"]["weight"], backbone.weight)
+    assert not torch.equal(state["classifier"], classifier)
+
+
+def test_step_ema_optimizer_hook_runs_only_for_executed_steps() -> None:
+    module = _load_script()
+    backbone = torch.nn.Linear(2, 1, bias=False)
+    classifier = torch.nn.Parameter(torch.ones(1, 1))
+    optimizer = torch.optim.SGD([*backbone.parameters(), classifier], lr=0.1)
+    ema = module.StepEMA(backbone, classifier)
+
+    hook = ema.register_step_hook(optimizer)
+    with pytest.raises(RuntimeError, match="already registered"):
+        ema.register_step_hook(optimizer)
+
+    optimizer.zero_grad(set_to_none=True)
+    (backbone(torch.ones(1, 2)).sum() + classifier.sum()).backward()
+    optimizer.step()
+    assert ema.state_dict()["updates"] == 1
+
+    # This models GradScaler's overflow branch: it does not call optimizer.step().
+    optimizer.zero_grad(set_to_none=True)
+    assert ema.state_dict()["updates"] == 1
+
+    hook.remove()
+    ema.release_step_hook()
+    optimizer.zero_grad(set_to_none=True)
+    (backbone(torch.ones(1, 2)).sum() + classifier.sum()).backward()
+    optimizer.step()
+    assert ema.state_dict()["updates"] == 1
+
+
+def test_step_ema_hook_does_not_run_for_grad_scaler_overflow() -> None:
+    module = _load_script()
+    backbone = torch.nn.Linear(2, 1, bias=False)
+    classifier = torch.nn.Parameter(torch.ones(1, 1))
+    optimizer = torch.optim.SGD([*backbone.parameters(), classifier], lr=0.1)
+    scaler = torch.amp.GradScaler("cpu")
+    ema = module.StepEMA(backbone, classifier)
+    ema.register_step_hook(optimizer)
+
+    optimizer.zero_grad(set_to_none=True)
+    loss = (backbone(torch.ones(1, 2)).sum() + classifier.sum()) * torch.tensor(float("inf"))
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()
+
+    assert ema.state_dict()["updates"] == 0
+    ema.release_step_hook()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("decay", "updates", "backbone_keys", "backbone_dtype", "classifier_shape"),
+)
+def test_step_ema_rejects_invalid_serialized_state(mutation: str) -> None:
+    module = _load_script()
+    backbone = torch.nn.Linear(2, 1, bias=False)
+    classifier = torch.nn.Parameter(torch.ones(1, 1))
+    ema = module.StepEMA(backbone, classifier)
+    state = ema.state_dict()
+    if mutation == "decay":
+        state["decay"] = 0.9
+    elif mutation == "updates":
+        state["updates"] = True
+    elif mutation == "backbone_keys":
+        state["backbone"]["extra"] = torch.ones(1)
+    elif mutation == "backbone_dtype":
+        state["backbone"]["weight"] = state["backbone"]["weight"].double()
+    else:
+        state["classifier"] = torch.ones(2, 1)
+
+    with pytest.raises((TypeError, ValueError)):
+        ema.load_state_dict(state)
+
+
+def test_imprinted_classifier_matches_independent_class_mean_formula_and_preserves_state(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+
+    def record(name: str, label: str, color: tuple[int, int, int]) -> InshopRecord:
+        path = tmp_path / name
+        Image.new("RGB", (2, 2), color).save(path)
+        return InshopRecord(split="train", image_path=path, label=label)
+
+    records = (
+        record("b0.png", "b", (0, 255, 0)),
+        record("a0.png", "a", (255, 0, 0)),
+        record("b1.png", "b", (0, 0, 255)),
+        record("a1.png", "a", (255, 255, 0)),
+    )
+
+    class RepeatedMean(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = torch.nn.Parameter(torch.tensor(1.0))
+            self.register_buffer("running", torch.tensor([5.0]))
+
+        def forward(self, images: torch.Tensor) -> torch.Tensor:
+            rgb = images.mean(dim=(2, 3)) * self.scale
+            return rgb.repeat(1, 256)
+
+    def transform(image: Image.Image) -> torch.Tensor:
+        values = np.asarray(image, dtype=np.float32) / 255.0
+        return torch.from_numpy(values).permute(2, 0, 1)
+
+    model = RepeatedMean().train()
+    model_before = {name: value.clone() for name, value in model.state_dict().items()}
+    random.seed(19)
+    np.random.seed(23)
+    torch.manual_seed(29)
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.get_rng_state().clone()
+
+    values = module.imprinted_classifier_values(
+        model,
+        records,
+        {"a": 0, "b": 1},
+        transform,
+        device=torch.device("cpu"),
+        batch_size=2,
+        workers=0,
+    )
+
+    per_record = []
+    for row in records:
+        with Image.open(row.image_path) as image:
+            embedding = model(transform(image.convert("RGB"))[None])[0]
+        per_record.append(embedding / torch.linalg.vector_norm(embedding))
+    expected_rows = []
+    for label in ("a", "b"):
+        mean = (
+            torch.stack(
+                [
+                    value.double()
+                    for row, value in zip(records, per_record, strict=True)
+                    if row.label == label
+                ]
+            ).sum(dim=0, dtype=torch.float64)
+            / 2.0
+        )
+        expected_rows.append((mean / torch.linalg.vector_norm(mean)).float())
+    expected = torch.stack(expected_rows) * (0.01 * np.sqrt(768.0))
+
+    assert values.dtype == torch.float32
+    assert values.device.type == "cpu"
+    assert torch.equal(values, expected)
+    assert model.training
+    assert all(torch.equal(model.state_dict()[name], value) for name, value in model_before.items())
+    assert random.getstate() == python_state
+    numpy_after = np.random.get_state()
+    assert numpy_after[0] == numpy_state[0]
+    assert np.array_equal(numpy_after[1], numpy_state[1])
+    assert numpy_after[2:] == numpy_state[2:]
+    assert torch.equal(torch.get_rng_state(), torch_state)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("missing_class", "noncontiguous_labels", "zero_embedding", "wrong_dimension"),
+)
+def test_imprinted_classifier_rejects_invalid_inputs(tmp_path: Path, mutation: str) -> None:
+    module = _load_script()
+    path = tmp_path / "row.png"
+    Image.new("RGB", (2, 2), (255, 0, 0)).save(path)
+    records = (InshopRecord(split="train", image_path=path, label="a"),)
+    labels = {"a": 0}
+
+    class Output(torch.nn.Module):
+        def forward(self, images: torch.Tensor) -> torch.Tensor:
+            dimension = 767 if mutation == "wrong_dimension" else 768
+            if mutation == "zero_embedding":
+                return torch.zeros(images.shape[0], dimension)
+            return torch.ones(images.shape[0], dimension)
+
+    if mutation == "missing_class":
+        labels = {"a": 0, "b": 1}
+    elif mutation == "noncontiguous_labels":
+        labels = {"a": 1}
+
+    with pytest.raises(ValueError):
+        module.imprinted_classifier_values(
+            Output(),
+            records,
+            labels,
+            lambda _image: torch.ones(3, 2, 2),
+            device=torch.device("cpu"),
+            batch_size=1,
+            workers=0,
+        )
+
+
+def test_classifier_initialization_consumes_identical_rng_for_both_arms() -> None:
+    module = _load_script()
+
+    torch.manual_seed(37)
+    random_values = module.initialize_classifier_values(
+        labels=3,
+        mode="random",
+        imprinted=lambda: pytest.fail("random arm must not build imprints"),
+    )
+    random_next = torch.rand(4)
+
+    torch.manual_seed(37)
+    imprint = torch.full((3, 768), 0.25, dtype=torch.float32)
+    imprinted_values = module.initialize_classifier_values(
+        labels=3,
+        mode="imprinted",
+        imprinted=lambda: imprint,
+    )
+    imprinted_next = torch.rand(4)
+
+    assert not torch.equal(random_values, imprinted_values)
+    assert torch.equal(imprinted_values, imprint)
+    assert torch.equal(random_next, imprinted_next)
 
 
 def test_official_train_transform_emits_336_fp32_tensor() -> None:
@@ -340,6 +602,7 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
         "epoch",
         "model",
         "classifier",
+        "ema",
         "optimizer",
         "scheduler",
         "scaler",
@@ -354,6 +617,75 @@ def test_fit_writes_sparse_raw_model_checkpoint_and_metrics(tmp_path: Path) -> N
     assert set(checkpoint["model"]) == set(raw_model.state_dict())
     assert checkpoint["history"] == history
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_ema_checkpoint_roundtrip_restores_shadow_and_update_count(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(2, 2, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(3, 2))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    ema = module.StepEMA(raw_model, classifier)
+    with torch.no_grad():
+        raw_model.weight.add_(2.0)
+        classifier.add_(3.0)
+    ema.update()
+    expected_ema = ema.state_dict()
+    protocol = {
+        "seed": 0,
+        "objective": "official-eight-mask",
+        "ema_decay": 0.999,
+        "classifier_init": "random",
+    }
+    path = tmp_path / "ema.pt"
+
+    module.save_training_checkpoint(
+        path,
+        epoch=1,
+        raw_model=raw_model,
+        classifier=classifier,
+        step_ema=ema,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator().manual_seed(1),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol=protocol,
+        history=[],
+    )
+    with torch.no_grad():
+        raw_model.weight.zero_()
+        classifier.zero_()
+    ema.update()
+
+    epoch, history = module.restore_training_checkpoint(
+        path,
+        raw_model=raw_model,
+        classifier=classifier,
+        step_ema=ema,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator().manual_seed(2),
+        device=torch.device("cpu"),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol=protocol,
+    )
+
+    assert epoch == 1
+    assert history == []
+    restored = ema.state_dict()
+    assert restored["updates"] == expected_ema["updates"]
+    assert torch.equal(restored["classifier"], expected_ema["classifier"])
+    assert all(
+        torch.equal(restored["backbone"][name], value)
+        for name, value in expected_ema["backbone"].items()
+    )
 
 
 def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> None:
@@ -404,6 +736,66 @@ def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> No
         "epoch-0002.pt",
         "epoch-0003.pt",
     ]
+
+
+def test_fit_registers_ema_for_training_and_releases_hook_afterward(tmp_path: Path) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(3, 8, bias=False)
+    classifier = torch.nn.Parameter(torch.randn(4, 8))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    ema = module.StepEMA(raw_model, classifier)
+    loader = DataLoader(
+        TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
+        batch_size=4,
+        generator=torch.Generator(),
+    )
+
+    module.fit_model(
+        raw_model=raw_model,
+        train_model=raw_model,
+        classifier=classifier,
+        loader=loader,
+        optimizer=optimizer,
+        scheduler=None,
+        sampler=None,
+        mask_generator=torch.Generator().manual_seed(17),
+        device=torch.device("cpu"),
+        epochs=1,
+        start_epoch=0,
+        objective="official-eight-mask",
+        selected_features=4,
+        margin=0.25,
+        scale=32.0,
+        max_steps=1,
+        bf16=False,
+        scaler=None,
+        eval_every=0,
+        checkpoint_every=1,
+        output_dir=tmp_path,
+        evaluate=lambda _epoch: pytest.fail("evaluation is disabled"),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol={
+            "seed": 0,
+            "objective": "official-eight-mask",
+            "ema_decay": 0.999,
+            "classifier_init": "random",
+        },
+        step_ema=ema,
+    )
+
+    assert ema.state_dict()["updates"] == 1
+    checkpoint = torch.load(tmp_path / "epoch-0001.pt", weights_only=False)
+    assert checkpoint["ema"]["updates"] == 1
+    optimizer.zero_grad(set_to_none=True)
+    (raw_model(torch.ones(1, 3)).sum() + classifier.sum()).backward()
+    optimizer.step()
+    assert ema.state_dict()["updates"] == 1
 
 
 def test_restore_checkpoint_recovers_training_state_and_history(tmp_path: Path) -> None:
