@@ -8456,6 +8456,7 @@ def test_ipsr_adds_ranking_loss_without_replacing_proxy_anchor() -> None:
         torch_module=torch,
     )
     combined = _proxy_anchor_objective_loss(
+        objective="proxy_anchor",
         embeddings=embeddings,
         labels=labels,
         proxy_embeddings=proxies,
