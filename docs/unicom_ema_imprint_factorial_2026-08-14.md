@@ -37,6 +37,19 @@ device synchronization. After each optimizer step that actually executes:
 
 `shadow = 0.999 * shadow + 0.001 * current`
 
+This is the standard parameter-initialized model EMA and is intentionally not
+zero-initialized or bias-corrected. After `u` successful optimizer steps the
+initial pretrained state retains coefficient `0.999**u`; that continuity with
+the pretrained solution is part of the frozen fine-tuning estimator, not an
+estimate of a zero-initialized moment. Any EMA conclusion is scoped to this
+exact estimator and 16-epoch trajectory.
+
+Every EMA row records the successful update count, the derived retained
+initial-state coefficient `0.999**updates`, and the FP64-accumulated L2
+distance between raw and EMA backbone parameters. An EMA state identical to
+the raw state, or one whose ordered parameter names do not match the executing
+backbone, is structurally invalid rather than evidence that EMA has no effect.
+
 The update covers trainable backbone parameters and the classifier only.
 Buffers, including BatchNorm running statistics and counters, are copied from
 the current raw model when an EMA state is materialized; every raw and EMA arm
@@ -74,8 +87,16 @@ between-run training difference.
 
 ## Evaluation and seed-0 decisions
 
-The evaluator consumes the two checkpoint series and evaluates all four cells
-at epochs 4, 8, 12, and 16. It uses only the frozen train-identity holdout and
+Before the imprinted run is allowed, a control-only evaluator consumes the
+random run's raw epoch-16 checkpoint using the exact hardened deployment path.
+It must pass the instrument reproduction tolerances below; failure publishes an
+`INVALID` control report and stops without launching the imprinted run.
+
+After that gate passes, the factorial evaluator consumes the two checkpoint
+series and evaluates all four cells at epochs 4, 8, 12, and 16. It strict-loads
+the control report, binds its SHA-256 and random epoch-16 checkpoint/history
+hashes into the final report, and rejects a control from any other run. It uses
+only the frozen train-identity holdout and
 the hardened deployment evaluator: full 768-dimensional L2 normalization,
 prefix-512 distance without a second normalization, query chunks of 256, and a
 fresh full optimization-split BatchNorm recalibration for every arm.
@@ -102,8 +123,11 @@ the registered epochs 4, 8, 12, and 16; failure to reach the target is recorded
 as no speedup.
 
 The report records per-epoch metrics and paired query evidence, exact checkpoint
-SHA-256 values, training wall time and peak GPU memory for both runs, evaluator
-wall time, checkpoint storage, and steady-state inference latency. It validates
+and training-history SHA-256 values, externally measured training wall time and
+peak GPU memory for both runs, evaluator wall time, checkpoint storage, and
+architecture-level steady-state inference latency. Training-history metrics are
+explicitly instrument-only/unhardened and are never used for selection; all
+decision metrics are recomputed by the hardened evaluator. It validates
 and strict-reloads its atomically published JSON.
 
 ## Confirmation

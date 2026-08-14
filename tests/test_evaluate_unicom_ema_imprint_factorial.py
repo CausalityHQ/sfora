@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -21,13 +22,14 @@ def _load_script():
 
 
 def _row(cell: str, epoch: int, map_at_r: float, recall_at_1: float) -> dict[str, object]:
+    top1 = [True] * 775 + [False] * 22
     return {
         "cell": cell,
         "epoch": epoch,
         "metrics": {"map_at_r": map_at_r, "recall_at_1": recall_at_1},
         "query_evidence": {
-            "average_precision": [map_at_r - 0.01, map_at_r + 0.01],
-            "top1_correct": [recall_at_1, recall_at_1],
+            "average_precision": [map_at_r] * len(top1),
+            "top1_correct": top1,
         },
     }
 
@@ -158,36 +160,186 @@ def test_materialize_checkpoint_state_uses_ema_parameters_and_raw_buffers() -> N
     assert torch.equal(ema["running"], torch.tensor([2.0]))
 
 
+def test_materialize_checkpoint_state_rejects_shadow_identical_to_raw() -> None:
+    module = _load_script()
+    import torch
+
+    checkpoint = {
+        "model": OrderedDict((("weight", torch.ones(2, dtype=torch.float32)),)),
+        "ema": {
+            "decay": 0.999,
+            "updates": 10,
+            "backbone": {"weight": torch.ones(2, dtype=torch.float32)},
+            "classifier": torch.ones(1, dtype=torch.float32),
+        },
+    }
+
+    with pytest.raises(ValueError, match="matches raw"):
+        module.materialize_checkpoint_state(checkpoint, use_ema=True)
+
+
+def test_trainer_checkpoint_roundtrips_through_registered_evaluator(tmp_path: Path) -> None:
+    module = _load_script()
+    import torch
+
+    trainer_spec = importlib.util.spec_from_file_location(
+        "train_unicom_inshop_roundtrip",
+        SCRIPT.with_name("train_unicom_inshop.py"),
+    )
+    assert trainer_spec is not None and trainer_spec.loader is not None
+    trainer = importlib.util.module_from_spec(trainer_spec)
+    sys.modules[trainer_spec.name] = trainer
+    trainer_spec.loader.exec_module(trainer)
+    model = torch.nn.Linear(2, 2)
+    classifier = torch.nn.Parameter(torch.ones(2, 2))
+    optimizer = torch.optim.SGD((*model.parameters(), classifier), lr=0.1)
+    ema = trainer.StepEMA(model, classifier)
+    with torch.no_grad():
+        model.weight.add_(1.0)
+    ema.update()
+    history = [
+        {"epoch": index, "train": {"loss": float(index)}, "metrics": None} for index in range(1, 5)
+    ]
+    path = tmp_path / "epoch-0004.pt"
+    trainer.save_training_checkpoint(
+        path,
+        epoch=4,
+        raw_model=model,
+        classifier=classifier,
+        optimizer=optimizer,
+        scheduler=None,
+        scaler=None,
+        mask_generator=torch.Generator().manual_seed(7),
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol=_protocol("random"),
+        history=history,
+        step_ema=ema,
+    )
+
+    checkpoint = module._load_registered_checkpoint(
+        path,
+        epoch=4,
+        classifier_init="random",
+        expected_ema_names=tuple(name for name, _parameter in model.named_parameters()),
+    )
+    raw = module.materialize_checkpoint_state(checkpoint, use_ema=False)
+    shadow = module.materialize_checkpoint_state(checkpoint, use_ema=True)
+
+    assert tuple(raw) == tuple(model.state_dict())
+    assert tuple(shadow) == tuple(model.state_dict())
+    assert checkpoint["history"] == history
+
+
+def test_registered_checkpoint_rejects_incomplete_history_and_missing_ema(tmp_path: Path) -> None:
+    module = _load_script()
+    import torch
+
+    path = tmp_path / "epoch-0004.pt"
+    payload = {
+        "epoch": 4,
+        "model": OrderedDict((("weight", torch.ones(1)),)),
+        "classifier": torch.ones(1),
+        "ema": None,
+        "optimizer": {},
+        "scheduler": None,
+        "scaler": None,
+        "mask_generator": torch.Generator().get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": None,
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": _protocol("random"),
+        "history": [{"epoch": 1}],
+    }
+    torch.save(payload, path)
+
+    with pytest.raises(ValueError, match="history"):
+        module._load_registered_checkpoint(path, epoch=4, classifier_init="random")
+    payload["history"] = [{"epoch": index} for index in range(1, 5)]
+    torch.save(payload, path)
+    with pytest.raises(ValueError, match="EMA"):
+        module._load_registered_checkpoint(path, epoch=4, classifier_init="random")
+
+
+def test_control_gate_stops_before_imprinted_run_on_bad_reproduction() -> None:
+    module = _load_script()
+    row = _row("random_raw", 16, module.ARCHIVED_MAP_AT_R, module.ARCHIVED_RECALL_AT_1)
+
+    assert module.control_gate(row) == {
+        "instrument_map_tolerance": 0.002,
+        "instrument_recall_at_1_tolerance": 0.002,
+        "instrument_reproduced": True,
+        "decision": "CONTINUE",
+    }
+    row["metrics"]["map_at_r"] += 0.0020001
+    assert module.control_gate(row)["decision"] == "INVALID"
+
+
+def test_control_cli_does_not_require_imprinted_run() -> None:
+    module = _load_script()
+
+    args = module.parse_args(
+        [
+            "--mode",
+            "control",
+            "--unicom-checkout",
+            "/unicom",
+            "--initial-checkpoint",
+            "/initial.pt",
+            "--dataset-root",
+            "/dataset",
+            "--random-run",
+            "/random",
+            "--random-training-seconds",
+            "1.0",
+            "--random-peak-gpu-mib",
+            "2",
+            "--output",
+            "/control.json",
+        ]
+    )
+
+    assert args.mode == "control"
+    assert args.imprinted_run is None
+
+
+def _protocol(classifier_init: str) -> dict[str, object]:
+    return {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": "d" * 64,
+        "unicom_revision": "a" * 40,
+        "initial_checkpoint_sha256": "b" * 64,
+        "partition_sha256": "c" * 64,
+        "seed": 0,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "classifier_init": classifier_init,
+        "ema_decay": 0.999,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+    }
+
+
+def _history_sha256(cell: str, epoch: int) -> str:
+    history = [{"epoch": index, "cell": cell} for index in range(1, epoch + 1)]
+    payload = json.dumps(history, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
 def _valid_report(module) -> dict[str, object]:
-    def protocol(classifier_init: str) -> dict[str, object]:
-        return {
-            "protocol": "unicom-inshop-official-single-device-v1",
-            "trainer_sha256": "d" * 64,
-            "unicom_revision": "a" * 40,
-            "initial_checkpoint_sha256": "b" * 64,
-            "partition_sha256": "c" * 64,
-            "seed": 0,
-            "epochs": 16,
-            "batch_size": 128,
-            "workers": 4,
-            "learning_rate": 1e-5,
-            "classifier_learning_rate": 1e-4,
-            "margin": 0.25,
-            "scale": 32.0,
-            "objective": "official-eight-mask",
-            "selected_features": 512,
-            "holdout_seed": 0,
-            "holdout_fraction": 0.2,
-            "eval_every": 4,
-            "checkpoint_every": 4,
-            "max_steps": None,
-            "bf16": False,
-            "compile": False,
-            "fused": False,
-            "classifier_init": classifier_init,
-            "ema_decay": 0.999,
-            "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
-        }
 
     rows = []
     maps = {
@@ -204,6 +356,10 @@ def _valid_report(module) -> dict[str, object]:
                     "epoch": epoch,
                     "checkpoint": f"/{cell}/epoch-{epoch:04d}.pt",
                     "checkpoint_sha256": f"{len(rows) + 1:064x}",
+                    "training_history_sha256": _history_sha256(cell, epoch),
+                    "ema_updates": None if cell.endswith("_raw") else epoch * 162,
+                    "ema_initial_weight": None if cell.endswith("_raw") else 0.999 ** (epoch * 162),
+                    "ema_parameter_l2_distance": None if cell.endswith("_raw") else float(epoch),
                     "metrics": {
                         "recall_at_1": module.ARCHIVED_RECALL_AT_1,
                         "recall_at_10": 1.0,
@@ -230,10 +386,13 @@ def _valid_report(module) -> dict[str, object]:
             "holdout_fraction": 0.2,
             "batch_norm_recalibration": "full-optimization-cumulative-batches-all-arms",
             "query_chunk_size": 256,
+            "training_history_metrics": "instrument-only-unhardened-not-used-for-selection",
+            "control_report": "/control.json",
+            "control_report_sha256": "e" * 64,
             "random_run": "/random",
             "imprinted_run": "/imprinted",
-            "random_training_protocol": protocol("random"),
-            "imprinted_training_protocol": protocol("imprinted"),
+            "random_training_protocol": _protocol("random"),
+            "imprinted_training_protocol": _protocol("imprinted"),
         },
         "costs": {
             "random_training_seconds": 1.0,
@@ -241,12 +400,90 @@ def _valid_report(module) -> dict[str, object]:
             "random_peak_gpu_mib": 3,
             "imprinted_peak_gpu_mib": 4,
             "checkpoint_storage_bytes": 5,
-            "inference_latency_ms_per_image": 0.1,
+            "architecture_inference_latency_ms_per_image": 0.1,
             "evaluator_seconds": 6.0,
         },
         "rows": rows,
         "gate": module.factorial_gate(rows, bootstrap_interval=interval),
     }
+
+
+def _valid_control_report(module) -> dict[str, object]:
+    factorial = _valid_report(module)
+    row = next(
+        row for row in factorial["rows"] if row["cell"] == "random_raw" and row["epoch"] == 16
+    )
+    return {
+        "schema_version": "unicom-ema-imprint-control-v1",
+        "provenance": {
+            "unicom_revision": "a" * 40,
+            "initial_checkpoint_sha256": "b" * 64,
+            "partition_sha256": "c" * 64,
+            "holdout_seed": 0,
+            "holdout_fraction": 0.2,
+            "batch_norm_recalibration": "full-optimization-cumulative-batches",
+            "query_chunk_size": 256,
+            "training_history_metrics": "instrument-only-unhardened-not-used-for-selection",
+            "random_run": "/random",
+            "random_training_protocol": _protocol("random"),
+        },
+        "costs": {
+            "random_training_seconds": 1.0,
+            "random_peak_gpu_mib": 2,
+            "checkpoint_storage_bytes": 3,
+            "architecture_inference_latency_ms_per_image": 0.1,
+            "evaluator_seconds": 4.0,
+        },
+        "row": row,
+        "gate": module.control_gate(row),
+    }
+
+
+def test_control_report_validates_and_main_publishes_without_imprinted_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    report = _valid_control_report(module)
+    module.validate_control_report(report)
+    monkeypatch.setattr(module, "run_control", lambda _args: report)
+    output = tmp_path / "control.json"
+
+    exit_code = module.main(
+        [
+            "--mode",
+            "control",
+            "--unicom-checkout",
+            "/unicom",
+            "--initial-checkpoint",
+            "/initial.pt",
+            "--dataset-root",
+            "/dataset",
+            "--random-run",
+            "/random",
+            "--random-training-seconds",
+            "1.0",
+            "--random-peak-gpu-mib",
+            "2",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    assert json.loads(output.read_text()) == report
+
+
+def test_factorial_binding_rejects_control_from_other_random_checkpoint() -> None:
+    module = _load_script()
+    factorial = _valid_report(module)
+    control = _valid_control_report(module)
+    rows = factorial["rows"]
+    protocol = factorial["provenance"]["random_training_protocol"]
+
+    module.validate_control_binding(control, rows, protocol)
+    control["row"]["checkpoint_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="control report binding"):
+        module.validate_control_binding(control, rows, protocol)
 
 
 def test_report_validation_recomputes_metrics_gate_and_recursive_schema() -> None:

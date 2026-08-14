@@ -217,6 +217,26 @@ def factorial_gate(
     }
 
 
+def control_gate(row: Mapping[str, object]) -> dict[str, object]:
+    if type(row) is not dict or row.get("cell") != "random_raw" or row.get("epoch") != 16:
+        raise ValueError("control row differs")
+    metrics = row.get("metrics")
+    if type(metrics) is not dict:
+        raise ValueError("control metrics differ")
+    map_at_r = _finite_float(metrics.get("map_at_r"), name="control mAP@R")
+    recall_at_1 = _finite_float(metrics.get("recall_at_1"), name="control Recall@1")
+    reproduced = (
+        abs(map_at_r - ARCHIVED_MAP_AT_R) <= 0.002
+        and abs(recall_at_1 - ARCHIVED_RECALL_AT_1) <= 0.002
+    )
+    return {
+        "instrument_map_tolerance": 0.002,
+        "instrument_recall_at_1_tolerance": 0.002,
+        "instrument_reproduced": reproduced,
+        "decision": "CONTINUE" if reproduced else "INVALID",
+    }
+
+
 def materialize_checkpoint_state(checkpoint: object, *, use_ema: bool) -> dict[str, object]:
     import torch
 
@@ -248,6 +268,7 @@ def materialize_checkpoint_state(checkpoint: object, *, use_ema: bool) -> dict[s
         or type(ema["classifier"]) is not torch.Tensor
     ):
         raise ValueError("checkpoint EMA state differs")
+    changed = False
     for name, value in ema["backbone"].items():
         if (
             type(name) is not str
@@ -260,8 +281,39 @@ def materialize_checkpoint_state(checkpoint: object, *, use_ema: bool) -> dict[s
         ):
             raise ValueError("checkpoint EMA parameter differs")
         if use_ema:
+            changed = changed or not torch.equal(value, state[name])
             state[name] = value.detach().cpu().clone()
+    if use_ema and not changed:
+        raise ValueError("checkpoint EMA state matches raw state")
     return state
+
+
+def ema_parameter_audit(checkpoint: Mapping[str, object]) -> tuple[int, float, float]:
+    import torch
+
+    raw = checkpoint.get("model")
+    ema = checkpoint.get("ema")
+    if not isinstance(raw, Mapping) or type(ema) is not dict:
+        raise ValueError("checkpoint EMA audit state differs")
+    updates = ema.get("updates")
+    backbone = ema.get("backbone")
+    if type(updates) is not int or updates <= 0 or type(backbone) is not dict or not backbone:
+        raise ValueError("checkpoint EMA audit state differs")
+    squared_distance = 0.0
+    for name, value in backbone.items():
+        raw_value = raw.get(name)
+        if (
+            type(value) is not torch.Tensor
+            or type(raw_value) is not torch.Tensor
+            or value.shape != raw_value.shape
+        ):
+            raise ValueError("checkpoint EMA audit parameter differs")
+        difference = value.detach().cpu() - raw_value.detach().cpu()
+        squared_distance += float(torch.sum(difference.square(), dtype=torch.float64))
+    distance = math.sqrt(squared_distance)
+    if not math.isfinite(distance) or distance <= 0.0:
+        raise ValueError("checkpoint EMA state matches raw state")
+    return updates, float(0.999**updates), distance
 
 
 def _sha256(value: object) -> bool:
@@ -270,6 +322,11 @@ def _sha256(value: object) -> bool:
         and len(value) == 64
         and all(character in "0123456789abcdef" for character in value)
     )
+
+
+def _json_sha256(value: object) -> str:
+    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 
 def validate_training_protocol(value: object, *, classifier_init: str) -> None:
@@ -331,6 +388,9 @@ def validate_factorial_report(report: object) -> None:
         "holdout_fraction",
         "batch_norm_recalibration",
         "query_chunk_size",
+        "training_history_metrics",
+        "control_report",
+        "control_report_sha256",
         "random_run",
         "imprinted_run",
         "random_training_protocol",
@@ -346,6 +406,11 @@ def validate_factorial_report(report: object) -> None:
         or provenance["holdout_fraction"] != 0.2
         or provenance["batch_norm_recalibration"] != "full-optimization-cumulative-batches-all-arms"
         or provenance["query_chunk_size"] != 256
+        or provenance["training_history_metrics"]
+        != "instrument-only-unhardened-not-used-for-selection"
+        or type(provenance["control_report"]) is not str
+        or not provenance["control_report"]
+        or not _sha256(provenance["control_report_sha256"])
         or any(
             type(provenance[name]) is not str or not provenance[name]
             for name in ("random_run", "imprinted_run")
@@ -374,14 +439,14 @@ def validate_factorial_report(report: object) -> None:
         "random_peak_gpu_mib",
         "imprinted_peak_gpu_mib",
         "checkpoint_storage_bytes",
-        "inference_latency_ms_per_image",
+        "architecture_inference_latency_ms_per_image",
         "evaluator_seconds",
     ):
         raise ValueError("factorial cost schema differs")
     for name in (
         "random_training_seconds",
         "imprinted_training_seconds",
-        "inference_latency_ms_per_image",
+        "architecture_inference_latency_ms_per_image",
         "evaluator_seconds",
     ):
         if type(costs[name]) is not float or not math.isfinite(costs[name]) or costs[name] < 0.0:
@@ -399,6 +464,10 @@ def validate_factorial_report(report: object) -> None:
             "epoch",
             "checkpoint",
             "checkpoint_sha256",
+            "training_history_sha256",
+            "ema_updates",
+            "ema_initial_weight",
+            "ema_parameter_l2_distance",
             "metrics",
             "query_evidence",
         ):
@@ -407,8 +476,29 @@ def validate_factorial_report(report: object) -> None:
             type(row["checkpoint"]) is not str
             or not row["checkpoint"]
             or not _sha256(row["checkpoint_sha256"])
+            or not _sha256(row["training_history_sha256"])
         ):
             raise ValueError("factorial checkpoint evidence differs")
+        if row["cell"].endswith("_raw"):
+            if any(
+                row[name] is not None
+                for name in (
+                    "ema_updates",
+                    "ema_initial_weight",
+                    "ema_parameter_l2_distance",
+                )
+            ):
+                raise ValueError("factorial raw EMA audit differs")
+        elif (
+            type(row["ema_updates"]) is not int
+            or row["ema_updates"] <= 0
+            or type(row["ema_initial_weight"]) is not float
+            or row["ema_initial_weight"] != float(0.999 ** row["ema_updates"])
+            or type(row["ema_parameter_l2_distance"]) is not float
+            or not math.isfinite(row["ema_parameter_l2_distance"])
+            or row["ema_parameter_l2_distance"] <= 0.0
+        ):
+            raise ValueError("factorial EMA audit differs")
         metrics = row["metrics"]
         if tuple(metrics) != (
             "recall_at_1",
@@ -462,8 +552,170 @@ def validate_factorial_report(report: object) -> None:
         raise ValueError("factorial gate differs")
 
 
+def validate_control_report(report: object) -> None:
+    if type(report) is not dict or tuple(report) != (
+        "schema_version",
+        "provenance",
+        "costs",
+        "row",
+        "gate",
+    ):
+        raise ValueError("control report schema differs")
+    if report["schema_version"] != "unicom-ema-imprint-control-v1":
+        raise ValueError("control report version differs")
+    provenance = report["provenance"]
+    if type(provenance) is not dict or tuple(provenance) != (
+        "unicom_revision",
+        "initial_checkpoint_sha256",
+        "partition_sha256",
+        "holdout_seed",
+        "holdout_fraction",
+        "batch_norm_recalibration",
+        "query_chunk_size",
+        "training_history_metrics",
+        "random_run",
+        "random_training_protocol",
+    ):
+        raise ValueError("control provenance schema differs")
+    if (
+        type(provenance["unicom_revision"]) is not str
+        or len(provenance["unicom_revision"]) != 40
+        or not _sha256(provenance["initial_checkpoint_sha256"])
+        or not _sha256(provenance["partition_sha256"])
+        or provenance["holdout_seed"] != 0
+        or provenance["holdout_fraction"] != 0.2
+        or provenance["batch_norm_recalibration"] != "full-optimization-cumulative-batches"
+        or provenance["query_chunk_size"] != 256
+        or provenance["training_history_metrics"]
+        != "instrument-only-unhardened-not-used-for-selection"
+        or type(provenance["random_run"]) is not str
+        or not provenance["random_run"]
+    ):
+        raise ValueError("control provenance differs")
+    protocol = provenance["random_training_protocol"]
+    validate_training_protocol(protocol, classifier_init="random")
+    if (
+        protocol["unicom_revision"] != provenance["unicom_revision"]
+        or protocol["initial_checkpoint_sha256"] != provenance["initial_checkpoint_sha256"]
+        or protocol["partition_sha256"] != provenance["partition_sha256"]
+    ):
+        raise ValueError("control training provenance differs")
+    costs = report["costs"]
+    if type(costs) is not dict or tuple(costs) != (
+        "random_training_seconds",
+        "random_peak_gpu_mib",
+        "checkpoint_storage_bytes",
+        "architecture_inference_latency_ms_per_image",
+        "evaluator_seconds",
+    ):
+        raise ValueError("control cost schema differs")
+    for name in (
+        "random_training_seconds",
+        "architecture_inference_latency_ms_per_image",
+        "evaluator_seconds",
+    ):
+        if type(costs[name]) is not float or not math.isfinite(costs[name]) or costs[name] < 0:
+            raise ValueError("control cost differs")
+    for name in ("random_peak_gpu_mib", "checkpoint_storage_bytes"):
+        if type(costs[name]) is not int or costs[name] < 0:
+            raise ValueError("control cost differs")
+    row = report["row"]
+    if type(row) is not dict or tuple(row) != (
+        "cell",
+        "epoch",
+        "checkpoint",
+        "checkpoint_sha256",
+        "training_history_sha256",
+        "ema_updates",
+        "ema_initial_weight",
+        "ema_parameter_l2_distance",
+        "metrics",
+        "query_evidence",
+    ):
+        raise ValueError("control row schema differs")
+    if row["cell"] != "random_raw" or row["epoch"] != 16:
+        raise ValueError("control row differs")
+    if any(
+        row[name] is not None
+        for name in ("ema_updates", "ema_initial_weight", "ema_parameter_l2_distance")
+    ):
+        raise ValueError("control raw EMA audit differs")
+    if (
+        type(row["checkpoint"]) is not str
+        or not row["checkpoint"]
+        or not _sha256(row["checkpoint_sha256"])
+        or not _sha256(row["training_history_sha256"])
+    ):
+        raise ValueError("control row binding differs")
+    _validate_control_row_evidence(row)
+    if report["gate"] != control_gate(row):
+        raise ValueError("control gate differs")
+
+
+def _validate_control_row_evidence(row: Mapping[str, object]) -> None:
+    metrics = row.get("metrics")
+    evidence = row.get("query_evidence")
+    if type(metrics) is not dict or tuple(metrics) != (
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "map_at_r",
+    ):
+        raise ValueError("control metric schema differs")
+    if any(
+        type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0
+        for value in metrics.values()
+    ):
+        raise ValueError("control metric differs")
+    if type(evidence) is not dict or tuple(evidence) != ("top1_correct", "average_precision"):
+        raise ValueError("control query evidence schema differs")
+    top1 = evidence["top1_correct"]
+    average_precision = evidence["average_precision"]
+    if (
+        type(top1) is not list
+        or type(average_precision) is not list
+        or not top1
+        or len(top1) != len(average_precision)
+        or any(type(value) is not bool for value in top1)
+        or any(
+            type(value) is not float or not math.isfinite(value) or not 0.0 <= value <= 1.0
+            for value in average_precision
+        )
+    ):
+        raise ValueError("control query evidence differs")
+    if (
+        abs(metrics["recall_at_1"] - sum(top1) / len(top1)) > 1e-15
+        or abs(metrics["map_at_r"] - math.fsum(average_precision) / len(average_precision)) > 1e-12
+    ):
+        raise ValueError("control metric evidence differs")
+
+
+def validate_control_binding(
+    control_report: object,
+    rows: Sequence[Mapping[str, object]],
+    random_protocol: Mapping[str, object],
+) -> None:
+    validate_control_report(control_report)
+    by_key = _registered_rows(rows)
+    if (
+        control_report["gate"]["decision"] != "CONTINUE"
+        or control_report["row"]["checkpoint_sha256"]
+        != by_key[("random_raw", 16)]["checkpoint_sha256"]
+        or control_report["row"]["training_history_sha256"]
+        != by_key[("random_raw", 16)]["training_history_sha256"]
+        or control_report["provenance"]["random_training_protocol"] != random_protocol
+    ):
+        raise ValueError("factorial control report binding differs")
+
+
 def write_report_atomic(report: dict[str, object], output: Path) -> None:
-    validate_factorial_report(report)
+    validator = (
+        validate_control_report
+        if report.get("schema_version") == "unicom-ema-imprint-control-v1"
+        else validate_factorial_report
+    )
+    validator(report)
     if not isinstance(output, Path):
         raise TypeError("output must be a Path")
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
@@ -483,13 +735,13 @@ def write_report_atomic(report: dict[str, object], output: Path) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         persisted = json.loads(temporary.read_text())
-        validate_factorial_report(persisted)
+        validator(persisted)
         os.link(temporary, output)
         directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
         os.fsync(directory_descriptor)
         temporary.unlink()
         os.fsync(directory_descriptor)
-        validate_factorial_report(json.loads(output.read_text()))
+        validator(json.loads(output.read_text()))
     finally:
         if descriptor is not None:
             os.close(descriptor)
@@ -534,7 +786,13 @@ def _checkpoint_paths(directory: Path) -> tuple[Path, ...]:
     return paths
 
 
-def _load_registered_checkpoint(path: Path, *, epoch: int, classifier_init: str):
+def _load_registered_checkpoint(
+    path: Path,
+    *,
+    epoch: int,
+    classifier_init: str,
+    expected_ema_names: tuple[str, ...] | None = None,
+):
     import torch
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=False, mmap=True)
@@ -560,8 +818,24 @@ def _load_registered_checkpoint(path: Path, *, epoch: int, classifier_init: str)
     }:
         raise ValueError("factorial checkpoint registration differs")
     validate_training_protocol(checkpoint["training_protocol"], classifier_init=classifier_init)
-    if checkpoint["ema"]["updates"] <= 0:
+    history = checkpoint["history"]
+    if (
+        type(history) is not list
+        or len(history) != epoch
+        or any(
+            type(row) is not dict or row.get("epoch") != index
+            for index, row in enumerate(history, 1)
+        )
+    ):
+        raise ValueError("factorial checkpoint history differs")
+    ema = checkpoint["ema"]
+    if type(ema) is not dict or type(ema.get("updates")) is not int or ema["updates"] <= 0:
         raise ValueError("factorial checkpoint EMA updates differ")
+    if expected_ema_names is not None and (
+        type(expected_ema_names) is not tuple
+        or tuple(ema.get("backbone", ())) != expected_ema_names
+    ):
+        raise ValueError("factorial checkpoint EMA parameter order differs")
     return checkpoint
 
 
@@ -616,6 +890,7 @@ def load_factorial_rows(args: argparse.Namespace):
     model, transform = trainer._load_official_model(args.unicom_checkout, args.initial_checkpoint)
     device = torch.device("cuda")
     model = model.to(device)
+    expected_ema_names = tuple(name for name, _parameter in model.named_parameters())
     calibration_loader = torch.utils.data.DataLoader(
         trainer.InshopEvalDataset(optimization, transform),
         batch_size=128,
@@ -641,7 +916,10 @@ def load_factorial_rows(args: argparse.Namespace):
         use_ema = cell.endswith("_ema")
         for epoch, path in zip(REGISTERED_EPOCHS, path_by_cell[cell], strict=True):
             checkpoint = _load_registered_checkpoint(
-                path, epoch=epoch, classifier_init=classifier_init
+                path,
+                epoch=epoch,
+                classifier_init=classifier_init,
+                expected_ema_names=expected_ema_names,
             )
             protocol = checkpoint["training_protocol"]
             if classifier_init == "random":
@@ -659,6 +937,10 @@ def load_factorial_rows(args: argparse.Namespace):
                     raise ValueError("factorial EMA update sequence differs")
                 prior_updates[run_name] = updates
             state = materialize_checkpoint_state(checkpoint, use_ema=use_ema)
+            if use_ema:
+                ema_updates, ema_initial_weight, ema_distance = ema_parameter_audit(checkpoint)
+            else:
+                ema_updates = ema_initial_weight = ema_distance = None
             model.load_state_dict(state, strict=True)
             soup.recalibrate_batch_norm(model, calibration_loader, device=device)
             metrics, evidence = soup.evaluate_holdout_with_query_evidence(
@@ -678,6 +960,10 @@ def load_factorial_rows(args: argparse.Namespace):
                     "epoch": epoch,
                     "checkpoint": str(path),
                     "checkpoint_sha256": _sha256_file(path),
+                    "training_history_sha256": _json_sha256(checkpoint["history"]),
+                    "ema_updates": ema_updates,
+                    "ema_initial_weight": ema_initial_weight,
+                    "ema_parameter_l2_distance": ema_distance,
                     "metrics": metrics,
                     "query_evidence": evidence,
                 }
@@ -698,11 +984,121 @@ def load_factorial_rows(args: argparse.Namespace):
     return rows, random_protocol, imprinted_protocol, storage, inference_latency
 
 
+def load_control_row(args: argparse.Namespace):
+    import torch
+
+    from sfora.unicom_inshop import parse_inshop_partition
+    from sfora.unicom_training import identity_holdout
+
+    soup = _load_local_module(
+        Path(__file__).resolve().with_name("evaluate_unicom_checkpoint_soup.py"),
+        "_unicom_soup_for_ema_imprint_control",
+    )
+    trainer = soup._load_trainer()
+    if trainer._git_revision(args.unicom_checkout) != trainer.UNICOM_REVISION:
+        raise ValueError("UNICOM checkout revision differs")
+    if _sha256_file(args.initial_checkpoint) != trainer.UNICOM_L14_336_SHA256:
+        raise ValueError("UNICOM initial checkpoint SHA-256 differs")
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is required for the EMA imprint control")
+    path = _checkpoint_paths(args.random_run)[-1]
+    checkpoint = _load_registered_checkpoint(path, epoch=16, classifier_init="random")
+    protocol = checkpoint["training_protocol"]
+    if _sha256_file(Path(trainer.__file__)) != protocol["trainer_sha256"]:
+        raise ValueError("control executing trainer source differs")
+    records = parse_inshop_partition(args.dataset_root)
+    train_records = tuple(record for record in records if record.split == "train")
+    optimization, query, gallery, _labels = identity_holdout(train_records, fraction=0.2, seed=0)
+    if not optimization or not query or not gallery:
+        raise ValueError("control train-only split differs")
+    model, transform = trainer._load_official_model(args.unicom_checkout, args.initial_checkpoint)
+    device = torch.device("cuda")
+    model = model.to(device)
+    if tuple(checkpoint["ema"]["backbone"]) != tuple(
+        name for name, _parameter in model.named_parameters()
+    ):
+        raise ValueError("control checkpoint EMA parameter order differs")
+    calibration_loader = torch.utils.data.DataLoader(
+        trainer.InshopEvalDataset(optimization, transform),
+        batch_size=128,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        drop_last=True,
+        persistent_workers=True,
+    )
+    state = materialize_checkpoint_state(checkpoint, use_ema=False)
+    model.load_state_dict(state, strict=True)
+    soup.recalibrate_batch_norm(model, calibration_loader, device=device)
+    metrics, evidence = soup.evaluate_holdout_with_query_evidence(
+        trainer,
+        model,
+        query,
+        gallery,
+        transform,
+        device=device,
+        batch_size=128,
+        workers=4,
+        selected_features=512,
+    )
+    row = {
+        "cell": "random_raw",
+        "epoch": 16,
+        "checkpoint": str(path),
+        "checkpoint_sha256": _sha256_file(path),
+        "training_history_sha256": _json_sha256(checkpoint["history"]),
+        "ema_updates": None,
+        "ema_initial_weight": None,
+        "ema_parameter_l2_distance": None,
+        "metrics": metrics,
+        "query_evidence": evidence,
+    }
+    latency = _benchmark_inference_latency(model, calibration_loader, device=device)
+    storage = sum(path.stat().st_size for path in _checkpoint_paths(args.random_run))
+    return row, protocol, storage, latency
+
+
+def run_control(args: argparse.Namespace) -> dict[str, object]:
+    started = time.monotonic()
+    row, protocol, storage, inference_latency = load_control_row(args)
+    report = {
+        "schema_version": "unicom-ema-imprint-control-v1",
+        "provenance": {
+            "unicom_revision": protocol["unicom_revision"],
+            "initial_checkpoint_sha256": protocol["initial_checkpoint_sha256"],
+            "partition_sha256": protocol["partition_sha256"],
+            "holdout_seed": 0,
+            "holdout_fraction": 0.2,
+            "batch_norm_recalibration": "full-optimization-cumulative-batches",
+            "query_chunk_size": 256,
+            "training_history_metrics": "instrument-only-unhardened-not-used-for-selection",
+            "random_run": str(args.random_run),
+            "random_training_protocol": protocol,
+        },
+        "costs": {
+            "random_training_seconds": args.random_training_seconds,
+            "random_peak_gpu_mib": args.random_peak_gpu_mib,
+            "checkpoint_storage_bytes": storage,
+            "architecture_inference_latency_ms_per_image": inference_latency,
+            "evaluator_seconds": float(time.monotonic() - started),
+        },
+        "row": row,
+        "gate": control_gate(row),
+    }
+    validate_control_report(report)
+    return report
+
+
 def run(args: argparse.Namespace) -> dict[str, object]:
     started = time.monotonic()
+    control_report = json.loads(args.control_report.read_text())
+    validate_control_report(control_report)
+    if control_report["gate"]["decision"] != "CONTINUE":
+        raise ValueError("factorial control report did not authorize continuation")
     rows, random_protocol, imprinted_protocol, storage, inference_latency = load_factorial_rows(
         args
     )
+    validate_control_binding(control_report, rows, random_protocol)
     selected = select_candidate(rows)
     baseline = next(row for row in rows if row["cell"] == "random_raw" and row["epoch"] == 16)
     interval = paired_map_bootstrap_interval(baseline, selected)
@@ -716,6 +1112,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "holdout_fraction": 0.2,
             "batch_norm_recalibration": "full-optimization-cumulative-batches-all-arms",
             "query_chunk_size": 256,
+            "training_history_metrics": "instrument-only-unhardened-not-used-for-selection",
+            "control_report": str(args.control_report),
+            "control_report_sha256": _sha256_file(args.control_report),
             "random_run": str(args.random_run),
             "imprinted_run": str(args.imprinted_run),
             "random_training_protocol": random_protocol,
@@ -727,7 +1126,7 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             "random_peak_gpu_mib": args.random_peak_gpu_mib,
             "imprinted_peak_gpu_mib": args.imprinted_peak_gpu_mib,
             "checkpoint_storage_bytes": storage,
-            "inference_latency_ms_per_image": inference_latency,
+            "architecture_inference_latency_ms_per_image": inference_latency,
             "evaluator_seconds": float(time.monotonic() - started),
         },
         "rows": rows,
@@ -739,17 +1138,30 @@ def run(args: argparse.Namespace) -> dict[str, object]:
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=("control", "factorial"), default="factorial")
     parser.add_argument("--unicom-checkout", required=True, type=Path)
     parser.add_argument("--initial-checkpoint", required=True, type=Path)
     parser.add_argument("--dataset-root", required=True, type=Path)
     parser.add_argument("--random-run", required=True, type=Path)
-    parser.add_argument("--imprinted-run", required=True, type=Path)
+    parser.add_argument("--imprinted-run", type=Path)
+    parser.add_argument("--control-report", type=Path)
     parser.add_argument("--random-training-seconds", required=True, type=float)
-    parser.add_argument("--imprinted-training-seconds", required=True, type=float)
+    parser.add_argument("--imprinted-training-seconds", type=float)
     parser.add_argument("--random-peak-gpu-mib", required=True, type=int)
-    parser.add_argument("--imprinted-peak-gpu-mib", required=True, type=int)
+    parser.add_argument("--imprinted-peak-gpu-mib", type=int)
     parser.add_argument("--output", required=True, type=Path)
-    return parser.parse_args(arguments)
+    args = parser.parse_args(arguments)
+    if args.mode == "factorial" and any(
+        value is None
+        for value in (
+            args.imprinted_run,
+            args.control_report,
+            args.imprinted_training_seconds,
+            args.imprinted_peak_gpu_mib,
+        )
+    ):
+        parser.error("factorial mode requires imprinted run and cost arguments")
+    return args
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
@@ -757,12 +1169,17 @@ def main(arguments: Sequence[str] | None = None) -> int:
         args = parse_args(arguments)
         if args.output.exists() or args.output.is_symlink():
             raise FileExistsError(args.output)
-        report = run(args)
+        report = run_control(args) if args.mode == "control" else run(args)
         write_report_atomic(report, args.output)
     except Exception as error:
         print(f"factorial evaluation failed: {error}", file=sys.stderr)
         return 2
-    return 0 if report["gate"]["promoted"] else 1
+    succeeded = (
+        report["gate"]["instrument_reproduced"]
+        if args.mode == "control"
+        else report["gate"]["promoted"]
+    )
+    return 0 if succeeded else 1
 
 
 if __name__ == "__main__":

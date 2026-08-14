@@ -4,7 +4,7 @@
 
 **Goal:** Implement and run the prospectively frozen two-run UniCOM seed-0 factorial that tests step-EMA and class-mean classifier initialization for final quality and time-to-quality.
 
-**Architecture:** Extend the existing trainer with two isolated mechanisms: an FP32 EMA state updated only after successful optimizer steps, and a deterministic class-mean initializer. Persist raw and EMA states together so resume is exact. Add a dedicated evaluator that independently recalibrates/evaluates every registered arm and emits one strict atomic decision report.
+**Architecture:** Extend the existing trainer with two isolated mechanisms: an FP32 EMA state updated only after successful optimizer steps, and a deterministic class-mean initializer. Persist raw and EMA states together so resume is exact. Add a dedicated evaluator that independently recalibrates/evaluates every registered arm and emits one strict atomic decision report. Execute seed 0 control-first: the random raw endpoint must pass the hardened reproduction gate before the imprinted run is launched.
 
 **Tech Stack:** Python 3.12, PyTorch 2.12, NumPy 2.5, pytest, Ruff, existing UniCOM/In-Shop loaders and hardened retrieval evaluator.
 
@@ -303,7 +303,7 @@ test lane. Do not overlap heavy suites.
 ### Task 7: Seed-0 factorial execution
 
 **Files:**
-- Create through program execution: two run directories and one factorial JSON.
+- Create through program execution: two run directories, one control JSON, and one factorial JSON.
 - Commit: the validated compact report and a concise Markdown interpretation.
 
 - [ ] **Step 1: Deploy the reviewed Git commit**
@@ -316,6 +316,8 @@ and clean status, then rsync only registered dataset/checkpoint inputs if absent
 Launch exactly one process. Capture command, exit, wall time, peak GPU memory,
 checkpoint sizes, and logs. Do not launch the imprinted run until raw epoch 16
 passes the instrument-reproduction tolerance under the hardened evaluator.
+Run the evaluator in `--mode control`, strict-load the atomic control report,
+and require `decision == "CONTINUE"` before Step 3.
 
 - [ ] **Step 3: Run the imprinted arm**
 
