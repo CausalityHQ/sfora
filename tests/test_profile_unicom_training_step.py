@@ -98,8 +98,8 @@ def test_profile_summary_uses_fixed_bootstrap_and_conservative_kernel_gate() -> 
     summary = MODULE.summarize_profile(timing, fusible)
 
     assert summary["step_wall_seconds"] == 1.0
-    assert summary["fusible_nonbackbone_seconds"] == pytest.approx(0.11)
-    assert summary["fusible_nonbackbone_fraction"] == pytest.approx(0.11)
+    assert summary["fusible_non_backbone_seconds"] == pytest.approx(0.11)
+    assert summary["fusible_non_backbone_fraction"] == pytest.approx(0.11)
     assert summary["fusible_fraction_bootstrap_lower_95"] == pytest.approx(0.11)
     assert summary["kernel_gate_threshold"] == 0.1
     assert summary["kernel_gate_passed"] is True

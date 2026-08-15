@@ -177,8 +177,8 @@ def summarize_profile(timing_samples: object, fusible_samples: object) -> dict[s
     lower = float(np.quantile(bootstrap, 0.025))
     return {
         **timing,
-        "fusible_nonbackbone_seconds": fusible_mean,
-        "fusible_nonbackbone_fraction": fraction,
+        "fusible_non_backbone_seconds": fusible_mean,
+        "fusible_non_backbone_fraction": fraction,
         "fusible_fraction_bootstrap_lower_95": lower,
         "kernel_gate_threshold": KERNEL_GATE_THRESHOLD,
         "kernel_gate_passed": bool(lower >= KERNEL_GATE_THRESHOLD),
