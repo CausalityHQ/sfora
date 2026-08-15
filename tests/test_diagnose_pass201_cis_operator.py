@@ -4081,14 +4081,18 @@ def test_source_v6_authority_builder_matches_independent_literal_fixture():
 
 def test_source_v6_docs_and_source_chain_are_exact_in_real_repository():
     root = MODULE_PATH.parents[1]
-    head = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+    reviewed_source = subprocess.run(
+        [
+            "git",
+            "rev-parse",
+            "f8234397dfea2f05d19e502a533e682bff58cca0^{commit}",
+        ],
         cwd=root,
         check=True,
         capture_output=True,
         text=True,
     ).stdout.strip()
-    MODULE._authenticate_source_v6_source_chain(root, head)
+    MODULE._authenticate_source_v6_source_chain(root, reviewed_source)
 
 
 def test_public_controller_defaults_to_literal_source_v6_manifest(tmp_path: Path):

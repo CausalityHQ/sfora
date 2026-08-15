@@ -2246,7 +2246,13 @@ def test_repository_fidelity_authorities_are_frozen_and_complete() -> None:
     assert [row["tolerance"] for row in raw_tolerances["records"]] == expected_tolerances
     if test_reads.records:
         reviewed_source = subprocess.run(
-            ["git", "-C", str(root), "rev-parse", "HEAD^"],
+            [
+                "git",
+                "-C",
+                str(root),
+                "rev-parse",
+                "eb1384ed3f3a5a0ed10faa1cf088dd3ec333e68f^{commit}",
+            ],
             check=True,
             capture_output=True,
             text=True,

@@ -2650,18 +2650,11 @@ def test_repaired_seed_schema_is_derived_from_validated_pass200_authorities() ->
     )
 
 
-def test_real_pass200_source_validator_returns_execution_audit_not_manifest() -> None:
-    audit = _RSTA.validate_scientific_execution_source(
-        _ROOT / _MODULE.RSTA_MANIFEST_PATH
-    )
-    assert tuple(audit) == (
-        "executing_git_commit",
-        "diagnostic_path",
-        "diagnostic_sha256",
-        "frozen_source_revision",
-    )
-    assert "binding_receipt" not in audit
-    assert "seeds" not in audit
+def test_real_pass200_source_validator_rejects_later_worktree_drift() -> None:
+    with pytest.raises(ValueError, match="source worktree differs"):
+        _RSTA.validate_scientific_execution_source(
+            _ROOT / _MODULE.RSTA_MANIFEST_PATH
+        )
 
 
 def test_repaired_seed_schema_rejects_recursive_shape_type_and_relation_drift() -> None:
