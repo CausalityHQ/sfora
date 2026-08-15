@@ -451,12 +451,25 @@ def _snapshot_file(source: Path, destination: Path) -> tuple[str, int]:
             os.lseek(source_descriptor, 0, os.SEEK_SET)
             os.lseek(destination_descriptor, 0, os.SEEK_SET)
             remaining = source_info.st_size
+            copy_file_range = getattr(os, "copy_file_range", None)
             while remaining:
-                copied = os.copy_file_range(
-                    source_descriptor,
-                    destination_descriptor,
-                    min(16 * 1024 * 1024, remaining),
-                )
+                if copy_file_range is not None:
+                    copied = copy_file_range(
+                        source_descriptor,
+                        destination_descriptor,
+                        min(16 * 1024 * 1024, remaining),
+                    )
+                else:
+                    chunk = os.read(
+                        source_descriptor, min(16 * 1024 * 1024, remaining)
+                    )
+                    copied = len(chunk)
+                    view = memoryview(chunk)
+                    while view:
+                        written = os.write(destination_descriptor, view)
+                        if written == 0:
+                            raise RuntimeError("snapshot write is truncated") from None
+                        view = view[written:]
                 if copied == 0:
                     raise RuntimeError("snapshot copy is truncated") from None
                 remaining -= copied

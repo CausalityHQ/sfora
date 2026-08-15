@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import importlib.util
 import json
 import sys
@@ -392,6 +393,27 @@ def test_initial_model_loads_the_exact_checkpoint_bytes_it_hashes(
 
     assert loaded == ("model", "transform")
     assert digest == module.hashlib.sha256(original).hexdigest()
+
+
+def test_snapshot_streams_when_reflink_and_copy_file_range_are_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    source = tmp_path / "source.pt"
+    destination = tmp_path / "snapshot.pt"
+    payload = b"streamed-snapshot" * 1000
+    source.write_bytes(payload)
+
+    def unsupported_reflink(*_args) -> None:
+        raise OSError(errno.EOPNOTSUPP, "unsupported")
+
+    monkeypatch.setattr(module.fcntl, "ioctl", unsupported_reflink)
+    monkeypatch.delattr(module.os, "copy_file_range", raising=False)
+    digest, size = module._snapshot_file(source, destination)
+
+    assert destination.read_bytes() == payload
+    assert digest == module.hashlib.sha256(payload).hexdigest()
+    assert size == len(payload)
 
 
 def test_partition_parser_consumes_the_exact_bytes_it_hashes(tmp_path: Path) -> None:
