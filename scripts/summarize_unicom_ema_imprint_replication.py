@@ -4,9 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
+import importlib.util
 import json
 import math
 import os
+import secrets
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -23,17 +28,22 @@ _TOP_LEVEL_KEYS = (
     "seed",
     "selected_cell",
     "registered_epochs",
+    "random_training_protocol",
+    "imprinted_training_protocol",
     "random_raw",
     "imprinted_raw",
     "inference_latency",
+    "evidence",
 )
 _ARM_KEYS = (
     "checkpoint_sha256_by_epoch",
+    "training_history_sha256_by_epoch",
     "epoch_metrics",
     "training_seconds",
     "peak_gpu_mib",
     "checkpoint_storage_bytes",
     "deployment_storage_bytes",
+    "measurement_receipt_sha256",
     "profile",
 )
 _METRIC_KEYS = ("epoch", "map_at_r", "recall_at_1")
@@ -89,6 +99,21 @@ def _exact_ordered_equal(left: object, right: object) -> bool:
     return left == right
 
 
+def _validate_replication_pair(value: object) -> None:
+    path = Path(__file__).resolve().with_name("evaluate_unicom_ema_imprint_replication.py")
+    name = "_unicom_ema_imprint_replication_validator"
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("replication pair validator cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+        module.validate_replication_pair(value)
+    finally:
+        sys.modules.pop(name, None)
+
+
 def _finite_float(value: object, name: str, *, positive: bool = False) -> float:
     if type(value) is not float or not math.isfinite(value):
         raise TypeError(f"{name} must be a finite float")
@@ -123,6 +148,11 @@ def _arm(value: object, name: str) -> dict[str, Any]:
         raise ValueError(f"{name} checkpoint evidence differs")
     for digest in hashes:
         _sha256(digest, name)
+    history_hashes = arm["training_history_sha256_by_epoch"]
+    if type(history_hashes) is not list or len(history_hashes) != 4:
+        raise ValueError(f"{name} training history evidence differs")
+    for digest in history_hashes:
+        _sha256(digest, name)
     rows = arm["epoch_metrics"]
     if type(rows) is not list or len(rows) != 4:
         raise ValueError(f"{name} epoch metrics differ")
@@ -142,6 +172,7 @@ def _arm(value: object, name: str) -> dict[str, Any]:
     deployment = arm["deployment_storage_bytes"]
     if type(deployment) is not int or deployment <= 0:
         raise ValueError(f"{name}.deployment_storage_bytes cost must be a positive integer")
+    _sha256(arm["measurement_receipt_sha256"], f"{name} measurement receipt")
     profile = _exact_object(arm["profile"], _PROFILE_KEYS, f"{name} profile")
     step = _finite_float(profile["step_wall_seconds"], f"{name} step cost", positive=True)
     fusible = _finite_float(
@@ -185,8 +216,13 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
     deployment_costs: list[dict[str, object]] = []
     latency_costs: list[dict[str, object]] = []
     profile_ratios: list[dict[str, object]] = []
+    expected_protocol: dict[str, object] | None = None
+    expected_query_count: int | None = None
+    history_hashes: list[str] = []
+    measurement_hashes: list[str] = []
     for expected_seed, raw_report in zip(REGISTERED_SEEDS, reports, strict=True):
         report = _exact_object(raw_report, _TOP_LEVEL_KEYS, "replication pair")
+        _validate_replication_pair(report)
         if report["schema_version"] != PAIR_SCHEMA:
             raise ValueError("replication pair schema version differs")
         if type(report["seed"]) is not int or report["seed"] != expected_seed:
@@ -199,11 +235,35 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
             raise ValueError("registered epochs differ")
         random_arm = _arm(report["random_raw"], "random_raw")
         imprinted_arm = _arm(report["imprinted_raw"], "imprinted_raw")
+        normalized_protocol = dict(report["random_training_protocol"])
+        normalized_protocol.pop("seed")
+        normalized_protocol.pop("classifier_init")
+        if expected_protocol is None:
+            expected_protocol = normalized_protocol
+        elif normalized_protocol != expected_protocol:
+            raise ValueError("paired training protocol differs across seeds")
+        query_count = len(report["evidence"]["random_raw"][0]["top1_correct"])
+        if expected_query_count is None:
+            expected_query_count = query_count
+        elif query_count != expected_query_count:
+            raise ValueError("paired query population differs across seeds")
         latency = _latency(report["inference_latency"])
         checkpoint_hashes.extend(
             (
                 *random_arm["checkpoint_sha256_by_epoch"],
                 *imprinted_arm["checkpoint_sha256_by_epoch"],
+            )
+        )
+        history_hashes.extend(
+            (
+                *random_arm["training_history_sha256_by_epoch"],
+                *imprinted_arm["training_history_sha256_by_epoch"],
+            )
+        )
+        measurement_hashes.extend(
+            (
+                random_arm["measurement_receipt_sha256"],
+                imprinted_arm["measurement_receipt_sha256"],
             )
         )
         random_endpoint = random_arm["epoch_metrics"][-1]
@@ -272,6 +332,10 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
 
     if len(set(checkpoint_hashes)) != len(checkpoint_hashes):
         raise ValueError("checkpoint evidence is reused")
+    if len(set(history_hashes)) != len(history_hashes):
+        raise ValueError("training history evidence is reused")
+    if len(set(measurement_hashes)) != len(measurement_hashes):
+        raise ValueError("training measurement evidence is reused")
 
     mean_delta = float(np.mean(np.asarray(map_deltas, dtype=np.float64)))
     sample_sd = float(np.std(np.asarray(map_deltas, dtype=np.float64), ddof=1))
@@ -325,6 +389,8 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
         <= sum(row["random_raw"] for row in training_costs)
         and sum(row["imprinted_raw"] for row in peak_costs)
         <= sum(row["random_raw"] for row in peak_costs)
+        and sum(row["imprinted_raw"] for row in checkpoint_costs)
+        <= sum(row["random_raw"] for row in checkpoint_costs)
         and sum(row["imprinted_raw"] for row in deployment_costs)
         <= sum(row["random_raw"] for row in deployment_costs)
         and all(
@@ -392,45 +458,144 @@ def strict_json_object(payload: bytes) -> dict[str, Any]:
     return value
 
 
+def _rename_noreplace(source: Path, destination: Path) -> None:
+    renameat2 = getattr(ctypes.CDLL(None, use_errno=True), "renameat2", None)
+    if renameat2 is None:
+        raise RuntimeError("renameat2 is required for no-clobber rollback")
+    renameat2.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    )
+    renameat2.restype = ctypes.c_int
+    result = renameat2(
+        -100,
+        os.fsencode(source),
+        -100,
+        os.fsencode(destination),
+        1,
+    )
+    if result != 0:
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            raise FileExistsError(error, os.strerror(error), destination)
+        if error == errno.ENOENT:
+            raise FileNotFoundError(error, os.strerror(error), source)
+        raise OSError(error, os.strerror(error), source, destination)
+
+
+def _link_fd_noreplace(
+    descriptor: int, destination: Path, directory_descriptor: int
+) -> None:
+    linkat = getattr(ctypes.CDLL(None, use_errno=True), "linkat", None)
+    if linkat is None:
+        raise RuntimeError("linkat is required for descriptor publication")
+    linkat.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+    )
+    linkat.restype = ctypes.c_int
+    result = linkat(descriptor, b"", directory_descriptor, os.fsencode(destination.name), 0x1000)
+    if result != 0:
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            raise FileExistsError(error, os.strerror(error), destination)
+        raise OSError(error, os.strerror(error), destination)
+
+
+def _read_descriptor(descriptor: int) -> bytes:
+    size = os.fstat(descriptor).st_size
+    payload = bytearray()
+    offset = 0
+    while offset < size:
+        chunk = os.pread(descriptor, min(1024 * 1024, size - offset), offset)
+        if not chunk:
+            raise RuntimeError("descriptor payload is truncated")
+        payload.extend(chunk)
+        offset += len(chunk)
+    return bytes(payload)
+
+
+def _rollback_published_link(
+    output: Path, *, owned: tuple[int, int], directory_descriptor: int
+) -> None:
+    for _attempt in range(16):
+        rollback = output.with_name(
+            f".{output.name}.{os.getpid()}.{secrets.token_hex(12)}.rollback"
+        )
+        try:
+            _rename_noreplace(output, rollback)
+        except FileExistsError:
+            continue
+        except FileNotFoundError:
+            return
+        break
+    else:
+        raise RuntimeError("cannot allocate an exclusive rollback path")
+    info = rollback.lstat()
+    if (info.st_dev, info.st_ino) == owned:
+        pass
+    else:
+        try:
+            _rename_noreplace(rollback, output)
+        except FileExistsError:
+            os.fsync(directory_descriptor)
+            return
+    os.fsync(directory_descriptor)
+
+
 def write_summary_atomic(summary: dict[str, object], output: Path) -> None:
     validate_summary(summary)
     if not isinstance(output, Path):
         raise TypeError("output must be a Path")
-    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
-    if output.exists() or output.is_symlink() or temporary.exists() or temporary.is_symlink():
+    if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     payload = (json.dumps(summary, indent=2, allow_nan=False) + "\n").encode()
     descriptor: int | None = None
     directory_descriptor: int | None = None
     owned: tuple[int, int] | None = None
+    published = False
+    completed = False
     try:
-        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        descriptor = os.open(output.parent, os.O_RDWR | os.O_TMPFILE, 0o600)
         info = os.fstat(descriptor)
         owned = (info.st_dev, info.st_ino)
-        with os.fdopen(descriptor, "wb", closefd=True) as handle:
-            descriptor = None
+        with os.fdopen(descriptor, "wb", closefd=False) as handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        validate_summary(strict_json_object(temporary.read_bytes()))
-        os.link(temporary, output, follow_symlinks=False)
-        directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+        persisted_payload = _read_descriptor(descriptor)
+        if persisted_payload != payload:
+            raise RuntimeError("persisted summary bytes differ")
+        validate_summary(strict_json_object(persisted_payload))
+        _link_fd_noreplace(descriptor, output, directory_descriptor)
+        published = True
         os.fsync(directory_descriptor)
-        temporary.unlink()
-        os.fsync(directory_descriptor)
-        validate_summary(strict_json_object(output.read_bytes()))
+        output_info = output.lstat()
+        if (output_info.st_dev, output_info.st_ino) != owned:
+            raise RuntimeError("published summary inode differs")
+        published_payload = _read_descriptor(descriptor)
+        if published_payload != payload:
+            raise RuntimeError("published summary bytes differ")
+        validate_summary(strict_json_object(published_payload))
+        completed = True
     finally:
         if descriptor is not None:
             os.close(descriptor)
+        if published and not completed and owned is not None:
+            if directory_descriptor is None:
+                directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+            _rollback_published_link(
+                output, owned=owned, directory_descriptor=directory_descriptor
+            )
         if directory_descriptor is not None:
             os.close(directory_descriptor)
-        try:
-            info = temporary.lstat()
-        except FileNotFoundError:
-            pass
-        else:
-            if owned == (info.st_dev, info.st_ino):
-                temporary.unlink()
 
 
 def main(arguments: list[str] | None = None) -> int:
