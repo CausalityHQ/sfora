@@ -185,6 +185,64 @@ def summarize_profile(timing_samples: object, fusible_samples: object) -> dict[s
     }
 
 
+def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple]:
+    if type(payload) is not dict:
+        raise TypeError("ABBA profile must be an object")
+    required = (
+        "schema_version",
+        "classifier_init",
+        "warmup_steps",
+        "measure_steps",
+        "profiler_steps",
+        "timing_samples",
+        "fusible_samples",
+        "summary",
+    )
+    if any(key not in payload for key in required):
+        raise ValueError("ABBA profile schema differs")
+    if (
+        payload["schema_version"] != "unicom-training-step-profile-v1"
+        or payload["classifier_init"] != expected_init
+        or payload["warmup_steps"] != WARMUP_STEPS
+        or payload["measure_steps"] != MEASURE_STEPS
+        or payload["profiler_steps"] != PROFILER_STEPS
+    ):
+        raise ValueError("ABBA profile binding differs")
+    timing = payload["timing_samples"]
+    fusible = payload["fusible_samples"]
+    if (
+        type(timing) is not list
+        or len(timing) != MEASURE_STEPS
+        or type(fusible) is not list
+        or len(fusible) != PROFILER_STEPS
+    ):
+        raise ValueError("ABBA profile sample counts differ")
+    timing_tuple = tuple(timing)
+    fusible_tuple = tuple(fusible)
+    recomputed = summarize_profile(timing_tuple, fusible_tuple)
+    if payload["summary"] != recomputed:
+        raise ValueError("ABBA profile summary differs")
+    return timing_tuple, fusible_tuple
+
+
+def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
+    """Pool two fresh checkpoint reloads per arm in fixed A-B-B-A order."""
+
+    if type(profiles) is not tuple or len(profiles) != 4:
+        raise ValueError("ABBA requires exactly four profiles")
+    expected = ("random", "imprinted", "imprinted", "random")
+    validated = tuple(
+        _profile_samples(profile, classifier_init)
+        for profile, classifier_init in zip(profiles, expected, strict=True)
+    )
+    result: dict[str, dict[str, object]] = {}
+    for classifier_init, indices in (("random", (0, 3)), ("imprinted", (1, 2))):
+        timing = validated[indices[0]][0] + validated[indices[1]][0]
+        fusible = validated[indices[0]][1] + validated[indices[1]][1]
+        result[classifier_init] = summarize_profile(timing, fusible)
+    return result
+
+
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-checkpoint", required=True, type=Path)

@@ -183,3 +183,57 @@ def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch
     assert json.loads(capsys.readouterr().out)["kernel_gate_passed"] is False
     assert MODULE.main(arguments) == 2
     assert json.loads(output.read_text(encoding="utf-8")) == expected
+
+
+def _profile_payload(classifier_init: str, wall: float, fusible: float) -> dict:
+    timing = [_sample(wall, 0.08, 0.06) for _ in range(50)]
+    fusible_samples = [fusible for _ in range(10)]
+    return {
+        "schema_version": "unicom-training-step-profile-v1",
+        "classifier_init": classifier_init,
+        "warmup_steps": 20,
+        "measure_steps": 50,
+        "profiler_steps": 10,
+        "timing_samples": timing,
+        "fusible_samples": fusible_samples,
+        "summary": MODULE.summarize_profile(tuple(timing), tuple(fusible_samples)),
+    }
+
+
+def test_abba_aggregation_pools_reloads_by_arm_and_recomputes_gate() -> None:
+    profiles = (
+        _profile_payload("random", 1.0, 0.08),
+        _profile_payload("imprinted", 1.0, 0.11),
+        _profile_payload("imprinted", 1.2, 0.13),
+        _profile_payload("random", 1.0, 0.10),
+    )
+
+    result = MODULE.aggregate_abba_profiles(profiles)
+
+    assert tuple(result) == ("random", "imprinted")
+    assert result["random"]["step_wall_seconds"] == pytest.approx(1.0)
+    assert result["random"]["fusible_non_backbone_seconds"] == pytest.approx(0.09)
+    assert result["random"]["kernel_gate_passed"] is False
+    assert result["imprinted"]["step_wall_seconds"] == pytest.approx(1.1)
+    assert result["imprinted"]["fusible_non_backbone_seconds"] == pytest.approx(0.12)
+    assert result["imprinted"]["kernel_gate_passed"] is True
+
+    wrong_order = list(profiles)
+    wrong_order[0] = _profile_payload("imprinted", 1.0, 0.08)
+    with pytest.raises(ValueError, match="ABBA"):
+        MODULE.aggregate_abba_profiles(tuple(wrong_order))
+
+
+def test_abba_aggregation_rejects_forged_summary() -> None:
+    profiles = list(
+        (
+            _profile_payload("random", 1.0, 0.08),
+            _profile_payload("imprinted", 1.0, 0.08),
+            _profile_payload("imprinted", 1.0, 0.08),
+            _profile_payload("random", 1.0, 0.08),
+        )
+    )
+    profiles[2]["summary"] = dict(profiles[2]["summary"])
+    profiles[2]["summary"]["kernel_gate_passed"] = True
+    with pytest.raises(ValueError, match="summary"):
+        MODULE.aggregate_abba_profiles(tuple(profiles))
