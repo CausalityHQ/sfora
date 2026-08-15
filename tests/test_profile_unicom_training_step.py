@@ -190,6 +190,10 @@ def _profile_payload(classifier_init: str, wall: float, fusible: float) -> dict:
     fusible_samples = [fusible for _ in range(10)]
     return {
         "schema_version": "unicom-training-step-profile-v1",
+        "run_checkpoint_sha256": ("1" if classifier_init == "random" else "2") * 64,
+        "trainer_sha256": "3" * 64,
+        "profiler_sha256": "4" * 64,
+        "checkpoint_epoch": 4,
         "classifier_init": classifier_init,
         "warmup_steps": 20,
         "measure_steps": 50,
@@ -197,6 +201,7 @@ def _profile_payload(classifier_init: str, wall: float, fusible: float) -> dict:
         "timing_samples": timing,
         "fusible_samples": fusible_samples,
         "summary": MODULE.summarize_profile(tuple(timing), tuple(fusible_samples)),
+        "runtime": {"torch_version": "test", "device_name": "test-gpu"},
     }
 
 
@@ -236,4 +241,9 @@ def test_abba_aggregation_rejects_forged_summary() -> None:
     profiles[2]["summary"] = dict(profiles[2]["summary"])
     profiles[2]["summary"]["kernel_gate_passed"] = True
     with pytest.raises(ValueError, match="summary"):
+        MODULE.aggregate_abba_profiles(tuple(profiles))
+
+    profiles[2] = _profile_payload("imprinted", 1.0, 0.08)
+    profiles[2]["profiler_sha256"] = "5" * 64
+    with pytest.raises(ValueError, match="provenance"):
         MODULE.aggregate_abba_profiles(tuple(profiles))

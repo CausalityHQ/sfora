@@ -185,11 +185,15 @@ def summarize_profile(timing_samples: object, fusible_samples: object) -> dict[s
     }
 
 
-def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple]:
+def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple, tuple]:
     if type(payload) is not dict:
         raise TypeError("ABBA profile must be an object")
     required = (
         "schema_version",
+        "run_checkpoint_sha256",
+        "trainer_sha256",
+        "profiler_sha256",
+        "checkpoint_epoch",
         "classifier_init",
         "warmup_steps",
         "measure_steps",
@@ -197,6 +201,7 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple]
         "timing_samples",
         "fusible_samples",
         "summary",
+        "runtime",
     )
     if any(key not in payload for key in required):
         raise ValueError("ABBA profile schema differs")
@@ -208,6 +213,25 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple]
         or payload["profiler_steps"] != PROFILER_STEPS
     ):
         raise ValueError("ABBA profile binding differs")
+    metadata = (
+        payload["run_checkpoint_sha256"],
+        payload["trainer_sha256"],
+        payload["profiler_sha256"],
+        payload["checkpoint_epoch"],
+        payload["runtime"],
+    )
+    if (
+        any(
+            type(value) is not str
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+            for value in metadata[:3]
+        )
+        or type(metadata[3]) is not int
+        or metadata[3] < 1
+        or type(metadata[4]) is not dict
+    ):
+        raise ValueError("ABBA profile provenance differs")
     timing = payload["timing_samples"]
     fusible = payload["fusible_samples"]
     if (
@@ -222,7 +246,7 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple]
     recomputed = summarize_profile(timing_tuple, fusible_tuple)
     if payload["summary"] != recomputed:
         raise ValueError("ABBA profile summary differs")
-    return timing_tuple, fusible_tuple
+    return timing_tuple, fusible_tuple, metadata
 
 
 def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
@@ -235,6 +259,11 @@ def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
         _profile_samples(profile, classifier_init)
         for profile, classifier_init in zip(profiles, expected, strict=True)
     )
+    shared = tuple(row[2][1:] for row in validated)
+    if any(value != shared[0] for value in shared[1:]):
+        raise ValueError("ABBA profile provenance differs")
+    if validated[0][2][0] != validated[3][2][0] or validated[1][2][0] != validated[2][2][0]:
+        raise ValueError("ABBA checkpoint provenance differs")
     result: dict[str, dict[str, object]] = {}
     for classifier_init, indices in (("random", (0, 3)), ("imprinted", (1, 2))):
         timing = validated[indices[0]][0] + validated[indices[1]][0]
@@ -634,6 +663,7 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
         "run_checkpoint": str(args.run_checkpoint.resolve()),
         "run_checkpoint_sha256": _sha256_file(args.run_checkpoint),
         "trainer_sha256": _sha256_file(trainer_source),
+        "profiler_sha256": _sha256_file(Path(__file__)),
         "checkpoint_epoch": state["checkpoint_epoch"],
         "classifier_init": state["protocol"]["classifier_init"],
         "warmup_steps": args.warmup_steps,
