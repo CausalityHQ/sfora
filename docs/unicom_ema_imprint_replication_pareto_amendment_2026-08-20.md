@@ -86,7 +86,10 @@ summarizer accidentally strengthened raw training wall time into a claim gate.
 Removing that gate restores the preregistration rather than making the claim easier.
 
 Seed-1 raw wall time is `17,629.0` seconds for random and
-`14,252.320465842` seconds for imprinted. The matched 16-epoch step models are
+`14,252.320465842` seconds for imprinted. The retrospective `161` steps per
+epoch is derived as `floor(20_706 optimization images / 128 batch size)`; seed 1
+has no initialization receipt, so this derived count is descriptive and cannot
+gate a profiled-compute claim. The matched 16-epoch step models are
 `13,641.277351625264` and `13,642.094341494143` seconds before initialization cost,
 leaving non-step residuals of `3,987.7226483747363` seconds (`29.2%` of the
 random step model) and `610.226124347857` seconds (`4.5%` of the imprinted
@@ -150,11 +153,18 @@ cost disclosure instead.
 
 `all_future_iso_quality_profiled_compute_noninferior` means the imprinted arm reaches
 the random epoch-16 target with no greater profiled compute proxy in every future seed
-2..6. `per_seed_resource_noninferior` means every seed 1..6 passes peak-memory and
-checkpoint non-inferiority plus exact deployment-storage equality. The final
+2..6. `all_first_quality_epochs_noninferior` means the imprinted arm reaches that
+target no later than random in every seed 1..6. The historical `1.5` threshold was the
+seed-0 factorial's imprint-closure criterion; it is reported for context and is not a
+six-seed confirmation threshold. `per_seed_resource_noninferior` means every seed
+1..6 passes peak-memory and checkpoint non-inferiority plus exact deployment-storage
+equality. The final
 `claim_supported` is an explicit trajectory-frontier claim: the unchanged six-seed
-quality gate passes, every prospectively measured seed 2..6 passes the iso-quality
-profiled-compute proxy gate, and all six seeds pass the resource gate. The reported
+quality gate passes, every seed passes first-quality epoch non-inferiority, every
+prospectively measured seed 2..6 passes the iso-quality profiled-compute proxy gate,
+and all six seeds pass the resource gate. Checkpoint non-inferiority and deployment
+equality are architectural integrity guards for the shared backbone/classifier shape;
+only peak memory provides live resource-efficiency evidence. The reported
 fixed-epoch Pareto predicate is a derived consequence, not a separate claim pillar.
 Seed 1 contributes quality, epoch-to-quality, and resource evidence but cannot
 contribute to the prospective profiled-compute conjunction.
@@ -186,10 +196,12 @@ post_initialization_rng
 64-hex; `algorithm` is respectively
 `torch-normal-std-0.01-rng-balanced` or
 `normalized-class-means-norm-matched-rng-restored`; the classifier hash covers exact
-contiguous CPU FP32 bytes in row-major order; shape is exact `[3997, 768]` in both
-arms and all five future seeds; the JSON dtype value is the exact built-in string
-`"torch.float32"`; steps is a positive exact int; seconds is a positive finite Python
-float. `post_initialization_rng` has exact ordered keys
+contiguous CPU FP32 bytes in row-major order. The first dimension is derived, never
+transcribed: it must equal `len(identity_holdout(authenticated_train_records,
+fraction=0.2, seed=0)[3])`, which is `3198` for the authenticated In-Shop partition;
+shape is therefore exact `[3198, 768]` in both arms and all five future seeds. The JSON
+dtype value is the exact built-in string `"torch.float32"`; steps is a positive exact
+int; seconds is a positive finite Python float. `post_initialization_rng` has exact ordered keys
 `python_sha256`, `numpy_sha256`, `torch_cpu_sha256`, and
 `torch_cuda_sha256_by_device`; the first three are lowercase 64-hex strings and the
 last is an ordered nonempty list of lowercase 64-hex strings.
@@ -202,6 +214,15 @@ initializer stream in both arms; imprinting saves and restores Python, NumPy, To
 CPU, and all Torch CUDA states. Consequently, the random and imprinted receipts for
 each future seed must have identical `post_initialization_rng` objects. A mismatch
 invalidates the pair before evaluation.
+
+On resume the receipt must already exist at the resumed run's exact
+`<output-dir>/initialization-receipt.json`; a checkpoint from any other directory does
+not relocate or waive that requirement. The registered initializer is rerun
+deterministically before optimizer construction so its tensor hash and post-init RNG
+can be reauthenticated, but it is not timed again. The expected 11-field object is
+rebuilt with the existing receipt's validated `initialization_seconds` and must match
+exactly; the receipt is never replaced. Checkpoint restore then overwrites that verified
+initial tensor and restores the saved training state.
 
 Future external training measurement receipts use exact schema
 `unicom-training-measurement-v2`: the existing v1 ordered fields followed by
@@ -243,6 +264,7 @@ quality_claim_supported
 first_quality_epochs
 costs
 fixed_epoch_pareto_nondominated
+all_first_quality_epochs_noninferior
 all_future_iso_quality_profiled_compute_noninferior
 per_seed_resource_noninferior
 claim_supported
@@ -262,13 +284,26 @@ exact keys `initialization_receipt_sha256`, `optimizer_steps_per_epoch`,
 `inference_latency_protocol`, `inference_latency_ms_per_image`,
 `checkpoint_storage_bytes`, `deployment_storage_bytes`,
 `profile_fusible_non_backbone_fraction`, `kernel_profile_threshold`,
-`kernel_eligible`, and `historical_cost_limitations`. Every per-seed scalar row uses
-exact order `seed`, `random_raw`, `imprinted_raw`; the latency row uses `seed`,
-`milliseconds_per_image`. `historical_cost_limitations` is exactly the one-element
-list containing seed 1 and the status string above. The fixed-epoch overhead rows use
-exact order `seed`, `imprinted_minus_random`; seed 1 is null and seeds 2..6 are the
-difference of the two profiled proxies. The three decision fields are recomputed, and
+`kernel_eligible`, and `historical_cost_limitations`. Training, fixed/iso profiled
+compute, peak, checkpoint, deployment, and profile rows use exact order `seed`,
+`random_raw`, `imprinted_raw`. Latency rows use exact order `seed`,
+`milliseconds_per_image`. `first_quality_epochs` rows use exact order `seed`,
+`random_raw`, `imprinted_raw`, `speedup`. Fixed-epoch overhead rows use exact order
+`seed`, `imprinted_minus_random`; seed 1 is null and seeds 2..6 are the difference of
+the two profiled proxies. `historical_cost_limitations` is exactly:
+
+```json
+[
+  {
+    "seed": 1,
+    "status": "historical_initialization_receipt_unavailable"
+  }
+]
+```
+
+The four decision fields are recomputed, and
 `claim_supported` is derived only from `quality_claim_supported`,
+`all_first_quality_epochs_noninferior`,
 `all_future_iso_quality_profiled_compute_noninferior`, and
 `per_seed_resource_noninferior`. `fixed_epoch_pareto_nondominated` is reported but is
 not a fourth independent conjunct.

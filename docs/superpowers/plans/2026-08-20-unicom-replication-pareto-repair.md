@@ -2,7 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Produce a strict v2 six-seed summary that separates fixed-budget quality, iso-quality compute, and Pareto non-domination while adding trajectory-neutral initialization evidence for seeds 2..6.
+**Goal:** Produce a strict v2 six-seed summary that separates fixed-budget quality,
+iso-quality profiled compute, and Pareto non-domination while adding trajectory-neutral
+initialization evidence for seeds 2..6.
 
 **Architecture:** Preserve immutable seed-1 pair-v1 bytes. Add atomic initialization receipts and pair-v2 evidence prospectively, then make summary-v2 accept exactly one historical v1 pair plus five future v2 pairs. Every decision is recomputed from authenticated evidence; raw wall time and seed-1 proxy limitations remain explicit and non-gating.
 
@@ -15,7 +17,8 @@
 - Do not alter seed-1 report bytes or replace any valid run.
 - Do not change training constants, data order, selected cell, seeds, epochs, objective, or quality thresholds.
 - Use RED before every production behavior change and preserve exact failure evidence.
-- Keep fixed-epoch quality, fixed-epoch compute, and iso-quality compute as separate fields and predicates.
+- Keep fixed-epoch quality, fixed-epoch profiled compute, and iso-quality profiled
+  compute as separate fields and predicates.
 - Raw wall time is descriptive only, as in the original preregistration.
 - Initialization receipts must not perturb tensors, RNG, data order, model mode, or BatchNorm buffers.
 - No seed-2 GPU run starts until source review is READY and a fresh commit is deployed.
@@ -83,7 +86,8 @@ independently rejects higher peak memory or checkpoint storage and rejects eithe
 or smaller deployment storage. Assert fixed-epoch higher profiled compute and its
 signed overhead are reported without being mislabelled dominance, and assert
 non-domination is reported as the quality-gate consequence rather than an independent
-claim conjunct.
+claim conjunct. Assert imprinted first-quality epoch is no later than random for each
+of all six seeds and independently falsifies the final claim.
 
 ```python
 summary = module.summarize_replications(reports, selection_authority=authority)
@@ -138,10 +142,12 @@ Run: `.venv/bin/python -m py_compile scripts/summarize_unicom_ema_imprint_replic
 - [ ] **Step 1: Write receipt-purity REDs**
 
 With independently literal expected hashes, assert the exact 11-key schema, FP32
-row-major classifier bytes, exact JSON shape `[3997, 768]`, exact built-in string dtype
-`"torch.float32"`, trainer digest, seed/arm/algorithm, exact loader length, positive
-finite synchronized duration, and four RNG domains. Require both arms and every future
-seed to retain the same shape. Snapshot classifier,
+row-major classifier bytes, exact built-in string dtype `"torch.float32"`, trainer
+digest, seed/arm/algorithm, exact loader length, positive finite synchronized duration,
+and four RNG domains. Derive the expected first shape dimension independently by
+calling `identity_holdout` on the authenticated partition with the frozen fraction/seed;
+assert exact `[3198, 768]` for the registered partition and require both arms and every
+future seed to retain that shape. Snapshot classifier,
 model parameters, BatchNorm buffers, model mode, Python/NumPy/Torch CPU/all CUDA RNG,
 and sampler/data-generator seeds before receipt construction and require byte equality
 afterward. Mutate every key/type/hash/order and require rejection.
@@ -195,11 +201,14 @@ with pytest.raises(FileExistsError):
 
 Synchronize CUDA around the complete initializer, construct the loader before the
 optimizer without iterating it, create/publish the receipt, then construct optimizer
-and continue the unchanged trajectory. On resume, authenticate the existing receipt
-and reuse its recorded `initialization_seconds`; do not rerun or re-time initialization.
-Recompute and compare every deterministic field available from the resumed
-classifier/trainer/run, validate the recorded duration's type/range, and fail on any
-other mismatch instead of replacing the receipt.
+and continue the unchanged trajectory. On resume, require the receipt at exactly
+`<output-dir>/initialization-receipt.json`; absence is structural failure even when the
+checkpoint path is elsewhere. Deterministically rerun the registered initializer before
+optimizer construction, but do not time it. Rebuild the expected receipt using the
+existing receipt's validated `initialization_seconds` and require exact equality of all
+11 fields, including classifier tensor hash, shape, dtype, steps, and post-init RNG.
+Never replace the receipt. The subsequent checkpoint restore overwrites the freshly
+verified initialization tensor and restores the saved training trajectory.
 
 - [ ] **Step 6: Verify Task 2**
 
