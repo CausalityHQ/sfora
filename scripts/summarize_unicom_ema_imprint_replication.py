@@ -437,6 +437,7 @@ def summarize_replications(
         normalized_protocol = dict(report["random_training_protocol"])
         normalized_protocol.pop("seed")
         normalized_protocol.pop("classifier_init")
+        normalized_protocol.pop("trainer_sha256")
         if expected_protocol is None:
             expected_protocol = normalized_protocol
         elif normalized_protocol != expected_protocol:
@@ -737,10 +738,7 @@ def summarize_replications(
             and deployment["random_raw"] <= deployment["imprinted_raw"]
             and (
                 fixed["random_raw"] is None
-                or (
-                    fixed["imprinted_raw"] is not None
-                    and fixed["random_raw"] <= fixed["imprinted_raw"]
-                )
+                or fixed["random_raw"] <= fixed["imprinted_raw"]
             )
         )
         for delta, fixed, peak, checkpoint, deployment in zip(

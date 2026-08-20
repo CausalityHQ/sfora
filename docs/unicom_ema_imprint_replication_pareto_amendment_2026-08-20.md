@@ -153,7 +153,8 @@ arms. The predicate is recomputed seed by seed; a lower-quality imprinted point 
 nondominated when it improves at least one registered cost. Because the unchanged
 quality gate requires a strictly positive mAP@R delta in every seed, non-domination is
 still implied whenever the quality gate passes and carries no independent claim
-evidence. The signed per-seed
+evidence. Exact ties use conservative weak domination: when quality and every available
+cost are equal, random weakly dominates imprinted. The signed per-seed
 `fixed_epoch_profiled_compute_overhead_seconds` rows provide the explicit fixed-budget
 cost disclosure instead.
 
@@ -204,11 +205,12 @@ post_initialization_rng
 `normalized-class-means-norm-matched-rng-restored`; the classifier hash covers exact
 contiguous CPU FP32 bytes in row-major order. The first dimension is derived from
 `len(identity_holdout(authenticated_train_records, fraction=0.2, seed=0)[3])` before
-model load and then cross-checked against the registered literal. The authenticated
-partition has `3997` train identities and the immutable query evidence has exactly
-`797` held-out identities, leaving `3200` optimization identities; the live derived
-shape must therefore equal registered `[3200, 768]` in both arms and all five future
-seeds. The JSON
+model load and then cross-checked against the registered literal. The immutable query
+evidence has exactly `797` held-out identities; independently, the live optimization
+label mapping must have exactly `3200` contiguous rows, yielding registered
+`[3200, 768]` in both arms and all five future seeds. This registered-count gate applies
+only to the prospective seed-2..6 receipt path; other documented trainer modes derive
+their row count without inheriting the confirmation-specific gate. The JSON
 dtype value is the exact built-in string `"torch.float32"`; steps is a positive exact
 int; seconds is a positive finite Python float. `post_initialization_rng` has exact ordered keys
 `python_sha256`, `numpy_sha256`, `torch_cpu_sha256`, and
@@ -253,6 +255,11 @@ non-symlink whose bytes equal SHA-256
 blob recorded by commit `5a08b95266c7d40d57ec7fd747999969147a04e6`; a copied
 byte-identical alias is not authority. Direct summary construction and validation also
 require the seed-1 semantic object to equal that authenticated payload exactly.
+Cross-seed recipe comparison removes `seed`, `classifier_init`, and `trainer_sha256`
+before equality: the first two are arm/replicate variables and the last is versioned
+execution provenance that necessarily differs between immutable pair-v1 and prospective
+pair-v2. Each report still preserves its exact per-arm trainer digest, and the paired
+evaluator requires both arms within a seed to match the executing trainer bytes.
 
 The summary schema becomes `unicom-ema-imprint-replication-summary-v2`. Its exact
 top-level key order is:

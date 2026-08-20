@@ -170,6 +170,7 @@ def _future_report(seed: int, map_delta: float, recall_delta: float) -> dict[str
         protocol = copy.deepcopy(historical[f"{cell.split('_')[0]}_training_protocol"])
         protocol["seed"] = seed
         protocol["classifier_init"] = classifier_init
+        protocol["trainer_sha256"] = "f" * 64
         report[f"{cell.split('_')[0]}_training_protocol"] = protocol
     rng_digest = f"{7000 + seed:064x}"
     for arm, initialization_seconds in (("random_raw", 1.0), ("imprinted_raw", 10.0)):
@@ -401,6 +402,22 @@ def test_summary_requires_exact_seeds_and_frozen_cell() -> None:
         _summarize(module, reports)
 
 
+def test_summary_allows_versioned_trainer_digest_but_not_recipe_drift() -> None:
+    """Future evidence has a new trainer while every scientific recipe field stays fixed."""
+    module = _load_script()
+    reports = _registered_reports()
+
+    summary = _summarize(module, reports)
+    assert summary["reports"][0]["random_training_protocol"]["trainer_sha256"] != (
+        summary["reports"][1]["random_training_protocol"]["trainer_sha256"]
+    )
+
+    reports[2]["random_training_protocol"]["margin"] = 0.5
+    reports[2]["imprinted_training_protocol"]["margin"] = 0.5
+    with pytest.raises(ValueError, match="protocol"):
+        _summarize(module, reports)
+
+
 def test_summary_uses_paired_student_t_sign_and_recall_gates() -> None:
     module = _load_script()
     reports = [_report(seed, 0.010 + seed * 0.001, 0.0) for seed in range(1, 7)]
@@ -573,8 +590,8 @@ def test_atomic_publication_strict_reloads_and_never_clobbers(tmp_path: Path) ->
 def test_summary_rejects_cross_seed_protocol_or_query_count_drift() -> None:
     module = _load_script()
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
-    reports[1]["random_training_protocol"]["trainer_sha256"] = "e" * 64
-    reports[1]["imprinted_training_protocol"]["trainer_sha256"] = "e" * 64
+    reports[1]["random_training_protocol"]["scale"] = 64.0
+    reports[1]["imprinted_training_protocol"]["scale"] = 64.0
     with pytest.raises(ValueError, match="protocol"):
         _summarize(module, reports)
 

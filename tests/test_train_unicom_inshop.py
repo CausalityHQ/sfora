@@ -295,6 +295,28 @@ def test_registered_classifier_shape_is_derived_and_cross_checked() -> None:
     with pytest.raises(ValueError, match="registered classifier shape"):
         module.registered_classifier_shape(labels)
 
+    reordered = {
+        "b": 1,
+        "a": 0,
+        **{f"item_{index:04d}": index + 2 for index in range(3198)},
+    }
+    with pytest.raises(ValueError, match="registered classifier shape"):
+        module.registered_classifier_shape(reordered)
+    with pytest.raises(ValueError, match="registered classifier shape"):
+        module.registered_classifier_shape(list(range(3200)))
+
+
+def test_classifier_shape_only_enforces_replication_contract_for_receipt_runs() -> None:
+    """Full-train mode stays usable while prospective replication rows stay exact."""
+    module = _load_script()
+    full_train_labels = {f"item_{index:04d}": index for index in range(3997)}
+
+    assert module.classifier_shape_for_run(
+        full_train_labels, record_initialization=False
+    ) == [3997, 768]
+    with pytest.raises(ValueError, match="registered classifier shape"):
+        module.classifier_shape_for_run(full_train_labels, record_initialization=True)
+
 
 def test_epoch_sampler_matches_padded_global_order() -> None:
     module = _load_script()

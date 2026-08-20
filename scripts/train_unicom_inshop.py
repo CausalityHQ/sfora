@@ -346,6 +346,22 @@ def registered_classifier_shape(labels: Mapping[str, int]) -> list[int]:
     return [len(labels), 768]
 
 
+def classifier_shape_for_run(
+    labels: Mapping[str, int], *, record_initialization: bool
+) -> list[int]:
+    """Derive a general training shape, applying the frozen count only to receipt runs."""
+    if (
+        type(record_initialization) is not bool
+        or type(labels) is not dict
+        or not labels
+        or tuple(labels.values()) != tuple(range(len(labels)))
+    ):
+        raise ValueError("classifier shape differs")
+    if record_initialization:
+        return registered_classifier_shape(labels)
+    return [len(labels), 768]
+
+
 class StepEMA:
     """Same-device FP32 exponential average of trainable retrieval weights."""
 
@@ -1135,11 +1151,13 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         fraction=args.holdout_fraction,
         seed=args.holdout_seed,
     )
-    classifier_shape = registered_classifier_shape(labels)
+    record_initialization = args.seed in range(2, 7)
+    classifier_shape = classifier_shape_for_run(
+        labels, record_initialization=record_initialization
+    )
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
     train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
-    record_initialization = args.seed in range(2, 7)
     if record_initialization and args.resume is None:
         torch.cuda.synchronize()
         initialization_started = time.perf_counter()
