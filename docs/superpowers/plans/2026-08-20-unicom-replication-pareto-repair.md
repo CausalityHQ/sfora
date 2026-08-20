@@ -68,25 +68,29 @@ Add literal path/SHA/recording-commit/cell/decision constants. Resolve the path 
 `Path(__file__).resolve().parents[1]`, authenticate exact bytes against both worktree and
 `git show`, run the strict factorial validator, require the three gate values, and embed
 the literal object. Bump `SUMMARY_SCHEMA` to
-`unicom-ema-imprint-replication-summary-v2`; update every existing summary test call to
-pass the test-owned literal authority.
+`unicom-ema-imprint-replication-summary-v2`; parameterize the shared report builder so
+seed 1 emits pair-v1 and seeds 2..6 emit pair-v2, and update every existing summary
+test call to pass the test-owned literal authority.
 
 - [ ] **Step 4: Write operating-point REDs**
 
 Use a hand-derived non-monotone seed-1 row and assert exact first epochs `12` and `8`
 and speedup `1.5`. Assert raw wall-time drift changes only descriptive rows. Assert
-fixed-epoch and iso-quality compute are distinct. Assert seed-1 compute totals are null
-with exact historical status. Assert each future seed independently rejects higher
-iso-quality compute, peak memory, or checkpoint storage, and rejects either larger or
-smaller deployment storage. Assert fixed-epoch higher compute is reported without being
-mislabelled dominance.
+fixed-epoch and iso-quality profiled compute are distinct. Assert seed-1 compute totals
+are null with exact historical status. Assert each future seed independently rejects
+higher iso-quality profiled compute. Assert **each of all six seeds**, including seed 1,
+independently rejects higher peak memory or checkpoint storage and rejects either larger
+or smaller deployment storage. Assert fixed-epoch higher profiled compute and its
+signed overhead are reported without being mislabelled dominance, and assert
+non-domination is reported as the quality-gate consequence rather than an independent
+claim conjunct.
 
 ```python
 summary = module.summarize_replications(reports, selection_authority=authority)
 assert summary["first_quality_epochs"][0] == {
     "seed": 1, "random_raw": 12, "imprinted_raw": 8, "speedup": 1.5
 }
-assert summary["costs"]["fixed_epoch_compute_seconds"][0] == {
+assert summary["costs"]["fixed_epoch_profiled_compute_seconds"][0] == {
     "seed": 1, "random_raw": None, "imprinted_raw": None
 }
 reports[1]["imprinted_raw"]["training_seconds"] = 1_000_000.0
@@ -105,9 +109,12 @@ Expected: fail because summary-v1 sums costs and has no mixed evidence or separa
 
 Accept exactly pair-v1 at seed 1 and pair-v2 at seeds 2..6. For v2 rows compute the two
 registered formulas from arm evidence. Keep training wall time, latency, profiler,
-memory, checkpoint, and deployment rows. Recompute per-seed gates, fixed-epoch
-non-domination, future iso-quality conjunction, and the final trajectory-frontier
-claim. Add exact initialization-evidence rows, including seed 1's null historical row.
+memory, checkpoint, and deployment rows. Recompute all-six per-seed resource gates,
+fixed-epoch non-domination, future iso-quality profiled-compute conjunction, and the
+final trajectory-frontier claim. Report signed fixed-epoch profiled-compute overhead
+and keep the tautological non-domination predicate out of the independent final
+conjunction. Add exact initialization-evidence rows, including seed 1's null historical
+row.
 
 - [ ] **Step 7: Verify Task 1**
 
@@ -131,8 +138,10 @@ Run: `.venv/bin/python -m py_compile scripts/summarize_unicom_ema_imprint_replic
 - [ ] **Step 1: Write receipt-purity REDs**
 
 With independently literal expected hashes, assert the exact 11-key schema, FP32
-row-major classifier bytes/shape/dtype, trainer digest, seed/arm/algorithm, exact loader
-length, positive finite synchronized duration, and four RNG domains. Snapshot classifier,
+row-major classifier bytes, exact JSON shape `[3997, 768]`, exact built-in string dtype
+`"torch.float32"`, trainer digest, seed/arm/algorithm, exact loader length, positive
+finite synchronized duration, and four RNG domains. Require both arms and every future
+seed to retain the same shape. Snapshot classifier,
 model parameters, BatchNorm buffers, model mode, Python/NumPy/Torch CPU/all CUDA RNG,
 and sampler/data-generator seeds before receipt construction and require byte equality
 afterward. Mutate every key/type/hash/order and require rejection.
@@ -187,7 +196,10 @@ with pytest.raises(FileExistsError):
 Synchronize CUDA around the complete initializer, construct the loader before the
 optimizer without iterating it, create/publish the receipt, then construct optimizer
 and continue the unchanged trajectory. On resume, authenticate the existing receipt
-instead of replacing it.
+and reuse its recorded `initialization_seconds`; do not rerun or re-time initialization.
+Recompute and compare every deterministic field available from the resumed
+classifier/trainer/run, validate the recorded duration's type/range, and fail on any
+other mismatch instead of replacing the receipt.
 
 - [ ] **Step 6: Verify Task 2**
 
@@ -313,6 +325,7 @@ preserve every valid outcome. Never replace a failed seed.
 - [ ] **Step 3: Build the final summary once**
 
 After all six reports exist, run summary-v2 once with the exact seed-0 selection path.
-Strict-reload it, report fixed-budget quality, epoch speedups, fixed-epoch compute,
-iso-quality compute, raw time, memory, inference, and storage separately, and state the
-exact trajectory-frontier decision without an official-protocol or SOTA claim.
+Strict-reload it, report fixed-budget quality, epoch speedups, fixed-epoch profiled
+compute and signed overhead, iso-quality profiled compute, raw time, memory, inference,
+and storage separately, and state the exact trajectory-frontier decision without an
+official-protocol or SOTA claim.

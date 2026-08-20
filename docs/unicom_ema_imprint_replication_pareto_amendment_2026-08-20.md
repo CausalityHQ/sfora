@@ -88,19 +88,20 @@ Removing that gate restores the preregistration rather than making the claim eas
 Seed-1 raw wall time is `17,629.0` seconds for random and
 `14,252.320465842` seconds for imprinted. The matched 16-epoch step models are
 `13,641.277351625264` and `13,642.094341494143` seconds before initialization cost,
-leaving non-step residuals of `3,987.7226483747363` seconds (`29.2%`) and
-`610.226124347857` seconds (`4.5%`). The
+leaving non-step residuals of `3,987.7226483747363` seconds (`29.2%` of the
+random step model) and `610.226124347857` seconds (`4.5%` of the imprinted
+step model). The
 asymmetry is about `6.5x` larger in the control and therefore flatters the candidate.
 Raw wall time remains mandatory descriptive evidence but decides no claim.
 
 For each arm with prospective initialization evidence, report both:
 
 ```text
-fixed_epoch_compute_seconds =
+fixed_epoch_profiled_compute_seconds =
     16 * optimizer_steps_per_epoch * step_wall_seconds
     + initialization_seconds
 
-iso_quality_compute_seconds =
+iso_quality_profiled_compute_seconds =
     first_quality_epoch * optimizer_steps_per_epoch * step_wall_seconds
     + initialization_seconds
 ```
@@ -122,23 +123,41 @@ in chronology text: it used a genuine `25_882/20_706 = 1.250x` image-count bound
 excluded preprocessing and transfer and is not a conservative time bound. It gates
 nothing.
 
-For seeds 2..6, iso-quality compute non-inferiority is evaluated per seed. Fixed-
-epoch compute is always reported and may be higher; a higher fixed-epoch cost cannot
-be hidden behind the iso-quality result. Peak GPU memory and checkpoint storage must
-be no greater for imprinted than random **within every seed**. Deployment storage
-must be exactly equal within every seed. Architecture inference latency is shared by
-the paired final backbone and is reported, not attributed to initialization.
+These quantities are profiled compute proxies, not measurements of complete run wall
+time: each multiplies a measured steady-state step latency by the registered step
+count and adds the directly measured initialization duration. They omit the disclosed
+non-step residuals. For seeds 2..6, iso-quality profiled-compute non-inferiority is
+evaluated per seed. Fixed-epoch profiled compute and its signed imprinted-minus-random
+overhead are always reported and may be higher; a higher fixed-epoch proxy cost cannot
+be hidden behind the iso-quality result.
+
+Peak GPU memory and checkpoint storage must be no greater for imprinted than random
+within **all six seeds**, including the already observed seed 1. Deployment storage
+must be exactly equal within all six seeds. Seed 1's immutable report already passes
+these three resource gates (`87,167 <= 87,187` MiB and exact checkpoint/deployment
+byte equality), but it remains part of the final conjunction. Architecture inference
+latency is shared by the paired final backbone and is reported, not attributed to
+initialization.
 
 `fixed_epoch_pareto_nondominated` means the random epoch-16 point does not dominate
 the imprinted epoch-16 point: random must not be both at least as good in quality and
-no worse in every registered cost. It is not called dominance. The stronger
-`iso_quality_compute_noninferior` means the imprinted arm reaches the random epoch-16
-target with no more measured compute. The final `claim_supported` is an explicit
-trajectory-frontier claim: the unchanged six-seed quality gate passes; every
-prospectively measured seed 2..6 passes iso-quality compute, per-seed memory, per-seed
-checkpoint, and exact deployment-storage gates; and the fixed-epoch imprinted points
-are Pareto-nondominated. Seed 1 contributes quality and epoch-to-quality evidence but
-cannot contribute to the prospective compute conjunction.
+no worse in every registered cost. It is not called dominance. Because the unchanged
+quality gate already requires a strictly positive mAP@R delta in every seed, this
+non-domination predicate is implied whenever the quality gate passes and carries no
+independent cost evidence. The signed per-seed
+`fixed_epoch_profiled_compute_overhead_seconds` rows provide the explicit fixed-budget
+cost disclosure instead.
+
+`all_future_iso_quality_profiled_compute_noninferior` means the imprinted arm reaches
+the random epoch-16 target with no greater profiled compute proxy in every future seed
+2..6. `per_seed_resource_noninferior` means every seed 1..6 passes peak-memory and
+checkpoint non-inferiority plus exact deployment-storage equality. The final
+`claim_supported` is an explicit trajectory-frontier claim: the unchanged six-seed
+quality gate passes, every prospectively measured seed 2..6 passes the iso-quality
+profiled-compute proxy gate, and all six seeds pass the resource gate. The reported
+fixed-epoch Pareto predicate is a derived consequence, not a separate claim pillar.
+Seed 1 contributes quality, epoch-to-quality, and resource evidence but cannot
+contribute to the prospective profiled-compute conjunction.
 
 The A-B-B-A profiler kernel gate remains `0.1`; seed 1 measured about `0.00045`, so
 custom-kernel work remains closed.
@@ -167,9 +186,10 @@ post_initialization_rng
 64-hex; `algorithm` is respectively
 `torch-normal-std-0.01-rng-balanced` or
 `normalized-class-means-norm-matched-rng-restored`; the classifier hash covers exact
-contiguous CPU FP32 bytes in row-major order; shape is exact `[number_of_labels, 768]`;
-dtype is `torch.float32`; steps is a positive exact int; seconds is a positive finite
-Python float. `post_initialization_rng` has exact ordered keys
+contiguous CPU FP32 bytes in row-major order; shape is exact `[3997, 768]` in both
+arms and all five future seeds; the JSON dtype value is the exact built-in string
+`"torch.float32"`; steps is a positive exact int; seconds is a positive finite Python
+float. `post_initialization_rng` has exact ordered keys
 `python_sha256`, `numpy_sha256`, `torch_cpu_sha256`, and
 `torch_cuda_sha256_by_device`; the first three are lowercase 64-hex strings and the
 last is an ordered nonempty list of lowercase 64-hex strings.
@@ -223,7 +243,7 @@ quality_claim_supported
 first_quality_epochs
 costs
 fixed_epoch_pareto_nondominated
-all_future_iso_quality_compute_noninferior
+all_future_iso_quality_profiled_compute_noninferior
 per_seed_resource_noninferior
 claim_supported
 ```
@@ -236,16 +256,22 @@ exact keys `initialization_receipt_sha256`, `optimizer_steps_per_epoch`,
 `initialization_seconds`, `post_initialization_rng_sha256`.
 
 `costs` has exact ordered keys `training_seconds`, `first_quality_epochs`,
-`fixed_epoch_compute_seconds`, `iso_quality_compute_seconds`, `peak_gpu_mib`,
+`fixed_epoch_profiled_compute_seconds`,
+`fixed_epoch_profiled_compute_overhead_seconds`,
+`iso_quality_profiled_compute_seconds`, `peak_gpu_mib`,
 `inference_latency_protocol`, `inference_latency_ms_per_image`,
 `checkpoint_storage_bytes`, `deployment_storage_bytes`,
 `profile_fusible_non_backbone_fraction`, `kernel_profile_threshold`,
 `kernel_eligible`, and `historical_cost_limitations`. Every per-seed scalar row uses
 exact order `seed`, `random_raw`, `imprinted_raw`; the latency row uses `seed`,
 `milliseconds_per_image`. `historical_cost_limitations` is exactly the one-element
-list containing seed 1 and the status string above. The three renamed decision fields
-are recomputed, and `claim_supported` is derived only from the trajectory-frontier
-conjunction above.
+list containing seed 1 and the status string above. The fixed-epoch overhead rows use
+exact order `seed`, `imprinted_minus_random`; seed 1 is null and seeds 2..6 are the
+difference of the two profiled proxies. The three decision fields are recomputed, and
+`claim_supported` is derived only from `quality_claim_supported`,
+`all_future_iso_quality_profiled_compute_noninferior`, and
+`per_seed_resource_noninferior`. `fixed_epoch_pareto_nondominated` is reported but is
+not a fourth independent conjunct.
 
 ## Decision and claim boundary
 
