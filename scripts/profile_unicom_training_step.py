@@ -47,6 +47,25 @@ _GEMM_NAMES = {
     "aten::matmul",
     "aten::mm",
 }
+PROFILE_KEYS = (
+    "schema_version",
+    "run_checkpoint",
+    "run_checkpoint_sha256",
+    "trainer_sha256",
+    "objective_sha256",
+    "profiler_sha256",
+    "checkpoint_epoch",
+    "started_unix_ns",
+    "finished_unix_ns",
+    "classifier_init",
+    "warmup_steps",
+    "measure_steps",
+    "profiler_steps",
+    "timing_samples",
+    "fusible_samples",
+    "summary",
+    "runtime",
+)
 
 
 def _finite_float(value: object, name: str, *, nonnegative: bool = False) -> float:
@@ -118,15 +137,28 @@ def _descendants(event: object):
 
 
 def fusible_nonbackbone_seconds(events: object) -> float:
-    """Sum objective-local CUDA self time except irreducible classifier GEMMs."""
+    """Sum objective CUDA ops across caller and autograd threads, except GEMMs."""
 
     if type(events) is not tuple:
         raise TypeError("profiler events must be a tuple")
-    markers = tuple(event for event in events if getattr(event, "name", None) == OBJECTIVE_MARKER)
+    markers = tuple(
+        event
+        for event in events
+        if getattr(event, "name", None) == OBJECTIVE_MARKER
+        and getattr(getattr(event, "device_type", None), "name", None) == "CPU"
+    )
     if len(markers) != 1:
         raise ValueError("profiler objective marker count differs")
+    marker_descendants = tuple(_descendants(markers[0]))
+    candidates = marker_descendants + tuple(
+        event
+        for event in events
+        if getattr(getattr(event, "device_type", None), "name", None) == "CPU"
+        and getattr(event, "name", "").startswith("aten::")
+        and all(event is not descendant for descendant in marker_descendants)
+    )
     total_microseconds = 0.0
-    for event in _descendants(markers[0]):
+    for event in candidates:
         name = getattr(event, "name", None)
         value = getattr(event, "self_device_time_total", None)
         if type(name) is not str or type(value) not in (float, int):
@@ -185,25 +217,12 @@ def summarize_profile(timing_samples: object, fusible_samples: object) -> dict[s
     }
 
 
-def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple, tuple]:
+def _profile_samples(
+    payload: object, expected_init: str
+) -> tuple[tuple, tuple, tuple, tuple[int, int]]:
     if type(payload) is not dict:
         raise TypeError("ABBA profile must be an object")
-    required = (
-        "schema_version",
-        "run_checkpoint_sha256",
-        "trainer_sha256",
-        "profiler_sha256",
-        "checkpoint_epoch",
-        "classifier_init",
-        "warmup_steps",
-        "measure_steps",
-        "profiler_steps",
-        "timing_samples",
-        "fusible_samples",
-        "summary",
-        "runtime",
-    )
-    if any(key not in payload for key in required):
+    if tuple(payload) != PROFILE_KEYS:
         raise ValueError("ABBA profile schema differs")
     if (
         payload["schema_version"] != "unicom-training-step-profile-v1"
@@ -216,6 +235,7 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple,
     metadata = (
         payload["run_checkpoint_sha256"],
         payload["trainer_sha256"],
+        payload["objective_sha256"],
         payload["profiler_sha256"],
         payload["checkpoint_epoch"],
         payload["runtime"],
@@ -225,13 +245,22 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple,
             type(value) is not str
             or len(value) != 64
             or any(character not in "0123456789abcdef" for character in value)
-            for value in metadata[:3]
+            for value in metadata[:4]
         )
-        or type(metadata[3]) is not int
-        or metadata[3] < 1
-        or type(metadata[4]) is not dict
+        or type(metadata[4]) is not int
+        or metadata[4] < 1
+        or type(metadata[5]) is not dict
     ):
         raise ValueError("ABBA profile provenance differs")
+    started = payload["started_unix_ns"]
+    finished = payload["finished_unix_ns"]
+    if (
+        type(started) is not int
+        or type(finished) is not int
+        or started <= 0
+        or finished <= started
+    ):
+        raise ValueError("ABBA profile order differs")
     timing = payload["timing_samples"]
     fusible = payload["fusible_samples"]
     if (
@@ -246,7 +275,7 @@ def _profile_samples(payload: object, expected_init: str) -> tuple[tuple, tuple,
     recomputed = summarize_profile(timing_tuple, fusible_tuple)
     if payload["summary"] != recomputed:
         raise ValueError("ABBA profile summary differs")
-    return timing_tuple, fusible_tuple, metadata
+    return timing_tuple, fusible_tuple, metadata, (started, finished)
 
 
 def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
@@ -264,6 +293,11 @@ def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
         raise ValueError("ABBA profile provenance differs")
     if validated[0][2][0] != validated[3][2][0] or validated[1][2][0] != validated[2][2][0]:
         raise ValueError("ABBA checkpoint provenance differs")
+    if any(
+        earlier[3][1] > later[3][0]
+        for earlier, later in zip(validated, validated[1:], strict=False)
+    ):
+        raise ValueError("ABBA profile order differs")
     result: dict[str, dict[str, object]] = {}
     for classifier_init, indices in (("random", (0, 3)), ("imprinted", (1, 2))):
         timing = validated[indices[0]][0] + validated[indices[1]][0]
@@ -307,10 +341,14 @@ def _load_trainer(source: Path):
 
 
 def _validate_counts(args: argparse.Namespace) -> None:
-    for name in ("warmup_steps", "measure_steps", "profiler_steps"):
-        value = getattr(args, name)
-        if type(value) is not int or value <= 0:
-            raise ValueError(f"{name} must be a positive integer")
+    if (
+        type(args.warmup_steps) is not int
+        or type(args.measure_steps) is not int
+        or type(args.profiler_steps) is not int
+        or (args.warmup_steps, args.measure_steps, args.profiler_steps)
+        != (WARMUP_STEPS, MEASURE_STEPS, PROFILER_STEPS)
+    ):
+        raise ValueError("step counts differ from the registered profiler")
     if type(args.bootstrap_seed) is not int or args.bootstrap_seed != BOOTSTRAP_SEED:
         raise ValueError("bootstrap seed differs from the registered profiler")
 
@@ -615,7 +653,12 @@ def _profile_objective(state: dict[str, Any], embeddings, labels) -> float:
     profile_state = dict(state)
     profile_state["classifier"] = classifier
     with (
-        torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA]) as prof,
+        torch.profiler.profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ]
+        ) as prof,
         torch.profiler.record_function(OBJECTIVE_MARKER),
     ):
         masks = trainer_objective_masks(profile_state, dimension=detached.shape[1])
@@ -628,6 +671,9 @@ def _profile_objective(state: dict[str, Any], embeddings, labels) -> float:
 def replay_profile(args: argparse.Namespace) -> dict[str, object]:
     import torch
 
+    import sfora.unicom_training as objective_module
+
+    started_unix_ns = time.time_ns()
     _validate_counts(args)
     trainer_source = Path(__file__).with_name("train_unicom_inshop.py")
     trainer = _load_trainer(trainer_source)
@@ -658,13 +704,17 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
     finally:
         state["step_ema"].release_step_hook()
     summary = summarize_profile(tuple(timing_rows), tuple(fusible))
-    return {
+    finished_unix_ns = time.time_ns()
+    payload = {
         "schema_version": "unicom-training-step-profile-v1",
         "run_checkpoint": str(args.run_checkpoint.resolve()),
         "run_checkpoint_sha256": _sha256_file(args.run_checkpoint),
         "trainer_sha256": _sha256_file(trainer_source),
+        "objective_sha256": _sha256_file(Path(objective_module.__file__)),
         "profiler_sha256": _sha256_file(Path(__file__)),
         "checkpoint_epoch": state["checkpoint_epoch"],
+        "started_unix_ns": started_unix_ns,
+        "finished_unix_ns": finished_unix_ns,
         "classifier_init": state["protocol"]["classifier_init"],
         "warmup_steps": args.warmup_steps,
         "measure_steps": args.measure_steps,
@@ -680,6 +730,8 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
             "device_name": torch.cuda.get_device_name(state["device"]),
         },
     }
+    _profile_samples(payload, state["protocol"]["classifier_init"])
+    return payload
 
 
 def write_json_atomic(path: Path, payload: object) -> None:

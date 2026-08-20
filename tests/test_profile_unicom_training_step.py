@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import math
+import sys
+import types
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -71,10 +73,11 @@ class _Event:
     name: str
     self_device_time_total: float = 0.0
     cpu_children: list[_Event] = field(default_factory=list)
+    device_type: object = field(default_factory=lambda: types.SimpleNamespace(name="CPU"))
 
 
-def test_fusible_classifier_excludes_gemms_and_ignores_events_outside_marker() -> None:
-    root = _Event(
+def test_fusible_classifier_includes_cuda_backward_on_the_autograd_thread() -> None:
+    cpu_marker = _Event(
         MODULE.OBJECTIVE_MARKER,
         cpu_children=[
             _Event("aten::index_select", 120.0),
@@ -84,11 +87,80 @@ def test_fusible_classifier_excludes_gemms_and_ignores_events_outside_marker() -
             _Event("aten::_log_softmax", 100.0),
         ],
     )
-    outside = _Event("aten::index_select", 50_000.0)
+    cuda_marker = _Event(
+        MODULE.OBJECTIVE_MARKER,
+        300_000.0,
+        device_type=types.SimpleNamespace(name="CUDA"),
+    )
+    backward_on_autograd_thread = _Event("aten::_log_softmax_backward_data", 60.0)
+    profiler_overhead = _Event("Activity Buffer Request", 50_000.0)
 
-    seconds = MODULE.fusible_nonbackbone_seconds((outside, root))
+    seconds = MODULE.fusible_nonbackbone_seconds(
+        (cpu_marker, cuda_marker, backward_on_autograd_thread, profiler_overhead)
+    )
 
-    assert seconds == pytest.approx(0.0003)
+    assert seconds == pytest.approx(0.00036)
+
+
+def test_profile_objective_requests_cpu_tree_and_cuda_durations(monkeypatch) -> None:
+    observed: dict[str, object] = {}
+    root = _Event(MODULE.OBJECTIVE_MARKER, cpu_children=[_Event("aten::index_select", 100.0)])
+
+    class _Profile:
+        def __init__(self, *, activities):
+            observed["activities"] = activities
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def events(self):
+            return [root]
+
+    class _Context:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    class _Tensor:
+        shape = (2, 3)
+
+        def detach(self):
+            return self
+
+        def requires_grad_(self, _value):
+            return self
+
+    class _Loss:
+        def backward(self):
+            observed["backward"] = True
+
+    def _record_function(name):
+        observed["marker"] = name
+        return _Context()
+
+    fake_torch = types.SimpleNamespace(
+        profiler=types.SimpleNamespace(
+            ProfilerActivity=types.SimpleNamespace(CPU="cpu", CUDA="cuda"),
+            profile=_Profile,
+            record_function=_record_function,
+        ),
+        cuda=types.SimpleNamespace(synchronize=lambda: None),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setattr(MODULE, "trainer_objective_masks", lambda *_args, **_kwargs: ())
+    monkeypatch.setattr(MODULE, "trainer_loss", lambda *_args, **_kwargs: _Loss())
+
+    seconds = MODULE._profile_objective({"classifier": _Tensor()}, _Tensor(), _Tensor())
+
+    assert observed["activities"] == ["cpu", "cuda"]
+    assert observed["marker"] == MODULE.OBJECTIVE_MARKER
+    assert observed["backward"] is True
+    assert seconds == pytest.approx(0.0001)
 
 
 def test_profile_summary_uses_fixed_bootstrap_and_conservative_kernel_gate() -> None:
@@ -145,6 +217,10 @@ def test_cli_defaults_freeze_replay_counts_and_require_one_checkpoint(tmp_path: 
     assert args.bootstrap_seed == 20_016
     assert args.output == tmp_path / "profile.json"
 
+    args.measure_steps = 49
+    with pytest.raises(ValueError, match="registered profiler"):
+        MODULE._validate_counts(args)
+
 
 def test_atomic_writer_roundtrips_and_never_clobbers(tmp_path: Path) -> None:
     destination = tmp_path / "nested" / "profile.json"
@@ -185,15 +261,80 @@ def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch
     assert json.loads(output.read_text(encoding="utf-8")) == expected
 
 
-def _profile_payload(classifier_init: str, wall: float, fusible: float) -> dict:
+def test_replay_profile_validates_its_exact_produced_schema(tmp_path: Path, monkeypatch) -> None:
+    import torch
+
+    import sfora
+
+    checkpoint = tmp_path / "epoch-0004.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    objective_source = tmp_path / "objective.py"
+    objective_source.write_text("# objective\n", encoding="utf-8")
+    objective_module = types.ModuleType("sfora.unicom_training")
+    objective_module.__file__ = str(objective_source)
+    monkeypatch.setitem(sys.modules, "sfora.unicom_training", objective_module)
+    monkeypatch.setattr(sfora, "unicom_training", objective_module, raising=False)
+    monkeypatch.setattr(torch.cuda, "get_device_name", lambda _device: "test-gpu")
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(MODULE, "_load_trainer", lambda _path: object())
+
+    class _EMA:
+        def release_step_hook(self):
+            return None
+
+    monkeypatch.setattr(
+        MODULE,
+        "_build_replay_state",
+        lambda _args, _trainer: {
+            "loader": (),
+            "step_ema": _EMA(),
+            "checkpoint_epoch": 4,
+            "protocol": {"classifier_init": "random"},
+            "device": "cuda:0",
+        },
+    )
+    monkeypatch.setattr(MODULE, "summarize_profile", lambda _timing, _fusible: {"ok": True})
+    observed: dict[str, object] = {}
+    monkeypatch.setattr(
+        MODULE,
+        "_profile_samples",
+        lambda payload, expected_init: observed.update(
+            {"payload": payload, "expected_init": expected_init}
+        ),
+    )
+    args = types.SimpleNamespace(
+        run_checkpoint=checkpoint,
+        warmup_steps=0,
+        measure_steps=0,
+        profiler_steps=0,
+    )
+
+    payload = MODULE.replay_profile(args)
+
+    assert observed == {"payload": payload, "expected_init": "random"}
+    assert tuple(payload) == MODULE.PROFILE_KEYS
+
+
+def _profile_payload(
+    classifier_init: str,
+    wall: float,
+    fusible: float,
+    *,
+    started_unix_ns: int = 100,
+    finished_unix_ns: int = 200,
+) -> dict:
     timing = [_sample(wall, 0.08, 0.06) for _ in range(50)]
     fusible_samples = [fusible for _ in range(10)]
     return {
         "schema_version": "unicom-training-step-profile-v1",
+        "run_checkpoint": f"/tmp/{classifier_init}.pt",
         "run_checkpoint_sha256": ("1" if classifier_init == "random" else "2") * 64,
         "trainer_sha256": "3" * 64,
+        "objective_sha256": "5" * 64,
         "profiler_sha256": "4" * 64,
         "checkpoint_epoch": 4,
+        "started_unix_ns": started_unix_ns,
+        "finished_unix_ns": finished_unix_ns,
         "classifier_init": classifier_init,
         "warmup_steps": 20,
         "measure_steps": 50,
@@ -207,10 +348,10 @@ def _profile_payload(classifier_init: str, wall: float, fusible: float) -> dict:
 
 def test_abba_aggregation_pools_reloads_by_arm_and_recomputes_gate() -> None:
     profiles = (
-        _profile_payload("random", 1.0, 0.08),
-        _profile_payload("imprinted", 1.0, 0.11),
-        _profile_payload("imprinted", 1.2, 0.13),
-        _profile_payload("random", 1.0, 0.10),
+        _profile_payload("random", 1.0, 0.08, started_unix_ns=100, finished_unix_ns=200),
+        _profile_payload("imprinted", 1.0, 0.11, started_unix_ns=201, finished_unix_ns=300),
+        _profile_payload("imprinted", 1.2, 0.13, started_unix_ns=301, finished_unix_ns=400),
+        _profile_payload("random", 1.0, 0.10, started_unix_ns=401, finished_unix_ns=500),
     )
 
     result = MODULE.aggregate_abba_profiles(profiles)
@@ -227,6 +368,24 @@ def test_abba_aggregation_pools_reloads_by_arm_and_recomputes_gate() -> None:
     wrong_order[0] = _profile_payload("imprinted", 1.0, 0.08)
     with pytest.raises(ValueError, match="ABBA"):
         MODULE.aggregate_abba_profiles(tuple(wrong_order))
+
+
+def test_abba_aggregation_rejects_overlapping_order_or_objective_drift() -> None:
+    profiles = [
+        _profile_payload("random", 1.0, 0.08, started_unix_ns=100, finished_unix_ns=200),
+        _profile_payload("imprinted", 1.0, 0.08, started_unix_ns=201, finished_unix_ns=300),
+        _profile_payload("imprinted", 1.0, 0.08, started_unix_ns=301, finished_unix_ns=400),
+        _profile_payload("random", 1.0, 0.08, started_unix_ns=401, finished_unix_ns=500),
+    ]
+
+    profiles[2]["started_unix_ns"] = 299
+    with pytest.raises(ValueError, match="order"):
+        MODULE.aggregate_abba_profiles(tuple(profiles))
+
+    profiles[2]["started_unix_ns"] = 301
+    profiles[2]["objective_sha256"] = "6" * 64
+    with pytest.raises(ValueError, match="provenance"):
+        MODULE.aggregate_abba_profiles(tuple(profiles))
 
 
 def test_abba_aggregation_rejects_forged_summary() -> None:
