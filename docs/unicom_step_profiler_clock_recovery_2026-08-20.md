@@ -20,30 +20,40 @@ within relative tolerance `1e-9`.  That ordering is not a valid structural invar
 the clocks have independent resolution and calibration, so a microscopic CUDA-over-
 CPU difference can occur even though the events are correctly ordered and the final
 CUDA synchronization completed before the CPU stop time.  The registered sample
-schema, positivity checks, finite checks, exact component order, and same-clock
-component-sum recomputation already validate the timing evidence without this
-cross-clock ordering assertion.
+schema, positivity checks, finite checks, and exact component order remain valid.  A
+cross-clock sanity check is still useful, but it must allow physical clock uncertainty
+and the whole-step CUDA span must be measured independently rather than defined as the
+component sum it is supposed to check.
 
 ## Prospective repair
 
 Before any further GPU process, make and independently review one source commit that:
 
-1. removes only the `cuda_step_seconds <= step_wall_seconds * (1 + 1e-9)` rejection;
-2. retains the exact timing/profile schemas, step counts, A-B-B-A order, CUDA event
+1. replaces the `1e-9` cross-clock relative tolerance with exact registered constant
+   `0.01`: at least 100 times a conservative 100-parts-per-million oscillator offset,
+   but below the five-percent structural-error falsifier;
+2. measures `cuda_step_seconds` independently as CUDA event `0` to event `8`, retains
+   the eight component spans, and requires their sum to agree with that independent
+   span within absolute tolerance `1e-5` seconds;
+3. validates and names each measured row immediately, before starting the next row;
+4. retains the exact timing/profile schemas, step counts, A-B-B-A order, CUDA event
    boundaries, CPU wall measurement, synchronization, component-sum check, bootstrap,
    kernel threshold `0.1`, evaluator formulas, training recipe, seeds, checkpoints,
    quality gates, and all Pareto gates;
-3. adds a RED-then-GREEN regression with a finite positive sample whose exact
-   same-clock CUDA component sum exceeds the independent CPU wall span by one
-   microsecond, while retaining the existing inconsistent-component rejection; and
-4. passes the complete profiler test file, Ruff, `py_compile`, and `git diff --check`,
+5. adds RED-then-GREEN regressions accepting 1, 10, 50, and 100 ppm cross-clock skew,
+   rejecting 5%, 100%, and unit-scale structural discrepancies, detecting an
+   independent whole-span/component-sum mismatch, reporting the sample index and both
+   durations, and aborting on the first invalid measured row; and
+6. passes the complete profiler test file, Ruff, `py_compile`, and `git diff --check`,
    followed by one independent adversarial source review with no Critical or Important
    finding.
 
 No observed metric selects a new tolerance or changes a decision boundary.  The
-repair deletes an invalid type of comparison rather than widening it until the failed
-sample passes.  Raw CPU wall time remains the profiled-compute input; CUDA component
-times and the objective-only profiler remain separately reported diagnostics.
+one-percent tolerance is fixed from a conservative physical clock-error bound and a
+separate five-percent structural-error falsifier; the failed sample's unavailable
+numerical difference cannot tune it.  Raw CPU wall time remains the profiled-compute
+input; CUDA component times and the objective-only profiler remain separately reported
+diagnostics.
 
 ## Recovery execution
 
