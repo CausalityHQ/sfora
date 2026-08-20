@@ -240,8 +240,12 @@ Future external training measurement receipts use exact schema
 `optimizer_steps_per_epoch`, `initialization_seconds`,
 `initialization_receipt_sha256`, and `post_initialization_rng_sha256`. The evaluator
 loads the named initialization receipt, authenticates all fields and its exact bytes,
-and requires the combined canonical RNG-object digest. It continues to accept v1 only
-for immutable seed 1. Future paired reports use
+and requires the combined canonical RNG-object digest
+`sha256(json.dumps(post_initialization_rng, sort_keys=True, separators=(",", ":"), allow_nan=False).encode())`.
+Both arms and all five future seeds must have one identical
+`optimizer_steps_per_epoch`; this prevents receipt drift from changing the gating
+iso-quality compute denominator. It continues to accept v1 only for immutable seed 1.
+Future paired reports use
 `unicom-ema-imprint-replication-pair-v2`, adding those four initialization fields to
 each arm after `profile`; the evaluator cannot emit v1 for seeds 2..6. Pair-v2 keeps
 the pair-v1 top-level order exactly. Its arm order is therefore the nine pair-v1 arm
@@ -262,6 +266,11 @@ pair-v2. The summary separately requires seeds 2 through 6 to share one exact
 `trainer_sha256`; only immutable historical seed 1 may differ. Each report preserves its
 exact per-arm trainer digest, and the paired evaluator requires both arms within a seed
 to match the executing trainer bytes.
+
+A fresh seed run is no-clobber: if its output directory already contains
+`initialization-receipt.json`, launching again without the exact registered `--resume`
+path is a structural failure. Operators must resume the same run or choose a new,
+previously absent run directory; they must never delete or replace a valid receipt.
 
 The summary schema becomes `unicom-ema-imprint-replication-summary-v2`. Its exact
 top-level key order is:

@@ -310,10 +310,15 @@ Start exactly one review consultation with `models=["opus", "gpt-5.6-sol"]`. Req
 no Critical/Important findings on operating-point semantics, strict schemas, historical
 honesty, authority, timing/RNG purity, v1/v2 routing, and test mutation power.
 
-- [ ] **Step 4: Resolve findings with focused RED/GREEN**
+- [x] **Step 4: Resolve findings with focused RED/GREEN**
 
 Verify each finding against source, add a failing regression, make the minimal repair,
 rerun the focused selector, then rerun the affected gate once after the diff stabilizes.
+
+Completed through review-fix commits `052d050`, `821d928`, and `9819d0b`. Exact
+re-review consultation `dded500c141b42ea` returned READY with no Critical/Important
+findings. Its full repository gate passed 2,946 tests with one unrelated CUDA-unavailable
+skip; the final affected gate after nonblocking hardening passed 99 tests.
 
 ### Task 5: Freeze, deploy, and resume confirmation
 

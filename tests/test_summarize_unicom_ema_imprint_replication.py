@@ -556,6 +556,17 @@ def test_summary_rejects_reused_future_initialization_evidence(field: str) -> No
         _summarize(module, reports)
 
 
+def test_summary_requires_one_optimizer_step_count_across_future_seeds() -> None:
+    """A future receipt may not silently change the gating compute denominator."""
+    module = _load_script()
+    reports = _registered_reports()
+    for arm in ("random_raw", "imprinted_raw"):
+        reports[2][arm]["optimizer_steps_per_epoch"] = 162
+
+    with pytest.raises(ValueError, match="optimizer steps differ across seeds"):
+        _summarize(module, reports)
+
+
 @pytest.mark.parametrize(
     ("arm", "field", "value"),
     (

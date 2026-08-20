@@ -370,6 +370,11 @@ def validate_replication_pair(report: object) -> None:
         != report["imprinted_raw"]["post_initialization_rng_sha256"]
     ):
         raise ValueError("post-initialization RNG differs")
+    if future and (
+        report["random_raw"]["optimizer_steps_per_epoch"]
+        != report["imprinted_raw"]["optimizer_steps_per_epoch"]
+    ):
+        raise ValueError("optimizer steps differ across arms")
     if len(set(all_hashes)) != len(all_hashes):
         raise ValueError("replication checkpoint evidence is reused")
     if len(set(all_history_hashes)) != len(all_history_hashes):

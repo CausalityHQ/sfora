@@ -408,6 +408,7 @@ def summarize_replications(
     profile_ratios: list[dict[str, object]] = []
     expected_protocol: dict[str, object] | None = None
     expected_future_trainer_sha256: str | None = None
+    expected_future_optimizer_steps: int | None = None
     expected_query_count: int | None = None
     history_hashes: list[str] = []
     measurement_hashes: list[str] = []
@@ -449,6 +450,11 @@ def summarize_replications(
                 expected_future_trainer_sha256 = trainer_sha256
             elif trainer_sha256 != expected_future_trainer_sha256:
                 raise ValueError("prospective trainer differs across seeds")
+            optimizer_steps = random_arm["optimizer_steps_per_epoch"]
+            if expected_future_optimizer_steps is None:
+                expected_future_optimizer_steps = optimizer_steps
+            elif optimizer_steps != expected_future_optimizer_steps:
+                raise ValueError("optimizer steps differ across seeds")
         query_count = len(report["evidence"]["random_raw"][0]["top1_correct"])
         if expected_query_count is None:
             expected_query_count = query_count

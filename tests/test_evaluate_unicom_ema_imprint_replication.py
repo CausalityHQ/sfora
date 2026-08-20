@@ -185,6 +185,10 @@ def test_future_pair_rejects_cross_arm_rng_or_historical_schema_routing() -> Non
 
     with pytest.raises(ValueError, match="post-initialization RNG"):
         _future_build(module, imprinted_initialization=changed)
+    changed = _initialization_receipt(2, "imprinted")
+    changed["optimizer_steps_per_epoch"] = 162
+    with pytest.raises(ValueError, match="optimizer steps differ"):
+        _future_build(module, imprinted_initialization=changed)
     with pytest.raises(ValueError, match="initialization"):
         module.build_replication_pair(
             seed=1,
