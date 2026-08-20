@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
+import errno
 import hashlib
 import importlib
 import json
 import math
 import os
+import pickle
 import random
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 
@@ -34,6 +38,301 @@ UNICOM_L14_336_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c
 UNICOM_MEAN = (0.48145466, 0.4578275, 0.40821073)
 UNICOM_STD = (0.26862954, 0.26130258, 0.27577711)
 EMA_DECAY = 0.999
+INITIALIZATION_RECEIPT_KEYS = (
+    "schema_version",
+    "seed",
+    "classifier_init",
+    "trainer_sha256",
+    "algorithm",
+    "classifier_tensor_sha256",
+    "classifier_shape",
+    "classifier_dtype",
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "post_initialization_rng",
+)
+
+
+def _state_digest(domain: bytes, value: object) -> str:
+    return hashlib.sha256(domain + b"\0" + pickle.dumps(value, protocol=5)).hexdigest()
+
+
+def _tensor_state_digest(domain: bytes, value: torch.Tensor) -> str:
+    if not isinstance(value, torch.Tensor) or value.dtype != torch.uint8:
+        raise ValueError("RNG tensor state differs")
+    payload = bytes(value.detach().cpu().contiguous().tolist())
+    return hashlib.sha256(domain + b"\0" + payload).hexdigest()
+
+
+def rng_state_hashes() -> dict[str, object]:
+    """Hash all registered RNG domains without advancing any stream."""
+    import numpy as np
+
+    cuda_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []
+    return {
+        "python_sha256": _state_digest(b"python-random-v1", random.getstate()),
+        "numpy_sha256": _state_digest(b"numpy-random-v1", np.random.get_state()),
+        "torch_cpu_sha256": _tensor_state_digest(
+            b"torch-cpu-random-v1", torch.get_rng_state()
+        ),
+        "torch_cuda_sha256_by_device": [
+            _tensor_state_digest(f"torch-cuda-random-v1:{index}".encode(), state)
+            for index, state in enumerate(cuda_states)
+        ],
+    }
+
+
+def _lower_sha256(value: object) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def validate_initialization_receipt(
+    value: object, *, expected_shape: list[int]
+) -> None:
+    if type(value) is not dict or tuple(value) != INITIALIZATION_RECEIPT_KEYS:
+        raise ValueError("initialization receipt schema differs")
+    expected_algorithms = {
+        "random": "torch-normal-std-0.01-rng-balanced",
+        "imprinted": "normalized-class-means-norm-matched-rng-restored",
+    }
+    mode = value["classifier_init"]
+    if (
+        value["schema_version"] != "unicom-classifier-initialization-v1"
+        or type(value["seed"]) is not int
+        or value["seed"] not in range(2, 7)
+        or type(mode) is not str
+        or mode not in expected_algorithms
+        or value["algorithm"] != expected_algorithms[mode]
+        or not _lower_sha256(value["trainer_sha256"])
+        or not _lower_sha256(value["classifier_tensor_sha256"])
+        or type(value["classifier_shape"]) is not list
+        or value["classifier_shape"] != expected_shape
+        or any(type(item) is not int for item in value["classifier_shape"])
+        or value["classifier_dtype"] != "torch.float32"
+        or type(value["optimizer_steps_per_epoch"]) is not int
+        or value["optimizer_steps_per_epoch"] <= 0
+        or type(value["initialization_seconds"]) is not float
+        or not math.isfinite(value["initialization_seconds"])
+        or value["initialization_seconds"] <= 0.0
+    ):
+        raise ValueError("initialization receipt values differ")
+    rng = value["post_initialization_rng"]
+    if type(rng) is not dict or tuple(rng) != (
+        "python_sha256",
+        "numpy_sha256",
+        "torch_cpu_sha256",
+        "torch_cuda_sha256_by_device",
+    ):
+        raise ValueError("initialization receipt RNG schema differs")
+    cuda = rng["torch_cuda_sha256_by_device"]
+    if (
+        any(not _lower_sha256(rng[key]) for key in tuple(rng)[:3])
+        or type(cuda) is not list
+        or not cuda
+        or any(not _lower_sha256(item) for item in cuda)
+    ):
+        raise ValueError("initialization receipt RNG differs")
+
+
+def classifier_initialization_receipt(
+    *,
+    seed: int,
+    classifier_init: str,
+    classifier: torch.Tensor,
+    optimizer_steps_per_epoch: int,
+    initialization_seconds: float,
+    trainer_sha256: str,
+) -> dict[str, object]:
+    if not isinstance(classifier, torch.Tensor) or classifier.dtype != torch.float32:
+        raise ValueError("initialization classifier differs")
+    contiguous = classifier.detach().cpu().contiguous()
+    receipt = {
+        "schema_version": "unicom-classifier-initialization-v1",
+        "seed": seed,
+        "classifier_init": classifier_init,
+        "trainer_sha256": trainer_sha256,
+        "algorithm": {
+            "random": "torch-normal-std-0.01-rng-balanced",
+            "imprinted": "normalized-class-means-norm-matched-rng-restored",
+        }.get(classifier_init),
+        "classifier_tensor_sha256": hashlib.sha256(
+            contiguous.numpy().tobytes(order="C")
+        ).hexdigest(),
+        "classifier_shape": list(contiguous.shape),
+        "classifier_dtype": str(contiguous.dtype),
+        "optimizer_steps_per_epoch": optimizer_steps_per_epoch,
+        "initialization_seconds": initialization_seconds,
+        "post_initialization_rng": rng_state_hashes(),
+    }
+    validate_initialization_receipt(receipt, expected_shape=list(contiguous.shape))
+    return receipt
+
+
+def strict_json_object(payload: bytes) -> dict[str, object]:
+    if type(payload) is not bytes:
+        raise TypeError("JSON payload must be bytes")
+
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"non-finite JSON number: {value}")
+
+    def exact_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key: {key}")
+            result[key] = value
+        return result
+
+    value = json.loads(payload, parse_constant=reject_constant, object_pairs_hook=exact_pairs)
+    if type(value) is not dict:
+        raise ValueError("JSON root must be an object")
+    return value
+
+
+def _link_receipt_fd_noreplace(
+    descriptor: int, destination: Path, directory_descriptor: int
+) -> None:
+    linkat = getattr(ctypes.CDLL(None, use_errno=True), "linkat", None)
+    if linkat is None:
+        raise RuntimeError("linkat is required for receipt publication")
+    linkat.argtypes = (
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+    )
+    linkat.restype = ctypes.c_int
+    if linkat(descriptor, b"", directory_descriptor, os.fsencode(destination.name), 0x1000):
+        error = ctypes.get_errno()
+        if error == errno.EEXIST:
+            raise FileExistsError(error, os.strerror(error), destination)
+        raise OSError(error, os.strerror(error), destination)
+
+
+def _read_descriptor(descriptor: int) -> bytes:
+    size = os.fstat(descriptor).st_size
+    payload = bytearray()
+    offset = 0
+    while offset < size:
+        chunk = os.pread(descriptor, min(1 << 20, size - offset), offset)
+        if not chunk:
+            raise RuntimeError("receipt descriptor is truncated")
+        payload.extend(chunk)
+        offset += len(chunk)
+    return bytes(payload)
+
+
+def _write_descriptor(descriptor: int, payload: bytes) -> None:
+    view = memoryview(payload)
+    offset = 0
+    while offset < len(view):
+        written = os.write(descriptor, view[offset:])
+        if written <= 0:
+            raise RuntimeError("initialization receipt write made no progress")
+        offset += written
+
+
+def write_initialization_receipt_atomic(
+    receipt: dict[str, object], output: Path, *, expected_shape: list[int]
+) -> None:
+    validate_initialization_receipt(receipt, expected_shape=expected_shape)
+    if not isinstance(output, Path):
+        raise TypeError("receipt output must be a Path")
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
+    directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+    descriptor: int | None = None
+    published = False
+    completed = False
+    owned: tuple[int, int] | None = None
+    try:
+        descriptor = os.open(output.parent, os.O_RDWR | os.O_TMPFILE, 0o600)
+        info = os.fstat(descriptor)
+        owned = (info.st_dev, info.st_ino)
+        _write_descriptor(descriptor, payload)
+        os.fsync(descriptor)
+        persisted = _read_descriptor(descriptor)
+        if persisted != payload:
+            raise RuntimeError("persisted initialization receipt bytes differ")
+        validate_initialization_receipt(
+            strict_json_object(persisted), expected_shape=expected_shape
+        )
+        _link_receipt_fd_noreplace(descriptor, output, directory_descriptor)
+        published = True
+        os.fsync(directory_descriptor)
+        output_info = output.lstat()
+        if (output_info.st_dev, output_info.st_ino) != owned:
+            raise RuntimeError("published initialization receipt inode differs")
+        published_payload = output.read_bytes()
+        if published_payload != payload:
+            raise RuntimeError("published initialization receipt bytes differ")
+        validate_initialization_receipt(
+            strict_json_object(published_payload), expected_shape=expected_shape
+        )
+        completed = True
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if published and not completed and owned is not None:
+            try:
+                info = output.lstat()
+            except FileNotFoundError:
+                pass
+            else:
+                if (info.st_dev, info.st_ino) == owned:
+                    output.unlink()
+                    os.fsync(directory_descriptor)
+        os.close(directory_descriptor)
+
+
+def bind_initialization_receipt(
+    *,
+    output: Path,
+    resume: bool,
+    seed: int,
+    classifier_init: str,
+    classifier: torch.Tensor,
+    optimizer_steps_per_epoch: int,
+    initialization_seconds: float | None,
+    trainer_sha256: str,
+    expected_shape: list[int],
+) -> dict[str, object]:
+    if list(classifier.shape) != expected_shape:
+        raise ValueError("initialization classifier shape differs")
+    if resume:
+        if not output.is_file() or output.is_symlink():
+            raise ValueError("resume initialization receipt is absent")
+        recorded = strict_json_object(output.read_bytes())
+        validate_initialization_receipt(recorded, expected_shape=expected_shape)
+        expected = classifier_initialization_receipt(
+            seed=seed,
+            classifier_init=classifier_init,
+            classifier=classifier,
+            optimizer_steps_per_epoch=optimizer_steps_per_epoch,
+            initialization_seconds=recorded["initialization_seconds"],
+            trainer_sha256=trainer_sha256,
+        )
+        if recorded != expected:
+            raise ValueError("resume initialization receipt differs")
+        return recorded
+    if type(initialization_seconds) is not float:
+        raise TypeError("fresh initialization duration differs")
+    receipt = classifier_initialization_receipt(
+        seed=seed,
+        classifier_init=classifier_init,
+        classifier=classifier,
+        optimizer_steps_per_epoch=optimizer_steps_per_epoch,
+        initialization_seconds=initialization_seconds,
+        trainer_sha256=trainer_sha256,
+    )
+    write_initialization_receipt_atomic(receipt, output, expected_shape=expected_shape)
+    return receipt
 
 
 class StepEMA:
@@ -817,6 +1116,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
 
     _seed_process(args.seed)
     device = torch.device("cuda")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
     records = parse_inshop_partition(args.dataset_root)
     train_records = tuple(row for row in records if row.split == "train")
     optimization, query, gallery, labels = identity_holdout(
@@ -827,6 +1127,10 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
     train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
+    record_initialization = args.seed in range(2, 7)
+    if record_initialization and args.resume is None:
+        torch.cuda.synchronize()
+        initialization_started = time.perf_counter()
     classifier_values = initialize_classifier_values(
         labels=len(labels),
         mode=args.classifier_init,
@@ -840,15 +1144,12 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             workers=args.workers,
         ),
     )
+    initialization_seconds = None
+    if record_initialization and args.resume is None:
+        torch.cuda.synchronize()
+        initialization_seconds = float(time.perf_counter() - initialization_started)
     classifier = torch.nn.Parameter(classifier_values.to(device))
     step_ema = StepEMA(raw_model, classifier)
-    optimizer = build_optimizer(
-        raw_model,
-        classifier,
-        learning_rate=args.learning_rate,
-        classifier_learning_rate=args.classifier_learning_rate,
-        fused=args.fused,
-    )
     sampler = PaddedEpochSampler(size=len(optimization), batch_size=args.batch_size, seed=args.seed)
     data_generator = torch.Generator().manual_seed(experiment_stream_seed(args.seed, 2_000))
     loader = torch.utils.data.DataLoader(
@@ -860,6 +1161,25 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         drop_last=True,
         worker_init_fn=_seed_worker,
         generator=data_generator,
+    )
+    if record_initialization:
+        bind_initialization_receipt(
+            output=args.output_dir / "initialization-receipt.json",
+            resume=args.resume is not None,
+            seed=args.seed,
+            classifier_init=args.classifier_init,
+            classifier=classifier,
+            optimizer_steps_per_epoch=len(loader),
+            initialization_seconds=initialization_seconds,
+            trainer_sha256=_sha256_file(Path(__file__)),
+            expected_shape=[3200, 768],
+        )
+    optimizer = build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=args.learning_rate,
+        classifier_learning_rate=args.classifier_learning_rate,
+        fused=args.fused,
     )
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,

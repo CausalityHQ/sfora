@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
+import json
+import pickle
 import random
+import stat
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -15,6 +19,19 @@ from torch.utils.data import DataLoader, TensorDataset
 from sfora.unicom_inshop import InshopRecord
 
 SCRIPT = Path(__file__).parents[1] / "scripts/train_unicom_inshop.py"
+INITIALIZATION_KEYS = (
+    "schema_version",
+    "seed",
+    "classifier_init",
+    "trainer_sha256",
+    "algorithm",
+    "classifier_tensor_sha256",
+    "classifier_shape",
+    "classifier_dtype",
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "post_initialization_rng",
+)
 
 
 def _load_script():
@@ -24,6 +41,247 @@ def _load_script():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def _state_digest(domain: bytes, value: object) -> str:
+    return hashlib.sha256(domain + b"\0" + pickle.dumps(value, protocol=5)).hexdigest()
+
+
+def test_initialization_receipt_binds_exact_classifier_bytes_and_preserves_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Changing classifier bytes or consuming RNG must change/falsify the receipt."""
+    module = _load_script()
+    classifier = torch.arange(12, dtype=torch.float32).reshape(3, 4)
+    cuda_states = [torch.tensor([5, 6, 7], dtype=torch.uint8)]
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(module.torch.cuda, "get_rng_state_all", lambda: cuda_states)
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.get_rng_state().clone()
+
+    receipt = module.classifier_initialization_receipt(
+        seed=2,
+        classifier_init="random",
+        classifier=classifier,
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=1.25,
+        trainer_sha256="a" * 64,
+    )
+
+    assert tuple(receipt) == INITIALIZATION_KEYS
+    assert receipt["classifier_tensor_sha256"] == hashlib.sha256(
+        classifier.numpy().tobytes(order="C")
+    ).hexdigest()
+    assert receipt["classifier_shape"] == [3, 4]
+    assert receipt["classifier_dtype"] == "torch.float32"
+    assert receipt["post_initialization_rng"] == {
+        "python_sha256": _state_digest(b"python-random-v1", python_state),
+        "numpy_sha256": _state_digest(b"numpy-random-v1", numpy_state),
+        "torch_cpu_sha256": hashlib.sha256(
+            b"torch-cpu-random-v1\0" + bytes(torch_state.tolist())
+        ).hexdigest(),
+        "torch_cuda_sha256_by_device": [
+            hashlib.sha256(b"torch-cuda-random-v1:0\0" + bytes(cuda_states[0].tolist())).hexdigest()
+        ],
+    }
+    assert random.getstate() == python_state
+    current_numpy = np.random.get_state()
+    assert current_numpy[0] == numpy_state[0]
+    assert np.array_equal(current_numpy[1], numpy_state[1])
+    assert current_numpy[2:] == numpy_state[2:]
+    assert torch.equal(torch.get_rng_state(), torch_state)
+    module.validate_initialization_receipt(receipt, expected_shape=[3, 4])
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("seed", True),
+        ("classifier_shape", [3200, 767]),
+        ("classifier_dtype", "float32"),
+        ("optimizer_steps_per_epoch", 0),
+        ("initialization_seconds", float("nan")),
+    ),
+)
+def test_initialization_receipt_rejects_schema_or_scalar_drift(
+    field: str, replacement: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Malformed receipt scalars must fail before training can use their evidence."""
+    module = _load_script()
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "get_rng_state_all",
+        lambda: [torch.tensor([1], dtype=torch.uint8)],
+    )
+    receipt = module.classifier_initialization_receipt(
+        seed=2,
+        classifier_init="random",
+        classifier=torch.ones(3200, 768),
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=1.0,
+        trainer_sha256="a" * 64,
+    )
+    receipt[field] = replacement
+    with pytest.raises((TypeError, ValueError)):
+        module.validate_initialization_receipt(receipt, expected_shape=[3200, 768])
+
+
+def test_initialization_receipt_atomic_publication_reloads_and_never_clobbers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A published receipt must be durable, mode-0600, strict, and immutable."""
+    module = _load_script()
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "get_rng_state_all",
+        lambda: [torch.tensor([1], dtype=torch.uint8)],
+    )
+    receipt = module.classifier_initialization_receipt(
+        seed=2,
+        classifier_init="random",
+        classifier=torch.ones(3, 4),
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=1.0,
+        trainer_sha256="a" * 64,
+    )
+    output = tmp_path / "initialization-receipt.json"
+
+    module.write_initialization_receipt_atomic(
+        receipt, output, expected_shape=[3, 4]
+    )
+
+    persisted = module.strict_json_object(output.read_bytes())
+    module.validate_initialization_receipt(persisted, expected_shape=[3, 4])
+    assert persisted == receipt
+    assert stat.S_IMODE(output.stat().st_mode) == 0o600
+    original = output.read_bytes()
+    with pytest.raises(FileExistsError):
+        module.write_initialization_receipt_atomic(
+            receipt, output, expected_shape=[3, 4]
+        )
+    assert output.read_bytes() == original
+    assert json.loads(original) == receipt
+
+
+def test_initialization_receipt_atomic_publication_completes_short_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A legal short write must be retried until every registered byte is durable."""
+    module = _load_script()
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "get_rng_state_all",
+        lambda: [torch.tensor([1], dtype=torch.uint8)],
+    )
+    receipt = module.classifier_initialization_receipt(
+        seed=2,
+        classifier_init="random",
+        classifier=torch.ones(3, 4),
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=1.0,
+        trainer_sha256="a" * 64,
+    )
+    real_write = module.os.write
+
+    def short_write(descriptor: int, payload: bytes | memoryview) -> int:
+        limit = max(1, len(payload) // 2)
+        return real_write(descriptor, payload[:limit])
+
+    monkeypatch.setattr(module.os, "write", short_write)
+    output = tmp_path / "initialization-receipt.json"
+
+    module.write_initialization_receipt_atomic(
+        receipt, output, expected_shape=[3, 4]
+    )
+
+    assert module.strict_json_object(output.read_bytes()) == receipt
+
+
+def test_resume_reauthenticates_initializer_bytes_without_retiming(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Resume must reuse duration but reject a changed deterministic initializer."""
+    module = _load_script()
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "get_rng_state_all",
+        lambda: [torch.tensor([1], dtype=torch.uint8)],
+    )
+    classifier = torch.arange(12, dtype=torch.float32).reshape(3, 4)
+    output = tmp_path / "initialization-receipt.json"
+    fresh = module.bind_initialization_receipt(
+        output=output,
+        resume=False,
+        seed=2,
+        classifier_init="random",
+        classifier=classifier,
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=1.25,
+        trainer_sha256="a" * 64,
+        expected_shape=[3, 4],
+    )
+    original = output.read_bytes()
+
+    resumed = module.bind_initialization_receipt(
+        output=output,
+        resume=True,
+        seed=2,
+        classifier_init="random",
+        classifier=classifier.clone(),
+        optimizer_steps_per_epoch=161,
+        initialization_seconds=None,
+        trainer_sha256="a" * 64,
+        expected_shape=[3, 4],
+    )
+
+    assert resumed == fresh
+    assert resumed["initialization_seconds"] == 1.25
+    assert output.read_bytes() == original
+    changed = classifier.clone()
+    changed[0, 0] += 1.0
+    with pytest.raises(ValueError, match="resume initialization receipt"):
+        module.bind_initialization_receipt(
+            output=output,
+            resume=True,
+            seed=2,
+            classifier_init="random",
+            classifier=changed,
+            optimizer_steps_per_epoch=161,
+            initialization_seconds=None,
+            trainer_sha256="a" * 64,
+            expected_shape=[3, 4],
+        )
+
+
+def test_initialization_binding_rejects_wrong_registered_classifier_shape(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Production shape authority must not be inferred from a wrong live tensor."""
+    module = _load_script()
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "get_rng_state_all",
+        lambda: [torch.tensor([1], dtype=torch.uint8)],
+    )
+
+    with pytest.raises(ValueError, match="classifier shape"):
+        module.bind_initialization_receipt(
+            output=tmp_path / "initialization-receipt.json",
+            resume=False,
+            seed=2,
+            classifier_init="random",
+            classifier=torch.ones(3, 4),
+            optimizer_steps_per_epoch=161,
+            initialization_seconds=1.0,
+            trainer_sha256="a" * 64,
+            expected_shape=[3200, 768],
+        )
 
 
 def test_epoch_sampler_matches_padded_global_order() -> None:
