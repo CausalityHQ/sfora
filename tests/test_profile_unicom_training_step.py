@@ -30,7 +30,6 @@ def _sample(step: float, objective_forward: float, head_backward: float) -> dict
         "tail_seconds": 0.01,
     }
     cuda_step = math.fsum(components.values())
-    assert cuda_step <= step
     return {
         "step_wall_seconds": step,
         "cuda_step_seconds": cuda_step,
@@ -66,6 +65,80 @@ def test_timing_summary_recomputes_contiguous_intervals_and_objective_ceiling() 
     invalid["cuda_step_seconds"] += 0.001
     with pytest.raises(ValueError, match="contiguous"):
         MODULE.summarize_timing_samples((invalid,))
+
+
+@pytest.mark.parametrize("ppm", [1, 10, 50, 100])
+def test_timing_summary_allows_cuda_event_clock_skew_above_cpu_wall(ppm: int) -> None:
+    sample = _sample(1.0, 0.04, 0.03)
+    sample["step_wall_seconds"] = sample["cuda_step_seconds"] / (1.0 + ppm * 1e-6)
+
+    summary = MODULE.summarize_timing_samples((sample,))
+
+    assert summary["step_wall_seconds"] == sample["step_wall_seconds"]
+    assert summary["component_mean_seconds"] == {key: sample[key] for key in MODULE.COMPONENT_KEYS}
+
+
+def test_clock_domain_tolerance_is_exact_registered_value() -> None:
+    assert MODULE.CLOCK_DOMAIN_REL_TOL == 0.01
+
+
+@pytest.mark.parametrize("factor", [1.05, 2.0, 1_000.0])
+def test_timing_summary_rejects_structurally_impossible_cuda_span(factor: float) -> None:
+    sample = _sample(1.0, 0.04, 0.03)
+    sample["step_wall_seconds"] = sample["cuda_step_seconds"] / factor
+
+    with pytest.raises(
+        ValueError,
+        match=r"timing sample 0 CUDA step exceeds wall step: cuda=.* wall=.*",
+    ):
+        MODULE.summarize_timing_samples((sample,))
+
+
+def test_timing_summary_error_names_nonzero_index_and_exact_durations() -> None:
+    valid = _sample(1.0, 0.04, 0.03)
+    invalid = _sample(1.0, 0.04, 0.03)
+    invalid["step_wall_seconds"] = 0.6
+
+    with pytest.raises(ValueError) as caught:
+        MODULE.summarize_timing_samples((valid, invalid))
+
+    assert str(caught.value) == ("timing sample 1 CUDA step exceeds wall step: cuda=0.9 wall=0.6")
+
+
+def test_timing_row_checks_independent_whole_span_against_components() -> None:
+    consistent = MODULE._timing_row(
+        5.3,
+        (0.5,) * len(MODULE.COMPONENT_KEYS),
+        4.0 + 2e-6,
+    )
+    MODULE.summarize_timing_samples((consistent,))
+
+    inconsistent = MODULE._timing_row(
+        5.3,
+        (0.5,) * len(MODULE.COMPONENT_KEYS),
+        4.5,
+    )
+    with pytest.raises(ValueError, match="contiguous"):
+        MODULE.summarize_timing_samples((inconsistent,))
+
+
+def test_event_timing_row_measures_components_and_whole_span_independently() -> None:
+    calls: list[tuple[int, int]] = []
+
+    class _Boundary:
+        def __init__(self, index: int) -> None:
+            self.index = index
+
+        def elapsed_time(self, other: object) -> float:
+            assert isinstance(other, _Boundary)
+            calls.append((self.index, other.index))
+            return float(other.index - self.index) * 100.0
+
+    row = MODULE._event_timing_row(5.3, tuple(_Boundary(index) for index in range(9)))
+
+    assert calls == [*(zip(range(8), range(1, 9), strict=True)), (0, 8)]
+    assert row["cuda_step_seconds"] == pytest.approx(0.8)
+    assert tuple(row[key] for key in MODULE.COMPONENT_KEYS) == pytest.approx((0.1,) * 8)
 
 
 @dataclass
@@ -313,6 +386,53 @@ def test_replay_profile_validates_its_exact_produced_schema(tmp_path: Path, monk
 
     assert observed == {"payload": payload, "expected_init": "random"}
     assert tuple(payload) == MODULE.PROFILE_KEYS
+
+
+def test_replay_profile_rejects_first_invalid_measured_row_before_next_step(
+    monkeypatch,
+) -> None:
+    class _EMA:
+        released = False
+
+        def release_step_hook(self):
+            self.released = True
+
+    ema = _EMA()
+    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
+    monkeypatch.setattr(MODULE, "_load_trainer", lambda _path: object())
+    monkeypatch.setattr(
+        MODULE,
+        "_build_replay_state",
+        lambda _args, _trainer: {
+            "loader": (object(), object()),
+            "step_ema": ema,
+            "checkpoint_epoch": 4,
+            "protocol": {"classifier_init": "random"},
+            "device": "cuda:0",
+        },
+    )
+    calls = 0
+
+    def invalid_step(_state, _batch, *, measured):
+        nonlocal calls
+        calls += 1
+        assert measured is True
+        sample = _sample(1.0, 0.04, 0.03)
+        sample["step_wall_seconds"] = sample["cuda_step_seconds"] / 1.05
+        return sample
+
+    monkeypatch.setattr(MODULE, "_training_step", invalid_step)
+    args = types.SimpleNamespace(
+        warmup_steps=0,
+        measure_steps=2,
+        profiler_steps=0,
+    )
+
+    with pytest.raises(ValueError, match="timing sample 0 CUDA step exceeds wall step"):
+        MODULE.replay_profile(args)
+
+    assert calls == 1
+    assert ema.released is True
 
 
 def _profile_payload(

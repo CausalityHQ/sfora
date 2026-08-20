@@ -23,6 +23,7 @@ PROFILER_STEPS = 10
 BOOTSTRAP_SEED = 20_016
 BOOTSTRAP_REPLICATES = 10_000
 KERNEL_GATE_THRESHOLD = 0.1
+CLOCK_DOMAIN_REL_TOL = 1e-2
 OBJECTIVE_MARKER = "unicom_objective_profile_step"
 COMPONENT_KEYS = (
     "h2d_seconds",
@@ -90,11 +91,19 @@ def _validate_timing_sample(sample: object, index: int) -> dict[str, float]:
         contiguous,
         validated["cuda_step_seconds"],
         rel_tol=1e-9,
-        abs_tol=1e-12,
+        abs_tol=1e-5,
     ):
         raise ValueError("timing contiguous component sum differs")
-    if validated["cuda_step_seconds"] > validated["step_wall_seconds"] * (1.0 + 1e-9):
-        raise ValueError("CUDA step exceeds wall step")
+    # CUDA events and perf_counter use independent oscillators. One percent is
+    # conservative for clock skew while retaining a structural timeline check.
+    if validated["cuda_step_seconds"] > validated["step_wall_seconds"] * (
+        1.0 + CLOCK_DOMAIN_REL_TOL
+    ):
+        raise ValueError(
+            f"timing sample {index} CUDA step exceeds wall step: "
+            f"cuda={validated['cuda_step_seconds']!r} "
+            f"wall={validated['step_wall_seconds']!r}"
+        )
     return validated
 
 
@@ -547,6 +556,33 @@ def _cuda_event(torch):
     return torch.cuda.Event(enable_timing=True)
 
 
+def _timing_row(
+    wall: float,
+    component_spans: Sequence[float],
+    cuda_step: float,
+) -> dict[str, float]:
+    spans = tuple(component_spans)
+    if len(spans) != len(COMPONENT_KEYS):
+        raise ValueError("timing component count differs")
+    return {
+        "step_wall_seconds": wall,
+        "cuda_step_seconds": cuda_step,
+        **dict(zip(COMPONENT_KEYS, spans, strict=True)),
+    }
+
+
+def _event_timing_row(wall: float, boundaries: Sequence[object]) -> dict[str, float]:
+    events = tuple(boundaries)
+    if len(events) != len(COMPONENT_KEYS) + 1:
+        raise ValueError("timing boundary count differs")
+    component_spans = tuple(
+        float(events[index].elapsed_time(events[index + 1])) / 1_000.0
+        for index in range(len(COMPONENT_KEYS))
+    )
+    cuda_step = float(events[0].elapsed_time(events[-1])) / 1_000.0
+    return _timing_row(wall, component_spans, cuda_step)
+
+
 def _training_step(state: dict[str, Any], batch, *, measured: bool) -> dict[str, float] | None:
     import torch
 
@@ -609,15 +645,7 @@ def _training_step(state: dict[str, Any], batch, *, measured: bool) -> dict[str,
     wall = time.perf_counter() - wall_start
     if not measured:
         return None
-    components = {
-        key: float(boundaries[index].elapsed_time(boundaries[index + 1])) / 1_000.0
-        for index, key in enumerate(COMPONENT_KEYS)
-    }
-    return {
-        "step_wall_seconds": float(wall),
-        "cuda_step_seconds": math.fsum(components.values()),
-        **components,
-    }
+    return _event_timing_row(float(wall), boundaries)
 
 
 def trainer_objective_masks(state: dict[str, Any], *, dimension: int):
@@ -686,7 +714,7 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
             batch, iterator = _next_batch(iterator, state["loader"])
             row = _training_step(state, batch, measured=index >= args.warmup_steps)
             if row is not None:
-                timing_rows.append(row)
+                timing_rows.append(_validate_timing_sample(row, len(timing_rows)))
 
         fusible: list[float] = []
         for _index in range(args.profiler_steps):
