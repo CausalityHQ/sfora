@@ -198,8 +198,10 @@ post_initialization_rng
 `normalized-class-means-norm-matched-rng-restored`; the classifier hash covers exact
 contiguous CPU FP32 bytes in row-major order. The first dimension is derived, never
 transcribed: it must equal `len(identity_holdout(authenticated_train_records,
-fraction=0.2, seed=0)[3])`, which is `3198` for the authenticated In-Shop partition;
-shape is therefore exact `[3198, 768]` in both arms and all five future seeds. The JSON
+fraction=0.2, seed=0)[3])`. The authenticated partition has `3997` train identities,
+`3985` eligible identities with at least two images, and therefore
+`round(3985 * 0.2) = 797` held-out identities, leaving `3200` optimization identities;
+shape is therefore exact `[3200, 768]` in both arms and all five future seeds. The JSON
 dtype value is the exact built-in string `"torch.float32"`; steps is a positive exact
 int; seconds is a positive finite Python float. `post_initialization_rng` has exact ordered keys
 `python_sha256`, `numpy_sha256`, `torch_cpu_sha256`, and

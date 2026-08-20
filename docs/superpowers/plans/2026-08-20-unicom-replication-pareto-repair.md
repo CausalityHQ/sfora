@@ -146,7 +146,7 @@ row-major classifier bytes, exact built-in string dtype `"torch.float32"`, train
 digest, seed/arm/algorithm, exact loader length, positive finite synchronized duration,
 and four RNG domains. Derive the expected first shape dimension independently by
 calling `identity_holdout` on the authenticated partition with the frozen fraction/seed;
-assert exact `[3198, 768]` for the registered partition and require both arms and every
+assert exact `[3200, 768]` for the registered partition and require both arms and every
 future seed to retain that shape. Snapshot classifier,
 model parameters, BatchNorm buffers, model mode, Python/NumPy/Torch CPU/all CUDA RNG,
 and sampler/data-generator seeds before receipt construction and require byte equality
