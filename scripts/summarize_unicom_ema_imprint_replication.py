@@ -407,6 +407,7 @@ def summarize_replications(
     latency_costs: list[dict[str, object]] = []
     profile_ratios: list[dict[str, object]] = []
     expected_protocol: dict[str, object] | None = None
+    expected_future_trainer_sha256: str | None = None
     expected_query_count: int | None = None
     history_hashes: list[str] = []
     measurement_hashes: list[str] = []
@@ -442,6 +443,12 @@ def summarize_replications(
             expected_protocol = normalized_protocol
         elif normalized_protocol != expected_protocol:
             raise ValueError("paired training protocol differs across seeds")
+        if future:
+            trainer_sha256 = report["random_training_protocol"]["trainer_sha256"]
+            if expected_future_trainer_sha256 is None:
+                expected_future_trainer_sha256 = trainer_sha256
+            elif trainer_sha256 != expected_future_trainer_sha256:
+                raise ValueError("prospective trainer differs across seeds")
         query_count = len(report["evidence"]["random_raw"][0]["top1_correct"])
         if expected_query_count is None:
             expected_query_count = query_count

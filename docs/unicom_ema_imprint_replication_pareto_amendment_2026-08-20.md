@@ -258,8 +258,10 @@ require the seed-1 semantic object to equal that authenticated payload exactly.
 Cross-seed recipe comparison removes `seed`, `classifier_init`, and `trainer_sha256`
 before equality: the first two are arm/replicate variables and the last is versioned
 execution provenance that necessarily differs between immutable pair-v1 and prospective
-pair-v2. Each report still preserves its exact per-arm trainer digest, and the paired
-evaluator requires both arms within a seed to match the executing trainer bytes.
+pair-v2. The summary separately requires seeds 2 through 6 to share one exact
+`trainer_sha256`; only immutable historical seed 1 may differ. Each report preserves its
+exact per-arm trainer digest, and the paired evaluator requires both arms within a seed
+to match the executing trainer bytes.
 
 The summary schema becomes `unicom-ema-imprint-replication-summary-v2`. Its exact
 top-level key order is:

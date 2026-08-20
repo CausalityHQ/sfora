@@ -403,7 +403,7 @@ def test_summary_requires_exact_seeds_and_frozen_cell() -> None:
 
 
 def test_summary_allows_versioned_trainer_digest_but_not_recipe_drift() -> None:
-    """Future evidence has a new trainer while every scientific recipe field stays fixed."""
+    """Seed 1 may be historical, but all future evidence uses one reviewed trainer."""
     module = _load_script()
     reports = _registered_reports()
 
@@ -412,9 +412,15 @@ def test_summary_allows_versioned_trainer_digest_but_not_recipe_drift() -> None:
         summary["reports"][1]["random_training_protocol"]["trainer_sha256"]
     )
 
-    reports[2]["random_training_protocol"]["margin"] = 0.5
-    reports[2]["imprinted_training_protocol"]["margin"] = 0.5
-    with pytest.raises(ValueError, match="protocol"):
+    reports[2]["random_training_protocol"]["partition_sha256"] = "e" * 64
+    reports[2]["imprinted_training_protocol"]["partition_sha256"] = "e" * 64
+    with pytest.raises(ValueError, match="paired training protocol differs across seeds"):
+        _summarize(module, reports)
+
+    reports = _registered_reports()
+    reports[2]["random_training_protocol"]["trainer_sha256"] = "e" * 64
+    reports[2]["imprinted_training_protocol"]["trainer_sha256"] = "e" * 64
+    with pytest.raises(ValueError, match="prospective trainer differs across seeds"):
         _summarize(module, reports)
 
 
@@ -590,9 +596,9 @@ def test_atomic_publication_strict_reloads_and_never_clobbers(tmp_path: Path) ->
 def test_summary_rejects_cross_seed_protocol_or_query_count_drift() -> None:
     module = _load_script()
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
-    reports[1]["random_training_protocol"]["scale"] = 64.0
-    reports[1]["imprinted_training_protocol"]["scale"] = 64.0
-    with pytest.raises(ValueError, match="protocol"):
+    reports[1]["random_training_protocol"]["partition_sha256"] = "e" * 64
+    reports[1]["imprinted_training_protocol"]["partition_sha256"] = "e" * 64
+    with pytest.raises(ValueError, match="paired training protocol differs across seeds"):
         _summarize(module, reports)
 
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
