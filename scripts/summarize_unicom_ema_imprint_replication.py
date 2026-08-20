@@ -148,16 +148,7 @@ def _validate_replication_pair(value: object) -> None:
     sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
-        candidate = value
-        if type(value) is dict and value.get("schema_version") == PAIR_SCHEMA_V2:
-            candidate = dict(value)
-            candidate["schema_version"] = PAIR_SCHEMA_V1
-            for arm_name in ("random_raw", "imprinted_raw"):
-                arm = value.get(arm_name)
-                if type(arm) is not dict or tuple(arm) != _ARM_V2_KEYS:
-                    raise ValueError("replication pair v2 arm schema differs")
-                candidate[arm_name] = {key: arm[key] for key in _ARM_KEYS}
-        module.validate_replication_pair(candidate)
+        module.validate_replication_pair(value)
     finally:
         sys.modules.pop(name, None)
 

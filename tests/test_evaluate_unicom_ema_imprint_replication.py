@@ -6,6 +6,7 @@ import json
 import sys
 import types
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -97,6 +98,118 @@ def _build(module, seed: int = 1) -> dict[str, object]:
     )
 
 
+def _initialization_receipt(seed: int, classifier_init: str) -> dict[str, object]:
+    return {
+        "schema_version": "unicom-classifier-initialization-v1",
+        "seed": seed,
+        "classifier_init": classifier_init,
+        "trainer_sha256": "1" * 64,
+        "algorithm": {
+            "random": "torch-normal-std-0.01-rng-balanced",
+            "imprinted": "normalized-class-means-norm-matched-rng-restored",
+        }[classifier_init],
+        "classifier_tensor_sha256": ("7" if classifier_init == "random" else "8") * 64,
+        "classifier_shape": [3200, 768],
+        "classifier_dtype": "torch.float32",
+        "optimizer_steps_per_epoch": 161,
+        "initialization_seconds": 1.25 if classifier_init == "random" else 2.5,
+        "post_initialization_rng": {
+            "python_sha256": "9" * 64,
+            "numpy_sha256": "a" * 64,
+            "torch_cpu_sha256": "b" * 64,
+            "torch_cuda_sha256_by_device": ["c" * 64],
+        },
+    }
+
+
+def _future_build(
+    module,
+    *,
+    seed: int = 2,
+    random_initialization: dict[str, object] | None = None,
+    imprinted_initialization: dict[str, object] | None = None,
+) -> dict[str, object]:
+    random_initialization = random_initialization or _initialization_receipt(seed, "random")
+    imprinted_initialization = imprinted_initialization or _initialization_receipt(
+        seed, "imprinted"
+    )
+    return module.build_replication_pair(
+        seed=seed,
+        rows=_rows(seed),
+        random_protocol=_protocol(seed, "random"),
+        imprinted_protocol=_protocol(seed, "imprinted"),
+        random_training_seconds=15000.0,
+        imprinted_training_seconds=14000.0,
+        random_peak_gpu_mib=87000,
+        imprinted_peak_gpu_mib=86900,
+        random_checkpoint_storage_bytes=1000,
+        imprinted_checkpoint_storage_bytes=1001,
+        deployment_storage_bytes=500,
+        inference_latency_ms_per_image=11.8,
+        random_measurement_receipt_sha256="5" * 64,
+        imprinted_measurement_receipt_sha256="6" * 64,
+        random_profile=(1.0, 0.05),
+        imprinted_profile=(1.0, 0.04),
+        random_initialization_receipt=random_initialization,
+        imprinted_initialization_receipt=imprinted_initialization,
+        random_initialization_receipt_sha256="d" * 64,
+        imprinted_initialization_receipt_sha256="e" * 64,
+    )
+
+
+def test_future_pair_v2_binds_initialization_evidence_and_rng() -> None:
+    module = _load_script()
+
+    report = _future_build(module)
+
+    module.validate_replication_pair(report)
+    assert report["schema_version"] == "unicom-ema-imprint-replication-pair-v2"
+    assert tuple(report["random_raw"])[-4:] == (
+        "optimizer_steps_per_epoch",
+        "initialization_seconds",
+        "initialization_receipt_sha256",
+        "post_initialization_rng_sha256",
+    )
+    assert report["random_raw"]["optimizer_steps_per_epoch"] == 161
+    assert report["random_raw"]["initialization_seconds"] == 1.25
+    assert report["random_raw"]["initialization_receipt_sha256"] == "d" * 64
+    assert report["random_raw"]["post_initialization_rng_sha256"] == module._json_sha256(
+        _initialization_receipt(2, "random")["post_initialization_rng"]
+    )
+
+
+def test_future_pair_rejects_cross_arm_rng_or_historical_schema_routing() -> None:
+    module = _load_script()
+    changed = _initialization_receipt(2, "imprinted")
+    changed["post_initialization_rng"]["torch_cpu_sha256"] = "f" * 64
+
+    with pytest.raises(ValueError, match="post-initialization RNG"):
+        _future_build(module, imprinted_initialization=changed)
+    with pytest.raises(ValueError, match="initialization"):
+        module.build_replication_pair(
+            seed=1,
+            rows=_rows(1),
+            random_protocol=_protocol(1, "random"),
+            imprinted_protocol=_protocol(1, "imprinted"),
+            random_training_seconds=1.0,
+            imprinted_training_seconds=1.0,
+            random_peak_gpu_mib=1,
+            imprinted_peak_gpu_mib=1,
+            random_checkpoint_storage_bytes=1,
+            imprinted_checkpoint_storage_bytes=1,
+            deployment_storage_bytes=1,
+            inference_latency_ms_per_image=1.0,
+            random_measurement_receipt_sha256="5" * 64,
+            imprinted_measurement_receipt_sha256="6" * 64,
+            random_profile=(1.0, 0.0),
+            imprinted_profile=(1.0, 0.0),
+            random_initialization_receipt=_initialization_receipt(1, "random"),
+            imprinted_initialization_receipt=_initialization_receipt(1, "imprinted"),
+            random_initialization_receipt_sha256="d" * 64,
+            imprinted_initialization_receipt_sha256="e" * 64,
+        )
+
+
 def test_build_pair_report_binds_protocol_rows_evidence_and_costs() -> None:
     module = _load_script()
 
@@ -117,10 +230,10 @@ def test_build_pair_report_binds_protocol_rows_evidence_and_costs() -> None:
 def test_validator_recomputes_metrics_and_rejects_protocol_or_evidence_drift() -> None:
     module = _load_script()
     kwargs = {
-        "seed": 2,
-        "rows": _rows(2),
-        "random_protocol": _protocol(2, "random"),
-        "imprinted_protocol": _protocol(2, "imprinted"),
+        "seed": 1,
+        "rows": _rows(1),
+        "random_protocol": _protocol(1, "random"),
+        "imprinted_protocol": _protocol(1, "imprinted"),
         "random_training_seconds": 1.0,
         "imprinted_training_seconds": 1.0,
         "random_peak_gpu_mib": 1,
@@ -276,6 +389,142 @@ def test_measurement_receipt_binds_log_protocol_and_run_evidence(tmp_path: Path)
             checkpoint_sha256_by_epoch=expected_checkpoints,
             training_history_sha256_by_epoch=histories,
         )
+
+
+def test_measurement_v2_authenticates_initialization_receipt_and_transitive_fields(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    seed = 2
+    protocol = _protocol(seed, "random")
+    checkpoints = [f"{index:064x}" for index in range(1, 5)]
+    histories = [f"{index:064x}" for index in range(11, 15)]
+    log = tmp_path / "train.log"
+    log.write_text("completed seed 2 random\n", encoding="utf-8")
+    initialization = _initialization_receipt(seed, "random")
+    initialization_path = tmp_path / "initialization-receipt.json"
+    initialization_path.write_text(json.dumps(initialization), encoding="utf-8")
+    receipt = {
+        "schema_version": "unicom-training-measurement-v2",
+        "seed": seed,
+        "classifier_init": "random",
+        "training_seconds": 10.0,
+        "peak_gpu_mib": 100,
+        "step_wall_seconds": 1.0,
+        "fusible_non_backbone_seconds": 0.05,
+        "training_log_sha256": module._sha256_file(log),
+        "training_protocol_sha256": module._json_sha256(protocol),
+        "checkpoint_sha256_by_epoch": checkpoints,
+        "training_history_sha256_by_epoch": histories,
+        "optimizer_steps_per_epoch": 161,
+        "initialization_seconds": 1.25,
+        "initialization_receipt_sha256": module._sha256_file(initialization_path),
+        "post_initialization_rng_sha256": module._json_sha256(
+            initialization["post_initialization_rng"]
+        ),
+    }
+    measurement_path = tmp_path / "measurement.json"
+    measurement_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    loaded, digest, loaded_initialization, initialization_digest = (
+        module.load_measurement_receipt(
+            measurement_path,
+            log_path=log,
+            seed=seed,
+            classifier_init="random",
+            training_protocol=protocol,
+            checkpoint_sha256_by_epoch=checkpoints,
+            training_history_sha256_by_epoch=histories,
+            initialization_receipt_path=initialization_path,
+        )
+    )
+
+    assert loaded == receipt
+    assert digest == module._sha256_file(measurement_path)
+    assert loaded_initialization == initialization
+    assert initialization_digest == module._sha256_file(initialization_path)
+
+    receipt["initialization_receipt_sha256"] = "f" * 64
+    measurement_path.write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(ValueError, match="initialization"):
+        module.load_measurement_receipt(
+            measurement_path,
+            log_path=log,
+            seed=seed,
+            classifier_init="random",
+            training_protocol=protocol,
+            checkpoint_sha256_by_epoch=checkpoints,
+            training_history_sha256_by_epoch=histories,
+            initialization_receipt_path=initialization_path,
+        )
+
+
+def test_measurement_schema_routes_v1_only_to_seed1_and_v2_only_to_future(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    protocol = _protocol(2, "random")
+    checkpoints = [f"{index:064x}" for index in range(1, 5)]
+    histories = [f"{index:064x}" for index in range(11, 15)]
+    log = tmp_path / "train.log"
+    log.write_text("completed\n", encoding="utf-8")
+    v1 = {
+        "schema_version": "unicom-training-measurement-v1",
+        "seed": 2,
+        "classifier_init": "random",
+        "training_seconds": 10.0,
+        "peak_gpu_mib": 100,
+        "step_wall_seconds": 1.0,
+        "fusible_non_backbone_seconds": 0.05,
+        "training_log_sha256": module._sha256_file(log),
+        "training_protocol_sha256": module._json_sha256(protocol),
+        "checkpoint_sha256_by_epoch": checkpoints,
+        "training_history_sha256_by_epoch": histories,
+    }
+    measurement = tmp_path / "measurement.json"
+    measurement.write_text(json.dumps(v1), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="measurement.*schema|schema.*measurement"):
+        module.load_measurement_receipt(
+            measurement,
+            log_path=log,
+            seed=2,
+            classifier_init="random",
+            training_protocol=protocol,
+            checkpoint_sha256_by_epoch=checkpoints,
+            training_history_sha256_by_epoch=histories,
+            initialization_receipt_path=None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("seed", "random_initialization", "imprinted_initialization"),
+    (
+        (2, None, Path("imprinted.json")),
+        (2, Path("random.json"), None),
+        (1, Path("random.json"), Path("imprinted.json")),
+    ),
+)
+def test_run_rejects_initialization_argument_routing_before_gpu_evaluation(
+    seed: int,
+    random_initialization: Path | None,
+    imprinted_initialization: Path | None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script()
+
+    def forbidden_load(_args):
+        raise AssertionError("GPU/checkpoint evaluation ran before argument preflight")
+
+    monkeypatch.setattr(module, "load_replication_rows", forbidden_load)
+    args = SimpleNamespace(
+        seed=seed,
+        random_initialization_receipt=random_initialization,
+        imprinted_initialization_receipt=imprinted_initialization,
+    )
+
+    with pytest.raises(ValueError, match="initialization receipt arguments"):
+        module.run(args)
 
 
 def test_measurement_receipt_hashes_the_exact_bytes_it_validates(

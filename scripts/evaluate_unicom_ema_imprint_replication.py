@@ -74,6 +74,12 @@ ARM_KEYS = (
     "measurement_receipt_sha256",
     "profile",
 )
+ARM_V2_KEYS = ARM_KEYS + (
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "initialization_receipt_sha256",
+    "post_initialization_rng_sha256",
+)
 MEASUREMENT_KEYS = (
     "schema_version",
     "seed",
@@ -87,6 +93,25 @@ MEASUREMENT_KEYS = (
     "checkpoint_sha256_by_epoch",
     "training_history_sha256_by_epoch",
 )
+MEASUREMENT_V2_KEYS = MEASUREMENT_KEYS + (
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "initialization_receipt_sha256",
+    "post_initialization_rng_sha256",
+)
+INITIALIZATION_KEYS = (
+    "schema_version",
+    "seed",
+    "classifier_init",
+    "trainer_sha256",
+    "algorithm",
+    "classifier_tensor_sha256",
+    "classifier_shape",
+    "classifier_dtype",
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "post_initialization_rng",
+)
 
 
 def _sha256(value: object) -> bool:
@@ -99,6 +124,51 @@ def _sha256(value: object) -> bool:
 
 def _finite_float(value: object) -> bool:
     return type(value) is float and math.isfinite(value)
+
+
+def validate_initialization_receipt(
+    value: object, *, seed: int, classifier_init: str, trainer_sha256: str
+) -> dict[str, object]:
+    if type(value) is not dict or tuple(value) != INITIALIZATION_KEYS:
+        raise ValueError("initialization receipt schema differs")
+    expected_algorithm = {
+        "random": "torch-normal-std-0.01-rng-balanced",
+        "imprinted": "normalized-class-means-norm-matched-rng-restored",
+    }[classifier_init]
+    if (
+        value["schema_version"] != "unicom-classifier-initialization-v1"
+        or type(value["seed"]) is not int
+        or value["seed"] != seed
+        or value["classifier_init"] != classifier_init
+        or value["trainer_sha256"] != trainer_sha256
+        or value["algorithm"] != expected_algorithm
+        or not _sha256(value["classifier_tensor_sha256"])
+        or value["classifier_shape"] != [3200, 768]
+        or any(type(item) is not int for item in value["classifier_shape"])
+        or value["classifier_dtype"] != "torch.float32"
+        or type(value["optimizer_steps_per_epoch"]) is not int
+        or value["optimizer_steps_per_epoch"] <= 0
+        or not _finite_float(value["initialization_seconds"])
+        or value["initialization_seconds"] <= 0.0
+    ):
+        raise ValueError("initialization receipt differs")
+    rng = value["post_initialization_rng"]
+    if type(rng) is not dict or tuple(rng) != (
+        "python_sha256",
+        "numpy_sha256",
+        "torch_cpu_sha256",
+        "torch_cuda_sha256_by_device",
+    ):
+        raise ValueError("post-initialization RNG schema differs")
+    cuda = rng["torch_cuda_sha256_by_device"]
+    if (
+        any(not _sha256(rng[key]) for key in tuple(rng)[:3])
+        or type(cuda) is not list
+        or not cuda
+        or any(not _sha256(item) for item in cuda)
+    ):
+        raise ValueError("post-initialization RNG differs")
+    return value
 
 
 def validate_training_protocol(value: object, *, seed: int, classifier_init: str) -> None:
@@ -216,14 +286,21 @@ def validate_replication_pair(report: object) -> None:
     if type(report) is not dict or tuple(report) != REPORT_KEYS:
         raise ValueError("replication pair schema differs")
     if (
-        report["schema_version"] != "unicom-ema-imprint-replication-pair-v1"
-        or type(report["seed"]) is not int
+        type(report["seed"]) is not int
         or report["seed"] not in range(1, 7)
         or report["selected_cell"] != "imprinted_raw"
         or report["registered_epochs"] != list(REGISTERED_EPOCHS)
     ):
         raise ValueError("replication pair registration differs")
     seed = report["seed"]
+    future = seed != 1
+    expected_schema = (
+        "unicom-ema-imprint-replication-pair-v2"
+        if future
+        else "unicom-ema-imprint-replication-pair-v1"
+    )
+    if report["schema_version"] != expected_schema:
+        raise ValueError("replication pair registration differs")
     validate_training_protocol(
         report["random_training_protocol"], seed=seed, classifier_init="random"
     )
@@ -244,7 +321,7 @@ def validate_replication_pair(report: object) -> None:
     expected_query_count: int | None = None
     for cell in REGISTERED_CELLS:
         arm = report[cell]
-        if type(arm) is not dict or tuple(arm) != ARM_KEYS:
+        if type(arm) is not dict or tuple(arm) != (ARM_V2_KEYS if future else ARM_KEYS):
             raise ValueError(f"{cell} schema differs")
         for key in ("checkpoint_sha256_by_epoch", "training_history_sha256_by_epoch"):
             values = arm[key]
@@ -279,6 +356,20 @@ def validate_replication_pair(report: object) -> None:
             if row != {"epoch": epoch, **_metric_from_evidence(entry)}:
                 raise ValueError(f"{cell} metric differs from query evidence")
         _validate_costs(arm, name=cell)
+        if future and (
+            type(arm["optimizer_steps_per_epoch"]) is not int
+            or arm["optimizer_steps_per_epoch"] <= 0
+            or not _finite_float(arm["initialization_seconds"])
+            or arm["initialization_seconds"] <= 0.0
+            or not _sha256(arm["initialization_receipt_sha256"])
+            or not _sha256(arm["post_initialization_rng_sha256"])
+        ):
+            raise ValueError(f"{cell} initialization evidence differs")
+    if future and (
+        report["random_raw"]["post_initialization_rng_sha256"]
+        != report["imprinted_raw"]["post_initialization_rng_sha256"]
+    ):
+        raise ValueError("post-initialization RNG differs")
     if len(set(all_hashes)) != len(all_hashes):
         raise ValueError("replication checkpoint evidence is reused")
     if len(set(all_history_hashes)) != len(all_history_hashes):
@@ -319,12 +410,51 @@ def build_replication_pair(
     imprinted_measurement_receipt_sha256: str,
     random_profile: tuple[float, float],
     imprinted_profile: tuple[float, float],
+    random_initialization_receipt: Mapping[str, object] | None = None,
+    imprinted_initialization_receipt: Mapping[str, object] | None = None,
+    random_initialization_receipt_sha256: str | None = None,
+    imprinted_initialization_receipt_sha256: str | None = None,
 ) -> dict[str, object]:
     expected_order = tuple(
         (cell, epoch) for cell in REGISTERED_CELLS for epoch in REGISTERED_EPOCHS
     )
     if tuple((row.get("cell"), row.get("epoch")) for row in rows) != expected_order:
         raise ValueError("replication row order differs")
+
+    future = seed != 1
+    initialization_values = (
+        random_initialization_receipt,
+        imprinted_initialization_receipt,
+        random_initialization_receipt_sha256,
+        imprinted_initialization_receipt_sha256,
+    )
+    if not future:
+        if any(value is not None for value in initialization_values):
+            raise ValueError("historical initialization evidence differs")
+    elif any(value is None for value in initialization_values):
+        raise ValueError("future initialization evidence is absent")
+    else:
+        validate_initialization_receipt(
+            random_initialization_receipt,
+            seed=seed,
+            classifier_init="random",
+            trainer_sha256=random_protocol["trainer_sha256"],
+        )
+        validate_initialization_receipt(
+            imprinted_initialization_receipt,
+            seed=seed,
+            classifier_init="imprinted",
+            trainer_sha256=imprinted_protocol["trainer_sha256"],
+        )
+        if not _sha256(random_initialization_receipt_sha256) or not _sha256(
+            imprinted_initialization_receipt_sha256
+        ):
+            raise ValueError("initialization receipt digest differs")
+        if (
+            random_initialization_receipt["post_initialization_rng"]
+            != imprinted_initialization_receipt["post_initialization_rng"]
+        ):
+            raise ValueError("post-initialization RNG differs")
 
     def arm(
         cell: str,
@@ -333,9 +463,11 @@ def build_replication_pair(
         storage: int,
         measurement_sha256: str,
         profile: tuple[float, float],
+        initialization_receipt: Mapping[str, object] | None,
+        initialization_sha256: str | None,
     ):
         selected = [row for row in rows if row["cell"] == cell]
-        return {
+        result = {
             "checkpoint_sha256_by_epoch": [row["checkpoint_sha256"] for row in selected],
             "training_history_sha256_by_epoch": [
                 row["training_history_sha256"] for row in selected
@@ -354,9 +486,31 @@ def build_replication_pair(
                 "fusible_non_backbone_seconds": profile[1],
             },
         }
+        if future:
+            assert initialization_receipt is not None
+            assert initialization_sha256 is not None
+            result.update(
+                {
+                    "optimizer_steps_per_epoch": initialization_receipt[
+                        "optimizer_steps_per_epoch"
+                    ],
+                    "initialization_seconds": initialization_receipt[
+                        "initialization_seconds"
+                    ],
+                    "initialization_receipt_sha256": initialization_sha256,
+                    "post_initialization_rng_sha256": _json_sha256(
+                        initialization_receipt["post_initialization_rng"]
+                    ),
+                }
+            )
+        return result
 
     report = {
-        "schema_version": "unicom-ema-imprint-replication-pair-v1",
+        "schema_version": (
+            "unicom-ema-imprint-replication-pair-v2"
+            if future
+            else "unicom-ema-imprint-replication-pair-v1"
+        ),
         "seed": seed,
         "selected_cell": "imprinted_raw",
         "registered_epochs": list(REGISTERED_EPOCHS),
@@ -369,6 +523,8 @@ def build_replication_pair(
             random_checkpoint_storage_bytes,
             random_measurement_receipt_sha256,
             random_profile,
+            random_initialization_receipt,
+            random_initialization_receipt_sha256,
         ),
         "imprinted_raw": arm(
             "imprinted_raw",
@@ -377,6 +533,8 @@ def build_replication_pair(
             imprinted_checkpoint_storage_bytes,
             imprinted_measurement_receipt_sha256,
             imprinted_profile,
+            imprinted_initialization_receipt,
+            imprinted_initialization_receipt_sha256,
         ),
         "inference_latency": {
             "warmup_repetitions": 10,
@@ -414,6 +572,12 @@ def _sha256_file(path: Path) -> str:
 def _read_exact_bytes(path: Path) -> tuple[bytes, str]:
     payload = path.read_bytes()
     return payload, hashlib.sha256(payload).hexdigest()
+
+
+def _read_regular_exact_bytes(path: Path, *, name: str) -> tuple[bytes, str]:
+    if not path.is_file() or path.is_symlink():
+        raise ValueError(f"{name} path differs")
+    return _read_exact_bytes(path)
 
 
 def _sha256_descriptor(descriptor: int) -> str:
@@ -731,13 +895,23 @@ def load_measurement_receipt(
     training_protocol: Mapping[str, object],
     checkpoint_sha256_by_epoch: Sequence[str],
     training_history_sha256_by_epoch: Sequence[str],
-) -> tuple[dict[str, object], str]:
+    initialization_receipt_path: Path | None = None,
+) -> tuple[dict[str, object], str] | tuple[
+    dict[str, object], str, dict[str, object], str
+]:
     payload, digest = _read_exact_bytes(path)
     receipt = strict_json_object(payload)
-    if type(receipt) is not dict or tuple(receipt) != MEASUREMENT_KEYS:
+    future = seed != 1
+    expected_keys = MEASUREMENT_V2_KEYS if future else MEASUREMENT_KEYS
+    expected_schema = (
+        "unicom-training-measurement-v2"
+        if future
+        else "unicom-training-measurement-v1"
+    )
+    if type(receipt) is not dict or tuple(receipt) != expected_keys:
         raise ValueError("training measurement receipt schema differs")
     if (
-        receipt["schema_version"] != "unicom-training-measurement-v1"
+        receipt["schema_version"] != expected_schema
         or receipt["seed"] != seed
         or type(receipt["seed"]) is not int
         or receipt["classifier_init"] != classifier_init
@@ -759,12 +933,46 @@ def load_measurement_receipt(
         != list(training_history_sha256_by_epoch)
     ):
         raise ValueError("training measurement receipt differs")
-    return receipt, digest
+    if not future:
+        if initialization_receipt_path is not None:
+            raise ValueError("historical initialization receipt differs")
+        return receipt, digest
+    if initialization_receipt_path is None:
+        raise ValueError("future initialization receipt is absent")
+    initialization_payload, initialization_digest = _read_regular_exact_bytes(
+        initialization_receipt_path, name="initialization receipt"
+    )
+    initialization = strict_json_object(initialization_payload)
+    validate_initialization_receipt(
+        initialization,
+        seed=seed,
+        classifier_init=classifier_init,
+        trainer_sha256=training_protocol["trainer_sha256"],
+    )
+    if (
+        receipt["optimizer_steps_per_epoch"]
+        != initialization["optimizer_steps_per_epoch"]
+        or receipt["initialization_seconds"]
+        != initialization["initialization_seconds"]
+        or receipt["initialization_receipt_sha256"] != initialization_digest
+        or receipt["post_initialization_rng_sha256"]
+        != _json_sha256(initialization["post_initialization_rng"])
+    ):
+        raise ValueError("training measurement initialization evidence differs")
+    return receipt, digest, initialization, initialization_digest
 
 
 def run(args: argparse.Namespace) -> dict[str, object]:
+    initialization_paths = (
+        args.random_initialization_receipt,
+        args.imprinted_initialization_receipt,
+    )
+    if (args.seed == 1 and any(path is not None for path in initialization_paths)) or (
+        args.seed != 1 and any(path is None for path in initialization_paths)
+    ):
+        raise ValueError("initialization receipt arguments differ")
     rows, protocols, storage, deployment_storage, latency = load_replication_rows(args)
-    random_measurement, random_measurement_sha256 = load_measurement_receipt(
+    random_loaded = load_measurement_receipt(
         args.random_measurement_receipt,
         log_path=args.random_training_log,
         seed=args.seed,
@@ -776,8 +984,9 @@ def run(args: argparse.Namespace) -> dict[str, object]:
         training_history_sha256_by_epoch=[
             row["training_history_sha256"] for row in rows if row["cell"] == "random_raw"
         ],
+        initialization_receipt_path=args.random_initialization_receipt,
     )
-    imprinted_measurement, imprinted_measurement_sha256 = load_measurement_receipt(
+    imprinted_loaded = load_measurement_receipt(
         args.imprinted_measurement_receipt,
         log_path=args.imprinted_training_log,
         seed=args.seed,
@@ -791,7 +1000,28 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             for row in rows
             if row["cell"] == "imprinted_raw"
         ],
+        initialization_receipt_path=args.imprinted_initialization_receipt,
     )
+    if args.seed == 1:
+        random_measurement, random_measurement_sha256 = random_loaded
+        imprinted_measurement, imprinted_measurement_sha256 = imprinted_loaded
+        random_initialization = None
+        imprinted_initialization = None
+        random_initialization_sha256 = None
+        imprinted_initialization_sha256 = None
+    else:
+        (
+            random_measurement,
+            random_measurement_sha256,
+            random_initialization,
+            random_initialization_sha256,
+        ) = random_loaded
+        (
+            imprinted_measurement,
+            imprinted_measurement_sha256,
+            imprinted_initialization,
+            imprinted_initialization_sha256,
+        ) = imprinted_loaded
     return build_replication_pair(
         seed=args.seed,
         rows=rows,
@@ -815,6 +1045,10 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             imprinted_measurement["step_wall_seconds"],
             imprinted_measurement["fusible_non_backbone_seconds"],
         ),
+        random_initialization_receipt=random_initialization,
+        imprinted_initialization_receipt=imprinted_initialization,
+        random_initialization_receipt_sha256=random_initialization_sha256,
+        imprinted_initialization_receipt_sha256=imprinted_initialization_sha256,
     )
 
 
@@ -988,6 +1222,8 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--imprinted-run", required=True, type=Path)
     parser.add_argument("--random-measurement-receipt", required=True, type=Path)
     parser.add_argument("--imprinted-measurement-receipt", required=True, type=Path)
+    parser.add_argument("--random-initialization-receipt", type=Path)
+    parser.add_argument("--imprinted-initialization-receipt", type=Path)
     parser.add_argument("--random-training-log", required=True, type=Path)
     parser.add_argument("--imprinted-training-log", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
