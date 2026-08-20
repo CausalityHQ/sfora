@@ -27,6 +27,13 @@ SUMMARY_SCHEMA = "unicom-ema-imprint-replication-summary-v2"
 SELECTION_REPORT_PATH = "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json"
 SELECTION_REPORT_SHA256 = "c0666a68e70990115d80e8dc06a9f94efe83156a3fddd50f36bdbf2b3b8cd217"
 SELECTION_RECORDING_COMMIT = "81f3f48c374d14b5a91bbeba7a1fec2fb0a4a2d6"
+HISTORICAL_SEED1_REPORT_PATH = (
+    "reports/generated/unicom_ema_imprint_replication_c83cd96_seed1.json"
+)
+HISTORICAL_SEED1_REPORT_SHA256 = (
+    "0cfb888fdbc0e409048943a8d6e47635e571dec5830b86260e0730d80ebf4ab8"
+)
+HISTORICAL_SEED1_RECORDING_COMMIT = "5a08b95266c7d40d57ec7fd747999969147a04e6"
 SELECTION_AUTHORITY = {
     "path": SELECTION_REPORT_PATH,
     "sha256": SELECTION_REPORT_SHA256,
@@ -248,6 +255,63 @@ def load_selection_authority(path: Path) -> dict[str, str]:
     return dict(SELECTION_AUTHORITY)
 
 
+def load_historical_seed1_report(path: Path) -> dict[str, Any]:
+    """Load the irreplaceable seed-1 report only from its registered Git-backed path."""
+    if not isinstance(path, Path):
+        raise TypeError("historical seed-1 report must be a Path")
+    repository = Path(__file__).resolve().parents[1]
+    expected = repository / HISTORICAL_SEED1_REPORT_PATH
+    if (
+        Path(os.path.abspath(path)) != expected
+        or path.is_symlink()
+        or not expected.is_file()
+        or expected.is_symlink()
+    ):
+        raise ValueError("historical seed-1 report path differs")
+    payload = expected.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != HISTORICAL_SEED1_REPORT_SHA256:
+        raise ValueError("historical seed-1 report SHA-256 differs")
+    recorded_value = strict_json_object(payload)
+    _validate_replication_pair(recorded_value)
+    ancestry = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            HISTORICAL_SEED1_RECORDING_COMMIT,
+            "HEAD",
+        ],
+        cwd=repository,
+        check=False,
+        capture_output=True,
+    )
+    if ancestry.returncode != 0:
+        raise ValueError("historical seed-1 recording commit is not an ancestor")
+    recorded_payload = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{HISTORICAL_SEED1_RECORDING_COMMIT}:{HISTORICAL_SEED1_REPORT_PATH}",
+        ],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+    ).stdout
+    if recorded_payload != payload:
+        raise ValueError("historical seed-1 Git blob differs")
+    return recorded_value
+
+
+def authenticate_historical_seed1(value: object) -> None:
+    """Bind the irreplaceable seed-1 semantic object to its exact Git-backed bytes."""
+    repository = Path(__file__).resolve().parents[1]
+    recorded_value = load_historical_seed1_report(
+        repository / HISTORICAL_SEED1_REPORT_PATH
+    )
+    if not _exact_ordered_equal(value, recorded_value):
+        raise ValueError("historical seed-1 report differs")
+
+
 def _arm(value: object, name: str, *, future: bool) -> dict[str, Any]:
     arm = _exact_object(value, _ARM_V2_KEYS if future else _ARM_KEYS, name)
     hashes = arm["checkpoint_sha256_by_epoch"]
@@ -324,6 +388,7 @@ def summarize_replications(
     """Validate and summarize exactly the six preregistered paired reports."""
     if type(reports) is not list or len(reports) != len(REGISTERED_SEEDS):
         raise ValueError("training seeds differ")
+    authenticate_historical_seed1(reports[0])
     authority = _validate_selection_authority(selection_authority)
 
     map_deltas: list[float] = []
@@ -345,6 +410,8 @@ def summarize_replications(
     expected_query_count: int | None = None
     history_hashes: list[str] = []
     measurement_hashes: list[str] = []
+    initialization_hashes: list[str] = []
+    initialization_rng_hashes: list[str] = []
     for expected_seed, raw_report in zip(REGISTERED_SEEDS, reports, strict=True):
         report = _exact_object(raw_report, _TOP_LEVEL_KEYS, "replication pair")
         _validate_replication_pair(report)
@@ -440,6 +507,15 @@ def summarize_replications(
                 {"seed": expected_seed, "random_raw": None, "imprinted_raw": None}
             )
         else:
+            initialization_hashes.extend(
+                (
+                    random_arm["initialization_receipt_sha256"],
+                    imprinted_arm["initialization_receipt_sha256"],
+                )
+            )
+            initialization_rng_hashes.append(
+                random_arm["post_initialization_rng_sha256"]
+            )
             initialization_evidence.append(
                 {
                     "seed": expected_seed,
@@ -569,6 +645,10 @@ def summarize_replications(
         raise ValueError("training history evidence is reused")
     if len(set(measurement_hashes)) != len(measurement_hashes):
         raise ValueError("training measurement evidence is reused")
+    if len(set(initialization_hashes)) != len(initialization_hashes):
+        raise ValueError("initialization receipt evidence is reused")
+    if len(set(initialization_rng_hashes)) != len(initialization_rng_hashes):
+        raise ValueError("post-initialization RNG evidence is reused")
 
     mean_delta = float(np.mean(np.asarray(map_deltas, dtype=np.float64)))
     sample_sd = float(np.std(np.asarray(map_deltas, dtype=np.float64), ddof=1))
@@ -638,7 +718,8 @@ def summarize_replications(
         row["imprinted_raw"] is not None
         and row["random_raw"] is not None
         and row["imprinted_raw"] <= row["random_raw"]
-        for row in iso_quality_costs[1:]
+        for row in iso_quality_costs
+        if row["seed"] != 1
     )
     resource_noninferior = all(
         peak["imprinted_raw"] <= peak["random_raw"]
@@ -648,7 +729,29 @@ def summarize_replications(
             peak_costs, checkpoint_costs, deployment_costs, strict=True
         )
     )
-    pareto_nondominated = all_positive
+    pareto_nondominated = all(
+        not (
+            delta <= 0.0
+            and peak["random_raw"] <= peak["imprinted_raw"]
+            and checkpoint["random_raw"] <= checkpoint["imprinted_raw"]
+            and deployment["random_raw"] <= deployment["imprinted_raw"]
+            and (
+                fixed["random_raw"] is None
+                or (
+                    fixed["imprinted_raw"] is not None
+                    and fixed["random_raw"] <= fixed["imprinted_raw"]
+                )
+            )
+        )
+        for delta, fixed, peak, checkpoint, deployment in zip(
+            map_deltas,
+            fixed_epoch_costs,
+            peak_costs,
+            checkpoint_costs,
+            deployment_costs,
+            strict=True,
+        )
+    )
     summary = {
         "schema_version": SUMMARY_SCHEMA,
         "training_seeds": list(REGISTERED_SEEDS),
@@ -863,7 +966,10 @@ def main(arguments: list[str] | None = None) -> int:
     parser.add_argument("--selection-report", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(arguments)
-    reports = [strict_json_object(path.read_bytes()) for path in args.reports]
+    reports = [
+        load_historical_seed1_report(args.reports[0]),
+        *(strict_json_object(path.read_bytes()) for path in args.reports[1:]),
+    ]
     authority = load_selection_authority(args.selection_report)
     summary = summarize_replications(reports, selection_authority=authority)
     write_summary_atomic(summary, args.output)

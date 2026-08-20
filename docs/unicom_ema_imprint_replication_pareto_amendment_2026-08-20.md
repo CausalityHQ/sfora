@@ -86,14 +86,13 @@ summarizer accidentally strengthened raw training wall time into a claim gate.
 Removing that gate restores the preregistration rather than making the claim easier.
 
 Seed-1 raw wall time is `17,629.0` seconds for random and
-`14,252.320465842` seconds for imprinted. The authenticated partition has exactly
-`20_650` optimization images after `identity_holdout(..., fraction=0.2, seed=0)`;
-the source partition's SHA-256 is the registered
-`cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c`.
-The retrospective `161` steps per epoch is derived with the trainer's exact sampler
-formula, `ceil(20_650 / 8 shards) // (128 / 8 local batch)`; seed 1
-has no initialization receipt, so this derived count is descriptive and cannot
-gate a profiled-compute claim. The matched 16-epoch step models are
+`14,252.320465842` seconds for imprinted. Seed 1 did not persist the optimization
+image count or loader length. Its retrospective `161` steps per epoch is therefore
+descriptive only: the trainer's exact sampler formula
+`ceil(optimization_images / 8 shards) // (128 / 8 local batch)` equals `161` for
+every optimization-image count in `[20_601, 20_728]`, covering the discarded
+historical estimate. It cannot gate a profiled-compute claim. The matched 16-epoch
+step models at that retrospective count are
 `13,641.277351625264` and `13,642.094341494143` seconds before initialization cost,
 leaving non-step residuals of `3,987.7226483747363` seconds (`29.2%` of the
 random step model) and `610.226124347857` seconds (`4.5%` of the imprinted
@@ -125,11 +124,9 @@ Seed 1 has no recoverable initialization duration or epoch-0 classifier bytes. I
 summary row must therefore contain exact status
 `"historical_initialization_receipt_unavailable"`, null fixed/iso compute totals,
 and the raw wall time, profiler values, epoch estimator, memory, latency, and storage.
-The rejected illustrative charge `25_882 * inference_latency` may be reported only
-in chronology text: it used a genuine `25_882/20_650 = 1.253365617433414x`
-image-count bound but
-excluded preprocessing and transfer and is not a conservative time bound. It gates
-nothing.
+The rejected illustrative charge `25_882 * inference_latency` is withdrawn even from
+quantitative chronology: its denominator was not persisted, and it excluded
+preprocessing and transfer, so it was not a conservative time bound. It gates nothing.
 
 These quantities are profiled compute proxies, not measurements of complete run wall
 time: each multiplies a measured steady-state step latency by the registered step
@@ -149,10 +146,14 @@ initialization.
 
 `fixed_epoch_pareto_nondominated` means the random epoch-16 point does not dominate
 the imprinted epoch-16 point: random must not be both at least as good in quality and
-no worse in every registered cost. It is not called dominance. Because the unchanged
-quality gate already requires a strictly positive mAP@R delta in every seed, this
-non-domination predicate is implied whenever the quality gate passes and carries no
-independent cost evidence. The signed per-seed
+no worse in every available fixed-budget registered cost: profiled compute when
+prospectively available, peak GPU memory, checkpoint storage, and deployment storage.
+Raw wall time remains descriptive and shared inference latency cannot distinguish the
+arms. The predicate is recomputed seed by seed; a lower-quality imprinted point remains
+nondominated when it improves at least one registered cost. Because the unchanged
+quality gate requires a strictly positive mAP@R delta in every seed, non-domination is
+still implied whenever the quality gate passes and carries no independent claim
+evidence. The signed per-seed
 `fixed_epoch_profiled_compute_overhead_seconds` rows provide the explicit fixed-budget
 cost disclosure instead.
 
@@ -201,12 +202,13 @@ post_initialization_rng
 64-hex; `algorithm` is respectively
 `torch-normal-std-0.01-rng-balanced` or
 `normalized-class-means-norm-matched-rng-restored`; the classifier hash covers exact
-contiguous CPU FP32 bytes in row-major order. The first dimension is derived, never
-transcribed: it must equal `len(identity_holdout(authenticated_train_records,
-fraction=0.2, seed=0)[3])`. The authenticated partition has `3997` train identities,
-`3985` eligible identities with at least two images, and therefore
-`round(3985 * 0.2) = 797` held-out identities, leaving `3200` optimization identities;
-shape is therefore exact `[3200, 768]` in both arms and all five future seeds. The JSON
+contiguous CPU FP32 bytes in row-major order. The first dimension is derived from
+`len(identity_holdout(authenticated_train_records, fraction=0.2, seed=0)[3])` before
+model load and then cross-checked against the registered literal. The authenticated
+partition has `3997` train identities and the immutable query evidence has exactly
+`797` held-out identities, leaving `3200` optimization identities; the live derived
+shape must therefore equal registered `[3200, 768]` in both arms and all five future
+seeds. The JSON
 dtype value is the exact built-in string `"torch.float32"`; steps is a positive exact
 int; seconds is a positive finite Python float. `post_initialization_rng` has exact ordered keys
 `python_sha256`, `numpy_sha256`, `torch_cpu_sha256`, and
@@ -244,7 +246,13 @@ the pair-v1 top-level order exactly. Its arm order is therefore the nine pair-v1
 keys followed by `optimizer_steps_per_epoch`, `initialization_seconds`,
 `initialization_receipt_sha256`, and `post_initialization_rng_sha256`. The v2 summary
 accepts exactly seed-1 pair-v1 followed by seed-2..6 pair-v2 and derives the explicit
-historical row.
+historical row. The seed-1 CLI argument must be the exact repository path
+`reports/generated/unicom_ema_imprint_replication_c83cd96_seed1.json`, a regular
+non-symlink whose bytes equal SHA-256
+`0cfb888fdbc0e409048943a8d6e47635e571dec5830b86260e0730d80ebf4ab8` and the Git
+blob recorded by commit `5a08b95266c7d40d57ec7fd747999969147a04e6`; a copied
+byte-identical alias is not authority. Direct summary construction and validation also
+require the seed-1 semantic object to equal that authenticated payload exactly.
 
 The summary schema becomes `unicom-ema-imprint-replication-summary-v2`. Its exact
 top-level key order is:

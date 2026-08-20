@@ -335,6 +335,17 @@ def bind_initialization_receipt(
     return receipt
 
 
+def registered_classifier_shape(labels: Mapping[str, int]) -> list[int]:
+    """Derive the live classifier shape and enforce the frozen partition cross-check."""
+    if (
+        type(labels) is not dict
+        or tuple(labels.values()) != tuple(range(len(labels)))
+        or len(labels) != 3200
+    ):
+        raise ValueError("registered classifier shape differs")
+    return [len(labels), 768]
+
+
 class StepEMA:
     """Same-device FP32 exponential average of trainable retrieval weights."""
 
@@ -1124,6 +1135,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         fraction=args.holdout_fraction,
         seed=args.holdout_seed,
     )
+    classifier_shape = registered_classifier_shape(labels)
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
     train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
@@ -1132,7 +1144,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         torch.cuda.synchronize()
         initialization_started = time.perf_counter()
     classifier_values = initialize_classifier_values(
-        labels=len(labels),
+        labels=classifier_shape[0],
         mode=args.classifier_init,
         imprinted=lambda: imprinted_classifier_values(
             raw_model,
@@ -1172,7 +1184,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             optimizer_steps_per_epoch=len(loader),
             initialization_seconds=initialization_seconds,
             trainer_sha256=_sha256_file(Path(__file__)),
-            expected_shape=[3200, 768],
+            expected_shape=classifier_shape,
         )
     optimizer = build_optimizer(
         raw_model,

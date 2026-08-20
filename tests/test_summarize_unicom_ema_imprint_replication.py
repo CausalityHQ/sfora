@@ -14,6 +14,10 @@ SELECTION_REPORT = (
     Path(__file__).parents[1]
     / "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json"
 )
+HISTORICAL_SEED1_REPORT = (
+    Path(__file__).parents[1]
+    / "reports/generated/unicom_ema_imprint_replication_c83cd96_seed1.json"
+)
 SELECTION_AUTHORITY = {
     "path": "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json",
     "sha256": "c0666a68e70990115d80e8dc06a9f94efe83156a3fddd50f36bdbf2b3b8cd217",
@@ -30,6 +34,28 @@ def _load_script():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_historical_seed1_authority_rejects_semantic_or_byte_drift() -> None:
+    """The irreplaceable v1 input must equal its frozen Git-backed bytes."""
+    module = _load_script()
+    report = module.strict_json_object(HISTORICAL_SEED1_REPORT.read_bytes())
+
+    module.authenticate_historical_seed1(report)
+
+    report["random_raw"]["training_seconds"] += 1.0
+    with pytest.raises(ValueError, match="historical seed-1"):
+        module.authenticate_historical_seed1(report)
+
+
+def test_historical_seed1_loader_rejects_an_exact_byte_alias(tmp_path: Path) -> None:
+    """The CLI authority is the registered path, not a copied equivalent file."""
+    module = _load_script()
+    copied = tmp_path / HISTORICAL_SEED1_REPORT.name
+    copied.write_bytes(HISTORICAL_SEED1_REPORT.read_bytes())
+
+    with pytest.raises(ValueError, match="historical seed-1 report path"):
+        module.load_historical_seed1_report(copied)
 
 
 def _protocol(seed: int, classifier_init: str) -> dict[str, object]:
@@ -64,6 +90,8 @@ def _protocol(seed: int, classifier_init: str) -> dict[str, object]:
 
 
 def _pair_v1_report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
+    if seed == 1:
+        return json.loads(HISTORICAL_SEED1_REPORT.read_text(encoding="utf-8"))
     baseline_map = 0.89 + seed * 0.001
     baseline_recall = 0.97 + seed * 0.001
     epochs = [4, 8, 12, 16]
@@ -76,10 +104,11 @@ def _pair_v1_report(seed: int, map_delta: float, recall_delta: float) -> dict[st
             endpoint_map if epoch == 16 else start + index * 0.01
             for index, epoch in enumerate(epochs)
         ]
-        true_count = round(endpoint_recall * 1000)
-        top1 = [True] * true_count + [False] * (1000 - true_count)
+        query_count = 797
+        true_count = round(endpoint_recall * query_count)
+        top1 = [True] * true_count + [False] * (query_count - true_count)
         evidence = [
-            {"top1_correct": list(top1), "average_precision": [value] * 1000}
+            {"top1_correct": list(top1), "average_precision": [value] * query_count}
             for value in map_values
         ]
         return {
@@ -136,6 +165,12 @@ def _pair_v1_report(seed: int, map_delta: float, recall_delta: float) -> dict[st
 def _future_report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
     report = _pair_v1_report(seed, map_delta, recall_delta)
     report["schema_version"] = "unicom-ema-imprint-replication-pair-v2"
+    historical = json.loads(HISTORICAL_SEED1_REPORT.read_text(encoding="utf-8"))
+    for cell, classifier_init in (("random_raw", "random"), ("imprinted_raw", "imprinted")):
+        protocol = copy.deepcopy(historical[f"{cell.split('_')[0]}_training_protocol"])
+        protocol["seed"] = seed
+        protocol["classifier_init"] = classifier_init
+        report[f"{cell.split('_')[0]}_training_protocol"] = protocol
     rng_digest = f"{7000 + seed:064x}"
     for arm, initialization_seconds in (("random_raw", 1.0), ("imprinted_raw", 10.0)):
         report[arm]["optimizer_steps_per_epoch"] = 161
@@ -208,8 +243,8 @@ def test_summary_v2_binds_frozen_selection_authority_and_rejects_roundtrip_mutat
 def test_summary_cli_authenticates_selection_from_repo_root_not_cwd(tmp_path: Path) -> None:
     """The CLI must authenticate the frozen Git-backed report from any cwd."""
     module = _load_script()
-    report_paths: list[Path] = []
-    for seed in range(1, 7):
+    report_paths: list[Path] = [HISTORICAL_SEED1_REPORT]
+    for seed in range(2, 7):
         path = tmp_path / f"seed-{seed}.json"
         path.write_text(
             json.dumps(_report(seed, 0.01 + seed * 0.001, 0.0)) + "\n",
@@ -260,8 +295,6 @@ def test_summary_separates_non_monotone_epoch_quality_and_compute_operating_poin
     """Fixed-budget quality must not be mislabeled as iso-quality cost dominance."""
     module = _load_script()
     reports = _registered_reports()
-    _set_map_curve(reports[0], "random_raw", [0.83, 0.89, 0.91, 0.90])
-    _set_map_curve(reports[0], "imprinted_raw", [0.87, 0.90, 0.91, 0.92])
 
     summary = module.summarize_replications(
         reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
@@ -343,14 +376,13 @@ def test_contaminated_wall_time_is_descriptive_but_per_seed_resources_gate() -> 
     seed1_resource_mutation[0]["imprinted_raw"]["peak_gpu_mib"] = (
         seed1_resource_mutation[0]["random_raw"]["peak_gpu_mib"] + 1
     )
-    seed1_result = _summarize(module, seed1_resource_mutation)
-    assert seed1_result["per_seed_resource_noninferior"] is False
-    assert seed1_result["claim_supported"] is False
+    with pytest.raises(ValueError, match="historical seed-1"):
+        _summarize(module, seed1_resource_mutation)
 
-    slower_seed1 = copy.deepcopy(reports)
-    _set_map_curve(slower_seed1[0], "random_raw", [0.89, 0.89, 0.89, 0.89])
-    _set_map_curve(slower_seed1[0], "imprinted_raw", [0.88, 0.88, 0.88, 0.901])
-    slower_result = _summarize(module, slower_seed1)
+    slower_future = copy.deepcopy(reports)
+    _set_map_curve(slower_future[1], "random_raw", [0.89, 0.89, 0.89, 0.89])
+    _set_map_curve(slower_future[1], "imprinted_raw", [0.88, 0.88, 0.88, 0.901])
+    slower_result = _summarize(module, slower_future)
     assert slower_result["all_first_quality_epochs_noninferior"] is False
     assert slower_result["claim_supported"] is False
 
@@ -371,11 +403,13 @@ def test_summary_requires_exact_seeds_and_frozen_cell() -> None:
 
 def test_summary_uses_paired_student_t_sign_and_recall_gates() -> None:
     module = _load_script()
-    reports = [_report(seed, 0.010 + seed * 0.001, -0.001) for seed in range(1, 7)]
+    reports = [_report(seed, 0.010 + seed * 0.001, 0.0) for seed in range(1, 7)]
 
     summary = _summarize(module, reports)
 
-    assert summary["map_deltas"] == pytest.approx([0.011, 0.012, 0.013, 0.014, 0.015, 0.016])
+    assert summary["map_deltas"] == pytest.approx(
+        [0.01443298839283702, 0.012, 0.013, 0.014, 0.015, 0.016]
+    )
     assert summary["map_delta_sample_standard_deviation"] > 0.0
     assert summary["map_delta_paired_student_t_95_interval"][0] > 0.0
     assert summary["exact_two_sided_sign_p_value"] == 0.03125
@@ -395,13 +429,16 @@ def test_summary_recomputes_time_to_quality_and_cost_pareto_fields() -> None:
     summary = _summarize(module, reports)
 
     assert summary["first_quality_epochs"] == [
-        {"seed": seed, "random_raw": 16, "imprinted_raw": 4, "speedup": 4.0}
-        for seed in range(1, 7)
+        {"seed": 1, "random_raw": 12, "imprinted_raw": 8, "speedup": 1.5},
+        *[
+            {"seed": seed, "random_raw": 16, "imprinted_raw": 4, "speedup": 4.0}
+            for seed in range(2, 7)
+        ],
     ]
     assert summary["costs"]["training_seconds"][0] == {
         "seed": 1,
-        "random_raw": 15001.0,
-        "imprinted_raw": 14001.0,
+        "random_raw": 17629.0,
+        "imprinted_raw": 14252.320465842,
     }
     assert summary["costs"]["inference_latency_protocol"] == {
         "warmup_repetitions": 10,
@@ -415,7 +452,7 @@ def test_summary_recomputes_time_to_quality_and_cost_pareto_fields() -> None:
     assert summary["per_seed_resource_noninferior"] is True
 
     dominated = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
-    for report in dominated:
+    for report in dominated[1:]:
         report["imprinted_raw"]["training_seconds"] = 20000.0
     dominated_summary = _summarize(module, dominated)
     assert dominated_summary["quality_claim_supported"] is True
@@ -425,26 +462,48 @@ def test_summary_recomputes_time_to_quality_and_cost_pareto_fields() -> None:
     checkpoint_dominated = [
         _report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)
     ]
-    for report in checkpoint_dominated:
+    for report in checkpoint_dominated[1:]:
         report["imprinted_raw"]["checkpoint_storage_bytes"] = 10**15
     assert _summarize(module, checkpoint_dominated)["per_seed_resource_noninferior"] is False
 
-    reports[0]["evidence"]["imprinted_raw"][0]["average_precision"] = [0.0] * 1000
-    reports[0]["imprinted_raw"]["epoch_metrics"][0]["map_at_r"] = 0.0
-    assert _summarize(module, reports)["first_quality_epochs"][0] == {
-        "seed": 1,
+    reports[1]["evidence"]["imprinted_raw"][0]["average_precision"] = [0.0] * 797
+    reports[1]["imprinted_raw"]["epoch_metrics"][0]["map_at_r"] = 0.0
+    assert _summarize(module, reports)["first_quality_epochs"][1] == {
+        "seed": 2,
         "random_raw": 16,
         "imprinted_raw": 8,
         "speedup": 2.0,
     }
 
 
+def test_fixed_epoch_pareto_uses_quality_and_registered_costs() -> None:
+    """A quality loss is still nondominated when the candidate improves a live cost."""
+    module = _load_script()
+    reports = _registered_reports()
+    _set_map_curve(reports[1], "imprinted_raw", [0.80, 0.82, 0.84, 0.86])
+
+    assert _summarize(module, reports)["fixed_epoch_pareto_nondominated"] is True
+
+    reports[1]["imprinted_raw"]["peak_gpu_mib"] = (
+        reports[1]["random_raw"]["peak_gpu_mib"] + 1
+    )
+    reports[1]["imprinted_raw"]["checkpoint_storage_bytes"] = (
+        reports[1]["random_raw"]["checkpoint_storage_bytes"] + 1
+    )
+    reports[1]["imprinted_raw"]["deployment_storage_bytes"] = (
+        reports[1]["random_raw"]["deployment_storage_bytes"] + 1
+    )
+    assert _summarize(module, reports)["fixed_epoch_pareto_nondominated"] is False
+
+
 def test_summary_rejects_degenerate_or_reused_checkpoint_evidence() -> None:
     module = _load_script()
     reports = [_report(seed, 0.01, 0.0) for seed in range(1, 7)]
-    for report in reports:
-        for cell, value in (("random_raw", 0.5), ("imprinted_raw", 0.51)):
-            report["evidence"][cell][-1]["average_precision"] = [value] * 1000
+    historical = reports[0]
+    for report in reports[1:]:
+        for cell in ("random_raw", "imprinted_raw"):
+            values = historical["evidence"][cell][-1]["average_precision"]
+            report["evidence"][cell][-1]["average_precision"] = list(values)
             report[cell]["epoch_metrics"][-1]["map_at_r"] = float(
                 np.mean(report["evidence"][cell][-1]["average_precision"])
             )
@@ -457,6 +516,20 @@ def test_summary_rejects_degenerate_or_reused_checkpoint_evidence() -> None:
         "random_raw"
     ]["checkpoint_sha256_by_epoch"][0]
     with pytest.raises(ValueError, match="checkpoint"):
+        _summarize(module, reports)
+
+
+@pytest.mark.parametrize(
+    "field", ("initialization_receipt_sha256", "post_initialization_rng_sha256")
+)
+def test_summary_rejects_reused_future_initialization_evidence(field: str) -> None:
+    """A future seed may not replay another seed's initialization/process evidence."""
+    module = _load_script()
+    reports = _registered_reports()
+    for arm in ("random_raw", "imprinted_raw"):
+        reports[2][arm][field] = reports[1][arm][field]
+
+    with pytest.raises(ValueError, match="initialization|RNG"):
         _summarize(module, reports)
 
 

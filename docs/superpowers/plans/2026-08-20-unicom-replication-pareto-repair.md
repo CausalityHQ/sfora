@@ -27,6 +27,8 @@ initialization evidence for seeds 2..6.
 
 ### Task 1: Summary-v2 authority and operating-point semantics
 
+**Completed:** `5adc244` (`add UniCOM replication summary v2`).
+
 **Files:**
 - Modify: `scripts/summarize_unicom_ema_imprint_replication.py`
 - Modify: `tests/test_summarize_unicom_ema_imprint_replication.py`
@@ -37,7 +39,7 @@ initialization evidence for seeds 2..6.
 - Extends: `summarize_replications(reports, *, selection_authority)`.
 - Validates: exact summary-v2 constants rather than self-supplied authority.
 
-- [ ] **Step 1: Write selection-authority REDs**
+- [x] **Step 1: Write selection-authority REDs**
 
 Add a literal five-key authority fixture. Assert direct and JSON-round-tripped summaries
 reject each mutated key. Exercise the public CLI with the real seed-0 report and assert
@@ -59,13 +61,13 @@ with pytest.raises(ValueError, match="selection authority"):
     module.validate_summary(mutated)
 ```
 
-- [ ] **Step 2: Run the authority RED**
+- [x] **Step 2: Run the authority RED**
 
 Run: `.venv/bin/pytest -q tests/test_summarize_unicom_ema_imprint_replication.py -k 'selection_authority or summary_v2'`
 
 Expected: fail because summary-v1 has no frozen authority and the CLI has no selection input.
 
-- [ ] **Step 3: Implement frozen authority and summary-v2 schema**
+- [x] **Step 3: Implement frozen authority and summary-v2 schema**
 
 Add literal path/SHA/recording-commit/cell/decision constants. Resolve the path from
 `Path(__file__).resolve().parents[1]`, authenticate exact bytes against both worktree and
@@ -75,7 +77,7 @@ the literal object. Bump `SUMMARY_SCHEMA` to
 seed 1 emits pair-v1 and seeds 2..6 emit pair-v2, and update every existing summary
 test call to pass the test-owned literal authority.
 
-- [ ] **Step 4: Write operating-point REDs**
+- [x] **Step 4: Write operating-point REDs**
 
 Use a hand-derived non-monotone seed-1 row and assert exact first epochs `12` and `8`
 and speedup `1.5`. Assert raw wall-time drift changes only descriptive rows. Assert
@@ -103,13 +105,13 @@ assert module.summarize_replications(
 )["claim_supported"] is True
 ```
 
-- [ ] **Step 5: Run the operating-point RED**
+- [x] **Step 5: Run the operating-point RED**
 
 Run: `.venv/bin/pytest -q tests/test_summarize_unicom_ema_imprint_replication.py -k 'non_monotone or operating_point or contaminated_wall or per_seed_cost or historical_initialization'`
 
 Expected: fail because summary-v1 sums costs and has no mixed evidence or separated predicates.
 
-- [ ] **Step 6: Implement minimal derived semantics**
+- [x] **Step 6: Implement minimal derived semantics**
 
 Accept exactly pair-v1 at seed 1 and pair-v2 at seeds 2..6. For v2 rows compute the two
 registered formulas from arm evidence. Keep training wall time, latency, profiler,
@@ -120,7 +122,7 @@ and keep the tautological non-domination predicate out of the independent final
 conjunction. Add exact initialization-evidence rows, including seed 1's null historical
 row.
 
-- [ ] **Step 7: Verify Task 1**
+- [x] **Step 7: Verify Task 1**
 
 Run: `.venv/bin/pytest -q tests/test_summarize_unicom_ema_imprint_replication.py`
 
@@ -129,6 +131,8 @@ Run: `.venv/bin/ruff check scripts/summarize_unicom_ema_imprint_replication.py t
 Run: `.venv/bin/python -m py_compile scripts/summarize_unicom_ema_imprint_replication.py tests/test_summarize_unicom_ema_imprint_replication.py`
 
 ### Task 2: Pure initialization receipt construction and atomic publication
+
+**Completed:** `17e9ad7` (`add UniCOM initialization receipts`).
 
 **Files:**
 - Modify: `scripts/train_unicom_inshop.py`
@@ -139,15 +143,15 @@ Run: `.venv/bin/python -m py_compile scripts/summarize_unicom_ema_imprint_replic
 - Produces: `rng_state_hashes() -> dict[str, object]`.
 - Persists: `<output-dir>/initialization-receipt.json` using no-clobber publication.
 
-- [ ] **Step 1: Write receipt-purity REDs**
+- [x] **Step 1: Write receipt-purity REDs**
 
 With independently literal expected hashes, assert the exact 11-key schema, FP32
 row-major classifier bytes, exact built-in string dtype `"torch.float32"`, trainer
 digest, seed/arm/algorithm, exact loader length, positive finite synchronized duration,
-and four RNG domains. Derive the expected first shape dimension independently by
-calling `identity_holdout` on the authenticated partition with the frozen fraction/seed;
-assert exact `[3200, 768]` for the registered partition and require both arms and every
-future seed to retain that shape. Snapshot classifier,
+and four RNG domains. Derive the first shape dimension in production by calling
+`identity_holdout` on the authenticated partition with the frozen fraction/seed before
+model load; cross-check it against registered `[3200, 768]` and require both arms and
+every future seed to retain that shape. Snapshot classifier,
 model parameters, BatchNorm buffers, model mode, Python/NumPy/Torch CPU/all CUDA RNG,
 and sampler/data-generator seeds before receipt construction and require byte equality
 afterward. Mutate every key/type/hash/order and require rejection.
@@ -167,19 +171,19 @@ assert receipt["classifier_tensor_sha256"] == EXPECTED_CLASSIFIER_SHA256
 assert snapshot_process_and_model(model, classifier) == before
 ```
 
-- [ ] **Step 2: Run receipt RED**
+- [x] **Step 2: Run receipt RED**
 
 Run: `.venv/bin/pytest -q tests/test_train_unicom_inshop.py -k 'initialization_receipt or rng_state_hashes'`
 
 Expected: fail because the receipt API does not exist.
 
-- [ ] **Step 3: Implement pure receipt helpers**
+- [x] **Step 3: Implement pure receipt helpers**
 
 Hash domain-separated deterministic encodings of Python state, NumPy MT state, Torch
 CPU state, and each CUDA-device state. Hash contiguous CPU classifier bytes. Validate
 exact built-in types and order. Do not consume RNG or alter device/model state.
 
-- [ ] **Step 4: Write atomic lifecycle REDs**
+- [x] **Step 4: Write atomic lifecycle REDs**
 
 Cover unnamed-inode write, strict pre/post-publication reload, mode `0600`, directory
 fsync, destination race, rollback, pre-existing foreign temp, no-clobber, and resume
@@ -197,7 +201,7 @@ with pytest.raises(FileExistsError):
     module.write_initialization_receipt_atomic(receipt, output)
 ```
 
-- [ ] **Step 5: Implement trainer integration**
+- [x] **Step 5: Implement trainer integration**
 
 Synchronize CUDA around the complete initializer, construct the loader before the
 optimizer without iterating it, create/publish the receipt, then construct optimizer
@@ -210,13 +214,15 @@ existing receipt's validated `initialization_seconds` and require exact equality
 Never replace the receipt. The subsequent checkpoint restore overwrites the freshly
 verified initialization tensor and restores the saved training trajectory.
 
-- [ ] **Step 6: Verify Task 2**
+- [x] **Step 6: Verify Task 2**
 
 Run: `.venv/bin/pytest -q tests/test_train_unicom_inshop.py -k 'initialization or classifier or rng or checkpoint'`
 
 Run: `.venv/bin/ruff check scripts/train_unicom_inshop.py tests/test_train_unicom_inshop.py`
 
 ### Task 3: Measurement-v2 and pair-v2 binding
+
+**Completed:** `489f5e9` (`bind UniCOM replication evidence v2`).
 
 **Files:**
 - Modify: `scripts/evaluate_unicom_ema_imprint_replication.py`
@@ -227,7 +233,7 @@ Run: `.venv/bin/ruff check scripts/train_unicom_inshop.py tests/test_train_unico
 - Accepts: measurement-v2 plus authenticated initialization receipt for seeds 2..6.
 - Produces: pair-v2 for seeds 2..6 with four added initialization fields per arm.
 
-- [ ] **Step 1: Write exact dual-schema REDs**
+- [x] **Step 1: Write exact dual-schema REDs**
 
 Build complete literal v1 and v2 receipts. Require v1 only at seed 1 and v2 only at
 seeds 2..6. Mutate initialization path/digest, classifier digest, steps, duration,
@@ -255,13 +261,13 @@ with pytest.raises(ValueError, match="post-initialization RNG"):
     )
 ```
 
-- [ ] **Step 2: Run measurement RED**
+- [x] **Step 2: Run measurement RED**
 
 Run: `.venv/bin/pytest -q tests/test_evaluate_unicom_ema_imprint_replication.py -k 'measurement_v2 or initialization_binding or post_initialization_rng'`
 
 Expected: fail because only measurement-v1 and pair-v1 exist.
 
-- [ ] **Step 3: Implement dual loader and pair-v2**
+- [x] **Step 3: Implement dual loader and pair-v2**
 
 Load and strictly validate the initialization receipts passed by new random/imprinted
 CLI arguments. Validate v2 measurement evidence and its transitive bindings. Preserve
@@ -270,7 +276,7 @@ future seeds, append exact arm fields `optimizer_steps_per_epoch`,
 `initialization_seconds`, `initialization_receipt_sha256`, and
 `post_initialization_rng_sha256`, and strict-reload atomic output.
 
-- [ ] **Step 4: Verify Task 3**
+- [x] **Step 4: Verify Task 3**
 
 Run: `.venv/bin/pytest -q tests/test_evaluate_unicom_ema_imprint_replication.py`
 
@@ -284,7 +290,7 @@ Run: `.venv/bin/ruff check scripts/evaluate_unicom_ema_imprint_replication.py te
 **Interfaces:**
 - Produces: reviewed source commit suitable for a detached GPU checkout.
 
-- [ ] **Step 1: Run affected assurance**
+- [x] **Step 1: Run affected assurance**
 
 Run: `.venv/bin/pytest -q tests/test_train_unicom_inshop.py tests/test_evaluate_unicom_ema_imprint_replication.py tests/test_summarize_unicom_ema_imprint_replication.py`
 
@@ -294,11 +300,11 @@ Run: `.venv/bin/python -m py_compile scripts/train_unicom_inshop.py scripts/eval
 
 Run: `git diff --check`
 
-- [ ] **Step 2: Run one repository-wide gate**
+- [x] **Step 2: Run one repository-wide gate**
 
 Run one serial `.venv/bin/pytest -q`. Do not overlap it with another test/build process.
 
-- [ ] **Step 3: Request adversarial review**
+- [x] **Step 3: Request adversarial review**
 
 Start exactly one review consultation with `models=["opus", "gpt-5.6-sol"]`. Require
 no Critical/Important findings on operating-point semantics, strict schemas, historical

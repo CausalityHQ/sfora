@@ -284,6 +284,18 @@ def test_initialization_binding_rejects_wrong_registered_classifier_shape(
         )
 
 
+def test_registered_classifier_shape_is_derived_and_cross_checked() -> None:
+    """The live holdout mapping, not a receipt-local shape, determines the rows."""
+    module = _load_script()
+    labels = {f"item_{index:04d}": index for index in range(3200)}
+
+    assert module.registered_classifier_shape(labels) == [len(labels), 768]
+
+    labels.pop("item_3199")
+    with pytest.raises(ValueError, match="registered classifier shape"):
+        module.registered_classifier_shape(labels)
+
+
 def test_epoch_sampler_matches_padded_global_order() -> None:
     module = _load_script()
     sampler = module.PaddedEpochSampler(size=10, batch_size=8, seed=0)
