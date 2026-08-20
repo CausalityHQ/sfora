@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -8,6 +10,17 @@ import numpy as np
 import pytest
 
 SCRIPT = Path(__file__).parents[1] / "scripts/summarize_unicom_ema_imprint_replication.py"
+SELECTION_REPORT = (
+    Path(__file__).parents[1]
+    / "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json"
+)
+SELECTION_AUTHORITY = {
+    "path": "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json",
+    "sha256": "c0666a68e70990115d80e8dc06a9f94efe83156a3fddd50f36bdbf2b3b8cd217",
+    "recording_commit": "81f3f48c374d14b5a91bbeba7a1fec2fb0a4a2d6",
+    "selected_cell": "imprinted_raw",
+    "decision": "PROMOTE",
+}
 
 
 def _load_script():
@@ -50,7 +63,7 @@ def _protocol(seed: int, classifier_init: str) -> dict[str, object]:
     }
 
 
-def _report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
+def _pair_v1_report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
     baseline_map = 0.89 + seed * 0.001
     baseline_recall = 0.97 + seed * 0.001
     epochs = [4, 8, 12, 16]
@@ -120,25 +133,247 @@ def _report(seed: int, map_delta: float, recall_delta: float) -> dict[str, objec
     }
 
 
+def _future_report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
+    report = _pair_v1_report(seed, map_delta, recall_delta)
+    report["schema_version"] = "unicom-ema-imprint-replication-pair-v2"
+    rng_digest = f"{7000 + seed:064x}"
+    for arm, initialization_seconds in (("random_raw", 1.0), ("imprinted_raw", 10.0)):
+        report[arm]["optimizer_steps_per_epoch"] = 161
+        report[arm]["initialization_seconds"] = initialization_seconds
+        report[arm]["initialization_receipt_sha256"] = (
+            f"{8000 + seed * 2 + (arm == 'imprinted_raw'):064x}"
+        )
+        report[arm]["post_initialization_rng_sha256"] = rng_digest
+    return report
+
+
+def _report(seed: int, map_delta: float, recall_delta: float) -> dict[str, object]:
+    if seed == 1:
+        return _pair_v1_report(seed, map_delta, recall_delta)
+    return _future_report(seed, map_delta, recall_delta)
+
+
+def _summarize(module, reports: list[dict[str, object]]) -> dict[str, object]:
+    return module.summarize_replications(
+        reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+    )
+
+
+def _registered_reports() -> list[dict[str, object]]:
+    return [
+        _pair_v1_report(1, 0.011, 0.0),
+        *[_future_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(2, 7)],
+    ]
+
+
+def _set_map_curve(report: dict[str, object], arm: str, values: list[float]) -> None:
+    for metric, evidence, value in zip(
+        report[arm]["epoch_metrics"], report["evidence"][arm], values, strict=True
+    ):
+        evidence["average_precision"] = [value] * len(evidence["average_precision"])
+        metric["map_at_r"] = float(
+            np.mean(np.asarray(evidence["average_precision"], dtype=np.float64))
+        )
+
+
+@pytest.mark.parametrize(
+    ("key", "replacement"),
+    (
+        ("path", "reports/generated/other.json"),
+        ("sha256", "0" * 64),
+        ("recording_commit", "0" * 40),
+        ("selected_cell", "random_raw"),
+        ("decision", "CLOSE"),
+    ),
+)
+def test_summary_v2_binds_frozen_selection_authority_and_rejects_roundtrip_mutation(
+    key: str, replacement: str
+) -> None:
+    """A copied authority must not become self-authenticating summary evidence."""
+    module = _load_script()
+    reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
+
+    summary = module.summarize_replications(
+        reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+    )
+
+    assert summary["schema_version"] == "unicom-ema-imprint-replication-summary-v2"
+    assert summary["selection_authority"] == SELECTION_AUTHORITY
+    mutated = json.loads(json.dumps(summary))
+    mutated["selection_authority"][key] = replacement
+    with pytest.raises(ValueError, match="selection authority"):
+        module.validate_summary(mutated)
+
+
+def test_summary_cli_authenticates_selection_from_repo_root_not_cwd(tmp_path: Path) -> None:
+    """The CLI must authenticate the frozen Git-backed report from any cwd."""
+    module = _load_script()
+    report_paths: list[Path] = []
+    for seed in range(1, 7):
+        path = tmp_path / f"seed-{seed}.json"
+        path.write_text(
+            json.dumps(_report(seed, 0.01 + seed * 0.001, 0.0)) + "\n",
+            encoding="utf-8",
+        )
+        report_paths.append(path)
+    output = tmp_path / "summary.json"
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    previous = Path.cwd()
+    try:
+        module.os.chdir(elsewhere)
+        exit_code = module.main(
+            [
+                *(str(path) for path in report_paths),
+                "--selection-report",
+                str(SELECTION_REPORT),
+                "--output",
+                str(output),
+            ]
+        )
+    finally:
+        module.os.chdir(previous)
+
+    assert exit_code == 0
+    persisted = module.strict_json_object(output.read_bytes())
+    assert persisted["selection_authority"] == SELECTION_AUTHORITY
+    module.validate_summary(persisted)
+
+
+def test_selection_authority_rejects_an_alias_or_symlink(tmp_path: Path) -> None:
+    """Only the frozen repository-relative path may carry selection authority."""
+    module = _load_script()
+    copied = tmp_path / "selection.json"
+    copied.write_bytes(SELECTION_REPORT.read_bytes())
+    with pytest.raises(ValueError, match="path"):
+        module.load_selection_authority(copied)
+
+    linked = tmp_path / "selection-link.json"
+    linked.symlink_to(SELECTION_REPORT)
+    with pytest.raises(ValueError, match="path"):
+        module.load_selection_authority(linked)
+
+
+def test_summary_separates_non_monotone_epoch_quality_and_compute_operating_points() -> (
+    None
+):
+    """Fixed-budget quality must not be mislabeled as iso-quality cost dominance."""
+    module = _load_script()
+    reports = _registered_reports()
+    _set_map_curve(reports[0], "random_raw", [0.83, 0.89, 0.91, 0.90])
+    _set_map_curve(reports[0], "imprinted_raw", [0.87, 0.90, 0.91, 0.92])
+
+    summary = module.summarize_replications(
+        reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+    )
+
+    assert summary["first_quality_epochs"][0] == {
+        "seed": 1,
+        "random_raw": 12,
+        "imprinted_raw": 8,
+        "speedup": 1.5,
+    }
+    assert summary["initialization_evidence"][0] == {
+        "seed": 1,
+        "status": "historical_initialization_receipt_unavailable",
+        "random_raw": None,
+        "imprinted_raw": None,
+        "post_initialization_rng_equal": None,
+    }
+    assert summary["costs"]["fixed_epoch_profiled_compute_seconds"][0] == {
+        "seed": 1,
+        "random_raw": None,
+        "imprinted_raw": None,
+    }
+    assert summary["costs"]["iso_quality_profiled_compute_seconds"][1] == {
+        "seed": 2,
+        "random_raw": 2577.0,
+        "imprinted_raw": 654.0,
+    }
+    assert summary["costs"]["fixed_epoch_profiled_compute_seconds"][1] == {
+        "seed": 2,
+        "random_raw": 2577.0,
+        "imprinted_raw": 2586.0,
+    }
+    assert summary["fixed_epoch_pareto_nondominated"] is True
+    assert summary["all_first_quality_epochs_noninferior"] is True
+    assert summary["costs"]["fixed_epoch_profiled_compute_overhead_seconds"][1] == {
+        "seed": 2,
+        "imprinted_minus_random": 9.0,
+    }
+    assert summary["all_future_iso_quality_profiled_compute_noninferior"] is True
+
+
+def test_contaminated_wall_time_is_descriptive_but_per_seed_resources_gate() -> None:
+    """Raw time cannot decide; each measured resource and exact deployment size can."""
+    module = _load_script()
+    reports = _registered_reports()
+    baseline = module.summarize_replications(
+        reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+    )
+    reports[2]["imprinted_raw"]["training_seconds"] = 1_000_000.0
+    contaminated = module.summarize_replications(
+        reports, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+    )
+    assert contaminated["costs"]["training_seconds"] != baseline["costs"][
+        "training_seconds"
+    ]
+    assert contaminated["claim_supported"] is baseline["claim_supported"]
+
+    for field, value in (
+        ("peak_gpu_mib", reports[3]["random_raw"]["peak_gpu_mib"] + 1),
+        (
+            "checkpoint_storage_bytes",
+            reports[3]["random_raw"]["checkpoint_storage_bytes"] + 1,
+        ),
+        (
+            "deployment_storage_bytes",
+            reports[3]["random_raw"]["deployment_storage_bytes"] - 1,
+        ),
+    ):
+        mutated = copy.deepcopy(reports)
+        mutated[3]["imprinted_raw"][field] = value
+        result = module.summarize_replications(
+            mutated, selection_authority=copy.deepcopy(SELECTION_AUTHORITY)
+        )
+        assert result["per_seed_resource_noninferior"] is False
+        assert result["claim_supported"] is False
+
+    seed1_resource_mutation = copy.deepcopy(reports)
+    seed1_resource_mutation[0]["imprinted_raw"]["peak_gpu_mib"] = (
+        seed1_resource_mutation[0]["random_raw"]["peak_gpu_mib"] + 1
+    )
+    seed1_result = _summarize(module, seed1_resource_mutation)
+    assert seed1_result["per_seed_resource_noninferior"] is False
+    assert seed1_result["claim_supported"] is False
+
+    slower_seed1 = copy.deepcopy(reports)
+    _set_map_curve(slower_seed1[0], "random_raw", [0.89, 0.89, 0.89, 0.89])
+    _set_map_curve(slower_seed1[0], "imprinted_raw", [0.88, 0.88, 0.88, 0.901])
+    slower_result = _summarize(module, slower_seed1)
+    assert slower_result["all_first_quality_epochs_noninferior"] is False
+    assert slower_result["claim_supported"] is False
+
+
 def test_summary_requires_exact_seeds_and_frozen_cell() -> None:
     module = _load_script()
     reports = [_report(seed, 0.01 + seed * 0.001, 0.002) for seed in range(1, 7)]
 
-    summary = module.summarize_replications(reports)
+    summary = _summarize(module, reports)
 
     assert summary["training_seeds"] == [1, 2, 3, 4, 5, 6]
     assert summary["selected_cell"] == "imprinted_raw"
     assert summary["claim_supported"] is True
     reports[3]["seed"] = 7
     with pytest.raises(ValueError, match="seed|registration"):
-        module.summarize_replications(reports)
+        _summarize(module, reports)
 
 
 def test_summary_uses_paired_student_t_sign_and_recall_gates() -> None:
     module = _load_script()
     reports = [_report(seed, 0.010 + seed * 0.001, -0.001) for seed in range(1, 7)]
 
-    summary = module.summarize_replications(reports)
+    summary = _summarize(module, reports)
 
     assert summary["map_deltas"] == pytest.approx([0.011, 0.012, 0.013, 0.014, 0.015, 0.016])
     assert summary["map_delta_sample_standard_deviation"] > 0.0
@@ -150,14 +385,14 @@ def test_summary_uses_paired_student_t_sign_and_recall_gates() -> None:
     reports[5]["imprinted_raw"]["epoch_metrics"][-1]["recall_at_1"] = float(
         np.mean(reports[5]["evidence"]["imprinted_raw"][-1]["top1_correct"])
     )
-    assert module.summarize_replications(reports)["claim_supported"] is False
+    assert _summarize(module, reports)["claim_supported"] is False
 
 
 def test_summary_recomputes_time_to_quality_and_cost_pareto_fields() -> None:
     module = _load_script()
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
 
-    summary = module.summarize_replications(reports)
+    summary = _summarize(module, reports)
 
     assert summary["first_quality_epochs"] == [
         {"seed": seed, "random_raw": 16, "imprinted_raw": 4, "speedup": 4.0}
@@ -175,28 +410,28 @@ def test_summary_recomputes_time_to_quality_and_cost_pareto_fields() -> None:
     }
     assert summary["costs"]["kernel_profile_threshold"] == 0.1
     assert summary["costs"]["kernel_eligible"] is False
-    assert summary["pareto_cost_noninferior"] is True
-    assert summary["pareto_nondominated_against_random_raw"] is True
+    assert summary["fixed_epoch_pareto_nondominated"] is True
+    assert summary["all_future_iso_quality_profiled_compute_noninferior"] is True
+    assert summary["per_seed_resource_noninferior"] is True
 
     dominated = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
     for report in dominated:
         report["imprinted_raw"]["training_seconds"] = 20000.0
-    dominated_summary = module.summarize_replications(dominated)
+    dominated_summary = _summarize(module, dominated)
     assert dominated_summary["quality_claim_supported"] is True
-    assert dominated_summary["pareto_cost_noninferior"] is False
-    assert dominated_summary["pareto_nondominated_against_random_raw"] is False
-    assert dominated_summary["claim_supported"] is False
+    assert dominated_summary["fixed_epoch_pareto_nondominated"] is True
+    assert dominated_summary["claim_supported"] is True
 
     checkpoint_dominated = [
         _report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)
     ]
     for report in checkpoint_dominated:
         report["imprinted_raw"]["checkpoint_storage_bytes"] = 10**15
-    assert module.summarize_replications(checkpoint_dominated)["pareto_cost_noninferior"] is False
+    assert _summarize(module, checkpoint_dominated)["per_seed_resource_noninferior"] is False
 
     reports[0]["evidence"]["imprinted_raw"][0]["average_precision"] = [0.0] * 1000
     reports[0]["imprinted_raw"]["epoch_metrics"][0]["map_at_r"] = 0.0
-    assert module.summarize_replications(reports)["first_quality_epochs"][0] == {
+    assert _summarize(module, reports)["first_quality_epochs"][0] == {
         "seed": 1,
         "random_raw": 16,
         "imprinted_raw": 8,
@@ -214,7 +449,7 @@ def test_summary_rejects_degenerate_or_reused_checkpoint_evidence() -> None:
                 np.mean(report["evidence"][cell][-1]["average_precision"])
             )
 
-    degenerate = module.summarize_replications(reports)
+    degenerate = _summarize(module, reports)
 
     assert degenerate["nondegenerate_training_seed_variation"] is False
     assert degenerate["claim_supported"] is False
@@ -222,7 +457,7 @@ def test_summary_rejects_degenerate_or_reused_checkpoint_evidence() -> None:
         "random_raw"
     ]["checkpoint_sha256_by_epoch"][0]
     with pytest.raises(ValueError, match="checkpoint"):
-        module.summarize_replications(reports)
+        _summarize(module, reports)
 
 
 @pytest.mark.parametrize(
@@ -240,13 +475,13 @@ def test_summary_requires_complete_registered_costs(arm: str, field: str, value:
     reports[2][arm][field] = value
 
     with pytest.raises((TypeError, ValueError), match="cost|epoch"):
-        module.summarize_replications(reports)
+        _summarize(module, reports)
 
 
 def test_atomic_publication_strict_reloads_and_never_clobbers(tmp_path: Path) -> None:
     module = _load_script()
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
-    summary = module.summarize_replications(reports)
+    summary = _summarize(module, reports)
     output = tmp_path / "summary.json"
 
     module.write_summary_atomic(summary, output)
@@ -268,7 +503,7 @@ def test_summary_rejects_cross_seed_protocol_or_query_count_drift() -> None:
     reports[1]["random_training_protocol"]["trainer_sha256"] = "e" * 64
     reports[1]["imprinted_training_protocol"]["trainer_sha256"] = "e" * 64
     with pytest.raises(ValueError, match="protocol"):
-        module.summarize_replications(reports)
+        _summarize(module, reports)
 
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
     for cell in ("random_raw", "imprinted_raw"):
@@ -280,7 +515,7 @@ def test_summary_rejects_cross_seed_protocol_or_query_count_drift() -> None:
             metric["map_at_r"] = float(np.mean(evidence["average_precision"]))
             metric["recall_at_1"] = float(np.mean(evidence["top1_correct"]))
     with pytest.raises(ValueError, match="query"):
-        module.summarize_replications(reports)
+        _summarize(module, reports)
 
 
 def test_summary_atomic_rolls_back_after_post_link_failure(
@@ -301,7 +536,7 @@ def test_summary_atomic_rolls_back_after_post_link_failure(
 
     monkeypatch.setattr(module.os, "fsync", fail_second_fsync)
     with pytest.raises(OSError, match="directory fsync"):
-        module.write_summary_atomic(module.summarize_replications(reports), output)
+        module.write_summary_atomic(_summarize(module, reports), output)
     assert not output.exists()
     rollback = list(tmp_path.glob(".*.rollback"))
     assert len(rollback) == 1
@@ -356,7 +591,7 @@ def test_atomic_summary_uses_an_unnamed_inode_and_ignores_foreign_temp(
     reports = [_report(seed, 0.01 + seed * 0.001, 0.0) for seed in range(1, 7)]
     temporary.write_bytes(b"foreign temp")
 
-    module.write_summary_atomic(module.summarize_replications(reports), output)
+    module.write_summary_atomic(_summarize(module, reports), output)
 
     module.validate_summary(module.strict_json_object(output.read_bytes()))
     assert temporary.read_bytes() == b"foreign temp"
@@ -380,6 +615,6 @@ def test_atomic_summary_reloads_the_published_inode_after_link(
 
     monkeypatch.setattr(module, "_link_fd_noreplace", corrupt_after_link)
     with pytest.raises((ValueError, RuntimeError)):
-        module.write_summary_atomic(module.summarize_replications(reports), output)
+        module.write_summary_atomic(_summarize(module, reports), output)
 
     assert not output.exists()

@@ -6,11 +6,13 @@ from __future__ import annotations
 import argparse
 import ctypes
 import errno
+import hashlib
 import importlib.util
 import json
 import math
 import os
 import secrets
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,8 +21,19 @@ import numpy as np
 
 REGISTERED_SEEDS = (1, 2, 3, 4, 5, 6)
 SELECTED_CELL = "imprinted_raw"
-PAIR_SCHEMA = "unicom-ema-imprint-replication-pair-v1"
-SUMMARY_SCHEMA = "unicom-ema-imprint-replication-summary-v1"
+PAIR_SCHEMA_V1 = "unicom-ema-imprint-replication-pair-v1"
+PAIR_SCHEMA_V2 = "unicom-ema-imprint-replication-pair-v2"
+SUMMARY_SCHEMA = "unicom-ema-imprint-replication-summary-v2"
+SELECTION_REPORT_PATH = "reports/generated/unicom_ema_imprint_factorial_88604a4_seed0.json"
+SELECTION_REPORT_SHA256 = "c0666a68e70990115d80e8dc06a9f94efe83156a3fddd50f36bdbf2b3b8cd217"
+SELECTION_RECORDING_COMMIT = "81f3f48c374d14b5a91bbeba7a1fec2fb0a4a2d6"
+SELECTION_AUTHORITY = {
+    "path": SELECTION_REPORT_PATH,
+    "sha256": SELECTION_REPORT_SHA256,
+    "recording_commit": SELECTION_RECORDING_COMMIT,
+    "selected_cell": SELECTED_CELL,
+    "decision": "PROMOTE",
+}
 STUDENT_T_CRITICAL_TWO_SIDED_95_DF5 = 2.5705818356363146
 RECALL_AT_1_DELTA_GUARD = -0.00125
 _TOP_LEVEL_KEYS = (
@@ -46,6 +59,12 @@ _ARM_KEYS = (
     "measurement_receipt_sha256",
     "profile",
 )
+_ARM_V2_KEYS = _ARM_KEYS + (
+    "optimizer_steps_per_epoch",
+    "initialization_seconds",
+    "initialization_receipt_sha256",
+    "post_initialization_rng_sha256",
+)
 _METRIC_KEYS = ("epoch", "map_at_r", "recall_at_1")
 _PROFILE_KEYS = ("step_wall_seconds", "fusible_non_backbone_seconds")
 _LATENCY_KEYS = (
@@ -58,7 +77,9 @@ _SUMMARY_KEYS = (
     "schema_version",
     "training_seeds",
     "selected_cell",
+    "selection_authority",
     "reports",
+    "initialization_evidence",
     "map_deltas",
     "mean_map_delta",
     "map_delta_sample_standard_deviation",
@@ -73,9 +94,27 @@ _SUMMARY_KEYS = (
     "quality_claim_supported",
     "first_quality_epochs",
     "costs",
-    "pareto_cost_noninferior",
-    "pareto_nondominated_against_random_raw",
+    "fixed_epoch_pareto_nondominated",
+    "all_first_quality_epochs_noninferior",
+    "all_future_iso_quality_profiled_compute_noninferior",
+    "per_seed_resource_noninferior",
     "claim_supported",
+)
+_COST_KEYS = (
+    "training_seconds",
+    "first_quality_epochs",
+    "fixed_epoch_profiled_compute_seconds",
+    "fixed_epoch_profiled_compute_overhead_seconds",
+    "iso_quality_profiled_compute_seconds",
+    "peak_gpu_mib",
+    "inference_latency_protocol",
+    "inference_latency_ms_per_image",
+    "checkpoint_storage_bytes",
+    "deployment_storage_bytes",
+    "profile_fusible_non_backbone_fraction",
+    "kernel_profile_threshold",
+    "kernel_eligible",
+    "historical_cost_limitations",
 )
 
 
@@ -109,7 +148,16 @@ def _validate_replication_pair(value: object) -> None:
     sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
-        module.validate_replication_pair(value)
+        candidate = value
+        if type(value) is dict and value.get("schema_version") == PAIR_SCHEMA_V2:
+            candidate = dict(value)
+            candidate["schema_version"] = PAIR_SCHEMA_V1
+            for arm_name in ("random_raw", "imprinted_raw"):
+                arm = value.get(arm_name)
+                if type(arm) is not dict or tuple(arm) != _ARM_V2_KEYS:
+                    raise ValueError("replication pair v2 arm schema differs")
+                candidate[arm_name] = {key: arm[key] for key in _ARM_KEYS}
+        module.validate_replication_pair(candidate)
     finally:
         sys.modules.pop(name, None)
 
@@ -141,8 +189,76 @@ def _sha256(value: object, name: str) -> str:
     return value
 
 
-def _arm(value: object, name: str) -> dict[str, Any]:
-    arm = _exact_object(value, _ARM_KEYS, name)
+def _validate_selection_authority(value: object) -> dict[str, str]:
+    authority = _exact_object(
+        value,
+        ("path", "sha256", "recording_commit", "selected_cell", "decision"),
+        "selection authority",
+    )
+    if not _exact_ordered_equal(authority, SELECTION_AUTHORITY):
+        raise ValueError("selection authority differs")
+    return authority
+
+
+def load_selection_authority(path: Path) -> dict[str, str]:
+    """Authenticate the immutable seed-0 selection report against Git and worktree bytes."""
+    if not isinstance(path, Path):
+        raise TypeError("selection report must be a Path")
+    repository = Path(__file__).resolve().parents[1]
+    expected = repository / SELECTION_REPORT_PATH
+    if (
+        Path(os.path.abspath(path)) != expected
+        or path.is_symlink()
+        or not expected.is_file()
+        or expected.is_symlink()
+    ):
+        raise ValueError("selection authority path differs")
+    payload = expected.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != SELECTION_REPORT_SHA256:
+        raise ValueError("selection authority SHA-256 differs")
+    report = strict_json_object(payload)
+    validator_path = Path(__file__).resolve().with_name(
+        "evaluate_unicom_ema_imprint_factorial.py"
+    )
+    name = "_unicom_ema_imprint_factorial_validator"
+    spec = importlib.util.spec_from_file_location(name, validator_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("selection authority validator cannot be loaded")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+        module.validate_factorial_report(report)
+    finally:
+        sys.modules.pop(name, None)
+    gate = report["gate"]
+    if (
+        gate.get("selected_cell") != SELECTED_CELL
+        or gate.get("decision") != "PROMOTE"
+        or gate.get("promoted") is not True
+    ):
+        raise ValueError("selection authority gate differs")
+    ancestry = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", SELECTION_RECORDING_COMMIT, "HEAD"],
+        cwd=repository,
+        check=False,
+        capture_output=True,
+    )
+    if ancestry.returncode != 0:
+        raise ValueError("selection authority recording commit is not an ancestor")
+    recorded = subprocess.run(
+        ["git", "show", f"{SELECTION_RECORDING_COMMIT}:{SELECTION_REPORT_PATH}"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+    ).stdout
+    if recorded != payload:
+        raise ValueError("selection authority Git blob differs")
+    return dict(SELECTION_AUTHORITY)
+
+
+def _arm(value: object, name: str, *, future: bool) -> dict[str, Any]:
+    arm = _exact_object(value, _ARM_V2_KEYS if future else _ARM_KEYS, name)
     hashes = arm["checkpoint_sha256_by_epoch"]
     if type(hashes) is not list or len(hashes) != 4:
         raise ValueError(f"{name} checkpoint evidence differs")
@@ -180,6 +296,17 @@ def _arm(value: object, name: str) -> dict[str, Any]:
     )
     if fusible < 0.0 or fusible > step:
         raise ValueError(f"{name} profile cost differs")
+    if future:
+        steps = arm["optimizer_steps_per_epoch"]
+        if type(steps) is not int or steps <= 0:
+            raise ValueError(f"{name} optimizer steps differ")
+        _finite_float(
+            arm["initialization_seconds"],
+            f"{name}.initialization_seconds",
+            positive=True,
+        )
+        _sha256(arm["initialization_receipt_sha256"], f"{name} initialization receipt")
+        _sha256(arm["post_initialization_rng_sha256"], f"{name} post-init RNG")
     return arm
 
 
@@ -200,17 +327,24 @@ def _first_epoch_reaching(arm: dict[str, Any], target: float) -> int | None:
     return None
 
 
-def summarize_replications(reports: list[object]) -> dict[str, object]:
+def summarize_replications(
+    reports: list[object], *, selection_authority: object
+) -> dict[str, object]:
     """Validate and summarize exactly the six preregistered paired reports."""
     if type(reports) is not list or len(reports) != len(REGISTERED_SEEDS):
         raise ValueError("training seeds differ")
+    authority = _validate_selection_authority(selection_authority)
 
     map_deltas: list[float] = []
     recall_deltas: list[float] = []
     checkpoint_hashes: list[str] = []
     validated: list[dict[str, Any]] = []
     first_quality_epochs: list[dict[str, object]] = []
+    initialization_evidence: list[dict[str, object]] = []
     training_costs: list[dict[str, object]] = []
+    fixed_epoch_costs: list[dict[str, object]] = []
+    fixed_epoch_overheads: list[dict[str, object]] = []
+    iso_quality_costs: list[dict[str, object]] = []
     peak_costs: list[dict[str, object]] = []
     checkpoint_costs: list[dict[str, object]] = []
     deployment_costs: list[dict[str, object]] = []
@@ -223,7 +357,8 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
     for expected_seed, raw_report in zip(REGISTERED_SEEDS, reports, strict=True):
         report = _exact_object(raw_report, _TOP_LEVEL_KEYS, "replication pair")
         _validate_replication_pair(report)
-        if report["schema_version"] != PAIR_SCHEMA:
+        expected_schema = PAIR_SCHEMA_V1 if expected_seed == 1 else PAIR_SCHEMA_V2
+        if report["schema_version"] != expected_schema:
             raise ValueError("replication pair schema version differs")
         if type(report["seed"]) is not int or report["seed"] != expected_seed:
             raise ValueError("training seeds differ")
@@ -233,8 +368,14 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
             type(epoch) is not int for epoch in report["registered_epochs"]
         ):
             raise ValueError("registered epochs differ")
-        random_arm = _arm(report["random_raw"], "random_raw")
-        imprinted_arm = _arm(report["imprinted_raw"], "imprinted_raw")
+        future = expected_seed != 1
+        random_arm = _arm(report["random_raw"], "random_raw", future=future)
+        imprinted_arm = _arm(report["imprinted_raw"], "imprinted_raw", future=future)
+        if future and (
+            random_arm["post_initialization_rng_sha256"]
+            != imprinted_arm["post_initialization_rng_sha256"]
+        ):
+            raise ValueError("post-initialization RNG differs")
         normalized_protocol = dict(report["random_training_protocol"])
         normalized_protocol.pop("seed")
         normalized_protocol.pop("classifier_init")
@@ -288,6 +429,107 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
                 "speedup": speedup,
             }
         )
+        if not future:
+            initialization_evidence.append(
+                {
+                    "seed": expected_seed,
+                    "status": "historical_initialization_receipt_unavailable",
+                    "random_raw": None,
+                    "imprinted_raw": None,
+                    "post_initialization_rng_equal": None,
+                }
+            )
+            fixed_epoch_costs.append(
+                {"seed": expected_seed, "random_raw": None, "imprinted_raw": None}
+            )
+            fixed_epoch_overheads.append(
+                {"seed": expected_seed, "imprinted_minus_random": None}
+            )
+            iso_quality_costs.append(
+                {"seed": expected_seed, "random_raw": None, "imprinted_raw": None}
+            )
+        else:
+            initialization_evidence.append(
+                {
+                    "seed": expected_seed,
+                    "status": "prospective_authenticated",
+                    "random_raw": {
+                        "initialization_receipt_sha256": random_arm[
+                            "initialization_receipt_sha256"
+                        ],
+                        "optimizer_steps_per_epoch": random_arm[
+                            "optimizer_steps_per_epoch"
+                        ],
+                        "initialization_seconds": random_arm["initialization_seconds"],
+                        "post_initialization_rng_sha256": random_arm[
+                            "post_initialization_rng_sha256"
+                        ],
+                    },
+                    "imprinted_raw": {
+                        "initialization_receipt_sha256": imprinted_arm[
+                            "initialization_receipt_sha256"
+                        ],
+                        "optimizer_steps_per_epoch": imprinted_arm[
+                            "optimizer_steps_per_epoch"
+                        ],
+                        "initialization_seconds": imprinted_arm[
+                            "initialization_seconds"
+                        ],
+                        "post_initialization_rng_sha256": imprinted_arm[
+                            "post_initialization_rng_sha256"
+                        ],
+                    },
+                    "post_initialization_rng_equal": True,
+                }
+            )
+            random_fixed = (
+                16
+                * random_arm["optimizer_steps_per_epoch"]
+                * random_arm["profile"]["step_wall_seconds"]
+                + random_arm["initialization_seconds"]
+            )
+            imprinted_fixed = (
+                16
+                * imprinted_arm["optimizer_steps_per_epoch"]
+                * imprinted_arm["profile"]["step_wall_seconds"]
+                + imprinted_arm["initialization_seconds"]
+            )
+            fixed_epoch_costs.append(
+                {
+                    "seed": expected_seed,
+                    "random_raw": random_fixed,
+                    "imprinted_raw": imprinted_fixed,
+                }
+            )
+            fixed_epoch_overheads.append(
+                {
+                    "seed": expected_seed,
+                    "imprinted_minus_random": imprinted_fixed - random_fixed,
+                }
+            )
+            random_iso = (
+                None
+                if random_epoch is None
+                else random_epoch
+                * random_arm["optimizer_steps_per_epoch"]
+                * random_arm["profile"]["step_wall_seconds"]
+                + random_arm["initialization_seconds"]
+            )
+            imprinted_iso = (
+                None
+                if imprinted_epoch is None
+                else imprinted_epoch
+                * imprinted_arm["optimizer_steps_per_epoch"]
+                * imprinted_arm["profile"]["step_wall_seconds"]
+                + imprinted_arm["initialization_seconds"]
+            )
+            iso_quality_costs.append(
+                {
+                    "seed": expected_seed,
+                    "random_raw": random_iso,
+                    "imprinted_raw": imprinted_iso,
+                }
+            )
         training_costs.append(
             {
                 "seed": expected_seed,
@@ -371,6 +613,9 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
     costs = {
         "training_seconds": training_costs,
         "first_quality_epochs": first_quality_epochs,
+        "fixed_epoch_profiled_compute_seconds": fixed_epoch_costs,
+        "fixed_epoch_profiled_compute_overhead_seconds": fixed_epoch_overheads,
+        "iso_quality_profiled_compute_seconds": iso_quality_costs,
         "peak_gpu_mib": peak_costs,
         "inference_latency_protocol": {
             "warmup_repetitions": 10,
@@ -383,29 +628,43 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
         "profile_fusible_non_backbone_fraction": profile_ratios,
         "kernel_profile_threshold": 0.1,
         "kernel_eligible": kernel_eligible,
+        "historical_cost_limitations": [
+            {
+                "seed": 1,
+                "status": "historical_initialization_receipt_unavailable",
+            }
+        ],
     }
-    paired_cost_noninferior = (
-        sum(row["imprinted_raw"] for row in training_costs)
-        <= sum(row["random_raw"] for row in training_costs)
-        and sum(row["imprinted_raw"] for row in peak_costs)
-        <= sum(row["random_raw"] for row in peak_costs)
-        and sum(row["imprinted_raw"] for row in checkpoint_costs)
-        <= sum(row["random_raw"] for row in checkpoint_costs)
-        and sum(row["imprinted_raw"] for row in deployment_costs)
-        <= sum(row["random_raw"] for row in deployment_costs)
-        and all(
-            row["imprinted_raw"] is not None
-            and row["random_raw"] is not None
-            and row["imprinted_raw"] <= row["random_raw"]
-            for row in first_quality_epochs
+    if tuple(costs) != _COST_KEYS:
+        raise RuntimeError("replication summary cost construction differs")
+    all_first_quality_noninferior = all(
+        row["imprinted_raw"] is not None
+        and row["random_raw"] is not None
+        and row["imprinted_raw"] <= row["random_raw"]
+        for row in first_quality_epochs
+    )
+    future_iso_noninferior = all(
+        row["imprinted_raw"] is not None
+        and row["random_raw"] is not None
+        and row["imprinted_raw"] <= row["random_raw"]
+        for row in iso_quality_costs[1:]
+    )
+    resource_noninferior = all(
+        peak["imprinted_raw"] <= peak["random_raw"]
+        and checkpoint["imprinted_raw"] <= checkpoint["random_raw"]
+        and deployment["imprinted_raw"] == deployment["random_raw"]
+        for peak, checkpoint, deployment in zip(
+            peak_costs, checkpoint_costs, deployment_costs, strict=True
         )
     )
-    pareto_nondominated = quality_supported and paired_cost_noninferior
+    pareto_nondominated = all_positive
     summary = {
         "schema_version": SUMMARY_SCHEMA,
         "training_seeds": list(REGISTERED_SEEDS),
         "selected_cell": SELECTED_CELL,
+        "selection_authority": dict(authority),
         "reports": validated,
+        "initialization_evidence": initialization_evidence,
         "map_deltas": map_deltas,
         "mean_map_delta": mean_delta,
         "map_delta_sample_standard_deviation": sample_sd,
@@ -420,9 +679,16 @@ def summarize_replications(reports: list[object]) -> dict[str, object]:
         "quality_claim_supported": quality_supported,
         "first_quality_epochs": first_quality_epochs,
         "costs": costs,
-        "pareto_cost_noninferior": paired_cost_noninferior,
-        "pareto_nondominated_against_random_raw": pareto_nondominated,
-        "claim_supported": quality_supported and pareto_nondominated,
+        "fixed_epoch_pareto_nondominated": pareto_nondominated,
+        "all_first_quality_epochs_noninferior": all_first_quality_noninferior,
+        "all_future_iso_quality_profiled_compute_noninferior": future_iso_noninferior,
+        "per_seed_resource_noninferior": resource_noninferior,
+        "claim_supported": (
+            quality_supported
+            and all_first_quality_noninferior
+            and future_iso_noninferior
+            and resource_noninferior
+        ),
     }
     return summary
 
@@ -432,7 +698,9 @@ def validate_summary(value: object) -> None:
     reports = summary["reports"]
     if type(reports) is not list:
         raise ValueError("replication summary reports differ")
-    expected = summarize_replications(reports)
+    expected = summarize_replications(
+        reports, selection_authority=summary["selection_authority"]
+    )
     if not _exact_ordered_equal(summary, expected):
         raise ValueError("replication summary derived values differ")
 
@@ -601,10 +869,12 @@ def write_summary_atomic(summary: dict[str, object], output: Path) -> None:
 def main(arguments: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("reports", nargs=6, type=Path)
+    parser.add_argument("--selection-report", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(arguments)
     reports = [strict_json_object(path.read_bytes()) for path in args.reports]
-    summary = summarize_replications(reports)
+    authority = load_selection_authority(args.selection_report)
+    summary = summarize_replications(reports, selection_authority=authority)
     write_summary_atomic(summary, args.output)
     return 0
 
