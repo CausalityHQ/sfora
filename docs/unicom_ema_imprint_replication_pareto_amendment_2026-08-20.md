@@ -86,8 +86,12 @@ summarizer accidentally strengthened raw training wall time into a claim gate.
 Removing that gate restores the preregistration rather than making the claim easier.
 
 Seed-1 raw wall time is `17,629.0` seconds for random and
-`14,252.320465842` seconds for imprinted. The retrospective `161` steps per
-epoch is derived as `floor(20_706 optimization images / 128 batch size)`; seed 1
+`14,252.320465842` seconds for imprinted. The authenticated partition has exactly
+`20_650` optimization images after `identity_holdout(..., fraction=0.2, seed=0)`;
+the source partition's SHA-256 is the registered
+`cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c`.
+The retrospective `161` steps per epoch is derived with the trainer's exact sampler
+formula, `ceil(20_650 / 8 shards) // (128 / 8 local batch)`; seed 1
 has no initialization receipt, so this derived count is descriptive and cannot
 gate a profiled-compute claim. The matched 16-epoch step models are
 `13,641.277351625264` and `13,642.094341494143` seconds before initialization cost,
@@ -122,7 +126,8 @@ summary row must therefore contain exact status
 `"historical_initialization_receipt_unavailable"`, null fixed/iso compute totals,
 and the raw wall time, profiler values, epoch estimator, memory, latency, and storage.
 The rejected illustrative charge `25_882 * inference_latency` may be reported only
-in chronology text: it used a genuine `25_882/20_706 = 1.250x` image-count bound but
+in chronology text: it used a genuine `25_882/20_650 = 1.253365617433414x`
+image-count bound but
 excluded preprocessing and transfer and is not a conservative time bound. It gates
 nothing.
 
@@ -169,8 +174,8 @@ fixed-epoch Pareto predicate is a derived consequence, not a separate claim pill
 Seed 1 contributes quality, epoch-to-quality, and resource evidence but cannot
 contribute to the prospective profiled-compute conjunction.
 
-The A-B-B-A profiler kernel gate remains `0.1`; seed 1 measured about `0.00045`, so
-custom-kernel work remains closed.
+The A-B-B-A profiler kernel gate remains `0.1`; seed 1's maximum registered ratio is
+`0.0004655412645827709`, so custom-kernel work remains closed.
 
 ## Forward-only initialization receipts
 
@@ -292,7 +297,9 @@ compute, peak, checkpoint, deployment, and profile rows use exact order `seed`,
 `milliseconds_per_image`. `first_quality_epochs` rows use exact order `seed`,
 `random_raw`, `imprinted_raw`, `speedup`. Fixed-epoch overhead rows use exact order
 `seed`, `imprinted_minus_random`; seed 1 is null and seeds 2..6 are the difference of
-the two profiled proxies. `historical_cost_limitations` is exactly:
+the two profiled proxies. `inference_latency_protocol` is exactly
+`{"warmup_repetitions": 10, "measured_repetitions": 50, "batch_size": 128}` in
+that key order. `historical_cost_limitations` is exactly:
 
 ```json
 [
