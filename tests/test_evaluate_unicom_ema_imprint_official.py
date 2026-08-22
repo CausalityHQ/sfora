@@ -408,18 +408,112 @@ def test_identity_uniform_map_rejects_malformed_query_evidence(
         module.identity_uniform_map(average_precision, labels, paths)
 
 
-def test_evaluation_model_must_be_eval_fp32_and_batchnorm_free() -> None:
+class _OfficialProjectionModel(torch.nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        self.feature = torch.nn.Sequential(
+            torch.nn.Linear(3, 1024, bias=False),
+            torch.nn.BatchNorm1d(1024, eps=2e-5),
+            torch.nn.Linear(1024, 768, bias=False),
+            torch.nn.BatchNorm1d(768, eps=2e-5),
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.feature(inputs)
+
+
+def _official_projection_model() -> torch.nn.Module:
+    return _OfficialProjectionModel().float().eval()
+
+
+def test_evaluation_model_accepts_official_eval_batchnorm_running_state() -> None:
     module = _load_module()
-    model = torch.nn.Linear(3, 2).float().eval()
+    model = _official_projection_model()
 
     module.validate_evaluation_model(model)
 
+    assert model.feature[1].num_batches_tracked.dtype == torch.int64
+    assert model.feature[3].num_batches_tracked.dtype == torch.int64
+
+
+def test_evaluation_model_rejects_mutating_or_malformed_batchnorm() -> None:
+    module = _load_module()
+    model = _official_projection_model().train()
+
     with pytest.raises(ValueError, match="eval mode"):
-        module.validate_evaluation_model(model.train())
+        module.validate_evaluation_model(model)
+    with pytest.raises(ValueError):
+        module.validate_evaluation_model(_official_projection_model().half().eval())
+
+    model.eval()
+    model.feature[1].train()
+    with pytest.raises(ValueError, match=r"feature\.1.*eval mode"):
+        module.validate_evaluation_model(model)
+
+    batch_stat_model = _official_projection_model()
+    batch_stat_model.feature[1] = torch.nn.BatchNorm1d(
+        1024, eps=2e-5, track_running_stats=False
+    ).float().eval()
+    with pytest.raises(ValueError, match="running statistics"):
+        module.validate_evaluation_model(batch_stat_model)
+
+    malformed_model = _official_projection_model()
+    malformed_model.feature[1].running_var[0] = float("nan")
+    with pytest.raises(ValueError, match="running statistics"):
+        module.validate_evaluation_model(malformed_model)
+
+    negative_variance_model = _official_projection_model()
+    negative_variance_model.feature[3].running_var[0] = -1.0
+    with pytest.raises(ValueError, match="running statistics"):
+        module.validate_evaluation_model(negative_variance_model)
+
+    wrong_epsilon_model = _official_projection_model()
+    wrong_epsilon_model.feature[1].eps = 1e-5
+    with pytest.raises(ValueError, match="running statistics"):
+        module.validate_evaluation_model(wrong_epsilon_model)
+
+    nonfinite_parameter_model = _official_projection_model()
+    with torch.no_grad():
+        nonfinite_parameter_model.feature[0].weight[0, 0] = float("inf")
     with pytest.raises(ValueError, match="FP32"):
-        module.validate_evaluation_model(torch.nn.Linear(3, 2).half().eval())
-    with pytest.raises(ValueError, match="BatchNorm"):
-        module.validate_evaluation_model(torch.nn.BatchNorm1d(3).float().eval())
+        module.validate_evaluation_model(nonfinite_parameter_model)
+
+
+def test_evaluation_model_rejects_any_training_child_module() -> None:
+    module = _load_module()
+    model = torch.nn.Sequential(torch.nn.Linear(3, 3), torch.nn.Dropout()).float().eval()
+    model[1].train()
+
+    with pytest.raises(ValueError, match=r"1.*eval mode"):
+        module.validate_evaluation_model(model)
+
+
+def test_evaluation_model_rejects_missing_official_batchnorm_inventory() -> None:
+    module = _load_module()
+
+    with pytest.raises(ValueError, match="layout"):
+        module.validate_evaluation_model(torch.nn.Linear(3, 2).float().eval())
+
+
+def test_eval_batchnorm_running_state_is_batch_composition_independent() -> None:
+    inputs = torch.tensor(
+        [[-3.0, 0.5, 2.0], [1.0, 4.0, -2.0], [5.0, -1.0, 0.25], [2.0, 3.0, 7.0]],
+        dtype=torch.float32,
+    )
+    tracked = torch.nn.BatchNorm1d(3).float().eval()
+    tracked.running_mean.copy_(torch.tensor([0.25, -0.5, 1.0]))
+    tracked.running_var.copy_(torch.tensor([1.5, 2.0, 0.75]))
+
+    together = tracked(inputs)
+    split = torch.cat((tracked(inputs[:2]), tracked(inputs[2:])))
+
+    assert torch.equal(together, split)
+
+    untracked = torch.nn.BatchNorm1d(3, track_running_stats=False).float().eval()
+    untracked_together = untracked(inputs)
+    untracked_split = torch.cat((untracked(inputs[:2]), untracked(inputs[2:])))
+
+    assert not torch.equal(untracked_together, untracked_split)
 
 
 def _literal_valid_view() -> dict[str, object]:
@@ -599,14 +693,11 @@ def test_evaluation_row_validator_rejects_recursive_relational_drift(mutation: s
 
 def test_loaded_checkpoint_uses_only_raw_model_under_inference_mode() -> None:
     module = _load_module()
-    source = torch.nn.Linear(3, 768, bias=False).float()
-    with torch.no_grad():
-        source.weight.zero_()
-        source.weight[:3, :3] = torch.eye(3)
-    target = torch.nn.Linear(3, 768, bias=False).float().train()
+    source = _official_projection_model()
+    target = _official_projection_model().train()
     checkpoint = {
         "model": source.state_dict(),
-        "ema": {"weight": torch.full_like(source.weight, 99.0)},
+        "ema": {"feature.0.weight": torch.full_like(source.feature[0].weight, 99.0)},
     }
 
     def encode(model):
@@ -625,13 +716,13 @@ def test_loaded_checkpoint_uses_only_raw_model_under_inference_mode() -> None:
     result = module.evaluate_loaded_checkpoint(target, checkpoint, encode)
 
     assert result["primary"]["map_at_r"] == 1.0
-    assert torch.equal(target.weight, source.weight)
-    assert not torch.all(target.weight == 99.0)
+    assert torch.equal(target.feature[0].weight, source.feature[0].weight)
+    assert not torch.all(target.feature[0].weight == 99.0)
 
 
 def test_loaded_checkpoint_requires_strict_raw_model_state() -> None:
     module = _load_module()
-    target = torch.nn.Linear(3, 768, bias=False).float()
+    target = _official_projection_model()
 
     with pytest.raises((KeyError, RuntimeError, ValueError)):
         module.evaluate_loaded_checkpoint(target, {"model": {}}, lambda _model: None)

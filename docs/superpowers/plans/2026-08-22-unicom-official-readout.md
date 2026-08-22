@@ -56,8 +56,8 @@ and exclusively publishes one strict-reloaded result after all rows validate.
 1. RED tests use a tiny real CPU model and deterministic records to require
    primary full-768 unit-normalized Euclidean ranking, secondary normalize-full then
    prefix-512 ranking, exact R@1/10/20/30/40/50 and query-/identity-weighted mAP@R,
-   per-query AP@R/top-1 evidence, prefix-energy evidence, raw checkpoint state, and no
-   BatchNorm modules.
+   per-query AP@R/top-1 evidence, prefix-energy evidence, raw checkpoint state, and the
+   exact eval-only FP32 BatchNorm projection state frozen by the structural erratum.
    Bind direct `retrieval_view` calls and prove the k=40/50 extension leaves existing
    mAP@R and Recall@1/10/20/30 bytes unchanged.
 2. RED recursive mutation tests remove/add/reorder every object key, change fixed
@@ -90,7 +90,8 @@ and exclusively publishes one strict-reloaded result after all rows validate.
 1. Run the complete new test file, all affected UniCOM tests, Ruff, py_compile, and
    `git diff --check`.
 2. Run the repository-wide serial suite once after the diff is stable.
-3. Commit exactly evaluator + tests with no result or manifest.
+3. Commit exactly evaluator + tests + the reviewed structural spec/plan/erratum changes,
+   with no result or manifest.
 4. Obtain independent source review. Reproduce every finding with a focused RED,
    minimally fix, rerun affected/full verification once, and repeat review until READY.
 

@@ -72,8 +72,11 @@ training and during intervention selection.
   `random_raw` then `imprinted_raw`; within arm, epochs 4, 8, 12, 16. This is 48 rows.
 - Model state: the exact raw `checkpoint["model"]` state used by the completed
   `random_raw`/`imprinted_raw` comparison; classifier and EMA-shadow state are excluded.
-- BatchNorm: assert that the authenticated ViT contains no BatchNorm/SyncBatchNorm
-  modules; do not introduce a train-data recalibration pass into this readout.
+- BatchNorm: require the authenticated ViT's exact `feature.1` and `feature.3`
+  `BatchNorm1d` projection modules, checkpointed running statistics, and eval-mode
+  inference; do not introduce a train-data recalibration pass into this readout. The
+  prospective correction and first structural exit are disclosed in
+  `docs/unicom_ema_imprint_official_structural_erratum_2026-08-22.md`.
 - Primary geometry: use all 768 dimensions, normalize each complete descriptor after
   extraction, then exact Euclidean query-to-gallery ranking. This is the `full_unit`
   view that reproduces the released UniCOM score in
@@ -114,9 +117,11 @@ inference in FP32 with autocast disabled, TF32 disabled for both CUDA matmul and
 deterministic algorithms enabled with `warn_only=False`, cuDNN benchmark disabled/
 deterministic enabled, fixed nonshuffled file order, and fixed batch size/workers. Load
 every row with `raw_model.load_state_dict(checkpoint["model"], strict=True)` and assert
-that every parameter and buffer is FP32 afterward. Both arms of each seed execute in
-the same process under identical settings. Call `model.eval()` and extract only inside
-`torch.inference_mode()`. Persist a byte hash of every complete embedding matrix.
+that every parameter and every floating-point buffer is finite FP32 afterward. The two
+registered BatchNorm counters remain nonnegative scalar int64 buffers. Both arms of each
+seed execute in the same process under identical settings. Call `model.eval()` and
+extract only inside `torch.inference_mode()`. Persist a byte hash of every complete
+embedding matrix.
 
 ### Frozen decisions
 
@@ -246,6 +251,7 @@ replacement. It reruns all 48 rows from index 0. Attempt number and every prior 
 status enter the final result. Exceeding the hard timeout qualifies as an infrastructure
 defect for that single replacement. A second structural failure publishes the failed gate;
 observed scientific values may never motivate a rerun or threshold change.
+The structural erratum defines the pre-input/post-input boundary for attempt accounting.
 
 The final report includes all five gating paired rows plus the seed-1 sensitivity row,
 confidence intervals, exact query-level evidence hashes, registered-epoch trajectories,

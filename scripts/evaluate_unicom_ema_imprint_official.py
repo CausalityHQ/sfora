@@ -382,19 +382,67 @@ def validate_evaluation_model(model: Any) -> None:
 
     if not isinstance(model, torch.nn.Module):
         raise TypeError("evaluation model must be a Torch module")
-    if model.training:
-        raise ValueError("evaluation model must be in eval mode")
-    batch_norm_types = (
-        torch.nn.BatchNorm1d,
-        torch.nn.BatchNorm2d,
-        torch.nn.BatchNorm3d,
-        torch.nn.SyncBatchNorm,
+    training_modules = tuple(
+        name or "<root>" for name, module in model.named_modules() if module.training
     )
-    if any(isinstance(module, batch_norm_types) for module in model.modules()):
-        raise ValueError("evaluation model must be BatchNorm-free")
-    tensors = (*model.parameters(), *model.buffers())
-    if not tensors or any(tensor.dtype != torch.float32 for tensor in tensors):
+    if training_modules:
+        raise ValueError(
+            f"evaluation model module {training_modules[0]} must be in eval mode"
+        )
+    batch_norms = tuple(
+        (name, module)
+        for name, module in model.named_modules()
+        if isinstance(module, torch.nn.modules.batchnorm._BatchNorm)
+    )
+    expected_batch_norms = (("feature.1", 1024), ("feature.3", 768))
+    if tuple(
+        (name, module.num_features) for name, module in batch_norms
+    ) != expected_batch_norms or any(
+        type(module) is not torch.nn.BatchNorm1d for _name, module in batch_norms
+    ):
+        raise ValueError("evaluation model BatchNorm layout differs")
+    for _name, module in batch_norms:
+        if (
+            module.track_running_stats is not True
+            or module.affine is not True
+            or type(module.eps) is not float
+            or module.eps != 2e-5
+            or module.weight is None
+            or module.bias is None
+            or module.running_mean is None
+            or module.running_var is None
+            or module.num_batches_tracked is None
+            or module.running_mean.dtype != torch.float32
+            or module.running_var.dtype != torch.float32
+            or not bool(torch.isfinite(module.running_mean).all())
+            or not bool(torch.isfinite(module.running_var).all())
+            or bool((module.running_var < 0).any())
+            or module.num_batches_tracked.dtype != torch.int64
+            or module.num_batches_tracked.ndim != 0
+            or int(module.num_batches_tracked) < 0
+        ):
+            raise ValueError("evaluation model BatchNorm running statistics differ")
+    parameters = tuple(model.named_parameters())
+    if not parameters or any(
+        tensor.dtype != torch.float32 or not bool(torch.isfinite(tensor).all())
+        for _name, tensor in parameters
+    ):
         raise ValueError("evaluation model parameters and buffers must be FP32")
+    expected_integer_buffers = {
+        "feature.1.num_batches_tracked",
+        "feature.3.num_batches_tracked",
+    }
+    for name, tensor in model.named_buffers():
+        if tensor.is_floating_point():
+            if tensor.dtype != torch.float32 or not bool(torch.isfinite(tensor).all()):
+                raise ValueError("evaluation model parameters and buffers must be FP32")
+        elif (
+            name not in expected_integer_buffers
+            or tensor.dtype != torch.int64
+            or tensor.ndim != 0
+            or int(tensor) < 0
+        ):
+            raise ValueError("evaluation model non-floating buffer differs")
 
 
 ROW_KEYS = (

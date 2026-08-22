@@ -20,6 +20,16 @@ and their checkpointed running statistics are required for eval-mode inference. 
 `num_batches_tracked` buffers are scalar `int64`; all parameters and floating-point
 buffers are FP32 after the already-registered conversion.
 
+A metric-free DGX structural probe instantiated that pinned model and independently
+confirmed exactly those two module paths/types, `track_running_stats=True`,
+`affine=True`, `training=False`, `eps=2e-5`, finite FP32 affine/running-state tensors, and equal
+nonnegative int64 counters. A retained raw checkpoint contained 281 model tensors:
+279 FP32 tensors, two int64 tensors, and zero nonfinite floating tensors. The corrected
+validator then accepted the real pinned model. The probe loaded no official images and
+computed no embedding or retrieval metric. The root cause was an architectural
+assertion written without first instantiating the authenticated model, despite the
+repository's existing BatchNorm-aware checkpoint-soup evaluator.
+
 For the single replacement attempt, the model validation contract is prospectively
 corrected as follows:
 
@@ -39,3 +49,10 @@ fix must be test-first, independently reviewed, and committed before a replaceme
 configuration is frozen. That configuration must use `attempt=2`, preserve prior exit
 status `[2]`, bind the new reviewed source commit, and use a fresh source-addressed
 output path. A second structural failure closes the gate without another run.
+
+Only a failure after the evaluator has authenticated and opened the registered
+scientific inputs consumes an attempt number. A source/config/checkout preflight abort
+before that boundary is corrected without advancing the attempt, is disclosed in the
+operator report, and still exposes no scientific values. The first failure occurred
+after all 48 checkpoint hashes and the official partition had been opened, so it is
+attempt 1 and the replacement is attempt 2.
