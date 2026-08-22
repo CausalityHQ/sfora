@@ -329,11 +329,15 @@ skip; the final affected gate after nonblocking hardening passed 99 tests.
 - Produces: exact source commit, fresh detached DGX checkout, seed-2..6 pair-v2 reports,
   and final summary-v2.
 
-- [ ] **Step 1: Commit and push exact scope**
+- [x] **Step 1: Commit and push exact scope**
 
 Commit the reviewed docs follow-up, source/tests, and each immutable result separately.
 Verify commits with `git log`, push `devbox/similarity-ghc`, and deploy the reviewed
 source commit to a fresh detached checkout.
+
+Completed through review-record commit `a63244d`; the source freeze, five prospective
+pair artifacts, six-seed summary, result report, and review record were pushed to
+`origin/devbox/similarity-ghc` without rewriting history.
 
 - [x] **Step 2: Resume seeds 2..6 serially**
 
