@@ -335,17 +335,31 @@ Commit the reviewed docs follow-up, source/tests, and each immutable result sepa
 Verify commits with `git log`, push `devbox/similarity-ghc`, and deploy the reviewed
 source commit to a fresh detached checkout.
 
-- [ ] **Step 2: Resume seeds 2..6 serially**
+- [x] **Step 2: Resume seeds 2..6 serially**
 
 For each seed require idle GPU and absent destinations; run random then imprinted with
 identical recipe except classifier initialization; authenticate initialization and
 measurement receipts; run the paired evaluator once; validate the pair-v2 JSON offline;
 preserve every valid outcome. Never replace a failed seed.
 
-- [ ] **Step 3: Build the final summary once**
+- [x] **Step 3: Build the final summary once**
 
 After all six reports exist, run summary-v2 once with the exact seed-0 selection path.
 Strict-reload it, report fixed-budget quality, epoch speedups, fixed-epoch profiled
 compute and signed overhead, iso-quality profiled compute, raw time, memory, inference,
 and storage separately, and state the exact trajectory-frontier decision without an
 official-protocol or SOTA claim.
+
+Completed on the DGX queue at 2026-08-22T12:59:34Z. Seeds 2--6 and the final
+summary were each produced once, strict-reloaded, transferred byte-identically, and
+committed separately. The final summary SHA-256 is
+`cb15ffd66a45b26f65cdae99c411767f773abecdf625b6703c34fb6b7399bf23` and
+records `claim_supported=true`.
+
+Independent final-result review consultation `a6693e3a2b814015` returned READY with
+no Critical or Important findings. It reviewed the final recovery source commit
+`3a6495258531037684487db9287c116f870b2486`, regenerated the summary byte-for-byte,
+recomputed all 48 epoch metrics from per-query evidence, exercised all registered
+decision gates, and found no leakage, control unfairness, trajectory contamination,
+seed-selection error, or statistical error. This also discharges the independent
+review requirement for the profiler clock-recovery commits through `3a64952`.
