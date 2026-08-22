@@ -115,8 +115,8 @@ deterministic algorithms enabled with `warn_only=False`, cuDNN benchmark disable
 deterministic enabled, fixed nonshuffled file order, and fixed batch size/workers. Load
 every row with `raw_model.load_state_dict(checkpoint["model"], strict=True)` and assert
 that every parameter and buffer is FP32 afterward. Both arms of each seed execute in
-the same process under identical settings. Persist a byte hash of every complete
-embedding matrix.
+the same process under identical settings. Call `model.eval()` and extract only inside
+`torch.inference_mode()`. Persist a byte hash of every complete embedding matrix.
 
 ### Frozen decisions
 
