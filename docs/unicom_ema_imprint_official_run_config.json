@@ -1,0 +1,430 @@
+{
+  "schema_version": "unicom-ema-imprint-official-run-v1",
+  "design_commit": "e5b999d96b74fb2d0b0662eeef0e6d5cae6a2c26",
+  "source_commit": "4223251ab4aa2af47546b6e31fe3bfeefe764b7a",
+  "dataset_root": "/home/riomus/datasets/inshop_official_standard",
+  "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+  "checkpoint_root": "/home/riomus",
+  "summary_path": "reports/generated/unicom_ema_imprint_replication_summary_3a64952_seeds1-6.json",
+  "unicom_checkout": "/home/riomus/unicom-d71992e",
+  "unicom_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+  "trainer_sha256_by_seed": [
+    {
+      "seed": 1,
+      "sha256": "6596994c96e6834bafd98a84834d877bc97c3a0965238dd12dda7aec191073ae"
+    },
+    {
+      "seed": 2,
+      "sha256": "991a48bff567547f115cd23268357c4691514c2f64ab9b80a36cfe84d213ddc4"
+    },
+    {
+      "seed": 3,
+      "sha256": "991a48bff567547f115cd23268357c4691514c2f64ab9b80a36cfe84d213ddc4"
+    },
+    {
+      "seed": 4,
+      "sha256": "991a48bff567547f115cd23268357c4691514c2f64ab9b80a36cfe84d213ddc4"
+    },
+    {
+      "seed": 5,
+      "sha256": "991a48bff567547f115cd23268357c4691514c2f64ab9b80a36cfe84d213ddc4"
+    },
+    {
+      "seed": 6,
+      "sha256": "991a48bff567547f115cd23268357c4691514c2f64ab9b80a36cfe84d213ddc4"
+    }
+  ],
+  "initial_checkpoint": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+  "initial_checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+  "output": "reports/generated/unicom_ema_imprint_official_4223251.json",
+  "batch_size": 128,
+  "workers": 4,
+  "attempt": 1,
+  "prior_attempt_exit_statuses": [],
+  "inventory": [
+    {
+      "seed": 2,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed2-e16/epoch-0004.pt",
+      "sha256": "3101537c853161daf4eb3f66bd39d68a4b0537ac1d290af7bcebf8b51911f587"
+    },
+    {
+      "seed": 2,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed2-e16/epoch-0008.pt",
+      "sha256": "c3a7b867222de4bf5be8f9407c89c0d3b71ded9f0e95509f059808b3cd01c9a9"
+    },
+    {
+      "seed": 2,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed2-e16/epoch-0012.pt",
+      "sha256": "b6c7b99e1e41d7dadd5a3266d2e77cfbfeca8151b2f93fc50b462b67ccfcba09"
+    },
+    {
+      "seed": 2,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed2-e16/epoch-0016.pt",
+      "sha256": "6b373232574fe29ec1d6db2046a469bca2c579c8b17434346af2991a045a0bc4"
+    },
+    {
+      "seed": 2,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0004.pt",
+      "sha256": "f5a19c44059b58cca44a0a7912ff9a2978ccf084391bf1eeab14fccbe9499848"
+    },
+    {
+      "seed": 2,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0008.pt",
+      "sha256": "69c1c2b6ad6daf4c3b1a268d59a9ad1cf51ec707cff5221658de2a69a26780f9"
+    },
+    {
+      "seed": 2,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0012.pt",
+      "sha256": "1914e100c5dd7f53d36772c7a6b12100f3ebd9b0795ebcfc6274dd68f08eb8f8"
+    },
+    {
+      "seed": 2,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0016.pt",
+      "sha256": "b5cc03f476748cf775450e018a62e1ee26259ddb3c60260b42f425a1a888eb0d"
+    },
+    {
+      "seed": 3,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed3-e16/epoch-0004.pt",
+      "sha256": "bab9f8e8ec8ac6976de8d846ff29797c9ff9a076449370e17a9c155aa481dbb1"
+    },
+    {
+      "seed": 3,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed3-e16/epoch-0008.pt",
+      "sha256": "01217e9d993dee6baecac03f96331dd6a0fdc7a8d69f59e5eaf29cccacb50ccb"
+    },
+    {
+      "seed": 3,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed3-e16/epoch-0012.pt",
+      "sha256": "cee7dd5f040724d29ef45fd424ee82123131d1d03ae9dcdc3044fad452607b13"
+    },
+    {
+      "seed": 3,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed3-e16/epoch-0016.pt",
+      "sha256": "4bbf6f33238501eb81d65111269f4c8d06f6585921778da89372f40dfc8fa5db"
+    },
+    {
+      "seed": 3,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed3-e16/epoch-0004.pt",
+      "sha256": "eabd534dff6df72ecd294ed88ac3ae92013e6b7c954e4d70cf81838c552635ab"
+    },
+    {
+      "seed": 3,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed3-e16/epoch-0008.pt",
+      "sha256": "6a83716019d430a45076a49fe874e958708ade3fb7474391f912c6e015b2831f"
+    },
+    {
+      "seed": 3,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed3-e16/epoch-0012.pt",
+      "sha256": "80e7ed8cc80d936e380eee32a10bd20024adb9a44b6479fc17de524994751df4"
+    },
+    {
+      "seed": 3,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed3-e16/epoch-0016.pt",
+      "sha256": "ef617f6332e567e3621057e3b7c322c39c32962797525175b2d0961420ee5256"
+    },
+    {
+      "seed": 4,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed4-e16/epoch-0004.pt",
+      "sha256": "9aacaa937a6a80e961de49e10018d90b4a8ea81842617ebf408fa92156b53876"
+    },
+    {
+      "seed": 4,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed4-e16/epoch-0008.pt",
+      "sha256": "40c40929a270d735e95d9a873c9f13755d90a5a32b13461a4724a9b2871b8f0a"
+    },
+    {
+      "seed": 4,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed4-e16/epoch-0012.pt",
+      "sha256": "791f344cbe768057571cdcb9c89af6e3e3ca299ad1148be03365552765444004"
+    },
+    {
+      "seed": 4,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed4-e16/epoch-0016.pt",
+      "sha256": "eaf28604e4551168d8267982c1e584254516ea4ef4b142261f6bf29b514c5da1"
+    },
+    {
+      "seed": 4,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed4-e16/epoch-0004.pt",
+      "sha256": "e248d61b97c17bbc9f27d7f77c36aa21ae6be2911ade0a9d76feb20e4cc4ac03"
+    },
+    {
+      "seed": 4,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed4-e16/epoch-0008.pt",
+      "sha256": "a8371eeccd89192cc6d06530b16bb3dc4e5cde3690252249cf7e4ebfb4d9c313"
+    },
+    {
+      "seed": 4,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed4-e16/epoch-0012.pt",
+      "sha256": "f50b413c7d762c1ff4a11c0d2b9e25a3a3f29f6690ce25a648e44685bfe06af3"
+    },
+    {
+      "seed": 4,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed4-e16/epoch-0016.pt",
+      "sha256": "2cf357799547a8dec78795ef45b9e9ac6e2cbdb23450a5deacc42f5a5b6a0162"
+    },
+    {
+      "seed": 5,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed5-e16/epoch-0004.pt",
+      "sha256": "1d23d4f974c066dacd97553aa7eb8dedb3b32f63605247d1b822cbf6a5f401b3"
+    },
+    {
+      "seed": 5,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed5-e16/epoch-0008.pt",
+      "sha256": "6bf6a2828f317bca09853da33bc13034ba2c92ccbebb49803f4ebb401bbe810b"
+    },
+    {
+      "seed": 5,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed5-e16/epoch-0012.pt",
+      "sha256": "67911860270768193e8fa79f02fa07d04afca3c9b8336cb92b1f43fa7cac4ba7"
+    },
+    {
+      "seed": 5,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed5-e16/epoch-0016.pt",
+      "sha256": "373e65c0b97ca405a1b50abc8edc64bac52e80642ad5ce7b56c7846cd6cfe9c1"
+    },
+    {
+      "seed": 5,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed5-e16/epoch-0004.pt",
+      "sha256": "700fdd3620af0df307393ca8bcbb6bbd27ae2c9032059e17a47b92f80e7b8a0f"
+    },
+    {
+      "seed": 5,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed5-e16/epoch-0008.pt",
+      "sha256": "d5aee0a3cb4258be5825df0a2ac235544a6264bf1eaf241f64a07fdf61dcfd89"
+    },
+    {
+      "seed": 5,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed5-e16/epoch-0012.pt",
+      "sha256": "0dc97f5efb4ca4eac1d5bcb138236bd22fa2fba3525619cf1613ef0025fb8d97"
+    },
+    {
+      "seed": 5,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed5-e16/epoch-0016.pt",
+      "sha256": "bf8586f5fdf5187d5fca2fc7f494e56796c23dac56beacb723d45e252f1486ca"
+    },
+    {
+      "seed": 6,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed6-e16/epoch-0004.pt",
+      "sha256": "831e5dc0e444a5556c1b8ed5357c9b4e7cf542dd5fa8e8b02814105debbba67c"
+    },
+    {
+      "seed": 6,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed6-e16/epoch-0008.pt",
+      "sha256": "3aa80bc94d6917e6a41f264d6d5629e23a72dbbde94863ad302ce816114ab3e1"
+    },
+    {
+      "seed": 6,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed6-e16/epoch-0012.pt",
+      "sha256": "4b3507e43ca27b06ad1eea9fb148ea227d57e4c33f854ae709aac6d6c9560711"
+    },
+    {
+      "seed": 6,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-random-387d697-seed6-e16/epoch-0016.pt",
+      "sha256": "698ae356bafd092fc0ac28554144df6f6881d827a0bc7fb7116bfbb2a48c45ae"
+    },
+    {
+      "seed": 6,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed6-e16/epoch-0004.pt",
+      "sha256": "7a9a9bafa12b7fb86db67b5a29d3420db4132d342d4d046404c7be6d5fde574a"
+    },
+    {
+      "seed": 6,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed6-e16/epoch-0008.pt",
+      "sha256": "08dee2d426cb57bdf6a3a1904d8e5c2101ca07faf7cc5fd3bb135c37ffaad5da"
+    },
+    {
+      "seed": 6,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed6-e16/epoch-0012.pt",
+      "sha256": "5757f7e5cb87d2bb0b4ac462073dd56b5540a457d96ca6e130dc827697c8d2fd"
+    },
+    {
+      "seed": 6,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": true,
+      "path": "/home/riomus/unicom-ema-imprinted-387d697-seed6-e16/epoch-0016.pt",
+      "sha256": "83612e1efe4eb7b775c9e04188e0687dfe435744183128a7f37f32487b5f6439"
+    },
+    {
+      "seed": 1,
+      "arm": "random_raw",
+      "epoch": 4,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-random-81f3f48-seed1-e16/epoch-0004.pt",
+      "sha256": "14d0ab4c7919aeb03ebc1a469e32fe9e2d15a45d611eb467f74bbcab3f64ebc4"
+    },
+    {
+      "seed": 1,
+      "arm": "random_raw",
+      "epoch": 8,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-random-81f3f48-seed1-e16/epoch-0008.pt",
+      "sha256": "361be8065dee592003765ac3b1a0c4fd1ebb6b46bbe0e507bcd02c0f5bae303d"
+    },
+    {
+      "seed": 1,
+      "arm": "random_raw",
+      "epoch": 12,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-random-81f3f48-seed1-e16/epoch-0012.pt",
+      "sha256": "9584ec5da34121354c3309956c6a325f53c8e6404205376777afcd63bad28694"
+    },
+    {
+      "seed": 1,
+      "arm": "random_raw",
+      "epoch": 16,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-random-81f3f48-seed1-e16/epoch-0016.pt",
+      "sha256": "180c0c8bc6bccd210026e597b115638cc525e8002b224e0fbfb0581487de4993"
+    },
+    {
+      "seed": 1,
+      "arm": "imprinted_raw",
+      "epoch": 4,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-imprinted-81f3f48-seed1-e16-retry1/epoch-0004.pt",
+      "sha256": "1459fcfa5c132a84584494b3df0275cff42ea8a9bf76cbc376c307f6efac29a3"
+    },
+    {
+      "seed": 1,
+      "arm": "imprinted_raw",
+      "epoch": 8,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-imprinted-81f3f48-seed1-e16-retry1/epoch-0008.pt",
+      "sha256": "29bb0194599cc1d901bd79a138b566ba94c099f809d61bc0ff9d8385871c0bb2"
+    },
+    {
+      "seed": 1,
+      "arm": "imprinted_raw",
+      "epoch": 12,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-imprinted-81f3f48-seed1-e16-retry1/epoch-0012.pt",
+      "sha256": "1a60f72ce85a40c027ccca7ed72c5939aef4eb733f79b3eaea549ab96b648428"
+    },
+    {
+      "seed": 1,
+      "arm": "imprinted_raw",
+      "epoch": 16,
+      "gating": false,
+      "path": "/home/riomus/unicom-ema-imprinted-81f3f48-seed1-e16-retry1/epoch-0016.pt",
+      "sha256": "d5118bb97d3ab91ba2a21a145eda7dd59af0dd79141e2fc40104d146d4418c9f"
+    }
+  ]
+}
