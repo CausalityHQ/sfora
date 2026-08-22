@@ -1,7 +1,7 @@
 {
   "schema_version": "unicom-ema-imprint-official-run-v1",
-  "design_commit": "e5b999d96b74fb2d0b0662eeef0e6d5cae6a2c26",
-  "source_commit": "4223251ab4aa2af47546b6e31fe3bfeefe764b7a",
+  "design_commit": "426afa464c7c32e7adbba81d29a6777cae9ed972",
+  "source_commit": "426afa464c7c32e7adbba81d29a6777cae9ed972",
   "dataset_root": "/home/riomus/datasets/inshop_official_standard",
   "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
   "checkpoint_root": "/home/riomus",
@@ -36,11 +36,13 @@
   ],
   "initial_checkpoint": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
   "initial_checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
-  "output": "reports/generated/unicom_ema_imprint_official_4223251.json",
+  "output": "reports/generated/unicom_ema_imprint_official_426afa4.json",
   "batch_size": 128,
   "workers": 4,
-  "attempt": 1,
-  "prior_attempt_exit_statuses": [],
+  "attempt": 2,
+  "prior_attempt_exit_statuses": [
+    2
+  ],
   "inventory": [
     {
       "seed": 2,
