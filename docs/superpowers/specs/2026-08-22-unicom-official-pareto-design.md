@@ -33,8 +33,9 @@ Primary sources:
 The selection run used seed 0. Training seeds 1--6 were then frozen before execution,
 but the official gate uses the five homogeneous, fully authenticated pairs produced by
 the final trainer, seeds 2--6. Their internal mAP@R deltas are +0.019491, +0.017514,
-+0.016551, +0.021711, and +0.015771: mean +0.018207, sample SD +0.002397, paired
-Student-t (df=4) 95% CI [+0.015231,+0.021184], and two-sided sign p=0.0625. These
++0.016551, +0.021711, and +0.015771: mean +0.01820749, sample SD +0.00240221,
+paired Student-t (df=4) 95% CI [+0.01522475,+0.02119023], and two-sided sign
+p=0.0625. These
 statistics cover training randomness conditional on one fixed internal holdout; they
 do not cover holdout-sampling variance.
 
@@ -44,6 +45,15 @@ excluding it after observation moves the estimate favorably. To disclose and bou
 that choice, Gate 1 also evaluates seed 1's eight checkpoints in the same process as a
 prespecified non-gating sensitivity row. It never enters the five-seed decisions. No
 replacement seed is allowed.
+
+The registered internal replication protocol was six-seed and published mean
++0.017578, sample SD 0.002644, paired-t 95% CI [+0.014804,+0.020353], and sign
+p=0.03125; the five-seed statistics above are an observed re-cut. Gate 1 therefore
+also computes the prespecified six-seed (n=6, df=5, t=2.5705818366) paired-t interval
+for the epoch-16 primary mAP@R delta on the official split. If the five-seed decision
+passes but the six-seed 95% lower bound does not exceed +0.002, the result is labelled
+`exclusion_sensitive`, and the six-seed interval appears beside every five-seed figure.
+The sensitivity row never converts a five-seed failure into a pass.
 
 The retained checkpoints are the exact `random_raw` and `imprinted_raw` arms at epochs
 4, 8, 12, and 16. The official query/gallery identities were unreachable during
@@ -85,6 +95,13 @@ training and during intervention selection.
   from `parse_inshop_partition` in file order; no train-label map or numeric recoding is
   permitted. Retrieval metrics are computed by the audited
   `sfora.unicom_retrieval_audit` implementation extended only for registered k=40/50.
+  Both views use direct `retrieval_view(...)` calls: primary with
+  `coordinates=numpy.arange(768), normalize_before=False`; legacy with
+  `coordinates=numpy.arange(512), normalize_before=True`. Do not call
+  `audit_deployment_geometry`: its random-mask views and released-initialization
+  reproduction anchor do not apply to fine-tuned checkpoints. The k=40/50 extension
+  must have a frozen regression proving byte-identical mAP@R and Recall@1/10/20/30
+  before and after the extension.
 
 No metric, partial aggregate, or arm comparison may be printed or published before all
 48 checkpoint rows have been scored and validated. One process writes one atomic,
@@ -92,10 +109,14 @@ no-clobber, strict-reloaded result. The result binds checkpoint bytes, dataset m
 source revision, environment, order, every per-query evidence array, raw timings, and
 peak allocation. It must be published regardless of outcome.
 
-Run inference in FP32 with autocast disabled, TF32 disabled, deterministic algorithms
-enabled, cuDNN benchmark disabled/deterministic enabled, fixed nonshuffled file order,
-and fixed batch size/workers. Both arms of each seed execute in the same process under
-the same settings. Persist a byte hash of every complete embedding matrix.
+Export and persist `CUBLAS_WORKSPACE_CONFIG=:4096:8` before CUDA initialization. Run
+inference in FP32 with autocast disabled, TF32 disabled for both CUDA matmul and cuDNN,
+deterministic algorithms enabled with `warn_only=False`, cuDNN benchmark disabled/
+deterministic enabled, fixed nonshuffled file order, and fixed batch size/workers. Load
+every row with `raw_model.load_state_dict(checkpoint["model"], strict=True)` and assert
+that every parameter and buffer is FP32 afterward. Both arms of each seed execute in
+the same process under identical settings. Persist a byte hash of every complete
+embedding matrix.
 
 ### Frozen decisions
 
@@ -105,8 +126,12 @@ the same settings. Persist a byte hash of every complete embedding matrix.
   delta exceeds the smallest effect of interest +0.002 (0.2 mAP points); with n=5,
   df=4, and t=2.7764451052 this requires `mean > 0.002 + 1.241663*sample_sd`;
 - at least four of five epoch-16 mAP@R deltas are positive;
-- both the seed-level paired-t 95% lower bound and a 10,000-replicate paired-query
-  bootstrap lower bound for Recall@1 exceed the practical noninferiority margin -0.001;
+- both the seed-level paired-t 95% lower bound and a paired-query bootstrap lower bound
+  for epoch-16 Recall@1 exceed the practical noninferiority margin -0.001. The bootstrap
+  uses 10,000 replicates from `numpy.random.Generator(PCG64(205))`, resamples the 14,218
+  official query indices once per replicate, applies that same draw to all five gating
+  seeds, and takes the replicate statistic as the mean over seeds of per-query
+  imprinted-minus-random top-1 correctness. The lower bound is the 2.5th percentile;
 - no seed's epoch-16 Recall@1 delta is below -0.003; and
 - the primary and legacy-view five-seed mean mAP@R deltas have the same sign.
 
@@ -116,16 +141,19 @@ no comparable published official mAP@R exists. A mean primary delta above +0.030
 approximate upper 99% prediction bound from seeds 2--6) is a non-blocking anomaly flag:
 publish it, then re-audit geometry, labels, and hashes before making a claim.
 
-For each seed/arm, first attainment is the first registered epoch whose primary mAP@R
-reaches that same arm's epoch-16 value. `official_transfer_trajectory_supported` is
-true only if the imprinted first-attainment epoch is no later than the paired random
-first-attainment epoch in all five seeds and is at most epoch 8 in at least three. A
-missing attainment fails that seed; a tie has speedup 1.0. Report the exact ratio
-`random_first_attainment / imprinted_first_attainment`, compare grid-native epochs
-without interpolation, and never retrofit epochs 2/6 into the retained run.
+For each seed, the matched-quality target is the paired `random_raw` arm's epoch-16
+primary mAP@R. First attainment for either arm is the first registered epoch in
+`(4,8,12,16)` whose primary mAP@R is at least that shared target, exactly matching
+`_first_epoch_reaching` in `scripts/summarize_unicom_ema_imprint_replication.py`.
+`official_transfer_trajectory_supported` is true only if imprinted first attainment is
+no later than paired random first attainment in all five gating seeds and is at most
+epoch 8 in at least three. A missing attainment fails that seed; a tie has speedup 1.0.
+Report `random_first_attainment / imprinted_first_attainment` without interpolation.
 
 `retained_checkpoint_gate_passed` requires both transfer decisions. It never means
-SOTA, official-training reproduction, or a novel method.
+SOTA, official-training reproduction, a novel method, or superiority to a head-LR- or
+warmup-tuned random baseline. Gate 2 tests that confound; its failure retracts any
+quality claim made from Gate 1.
 
 ## Gate 2: fairness controls before a full-training claim
 
@@ -141,11 +169,13 @@ reopens the official result while choosing settings.
 
 For a publishable matched-quality claim, imprinting must beat the best random head-LR/
 warmup configuration; the paired Student-t 95% upper bound of the shuffled-imprint gain
-must be below half the Gate-1 correctly assigned mean gain; and the 32-epoch delta must
-be nonnegative. Shuffled proxies use the same norm-match scalar and consume the same RNG
-stream. Failure of head-LR fairness closes the quality method. Failure of the shuffled
-control reclassifies the mechanism as generic proxy conditioning. Failure at 32 epochs
-limits any claim to short schedules.
+must be below half the correctly assigned mean gain measured on the same internal
+holdout in the same Gate-2 run; and the 32-epoch delta must be nonnegative. Gate 2 thus
+includes a correctly assigned arm on the identical protocol and never uses the Gate-1
+official mean as its threshold. Shuffled proxies use the same norm-match scalar and
+consume the same RNG stream. Failure of head-LR fairness closes the quality method.
+Failure of the shuffled control reclassifies the mechanism as generic proxy
+conditioning. Failure at 32 epochs limits any claim to short schedules.
 
 ## Gate 3: full official-training escalation
 
@@ -189,7 +219,9 @@ retained footprint is 58,283,916,296 bytes per arm/seed: 542.8 GiB for gating se
 checkpoint reads. Per-query evidence is limited to FP64 AP@R and one top-1 bit per
 query/view/row; higher-k values are aggregates. The canonical result must be at most
 64 MiB, and preflight requires at least 1 GiB free plus process/runtime reserve.
-Expected runtime is 4--6 GPU-hours; the hard timeout is 12 hours. No retained
+Expected runtime is 6--9 GPU-hours: about 4.3 hours of forward passes at the measured
+12.0 ms/image plus per-query retrieval reduction, 651 GiB of checkpoint reads, and 48
+model loads. The hard timeout is 16 hours. No retained
 checkpoint is deleted until the result is validated, copied off-host, and the
 continuation branch is fixed. No new training may start until capacity is resolved.
 
@@ -211,7 +243,8 @@ stop. At most one replacement attempt is allowed, and only after an independent 
 demonstrates a structural implementation/infrastructure defect, confirms that no metric
 or partial aggregate was exposed, and freezes any required source fix before the
 replacement. It reruns all 48 rows from index 0. Attempt number and every prior exit
-status enter the final result. A second structural failure publishes the failed gate;
+status enter the final result. Exceeding the hard timeout qualifies as an infrastructure
+defect for that single replacement. A second structural failure publishes the failed gate;
 observed scientific values may never motivate a rerun or threshold change.
 
 The final report includes all five gating paired rows plus the seed-1 sensitivity row,
