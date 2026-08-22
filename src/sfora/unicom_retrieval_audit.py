@@ -219,6 +219,8 @@ def retrieval_metrics_from_score_chunks(
     score_chunks: Iterable[np.ndarray],
     query_labels: np.ndarray,
     gallery_labels: np.ndarray,
+    *,
+    recall_at_k: tuple[int, ...] | None = None,
 ) -> RetrievalView:
     """Reduce ordered FP64 score chunks with the repository retrieval contract."""
 
@@ -228,7 +230,16 @@ def retrieval_metrics_from_score_chunks(
         raise ValueError("gallery_labels must be a one-dimensional array")
     _validate_labels(query_labels, query_labels.shape[0], name="query_labels")
     _validate_labels(gallery_labels, gallery_labels.shape[0], name="gallery_labels")
-    recall_hits = {key: [] for key in RECALL_AT_K}
+    if recall_at_k is None:
+        recall_at_k = RECALL_AT_K
+    if (
+        type(recall_at_k) is not tuple
+        or not recall_at_k
+        or any(type(key) is not int or key <= 0 for key in recall_at_k)
+        or tuple(sorted(set(recall_at_k))) != recall_at_k
+    ):
+        raise ValueError("recall-at-k contract differs")
+    recall_hits = {key: [] for key in recall_at_k}
     average_precisions: list[float] = []
     top1_indices: list[int] = []
     gallery_label_counts = Counter(gallery_labels.tolist())
@@ -281,6 +292,7 @@ def retrieval_view(
     coordinates: np.ndarray,
     normalize_before: bool,
     chunk_size: int = 256,
+    recall_at_k: tuple[int, ...] | None = None,
 ) -> RetrievalView:
     """Evaluate one deterministic selected-coordinate retrieval view."""
 
@@ -308,7 +320,11 @@ def retrieval_view(
             )
             yield np.ascontiguousarray(-distances)
 
-    return retrieval_metrics_from_score_chunks(score_chunks(), query_labels, gallery_labels)
+    if recall_at_k is None:
+        return retrieval_metrics_from_score_chunks(score_chunks(), query_labels, gallery_labels)
+    return retrieval_metrics_from_score_chunks(
+        score_chunks(), query_labels, gallery_labels, recall_at_k=recall_at_k
+    )
 
 
 def paired_r1_interval(
