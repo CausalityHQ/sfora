@@ -21,9 +21,11 @@ issues. The steps below supersede the original invalid split/LR/decision protoco
 - fit seeds `(0, 1, 2)`, 512 steps, batch 128, AdamW LR `1e-4`, betas
   `(0.9, 0.999)`, epsilon `1e-8`, zero decay;
 - 8 shards, 512 of 768 features, ArcFace margin 0.25 and scale 32;
-- 64 validation masks; paired two-sided 95% t interval with df 63;
+- 64 validation masks; paired two-sided 95% t criticals 1.998340542520741 at
+  df 63 and 1.9607086212236648 at the frozen 3,188-image df 3,187;
 - minimum 48/64 positive mask deltas; head cosine minimum 0.80 and mean 0.95;
-- gradient relative-L2 minimum 0.05 and median-cosine maximum 0.995.
+- gradient norms/ratio and descriptive relative L2, matched-zero count, and a
+  direction-only median-cosine maximum 0.995.
 
 ## Task 1: Review-fix the pure split
 
@@ -53,10 +55,12 @@ issues. The steps below supersede the original invalid split/LR/decision protoco
 
 **Files:** same pure source/test pair.
 
-1. RED: independently verify margin-0 accuracy, paired mask deltas/t lower bound,
-   both acquisition strata, and three-seed symmetric decisions.
+1. RED: independently verify margin-0 accuracy, paired mask/identity deltas and t
+   lower bounds, unrepresented-only uncertainty, both acquisition strata, and
+   three-seed symmetric decisions.
 2. RED: build a real cached-feature gradient oracle and prove exact gradient norms,
-   relative difference, per-sample cosine/zero behavior, and close boundaries.
+   norm ratio, descriptive relative difference, nonzero per-sample cosine/zero
+   behavior, and close boundaries.
 3. GREEN: implement `evaluate_probe_heads`, `compare_probe_gradients`, and the new
    three-seed `probe_decision` without duplicating registered logits/loss.
 4. Run the complete pure suite and commit.
@@ -68,9 +72,11 @@ issues. The steps below supersede the original invalid split/LR/decision protoco
 
 1. RED: replace the stale single-head fixture with the literal frozen protocol and
    complete exact schema: singleton/validation counts, three fits, cosine summaries,
-   64 paired deltas and t bounds, two strata, three gradient diagnostics, structural
+   64 paired/unrepresented deltas and t bounds, identity-level bounds, two strata,
+   gradient diagnostics, structural
    norm checks, hashes, and recomputed decision.
-2. RED: cover exact arguments/source/checkpoint/partition authentication, train-only
+2. RED: cover exact arguments, four-file scientific-source/checkpoint/partition
+   authentication, train-only
    access, deterministic one-pass feature extraction, RNG restoration, candidate-free
    progress, strict JSON, no-clobber atomic publication, cleanup/rollback, and strict
    persisted reload.

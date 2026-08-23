@@ -287,6 +287,12 @@ def test_evaluate_probe_heads_uses_margin_free_accuracy_and_retains_paired_losse
         assert actual[name].accuracy == expected[name][1] / observations
         assert actual[name].represented_mean_loss == expected[name][2]
         assert actual[name].unrepresented_mean_loss == expected[name][3]
+        assert actual[name].represented_mean_loss == (
+            math.fsum(actual[name].per_mask_represented_mean_losses) / 2
+        )
+        assert actual[name].unrepresented_mean_loss == (
+            math.fsum(actual[name].per_mask_unrepresented_mean_losses) / 2
+        )
 
 
 def test_evaluate_probe_heads_allows_singleton_classes_absent_from_validation() -> None:
@@ -359,13 +365,18 @@ def test_compare_probe_gradients_matches_independent_autograd_oracle() -> None:
     assert actual.cosine_mean == float(per_row.double().mean())
 
 
-def _metrics(loss: float, accuracy: float, *, count: int = 100) -> ProbeMetrics:
+def _metrics(loss: float, accuracy: float, *, count: int = 3_188) -> ProbeMetrics:
+    observations = count * 64
+    correct = round(accuracy * observations)
     return ProbeMetrics(
         mean_loss=loss,
-        accuracy=accuracy,
-        correct_count=round(accuracy * count),
-        observation_count=count,
+        accuracy=correct / observations,
+        correct_count=correct,
+        observation_count=observations,
         per_mask_mean_losses=tuple(loss for _ in range(64)),
+        per_mask_represented_mean_losses=tuple(loss for _ in range(64)),
+        per_mask_unrepresented_mean_losses=tuple(loss for _ in range(64)),
+        per_image_mean_losses=tuple(loss for _ in range(count)),
         represented_mean_loss=loss,
         unrepresented_mean_loss=loss,
     )
@@ -373,14 +384,18 @@ def _metrics(loss: float, accuracy: float, *, count: int = 100) -> ProbeMetrics:
 
 def _metrics_from_deltas(deltas: tuple[float, ...]) -> ProbeMetrics:
     losses = tuple(1.0 - delta for delta in deltas)
+    mean_loss = math.fsum(losses) / len(losses)
     return ProbeMetrics(
-        mean_loss=math.fsum(losses) / len(losses),
-        accuracy=0.8,
-        correct_count=80,
-        observation_count=100,
+        mean_loss=mean_loss,
+        accuracy=round(0.8 * 3_188 * 64) / (3_188 * 64),
+        correct_count=round(0.8 * 3_188 * 64),
+        observation_count=3_188 * 64,
         per_mask_mean_losses=losses,
-        represented_mean_loss=0.9,
-        unrepresented_mean_loss=0.9,
+        per_mask_represented_mean_losses=losses,
+        per_mask_unrepresented_mean_losses=losses,
+        per_image_mean_losses=tuple(mean_loss for _ in range(3_188)),
+        represented_mean_loss=mean_loss,
+        unrepresented_mean_loss=mean_loss,
     )
 
 
@@ -402,10 +417,12 @@ def _gradient() -> ProbeGradientMetrics:
         class_mean_l2=1.0,
         spherical_probe_l2=1.0,
         relative_l2_difference=0.1,
+        spherical_to_class_mean_l2_ratio=1.0,
         cosine_min=0.98,
         cosine_p05=0.985,
         cosine_median=0.99,
         cosine_mean=0.99,
+        zero_gradient_row_count=0,
     )
 
 
@@ -427,7 +444,10 @@ def test_probe_decision_promotes_at_registered_inclusive_boundaries() -> None:
     assert decision.per_seed_statistics[0] == ProbeSeedStatistics(
         mean_paired_loss_delta=pytest.approx(0.1),
         paired_95_lower_bound=pytest.approx(0.1),
+        identity_95_lower_bound=pytest.approx(0.1),
         positive_mask_count=64,
+        unrepresented_paired_95_lower_bound=pytest.approx(0.1),
+        unrepresented_positive_mask_count=64,
         accuracy_delta=0.0,
         represented_loss_delta=pytest.approx(0.1),
         unrepresented_loss_delta=pytest.approx(0.1),
@@ -446,7 +466,6 @@ def test_probe_decision_promotes_at_registered_inclusive_boundaries() -> None:
         "unrepresented",
         "head_min",
         "head_mean",
-        "gradient",
         "cosine",
     ),
 )
@@ -472,17 +491,112 @@ def test_probe_decision_closes_each_failed_scientific_predicate(mutation: str) -
         metrics[1] = _metrics(0.9, 0.79)
     elif mutation == "represented":
         value = _metrics(0.9, 0.8)
-        metrics[1] = replace(value, represented_mean_loss=1.0)
+        metrics[1] = replace(
+            value,
+            represented_mean_loss=1.0,
+            per_mask_represented_mean_losses=(1.0,) * 64,
+        )
     elif mutation == "unrepresented":
         value = _metrics(0.9, 0.8)
-        metrics[1] = replace(value, unrepresented_mean_loss=1.0)
+        metrics[1] = replace(
+            value,
+            unrepresented_mean_loss=1.0,
+            per_mask_unrepresented_mean_losses=(1.0,) * 64,
+        )
     elif mutation == "head_min":
         fits[1] = replace(_fit(), row_cosine_min=0.799)
     elif mutation == "head_mean":
         fits[1] = replace(_fit(), row_cosine_mean=0.949)
-    elif mutation == "gradient":
-        gradients[1] = replace(_gradient(), relative_l2_difference=0.049)
     elif mutation == "cosine":
         gradients[1] = replace(_gradient(), cosine_median=0.996)
 
     assert probe_decision(**arguments).status == "CLOSE_DIRECTION"
+
+
+def test_probe_metrics_preserve_mask_strata_and_per_image_loss_distributions() -> None:
+    features = torch.zeros(2, 512, dtype=torch.float32)
+    features[0, 0] = 1.0
+    features[1, 1] = 1.0
+    labels = torch.tensor([0, 1], dtype=torch.int64)
+    class_mean = torch.zeros(8, 512, dtype=torch.float32)
+    class_mean[:8, :8] = torch.eye(8, dtype=torch.float32)
+    probe = class_mean.clone()
+    heads = {
+        "class_mean": class_mean,
+        "spherical_probe": probe,
+    }
+
+    actual = evaluate_probe_heads(
+        features,
+        labels,
+        heads,
+        validation_group_represented=(True, False),
+        mask_sets=64,
+    )
+
+    for metrics in actual.values():
+        assert len(metrics.per_mask_represented_mean_losses) == 64
+        assert len(metrics.per_mask_unrepresented_mean_losses) == 64
+        assert len(metrics.per_image_mean_losses) == 2
+        assert metrics.represented_mean_loss == pytest.approx(
+            math.fsum(metrics.per_mask_represented_mean_losses) / 64
+        )
+        assert metrics.unrepresented_mean_loss == pytest.approx(
+            math.fsum(metrics.per_mask_unrepresented_mean_losses) / 64
+        )
+
+
+def test_probe_decision_requires_identity_and_unrepresented_uncertainty() -> None:
+    class_mean = _metrics(1.0, 0.8)
+    fits = {seed: _fit() for seed in range(3)}
+    gradients = {seed: _gradient() for seed in range(3)}
+    metrics = {seed: _metrics(0.9, 0.8) for seed in range(3)}
+    weak = replace(
+        metrics[1],
+        per_mask_unrepresented_mean_losses=(0.8,) * 47 + (1.01,) * 17,
+        unrepresented_mean_loss=(0.8 * 47 + 1.01 * 17) / 64,
+        per_image_mean_losses=(0.5,) * 3_187 + (1275.7,),
+    )
+    metrics[1] = weak
+
+    decision = probe_decision(
+        class_mean=class_mean,
+        probe_fits=fits,
+        probe_metrics=metrics,
+        probe_gradients=gradients,
+    )
+
+    assert decision.status == "CLOSE_DIRECTION"
+    assert decision.per_seed_predicates[1]["unrepresented_positive_mask_majority"] is False
+    assert decision.per_seed_predicates[1]["identity_95_lower_positive"] is False
+
+
+def test_probe_decision_rejects_nonregistered_identity_distribution_size() -> None:
+    class_mean = replace(_metrics(1.0, 0.8), per_image_mean_losses=(1.0,) * 100)
+
+    with pytest.raises(ValueError, match="probe metrics differ"):
+        probe_decision(
+            class_mean=class_mean,
+            probe_fits={seed: _fit() for seed in range(3)},
+            probe_metrics={seed: _metrics(0.9, 0.8) for seed in range(3)},
+            probe_gradients={seed: _gradient() for seed in range(3)},
+        )
+
+
+def test_gradient_metrics_exclude_matched_zero_rows_and_report_norm_ratio() -> None:
+    features = torch.zeros(8, 512, dtype=torch.float32)
+    features[:, :8] = torch.eye(8, dtype=torch.float32)
+    labels = torch.arange(8, dtype=torch.int64)
+    head = features.clone()
+
+    actual = compare_probe_gradients(
+        features,
+        labels,
+        {"class_mean": head, "spherical_probe": head.clone()},
+        fit_seed=0,
+        batch_size=8,
+    )
+
+    assert actual.spherical_to_class_mean_l2_ratio == pytest.approx(1.0)
+    assert type(actual.zero_gradient_row_count) is int
+    assert 0 <= actual.zero_gradient_row_count < 8

@@ -50,7 +50,13 @@ TOP_KEYS = (
     "decision",
     "runtime",
 )
-SOURCE_KEYS = ("git_revision", "script_sha256", "module_sha256")
+SOURCE_KEYS = (
+    "git_revision",
+    "script_sha256",
+    "module_sha256",
+    "training_sha256",
+    "inshop_sha256",
+)
 MODEL_KEYS = ("unicom_revision", "checkpoint_sha256")
 DATASET_KEYS = (
     "partition_sha256",
@@ -85,10 +91,10 @@ PROTOCOL_KEYS = (
     "optimizer",
     "row_norm",
     "paired_t_critical_df63",
+    "paired_t_critical_df3187",
     "positive_mask_minimum",
     "head_cosine_minimum",
     "head_cosine_mean_minimum",
-    "gradient_relative_l2_minimum",
     "gradient_median_cosine_maximum",
 )
 FIT_KEYS = ("initial_loss", "final_loss", "steps")
@@ -110,6 +116,9 @@ METRIC_KEYS = (
     "correct_count",
     "observation_count",
     "per_mask_mean_losses",
+    "per_mask_represented_mean_losses",
+    "per_mask_unrepresented_mean_losses",
+    "per_image_mean_losses",
     "represented_mean_loss",
     "unrepresented_mean_loss",
 )
@@ -117,17 +126,22 @@ GRADIENT_KEYS = (
     "class_mean_l2",
     "spherical_probe_l2",
     "relative_l2_difference",
+    "spherical_to_class_mean_l2_ratio",
     "cosine_min",
     "cosine_p05",
     "cosine_median",
     "cosine_mean",
+    "zero_gradient_row_count",
 )
 DECISION_KEYS = ("status", "per_seed")
 SEED_DECISION_KEYS = ("fit_seed", "statistics", "predicates")
 STATISTIC_KEYS = (
     "mean_paired_loss_delta",
     "paired_95_lower_bound",
+    "identity_95_lower_bound",
     "positive_mask_count",
+    "unrepresented_paired_95_lower_bound",
+    "unrepresented_positive_mask_count",
     "accuracy_delta",
     "represented_loss_delta",
     "unrepresented_loss_delta",
@@ -138,11 +152,13 @@ PREDICATE_KEYS = (
     "head_cosine_mean",
     "validation_loss_positive",
     "paired_95_lower_positive",
+    "identity_95_lower_positive",
     "positive_mask_majority",
     "validation_accuracy_noninferior",
     "represented_loss_positive",
     "unrepresented_loss_positive",
-    "gradient_relative_difference",
+    "unrepresented_paired_95_lower_positive",
+    "unrepresented_positive_mask_majority",
     "gradient_median_cosine",
 )
 RUNTIME_KEYS = ("python", "torch", "numpy", "cuda", "elapsed_seconds", "peak_gpu_mib")
@@ -160,6 +176,8 @@ class ScreenInventory:
     source_revision: str
     script_sha256: str
     module_sha256: str
+    training_sha256: str
+    inshop_sha256: str
 
 
 def _validate_inventory(value: ScreenInventory) -> None:
@@ -181,6 +199,8 @@ def _validate_inventory(value: ScreenInventory) -> None:
         or sum(value.split.validation_group_represented) != 2_162
         or not _sha256(value.script_sha256)
         or not _sha256(value.module_sha256)
+        or not _sha256(value.training_sha256)
+        or not _sha256(value.inshop_sha256)
         or type(value.source_revision) is not str
         or len(value.source_revision) != 40
         or any(
@@ -208,11 +228,17 @@ def _git_revision(checkout: Path) -> str:
     ).stdout.strip()
 
 
-def _source_binding() -> tuple[str, str, str]:
+def _source_binding() -> tuple[str, dict[str, str]]:
     root = Path(__file__).resolve().parents[1]
     revision = _git_revision(root)
-    digests: list[str] = []
-    for relative in ("scripts/screen_unicom_spherical_probe.py", "src/sfora/unicom_probe.py"):
+    relative_paths = (
+        "scripts/screen_unicom_spherical_probe.py",
+        "src/sfora/unicom_probe.py",
+        "src/sfora/unicom_training.py",
+        "src/sfora/unicom_inshop.py",
+    )
+    digests: dict[str, str] = {}
+    for relative in relative_paths:
         path = root / relative
         worktree = path.read_bytes()
         blob = subprocess.run(
@@ -222,8 +248,8 @@ def _source_binding() -> tuple[str, str, str]:
         ).stdout
         if worktree != blob:
             raise ValueError(f"executing probe source differs from Git blob: {relative}")
-        digests.append(hashlib.sha256(worktree).hexdigest())
-    return revision, digests[0], digests[1]
+        digests[relative] = hashlib.sha256(worktree).hexdigest()
+    return revision, digests
 
 
 def _sha256(value: object) -> bool:
@@ -278,6 +304,19 @@ def _metric(value: object, name: str) -> ProbeMetrics:
         per_mask_mean_losses=tuple(value["per_mask_mean_losses"])
         if type(value["per_mask_mean_losses"]) is list
         else (),
+        per_mask_represented_mean_losses=tuple(
+            value["per_mask_represented_mean_losses"]
+        )
+        if type(value["per_mask_represented_mean_losses"]) is list
+        else (),
+        per_mask_unrepresented_mean_losses=tuple(
+            value["per_mask_unrepresented_mean_losses"]
+        )
+        if type(value["per_mask_unrepresented_mean_losses"]) is list
+        else (),
+        per_image_mean_losses=tuple(value["per_image_mean_losses"])
+        if type(value["per_image_mean_losses"]) is list
+        else (),
         represented_mean_loss=_finite_float(
             value["represented_mean_loss"], f"{name} represented loss", positive=True
         ),
@@ -295,11 +334,18 @@ def _metric(value: object, name: str) -> ProbeMetrics:
         or not 0.0 <= result.accuracy <= 1.0
         or result.accuracy != result.correct_count / result.observation_count
         or len(result.per_mask_mean_losses) != 64
+        or len(result.per_mask_represented_mean_losses) != 64
+        or len(result.per_mask_unrepresented_mean_losses) != 64
+        or len(result.per_image_mean_losses) * 64 != result.observation_count
         or any(
             type(item) is not float or not math.isfinite(item) or item <= 0.0
             for item in result.per_mask_mean_losses
         )
         or result.mean_loss != math.fsum(result.per_mask_mean_losses) / 64
+        or result.represented_mean_loss
+        != math.fsum(result.per_mask_represented_mean_losses) / 64
+        or result.unrepresented_mean_loss
+        != math.fsum(result.per_mask_unrepresented_mean_losses) / 64
     ):
         raise ValueError(f"{name} metric values differ")
     return result
@@ -308,7 +354,7 @@ def _metric(value: object, name: str) -> ProbeMetrics:
 def validate_result(value: object) -> None:
     if type(value) is not dict or tuple(value) != TOP_KEYS:
         raise ValueError("probe result schema differs")
-    if value["schema_version"] != "unicom-spherical-probe-causal-screen-v2":
+    if value["schema_version"] != "unicom-spherical-probe-causal-screen-v3":
         raise ValueError("probe result version differs")
 
     source = value["source"]
@@ -319,6 +365,8 @@ def validate_result(value: object) -> None:
         or len(source["git_revision"]) != 40
         or not _sha256(source["script_sha256"])
         or not _sha256(source["module_sha256"])
+        or not _sha256(source["training_sha256"])
+        or not _sha256(source["inshop_sha256"])
     ):
         raise ValueError("probe source binding differs")
     model = value["model"]
@@ -383,10 +431,10 @@ def validate_result(value: object) -> None:
         "optimizer": OPTIMIZER_ID,
         "row_norm": target_norm,
         "paired_t_critical_df63": 1.998340542520741,
+        "paired_t_critical_df3187": 1.9607086212236648,
         "positive_mask_minimum": 48,
         "head_cosine_minimum": 0.8,
         "head_cosine_mean_minimum": 0.95,
-        "gradient_relative_l2_minimum": 0.05,
         "gradient_median_cosine_maximum": 0.995,
     }
     if (
@@ -456,8 +504,14 @@ def validate_result(value: object) -> None:
             raise ValueError("probe head cosine value differs")
         gradient_values = tuple(
             _finite_float(gradient[key], f"probe seed {seed} gradient")
-            for key in GRADIENT_KEYS
+            for key in GRADIENT_KEYS[:-1]
         )
+        zero_gradient_row_count = gradient["zero_gradient_row_count"]
+        if (
+            type(zero_gradient_row_count) is not int
+            or not 0 <= zero_gradient_row_count < 128
+        ):
+            raise ValueError("probe zero-gradient row count differs")
         probe_fits[seed] = ProbeFit(
             head=torch.empty(0),
             initial_loss=fit_values[0],
@@ -471,7 +525,9 @@ def validate_result(value: object) -> None:
         probe_metrics[seed] = _metric(probe["validation"], f"probe seed {seed}")
         if probe_metrics[seed].observation_count != expected_observations:
             raise ValueError("probe observation count differs")
-        probe_gradients[seed] = ProbeGradientMetrics(*gradient_values)
+        probe_gradients[seed] = ProbeGradientMetrics(
+            *gradient_values, zero_gradient_row_count
+        )
 
     decision = value["decision"]
     if (
@@ -538,20 +594,25 @@ def write_result_atomic(value: dict[str, object], output: Path) -> None:
         validate_result(persisted)
         if persisted != value:
             raise ValueError("persisted probe result differs")
-        os.link(temporary, output)
-        directory = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
         try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-        temporary.unlink()
-        if (
-            not output.is_file()
-            or output.is_symlink()
-            or stat.S_IMODE(output.stat().st_mode) != 0o600
-        ):
-            raise ValueError("published probe result differs")
-        validate_result(strict_json_object(output.read_bytes()))
+            os.link(temporary, output)
+            directory = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+            temporary.unlink()
+            if (
+                not output.is_file()
+                or output.is_symlink()
+                or stat.S_IMODE(output.stat().st_mode) != 0o600
+            ):
+                raise ValueError("published probe result differs")
+            validate_result(strict_json_object(output.read_bytes()))
+        except Exception:
+            if output.exists() and output.is_file() and not output.is_symlink():
+                output.unlink()
+            raise
     finally:
         if descriptor is not None:
             os.close(descriptor)
@@ -605,15 +666,17 @@ def _authenticate_run(args: argparse.Namespace) -> ScreenInventory:
         train_records, fraction=0.2, seed=0
     )
     split = split_probe_records(optimization, labels)
-    revision, script_sha256, module_sha256 = _source_binding()
+    revision, source_digests = _source_binding()
     result = ScreenInventory(
         partition_sha256=partition_sha256,
         optimization=optimization,
         labels=labels,
         split=split,
         source_revision=revision,
-        script_sha256=script_sha256,
-        module_sha256=module_sha256,
+        script_sha256=source_digests["scripts/screen_unicom_spherical_probe.py"],
+        module_sha256=source_digests["src/sfora/unicom_probe.py"],
+        training_sha256=source_digests["src/sfora/unicom_training.py"],
+        inshop_sha256=source_digests["src/sfora/unicom_inshop.py"],
     )
     _validate_inventory(result)
     return result
@@ -700,6 +763,13 @@ def _metric_payload(value: ProbeMetrics) -> dict[str, object]:
         "correct_count": value.correct_count,
         "observation_count": value.observation_count,
         "per_mask_mean_losses": list(value.per_mask_mean_losses),
+        "per_mask_represented_mean_losses": list(
+            value.per_mask_represented_mean_losses
+        ),
+        "per_mask_unrepresented_mean_losses": list(
+            value.per_mask_unrepresented_mean_losses
+        ),
+        "per_image_mean_losses": list(value.per_image_mean_losses),
         "represented_mean_loss": value.represented_mean_loss,
         "unrepresented_mean_loss": value.unrepresented_mean_loss,
     }
@@ -792,11 +862,13 @@ def _execute_screen(
             }
         )
     result: dict[str, object] = {
-        "schema_version": "unicom-spherical-probe-causal-screen-v2",
+        "schema_version": "unicom-spherical-probe-causal-screen-v3",
         "source": {
             "git_revision": inventory.source_revision,
             "script_sha256": inventory.script_sha256,
             "module_sha256": inventory.module_sha256,
+            "training_sha256": inventory.training_sha256,
+            "inshop_sha256": inventory.inshop_sha256,
         },
         "model": {
             "unicom_revision": UNICOM_REVISION,
@@ -841,10 +913,10 @@ def _execute_screen(
             "optimizer": OPTIMIZER_ID,
             "row_norm": target_norm,
             "paired_t_critical_df63": 1.998340542520741,
+            "paired_t_critical_df3187": 1.9607086212236648,
             "positive_mask_minimum": 48,
             "head_cosine_minimum": 0.8,
             "head_cosine_mean_minimum": 0.95,
-            "gradient_relative_l2_minimum": 0.05,
             "gradient_median_cosine_maximum": 0.995,
         },
         "class_mean": {

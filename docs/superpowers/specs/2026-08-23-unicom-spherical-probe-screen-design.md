@@ -77,19 +77,24 @@ namespaced stream 23,003. For every mask set:
 - compute top-1 accuracy from separate logits with margin 0.0;
 - retain the paired class-mean-minus-probe mean-loss delta.
 
-Accumulate in FP64/Python integers. Report overall results and separate acquisition-
-series-represented/unrepresented results. For each probe report the mean paired loss
-delta, its two-sided paired 95% Student-t lower bound (df=63), and the number of the
-64 deltas strictly above zero.
+Accumulate in FP64/Python integers. Report overall results, per-image mean losses,
+and separate per-mask acquisition-series-represented/unrepresented distributions.
+For each probe report the mean paired loss delta, its two-sided paired 95% Student-t
+lower bound (df=63), the per-image paired lower bound (df=`n_validation-1`), and the
+number of the 64 deltas strictly above zero. Apply the same df=63 lower bound and
+positive-mask count to the unrepresented-only distribution. Freeze the two-sided
+95% criticals as 1.998340542520741 for df 63 and 1.9607086212236648 for the fixed
+3,188-image df 3,187.
 
 For every fit seed, draw one separate 128-row fitting batch and one eight-mask set
 from stream 23,005. Clone the cached features with gradients enabled, compute the
-summed registered loss for each head, and obtain `dL/dz`; never update the backbone.
-Report both gradient Frobenius norms, relative L2 difference
-`||g_probe-g_mean||/||g_mean||`, and the minimum, fifth percentile, median, and mean
-of finite per-sample gradient cosine. Zero per-sample gradients must match in both
-arms; an unmatched zero is structural failure. The gate requires relative difference
-at least 0.05 and median cosine at most 0.995 for every fit seed.
+mean-reduced registered loss for each head, and obtain `dL/dz`; never update the
+backbone. Report both gradient Frobenius norms, their ratio, descriptive relative L2
+difference `||g_probe-g_mean||/||g_mean||`, and the minimum, fifth percentile,
+median, and mean of finite nonzero per-sample gradient cosine. Publish the matched-
+zero row count and exclude those rows from cosine quantiles. Zero per-sample
+gradients must match in both arms; an unmatched zero is structural failure. The
+direction-only gate requires median cosine at most 0.995 for every fit seed.
 
 ## Decision
 
@@ -97,12 +102,14 @@ at least 0.05 and median cosine at most 0.995 for every fit seed.
 
 - the independent diagnostic fitting loss strictly decreases;
 - cosine-to-class-mean minimum is at least 0.80 and mean at least 0.95;
-- overall validation paired loss delta is positive, its paired 95% lower bound is
-  above zero, and at least 48 of 64 mask deltas are positive;
+- overall validation paired loss delta is positive, both its mask-level and identity-
+  level paired 95% lower bounds are above zero, and at least 48 of 64 mask deltas are
+  positive;
 - margin-free validation accuracy is noninferior to `class_mean`;
 - mean validation loss delta is positive in both acquisition-series strata;
-- gradient relative L2 difference is at least 0.05 and median per-sample gradient
-  cosine is at most 0.995.
+- the unrepresented-only paired 95% lower bound is positive and at least 48 of its
+  64 mask deltas improve;
+- median nonzero per-sample gradient cosine is at most 0.995.
 
 All three seeds must pass symmetrically. Otherwise the valid decision is
 `CLOSE_DIRECTION`. Structural/schema/hash/nonfinite failures publish no scientific
@@ -118,7 +125,8 @@ Pure split, fitting, evaluation, uncertainty, gradient, and decision logic lives
 `padded_epoch_indices`, `sample_shard_masks`, and `experiment_stream_seed`; do not
 duplicate the registered objective or samplers.
 
-The CLI authenticates the exact UniCOM revision/checkpoint, source bytes, partition,
+The CLI authenticates the exact UniCOM revision/checkpoint, Git/worktree bytes of
+the CLI, probe module, registered training kernel, and In-Shop parser, partition,
 and output path before image/model work. It emits an exact ordered schema containing
 all counts, streams, head hashes, paired distributions, strata, gradient diagnostics,
 structural norm checks, elapsed time, and one decision. Publication uses a same-

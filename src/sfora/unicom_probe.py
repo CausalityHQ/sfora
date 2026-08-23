@@ -31,6 +31,8 @@ PROBE_GRADIENT_SEED = 23_005
 PROBE_LEARNING_RATE = 1e-4
 PROBE_SHARDS = 8
 PROBE_SELECTED_FEATURES = 512
+PROBE_VALIDATION_IMAGES = 3_188
+PROBE_IDENTITY_T_CRITICAL_DF3187 = 1.9607086212236648
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,9 @@ class ProbeMetrics:
     correct_count: int
     observation_count: int
     per_mask_mean_losses: tuple[float, ...]
+    per_mask_represented_mean_losses: tuple[float, ...]
+    per_mask_unrepresented_mean_losses: tuple[float, ...]
+    per_image_mean_losses: tuple[float, ...]
     represented_mean_loss: float
     unrepresented_mean_loss: float
 
@@ -61,17 +66,22 @@ class ProbeGradientMetrics:
     class_mean_l2: float
     spherical_probe_l2: float
     relative_l2_difference: float
+    spherical_to_class_mean_l2_ratio: float
     cosine_min: float
     cosine_p05: float
     cosine_median: float
     cosine_mean: float
+    zero_gradient_row_count: int
 
 
 @dataclass(frozen=True)
 class ProbeSeedStatistics:
     mean_paired_loss_delta: float
     paired_95_lower_bound: float
+    identity_95_lower_bound: float
     positive_mask_count: int
+    unrepresented_paired_95_lower_bound: float
+    unrepresented_positive_mask_count: int
     accuracy_delta: float
     represented_loss_delta: float
     unrepresented_loss_delta: float
@@ -452,6 +462,12 @@ def evaluate_probe_heads(
         raise ValueError("probe evaluation schedule differs")
 
     loss_totals = {name: [] for name in heads}
+    represented_mask_losses = {name: [] for name in heads}
+    unrepresented_mask_losses = {name: [] for name in heads}
+    per_image_loss = {
+        name: torch.zeros(labels.numel(), dtype=torch.float64, device=features.device)
+        for name in heads
+    }
     correct = {name: 0 for name in heads}
     represented_loss = {name: 0.0 for name in heads}
     unrepresented_loss = {name: 0.0 for name in heads}
@@ -474,6 +490,13 @@ def evaluate_probe_heads(
                 logits = sharded_mask_arcface_logits(features, head, labels, masks)
                 losses = F.cross_entropy(logits, labels, reduction="none")
                 loss_totals[name].append(float(losses.double().mean()))
+                represented_mask_losses[name].append(
+                    float(losses[represented].double().mean())
+                )
+                unrepresented_mask_losses[name].append(
+                    float(losses[~represented].double().mean())
+                )
+                per_image_loss[name].add_(losses.double())
                 represented_loss[name] += float(losses[represented].double().sum())
                 unrepresented_loss[name] += float(losses[~represented].double().sum())
                 margin_free = sharded_mask_arcface_logits(
@@ -493,6 +516,11 @@ def evaluate_probe_heads(
             correct_count=correct[name],
             observation_count=observations,
             per_mask_mean_losses=tuple(loss_totals[name]),
+            per_mask_represented_mean_losses=tuple(represented_mask_losses[name]),
+            per_mask_unrepresented_mean_losses=tuple(unrepresented_mask_losses[name]),
+            per_image_mean_losses=tuple(
+                float(value) for value in (per_image_loss[name] / mask_sets).cpu()
+            ),
             represented_mean_loss=represented_loss[name] / represented_observations,
             unrepresented_mean_loss=(
                 unrepresented_loss[name] / unrepresented_observations
@@ -564,9 +592,8 @@ def compare_probe_gradients(
     zero_probe = probe_row_norms == 0.0
     if not torch.equal(zero_mean, zero_probe):
         raise ValueError("probe per-sample gradient zero pattern differs")
-    cosine = torch.ones(batch_size, dtype=torch.float64, device=features.device)
     nonzero = ~zero_mean
-    cosine[nonzero] = F.cosine_similarity(
+    cosine = F.cosine_similarity(
         class_mean_gradient[nonzero], probe_gradient[nonzero], dim=1
     ).double()
     difference = torch.linalg.vector_norm(probe_gradient - class_mean_gradient)
@@ -574,10 +601,14 @@ def compare_probe_gradients(
         class_mean_l2=float(class_mean_norm.double()),
         spherical_probe_l2=float(probe_norm.double()),
         relative_l2_difference=float(difference.double() / class_mean_norm.double()),
+        spherical_to_class_mean_l2_ratio=float(
+            probe_norm.double() / class_mean_norm.double()
+        ),
         cosine_min=float(cosine.min()),
         cosine_p05=float(torch.quantile(cosine, 0.05)),
         cosine_median=float(torch.quantile(cosine, 0.5)),
         cosine_mean=float(cosine.mean()),
+        zero_gradient_row_count=int(torch.count_nonzero(zero_mean)),
     )
 
 
@@ -597,11 +628,26 @@ def _validate_metrics(value: ProbeMetrics, name: str) -> None:
         or value.accuracy != value.correct_count / value.observation_count
         or type(value.per_mask_mean_losses) is not tuple
         or len(value.per_mask_mean_losses) != 64
+        or type(value.per_mask_represented_mean_losses) is not tuple
+        or len(value.per_mask_represented_mean_losses) != 64
+        or type(value.per_mask_unrepresented_mean_losses) is not tuple
+        or len(value.per_mask_unrepresented_mean_losses) != 64
+        or type(value.per_image_mean_losses) is not tuple
+        or len(value.per_image_mean_losses) != PROBE_VALIDATION_IMAGES
         or any(
             type(item) is not float or not math.isfinite(item) or item <= 0.0
-            for item in value.per_mask_mean_losses
+            for item in (
+                value.per_mask_mean_losses
+                + value.per_mask_represented_mean_losses
+                + value.per_mask_unrepresented_mean_losses
+                + value.per_image_mean_losses
+            )
         )
         or value.mean_loss != math.fsum(value.per_mask_mean_losses) / 64
+        or value.represented_mean_loss
+        != math.fsum(value.per_mask_represented_mean_losses) / 64
+        or value.unrepresented_mean_loss
+        != math.fsum(value.per_mask_unrepresented_mean_losses) / 64
         or any(
             type(item) is not float or not math.isfinite(item) or item <= 0.0
             for item in (value.represented_mean_loss, value.unrepresented_mean_loss)
@@ -642,7 +688,9 @@ def probe_decision(
             fit.row_cosine_median,
             fit.row_cosine_mean,
         )
-        gradient_scalars = tuple(vars(gradient).values())
+        gradient_scalars = tuple(
+            value for value in vars(gradient).values() if type(value) is float
+        )
         if any(
             type(value) is not float or not math.isfinite(value)
             for value in fit_scalars + gradient_scalars
@@ -660,6 +708,9 @@ def probe_decision(
             or gradient.class_mean_l2 <= 0.0
             or gradient.spherical_probe_l2 <= 0.0
             or gradient.relative_l2_difference < 0.0
+            or gradient.spherical_to_class_mean_l2_ratio <= 0.0
+            or type(gradient.zero_gradient_row_count) is not int
+            or not 0 <= gradient.zero_gradient_row_count < 128
             or not -1.0
             <= gradient.cosine_min
             <= gradient.cosine_p05
@@ -684,10 +735,45 @@ def probe_decision(
             len(deltas) - 1
         )
         lower = mean_delta - t_critical_df63 * math.sqrt(variance / len(deltas))
+        identity_deltas = tuple(
+            class_loss - probe_loss
+            for class_loss, probe_loss in zip(
+                class_mean.per_image_mean_losses,
+                metrics.per_image_mean_losses,
+                strict=True,
+            )
+        )
+        identity_mean = math.fsum(identity_deltas) / len(identity_deltas)
+        identity_variance = math.fsum(
+            (value - identity_mean) ** 2 for value in identity_deltas
+        ) / (len(identity_deltas) - 1)
+        identity_lower = identity_mean - PROBE_IDENTITY_T_CRITICAL_DF3187 * math.sqrt(
+            identity_variance / len(identity_deltas)
+        )
+        unrepresented_deltas = tuple(
+            class_loss - probe_loss
+            for class_loss, probe_loss in zip(
+                class_mean.per_mask_unrepresented_mean_losses,
+                metrics.per_mask_unrepresented_mean_losses,
+                strict=True,
+            )
+        )
+        unrepresented_mean = math.fsum(unrepresented_deltas) / 64
+        unrepresented_variance = math.fsum(
+            (value - unrepresented_mean) ** 2 for value in unrepresented_deltas
+        ) / 63
+        unrepresented_lower = unrepresented_mean - t_critical_df63 * math.sqrt(
+            unrepresented_variance / 64
+        )
         per_seed_statistics[seed] = ProbeSeedStatistics(
             mean_paired_loss_delta=mean_delta,
             paired_95_lower_bound=lower,
+            identity_95_lower_bound=identity_lower,
             positive_mask_count=sum(value > 0.0 for value in deltas),
+            unrepresented_paired_95_lower_bound=unrepresented_lower,
+            unrepresented_positive_mask_count=sum(
+                value > 0.0 for value in unrepresented_deltas
+            ),
             accuracy_delta=metrics.accuracy - class_mean.accuracy,
             represented_loss_delta=(
                 class_mean.represented_mean_loss - metrics.represented_mean_loss
@@ -702,6 +788,7 @@ def probe_decision(
             "head_cosine_mean": fit.row_cosine_mean >= 0.95,
             "validation_loss_positive": mean_delta > 0.0,
             "paired_95_lower_positive": lower > 0.0,
+            "identity_95_lower_positive": identity_lower > 0.0,
             "positive_mask_majority": sum(value > 0.0 for value in deltas) >= 48,
             "validation_accuracy_noninferior": metrics.accuracy >= class_mean.accuracy,
             "represented_loss_positive": (
@@ -710,7 +797,11 @@ def probe_decision(
             "unrepresented_loss_positive": (
                 metrics.unrepresented_mean_loss < class_mean.unrepresented_mean_loss
             ),
-            "gradient_relative_difference": gradient.relative_l2_difference >= 0.05,
+            "unrepresented_paired_95_lower_positive": unrepresented_lower > 0.0,
+            "unrepresented_positive_mask_majority": sum(
+                value > 0.0 for value in unrepresented_deltas
+            )
+            >= 48,
             "gradient_median_cosine": gradient.cosine_median <= 0.995,
         }
     return ProbeDecision(
