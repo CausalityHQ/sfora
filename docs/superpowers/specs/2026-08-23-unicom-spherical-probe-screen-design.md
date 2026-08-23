@@ -24,14 +24,18 @@ identities. Preserve its class vocabulary and `[3200, 768]` head shape.
 
 Group records by class in label-map order and sort each group by exact path string.
 Use NumPy PCG64 stream 23,000 to draw one validation index for every class with at
-least two images. A singleton stays in fitting, has no validation row, and retains
-its classifier row. Publish fitting/validation image counts, validation-class count,
-and singleton-class count. The split is image-disjoint.
+least two images. If the class has multiple acquisition-series tokens, exclude every
+other row from the selected validation series from fitting; this makes that validation
+row series-disjoint while keeping at least one other series in fitting. If the class
+has only one series, exclude only the selected validation row. A singleton stays in
+fitting, has no validation row, and retains its classifier row. The frozen partition
+counts are 20,650 optimization images, 14,330 fitting images, 3,188 validation rows,
+12 singleton classes, and 3,132 additional same-series exclusions.
 
 Parse the In-Shop filename's acquisition-series token (the token before the first
 underscore). For every validation row publish whether the same class and series is
-represented in fitting. Both represented and unrepresented strata must be nonempty;
-otherwise the run is structurally invalid. Metrics and decisions use both strata.
+represented in fitting. The frozen split has 2,162 represented and 1,026 unrepresented
+validation rows. Any count drift is structural. Metrics and decisions use both strata.
 
 Encode every fitting and validation image exactly once with the authenticated
 released model's deterministic evaluation transform. Cache only finite contiguous

@@ -31,9 +31,11 @@ issues. The steps below supersede the original invalid split/LR/decision protoco
 
 1. RED: prove a singleton stays in fitting, has no validation row, and preserves its
    class row; prove seeded validation choice is byte deterministic and differs from
-   lexicographic-last behavior; prove represented/unrepresented series strata.
+   lexicographic-last behavior; prove a multi-series class excludes the full selected
+   series from fitting while a single-series class remains image-disjoint.
 2. GREEN: return a frozen `ProbeSplit` containing fitting/validation rows, aligned
-   stratum flags, validation-class count, and singleton-class count.
+   stratum flags, validation/singleton counts, and same-series exclusion count. Freeze
+   the audited counts 20,650/14,330/3,188/12/3,132 and strata 2,162/1,026.
 3. Run the split selector and commit the isolated fix.
 
 ## Task 2: Review-fix fitting and head diagnostics

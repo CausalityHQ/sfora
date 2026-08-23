@@ -91,6 +91,7 @@ class ProbeSplit:
     validation_group_represented: tuple[bool, ...]
     validation_class_count: int
     singleton_class_count: int
+    excluded_same_series_count: int
 
 
 _INSHOP_FILENAME = re.compile(r"^(?P<series>[^_]+)_[0-9]+_[^.]+\.jpg$")
@@ -135,6 +136,7 @@ def split_probe_records(
     validation: list[InshopRecord] = []
     represented: list[bool] = []
     singleton_count = 0
+    excluded_same_series_count = 0
     generator = np.random.Generator(
         np.random.PCG64(experiment_stream_seed(0, seed))
     )
@@ -146,12 +148,22 @@ def split_probe_records(
             continue
         validation_index = int(generator.integers(0, len(ordered)))
         validation_row = ordered[validation_index]
-        fitting_rows = [
-            row for index, row in enumerate(ordered) if index != validation_index
-        ]
+        validation_series = _acquisition_series(validation_row)
+        series = tuple(_acquisition_series(row) for row in ordered)
+        if len(set(series)) > 1:
+            fitting_rows = [
+                row for row, row_series in zip(ordered, series, strict=True)
+                if row_series != validation_series
+            ]
+            excluded_same_series_count += sum(
+                row_series == validation_series for row_series in series
+            ) - 1
+        else:
+            fitting_rows = [
+                row for index, row in enumerate(ordered) if index != validation_index
+            ]
         fitting.extend(fitting_rows)
         validation.append(validation_row)
-        validation_series = _acquisition_series(validation_row)
         represented.append(
             any(_acquisition_series(row) == validation_series for row in fitting_rows)
         )
@@ -161,6 +173,7 @@ def split_probe_records(
         validation_group_represented=tuple(represented),
         validation_class_count=len(validation),
         singleton_class_count=singleton_count,
+        excluded_same_series_count=excluded_same_series_count,
     )
 
 

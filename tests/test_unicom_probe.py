@@ -43,7 +43,6 @@ def test_split_probe_records_uses_seeded_validation_and_keeps_singletons() -> No
 
     assert type(actual) is ProbeSplit
     assert actual.fitting == (
-        _record("a", "01_2_back.jpg"),
         _record("a", "02_3_side.jpg"),
         _record("b", "07_1_front.jpg"),
         _record("c", "03_1_front.jpg"),
@@ -52,9 +51,10 @@ def test_split_probe_records_uses_seeded_validation_and_keeps_singletons() -> No
         _record("a", "01_1_front.jpg"),
         _record("c", "03_2_side.jpg"),
     )
-    assert actual.validation_group_represented == (True, True)
+    assert actual.validation_group_represented == (False, True)
     assert actual.validation_class_count == 2
     assert actual.singleton_class_count == 1
+    assert actual.excluded_same_series_count == 1
 
 
 def test_split_probe_records_reports_unrepresented_acquisition_series() -> None:
@@ -69,6 +69,7 @@ def test_split_probe_records_reports_unrepresented_acquisition_series() -> None:
 
     assert actual.validation == (_record("a", "01_1_front.jpg"),)
     assert actual.validation_group_represented == (False,)
+    assert actual.excluded_same_series_count == 0
 
 
 @pytest.mark.parametrize(

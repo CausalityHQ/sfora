@@ -105,12 +105,14 @@ def _valid_result() -> dict[str, object]:
         "dataset": {
             "partition_sha256": "d" * 64,
             "optimization_identity_count": 3200,
-            "fitting_image_count": 17_512,
+            "optimization_image_count": 20_650,
+            "fitting_image_count": 14_330,
             "validation_image_count": 3_188,
             "validation_class_count": 3_188,
             "singleton_class_count": 12,
-            "represented_validation_count": 2_000,
-            "unrepresented_validation_count": 1_188,
+            "excluded_same_series_count": 3_132,
+            "represented_validation_count": 2_162,
+            "unrepresented_validation_count": 1_026,
         },
         "protocol": {
             "holdout_fraction": 0.2,
@@ -365,12 +367,20 @@ def test_authenticate_run_binds_model_partition_source_and_probe_split(
     checkpoint.write_bytes(b"weights")
     output_parent = tmp_path / "results"
     output_parent.mkdir()
-    records = tuple(
+    base_records = tuple(
         InshopRecord("train", dataset / f"{index}_1_front.jpg", f"id{index}")
         for index in range(8)
     )
-    labels = {f"id{index}": index for index in range(8)}
-    split = ProbeSplit(records, (), (), 0, 8)
+    optimization = (base_records * 2_582)[:20_650]
+    labels = {f"id{index}": index for index in range(3200)}
+    split = ProbeSplit(
+        (base_records * 1_792)[:14_330],
+        (base_records * 399)[:3_188],
+        (True,) * 2_162 + (False,) * 1_026,
+        3_188,
+        12,
+        3_132,
+    )
     calls: list[object] = []
     monkeypatch.setattr(
         MODULE,
@@ -384,12 +394,15 @@ def test_authenticate_run_binds_model_partition_source_and_probe_split(
         lambda path: MODULE.CHECKPOINT_SHA256 if path == checkpoint else "d" * 64,
         raising=False,
     )
-    monkeypatch.setattr(MODULE, "parse_inshop_partition", lambda root: records, raising=False)
+    monkeypatch.setattr(
+        MODULE, "parse_inshop_partition", lambda root: optimization, raising=False
+    )
     monkeypatch.setattr(
         MODULE,
         "identity_holdout",
         lambda actual, *, fraction, seed: (
-            calls.extend((actual, fraction, seed)) or (records, (), (), labels)
+                calls.extend((actual, fraction, seed))
+                or (optimization, (), (), labels)
         ),
         raising=False,
     )
@@ -423,7 +436,7 @@ def test_authenticate_run_binds_model_partition_source_and_probe_split(
     actual = MODULE._authenticate_run(args)
 
     assert actual.partition_sha256 == "d" * 64
-    assert actual.optimization == records
+    assert actual.optimization == optimization
     assert actual.labels == labels
     assert actual.split == split
     assert actual.source_revision == "a" * 40
@@ -490,34 +503,59 @@ def test_authenticate_run_rejects_invalid_preflight(
         MODULE._authenticate_run(args)
 
 
+def test_validate_inventory_rejects_wrong_registered_counts(tmp_path: Path) -> None:
+    row = InshopRecord("train", tmp_path / "01_1_front.jpg", "id0")
+    wrong = MODULE.ScreenInventory(
+        partition_sha256="d" * 64,
+        optimization=(row,) * 20_650,
+        labels={f"id{index}": index for index in range(3199)},
+        split=ProbeSplit(
+            (row,) * 14_330,
+            (row,) * 3_188,
+            (True,) * 2_162 + (False,) * 1_026,
+            3_188,
+            12,
+            3_132,
+        ),
+        source_revision="a" * 40,
+        script_sha256="b" * 64,
+        module_sha256="c" * 64,
+    )
+
+    with pytest.raises(ValueError):
+        MODULE._validate_inventory(wrong)
+
+
 def test_execute_screen_builds_and_validates_complete_three_seed_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     labels = {f"id{index}": index for index in range(3200)}
-    fitting = tuple(
+    base_fitting = tuple(
         InshopRecord("train", tmp_path / f"{index}_1_front.jpg", label)
         for index, label in enumerate(labels)
     )
+    fitting = (base_fitting * 5)[:14_330]
     validation = tuple(
         InshopRecord("train", tmp_path / f"{index}_2_side.jpg", f"id{index}")
         for index in range(3188)
     )
     inventory = MODULE.ScreenInventory(
         partition_sha256="d" * 64,
-        optimization=fitting + validation,
+        optimization=fitting + validation + (fitting[0],) * 3_132,
         labels=labels,
         split=ProbeSplit(
             fitting=fitting,
             validation=validation,
-            validation_group_represented=(True,) * 2000 + (False,) * 1188,
+            validation_group_represented=(True,) * 2162 + (False,) * 1026,
             validation_class_count=3188,
             singleton_class_count=12,
+            excluded_same_series_count=3132,
         ),
         source_revision="a" * 40,
         script_sha256="b" * 64,
         module_sha256="c" * 64,
     )
-    fitting_features = torch.ones(3200, 768, dtype=torch.float32)
+    fitting_features = torch.ones(1, 768, dtype=torch.float32)
     validation_features = torch.ones(3188, 768, dtype=torch.float32)
     mean_head = torch.ones(3200, 768, dtype=torch.float32)
     mean_head *= (0.01 * math.sqrt(768.0)) / torch.linalg.vector_norm(mean_head, dim=1)[:, None]

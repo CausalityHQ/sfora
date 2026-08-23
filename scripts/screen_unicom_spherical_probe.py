@@ -55,10 +55,12 @@ MODEL_KEYS = ("unicom_revision", "checkpoint_sha256")
 DATASET_KEYS = (
     "partition_sha256",
     "optimization_identity_count",
+    "optimization_image_count",
     "fitting_image_count",
     "validation_image_count",
     "validation_class_count",
     "singleton_class_count",
+    "excluded_same_series_count",
     "represented_validation_count",
     "unrepresented_validation_count",
 )
@@ -158,6 +160,35 @@ class ScreenInventory:
     source_revision: str
     script_sha256: str
     module_sha256: str
+
+
+def _validate_inventory(value: ScreenInventory) -> None:
+    if (
+        type(value) is not ScreenInventory
+        or not _sha256(value.partition_sha256)
+        or type(value.optimization) is not tuple
+        or len(value.optimization) != 20_650
+        or type(value.labels) is not dict
+        or len(value.labels) != 3_200
+        or tuple(value.labels.values()) != tuple(range(3_200))
+        or type(value.split) is not ProbeSplit
+        or len(value.split.fitting) != 14_330
+        or len(value.split.validation) != 3_188
+        or value.split.validation_class_count != 3_188
+        or value.split.singleton_class_count != 12
+        or value.split.excluded_same_series_count != 3_132
+        or len(value.split.validation_group_represented) != 3_188
+        or sum(value.split.validation_group_represented) != 2_162
+        or not _sha256(value.script_sha256)
+        or not _sha256(value.module_sha256)
+        or type(value.source_revision) is not str
+        or len(value.source_revision) != 40
+        or any(
+            type(row) is not InshopRecord or row.label not in value.labels
+            for row in value.split.fitting + value.split.validation
+        )
+    ):
+        raise ValueError("probe authenticated inventory differs")
 
 
 def _sha256_file(path: Path) -> str:
@@ -304,17 +335,25 @@ def validate_result(value: object) -> None:
         or tuple(dataset) != DATASET_KEYS
         or not _sha256(dataset["partition_sha256"])
         or dataset["optimization_identity_count"] != 3200
+        or dataset["optimization_image_count"] != 20_650
         or type(dataset["fitting_image_count"]) is not int
-        or dataset["fitting_image_count"] <= 0
+        or dataset["fitting_image_count"] != 14_330
         or type(dataset["validation_image_count"]) is not int
         or type(dataset["validation_class_count"]) is not int
         or type(dataset["singleton_class_count"]) is not int
         or dataset["validation_image_count"] != dataset["validation_class_count"]
         or dataset["validation_class_count"] + dataset["singleton_class_count"] != 3200
+        or dataset["singleton_class_count"] != 12
+        or dataset["validation_class_count"] != 3_188
+        or dataset["excluded_same_series_count"] != 3_132
+        or dataset["fitting_image_count"]
+        + dataset["validation_image_count"]
+        + dataset["excluded_same_series_count"]
+        != dataset["optimization_image_count"]
         or type(dataset["represented_validation_count"]) is not int
         or type(dataset["unrepresented_validation_count"]) is not int
-        or dataset["represented_validation_count"] <= 0
-        or dataset["unrepresented_validation_count"] <= 0
+        or dataset["represented_validation_count"] != 2_162
+        or dataset["unrepresented_validation_count"] != 1_026
         or dataset["represented_validation_count"]
         + dataset["unrepresented_validation_count"]
         != dataset["validation_image_count"]
@@ -567,7 +606,7 @@ def _authenticate_run(args: argparse.Namespace) -> ScreenInventory:
     )
     split = split_probe_records(optimization, labels)
     revision, script_sha256, module_sha256 = _source_binding()
-    return ScreenInventory(
+    result = ScreenInventory(
         partition_sha256=partition_sha256,
         optimization=optimization,
         labels=labels,
@@ -576,6 +615,8 @@ def _authenticate_run(args: argparse.Namespace) -> ScreenInventory:
         script_sha256=script_sha256,
         module_sha256=module_sha256,
     )
+    _validate_inventory(result)
+    return result
 
 
 class _EvaluationDataset(Dataset[torch.Tensor]):
@@ -667,7 +708,8 @@ def _metric_payload(value: ProbeMetrics) -> dict[str, object]:
 def _execute_screen(
     args: argparse.Namespace, inventory: ScreenInventory
 ) -> dict[str, object]:
-    if type(inventory) is not ScreenInventory or not torch.cuda.is_available():
+    _validate_inventory(inventory)
+    if not torch.cuda.is_available():
         raise RuntimeError("CUDA probe inventory differs")
     started = time.perf_counter()
     torch.cuda.reset_peak_memory_stats()
@@ -763,10 +805,14 @@ def _execute_screen(
         "dataset": {
             "partition_sha256": inventory.partition_sha256,
             "optimization_identity_count": len(inventory.labels),
+            "optimization_image_count": len(inventory.optimization),
             "fitting_image_count": len(inventory.split.fitting),
             "validation_image_count": len(inventory.split.validation),
             "validation_class_count": inventory.split.validation_class_count,
             "singleton_class_count": inventory.split.singleton_class_count,
+            "excluded_same_series_count": (
+                inventory.split.excluded_same_series_count
+            ),
             "represented_validation_count": sum(
                 inventory.split.validation_group_represented
             ),
