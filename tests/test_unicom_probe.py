@@ -288,6 +288,24 @@ def test_evaluate_probe_heads_uses_margin_free_accuracy_and_retains_paired_losse
         assert actual[name].unrepresented_mean_loss == expected[name][3]
 
 
+def test_evaluate_probe_heads_allows_singleton_classes_absent_from_validation() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    keep = labels != 7
+    validation_features = features[keep].contiguous()
+    validation_labels = labels[keep].contiguous()
+    represented = tuple(index % 2 == 0 for index in range(validation_labels.numel()))
+
+    actual = evaluate_probe_heads(
+        validation_features,
+        validation_labels,
+        {"class_mean": initial, "spherical_probe": initial.clone()},
+        validation_group_represented=represented,
+        mask_sets=2,
+    )
+
+    assert actual["class_mean"].observation_count == validation_labels.numel() * 2
+
+
 def test_compare_probe_gradients_matches_independent_autograd_oracle() -> None:
     from sfora.unicom_training import experiment_stream_seed, padded_epoch_indices
 

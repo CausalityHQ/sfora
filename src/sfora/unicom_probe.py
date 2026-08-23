@@ -207,7 +207,11 @@ def class_mean_head(
 
 
 def _validate_probe_tensors(
-    features: torch.Tensor, labels: torch.Tensor, initial: torch.Tensor
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    initial: torch.Tensor,
+    *,
+    require_all_classes: bool = True,
 ) -> float:
     if (
         type(features) is not torch.Tensor
@@ -228,6 +232,7 @@ def _validate_probe_tensors(
         or initial.device != features.device
         or not initial.is_contiguous()
         or initial.shape[0] < PROBE_SHARDS
+        or type(require_all_classes) is not bool
     ):
         raise ValueError("spherical probe tensor contract differs")
     if not torch.isfinite(features).all() or not torch.isfinite(initial).all():
@@ -235,7 +240,9 @@ def _validate_probe_tensors(
     if torch.any(labels < 0) or torch.any(labels >= initial.shape[0]):
         raise ValueError("spherical probe label is outside the class range")
     counts = torch.bincount(labels, minlength=initial.shape[0])
-    if counts.shape[0] != initial.shape[0] or torch.any(counts == 0):
+    if counts.shape[0] != initial.shape[0] or (
+        require_all_classes and torch.any(counts == 0)
+    ):
         raise ValueError("spherical probe class is empty")
     row_norms = torch.linalg.vector_norm(initial, dim=1)
     if torch.any(row_norms == 0.0) or not torch.isfinite(row_norms).all():
@@ -412,8 +419,12 @@ def evaluate_probe_heads(
 
     if type(heads) is not dict or tuple(heads) != ("class_mean", "spherical_probe"):
         raise ValueError("probe evaluation head order differs")
-    _validate_probe_tensors(features, labels, heads["class_mean"])
-    _validate_probe_tensors(features, labels, heads["spherical_probe"])
+    _validate_probe_tensors(
+        features, labels, heads["class_mean"], require_all_classes=False
+    )
+    _validate_probe_tensors(
+        features, labels, heads["spherical_probe"], require_all_classes=False
+    )
     if (
         type(mask_sets) is not int
         or mask_sets <= 0
@@ -624,6 +635,26 @@ def probe_decision(
             for value in fit_scalars + gradient_scalars
         ):
             raise ValueError("probe seed evidence scalar differs")
+        if (
+            fit.initial_loss <= 0.0
+            or fit.final_loss <= 0.0
+            or not -1.0
+            <= fit.row_cosine_min
+            <= fit.row_cosine_p05
+            <= fit.row_cosine_median
+            <= 1.0
+            or not -1.0 <= fit.row_cosine_mean <= 1.0
+            or gradient.class_mean_l2 <= 0.0
+            or gradient.spherical_probe_l2 <= 0.0
+            or gradient.relative_l2_difference < 0.0
+            or not -1.0
+            <= gradient.cosine_min
+            <= gradient.cosine_p05
+            <= gradient.cosine_median
+            <= 1.0
+            or not -1.0 <= gradient.cosine_mean <= 1.0
+        ):
+            raise ValueError("probe seed evidence range differs")
         _validate_metrics(metrics, f"spherical_probe_seed_{seed}")
         if class_mean.observation_count != metrics.observation_count:
             raise ValueError("probe metric observation counts differ")
