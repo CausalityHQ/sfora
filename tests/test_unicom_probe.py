@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -8,9 +10,13 @@ import torch
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_probe import (
     PROBE_LEARNING_RATE,
+    ProbeFit,
+    ProbeGradientMetrics,
     ProbeMetrics,
+    ProbeSeedStatistics,
     ProbeSplit,
     class_mean_head,
+    compare_probe_gradients,
     evaluate_probe_heads,
     fit_spherical_probe,
     probe_decision,
@@ -221,23 +227,28 @@ def test_fit_spherical_probe_rejects_invalid_tensor_contract(mutation: str) -> N
         fit_spherical_probe(features, labels, initial, steps=2, batch_size=8)
 
 
-def test_evaluate_probe_heads_averages_registered_mask_observations() -> None:
+def test_evaluate_probe_heads_uses_margin_free_accuracy_and_retains_paired_losses() -> None:
     features, labels, initial = _separable_probe_fixture()
     probe = torch.roll(initial, shifts=-1, dims=0).contiguous()
+    represented = tuple(index % 2 == 0 for index in range(labels.numel()))
 
     actual = evaluate_probe_heads(
         features,
         labels,
         {"class_mean": initial, "spherical_probe": probe},
+        validation_group_represented=represented,
         mask_sets=2,
     )
 
     assert tuple(actual) == ("class_mean", "spherical_probe")
     assert all(type(value) is ProbeMetrics for value in actual.values())
-    expected: dict[str, tuple[float, int]] = {}
+    expected: dict[str, tuple[tuple[float, ...], int, float, float]] = {}
     generator = torch.Generator().manual_seed(23_003)
-    loss_sums = {"class_mean": 0.0, "spherical_probe": 0.0}
+    per_mask = {"class_mean": [], "spherical_probe": []}
     correct = {"class_mean": 0, "spherical_probe": 0}
+    represented_loss = {"class_mean": 0.0, "spherical_probe": 0.0}
+    unrepresented_loss = {"class_mean": 0.0, "spherical_probe": 0.0}
+    represented_tensor = torch.tensor(represented, dtype=torch.bool)
     for _index in range(2):
         masks = sample_shard_masks(
             dimension=768,
@@ -248,21 +259,85 @@ def test_evaluate_probe_heads_averages_registered_mask_observations() -> None:
         )
         for name, head in {"class_mean": initial, "spherical_probe": probe}.items():
             logits = sharded_mask_arcface_logits(features, head, labels, masks)
-            loss_sums[name] += float(
-                torch.nn.functional.cross_entropy(logits, labels, reduction="none")
-                .double()
-                .sum()
+            losses = torch.nn.functional.cross_entropy(logits, labels, reduction="none")
+            per_mask[name].append(float(losses.double().mean()))
+            represented_loss[name] += float(losses[represented_tensor].double().sum())
+            unrepresented_loss[name] += float(losses[~represented_tensor].double().sum())
+            margin_free = sharded_mask_arcface_logits(
+                features, head, labels, masks, margin=0.0
             )
-            correct[name] += int(torch.count_nonzero(logits.argmax(dim=1) == labels))
+            correct[name] += int(torch.count_nonzero(margin_free.argmax(dim=1) == labels))
     observations = labels.numel() * 2
-    for name in loss_sums:
-        expected[name] = (loss_sums[name] / observations, correct[name])
+    represented_observations = int(represented_tensor.sum()) * 2
+    unrepresented_observations = int((~represented_tensor).sum()) * 2
+    for name in per_mask:
+        expected[name] = (
+            tuple(per_mask[name]),
+            correct[name],
+            represented_loss[name] / represented_observations,
+            unrepresented_loss[name] / unrepresented_observations,
+        )
 
     for name in actual:
-        assert actual[name].mean_loss == expected[name][0]
+        assert actual[name].per_mask_mean_losses == expected[name][0]
+        assert actual[name].mean_loss == sum(expected[name][0]) / 2
         assert actual[name].correct_count == expected[name][1]
         assert actual[name].observation_count == observations
         assert actual[name].accuracy == expected[name][1] / observations
+        assert actual[name].represented_mean_loss == expected[name][2]
+        assert actual[name].unrepresented_mean_loss == expected[name][3]
+
+
+def test_compare_probe_gradients_matches_independent_autograd_oracle() -> None:
+    from sfora.unicom_training import experiment_stream_seed, padded_epoch_indices
+
+    features, labels, initial = _separable_probe_fixture()
+    probe = torch.roll(initial, shifts=-1, dims=0).contiguous()
+
+    actual = compare_probe_gradients(
+        features,
+        labels,
+        {"class_mean": initial, "spherical_probe": probe},
+        fit_seed=2,
+        batch_size=8,
+    )
+
+    indices = padded_epoch_indices(
+        size=features.shape[0],
+        global_batch=8,
+        epoch=0,
+        seed=experiment_stream_seed(2, 23_005),
+        shards=8,
+    )[:8]
+    batch_labels = labels[list(indices)]
+    generator = torch.Generator().manual_seed(experiment_stream_seed(2, 23_005))
+    masks = sample_shard_masks(
+        dimension=768,
+        selected=512,
+        shards=8,
+        generator=generator,
+        device=torch.device("cpu"),
+    )
+    gradients = []
+    for head in (initial, probe):
+        batch = features[list(indices)].detach().clone().requires_grad_(True)
+        logits = sharded_mask_arcface_logits(batch, head, batch_labels, masks)
+        loss = torch.nn.functional.cross_entropy(logits, batch_labels)
+        gradients.append(torch.autograd.grad(loss, batch)[0])
+    mean_gradient, probe_gradient = gradients
+    per_row = torch.nn.functional.cosine_similarity(mean_gradient, probe_gradient, dim=1)
+
+    assert type(actual) is ProbeGradientMetrics
+    assert actual.class_mean_l2 == float(torch.linalg.vector_norm(mean_gradient).double())
+    assert actual.spherical_probe_l2 == float(torch.linalg.vector_norm(probe_gradient).double())
+    assert actual.relative_l2_difference == float(
+        torch.linalg.vector_norm(probe_gradient - mean_gradient).double()
+        / torch.linalg.vector_norm(mean_gradient).double()
+    )
+    assert actual.cosine_min == float(per_row.double().min())
+    assert actual.cosine_p05 == float(torch.quantile(per_row.double(), 0.05))
+    assert actual.cosine_median == float(torch.quantile(per_row.double(), 0.5))
+    assert actual.cosine_mean == float(per_row.double().mean())
 
 
 def _metrics(loss: float, accuracy: float, *, count: int = 100) -> ProbeMetrics:
@@ -271,61 +346,124 @@ def _metrics(loss: float, accuracy: float, *, count: int = 100) -> ProbeMetrics:
         accuracy=accuracy,
         correct_count=round(accuracy * count),
         observation_count=count,
+        per_mask_mean_losses=tuple(loss for _ in range(64)),
+        represented_mean_loss=loss,
+        unrepresented_mean_loss=loss,
+    )
+
+
+def _metrics_from_deltas(deltas: tuple[float, ...]) -> ProbeMetrics:
+    losses = tuple(1.0 - delta for delta in deltas)
+    return ProbeMetrics(
+        mean_loss=math.fsum(losses) / len(losses),
+        accuracy=0.8,
+        correct_count=80,
+        observation_count=100,
+        per_mask_mean_losses=losses,
+        represented_mean_loss=0.9,
+        unrepresented_mean_loss=0.9,
+    )
+
+
+def _fit() -> ProbeFit:
+    return ProbeFit(
+        head=torch.ones(8, 768, dtype=torch.float32),
+        initial_loss=2.0,
+        final_loss=1.9,
+        steps=512,
+        row_cosine_min=0.8,
+        row_cosine_p05=0.9,
+        row_cosine_median=0.97,
+        row_cosine_mean=0.95,
+    )
+
+
+def _gradient() -> ProbeGradientMetrics:
+    return ProbeGradientMetrics(
+        class_mean_l2=1.0,
+        spherical_probe_l2=1.0,
+        relative_l2_difference=0.1,
+        cosine_min=0.98,
+        cosine_p05=0.985,
+        cosine_median=0.99,
+        cosine_mean=0.99,
     )
 
 
 def test_probe_decision_promotes_at_registered_inclusive_boundaries() -> None:
-    target = 0.01 * 768**0.5
-
     decision = probe_decision(
-        initial_fit_loss=2.0,
-        final_fit_loss=1.99,
         class_mean=_metrics(1.0, 0.8),
-        spherical_probe=_metrics(0.99, 0.8),
-        row_norm_min=target,
-        row_norm_max=target,
+        probe_fits={seed: _fit() for seed in range(3)},
+        probe_metrics={seed: _metrics(0.9, 0.8) for seed in range(3)},
+        probe_gradients={seed: _gradient() for seed in range(3)},
     )
 
     assert decision.status == "PROMOTE"
-    assert decision.relative_validation_loss_reduction == pytest.approx(0.01)
-    assert decision.accuracy_delta == 0.0
-    assert decision.predicates == {
-        "fit_loss_decreased": True,
-        "validation_loss_reduction": True,
-        "validation_accuracy_noninferior": True,
-        "row_norms_match": True,
-    }
+    assert tuple(decision.per_seed_predicates) == (0, 1, 2)
+    assert all(all(values.values()) for values in decision.per_seed_predicates.values())
+    assert all(
+        type(value) is ProbeSeedStatistics
+        for value in decision.per_seed_statistics.values()
+    )
+    assert decision.per_seed_statistics[0] == ProbeSeedStatistics(
+        mean_paired_loss_delta=pytest.approx(0.1),
+        paired_95_lower_bound=pytest.approx(0.1),
+        positive_mask_count=64,
+        accuracy_delta=0.0,
+        represented_loss_delta=pytest.approx(0.1),
+        unrepresented_loss_delta=pytest.approx(0.1),
+    )
 
 
 @pytest.mark.parametrize(
     "mutation",
-    ("fit", "loss", "accuracy", "min_norm", "max_norm", "nan"),
+    (
+        "fit",
+        "loss",
+        "paired_ci",
+        "majority",
+        "accuracy",
+        "represented",
+        "unrepresented",
+        "head_min",
+        "head_mean",
+        "gradient",
+        "cosine",
+    ),
 )
 def test_probe_decision_closes_each_failed_scientific_predicate(mutation: str) -> None:
-    target = 0.01 * 768**0.5
+    fits = {seed: _fit() for seed in range(3)}
+    metrics = {seed: _metrics(0.9, 0.8) for seed in range(3)}
+    gradients = {seed: _gradient() for seed in range(3)}
     arguments = {
-        "initial_fit_loss": 2.0,
-        "final_fit_loss": 1.9,
         "class_mean": _metrics(1.0, 0.8),
-        "spherical_probe": _metrics(0.98, 0.81),
-        "row_norm_min": target,
-        "row_norm_max": target,
+        "probe_fits": fits,
+        "probe_metrics": metrics,
+        "probe_gradients": gradients,
     }
     if mutation == "fit":
-        arguments["final_fit_loss"] = 2.0
+        fits[1] = replace(fits[1], final_loss=fits[1].initial_loss)
     elif mutation == "loss":
-        arguments["spherical_probe"] = _metrics(0.995, 0.81)
+        metrics[1] = _metrics(1.0, 0.8)
+    elif mutation == "paired_ci":
+        metrics[1] = _metrics_from_deltas((0.2,) * 48 + (-0.5,) * 16)
+    elif mutation == "majority":
+        metrics[1] = _metrics_from_deltas((0.2,) * 47 + (-0.01,) * 17)
     elif mutation == "accuracy":
-        arguments["spherical_probe"] = _metrics(0.98, 0.79)
-    elif mutation == "min_norm":
-        arguments["row_norm_min"] = target * 0.99
-    elif mutation == "max_norm":
-        arguments["row_norm_max"] = target * 1.01
-    elif mutation == "nan":
-        arguments["final_fit_loss"] = float("nan")
+        metrics[1] = _metrics(0.9, 0.79)
+    elif mutation == "represented":
+        value = _metrics(0.9, 0.8)
+        metrics[1] = replace(value, represented_mean_loss=1.0)
+    elif mutation == "unrepresented":
+        value = _metrics(0.9, 0.8)
+        metrics[1] = replace(value, unrepresented_mean_loss=1.0)
+    elif mutation == "head_min":
+        fits[1] = replace(_fit(), row_cosine_min=0.799)
+    elif mutation == "head_mean":
+        fits[1] = replace(_fit(), row_cosine_mean=0.949)
+    elif mutation == "gradient":
+        gradients[1] = replace(_gradient(), relative_l2_difference=0.049)
+    elif mutation == "cosine":
+        gradients[1] = replace(_gradient(), cosine_median=0.996)
 
-    if mutation == "nan":
-        with pytest.raises((TypeError, ValueError)):
-            probe_decision(**arguments)
-    else:
-        assert probe_decision(**arguments).status == "CLOSE_DIRECTION"
+    assert probe_decision(**arguments).status == "CLOSE_DIRECTION"

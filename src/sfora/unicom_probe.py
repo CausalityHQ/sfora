@@ -27,6 +27,7 @@ PROBE_BATCH_SIZE = 128
 PROBE_BATCH_SEED = 23_001
 PROBE_MASK_SEED = 23_002
 PROBE_DIAGNOSTIC_SEED = 23_004
+PROBE_GRADIENT_SEED = 23_005
 PROBE_LEARNING_RATE = 1e-4
 PROBE_SHARDS = 8
 PROBE_SELECTED_FEATURES = 512
@@ -50,14 +51,37 @@ class ProbeMetrics:
     accuracy: float
     correct_count: int
     observation_count: int
+    per_mask_mean_losses: tuple[float, ...]
+    represented_mean_loss: float
+    unrepresented_mean_loss: float
+
+
+@dataclass(frozen=True)
+class ProbeGradientMetrics:
+    class_mean_l2: float
+    spherical_probe_l2: float
+    relative_l2_difference: float
+    cosine_min: float
+    cosine_p05: float
+    cosine_median: float
+    cosine_mean: float
+
+
+@dataclass(frozen=True)
+class ProbeSeedStatistics:
+    mean_paired_loss_delta: float
+    paired_95_lower_bound: float
+    positive_mask_count: int
+    accuracy_delta: float
+    represented_loss_delta: float
+    unrepresented_loss_delta: float
 
 
 @dataclass(frozen=True)
 class ProbeDecision:
     status: str
-    relative_validation_loss_reduction: float
-    accuracy_delta: float
-    predicates: dict[str, bool]
+    per_seed_statistics: dict[int, ProbeSeedStatistics]
+    per_seed_predicates: dict[int, dict[str, bool]]
 
 
 @dataclass(frozen=True)
@@ -380,6 +404,7 @@ def evaluate_probe_heads(
     labels: torch.Tensor,
     heads: Mapping[str, torch.Tensor],
     *,
+    validation_group_represented: tuple[bool, ...],
     mask_sets: int = 64,
     mask_seed: int = 23_003,
 ) -> dict[str, ProbeMetrics]:
@@ -394,12 +419,24 @@ def evaluate_probe_heads(
         or mask_sets <= 0
         or type(mask_seed) is not int
         or mask_seed < 0
+        or type(validation_group_represented) is not tuple
+        or len(validation_group_represented) != labels.numel()
+        or any(type(value) is not bool for value in validation_group_represented)
+        or not any(validation_group_represented)
+        or all(validation_group_represented)
     ):
         raise ValueError("probe evaluation schedule differs")
 
     loss_totals = {name: [] for name in heads}
     correct = {name: 0 for name in heads}
-    generator = torch.Generator(device=features.device).manual_seed(mask_seed)
+    represented_loss = {name: 0.0 for name in heads}
+    unrepresented_loss = {name: 0.0 for name in heads}
+    represented = torch.tensor(
+        validation_group_represented, dtype=torch.bool, device=features.device
+    )
+    generator = torch.Generator(device=features.device).manual_seed(
+        experiment_stream_seed(0, mask_seed)
+    )
     for _index in range(mask_sets):
         masks = sample_shard_masks(
             dimension=features.shape[1],
@@ -412,19 +449,112 @@ def evaluate_probe_heads(
             with torch.no_grad():
                 logits = sharded_mask_arcface_logits(features, head, labels, masks)
                 losses = F.cross_entropy(logits, labels, reduction="none")
-                loss_totals[name].append(float(losses.double().sum()))
-                correct[name] += int(torch.count_nonzero(logits.argmax(dim=1) == labels))
+                loss_totals[name].append(float(losses.double().mean()))
+                represented_loss[name] += float(losses[represented].double().sum())
+                unrepresented_loss[name] += float(losses[~represented].double().sum())
+                margin_free = sharded_mask_arcface_logits(
+                    features, head, labels, masks, margin=0.0
+                )
+                correct[name] += int(
+                    torch.count_nonzero(margin_free.argmax(dim=1) == labels)
+                )
 
     observations = labels.numel() * mask_sets
+    represented_observations = int(torch.count_nonzero(represented)) * mask_sets
+    unrepresented_observations = int(torch.count_nonzero(~represented)) * mask_sets
     return {
         name: ProbeMetrics(
-            mean_loss=math.fsum(loss_totals[name]) / observations,
+            mean_loss=math.fsum(loss_totals[name]) / mask_sets,
             accuracy=correct[name] / observations,
             correct_count=correct[name],
             observation_count=observations,
+            per_mask_mean_losses=tuple(loss_totals[name]),
+            represented_mean_loss=represented_loss[name] / represented_observations,
+            unrepresented_mean_loss=(
+                unrepresented_loss[name] / unrepresented_observations
+            ),
         )
         for name in heads
     }
+
+
+def compare_probe_gradients(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    heads: Mapping[str, torch.Tensor],
+    *,
+    fit_seed: int,
+    batch_size: int = PROBE_BATCH_SIZE,
+    diagnostic_seed: int = PROBE_GRADIENT_SEED,
+) -> ProbeGradientMetrics:
+    """Compare the cached-feature gradient fields induced by two classifier heads."""
+
+    if type(heads) is not dict or tuple(heads) != ("class_mean", "spherical_probe"):
+        raise ValueError("probe gradient head order differs")
+    _validate_probe_tensors(features, labels, heads["class_mean"])
+    _validate_probe_tensors(features, labels, heads["spherical_probe"])
+    if (
+        type(fit_seed) is not int
+        or fit_seed < 0
+        or type(batch_size) is not int
+        or batch_size <= 0
+        or batch_size % PROBE_SHARDS != 0
+        or type(diagnostic_seed) is not int
+        or diagnostic_seed < 0
+    ):
+        raise ValueError("probe gradient schedule differs")
+    stream_seed = experiment_stream_seed(fit_seed, diagnostic_seed)
+    indices = padded_epoch_indices(
+        size=features.shape[0],
+        global_batch=batch_size,
+        epoch=0,
+        seed=stream_seed,
+        shards=PROBE_SHARDS,
+    )[:batch_size]
+    batch_indices = torch.tensor(indices, dtype=torch.int64, device=features.device)
+    batch_labels = labels.index_select(0, batch_indices)
+    generator = torch.Generator(device=features.device).manual_seed(stream_seed)
+    masks = sample_shard_masks(
+        dimension=features.shape[1],
+        selected=PROBE_SELECTED_FEATURES,
+        shards=PROBE_SHARDS,
+        generator=generator,
+        device=features.device,
+    )
+    gradients: list[torch.Tensor] = []
+    for head in heads.values():
+        batch = features.index_select(0, batch_indices).detach().clone().requires_grad_(True)
+        loss = sharded_mask_arcface_loss(batch, head, batch_labels, masks)
+        gradient = torch.autograd.grad(loss, batch)[0]
+        if not torch.isfinite(gradient).all():
+            raise ValueError("probe gradient is nonfinite")
+        gradients.append(gradient)
+    class_mean_gradient, probe_gradient = gradients
+    class_mean_norm = torch.linalg.vector_norm(class_mean_gradient)
+    probe_norm = torch.linalg.vector_norm(probe_gradient)
+    if class_mean_norm == 0.0 or probe_norm == 0.0:
+        raise ValueError("probe gradient field has zero norm")
+    class_mean_row_norms = torch.linalg.vector_norm(class_mean_gradient, dim=1)
+    probe_row_norms = torch.linalg.vector_norm(probe_gradient, dim=1)
+    zero_mean = class_mean_row_norms == 0.0
+    zero_probe = probe_row_norms == 0.0
+    if not torch.equal(zero_mean, zero_probe):
+        raise ValueError("probe per-sample gradient zero pattern differs")
+    cosine = torch.ones(batch_size, dtype=torch.float64, device=features.device)
+    nonzero = ~zero_mean
+    cosine[nonzero] = F.cosine_similarity(
+        class_mean_gradient[nonzero], probe_gradient[nonzero], dim=1
+    ).double()
+    difference = torch.linalg.vector_norm(probe_gradient - class_mean_gradient)
+    return ProbeGradientMetrics(
+        class_mean_l2=float(class_mean_norm.double()),
+        spherical_probe_l2=float(probe_norm.double()),
+        relative_l2_difference=float(difference.double() / class_mean_norm.double()),
+        cosine_min=float(cosine.min()),
+        cosine_p05=float(torch.quantile(cosine, 0.05)),
+        cosine_median=float(torch.quantile(cosine, 0.5)),
+        cosine_mean=float(cosine.mean()),
+    )
 
 
 def _validate_metrics(value: ProbeMetrics, name: str) -> None:
@@ -441,48 +571,110 @@ def _validate_metrics(value: ProbeMetrics, name: str) -> None:
         or value.observation_count <= 0
         or not 0 <= value.correct_count <= value.observation_count
         or value.accuracy != value.correct_count / value.observation_count
+        or type(value.per_mask_mean_losses) is not tuple
+        or len(value.per_mask_mean_losses) != 64
+        or any(
+            type(item) is not float or not math.isfinite(item) or item <= 0.0
+            for item in value.per_mask_mean_losses
+        )
+        or value.mean_loss != math.fsum(value.per_mask_mean_losses) / 64
+        or any(
+            type(item) is not float or not math.isfinite(item) or item <= 0.0
+            for item in (value.represented_mean_loss, value.unrepresented_mean_loss)
+        )
     ):
         raise ValueError(f"{name} probe metrics differ")
 
 
 def probe_decision(
     *,
-    initial_fit_loss: float,
-    final_fit_loss: float,
     class_mean: ProbeMetrics,
-    spherical_probe: ProbeMetrics,
-    row_norm_min: float,
-    row_norm_max: float,
+    probe_fits: Mapping[int, ProbeFit],
+    probe_metrics: Mapping[int, ProbeMetrics],
+    probe_gradients: Mapping[int, ProbeGradientMetrics],
 ) -> ProbeDecision:
     """Apply the prospective direction-screen promotion rule."""
 
-    scalar_values = (initial_fit_loss, final_fit_loss, row_norm_min, row_norm_max)
-    if any(type(value) is not float or not math.isfinite(value) for value in scalar_values):
-        raise ValueError("probe decision scalar differs")
-    if initial_fit_loss <= 0.0 or final_fit_loss <= 0.0 or row_norm_min <= 0.0:
-        raise ValueError("probe decision scalar must be positive")
-    if row_norm_max < row_norm_min:
-        raise ValueError("probe row-norm extrema differ")
     _validate_metrics(class_mean, "class_mean")
-    _validate_metrics(spherical_probe, "spherical_probe")
-    if class_mean.observation_count != spherical_probe.observation_count:
-        raise ValueError("probe metric observation counts differ")
-
-    relative_reduction = (class_mean.mean_loss - spherical_probe.mean_loss) / class_mean.mean_loss
-    accuracy_delta = spherical_probe.accuracy - class_mean.accuracy
-    target_norm = 0.01 * math.sqrt(768.0)
-    predicates = {
-        "fit_loss_decreased": final_fit_loss < initial_fit_loss,
-        "validation_loss_reduction": relative_reduction >= 0.01,
-        "validation_accuracy_noninferior": accuracy_delta >= 0.0,
-        "row_norms_match": math.isclose(
-            row_norm_min, target_norm, rel_tol=2e-6, abs_tol=2e-7
+    if any(
+        type(values) is not dict or tuple(values) != (0, 1, 2)
+        for values in (probe_fits, probe_metrics, probe_gradients)
+    ):
+        raise ValueError("probe decision seed order differs")
+    per_seed: dict[int, dict[str, bool]] = {}
+    per_seed_statistics: dict[int, ProbeSeedStatistics] = {}
+    t_critical_df63 = 1.998340542520741
+    for seed in range(3):
+        fit = probe_fits[seed]
+        metrics = probe_metrics[seed]
+        gradient = probe_gradients[seed]
+        if type(fit) is not ProbeFit or type(gradient) is not ProbeGradientMetrics:
+            raise ValueError("probe seed evidence type differs")
+        fit_scalars = (
+            fit.initial_loss,
+            fit.final_loss,
+            fit.row_cosine_min,
+            fit.row_cosine_p05,
+            fit.row_cosine_median,
+            fit.row_cosine_mean,
         )
-        and math.isclose(row_norm_max, target_norm, rel_tol=2e-6, abs_tol=2e-7),
-    }
+        gradient_scalars = tuple(vars(gradient).values())
+        if any(
+            type(value) is not float or not math.isfinite(value)
+            for value in fit_scalars + gradient_scalars
+        ):
+            raise ValueError("probe seed evidence scalar differs")
+        _validate_metrics(metrics, f"spherical_probe_seed_{seed}")
+        if class_mean.observation_count != metrics.observation_count:
+            raise ValueError("probe metric observation counts differ")
+        deltas = tuple(
+            class_loss - probe_loss
+            for class_loss, probe_loss in zip(
+                class_mean.per_mask_mean_losses,
+                metrics.per_mask_mean_losses,
+                strict=True,
+            )
+        )
+        mean_delta = math.fsum(deltas) / len(deltas)
+        variance = math.fsum((value - mean_delta) ** 2 for value in deltas) / (
+            len(deltas) - 1
+        )
+        lower = mean_delta - t_critical_df63 * math.sqrt(variance / len(deltas))
+        per_seed_statistics[seed] = ProbeSeedStatistics(
+            mean_paired_loss_delta=mean_delta,
+            paired_95_lower_bound=lower,
+            positive_mask_count=sum(value > 0.0 for value in deltas),
+            accuracy_delta=metrics.accuracy - class_mean.accuracy,
+            represented_loss_delta=(
+                class_mean.represented_mean_loss - metrics.represented_mean_loss
+            ),
+            unrepresented_loss_delta=(
+                class_mean.unrepresented_mean_loss - metrics.unrepresented_mean_loss
+            ),
+        )
+        per_seed[seed] = {
+            "fit_loss_decreased": fit.final_loss < fit.initial_loss,
+            "head_cosine_minimum": fit.row_cosine_min >= 0.80,
+            "head_cosine_mean": fit.row_cosine_mean >= 0.95,
+            "validation_loss_positive": mean_delta > 0.0,
+            "paired_95_lower_positive": lower > 0.0,
+            "positive_mask_majority": sum(value > 0.0 for value in deltas) >= 48,
+            "validation_accuracy_noninferior": metrics.accuracy >= class_mean.accuracy,
+            "represented_loss_positive": (
+                metrics.represented_mean_loss < class_mean.represented_mean_loss
+            ),
+            "unrepresented_loss_positive": (
+                metrics.unrepresented_mean_loss < class_mean.unrepresented_mean_loss
+            ),
+            "gradient_relative_difference": gradient.relative_l2_difference >= 0.05,
+            "gradient_median_cosine": gradient.cosine_median <= 0.995,
+        }
     return ProbeDecision(
-        status="PROMOTE" if all(predicates.values()) else "CLOSE_DIRECTION",
-        relative_validation_loss_reduction=relative_reduction,
-        accuracy_delta=accuracy_delta,
-        predicates=predicates,
+        status=(
+            "PROMOTE"
+            if all(all(predicates.values()) for predicates in per_seed.values())
+            else "CLOSE_DIRECTION"
+        ),
+        per_seed_statistics=per_seed_statistics,
+        per_seed_predicates=per_seed,
     )
