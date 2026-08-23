@@ -26,6 +26,8 @@ PROBE_SPLIT_SEED = 23_000
 PROBE_BATCH_SIZE = 128
 PROBE_BATCH_SEED = 23_001
 PROBE_MASK_SEED = 23_002
+PROBE_DIAGNOSTIC_SEED = 23_004
+PROBE_LEARNING_RATE = 1e-4
 PROBE_SHARDS = 8
 PROBE_SELECTED_FEATURES = 512
 
@@ -36,6 +38,10 @@ class ProbeFit:
     initial_loss: float
     final_loss: float
     steps: int
+    row_cosine_min: float
+    row_cosine_p05: float
+    row_cosine_median: float
+    row_cosine_mean: float
 
 
 @dataclass(frozen=True)
@@ -265,6 +271,8 @@ def fit_spherical_probe(
     batch_size: int = PROBE_BATCH_SIZE,
     batch_seed: int = PROBE_BATCH_SEED,
     mask_seed: int = PROBE_MASK_SEED,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    fit_seed: int = 0,
 ) -> ProbeFit:
     """Optimize ArcFace directions while projecting every row to its initial norm."""
 
@@ -275,7 +283,10 @@ def fit_spherical_probe(
         or type(batch_size) is not int
         or batch_size <= 0
         or batch_size % PROBE_SHARDS != 0
-        or any(type(seed) is not int or seed < 0 for seed in (batch_seed, mask_seed))
+        or any(
+            type(seed) is not int or seed < 0
+            for seed in (batch_seed, mask_seed, diagnostic_seed, fit_seed)
+        )
     ):
         raise ValueError("spherical probe schedule differs")
 
@@ -284,18 +295,20 @@ def fit_spherical_probe(
         labels,
         initial,
         batch_size=batch_size,
-        batch_seed=batch_seed,
-        mask_seed=mask_seed,
+        batch_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
+        mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
     head = torch.nn.Parameter(initial.detach().clone())
     optimizer = torch.optim.AdamW(
         [head],
-        lr=0.01,
+        lr=PROBE_LEARNING_RATE,
         betas=(0.9, 0.999),
         eps=1e-8,
         weight_decay=0.0,
     )
-    mask_generator = torch.Generator(device=features.device).manual_seed(mask_seed)
+    mask_generator = torch.Generator(device=features.device).manual_seed(
+        experiment_stream_seed(fit_seed, mask_seed)
+    )
     completed = 0
     epoch = 0
     while completed < steps:
@@ -303,7 +316,7 @@ def fit_spherical_probe(
             size=features.shape[0],
             global_batch=batch_size,
             epoch=epoch,
-            seed=batch_seed,
+            seed=experiment_stream_seed(fit_seed, batch_seed),
             shards=PROBE_SHARDS,
         )
         for start in range(0, len(epoch_indices), batch_size):
@@ -346,14 +359,19 @@ def fit_spherical_probe(
         labels,
         result,
         batch_size=batch_size,
-        batch_seed=batch_seed,
-        mask_seed=mask_seed,
+        batch_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
+        mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
+    cosine = F.cosine_similarity(result, initial, dim=1).double()
     return ProbeFit(
         head=result,
         initial_loss=initial_loss,
         final_loss=final_loss,
         steps=completed,
+        row_cosine_min=float(cosine.min()),
+        row_cosine_p05=float(torch.quantile(cosine, 0.05)),
+        row_cosine_median=float(torch.quantile(cosine, 0.5)),
+        row_cosine_mean=float(cosine.mean()),
     )
 
 

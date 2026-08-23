@@ -7,6 +7,7 @@ import torch
 
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_probe import (
+    PROBE_LEARNING_RATE,
     ProbeMetrics,
     ProbeSplit,
     class_mean_head,
@@ -141,6 +142,7 @@ def test_fit_spherical_probe_decreases_loss_and_preserves_exact_row_norm() -> No
     )
 
     assert result.steps == 64
+    assert PROBE_LEARNING_RATE == 1e-4
     assert result.final_loss < result.initial_loss
     assert not torch.equal(result.head, initial)
     expected_norm = 0.01 * features.shape[1] ** 0.5
@@ -152,6 +154,39 @@ def test_fit_spherical_probe_decreases_loss_and_preserves_exact_row_norm() -> No
     )
     assert torch.equal(features, original_features)
     assert torch.equal(initial, original_initial)
+    cosine = torch.nn.functional.cosine_similarity(result.head, initial, dim=1)
+    assert result.row_cosine_min == float(cosine.min())
+    assert result.row_cosine_p05 == float(torch.quantile(cosine.double(), 0.05))
+    assert result.row_cosine_median == float(torch.quantile(cosine.double(), 0.5))
+    assert result.row_cosine_mean == float(cosine.double().mean())
+
+
+def test_fit_spherical_probe_uses_independent_diagnostic_streams(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.unicom_probe as probe_module
+
+    features, labels, initial = _separable_probe_fixture()
+    calls: list[tuple[torch.Tensor, torch.Tensor]] = []
+    original = probe_module.sharded_mask_arcface_loss
+
+    def capture(
+        batch_features: torch.Tensor,
+        head: torch.Tensor,
+        batch_labels: torch.Tensor,
+        masks: torch.Tensor,
+    ) -> torch.Tensor:
+        calls.append((batch_features.detach().clone(), masks.detach().clone()))
+        return original(batch_features, head, batch_labels, masks)
+
+    monkeypatch.setattr(probe_module, "sharded_mask_arcface_loss", capture)
+    fit_spherical_probe(features, labels, initial, steps=1, batch_size=8)
+
+    assert len(calls) == 3
+    assert not torch.equal(calls[0][0], calls[1][0])
+    assert not torch.equal(calls[0][1], calls[1][1])
+    assert torch.equal(calls[0][0], calls[2][0])
+    assert torch.equal(calls[0][1], calls[2][1])
 
 
 def test_fit_spherical_probe_is_byte_deterministic_for_registered_streams() -> None:
