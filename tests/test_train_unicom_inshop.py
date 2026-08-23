@@ -17,6 +17,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, TensorDataset
 
 from sfora.unicom_inshop import InshopRecord
+from sfora.unicom_training import sharded_mask_arcface_logits
 
 SCRIPT = Path(__file__).parents[1] / "scripts/train_unicom_inshop.py"
 INITIALIZATION_KEYS = (
@@ -361,6 +362,77 @@ def test_objective_masks_bind_official_eight_shards_and_prefix_controls() -> Non
     assert torch.equal(prefix, torch.arange(4)[None])
 
 
+def test_full_width_mask_state_matches_sampled_mask_state() -> None:
+    module = _load_script()
+    control_generator = torch.Generator().manual_seed(20_768)
+    candidate_generator = torch.Generator().manual_seed(20_768)
+
+    sampled = module.objective_masks(
+        "official-eight-mask",
+        dimension=768,
+        selected=512,
+        generator=control_generator,
+        device=torch.device("cpu"),
+    )
+    full = module.objective_masks(
+        "official-eight-mask",
+        dimension=768,
+        selected=768,
+        generator=candidate_generator,
+        device=torch.device("cpu"),
+    )
+
+    assert sampled.shape == (8, 512)
+    assert full.shape == (8, 768)
+    expected = torch.arange(768)
+    assert all(torch.equal(torch.sort(row).values, expected) for row in full)
+    assert torch.equal(control_generator.get_state(), candidate_generator.get_state())
+
+
+def test_full_width_loss_matches_exact_permuted_shard_reference() -> None:
+    module = _load_script()
+    torch.manual_seed(768)
+    embeddings = torch.randn(3, 768, dtype=torch.float32)
+    weights = torch.randn(11, 768, dtype=torch.float32)
+    labels = torch.tensor([0, 5, 10], dtype=torch.int64)
+    masks = module.objective_masks(
+        "official-eight-mask",
+        dimension=768,
+        selected=768,
+        generator=torch.Generator().manual_seed(23),
+        device=torch.device("cpu"),
+    )
+
+    actual = sharded_mask_arcface_logits(
+        embeddings,
+        weights,
+        labels,
+        masks,
+        margin=0.25,
+        scale=32.0,
+    )
+    shard_logits = []
+    quotient, remainder = divmod(weights.shape[0], masks.shape[0])
+    start = 0
+    for shard, coordinates in enumerate(masks):
+        width = quotient + int(shard < remainder)
+        stop = start + width
+        selected_embeddings = torch.nn.functional.normalize(
+            embeddings.index_select(1, coordinates), dim=1
+        )
+        selected_weights = torch.nn.functional.normalize(
+            weights[start:stop].index_select(1, coordinates), dim=1
+        )
+        shard_logits.append(torch.nn.functional.linear(selected_embeddings, selected_weights))
+        start = stop
+    expected = torch.cat(shard_logits, dim=1).clamp(-1.0, 1.0)
+    rows = torch.arange(labels.numel())
+    expected[rows, labels] = torch.cos(torch.acos(expected[rows, labels]) + 0.25)
+    expected = expected * 32.0
+
+    assert torch.equal(actual, expected)
+
+
 def test_cli_defaults_match_official_336_recipe() -> None:
     module = _load_script()
     args = module.parse_args(
@@ -384,6 +456,7 @@ def test_cli_defaults_match_official_336_recipe() -> None:
     assert args.scale == 32.0
     assert args.objective == "official-eight-mask"
     assert args.selected_features == 512
+    assert args.evaluation_features is None
     assert args.workers == 4
     assert args.seed == 1024
     assert args.holdout_seed == 0
@@ -396,6 +469,80 @@ def test_cli_defaults_match_official_336_recipe() -> None:
     assert not args.compile
     assert not args.fused
     assert args.classifier_init == "random"
+
+
+def test_evaluation_width_is_independent_and_legacy_default_is_preserved() -> None:
+    module = _load_script()
+
+    assert module.resolve_evaluation_features(512, None) == 512
+    assert module.resolve_evaluation_features(512, 768) == 768
+    assert module.resolve_evaluation_features(768, 768) == 768
+    for value in (True, 0, 769):
+        with pytest.raises((TypeError, ValueError)):
+            module.resolve_evaluation_features(512, value)
+
+    args = module.parse_args(
+        [
+            "--unicom-checkout",
+            "/tmp/unicom",
+            "--checkpoint",
+            "/tmp/FP16-ViT-L-14-336px.pt",
+            "--dataset-root",
+            "/tmp/inshop",
+            "--output-dir",
+            "/tmp/output",
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+        ]
+    )
+    assert args.selected_features == 512
+    assert args.evaluation_features == 768
+
+
+def test_holdout_evaluation_uses_evaluation_width_not_training_width(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_script()
+    query = np.arange(12, dtype=np.float32).reshape(2, 6)
+    gallery = np.arange(18, dtype=np.float32).reshape(3, 6)
+    labels = (np.asarray(["a", "b"]), np.asarray(["a", "b", "c"]))
+    encoded = iter(((query, labels[0]), (gallery, labels[1])))
+    seen: list[np.ndarray] = []
+
+    monkeypatch.setattr(module, "_encode_records", lambda *_args, **_kwargs: next(encoded))
+
+    def retrieval_view(
+        _query,
+        _gallery,
+        _query_labels,
+        _gallery_labels,
+        *,
+        coordinates,
+        normalize_before,
+    ):
+        seen.append(coordinates.copy())
+        assert normalize_before is True
+        return SimpleNamespace(
+            recall={1: 1.0, 10: 1.0, 20: 1.0, 30: 1.0}, map_at_r=1.0
+        )
+
+    monkeypatch.setattr(module, "retrieval_view", retrieval_view)
+    result = module.evaluate_holdout(
+        torch.nn.Identity(),
+        (),
+        (),
+        lambda image: image,
+        device=torch.device("cpu"),
+        batch_size=2,
+        workers=0,
+        evaluation_features=6,
+    )
+
+    assert result["map_at_r"] == 1.0
+    assert len(seen) == 1
+    assert np.array_equal(seen[0], np.arange(6))
 
 
 def test_worker_seed_preserves_the_epoch_varying_dataloader_seed(monkeypatch) -> None:
@@ -815,7 +962,7 @@ def test_holdout_evaluation_uses_official_normalize_then_prefix_geometry(
         device=torch.device("cpu"),
         batch_size=2,
         workers=0,
-        selected_features=3,
+        evaluation_features=3,
     )
 
     assert result == {

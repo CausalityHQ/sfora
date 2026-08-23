@@ -828,6 +828,24 @@ def _encode_records(
     return np.ascontiguousarray(np.concatenate(chunks)), np.asarray(labels)
 
 
+def resolve_evaluation_features(
+    selected_features: int, evaluation_features: int | None
+) -> int:
+    """Resolve an explicit evaluation width without changing legacy runs."""
+
+    if type(selected_features) is not int:
+        raise TypeError("selected feature width must be a builtin integer")
+    if not 0 < selected_features <= 768:
+        raise ValueError("selected feature width differs")
+    if evaluation_features is None:
+        return selected_features
+    if type(evaluation_features) is not int:
+        raise TypeError("evaluation feature width must be a builtin integer")
+    if not 0 < evaluation_features <= 768:
+        raise ValueError("evaluation feature width differs")
+    return evaluation_features
+
+
 def evaluate_holdout(
     model: torch.nn.Module,
     query: tuple[InshopRecord, ...],
@@ -837,7 +855,7 @@ def evaluate_holdout(
     device: torch.device,
     batch_size: int,
     workers: int,
-    selected_features: int,
+    evaluation_features: int,
 ) -> dict[str, float]:
     """Evaluate the identity-disjoint holdout with official deployment geometry."""
 
@@ -854,7 +872,7 @@ def evaluate_holdout(
         gallery_values,
         query_labels,
         gallery_labels,
-        coordinates=np.arange(selected_features),
+        coordinates=np.arange(evaluation_features),
         normalize_before=True,
     )
     return {
@@ -1141,6 +1159,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     if args.holdout_fraction == 0.0 and args.eval_every != 0:
         raise ValueError("full-train mode requires --eval-every 0 to avoid test leakage")
 
+    evaluation_features = resolve_evaluation_features(
+        args.selected_features, args.evaluation_features
+    )
     _seed_process(args.seed)
     device = torch.device("cuda")
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -1244,6 +1265,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "scale": args.scale,
         "objective": args.objective,
         "selected_features": args.selected_features,
+        "evaluation_features": evaluation_features,
         "holdout_seed": args.holdout_seed,
         "holdout_fraction": args.holdout_fraction,
         "eval_every": args.eval_every,
@@ -1302,7 +1324,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             device=device,
             batch_size=args.batch_size,
             workers=args.workers,
-            selected_features=args.selected_features,
+            evaluation_features=evaluation_features,
         ),
         history=history,
         selection_holdout=selection_holdout,
@@ -1337,6 +1359,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         default="official-eight-mask",
     )
     parser.add_argument("--selected-features", type=int, default=512)
+    parser.add_argument("--evaluation-features", type=int)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=1024)
     parser.add_argument("--holdout-seed", type=int, default=0)
