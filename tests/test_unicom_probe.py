@@ -6,7 +6,15 @@ import pytest
 import torch
 
 from sfora.unicom_inshop import InshopRecord
-from sfora.unicom_probe import class_mean_head, fit_spherical_probe, split_probe_records
+from sfora.unicom_probe import (
+    ProbeMetrics,
+    class_mean_head,
+    evaluate_probe_heads,
+    fit_spherical_probe,
+    probe_decision,
+    split_probe_records,
+)
+from sfora.unicom_training import sample_shard_masks, sharded_mask_arcface_logits
 
 
 def _record(label: str, name: str) -> InshopRecord:
@@ -153,3 +161,113 @@ def test_fit_spherical_probe_rejects_invalid_tensor_contract(mutation: str) -> N
 
     with pytest.raises((TypeError, ValueError)):
         fit_spherical_probe(features, labels, initial, steps=2, batch_size=8)
+
+
+def test_evaluate_probe_heads_averages_registered_mask_observations() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    probe = torch.roll(initial, shifts=-1, dims=0).contiguous()
+
+    actual = evaluate_probe_heads(
+        features,
+        labels,
+        {"class_mean": initial, "spherical_probe": probe},
+        mask_sets=2,
+    )
+
+    assert tuple(actual) == ("class_mean", "spherical_probe")
+    assert all(type(value) is ProbeMetrics for value in actual.values())
+    expected: dict[str, tuple[float, int]] = {}
+    generator = torch.Generator().manual_seed(23_003)
+    loss_sums = {"class_mean": 0.0, "spherical_probe": 0.0}
+    correct = {"class_mean": 0, "spherical_probe": 0}
+    for _index in range(2):
+        masks = sample_shard_masks(
+            dimension=768,
+            selected=512,
+            shards=8,
+            generator=generator,
+            device=torch.device("cpu"),
+        )
+        for name, head in {"class_mean": initial, "spherical_probe": probe}.items():
+            logits = sharded_mask_arcface_logits(features, head, labels, masks)
+            loss_sums[name] += float(
+                torch.nn.functional.cross_entropy(logits, labels, reduction="none")
+                .double()
+                .sum()
+            )
+            correct[name] += int(torch.count_nonzero(logits.argmax(dim=1) == labels))
+    observations = labels.numel() * 2
+    for name in loss_sums:
+        expected[name] = (loss_sums[name] / observations, correct[name])
+
+    for name in actual:
+        assert actual[name].mean_loss == expected[name][0]
+        assert actual[name].correct_count == expected[name][1]
+        assert actual[name].observation_count == observations
+        assert actual[name].accuracy == expected[name][1] / observations
+
+
+def _metrics(loss: float, accuracy: float, *, count: int = 100) -> ProbeMetrics:
+    return ProbeMetrics(
+        mean_loss=loss,
+        accuracy=accuracy,
+        correct_count=round(accuracy * count),
+        observation_count=count,
+    )
+
+
+def test_probe_decision_promotes_at_registered_inclusive_boundaries() -> None:
+    target = 0.01 * 768**0.5
+
+    decision = probe_decision(
+        initial_fit_loss=2.0,
+        final_fit_loss=1.99,
+        class_mean=_metrics(1.0, 0.8),
+        spherical_probe=_metrics(0.99, 0.8),
+        row_norm_min=target,
+        row_norm_max=target,
+    )
+
+    assert decision.status == "PROMOTE"
+    assert decision.relative_validation_loss_reduction == pytest.approx(0.01)
+    assert decision.accuracy_delta == 0.0
+    assert decision.predicates == {
+        "fit_loss_decreased": True,
+        "validation_loss_reduction": True,
+        "validation_accuracy_noninferior": True,
+        "row_norms_match": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("fit", "loss", "accuracy", "min_norm", "max_norm", "nan"),
+)
+def test_probe_decision_closes_each_failed_scientific_predicate(mutation: str) -> None:
+    target = 0.01 * 768**0.5
+    arguments = {
+        "initial_fit_loss": 2.0,
+        "final_fit_loss": 1.9,
+        "class_mean": _metrics(1.0, 0.8),
+        "spherical_probe": _metrics(0.98, 0.81),
+        "row_norm_min": target,
+        "row_norm_max": target,
+    }
+    if mutation == "fit":
+        arguments["final_fit_loss"] = 2.0
+    elif mutation == "loss":
+        arguments["spherical_probe"] = _metrics(0.995, 0.81)
+    elif mutation == "accuracy":
+        arguments["spherical_probe"] = _metrics(0.98, 0.79)
+    elif mutation == "min_norm":
+        arguments["row_norm_min"] = target * 0.99
+    elif mutation == "max_norm":
+        arguments["row_norm_max"] = target * 1.01
+    elif mutation == "nan":
+        arguments["final_fit_loss"] = float("nan")
+
+    if mutation == "nan":
+        with pytest.raises((TypeError, ValueError)):
+            probe_decision(**arguments)
+    else:
+        assert probe_decision(**arguments).status == "CLOSE_DIRECTION"

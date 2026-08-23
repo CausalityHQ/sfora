@@ -14,6 +14,7 @@ from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_training import (
     padded_epoch_indices,
     sample_shard_masks,
+    sharded_mask_arcface_logits,
     sharded_mask_arcface_loss,
 )
 
@@ -31,6 +32,22 @@ class ProbeFit:
     initial_loss: float
     final_loss: float
     steps: int
+
+
+@dataclass(frozen=True)
+class ProbeMetrics:
+    mean_loss: float
+    accuracy: float
+    correct_count: int
+    observation_count: int
+
+
+@dataclass(frozen=True)
+class ProbeDecision:
+    status: str
+    relative_validation_loss_reduction: float
+    accuracy_delta: float
+    predicates: dict[str, bool]
 
 
 def split_probe_records(
@@ -285,4 +302,117 @@ def fit_spherical_probe(
         initial_loss=initial_loss,
         final_loss=final_loss,
         steps=completed,
+    )
+
+
+def evaluate_probe_heads(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    heads: Mapping[str, torch.Tensor],
+    *,
+    mask_sets: int = 64,
+    mask_seed: int = 23_003,
+) -> dict[str, ProbeMetrics]:
+    """Evaluate registered heads over fixed masked ArcFace observations."""
+
+    if type(heads) is not dict or tuple(heads) != ("class_mean", "spherical_probe"):
+        raise ValueError("probe evaluation head order differs")
+    _validate_probe_tensors(features, labels, heads["class_mean"])
+    _validate_probe_tensors(features, labels, heads["spherical_probe"])
+    if (
+        type(mask_sets) is not int
+        or mask_sets <= 0
+        or type(mask_seed) is not int
+        or mask_seed < 0
+    ):
+        raise ValueError("probe evaluation schedule differs")
+
+    loss_totals = {name: [] for name in heads}
+    correct = {name: 0 for name in heads}
+    generator = torch.Generator(device=features.device).manual_seed(mask_seed)
+    for _index in range(mask_sets):
+        masks = sample_shard_masks(
+            dimension=features.shape[1],
+            selected=PROBE_SELECTED_FEATURES,
+            shards=PROBE_SHARDS,
+            generator=generator,
+            device=features.device,
+        )
+        for name, head in heads.items():
+            with torch.no_grad():
+                logits = sharded_mask_arcface_logits(features, head, labels, masks)
+                losses = F.cross_entropy(logits, labels, reduction="none")
+                loss_totals[name].append(float(losses.double().sum()))
+                correct[name] += int(torch.count_nonzero(logits.argmax(dim=1) == labels))
+
+    observations = labels.numel() * mask_sets
+    return {
+        name: ProbeMetrics(
+            mean_loss=math.fsum(loss_totals[name]) / observations,
+            accuracy=correct[name] / observations,
+            correct_count=correct[name],
+            observation_count=observations,
+        )
+        for name in heads
+    }
+
+
+def _validate_metrics(value: ProbeMetrics, name: str) -> None:
+    if (
+        type(value) is not ProbeMetrics
+        or type(value.mean_loss) is not float
+        or not math.isfinite(value.mean_loss)
+        or value.mean_loss <= 0.0
+        or type(value.accuracy) is not float
+        or not math.isfinite(value.accuracy)
+        or not 0.0 <= value.accuracy <= 1.0
+        or type(value.correct_count) is not int
+        or type(value.observation_count) is not int
+        or value.observation_count <= 0
+        or not 0 <= value.correct_count <= value.observation_count
+        or value.accuracy != value.correct_count / value.observation_count
+    ):
+        raise ValueError(f"{name} probe metrics differ")
+
+
+def probe_decision(
+    *,
+    initial_fit_loss: float,
+    final_fit_loss: float,
+    class_mean: ProbeMetrics,
+    spherical_probe: ProbeMetrics,
+    row_norm_min: float,
+    row_norm_max: float,
+) -> ProbeDecision:
+    """Apply the prospective direction-screen promotion rule."""
+
+    scalar_values = (initial_fit_loss, final_fit_loss, row_norm_min, row_norm_max)
+    if any(type(value) is not float or not math.isfinite(value) for value in scalar_values):
+        raise ValueError("probe decision scalar differs")
+    if initial_fit_loss <= 0.0 or final_fit_loss <= 0.0 or row_norm_min <= 0.0:
+        raise ValueError("probe decision scalar must be positive")
+    if row_norm_max < row_norm_min:
+        raise ValueError("probe row-norm extrema differ")
+    _validate_metrics(class_mean, "class_mean")
+    _validate_metrics(spherical_probe, "spherical_probe")
+    if class_mean.observation_count != spherical_probe.observation_count:
+        raise ValueError("probe metric observation counts differ")
+
+    relative_reduction = (class_mean.mean_loss - spherical_probe.mean_loss) / class_mean.mean_loss
+    accuracy_delta = spherical_probe.accuracy - class_mean.accuracy
+    target_norm = 0.01 * math.sqrt(768.0)
+    predicates = {
+        "fit_loss_decreased": final_fit_loss < initial_fit_loss,
+        "validation_loss_reduction": relative_reduction >= 0.01,
+        "validation_accuracy_noninferior": accuracy_delta >= 0.0,
+        "row_norms_match": math.isclose(
+            row_norm_min, target_norm, rel_tol=2e-6, abs_tol=2e-7
+        )
+        and math.isclose(row_norm_max, target_norm, rel_tol=2e-6, abs_tol=2e-7),
+    }
+    return ProbeDecision(
+        status="PROMOTE" if all(predicates.values()) else "CLOSE_DIRECTION",
+        relative_validation_loss_reduction=relative_reduction,
+        accuracy_delta=accuracy_delta,
+        predicates=predicates,
     )
