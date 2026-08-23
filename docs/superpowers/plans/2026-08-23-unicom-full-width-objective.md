@@ -4,7 +4,7 @@
 
 **Goal:** Build and prospectively evaluate an imprinted UniCOM full-768 ArcFace training control against the sampled-512 recipe with identical full-768 holdout evaluation and five fresh paired confirmation seeds.
 
-**Architecture:** Keep the registered eight-shard ArcFace implementation and vary only its selected training width. Split training width from evaluation width in the trainer, add a strict paired checkpoint evaluator and decision layer, then freeze a source-addressed run configuration before any DGX outcome is observed. A seed-0 pair gates the five fresh confirmation pairs.
+**Architecture:** Keep the registered eight-shard ArcFace implementation and vary only its selected training width. Split training width from evaluation width in the trainer, add a strict paired checkpoint evaluator and decision layer, then freeze a source-addressed run configuration before any DGX outcome is observed. A seed-0 pair gates operational feasibility and resource cost; five fresh confirmation pairs decide quality.
 
 **Tech Stack:** Python 3.12, PyTorch 2.12, NumPy 2.5, pytest, Ruff, UniCOM ViT-L/14-336, strict JSON artifacts, Git source binding.
 
@@ -15,7 +15,7 @@
 - Training arms are exactly `sampled_512=(official-eight-mask,512)` and `full_768=(official-eight-mask,768)`.
 - `evaluation_features` is exactly 768 for every gating trainer evaluation; prefix-512 is diagnostic only in the paired evaluator.
 - The mask generator performs eight 768-element random draws per optimizer step in both arms; tests bind the resulting generator state.
-- Seed 0 is selection-only. Confirmation uses five fresh paired controls and candidates at seeds 2 through 6.
+- Seed 0 is operational/prediction-only and cannot close quality on one draw. Confirmation uses five fresh paired controls and candidates at seeds 2 through 6.
 - Arm order is control-first for seeds 0, 2, 4, and 6 and candidate-first for seeds 3 and 5.
 - No official query/gallery split is opened by this plan.
 - Every scientific JSON rejects duplicate keys and nonfinite values, strict-reloads after publication, and refuses an existing destination.
@@ -79,9 +79,9 @@ Parse `--evaluation-features` as `int` with default `None`, resolve it once in `
 
 Monkeypatch `run_training_epoch` and `evaluate_holdout`, call the smallest `fit_model`/`run` fixture, and assert loss receives 512 while every checkpoint evaluation receives 768. Repeat with loss width 768 and assert the evaluator call bytes/order are identical.
 
-- [ ] **Step 5: Bind protocol and resume behavior**
+- [ ] **Step 5: Bind protocol and make legacy resume rejection explicit**
 
-Extend checkpoint tests so old checkpoints without `evaluation_features` are accepted only when the CLI omits the new flag and then resolve to their `selected_features`; prospective checkpoints must contain the exact builtin-int key/value and reject a changed evaluation width on resume.
+Extend checkpoint tests so prospective checkpoints contain the exact builtin-int key/value and reject a changed evaluation width on resume. Assert that an old checkpoint without `evaluation_features` is rejected by the new trainer; every experimental arm is fresh, and historical evaluators remain frozen rather than silently canonicalizing old protocol objects.
 
 - [ ] **Step 6: Run the trainer layer GREEN**
 
@@ -167,27 +167,34 @@ Use the exact interfaces `paired_t_interval(values: tuple[float, ...], critical:
 
 Require builtin finite floats, exact five-seed t critical `2.7764451052`, PCG64 seed `768`, exactly 10,000 paired-query replicates, and exact epoch order.
 
-- [ ] **Step 3: Implement the selection decision**
+- [ ] **Step 3: Implement the seed-0 prediction and operational decision**
 
-The exact ordered predicates are:
+Report the exact ordered, non-gating quality prediction predicates:
 
 ```python
 (
     ("primary_map_delta_at_least_0_003", delta >= 0.003),
     ("top1_query_loss_at_most_1", candidate_top1 >= control_top1 - 1),
-    ("time_to_quality_no_later", candidate_epoch <= control_epoch),
-    ("training_time_ratio_at_most_1_02", training_ratio <= 1.02),
-    ("peak_allocated_ratio_at_most_1_02", allocated_ratio <= 1.02),
-    ("peak_reserved_ratio_at_most_1_02", reserved_ratio <= 1.02),
-    ("checkpoint_bytes_ratio_at_most_1_02", bytes_ratio <= 1.02),
+    ("control_endpoint_reached_by_epoch_12", candidate_epoch is not None and candidate_epoch <= 12),
 )
 ```
 
-`decision` is `PROMOTE_CONFIRMATION` only if every predicate is true, otherwise `CLOSE_FULL_WIDTH`.
+The exact ordered operational predicates are:
+
+```python
+(
+    ("abba_step_time_ratio_at_most_1_02", abba_step_ratio <= 1.02),
+    ("peak_allocated_ratio_at_most_1_02", allocated_ratio <= 1.02),
+    ("peak_reserved_ratio_at_most_1_02", reserved_ratio <= 1.02),
+    ("checkpoint_bytes_exactly_equal", candidate_bytes == control_bytes),
+)
+```
+
+`prediction_matched` is the conjunction of the first tuple but never controls execution. `decision` is `PROMOTE_CONFIRMATION` if every operational predicate is true, otherwise `CLOSE_RESOURCE`; raw sequential elapsed time is reported and non-gating.
 
 - [ ] **Step 4: Implement the confirmation decision**
 
-Recompute exact five paired seed deltas and require mean ≥0.003, paired-t lower >0, ≥4 positive, aggregate top-1 loss ≤5, per-seed top-1 loss ≤2, time-to-quality no later in ≥4 seeds, mean training/allocated/reserved/checkpoint ratios ≤1.02, and inference/storage ratios ≤1.02. Return only `SUPPORTED_HOLDOUT` or `CLOSE_FULL_WIDTH`; never emit a SOTA claim.
+Recompute exact five paired seed deltas and require mean ≥0.003, paired-t lower >0, ≥4 positive, aggregate top-1 loss ≤5, per-seed top-1 loss ≤2, candidate reaches each paired control's epoch-16 endpoint by epoch 12 in ≥4 seeds, and mean A-B-B-A step-time/allocated/reserved ratios ≤1.02. Require exact equality of checkpoint byte counts, deployed parameter shapes/dtypes, inference operation identity, and deployment storage. Report balanced inference latency without making it a separate gate. Return only `SUPPORTED_HOLDOUT` or `CLOSE_FULL_WIDTH`; never emit a SOTA claim.
 
 - [ ] **Step 5: Implement identical-view checkpoint evaluation**
 
@@ -235,7 +242,7 @@ git commit -m "add paired UniCOM full-width evaluation"
 
 - [ ] **Step 1: Write trainer receipt RED tests**
 
-Require exact fields for source/config hashes, seed, arm, resolved widths, command, start/finish timestamps, elapsed seconds, peak allocated/reserved bytes, checkpoint sizes/hashes at four epochs, history hash, exit status, and runtime. Test structural failures publish no receipt and finite completed runs publish once.
+Require exact fields for source/config hashes, seed, arm, resolved widths, command, start/finish timestamps, elapsed seconds, peak allocated/reserved bytes, checkpoint sizes/hashes at four epochs, history hash, exit status, and runtime. Test structural failures publish no receipt and finite completed runs publish once. Seed 0 does not use the historical initialization receipt; the run receipt binds its classifier/checkpoint/history evidence instead.
 
 - [ ] **Step 2: Implement optional `--run-receipt` publication**
 
@@ -247,7 +254,7 @@ Require the exact arm order, equal checkpoint epoch/runtime/source, 50 timing an
 
 - [ ] **Step 4: Implement strict profile comparison and publication**
 
-The comparator authenticates each input with `validate_profile`, reports ratios and percentile intervals, and never promotes the scientific candidate. Kernel work remains eligible only if the existing lower-95% fusible fraction is ≥0.10 and an exact-output prototype later improves time-to-quality.
+The comparator authenticates each input with `validate_profile`, reports ratios and percentile intervals, and never promotes the scientific candidate. The final decision takes step time only from this artifact; raw trainer wall time remains context. Kernel work remains eligible only if the existing lower-95% fusible fraction is ≥0.10 and an exact-output prototype later improves time-to-quality.
 
 - [ ] **Step 5: Run the cost layer GREEN and commit**
 
@@ -296,7 +303,7 @@ Bind `S`, dataset partition SHA, initial checkpoint SHA, UniCOM checkout revisio
 
 - [ ] **Step 5: Test config mutation and candidate isolation**
 
-Fresh-process tests authenticate every source path/hash, exact command token order, exact seed/arm order, output absence, and reject official query/gallery paths or candidate outcome fields before launch.
+Fresh-process tests authenticate every source path/hash, exact command token order, exact seed/arm order, exact per-arm protocol triples `(official-eight-mask,512,768)` and `(official-eight-mask,768,768)`, output absence, and reject official query/gallery paths or candidate outcome fields before launch. Historical replication/factorial validators remain unchanged and must reject the new protocol.
 
 - [ ] **Step 6: Commit config-only handoff `H`**
 
@@ -312,7 +319,7 @@ Require `H^ == S`, sole commit path `docs/unicom_full_width_objective_run_config
 
 **Interfaces:**
 - Consumes: detached handoff `H`, idle DGX, absent registered destinations.
-- Produces: one immutable seed-0 decision and cost evidence.
+- Produces: one immutable seed-0 prediction, operational decision, and cost evidence.
 
 - [ ] **Step 1: Authenticate DGX preflight**
 
@@ -336,7 +343,7 @@ Only after both arms validate, run four serial profiler processes in exact contr
 
 - [ ] **Step 6: Apply and record the frozen decision**
 
-If every seed-0 predicate passes, record `PROMOTE_CONFIRMATION`; otherwise record `CLOSE_FULL_WIDTH`. Commit and push the immutable artifacts and concise result without changing thresholds.
+Record the three quality prediction predicates separately. If every operational/resource predicate passes, record `PROMOTE_CONFIRMATION` regardless of prediction match; otherwise record `CLOSE_RESOURCE`. Commit and push the immutable artifacts and concise result without changing thresholds.
 
 ---
 
@@ -363,7 +370,7 @@ Authenticate all 40 checkpoints and ten receipts, recompute both retrieval views
 
 - [ ] **Step 4: Measure inference and storage**
 
-Use the identical full-768 deployment path for both arms, balanced A-B-B-A latency order on the same ordered tensors, exact checkpoint/model byte counts, and bootstrap intervals reported without overriding the 2% gates.
+Use the identical full-768 deployment path for both arms, balanced A-B-B-A latency order on the same ordered tensors, exact checkpoint/model byte counts and operation identity, and bootstrap latency intervals reported as context. The paired evaluator supplies quality/trajectory predicates, the profile comparator supplies step time, and trainer receipts supply peak memory and checkpoint evidence; the final validator cross-binds all three.
 
 - [ ] **Step 5: Independently review and publish the final report**
 

@@ -79,15 +79,16 @@ evaluation coordinates and per-query ordering byte-identical.  Legacy
 prefix-512 is recomputed only by the separate paired evaluator and is never
 read from either trainer history.
 
-## Stage 1: paired selection screen
+## Stage 1: paired operational screen
 
 Run two fresh seed-0 jobs, control then candidate, in the same reviewed source,
 runtime, and idle GPU state.  The candidate run is forbidden unless the
 control completes, all four checkpoints strict-load, and its epoch-16 hardened
-full-768 holdout metrics are finite.  Both jobs publish disjoint initialization
-receipts, histories, and checkpoints.  GPU arithmetic is statistically rather
-than bitwise reproducible, so no claim depends on byte-identical floating-point
-results.
+full-768 holdout metrics are finite.  Seed 0 is outside the trainer's registered
+initialization-receipt seed set, so its arms are instead bound by distinct
+output paths plus exact checkpoint, history, protocol, classifier, source, and
+configuration hashes.  GPU arithmetic is statistically rather than bitwise
+reproducible, so no claim depends on byte-identical floating-point results.
 
 A separate paired evaluator reloads all four checkpoint epochs from both arms,
 authenticates their source,
@@ -96,24 +97,30 @@ row order, and emits per-query AP@R and top-1 evidence under both registered
 views.  The primary view is full-768 unit-normalized Euclidean retrieval.  The
 legacy prefix view is diagnostic and cannot select the candidate.
 
-`full_768` advances only when all of the following hold at epoch 16:
+The seed-0 quality values test the prospective prediction but cannot close the
+direction: a single nondeterministic training pair does not bound the method's
+seed-level variance.  Report whether the following prediction matched:
 
 1. primary mAP@R delta is at least `0.003`;
 2. primary top-1 loses at most one of the exact paired holdout queries;
-3. candidate reaches the control epoch-16 primary mAP@R no later than control
-   on the frozen `(4,8,12,16)` grid;
-4. elapsed training time, peak allocated GPU memory, and checkpoint bytes are
-   each no more than 2% above control.
+3. candidate reaches the control epoch-16 primary mAP@R by epoch 12 on the
+   frozen `(4,8,12,16)` grid.
 
 The paired 10,000-replicate PCG64 query bootstrap interval is reported but is
 non-gating at seed 0 because the 797-query selection holdout is not powered to
-put the lower bound of a 0.003 effect above zero.  A failure closes full-width
-training without trying mixed-width losses, cadence schedules, learning-rate
-changes, or a smaller effect threshold on the same holdout.
+put the lower bound of a 0.003 effect above zero.  The candidate proceeds to
+confirmation whenever both runs are structurally valid and A-B-B-A step-time,
+peak allocated memory, and peak reserved memory ratios are each at most
+`1.02`, and checkpoint byte counts are exactly equal.  Raw sequential wall
+time is context only.  A resource
+gate failure closes the current implementation; a quality-prediction miss is
+durable evidence but still proceeds to the powered five-seed decision.  No
+threshold, objective, cadence, or learning-rate changes follow seed 0.
 
 ## Stage 2: five-seed confirmation
 
-Only a promoted seed-0 candidate advances.  Seeds 2 through 6 each receive a
+Only a seed-0 candidate that passes the operational/resource gate advances.
+Seeds 2 through 6 each receive a
 fresh `sampled_512` control and a fresh `full_768` candidate under the exact
 same reviewed source, runtime, initial checkpoint, data bytes, partition, and
 seed.  Retained historical checkpoints are context only and cannot enter a
@@ -132,12 +139,14 @@ Confirmation requires:
 - at least four of five primary mAP@R deltas positive;
 - aggregate top-1 losses across all five paired holdouts no greater than five
   queries and no individual seed losing more than two queries;
-- candidate time to the matched control epoch-16 mAP@R no later on at least
-  four of five seeds; and
-- mean training time, mean peak memory, checkpoint bytes, measured inference
-  latency, and deployment storage all within 2% of control, except that a
-  statistically supported fixed-epoch quality gain may trade up to 2% training
-  time while inference and deployment storage remain unchanged.
+- candidate reaches the matched control epoch-16 primary mAP@R by epoch 12 on
+  at least four of five seeds; and
+- mean A-B-B-A step time and mean peak memory at most `1.02` times control;
+- checkpoint byte counts, deployed parameter shapes/dtypes, inference
+  operations, and deployment storage exactly equal between arms.  Measured
+  inference latency is reported with balanced repetitions but is not a separate
+  scientific gate because both arms execute the byte-identical deployment
+  graph.
 
 These gates provide five paired seeds and a practical-effect floor; no separate
 sign-test claim is made.  The paired query bootstrap is reported per seed and
@@ -167,6 +176,22 @@ checkpoint and history row.  The paired evaluator rejects mixed commits,
 missing epochs, unexpected trainer metrics, a non-768 primary view, duplicate
 or reordered query/gallery IDs, and any recomputed scalar or decision that
 differs from persisted evidence.
+
+The paired evaluator artifact is authoritative for all quality, top-1,
+trajectory, and confirmation predicates.  The A-B-B-A comparator artifact is
+authoritative for step time.  Trainer run receipts are authoritative for raw
+elapsed context, peak allocated/reserved memory, checkpoint sizes/hashes, and
+runtime.  The final decision validator cross-binds all three sources and
+recomputes their derived predicates; no trainer-history metric substitutes for
+the paired evaluator.
+
+The new paired evaluator asserts the exact protocol triple per arm:
+`(official-eight-mask,512,768)` for `sampled_512` and
+`(official-eight-mask,768,768)` for `full_768`.  The historical replication and
+factorial evaluators remain intentionally frozen to their old exact protocol
+and must reject these new checkpoints rather than weakening historical
+validation.  Fresh runs never resume old checkpoints; the new ordered protocol
+key therefore makes legacy resume incompatibility explicit and harmless.
 
 The full-width candidate needs no custom kernel.  Kernel work remains
 ineligible unless an A-B-B-A profiler attributes at least 10% of step time to a
