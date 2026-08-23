@@ -9,6 +9,7 @@ from sfora.unicom_training import (
     identity_holdout,
     padded_epoch_indices,
     sample_shard_masks,
+    sharded_mask_arcface_logits,
     sharded_mask_arcface_loss,
 )
 
@@ -46,6 +47,61 @@ def test_one_shard_matches_official_selected_subspace_arcface() -> None:
     expected = _manual_arcface(embeddings, weights, labels, mask[0])
 
     torch.testing.assert_close(actual, expected, rtol=1e-12, atol=1e-12)
+
+
+def test_sharded_arcface_logits_match_independent_manual_oracle_and_loss() -> None:
+    embeddings = torch.tensor(
+        [[0.2, 0.4, -0.1, 0.7], [-0.3, 0.8, 0.5, 0.1]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    weights = torch.tensor(
+        [[0.7, -0.2, 0.4, 0.1], [0.3, 0.6, -0.5, 0.2], [-0.4, 0.1, 0.8, 0.5]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    labels = torch.tensor([0, 2])
+    masks = torch.tensor([[0, 2, 3], [1, 2, 3]])
+    scale = 7.0
+    margin = 0.2
+
+    first = F.normalize(embeddings[:, masks[0]], dim=1) @ F.normalize(
+        weights[:2, masks[0]], dim=1
+    ).T
+    second = F.normalize(embeddings[:, masks[1]], dim=1) @ F.normalize(
+        weights[2:, masks[1]], dim=1
+    ).T
+    expected_logits = torch.cat((first, second), dim=1).clamp(-1.0, 1.0)
+    rows = torch.arange(labels.numel())
+    expected_logits[rows, labels] = torch.cos(
+        torch.acos(expected_logits[rows, labels]) + margin
+    )
+    expected_logits = expected_logits * scale
+
+    actual_logits = sharded_mask_arcface_logits(
+        embeddings,
+        weights,
+        labels,
+        masks,
+        margin=margin,
+        scale=scale,
+    )
+
+    torch.testing.assert_close(actual_logits, expected_logits, rtol=1e-12, atol=1e-12)
+    torch.testing.assert_close(
+        sharded_mask_arcface_loss(
+            embeddings,
+            weights,
+            labels,
+            masks,
+            margin=margin,
+            scale=scale,
+        ),
+        F.cross_entropy(actual_logits, labels),
+        rtol=1e-12,
+        atol=1e-12,
+    )
+    assert torch.equal(actual_logits.argmax(dim=1), expected_logits.argmax(dim=1))
 
 
 def test_repeated_mask_shards_equal_one_global_mask() -> None:

@@ -126,7 +126,7 @@ def _class_slices(class_count: int, shard_count: int) -> tuple[slice, ...]:
     return tuple(result)
 
 
-def sharded_mask_arcface_loss(
+def sharded_mask_arcface_logits(
     embeddings: torch.Tensor,
     weights: torch.Tensor,
     labels: torch.Tensor,
@@ -135,11 +135,10 @@ def sharded_mask_arcface_loss(
     margin: float = 0.25,
     scale: float = 32.0,
 ) -> torch.Tensor:
-    """Emulate UNICOM's independently masked class shards on one device.
+    """Build UNICOM's independently masked, globally concatenated ArcFace logits.
 
     Each row of ``masks`` is assigned to one contiguous class shard using the
-    same quotient/remainder partition as ``PartialFC_V2``. The shard logits
-    are concatenated before one global cross-entropy reduction.
+    same quotient/remainder partition as ``PartialFC_V2``.
     """
 
     if embeddings.ndim != 2 or weights.ndim != 2 or embeddings.shape[1] != weights.shape[1]:
@@ -178,4 +177,28 @@ def sharded_mask_arcface_loss(
         with torch.no_grad():
             target = logits[rows, labels]
             logits[rows, labels] = torch.cos(torch.acos(target) + margin)
-    return F.cross_entropy(logits * scale, labels)
+    return logits * scale
+
+
+def sharded_mask_arcface_loss(
+    embeddings: torch.Tensor,
+    weights: torch.Tensor,
+    labels: torch.Tensor,
+    masks: torch.Tensor,
+    *,
+    margin: float = 0.25,
+    scale: float = 32.0,
+) -> torch.Tensor:
+    """Emulate UNICOM's sharded masked ArcFace loss on one device."""
+
+    return F.cross_entropy(
+        sharded_mask_arcface_logits(
+            embeddings,
+            weights,
+            labels,
+            masks,
+            margin=margin,
+            scale=scale,
+        ),
+        labels,
+    )
