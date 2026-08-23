@@ -537,6 +537,16 @@ def validate_result(value: object) -> None:
         or len(decision["per_seed"]) != 3
     ):
         raise ValueError("probe decision schema differs")
+    for entry in decision["per_seed"]:
+        if (
+            type(entry) is not dict
+            or tuple(entry) != SEED_DECISION_KEYS
+            or type(entry["statistics"]) is not dict
+            or tuple(entry["statistics"]) != STATISTIC_KEYS
+            or type(entry["predicates"]) is not dict
+            or tuple(entry["predicates"]) != PREDICATE_KEYS
+        ):
+            raise ValueError("probe decision schema differs")
     recomputed = probe_decision(
         class_mean=class_mean_metric,
         probe_fits=probe_fits,
@@ -579,6 +589,7 @@ def write_result_atomic(value: dict[str, object], output: Path) -> None:
         raise FileExistsError(temporary)
     payload = (json.dumps(value, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
     descriptor: int | None = None
+    linked_identity: tuple[int, int] | None = None
     try:
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         offset = 0
@@ -595,7 +606,9 @@ def write_result_atomic(value: dict[str, object], output: Path) -> None:
         if persisted != value:
             raise ValueError("persisted probe result differs")
         try:
+            temporary_stat = temporary.stat()
             os.link(temporary, output)
+            linked_identity = (temporary_stat.st_dev, temporary_stat.st_ino)
             directory = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
             try:
                 os.fsync(directory)
@@ -610,8 +623,17 @@ def write_result_atomic(value: dict[str, object], output: Path) -> None:
                 raise ValueError("published probe result differs")
             validate_result(strict_json_object(output.read_bytes()))
         except Exception:
-            if output.exists() and output.is_file() and not output.is_symlink():
-                output.unlink()
+            if linked_identity is not None:
+                try:
+                    output_stat = output.lstat()
+                except FileNotFoundError:
+                    pass
+                else:
+                    if (
+                        stat.S_ISREG(output_stat.st_mode)
+                        and (output_stat.st_dev, output_stat.st_ino) == linked_identity
+                    ):
+                        output.unlink()
             raise
     finally:
         if descriptor is not None:

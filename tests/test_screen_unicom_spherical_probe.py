@@ -290,6 +290,42 @@ def test_atomic_writer_rolls_back_output_after_post_link_failure(
     assert not list(tmp_path.glob(".*.tmp"))
 
 
+def test_atomic_writer_preserves_foreign_output_that_wins_link_race(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "screen.json"
+    value = _valid_result()
+    foreign = b"foreign publisher\n"
+    original_link = MODULE.os.link
+
+    def race_link(source: Path, destination: Path) -> None:
+        destination.write_bytes(foreign)
+        original_link(source, destination)
+
+    monkeypatch.setattr(MODULE.os, "link", race_link)
+
+    with pytest.raises(FileExistsError):
+        MODULE.write_result_atomic(value, output)
+
+    assert output.read_bytes() == foreign
+    assert not list(tmp_path.glob(".*.tmp"))
+
+
+@pytest.mark.parametrize("nested_key", ("entry", "statistics", "predicates"))
+def test_validate_result_rejects_reordered_nested_decision_schema(
+    nested_key: str,
+) -> None:
+    value = deepcopy(_valid_result())
+    entry = value["decision"]["per_seed"][0]
+    if nested_key == "entry":
+        value["decision"]["per_seed"][0] = dict(reversed(tuple(entry.items())))
+    else:
+        entry[nested_key] = dict(reversed(tuple(entry[nested_key].items())))
+
+    with pytest.raises(ValueError, match="decision schema"):
+        MODULE.validate_result(value)
+
+
 def test_source_binding_authenticates_all_scientific_modules(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

@@ -416,7 +416,7 @@ def fit_spherical_probe(
         batch_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
-    cosine = F.cosine_similarity(result, initial, dim=1).double()
+    cosine = F.cosine_similarity(result, initial, dim=1).clamp(-1.0, 1.0).double()
     return ProbeFit(
         head=result,
         initial_loss=initial_loss,
@@ -469,8 +469,6 @@ def evaluate_probe_heads(
         for name in heads
     }
     correct = {name: 0 for name in heads}
-    represented_loss = {name: 0.0 for name in heads}
-    unrepresented_loss = {name: 0.0 for name in heads}
     represented = torch.tensor(
         validation_group_represented, dtype=torch.bool, device=features.device
     )
@@ -497,8 +495,6 @@ def evaluate_probe_heads(
                     float(losses[~represented].double().mean())
                 )
                 per_image_loss[name].add_(losses.double())
-                represented_loss[name] += float(losses[represented].double().sum())
-                unrepresented_loss[name] += float(losses[~represented].double().sum())
                 margin_free = sharded_mask_arcface_logits(
                     features, head, labels, masks, margin=0.0
                 )
@@ -507,8 +503,6 @@ def evaluate_probe_heads(
                 )
 
     observations = labels.numel() * mask_sets
-    represented_observations = int(torch.count_nonzero(represented)) * mask_sets
-    unrepresented_observations = int(torch.count_nonzero(~represented)) * mask_sets
     return {
         name: ProbeMetrics(
             mean_loss=math.fsum(loss_totals[name]) / mask_sets,
@@ -521,9 +515,11 @@ def evaluate_probe_heads(
             per_image_mean_losses=tuple(
                 float(value) for value in (per_image_loss[name] / mask_sets).cpu()
             ),
-            represented_mean_loss=represented_loss[name] / represented_observations,
+            represented_mean_loss=(
+                math.fsum(represented_mask_losses[name]) / mask_sets
+            ),
             unrepresented_mean_loss=(
-                unrepresented_loss[name] / unrepresented_observations
+                math.fsum(unrepresented_mask_losses[name]) / mask_sets
             ),
         )
         for name in heads
@@ -595,7 +591,7 @@ def compare_probe_gradients(
     nonzero = ~zero_mean
     cosine = F.cosine_similarity(
         class_mean_gradient[nonzero], probe_gradient[nonzero], dim=1
-    ).double()
+    ).clamp(-1.0, 1.0).double()
     difference = torch.linalg.vector_norm(probe_gradient - class_mean_gradient)
     return ProbeGradientMetrics(
         class_mean_l2=float(class_mean_norm.double()),

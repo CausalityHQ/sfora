@@ -313,6 +313,96 @@ def test_evaluate_probe_heads_allows_singleton_classes_absent_from_validation() 
     assert actual["class_mean"].observation_count == validation_labels.numel() * 2
 
 
+def test_evaluate_probe_heads_uses_validator_exact_stratum_reduction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.unicom_probe as probe_module
+
+    labels = torch.arange(12, dtype=torch.int64) % 8
+    features = torch.ones(12, 768, dtype=torch.float32)
+    heads = {
+        "class_mean": torch.ones(8, 768, dtype=torch.float32),
+        "spherical_probe": torch.ones(8, 768, dtype=torch.float32),
+    }
+    represented = tuple(index < 7 for index in range(12))
+    generator = torch.Generator().manual_seed(65)
+
+    monkeypatch.setattr(
+        probe_module,
+        "sharded_mask_arcface_logits",
+        lambda *_args, **_kwargs: torch.zeros(12, 8, dtype=torch.float32),
+    )
+    monkeypatch.setattr(
+        probe_module.F,
+        "cross_entropy",
+        lambda *_args, **_kwargs: torch.rand(
+            12, generator=generator, dtype=torch.float32
+        )
+        * 100.0,
+    )
+    monkeypatch.setattr(probe_module, "PROBE_VALIDATION_IMAGES", 12)
+
+    actual = evaluate_probe_heads(
+        features,
+        labels,
+        heads,
+        validation_group_represented=represented,
+        mask_sets=64,
+    )
+
+    for name, metrics in actual.items():
+        probe_module._validate_metrics(metrics, name)
+
+
+def test_fit_spherical_probe_clamps_fp32_cosine_before_persisting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.unicom_probe as probe_module
+
+    features, labels, initial = _separable_probe_fixture()
+    monkeypatch.setattr(
+        probe_module.F,
+        "cosine_similarity",
+        lambda *_args, **_kwargs: torch.full((8,), 1.0000004, dtype=torch.float32),
+    )
+
+    result = fit_spherical_probe(features, labels, initial, steps=1, batch_size=8)
+
+    assert result.row_cosine_min == 1.0
+    assert result.row_cosine_p05 == 1.0
+    assert result.row_cosine_median == 1.0
+    assert result.row_cosine_mean == 1.0
+
+
+def test_compare_probe_gradients_clamps_fp32_cosine_before_persisting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.unicom_probe as probe_module
+
+    features, labels, initial = _separable_probe_fixture()
+    probe = torch.roll(initial, shifts=-1, dims=0).contiguous()
+    monkeypatch.setattr(
+        probe_module.F,
+        "cosine_similarity",
+        lambda left, *_args, **_kwargs: torch.full(
+            (left.shape[0],), 1.0000004, dtype=torch.float32
+        ),
+    )
+
+    result = compare_probe_gradients(
+        features,
+        labels,
+        {"class_mean": initial, "spherical_probe": probe},
+        fit_seed=2,
+        batch_size=8,
+    )
+
+    assert result.cosine_min == 1.0
+    assert result.cosine_p05 == 1.0
+    assert result.cosine_median == 1.0
+    assert result.cosine_mean == 1.0
+
+
 def test_compare_probe_gradients_matches_independent_autograd_oracle() -> None:
     from sfora.unicom_training import experiment_stream_seed, padded_epoch_indices
 
