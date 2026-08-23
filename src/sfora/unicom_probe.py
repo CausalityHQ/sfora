@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import math
+import re
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+import numpy as np
 import torch
 from torch.nn import functional as F
 
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_training import (
+    experiment_stream_seed,
     padded_epoch_indices,
     sample_shard_masks,
     sharded_mask_arcface_logits,
@@ -19,6 +22,7 @@ from sfora.unicom_training import (
 )
 
 PROBE_STEPS = 512
+PROBE_SPLIT_SEED = 23_000
 PROBE_BATCH_SIZE = 128
 PROBE_BATCH_SEED = 23_001
 PROBE_MASK_SEED = 23_002
@@ -50,10 +54,32 @@ class ProbeDecision:
     predicates: dict[str, bool]
 
 
+@dataclass(frozen=True)
+class ProbeSplit:
+    fitting: tuple[InshopRecord, ...]
+    validation: tuple[InshopRecord, ...]
+    validation_group_represented: tuple[bool, ...]
+    validation_class_count: int
+    singleton_class_count: int
+
+
+_INSHOP_FILENAME = re.compile(r"^(?P<series>[^_]+)_[0-9]+_[^.]+\.jpg$")
+
+
+def _acquisition_series(row: InshopRecord) -> str:
+    match = _INSHOP_FILENAME.fullmatch(row.image_path.name)
+    if match is None:
+        raise ValueError("probe In-Shop filename differs")
+    return match.group("series")
+
+
 def split_probe_records(
-    records: tuple[InshopRecord, ...], labels: Mapping[str, int]
-) -> tuple[tuple[InshopRecord, ...], tuple[InshopRecord, ...]]:
-    """Reserve the last path in every optimization class for probe validation."""
+    records: tuple[InshopRecord, ...],
+    labels: Mapping[str, int],
+    *,
+    seed: int = PROBE_SPLIT_SEED,
+) -> ProbeSplit:
+    """Draw one validation row per nonsingleton class and retain singletons in fit."""
 
     if (
         type(records) is not tuple
@@ -63,6 +89,8 @@ def split_probe_records(
         or tuple(labels.values()) != tuple(range(len(labels)))
         or any(type(label) is not str or not label for label in labels)
         or any(type(row) is not InshopRecord or row.split != "train" for row in records)
+        or type(seed) is not int
+        or seed < 0
     ):
         raise ValueError("probe record inventory differs")
     grouped: dict[str, list[InshopRecord]] = defaultdict(list)
@@ -70,16 +98,40 @@ def split_probe_records(
         if row.label not in labels:
             raise ValueError("probe record label differs")
         grouped[row.label].append(row)
-    if set(grouped) != set(labels) or any(len(rows) < 2 for rows in grouped.values()):
-        raise ValueError("probe classes require at least two records")
+    if set(grouped) != set(labels):
+        raise ValueError("probe classes differ")
 
     fitting: list[InshopRecord] = []
     validation: list[InshopRecord] = []
+    represented: list[bool] = []
+    singleton_count = 0
+    generator = np.random.Generator(
+        np.random.PCG64(experiment_stream_seed(0, seed))
+    )
     for label in labels:
         ordered = sorted(grouped[label], key=lambda row: str(row.image_path))
-        fitting.extend(ordered[:-1])
-        validation.append(ordered[-1])
-    return tuple(fitting), tuple(validation)
+        if len(ordered) == 1:
+            singleton_count += 1
+            fitting.extend(ordered)
+            continue
+        validation_index = int(generator.integers(0, len(ordered)))
+        validation_row = ordered[validation_index]
+        fitting_rows = [
+            row for index, row in enumerate(ordered) if index != validation_index
+        ]
+        fitting.extend(fitting_rows)
+        validation.append(validation_row)
+        validation_series = _acquisition_series(validation_row)
+        represented.append(
+            any(_acquisition_series(row) == validation_series for row in fitting_rows)
+        )
+    return ProbeSplit(
+        fitting=tuple(fitting),
+        validation=tuple(validation),
+        validation_group_represented=tuple(represented),
+        validation_class_count=len(validation),
+        singleton_class_count=singleton_count,
+    )
 
 
 def class_mean_head(

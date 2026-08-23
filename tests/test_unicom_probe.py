@@ -8,6 +8,7 @@ import torch
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_probe import (
     ProbeMetrics,
+    ProbeSplit,
     class_mean_head,
     evaluate_probe_heads,
     fit_spherical_probe,
@@ -21,29 +22,51 @@ def _record(label: str, name: str) -> InshopRecord:
     return InshopRecord(split="train", image_path=Path("/dataset") / name, label=label)
 
 
-def test_split_probe_records_uses_last_sorted_path_per_class_for_validation() -> None:
+def test_split_probe_records_uses_seeded_validation_and_keeps_singletons() -> None:
     records = (
-        _record("b", "b-2.jpg"),
-        _record("a", "a-3.jpg"),
-        _record("a", "a-1.jpg"),
-        _record("b", "b-1.jpg"),
-        _record("a", "a-2.jpg"),
+        _record("c", "03_1_front.jpg"),
+        _record("a", "02_3_side.jpg"),
+        _record("a", "01_1_front.jpg"),
+        _record("b", "07_1_front.jpg"),
+        _record("c", "03_2_side.jpg"),
+        _record("a", "01_2_back.jpg"),
     )
 
-    fitting, validation = split_probe_records(records, {"a": 0, "b": 1})
+    actual = split_probe_records(records, {"a": 0, "b": 1, "c": 2})
 
-    assert fitting == (
-        _record("a", "a-1.jpg"),
-        _record("a", "a-2.jpg"),
-        _record("b", "b-1.jpg"),
+    assert type(actual) is ProbeSplit
+    assert actual.fitting == (
+        _record("a", "01_2_back.jpg"),
+        _record("a", "02_3_side.jpg"),
+        _record("b", "07_1_front.jpg"),
+        _record("c", "03_1_front.jpg"),
     )
-    assert validation == (_record("a", "a-3.jpg"), _record("b", "b-2.jpg"))
+    assert actual.validation == (
+        _record("a", "01_1_front.jpg"),
+        _record("c", "03_2_side.jpg"),
+    )
+    assert actual.validation_group_represented == (True, True)
+    assert actual.validation_class_count == 2
+    assert actual.singleton_class_count == 1
+
+
+def test_split_probe_records_reports_unrepresented_acquisition_series() -> None:
+    actual = split_probe_records(
+        (
+            _record("a", "01_1_front.jpg"),
+            _record("a", "02_1_front.jpg"),
+            _record("a", "03_1_front.jpg"),
+        ),
+        {"a": 0},
+    )
+
+    assert actual.validation == (_record("a", "01_1_front.jpg"),)
+    assert actual.validation_group_represented == (False,)
 
 
 @pytest.mark.parametrize(
     ("records", "labels"),
     (
-        ((_record("a", "a-1.jpg"),), {"a": 0}),
         ((_record("a", "a-1.jpg"), _record("a", "a-2.jpg")), {"a": 1}),
         ((_record("a", "a-1.jpg"), _record("a", "a-2.jpg")), {"a": 0, "b": 1}),
         ((_record("a", "a-1.jpg"), InshopRecord("query", Path("/dataset/a-2.jpg"), "a")), {"a": 0}),
