@@ -51,6 +51,252 @@ INITIALIZATION_RECEIPT_KEYS = (
     "initialization_seconds",
     "post_initialization_rng",
 )
+TRAINING_RUN_RECEIPT_KEYS = (
+    "schema_version",
+    "source_commit",
+    "trainer_sha256",
+    "config_path",
+    "config_sha256",
+    "seed",
+    "arm",
+    "protocol",
+    "command",
+    "started_unix_ns",
+    "finished_unix_ns",
+    "elapsed_seconds",
+    "peak_allocated_bytes",
+    "peak_reserved_bytes",
+    "exit_status",
+    "history",
+    "checkpoints",
+    "runtime",
+)
+FULL_WIDTH_ARM_PROTOCOLS = {
+    "sampled_512": ("official-eight-mask", 512, 768),
+    "full_768": ("official-eight-mask", 768, 768),
+}
+
+
+def _lower_hex(value: object, length: int) -> bool:
+    return (
+        type(value) is str
+        and len(value) == length
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _file_binding(path: Path) -> dict[str, object]:
+    if not isinstance(path, Path) or not path.is_file() or path.is_symlink():
+        raise ValueError("training run evidence path differs")
+    return {
+        "path": str(path),
+        "sha256": _sha256_file(path),
+        "bytes": path.stat().st_size,
+    }
+
+
+def training_run_receipt(
+    *,
+    source_commit: str,
+    config_path: str,
+    config_sha256: str,
+    seed: int,
+    arm: str,
+    objective: str,
+    selected_features: int,
+    evaluation_features: int,
+    command: list[str],
+    started_unix_ns: int,
+    finished_unix_ns: int,
+    elapsed_seconds: float,
+    peak_allocated_bytes: int,
+    peak_reserved_bytes: int,
+    exit_status: int,
+    history_path: Path,
+    checkpoint_paths: tuple[Path, ...],
+    runtime: dict[str, str],
+) -> dict[str, object]:
+    """Build one source- and byte-bound prospective training receipt."""
+
+    checkpoints = []
+    if type(checkpoint_paths) is not tuple or len(checkpoint_paths) != 4:
+        raise ValueError("training run checkpoint paths differ")
+    for epoch, path in zip((4, 8, 12, 16), checkpoint_paths, strict=True):
+        checkpoints.append({"epoch": epoch, **_file_binding(path)})
+    value = {
+        "schema_version": "unicom-full-width-training-run-v1",
+        "source_commit": source_commit,
+        "trainer_sha256": _sha256_file(Path(__file__)),
+        "config_path": config_path,
+        "config_sha256": config_sha256,
+        "seed": seed,
+        "arm": arm,
+        "protocol": {
+            "objective": objective,
+            "selected_features": selected_features,
+            "evaluation_features": evaluation_features,
+        },
+        "command": command,
+        "started_unix_ns": started_unix_ns,
+        "finished_unix_ns": finished_unix_ns,
+        "elapsed_seconds": elapsed_seconds,
+        "peak_allocated_bytes": peak_allocated_bytes,
+        "peak_reserved_bytes": peak_reserved_bytes,
+        "exit_status": exit_status,
+        "history": _file_binding(history_path),
+        "checkpoints": checkpoints,
+        "runtime": runtime,
+    }
+    validate_training_run_receipt(value)
+    return value
+
+
+def validate_training_run_receipt(value: object) -> None:
+    """Strictly validate one prospective training run receipt."""
+
+    if type(value) is not dict or tuple(value) != TRAINING_RUN_RECEIPT_KEYS:
+        raise ValueError("training run receipt schema differs")
+    arm = value["arm"]
+    protocol = value["protocol"]
+    if (
+        value["schema_version"] != "unicom-full-width-training-run-v1"
+        or not _lower_hex(value["source_commit"], 40)
+        or not _lower_hex(value["trainer_sha256"], 64)
+        or type(value["config_path"]) is not str
+        or not value["config_path"].endswith(".json")
+        or not _lower_hex(value["config_sha256"], 64)
+        or type(value["seed"]) is not int
+        or value["seed"] not in (0, 2, 3, 4, 5, 6)
+        or type(arm) is not str
+        or arm not in FULL_WIDTH_ARM_PROTOCOLS
+        or type(protocol) is not dict
+        or tuple(protocol) != ("objective", "selected_features", "evaluation_features")
+        or tuple(protocol.values()) != FULL_WIDTH_ARM_PROTOCOLS[arm]
+        or any(
+            type(item) is not type(reference)
+            for item, reference in zip(
+                protocol.values(), FULL_WIDTH_ARM_PROTOCOLS[arm], strict=True
+            )
+        )
+    ):
+        raise ValueError("training run receipt binding differs")
+    command = value["command"]
+    if (
+        type(command) is not list
+        or not command
+        or any(type(token) is not str or not token for token in command)
+    ):
+        raise ValueError("training run command differs")
+    started = value["started_unix_ns"]
+    finished = value["finished_unix_ns"]
+    elapsed = value["elapsed_seconds"]
+    allocated = value["peak_allocated_bytes"]
+    reserved = value["peak_reserved_bytes"]
+    exit_status = value["exit_status"]
+    if (
+        type(started) is not int
+        or type(finished) is not int
+        or started <= 0
+        or finished <= started
+        or type(elapsed) is not float
+        or not math.isfinite(elapsed)
+        or elapsed <= 0.0
+        or type(allocated) is not int
+        or type(reserved) is not int
+        or allocated < 0
+        or reserved < allocated
+        or type(exit_status) is not int
+        or exit_status != 0
+    ):
+        raise ValueError("training run timing or memory differs")
+    history = value["history"]
+    if (
+        type(history) is not dict
+        or tuple(history) != ("path", "sha256", "bytes")
+        or type(history["path"]) is not str
+        or not history["path"]
+        or not _lower_hex(history["sha256"], 64)
+        or type(history["bytes"]) is not int
+        or history["bytes"] <= 0
+    ):
+        raise ValueError("training run history binding differs")
+    checkpoints = value["checkpoints"]
+    if type(checkpoints) is not list or len(checkpoints) != 4:
+        raise ValueError("training run checkpoints differ")
+    paths: set[str] = set()
+    for epoch, row in zip((4, 8, 12, 16), checkpoints, strict=True):
+        if (
+            type(row) is not dict
+            or tuple(row) != ("epoch", "path", "sha256", "bytes")
+            or row["epoch"] != epoch
+            or type(row["path"]) is not str
+            or not row["path"]
+            or row["path"] in paths
+            or not _lower_hex(row["sha256"], 64)
+            or type(row["bytes"]) is not int
+            or row["bytes"] <= 0
+        ):
+            raise ValueError("training run checkpoint binding differs")
+        paths.add(row["path"])
+    runtime = value["runtime"]
+    if (
+        type(runtime) is not dict
+        or tuple(runtime) != ("python", "torch", "cuda")
+        or any(type(item) is not str or not item for item in runtime.values())
+    ):
+        raise ValueError("training run runtime differs")
+
+
+def write_training_run_receipt_atomic(
+    receipt: dict[str, object], output: Path
+) -> None:
+    """Publish one validated run receipt without replacing an existing path."""
+
+    validate_training_run_receipt(receipt)
+    if not isinstance(output, Path):
+        raise TypeError("training run receipt output must be a Path")
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
+    directory_descriptor = os.open(output.parent, os.O_RDONLY | os.O_DIRECTORY)
+    descriptor: int | None = None
+    published = False
+    completed = False
+    owned: tuple[int, int] | None = None
+    try:
+        descriptor = os.open(output.parent, os.O_RDWR | os.O_TMPFILE, 0o600)
+        info = os.fstat(descriptor)
+        owned = (info.st_dev, info.st_ino)
+        _write_descriptor(descriptor, payload)
+        os.fsync(descriptor)
+        persisted = _read_descriptor(descriptor)
+        if persisted != payload:
+            raise RuntimeError("persisted training run receipt bytes differ")
+        validate_training_run_receipt(strict_json_object(persisted))
+        _link_receipt_fd_noreplace(descriptor, output, directory_descriptor)
+        published = True
+        os.fsync(directory_descriptor)
+        output_info = output.lstat()
+        if (output_info.st_dev, output_info.st_ino) != owned:
+            raise RuntimeError("published training run receipt inode differs")
+        published_payload = output.read_bytes()
+        if published_payload != payload:
+            raise RuntimeError("published training run receipt bytes differ")
+        validate_training_run_receipt(strict_json_object(published_payload))
+        completed = True
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if published and not completed and owned is not None:
+            try:
+                info = output.lstat()
+            except FileNotFoundError:
+                pass
+            else:
+                if (info.st_dev, info.st_ino) == owned:
+                    output.unlink()
+                    os.fsync(directory_descriptor)
+        os.close(directory_descriptor)
 
 
 def _state_digest(domain: bytes, value: object) -> str:
@@ -1294,7 +1540,12 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         )
         if start_epoch >= args.epochs:
             raise ValueError("resume checkpoint already reached requested epochs")
-    return fit_model(
+    if args.run_receipt is not None:
+        torch.cuda.synchronize()
+        torch.cuda.reset_peak_memory_stats()
+        started_unix_ns = time.time_ns()
+        started_counter_ns = time.perf_counter_ns()
+    result = fit_model(
         raw_model=raw_model,
         train_model=train_model,
         classifier=classifier,
@@ -1331,6 +1582,18 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         training_protocol=training_protocol,
         step_ema=step_ema,
     )
+    if args.run_receipt is not None:
+        torch.cuda.synchronize()
+        args._training_run_measurement = {
+            "started_unix_ns": started_unix_ns,
+            "finished_unix_ns": time.time_ns(),
+            "elapsed_seconds": float(
+                (time.perf_counter_ns() - started_counter_ns) / 1_000_000_000
+            ),
+            "peak_allocated_bytes": int(torch.cuda.max_memory_allocated()),
+            "peak_reserved_bytes": int(torch.cuda.max_memory_reserved()),
+        }
+    return result
 
 
 def _seed_worker(_worker_id: int) -> None:
@@ -1372,18 +1635,90 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--fused", action="store_true")
     parser.add_argument("--classifier-init", choices=("random", "imprinted"), default="random")
+    parser.add_argument("--run-config", type=Path)
+    parser.add_argument("--run-arm", choices=tuple(FULL_WIDTH_ARM_PROTOCOLS))
+    parser.add_argument("--run-receipt", type=Path)
     return parser.parse_args(arguments)
+
+
+def _validate_run_receipt_request(args: argparse.Namespace) -> None:
+    values = (args.run_config, args.run_arm, args.run_receipt)
+    if all(value is None for value in values):
+        return
+    if any(value is None for value in values):
+        raise ValueError("run receipt arguments must be supplied together")
+    if not args.run_config.is_file() or args.run_config.is_symlink():
+        raise ValueError("run configuration must be a real file")
+    if args.run_receipt.exists() or args.run_receipt.is_symlink():
+        raise FileExistsError(args.run_receipt)
+    if not args.run_receipt.parent.is_dir() or args.run_receipt.parent.is_symlink():
+        raise ValueError("run receipt parent must be a real directory")
+    expected = FULL_WIDTH_ARM_PROTOCOLS[args.run_arm]
+    observed = (args.objective, args.selected_features, args.evaluation_features)
+    if observed != expected or any(
+        type(value) is not type(reference)
+        for value, reference in zip(observed, expected, strict=True)
+    ):
+        raise ValueError("run arm protocol differs")
+    if (
+        args.classifier_init != "imprinted"
+        or args.epochs != 16
+        or args.eval_every != 4
+        or args.checkpoint_every != 4
+        or args.resume is not None
+    ):
+        raise ValueError("prospective run receipt execution differs")
 
 
 def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
+        _validate_run_receipt_request(args)
         history = run(args)
     except Exception as error:
         print(f"training failed: {error}", file=sys.stderr)
         return 2
     summary = args.output_dir / "history.json"
     summary.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8")
+    if args.run_receipt is not None:
+        try:
+            measurement = args._training_run_measurement
+            command = (
+                list(sys.orig_argv)
+                if arguments is None
+                else [sys.executable, str(Path(__file__).resolve()), *arguments]
+            )
+            receipt = training_run_receipt(
+                source_commit=_git_revision(Path(__file__).resolve().parents[1]),
+                config_path=str(args.run_config),
+                config_sha256=_sha256_file(args.run_config),
+                seed=args.seed,
+                arm=args.run_arm,
+                objective=args.objective,
+                selected_features=args.selected_features,
+                evaluation_features=args.evaluation_features,
+                command=command,
+                started_unix_ns=measurement["started_unix_ns"],
+                finished_unix_ns=measurement["finished_unix_ns"],
+                elapsed_seconds=measurement["elapsed_seconds"],
+                peak_allocated_bytes=measurement["peak_allocated_bytes"],
+                peak_reserved_bytes=measurement["peak_reserved_bytes"],
+                exit_status=0,
+                history_path=summary,
+                checkpoint_paths=tuple(
+                    args.output_dir / f"epoch-{epoch:04d}.pt"
+                    for epoch in (4, 8, 12, 16)
+                ),
+                runtime={
+                    "python": sys.version.split()[0],
+                    "torch": str(torch.__version__),
+                    "cuda": str(torch.version.cuda),
+                },
+            )
+            write_training_run_receipt_atomic(receipt, args.run_receipt)
+        except Exception as error:
+            print(f"training receipt failed: {error}", file=sys.stderr)
+            return 2
     print(f"training complete: {summary}")
     return 0
 

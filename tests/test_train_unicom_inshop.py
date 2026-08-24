@@ -48,6 +48,252 @@ def _state_digest(domain: bytes, value: object) -> str:
     return hashlib.sha256(domain + b"\0" + pickle.dumps(value, protocol=5)).hexdigest()
 
 
+def test_training_run_receipt_binds_widths_costs_and_checkpoint_bytes(tmp_path: Path) -> None:
+    module = _load_script()
+    history = tmp_path / "history.json"
+    history.write_bytes(b"[]\n")
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        path.write_bytes(f"checkpoint-{epoch}".encode())
+        checkpoints.append(path)
+
+    receipt = module.training_run_receipt(
+        source_commit="a" * 40,
+        config_path="docs/unicom_full_width_objective_run_config.json",
+        config_sha256="b" * 64,
+        seed=0,
+        arm="sampled_512",
+        objective="official-eight-mask",
+        selected_features=512,
+        evaluation_features=768,
+        command=[".venv/bin/python", "-I", "-B", "scripts/train_unicom_inshop.py"],
+        started_unix_ns=100,
+        finished_unix_ns=200,
+        elapsed_seconds=1.25,
+        peak_allocated_bytes=123,
+        peak_reserved_bytes=456,
+        exit_status=0,
+        history_path=history,
+        checkpoint_paths=tuple(checkpoints),
+        runtime={"python": "3.12.3", "torch": "2.12.1", "cuda": "13.0"},
+    )
+
+    module.validate_training_run_receipt(receipt)
+    assert receipt["protocol"] == {
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "evaluation_features": 768,
+    }
+    assert receipt["history"]["sha256"] == hashlib.sha256(b"[]\n").hexdigest()
+    assert [row["epoch"] for row in receipt["checkpoints"]] == [4, 8, 12, 16]
+    assert [row["bytes"] for row in receipt["checkpoints"]] == [12, 12, 13, 13]
+    assert receipt["exit_status"] == 0
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    (
+        ("seed", True),
+        ("arm", "full_768"),
+        ("elapsed_seconds", float("nan")),
+        ("peak_allocated_bytes", -1),
+        ("checkpoints", []),
+    ),
+)
+def test_training_run_receipt_rejects_relational_drift(
+    tmp_path: Path, field: str, replacement: object
+) -> None:
+    module = _load_script()
+    history = tmp_path / "history.json"
+    history.write_bytes(b"[]\n")
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = tmp_path / f"epoch-{epoch:04d}.pt"
+        path.write_bytes(f"checkpoint-{epoch}".encode())
+        checkpoints.append(path)
+    receipt = module.training_run_receipt(
+        source_commit="a" * 40,
+        config_path="docs/unicom_full_width_objective_run_config.json",
+        config_sha256="b" * 64,
+        seed=0,
+        arm="sampled_512",
+        objective="official-eight-mask",
+        selected_features=512,
+        evaluation_features=768,
+        command=["python"],
+        started_unix_ns=100,
+        finished_unix_ns=200,
+        elapsed_seconds=1.25,
+        peak_allocated_bytes=123,
+        peak_reserved_bytes=456,
+        exit_status=0,
+        history_path=history,
+        checkpoint_paths=tuple(checkpoints),
+        runtime={"python": "3.12.3", "torch": "2.12.1", "cuda": "13.0"},
+    )
+    receipt[field] = replacement
+
+    with pytest.raises((TypeError, ValueError)):
+        module.validate_training_run_receipt(receipt)
+
+
+def test_main_publishes_one_training_run_receipt_after_history_and_checkpoints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    output = tmp_path / "run"
+    config = tmp_path / "unicom-full-width.json"
+    config.write_bytes(b'{"schema":"fixture"}\n')
+    receipt = tmp_path / "sampled-512-receipt.json"
+
+    def fake_run(args) -> list[dict[str, object]]:
+        module.torch.cuda.reset_peak_memory_stats()
+        args.output_dir.mkdir()
+        for epoch in (4, 8, 12, 16):
+            (args.output_dir / f"epoch-{epoch:04d}.pt").write_bytes(
+                f"checkpoint-{epoch}".encode()
+            )
+        args._training_run_measurement = {
+            "started_unix_ns": 1_000_000_000,
+            "finished_unix_ns": 3_000_000_000,
+            "elapsed_seconds": 2.0,
+            "peak_allocated_bytes": 123,
+            "peak_reserved_bytes": 456,
+        }
+        return [{"epoch": 16, "train": {"steps": 1, "mean_loss": 1.0}}]
+
+    monkeypatch.setattr(module, "run", fake_run)
+    monkeypatch.setattr(module, "_git_revision", lambda _path: "a" * 40)
+    reset_calls: list[None] = []
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "reset_peak_memory_stats",
+        lambda: reset_calls.append(None),
+    )
+    monkeypatch.setattr(module.torch.cuda, "synchronize", lambda: None)
+    monkeypatch.setattr(module.torch.cuda, "max_memory_allocated", lambda: 123)
+    monkeypatch.setattr(module.torch.cuda, "max_memory_reserved", lambda: 456)
+    monkeypatch.setattr(module.torch.version, "cuda", "13.0")
+
+    exit_code = module.main(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(output),
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+            "--seed",
+            "0",
+            "--epochs",
+            "16",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            str(config),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(receipt),
+        ]
+    )
+
+    assert exit_code == 0
+    assert reset_calls == [None]
+    persisted = module.strict_json_object(receipt.read_bytes())
+    module.validate_training_run_receipt(persisted)
+    assert persisted["source_commit"] == "a" * 40
+    assert persisted["config_path"] == str(config)
+    assert persisted["config_sha256"] == hashlib.sha256(config.read_bytes()).hexdigest()
+    assert persisted["seed"] == 0
+    assert persisted["arm"] == "sampled_512"
+    assert persisted["started_unix_ns"] == 1_000_000_000
+    assert persisted["finished_unix_ns"] == 3_000_000_000
+    assert persisted["elapsed_seconds"] == 2.0
+    assert persisted["exit_status"] == 0
+    assert persisted["peak_allocated_bytes"] == 123
+    assert persisted["peak_reserved_bytes"] == 456
+    assert persisted["history"]["sha256"] == hashlib.sha256(
+        (output / "history.json").read_bytes()
+    ).hexdigest()
+
+    before = receipt.read_bytes()
+    assert module.main(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(output),
+            "--epochs",
+            "16",
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            str(config),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(receipt),
+        ]
+    ) == 2
+    assert receipt.read_bytes() == before
+
+
+def test_main_failure_never_publishes_training_run_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    receipt = tmp_path / "receipt.json"
+    config = tmp_path / "config.json"
+    config.write_bytes(b"{}\n")
+    monkeypatch.setattr(module, "run", lambda _args: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr(module.torch.cuda, "reset_peak_memory_stats", lambda: None)
+    monkeypatch.setattr(module.torch.cuda, "synchronize", lambda: None)
+
+    assert module.main(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(tmp_path / "output"),
+            "--epochs",
+            "16",
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            str(config),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(receipt),
+        ]
+    ) == 2
+    assert not receipt.exists()
+
+
 def test_initialization_receipt_binds_exact_classifier_bytes_and_preserves_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
