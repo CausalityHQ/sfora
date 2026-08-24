@@ -1742,6 +1742,10 @@ def image_end_to_end(
     ] = None,
     num_workers: Annotated[int, typer.Option(help="PyTorch dataloader workers.")] = 4,
     seed: Annotated[int, typer.Option(help="Sampling and training seed.")] = 0,
+    deterministic: Annotated[
+        bool,
+        typer.Option(help="Enable deterministic CUDA/cuDNN execution where supported."),
+    ] = False,
 ) -> None:
     """Train Group SupCon + XBM + Radius end-to-end under a paper-style protocol."""
     if dataset_name not in _IMAGE_DATASET_NAMES:
@@ -1927,6 +1931,7 @@ def image_end_to_end(
                 **base_config.model_dump(),
                 "dataset_root": dataset_root,
                 "objectives": resolved_objectives,
+                "deterministic": deterministic,
                 "batch_size": resolved_batch_size,
                 "train_steps": resolved_train_steps,
                 "train_epochs": resolved_train_epochs,
