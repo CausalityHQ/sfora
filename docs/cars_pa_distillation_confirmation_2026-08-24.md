@@ -68,3 +68,14 @@ The report will include all paired final and best-over-training deltas, paired
 mean and sample standard deviation, paired t-test, exact sign test, registered
 bootstrap interval, elapsed training time, and exact artifact paths/digests.
 
+## Execution disclosure (2026-08-24T22:59+02:00)
+
+Before the first artifact completed, baseline seed 0 emitted PyTorch's warning
+that `adaptive_max_pool2d_backward_cuda` has no deterministic CUDA
+implementation. The runner uses `torch.use_deterministic_algorithms(True,
+warn_only=True)`, so `deterministic=true` fixes the supported algorithms and
+cuBLAS workspace but does not make this operation bitwise deterministic. The
+queue continues under the exact frozen configuration; all estimands, seeds, and
+decision gates above are unchanged. The result must be described as a paired
+multi-seed estimate with this residual GPU nondeterminism, never as a bitwise
+reproducible execution.
