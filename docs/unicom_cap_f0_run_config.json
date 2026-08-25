@@ -8,7 +8,8 @@
   "parent": {
     "path": "reports/generated/unicom-spherical-probe-ed2e789.json",
     "sha256": "d1a52703849acb96f359c2c7f209942fcbf6fa770eeaa0ed41d947780d714ddf",
-    "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0"
+    "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0",
+    "artifact_commit": "d07ff819eccafdfd048f19ff8b4d22c7ea1ed20f"
   },
   "environment": {
     "python": "3.13.9",
@@ -62,7 +63,7 @@
     "step_equivalence_minimum": 64
   },
   "source": {
-    "commit": "bfa5f1d090a0b25569976321333740b40dc58910",
+    "commit": "773fec6e020a2e55d50860f6431ec01425e1f8ef",
     "files": [
       {
         "path": "pyproject.toml",
@@ -70,7 +71,7 @@
       },
       {
         "path": "scripts/screen_unicom_cap_f0.py",
-        "sha256": "47ed9365774641338bf7f7fde83c31c705c438a6eed1e3730526570bbcd821ed"
+        "sha256": "e084f2f6a5cbc9841e6d47522a538c816873959884e206346326f792e3b4ae6f"
       },
       {
         "path": "src/sfora/unicom_cap.py",
@@ -90,7 +91,7 @@
       },
       {
         "path": "tests/test_screen_unicom_cap_f0.py",
-        "sha256": "3dff21a4bf1fc94cee10b71bb6baf9c40758d3ad3bbca3009d77a9f459fa632e"
+        "sha256": "e8faca2bded419b86b23d731abcf4cf83dcd593849ab90b3f2b0c6c5dec2e2af"
       },
       {
         "path": "tests/test_unicom_cap.py",
@@ -102,17 +103,17 @@
       },
       {
         "path": "tests/test_unicom_cap_f0_run_config.py",
-        "sha256": "22a3126ade8bed5ab124d8815cb974d12296aaaa133bd2997558dc35949bab66"
+        "sha256": "01ccb2e975b27e4ce695a7791f366986bae5d1073ec0b86f7e86454e4b8eee54"
       }
     ]
   },
   "handoff": {
-    "parent_commit": "bfa5f1d090a0b25569976321333740b40dc58910",
+    "parent_commit": "773fec6e020a2e55d50860f6431ec01425e1f8ef",
     "sole_path": "docs/unicom_cap_f0_run_config.json",
     "detached_clean": true
   },
   "result": {
-    "relative_path": "reports/generated/unicom-cap-f0-bfa5f1d.json",
+    "relative_path": "reports/generated/unicom-cap-f0-773fec6.json",
     "schema_version": "unicom-cap-f0-v1"
   }
 }
