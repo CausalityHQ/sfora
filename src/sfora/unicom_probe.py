@@ -242,6 +242,7 @@ def _validate_probe_tensors(
     initial: torch.Tensor,
     *,
     require_all_classes: bool = True,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> float:
     if (
         type(features) is not torch.Tensor
@@ -249,7 +250,10 @@ def _validate_probe_tensors(
         or features.ndim != 2
         or not features.is_contiguous()
         or features.shape[0] == 0
-        or features.shape[1] < PROBE_SELECTED_FEATURES
+        or type(selected_features) is not int
+        or selected_features <= 0
+        or selected_features % PROBE_SHARDS != 0
+        or features.shape[1] < selected_features
         or type(labels) is not torch.Tensor
         or labels.dtype != torch.int64
         or labels.ndim != 1
@@ -296,6 +300,7 @@ def _diagnostic_loss(
     batch_size: int,
     batch_seed: int,
     mask_seed: int,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> float:
     indices = padded_epoch_indices(
         size=features.shape[0],
@@ -308,7 +313,7 @@ def _diagnostic_loss(
     generator = torch.Generator(device=features.device).manual_seed(mask_seed)
     masks = sample_shard_masks(
         dimension=features.shape[1],
-        selected=PROBE_SELECTED_FEATURES,
+        selected=selected_features,
         shards=PROBE_SHARDS,
         generator=generator,
         device=features.device,
@@ -331,10 +336,13 @@ def diagnostic_panel_losses(
     fit_seed: int,
     batch_size: int = PROBE_BATCH_SIZE,
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> tuple[float, ...]:
     """Return the registered 4-batch by 4-mask diagnostic panel."""
 
-    _validate_probe_tensors(features, labels, head)
+    _validate_probe_tensors(
+        features, labels, head, selected_features=selected_features
+    )
     if (
         type(fit_seed) is not int
         or fit_seed < 0
@@ -367,7 +375,7 @@ def diagnostic_panel_losses(
     mask_sets = tuple(
         sample_shard_masks(
             dimension=features.shape[1],
-            selected=PROBE_SELECTED_FEATURES,
+            selected=selected_features,
             shards=PROBE_SHARDS,
             generator=generator,
             device=features.device,
@@ -408,8 +416,11 @@ def _fit_probe_trajectory_with_optimizer(
     mask_seed: int = PROBE_MASK_SEED,
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
     fit_seed: int = 0,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> tuple[ProbeFit, dict[int, torch.Tensor], dict[int, object | None]]:
-    target_norm = _validate_probe_tensors(features, labels, initial)
+    target_norm = _validate_probe_tensors(
+        features, labels, initial, selected_features=selected_features
+    )
     if (
         type(steps) is not int
         or steps <= 0
@@ -434,6 +445,7 @@ def _fit_probe_trajectory_with_optimizer(
         batch_size=batch_size,
         batch_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
+        selected_features=selected_features,
     )
     head = torch.nn.Parameter(initial.detach().clone())
     if (
@@ -471,7 +483,7 @@ def _fit_probe_trajectory_with_optimizer(
             )
             masks = sample_shard_masks(
                 dimension=features.shape[1],
-                selected=PROBE_SELECTED_FEATURES,
+                selected=selected_features,
                 shards=PROBE_SHARDS,
                 generator=mask_generator,
                 device=features.device,
@@ -519,6 +531,7 @@ def _fit_probe_trajectory_with_optimizer(
         batch_size=batch_size,
         batch_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
+        selected_features=selected_features,
     )
     cosine = F.cosine_similarity(result, initial, dim=1).clamp(-1.0, 1.0).double()
     fit = ProbeFit(
@@ -646,6 +659,7 @@ def fit_proxy_muon_trajectory(
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
     fit_seed: int = 0,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> tuple[ProbeFit, dict[int, torch.Tensor], dict[int, MuonTrace | None]]:
     """Fit one built-in ProxyMuon trajectory with producing-step traces."""
 
@@ -676,6 +690,7 @@ def fit_proxy_muon_trajectory(
         diagnostic_seed=diagnostic_seed,
         fit_seed=fit_seed,
         progress_callback=progress_callback,
+        selected_features=selected_features,
     )
     traces: dict[int, MuonTrace | None] = {}
     for step, trace in raw_traces.items():
@@ -702,11 +717,18 @@ def _evaluate_probe_head_mapping(
     validation_group_represented: tuple[bool, ...],
     mask_sets: int = 64,
     mask_seed: int = 23_003,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> dict[str, ProbeMetrics]:
     if type(heads) is not dict or not heads:
         raise ValueError("probe evaluation head order differs")
     for head in heads.values():
-        _validate_probe_tensors(features, labels, head, require_all_classes=False)
+        _validate_probe_tensors(
+            features,
+            labels,
+            head,
+            require_all_classes=False,
+            selected_features=selected_features,
+        )
     if (
         type(mask_sets) is not int
         or mask_sets <= 0
@@ -737,7 +759,7 @@ def _evaluate_probe_head_mapping(
     for _index in range(mask_sets):
         masks = sample_shard_masks(
             dimension=features.shape[1],
-            selected=PROBE_SELECTED_FEATURES,
+            selected=selected_features,
             shards=PROBE_SHARDS,
             generator=generator,
             device=features.device,
@@ -816,6 +838,7 @@ def evaluate_probe_head(
     validation_group_represented: tuple[bool, ...],
     mask_sets: int = 64,
     mask_seed: int = 23_003,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> ProbeMetrics:
     """Evaluate one candidate head without replaying a stored baseline."""
 
@@ -826,6 +849,7 @@ def evaluate_probe_head(
         validation_group_represented=validation_group_represented,
         mask_sets=mask_sets,
         mask_seed=mask_seed,
+        selected_features=selected_features,
     )["candidate"]
 
 

@@ -518,7 +518,7 @@ def accuracy_noninferior(candidate_accuracy: float, reference_accuracy: float) -
         or not 0.0 <= reference_accuracy <= 1.0
     ):
         raise ValueError("ProxyMuon accuracy evidence differs")
-    return candidate_accuracy >= reference_accuracy - 0.002
+    return candidate_accuracy - reference_accuracy >= -0.002
 
 
 def _validated_reaches(value: object) -> dict[int, int | str]:

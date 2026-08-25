@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import copy
+import gc
 import importlib.util
 import json
 import math
 import subprocess
 import sys
+import weakref
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -31,6 +34,7 @@ def test_proxy_muon_scientific_orchestration_api_exists() -> None:
     """Catch a screen that validates receipts but cannot produce one."""
 
     assert callable(module.run_proxy_muon_f0)
+    assert not hasattr(module, "_run_authenticated_proxy_muon")
     assert callable(module.assemble_scientific_result)
     assert callable(module.assemble_failure_receipt)
     assert callable(module.main)
@@ -95,6 +99,34 @@ def test_phase1_runner_is_fail_fast_and_retains_exact_completed_prefix() -> None
     assert completed == [
         __import__("hashlib").sha256(module.canonical_json_bytes(row)).hexdigest()
         for row in golden[:7]
+    ]
+
+
+def test_phase1_runner_checks_budget_after_each_completed_cell() -> None:
+    golden = _phase1_rows()
+    completed: list[str] = []
+    observed_cells = 0
+
+    def boundary(_step: int) -> None:
+        nonlocal observed_cells
+        observed_cells += 1
+        raise RuntimeError("registered execution budget exceeded")
+
+    with pytest.raises(RuntimeError, match="registered execution budget exceeded"):
+        module.run_phase1_cells(
+            object(),
+            object(),
+            object(),
+            completed,
+            cell_runner=lambda *_args, **_kwargs: golden[0],
+            progress_callback=boundary,
+        )
+
+    assert observed_cells == 1
+    assert completed == [
+        __import__("hashlib").sha256(
+            module.canonical_json_bytes(golden[0])
+        ).hexdigest()
     ]
 
 
@@ -244,6 +276,54 @@ def test_phase2_cell_reduces_registered_snapshots_traces_and_validation_only(
     assert row["retained"][1]["update_dtype"] == expected_dtype
 
 
+def test_cell_reducers_move_retained_cpu_heads_to_live_feature_device() -> None:
+    initial = torch.arange(16, dtype=torch.float32).reshape(4, 4).contiguous()
+    features = torch.empty(1, 1, device="meta")
+    observed_devices: list[torch.device] = []
+
+    def panel(_features, _labels, head, *, fit_seed: int):
+        del fit_seed
+        observed_devices.append(head.device)
+        return tuple(float(index) for index in range(16))
+
+    module._run_phase1_cell(
+        features,
+        object(),
+        initial,
+        optimizer="adamw",
+        learning_rate=0.0001,
+        fit_seed=0,
+        fit_trajectory=lambda *_args, **_kwargs: {0: initial, 64: initial},
+        panel_runner=panel,
+    )
+
+    snapshots = {step: initial for step in module.RETAINED_STEPS}
+    traces = {step: None for step in module.RETAINED_STEPS}
+
+    def accuracy(_features, _labels, head, *, represented):
+        del represented
+        observed_devices.append(head.device)
+        return 0.5
+
+    module._run_phase2_cell(
+        features,
+        object(),
+        features,
+        object(),
+        object(),
+        initial,
+        fit_seed=3,
+        variant="adamw_selected",
+        learning_rate=0.0001,
+        fit_trajectory=lambda *_args, **_kwargs: (snapshots, traces),
+        panel_runner=panel,
+        accuracy_runner=accuracy,
+    )
+
+    assert observed_devices
+    assert all(device.type == "meta" for device in observed_devices)
+
+
 def test_reconstructed_parent_hash_gate_binds_features_labels_and_all_four_heads() -> None:
     """Catch a screen that authenticates metadata but not reconstructed tensors."""
 
@@ -314,11 +394,10 @@ def _authority() -> dict[str, object]:
             "cap_closure_receipt": _digest(22),
             "checkpoint": _digest(23),
             "partition": _digest(24),
-            "fitting_features": _digest(40),
-            "fitting_labels": _digest(41),
-            "validation_features": _digest(43),
-            "validation_labels": _digest(44),
-            "imprinted_head": _digest(42),
+            "imprinted_head": _digest(40),
+            "adamw_fitted_head_seed_0": _digest(41),
+            "adamw_fitted_head_seed_1": _digest(42),
+            "adamw_fitted_head_seed_2": _digest(43),
         },
     }
 
@@ -366,7 +445,7 @@ def _phase1_rows(
                         "learning_rate": float(learning_rate),
                         "fit_seed": seed,
                         "steps": 64,
-                        "initial_head_sha256": _digest(42),
+                        "initial_head_sha256": _digest(40),
                         "final_head_sha256": _digest(200 + len(rows)),
                         "diagnostic_step0": _panel(1.5 + seed * 0.01),
                         "diagnostic_step64": _panel(final_loss),
@@ -416,7 +495,7 @@ def _retained(variant: str, seed: int, *, reference_loss: float = 0.55) -> list[
             {
                 "step": step,
                 "head_sha256": (
-                    _digest(42) if step == 0 else _digest(500 + seed * 100 + index)
+                    _digest(40) if step == 0 else _digest(500 + seed * 100 + index)
                 ),
                 "diagnostic": _panel(loss),
                 "validation_accuracy": accuracy,
@@ -503,10 +582,10 @@ def _scientific_fixture(
         "protocol": _protocol(),
         "initializer": {
             "kind": "imprinted",
-            "feature_sha256": _digest(40),
-            "label_sha256": _digest(41),
-            "initial_head_sha256": _digest(42),
-            "validation_feature_sha256": _digest(43),
+            "feature_sha256": _digest(50),
+            "label_sha256": _digest(51),
+            "initial_head_sha256": _digest(40),
+            "validation_feature_sha256": _digest(52),
         },
         "phase1": phase1,
         "selected_learning_rates": selections,
@@ -572,6 +651,23 @@ def test_assemblers_recompute_scientific_route_and_failure_prefix() -> None:
 
 def test_authenticated_orchestrator_runs_both_phases_and_assembles_exact_result() -> None:
     expected = _scientific_fixture()
+    features = torch.arange(8, dtype=torch.float32).reshape(2, 4).contiguous()
+    labels = torch.tensor([0, 1], dtype=torch.int64)
+    validation_features = (features + 1.0).contiguous()
+    initial = torch.eye(4, dtype=torch.float32).contiguous()
+    initial_sha256 = module.tensor_sha256(initial)
+    expected["authority"]["inputs"]["imprinted_head"] = initial_sha256
+    expected["initializer"] = {
+        "kind": "imprinted",
+        "feature_sha256": module.tensor_sha256(features),
+        "label_sha256": module.tensor_sha256(labels),
+        "initial_head_sha256": initial_sha256,
+        "validation_feature_sha256": module.tensor_sha256(validation_features),
+    }
+    for row in expected["phase1"]:
+        row["initial_head_sha256"] = initial_sha256
+    for row in expected["phase2"]:
+        row["retained"][0]["head_sha256"] = initial_sha256
     completed: list[str] = []
     callbacks: list[object] = []
 
@@ -615,14 +711,14 @@ def test_authenticated_orchestrator_runs_both_phases_and_assembles_exact_result(
         return rows
 
     evidence = {
-        "fitting_features": object(),
-        "fitting_labels": object(),
-        "validation_features": object(),
-        "validation_labels": object(),
+        "fitting_features": features,
+        "fitting_labels": labels,
+        "validation_features": validation_features,
+        "validation_labels": labels,
         "validation_group_represented": object(),
-        "imprinted_head": object(),
+        "imprinted_head": initial,
     }
-    actual = module._run_authenticated_proxy_muon(
+    actual = module.run_proxy_muon_f0(
         protocol=expected["protocol"],
         authority=expected["authority"],
         runtime=expected["runtime"],
@@ -782,6 +878,13 @@ def test_scientific_fixture_validates_both_phase2_cardinalities(
     assert module.validate_scientific_result(payload) is payload
 
 
+def test_scientific_validator_records_reserved_memory_without_capping_it() -> None:
+    payload = _scientific_fixture()
+    payload["process"]["peak_reserved_bytes"] = 8 * 1024**3 + 1
+
+    assert module.validate_scientific_result(payload) is payload
+
+
 @pytest.mark.parametrize(
     "scenario,status",
     (
@@ -880,7 +983,7 @@ def test_scientific_result_rejects_independent_or_dependent_drift(mutation: str)
     elif mutation == "bad_hash":
         payload["phase1"][0]["final_head_sha256"] = "z" * 64
     elif mutation == "initializer_authority":
-        payload["initializer"]["feature_sha256"] = _digest(99)
+        payload["initializer"]["initial_head_sha256"] = _digest(99)
     elif mutation == "phase1_initial_head":
         payload["phase1"][0]["initial_head_sha256"] = _digest(99)
     elif mutation == "phase1_initial_diagnostic":
@@ -912,7 +1015,7 @@ def test_scientific_result_rejects_independent_or_dependent_drift(mutation: str)
     elif mutation == "elapsed":
         payload["process"]["elapsed_seconds"] = 2700.1
     elif mutation == "peak":
-        payload["process"]["peak_reserved_bytes"] = 8 * 1024**3 + 1
+        payload["process"]["peak_allocated_bytes"] = 8 * 1024**3 + 1
     elif mutation == "completed":
         payload["process"]["completed_cells"] -= 1
     elif mutation == "integer_float":
@@ -1105,6 +1208,7 @@ def test_main_publishes_only_reduced_receipt_after_authenticated_failure(
         module, "authenticate_source_and_inputs", lambda *_args: _authority()
     )
     monkeypatch.setattr(module, "observe_runtime", _runtime)
+    monkeypatch.setattr(module, "preserve_process_state", nullcontext)
 
     def fail_reconstruction(*_args):
         raise RuntimeError("injected reconstruction failure")
@@ -1123,6 +1227,159 @@ def test_main_publishes_only_reduced_receipt_after_authenticated_failure(
         "class": "RuntimeError",
         "message": "injected reconstruction failure",
     }
+
+
+def test_main_does_not_publish_failure_receipt_after_success_publication_io_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "reports").mkdir()
+    config = {
+        "environment": _runtime(),
+        "protocol": _protocol(),
+        "handoff": {"sole_path": "docs/unicom_proxy_muon_f0_run_config.json"},
+        "result": {
+            "relative_path": "reports/result.json",
+            "failure_relative_path": "reports/failure.json",
+        },
+    }
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        module.sys, "flags", SimpleNamespace(isolated=1, dont_write_bytecode=1)
+    )
+    monkeypatch.setattr(module, "load_run_config", lambda _path: config)
+    monkeypatch.setattr(
+        module, "authenticate_source_and_inputs", lambda *_args: _authority()
+    )
+    monkeypatch.setattr(module, "observe_runtime", _runtime)
+    monkeypatch.setattr(module, "preserve_process_state", nullcontext)
+    monkeypatch.setattr(
+        module,
+        "reconstruct_parent_evidence",
+        lambda *_args: {
+            "fitting_features": object(),
+            "fitting_labels": object(),
+            "validation_features": object(),
+            "validation_labels": object(),
+            "validation_group_represented": object(),
+            "imprinted_head": object(),
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "run_proxy_muon_f0",
+        lambda **_kwargs: _scientific_fixture(),
+    )
+    attempted: list[Path] = []
+
+    def fail_publication(path: Path, *_args) -> None:
+        attempted.append(path)
+        raise OSError("injected publication failure")
+
+    monkeypatch.setattr(module, "publish_result_exclusive", fail_publication)
+
+    assert module.main(["--config", "ignored.json"]) == 2
+    assert attempted == [tmp_path / "reports" / "result.json"]
+    assert not (tmp_path / "reports" / "failure.json").exists()
+
+
+def test_main_starts_registered_budget_after_parent_reconstruction_and_cache_clear(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    events: list[str] = []
+    config = {
+        "environment": _runtime(),
+        "protocol": _protocol(),
+        "handoff": {"sole_path": "docs/unicom_proxy_muon_f0_run_config.json"},
+        "result": {
+            "relative_path": "reports/result.json",
+            "failure_relative_path": "reports/failure.json",
+        },
+    }
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        module.sys, "flags", SimpleNamespace(isolated=1, dont_write_bytecode=1)
+    )
+    monkeypatch.setattr(module, "load_run_config", lambda _path: config)
+    monkeypatch.setattr(
+        module, "authenticate_source_and_inputs", lambda *_args: _authority()
+    )
+    monkeypatch.setattr(module, "observe_runtime", _runtime)
+    monkeypatch.setattr(module, "preserve_process_state", nullcontext)
+    monkeypatch.setattr(
+        module,
+        "reconstruct_parent_evidence",
+        lambda *_args: (events.append("reconstruct"), {})[1],
+    )
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(
+        module.torch.cuda, "empty_cache", lambda: events.append("empty_cache")
+    )
+    monkeypatch.setattr(
+        module.torch.cuda,
+        "reset_peak_memory_stats",
+        lambda _device: events.append("reset_peak"),
+    )
+
+    class Budget:
+        def __init__(self, **_kwargs):
+            events.append("budget")
+
+        def snapshot(self):
+            return {
+                "elapsed_seconds": 0.0,
+                "peak_allocated_bytes": 0,
+                "peak_reserved_bytes": 0,
+            }
+
+    monkeypatch.setattr(module, "ExecutionBudget", Budget)
+    monkeypatch.setattr(
+        module,
+        "run_proxy_muon_f0",
+        lambda **_kwargs: (events.append("run"), _scientific_fixture())[1],
+    )
+    monkeypatch.setattr(module, "publish_result_exclusive", lambda *_args: None)
+
+    assert module.main(["--config", "ignored.json"]) == 0
+    assert events[:5] == [
+        "reconstruct",
+        "empty_cache",
+        "reset_peak",
+        "budget",
+        "run",
+    ]
+
+
+def test_process_state_guard_restores_rng_determinism_and_backend_flags() -> None:
+    import random
+
+    import numpy as np
+
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    torch_state = torch.random.get_rng_state().clone()
+    deterministic = torch.are_deterministic_algorithms_enabled()
+    warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    cudnn_benchmark = torch.backends.cudnn.benchmark
+    cudnn_deterministic = torch.backends.cudnn.deterministic
+
+    with module.preserve_process_state():
+        random.seed(91)
+        np.random.seed(92)
+        torch.manual_seed(93)
+        torch.use_deterministic_algorithms(not deterministic)
+        torch.backends.cudnn.benchmark = not cudnn_benchmark
+        torch.backends.cudnn.deterministic = not cudnn_deterministic
+
+    assert random.getstate() == python_state
+    restored_numpy = np.random.get_state()
+    assert restored_numpy[0] == numpy_state[0]
+    assert np.array_equal(restored_numpy[1], numpy_state[1])
+    assert restored_numpy[2:] == numpy_state[2:]
+    assert torch.equal(torch.random.get_rng_state(), torch_state)
+    assert torch.are_deterministic_algorithms_enabled() is deterministic
+    assert torch.is_deterministic_algorithms_warn_only_enabled() is warn_only
+    assert torch.backends.cudnn.benchmark is cudnn_benchmark
+    assert torch.backends.cudnn.deterministic is cudnn_deterministic
 
 
 def test_authenticated_parent_feature_module_loads_by_exact_git_bytes() -> None:
@@ -1260,11 +1517,26 @@ def test_execution_budget_observer_checks_every_step_and_tracks_exact_peaks() ->
         budget.observe(3)
 
 
-def test_real_cpu_optimizer_to_validated_receipt_integration() -> None:
+def test_execution_budget_caps_allocated_memory_and_records_reserved_only() -> None:
+    limit = 8 * 1024**3
+    budget = module.ExecutionBudget(
+        elapsed_limit_seconds=2700.0,
+        peak_limit_bytes=limit,
+        clock=iter((0.0, 1.0)).__next__,
+        allocated=lambda: limit,
+        reserved=lambda: limit + 1,
+    )
+
+    budget.observe(1)
+
+    assert budget.snapshot()["peak_reserved_bytes"] == limit + 1
+
+
+def test_real_cpu_optimizer_to_validated_receipt_integration(tmp_path: Path) -> None:
     generator = torch.Generator().manual_seed(205)
-    class_count = 8
-    dimension = 512
-    labels = torch.arange(class_count, dtype=torch.int64).repeat_interleave(64)
+    class_count = 32
+    dimension = 16
+    labels = torch.arange(class_count, dtype=torch.int64).repeat_interleave(16)
     centers = torch.randn(class_count, dimension, generator=generator)
     centers = torch.nn.functional.normalize(centers, dim=1)
     features = centers.index_select(0, labels) + 0.01 * torch.randn(
@@ -1276,83 +1548,74 @@ def test_real_cpu_optimizer_to_validated_receipt_integration() -> None:
     ).contiguous()
     represented = tuple(index % 2 == 0 for index in range(labels.numel()))
 
-    phase1_templates = {
-        optimizer: module._run_phase1_cell(
-            features,
-            labels,
-            initial,
-            optimizer=optimizer,
-            learning_rate=0.0001,
-            fit_seed=0,
-        )
-        for optimizer in ("adamw", "proxy_muon")
-    }
-    phase1 = []
-    for optimizer, learning_rate, fit_seed in module.phase1_cell_schedule():
-        row = copy.deepcopy(phase1_templates[optimizer])
-        row["learning_rate"] = learning_rate
-        row["fit_seed"] = fit_seed
-        phase1.append(row)
-
-    selected = {
-        optimizer: module._selection_payload(phase1, optimizer)
-        for optimizer in ("adamw", "proxy_muon")
-    }
-    selected_adamw = selected["adamw"]["learning_rate"]
-    selected_proxy = selected["proxy_muon"]["learning_rate"]
-    templates = {}
-    for variant, learning_rate in (
-        ("adamw_selected", selected_adamw),
-        ("adamw_anchor", 0.0001),
-        ("proxy_muon", selected_proxy),
-        ("proxy_muon_fp32", selected_proxy),
-    ):
-        templates[variant] = module._run_phase2_cell(
-            features,
-            labels,
-            features,
-            labels,
-            represented,
-            initial,
-            fit_seed=3,
-            variant=variant,
-            learning_rate=learning_rate,
-        )
-    phase2 = []
-    for fit_seed, variant, learning_rate in module.phase2_cell_schedule(
-        selected_adamw, selected_proxy
-    ):
-        row = copy.deepcopy(templates[variant])
-        row["fit_seed"] = fit_seed
-        row["learning_rate"] = learning_rate
-        phase2.append(row)
-
     authority = copy.deepcopy(_authority())
-    authority["inputs"]["fitting_features"] = module.tensor_sha256(features)
-    authority["inputs"]["fitting_labels"] = module.tensor_sha256(labels)
-    authority["inputs"]["validation_features"] = module.tensor_sha256(features)
-    authority["inputs"]["validation_labels"] = module.tensor_sha256(labels)
     authority["inputs"]["imprinted_head"] = module.tensor_sha256(initial)
-    result = module.assemble_scientific_result(
+    completed: list[str] = []
+
+    class Budget:
+        def __init__(self) -> None:
+            self.observations = 0
+
+        def observe(self, _step: int) -> None:
+            self.observations += 1
+
+        def snapshot(self) -> dict[str, object]:
+            return {
+                "elapsed_seconds": 1.0,
+                "peak_allocated_bytes": 0,
+                "peak_reserved_bytes": 0,
+            }
+
+    budget = Budget()
+    feature_ref = weakref.ref(features)
+    initial_ref = weakref.ref(initial)
+    result = module.run_proxy_muon_f0(
+        protocol=_protocol(),
         authority=authority,
         runtime=_runtime(),
-        protocol=_protocol(),
-        initializer={
-            "kind": "imprinted",
-            "feature_sha256": module.tensor_sha256(features),
-            "label_sha256": module.tensor_sha256(labels),
-            "initial_head_sha256": module.tensor_sha256(initial),
-            "validation_feature_sha256": module.tensor_sha256(features),
+        evidence={
+            "fitting_features": features,
+            "fitting_labels": labels,
+            "validation_features": features,
+            "validation_labels": labels,
+            "validation_group_represented": represented,
+            "imprinted_head": initial,
         },
-        phase1=phase1,
-        phase2=phase2,
-        process={
-            "command": ["python", "-I", "-B", "screen.py", "--config", "run.json"],
-            "elapsed_seconds": 1.0,
-            "peak_allocated_bytes": 0,
-            "peak_reserved_bytes": 0,
-            "completed_cells": len(phase1) + len(phase2),
-        },
+        budget=budget,
+        completed_cell_sha256s=completed,
+        command=["python", "-I", "-B", "screen.py", "--config", "run.json"],
+        selected_features=16,
     )
-    module.validate_scientific_result(result)
-    assert result["status"] == "UNRESOLVED_LR_BOUNDARY"
+    assert module.validate_scientific_result(result) is result
+    assert [
+        (row["optimizer"], row["learning_rate"], row["fit_seed"])
+        for row in result["phase1"]
+    ] == list(module.phase1_cell_schedule())
+    assert [
+        (row["fit_seed"], row["variant"], row["learning_rate"])
+        for row in result["phase2"]
+    ] == list(
+        module.phase2_cell_schedule(
+            result["selected_learning_rates"]["adamw"]["learning_rate"],
+            result["selected_learning_rates"]["proxy_muon"]["learning_rate"],
+        )
+    )
+    assert len(completed) == 30 + len(result["phase2"])
+    assert budget.observations == 1_920 + 30 + 512 * len(result["phase2"]) + len(
+        result["phase2"]
+    )
+
+    output = tmp_path / "result.json"
+    persisted = module.publish_result_exclusive(
+        output, result, module.validate_scientific_result
+    )
+    assert module.strict_json_object(persisted) == result
+    with pytest.raises(FileExistsError):
+        module.publish_result_exclusive(
+            output, result, module.validate_scientific_result
+        )
+
+    del features, initial
+    gc.collect()
+    assert feature_ref() is None
+    assert initial_ref() is None

@@ -357,6 +357,31 @@ def test_injected_trajectory_reports_each_completed_step_and_stops_on_callback()
     assert completed_steps == [1, 2, 3]
 
 
+def test_real_trajectory_supports_explicit_reduced_feature_width_for_cpu_e2e() -> None:
+    generator = torch.Generator().manual_seed(205)
+    labels = torch.arange(8, dtype=torch.int64)
+    features = torch.nn.functional.normalize(
+        torch.randn(8, 16, generator=generator), dim=1
+    ).float().contiguous()
+    initial = probe_module.class_mean_head(features, labels, class_count=8)
+
+    fit, snapshots, traces = probe_module._fit_probe_trajectory_with_optimizer(
+        features,
+        labels,
+        initial,
+        snapshot_steps=(0, 2),
+        optimizer_factory=lambda head: torch.optim.AdamW([head], lr=0.0001),
+        trace_factory=None,
+        steps=2,
+        batch_size=8,
+        selected_features=16,
+    )
+
+    assert fit.steps == 2
+    assert tuple(snapshots) == (0, 2)
+    assert traces == {0: None, 2: None}
+
+
 def test_proxy_muon_trajectory_forwards_completed_step_callback() -> None:
     features, labels, initial = _separable_probe_fixture()
     completed_steps: list[int] = []

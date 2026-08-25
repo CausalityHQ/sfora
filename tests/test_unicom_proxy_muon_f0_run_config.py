@@ -121,11 +121,6 @@ def _authenticated_fixture(
         "final_report": tmp_path / "final.md",
         "spherical_parent_result": tmp_path / "spherical.json",
         "cap_closure_receipt": tmp_path / "cap.json",
-        "fitting_features": tmp_path / "fitting-features.bin",
-        "fitting_labels": tmp_path / "fitting-labels.bin",
-        "validation_features": tmp_path / "validation-features.bin",
-        "validation_labels": tmp_path / "validation-labels.bin",
-        "imprinted_head": tmp_path / "imprinted-head.bin",
     }
     digests = {
         name: _write(path, f"{name}\n".encode()) for name, path in external.items()
@@ -157,7 +152,8 @@ def _authenticated_fixture(
             "spherical_parent_result": reference("spherical_parent_result"),
             "cap_closure_receipt": reference("cap_closure_receipt"),
             "parent_tensors": {
-                name: reference(name) for name in module.CONFIG_PARENT_TENSOR_KEYS
+                name: f"{index + 40:064x}"
+                for index, name in enumerate(module.CONFIG_PARENT_TENSOR_KEYS)
             },
         },
         "protocol": _protocol(),
@@ -186,6 +182,8 @@ def test_source_and_input_authentication_uses_two_commit_detached_handoff(
     assert authority["handoff_commit"] == _git(repo, "rev-parse", "HEAD")
     assert tuple(authority["sources"]) == module.SOURCE_HASH_KEYS
     assert tuple(authority["inputs"]) == module.INPUT_HASH_KEYS
+    assert authority["inputs"]["imprinted_head"] == f"{40:064x}"
+    assert "fitting_features" not in authority["inputs"]
 
 
 def test_authentication_rejects_dirty_source_and_preexisting_output(

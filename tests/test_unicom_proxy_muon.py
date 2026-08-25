@@ -128,7 +128,7 @@ def test_adamw_reference_uses_loss_and_smaller_lr_tie_not_accuracy() -> None:
 @pytest.mark.parametrize(
     ("candidate", "reference", "expected"),
     (
-        (0.898, 0.9, True),
+        (0.898, 0.9, False),
         (0.8979999999999999, 0.9, False),
     ),
 )

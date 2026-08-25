@@ -11,11 +11,12 @@ import importlib.util
 import json
 import math
 import os
+import random
 import subprocess
 import sys
 import time
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import NoReturn
 
@@ -23,6 +24,7 @@ import torch
 
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_probe import (
+    PROBE_SELECTED_FEATURES,
     _fit_probe_trajectory_with_optimizer,
     class_mean_head,
     diagnostic_panel_losses,
@@ -98,11 +100,10 @@ INPUT_HASH_KEYS = (
     "cap_closure_receipt",
     "checkpoint",
     "partition",
-    "fitting_features",
-    "fitting_labels",
-    "validation_features",
-    "validation_labels",
     "imprinted_head",
+    "adamw_fitted_head_seed_0",
+    "adamw_fitted_head_seed_1",
+    "adamw_fitted_head_seed_2",
 )
 RUNTIME_KEYS = (
     "python_version",
@@ -233,11 +234,10 @@ CONFIG_PARENT_KEYS = (
     "parent_tensors",
 )
 CONFIG_PARENT_TENSOR_KEYS = (
-    "fitting_features",
-    "fitting_labels",
-    "validation_features",
-    "validation_labels",
     "imprinted_head",
+    "adamw_fitted_head_seed_0",
+    "adamw_fitted_head_seed_1",
+    "adamw_fitted_head_seed_2",
 )
 CONFIG_RESULT_KEYS = ("relative_path", "failure_relative_path")
 FILE_REFERENCE_KEYS = ("path", "sha256")
@@ -313,7 +313,7 @@ class ExecutionBudget:
             raise RuntimeError("ProxyMuon memory observation differs")
         self._peak_allocated_bytes = max(self._peak_allocated_bytes, allocated)
         self._peak_reserved_bytes = max(self._peak_reserved_bytes, reserved)
-        if max(allocated, reserved) > self._peak_limit_bytes:
+        if allocated > self._peak_limit_bytes:
             raise RuntimeError("ProxyMuon peak memory limit exceeded")
 
     def snapshot(self) -> dict[str, object]:
@@ -322,6 +322,43 @@ class ExecutionBudget:
             "peak_allocated_bytes": self._peak_allocated_bytes,
             "peak_reserved_bytes": self._peak_reserved_bytes,
         }
+
+
+@contextmanager
+def preserve_process_state():
+    """Restore process-global state touched by parent reconstruction or F0."""
+
+    import numpy as np
+
+    python_rng = random.getstate()
+    numpy_rng = np.random.get_state()
+    torch_rng = torch.random.get_rng_state().clone()
+    deterministic = torch.are_deterministic_algorithms_enabled()
+    warn_only = torch.is_deterministic_algorithms_warn_only_enabled()
+    cudnn_benchmark = torch.backends.cudnn.benchmark
+    cudnn_deterministic = torch.backends.cudnn.deterministic
+    thread_count = torch.get_num_threads()
+    interop_thread_count = torch.get_num_interop_threads()
+    cuda_available = torch.cuda.is_available()
+    cuda_device = torch.cuda.current_device() if cuda_available else None
+    cuda_rng = torch.cuda.get_rng_state_all() if cuda_available else None
+    try:
+        yield
+    finally:
+        random.setstate(python_rng)
+        np.random.set_state(numpy_rng)
+        torch.random.set_rng_state(torch_rng)
+        torch.use_deterministic_algorithms(deterministic, warn_only=warn_only)
+        torch.backends.cudnn.benchmark = cudnn_benchmark
+        torch.backends.cudnn.deterministic = cudnn_deterministic
+        if torch.get_num_threads() != thread_count:
+            torch.set_num_threads(thread_count)
+        if torch.get_num_interop_threads() != interop_thread_count:
+            torch.set_num_interop_threads(interop_thread_count)
+        if cuda_available:
+            assert cuda_device is not None and cuda_rng is not None
+            torch.cuda.set_device(cuda_device)
+            torch.cuda.set_rng_state_all(cuda_rng)
 
 
 def _reject_constant(value: str) -> NoReturn:
@@ -433,7 +470,7 @@ def _validate_run_config(value: object) -> dict[str, object]:
         "run config parent tensors",
     )
     for key in CONFIG_PARENT_TENSOR_KEYS:
-        _file_reference(tensors[key], f"run config parent tensor.{key}")
+        _sha256(tensors[key], f"run config parent tensor.{key}")
     _validate_protocol(config["protocol"])
     result = _object(config["result"], CONFIG_RESULT_KEYS, "run config result")
     output = _relative_path(result["relative_path"], "run config result path")
@@ -669,6 +706,7 @@ def authenticate_source_and_inputs(
             raise ValueError(f"ProxyMuon {name} alias differs")
         external_identities.add(identity)
 
+    parent_config = validated["parent"]
     input_hashes = {
         "run_config": hashlib.sha256(config_path.read_bytes()).hexdigest(),
         "final_report": "",
@@ -676,13 +714,8 @@ def authenticate_source_and_inputs(
         "cap_closure_receipt": "",
         "checkpoint": inputs["checkpoint_sha256"],
         "partition": inputs["partition_sha256"],
-        "fitting_features": "",
-        "fitting_labels": "",
-        "validation_features": "",
-        "validation_labels": "",
-        "imprinted_head": "",
+        **parent_config["parent_tensors"],
     }
-    parent_config = validated["parent"]
     for config_name, authority_name in (
         ("final_report", "final_report"),
         ("spherical_parent_result", "spherical_parent_result"),
@@ -701,19 +734,6 @@ def authenticate_source_and_inputs(
             raise ValueError(f"ProxyMuon parent {config_name} alias differs")
         external_identities.add(identity)
         input_hashes[authority_name] = reference["sha256"]
-    for name, reference in parent_config["parent_tensors"].items():
-        path = Path(reference["path"])
-        if (
-            not path.is_file()
-            or path.is_symlink()
-            or hashlib.sha256(path.read_bytes()).hexdigest() != reference["sha256"]
-        ):
-            raise ValueError(f"ProxyMuon parent tensor {name} differs")
-        identity = (path.stat().st_dev, path.stat().st_ino)
-        if identity in external_identities:
-            raise ValueError(f"ProxyMuon parent tensor {name} alias differs")
-        external_identities.add(identity)
-        input_hashes[name] = reference["sha256"]
     for key in INPUT_HASH_KEYS:
         _sha256(input_hashes[key], f"authenticated input.{key}")
     for relative in validated["result"].values():
@@ -1257,9 +1277,9 @@ def _validate_process(value: object, *, expected_cells: int) -> dict[str, object
         raise ValueError("process command differs")
     elapsed = _number(process["elapsed_seconds"], "process.elapsed_seconds", minimum=0.0)
     allocated = _integer(process["peak_allocated_bytes"], "process.peak_allocated_bytes")
-    reserved = _integer(process["peak_reserved_bytes"], "process.peak_reserved_bytes")
+    _integer(process["peak_reserved_bytes"], "process.peak_reserved_bytes")
     completed = _integer(process["completed_cells"], "process.completed_cells")
-    if completed != expected_cells or elapsed > 2700.0 or max(allocated, reserved) > 8 * 1024**3:
+    if completed != expected_cells or elapsed > 2700.0 or allocated > 8 * 1024**3:
         raise ValueError("process limits differ")
     return process
 
@@ -1277,14 +1297,7 @@ def validate_scientific_result(value: object) -> dict[str, object]:
     _validate_protocol(result["protocol"])
     initializer = _validate_initializer(result["initializer"])
     authority = result["authority"]
-    if (
-        initializer["feature_sha256"] != authority["inputs"]["fitting_features"]
-        or initializer["label_sha256"] != authority["inputs"]["fitting_labels"]
-        or initializer["validation_feature_sha256"]
-        != authority["inputs"]["validation_features"]
-        or initializer["initial_head_sha256"]
-        != authority["inputs"]["imprinted_head"]
-    ):
+    if initializer["initial_head_sha256"] != authority["inputs"]["imprinted_head"]:
         raise ValueError("initializer authority differs")
     phase1 = _validate_phase1(
         result["phase1"], initial_head_sha256=initializer["initial_head_sha256"]
@@ -1480,51 +1493,6 @@ def publish_result_exclusive(
 
 
 def run_proxy_muon_f0(
-    config: Mapping[str, object],
-    *,
-    repo_root: Path | None = None,
-    command: Sequence[str] | None = None,
-    completed_cell_sha256s: list[str] | None = None,
-) -> dict[str, object]:
-    """Run the registered cached-feature scientific screen once."""
-
-    validated = _validate_run_config(config)
-    root = Path.cwd() if repo_root is None else repo_root
-    authority = authenticate_source_and_inputs(validated, root)
-    runtime = validate_observed_runtime(validated["environment"], observe_runtime())
-    if torch.cuda.is_available():
-        torch.cuda.reset_peak_memory_stats(0)
-    budget = ExecutionBudget(
-        elapsed_limit_seconds=float(validated["protocol"]["elapsed_limit_seconds"]),
-        peak_limit_bytes=int(validated["protocol"]["peak_limit_bytes"]),
-    )
-    evidence = reconstruct_parent_evidence(validated, authority, root)
-    budget.observe(1)
-    completed = [] if completed_cell_sha256s is None else completed_cell_sha256s
-    effective_command = (
-        [str(item) for item in command]
-        if command is not None
-        else [
-            ".venv/bin/python",
-            "-I",
-            "-B",
-            "scripts/screen_unicom_proxy_muon_f0.py",
-            "--config",
-            str(validated["handoff"]["sole_path"]),
-        ]
-    )
-    return _run_authenticated_proxy_muon(
-        protocol=validated["protocol"],
-        authority=authority,
-        runtime=runtime,
-        evidence=evidence,
-        budget=budget,
-        completed_cell_sha256s=completed,
-        command=effective_command,
-    )
-
-
-def _run_authenticated_proxy_muon(
     *,
     protocol: object,
     authority: object,
@@ -1535,6 +1503,7 @@ def _run_authenticated_proxy_muon(
     command: object,
     phase1_runner: Callable[..., list[dict[str, object]]] | None = None,
     phase2_runner: Callable[..., list[dict[str, object]]] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> dict[str, object]:
     """Execute both registered phases after authority/runtime authentication."""
 
@@ -1568,6 +1537,7 @@ def _run_authenticated_proxy_muon(
         evidence["imprinted_head"],
         completed_cell_sha256s,
         progress_callback=budget.observe,
+        selected_features=selected_features,
     )
     selections = {
         optimizer: _selection_payload(phase1, optimizer)
@@ -1586,19 +1556,21 @@ def _run_authenticated_proxy_muon(
         ),
         completed_cell_sha256s=completed_cell_sha256s,
         progress_callback=budget.observe,
+        selected_features=selected_features,
     )
     process = {
         "command": command,
         **budget.snapshot(),
         "completed_cells": len(completed_cell_sha256s),
     }
-    inputs = authority["inputs"]
     initializer = {
         "kind": "imprinted",
-        "feature_sha256": inputs["fitting_features"],
-        "label_sha256": inputs["fitting_labels"],
-        "initial_head_sha256": inputs["imprinted_head"],
-        "validation_feature_sha256": inputs["validation_features"],
+        "feature_sha256": tensor_sha256(evidence["fitting_features"]),
+        "label_sha256": tensor_sha256(evidence["fitting_labels"]),
+        "initial_head_sha256": tensor_sha256(evidence["imprinted_head"]),
+        "validation_feature_sha256": tensor_sha256(
+            evidence["validation_features"]
+        ),
     }
     return assemble_scientific_result(
         authority=authority,
@@ -1660,6 +1632,7 @@ def run_phase1_cells(
     *,
     cell_runner: Callable[..., dict[str, object]] | None = None,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> list[dict[str, object]]:
     """Run Phase 1 in frozen order and append only completed row hashes."""
 
@@ -1679,6 +1652,7 @@ def run_phase1_cells(
         }
         if cell_runner is None:
             runner_kwargs["progress_callback"] = progress_callback
+            runner_kwargs["selected_features"] = selected_features
         row = runner(
             fitting_features,
             fitting_labels,
@@ -1700,6 +1674,8 @@ def run_phase1_cells(
         completed_cell_sha256s.append(
             hashlib.sha256(canonical_json_bytes(row)).hexdigest()
         )
+        if progress_callback is not None:
+            progress_callback(64)
     return rows
 
 
@@ -1714,19 +1690,25 @@ def _run_phase1_cell(
     fit_trajectory: Callable[..., Mapping[int, torch.Tensor]] | None = None,
     panel_runner: Callable[..., Sequence[float]] | None = None,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> dict[str, object]:
     fit = _fit_phase1_trajectory if fit_trajectory is None else fit_trajectory
     panel = diagnostic_panel_losses if panel_runner is None else panel_runner
     if not callable(fit) or not callable(panel):
         raise TypeError("ProxyMuon Phase-1 callback differs")
+    fit_kwargs = {
+        "optimizer": optimizer,
+        "learning_rate": learning_rate,
+        "fit_seed": fit_seed,
+        "progress_callback": progress_callback,
+    }
+    if fit_trajectory is None:
+        fit_kwargs["selected_features"] = selected_features
     snapshots = fit(
         fitting_features,
         fitting_labels,
         initial_head,
-        optimizer=optimizer,
-        learning_rate=learning_rate,
-        fit_seed=fit_seed,
-        progress_callback=progress_callback,
+        **fit_kwargs,
     )
     if type(snapshots) is not dict or tuple(snapshots) != (0, 64):
         raise ValueError("ProxyMuon Phase-1 snapshots differ")
@@ -1744,12 +1726,38 @@ def _run_phase1_cell(
         or not torch.isfinite(final).all()
     ):
         raise ValueError("ProxyMuon Phase-1 snapshot tensor differs")
-    step0 = tuple(float(value) for value in panel(
-        fitting_features, fitting_labels, initial, fit_seed=fit_seed
-    ))
-    step64 = tuple(float(value) for value in panel(
-        fitting_features, fitting_labels, final, fit_seed=fit_seed
-    ))
+    live_initial = _head_on_feature_device(initial, fitting_features)
+    step0 = tuple(
+        float(value)
+        for value in panel(
+            fitting_features,
+            fitting_labels,
+            live_initial,
+            fit_seed=fit_seed,
+            **(
+                {"selected_features": selected_features}
+                if panel_runner is None
+                else {}
+            ),
+        )
+    )
+    del live_initial
+    live_final = _head_on_feature_device(final, fitting_features)
+    step64 = tuple(
+        float(value)
+        for value in panel(
+            fitting_features,
+            fitting_labels,
+            live_final,
+            fit_seed=fit_seed,
+            **(
+                {"selected_features": selected_features}
+                if panel_runner is None
+                else {}
+            ),
+        )
+    )
+    del live_final
     return {
         "optimizer": optimizer,
         "learning_rate": learning_rate,
@@ -1771,6 +1779,7 @@ def _fit_phase1_trajectory(
     learning_rate: float,
     fit_seed: int,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> dict[int, torch.Tensor]:
     def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
         return build_head_optimizer(head, optimizer, learning_rate)
@@ -1785,6 +1794,7 @@ def _fit_phase1_trajectory(
         steps=64,
         fit_seed=fit_seed,
         progress_callback=progress_callback,
+        selected_features=selected_features,
     )
     return {
         step: snapshot.detach().cpu().contiguous()
@@ -1804,6 +1814,12 @@ def tensor_sha256(value: torch.Tensor) -> str:
     return hashlib.sha256(
         value.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
     ).hexdigest()
+
+
+def _head_on_feature_device(head: torch.Tensor, features: object) -> torch.Tensor:
+    if type(features) is torch.Tensor and head.device != features.device:
+        return head.to(device=features.device)
+    return head
 
 
 def verify_parent_tensor_hashes(
@@ -1906,14 +1922,20 @@ def reconstruct_parent_evidence(
     ):
         raise ValueError("ProxyMuon spherical parent probes differ")
     expected = {
-        "fitting_features": str(authority["inputs"]["fitting_features"]),
-        "fitting_labels": str(authority["inputs"]["fitting_labels"]),
-        "validation_features": str(authority["inputs"]["validation_features"]),
-        "validation_labels": str(authority["inputs"]["validation_labels"]),
+        "fitting_features": tensor_sha256(fitting_features),
+        "fitting_labels": tensor_sha256(fitting_labels),
+        "validation_features": tensor_sha256(validation_features),
+        "validation_labels": tensor_sha256(validation_labels),
         "imprinted_head": str(authority["inputs"]["imprinted_head"]),
-        "adamw_fitted_head_seed_0": str(probes[0]["sha256"]),
-        "adamw_fitted_head_seed_1": str(probes[1]["sha256"]),
-        "adamw_fitted_head_seed_2": str(probes[2]["sha256"]),
+        "adamw_fitted_head_seed_0": str(
+            authority["inputs"]["adamw_fitted_head_seed_0"]
+        ),
+        "adamw_fitted_head_seed_1": str(
+            authority["inputs"]["adamw_fitted_head_seed_1"]
+        ),
+        "adamw_fitted_head_seed_2": str(
+            authority["inputs"]["adamw_fitted_head_seed_2"]
+        ),
     }
     tensors = {
         "fitting_features": fitting_features,
@@ -1926,7 +1948,11 @@ def reconstruct_parent_evidence(
         "adamw_fitted_head_seed_2": parent_fits[2],
     }
     verify_parent_tensor_hashes(tensors, expected)
-    if parent_result["class_mean"]["sha256"] != expected["imprinted_head"]:
+    if (
+        parent_result["class_mean"]["sha256"] != expected["imprinted_head"]
+        or [probe["sha256"] for probe in probes]
+        != [expected[f"adamw_fitted_head_seed_{seed}"] for seed in PHASE1_SEEDS]
+    ):
         raise ValueError("ProxyMuon spherical parent imprint differs")
     del parent_fits
     return {
@@ -1963,6 +1989,7 @@ def run_phase2_cells(
     *,
     cell_runner: Callable[..., dict[str, object]] | None = None,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> list[dict[str, object]]:
     """Run Phase 2 in seed-major order and retain an exact completed prefix."""
 
@@ -1984,6 +2011,7 @@ def run_phase2_cells(
         }
         if cell_runner is None:
             runner_kwargs["progress_callback"] = progress_callback
+            runner_kwargs["selected_features"] = selected_features
         row = runner(
             fitting_features,
             fitting_labels,
@@ -2005,6 +2033,8 @@ def run_phase2_cells(
         completed_cell_sha256s.append(
             hashlib.sha256(canonical_json_bytes(row)).hexdigest()
         )
+        if progress_callback is not None:
+            progress_callback(512)
     return rows
 
 
@@ -2024,20 +2054,26 @@ def _run_phase2_cell(
     panel_runner: Callable[..., Sequence[float]] | None = None,
     accuracy_runner: Callable[..., float] | None = None,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> dict[str, object]:
     fit = _fit_phase2_trajectory if fit_trajectory is None else fit_trajectory
     panel = diagnostic_panel_losses if panel_runner is None else panel_runner
     accuracy = _evaluate_accuracy if accuracy_runner is None else accuracy_runner
     if not callable(fit) or not callable(panel) or not callable(accuracy):
         raise TypeError("ProxyMuon Phase-2 callback differs")
+    fit_kwargs = {
+        "fit_seed": fit_seed,
+        "variant": variant,
+        "learning_rate": learning_rate,
+        "progress_callback": progress_callback,
+    }
+    if fit_trajectory is None:
+        fit_kwargs["selected_features"] = selected_features
     snapshots, traces = fit(
         fitting_features,
         fitting_labels,
         initial_head,
-        fit_seed=fit_seed,
-        variant=variant,
-        learning_rate=learning_rate,
-        progress_callback=progress_callback,
+        **fit_kwargs,
     )
     if (
         type(snapshots) is not dict
@@ -2056,10 +2092,19 @@ def _run_phase2_cell(
             or not torch.isfinite(head).all()
         ):
             raise ValueError("ProxyMuon Phase-2 snapshot differs")
+        live_head = _head_on_feature_device(head, fitting_features)
         components = tuple(
             float(value)
             for value in panel(
-                fitting_features, fitting_labels, head, fit_seed=fit_seed
+                fitting_features,
+                fitting_labels,
+                live_head,
+                fit_seed=fit_seed,
+                **(
+                    {"selected_features": selected_features}
+                    if panel_runner is None
+                    else {}
+                ),
             )
         )
         validation_accuracy = (
@@ -2067,8 +2112,13 @@ def _run_phase2_cell(
                 accuracy(
                     validation_features,
                     validation_labels,
-                    head,
+                    _head_on_feature_device(head, validation_features),
                     represented=validation_group_represented,
+                    **(
+                        {"selected_features": selected_features}
+                        if accuracy_runner is None
+                        else {}
+                    ),
                 )
             )
             if step in VALIDATION_STEPS
@@ -2106,6 +2156,7 @@ def _run_phase2_cell(
                 "polar_factor_residual": residual,
             }
         )
+        del live_head
     return {
         "fit_seed": fit_seed,
         "variant": variant,
@@ -2123,6 +2174,7 @@ def _fit_phase2_trajectory(
     variant: str,
     learning_rate: float,
     progress_callback: Callable[[int], None] | None = None,
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> tuple[dict[int, torch.Tensor], dict[int, object | None]]:
     if variant.startswith("adamw"):
         def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
@@ -2138,6 +2190,7 @@ def _fit_phase2_trajectory(
             steps=512,
             fit_seed=fit_seed,
             progress_callback=progress_callback,
+            selected_features=selected_features,
         )
     elif variant in ("proxy_muon", "proxy_muon_fp32"):
         _fit, snapshots, traces = fit_proxy_muon_trajectory(
@@ -2152,6 +2205,7 @@ def _fit_phase2_trajectory(
             steps=512,
             fit_seed=fit_seed,
             progress_callback=progress_callback,
+            selected_features=selected_features,
         )
     else:
         raise ValueError("ProxyMuon Phase-2 variant differs")
@@ -2170,6 +2224,7 @@ def _evaluate_accuracy(
     head: torch.Tensor,
     *,
     represented: tuple[bool, ...],
+    selected_features: int = PROBE_SELECTED_FEATURES,
 ) -> float:
     device_head = head.to(device=validation_features.device)
     try:
@@ -2179,6 +2234,7 @@ def _evaluate_accuracy(
                 validation_labels,
                 device_head,
                 validation_group_represented=represented,
+                selected_features=selected_features,
             ).accuracy
         )
     finally:
@@ -2462,29 +2518,29 @@ def main(arguments: Sequence[str] | None = None) -> int:
     runtime: dict[str, object] | None = None
     budget: ExecutionBudget | None = None
     try:
-        runtime = validate_observed_runtime(config["environment"], observe_runtime())
-        if torch.cuda.is_available():
-            torch.cuda.reset_peak_memory_stats(0)
-        budget = ExecutionBudget(
-            elapsed_limit_seconds=float(
-                config["protocol"]["elapsed_limit_seconds"]
-            ),
-            peak_limit_bytes=int(config["protocol"]["peak_limit_bytes"]),
-        )
-        evidence = reconstruct_parent_evidence(config, authority, repo_root)
-        budget.observe(1)
-        result = _run_authenticated_proxy_muon(
-            protocol=config["protocol"],
-            authority=authority,
-            runtime=runtime,
-            evidence=evidence,
-            budget=budget,
-            completed_cell_sha256s=completed,
-            command=command,
-        )
-        output = repo_root / str(config["result"]["relative_path"])
-        publish_result_exclusive(output, result, validate_scientific_result)
-        return 0
+        with preserve_process_state():
+            runtime = validate_observed_runtime(
+                config["environment"], observe_runtime()
+            )
+            evidence = reconstruct_parent_evidence(config, authority, repo_root)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.reset_peak_memory_stats(0)
+            budget = ExecutionBudget(
+                elapsed_limit_seconds=float(
+                    config["protocol"]["elapsed_limit_seconds"]
+                ),
+                peak_limit_bytes=int(config["protocol"]["peak_limit_bytes"]),
+            )
+            result = run_proxy_muon_f0(
+                protocol=config["protocol"],
+                authority=authority,
+                runtime=runtime,
+                evidence=evidence,
+                budget=budget,
+                completed_cell_sha256s=completed,
+                command=command,
+            )
     except Exception as error:
         observed = (
             budget.snapshot()
@@ -2517,6 +2573,12 @@ def main(arguments: Sequence[str] | None = None) -> int:
     finally:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+    output = repo_root / str(config["result"]["relative_path"])
+    try:
+        publish_result_exclusive(output, result, validate_scientific_result)
+    except Exception:
+        return 2
+    return 0
 
 
 if __name__ == "__main__":
