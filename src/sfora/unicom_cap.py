@@ -269,6 +269,7 @@ def covariance_mask_mismatch(
             full_cholesky.T, first_solution
         ).T
     class_count = construction.class_means.shape[0]
+    class_slices = _class_slices(class_count, PROBE_SHARDS)
     for _mask_set in range(mask_sets):
         masks = sample_shard_masks(
             dimension=construction.feature_count,
@@ -283,7 +284,7 @@ def covariance_mask_mismatch(
             current_hashes.append(
                 hashlib.sha256(np.ascontiguousarray(mask).tobytes(order="C")).hexdigest()
             )
-            class_slice = _class_slices(class_count, PROBE_SHARDS)[shard]
+            class_slice = class_slices[shard]
             rows = np.arange(class_slice.start, class_slice.stop)
             if rows.size == 0:
                 continue

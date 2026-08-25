@@ -913,9 +913,11 @@ def validate_result(value: object, *, inventory: object) -> None:
     for variant in _CAP_VARIANTS:
         expected_variant = recomputed.per_variant[variant]
         block = cap_metrics_block[variant]
-        if block["statistics"] != vars(expected_variant.statistics):
+        if not _same_concrete(block["statistics"], vars(expected_variant.statistics)):
             raise ValueError(f"{variant} statistics differ")
-        if block["predicates"] != expected_variant.seed_invariant_predicates:
+        if not _same_concrete(
+            block["predicates"], expected_variant.seed_invariant_predicates
+        ):
             raise ValueError(f"{variant} static predicates differ")
         for seed in fit_seeds:
             evidence = seed_blocks[seed]
@@ -1453,7 +1455,41 @@ def execute_screen(
     class_mean = class_mean_head(fitting_features, fitting_labels, class_count)
     if _tensor_sha256(class_mean) != inventory.class_mean_sha256:
         raise ValueError("registered class mean differs")
+    construction = build_cap_heads(fitting_features, fitting_labels, row_norm=row_norm)
     class_metric = None
+    cap_metric_objects = {}
+    for variant in CAP_VARIANTS:
+        replayed_class_metric, candidate_metric = _evaluate_registered_pair(
+            validation_features,
+            validation_labels,
+            class_mean,
+            construction.heads[variant],
+            validation_group_represented=inventory.validation_group_represented,
+            mask_sets=mask_count,
+        )
+        if class_metric is None:
+            class_metric = replayed_class_metric
+        elif replayed_class_metric != class_metric:
+            raise ValueError("replayed class mean metric differs")
+        if (
+            inventory.parent_class_mean_metric_sha256 is not None
+            and _sha256_bytes(
+                _canonical_bytes(_metric_payload(replayed_class_metric))
+            )
+            != inventory.parent_class_mean_metric_sha256
+        ):
+            raise ValueError("parent class mean metric differs")
+        cap_metric_objects[variant] = candidate_metric
+    if class_metric is None:
+        raise ValueError("parent class mean metric is absent")
+
+    diagnostic = covariance_mask_mismatch(
+        construction,
+        seed=_nonnegative_int(
+            protocol["covariance_mask_seed"], "covariance mask seed"
+        ),
+        mask_sets=covariance_mask_count,
+    )
     trajectories: dict[int, dict[int, float]] = {}
     seed_primitives: list[dict[str, object]] = []
     fitted_targets: dict[int, object] = {}
@@ -1479,9 +1515,7 @@ def execute_screen(
             validation_group_represented=inventory.validation_group_represented,
             mask_sets=mask_count,
         )
-        if class_metric is None:
-            class_metric = replayed_class_metric
-        elif replayed_class_metric != class_metric:
+        if replayed_class_metric != class_metric:
             raise ValueError("replayed class mean metric differs")
         if (
             inventory.parent_class_mean_metric_sha256 is not None
@@ -1533,30 +1567,6 @@ def execute_screen(
         )
         del snapshots, fit
 
-    if class_metric is None:
-        raise ValueError("parent class mean metric is absent")
-
-    construction = build_cap_heads(fitting_features, fitting_labels, row_norm=row_norm)
-    diagnostic = covariance_mask_mismatch(
-        construction,
-        seed=_nonnegative_int(
-            protocol["covariance_mask_seed"], "covariance mask seed"
-        ),
-        mask_sets=covariance_mask_count,
-    )
-    cap_metric_objects = {}
-    for variant in CAP_VARIANTS:
-        replayed_class_metric, candidate_metric = _evaluate_registered_pair(
-            validation_features,
-            validation_labels,
-            class_mean,
-            construction.heads[variant],
-            validation_group_represented=inventory.validation_group_represented,
-            mask_sets=mask_count,
-        )
-        if replayed_class_metric != class_metric:
-            raise ValueError("replayed class mean metric differs")
-        cap_metric_objects[variant] = candidate_metric
     target_heads: dict[int, dict[str, CapCosineSummary]] = {}
     for seed, primitive in zip(
         tuple(protocol["fit_seeds"]), seed_primitives, strict=True
@@ -1708,8 +1718,9 @@ def _execute_with_runtime_observation(
 
     if type(inventory) is not CapExecutionInventory:
         raise TypeError("CAP execution inventory differs")
-    started = time.perf_counter()
+    torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
+    started = time.perf_counter()
     value = execute_screen(args, inventory)
     torch.cuda.synchronize()
     elapsed_seconds = float(time.perf_counter() - started)

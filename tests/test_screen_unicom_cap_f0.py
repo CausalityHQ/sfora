@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import builtins
 import gc
 import hashlib
 import importlib.util
@@ -337,6 +338,39 @@ def test_validate_result_rejects_bool_equal_to_registered_step_one(
     value, inventory = _valid_result_with_one_step_equivalence()
     MODULE.validate_result(value, inventory=inventory)
     _replace_nested(value, path, True)
+
+    with pytest.raises((TypeError, ValueError)):
+        MODULE.validate_result(value, inventory=inventory)
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        (
+            "cap_metrics",
+            "cap_centered",
+            "predicates",
+            "mask_and_stratum_consistent",
+        ),
+        (
+            "cap_metrics",
+            "cap_centered",
+            "statistics",
+            "non_worse_mask_count",
+        ),
+    ),
+    ids=("predicate-bool-as-int", "statistic-int-as-float"),
+)
+def test_validate_result_rejects_cap_metric_concrete_type_drift(
+    path: tuple[str, ...],
+) -> None:
+    value, inventory = _valid_result()
+    original = value
+    for key in path:
+        original = original[key]
+    assert type(original) in {bool, int}
+    replacement = int(original) if type(original) is bool else float(original)
+    _replace_nested(value, path, replacement)
 
     with pytest.raises((TypeError, ValueError)):
         MODULE.validate_result(value, inventory=inventory)
@@ -1030,9 +1064,43 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
             str(tmp_path / "cap.json"),
         ]
     )
+    forbidden_rows = (
+        InshopRecord("query", tmp_path / "query-never-open.jpg", "heldout"),
+        InshopRecord("gallery", tmp_path / "gallery-never-open.jpg", "heldout"),
+    )
+    forbidden_paths = {row.image_path for row in forbidden_rows} | {args.output}
+    scientific_active = True
+    original_builtin_open = builtins.open
+    original_path_open = Path.open
+    original_image_open = Image.open
+
+    def reject_forbidden(path: object) -> None:
+        if (
+            scientific_active
+            and isinstance(path, (str, os.PathLike))
+            and Path(path) in forbidden_paths
+        ):
+            raise AssertionError("forbidden query/gallery/candidate output open")
+
+    def guarded_builtin_open(path: object, *items: object, **kwargs: object) -> object:
+        reject_forbidden(path)
+        return original_builtin_open(path, *items, **kwargs)
+
+    def guarded_path_open(path: Path, *items: object, **kwargs: object) -> object:
+        reject_forbidden(path)
+        return original_path_open(path, *items, **kwargs)
+
+    def guarded_image_open(path: object, *items: object, **kwargs: object) -> object:
+        reject_forbidden(path)
+        return original_image_open(path, *items, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", guarded_builtin_open)
+    monkeypatch.setattr(Path, "open", guarded_path_open)
+    monkeypatch.setattr(Image, "open", guarded_image_open)
 
     started = time.monotonic()
     result = MODULE.execute_screen(args, inventory)
+    scientific_active = False
     elapsed = time.monotonic() - started
 
     MODULE.validate_result(result, inventory=result_inventory)
@@ -1068,7 +1136,7 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
 
 
 @pytest.mark.parametrize("mismatch_seed", (None, 0, 1, 2))
-def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
+def test_execute_screen_rejects_parent_primitive_mismatch_in_registered_pair_order(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     mismatch_seed: int | None,
@@ -1092,6 +1160,7 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
         "covariance_mask_sets": 2,
         "shards": 2,
         "feature_count": 2,
+        "covariance_mask_seed": 17,
     }
     fitting = tuple(
         InshopRecord("train", tmp_path / f"fit-{index}.jpg", f"id{index // 2}")
@@ -1107,6 +1176,14 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
             [[0.25, seed * 0.001], [seed * 0.001, 0.25]], dtype=torch.float32
         )
         for seed in (0, 1, 2)
+    }
+    cap_heads = {
+        "cap_centered": torch.tensor(
+            [[0.24, 0.01], [0.01, 0.24]], dtype=torch.float32
+        ),
+        "cap_uncentered": torch.tensor(
+            [[0.23, 0.02], [0.02, 0.23]], dtype=torch.float32
+        ),
     }
     metric = MODULE._metric_from_json(
         {
@@ -1173,20 +1250,40 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
     monkeypatch.setattr(
         "sfora.unicom_probe.evaluate_probe_head", lambda *_args, **_kwargs: metric
     )
-    monkeypatch.setattr(
-        "sfora.unicom_probe.evaluate_probe_heads",
-        lambda *_args, **_kwargs: {
+    pair_calls: list[str] = []
+
+    def evaluate_pair(
+        _features: object, _labels: object, heads: dict[str, torch.Tensor], **_kwargs: object
+    ) -> dict[str, object]:
+        candidate = heads["spherical_probe"]
+        for name, head in (*cap_heads.items(), *target_heads.items()):
+            if candidate is head:
+                pair_calls.append(str(name))
+                break
+        else:
+            raise AssertionError("unregistered evaluator candidate")
+        return {
             "class_mean": metric,
             "spherical_probe": metric,
-        },
-    )
+        }
+
+    monkeypatch.setattr("sfora.unicom_probe.evaluate_probe_heads", evaluate_pair)
     cap_calls: list[bool] = []
 
-    def forbidden_cap(*_args: object, **_kwargs: object) -> object:
+    def build_cap(*_args: object, **_kwargs: object) -> object:
         cap_calls.append(True)
-        raise AssertionError("CAP was constructed before parent reproduction")
+        return SimpleNamespace(heads=cap_heads)
 
-    monkeypatch.setattr("sfora.unicom_cap.build_cap_heads", forbidden_cap)
+    monkeypatch.setattr("sfora.unicom_cap.build_cap_heads", build_cap)
+    diagnostic_seeds: list[int] = []
+
+    def covariance_diagnostic(*_args: object, seed: int, **_kwargs: object) -> object:
+        diagnostic_seeds.append(seed)
+        return SimpleNamespace()
+
+    monkeypatch.setattr(
+        "sfora.unicom_cap.covariance_mask_mismatch", covariance_diagnostic
+    )
     args = MODULE.parse_args(
         [
             "--config",
@@ -1207,7 +1304,12 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
     with pytest.raises(ValueError, match="parent .* metric differs"):
         MODULE.execute_screen(args, inventory)
 
-    assert cap_calls == []
+    assert cap_calls == [True]
+    assert diagnostic_seeds == ([] if mismatch_seed is None else [17])
+    expected = ["cap_centered"]
+    if mismatch_seed is not None:
+        expected.extend(("cap_uncentered", *(str(seed) for seed in range(mismatch_seed + 1))))
+    assert pair_calls == expected
 
 
 def test_registered_pair_evaluator_preserves_parent_candidate_order(
@@ -1648,15 +1750,27 @@ def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
         torch.cuda, "max_memory_allocated", lambda: int(16.25 * 1024**2)
     )
     observed_times = iter((10.0, 13.5))
+
+    def clock() -> float:
+        calls.append("clock")
+        return next(observed_times)
+
     monkeypatch.setattr(
-        MODULE.time, "perf_counter", lambda: next(observed_times)
+        MODULE.time, "perf_counter", clock
     )
 
     actual, observed_inventory = MODULE._execute_with_runtime_observation(
         SimpleNamespace(output=tmp_path / "cap.json"), inventory
     )
 
-    assert calls == ["reset", "execute", "synchronize"]
+    assert calls == [
+        "synchronize",
+        "reset",
+        "clock",
+        "execute",
+        "synchronize",
+        "clock",
+    ]
     assert actual["runtime"]["elapsed_seconds"] == 3.5
     assert actual["runtime"]["peak_gpu_mib"] == 17
     assert observed_inventory.peak_gpu_mib == 17
