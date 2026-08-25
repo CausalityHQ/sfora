@@ -212,7 +212,14 @@ def _authority_fixture(tmp_path: Path) -> tuple[Namespace, dict[str, object]]:
     config["parent"]["source_commit"] = _git(repo, "rev-parse", "HEAD")
     parent_result = repo / config["parent"]["path"]
     parent_result.parent.mkdir(parents=True, exist_ok=True)
-    parent_result.write_bytes(b'{"parent":"frozen"}\n')
+    parent_result.write_text(
+        json.dumps(
+            {"source": {"git_revision": config["parent"]["source_commit"]}},
+            separators=(",", ":"),
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     config["parent"]["sha256"] = hashlib.sha256(parent_result.read_bytes()).hexdigest()
     _git(repo, "add", "-f", str(parent_result.relative_to(repo)))
     _git(repo, "commit", "-qm", "registered parent result")
@@ -312,35 +319,48 @@ def test_authenticate_run_accepts_exact_linear_config_only_handoff(
     ) == 4
 
 
-def test_checked_in_run_config_binds_parent_source_and_artifact_commits() -> None:
+def test_frozen_parent_authority_binds_embedded_producer_commit() -> None:
     repo = SCRIPT.parents[1]
-    config_path = repo / "docs" / "unicom_cap_f0_run_config.json"
-    config = MODULE.strict_json_object(config_path.read_bytes())
-    MODULE.validate_run_config(config)
-    parent = config["parent"]
+    parent = MODULE._FROZEN_PARENT
     parent_bytes = (repo / parent["path"]).read_bytes()
 
     assert hashlib.sha256(parent_bytes).hexdigest() == parent["sha256"]
-    assert (
-        subprocess.run(
-            ["git", "show", f"{parent['artifact_commit']}:{parent['path']}"],
-            cwd=repo,
-            check=True,
-            stdout=subprocess.PIPE,
-        ).stdout
-        == parent_bytes
-    )
-    subprocess.run(
-        [
-            "git",
-            "merge-base",
-            "--is-ancestor",
-            parent["source_commit"],
-            parent["artifact_commit"],
-        ],
-        cwd=repo,
-        check=True,
-    )
+    assert parent["source_commit"] != parent["artifact_commit"]
+    assert MODULE.parent_producer_commit(parent_bytes) == parent["source_commit"]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    (
+        b'{}',
+        b'{"source":{}}',
+        b'{"source":{"git_revision":"wrong"}}',
+        b'{"source":{"git_revision":0}}',
+    ),
+)
+def test_parent_producer_commit_rejects_missing_or_invalid_binding(payload: bytes) -> None:
+    with pytest.raises((TypeError, ValueError)):
+        MODULE.parent_producer_commit(payload)
+
+
+def test_parent_producer_commit_rejects_duplicate_or_nonfinite_json() -> None:
+    with pytest.raises(ValueError):
+        MODULE.parent_producer_commit(
+            b'{"source":{"git_revision":"' + b"a" * 40 + b'"},"source":{}}'
+        )
+    with pytest.raises(ValueError):
+        MODULE.parent_producer_commit(
+            b'{"source":{"git_revision":"' + b"a" * 40 + b'","x":NaN}}'
+        )
+
+
+def test_parent_producer_commit_accepts_exact_embedded_binding() -> None:
+    commit = "a" * 40
+    assert MODULE.parent_producer_commit(
+        json.dumps(
+            {"source": {"git_revision": commit}}, separators=(",", ":")
+        ).encode()
+    ) == commit
 
 
 @pytest.mark.parametrize("mutation", ("wrong_flag", "dirty_source", "existing_output"))

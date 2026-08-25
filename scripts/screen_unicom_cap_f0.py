@@ -325,6 +325,14 @@ def _commit(value: object, name: str) -> str:
     return text
 
 
+def parent_producer_commit(payload: bytes) -> str:
+    parent = strict_json_object(payload)
+    source = parent.get("source")
+    if type(source) is not dict:
+        raise ValueError("parent source schema differs")
+    return _commit(source.get("git_revision"), "parent source.git_revision")
+
+
 def _same_concrete(actual: object, expected: object) -> bool:
     if type(actual) is not type(expected):
         return False
@@ -535,15 +543,18 @@ def authenticate_run(args: argparse.Namespace) -> dict[str, object]:
     parent_path = _real_file(repo_root / parent["path"], "parent result")
     if parent_path != Path(args.parent_result).resolve(strict=True):
         raise ValueError("parent result flag differs")
-    if _sha256_bytes(parent_path.read_bytes()) != parent["sha256"]:
+    parent_bytes = parent_path.read_bytes()
+    if _sha256_bytes(parent_bytes) != parent["sha256"]:
         raise ValueError("parent result digest differs")
+    if parent_producer_commit(parent_bytes) != parent["source_commit"]:
+        raise ValueError("parent producer commit differs")
     try:
         parent_git_bytes = _git(
             repo_root, "show", f"{parent['artifact_commit']}:{parent['path']}"
         )
     except subprocess.CalledProcessError as error:
         raise ValueError("parent result is absent from its artifact commit") from error
-    if parent_git_bytes != parent_path.read_bytes():
+    if parent_git_bytes != parent_bytes:
         raise ValueError("parent result Git bytes differ")
     producer_to_artifact = subprocess.run(
         [
