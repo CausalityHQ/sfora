@@ -1064,13 +1064,11 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
             str(tmp_path / "cap.json"),
         ]
     )
-    forbidden_rows = (
-        InshopRecord("query", tmp_path / "query-never-open.jpg", "heldout"),
-        InshopRecord("gallery", tmp_path / "gallery-never-open.jpg", "heldout"),
-    )
-    forbidden_paths = {row.image_path for row in forbidden_rows} | {args.output}
+    forbidden_paths = {args.output}
     scientific_active = True
     original_builtin_open = builtins.open
+    original_os_open = os.open
+    original_os_link = os.link
     original_path_open = Path.open
     original_image_open = Image.open
 
@@ -1080,7 +1078,7 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
             and isinstance(path, (str, os.PathLike))
             and Path(path) in forbidden_paths
         ):
-            raise AssertionError("forbidden query/gallery/candidate output open")
+            raise AssertionError("forbidden candidate output open")
 
     def guarded_builtin_open(path: object, *items: object, **kwargs: object) -> object:
         reject_forbidden(path)
@@ -1094,9 +1092,29 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
         reject_forbidden(path)
         return original_image_open(path, *items, **kwargs)
 
+    def guarded_os_open(path: object, *items: object, **kwargs: object) -> int:
+        reject_forbidden(path)
+        return original_os_open(path, *items, **kwargs)
+
+    def guarded_os_link(
+        source: object, destination: object, *items: object, **kwargs: object
+    ) -> None:
+        reject_forbidden(destination)
+        original_os_link(source, destination, *items, **kwargs)
+
     monkeypatch.setattr(builtins, "open", guarded_builtin_open)
+    monkeypatch.setattr(os, "open", guarded_os_open)
+    monkeypatch.setattr(os, "link", guarded_os_link)
     monkeypatch.setattr(Path, "open", guarded_path_open)
     monkeypatch.setattr(Image, "open", guarded_image_open)
+
+    with pytest.raises(AssertionError, match="forbidden candidate output open"):
+        MODULE.write_result_atomic(
+            {"mutation": "publish-inside-execute-screen"},
+            args.output,
+            validator=lambda _candidate: None,
+        )
+    assert not args.output.exists()
 
     started = time.monotonic()
     result = MODULE.execute_screen(args, inventory)
