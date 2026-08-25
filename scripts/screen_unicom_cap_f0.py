@@ -920,8 +920,10 @@ def validate_result(value: object, *, inventory: object) -> None:
         for seed in fit_seeds:
             evidence = seed_blocks[seed]
             if (
-                evidence["step_equivalence"][variant]
-                != expected_variant.per_seed_step_equivalence[seed]
+                not _same_concrete(
+                    evidence["step_equivalence"][variant],
+                    expected_variant.per_seed_step_equivalence[seed],
+                )
             ):
                 raise ValueError(f"{variant} step equivalence differs")
             if evidence["predicates"][variant] != expected_variant.per_seed_predicates[seed]:
@@ -940,7 +942,7 @@ def validate_result(value: object, *, inventory: object) -> None:
             "min_step_equivalence": expected_variant.min_step_equivalence,
         }
         block = _object(per_variant[variant], _DECISION_VARIANT_KEYS, variant)
-        if block != expected_block:
+        if not _same_concrete(block, expected_block):
             raise ValueError(f"{variant} decision differs")
     if (
         decision["selected_variant"] != recomputed.selected_variant
@@ -1212,6 +1214,7 @@ def _build_execution_inventory(
     result_protocol = {
         "fit_seeds": protocol["fit_seeds"],
         "snapshot_steps": protocol["snapshot_steps"],
+        "covariance_mask_seed": protocol["covariance_mask_seed"],
         "evaluation_mask_sets": protocol["evaluation_mask_sets"],
         "covariance_mask_sets": protocol["covariance_mask_sets"],
         "shards": protocol["shards"],
@@ -1316,6 +1319,27 @@ def _row_cosine_payload(left: object, right: object) -> dict[str, object]:
             "mean": float(values.mean()),
         },
     }
+
+
+def _evaluate_registered_pair(
+    features: object,
+    labels: object,
+    class_mean: object,
+    candidate: object,
+    *,
+    validation_group_represented: tuple[bool, ...],
+    mask_sets: int,
+) -> tuple[object, object]:
+    from sfora.unicom_probe import evaluate_probe_heads
+
+    metrics = evaluate_probe_heads(
+        features,
+        labels,
+        {"class_mean": class_mean, "spherical_probe": candidate},
+        validation_group_represented=validation_group_represented,
+        mask_sets=mask_sets,
+    )
+    return metrics["class_mean"], metrics["spherical_probe"]
 
 
 def execute_screen(
@@ -1429,19 +1453,7 @@ def execute_screen(
     class_mean = class_mean_head(fitting_features, fitting_labels, class_count)
     if _tensor_sha256(class_mean) != inventory.class_mean_sha256:
         raise ValueError("registered class mean differs")
-    class_metric = evaluate_probe_head(
-        validation_features,
-        validation_labels,
-        class_mean,
-        validation_group_represented=inventory.validation_group_represented,
-        mask_sets=mask_count,
-    )
-    if (
-        inventory.parent_class_mean_metric_sha256 is not None
-        and _sha256_bytes(_canonical_bytes(_metric_payload(class_metric)))
-        != inventory.parent_class_mean_metric_sha256
-    ):
-        raise ValueError("parent class mean metric differs")
+    class_metric = None
     trajectories: dict[int, dict[int, float]] = {}
     seed_primitives: list[dict[str, object]] = []
     fitted_targets: dict[int, object] = {}
@@ -1459,13 +1471,26 @@ def execute_screen(
         target_sha256 = _tensor_sha256(fit.head)
         if target_sha256 != inventory.target_sha256_by_seed[seed]:
             raise ValueError("registered fitted target differs")
-        target_metric = evaluate_probe_head(
+        replayed_class_metric, target_metric = _evaluate_registered_pair(
             validation_features,
             validation_labels,
+            class_mean,
             fit.head,
             validation_group_represented=inventory.validation_group_represented,
             mask_sets=mask_count,
         )
+        if class_metric is None:
+            class_metric = replayed_class_metric
+        elif replayed_class_metric != class_metric:
+            raise ValueError("replayed class mean metric differs")
+        if (
+            inventory.parent_class_mean_metric_sha256 is not None
+            and _sha256_bytes(
+                _canonical_bytes(_metric_payload(replayed_class_metric))
+            )
+            != inventory.parent_class_mean_metric_sha256
+        ):
+            raise ValueError("parent class mean metric differs")
         if (
             inventory.parent_target_metric_sha256_by_seed is not None
             and _sha256_bytes(_canonical_bytes(_metric_payload(target_metric)))
@@ -1508,22 +1533,30 @@ def execute_screen(
         )
         del snapshots, fit
 
+    if class_metric is None:
+        raise ValueError("parent class mean metric is absent")
+
     construction = build_cap_heads(fitting_features, fitting_labels, row_norm=row_norm)
     diagnostic = covariance_mask_mismatch(
         construction,
-        seed=23_006,
+        seed=_nonnegative_int(
+            protocol["covariance_mask_seed"], "covariance mask seed"
+        ),
         mask_sets=covariance_mask_count,
     )
-    cap_metric_objects = {
-        variant: evaluate_probe_head(
+    cap_metric_objects = {}
+    for variant in CAP_VARIANTS:
+        replayed_class_metric, candidate_metric = _evaluate_registered_pair(
             validation_features,
             validation_labels,
+            class_mean,
             construction.heads[variant],
             validation_group_represented=inventory.validation_group_represented,
             mask_sets=mask_count,
         )
-        for variant in CAP_VARIANTS
-    }
+        if replayed_class_metric != class_metric:
+            raise ValueError("replayed class mean metric differs")
+        cap_metric_objects[variant] = candidate_metric
     target_heads: dict[int, dict[str, CapCosineSummary]] = {}
     for seed, primitive in zip(
         tuple(protocol["fit_seeds"]), seed_primitives, strict=True
@@ -1675,13 +1708,16 @@ def _execute_with_runtime_observation(
 
     if type(inventory) is not CapExecutionInventory:
         raise TypeError("CAP execution inventory differs")
+    started = time.perf_counter()
     torch.cuda.reset_peak_memory_stats()
     value = execute_screen(args, inventory)
     torch.cuda.synchronize()
+    elapsed_seconds = float(time.perf_counter() - started)
     peak_gpu_mib = math.ceil(torch.cuda.max_memory_allocated() / 1024**2)
     runtime = value.get("runtime")
     if type(runtime) is not dict:
         raise ValueError("CAP runtime result differs")
+    runtime["elapsed_seconds"] = elapsed_seconds
     runtime["peak_gpu_mib"] = peak_gpu_mib
     observed_inventory = replace(inventory, peak_gpu_mib=peak_gpu_mib)
     validate_result(value, inventory=observed_inventory.result)

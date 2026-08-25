@@ -13,7 +13,7 @@ from sklearn.covariance import ledoit_wolf
 from torch.nn import functional as F
 
 from sfora.unicom_probe import PROBE_SELECTED_FEATURES, PROBE_SHARDS, ProbeMetrics
-from sfora.unicom_training import sample_shard_masks
+from sfora.unicom_training import _class_slices, sample_shard_masks
 
 CAP_VARIANTS = ("cap_centered", "cap_uncentered")
 CAP_FIT_SEEDS = (0, 1, 2)
@@ -283,7 +283,8 @@ def covariance_mask_mismatch(
             current_hashes.append(
                 hashlib.sha256(np.ascontiguousarray(mask).tobytes(order="C")).hexdigest()
             )
-            rows = np.arange(shard, class_count, PROBE_SHARDS)
+            class_slice = _class_slices(class_count, PROBE_SHARDS)[shard]
+            rows = np.arange(class_slice.start, class_slice.stop)
             if rows.size == 0:
                 continue
             principal = covariance[np.ix_(mask, mask)]

@@ -468,6 +468,61 @@ def test_covariance_mask_mismatch_detects_off_diagonal_coupling() -> None:
     ]["median"]
 
 
+def test_covariance_mask_mismatch_uses_contiguous_objective_class_shards(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sfora.unicom_cap as cap_module
+
+    dimension = 513
+    class_count = 16
+    covariance = np.eye(dimension, dtype=np.float64)
+    class_means = np.repeat(
+        np.arange(1, class_count + 1, dtype=np.float64)[:, None],
+        dimension,
+        axis=1,
+    )
+    row_norms = np.linalg.norm(class_means, axis=1, keepdims=True)
+    heads = {
+        name: torch.from_numpy(class_means / row_norms).float().contiguous()
+        for name in ("cap_centered", "cap_uncentered")
+    }
+    construction = CapConstruction(
+        sample_count=class_count,
+        feature_count=dimension,
+        shrinkage=0.0,
+        covariance_trace=float(dimension),
+        cholesky_diagonal_min=1.0,
+        cholesky_diagonal_max=1.0,
+        covariance_sha256=hashlib.sha256(covariance.tobytes(order="C")).hexdigest(),
+        condition_number=1.0,
+        effective_rank=float(dimension),
+        covariance=covariance,
+        class_means=class_means,
+        global_mean=np.zeros(dimension, dtype=np.float64),
+        heads=heads,
+    )
+    observed_rows: list[tuple[int, ...]] = []
+
+    def capture(left: np.ndarray, _right: np.ndarray) -> np.ndarray:
+        observed_rows.append(tuple(int(value) for value in left[:, 0]))
+        return np.ones(left.shape[0], dtype=np.float64)
+
+    monkeypatch.setattr(cap_module, "_cosine_rows", capture)
+
+    covariance_mask_mismatch(construction, seed=23_006, mask_sets=1)
+
+    assert observed_rows[1::2] == [
+        (1, 2),
+        (3, 4),
+        (5, 6),
+        (7, 8),
+        (9, 10),
+        (11, 12),
+        (13, 14),
+        (15, 16),
+    ]
+
+
 def test_covariance_mask_mismatch_reuses_two_stage_cholesky_solve(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -93,6 +93,7 @@ def _valid_inventory() -> dict[str, object]:
         "protocol": {
             "fit_seeds": [0, 1, 2],
             "snapshot_steps": [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
+            "covariance_mask_seed": 23_006,
             "evaluation_mask_sets": 64,
             "covariance_mask_sets": 2,
             "shards": 2,
@@ -301,6 +302,44 @@ def test_validate_result_accepts_exact_recursive_cap_fixture() -> None:
     value, inventory = _valid_result()
 
     MODULE.validate_result(value, inventory=inventory)
+
+
+def _valid_result_with_one_step_equivalence() -> tuple[
+    dict[str, object], dict[str, object]
+]:
+    value, inventory = _valid_result()
+    for seed in value["seeds"]:
+        for snapshot in seed["trajectory"][1:-1]:
+            snapshot["validation"] = _metric(0.7, 150_000)
+        for variant in ("cap_centered", "cap_uncentered"):
+            seed["step_equivalence"][variant] = 1
+            seed["predicates"][variant]["step_equivalence_at_least_64"] = False
+    for variant in ("cap_centered", "cap_uncentered"):
+        decision = value["decision"]["per_variant"][variant]
+        decision["passes_all"] = False
+        decision["decision_level"] = 1
+        decision["min_step_equivalence"] = 1
+    value["decision"]["status"] = "ROUTE_STAGE_B"
+    return value, inventory
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        ("seeds", 0, "step_equivalence", "cap_centered"),
+        ("decision", "per_variant", "cap_centered", "min_step_equivalence"),
+    ),
+    ids=("seed-step-equivalence", "decision-min-step-equivalence"),
+)
+def test_validate_result_rejects_bool_equal_to_registered_step_one(
+    path: tuple[str | int, ...],
+) -> None:
+    value, inventory = _valid_result_with_one_step_equivalence()
+    MODULE.validate_result(value, inventory=inventory)
+    _replace_nested(value, path, True)
+
+    with pytest.raises((TypeError, ValueError)):
+        MODULE.validate_result(value, inventory=inventory)
 
 
 def test_validate_result_rejects_fitted_target_row_norm_drift() -> None:
@@ -1134,6 +1173,13 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
     monkeypatch.setattr(
         "sfora.unicom_probe.evaluate_probe_head", lambda *_args, **_kwargs: metric
     )
+    monkeypatch.setattr(
+        "sfora.unicom_probe.evaluate_probe_heads",
+        lambda *_args, **_kwargs: {
+            "class_mean": metric,
+            "spherical_probe": metric,
+        },
+    )
     cap_calls: list[bool] = []
 
     def forbidden_cap(*_args: object, **_kwargs: object) -> object:
@@ -1162,6 +1208,51 @@ def test_execute_screen_rejects_parent_primitive_mismatch_before_cap(
         MODULE.execute_screen(args, inventory)
 
     assert cap_calls == []
+
+
+def test_registered_pair_evaluator_preserves_parent_candidate_order(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    features = torch.eye(2)
+    labels = torch.tensor([0, 1], dtype=torch.int64)
+    class_mean = torch.eye(2)
+    candidate = torch.flip(class_mean, dims=(0,))
+    represented = (True, False)
+    baseline_metric = object()
+    candidate_metric = object()
+    calls: list[dict[str, torch.Tensor]] = []
+
+    def evaluate(
+        actual_features: torch.Tensor,
+        actual_labels: torch.Tensor,
+        heads: dict[str, torch.Tensor],
+        *,
+        validation_group_represented: tuple[bool, ...],
+        mask_sets: int,
+    ) -> dict[str, object]:
+        assert actual_features is features
+        assert actual_labels is labels
+        assert validation_group_represented is represented
+        assert mask_sets == 64
+        calls.append(heads)
+        return {
+            "class_mean": baseline_metric,
+            "spherical_probe": candidate_metric,
+        }
+
+    monkeypatch.setattr("sfora.unicom_probe.evaluate_probe_heads", evaluate)
+
+    actual = MODULE._evaluate_registered_pair(
+        features,
+        labels,
+        class_mean,
+        candidate,
+        validation_group_represented=represented,
+        mask_sets=64,
+    )
+
+    assert calls == [{"class_mean": class_mean, "spherical_probe": candidate}]
+    assert actual == (baseline_metric, candidate_metric)
 
 
 def test_run_authenticates_and_builds_inventory_before_scientific_execution(
@@ -1226,6 +1317,15 @@ def test_build_execution_inventory_excludes_query_gallery_and_binds_parent(
     train_row = InshopRecord("train", tmp_path / "train.jpg", "id0")
     query_row = InshopRecord("query", tmp_path / "query.jpg", "heldout")
     gallery_row = InshopRecord("gallery", tmp_path / "gallery.jpg", "heldout")
+    original_open = Path.open
+    forbidden_image_paths = {query_row.image_path, gallery_row.image_path}
+
+    def guarded_open(path: Path, *args: object, **kwargs: object) -> object:
+        if path in forbidden_image_paths:
+            raise AssertionError("query/gallery bytes were opened during CAP inventory")
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", guarded_open)
     optimization = (train_row,) * 20_650
     labels = {f"id{index}": index for index in range(3_200)}
     fitting = (train_row,) * 14_330
@@ -1318,6 +1418,7 @@ def test_build_execution_inventory_excludes_query_gallery_and_binds_parent(
         )
         for row in parent["probes"]
     }
+    assert inventory.result["protocol"]["covariance_mask_seed"] == 23_006
     assert query_row not in inventory.fitting + inventory.validation
     assert gallery_row not in inventory.fitting + inventory.validation
 
@@ -1546,12 +1647,17 @@ def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
     monkeypatch.setattr(
         torch.cuda, "max_memory_allocated", lambda: int(16.25 * 1024**2)
     )
+    observed_times = iter((10.0, 13.5))
+    monkeypatch.setattr(
+        MODULE.time, "perf_counter", lambda: next(observed_times)
+    )
 
     actual, observed_inventory = MODULE._execute_with_runtime_observation(
         SimpleNamespace(output=tmp_path / "cap.json"), inventory
     )
 
     assert calls == ["reset", "execute", "synchronize"]
+    assert actual["runtime"]["elapsed_seconds"] == 3.5
     assert actual["runtime"]["peak_gpu_mib"] == 17
     assert observed_inventory.peak_gpu_mib == 17
     MODULE.validate_result(actual, inventory=observed_inventory)
