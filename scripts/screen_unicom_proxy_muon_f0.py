@@ -215,6 +215,12 @@ CONFIG_SOURCE_PATHS = (
     "src/sfora/unicom_inshop.py",
     "scripts/screen_unicom_spherical_probe.py",
 )
+EXECUTING_SOURCE_MODULES = (
+    ("decision", "sfora.unicom_proxy_muon", CONFIG_SOURCE_PATHS[1]),
+    ("probe", "sfora.unicom_probe", CONFIG_SOURCE_PATHS[2]),
+    ("training", "sfora.unicom_training", CONFIG_SOURCE_PATHS[3]),
+    ("inshop", "sfora.unicom_inshop", CONFIG_SOURCE_PATHS[4]),
+)
 CONFIG_SOURCE_NAMES = SOURCE_HASH_KEYS
 CONFIG_FILE_KEYS = ("path", "sha256")
 CONFIG_HANDOFF_KEYS = ("parent_commit", "sole_path", "detached_clean")
@@ -582,6 +588,21 @@ def load_training_only_records(
     return tuple(records)
 
 
+def authenticate_loaded_source_origins(repo_root: Path) -> None:
+    if not isinstance(repo_root, Path):
+        raise TypeError("ProxyMuon source-origin root differs")
+    origins = (("runner", __file__, CONFIG_SOURCE_PATHS[0]),)
+    for label, module_name, relative_path in EXECUTING_SOURCE_MODULES:
+        loaded = sys.modules.get(module_name)
+        loaded_file = getattr(loaded, "__file__", None)
+        origins += ((label, loaded_file, relative_path),)
+    for label, loaded_file, relative_path in origins:
+        if type(loaded_file) is not str or (
+            Path(loaded_file).resolve() != (repo_root / relative_path).resolve()
+        ):
+            raise ValueError(f"ProxyMuon loaded source origin differs: {label}")
+
+
 def authenticate_source_and_inputs(
     config: Mapping[str, object], repo_root: Path
 ) -> dict[str, object]:
@@ -662,6 +683,7 @@ def authenticate_source_and_inputs(
         ):
             raise ValueError(f"ProxyMuon source SHA-256 differs: {expected_path}")
         source_hashes[name] = expected_digest
+    authenticate_loaded_source_origins(repo_root)
 
     inputs = validated["inputs"]
     unicom_checkout = Path(inputs["unicom_checkout"])

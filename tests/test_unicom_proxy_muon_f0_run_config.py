@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,28 @@ def test_run_config_loader_api_exists() -> None:
     assert callable(module.load_run_config)
     assert callable(module.authenticate_source_and_inputs)
     assert callable(module.observe_runtime)
+
+
+@pytest.mark.parametrize(
+    ("label", "module_name"),
+    (
+        ("runner", None),
+        ("decision", "sfora.unicom_proxy_muon"),
+        ("probe", "sfora.unicom_probe"),
+        ("training", "sfora.unicom_training"),
+        ("inshop", "sfora.unicom_inshop"),
+    ),
+)
+def test_loaded_source_origins_bind_the_executing_modules_to_the_checkout(
+    monkeypatch: pytest.MonkeyPatch, label: str, module_name: str | None
+) -> None:
+    repo_root = SCRIPT.parents[1]
+    module.authenticate_loaded_source_origins(repo_root)
+
+    loaded = module if module_name is None else sys.modules[module_name]
+    monkeypatch.setattr(loaded, "__file__", f"/tmp/foreign/{label}.py")
+    with pytest.raises(ValueError, match=f"loaded source origin differs: {label}"):
+        module.authenticate_loaded_source_origins(repo_root)
 
 
 def test_run_config_rejects_nonobject_and_unknown_version(tmp_path: Path) -> None:
@@ -170,10 +193,16 @@ def _authenticated_fixture(
 
 
 def test_source_and_input_authentication_uses_two_commit_detached_handoff(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo, config_path, expected, _external = _authenticated_fixture(tmp_path)
     config = module.load_run_config(config_path)
+    authenticated_origins: list[Path] = []
+    monkeypatch.setattr(
+        module,
+        "authenticate_loaded_source_origins",
+        lambda root: authenticated_origins.append(root),
+    )
 
     authority = module.authenticate_source_and_inputs(config, repo)
 
@@ -184,12 +213,14 @@ def test_source_and_input_authentication_uses_two_commit_detached_handoff(
     assert tuple(authority["inputs"]) == module.INPUT_HASH_KEYS
     assert authority["inputs"]["imprinted_head"] == f"{40:064x}"
     assert "fitting_features" not in authority["inputs"]
+    assert authenticated_origins == [repo]
 
 
 def test_authentication_rejects_dirty_source_and_preexisting_output(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo, config_path, config, _external = _authenticated_fixture(tmp_path)
+    monkeypatch.setattr(module, "authenticate_loaded_source_origins", lambda _root: None)
     source = repo / module.CONFIG_SOURCE_PATHS[0]
     original = source.read_bytes()
     source.write_bytes(b"dirty\n")
@@ -204,9 +235,10 @@ def test_authentication_rejects_dirty_source_and_preexisting_output(
 
 
 def test_authentication_rejects_attached_head_and_external_symlink(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo, _config_path, config, external = _authenticated_fixture(tmp_path)
+    monkeypatch.setattr(module, "authenticate_loaded_source_origins", lambda _root: None)
     _git(repo, "switch", "-qc", "attached")
     with pytest.raises(ValueError, match="detached"):
         module.authenticate_source_and_inputs(config, repo)
