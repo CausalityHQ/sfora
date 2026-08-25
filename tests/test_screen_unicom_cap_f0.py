@@ -63,6 +63,7 @@ def _valid_inventory() -> dict[str, object]:
             "parent_path": "reports/parent.json",
             "parent_sha256": "2" * 64,
             "parent_source_commit": "2" * 40,
+            "parent_artifact_commit": "8" * 40,
             "source_commit": "3" * 40,
             "handoff_commit": "4" * 40,
             "unicom_revision": "5" * 40,

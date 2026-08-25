@@ -32,7 +32,7 @@ _TOP_KEYS = (
     "result",
 )
 _SPEC_KEYS = ("path", "sha256", "commit")
-_PARENT_KEYS = ("path", "sha256", "source_commit")
+_PARENT_KEYS = ("path", "sha256", "source_commit", "artifact_commit")
 _ENVIRONMENT_KEYS = (
     "python",
     "torch",
@@ -109,6 +109,7 @@ _FROZEN_PARENT = {
     "path": "reports/generated/unicom-spherical-probe-ed2e789.json",
     "sha256": "d1a52703849acb96f359c2c7f209942fcbf6fa770eeaa0ed41d947780d714ddf",
     "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0",
+    "artifact_commit": "d07ff819eccafdfd048f19ff8b4d22c7ea1ed20f",
 }
 _FROZEN_ENVIRONMENT = {
     "python": "3.13.9",
@@ -355,6 +356,7 @@ def validate_run_config(value: object) -> None:
     _string(parent["path"], "parent.path")
     _sha256(parent["sha256"], "parent.sha256")
     _commit(parent["source_commit"], "parent.source_commit")
+    _commit(parent["artifact_commit"], "parent.artifact_commit")
     if not _same_concrete(parent, _FROZEN_PARENT):
         raise ValueError("parent authority differs")
 
@@ -535,24 +537,44 @@ def authenticate_run(args: argparse.Namespace) -> dict[str, object]:
         raise ValueError("parent result flag differs")
     if _sha256_bytes(parent_path.read_bytes()) != parent["sha256"]:
         raise ValueError("parent result digest differs")
-    parent_git_bytes = _git(
-        repo_root, "show", f"{parent['source_commit']}:{parent['path']}"
-    )
+    try:
+        parent_git_bytes = _git(
+            repo_root, "show", f"{parent['artifact_commit']}:{parent['path']}"
+        )
+    except subprocess.CalledProcessError as error:
+        raise ValueError("parent result is absent from its artifact commit") from error
     if parent_git_bytes != parent_path.read_bytes():
         raise ValueError("parent result Git bytes differ")
-    subprocess.run(
+    producer_to_artifact = subprocess.run(
         [
             "git",
             "merge-base",
             "--is-ancestor",
             parent["source_commit"],
+            parent["artifact_commit"],
+        ],
+        cwd=repo_root,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if producer_to_artifact.returncode != 0:
+        raise ValueError("parent producer is not an ancestor of its artifact commit")
+    artifact_to_source = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            parent["artifact_commit"],
             source["commit"],
         ],
         cwd=repo_root,
-        check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        check=False,
     )
+    if artifact_to_source.returncode != 0:
+        raise ValueError("parent artifact is not an ancestor of the CAP source")
 
     unicom = _real_directory(Path(inputs["unicom_checkout"]), "UniCOM checkout")
     if unicom != Path(args.unicom_checkout).resolve(strict=True):
@@ -1238,6 +1260,7 @@ def _build_execution_inventory(
             "parent_path": config["parent"]["path"],
             "parent_sha256": config["parent"]["sha256"],
             "parent_source_commit": config["parent"]["source_commit"],
+            "parent_artifact_commit": config["parent"]["artifact_commit"],
             "source_commit": trusted["source_commit"],
             "handoff_commit": trusted["head"],
             "unicom_revision": config["inputs"]["unicom_revision"],

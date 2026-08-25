@@ -43,6 +43,7 @@ def _valid_config() -> dict[str, object]:
             "path": "reports/generated/unicom-spherical-probe-ed2e789.json",
             "sha256": "d1a52703849acb96f359c2c7f209942fcbf6fa770eeaa0ed41d947780d714ddf",
             "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0",
+            "artifact_commit": "d07ff819eccafdfd048f19ff8b4d22c7ea1ed20f",
         },
         "environment": {
             "python": "3.13.9",
@@ -155,6 +156,7 @@ def test_validate_run_config_rejects_wrong_output_binding() -> None:
         ("spec", "commit", "f" * 40),
         ("parent", "sha256", "f" * 64),
         ("parent", "source_commit", "f" * 40),
+        ("parent", "artifact_commit", "f" * 40),
         ("environment", "python", "2.7"),
         ("environment", "device", "cpu"),
         ("inputs", "unicom_revision", "f" * 40),
@@ -202,13 +204,19 @@ def _authority_fixture(tmp_path: Path) -> tuple[Namespace, dict[str, object]]:
     _git(repo, "commit", "-qm", "frozen specification")
     config["spec"]["commit"] = _git(repo, "rev-parse", "HEAD")
 
+    parent_producer = repo / "scripts" / "parent_producer.py"
+    parent_producer.parent.mkdir(parents=True, exist_ok=True)
+    parent_producer.write_bytes(b"# frozen parent producer\n")
+    _git(repo, "add", str(parent_producer.relative_to(repo)))
+    _git(repo, "commit", "-qm", "reviewed parent producer")
+    config["parent"]["source_commit"] = _git(repo, "rev-parse", "HEAD")
     parent_result = repo / config["parent"]["path"]
     parent_result.parent.mkdir(parents=True, exist_ok=True)
     parent_result.write_bytes(b'{"parent":"frozen"}\n')
     config["parent"]["sha256"] = hashlib.sha256(parent_result.read_bytes()).hexdigest()
     _git(repo, "add", "-f", str(parent_result.relative_to(repo)))
     _git(repo, "commit", "-qm", "registered parent result")
-    config["parent"]["source_commit"] = _git(repo, "rev-parse", "HEAD")
+    config["parent"]["artifact_commit"] = _git(repo, "rev-parse", "HEAD")
 
     source_files = config["source"]["files"]
     for index, row in enumerate(source_files):
@@ -298,9 +306,41 @@ def test_authenticate_run_accepts_exact_linear_config_only_handoff(
         {
             expected["spec"]["commit"],
             expected["parent"]["source_commit"],
+            expected["parent"]["artifact_commit"],
             expected["source"]["commit"],
         }
-    ) == 3
+    ) == 4
+
+
+def test_checked_in_run_config_binds_parent_source_and_artifact_commits() -> None:
+    repo = SCRIPT.parents[1]
+    config_path = repo / "docs" / "unicom_cap_f0_run_config.json"
+    config = MODULE.strict_json_object(config_path.read_bytes())
+    MODULE.validate_run_config(config)
+    parent = config["parent"]
+    parent_bytes = (repo / parent["path"]).read_bytes()
+
+    assert hashlib.sha256(parent_bytes).hexdigest() == parent["sha256"]
+    assert (
+        subprocess.run(
+            ["git", "show", f"{parent['artifact_commit']}:{parent['path']}"],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+        ).stdout
+        == parent_bytes
+    )
+    subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            parent["source_commit"],
+            parent["artifact_commit"],
+        ],
+        cwd=repo,
+        check=True,
+    )
 
 
 @pytest.mark.parametrize("mutation", ("wrong_flag", "dirty_source", "existing_output"))
