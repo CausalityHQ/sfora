@@ -296,12 +296,13 @@ def covariance_mask_mismatch(
                 cosines[name].extend(_cosine_rows(restricted, local).tolist())
         mask_hashes.append(tuple(current_hashes))
 
-    summaries: dict[str, dict[str, float]] = {}
+    summaries: dict[str, dict[str, object]] = {}
     for name in CAP_VARIANTS:
         values = np.asarray(cosines[name], dtype=np.float64)
         if values.size != mask_sets * class_count or not np.isfinite(values).all():
             raise ValueError("CAP covariance diagnostic count differs")
         summaries[name] = {
+            "row_cosines": values.tolist(),
             "minimum": float(values.min()),
             "p05": float(np.quantile(values, 0.05, method="linear")),
             "median": float(np.quantile(values, 0.5, method="linear")),
@@ -317,7 +318,13 @@ def covariance_mask_mismatch(
     }
 
 
-def _validate_probe_metrics(metrics: object, name: str) -> ProbeMetrics:
+def _validate_probe_metrics(
+    metrics: object,
+    name: str,
+    *,
+    expected_mask_count: int,
+    expected_image_count: int,
+) -> ProbeMetrics:
     if type(metrics) is not ProbeMetrics:
         raise ValueError(f"{name} metrics differ")
     float_values = (
@@ -332,10 +339,10 @@ def _validate_probe_metrics(metrics: object, name: str) -> ProbeMetrics:
     )
     if (
         any(type(value) is not float or not math.isfinite(value) for value in float_values)
-        or len(metrics.per_mask_mean_losses) != 64
-        or len(metrics.per_mask_represented_mean_losses) != 64
-        or len(metrics.per_mask_unrepresented_mean_losses) != 64
-        or len(metrics.per_image_mean_losses) != 3_188
+        or len(metrics.per_mask_mean_losses) != expected_mask_count
+        or len(metrics.per_mask_represented_mean_losses) != expected_mask_count
+        or len(metrics.per_mask_unrepresented_mean_losses) != expected_mask_count
+        or len(metrics.per_image_mean_losses) != expected_image_count
         or type(metrics.correct_count) is not int
         or type(metrics.observation_count) is not int
     ):
@@ -371,10 +378,17 @@ def cap_decision(
     cap_metrics: Mapping[str, ProbeMetrics],
     target_heads: Mapping[int, Mapping[str, CapCosineSummary]],
     trajectories: Mapping[int, Mapping[int, float]],
+    expected_mask_count: int = 64,
+    expected_image_count: int = 3_188,
 ) -> CapDecision:
     """Apply the registered CAP F0 predicates and variant selection rule."""
 
-    class_mean = _validate_probe_metrics(class_mean, "class_mean")
+    class_mean = _validate_probe_metrics(
+        class_mean,
+        "class_mean",
+        expected_mask_count=expected_mask_count,
+        expected_image_count=expected_image_count,
+    )
     if type(cap_metrics) is not dict or tuple(cap_metrics) != CAP_VARIANTS:
         raise ValueError("CAP metric order differs")
     if any(
@@ -406,7 +420,12 @@ def cap_decision(
 
     per_variant: dict[str, CapVariantDecision] = {}
     for name in CAP_VARIANTS:
-        metrics = _validate_probe_metrics(cap_metrics[name], name)
+        metrics = _validate_probe_metrics(
+            cap_metrics[name],
+            name,
+            expected_mask_count=expected_mask_count,
+            expected_image_count=expected_image_count,
+        )
         mask_mean, mask_lower = _paired_statistics(
             class_mean.per_mask_mean_losses,
             metrics.per_mask_mean_losses,

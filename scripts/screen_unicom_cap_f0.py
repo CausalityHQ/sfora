@@ -7,11 +7,14 @@ import hashlib
 import json
 import math
 import os
+import random
 import stat
 import subprocess
 import sys
+import time
 from collections.abc import Callable
 from contextlib import suppress
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import NoReturn
 
@@ -253,6 +256,22 @@ _DECISION_VARIANT_KEYS = (
     "min_step_equivalence",
 )
 _CAP_VARIANTS = ("cap_centered", "cap_uncentered")
+
+
+@dataclass(frozen=True)
+class CapExecutionInventory:
+    result: dict[str, object]
+    fitting: tuple[object, ...]
+    validation: tuple[object, ...]
+    validation_group_represented: tuple[bool, ...]
+    labels: dict[str, int]
+    class_mean_sha256: str
+    target_sha256_by_seed: dict[int, str]
+    fit_steps: int
+    batch_size: int
+    peak_gpu_mib: int
+    parent_class_mean_metric_sha256: str | None = None
+    parent_target_metric_sha256_by_seed: dict[int, str] | None = None
 
 
 def _reject_constant(value: str) -> NoReturn:
@@ -581,6 +600,12 @@ def _positive_int(value: object, name: str) -> int:
     return value
 
 
+def _nonnegative_int(value: object, name: str) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError(f"{name} differs")
+    return value
+
+
 def _float_list(value: object, count: int, name: str) -> tuple[float, ...]:
     if type(value) is not list or len(value) != count:
         raise ValueError(f"{name} count differs")
@@ -679,11 +704,9 @@ def validate_result(value: object, *, inventory: object) -> None:
         {key: runtime[key] for key in _ENVIRONMENT_KEYS}, trusted["runtime"]
     ):
         raise ValueError("runtime authority differs")
-    if (
-        _finite_float(runtime["elapsed_seconds"], "elapsed seconds") <= 0.0
-        or _positive_int(runtime["peak_gpu_mib"], "peak GPU MiB") <= 0
-    ):
+    if _finite_float(runtime["elapsed_seconds"], "elapsed seconds") <= 0.0:
         raise ValueError("runtime observation differs")
+    _nonnegative_int(runtime["peak_gpu_mib"], "peak GPU MiB")
 
     dataset = trusted["dataset"]
     protocol = trusted["protocol"]
@@ -765,7 +788,12 @@ def validate_result(value: object, *, inventory: object) -> None:
     class_mean = _object(result["class_mean"], _CLASS_MEAN_KEYS, "class mean")
     _sha256(class_mean["sha256"], "class mean sha256")
     row_norms = _float_list(class_mean["row_norms"], class_count, "class mean row norms")
-    if any(value != target_row_norm for value in row_norms):
+    if any(
+        not math.isclose(
+            value, target_row_norm, rel_tol=2e-6, abs_tol=2e-7
+        )
+        for value in row_norms
+    ):
         raise ValueError("class mean row norm differs")
     if (
         _finite_float(class_mean["row_norm_min"], "class mean row norm") != min(row_norms)
@@ -807,9 +835,11 @@ def validate_result(value: object, *, inventory: object) -> None:
         fitted = _object(seed["fitted_target"], _TARGET_KEYS, "fitted target")
         _sha256(fitted["sha256"], "fitted target sha256")
         for key in ("row_norm_min", "row_norm_max"):
-            if (
-                _finite_float(fitted[key], f"fitted target {key}")
-                != target_row_norm
+            if not math.isclose(
+                _finite_float(fitted[key], f"fitted target {key}"),
+                target_row_norm,
+                rel_tol=2e-6,
+                abs_tol=2e-7,
             ):
                 raise ValueError("fitted target row norm differs")
         _metric_from_json(
@@ -869,6 +899,8 @@ def validate_result(value: object, *, inventory: object) -> None:
         cap_metrics=cap_metrics,
         target_heads=target_heads,
         trajectories=trajectories,
+        expected_mask_count=mask_count,
+        expected_image_count=image_count,
     )
     for variant in _CAP_VARIANTS:
         expected_variant = recomputed.per_variant[variant]
@@ -986,14 +1018,743 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def _encode_feature_sets(
+    args: argparse.Namespace,
+    fitting: tuple[object, ...],
+    validation: tuple[object, ...],
+    *,
+    loader_workers: int = 4,
+) -> tuple[object, object]:
+    import torch
+    from PIL import Image
+    from torch.utils.data import DataLoader, Dataset
+
+    from sfora.unicom_inshop import InshopRecord
+
+    if (
+        type(fitting) is not tuple
+        or not fitting
+        or type(validation) is not tuple
+        or not validation
+        or any(type(row) is not InshopRecord for row in fitting + validation)
+        or type(loader_workers) is not int
+        or loader_workers < 0
+    ):
+        raise ValueError("CAP feature row inventory differs")
+    model, transform = _load_official_model(args.unicom_checkout, args.checkpoint)
+    model = model.cuda().eval()
+    combined = fitting + validation
+
+    class EvaluationDataset(Dataset[object]):
+        def __len__(self) -> int:
+            return len(combined)
+
+        def __getitem__(self, index: int) -> object:
+            with Image.open(combined[index].image_path) as image:
+                value = transform(image.convert("RGB"))
+            if type(value) is not torch.Tensor or value.dtype != torch.float32:
+                raise ValueError("CAP evaluation transform differs")
+            return value
+
+    loader = DataLoader(
+        EvaluationDataset(),
+        batch_size=128,
+        shuffle=False,
+        num_workers=loader_workers,
+        pin_memory=True,
+        drop_last=False,
+    )
+    chunks: list[object] = []
+    for batch in loader:
+        if type(batch) is not torch.Tensor or batch.dtype != torch.float32:
+            raise ValueError("CAP feature batch differs")
+        with torch.inference_mode():
+            output = model(batch.cuda(non_blocking=False))
+        if (
+            type(output) is not torch.Tensor
+            or output.dtype not in (torch.float16, torch.float32)
+            or output.ndim != 2
+            or output.shape[1] != 768
+            or not torch.isfinite(output).all()
+        ):
+            raise ValueError("CAP feature output differs")
+        chunks.append(output.float().detach().cpu())
+    features = torch.cat(chunks, dim=0).contiguous()
+    if features.shape != (len(combined), 768):
+        raise ValueError("CAP encoded feature inventory differs")
+    return (
+        features[: len(fitting)].contiguous().cuda(),
+        features[len(fitting) :].contiguous().cuda(),
+    )
+
+
+def _load_official_model(checkout: Path, checkpoint: Path) -> tuple[object, object]:
+    import importlib
+
+    package_root = (checkout / "unicom").resolve()
+    if any(name == "unicom" or name.startswith("unicom.") for name in sys.modules):
+        raise ValueError("UNICOM package was imported before source authentication")
+    sys.path.insert(0, str(package_root))
+    try:
+        unicom = importlib.import_module("unicom")
+    finally:
+        sys.path.pop(0)
+    if Path(unicom.__file__).resolve().parent != package_root / "unicom":
+        raise ValueError("imported UNICOM package differs")
+    return unicom.load("ViT-L/14@336px", download_root=str(checkpoint.parent))
+
+
+def _validate_runtime(expected: object) -> None:
+    import sklearn
+    import torch
+
+    authority = _object(expected, _ENVIRONMENT_KEYS, "runtime authority")
+    if not torch.cuda.is_available():
+        raise ValueError("CAP CUDA runtime differs")
+    observed = {
+        "python": sys.version.split()[0],
+        "torch": str(torch.__version__),
+        "numpy": str(np.__version__),
+        "sklearn": str(sklearn.__version__),
+        "cuda": str(torch.version.cuda),
+        "device": torch.cuda.get_device_name(0),
+        "model_dtype": "float32",
+        "reduction_dtype": "float64",
+    }
+    if not _same_concrete(observed, authority):
+        raise ValueError("CAP runtime differs")
+
+
+def _build_execution_inventory(
+    args: argparse.Namespace, authenticated: object
+) -> CapExecutionInventory:
+    from sfora.unicom_inshop import parse_inshop_partition
+    from sfora.unicom_probe import split_probe_records
+    from sfora.unicom_training import identity_holdout
+
+    trusted = _object(
+        authenticated,
+        ("config", "repo_root", "source_commit", "head"),
+        "authenticated run",
+    )
+    config = trusted["config"]
+    if type(config) is not dict:
+        raise ValueError("authenticated config differs")
+    parent = strict_json_object(Path(args.parent_result).read_bytes())
+    parent_dataset = parent.get("dataset")
+    parent_class_mean = parent.get("class_mean")
+    parent_probes = parent.get("probes")
+    if (
+        type(parent_dataset) is not dict
+        or type(parent_class_mean) is not dict
+        or type(parent_probes) is not list
+        or len(parent_probes) != 3
+        or tuple(row.get("fit_seed") for row in parent_probes if type(row) is dict)
+        != (0, 1, 2)
+    ):
+        raise ValueError("parent primitive schema differs")
+    class_mean_sha256 = _sha256(
+        parent_class_mean.get("sha256"), "parent class mean sha256"
+    )
+    class_mean_validation = parent_class_mean.get("validation")
+    if type(class_mean_validation) is not dict:
+        raise ValueError("parent class mean metric differs")
+    target_sha256_by_seed: dict[int, str] = {}
+    target_metric_sha256_by_seed: dict[int, str] = {}
+    for expected_seed, row in enumerate(parent_probes):
+        if type(row) is not dict or row.get("fit_seed") != expected_seed:
+            raise ValueError("parent probe order differs")
+        target_sha256_by_seed[expected_seed] = _sha256(
+            row.get("sha256"), f"parent target {expected_seed} sha256"
+        )
+        validation = row.get("validation")
+        if type(validation) is not dict:
+            raise ValueError(f"parent target {expected_seed} metric differs")
+        target_metric_sha256_by_seed[expected_seed] = _sha256_bytes(
+            _canonical_bytes(validation)
+        )
+
+    records = parse_inshop_partition(Path(args.dataset_root))
+    train_records = tuple(row for row in records if row.split == "train")
+    optimization, _query, _gallery, labels = identity_holdout(
+        train_records,
+        fraction=config["protocol"]["holdout_fraction"],
+        seed=config["protocol"]["holdout_seed"],
+    )
+    split = split_probe_records(
+        optimization, labels, seed=config["protocol"]["split_seed"]
+    )
+    observed_dataset = {
+        "partition_sha256": config["inputs"]["partition_sha256"],
+        "optimization_identity_count": len(labels),
+        "optimization_image_count": len(optimization),
+        "fitting_image_count": len(split.fitting),
+        "validation_image_count": len(split.validation),
+        "validation_class_count": split.validation_class_count,
+        "singleton_class_count": split.singleton_class_count,
+        "excluded_same_series_count": split.excluded_same_series_count,
+        "represented_validation_count": sum(split.validation_group_represented),
+        "unrepresented_validation_count": sum(
+            not value for value in split.validation_group_represented
+        ),
+    }
+    if not _same_concrete(observed_dataset, parent_dataset):
+        raise ValueError("parent dataset reproduction differs")
+    protocol = config["protocol"]
+    result_protocol = {
+        "fit_seeds": protocol["fit_seeds"],
+        "snapshot_steps": protocol["snapshot_steps"],
+        "evaluation_mask_sets": protocol["evaluation_mask_sets"],
+        "covariance_mask_sets": protocol["covariance_mask_sets"],
+        "shards": protocol["shards"],
+        "feature_count": protocol["feature_count"],
+        "row_norm": protocol["row_norm"],
+        "paired_t_critical_df63": protocol["paired_t_critical_df63"],
+        "paired_t_critical_df3187": protocol["paired_t_critical_df3187"],
+        "loss_delta_minimum": protocol["loss_delta_minimum"],
+        "accuracy_delta_minimum": protocol["accuracy_delta_minimum"],
+        "non_worse_mask_minimum": protocol["non_worse_mask_minimum"],
+        "head_cosine_mean_minimum": protocol["head_cosine_mean_minimum"],
+        "step_equivalence_minimum": protocol["step_equivalence_minimum"],
+    }
+    result_inventory = {
+        "authority": {
+            "spec_path": config["spec"]["path"],
+            "spec_sha256": config["spec"]["sha256"],
+            "spec_commit": config["spec"]["commit"],
+            "parent_path": config["parent"]["path"],
+            "parent_sha256": config["parent"]["sha256"],
+            "parent_source_commit": config["parent"]["source_commit"],
+            "source_commit": trusted["source_commit"],
+            "handoff_commit": trusted["head"],
+            "unicom_revision": config["inputs"]["unicom_revision"],
+            "checkpoint_sha256": config["inputs"]["checkpoint_sha256"],
+            "partition_sha256": config["inputs"]["partition_sha256"],
+        },
+        "runtime": config["environment"],
+        "dataset": observed_dataset,
+        "protocol": result_protocol,
+    }
+    return CapExecutionInventory(
+        result=result_inventory,
+        fitting=split.fitting,
+        validation=split.validation,
+        validation_group_represented=split.validation_group_represented,
+        labels=labels,
+        class_mean_sha256=class_mean_sha256,
+        target_sha256_by_seed=target_sha256_by_seed,
+        fit_steps=protocol["fit_steps"],
+        batch_size=protocol["batch_size"],
+        peak_gpu_mib=0,
+        parent_class_mean_metric_sha256=_sha256_bytes(
+            _canonical_bytes(class_mean_validation)
+        ),
+        parent_target_metric_sha256_by_seed=target_metric_sha256_by_seed,
+    )
+
+
+def _tensor_sha256(value: object) -> str:
+    import torch
+
+    if type(value) is not torch.Tensor:
+        raise TypeError("CAP tensor differs")
+    array = value.detach().cpu().contiguous().numpy()
+    return hashlib.sha256(array.tobytes(order="C")).hexdigest()
+
+
+def _metric_payload(value: object) -> dict[str, object]:
+    from sfora.unicom_probe import ProbeMetrics
+
+    if type(value) is not ProbeMetrics:
+        raise TypeError("CAP metric differs")
+    return {
+        "mean_loss": value.mean_loss,
+        "accuracy": value.accuracy,
+        "correct_count": value.correct_count,
+        "observation_count": value.observation_count,
+        "per_mask_mean_losses": list(value.per_mask_mean_losses),
+        "per_mask_represented_mean_losses": list(
+            value.per_mask_represented_mean_losses
+        ),
+        "per_mask_unrepresented_mean_losses": list(
+            value.per_mask_unrepresented_mean_losses
+        ),
+        "per_image_mean_losses": list(value.per_image_mean_losses),
+        "represented_mean_loss": value.represented_mean_loss,
+        "unrepresented_mean_loss": value.unrepresented_mean_loss,
+    }
+
+
+def _row_cosine_payload(left: object, right: object) -> dict[str, object]:
+    import torch
+
+    if type(left) is not torch.Tensor or type(right) is not torch.Tensor:
+        raise TypeError("CAP cosine tensor differs")
+    values = (
+        torch.nn.functional.cosine_similarity(left, right, dim=1)
+        .clamp(-1.0, 1.0)
+        .double()
+        .cpu()
+        .numpy()
+    )
+    if not np.isfinite(values).all():
+        raise ValueError("CAP cosine differs")
+    return {
+        "row_cosines": values.tolist(),
+        "summary": {
+            "minimum": float(values.min()),
+            "p05": float(np.quantile(values, 0.05, method="linear")),
+            "median": float(np.quantile(values, 0.5, method="linear")),
+            "mean": float(values.mean()),
+        },
+    }
+
+
+def execute_screen(
+    args: argparse.Namespace, inventory: CapExecutionInventory
+) -> dict[str, object]:
+    import torch
+
+    from sfora.unicom_cap import (
+        CAP_VARIANTS,
+        CapCosineSummary,
+        build_cap_heads,
+        cap_decision,
+        covariance_mask_mismatch,
+    )
+    from sfora.unicom_inshop import InshopRecord
+    from sfora.unicom_probe import (
+        class_mean_head,
+        evaluate_probe_head,
+        fit_spherical_probe_trajectory,
+    )
+
+    if type(inventory) is not CapExecutionInventory:
+        raise TypeError("CAP execution inventory differs")
+    trusted = _object(
+        inventory.result, ("authority", "runtime", "dataset", "protocol"), "inventory"
+    )
+    dataset = trusted["dataset"]
+    protocol = trusted["protocol"]
+    class_count = _positive_int(
+        dataset["optimization_identity_count"], "optimization identity count"
+    )
+    fitting_count = _positive_int(dataset["fitting_image_count"], "fitting count")
+    validation_count = _positive_int(
+        dataset["validation_image_count"], "validation count"
+    )
+    feature_count = _positive_int(protocol["feature_count"], "feature count")
+    mask_count = _positive_int(protocol["evaluation_mask_sets"], "mask count")
+    covariance_mask_count = _positive_int(
+        protocol["covariance_mask_sets"], "covariance mask count"
+    )
+    row_norm = _finite_float(protocol["row_norm"], "row norm")
+    if (
+        type(inventory.fitting) is not tuple
+        or len(inventory.fitting) != fitting_count
+        or type(inventory.validation) is not tuple
+        or len(inventory.validation) != validation_count
+        or any(type(row) is not InshopRecord for row in inventory.fitting)
+        or any(type(row) is not InshopRecord for row in inventory.validation)
+        or type(inventory.labels) is not dict
+        or tuple(inventory.labels.values()) != tuple(range(class_count))
+        or type(inventory.validation_group_represented) is not tuple
+        or len(inventory.validation_group_represented) != validation_count
+        or any(
+            type(value) is not bool
+            for value in inventory.validation_group_represented
+        )
+        or not any(inventory.validation_group_represented)
+        or all(inventory.validation_group_represented)
+        or tuple(inventory.target_sha256_by_seed) != tuple(protocol["fit_seeds"])
+        or type(inventory.fit_steps) is not int
+        or inventory.fit_steps <= 0
+        or type(inventory.batch_size) is not int
+        or inventory.batch_size <= 0
+        or type(inventory.peak_gpu_mib) is not int
+        or inventory.peak_gpu_mib < 0
+    ):
+        raise ValueError("CAP execution inventory differs")
+    _sha256(inventory.class_mean_sha256, "registered class mean")
+    for digest in inventory.target_sha256_by_seed.values():
+        _sha256(digest, "registered target")
+    if inventory.parent_class_mean_metric_sha256 is not None:
+        _sha256(
+            inventory.parent_class_mean_metric_sha256,
+            "registered parent class mean metric",
+        )
+    if inventory.parent_target_metric_sha256_by_seed is not None:
+        if tuple(inventory.parent_target_metric_sha256_by_seed) != tuple(
+            protocol["fit_seeds"]
+        ):
+            raise ValueError("registered parent target metric seeds differ")
+        for digest in inventory.parent_target_metric_sha256_by_seed.values():
+            _sha256(digest, "registered parent target metric")
+
+    started = time.perf_counter()
+    fitting_features, validation_features = _encode_feature_sets(
+        args, inventory.fitting, inventory.validation
+    )
+    if (
+        type(fitting_features) is not torch.Tensor
+        or fitting_features.dtype != torch.float32
+        or fitting_features.shape != (fitting_count, feature_count)
+        or not fitting_features.is_contiguous()
+        or type(validation_features) is not torch.Tensor
+        or validation_features.dtype != torch.float32
+        or validation_features.shape != (validation_count, feature_count)
+        or not validation_features.is_contiguous()
+        or fitting_features.device != validation_features.device
+    ):
+        raise ValueError("CAP feature inventory differs")
+    device = fitting_features.device
+    fitting_labels = torch.tensor(
+        [inventory.labels[row.label] for row in inventory.fitting],
+        dtype=torch.int64,
+        device=device,
+    )
+    validation_labels = torch.tensor(
+        [inventory.labels[row.label] for row in inventory.validation],
+        dtype=torch.int64,
+        device=device,
+    )
+    class_mean = class_mean_head(fitting_features, fitting_labels, class_count)
+    if _tensor_sha256(class_mean) != inventory.class_mean_sha256:
+        raise ValueError("registered class mean differs")
+    class_metric = evaluate_probe_head(
+        validation_features,
+        validation_labels,
+        class_mean,
+        validation_group_represented=inventory.validation_group_represented,
+        mask_sets=mask_count,
+    )
+    if (
+        inventory.parent_class_mean_metric_sha256 is not None
+        and _sha256_bytes(_canonical_bytes(_metric_payload(class_metric)))
+        != inventory.parent_class_mean_metric_sha256
+    ):
+        raise ValueError("parent class mean metric differs")
+    trajectories: dict[int, dict[int, float]] = {}
+    seed_primitives: list[dict[str, object]] = []
+    fitted_targets: dict[int, object] = {}
+    snapshot_steps = tuple(protocol["snapshot_steps"])
+    for seed in tuple(protocol["fit_seeds"]):
+        fit, snapshots = fit_spherical_probe_trajectory(
+            fitting_features,
+            fitting_labels,
+            class_mean,
+            snapshot_steps=snapshot_steps,
+            steps=inventory.fit_steps,
+            batch_size=inventory.batch_size,
+            fit_seed=seed,
+        )
+        target_sha256 = _tensor_sha256(fit.head)
+        if target_sha256 != inventory.target_sha256_by_seed[seed]:
+            raise ValueError("registered fitted target differs")
+        target_metric = evaluate_probe_head(
+            validation_features,
+            validation_labels,
+            fit.head,
+            validation_group_represented=inventory.validation_group_represented,
+            mask_sets=mask_count,
+        )
+        if (
+            inventory.parent_target_metric_sha256_by_seed is not None
+            and _sha256_bytes(_canonical_bytes(_metric_payload(target_metric)))
+            != inventory.parent_target_metric_sha256_by_seed[seed]
+        ):
+            raise ValueError(f"parent seed {seed} metric differs")
+        trajectory_rows: list[dict[str, object]] = []
+        trajectory_losses: dict[int, float] = {}
+        for step in snapshot_steps:
+            snapshot = snapshots[step]
+            metric = evaluate_probe_head(
+                validation_features,
+                validation_labels,
+                snapshot,
+                validation_group_represented=inventory.validation_group_represented,
+                mask_sets=mask_count,
+            )
+            trajectory_rows.append(
+                {
+                    "step": step,
+                    "sha256": _tensor_sha256(snapshot),
+                    "validation": _metric_payload(metric),
+                }
+            )
+            trajectory_losses[step] = metric.mean_loss
+        trajectories[seed] = trajectory_losses
+        target_norms = torch.linalg.vector_norm(fit.head, dim=1).double().cpu()
+        fitted_targets[seed] = fit.head
+        seed_primitives.append(
+            {
+                "fit_seed": seed,
+                "fitted_target": {
+                    "sha256": target_sha256,
+                    "row_norm_min": float(target_norms.min()),
+                    "row_norm_max": float(target_norms.max()),
+                    "validation": _metric_payload(target_metric),
+                },
+                "trajectory": trajectory_rows,
+            }
+        )
+        del snapshots, fit
+
+    construction = build_cap_heads(fitting_features, fitting_labels, row_norm=row_norm)
+    diagnostic = covariance_mask_mismatch(
+        construction,
+        seed=23_006,
+        mask_sets=covariance_mask_count,
+    )
+    cap_metric_objects = {
+        variant: evaluate_probe_head(
+            validation_features,
+            validation_labels,
+            construction.heads[variant],
+            validation_group_represented=inventory.validation_group_represented,
+            mask_sets=mask_count,
+        )
+        for variant in CAP_VARIANTS
+    }
+    target_heads: dict[int, dict[str, CapCosineSummary]] = {}
+    for seed, primitive in zip(
+        tuple(protocol["fit_seeds"]), seed_primitives, strict=True
+    ):
+        cosine_payload = {
+            variant: _row_cosine_payload(
+                construction.heads[variant], fitted_targets[seed]
+            )
+            for variant in CAP_VARIANTS
+        }
+        primitive["cap_to_target"] = cosine_payload
+        target_heads[seed] = {
+            variant: CapCosineSummary(
+                *(cosine_payload[variant]["summary"][key] for key in _SUMMARY_KEYS)
+            )
+            for variant in CAP_VARIANTS
+        }
+
+    decision = cap_decision(
+        class_mean=class_metric,
+        cap_metrics=cap_metric_objects,
+        target_heads=target_heads,
+        trajectories=trajectories,
+        expected_mask_count=mask_count,
+        expected_image_count=validation_count,
+    )
+    for seed, primitive in zip(tuple(protocol["fit_seeds"]), seed_primitives, strict=True):
+        primitive["step_equivalence"] = {
+            variant: decision.per_variant[variant].per_seed_step_equivalence[seed]
+            for variant in CAP_VARIANTS
+        }
+        primitive["predicates"] = {
+            variant: decision.per_variant[variant].per_seed_predicates[seed]
+            for variant in CAP_VARIANTS
+        }
+    covariance = np.ascontiguousarray(construction.covariance, dtype="<f8")
+    class_norms = torch.linalg.vector_norm(class_mean, dim=1).double().cpu().numpy()
+    cap_metrics = {
+        variant: {
+            "validation": _metric_payload(cap_metric_objects[variant]),
+            "statistics": vars(decision.per_variant[variant].statistics),
+            "predicates": decision.per_variant[variant].seed_invariant_predicates,
+        }
+        for variant in CAP_VARIANTS
+    }
+    result = {
+        "schema_version": "unicom-cap-f0-v1",
+        "authority": trusted["authority"],
+        "runtime": {
+            **trusted["runtime"],
+            "elapsed_seconds": float(time.perf_counter() - started),
+            "peak_gpu_mib": inventory.peak_gpu_mib,
+        },
+        "dataset": trusted["dataset"],
+        "protocol": trusted["protocol"],
+        "covariance": {
+            "sample_count": construction.sample_count,
+            "feature_count": construction.feature_count,
+            "shrinkage": construction.shrinkage,
+            "matrix_fp64_le_base64": base64.b64encode(
+                covariance.tobytes(order="C")
+            ).decode("ascii"),
+            "trace": construction.covariance_trace,
+            "cholesky_diagonal_min": construction.cholesky_diagonal_min,
+            "cholesky_diagonal_max": construction.cholesky_diagonal_max,
+            "sha256": construction.covariance_sha256,
+            "condition_number": construction.condition_number,
+            "effective_rank": construction.effective_rank,
+            "construction_mask_sha256": [
+                list(mask_set) for mask_set in diagnostic["mask_sha256"]
+            ],
+            "mismatch": {
+                variant: {
+                    "row_cosines": diagnostic["cosines"][variant]["row_cosines"],
+                    "summary": {
+                        key: diagnostic["cosines"][variant][key]
+                        for key in _SUMMARY_KEYS
+                    },
+                }
+                for variant in CAP_VARIANTS
+            },
+        },
+        "class_mean": {
+            "sha256": inventory.class_mean_sha256,
+            "row_norms": class_norms.tolist(),
+            "row_norm_min": float(class_norms.min()),
+            "row_norm_max": float(class_norms.max()),
+            "validation": _metric_payload(class_metric),
+        },
+        "cap_metrics": cap_metrics,
+        "seeds": seed_primitives,
+        "decision": {
+            "per_variant": {
+                variant: {
+                    "statistics": vars(decision.per_variant[variant].statistics),
+                    "predicates": decision.per_variant[
+                        variant
+                    ].seed_invariant_predicates,
+                    "passes_static": decision.per_variant[variant].passes_static,
+                    "passes_all": decision.per_variant[variant].passes_all,
+                    "decision_level": decision.per_variant[variant].decision_level,
+                    "min_step_equivalence": decision.per_variant[
+                        variant
+                    ].min_step_equivalence,
+                }
+                for variant in CAP_VARIANTS
+            },
+            "selected_variant": decision.selected_variant,
+            "status": decision.status,
+        },
+        "candidate_values_computed": True,
+    }
+    validate_result(result, inventory=trusted)
+    del fitting_features, validation_features, class_mean, construction
+    return result
+
+
 def run(
-    _args: argparse.Namespace,
+    args: argparse.Namespace,
 ) -> tuple[dict[str, object], dict[str, object]]:
-    raise NotImplementedError("CAP scientific execution is not implemented")
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    authenticated = authenticate_run(args)
+    import torch
+    from threadpoolctl import threadpool_limits
+
+    torch_state = torch.get_rng_state().clone()
+    torch_threads = torch.get_num_threads()
+    cuda_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    try:
+        torch.set_num_threads(1)
+        with threadpool_limits(limits=1):
+            _validate_runtime(authenticated["config"]["environment"])
+            inventory = _build_execution_inventory(args, authenticated)
+            return _execute_with_runtime_observation(args, inventory)
+    finally:
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+        torch.set_rng_state(torch_state)
+        torch.set_num_threads(torch_threads)
+        if cuda_states is not None:
+            torch.cuda.set_rng_state_all(cuda_states)
+
+
+def _execute_with_runtime_observation(
+    args: argparse.Namespace, inventory: CapExecutionInventory
+) -> tuple[dict[str, object], CapExecutionInventory]:
+    import torch
+
+    if type(inventory) is not CapExecutionInventory:
+        raise TypeError("CAP execution inventory differs")
+    torch.cuda.reset_peak_memory_stats()
+    value = execute_screen(args, inventory)
+    torch.cuda.synchronize()
+    peak_gpu_mib = math.ceil(torch.cuda.max_memory_allocated() / 1024**2)
+    runtime = value.get("runtime")
+    if type(runtime) is not dict:
+        raise ValueError("CAP runtime result differs")
+    runtime["peak_gpu_mib"] = peak_gpu_mib
+    observed_inventory = replace(inventory, peak_gpu_mib=peak_gpu_mib)
+    validate_result(value, inventory=observed_inventory.result)
+    return value, observed_inventory
 
 
 def run_parent_replay_preflight(_args: argparse.Namespace) -> dict[str, object]:
-    raise NotImplementedError("CAP parent replay is not implemented")
+    args = _args
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    authenticated = authenticate_run(args)
+    import torch
+    from threadpoolctl import threadpool_limits
+
+    torch_state = torch.get_rng_state().clone()
+    torch_threads = torch.get_num_threads()
+    cuda_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    try:
+        torch.set_num_threads(1)
+        with threadpool_limits(limits=1):
+            _validate_runtime(authenticated["config"]["environment"])
+            inventory = _build_execution_inventory(args, authenticated)
+            return _compute_parent_replay(args, inventory)
+    finally:
+        random.setstate(python_state)
+        np.random.set_state(numpy_state)
+        torch.set_rng_state(torch_state)
+        torch.set_num_threads(torch_threads)
+        if cuda_states is not None:
+            torch.cuda.set_rng_state_all(cuda_states)
+
+
+def _compute_parent_replay(
+    args: argparse.Namespace, inventory: CapExecutionInventory
+) -> dict[str, object]:
+    import torch
+
+    from sfora.unicom_probe import class_mean_head, fit_spherical_probe_trajectory
+
+    if type(inventory) is not CapExecutionInventory:
+        raise TypeError("CAP execution inventory differs")
+    trusted = _object(
+        inventory.result, ("authority", "runtime", "dataset", "protocol"), "inventory"
+    )
+    protocol = trusted["protocol"]
+    fitting_features, validation_features = _encode_feature_sets(
+        args, inventory.fitting, inventory.validation
+    )
+    fitting_labels = torch.tensor(
+        [inventory.labels[row.label] for row in inventory.fitting],
+        dtype=torch.int64,
+        device=fitting_features.device,
+    )
+    class_mean = class_mean_head(
+        fitting_features, fitting_labels, len(inventory.labels)
+    )
+    class_sha256 = _tensor_sha256(class_mean)
+    if class_sha256 != inventory.class_mean_sha256:
+        raise ValueError("registered class mean differs")
+    target_sha256_by_seed: dict[str, str] = {}
+    for seed in tuple(protocol["fit_seeds"]):
+        fit, snapshots = fit_spherical_probe_trajectory(
+            fitting_features,
+            fitting_labels,
+            class_mean,
+            snapshot_steps=tuple(protocol["snapshot_steps"]),
+            steps=inventory.fit_steps,
+            batch_size=inventory.batch_size,
+            fit_seed=seed,
+        )
+        digest = _tensor_sha256(fit.head)
+        if digest != inventory.target_sha256_by_seed[seed]:
+            raise ValueError(f"registered fitted target {seed} differs")
+        target_sha256_by_seed[str(seed)] = digest
+        del snapshots, fit
+    del fitting_features, validation_features, class_mean
+    return {
+        "class_mean_sha256": class_sha256,
+        "target_sha256_by_seed": target_sha256_by_seed,
+        "candidate_values_computed": False,
+    }
 
 
 def _validate_parent_replay(value: object) -> dict[str, object]:

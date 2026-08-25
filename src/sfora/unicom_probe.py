@@ -493,7 +493,7 @@ def fit_spherical_probe_trajectory(
     )
 
 
-def evaluate_probe_heads(
+def _evaluate_probe_head_mapping(
     features: torch.Tensor,
     labels: torch.Tensor,
     heads: Mapping[str, torch.Tensor],
@@ -502,16 +502,10 @@ def evaluate_probe_heads(
     mask_sets: int = 64,
     mask_seed: int = 23_003,
 ) -> dict[str, ProbeMetrics]:
-    """Evaluate registered heads over fixed masked ArcFace observations."""
-
-    if type(heads) is not dict or tuple(heads) != ("class_mean", "spherical_probe"):
+    if type(heads) is not dict or not heads:
         raise ValueError("probe evaluation head order differs")
-    _validate_probe_tensors(
-        features, labels, heads["class_mean"], require_all_classes=False
-    )
-    _validate_probe_tensors(
-        features, labels, heads["spherical_probe"], require_all_classes=False
-    )
+    for head in heads.values():
+        _validate_probe_tensors(features, labels, head, require_all_classes=False)
     if (
         type(mask_sets) is not int
         or mask_sets <= 0
@@ -588,6 +582,50 @@ def evaluate_probe_heads(
         )
         for name in heads
     }
+
+
+def evaluate_probe_heads(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    heads: Mapping[str, torch.Tensor],
+    *,
+    validation_group_represented: tuple[bool, ...],
+    mask_sets: int = 64,
+    mask_seed: int = 23_003,
+) -> dict[str, ProbeMetrics]:
+    """Evaluate the registered baseline/candidate pair over fixed masks."""
+
+    if type(heads) is not dict or tuple(heads) != ("class_mean", "spherical_probe"):
+        raise ValueError("probe evaluation head order differs")
+    return _evaluate_probe_head_mapping(
+        features,
+        labels,
+        heads,
+        validation_group_represented=validation_group_represented,
+        mask_sets=mask_sets,
+        mask_seed=mask_seed,
+    )
+
+
+def evaluate_probe_head(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    head: torch.Tensor,
+    *,
+    validation_group_represented: tuple[bool, ...],
+    mask_sets: int = 64,
+    mask_seed: int = 23_003,
+) -> ProbeMetrics:
+    """Evaluate one candidate head without replaying a stored baseline."""
+
+    return _evaluate_probe_head_mapping(
+        features,
+        labels,
+        {"candidate": head},
+        validation_group_represented=validation_group_represented,
+        mask_sets=mask_sets,
+        mask_seed=mask_seed,
+    )["candidate"]
 
 
 def compare_probe_gradients(

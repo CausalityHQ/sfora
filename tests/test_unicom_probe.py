@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import torch
 
+from sfora import unicom_probe as probe_module
 from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_probe import (
     PROBE_LEARNING_RATE,
@@ -316,6 +317,29 @@ def test_evaluate_probe_heads_uses_margin_free_accuracy_and_retains_paired_losse
         assert actual[name].unrepresented_mean_loss == (
             math.fsum(actual[name].per_mask_unrepresented_mean_losses) / 2
         )
+
+
+def test_evaluate_probe_head_matches_candidate_metric_without_baseline_replay() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    probe = torch.roll(initial, shifts=-1, dims=0).contiguous()
+    represented = tuple(index % 2 == 0 for index in range(labels.numel()))
+    paired = evaluate_probe_heads(
+        features,
+        labels,
+        {"class_mean": initial, "spherical_probe": probe},
+        validation_group_represented=represented,
+        mask_sets=2,
+    )
+
+    candidate = probe_module.evaluate_probe_head(
+        features,
+        labels,
+        probe,
+        validation_group_represented=represented,
+        mask_sets=2,
+    )
+
+    assert candidate == paired["spherical_probe"]
 
 
 def test_evaluate_probe_heads_allows_singleton_classes_absent_from_validation() -> None:

@@ -339,6 +339,36 @@ def test_cap_decision_rejects_noncanonical_seed_or_scalar_evidence(mutation: str
         )
 
 
+def test_cap_decision_validates_authenticated_metric_dimensions() -> None:
+    class_mean, cap_metrics, target_heads, trajectories = _decision_inputs()
+
+    def resize(metrics: ProbeMetrics) -> ProbeMetrics:
+        return ProbeMetrics(
+            **{
+                **metrics.__dict__,
+                "per_mask_mean_losses": metrics.per_mask_mean_losses[:8],
+                "per_mask_represented_mean_losses": (
+                    metrics.per_mask_represented_mean_losses[:8]
+                ),
+                "per_mask_unrepresented_mean_losses": (
+                    metrics.per_mask_unrepresented_mean_losses[:8]
+                ),
+                "per_image_mean_losses": metrics.per_image_mean_losses[:8],
+            }
+        )
+
+    actual = cap_decision(
+        class_mean=resize(class_mean),
+        cap_metrics={name: resize(metrics) for name, metrics in cap_metrics.items()},
+        target_heads=target_heads,
+        trajectories=trajectories,
+        expected_mask_count=8,
+        expected_image_count=8,
+    )
+
+    assert actual.status == "CLOSE_CAP"
+
+
 def test_cap_decision_treats_both_over_512_values_as_centered_tie() -> None:
     actual = _decide(_decision_inputs(first_step=None))
 
@@ -413,6 +443,11 @@ def test_covariance_mask_mismatch_is_one_for_diagonal_covariance() -> None:
     assert actual["condition_number"] == 1.0
     assert actual["effective_rank"] == pytest.approx(513.0)
     for name in ("cap_centered", "cap_uncentered"):
+        assert len(actual["cosines"][name]["row_cosines"]) == 2
+        assert all(
+            value == pytest.approx(1.0, abs=2e-15)
+            for value in actual["cosines"][name]["row_cosines"]
+        )
         assert actual["cosines"][name]["minimum"] == pytest.approx(1.0, abs=2e-15)
         assert actual["cosines"][name]["p05"] == pytest.approx(1.0, abs=2e-15)
         assert actual["cosines"][name]["median"] == pytest.approx(1.0, abs=2e-15)

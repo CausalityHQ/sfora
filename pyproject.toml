@@ -84,3 +84,6 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = [
+  "cap_real_cpu: deterministic real-math UniCOM CAP scientific integration",
+]
