@@ -19,6 +19,7 @@ from sfora.unicom_probe import (
     compare_probe_gradients,
     evaluate_probe_heads,
     fit_spherical_probe,
+    fit_spherical_probe_trajectory,
     probe_decision,
     split_probe_records,
 )
@@ -206,6 +207,28 @@ def test_fit_spherical_probe_is_byte_deterministic_for_registered_streams() -> N
     assert first.initial_loss == second.initial_loss
     assert first.final_loss == second.final_loss
     assert first.steps == second.steps
+
+
+def test_probe_trajectory_reuses_one_optimizer_and_matches_legacy_final() -> None:
+    features, labels, initial = _separable_probe_fixture()
+
+    fit, snapshots = fit_spherical_probe_trajectory(
+        features,
+        labels,
+        initial,
+        steps=8,
+        snapshot_steps=(0, 1, 2, 4, 8),
+        batch_size=8,
+    )
+    legacy = fit_spherical_probe(features, labels, initial, steps=8, batch_size=8)
+
+    assert tuple(snapshots) == (0, 1, 2, 4, 8)
+    assert torch.equal(snapshots[0], initial)
+    assert all(snapshot.is_contiguous() for snapshot in snapshots.values())
+    assert all(not snapshot.requires_grad for snapshot in snapshots.values())
+    assert len({snapshot.data_ptr() for snapshot in snapshots.values()}) == 5
+    assert snapshots[8] is fit.head
+    assert torch.equal(fit.head, legacy.head)
 
 
 @pytest.mark.parametrize(

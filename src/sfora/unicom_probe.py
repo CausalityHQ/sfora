@@ -316,20 +316,19 @@ def _diagnostic_loss(
     return float(loss)
 
 
-def fit_spherical_probe(
+def _fit_spherical_probe(
     features: torch.Tensor,
     labels: torch.Tensor,
     initial: torch.Tensor,
     *,
+    snapshot_steps: tuple[int, ...],
     steps: int = PROBE_STEPS,
     batch_size: int = PROBE_BATCH_SIZE,
     batch_seed: int = PROBE_BATCH_SEED,
     mask_seed: int = PROBE_MASK_SEED,
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
     fit_seed: int = 0,
-) -> ProbeFit:
-    """Optimize ArcFace directions while projecting every row to its initial norm."""
-
+) -> tuple[ProbeFit, dict[int, torch.Tensor]]:
     target_norm = _validate_probe_tensors(features, labels, initial)
     if (
         type(steps) is not int
@@ -343,7 +342,9 @@ def fit_spherical_probe(
         )
     ):
         raise ValueError("spherical probe schedule differs")
-
+    snapshots: dict[int, torch.Tensor] = {}
+    if 0 in snapshot_steps:
+        snapshots[0] = initial.detach().clone().contiguous()
     initial_loss = _diagnostic_loss(
         features,
         labels,
@@ -403,11 +404,15 @@ def fit_spherical_probe(
                     raise ValueError("spherical probe updated row norm differs")
                 head.mul_((target_norm / norms)[:, None])
             completed += 1
+            if completed in snapshot_steps and completed != steps:
+                snapshots[completed] = head.detach().clone().contiguous()
             if completed == steps:
                 break
         epoch += 1
 
     result = head.detach().contiguous()
+    if steps in snapshot_steps:
+        snapshots[steps] = result
     final_loss = _diagnostic_loss(
         features,
         labels,
@@ -417,7 +422,7 @@ def fit_spherical_probe(
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
     cosine = F.cosine_similarity(result, initial, dim=1).clamp(-1.0, 1.0).double()
-    return ProbeFit(
+    fit = ProbeFit(
         head=result,
         initial_loss=initial_loss,
         final_loss=final_loss,
@@ -426,6 +431,65 @@ def fit_spherical_probe(
         row_cosine_p05=float(torch.quantile(cosine, 0.05)),
         row_cosine_median=float(torch.quantile(cosine, 0.5)),
         row_cosine_mean=float(cosine.mean()),
+    )
+    return fit, snapshots
+
+
+def fit_spherical_probe(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    initial: torch.Tensor,
+    *,
+    steps: int = PROBE_STEPS,
+    batch_size: int = PROBE_BATCH_SIZE,
+    batch_seed: int = PROBE_BATCH_SEED,
+    mask_seed: int = PROBE_MASK_SEED,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    fit_seed: int = 0,
+) -> ProbeFit:
+    """Optimize ArcFace directions while projecting every row to its initial norm."""
+
+    fit, _snapshots = _fit_spherical_probe(
+        features,
+        labels,
+        initial,
+        snapshot_steps=(),
+        steps=steps,
+        batch_size=batch_size,
+        batch_seed=batch_seed,
+        mask_seed=mask_seed,
+        diagnostic_seed=diagnostic_seed,
+        fit_seed=fit_seed,
+    )
+    return fit
+
+
+def fit_spherical_probe_trajectory(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    initial: torch.Tensor,
+    *,
+    snapshot_steps: tuple[int, ...],
+    steps: int = PROBE_STEPS,
+    batch_size: int = PROBE_BATCH_SIZE,
+    batch_seed: int = PROBE_BATCH_SEED,
+    mask_seed: int = PROBE_MASK_SEED,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    fit_seed: int = 0,
+) -> tuple[ProbeFit, dict[int, torch.Tensor]]:
+    """Fit one probe and retain registered optimizer-step snapshots."""
+
+    return _fit_spherical_probe(
+        features,
+        labels,
+        initial,
+        snapshot_steps=snapshot_steps,
+        steps=steps,
+        batch_size=batch_size,
+        batch_seed=batch_seed,
+        mask_seed=mask_seed,
+        diagnostic_seed=diagnostic_seed,
+        fit_seed=fit_seed,
     )
 
 
