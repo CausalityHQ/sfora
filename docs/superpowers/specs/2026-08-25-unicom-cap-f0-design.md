@@ -276,11 +276,21 @@ The scientific JSON must contain, in exact order:
    elapsed seconds, peak GPU MiB);
 4. `dataset` (the unchanged parent counts and hashes);
 5. `protocol` (all constants and step grid above);
-6. `covariance` (sample/feature counts, shrinkage, trace, minimum/maximum
-   Cholesky diagonal, covariance SHA-256 over FP64 C-order bytes, condition
-   number, Shannon effective rank, ordered construction-mask hashes, and exact
-   per-variant mismatch-cosine summaries);
-7. `class_mean` (reconstructed head SHA-256, row-norm minimum and maximum, and
+6. `covariance` (sample/feature counts, shrinkage, the exact covariance matrix
+   encoded as base64 of contiguous little-endian FP64 C-order bytes, trace,
+   minimum/maximum Cholesky diagonal, covariance SHA-256 over those decoded
+   bytes, condition number, Shannon effective rank, ordered construction-mask
+   hashes, and, per variant, all `8 x 3200` mismatch row cosines followed by
+   their exact summaries). The validator decodes the matrix, requires exactly
+   `768 x 768` finite values, recomputes its byte digest, symmetry, Cholesky,
+   trace, eigenspectrum, condition number, effective rank, and Cholesky extrema,
+   and recomputes every mismatch summary from its persisted row cosines.
+   Shrinkage is the primitive scalar returned by the frozen Ledoit--Wolf call;
+   it must be a concrete finite Python float in `[0,1]` and is independently
+   recomputed from the authenticated fitting features during offline result
+   adjudication rather than derived from the covariance matrix alone;
+7. `class_mean` (reconstructed head SHA-256, all `3200` concrete FP64 row
+   norms followed by their recomputed minimum and maximum, and
    the seed-invariant replayed validation metric: mean loss, accuracy, correct
    and observation counts, all 64 per-mask, per-mask represented, and per-mask
    unrepresented mean losses, all 3188 per-image mean losses, and the
@@ -296,10 +306,13 @@ The scientific JSON must contain, in exact order:
    and status);
 11. `candidate_values_computed` = `true`.
 
-Strict recursive validation must recompute every aggregate, covariance
-diagnostic, cosine, loss delta, accuracy delta, paired lower bound, mask count,
-step-equivalence, predicate, selection, and decision from persisted primitive
-rows. JSON rejects NaN, infinity,
+Strict recursive validation must recompute every aggregate, every covariance
+matrix statistic and mismatch summary, every row-norm summary, cosine, loss
+delta, accuracy delta, paired lower bound, mask count, step-equivalence,
+predicate, selection, and decision from persisted primitive rows or decoded
+matrix bytes. The primitive Ledoit--Wolf shrinkage and tensor SHA-256 values
+are type/range/format checked by the production validator and independently
+recomputed from authenticated inputs during offline adjudication. JSON rejects NaN, infinity,
 non-concrete scalar types, extra keys, reordered keys, and duplicate keys.
 
 The CLI publishes exactly once by temporary mode-0600 file, file and directory
