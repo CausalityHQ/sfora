@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import builtins
 import hashlib
 import json
 import math
@@ -20,7 +21,7 @@ from typing import NoReturn
 
 import numpy as np
 
-_TOP_KEYS = (
+_TOP_KEYS_V1 = (
     "schema_version",
     "spec",
     "parent",
@@ -31,6 +32,7 @@ _TOP_KEYS = (
     "handoff",
     "result",
 )
+_TOP_KEYS = (*_TOP_KEYS_V1[:-1], "recovery", "result")
 _SPEC_KEYS = ("path", "sha256", "commit")
 _PARENT_KEYS = ("path", "sha256", "source_commit", "artifact_commit")
 _ENVIRONMENT_KEYS = (
@@ -87,7 +89,52 @@ _PROTOCOL_KEYS = (
 _SOURCE_KEYS = ("commit", "files")
 _SOURCE_ROW_KEYS = ("path", "sha256")
 _HANDOFF_KEYS = ("parent_commit", "sole_path", "detached_clean")
+_RECOVERY_KEYS = (
+    "attempt",
+    "prior_attempt",
+    "amendment",
+    "plan",
+    "failure_relative_path",
+)
+_RECOVERY_AUTHORITY_KEYS = ("path", "sha256", "commit")
 _RESULT_KEYS = ("relative_path", "schema_version")
+_FAILURE_KEYS = (
+    "schema_version",
+    "attempt",
+    "prior_attempt",
+    "source_commit",
+    "handoff_commit",
+    "stage",
+    "error_code",
+    "exception_type",
+    "result_published",
+)
+_PRIOR_ATTEMPT_KEYS = ("handoff_commit", "exit_status", "result_published")
+_FAILURE_STAGES = (
+    "runtime",
+    "inventory",
+    "encoding",
+    "class_mean",
+    "cap_construction",
+    "cap_evaluation",
+    "covariance_diagnostic",
+    "probe_fit",
+    "cosine",
+    "decision",
+    "assembly",
+    "validation",
+    "runtime_observation",
+    "publication",
+)
+_FAILURE_ERROR_CODES = (
+    "metric_aggregate_differs",
+    "parent_metric_differs",
+    "runtime_differs",
+    "inventory_differs",
+    "validation_differs",
+    "publication_failed",
+    "unexpected_exception",
+)
 _SOURCE_PATHS = (
     "pyproject.toml",
     "scripts/screen_unicom_cap_f0.py",
@@ -110,6 +157,29 @@ _FROZEN_PARENT = {
     "sha256": "d1a52703849acb96f359c2c7f209942fcbf6fa770eeaa0ed41d947780d714ddf",
     "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0",
     "artifact_commit": "d07ff819eccafdfd048f19ff8b4d22c7ea1ed20f",
+}
+_FROZEN_PARENT_METRIC_SHA256 = {
+    "class_mean": "5de610b1d6038a18b51221fd88280c00cbd5d11701ac31830877f9b3284e8be0",
+    "targets": {
+        "0": "9505bf5ba965b04d6bad39896e8c4a442a46791b9b53c6ab426bd83e83532a9b",
+        "1": "889bb182ae2f2ceb14f6e35122079f141df1af87354ac8fbf7c5d6927ecb1e4f",
+        "2": "196f82dea9e9699df8e5efd08ab3ab0fa3923bd36ea793d46bd2cc66c5740025",
+    },
+}
+_FROZEN_RECOVERY_AUTHORITY = {
+    "amendment": {
+        "path": "docs/unicom_cap_f0_structural_recovery_2026-08-25.md",
+        "sha256": "a1f1b0ab9143421b7b1a701a3dd538f49ed773c178424ad47299ed7297293b14",
+        "commit": "89812cd82062e7098b5a9d142a158858a8ca6d79",
+    },
+    "plan": {
+        "path": (
+            "docs/superpowers/plans/"
+            "2026-08-25-unicom-cap-f0-structural-recovery.md"
+        ),
+        "sha256": "43f62e57cc5109c40341a51fa62dd4b1bf08d4dc5929f6418021f863e2c36333",
+        "commit": "02a6bcdef8f55ee1a1abab083351fae660ce6102",
+    },
 }
 _FROZEN_ENVIRONMENT = {
     "python": "3.13.9",
@@ -275,6 +345,25 @@ class CapExecutionInventory:
     parent_target_metric_sha256_by_seed: dict[int, str] | None = None
 
 
+@dataclass
+class CapStageTracker:
+    stage: str = "runtime"
+    authenticated: dict[str, object] | None = None
+
+
+class CapPostAuthorityError(Exception):
+    def __init__(
+        self,
+        authenticated: dict[str, object],
+        stage: str,
+        cause: Exception,
+    ) -> None:
+        super().__init__("CAP post-authority structural failure")
+        self.authenticated = authenticated
+        self.stage = stage
+        self.cause = cause
+
+
 def _reject_constant(value: str) -> NoReturn:
     raise ValueError(f"non-finite JSON constant: {value}")
 
@@ -303,6 +392,19 @@ def _object(value: object, keys: tuple[str, ...], name: str) -> dict[str, object
     if type(value) is not dict or tuple(value) != keys:
         raise ValueError(f"{name} schema differs")
     return value
+
+
+_AUTHENTICATED_RUN_KEYS = (
+    "config",
+    "repo_root",
+    "source_commit",
+    "head",
+    "failure_output",
+)
+
+
+def _authenticated_run(value: object) -> dict[str, object]:
+    return _object(value, _AUTHENTICATED_RUN_KEYS, "authenticated run")
 
 
 def _string(value: object, name: str) -> str:
@@ -349,8 +451,14 @@ def _same_concrete(actual: object, expected: object) -> bool:
 
 
 def validate_run_config(value: object) -> None:
-    config = _object(value, _TOP_KEYS, "run config")
-    if config["schema_version"] != "unicom-cap-f0-run-v1":
+    if type(value) is not dict:
+        raise ValueError("run config schema differs")
+    version = value.get("schema_version")
+    if version == "unicom-cap-f0-run-v1":
+        config = _object(value, _TOP_KEYS_V1, "run config")
+    elif version == "unicom-cap-f0-run-v2":
+        config = _object(value, _TOP_KEYS, "run config")
+    else:
         raise ValueError("run config version differs")
 
     spec = _object(config["spec"], _SPEC_KEYS, "spec")
@@ -428,6 +536,34 @@ def validate_run_config(value: object) -> None:
     if handoff["detached_clean"] is not True:
         raise ValueError("handoff must require a clean detached checkout")
 
+    if version == "unicom-cap-f0-run-v2":
+        recovery = _object(config["recovery"], _RECOVERY_KEYS, "recovery")
+        if type(recovery["attempt"]) is not int or recovery["attempt"] != 2:
+            raise ValueError("recovery attempt differs")
+        prior = _object(
+            recovery["prior_attempt"], _PRIOR_ATTEMPT_KEYS, "recovery prior attempt"
+        )
+        if not _same_concrete(prior, {
+            "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+            "exit_status": 2,
+            "result_published": False,
+        }):
+            raise ValueError("recovery prior attempt differs")
+        for name in ("amendment", "plan"):
+            authority = _object(
+                recovery[name], _RECOVERY_AUTHORITY_KEYS, f"recovery {name}"
+            )
+            _string(authority["path"], f"recovery {name} path")
+            _sha256(authority["sha256"], f"recovery {name} sha256")
+            _commit(authority["commit"], f"recovery {name} commit")
+            if not _same_concrete(authority, _FROZEN_RECOVERY_AUTHORITY[name]):
+                raise ValueError(f"recovery {name} authority differs")
+        expected_failure_path = (
+            f"reports/generated/unicom-cap-f0-{source_commit[:7]}-attempt2-failure.json"
+        )
+        if recovery["failure_relative_path"] != expected_failure_path:
+            raise ValueError("recovery failure path differs")
+
     result = _object(config["result"], _RESULT_KEYS, "result")
     if result["relative_path"] != f"reports/generated/unicom-cap-f0-{source_commit[:7]}.json":
         raise ValueError("result path differs from source commit")
@@ -480,14 +616,38 @@ def authenticate_run(args: argparse.Namespace) -> dict[str, object]:
     config_path = _real_file(Path(args.config), "config")
     config = strict_json_object(config_path.read_bytes())
     validate_run_config(config)
+    if config["schema_version"] != "unicom-cap-f0-run-v2":
+        raise ValueError("replacement recovery authority is absent")
     handoff = config["handoff"]
     source = config["source"]
     inputs = config["inputs"]
     parent = config["parent"]
+    recovery = config["recovery"]
     result = config["result"]
 
     if config_path != repo_root / handoff["sole_path"]:
         raise ValueError("config path differs")
+    output = Path(args.output).absolute()
+    if output != repo_root / result["relative_path"]:
+        raise ValueError("output flag differs")
+    _real_directory(output.parent, "output parent")
+    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    if temporary.exists() or temporary.is_symlink():
+        raise FileExistsError(temporary)
+    failure_output = repo_root / recovery["failure_relative_path"]
+    if failure_output == output:
+        raise ValueError("failure and result paths alias")
+    _real_directory(failure_output.parent, "failure output parent")
+    failure_temporary = failure_output.with_name(
+        f".{failure_output.name}.{os.getpid()}.tmp"
+    )
+    if failure_output.exists() or failure_output.is_symlink():
+        raise FileExistsError(failure_output)
+    if failure_temporary.exists() or failure_temporary.is_symlink():
+        raise FileExistsError(failure_temporary)
+
     head = _git(repo_root, "rev-parse", "HEAD").decode().strip()
     parent_commit = _git(repo_root, "rev-parse", "HEAD^").decode().strip()
     if parent_commit != source["commit"] or parent_commit != handoff["parent_commit"]:
@@ -587,6 +747,44 @@ def authenticate_run(args: argparse.Namespace) -> dict[str, object]:
     if artifact_to_source.returncode != 0:
         raise ValueError("parent artifact is not an ancestor of the CAP source")
 
+    for name in ("amendment", "plan"):
+        authority = recovery[name]
+        authority_path = _real_file(repo_root / authority["path"], f"recovery {name}")
+        authority_bytes = authority_path.read_bytes()
+        if _sha256_bytes(authority_bytes) != authority["sha256"]:
+            raise ValueError(f"recovery {name} digest differs")
+        if (
+            _git(repo_root, "show", f"{authority['commit']}:{authority['path']}")
+            != authority_bytes
+        ):
+            raise ValueError(f"recovery {name} Git bytes differ")
+    subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            recovery["amendment"]["commit"],
+            recovery["plan"]["commit"],
+        ],
+        cwd=repo_root,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            recovery["plan"]["commit"],
+            source["commit"],
+        ],
+        cwd=repo_root,
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
     unicom = _real_directory(Path(inputs["unicom_checkout"]), "UniCOM checkout")
     if unicom != Path(args.unicom_checkout).resolve(strict=True):
         raise ValueError("UniCOM checkout flag differs")
@@ -604,21 +802,13 @@ def authenticate_run(args: argparse.Namespace) -> dict[str, object]:
     if _sha256_bytes(partition.read_bytes()) != inputs["partition_sha256"]:
         raise ValueError("partition digest differs")
 
-    output = Path(args.output).absolute()
-    if output != repo_root / result["relative_path"]:
-        raise ValueError("output flag differs")
-    _real_directory(output.parent, "output parent")
-    temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
-    if output.exists() or output.is_symlink():
-        raise FileExistsError(output)
-    if temporary.exists() or temporary.is_symlink():
-        raise FileExistsError(temporary)
-    return {
+    return _authenticated_run({
         "config": config,
         "repo_root": repo_root,
         "source_commit": source["commit"],
         "head": head,
-    }
+        "failure_output": failure_output,
+    })
 
 
 def _finite_float(value: object, name: str) -> float:
@@ -685,6 +875,7 @@ def _metric_from_json(
     accuracy = _finite_float(metric["accuracy"], f"{name} accuracy")
     correct = metric["correct_count"]
     observations = metric["observation_count"]
+    image_mean = math.fsum(per_image) / image_count
     if (
         type(correct) is not int
         or type(observations) is not int
@@ -692,7 +883,8 @@ def _metric_from_json(
         or not 0 <= correct <= observations
         or accuracy != correct / observations
         or mean_loss != math.fsum(per_mask) / mask_count
-        or mean_loss != math.fsum(per_image) / image_count
+        or abs(mean_loss - image_mean)
+        > 2.0 * max(math.ulp(mean_loss), math.ulp(image_mean))
     ):
         raise ValueError(f"{name} aggregate differs")
     represented = _finite_float(metric["represented_mean_loss"], name)
@@ -987,6 +1179,94 @@ def validate_result(value: object, *, inventory: object) -> None:
         raise ValueError("CAP decision differs")
 
 
+def validate_failure_receipt(value: object) -> dict[str, object]:
+    receipt = _object(value, _FAILURE_KEYS, "failure receipt")
+    if receipt["schema_version"] != "unicom-cap-f0-structural-failure-v1":
+        raise ValueError("failure receipt version differs")
+    if type(receipt["attempt"]) is not int or receipt["attempt"] != 2:
+        raise ValueError("failure attempt differs")
+    prior = _object(receipt["prior_attempt"], _PRIOR_ATTEMPT_KEYS, "prior attempt")
+    if not _same_concrete(prior, {
+        "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+        "exit_status": 2,
+        "result_published": False,
+    }):
+        raise ValueError("prior attempt differs")
+    _commit(receipt["source_commit"], "failure source commit")
+    _commit(receipt["handoff_commit"], "failure handoff commit")
+    if receipt["stage"] not in _FAILURE_STAGES:
+        raise ValueError("failure stage differs")
+    if receipt["error_code"] not in _FAILURE_ERROR_CODES:
+        raise ValueError("failure error code differs")
+    exception_type = receipt["exception_type"]
+    exception_class = (
+        getattr(builtins, exception_type, None)
+        if type(exception_type) is str
+        else None
+    )
+    if (
+        type(exception_class) is not type
+        or not issubclass(exception_class, Exception)
+    ):
+        raise ValueError("failure exception type differs")
+    if receipt["result_published"] is not False:
+        raise ValueError("failure result publication differs")
+    return receipt
+
+
+def _set_stage(tracker: CapStageTracker | None, stage: str) -> None:
+    if stage not in _FAILURE_STAGES:
+        raise ValueError("failure stage differs")
+    if tracker is not None:
+        tracker.stage = stage
+
+
+def _failure_error_code(error: Exception, stage: str) -> str:
+    message = str(error)
+    if message.endswith(" aggregate differs"):
+        return "metric_aggregate_differs"
+    if message.startswith("parent ") and message.endswith(" metric differs"):
+        return "parent_metric_differs"
+    if "runtime" in message:
+        return "runtime_differs"
+    if "inventory" in message:
+        return "inventory_differs"
+    if stage == "publication" and isinstance(error, OSError):
+        return "publication_failed"
+    if stage == "validation" and isinstance(error, (TypeError, ValueError)):
+        return "validation_differs"
+    return "unexpected_exception"
+
+
+def _builtin_exception_type_name(error: Exception) -> str:
+    for base in type(error).__mro__:
+        if base.__module__ == "builtins" and issubclass(base, Exception):
+            return base.__name__
+    raise TypeError("failure exception type differs")
+
+
+def _failure_receipt(
+    authenticated: dict[str, object], stage: str, error: Exception
+) -> dict[str, object]:
+    receipt = {
+        "schema_version": "unicom-cap-f0-structural-failure-v1",
+        "attempt": 2,
+        "prior_attempt": {
+            "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+            "exit_status": 2,
+            "result_published": False,
+        },
+        "source_commit": authenticated["source_commit"],
+        "handoff_commit": authenticated["head"],
+        "stage": stage,
+        "error_code": _failure_error_code(error, stage),
+        "exception_type": _builtin_exception_type_name(error),
+        "result_published": False,
+    }
+    validate_failure_receipt(receipt)
+    return receipt
+
+
 def _canonical_bytes(value: dict[str, object]) -> bytes:
     return (
         json.dumps(
@@ -1177,11 +1457,7 @@ def _build_execution_inventory(
     from sfora.unicom_probe import split_probe_records
     from sfora.unicom_training import identity_holdout
 
-    trusted = _object(
-        authenticated,
-        ("config", "repo_root", "source_commit", "head"),
-        "authenticated run",
-    )
+    trusted = _authenticated_run(authenticated)
     config = trusted["config"]
     if type(config) is not dict:
         raise ValueError("authenticated config differs")
@@ -1379,7 +1655,10 @@ def _evaluate_registered_pair(
 
 
 def execute_screen(
-    args: argparse.Namespace, inventory: CapExecutionInventory
+    args: argparse.Namespace,
+    inventory: CapExecutionInventory,
+    *,
+    stage_tracker: CapStageTracker | None = None,
 ) -> dict[str, object]:
     import torch
 
@@ -1460,6 +1739,7 @@ def execute_screen(
             _sha256(digest, "registered parent target metric")
 
     started = time.perf_counter()
+    _set_stage(stage_tracker, "encoding")
     fitting_features, validation_features = _encode_feature_sets(
         args, inventory.fitting, inventory.validation
     )
@@ -1486,12 +1766,15 @@ def execute_screen(
         dtype=torch.int64,
         device=device,
     )
+    _set_stage(stage_tracker, "class_mean")
     class_mean = class_mean_head(fitting_features, fitting_labels, class_count)
     if _tensor_sha256(class_mean) != inventory.class_mean_sha256:
         raise ValueError("registered class mean differs")
+    _set_stage(stage_tracker, "cap_construction")
     construction = build_cap_heads(fitting_features, fitting_labels, row_norm=row_norm)
     class_metric = None
     cap_metric_objects = {}
+    _set_stage(stage_tracker, "cap_evaluation")
     for variant in CAP_VARIANTS:
         replayed_class_metric, candidate_metric = _evaluate_registered_pair(
             validation_features,
@@ -1517,6 +1800,7 @@ def execute_screen(
     if class_metric is None:
         raise ValueError("parent class mean metric is absent")
 
+    _set_stage(stage_tracker, "covariance_diagnostic")
     diagnostic = covariance_mask_mismatch(
         construction,
         seed=_nonnegative_int(
@@ -1528,6 +1812,7 @@ def execute_screen(
     seed_primitives: list[dict[str, object]] = []
     fitted_targets: dict[int, object] = {}
     snapshot_steps = tuple(protocol["snapshot_steps"])
+    _set_stage(stage_tracker, "probe_fit")
     for seed in tuple(protocol["fit_seeds"]):
         fit, snapshots = fit_spherical_probe_trajectory(
             fitting_features,
@@ -1601,6 +1886,7 @@ def execute_screen(
         )
         del snapshots, fit
 
+    _set_stage(stage_tracker, "cosine")
     target_heads: dict[int, dict[str, CapCosineSummary]] = {}
     for seed, primitive in zip(
         tuple(protocol["fit_seeds"]), seed_primitives, strict=True
@@ -1619,6 +1905,7 @@ def execute_screen(
             for variant in CAP_VARIANTS
         }
 
+    _set_stage(stage_tracker, "decision")
     decision = cap_decision(
         class_mean=class_metric,
         cap_metrics=cap_metric_objects,
@@ -1646,6 +1933,7 @@ def execute_screen(
         }
         for variant in CAP_VARIANTS
     }
+    _set_stage(stage_tracker, "assembly")
     result = {
         "schema_version": "unicom-cap-f0-v1",
         "authority": trusted["authority"],
@@ -1713,6 +2001,7 @@ def execute_screen(
         },
         "candidate_values_computed": True,
     }
+    _set_stage(stage_tracker, "validation")
     validate_result(result, inventory=trusted)
     del fitting_features, validation_features, class_mean, construction
     return result
@@ -1720,42 +2009,67 @@ def execute_screen(
 
 def run(
     args: argparse.Namespace,
+    *,
+    stage_tracker: CapStageTracker | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
+    tracker = stage_tracker if stage_tracker is not None else CapStageTracker()
+    authenticated = authenticate_run(args)
+    tracker.authenticated = authenticated
     python_state = random.getstate()
     numpy_state = np.random.get_state()
-    authenticated = authenticate_run(args)
-    import torch
-    from threadpoolctl import threadpool_limits
-
-    torch_state = torch.get_rng_state().clone()
-    torch_threads = torch.get_num_threads()
-    cuda_states = torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+    torch = None
+    torch_state = None
+    torch_threads = None
+    cuda_states = None
     try:
+        import torch as torch_module
+        from threadpoolctl import threadpool_limits
+
+        torch = torch_module
+        torch_state = torch.get_rng_state().clone()
+        torch_threads = torch.get_num_threads()
+        cuda_states = (
+            torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None
+        )
+        _set_stage(tracker, "runtime")
         torch.set_num_threads(1)
         with threadpool_limits(limits=1):
             _validate_runtime(authenticated["config"]["environment"])
+            _set_stage(tracker, "inventory")
             inventory = _build_execution_inventory(args, authenticated)
-            return _execute_with_runtime_observation(args, inventory)
+            return _execute_with_runtime_observation(
+                args, inventory, stage_tracker=tracker
+            )
+    except Exception as error:
+        raise CapPostAuthorityError(
+            authenticated, tracker.stage, error
+        ) from error
     finally:
         random.setstate(python_state)
         np.random.set_state(numpy_state)
-        torch.set_rng_state(torch_state)
-        torch.set_num_threads(torch_threads)
-        if cuda_states is not None:
-            torch.cuda.set_rng_state_all(cuda_states)
+        if torch is not None and torch_state is not None and torch_threads is not None:
+            torch.set_rng_state(torch_state)
+            torch.set_num_threads(torch_threads)
+            if cuda_states is not None:
+                torch.cuda.set_rng_state_all(cuda_states)
 
 
 def _execute_with_runtime_observation(
-    args: argparse.Namespace, inventory: CapExecutionInventory
+    args: argparse.Namespace,
+    inventory: CapExecutionInventory,
+    *,
+    stage_tracker: CapStageTracker | None = None,
 ) -> tuple[dict[str, object], CapExecutionInventory]:
     import torch
 
     if type(inventory) is not CapExecutionInventory:
         raise TypeError("CAP execution inventory differs")
+    _set_stage(stage_tracker, "runtime_observation")
     torch.cuda.synchronize()
     torch.cuda.reset_peak_memory_stats()
     started = time.perf_counter()
-    value = execute_screen(args, inventory)
+    value = execute_screen(args, inventory, stage_tracker=stage_tracker)
+    _set_stage(stage_tracker, "runtime_observation")
     torch.cuda.synchronize()
     elapsed_seconds = float(time.perf_counter() - started)
     peak_gpu_mib = math.ceil(torch.cuda.max_memory_allocated() / 1024**2)
@@ -1765,6 +2079,7 @@ def _execute_with_runtime_observation(
     runtime["elapsed_seconds"] = elapsed_seconds
     runtime["peak_gpu_mib"] = peak_gpu_mib
     observed_inventory = replace(inventory, peak_gpu_mib=peak_gpu_mib)
+    _set_stage(stage_tracker, "validation")
     validate_result(value, inventory=observed_inventory.result)
     return value, observed_inventory
 
@@ -1816,6 +2131,11 @@ def _compute_parent_replay(
         dtype=torch.int64,
         device=fitting_features.device,
     )
+    validation_labels = torch.tensor(
+        [inventory.labels[row.label] for row in inventory.validation],
+        dtype=torch.int64,
+        device=validation_features.device,
+    )
     class_mean = class_mean_head(
         fitting_features, fitting_labels, len(inventory.labels)
     )
@@ -1823,6 +2143,9 @@ def _compute_parent_replay(
     if class_sha256 != inventory.class_mean_sha256:
         raise ValueError("registered class mean differs")
     target_sha256_by_seed: dict[str, str] = {}
+    class_mean_metric_sha256: str | None = None
+    target_metric_sha256_by_seed: dict[str, str] = {}
+    mask_count = _positive_int(protocol["evaluation_mask_sets"], "mask count")
     for seed in tuple(protocol["fit_seeds"]):
         fit, snapshots = fit_spherical_probe_trajectory(
             fitting_features,
@@ -1837,11 +2160,55 @@ def _compute_parent_replay(
         if digest != inventory.target_sha256_by_seed[seed]:
             raise ValueError(f"registered fitted target {seed} differs")
         target_sha256_by_seed[str(seed)] = digest
+        class_metric, target_metric = _evaluate_registered_pair(
+            validation_features,
+            validation_labels,
+            class_mean,
+            fit.head,
+            validation_group_represented=inventory.validation_group_represented,
+            mask_sets=mask_count,
+        )
+        class_payload = _metric_payload(class_metric)
+        target_payload = _metric_payload(target_metric)
+        _metric_from_json(
+            class_payload,
+            mask_count=mask_count,
+            image_count=len(inventory.validation),
+            name="parent replay class mean metric",
+        )
+        _metric_from_json(
+            target_payload,
+            mask_count=mask_count,
+            image_count=len(inventory.validation),
+            name=f"parent replay target {seed} metric",
+        )
+        replayed_class_digest = _sha256_bytes(_canonical_bytes(class_payload))
+        if class_mean_metric_sha256 is None:
+            class_mean_metric_sha256 = replayed_class_digest
+        elif replayed_class_digest != class_mean_metric_sha256:
+            raise ValueError("parent replay class mean metric differs")
+        if (
+            inventory.parent_class_mean_metric_sha256 is None
+            or replayed_class_digest != inventory.parent_class_mean_metric_sha256
+        ):
+            raise ValueError("parent class mean metric differs")
+        target_digest = _sha256_bytes(_canonical_bytes(target_payload))
+        if (
+            inventory.parent_target_metric_sha256_by_seed is None
+            or target_digest
+            != inventory.parent_target_metric_sha256_by_seed[seed]
+        ):
+            raise ValueError(f"parent seed {seed} metric differs")
+        target_metric_sha256_by_seed[str(seed)] = target_digest
         del snapshots, fit
-    del fitting_features, validation_features, class_mean
+    if class_mean_metric_sha256 is None:
+        raise ValueError("parent replay class mean metric is absent")
+    del fitting_features, validation_features, validation_labels, class_mean
     return {
         "class_mean_sha256": class_sha256,
         "target_sha256_by_seed": target_sha256_by_seed,
+        "class_mean_metric_sha256": class_mean_metric_sha256,
+        "target_metric_sha256_by_seed": target_metric_sha256_by_seed,
         "candidate_values_computed": False,
     }
 
@@ -1849,7 +2216,13 @@ def _compute_parent_replay(
 def _validate_parent_replay(value: object) -> dict[str, object]:
     replay = _object(
         value,
-        ("class_mean_sha256", "target_sha256_by_seed", "candidate_values_computed"),
+        (
+            "class_mean_sha256",
+            "target_sha256_by_seed",
+            "class_mean_metric_sha256",
+            "target_metric_sha256_by_seed",
+            "candidate_values_computed",
+        ),
         "parent replay",
     )
     _sha256(replay["class_mean_sha256"], "parent replay class mean")
@@ -1858,6 +2231,20 @@ def _validate_parent_replay(value: object) -> dict[str, object]:
     )
     for seed in ("0", "1", "2"):
         _sha256(targets[seed], f"parent replay target {seed}")
+    _sha256(replay["class_mean_metric_sha256"], "parent replay class mean metric")
+    target_metrics = _object(
+        replay["target_metric_sha256_by_seed"],
+        ("0", "1", "2"),
+        "parent replay target metrics",
+    )
+    for seed in ("0", "1", "2"):
+        _sha256(target_metrics[seed], f"parent replay target metric {seed}")
+    if (
+        replay["class_mean_metric_sha256"]
+        != _FROZEN_PARENT_METRIC_SHA256["class_mean"]
+        or target_metrics != _FROZEN_PARENT_METRIC_SHA256["targets"]
+    ):
+        raise ValueError("parent replay metric authority differs")
     if replay["candidate_values_computed"] is not False:
         raise ValueError("parent replay computed candidate values")
     return replay
@@ -1865,6 +2252,7 @@ def _validate_parent_replay(value: object) -> dict[str, object]:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    stage_tracker = CapStageTracker()
     temporary = args.output.with_name(f".{args.output.name}.{os.getpid()}.tmp")
     if (
         args.output.exists()
@@ -1878,13 +2266,58 @@ def main(argv: list[str] | None = None) -> int:
             replay = _validate_parent_replay(run_parent_replay_preflight(args))
             sys.stdout.write(_canonical_bytes(replay).decode("utf-8"))
             return 0
-        value, inventory = run(args)
+        value, inventory = run(args, stage_tracker=stage_tracker)
 
         def bound_validator(candidate: object) -> None:
             validate_result(candidate, inventory=inventory)
 
+        _set_stage(stage_tracker, "publication")
         write_result_atomic(value, args.output, validator=bound_validator)
-    except Exception:
+    except CapPostAuthorityError as wrapped:
+        try:
+            failure_authenticated = wrapped.authenticated
+            receipt = _failure_receipt(
+                failure_authenticated, wrapped.stage, wrapped.cause
+            )
+
+            def bound_failure_validator(candidate: object) -> None:
+                validated = validate_failure_receipt(candidate)
+                if (
+                    validated["source_commit"]
+                    != failure_authenticated["source_commit"]
+                    or validated["handoff_commit"] != failure_authenticated["head"]
+                ):
+                    raise ValueError("failure receipt authority differs")
+
+            write_result_atomic(
+                receipt,
+                failure_authenticated["failure_output"],
+                validator=bound_failure_validator,
+            )
+        except Exception:
+            pass
+        return 2
+    except Exception as error:
+        authenticated = stage_tracker.authenticated
+        if authenticated is not None and stage_tracker.stage == "publication":
+            try:
+                receipt = _failure_receipt(authenticated, "publication", error)
+
+                def bound_publication_failure(candidate: object) -> None:
+                    validated = validate_failure_receipt(candidate)
+                    if (
+                        validated["source_commit"] != authenticated["source_commit"]
+                        or validated["handoff_commit"] != authenticated["head"]
+                    ):
+                        raise ValueError("failure receipt authority differs")
+
+                write_result_atomic(
+                    receipt,
+                    authenticated["failure_output"],
+                    validator=bound_publication_failure,
+                )
+            except Exception:
+                pass
         return 2
     return 0
 

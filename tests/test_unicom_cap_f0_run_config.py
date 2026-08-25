@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from argparse import Namespace
@@ -33,7 +34,7 @@ def _valid_config() -> dict[str, object]:
         "tests/test_unicom_cap_f0_run_config.py",
     )
     return {
-        "schema_version": "unicom-cap-f0-run-v1",
+        "schema_version": "unicom-cap-f0-run-v2",
         "spec": {
             "path": "docs/superpowers/specs/2026-08-25-unicom-cap-f0-design.md",
             "sha256": "cf6994c9bda0677a714cd0a12dcca459af0fe610d28a9869091992724a4e880a",
@@ -108,6 +109,34 @@ def _valid_config() -> dict[str, object]:
             "sole_path": "docs/unicom_cap_f0_run_config.json",
             "detached_clean": True,
         },
+        "recovery": {
+            "attempt": 2,
+            "prior_attempt": {
+                "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+                "exit_status": 2,
+                "result_published": False,
+            },
+            "amendment": {
+                "path": "docs/unicom_cap_f0_structural_recovery_2026-08-25.md",
+                "sha256": (
+                    "a1f1b0ab9143421b7b1a701a3dd538f49ed773c178424ad47299ed7297293b14"
+                ),
+                "commit": "89812cd82062e7098b5a9d142a158858a8ca6d79",
+            },
+            "plan": {
+                "path": (
+                    "docs/superpowers/plans/"
+                    "2026-08-25-unicom-cap-f0-structural-recovery.md"
+                ),
+                "sha256": (
+                    "43f62e57cc5109c40341a51fa62dd4b1bf08d4dc5929f6418021f863e2c36333"
+                ),
+                "commit": "02a6bcdef8f55ee1a1abab083351fae660ce6102",
+            },
+            "failure_relative_path": (
+                "reports/generated/unicom-cap-f0-aaaaaaa-attempt2-failure.json"
+            ),
+        },
         "result": {
             "relative_path": "reports/generated/unicom-cap-f0-aaaaaaa.json",
             "schema_version": "unicom-cap-f0-v1",
@@ -145,6 +174,39 @@ def test_validate_run_config_rejects_wrong_output_binding() -> None:
     config["result"]["relative_path"] = "reports/generated/other.json"
 
     with pytest.raises(ValueError):
+        MODULE.validate_run_config(config)
+
+
+@pytest.mark.parametrize(
+    ("key", "replacement"),
+    (
+        ("attempt", 1),
+        ("attempt", True),
+        ("failure_relative_path", "reports/generated/other.json"),
+        ("prior_attempt", {}),
+    ),
+)
+def test_validate_run_config_rejects_recovery_authority_drift(
+    key: str, replacement: object
+) -> None:
+    config = _valid_config()
+    config["recovery"][key] = replacement
+
+    with pytest.raises((TypeError, ValueError)):
+        MODULE.validate_run_config(config)
+
+
+@pytest.mark.parametrize(
+    ("key", "replacement"),
+    (("exit_status", 2.0), ("result_published", 0)),
+)
+def test_validate_run_config_rejects_prior_attempt_concrete_type_drift(
+    key: str, replacement: object
+) -> None:
+    config = _valid_config()
+    config["recovery"]["prior_attempt"][key] = replacement
+
+    with pytest.raises(ValueError, match="recovery prior attempt differs"):
         MODULE.validate_run_config(config)
 
 
@@ -194,6 +256,9 @@ def _authority_fixture(tmp_path: Path) -> tuple[Namespace, dict[str, object]]:
     _git(repo, "init", "-q")
     _git(repo, "config", "user.name", "CAP Test")
     _git(repo, "config", "user.email", "cap@example.test")
+    (repo / ".git" / "info" / "exclude").write_text(
+        "/reports/generated/\n", encoding="utf-8"
+    )
 
     config = _valid_config()
     spec = repo / config["spec"]["path"]
@@ -224,6 +289,16 @@ def _authority_fixture(tmp_path: Path) -> tuple[Namespace, dict[str, object]]:
     _git(repo, "add", "-f", str(parent_result.relative_to(repo)))
     _git(repo, "commit", "-qm", "registered parent result")
     config["parent"]["artifact_commit"] = _git(repo, "rev-parse", "HEAD")
+
+    for name in ("amendment", "plan"):
+        authority = config["recovery"][name]
+        path = repo / authority["path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"frozen recovery {name}\n".encode())
+        authority["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        _git(repo, "add", str(path.relative_to(repo)))
+        _git(repo, "commit", "-qm", f"frozen recovery {name}")
+        authority["commit"] = _git(repo, "rev-parse", "HEAD")
 
     source_files = config["source"]["files"]
     for index, row in enumerate(source_files):
@@ -267,6 +342,9 @@ def _authority_fixture(tmp_path: Path) -> tuple[Namespace, dict[str, object]]:
     config["result"]["relative_path"] = (
         f"reports/generated/unicom-cap-f0-{source_commit[:7]}.json"
     )
+    config["recovery"]["failure_relative_path"] = (
+        f"reports/generated/unicom-cap-f0-{source_commit[:7]}-attempt2-failure.json"
+    )
 
     config_path = repo / config["handoff"]["sole_path"]
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -296,6 +374,13 @@ def _patch_frozen_authorities(
 ) -> None:
     for section in ("spec", "parent", "environment", "inputs", "protocol"):
         monkeypatch.setattr(MODULE, f"_FROZEN_{section.upper()}", config[section])
+    monkeypatch.setattr(
+        MODULE,
+        "_FROZEN_RECOVERY_AUTHORITY",
+        {
+            name: config["recovery"][name] for name in ("amendment", "plan")
+        },
+    )
 
 
 def test_authenticate_run_accepts_exact_linear_config_only_handoff(
@@ -309,6 +394,9 @@ def test_authenticate_run_accepts_exact_linear_config_only_handoff(
 
     assert authenticated["config"] == expected
     assert authenticated["repo_root"] == args.config.parents[1]
+    assert authenticated["failure_output"] == (
+        args.config.parents[1] / expected["recovery"]["failure_relative_path"]
+    )
     assert len(
         {
             expected["spec"]["commit"],
@@ -317,6 +405,41 @@ def test_authenticate_run_accepts_exact_linear_config_only_handoff(
             expected["source"]["commit"],
         }
     ) == 4
+
+
+def test_real_authenticated_output_reaches_both_execution_consumers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    args, config = _authority_fixture(tmp_path)
+    _patch_frozen_authorities(monkeypatch, config)
+    repo = args.config.parents[1]
+    monkeypatch.setattr(MODULE, "__file__", str(repo / "scripts" / SCRIPT.name))
+    inventory = object()
+    observed_keys: list[tuple[str, ...]] = []
+
+    def build(_args: object, authenticated: object) -> object:
+        trusted = MODULE._authenticated_run(authenticated)
+        observed_keys.append(tuple(trusted))
+        return inventory
+
+    monkeypatch.setattr(MODULE, "_validate_runtime", lambda _expected: None)
+    monkeypatch.setattr(MODULE, "_build_execution_inventory", build)
+    monkeypatch.setattr(
+        MODULE,
+        "_execute_with_runtime_observation",
+        lambda _args, actual, **_kwargs: ({"scientific": True}, actual),
+    )
+
+    assert MODULE.run(args) == ({"scientific": True}, inventory)
+
+    replay = {"candidate_values_computed": False}
+    monkeypatch.setattr(
+        MODULE,
+        "_compute_parent_replay",
+        lambda _args, actual: replay if actual is inventory else None,
+    )
+    assert MODULE.run_parent_replay_preflight(args) is replay
+    assert observed_keys == [MODULE._AUTHENTICATED_RUN_KEYS] * 2
 
 
 def test_frozen_parent_authority_binds_embedded_producer_commit() -> None:
@@ -363,7 +486,9 @@ def test_parent_producer_commit_accepts_exact_embedded_binding() -> None:
     ) == commit
 
 
-@pytest.mark.parametrize("mutation", ("wrong_flag", "dirty_source", "existing_output"))
+@pytest.mark.parametrize(
+    "mutation", ("wrong_flag", "dirty_source", "existing_output", "existing_failure")
+)
 def test_authenticate_run_rejects_path_source_or_destination_drift(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -377,10 +502,47 @@ def test_authenticate_run_rejects_path_source_or_destination_drift(
         args.checkpoint.write_bytes(b"checkpoint")
     elif mutation == "dirty_source":
         (args.config.parents[1] / "src/sfora/unicom_cap.py").write_bytes(b"dirty\n")
-    else:
+    elif mutation == "existing_output":
         args.output.write_bytes(b"existing")
+    else:
+        failure = args.config.parents[1] / config["recovery"]["failure_relative_path"]
+        failure.write_bytes(b"existing")
 
     with pytest.raises((TypeError, ValueError, FileExistsError)):
+        MODULE.authenticate_run(args)
+
+
+@pytest.mark.parametrize(
+    "destination",
+    ("result", "result_temporary", "failure", "failure_temporary"),
+)
+def test_authenticate_run_rejects_preexisting_destination_before_parent_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    destination: str,
+) -> None:
+    args, config = _authority_fixture(tmp_path)
+    _patch_frozen_authorities(monkeypatch, config)
+    repo = args.config.parents[1]
+    monkeypatch.setattr(MODULE, "__file__", str(repo / "scripts" / SCRIPT.name))
+    result = args.output
+    failure = repo / config["recovery"]["failure_relative_path"]
+    paths = {
+        "result": result,
+        "result_temporary": result.with_name(f".{result.name}.{os.getpid()}.tmp"),
+        "failure": failure,
+        "failure_temporary": failure.with_name(
+            f".{failure.name}.{os.getpid()}.tmp"
+        ),
+    }
+    paths[destination].write_bytes(b"preexisting\n")
+
+    def forbidden_parent_open(payload: bytes) -> str:
+        raise AssertionError("parent artifact opened after destination collision")
+
+    monkeypatch.setattr(MODULE, "parent_producer_commit", forbidden_parent_open)
+
+    with pytest.raises(FileExistsError):
         MODULE.authenticate_run(args)
 
 

@@ -9,6 +9,7 @@ import json
 import math
 import os
 import random
+import stat
 import struct
 import subprocess
 import sys
@@ -51,6 +52,44 @@ def _metric(loss: float, correct: int) -> dict[str, object]:
         "per_image_mean_losses": [loss] * 3_188,
         "represented_mean_loss": loss,
         "unrepresented_mean_loss": loss,
+    }
+
+
+def _valid_parent_replay() -> dict[str, object]:
+    return {
+        "class_mean_sha256": "a" * 64,
+        "target_sha256_by_seed": {
+            "0": "b" * 64,
+            "1": "c" * 64,
+            "2": "d" * 64,
+        },
+        "class_mean_metric_sha256": (
+            "5de610b1d6038a18b51221fd88280c00cbd5d11701ac31830877f9b3284e8be0"
+        ),
+        "target_metric_sha256_by_seed": {
+            "0": "9505bf5ba965b04d6bad39896e8c4a442a46791b9b53c6ab426bd83e83532a9b",
+            "1": "889bb182ae2f2ceb14f6e35122079f141df1af87354ac8fbf7c5d6927ecb1e4f",
+            "2": "196f82dea9e9699df8e5efd08ab3ab0fa3923bd36ea793d46bd2cc66c5740025",
+        },
+        "candidate_values_computed": False,
+    }
+
+
+def _valid_failure_receipt() -> dict[str, object]:
+    return {
+        "schema_version": "unicom-cap-f0-structural-failure-v1",
+        "attempt": 2,
+        "prior_attempt": {
+            "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+            "exit_status": 2,
+            "result_published": False,
+        },
+        "source_commit": "a" * 40,
+        "handoff_commit": "b" * 40,
+        "stage": "validation",
+        "error_code": "metric_aggregate_differs",
+        "exception_type": "ValueError",
+        "result_published": False,
     }
 
 
@@ -730,7 +769,9 @@ def test_main_refuses_existing_output_before_candidate_run(
     output.write_bytes(b"existing\n")
     called = False
 
-    def candidate_run(_args: object) -> dict[str, object]:
+    def candidate_run(
+        _args: object, **_kwargs: object
+    ) -> dict[str, object]:
         nonlocal called
         called = True
         return {"status": "must not run"}
@@ -778,7 +819,7 @@ def test_main_binds_run_inventory_to_both_publication_validations(
     calls: list[tuple[object, object]] = []
 
     monkeypatch.setattr(
-        MODULE, "run", lambda _args: (value, execution_inventory)
+        MODULE, "run", lambda _args, **_kwargs: (value, execution_inventory)
     )
 
     def inventory_bound_validator(candidate: object, *, inventory: object) -> None:
@@ -811,21 +852,86 @@ def test_main_binds_run_inventory_to_both_publication_validations(
     assert MODULE.strict_json_object(output.read_bytes()) == value
 
 
+def test_main_publishes_bound_failure_receipt_when_result_publication_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "cap.json"
+    failure = tmp_path / "cap.failure.json"
+    value, inventory = _valid_result()
+    execution_inventory = MODULE.CapExecutionInventory(
+        result=inventory,
+        fitting=(),
+        validation=(),
+        validation_group_represented=(),
+        labels={},
+        class_mean_sha256="a" * 64,
+        target_sha256_by_seed={0: "b" * 64, 1: "c" * 64, 2: "d" * 64},
+        fit_steps=512,
+        batch_size=128,
+        peak_gpu_mib=17,
+    )
+    authenticated = {
+        "config": {},
+        "repo_root": tmp_path,
+        "source_commit": "a" * 40,
+        "head": "b" * 40,
+        "failure_output": failure,
+    }
+
+    def successful_run(
+        _args: object, *, stage_tracker: MODULE.CapStageTracker
+    ) -> tuple[object, object]:
+        stage_tracker.authenticated = authenticated
+        return value, execution_inventory
+
+    original_writer = MODULE.write_result_atomic
+
+    def fail_result_publication(
+        candidate: object,
+        destination: Path,
+        *,
+        validator: object,
+    ) -> None:
+        if destination == output:
+            raise OSError("result link failed")
+        original_writer(candidate, destination, validator=validator)
+
+    monkeypatch.setattr(MODULE, "run", successful_run)
+    monkeypatch.setattr(MODULE, "write_result_atomic", fail_result_publication)
+
+    assert MODULE.main(
+        [
+            "--config",
+            str(tmp_path / "config.json"),
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "dataset"),
+            "--parent-result",
+            str(tmp_path / "parent.json"),
+            "--output",
+            str(output),
+        ]
+    ) == 2
+
+    assert not output.exists()
+    receipt = MODULE.strict_json_object(failure.read_bytes())
+    MODULE.validate_failure_receipt(receipt)
+    assert receipt["stage"] == "publication"
+    assert receipt["error_code"] == "publication_failed"
+    assert receipt["source_commit"] == authenticated["source_commit"]
+    assert receipt["handoff_commit"] == authenticated["head"]
+
+
 def test_parent_replay_mode_never_calls_candidate_or_publishes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     output = tmp_path / "cap.json"
-    replay = {
-        "class_mean_sha256": "a" * 64,
-        "target_sha256_by_seed": {
-            "0": "b" * 64,
-            "1": "c" * 64,
-            "2": "d" * 64,
-        },
-        "candidate_values_computed": False,
-    }
+    replay = _valid_parent_replay()
 
     def forbidden_candidate(_args: object) -> dict[str, object]:
         raise AssertionError("candidate path reached")
@@ -859,6 +965,48 @@ def test_parent_replay_mode_never_calls_candidate_or_publishes(
     assert not output.exists()
 
 
+def test_parent_replay_validator_requires_parent_metric_hashes() -> None:
+    replay = _valid_parent_replay()
+
+    assert MODULE._validate_parent_replay(replay) is replay
+
+    for key in ("class_mean_metric_sha256", "target_metric_sha256_by_seed"):
+        mutated = deepcopy(replay)
+        mutated.pop(key)
+        with pytest.raises(ValueError, match="parent replay schema differs"):
+            MODULE._validate_parent_replay(mutated)
+
+    for seed in ("0", "1", "2"):
+        mutated = deepcopy(replay)
+        mutated["target_metric_sha256_by_seed"][seed] = "not-a-digest"
+        with pytest.raises(ValueError, match="parent replay target metric"):
+            MODULE._validate_parent_replay(mutated)
+
+    for section, key in (
+        ("root", "class_mean_metric_sha256"),
+        ("targets", "0"),
+        ("targets", "1"),
+        ("targets", "2"),
+    ):
+        mutated = deepcopy(replay)
+        if section == "root":
+            mutated[key] = "0" * 64
+        else:
+            mutated["target_metric_sha256_by_seed"][key] = "0" * 64
+        with pytest.raises(ValueError, match="parent replay metric authority differs"):
+            MODULE._validate_parent_replay(mutated)
+
+    mutated = deepcopy(replay)
+    targets = mutated["target_metric_sha256_by_seed"]
+    mutated["target_metric_sha256_by_seed"] = {
+        "1": targets["1"],
+        "0": targets["0"],
+        "2": targets["2"],
+    }
+    with pytest.raises(ValueError, match="parent replay target metrics schema differs"):
+        MODULE._validate_parent_replay(mutated)
+
+
 def test_parent_replay_mode_is_byte_identical_in_two_fresh_candidate_free_processes(
     tmp_path: Path,
 ) -> None:
@@ -880,6 +1028,12 @@ spec.loader.exec_module(module)
 replay = {
     "class_mean_sha256": "a" * 64,
     "target_sha256_by_seed": {"0": "b" * 64, "1": "c" * 64, "2": "d" * 64},
+    "class_mean_metric_sha256": "5de610b1d6038a18b51221fd88280c00cbd5d11701ac31830877f9b3284e8be0",
+    "target_metric_sha256_by_seed": {
+        "0": "9505bf5ba965b04d6bad39896e8c4a442a46791b9b53c6ab426bd83e83532a9b",
+        "1": "889bb182ae2f2ceb14f6e35122079f141df1af87354ac8fbf7c5d6927ecb1e4f",
+        "2": "196f82dea9e9699df8e5efd08ab3ab0fa3923bd36ea793d46bd2cc66c5740025",
+    },
     "candidate_values_computed": False,
 }
 module.run_parent_replay_preflight = lambda _args: replay
@@ -920,6 +1074,14 @@ raise SystemExit(code)
                     "1": "c" * 64,
                     "2": "d" * 64,
                 },
+                "class_mean_metric_sha256": (
+                    "5de610b1d6038a18b51221fd88280c00cbd5d11701ac31830877f9b3284e8be0"
+                ),
+                "target_metric_sha256_by_seed": {
+                    "0": "9505bf5ba965b04d6bad39896e8c4a442a46791b9b53c6ab426bd83e83532a9b",
+                    "1": "889bb182ae2f2ceb14f6e35122079f141df1af87354ac8fbf7c5d6927ecb1e4f",
+                    "2": "196f82dea9e9699df8e5efd08ab3ab0fa3923bd36ea793d46bd2cc66c5740025",
+                },
                 "candidate_values_computed": False,
             },
             separators=(",", ":"),
@@ -943,7 +1105,11 @@ def test_main_returns_structural_two_without_output_on_ordinary_exception(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     output = tmp_path / "cap.json"
-    monkeypatch.setattr(MODULE, "run", lambda _args: (_ for _ in ()).throw(ValueError("bad")))
+    monkeypatch.setattr(
+        MODULE,
+        "run",
+        lambda _args, **_kwargs: (_ for _ in ()).throw(ValueError("bad")),
+    )
 
     exit_code = MODULE.main(
         [
@@ -965,6 +1131,184 @@ def test_main_returns_structural_two_without_output_on_ordinary_exception(
     assert exit_code == 2
     assert not output.exists()
     assert not output.with_name(f".{output.name}.{os.getpid()}.tmp").exists()
+
+
+def test_failure_receipt_validator_accepts_only_outcome_blind_exact_schema() -> None:
+    receipt = _valid_failure_receipt()
+
+    assert MODULE.validate_failure_receipt(receipt) is receipt
+
+    for key in (
+        "covariance",
+        "cap_metrics",
+        "seeds",
+        "decision",
+        "candidate_values_computed",
+    ):
+        mutated = deepcopy(receipt)
+        mutated[key] = {}
+        with pytest.raises(ValueError, match="failure receipt schema differs"):
+            MODULE.validate_failure_receipt(mutated)
+
+    for stage in ("authority", "unknown", "", 1):
+        mutated = deepcopy(receipt)
+        mutated["stage"] = stage
+        with pytest.raises((TypeError, ValueError), match="failure stage differs"):
+            MODULE.validate_failure_receipt(mutated)
+
+    for key, replacement in (("exit_status", 2.0), ("result_published", 0)):
+        mutated = deepcopy(receipt)
+        mutated["prior_attempt"][key] = replacement
+        with pytest.raises(ValueError, match="prior attempt differs"):
+            MODULE.validate_failure_receipt(mutated)
+
+
+def test_failure_receipt_normalizes_third_party_exception_to_builtin_base() -> None:
+    class DeviceRuntimeError(RuntimeError):
+        pass
+
+    receipt = MODULE._failure_receipt(
+        {"source_commit": "a" * 40, "head": "b" * 40},
+        "runtime_observation",
+        DeviceRuntimeError("runtime device failed"),
+    )
+
+    assert receipt["error_code"] == "runtime_differs"
+    assert receipt["exception_type"] == "RuntimeError"
+    MODULE.validate_failure_receipt(receipt)
+
+
+def test_failure_receipt_atomic_publication_strict_reloads_without_clobber(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    receipt = _valid_failure_receipt()
+    output = tmp_path / "failure.json"
+    validations: list[object] = []
+
+    def validate(value: object) -> None:
+        validations.append(value)
+        MODULE.validate_failure_receipt(value)
+
+    MODULE.write_result_atomic(receipt, output, validator=validate)
+
+    assert len(validations) == 2
+    assert validations[0] is receipt
+    assert validations[1] == receipt
+    assert validations[1] is not receipt
+    assert stat.S_IMODE(output.stat().st_mode) == 0o600
+    original = output.read_bytes()
+    monkeypatch.setattr(
+        MODULE,
+        "strict_json_object",
+        lambda _payload: (_ for _ in ()).throw(ValueError("reload failed")),
+    )
+    with pytest.raises(FileExistsError):
+        MODULE.write_result_atomic(receipt, output, validator=validate)
+    assert output.read_bytes() == original
+
+
+def test_main_publishes_outcome_blind_failure_only_after_authority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "cap.json"
+    failure = tmp_path / "cap.failure.json"
+    authenticated = {
+        "config": {
+            "source": {"commit": "a" * 40},
+            "environment": _valid_inventory()["runtime"],
+        },
+        "source_commit": "a" * 40,
+        "head": "b" * 40,
+        "failure_output": failure,
+    }
+    inventory = object()
+
+    def fail(
+        _args: object, actual_inventory: object, *, stage_tracker: object
+    ) -> object:
+        assert actual_inventory is inventory
+        stage_tracker.stage = "validation"
+        raise ValueError("fitted target metric aggregate differs")
+
+    monkeypatch.setattr(MODULE, "authenticate_run", lambda _args: authenticated)
+    monkeypatch.setattr(MODULE, "_validate_runtime", lambda _expected: None)
+    monkeypatch.setattr(
+        MODULE, "_build_execution_inventory", lambda *_args: inventory
+    )
+    monkeypatch.setattr(MODULE, "_execute_with_runtime_observation", fail)
+
+    code = MODULE.main(
+        [
+            "--config",
+            str(tmp_path / "config.json"),
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "dataset"),
+            "--parent-result",
+            str(tmp_path / "parent.json"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert code == 2
+    assert not output.exists()
+    receipt = MODULE.strict_json_object(failure.read_bytes())
+    MODULE.validate_failure_receipt(receipt)
+    assert receipt["stage"] == "validation"
+    assert receipt["error_code"] == "metric_aggregate_differs"
+    assert receipt["exception_type"] == "ValueError"
+    forbidden = (
+        "covariance",
+        "cap_metrics",
+        "candidate_values_computed",
+        "decision",
+        "mean_loss",
+    )
+    assert all(token not in failure.read_text() for token in forbidden)
+
+
+def test_main_pre_authority_failure_publishes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "cap.json"
+    failure = tmp_path / "cap.failure.json"
+    monkeypatch.setattr(
+        MODULE,
+        "authenticate_run",
+        lambda _args: (_ for _ in ()).throw(ValueError("authority failed")),
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("scientific run reached")
+        ),
+    )
+
+    code = MODULE.main(
+        [
+            "--config",
+            str(tmp_path / "config.json"),
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "dataset"),
+            "--parent-result",
+            str(tmp_path / "parent.json"),
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert code == 2
+    assert not output.exists()
+    assert not failure.exists()
 
 
 @pytest.mark.cap_real_cpu
@@ -1117,8 +1461,18 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
         )
     assert not args.output.exists()
 
+    stage_tracker = MODULE.CapStageTracker()
+    observed_stages: list[str] = []
+    original_set_stage = MODULE._set_stage
+
+    def record_stage(actual_tracker: object, stage: str) -> None:
+        assert actual_tracker is stage_tracker
+        observed_stages.append(stage)
+        original_set_stage(actual_tracker, stage)
+
+    monkeypatch.setattr(MODULE, "_set_stage", record_stage)
     started = time.monotonic()
-    result = MODULE.execute_screen(args, inventory)
+    result = MODULE.execute_screen(args, inventory, stage_tracker=stage_tracker)
     scientific_active = False
     elapsed = time.monotonic() - started
 
@@ -1141,6 +1495,18 @@ def test_execute_screen_runs_complete_real_math_tiny_cpu_path(
         512,
     ]
     assert result["candidate_values_computed"] is True
+    assert observed_stages == [
+        "encoding",
+        "class_mean",
+        "cap_construction",
+        "cap_evaluation",
+        "covariance_diagnostic",
+        "probe_fit",
+        "cosine",
+        "decision",
+        "assembly",
+        "validation",
+    ]
     MODULE.write_result_atomic(
         result,
         args.output,
@@ -1376,6 +1742,86 @@ def test_registered_pair_evaluator_preserves_parent_candidate_order(
     assert actual == (baseline_metric, candidate_metric)
 
 
+@pytest.mark.parametrize("fit_seed", (0, 2))
+def test_metric_validator_accepts_published_parent_one_ulp_reassociation(
+    fit_seed: int,
+) -> None:
+    parent = MODULE.strict_json_object(
+        (
+            Path(__file__).parents[1]
+            / "reports/generated/unicom-spherical-probe-ed2e789.json"
+        ).read_bytes()
+    )
+    probe = next(row for row in parent["probes"] if row["fit_seed"] == fit_seed)
+    metric = probe["validation"]
+    mask_mean = math.fsum(metric["per_mask_mean_losses"]) / len(
+        metric["per_mask_mean_losses"]
+    )
+    image_mean = math.fsum(metric["per_image_mean_losses"]) / len(
+        metric["per_image_mean_losses"]
+    )
+
+    assert metric["mean_loss"] == mask_mean
+    assert abs(mask_mean - image_mean) == math.ulp(mask_mean)
+
+    MODULE._metric_from_json(
+        metric,
+        mask_count=len(metric["per_mask_mean_losses"]),
+        image_count=len(metric["per_image_mean_losses"]),
+        name=f"parent seed {fit_seed}",
+    )
+
+
+@pytest.mark.parametrize("ulp_distance", (0, 1, 2))
+def test_metric_validator_accepts_redundant_image_mean_within_two_ulps(
+    ulp_distance: int,
+) -> None:
+    mean_loss = 1.0
+    last_image_loss = mean_loss
+    for _index in range(ulp_distance * 2):
+        last_image_loss = math.nextafter(last_image_loss, math.inf)
+    metric = {
+        "mean_loss": mean_loss,
+        "accuracy": 0.5,
+        "correct_count": 2,
+        "observation_count": 4,
+        "per_mask_mean_losses": [mean_loss, mean_loss],
+        "per_mask_represented_mean_losses": [mean_loss, mean_loss],
+        "per_mask_unrepresented_mean_losses": [mean_loss, mean_loss],
+        "per_image_mean_losses": [mean_loss, last_image_loss],
+        "represented_mean_loss": mean_loss,
+        "unrepresented_mean_loss": mean_loss,
+    }
+
+    MODULE._metric_from_json(
+        metric, mask_count=2, image_count=2, name="bounded reassociation"
+    )
+
+
+def test_metric_validator_rejects_redundant_image_mean_above_two_ulps() -> None:
+    mean_loss = 1.0
+    last_image_loss = mean_loss
+    for _index in range(6):
+        last_image_loss = math.nextafter(last_image_loss, math.inf)
+    metric = {
+        "mean_loss": mean_loss,
+        "accuracy": 0.5,
+        "correct_count": 2,
+        "observation_count": 4,
+        "per_mask_mean_losses": [mean_loss, mean_loss],
+        "per_mask_represented_mean_losses": [mean_loss, mean_loss],
+        "per_mask_unrepresented_mean_losses": [mean_loss, mean_loss],
+        "per_image_mean_losses": [mean_loss, last_image_loss],
+        "represented_mean_loss": mean_loss,
+        "unrepresented_mean_loss": mean_loss,
+    }
+
+    with pytest.raises(ValueError, match="aggregate differs"):
+        MODULE._metric_from_json(
+            metric, mask_count=2, image_count=2, name="excess reassociation"
+        )
+
+
 def test_run_authenticates_and_builds_inventory_before_scientific_execution(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1399,6 +1845,7 @@ def test_run_authenticates_and_builds_inventory_before_scientific_execution(
     inventory = object()
     value = {"candidate_values_computed": True}
     calls: list[str] = []
+    tracker = MODULE.CapStageTracker()
 
     def authenticate(_args: object) -> object:
         calls.append("authenticate")
@@ -1409,8 +1856,14 @@ def test_run_authenticates_and_builds_inventory_before_scientific_execution(
         calls.append("parent_inventory")
         return inventory
 
-    def execute(_args: object, execution_inventory: object) -> tuple[object, object]:
+    def execute(
+        _args: object,
+        execution_inventory: object,
+        *,
+        stage_tracker: object,
+    ) -> tuple[object, object]:
         assert execution_inventory is inventory
+        assert stage_tracker is tracker
         calls.append("scientific")
         return value, inventory
 
@@ -1424,7 +1877,7 @@ def test_run_authenticates_and_builds_inventory_before_scientific_execution(
     )
     monkeypatch.setattr(MODULE, "_execute_with_runtime_observation", execute)
 
-    actual, actual_inventory = MODULE.run(args)
+    actual, actual_inventory = MODULE.run(args, stage_tracker=tracker)
 
     assert (actual, actual_inventory) == (value, inventory)
     assert calls == ["authenticate", "runtime", "parent_inventory", "scientific"]
@@ -1520,6 +1973,7 @@ def test_build_execution_inventory_excludes_query_gallery_and_binds_parent(
             "repo_root": Path(__file__).parents[1],
             "source_commit": "a" * 40,
             "head": "b" * 40,
+            "failure_output": tmp_path / "cap.failure.json",
         },
     )
 
@@ -1580,7 +2034,7 @@ def test_run_restores_python_numpy_and_torch_rng_states(
     monkeypatch.setattr(
         MODULE,
         "_execute_with_runtime_observation",
-        lambda actual_args, actual_inventory: (
+        lambda actual_args, actual_inventory, **_kwargs: (
             mutate_rng(actual_args, actual_inventory),
             actual_inventory,
         ),
@@ -1698,11 +2152,7 @@ def test_parent_replay_preflight_authenticates_without_candidate_execution(
     )
     authenticated = {"config": {"environment": _valid_inventory()["runtime"]}}
     inventory = object()
-    replay = {
-        "class_mean_sha256": "a" * 64,
-        "target_sha256_by_seed": {"0": "b" * 64, "1": "c" * 64, "2": "d" * 64},
-        "candidate_values_computed": False,
-    }
+    replay = _valid_parent_replay()
     calls: list[str] = []
     monkeypatch.setattr(
         MODULE,
@@ -1737,6 +2187,112 @@ def test_parent_replay_preflight_authenticates_without_candidate_execution(
     assert calls == ["authenticate", "runtime", "parent_inventory", "parent_replay"]
 
 
+def test_compute_parent_replay_validates_parent_metrics_without_cap_values(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fitting = (
+        InshopRecord("train", tmp_path / "fit-0.jpg", "id0"),
+        InshopRecord("train", tmp_path / "fit-1.jpg", "id1"),
+    )
+    validation = (
+        InshopRecord("train", tmp_path / "val-0.jpg", "id0"),
+        InshopRecord("train", tmp_path / "val-1.jpg", "id1"),
+    )
+    class_head = torch.eye(2, dtype=torch.float32)
+    target_heads = {
+        seed: torch.roll(class_head, shifts=seed, dims=0) for seed in (0, 1, 2)
+    }
+    metric_payload = {
+        "mean_loss": 1.0,
+        "accuracy": 0.5,
+        "correct_count": 2,
+        "observation_count": 4,
+        "per_mask_mean_losses": [1.0, 1.0],
+        "per_mask_represented_mean_losses": [1.0, 1.0],
+        "per_mask_unrepresented_mean_losses": [1.0, 1.0],
+        "per_image_mean_losses": [1.0, 1.0],
+        "represented_mean_loss": 1.0,
+        "unrepresented_mean_loss": 1.0,
+    }
+    metric = MODULE._metric_from_json(
+        metric_payload, mask_count=2, image_count=2, name="parent replay fixture"
+    )
+    metric_digest = MODULE._sha256_bytes(MODULE._canonical_bytes(metric_payload))
+    inventory_data = _valid_inventory()
+    inventory_data["protocol"]["evaluation_mask_sets"] = 2
+    inventory = MODULE.CapExecutionInventory(
+        result=inventory_data,
+        fitting=fitting,
+        validation=validation,
+        validation_group_represented=(True, False),
+        labels={"id0": 0, "id1": 1},
+        class_mean_sha256=MODULE._tensor_sha256(class_head),
+        target_sha256_by_seed={
+            seed: MODULE._tensor_sha256(head) for seed, head in target_heads.items()
+        },
+        fit_steps=1,
+        batch_size=2,
+        peak_gpu_mib=0,
+        parent_class_mean_metric_sha256=metric_digest,
+        parent_target_metric_sha256_by_seed={
+            seed: metric_digest for seed in (0, 1, 2)
+        },
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_encode_feature_sets",
+        lambda *_args: (torch.eye(2), torch.eye(2)),
+    )
+    monkeypatch.setattr(
+        "sfora.unicom_probe.class_mean_head", lambda *_args: class_head
+    )
+    monkeypatch.setattr(
+        "sfora.unicom_probe.fit_spherical_probe_trajectory",
+        lambda *_args, fit_seed, **_kwargs: (
+            SimpleNamespace(head=target_heads[fit_seed]),
+            {},
+        ),
+    )
+    calls: list[int] = []
+
+    def evaluate_heads(
+        _features: object,
+        _labels: object,
+        heads: object,
+        **_kwargs: object,
+    ) -> dict[str, object]:
+        assert type(heads) is dict
+        assert heads["class_mean"] is class_head
+        candidate = heads["spherical_probe"]
+        seed = next(seed for seed, head in target_heads.items() if candidate is head)
+        calls.append(seed)
+        return {"class_mean": metric, "spherical_probe": metric}
+
+    def forbidden_candidate(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("CAP candidate path reached during parent replay")
+
+    monkeypatch.setattr("sfora.unicom_probe.evaluate_probe_heads", evaluate_heads)
+    monkeypatch.setattr("sfora.unicom_cap.build_cap_heads", forbidden_candidate)
+    monkeypatch.setattr("sfora.unicom_cap.covariance_mask_mismatch", forbidden_candidate)
+    monkeypatch.setattr("sfora.unicom_cap.cap_decision", forbidden_candidate)
+    monkeypatch.setattr(MODULE, "_row_cosine_payload", forbidden_candidate)
+
+    replay = MODULE._compute_parent_replay(SimpleNamespace(), inventory)
+
+    assert calls == [0, 1, 2]
+    assert replay == {
+        "class_mean_sha256": inventory.class_mean_sha256,
+        "target_sha256_by_seed": {
+            str(seed): inventory.target_sha256_by_seed[seed] for seed in (0, 1, 2)
+        },
+        "class_mean_metric_sha256": metric_digest,
+        "target_metric_sha256_by_seed": {
+            str(seed): metric_digest for seed in (0, 1, 2)
+        },
+        "candidate_values_computed": False,
+    }
+
+
 def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1754,13 +2310,17 @@ def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
         peak_gpu_mib=0,
     )
     calls: list[str] = []
-    monkeypatch.setattr(
-        MODULE,
-        "execute_screen",
-        lambda _args, actual: calls.append("execute") or value
-        if actual is inventory
-        else (_ for _ in ()).throw(AssertionError("inventory differs")),
-    )
+    tracker = MODULE.CapStageTracker()
+
+    def execute(
+        _args: object, actual: object, *, stage_tracker: object
+    ) -> object:
+        assert actual is inventory
+        assert stage_tracker is tracker
+        calls.append("execute")
+        return value
+
+    monkeypatch.setattr(MODULE, "execute_screen", execute)
     monkeypatch.setattr(
         torch.cuda, "reset_peak_memory_stats", lambda: calls.append("reset")
     )
@@ -1779,7 +2339,9 @@ def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
     )
 
     actual, observed_inventory = MODULE._execute_with_runtime_observation(
-        SimpleNamespace(output=tmp_path / "cap.json"), inventory
+        SimpleNamespace(output=tmp_path / "cap.json"),
+        inventory,
+        stage_tracker=tracker,
     )
 
     assert calls == [
