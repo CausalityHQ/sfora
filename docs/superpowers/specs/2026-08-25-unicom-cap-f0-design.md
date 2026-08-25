@@ -116,6 +116,9 @@ FP32 on the model device. Variant names and order are exactly
 
 The reconstructed class-mean head must have SHA-256
 `d183c0d26d451cc5184f4da0a2112766fb5b32d206ea711011f573b3b4aa9613`.
+All class-mean and target-head digests use the parent's `_tensor_sha256`
+convention: native FP32 bytes from
+`tensor.detach().cpu().contiguous().numpy().tobytes(order="C")`.
 
 ### Masked-covariance mismatch diagnostic
 
@@ -132,26 +135,39 @@ shards=8)` algorithm. For both CAP variants and every mask set/shard, compare
 the assigned class rows of the full-width solution restricted to that shard's
 mask with a fresh FP64 Cholesky solution using the principal covariance
 submatrix and the same right-hand-side rows restricted to that mask. Persist
-the exact 8 x 8 mask-coordinate SHA-256 values over contiguous little-endian
+the exact 8 x 8 mask-coordinate SHA-256 values, preserving the raw unsorted
+`argsort` coordinate order, over contiguous little-endian
 signed-int64 C-order bytes and, per variant, the minimum, p05, median, and mean
 row cosine over all `8 x 3200` assigned class rows. Quantiles use
 `np.quantile(values, q, method="linear")` at `q=0.05` and `q=0.5`. This
-diagnostic is not a promotion predicate; it distinguishes failure of
-full-width whitening under masking from failure of covariance correction in
-general.
+diagnostic is not a promotion predicate. Because the masked ArcFace objective
+renormalizes masked rows, the principal-submatrix solution is an approximation
+to the true masked optimum; the diagnostic distinguishes failure of the
+registered full-width approximation under masking from failure of covariance
+correction in general.
+
+For each fit seed and CAP variant, CAP-to-target row cosine is computed exactly
+as `torch.nn.functional.cosine_similarity(cap_head, fitted_target,
+dim=1).clamp(-1.0, 1.0).double()`, matching the parent `ProbeFit` convention.
+Persist all 3200 FP64 row cosines plus minimum, p05, median, and mean in that
+order, with quantiles at `0.05` and `0.5` using Torch's default linear method.
+The class-mean-to-target baseline is the parent `ProbeFit.row_cosine_mean` for
+the same seed.
 
 ## Comparators
 
-For each fit seed, evaluate exactly three candidate pairs in this order:
+Evaluate the two seed-invariant CAP pairs exactly once in this order:
 
 1. `{"class_mean": class_mean, "spherical_probe": cap_centered}`;
-2. `{"class_mean": class_mean, "spherical_probe": cap_uncentered}`;
-3. `{"class_mean": class_mean, "spherical_probe": fitted_target}`.
+2. `{"class_mean": class_mean, "spherical_probe": cap_uncentered}`.
+
+Then, for each fit seed, evaluate
+`{"class_mean": class_mean, "spherical_probe": fitted_target}`.
 
 Each pair uses the existing `evaluate_probe_heads` implementation. It reseeds
 the mask generator on every call, so the 64 evaluation mask sets are identical
-across all three calls. Every replayed `class_mean` metric must be exactly equal
-across the calls and to the parent result. The semantic comparator order in the
+across all calls. Every replayed `class_mean` metric must be exactly equal
+and match the parent result. The semantic comparator order in the
 result remains `("class_mean", "cap_centered", "cap_uncentered",
 "fitted_target")`. All heads use the same fitting features, validation
 features, labels, row norm, represented-stratum flags, and evaluator. CAP does
@@ -190,27 +206,35 @@ smallest fitted-target improvement already frozen in the parent artifact:
 `0.025520506587201952 / 4 = 0.006380126646800488` accuracy. They are not tuned
 from CAP values.
 
-For each CAP variant and each seed, all eight predicates are computed:
+CAP construction and its 64-mask evaluator are independent of fit seed. The
+two CAP metric objects must therefore be bit-identical wherever referenced by
+seeds `0`, `1`, and `2`; the runner asserts equality and exits `2` otherwise.
+Loss, accuracy, mask, stratum, and lower-bound evidence are single
+seed-invariant determinations, never three-seed replication. Only
+CAP-to-target cosine and step equivalence vary by fit seed.
 
-1. `head_cosine_improved`: mean row cosine to `fitted_target` is strictly
-   greater than the class-mean-to-target mean row cosine.
-2. `head_cosine_at_least_0_95`: mean row cosine to `fitted_target` is at least
+For each CAP variant, all seven predicates are computed:
+
+1. `head_cosine_at_least_0_95`: mean row cosine to `fitted_target` is at least
    `0.95`.
-3. `loss_delta_at_least_0_0501203852609845`: CAP mean validation loss is at
+2. `loss_delta_at_least_0_0501203852609845`: CAP mean validation loss is at
    most class-mean mean validation loss minus `0.0501203852609845`.
-4. `accuracy_delta_at_least_0_006380126646800488`: CAP margin-free validation
+3. `accuracy_delta_at_least_0_006380126646800488`: CAP margin-free validation
    accuracy is at least class-mean accuracy plus `0.006380126646800488`.
-5. `mask_and_stratum_consistent`: CAP loss is no greater than class-mean loss
+4. `mask_and_stratum_consistent`: CAP loss is no greater than class-mean loss
    on at least `60` of `64` masks and its unrepresented-stratum mean loss is
    no greater than the class-mean value.
-6. `paired_95_lower_bound_positive`: with per-mask paired deltas
+5. `paired_95_lower_bound_positive`: with per-mask paired deltas
    `class_mean_loss - cap_loss`, the mean minus
    `1.998340542520741 * sample_sd / sqrt(64)` is strictly positive, where
    `sample_sd` uses denominator `63`.
-7. `identity_95_lower_bound_positive`: with all 3188 per-image paired deltas,
+6. `identity_95_lower_bound_positive`: with all 3188 per-image paired deltas,
    the mean minus `1.9607086212236648 * sample_sd / sqrt(3188)` is strictly
    positive, where `sample_sd` uses denominator `3187`.
-8. `step_equivalence_at_least_64`: `k_v >= 64` or `k_v == ">512"`.
+7. `step_equivalence_at_least_64`: `k_v >= 64` or `k_v == ">512"`.
+
+Predicate 1 and predicate 7 must hold for all three fit seeds. Predicates 2
+through 6 are evaluated once on the seed-invariant CAP metrics.
 
 All comparisons are type-strict and use unrounded stored values.
 
@@ -218,12 +242,16 @@ All comparisons are type-strict and use unrounded stored values.
 
 Variant selection occurs only after every metric above is recorded.
 
-- A variant `passes_static` iff predicates 1 through 7 are true for all three
-  seeds.
-- A variant `passes_all` iff all eight predicates are true for all three seeds.
-- If both variants pass the same decision level, choose the variant with the
-  larger minimum numeric step-equivalence across seeds, treating `">512"` as
-  positive infinity. Break an exact tie in favor of `cap_centered`.
+- A variant `passes_static` iff predicate 1 is true for all three fit seeds and
+  seed-invariant predicates 2 through 6 are true.
+- A variant `passes_all` iff `passes_static` and predicate 7 is true for all
+  three fit seeds.
+- Assign decision level `2` to `passes_all`, `1` to `passes_static`, and `0`
+  otherwise. If exactly one variant reaches the higher nonzero level, select
+  it. If both reach the same nonzero level, choose the larger minimum numeric
+  step-equivalence across seeds, treating `">512"` as positive infinity, and
+  break an exact tie in favor of `cap_centered`. Under `CLOSE_CAP`,
+  `selected_variant` is exactly JSON `null`; no other value is accepted.
 
 The top-level decision is exactly one of:
 
@@ -253,10 +281,15 @@ The scientific JSON must contain, in exact order:
    Cholesky diagonal, covariance SHA-256 over FP64 C-order bytes, condition
    number, Shannon effective rank, ordered construction-mask hashes, and exact
    per-variant mismatch-cosine summaries);
-7. `seeds` (ordered `0,1,2`, with exact comparator metrics, per-mask losses,
-   trajectory metrics, step-equivalence, paired lower bounds, and predicates);
-8. `decision` (per-variant summaries, selected variant, status);
-9. `candidate_values_computed` = `true`.
+7. `cap_metrics` (ordered `cap_centered`, `cap_uncentered`; each exact
+   seed-invariant validation metric, paired statistics, and predicates 2--6,
+   stored once rather than copied into seed rows);
+8. `seeds` (ordered `0,1,2`, with the fitted-target comparator and trajectory
+   metrics, all per-row CAP-to-target cosines, step-equivalence, and predicates
+   1 and 7);
+9. `decision` (per-variant summaries, selected variant or exact JSON `null`,
+   and status);
+10. `candidate_values_computed` = `true`.
 
 Strict recursive validation must recompute every aggregate, covariance
 diagnostic, cosine, loss delta, accuracy delta, paired lower bound, mask count,
@@ -269,6 +302,14 @@ The CLI publishes exactly once by temporary mode-0600 file, file and directory
 Any authority, runtime, extraction, covariance, evaluator, validation, or
 publication failure exits `2`, publishes no result, and does not retry.
 
+Before the authorized attempt, run exactly two fresh candidate-free preflight
+processes on the same checkout and runtime. Each reconstructs only the
+class-mean head and seed-0 parent trajectory and must reproduce both registered
+SHA-256 values. Neither imports or computes CAP. If either preflight differs,
+stop structurally with no scientific attempt; no retry is authorized.
+Deterministic-algorithm flags must remain at the parent settings because
+enabling different kernels would invalidate rather than reproduce the parent.
+
 ## Testing and execution boundary
 
 Tests must cover the exact CAP formula on analytic matrices, centered and
@@ -276,7 +317,9 @@ uncentered distinction, Ledoit-Wolf binding, Cholesky failure, row norms,
 single-trajectory snapshots and parent final hashes, `">512"`, every threshold
 and lower-bound boundary, masked-covariance mismatch diagnostics, variant tie
 break, all three decisions, recursive mutation rejection, candidate-free
-source authentication, atomic publication, and no-clobber behavior.
+source authentication, seed-invariant CAP metric storage, selected-variant
+nullability, both candidate-free replay preflights, atomic publication, and
+no-clobber behavior.
 
 One real CPU tiny-model test must exercise feature extraction outputs through
 CAP construction, the masked evaluator, trajectory snapshots, strict result
