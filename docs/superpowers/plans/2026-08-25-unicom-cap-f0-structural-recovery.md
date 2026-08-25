@@ -6,11 +6,11 @@
 ## Authority
 
 - Amendment commit:
-  `579b27cf3b3b2fec51c85e6816ee2e4647cf8fdb`
+  `89812cd82062e7098b5a9d142a158858a8ca6d79`
 - Amendment path:
   `docs/unicom_cap_f0_structural_recovery_2026-08-25.md`
 - Amendment SHA-256:
-  `e719372bf19ca61e325179ad314c44b4bbfd6e9636fb413543b58d7f3c7d1f9d`
+  `a1f1b0ab9143421b7b1a701a3dd538f49ed773c178424ad47299ed7297293b14`
 - Failed source/config:
   `77a092f2bc23cc7022fd3946b8cc8feb2f9f7087` /
   `bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4`
@@ -95,10 +95,11 @@ Files:
 - Modify `tests/test_unicom_cap_f0_run_config.py`
 
 Extend the exact config schema with attempt 2, the immutable attempt-1 record,
-and a distinct repository-relative failure path. Source code must first be
-committed and independently reviewed. Then update all source digests and set
-`source.commit` to that reviewed source commit. Commit the config alone as a
-direct handoff whose sole changed path is the config.
+the amendment and plan path/SHA/commit authority objects, and a distinct
+repository-relative failure path. Source code must first be committed and
+independently reviewed. Then update all source digests and set `source.commit`
+to that reviewed source commit. Commit the config alone as a direct handoff
+whose sole changed path is the config.
 
 Authenticate both result and failure destinations and their PID temporaries as
 absent real-path children of the registered output directory. Reject aliases,
