@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import math
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import torch
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "screen_unicom_proxy_muon_f0.py"
 SPEC = importlib.util.spec_from_file_location("screen_unicom_proxy_muon_f0", SCRIPT)
@@ -22,6 +25,252 @@ def test_proxy_muon_result_contract_module_exists() -> None:
     assert callable(module.validate_failure_receipt)
     assert callable(module.canonical_json_bytes)
     assert callable(module.publish_result_exclusive)
+
+
+def test_proxy_muon_scientific_orchestration_api_exists() -> None:
+    """Catch a screen that validates receipts but cannot produce one."""
+
+    assert callable(module.run_proxy_muon_f0)
+    assert callable(module.assemble_scientific_result)
+    assert callable(module.assemble_failure_receipt)
+    assert callable(module.main)
+
+
+def test_protocol_cell_order_keeps_seed_innermost_and_deduplicates_anchor() -> None:
+    """Catch loop reordering or an accidental duplicate AdamW anchor fit."""
+
+    phase1 = module.phase1_cell_schedule()
+    assert phase1[:4] == (
+        ("adamw", 0.000025, 0),
+        ("adamw", 0.000025, 1),
+        ("adamw", 0.000025, 2),
+        ("adamw", 0.00005, 0),
+    )
+    assert phase1[-3:] == (
+        ("proxy_muon", 0.0004, 0),
+        ("proxy_muon", 0.0004, 1),
+        ("proxy_muon", 0.0004, 2),
+    )
+    assert len(phase1) == 30
+    assert module.phase2_cell_schedule(0.0001, 0.0002) == tuple(
+        (seed, variant, 0.0002 if variant.startswith("proxy_muon") else 0.0001)
+        for seed in (3, 4, 5)
+        for variant in ("adamw_selected", "proxy_muon", "proxy_muon_fp32")
+    )
+    assert module.phase2_cell_schedule(0.0002, 0.0001)[:4] == (
+        (3, "adamw_selected", 0.0002),
+        (3, "adamw_anchor", 0.0001),
+        (3, "proxy_muon", 0.0001),
+        (3, "proxy_muon_fp32", 0.0001),
+    )
+
+
+def test_phase1_runner_is_fail_fast_and_retains_exact_completed_prefix() -> None:
+    """Catch continuation after a failed cell or hashing a non-completed cell."""
+
+    golden = _phase1_rows()
+    completed: list[str] = []
+    observed: list[tuple[str, float, int]] = []
+
+    def cell_runner(
+        _features: object,
+        _labels: object,
+        _initial: object,
+        *,
+        optimizer: str,
+        learning_rate: float,
+        fit_seed: int,
+    ) -> dict[str, object]:
+        observed.append((optimizer, learning_rate, fit_seed))
+        if len(observed) == 8:
+            raise RuntimeError("injected cell failure")
+        return golden[len(observed) - 1]
+
+    with pytest.raises(RuntimeError, match="injected cell failure"):
+        module.run_phase1_cells(
+            object(), object(), object(), completed, cell_runner=cell_runner
+        )
+
+    assert observed == list(module.phase1_cell_schedule()[:8])
+    assert completed == [
+        __import__("hashlib").sha256(module.canonical_json_bytes(row)).hexdigest()
+        for row in golden[:7]
+    ]
+
+
+def test_phase1_cell_reduces_only_registered_snapshot_bytes_and_panels() -> None:
+    """Catch a cell row assembled from the wrong snapshot or panel order."""
+
+    initial = torch.arange(16, dtype=torch.float32).reshape(4, 4).contiguous()
+    final = (initial + 1.0).contiguous()
+
+    def fit_trajectory(*_args, **_kwargs):
+        return {0: initial.clone(), 64: final.clone()}
+
+    def panel(_features, _labels, head, *, fit_seed: int):
+        base = 1.0 if torch.equal(head, initial) else 0.5
+        return tuple(base + fit_seed * 0.01 + index * 1e-6 for index in range(16))
+
+    row = module._run_phase1_cell(
+        object(),
+        object(),
+        initial,
+        optimizer="adamw",
+        learning_rate=0.0001,
+        fit_seed=2,
+        fit_trajectory=fit_trajectory,
+        panel_runner=panel,
+    )
+
+    assert tuple(row) == module.PHASE1_ROW_KEYS
+    assert row["steps"] == 64
+    assert row["initial_head_sha256"] == module.tensor_sha256(initial)
+    assert row["final_head_sha256"] == module.tensor_sha256(final)
+    assert row["diagnostic_step0"]["mean"] == math.fsum(
+        row["diagnostic_step0"]["components"]
+    ) / 16
+    assert row["diagnostic_step64"]["components"][0] == 0.52
+
+
+def test_phase2_runner_is_seed_major_fail_fast_and_hashes_only_completed_rows() -> None:
+    """Catch Phase-2 variant reordering, continuation, or premature prefix hashing."""
+
+    golden = _scientific_fixture()["phase2"]
+    completed: list[str] = []
+    observed: list[tuple[int, str, float]] = []
+
+    def cell_runner(
+        _features: object,
+        _labels: object,
+        _validation_features: object,
+        _validation_labels: object,
+        _represented: object,
+        _initial: object,
+        *,
+        fit_seed: int,
+        variant: str,
+        learning_rate: float,
+    ) -> dict[str, object]:
+        observed.append((fit_seed, variant, learning_rate))
+        if len(observed) == 6:
+            raise RuntimeError("injected Phase-2 failure")
+        return golden[len(observed) - 1]
+
+    with pytest.raises(RuntimeError, match="injected Phase-2 failure"):
+        module.run_phase2_cells(
+            object(),
+            object(),
+            object(),
+            object(),
+            object(),
+            object(),
+            0.0001,
+            0.0002,
+            completed,
+            cell_runner=cell_runner,
+        )
+
+    assert observed == list(module.phase2_cell_schedule(0.0001, 0.0002)[:6])
+    assert completed == [
+        __import__("hashlib").sha256(module.canonical_json_bytes(row)).hexdigest()
+        for row in golden[:5]
+    ]
+
+
+@pytest.mark.parametrize(
+    "variant,expected_dtype",
+    (("adamw_selected", None), ("proxy_muon", "torch.bfloat16")),
+)
+def test_phase2_cell_reduces_registered_snapshots_traces_and_validation_only(
+    variant: str, expected_dtype: str | None
+) -> None:
+    """Catch wrong retained-step traces or validation on unregistered steps."""
+
+    initial = torch.arange(16, dtype=torch.float32).reshape(4, 4).contiguous()
+    snapshots = {
+        step: (initial if step == 0 else initial + float(index)).contiguous()
+        for index, step in enumerate(module.RETAINED_STEPS)
+    }
+    traces = {
+        step: (
+            None
+            if step == 0 or expected_dtype is None
+            else SimpleNamespace(
+                update_dtype=expected_dtype,
+                polar_factor_residual=0.01 + index * 0.001,
+            )
+        )
+        for index, step in enumerate(module.RETAINED_STEPS)
+    }
+
+    def fit_trajectory(*_args, **_kwargs):
+        return snapshots, traces
+
+    def panel(_features, _labels, head, *, fit_seed: int):
+        value = float(head[0, 0]) + fit_seed
+        return tuple(value + index * 1e-6 for index in range(16))
+
+    evaluated_steps: list[int] = []
+
+    def accuracy(_features, _labels, head, *, represented):
+        assert represented == (True, False)
+        step = next(key for key, value in snapshots.items() if torch.equal(value, head))
+        evaluated_steps.append(step)
+        return 0.8 + step / 10_000
+
+    row = module._run_phase2_cell(
+        object(),
+        object(),
+        object(),
+        object(),
+        (True, False),
+        initial,
+        fit_seed=3,
+        variant=variant,
+        learning_rate=0.0001,
+        fit_trajectory=fit_trajectory,
+        panel_runner=panel,
+        accuracy_runner=accuracy,
+    )
+
+    assert evaluated_steps == [307, 435, 512]
+    assert [item["step"] for item in row["retained"]] == list(module.RETAINED_STEPS)
+    assert [
+        item["validation_accuracy"]
+        for item in row["retained"]
+        if item["step"] not in module.VALIDATION_STEPS
+    ] == [None] * 6
+    assert row["retained"][0]["update_dtype"] is None
+    assert row["retained"][1]["update_dtype"] == expected_dtype
+
+
+def test_reconstructed_parent_hash_gate_binds_features_labels_and_all_four_heads() -> None:
+    """Catch a screen that authenticates metadata but not reconstructed tensors."""
+
+    tensors = {
+        name: (torch.arange(8, dtype=torch.float32) + index).contiguous()
+        for index, name in enumerate(
+            (
+                "fitting_features",
+                "fitting_labels",
+                "validation_features",
+                "validation_labels",
+                "imprinted_head",
+                "adamw_fitted_head_seed_0",
+                "adamw_fitted_head_seed_1",
+                "adamw_fitted_head_seed_2",
+            )
+        )
+    }
+    expected = {name: module.tensor_sha256(value) for name, value in tensors.items()}
+
+    assert module.verify_parent_tensor_hashes(tensors, expected) == expected
+    mutated = dict(tensors)
+    mutated["adamw_fitted_head_seed_2"] = (
+        mutated["adamw_fitted_head_seed_2"] + 1.0
+    ).contiguous()
+    with pytest.raises(ValueError, match="adamw_fitted_head_seed_2"):
+        module.verify_parent_tensor_hashes(mutated, expected)
 
 
 def _digest(index: int) -> str:
@@ -292,6 +541,101 @@ def _failure_fixture() -> dict[str, object]:
             "completed_cells": 2,
         },
     }
+
+
+def test_assemblers_recompute_scientific_route_and_failure_prefix() -> None:
+    """Catch assemblers that trust caller-supplied decisions or drop prefix evidence."""
+
+    expected = _scientific_fixture()
+    assembled = module.assemble_scientific_result(
+        authority=expected["authority"],
+        runtime=expected["runtime"],
+        protocol=expected["protocol"],
+        initializer=expected["initializer"],
+        phase1=expected["phase1"],
+        phase2=expected["phase2"],
+        process=expected["process"],
+    )
+    assert assembled == expected
+
+    failure = _failure_fixture()
+    rebuilt_failure = module.assemble_failure_receipt(
+        authority=failure["authority"],
+        runtime=failure["runtime"],
+        protocol=failure["protocol"],
+        completed_cell_sha256s=failure["completed_cell_sha256s"],
+        error=RuntimeError("boom"),
+        process=failure["process"],
+    )
+    assert rebuilt_failure == failure
+
+
+def test_authenticated_orchestrator_runs_both_phases_and_assembles_exact_result() -> None:
+    expected = _scientific_fixture()
+    completed: list[str] = []
+    callbacks: list[object] = []
+
+    class Budget:
+        def observe(self, _step: int) -> None:
+            return None
+
+        def snapshot(self) -> dict[str, object]:
+            return {
+                "elapsed_seconds": 10.0,
+                "peak_allocated_bytes": 1024,
+                "peak_reserved_bytes": 2048,
+            }
+
+    budget = Budget()
+
+    def phase1_runner(*_args, progress_callback, **_kwargs):
+        callbacks.append(progress_callback)
+        rows = expected["phase1"]
+        completed.extend(
+            __import__("hashlib").sha256(module.canonical_json_bytes(row)).hexdigest()
+            for row in rows
+        )
+        return rows
+
+    def phase2_runner(
+        *_args,
+        adamw_learning_rate,
+        proxy_muon_learning_rate,
+        progress_callback,
+        **_kwargs,
+    ):
+        assert adamw_learning_rate == 0.0001
+        assert proxy_muon_learning_rate == 0.0002
+        callbacks.append(progress_callback)
+        rows = expected["phase2"]
+        completed.extend(
+            __import__("hashlib").sha256(module.canonical_json_bytes(row)).hexdigest()
+            for row in rows
+        )
+        return rows
+
+    evidence = {
+        "fitting_features": object(),
+        "fitting_labels": object(),
+        "validation_features": object(),
+        "validation_labels": object(),
+        "validation_group_represented": object(),
+        "imprinted_head": object(),
+    }
+    actual = module._run_authenticated_proxy_muon(
+        protocol=expected["protocol"],
+        authority=expected["authority"],
+        runtime=expected["runtime"],
+        evidence=evidence,
+        budget=budget,
+        completed_cell_sha256s=completed,
+        command=expected["process"]["command"],
+        phase1_runner=phase1_runner,
+        phase2_runner=phase2_runner,
+    )
+
+    assert actual == expected
+    assert callbacks == [budget.observe, budget.observe]
 
 
 def _set_validation_losses(
@@ -739,6 +1083,48 @@ def test_cli_accepts_only_exact_config_argument(tmp_path: Path) -> None:
         module.parse_args(["--config", str(config), "--output", "x"])
 
 
+def test_main_publishes_only_reduced_receipt_after_authenticated_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "reports").mkdir()
+    config = {
+        "environment": _runtime(),
+        "protocol": _protocol(),
+        "handoff": {"sole_path": "docs/unicom_proxy_muon_f0_run_config.json"},
+        "result": {
+            "relative_path": "reports/result.json",
+            "failure_relative_path": "reports/failure.json",
+        },
+    }
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        module.sys, "flags", SimpleNamespace(isolated=1, dont_write_bytecode=1)
+    )
+    monkeypatch.setattr(module, "load_run_config", lambda _path: config)
+    monkeypatch.setattr(
+        module, "authenticate_source_and_inputs", lambda *_args: _authority()
+    )
+    monkeypatch.setattr(module, "observe_runtime", _runtime)
+
+    def fail_reconstruction(*_args):
+        raise RuntimeError("injected reconstruction failure")
+
+    monkeypatch.setattr(module, "reconstruct_parent_evidence", fail_reconstruction)
+
+    assert module.main(["--config", "ignored.json"]) == 2
+    assert not (tmp_path / "reports" / "result.json").exists()
+    receipt = module.strict_json_object(
+        (tmp_path / "reports" / "failure.json").read_bytes()
+    )
+    module.validate_failure_receipt(receipt)
+    assert receipt["runtime"] == _runtime()
+    assert receipt["completed_cells"] == 0
+    assert receipt["error"] == {
+        "class": "RuntimeError",
+        "message": "injected reconstruction failure",
+    }
+
+
 def test_authenticated_parent_feature_module_loads_by_exact_git_bytes() -> None:
     repo_root = SCRIPT.parents[1]
     revision = subprocess.check_output(
@@ -849,3 +1235,124 @@ def test_training_only_partition_loader_never_opens_query_or_gallery(
     assert records[0].split == "train"
     assert records[0].label == "id_1"
     assert records[0].image_path == train_image
+
+
+def test_execution_budget_observer_checks_every_step_and_tracks_exact_peaks() -> None:
+    elapsed_values = iter((100.0, 101.5, 102.0, 2801.0))
+    allocated_values = iter((100, 300, 250))
+    reserved_values = iter((200, 400, 250))
+    budget = module.ExecutionBudget(
+        elapsed_limit_seconds=2700.0,
+        peak_limit_bytes=8 * 1024**3,
+        clock=lambda: next(elapsed_values),
+        allocated=lambda: next(allocated_values),
+        reserved=lambda: next(reserved_values),
+    )
+
+    budget.observe(1)
+    budget.observe(2)
+    assert budget.snapshot() == {
+        "elapsed_seconds": 2.0,
+        "peak_allocated_bytes": 300,
+        "peak_reserved_bytes": 400,
+    }
+    with pytest.raises(RuntimeError, match="elapsed limit"):
+        budget.observe(3)
+
+
+def test_real_cpu_optimizer_to_validated_receipt_integration() -> None:
+    generator = torch.Generator().manual_seed(205)
+    class_count = 8
+    dimension = 512
+    labels = torch.arange(class_count, dtype=torch.int64).repeat_interleave(64)
+    centers = torch.randn(class_count, dimension, generator=generator)
+    centers = torch.nn.functional.normalize(centers, dim=1)
+    features = centers.index_select(0, labels) + 0.01 * torch.randn(
+        labels.shape[0], dimension, generator=generator
+    )
+    features = torch.nn.functional.normalize(features, dim=1).float().contiguous()
+    initial = module.class_mean_head(
+        features, labels, class_count=class_count
+    ).contiguous()
+    represented = tuple(index % 2 == 0 for index in range(labels.numel()))
+
+    phase1_templates = {
+        optimizer: module._run_phase1_cell(
+            features,
+            labels,
+            initial,
+            optimizer=optimizer,
+            learning_rate=0.0001,
+            fit_seed=0,
+        )
+        for optimizer in ("adamw", "proxy_muon")
+    }
+    phase1 = []
+    for optimizer, learning_rate, fit_seed in module.phase1_cell_schedule():
+        row = copy.deepcopy(phase1_templates[optimizer])
+        row["learning_rate"] = learning_rate
+        row["fit_seed"] = fit_seed
+        phase1.append(row)
+
+    selected = {
+        optimizer: module._selection_payload(phase1, optimizer)
+        for optimizer in ("adamw", "proxy_muon")
+    }
+    selected_adamw = selected["adamw"]["learning_rate"]
+    selected_proxy = selected["proxy_muon"]["learning_rate"]
+    templates = {}
+    for variant, learning_rate in (
+        ("adamw_selected", selected_adamw),
+        ("adamw_anchor", 0.0001),
+        ("proxy_muon", selected_proxy),
+        ("proxy_muon_fp32", selected_proxy),
+    ):
+        templates[variant] = module._run_phase2_cell(
+            features,
+            labels,
+            features,
+            labels,
+            represented,
+            initial,
+            fit_seed=3,
+            variant=variant,
+            learning_rate=learning_rate,
+        )
+    phase2 = []
+    for fit_seed, variant, learning_rate in module.phase2_cell_schedule(
+        selected_adamw, selected_proxy
+    ):
+        row = copy.deepcopy(templates[variant])
+        row["fit_seed"] = fit_seed
+        row["learning_rate"] = learning_rate
+        phase2.append(row)
+
+    authority = copy.deepcopy(_authority())
+    authority["inputs"]["fitting_features"] = module.tensor_sha256(features)
+    authority["inputs"]["fitting_labels"] = module.tensor_sha256(labels)
+    authority["inputs"]["validation_features"] = module.tensor_sha256(features)
+    authority["inputs"]["validation_labels"] = module.tensor_sha256(labels)
+    authority["inputs"]["imprinted_head"] = module.tensor_sha256(initial)
+    result = module.assemble_scientific_result(
+        authority=authority,
+        runtime=_runtime(),
+        protocol=_protocol(),
+        initializer={
+            "kind": "imprinted",
+            "feature_sha256": module.tensor_sha256(features),
+            "label_sha256": module.tensor_sha256(labels),
+            "initial_head_sha256": module.tensor_sha256(initial),
+            "validation_feature_sha256": module.tensor_sha256(features),
+        },
+        phase1=phase1,
+        phase2=phase2,
+        process={
+            "command": ["python", "-I", "-B", "screen.py", "--config", "run.json"],
+            "elapsed_seconds": 1.0,
+            "peak_allocated_bytes": 0,
+            "peak_reserved_bytes": 0,
+            "completed_cells": len(phase1) + len(phase2),
+        },
+    )
+    module.validate_scientific_result(result)
+    assert result["status"] == "UNRESOLVED_LR_BOUNDARY"

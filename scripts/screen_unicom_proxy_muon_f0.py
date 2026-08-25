@@ -13,12 +13,24 @@ import math
 import os
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from pathlib import Path
 from typing import NoReturn
 
+import torch
+
 from sfora.unicom_inshop import InshopRecord
+from sfora.unicom_probe import (
+    _fit_probe_trajectory_with_optimizer,
+    class_mean_head,
+    diagnostic_panel_losses,
+    evaluate_probe_head,
+    fit_proxy_muon_trajectory,
+    fit_spherical_probe,
+    split_probe_records,
+)
 from sfora.unicom_proxy_muon import (
     LR_GRID,
     OPTIMIZERS,
@@ -27,11 +39,13 @@ from sfora.unicom_proxy_muon import (
     RETAINED_STEPS,
     VALIDATION_STEPS,
     accuracy_noninferior,
+    build_head_optimizer,
     compute_reach_step,
     decide_proxy_muon_f0,
     select_adamw_reference,
     select_learning_rate,
 )
+from sfora.unicom_training import identity_holdout
 
 SCIENTIFIC_SCHEMA_VERSION = "unicom-proxy-muon-f0-v1"
 FAILURE_SCHEMA_VERSION = "unicom-proxy-muon-f0-failure-v1"
@@ -227,6 +241,87 @@ CONFIG_PARENT_TENSOR_KEYS = (
 )
 CONFIG_RESULT_KEYS = ("relative_path", "failure_relative_path")
 FILE_REFERENCE_KEYS = ("path", "sha256")
+RECONSTRUCTED_PARENT_KEYS = (
+    "fitting_features",
+    "fitting_labels",
+    "validation_features",
+    "validation_labels",
+    "imprinted_head",
+    "adamw_fitted_head_seed_0",
+    "adamw_fitted_head_seed_1",
+    "adamw_fitted_head_seed_2",
+)
+
+
+class ExecutionBudget:
+    """Fail-fast elapsed/GPU-memory observer shared by every optimizer step."""
+
+    def __init__(
+        self,
+        *,
+        elapsed_limit_seconds: float,
+        peak_limit_bytes: int,
+        clock: Callable[[], float] = time.monotonic,
+        allocated: Callable[[], int] | None = None,
+        reserved: Callable[[], int] | None = None,
+    ) -> None:
+        if (
+            type(elapsed_limit_seconds) is not float
+            or elapsed_limit_seconds <= 0.0
+            or type(peak_limit_bytes) is not int
+            or peak_limit_bytes <= 0
+            or not callable(clock)
+            or (allocated is not None and not callable(allocated))
+            or (reserved is not None and not callable(reserved))
+        ):
+            raise ValueError("ProxyMuon execution budget differs")
+        self._elapsed_limit_seconds = elapsed_limit_seconds
+        self._peak_limit_bytes = peak_limit_bytes
+        self._clock = clock
+        self._allocated = allocated or self._cuda_peak_allocated
+        self._reserved = reserved or self._cuda_peak_reserved
+        self._started_at = float(clock())
+        self._elapsed_seconds = 0.0
+        self._peak_allocated_bytes = 0
+        self._peak_reserved_bytes = 0
+
+    @staticmethod
+    def _cuda_peak_allocated() -> int:
+        return int(torch.cuda.max_memory_allocated(0)) if torch.cuda.is_available() else 0
+
+    @staticmethod
+    def _cuda_peak_reserved() -> int:
+        return int(torch.cuda.max_memory_reserved(0)) if torch.cuda.is_available() else 0
+
+    def observe(self, completed_step: int) -> None:
+        if type(completed_step) is not int or completed_step <= 0:
+            raise ValueError("ProxyMuon completed step differs")
+        elapsed = float(self._clock()) - self._started_at
+        if not math.isfinite(elapsed) or elapsed < 0.0:
+            raise RuntimeError("ProxyMuon elapsed observation differs")
+        self._elapsed_seconds = elapsed
+        if elapsed > self._elapsed_limit_seconds:
+            raise RuntimeError("ProxyMuon elapsed limit exceeded")
+        allocated = self._allocated()
+        reserved = self._reserved()
+        if (
+            type(allocated) is not int
+            or allocated < 0
+            or type(reserved) is not int
+            or reserved < 0
+        ):
+            raise RuntimeError("ProxyMuon memory observation differs")
+        self._peak_allocated_bytes = max(self._peak_allocated_bytes, allocated)
+        self._peak_reserved_bytes = max(self._peak_reserved_bytes, reserved)
+        if max(allocated, reserved) > self._peak_limit_bytes:
+            raise RuntimeError("ProxyMuon peak memory limit exceeded")
+
+    def snapshot(self) -> dict[str, object]:
+        return {
+            "elapsed_seconds": self._elapsed_seconds,
+            "peak_allocated_bytes": self._peak_allocated_bytes,
+            "peak_reserved_bytes": self._peak_reserved_bytes,
+        }
 
 
 def _reject_constant(value: str) -> NoReturn:
@@ -1382,3 +1477,1047 @@ def publish_result_exclusive(
     finally:
         with suppress(FileNotFoundError):
             temporary.unlink()
+
+
+def run_proxy_muon_f0(
+    config: Mapping[str, object],
+    *,
+    repo_root: Path | None = None,
+    command: Sequence[str] | None = None,
+    completed_cell_sha256s: list[str] | None = None,
+) -> dict[str, object]:
+    """Run the registered cached-feature scientific screen once."""
+
+    validated = _validate_run_config(config)
+    root = Path.cwd() if repo_root is None else repo_root
+    authority = authenticate_source_and_inputs(validated, root)
+    runtime = validate_observed_runtime(validated["environment"], observe_runtime())
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats(0)
+    budget = ExecutionBudget(
+        elapsed_limit_seconds=float(validated["protocol"]["elapsed_limit_seconds"]),
+        peak_limit_bytes=int(validated["protocol"]["peak_limit_bytes"]),
+    )
+    evidence = reconstruct_parent_evidence(validated, authority, root)
+    budget.observe(1)
+    completed = [] if completed_cell_sha256s is None else completed_cell_sha256s
+    effective_command = (
+        [str(item) for item in command]
+        if command is not None
+        else [
+            ".venv/bin/python",
+            "-I",
+            "-B",
+            "scripts/screen_unicom_proxy_muon_f0.py",
+            "--config",
+            str(validated["handoff"]["sole_path"]),
+        ]
+    )
+    return _run_authenticated_proxy_muon(
+        protocol=validated["protocol"],
+        authority=authority,
+        runtime=runtime,
+        evidence=evidence,
+        budget=budget,
+        completed_cell_sha256s=completed,
+        command=effective_command,
+    )
+
+
+def _run_authenticated_proxy_muon(
+    *,
+    protocol: object,
+    authority: object,
+    runtime: object,
+    evidence: Mapping[str, object],
+    budget: object,
+    completed_cell_sha256s: list[str],
+    command: object,
+    phase1_runner: Callable[..., list[dict[str, object]]] | None = None,
+    phase2_runner: Callable[..., list[dict[str, object]]] | None = None,
+) -> dict[str, object]:
+    """Execute both registered phases after authority/runtime authentication."""
+
+    _validate_protocol(protocol)
+    _validate_authority(authority)
+    _validate_runtime(runtime)
+    if (
+        type(evidence) is not dict
+        or tuple(evidence)
+        != (
+            "fitting_features",
+            "fitting_labels",
+            "validation_features",
+            "validation_labels",
+            "validation_group_represented",
+            "imprinted_head",
+        )
+        or type(completed_cell_sha256s) is not list
+        or completed_cell_sha256s
+        or not callable(getattr(budget, "observe", None))
+        or not callable(getattr(budget, "snapshot", None))
+    ):
+        raise ValueError("ProxyMuon authenticated execution arguments differ")
+    phase1_runner = run_phase1_cells if phase1_runner is None else phase1_runner
+    phase2_runner = run_phase2_cells if phase2_runner is None else phase2_runner
+    if not callable(phase1_runner) or not callable(phase2_runner):
+        raise TypeError("ProxyMuon scientific phase runner differs")
+    phase1 = phase1_runner(
+        evidence["fitting_features"],
+        evidence["fitting_labels"],
+        evidence["imprinted_head"],
+        completed_cell_sha256s,
+        progress_callback=budget.observe,
+    )
+    selections = {
+        optimizer: _selection_payload(phase1, optimizer)
+        for optimizer in OPTIMIZERS
+    }
+    phase2 = phase2_runner(
+        evidence["fitting_features"],
+        evidence["fitting_labels"],
+        evidence["validation_features"],
+        evidence["validation_labels"],
+        evidence["validation_group_represented"],
+        evidence["imprinted_head"],
+        adamw_learning_rate=float(selections["adamw"]["learning_rate"]),
+        proxy_muon_learning_rate=float(
+            selections["proxy_muon"]["learning_rate"]
+        ),
+        completed_cell_sha256s=completed_cell_sha256s,
+        progress_callback=budget.observe,
+    )
+    process = {
+        "command": command,
+        **budget.snapshot(),
+        "completed_cells": len(completed_cell_sha256s),
+    }
+    inputs = authority["inputs"]
+    initializer = {
+        "kind": "imprinted",
+        "feature_sha256": inputs["fitting_features"],
+        "label_sha256": inputs["fitting_labels"],
+        "initial_head_sha256": inputs["imprinted_head"],
+        "validation_feature_sha256": inputs["validation_features"],
+    }
+    return assemble_scientific_result(
+        authority=authority,
+        runtime=runtime,
+        protocol=protocol,
+        initializer=initializer,
+        phase1=phase1,
+        phase2=phase2,
+        process=process,
+    )
+
+
+def phase1_cell_schedule() -> tuple[tuple[str, float, int], ...]:
+    """Return the frozen Phase-1 optimizer/LR/seed order."""
+
+    return tuple(
+        (optimizer, learning_rate, fit_seed)
+        for optimizer in OPTIMIZERS
+        for learning_rate in LR_GRID
+        for fit_seed in PHASE1_SEEDS
+    )
+
+
+def phase2_cell_schedule(
+    adamw_learning_rate: float, proxy_muon_learning_rate: float
+) -> tuple[tuple[int, str, float], ...]:
+    """Return the frozen Phase-2 order with the AdamW anchor deduplicated."""
+
+    if (
+        type(adamw_learning_rate) is not float
+        or adamw_learning_rate not in LR_GRID
+        or type(proxy_muon_learning_rate) is not float
+        or proxy_muon_learning_rate not in LR_GRID
+    ):
+        raise ValueError("ProxyMuon selected learning rate differs")
+    variants = _expected_phase2_variants(adamw_learning_rate)
+    return tuple(
+        (
+            fit_seed,
+            variant,
+            (
+                proxy_muon_learning_rate
+                if variant.startswith("proxy_muon")
+                else 0.0001
+                if variant == "adamw_anchor"
+                else adamw_learning_rate
+            ),
+        )
+        for fit_seed in PHASE2_SEEDS
+        for variant in variants
+    )
+
+
+def run_phase1_cells(
+    fitting_features: object,
+    fitting_labels: object,
+    initial_head: object,
+    completed_cell_sha256s: list[str],
+    *,
+    cell_runner: Callable[..., dict[str, object]] | None = None,
+    progress_callback: Callable[[int], None] | None = None,
+) -> list[dict[str, object]]:
+    """Run Phase 1 in frozen order and append only completed row hashes."""
+
+    if type(completed_cell_sha256s) is not list or any(
+        type(value) is not str for value in completed_cell_sha256s
+    ):
+        raise TypeError("ProxyMuon completed prefix differs")
+    runner = _run_phase1_cell if cell_runner is None else cell_runner
+    if not callable(runner):
+        raise TypeError("ProxyMuon Phase-1 cell runner differs")
+    rows: list[dict[str, object]] = []
+    for optimizer, learning_rate, fit_seed in phase1_cell_schedule():
+        runner_kwargs = {
+            "optimizer": optimizer,
+            "learning_rate": learning_rate,
+            "fit_seed": fit_seed,
+        }
+        if cell_runner is None:
+            runner_kwargs["progress_callback"] = progress_callback
+        row = runner(
+            fitting_features,
+            fitting_labels,
+            initial_head,
+            **runner_kwargs,
+        )
+        if (
+            type(row) is not dict
+            or tuple(row) != PHASE1_ROW_KEYS
+            or (row["optimizer"], row["learning_rate"], row["fit_seed"])
+            != (optimizer, learning_rate, fit_seed)
+        ):
+            raise ValueError("ProxyMuon Phase-1 cell result differs")
+        _sha256(row["initial_head_sha256"], "Phase-1 initial head")
+        _sha256(row["final_head_sha256"], "Phase-1 final head")
+        _validate_panel(row["diagnostic_step0"], "Phase-1 diagnostic step0")
+        _validate_panel(row["diagnostic_step64"], "Phase-1 diagnostic step64")
+        rows.append(row)
+        completed_cell_sha256s.append(
+            hashlib.sha256(canonical_json_bytes(row)).hexdigest()
+        )
+    return rows
+
+
+def _run_phase1_cell(
+    fitting_features: object,
+    fitting_labels: object,
+    initial_head: object,
+    *,
+    optimizer: str,
+    learning_rate: float,
+    fit_seed: int,
+    fit_trajectory: Callable[..., Mapping[int, torch.Tensor]] | None = None,
+    panel_runner: Callable[..., Sequence[float]] | None = None,
+    progress_callback: Callable[[int], None] | None = None,
+) -> dict[str, object]:
+    fit = _fit_phase1_trajectory if fit_trajectory is None else fit_trajectory
+    panel = diagnostic_panel_losses if panel_runner is None else panel_runner
+    if not callable(fit) or not callable(panel):
+        raise TypeError("ProxyMuon Phase-1 callback differs")
+    snapshots = fit(
+        fitting_features,
+        fitting_labels,
+        initial_head,
+        optimizer=optimizer,
+        learning_rate=learning_rate,
+        fit_seed=fit_seed,
+        progress_callback=progress_callback,
+    )
+    if type(snapshots) is not dict or tuple(snapshots) != (0, 64):
+        raise ValueError("ProxyMuon Phase-1 snapshots differ")
+    initial = snapshots[0]
+    final = snapshots[64]
+    if (
+        type(initial) is not torch.Tensor
+        or type(final) is not torch.Tensor
+        or initial.dtype != torch.float32
+        or final.dtype != torch.float32
+        or initial.shape != final.shape
+        or not initial.is_contiguous()
+        or not final.is_contiguous()
+        or not torch.isfinite(initial).all()
+        or not torch.isfinite(final).all()
+    ):
+        raise ValueError("ProxyMuon Phase-1 snapshot tensor differs")
+    step0 = tuple(float(value) for value in panel(
+        fitting_features, fitting_labels, initial, fit_seed=fit_seed
+    ))
+    step64 = tuple(float(value) for value in panel(
+        fitting_features, fitting_labels, final, fit_seed=fit_seed
+    ))
+    return {
+        "optimizer": optimizer,
+        "learning_rate": learning_rate,
+        "fit_seed": fit_seed,
+        "steps": 64,
+        "initial_head_sha256": tensor_sha256(initial),
+        "final_head_sha256": tensor_sha256(final),
+        "diagnostic_step0": panel_payload(step0),
+        "diagnostic_step64": panel_payload(step64),
+    }
+
+
+def _fit_phase1_trajectory(
+    fitting_features: torch.Tensor,
+    fitting_labels: torch.Tensor,
+    initial_head: torch.Tensor,
+    *,
+    optimizer: str,
+    learning_rate: float,
+    fit_seed: int,
+    progress_callback: Callable[[int], None] | None = None,
+) -> dict[int, torch.Tensor]:
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        return build_head_optimizer(head, optimizer, learning_rate)
+
+    _fit, snapshots, _traces = _fit_probe_trajectory_with_optimizer(
+        fitting_features,
+        fitting_labels,
+        initial_head,
+        snapshot_steps=(0, 64),
+        optimizer_factory=optimizer_factory,
+        trace_factory=None,
+        steps=64,
+        fit_seed=fit_seed,
+        progress_callback=progress_callback,
+    )
+    return {
+        step: snapshot.detach().cpu().contiguous()
+        for step, snapshot in snapshots.items()
+    }
+
+
+def tensor_sha256(value: torch.Tensor) -> str:
+    """Hash concrete contiguous tensor bytes in C order."""
+
+    if (
+        type(value) is not torch.Tensor
+        or not value.is_contiguous()
+        or not torch.isfinite(value).all()
+    ):
+        raise ValueError("ProxyMuon tensor bytes differ")
+    return hashlib.sha256(
+        value.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
+    ).hexdigest()
+
+
+def verify_parent_tensor_hashes(
+    tensors: Mapping[str, torch.Tensor], expected: Mapping[str, str]
+) -> dict[str, str]:
+    """Bind reconstructed features, labels, imprint, and three parent fits."""
+
+    if (
+        type(tensors) is not dict
+        or tuple(tensors) != RECONSTRUCTED_PARENT_KEYS
+        or type(expected) is not dict
+        or tuple(expected) != RECONSTRUCTED_PARENT_KEYS
+    ):
+        raise ValueError("ProxyMuon reconstructed parent inventory differs")
+    observed: dict[str, str] = {}
+    for name in RECONSTRUCTED_PARENT_KEYS:
+        digest = tensor_sha256(tensors[name])
+        if _sha256(expected[name], f"expected parent tensor {name}") != digest:
+            raise ValueError(f"ProxyMuon reconstructed parent tensor differs: {name}")
+        observed[name] = digest
+    return observed
+
+
+def reconstruct_parent_evidence(
+    config: Mapping[str, object],
+    authority: Mapping[str, object],
+    repo_root: Path,
+) -> dict[str, object]:
+    """Reconstruct the authenticated spherical-parent training-only tensors."""
+
+    validated = _validate_run_config(config)
+    _validate_authority(authority)
+    inputs = validated["inputs"]
+    records = load_training_only_records(
+        Path(inputs["partition"]), Path(inputs["dataset_root"])
+    )
+    optimization, _heldout_query, _heldout_gallery, labels = identity_holdout(
+        records, fraction=0.2, seed=0
+    )
+    split = split_probe_records(optimization, labels)
+    if (
+        len(optimization) != 20_650
+        or len(labels) != 3_200
+        or len(split.fitting) != 14_330
+        or len(split.validation) != 3_188
+        or split.validation_class_count != 3_188
+        or split.singleton_class_count != 12
+        or split.excluded_same_series_count != 3_132
+    ):
+        raise ValueError("ProxyMuon parent split differs")
+
+    parent_digest = str(authority["sources"]["parent_spherical"])
+    parent_module = load_spherical_feature_module(
+        repo_root, str(authority["source_commit"]), parent_digest
+    )
+    parent_result = strict_json_object(
+        Path(validated["parent"]["spherical_parent_result"]["path"]).read_bytes()
+    )
+    try:
+        parent_module.validate_result(parent_result)
+        arguments = argparse.Namespace(
+            unicom_checkout=Path(inputs["unicom_checkout"]),
+            checkpoint=Path(inputs["checkpoint"]),
+            batch_size=128,
+            workers=4,
+        )
+        fitting_features, validation_features = parent_module._encode_feature_sets(
+            arguments, split.fitting, split.validation
+        )
+    finally:
+        sys.modules.pop(PARENT_MODULE_NAME, None)
+        for name in tuple(sys.modules):
+            if name == "unicom" or name.startswith("unicom."):
+                sys.modules.pop(name, None)
+    device = fitting_features.device
+    fitting_labels = torch.tensor(
+        [labels[row.label] for row in split.fitting],
+        dtype=torch.int64,
+        device=device,
+    ).contiguous()
+    validation_labels = torch.tensor(
+        [labels[row.label] for row in split.validation],
+        dtype=torch.int64,
+        device=device,
+    ).contiguous()
+    imprinted_head = class_mean_head(
+        fitting_features, fitting_labels, class_count=len(labels)
+    ).contiguous()
+    parent_fits = {
+        seed: fit_spherical_probe(
+            fitting_features, fitting_labels, imprinted_head, fit_seed=seed
+        ).head.contiguous()
+        for seed in PHASE1_SEEDS
+    }
+    probes = parent_result["probes"]
+    if (
+        type(probes) is not list
+        or len(probes) != 3
+        or [probe["fit_seed"] for probe in probes] != list(PHASE1_SEEDS)
+    ):
+        raise ValueError("ProxyMuon spherical parent probes differ")
+    expected = {
+        "fitting_features": str(authority["inputs"]["fitting_features"]),
+        "fitting_labels": str(authority["inputs"]["fitting_labels"]),
+        "validation_features": str(authority["inputs"]["validation_features"]),
+        "validation_labels": str(authority["inputs"]["validation_labels"]),
+        "imprinted_head": str(authority["inputs"]["imprinted_head"]),
+        "adamw_fitted_head_seed_0": str(probes[0]["sha256"]),
+        "adamw_fitted_head_seed_1": str(probes[1]["sha256"]),
+        "adamw_fitted_head_seed_2": str(probes[2]["sha256"]),
+    }
+    tensors = {
+        "fitting_features": fitting_features,
+        "fitting_labels": fitting_labels,
+        "validation_features": validation_features,
+        "validation_labels": validation_labels,
+        "imprinted_head": imprinted_head,
+        "adamw_fitted_head_seed_0": parent_fits[0],
+        "adamw_fitted_head_seed_1": parent_fits[1],
+        "adamw_fitted_head_seed_2": parent_fits[2],
+    }
+    verify_parent_tensor_hashes(tensors, expected)
+    if parent_result["class_mean"]["sha256"] != expected["imprinted_head"]:
+        raise ValueError("ProxyMuon spherical parent imprint differs")
+    del parent_fits
+    return {
+        "fitting_features": fitting_features,
+        "fitting_labels": fitting_labels,
+        "validation_features": validation_features,
+        "validation_labels": validation_labels,
+        "validation_group_represented": split.validation_group_represented,
+        "imprinted_head": imprinted_head,
+    }
+
+
+def panel_payload(components: Sequence[float]) -> dict[str, object]:
+    """Reduce one registered 16-cell panel without changing its order."""
+
+    if type(components) not in (tuple, list) or len(components) != 16:
+        raise ValueError("ProxyMuon diagnostic panel differs")
+    values = [float(value) for value in components]
+    if any(type(value) is not float or not math.isfinite(value) for value in values):
+        raise ValueError("ProxyMuon diagnostic panel value differs")
+    return {"components": values, "mean": math.fsum(values) / 16}
+
+
+def run_phase2_cells(
+    fitting_features: object,
+    fitting_labels: object,
+    validation_features: object,
+    validation_labels: object,
+    validation_group_represented: object,
+    initial_head: object,
+    adamw_learning_rate: float,
+    proxy_muon_learning_rate: float,
+    completed_cell_sha256s: list[str],
+    *,
+    cell_runner: Callable[..., dict[str, object]] | None = None,
+    progress_callback: Callable[[int], None] | None = None,
+) -> list[dict[str, object]]:
+    """Run Phase 2 in seed-major order and retain an exact completed prefix."""
+
+    if type(completed_cell_sha256s) is not list or any(
+        type(value) is not str for value in completed_cell_sha256s
+    ):
+        raise TypeError("ProxyMuon completed prefix differs")
+    runner = _run_phase2_cell if cell_runner is None else cell_runner
+    if not callable(runner):
+        raise TypeError("ProxyMuon Phase-2 cell runner differs")
+    rows: list[dict[str, object]] = []
+    for fit_seed, variant, learning_rate in phase2_cell_schedule(
+        adamw_learning_rate, proxy_muon_learning_rate
+    ):
+        runner_kwargs = {
+            "fit_seed": fit_seed,
+            "variant": variant,
+            "learning_rate": learning_rate,
+        }
+        if cell_runner is None:
+            runner_kwargs["progress_callback"] = progress_callback
+        row = runner(
+            fitting_features,
+            fitting_labels,
+            validation_features,
+            validation_labels,
+            validation_group_represented,
+            initial_head,
+            **runner_kwargs,
+        )
+        if (
+            type(row) is not dict
+            or tuple(row) != PHASE2_ROW_KEYS
+            or (row["fit_seed"], row["variant"], row["learning_rate"])
+            != (fit_seed, variant, learning_rate)
+        ):
+            raise ValueError("ProxyMuon Phase-2 cell result differs")
+        _validate_retained(row["retained"], variant, "Phase-2 retained")
+        rows.append(row)
+        completed_cell_sha256s.append(
+            hashlib.sha256(canonical_json_bytes(row)).hexdigest()
+        )
+    return rows
+
+
+def _run_phase2_cell(
+    fitting_features: object,
+    fitting_labels: object,
+    validation_features: object,
+    validation_labels: object,
+    validation_group_represented: object,
+    initial_head: object,
+    *,
+    fit_seed: int,
+    variant: str,
+    learning_rate: float,
+    fit_trajectory: Callable[..., tuple[Mapping[int, torch.Tensor], Mapping[int, object | None]]]
+    | None = None,
+    panel_runner: Callable[..., Sequence[float]] | None = None,
+    accuracy_runner: Callable[..., float] | None = None,
+    progress_callback: Callable[[int], None] | None = None,
+) -> dict[str, object]:
+    fit = _fit_phase2_trajectory if fit_trajectory is None else fit_trajectory
+    panel = diagnostic_panel_losses if panel_runner is None else panel_runner
+    accuracy = _evaluate_accuracy if accuracy_runner is None else accuracy_runner
+    if not callable(fit) or not callable(panel) or not callable(accuracy):
+        raise TypeError("ProxyMuon Phase-2 callback differs")
+    snapshots, traces = fit(
+        fitting_features,
+        fitting_labels,
+        initial_head,
+        fit_seed=fit_seed,
+        variant=variant,
+        learning_rate=learning_rate,
+        progress_callback=progress_callback,
+    )
+    if (
+        type(snapshots) is not dict
+        or tuple(snapshots) != RETAINED_STEPS
+        or type(traces) is not dict
+        or tuple(traces) != RETAINED_STEPS
+    ):
+        raise ValueError("ProxyMuon Phase-2 trajectory differs")
+    retained: list[dict[str, object]] = []
+    for step in RETAINED_STEPS:
+        head = snapshots[step]
+        if (
+            type(head) is not torch.Tensor
+            or head.dtype != torch.float32
+            or not head.is_contiguous()
+            or not torch.isfinite(head).all()
+        ):
+            raise ValueError("ProxyMuon Phase-2 snapshot differs")
+        components = tuple(
+            float(value)
+            for value in panel(
+                fitting_features, fitting_labels, head, fit_seed=fit_seed
+            )
+        )
+        validation_accuracy = (
+            float(
+                accuracy(
+                    validation_features,
+                    validation_labels,
+                    head,
+                    represented=validation_group_represented,
+                )
+            )
+            if step in VALIDATION_STEPS
+            else None
+        )
+        if validation_accuracy is not None and not 0.0 <= validation_accuracy <= 1.0:
+            raise ValueError("ProxyMuon validation accuracy differs")
+        trace = traces[step]
+        if variant.startswith("adamw") or step == 0:
+            if trace is not None:
+                raise ValueError("ProxyMuon Phase-2 trace differs")
+            update_dtype = None
+            residual = None
+        else:
+            expected_dtype = (
+                "torch.float32" if variant == "proxy_muon_fp32" else "torch.bfloat16"
+            )
+            if (
+                trace is None
+                or getattr(trace, "update_dtype", None) != expected_dtype
+                or type(getattr(trace, "polar_factor_residual", None)) is not float
+                or not math.isfinite(trace.polar_factor_residual)
+                or trace.polar_factor_residual < 0.0
+            ):
+                raise ValueError("ProxyMuon Phase-2 trace differs")
+            update_dtype = trace.update_dtype
+            residual = trace.polar_factor_residual
+        retained.append(
+            {
+                "step": step,
+                "head_sha256": tensor_sha256(head),
+                "diagnostic": panel_payload(components),
+                "validation_accuracy": validation_accuracy,
+                "update_dtype": update_dtype,
+                "polar_factor_residual": residual,
+            }
+        )
+    return {
+        "fit_seed": fit_seed,
+        "variant": variant,
+        "learning_rate": learning_rate,
+        "retained": retained,
+    }
+
+
+def _fit_phase2_trajectory(
+    fitting_features: torch.Tensor,
+    fitting_labels: torch.Tensor,
+    initial_head: torch.Tensor,
+    *,
+    fit_seed: int,
+    variant: str,
+    learning_rate: float,
+    progress_callback: Callable[[int], None] | None = None,
+) -> tuple[dict[int, torch.Tensor], dict[int, object | None]]:
+    if variant.startswith("adamw"):
+        def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+            return build_head_optimizer(head, "adamw", learning_rate)
+
+        _fit, snapshots, traces = _fit_probe_trajectory_with_optimizer(
+            fitting_features,
+            fitting_labels,
+            initial_head,
+            snapshot_steps=RETAINED_STEPS,
+            optimizer_factory=optimizer_factory,
+            trace_factory=None,
+            steps=512,
+            fit_seed=fit_seed,
+            progress_callback=progress_callback,
+        )
+    elif variant in ("proxy_muon", "proxy_muon_fp32"):
+        _fit, snapshots, traces = fit_proxy_muon_trajectory(
+            fitting_features,
+            fitting_labels,
+            initial_head,
+            learning_rate=learning_rate,
+            ns_dtype=(
+                torch.float32 if variant == "proxy_muon_fp32" else torch.bfloat16
+            ),
+            snapshot_steps=RETAINED_STEPS,
+            steps=512,
+            fit_seed=fit_seed,
+            progress_callback=progress_callback,
+        )
+    else:
+        raise ValueError("ProxyMuon Phase-2 variant differs")
+    return (
+        {
+            step: snapshot.detach().cpu().contiguous()
+            for step, snapshot in snapshots.items()
+        },
+        dict(traces),
+    )
+
+
+def _evaluate_accuracy(
+    validation_features: torch.Tensor,
+    validation_labels: torch.Tensor,
+    head: torch.Tensor,
+    *,
+    represented: tuple[bool, ...],
+) -> float:
+    device_head = head.to(device=validation_features.device)
+    try:
+        return float(
+            evaluate_probe_head(
+                validation_features,
+                validation_labels,
+                device_head,
+                validation_group_represented=represented,
+            ).accuracy
+        )
+    finally:
+        del device_head
+
+
+def _selection_payload(
+    phase1: list[dict[str, object]], optimizer: str
+) -> dict[str, object]:
+    decision_rows = [
+        {
+            "optimizer": row["optimizer"],
+            "learning_rate": row["learning_rate"],
+            "fit_seed": row["fit_seed"],
+            "step_64_diagnostic_mean": row["diagnostic_step64"]["mean"],
+        }
+        for row in phase1
+    ]
+    selected = select_learning_rate(decision_rows, optimizer=optimizer)
+    means = {
+        learning_rate: math.fsum(
+            float(row["step_64_diagnostic_mean"])
+            for row in decision_rows
+            if row["optimizer"] == optimizer
+            and row["learning_rate"] == learning_rate
+        )
+        / len(PHASE1_SEEDS)
+        for learning_rate in LR_GRID
+    }
+    return {
+        "learning_rate": selected.learning_rate,
+        "mean_final_loss": selected.mean_step_64_loss,
+        "interior": selected.interior,
+        "tie_lrs": [
+            learning_rate
+            for learning_rate in LR_GRID
+            if means[learning_rate] == selected.mean_step_64_loss
+        ],
+    }
+
+
+def _comparison_payloads(
+    phase2: list[dict[str, object]], selections: Mapping[str, object]
+) -> list[dict[str, object]]:
+    comparisons: list[dict[str, object]] = []
+    for seed in PHASE2_SEEDS:
+        per_seed = {
+            str(row["variant"]): row
+            for row in phase2
+            if row["fit_seed"] == seed
+        }
+        reference_variants = (
+            ("adamw_selected",)
+            if "adamw_anchor" not in per_seed
+            else ("adamw_selected", "adamw_anchor")
+        )
+        reference_rows = [
+            {
+                "variant": variant,
+                "learning_rate": float(per_seed[variant]["learning_rate"]),
+                "fit_seed": seed,
+                "step_512_diagnostic_mean": float(
+                    _retained_at(per_seed[variant], 512)["diagnostic"]["mean"]
+                ),
+                "step_512_accuracy": float(
+                    _retained_at(per_seed[variant], 512)["validation_accuracy"]
+                ),
+            }
+            for variant in reference_variants
+        ]
+        reference = select_adamw_reference(
+            reference_rows,
+            selected_learning_rate=float(selections["adamw"]["learning_rate"]),
+            fit_seed=seed,
+        )
+
+        def summarize(
+            variant: str,
+            per_seed: Mapping[str, object] = per_seed,
+            reference: object = reference,
+        ) -> tuple[int | str, float | None, float]:
+            row = per_seed[variant]
+            losses = {
+                step: float(_retained_at(row, step)["diagnostic"]["mean"])
+                for step in VALIDATION_STEPS
+            }
+            reach = compute_reach_step(losses, reference.step_512_diagnostic_mean)
+            accuracy_at_reach = (
+                None
+                if reach == ">512"
+                else float(_retained_at(row, int(reach))["validation_accuracy"])
+            )
+            accuracy_512 = float(_retained_at(row, 512)["validation_accuracy"])
+            return reach, accuracy_at_reach, accuracy_512
+
+        proxy_reach, proxy_at_reach, proxy_512 = summarize("proxy_muon")
+        fp32_reach, fp32_at_reach, fp32_512 = summarize("proxy_muon_fp32")
+        selected_adamw_lr = float(selections["adamw"]["learning_rate"])
+        comparisons.append(
+            {
+                "fit_seed": seed,
+                "adamw_reference_variant": (
+                    "adamw_selected"
+                    if reference.learning_rate == selected_adamw_lr
+                    else "adamw_anchor"
+                ),
+                "adamw_reference_learning_rate": reference.learning_rate,
+                "adamw_reference_step512_loss": reference.step_512_diagnostic_mean,
+                "adamw_reference_step512_accuracy": reference.step_512_accuracy,
+                "proxy_muon_reach_step": proxy_reach,
+                "proxy_muon_accuracy_at_reach": proxy_at_reach,
+                "proxy_muon_accuracy_delta": (
+                    None
+                    if proxy_at_reach is None
+                    else proxy_at_reach - reference.step_512_accuracy
+                ),
+                "proxy_muon_step512_accuracy_delta": proxy_512
+                - reference.step_512_accuracy,
+                "proxy_muon_fp32_reach_step": fp32_reach,
+                "proxy_muon_fp32_accuracy_at_reach": fp32_at_reach,
+                "proxy_muon_fp32_accuracy_delta": (
+                    None
+                    if fp32_at_reach is None
+                    else fp32_at_reach - reference.step_512_accuracy
+                ),
+                "proxy_muon_fp32_step512_accuracy_delta": fp32_512
+                - reference.step_512_accuracy,
+            }
+        )
+    return comparisons
+
+
+def _decision_from_result_parts(
+    selections: Mapping[str, object], comparisons: Sequence[Mapping[str, object]]
+) -> str:
+    references = {
+        int(comparison["fit_seed"]): float(
+            comparison["adamw_reference_step512_accuracy"]
+        )
+        for comparison in comparisons
+    }
+    return decide_proxy_muon_f0(
+        {
+            "structural_valid": True,
+            "adamw_selected_lr_interior": selections["adamw"]["interior"],
+            "proxy_muon_selected_lr_interior": selections["proxy_muon"]["interior"],
+            "proxy_muon_reach_steps": {
+                int(row["fit_seed"]): row["proxy_muon_reach_step"]
+                for row in comparisons
+            },
+            "proxy_muon_noninferior_at_reach": {
+                int(row["fit_seed"]): (
+                    row["proxy_muon_accuracy_at_reach"] is not None
+                    and accuracy_noninferior(
+                        float(row["proxy_muon_accuracy_at_reach"]),
+                        references[int(row["fit_seed"])],
+                    )
+                )
+                for row in comparisons
+            },
+            "proxy_muon_step512_noninferior": {
+                int(row["fit_seed"]): float(
+                    row["proxy_muon_step512_accuracy_delta"]
+                )
+                >= -0.002
+                for row in comparisons
+            },
+            "fp32_reach_steps": {
+                int(row["fit_seed"]): row["proxy_muon_fp32_reach_step"]
+                for row in comparisons
+            },
+            "fp32_noninferior_at_reach": {
+                int(row["fit_seed"]): (
+                    row["proxy_muon_fp32_accuracy_at_reach"] is not None
+                    and accuracy_noninferior(
+                        float(row["proxy_muon_fp32_accuracy_at_reach"]),
+                        references[int(row["fit_seed"])],
+                    )
+                )
+                for row in comparisons
+            },
+            "fp32_step512_noninferior": {
+                int(row["fit_seed"]): float(
+                    row["proxy_muon_fp32_step512_accuracy_delta"]
+                )
+                >= -0.002
+                for row in comparisons
+            },
+        }
+    )
+
+
+def assemble_scientific_result(
+    *,
+    authority: object,
+    runtime: object,
+    protocol: object,
+    initializer: object,
+    phase1: object,
+    phase2: object,
+    process: object,
+) -> dict[str, object]:
+    """Recompute and validate a complete scientific result."""
+
+    if type(phase1) is not list or type(phase2) is not list:
+        raise TypeError("ProxyMuon scientific rows differ")
+    selections = {
+        optimizer: _selection_payload(phase1, optimizer)
+        for optimizer in OPTIMIZERS
+    }
+    comparisons = _comparison_payloads(phase2, selections)
+    predicates = _expected_predicates(selections, comparisons)
+    result = {
+        "schema_version": SCIENTIFIC_SCHEMA_VERSION,
+        "status": _decision_from_result_parts(selections, comparisons),
+        "authority": authority,
+        "runtime": runtime,
+        "protocol": protocol,
+        "initializer": initializer,
+        "phase1": phase1,
+        "selected_learning_rates": selections,
+        "phase2": phase2,
+        "comparisons": comparisons,
+        "predicates": predicates,
+        "process": process,
+    }
+    validate_scientific_result(result)
+    return result
+
+
+def assemble_failure_receipt(
+    *,
+    authority: object,
+    runtime: object,
+    protocol: object,
+    completed_cell_sha256s: object,
+    error: BaseException,
+    process: object,
+) -> dict[str, object]:
+    """Assemble and validate the reduced structural-failure receipt."""
+
+    if type(completed_cell_sha256s) is not list or not isinstance(error, BaseException):
+        raise TypeError("ProxyMuon failure evidence differs")
+    receipt = {
+        "schema_version": FAILURE_SCHEMA_VERSION,
+        "status": "STRUCTURAL_FAILURE",
+        "authority": authority,
+        "runtime": runtime,
+        "protocol": protocol,
+        "completed_cells": len(completed_cell_sha256s),
+        "completed_cell_sha256s": completed_cell_sha256s,
+        "error": {"class": type(error).__name__, "message": str(error)},
+        "process": process,
+    }
+    validate_failure_receipt(receipt)
+    return receipt
+
+
+def main(arguments: Sequence[str] | None = None) -> int:
+    """Authenticate, execute, and publish exactly one ProxyMuon screen."""
+
+    parsed = parse_args(arguments)
+    if not sys.flags.isolated or not sys.flags.dont_write_bytecode:
+        return 2
+    repo_root = Path.cwd().resolve()
+    try:
+        config = load_run_config(parsed.config)
+        authority = authenticate_source_and_inputs(config, repo_root)
+    except Exception:
+        return 2
+
+    command = [
+        ".venv/bin/python",
+        "-I",
+        "-B",
+        "scripts/screen_unicom_proxy_muon_f0.py",
+        "--config",
+        str(config["handoff"]["sole_path"]),
+    ]
+    completed: list[str] = []
+    runtime: dict[str, object] | None = None
+    budget: ExecutionBudget | None = None
+    try:
+        runtime = validate_observed_runtime(config["environment"], observe_runtime())
+        if torch.cuda.is_available():
+            torch.cuda.reset_peak_memory_stats(0)
+        budget = ExecutionBudget(
+            elapsed_limit_seconds=float(
+                config["protocol"]["elapsed_limit_seconds"]
+            ),
+            peak_limit_bytes=int(config["protocol"]["peak_limit_bytes"]),
+        )
+        evidence = reconstruct_parent_evidence(config, authority, repo_root)
+        budget.observe(1)
+        result = _run_authenticated_proxy_muon(
+            protocol=config["protocol"],
+            authority=authority,
+            runtime=runtime,
+            evidence=evidence,
+            budget=budget,
+            completed_cell_sha256s=completed,
+            command=command,
+        )
+        output = repo_root / str(config["result"]["relative_path"])
+        publish_result_exclusive(output, result, validate_scientific_result)
+        return 0
+    except Exception as error:
+        observed = (
+            budget.snapshot()
+            if budget is not None
+            else {
+                "elapsed_seconds": 0.0,
+                "peak_allocated_bytes": 0,
+                "peak_reserved_bytes": 0,
+            }
+        )
+        process = {
+            "command": command,
+            **observed,
+            "completed_cells": len(completed),
+        }
+        try:
+            receipt = assemble_failure_receipt(
+                authority=authority,
+                runtime=runtime,
+                protocol=config["protocol"],
+                completed_cell_sha256s=completed,
+                error=error,
+                process=process,
+            )
+            failure = repo_root / str(config["result"]["failure_relative_path"])
+            publish_result_exclusive(failure, receipt, validate_failure_receipt)
+        except Exception:
+            pass
+        return 2
+    finally:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

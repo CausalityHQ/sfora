@@ -401,6 +401,7 @@ def _fit_probe_trajectory_with_optimizer(
     optimizer_factory: Callable[[torch.nn.Parameter], torch.optim.Optimizer],
     trace_factory: Callable[[torch.nn.Parameter, torch.optim.Optimizer], object]
     | None,
+    progress_callback: Callable[[int], None] | None = None,
     steps: int = PROBE_STEPS,
     batch_size: int = PROBE_BATCH_SIZE,
     batch_seed: int = PROBE_BATCH_SEED,
@@ -435,8 +436,10 @@ def _fit_probe_trajectory_with_optimizer(
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
     head = torch.nn.Parameter(initial.detach().clone())
-    if not callable(optimizer_factory) or (
-        trace_factory is not None and not callable(trace_factory)
+    if (
+        not callable(optimizer_factory)
+        or (trace_factory is not None and not callable(trace_factory))
+        or (progress_callback is not None and not callable(progress_callback))
     ):
         raise ValueError("spherical probe optimizer callback differs")
     optimizer = optimizer_factory(head)
@@ -499,6 +502,8 @@ def _fit_probe_trajectory_with_optimizer(
             if completed in snapshot_steps and completed != steps:
                 snapshots[completed] = head.detach().clone().contiguous()
                 traces[completed] = trace
+            if progress_callback is not None:
+                progress_callback(completed)
             if completed == steps:
                 break
         epoch += 1
@@ -640,6 +645,7 @@ def fit_proxy_muon_trajectory(
     mask_seed: int = PROBE_MASK_SEED,
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
     fit_seed: int = 0,
+    progress_callback: Callable[[int], None] | None = None,
 ) -> tuple[ProbeFit, dict[int, torch.Tensor], dict[int, MuonTrace | None]]:
     """Fit one built-in ProxyMuon trajectory with producing-step traces."""
 
@@ -669,6 +675,7 @@ def fit_proxy_muon_trajectory(
         mask_seed=mask_seed,
         diagnostic_seed=diagnostic_seed,
         fit_seed=fit_seed,
+        progress_callback=progress_callback,
     )
     traces: dict[int, MuonTrace | None] = {}
     for step, trace in raw_traces.items():

@@ -323,6 +323,65 @@ def test_injected_adamw_trajectory_is_byte_identical_to_public_path_and_rng_neut
     assert torch.equal(torch.random.get_rng_state(), torch_before)
 
 
+def test_injected_trajectory_reports_each_completed_step_and_stops_on_callback() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    completed_steps: list[int] = []
+
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        return torch.optim.AdamW(
+            [head],
+            lr=PROBE_LEARNING_RATE,
+            betas=(0.9, 0.999),
+            eps=1e-8,
+            weight_decay=0.0,
+        )
+
+    def progress_callback(completed: int) -> None:
+        completed_steps.append(completed)
+        if completed == 3:
+            raise RuntimeError("registered execution budget exceeded")
+
+    with pytest.raises(RuntimeError, match="registered execution budget exceeded"):
+        probe_module._fit_probe_trajectory_with_optimizer(
+            features,
+            labels,
+            initial,
+            snapshot_steps=(0, 2, 4, 8),
+            optimizer_factory=optimizer_factory,
+            trace_factory=None,
+            progress_callback=progress_callback,
+            steps=8,
+            batch_size=8,
+        )
+
+    assert completed_steps == [1, 2, 3]
+
+
+def test_proxy_muon_trajectory_forwards_completed_step_callback() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    completed_steps: list[int] = []
+
+    def progress_callback(completed: int) -> None:
+        completed_steps.append(completed)
+        if completed == 2:
+            raise RuntimeError("registered execution budget exceeded")
+
+    with pytest.raises(RuntimeError, match="registered execution budget exceeded"):
+        probe_module.fit_proxy_muon_trajectory(
+            features,
+            labels,
+            initial,
+            learning_rate=1e-4,
+            ns_dtype=torch.float32,
+            snapshot_steps=(0, 2, 4),
+            progress_callback=progress_callback,
+            steps=4,
+            batch_size=8,
+        )
+
+    assert completed_steps == [1, 2]
+
+
 def test_diagnostic_panel_is_exact_batch_major_mask_minor_cartesian_product() -> None:
     features, labels, head = _separable_probe_fixture()
     seed = experiment_stream_seed(2, 23_004)
