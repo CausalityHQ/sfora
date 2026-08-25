@@ -26,9 +26,12 @@
 
 - Create src/sfora/unicom_proxy_muon.py: protocol constants, optimizer factories, precision adapter, trace, selection, comparison, decisions.
 - Modify src/sfora/unicom_probe.py: optimizer-injectable cached-head trajectory and deterministic 16-cell diagnostic panel; unchanged public AdamW path.
+- Create src/sfora/unicom_probe_features.py: importable official-model loading and training-only feature encoding shared by the spherical parent and ProxyMuon screen under isolated Python.
+- Modify scripts/screen_unicom_spherical_probe.py: delegate only its model-loading/feature-encoding implementation to the new shared module without changing its public behavior or result bytes.
 - Create scripts/screen_unicom_proxy_muon_f0.py: config/input/runtime checks, orchestration, validators, failure reduction, atomic writer, CLI.
 - Create tests/test_unicom_proxy_muon.py: pure optimizer/precision/decision tests.
 - Modify tests/test_unicom_probe.py: legacy equivalence, injected optimizer, panel, projection, lifetime tests.
+- Create tests/test_unicom_probe_features.py: exact old/new feature-loader equivalence and isolated-import tests.
 - Create tests/test_screen_unicom_proxy_muon_f0.py: orchestration, schema, mutation, publication, sentinel, real-CPU integration.
 - Create tests/test_unicom_proxy_muon_f0_run_config.py: config-only handoff tests.
 - Create docs/unicom_proxy_muon_f0_run_config.json only after source review.
@@ -84,7 +87,7 @@ Use math.fsum, smaller-numeric-LR ties, loss-only AdamW anchor selection, and ex
 
 - [ ] **Step 5: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py -k 'protocol or selection or anchor or reach or decision'
+Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py
 
 Expected: PASS.
 
@@ -122,7 +125,7 @@ Mirror pinned PyTorch 2.12.1 momentum, Nesterov, five-step Newton--Schulz, 0.2*s
 
 Cover NaN/Inf gradient/momentum/update/parameter, zero row, sparse/non-matrix/multiple parameters, coefficient/step/momentum/Nesterov/scaling drift.
 
-Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py -k 'optimizer or muon or trace or precision or nonfinite'
+Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py
 
 Expected: PASS.
 
@@ -159,7 +162,7 @@ Record trace null at step zero and producing-step trace later; reduce retained h
 
 - [ ] **Step 5: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_unicom_probe.py -k 'spherical or optimizer or diagnostic_panel or proxy_muon'
+Run: .venv/bin/pytest -q tests/test_unicom_probe.py
 
 Expected: all legacy and new tests PASS.
 
@@ -177,13 +180,15 @@ git commit -m "add optimizer-injectable UniCOM probe fitting"
 **Interfaces:**
 - Produces: strict_json_object(bytes), validate_scientific_result(payload), validate_failure_receipt(payload), canonical_json_bytes(payload), publish_result_exclusive(path,payload,validator).
 
-- [ ] **Step 1: Write an absent-script RED with literal fixtures**
+- [ ] **Step 1: Write an absent-script RED with independent fixtures**
 
-Hand-write one exact complete 30-row/9-row payload and one reduced failure receipt. Do not use production assembly helpers to build expected fixtures.
+Hand-write one minimal golden Phase-1 row, one golden retained-step row for each optimizer variant, and the complete reduced failure receipt. Build the exact 30-row/9-row and 30-row/12-row scientific fixtures with a test-local builder whose literal inputs and independent arithmetic do not call any production assembler, selector, summarizer, or decision helper.
 
 - [ ] **Step 2: Implement exact recursive schemas**
 
 Use ordered key tuples at every level and concrete built-in JSON types. Reject bool-as-int, nonfinite numbers, bad digests, negative counts/times/bytes, missing/extra/reordered keys, and keys exclusive to the other branch.
+
+Every retained step has both trace keys present. AdamW selected/anchor steps use `update_dtype: null` and `polar_factor_residual: null`; ProxyMuon step zero also uses both nulls; later BF16 ProxyMuon steps use `"torch.bfloat16"` plus a finite float residual; later FP32 sensitivity steps use `"torch.float32"` plus a finite float residual.
 
 - [ ] **Step 3: Recompute all relations**
 
@@ -199,7 +204,7 @@ Create the PID temp with O_CREAT|O_EXCL and mode 0600; write, flush, file-fsync,
 
 - [ ] **Step 6: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_screen_unicom_proxy_muon_f0.py -k 'schema or validate or mutate or publish or no_clobber'
+Run: .venv/bin/pytest -q tests/test_screen_unicom_proxy_muon_f0.py
 
 Expected: PASS.
 
@@ -211,12 +216,15 @@ git commit -m "add strict ProxyMuon result contract"
 ### Task 5: Bind CLI, Git, Inputs, and Runtime
 
 **Files:**
+- Create: src/sfora/unicom_probe_features.py
+- Create: tests/test_unicom_probe_features.py
+- Modify: scripts/screen_unicom_spherical_probe.py
 - Modify: scripts/screen_unicom_proxy_muon_f0.py
 - Modify: tests/test_screen_unicom_proxy_muon_f0.py
 - Create: tests/test_unicom_proxy_muon_f0_run_config.py
 
 **Interfaces:**
-- Produces: parse_args(argv), load_run_config(path), authenticate_source_and_inputs(config,repo_root), observe_runtime(), load_training_only_records(partition,dataset_root).
+- Produces: load_official_unicom_model(checkout,revision,checkpoint,device), encode_training_feature_sets(...), parse_args(argv), load_run_config(path), authenticate_source_and_inputs(config,repo_root), observe_runtime(), load_training_only_records(partition,dataset_root).
 
 - [ ] **Step 1: Freeze exact CLI/config REDs**
 
@@ -230,24 +238,28 @@ Reject unknown flags, wrong Git HEAD/source bytes, dirty tracked files, symlinks
 
 - [ ] **Step 2: Implement simple Git/file checks**
 
-Use ordinary git rev-parse, git diff --quiet, git diff --cached --quiet, git ls-files, and SHA-256. Require config commit parent/source binding and exact checkpoint/partition hashes before model construction. Do not add another authority framework.
+Use ordinary git rev-parse, git diff --quiet, git diff --cached --quiet, git ls-files, and SHA-256. Require config commit parent/source binding, exact UniCOM checkout path and revision `d71992ed969e6c271436ac0a0ee1f3ca61474ac0`, and exact checkpoint/partition hashes before model construction. Do not add another authority framework.
 
-- [ ] **Step 3: Add query/gallery sentinels**
+- [ ] **Step 3: Extract an isolated-importable feature reconstruction path**
+
+First write an equivalence RED that loads the same small official-model fixture through the existing spherical functions and the proposed src/sfora API and requires exact feature tensor bytes, record order, dtype, shape, normalization, and model/checkpoint cleanup. Move `_EvaluationDataset`, `_load_official_model`, and `_encode_feature_sets` without changing their bodies into src/sfora/unicom_probe_features.py; make the spherical screen import those public equivalents. Add a subprocess test using `.venv/bin/python -I -B` that imports the shared module and runs the small fixture without adding `scripts/` to sys.path. Run the complete spherical screen and probe test files to prove the parent path remains unchanged.
+
+- [ ] **Step 4: Add query/gallery sentinels**
 
 A partition fixture includes train/query/gallery records and an open poison for query/gallery images. The training-only loader must never touch them and must reject explicit query/gallery inputs.
 
-- [ ] **Step 4: Bind observed runtime/Muon defaults**
+- [ ] **Step 5: Bind observed runtime/Muon defaults**
 
 After non-Torch authority, require exact configured Python, Torch, NumPy, sklearn, CUDA, GPU, deterministic flags, CUDA availability/idle device, and observed Muon signature/defaults. Runtime failure before cells yields a zero-cell failure receipt; pre-authority failure yields no receipt.
 
-- [ ] **Step 5: Verify and commit**
+- [ ] **Step 6: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py -k 'args or config or source or input or runtime or query or gallery'
+Run: .venv/bin/pytest -q tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 
 Expected: PASS.
 
 ~~~bash
-git add scripts/screen_unicom_proxy_muon_f0.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+git add src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_probe_features.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git commit -m "bind ProxyMuon screen inputs and runtime"
 ~~~
 
@@ -266,7 +278,7 @@ Record callback events. Assert Phase 1 order (optimizer, lr, seed) with seed inn
 
 - [ ] **Step 2: Reconstruct parent evidence before candidates**
 
-Reuse spherical screen training-only feature/split helpers and require exact class-mean plus three fitted-target hashes. A one-byte feature/head mutation must fail before optimizer construction.
+Import the shared src/sfora/unicom_probe_features.py API under isolated Python, reconstruct the exact spherical-parent training-only features/split, and require exact class-mean plus three fitted-target hashes. Never import a sibling script. A one-byte feature/head mutation must fail before optimizer construction.
 
 - [ ] **Step 3: Implement both phases**
 
@@ -282,12 +294,12 @@ Authenticate once, run once, validate/publish, return 0. Ordinary post-authority
 
 - [ ] **Step 6: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 
 Expected: PASS.
 
 ~~~bash
-git add src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+git add src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git commit -m "implement UniCOM ProxyMuon cached-feature screen"
 ~~~
 
@@ -303,9 +315,9 @@ git commit -m "implement UniCOM ProxyMuon cached-feature screen"
 - [ ] **Step 1: Run affected/static gates**
 
 ~~~bash
-.venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
-.venv/bin/ruff check src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
-.venv/bin/python -m py_compile src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/ruff check src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/python -m py_compile src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git diff --check
 ~~~
 
@@ -319,7 +331,7 @@ Use one read-only consultation with provider="other", models=["opus","gpt-5.6-so
 
 - [ ] **Step 4: Write/test the exact config**
 
-Bind spec, source.commit=V, all source hashes at V, frozen DGX runtime, checkpoint/partition paths/hashes, protocol, and distinct absent result/temp/failure paths. Run the full config mutation suite.
+Bind spec, source.commit=V, all source hashes at V including the shared feature module and spherical screen, frozen DGX runtime, exact UniCOM checkout path/revision, checkpoint/partition paths/hashes, protocol, and distinct absent result/temp/failure paths. Run the full config mutation suite.
 
 - [ ] **Step 5: Commit config alone and review**
 
@@ -362,4 +374,3 @@ Copy once, record SHA-256, reject duplicate/nonfinite JSON, invoke production va
 - [ ] **Step 5: Report, review, and route**
 
 Report seed losses/accuracies/reach, selected LRs/interior flags, BF16/FP32 evidence, elapsed/peak cost, and prior confirmed quality/efficiency. Obtain independent no-Critical/Important review before publication/SOTA language. Route automatically: PROCEED_TRAINING → five-seed confirmation; FP32 route → fresh FP32 LR falsifier; matched-LR route → AdamW-only F1; LR boundary → scale expansion; close → full-width objective/cross-dataset replication; structural failure → retry only if zero cells completed and the repaired chain is reviewed.
-
