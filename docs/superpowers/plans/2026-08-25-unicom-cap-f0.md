@@ -17,7 +17,7 @@
 - Evaluate seed-invariant `cap_centered` and `cap_uncentered` exactly once, then evaluate each seed's `fitted_target`; never use validation values to construct or tune either CAP head.
 - Use one 512-step fitted-head trajectory per fit seed with snapshots at `(0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512)`.
 - Publish one strict canonical JSON artifact atomically and never overwrite, retry, or read query/gallery test data.
-- Freeze this exact ordered reviewed-source list in the config: `scripts/screen_unicom_cap_f0.py`, `src/sfora/unicom_cap.py`, `src/sfora/unicom_probe.py`, `src/sfora/unicom_training.py`, `src/sfora/unicom_inshop.py`, `tests/test_screen_unicom_cap_f0.py`, `tests/test_unicom_cap.py`, `tests/test_unicom_probe.py`, `tests/test_unicom_cap_f0_run_config.py`.
+- Freeze this exact ordered reviewed-source list in the config: `pyproject.toml`, `scripts/screen_unicom_cap_f0.py`, `src/sfora/unicom_cap.py`, `src/sfora/unicom_probe.py`, `src/sfora/unicom_training.py`, `src/sfora/unicom_inshop.py`, `tests/test_screen_unicom_cap_f0.py`, `tests/test_unicom_cap.py`, `tests/test_unicom_probe.py`, `tests/test_unicom_cap_f0_run_config.py`.
 
 ---
 
@@ -253,6 +253,7 @@ git commit -m "add strict UniCOM CAP screen runner"
 ### Task 4: Wire the authenticated real scientific path
 
 **Files:**
+- Modify: `pyproject.toml`
 - Modify: `scripts/screen_unicom_cap_f0.py`
 - Modify: `tests/test_screen_unicom_cap_f0.py`
 
@@ -262,7 +263,9 @@ git commit -m "add strict UniCOM CAP screen runner"
 
 - [ ] **Step 1: Write the real tiny-model RED**
 
-Use a deterministic CPU feature encoder whose outputs exercise class means, CAP covariance, two seed-invariant CAP evaluator calls, three target trajectories/evaluator calls, 64 fixed masks, exact CAP-to-target row cosines, paired uncertainty, step equivalence, decision validation, atomic reload, and weak-reference release. Target `execute_screen`, whose inputs are already authenticated; patch only the feature source/device boundary and do not patch CAP math, fit loop, evaluator, validator, or writer.
+Use a deterministic CPU feature encoder whose outputs exercise class means, CAP covariance, two seed-invariant CAP evaluator calls, three target trajectories/evaluator calls, 64 fixed masks, exact CAP-to-target row cosines, paired uncertainty, step equivalence, decision validation, atomic reload, and weak-reference release. Target `execute_screen`, whose inputs are already authenticated; patch only the feature source/device boundary and do not patch CAP math, fit loop, evaluator, validator, or writer. The registered class-mean and three fitted-target SHA-256 values reach `execute_screen` only as authenticated `inventory` fields, bound to the spec literals inside `authenticate_run`; the tiny-model test supplies its own fixture digests in that inventory and therefore does not claim to emulate the DGX parent-reproduction gate.
+
+Register and mark this test `cap_real_cpu` in `pyproject.toml`, but keep it genuinely tiny: exactly 8 classes, 16 fitting rows, 8 validation rows, 512 feature dimensions, batch size 8, the unchanged 8 shards, all 64 mask sets, all 11 snapshots, and all 3 fit seeds. Shape/count requirements in `execute_screen` and `validate_result` come only from the authenticated inventory; production `authenticate_run` binds that inventory to `3200/14330/3188/768`, while the test inventory binds the smaller literal fixture. This preserves every loop/order/formula without the registered-scale matrix cost. Require the marked test to finish within 90 seconds on the one-thread local runtime. Run it explicitly once at Task 4 Step 6 and include it normally in both Task 5 full gates; during Task 5 Step 3 repair iterations, use `-m 'not cap_real_cpu'` unless the repair touches end-to-end orchestration, then rerun the marker once after the grouped repair.
 
 - [ ] **Step 2: Write parent-reproduction and no-leakage RED tests**
 
@@ -278,7 +281,7 @@ Expected: failures because `execute_screen` is not implemented.
 
 - [ ] **Step 4: Implement exact one-pass execution**
 
-Load and encode the exact fitting/validation rows once, build class mean and CAP once, verify the parent class-mean SHA, evaluate class mean once, persist its exact head and primitive validation evidence once, and evaluate `cap_centered` and `cap_uncentered` once. Then for seeds `0,1,2` run exactly one 512-step target trajectory. Require each final trajectory SHA to equal the registered parent seed hash and use that same live tensor as `fitted_target`. Evaluate each `fitted_target` and each of the eleven snapshots. Compute/persist all 3200 clamped FP64 CAP-to-target row cosines per variant/seed. Store CAP validation metrics and predicates 2--6 once at top level; store only target/trajectory/cosine evidence and predicates 1/7 in seed rows. Reduce/detach each metric immediately, release snapshot tensors after each seed, build the exact primitive JSON, call `validate_result`, and return it.
+Load and encode the exact fitting/validation rows once, build class mean and CAP once, verify the class-mean SHA against the authenticated inventory, evaluate class mean once, persist its exact head and primitive validation evidence once, and evaluate `cap_centered` and `cap_uncentered` once. Then for seeds `0,1,2` run exactly one 512-step target trajectory. Require each final trajectory SHA to equal its authenticated-inventory target hash and use that same live tensor as `fitted_target`. Evaluate each `fitted_target` and each of the eleven snapshots. Compute/persist one clamped FP64 CAP-to-target row cosine per authenticated-inventory optimization identity (3200 in production) per variant/seed. Store CAP validation metrics and predicates 2--6 once at top level; store only target/trajectory/cosine evidence and predicates 1/7 in seed rows. Reduce/detach each metric immediately, release snapshot tensors after each seed, build the exact primitive JSON, call `validate_result` with that authenticated inventory, and return it.
 
 - [ ] **Step 5: Restore all RNG states and bind runtime**
 
@@ -287,7 +290,8 @@ Save/restore Python, NumPy, CPU Torch, and all CUDA RNG states around the scient
 - [ ] **Step 6: Run the complete affected gate**
 
 ```bash
-.venv/bin/pytest -q tests/test_unicom_probe.py tests/test_unicom_cap.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_cap_f0.py
+.venv/bin/pytest -q tests/test_unicom_probe.py tests/test_unicom_cap.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_cap_f0.py -m 'not cap_real_cpu'
+.venv/bin/pytest -q tests/test_screen_unicom_cap_f0.py -m cap_real_cpu
 .venv/bin/ruff check src/sfora/unicom_probe.py src/sfora/unicom_cap.py scripts/screen_unicom_cap_f0.py tests/test_unicom_probe.py tests/test_unicom_cap.py tests/test_screen_unicom_cap_f0.py
 .venv/bin/python -m py_compile src/sfora/unicom_probe.py src/sfora/unicom_cap.py scripts/screen_unicom_cap_f0.py
 git diff --check
@@ -296,7 +300,7 @@ git diff --check
 - [ ] **Step 7: Commit the integrated scientific path**
 
 ```bash
-git add scripts/screen_unicom_cap_f0.py tests/test_screen_unicom_cap_f0.py
+git add pyproject.toml scripts/screen_unicom_cap_f0.py tests/test_screen_unicom_cap_f0.py
 git diff --cached --check
 git commit -m "integrate UniCOM CAP frozen-feature screen"
 ```
