@@ -96,6 +96,14 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _same_inode(path: Path, owned: tuple[int, int]) -> bool:
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return False
+    return not path.is_symlink() and (info.st_dev, info.st_ino) == owned
+
+
 def _mean(values: Sequence[float]) -> float:
     if not values or any(type(value) is not float or not math.isfinite(value) for value in values):
         raise ValueError("comparison samples differ")
@@ -152,7 +160,9 @@ def validate_comparison_result(payload: object) -> None:
         or type(payload["receipt_sha256s"]) is not list
         or len(payload["receipt_sha256s"]) != 4
         or len(set(payload["profile_sha256s"])) != 4
-        or len(set(payload["receipt_sha256s"])) != 4
+        or payload["receipt_sha256s"][0] != payload["receipt_sha256s"][3]
+        or payload["receipt_sha256s"][1] != payload["receipt_sha256s"][2]
+        or payload["receipt_sha256s"][0] == payload["receipt_sha256s"][1]
         or any(not _is_hex(value, 64) for value in payload["profile_sha256s"])
         or any(not _is_hex(value, 64) for value in payload["receipt_sha256s"])
         or not _is_hex(payload["source_commit"], 40)
@@ -211,8 +221,13 @@ def compare_abba(
         raise ValueError("A-B-B-A input inventory differs")
     profile_hashes = tuple(_sha256_file(path) for path in profile_paths)
     receipt_hashes = tuple(_sha256_file(path) for path in receipt_paths)
-    if len(set(profile_hashes)) != 4 or len(set(receipt_hashes)) != 4:
-        raise ValueError("A-B-B-A artifacts must have distinct bytes")
+    if (
+        len(set(profile_hashes)) != 4
+        or receipt_hashes[0] != receipt_hashes[3]
+        or receipt_hashes[1] != receipt_hashes[2]
+        or receipt_hashes[0] == receipt_hashes[1]
+    ):
+        raise ValueError("A-B-B-A artifact identity pattern differs")
     profiles = tuple(strict_json_object(path) for path in profile_paths)
     receipts = tuple(strict_json_object(path) for path in receipt_paths)
     for receipt in receipts:
@@ -351,10 +366,14 @@ def write_json_atomic(path: Path, payload: dict[str, object]) -> None:
     if temporary.exists() or temporary.is_symlink():
         raise FileExistsError(temporary)
     encoded = (json.dumps(payload, indent=2, allow_nan=False) + "\n").encode()
-    linked = False
-    published = False
+    descriptor: int | None = None
+    owned: tuple[int, int] | None = None
     try:
-        with temporary.open("xb") as handle:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        info = os.fstat(descriptor)
+        owned = (info.st_dev, info.st_ino)
+        with os.fdopen(descriptor, "wb", closefd=True) as handle:
+            descriptor = None
             handle.write(encoded)
             handle.flush()
             os.fsync(handle.fileno())
@@ -363,36 +382,23 @@ def write_json_atomic(path: Path, payload: dict[str, object]) -> None:
         if persisted != payload:
             raise RuntimeError("persisted A-B-B-A result differs")
         os.link(temporary, path)
-        linked = True
         directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
         try:
             os.fsync(directory)
-            published = True
         finally:
             os.close(directory)
-    finally:
-        if linked and not published:
-            try:
-                temporary_info = temporary.lstat()
-                output_info = path.lstat()
-            except FileNotFoundError:
-                pass
-            else:
-                if (
-                    temporary_info.st_dev,
-                    temporary_info.st_ino,
-                ) == (output_info.st_dev, output_info.st_ino):
-                    path.unlink()
-                    cleanup_directory = os.open(
-                        path.parent, os.O_RDONLY | os.O_DIRECTORY
-                    )
-                    try:
-                        os.fsync(cleanup_directory)
-                    except OSError:
-                        pass
-                    finally:
-                        os.close(cleanup_directory)
-        temporary.unlink(missing_ok=True)
+        temporary.unlink()
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    except BaseException:
+        if descriptor is not None:
+            os.close(descriptor)
+        if owned is not None and _same_inode(temporary, owned):
+            temporary.unlink()
+        raise
 
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:

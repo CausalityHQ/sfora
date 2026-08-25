@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import stat
 import sys
 from pathlib import Path
 
@@ -128,16 +129,14 @@ def _write(path: Path, value: object) -> None:
 
 def _abba_fixture(tmp_path: Path) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
     profiles: list[Path] = []
-    receipts: list[Path] = []
     rows = (
-        ("sampled_512", "5" * 64, 10, 1.00, 0.10, 100, 200),
-        ("full_768", "6" * 64, 20, 1.01, 0.11, 101, 202),
-        ("full_768", "7" * 64, 30, 1.03, 0.13, 103, 204),
-        ("sampled_512", "8" * 64, 40, 1.02, 0.12, 102, 202),
+        ("5" * 64, 10, 1.00, 0.10),
+        ("6" * 64, 20, 1.01, 0.11),
+        ("6" * 64, 30, 1.03, 0.13),
+        ("5" * 64, 40, 1.02, 0.12),
     )
-    for index, (arm, checkpoint, started, wall, objective, allocated, reserved) in enumerate(rows):
+    for index, (checkpoint, started, wall, objective) in enumerate(rows):
         profile_path = tmp_path / f"profile-{index}.json"
-        receipt_path = tmp_path / f"receipt-{index}.json"
         _write(
             profile_path,
             _profile(
@@ -147,6 +146,14 @@ def _abba_fixture(tmp_path: Path) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
                 objective=objective,
             ),
         )
+        profiles.append(profile_path)
+
+    receipts: list[Path] = []
+    for arm, checkpoint, allocated, reserved in (
+        ("sampled_512", "5" * 64, 100, 200),
+        ("full_768", "6" * 64, 101, 202),
+    ):
+        receipt_path = tmp_path / f"receipt-{arm}.json"
         _write(
             receipt_path,
             _receipt(
@@ -157,9 +164,100 @@ def _abba_fixture(tmp_path: Path) -> tuple[tuple[Path, ...], tuple[Path, ...]]:
                 reserved=reserved,
             ),
         )
-        profiles.append(profile_path)
         receipts.append(receipt_path)
-    return tuple(profiles), tuple(receipts)
+    return tuple(profiles), (receipts[0], receipts[1], receipts[1], receipts[0])
+
+
+def test_compare_abba_reuses_exact_two_training_receipts(tmp_path: Path) -> None:
+    profiles: list[Path] = []
+    for index, (checkpoint, wall, objective) in enumerate(
+        (
+            ("5" * 64, 1.00, 0.10),
+            ("6" * 64, 1.01, 0.11),
+            ("6" * 64, 1.03, 0.13),
+            ("5" * 64, 1.02, 0.12),
+        )
+    ):
+        path = tmp_path / f"profile-{index}.json"
+        _write(
+            path,
+            _profile(
+                checkpoint_sha256=checkpoint,
+                started=10 * (index + 1),
+                wall=wall,
+                objective=objective,
+            ),
+        )
+        profiles.append(path)
+
+    control = tmp_path / "control-receipt.json"
+    candidate = tmp_path / "candidate-receipt.json"
+    _write(
+        control,
+        _receipt(
+            tmp_path,
+            arm="sampled_512",
+            checkpoint_sha256="5" * 64,
+            allocated=100,
+            reserved=200,
+        ),
+    )
+    _write(
+        candidate,
+        _receipt(
+            tmp_path,
+            arm="full_768",
+            checkpoint_sha256="6" * 64,
+            allocated=102,
+            reserved=204,
+        ),
+    )
+    receipt_paths = (control, candidate, candidate, control)
+
+    result = MODULE.compare_abba(tuple(profiles), receipt_paths)
+
+    control_sha = hashlib.sha256(control.read_bytes()).hexdigest()
+    candidate_sha = hashlib.sha256(candidate.read_bytes()).hexdigest()
+    assert result["receipt_sha256s"] == [
+        control_sha,
+        candidate_sha,
+        candidate_sha,
+        control_sha,
+    ]
+
+
+def test_compare_abba_rejects_four_distinct_training_receipts(tmp_path: Path) -> None:
+    profile_paths, repeated_receipts = _abba_fixture(tmp_path)
+    receipt_paths: list[Path] = []
+    for index, source in enumerate(repeated_receipts):
+        value = json.loads(source.read_text(encoding="utf-8"))
+        value["started_unix_ns"] = 10 + index * 2
+        value["finished_unix_ns"] = 11 + index * 2
+        path = tmp_path / f"distinct-receipt-{index}.json"
+        _write(path, value)
+        receipt_paths.append(path)
+
+    with pytest.raises(ValueError, match="identity pattern"):
+        MODULE.compare_abba(profile_paths, tuple(receipt_paths))
+
+
+@pytest.mark.parametrize(
+    "receipt_hashes",
+    (
+        ["1" * 64, "2" * 64, "3" * 64, "4" * 64],
+        ["1" * 64, "1" * 64, "2" * 64, "2" * 64],
+        ["1" * 64, "1" * 64, "1" * 64, "1" * 64],
+    ),
+)
+def test_comparison_result_rejects_non_abba_receipt_identity_pattern(
+    tmp_path: Path, receipt_hashes: list[str]
+) -> None:
+    profile_paths, receipt_paths = _abba_fixture(tmp_path)
+    result = MODULE.compare_abba(profile_paths, receipt_paths)
+    result["receipt_sha256s"] = receipt_hashes
+
+    with pytest.raises(ValueError, match="binding"):
+        MODULE.validate_comparison_result(result)
 
 
 def test_compare_abba_binds_order_provenance_samples_and_position_adjusted_ratios(
@@ -173,8 +271,8 @@ def test_compare_abba_binds_order_provenance_samples_and_position_adjusted_ratio
     assert result["ratios"]["step_wall"] == pytest.approx(2.04 / 2.02)
     assert result["ratios"]["cuda_step"] == pytest.approx(1.90 / 1.88)
     assert result["ratios"]["objective_ceiling"] == pytest.approx(0.24 / 0.22)
-    assert result["ratios"]["peak_allocated"] == pytest.approx(204 / 202)
-    assert result["ratios"]["peak_reserved"] == pytest.approx(406 / 402)
+    assert result["ratios"]["peak_allocated"] == pytest.approx(202 / 200)
+    assert result["ratios"]["peak_reserved"] == pytest.approx(404 / 400)
     assert result["checkpoint_bytes_equal"] is True
     assert result["source_commit"] == "a" * 40
     assert result["config_sha256"] == "b" * 64
@@ -185,15 +283,13 @@ def test_compare_abba_binds_order_provenance_samples_and_position_adjusted_ratio
 
 @pytest.mark.parametrize(
     "mutation",
-    ("arm_order", "checkpoint_binding", "duplicate_profile", "runtime", "sample_count"),
+    ("checkpoint_binding", "duplicate_profile", "runtime", "sample_count"),
 )
 def test_compare_abba_rejects_order_provenance_and_sample_drift(
     tmp_path: Path, mutation: str
 ) -> None:
     profile_paths, receipt_paths = _abba_fixture(tmp_path)
-    if mutation == "arm_order":
-        receipt_paths = (receipt_paths[1], receipt_paths[0], *receipt_paths[2:])
-    elif mutation == "checkpoint_binding":
+    if mutation == "checkpoint_binding":
         value = json.loads(receipt_paths[1].read_text())
         value["checkpoints"][-1]["sha256"] = "9" * 64
         _write(receipt_paths[1], value)
@@ -210,6 +306,21 @@ def test_compare_abba_rejects_order_provenance_and_sample_drift(
 
     with pytest.raises((TypeError, ValueError)):
         MODULE.compare_abba(profile_paths, receipt_paths)
+
+
+def test_compare_abba_rejects_transposed_arms_after_valid_receipt_identity_pattern(
+    tmp_path: Path,
+) -> None:
+    profile_paths, receipt_paths = _abba_fixture(tmp_path)
+    transposed = (
+        receipt_paths[1],
+        receipt_paths[0],
+        receipt_paths[0],
+        receipt_paths[1],
+    )
+
+    with pytest.raises(ValueError, match="arm order"):
+        MODULE.compare_abba(profile_paths, transposed)
 
 
 def test_comparison_publication_is_strict_atomic_and_no_clobber(tmp_path: Path) -> None:
@@ -240,29 +351,101 @@ def test_comparison_publication_rejects_invalid_result_without_output(tmp_path: 
     assert not tuple(tmp_path.glob(".comparison.json.*.tmp"))
 
 
-def test_comparison_publication_rolls_back_owned_link_on_directory_fsync_failure(
+@pytest.mark.parametrize(
+    "failure_phase",
+    ("directory_open", "first_directory_fsync", "temporary_unlink", "final_directory_fsync"),
+)
+def test_comparison_publication_preserves_valid_link_after_postlink_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_phase: str
+) -> None:
+    profile_paths, receipt_paths = _abba_fixture(tmp_path)
+    result = MODULE.compare_abba(profile_paths, receipt_paths)
+    output = tmp_path / "comparison.json"
+    temporary = output.with_name(f".{output.name}.{MODULE.os.getpid()}.tmp")
+    real_open = MODULE.os.open
+    real_fsync = MODULE.os.fsync
+    real_link = MODULE.os.link
+    real_unlink = MODULE.Path.unlink
+    unlink_calls = 0
+    linked = False
+    unlinked = False
+
+    def track_link(source, destination, *args, **kwargs):
+        nonlocal linked
+        result = real_link(source, destination, *args, **kwargs)
+        linked = True
+        return result
+
+    def fail_directory_open(path, flags, *args):
+        if (
+            Path(path) == output.parent
+            and failure_phase == "directory_open"
+            and linked
+            and not unlinked
+        ):
+            raise OSError("injected directory open failure")
+        return real_open(path, flags, *args)
+
+    def fail_directory_fsync(descriptor: int) -> None:
+        if failure_phase == "first_directory_fsync" and linked and not unlinked:
+            raise OSError("injected first directory fsync failure")
+        if failure_phase == "final_directory_fsync" and linked and unlinked:
+            raise OSError("injected final directory fsync failure")
+        real_fsync(descriptor)
+
+    def fail_temporary_unlink(path, *args, **kwargs):
+        nonlocal unlink_calls, unlinked
+        if Path(path) == temporary:
+            unlink_calls += 1
+            if failure_phase == "temporary_unlink" and unlink_calls == 1:
+                raise OSError("injected temporary unlink failure")
+        result = real_unlink(path, *args, **kwargs)
+        if Path(path) == temporary:
+            unlinked = True
+        return result
+
+    monkeypatch.setattr(MODULE.os, "open", fail_directory_open)
+    monkeypatch.setattr(MODULE.os, "fsync", fail_directory_fsync)
+    monkeypatch.setattr(MODULE.os, "link", track_link)
+    monkeypatch.setattr(MODULE.Path, "unlink", fail_temporary_unlink)
+
+    with pytest.raises(OSError, match="injected"):
+        MODULE.write_json_atomic(output, result)
+
+    assert json.loads(output.read_text(encoding="utf-8")) == result
+    assert not tuple(tmp_path.glob(".comparison.json.*.tmp"))
+
+
+def test_comparison_publication_uses_mode_0600_and_preserves_foreign_paths(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     profile_paths, receipt_paths = _abba_fixture(tmp_path)
     result = MODULE.compare_abba(profile_paths, receipt_paths)
     output = tmp_path / "comparison.json"
-    real_fsync = MODULE.os.fsync
-    calls = 0
+    temporary = output.with_name(f".{output.name}.{MODULE.os.getpid()}.tmp")
+    temporary.write_bytes(b"foreign temporary\n")
 
-    def fail_directory_fsync(descriptor: int) -> None:
-        nonlocal calls
-        calls += 1
-        if calls == 2:
-            raise OSError("injected directory fsync failure")
-        real_fsync(descriptor)
-
-    monkeypatch.setattr(MODULE.os, "fsync", fail_directory_fsync)
-
-    with pytest.raises(OSError, match="directory fsync"):
+    with pytest.raises(FileExistsError):
         MODULE.write_json_atomic(output, result)
-
+    assert temporary.read_bytes() == b"foreign temporary\n"
     assert not output.exists()
-    assert not tuple(tmp_path.glob(".comparison.json.*.tmp"))
+
+    temporary.unlink()
+
+    def lose_link_race(_source, destination):
+        Path(destination).write_bytes(b"foreign destination\n")
+        raise FileExistsError(destination)
+
+    monkeypatch.setattr(MODULE.os, "link", lose_link_race)
+    with pytest.raises(FileExistsError):
+        MODULE.write_json_atomic(output, result)
+    assert output.read_bytes() == b"foreign destination\n"
+    assert not temporary.exists()
+
+    output.unlink()
+    monkeypatch.undo()
+    MODULE.write_json_atomic(output, result)
+    assert stat.S_IMODE(output.stat().st_mode) == 0o600
 
 
 def test_comparison_cli_publishes_once_and_preserves_first_result(tmp_path: Path) -> None:
