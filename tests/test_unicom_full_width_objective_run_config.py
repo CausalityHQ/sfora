@@ -14,6 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
 SOURCE_COMMIT = "8824527e8fb1d90f627feb8c479a538d009f0785"
+CONFIG_COMMIT = "c3e147237fc1ff40e2a01911582b15cd36d72598"
 SOURCE_FILES = (
     (
         "scripts/train_unicom_inshop.py",
@@ -133,12 +134,21 @@ def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def _git_blob(path: str) -> bytes:
+def _git_blob(path: str, *, commit: str = SOURCE_COMMIT) -> bytes:
     return subprocess.run(
-        ["git", "-C", str(ROOT), "show", f"{SOURCE_COMMIT}:{path}"],
+        ["git", "-C", str(ROOT), "show", f"{commit}:{path}"],
         check=True,
         capture_output=True,
     ).stdout
+
+
+def _git_text(*arguments: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(ROOT), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
 
 
 def _assert_exact_mapping(value: object, keys: tuple[str, ...], name: str) -> dict[str, object]:
@@ -333,9 +343,15 @@ def validate_config(config: object) -> None:
         observed_sources.append((row["path"], row["sha256"]))
     if tuple(observed_sources) != SOURCE_FILES:
         raise ValueError("source file order or digest differs")
+    if _git_text("rev-parse", f"{CONFIG_COMMIT}^") != SOURCE_COMMIT:
+        raise ValueError("config commit parent differs")
+    if _git_text(
+        "diff-tree", "--no-commit-id", "--name-only", "-r", CONFIG_COMMIT
+    ) != "docs/unicom_full_width_objective_run_config.json":
+        raise ValueError("config commit scope differs")
     for path, digest in SOURCE_FILES:
         blob = _git_blob(path)
-        if _sha256_bytes(blob) != digest or (ROOT / path).read_bytes() != blob:
+        if _sha256_bytes(blob) != digest or _git_blob(path, commit=CONFIG_COMMIT) != blob:
             raise ValueError(f"source bytes differ: {path}")
 
     handoff = _assert_exact_mapping(
