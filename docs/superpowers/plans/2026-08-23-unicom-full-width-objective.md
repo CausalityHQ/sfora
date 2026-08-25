@@ -250,7 +250,7 @@ Reset CUDA peak stats immediately before `fit_model`, measure with `perf_counter
 
 - [ ] **Step 3: Write A-B-B-A comparator RED tests**
 
-Require the exact arm order, equal checkpoint epoch/runtime/source, 50 timing and 10 profiler samples per artifact, and no duplicated artifact hashes. Compute paired position-adjusted candidate/control wall, CUDA, objective, peak-memory, and kernel-gate ratios.
+Require the exact arm order, equal checkpoint epoch/runtime/source, 50 timing and 10 profiler samples per artifact, four distinct profile hashes, and exactly two training-receipt hashes reused in control/candidate/candidate/control order. Compute paired position-adjusted candidate/control wall, CUDA, objective, peak-memory, and kernel-gate ratios.
 
 - [ ] **Step 4: Implement strict profile comparison and publication**
 
