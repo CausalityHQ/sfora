@@ -13,16 +13,17 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "8824527e8fb1d90f627feb8c479a538d009f0785"
-CONFIG_COMMIT = "c3e147237fc1ff40e2a01911582b15cd36d72598"
+SOURCE_COMMIT = "590a5e78e137f3a9ef22ab45c87207cb2e03cf60"
+CONFIG_COMMIT = "d47a4806e93ecb1034efb2e41e4c3b880824b8cb"
+CONFIG_SHA256 = "1dc6aa9b66ca62d687db5d489140ac4470f1974738a722c87211f79a622f25d4"
 SOURCE_FILES = (
     (
         "scripts/train_unicom_inshop.py",
-        "532aade432daf72ef590ba49b0ecacce493870c6e0fc7023a73623f2258d04e7",
+        "2107bf65a5ab32d78a3b252f723cd783fdf92dcac5baea5f1b8454c88340b93e",
     ),
     (
         "scripts/evaluate_unicom_full_width_objective.py",
-        "601425c3ac95540e67d295756794820b0aa8a0caf9f6cb548b34b5008af39f76",
+        "1203a37a03c433888545e9d6391aae862fe53115ea3d32082447c193bb9f4690",
     ),
     (
         "scripts/profile_unicom_training_step.py",
@@ -37,8 +38,12 @@ SOURCE_FILES = (
         "93e7c81eec8cc0edb1b3ab8d4d2f078f8506f0a1929550759d67760d6388f65e",
     ),
     (
+        "scripts/decide_unicom_full_width_objective.py",
+        "886fc29da335956d178b85005badafea2b107dc6d17cb34a673ab71a7b383254",
+    ),
+    (
         "scripts/run_unicom_from_checkout.py",
-        "0e9ed76ac59bd6e380aa982a60df14292d8c03de44266169ea6f7d3777d0516c",
+        "255ad97049d2c3f17085b26704c1d5aae5f1313348e184b0a27f81a59f690ebc",
     ),
     (
         "src/sfora/unicom_inshop.py",
@@ -54,7 +59,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_train_unicom_inshop.py",
-        "1d8434bcf6a4118e123e693596dbbaba6f1ed1ce651a6133a118596046f69bc6",
+        "98e72f661dba8d5405977d17c1cdfb262891af139344112ab892e0bd4e025774",
     ),
     (
         "tests/test_evaluate_unicom_full_width_objective.py",
@@ -73,8 +78,16 @@ SOURCE_FILES = (
         "7fb4da1853fa972058110d14f1dd4e7cd6f8480305e89852e3661729b2c9dc7c",
     ),
     (
+        "tests/test_decide_unicom_full_width_objective.py",
+        "f74002a271b09631274b22e129540fe514e07f9c12a31f35e632853302b97a4f",
+    ),
+    (
         "tests/test_run_unicom_from_checkout.py",
-        "15303629bb3e2b47899f4cd8c478a769ce99b5d2ce9fe36f2efaf2dc5a796040",
+        "17b97ae48e6631408684e24de8b5c6dc9d66afe332e6527caca3ed0af88293f0",
+    ),
+    (
+        "docs/unicom_full_width_prelaunch_repair_2026-08-25.md",
+        "e6b9f14d9f423d61f550cbb4fffbfa3c93832259fb1e890a01f333e77f66d9bc",
     ),
 )
 SEEDS = (0, 2, 3, 4, 5, 6)
@@ -149,6 +162,21 @@ def _git_text(*arguments: str) -> str:
         capture_output=True,
         text=True,
     ).stdout.strip()
+
+
+def _validate_config_commit_bytes(path: Path) -> None:
+    if not isinstance(path, Path) or not path.is_file() or path.is_symlink():
+        raise ValueError("config bytes differ")
+    payload = path.read_bytes()
+    committed = _git_blob(
+        "docs/unicom_full_width_objective_run_config.json", commit=CONFIG_COMMIT
+    )
+    if (
+        _sha256_bytes(committed) != CONFIG_SHA256
+        or payload != committed
+        or _sha256_bytes(payload) != CONFIG_SHA256
+    ):
+        raise ValueError("config bytes differ")
 
 
 def _assert_exact_mapping(value: object, keys: tuple[str, ...], name: str) -> dict[str, object]:
@@ -326,12 +354,34 @@ def _expected_templates(config: dict[str, object]) -> dict[str, list[str]]:
                 )
             ],
         ],
+        "decision_command": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/decide_unicom_full_width_objective.py",
+            "--run-config",
+            config_path,
+            "--pair-inventory",
+            f"{paths['output_root']}/seed-0/pair-inventory.json",
+            "--pair-result",
+            f"{paths['output_root']}/seed-0/paired-result.json",
+            "--profile-comparison",
+            f"{paths['output_root']}/seed-0/profile-comparison.json",
+            "--control-receipt",
+            f"{paths['output_root']}/seed-0/sampled_512-run-receipt.json",
+            "--candidate-receipt",
+            f"{paths['output_root']}/seed-0/full_768-run-receipt.json",
+            "--output",
+            f"{paths['output_root']}/seed-0/decision.json",
+        ],
     }
 
 
 def validate_config(config: object) -> None:
+    _validate_config_commit_bytes(CONFIG_PATH)
     config = _assert_exact_mapping(config, TOP_KEYS, "run config")
-    if config["schema_version"] != "unicom-full-width-objective-run-v1":
+    if config["schema_version"] != "unicom-full-width-objective-run-v2":
         raise ValueError("run config version differs")
 
     source = _assert_exact_mapping(config["source"], ("commit", "files"), "source")
@@ -509,7 +559,14 @@ def validate_config(config: object) -> None:
         raise ValueError("registered paths differ")
     templates = _assert_exact_mapping(
         config["command_templates"],
-        ("trainer", "profiler", "comparator", "pair_evaluator", "pair_inventory_builder"),
+        (
+            "trainer",
+            "profiler",
+            "comparator",
+            "pair_evaluator",
+            "pair_inventory_builder",
+            "decision_command",
+        ),
         "command templates",
     )
     if templates != _expected_templates(config):
@@ -537,7 +594,7 @@ def validate_config(config: object) -> None:
 
     downstream = _assert_exact_mapping(
         config["seed0_downstream"],
-        ("pair_inventory", "profiles", "profile_comparison", "pair_result"),
+        ("pair_inventory", "profiles", "profile_comparison", "pair_result", "decision_path"),
         "seed-0 downstream",
     )
     pair_inventory = _assert_exact_mapping(
@@ -586,6 +643,7 @@ def validate_config(config: object) -> None:
         "profiles": expected_profile_rows,
         "profile_comparison": f"{output_root}/seed-0/profile-comparison.json",
         "pair_result": f"{output_root}/seed-0/paired-result.json",
+        "decision_path": f"{output_root}/seed-0/decision.json",
     }:
         raise ValueError("seed-0 downstream paths differ")
 
@@ -597,6 +655,7 @@ def validate_config(config: object) -> None:
     if thresholds != {
         "selection": {"primary_map_delta": 0.003, "top1_query_loss": 1, "reach_epoch": 12},
         "operational": {
+            "step_time_metric": "step_wall",
             "step_time_ratio": 1.02,
             "peak_allocated_ratio": 1.02,
             "peak_reserved_ratio": 1.02,
@@ -625,6 +684,7 @@ def validate_config(config: object) -> None:
             "training_per_seed_arm",
             "profile_per_position",
             "pair_evaluator_per_seed",
+            "decision_per_seed",
             "rerun_after_finite_gate",
         ),
         "attempts",
@@ -633,6 +693,7 @@ def validate_config(config: object) -> None:
         "training_per_seed_arm": 1,
         "profile_per_position": 1,
         "pair_evaluator_per_seed": 1,
+        "decision_per_seed": 1,
         "rerun_after_finite_gate": False,
     }:
         raise ValueError("attempt policy differs")
@@ -649,6 +710,7 @@ def validate_config(config: object) -> None:
             "profile_comparison_template",
             "pair_inventory_template",
             "pair_result_template",
+            "decision_template",
             "confirmation_result",
             "temporary_template",
             "must_be_absent_before_launch",
@@ -669,6 +731,7 @@ def validate_config(config: object) -> None:
         "profile_comparison_template": f"{output_root}/seed-{{seed}}/profile-comparison.json",
         "pair_inventory_template": f"{output_root}/seed-{{seed}}/pair-inventory.json",
         "pair_result_template": f"{output_root}/seed-{{seed}}/paired-result.json",
+        "decision_template": f"{output_root}/seed-{{seed}}/decision.json",
         "confirmation_result": f"{output_root}/confirmation-result.json",
         "temporary_template": ".{basename}.{random}.tmp",
         "must_be_absent_before_launch": True,
@@ -717,6 +780,16 @@ def test_run_config_authenticates_source_commands_and_candidate_isolation() -> N
     validate_config(strict_json(CONFIG_PATH))
 
 
+def test_run_config_bytes_are_the_exact_config_commit_blob(tmp_path: Path) -> None:
+    candidate = tmp_path / CONFIG_PATH.name
+    candidate.write_bytes(_git_blob(str(CONFIG_PATH.relative_to(ROOT)), commit=CONFIG_COMMIT))
+    _validate_config_commit_bytes(candidate)
+
+    candidate.write_bytes(candidate.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="config bytes differ"):
+        _validate_config_commit_bytes(candidate)
+
+
 def test_run_config_validator_rejects_registered_mutations() -> None:
     config = strict_json(CONFIG_PATH)
     mutations = (
@@ -757,6 +830,12 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             lambda value: value["command_templates"]["profiler"].__setitem__(-1, "768"),
         ),
         (
+            "decision command path",
+            lambda value: value["command_templates"]["decision_command"].__setitem__(
+                -1, "/tmp/decision.json"
+            ),
+        ),
+        (
             "pair inventory order",
             lambda value: value["seed0_downstream"]["pair_inventory"]["inventory"].reverse(),
         ),
@@ -767,12 +846,28 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             ),
         ),
         (
+            "decision path",
+            lambda value: value["seed0_downstream"].__setitem__(
+                "decision_path", "/tmp/decision.json"
+            ),
+        ),
+        (
             "directory policy",
             lambda value: value["registered_outputs"].__setitem__(
                 "directory_creation_policy", "create-anything"
             ),
         ),
         ("attempt count", lambda value: value["attempts"].__setitem__("training_per_seed_arm", 2)),
+        (
+            "decision attempt count",
+            lambda value: value["attempts"].__setitem__("decision_per_seed", 2),
+        ),
+        (
+            "step timing authority",
+            lambda value: value["thresholds"]["operational"].__setitem__(
+                "step_time_metric", "cuda_step"
+            ),
+        ),
         (
             "threshold",
             lambda value: value["thresholds"]["confirmation"].__setitem__(
@@ -861,6 +956,10 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
         ROOT / "scripts" / "build_unicom_full_width_pair_config.py",
         "_full_width_pair_inventory_builder",
     )
+    decider = _load_module(
+        ROOT / "scripts" / "decide_unicom_full_width_objective.py",
+        "_full_width_seed0_decider",
+    )
     for seed_row in schedule:
         for run in seed_row["runs"]:
             arm = run["arm"]
@@ -940,6 +1039,16 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
         [row["arm"], str(row["epoch"]), row["path"]]
         for row in pair_inventory["inventory"]
     ]
+
+    decision_command = templates["decision_command"]
+    decision_args = decider.parse_args(decision_command[5:])
+    assert decision_args.run_config == Path(config["paths"]["run_config"])
+    assert decision_args.pair_inventory == Path(pair_inventory["path"])
+    assert decision_args.pair_result == Path(seed0["pair_result"])
+    assert decision_args.profile_comparison == Path(seed0["profile_comparison"])
+    assert decision_args.control_receipt == Path(schedule[0]["runs"][0]["receipt"])
+    assert decision_args.candidate_receipt == Path(schedule[0]["runs"][1]["receipt"])
+    assert decision_args.output == Path(seed0["decision_path"])
 
 
 def test_run_config_validates_in_a_fresh_isolated_process() -> None:
