@@ -26,12 +26,9 @@
 
 - Create src/sfora/unicom_proxy_muon.py: protocol constants, optimizer factories, precision adapter, trace, selection, comparison, decisions.
 - Modify src/sfora/unicom_probe.py: optimizer-injectable cached-head trajectory and deterministic 16-cell diagnostic panel; unchanged public AdamW path.
-- Create src/sfora/unicom_probe_features.py: importable official-model loading and training-only feature encoding shared by the spherical parent and ProxyMuon screen under isolated Python.
-- Modify scripts/screen_unicom_spherical_probe.py: delegate only its model-loading/feature-encoding implementation to the new shared module without changing its public behavior or result bytes.
 - Create scripts/screen_unicom_proxy_muon_f0.py: config/input/runtime checks, orchestration, validators, failure reduction, atomic writer, CLI.
 - Create tests/test_unicom_proxy_muon.py: pure optimizer/precision/decision tests.
 - Modify tests/test_unicom_probe.py: legacy equivalence, injected optimizer, panel, projection, lifetime tests.
-- Create tests/test_unicom_probe_features.py: exact old/new feature-loader equivalence and isolated-import tests.
 - Create tests/test_screen_unicom_proxy_muon_f0.py: orchestration, schema, mutation, publication, sentinel, real-CPU integration.
 - Create tests/test_unicom_proxy_muon_f0_run_config.py: config-only handoff tests.
 - Create docs/unicom_proxy_muon_f0_run_config.json only after source review.
@@ -216,15 +213,12 @@ git commit -m "add strict ProxyMuon result contract"
 ### Task 5: Bind CLI, Git, Inputs, and Runtime
 
 **Files:**
-- Create: src/sfora/unicom_probe_features.py
-- Create: tests/test_unicom_probe_features.py
-- Modify: scripts/screen_unicom_spherical_probe.py
 - Modify: scripts/screen_unicom_proxy_muon_f0.py
 - Modify: tests/test_screen_unicom_proxy_muon_f0.py
 - Create: tests/test_unicom_proxy_muon_f0_run_config.py
 
 **Interfaces:**
-- Produces: load_official_unicom_model(checkout,revision,checkpoint,device), encode_training_feature_sets(...), parse_args(argv), load_run_config(path), authenticate_source_and_inputs(config,repo_root), observe_runtime(), load_training_only_records(partition,dataset_root).
+- Produces: load_spherical_feature_module(repo_root, expected_git_revision, expected_sha256), parse_args(argv), load_run_config(path), authenticate_source_and_inputs(config,repo_root), observe_runtime(), load_training_only_records(partition,dataset_root).
 
 - [ ] **Step 1: Freeze exact CLI/config REDs**
 
@@ -240,9 +234,11 @@ Reject unknown flags, wrong Git HEAD/source bytes, dirty tracked files, symlinks
 
 Use ordinary git rev-parse, git diff --quiet, git diff --cached --quiet, git ls-files, and SHA-256. Require config commit parent/source binding, exact UniCOM checkout path and revision `d71992ed969e6c271436ac0a0ee1f3ca61474ac0`, and exact checkpoint/partition hashes before model construction. Do not add another authority framework.
 
-- [ ] **Step 3: Extract an isolated-importable feature reconstruction path**
+- [ ] **Step 3: Reuse the exact authenticated parent feature implementation**
 
-First write an equivalence RED that loads the same small official-model fixture through the existing spherical functions and the proposed src/sfora API and requires exact feature tensor bytes, record order, dtype, shape, normalization, and model/checkpoint cleanup. Move `_EvaluationDataset`, `_load_official_model`, and `_encode_feature_sets` without changing their bodies into src/sfora/unicom_probe_features.py; make the spherical screen import those public equivalents. Add a subprocess test using `.venv/bin/python -I -B` that imports the shared module and runs the small fixture without adding `scripts/` to sys.path. Run the complete spherical screen and probe test files to prove the parent path remains unchanged.
+Do not move, copy, wrap, or edit `_EvaluationDataset`, `_load_official_model(checkout: Path, checkpoint: Path)`, or `_encode_feature_sets(args, fitting, validation)`. Keep `scripts/screen_unicom_spherical_probe.py` and its frozen five-key result/source schema byte-unchanged. `load_spherical_feature_module` must resolve exactly `repo_root/scripts/screen_unicom_spherical_probe.py`, reject symlinks/non-regular files and a preexisting private module name, recheck both the worktree SHA-256 and `git show expected_git_revision:scripts/screen_unicom_spherical_probe.py` SHA-256 against `expected_sha256`, and only then execute that file with `importlib.util.spec_from_file_location` under the fixed private name `_sfora_proxy_muon_parent_features`. Require the resolved `__file__` and both feature callables' `__module__` values to match that authenticated module. Call its existing `_encode_feature_sets` directly, preserving its hard-coded official ViT-L/14@336px loader, CUDA placement, record order, dtype/shape checks, and cleanup semantics. Remove the private module and all `unicom` package entries from `sys.modules` in a `finally` block after encoding.
+
+Write a subprocess test using `.venv/bin/python -I -B` that loads the authenticated spherical file by absolute path without adding `scripts/` to `sys.path`, proves the returned feature callable is defined by that exact module/file, and exercises `_load_official_model(checkout, checkpoint)` against the existing tiny stub package with explicit `sys.modules` cleanup. A one-byte spherical-script mutation, a different resolved file, a copied function, or an import before source authentication must fail. Run the complete spherical screen test file unchanged to prove the parent path and result bytes remain intact. Full CUDA encoding is reserved for the sole DGX run because the production body requires the real ViT-L checkpoint and `.cuda()`; no CPU test may claim byte-equivalence for that path.
 
 - [ ] **Step 4: Add query/gallery sentinels**
 
@@ -254,12 +250,12 @@ After non-Torch authority, require exact configured Python, Torch, NumPy, sklear
 
 - [ ] **Step 6: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+Run: .venv/bin/pytest -q tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 
 Expected: PASS.
 
 ~~~bash
-git add src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_probe_features.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+git add scripts/screen_unicom_proxy_muon_f0.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git commit -m "bind ProxyMuon screen inputs and runtime"
 ~~~
 
@@ -278,7 +274,7 @@ Record callback events. Assert Phase 1 order (optimizer, lr, seed) with seed inn
 
 - [ ] **Step 2: Reconstruct parent evidence before candidates**
 
-Import the shared src/sfora/unicom_probe_features.py API under isolated Python, reconstruct the exact spherical-parent training-only features/split, and require exact class-mean plus three fitted-target hashes. Never import a sibling script. A one-byte feature/head mutation must fail before optimizer construction.
+Load the already-authenticated `scripts/screen_unicom_spherical_probe.py` by its absolute file path under isolated Python, invoke that module's exact `_encode_feature_sets` implementation, reconstruct the exact spherical-parent training-only features/split, and require exact class-mean plus three fitted-target hashes. The spherical path is an explicit source-bound dependency of the ProxyMuon result; it remains byte-unchanged and is never imported by package or sibling name. A one-byte script/feature/head mutation must fail before optimizer construction.
 
 - [ ] **Step 3: Implement both phases**
 
@@ -294,12 +290,12 @@ Authenticate once, run once, validate/publish, return 0. Ordinary post-authority
 
 - [ ] **Step 6: Verify and commit**
 
-Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+Run: .venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 
 Expected: PASS.
 
 ~~~bash
-git add src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+git add src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git commit -m "implement UniCOM ProxyMuon cached-feature screen"
 ~~~
 
@@ -315,9 +311,9 @@ git commit -m "implement UniCOM ProxyMuon cached-feature screen"
 - [ ] **Step 1: Run affected/static gates**
 
 ~~~bash
-.venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
-.venv/bin/ruff check src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
-.venv/bin/python -m py_compile src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py src/sfora/unicom_probe_features.py scripts/screen_unicom_spherical_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_unicom_probe_features.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/pytest -q tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/ruff check src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
+.venv/bin/python -m py_compile src/sfora/unicom_proxy_muon.py src/sfora/unicom_probe.py scripts/screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon.py tests/test_unicom_probe.py tests/test_screen_unicom_spherical_probe.py tests/test_screen_unicom_proxy_muon_f0.py tests/test_unicom_proxy_muon_f0_run_config.py
 git diff --check
 ~~~
 
@@ -331,7 +327,7 @@ Use one read-only consultation with provider="other", models=["opus","gpt-5.6-so
 
 - [ ] **Step 4: Write/test the exact config**
 
-Bind spec, source.commit=V, all source hashes at V including the shared feature module and spherical screen, frozen DGX runtime, exact UniCOM checkout path/revision, checkpoint/partition paths/hashes, protocol, and distinct absent result/temp/failure paths. Run the full config mutation suite.
+Bind spec, source.commit=V, all source hashes at V including the byte-unchanged spherical screen used as the feature implementation, frozen DGX runtime, exact UniCOM checkout path/revision, checkpoint/partition paths/hashes, protocol, and distinct absent result/temp/failure paths. Run the full config mutation suite.
 
 - [ ] **Step 5: Commit config alone and review**
 
