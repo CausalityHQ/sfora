@@ -790,6 +790,49 @@ def test_run_config_bytes_are_the_exact_config_commit_blob(tmp_path: Path) -> No
         _validate_config_commit_bytes(candidate)
 
 
+def test_real_detached_config_commit_authenticates_reviewed_source_parent(
+    tmp_path: Path,
+) -> None:
+    checkout = tmp_path / "checkout"
+    subprocess.run(
+        ["git", "clone", "-q", "--shared", "--no-checkout", str(ROOT), str(checkout)],
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(checkout), "checkout", "-q", "--detach", CONFIG_COMMIT],
+        check=True,
+    )
+    probe = (
+        "import importlib.util,pathlib,sys;"
+        "root=pathlib.Path(sys.argv[1]);"
+        "path=root/'scripts/train_unicom_inshop.py';"
+        "spec=importlib.util.spec_from_file_location('trainer_probe',path);"
+        "module=importlib.util.module_from_spec(spec);"
+        "sys.modules[spec.name]=module;"
+        "spec.loader.exec_module(module);"
+        "print(module.registered_source_commit("
+        "root/'docs/unicom_full_width_objective_run_config.json',root))"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-I", "-B", "-c", probe, str(checkout)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.stdout.strip() == SOURCE_COMMIT
+    assert subprocess.run(
+        ["git", "-C", str(checkout), "symbolic-ref", "-q", "HEAD"],
+        check=False,
+        capture_output=True,
+    ).returncode != 0
+    assert not subprocess.run(
+        ["git", "-C", str(checkout), "status", "--porcelain=v1"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
 def test_run_config_validator_rejects_registered_mutations() -> None:
     config = strict_json(CONFIG_PATH)
     mutations = (
