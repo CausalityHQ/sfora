@@ -13,13 +13,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "590a5e78e137f3a9ef22ab45c87207cb2e03cf60"
-CONFIG_COMMIT = "d47a4806e93ecb1034efb2e41e4c3b880824b8cb"
-CONFIG_SHA256 = "1dc6aa9b66ca62d687db5d489140ac4470f1974738a722c87211f79a622f25d4"
+SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
+CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
+CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
 SOURCE_FILES = (
     (
         "scripts/train_unicom_inshop.py",
-        "2107bf65a5ab32d78a3b252f723cd783fdf92dcac5baea5f1b8454c88340b93e",
+        "6eea2dab88ff9e4c5a547f9fe326ebf56879882784c5a80c8e136f6d02b52170",
     ),
     (
         "scripts/evaluate_unicom_full_width_objective.py",
@@ -59,7 +59,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_train_unicom_inshop.py",
-        "98e72f661dba8d5405977d17c1cdfb262891af139344112ab892e0bd4e025774",
+        "61f1d622deeee1a9b4214f3b3666e6a6a9e077318686e21c5579a5e3b023bd0d",
     ),
     (
         "tests/test_evaluate_unicom_full_width_objective.py",
