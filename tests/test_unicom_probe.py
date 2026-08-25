@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import gc
 import math
+import random
+import weakref
 from dataclasses import replace
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 
@@ -24,7 +28,13 @@ from sfora.unicom_probe import (
     probe_decision,
     split_probe_records,
 )
-from sfora.unicom_training import sample_shard_masks, sharded_mask_arcface_logits
+from sfora.unicom_training import (
+    experiment_stream_seed,
+    padded_epoch_indices,
+    sample_shard_masks,
+    sharded_mask_arcface_logits,
+    sharded_mask_arcface_loss,
+)
 
 
 def _record(label: str, name: str) -> InshopRecord:
@@ -230,6 +240,256 @@ def test_probe_trajectory_reuses_one_optimizer_and_matches_legacy_final() -> Non
     assert len({snapshot.data_ptr() for snapshot in snapshots.values()}) == 5
     assert snapshots[8] is fit.head
     assert torch.equal(fit.head, legacy.head)
+
+
+def test_injected_adamw_trajectory_is_byte_identical_to_public_path_and_rng_neutral() -> None:
+    features, labels, initial = _separable_probe_fixture()
+    snapshot_steps = (0, 1, 2, 4, 8)
+
+    python_before = random.getstate()
+    numpy_before = np.random.get_state()
+    torch_before = torch.random.get_rng_state().clone()
+    legacy_fit, legacy_snapshots = probe_module._fit_spherical_probe(
+        features,
+        labels,
+        initial,
+        snapshot_steps=snapshot_steps,
+        steps=8,
+        batch_size=8,
+    )
+    assert random.getstate() == python_before
+    assert np.random.get_state()[0] == numpy_before[0]
+    assert np.array_equal(np.random.get_state()[1], numpy_before[1])
+    assert np.random.get_state()[2:] == numpy_before[2:]
+    assert torch.equal(torch.random.get_rng_state(), torch_before)
+
+    factory_heads: list[torch.nn.Parameter] = []
+
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        factory_heads.append(head)
+        return torch.optim.AdamW(
+            [head],
+            lr=PROBE_LEARNING_RATE,
+            betas=(0.9, 0.999),
+            eps=1e-8,
+            weight_decay=0.0,
+        )
+
+    python_before = random.getstate()
+    numpy_before = np.random.get_state()
+    torch_before = torch.random.get_rng_state().clone()
+    injected_fit, injected_snapshots, traces = (
+        probe_module._fit_probe_trajectory_with_optimizer(
+            features,
+            labels,
+            initial,
+            snapshot_steps=snapshot_steps,
+            optimizer_factory=optimizer_factory,
+            trace_factory=None,
+            steps=8,
+            batch_size=8,
+        )
+    )
+
+    assert len(factory_heads) == 1
+    assert traces == {0: None, 1: None, 2: None, 4: None, 8: None}
+    assert torch.equal(injected_fit.head, legacy_fit.head)
+    assert (
+        injected_fit.initial_loss,
+        injected_fit.final_loss,
+        injected_fit.steps,
+        injected_fit.row_cosine_min,
+        injected_fit.row_cosine_p05,
+        injected_fit.row_cosine_median,
+        injected_fit.row_cosine_mean,
+    ) == (
+        legacy_fit.initial_loss,
+        legacy_fit.final_loss,
+        legacy_fit.steps,
+        legacy_fit.row_cosine_min,
+        legacy_fit.row_cosine_p05,
+        legacy_fit.row_cosine_median,
+        legacy_fit.row_cosine_mean,
+    )
+    assert tuple(injected_snapshots) == tuple(legacy_snapshots)
+    assert all(
+        torch.equal(injected_snapshots[step], legacy_snapshots[step])
+        for step in snapshot_steps
+    )
+    assert random.getstate() == python_before
+    assert np.random.get_state()[0] == numpy_before[0]
+    assert np.array_equal(np.random.get_state()[1], numpy_before[1])
+    assert np.random.get_state()[2:] == numpy_before[2:]
+    assert torch.equal(torch.random.get_rng_state(), torch_before)
+
+
+def test_diagnostic_panel_is_exact_batch_major_mask_minor_cartesian_product() -> None:
+    features, labels, head = _separable_probe_fixture()
+    seed = experiment_stream_seed(2, 23_004)
+
+    actual = probe_module.diagnostic_panel_losses(
+        features,
+        labels,
+        head,
+        fit_seed=2,
+        batch_size=8,
+    )
+
+    epoch_indices = padded_epoch_indices(
+        size=features.shape[0],
+        global_batch=8,
+        epoch=0,
+        seed=seed,
+        shards=8,
+    )
+    batches = tuple(
+        torch.tensor(epoch_indices[start : start + 8], dtype=torch.int64)
+        for start in range(0, 32, 8)
+    )
+    generator = torch.Generator().manual_seed(seed)
+    masks = tuple(
+        sample_shard_masks(
+            dimension=768,
+            selected=512,
+            shards=8,
+            generator=generator,
+            device=torch.device("cpu"),
+        )
+        for _ in range(4)
+    )
+    expected = tuple(
+        float(
+            sharded_mask_arcface_loss(
+                features.index_select(0, batch),
+                head,
+                labels.index_select(0, batch),
+                mask,
+            )
+        )
+        for batch in batches
+        for mask in masks
+    )
+
+    assert actual == expected
+    assert len(actual) == 16
+    assert actual[0] == probe_module._diagnostic_loss(
+        features,
+        labels,
+        head,
+        batch_size=8,
+        batch_seed=seed,
+        mask_seed=seed,
+    )
+    assert math.fsum(actual) / 16 == math.fsum(expected) / 16
+
+
+def test_proxy_muon_trajectory_records_producing_step_trace_and_projects_rows() -> None:
+    features, labels, initial = _separable_probe_fixture()
+
+    fit, snapshots, traces = probe_module.fit_proxy_muon_trajectory(
+        features,
+        labels,
+        initial,
+        learning_rate=0.0002,
+        fit_seed=3,
+        snapshot_steps=(0, 1, 2),
+        steps=2,
+        batch_size=8,
+    )
+
+    assert tuple(snapshots) == (0, 1, 2)
+    assert tuple(traces) == (0, 1, 2)
+    assert traces[0] is None
+    assert type(traces[1]) is probe_module.MuonTrace
+    assert type(traces[2]) is probe_module.MuonTrace
+    assert traces[1].update_dtype == "torch.bfloat16"
+    assert traces[2].update_dtype == "torch.bfloat16"
+    assert len(traces[1].orthogonal_update_sha256) == 64
+    assert len(traces[2].orthogonal_update_sha256) == 64
+    assert snapshots[2] is fit.head
+    target_norms = torch.linalg.vector_norm(initial, dim=1)
+    for snapshot in snapshots.values():
+        assert snapshot.device.type == "cpu"
+        assert snapshot.is_contiguous()
+        torch.testing.assert_close(
+            torch.linalg.vector_norm(snapshot, dim=1),
+            target_norms,
+            rtol=2e-6,
+            atol=2e-7,
+        )
+
+
+def test_proxy_muon_float32_sensitivity_records_float32_trace() -> None:
+    features, labels, initial = _separable_probe_fixture()
+
+    _fit, _snapshots, traces = probe_module.fit_proxy_muon_trajectory(
+        features,
+        labels,
+        initial,
+        learning_rate=0.0002,
+        ns_dtype=torch.float32,
+        fit_seed=3,
+        snapshot_steps=(0, 1),
+        steps=1,
+        batch_size=8,
+    )
+
+    assert traces[0] is None
+    assert type(traces[1]) is probe_module.MuonTrace
+    assert traces[1].update_dtype == "torch.float32"
+
+
+def test_injected_trajectory_releases_optimizer_parameter_gradient_and_masks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    features, labels, initial = _separable_probe_fixture()
+    head_refs: list[weakref.ReferenceType[torch.nn.Parameter]] = []
+    optimizer_refs: list[weakref.ReferenceType[torch.optim.Optimizer]] = []
+    gradient_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    mask_refs: list[weakref.ReferenceType[torch.Tensor]] = []
+    original_masks = probe_module.sample_shard_masks
+
+    def capture_masks(*args, **kwargs):
+        masks = original_masks(*args, **kwargs)
+        mask_refs.append(weakref.ref(masks))
+        return masks
+
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        optimizer = torch.optim.AdamW(
+            [head],
+            lr=PROBE_LEARNING_RATE,
+            betas=(0.9, 0.999),
+            eps=1e-8,
+            weight_decay=0.0,
+        )
+        head_refs.append(weakref.ref(head))
+        optimizer_refs.append(weakref.ref(optimizer))
+        return optimizer
+
+    def trace_factory(
+        head: torch.nn.Parameter, _optimizer: torch.optim.Optimizer
+    ) -> None:
+        gradient_refs.append(weakref.ref(head.grad))
+
+    monkeypatch.setattr(probe_module, "sample_shard_masks", capture_masks)
+    fit, snapshots, traces = probe_module._fit_probe_trajectory_with_optimizer(
+        features,
+        labels,
+        initial,
+        snapshot_steps=(0, 2),
+        optimizer_factory=optimizer_factory,
+        trace_factory=trace_factory,
+        steps=2,
+        batch_size=8,
+    )
+
+    assert fit.head is snapshots[2]
+    assert traces == {0: None, 2: None}
+    gc.collect()
+    assert all(reference() is None for reference in head_refs)
+    assert all(reference() is None for reference in optimizer_refs)
+    assert all(reference() is None for reference in gradient_refs)
+    assert all(reference() is None for reference in mask_refs)
 
 
 @pytest.mark.parametrize(

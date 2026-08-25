@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 
 import pytest
 import torch
@@ -330,7 +331,9 @@ def test_builtin_muon_trace_matches_private_helper_and_is_noninterfering() -> No
 
     trace = module.trace_builtin_muon_step(traced_head, traced_optimizer)
 
-    assert torch.equal(trace.orthogonal_update, expected)
+    assert trace.orthogonal_update_sha256 == hashlib.sha256(
+        expected.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
+    ).hexdigest()
     assert trace.update_dtype == "torch.bfloat16"
     assert type(trace.polar_factor_residual) is float
     assert torch.isfinite(torch.tensor(trace.polar_factor_residual))

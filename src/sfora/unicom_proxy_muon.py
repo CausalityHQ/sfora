@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import math
 from dataclasses import dataclass
 
@@ -64,7 +65,7 @@ class AdamWReference:
 class MuonTrace:
     """Read-only evidence for one pending built-in Muon update."""
 
-    orthogonal_update: torch.Tensor
+    orthogonal_update_sha256: str
     update_dtype: str
     polar_factor_residual: float
 
@@ -286,7 +287,80 @@ def trace_builtin_muon_step(
     if not math.isfinite(residual):
         raise ValueError("ProxyMuon trace residual differs")
     return MuonTrace(
-        orthogonal_update=orthogonal_update,
+        orthogonal_update_sha256=hashlib.sha256(
+            orthogonal_update.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
+        ).hexdigest(),
+        update_dtype=str(orthogonal_update.dtype),
+        polar_factor_residual=residual,
+    )
+
+
+def trace_precision_muon_step(
+    head: torch.nn.Parameter, optimizer: torch.optim.Optimizer
+) -> MuonTrace:
+    """Reconstruct a pending PrecisionMuon update without mutating live state."""
+
+    if (
+        type(head) is not torch.nn.Parameter
+        or type(optimizer) is not PrecisionMuon
+        or optimizer.ns_dtype != torch.float32
+        or len(optimizer.param_groups) != 1
+        or optimizer.param_groups[0]["params"] != [head]
+    ):
+        raise ValueError("ProxyMuon FP32 trace input differs")
+    group = optimizer.param_groups[0]
+    gradient = head.grad
+    if (
+        type(group["lr"]) is not float
+        or group["lr"] not in LR_GRID
+        or group["weight_decay"] != 0.0
+        or group["momentum"] != 0.95
+        or group["nesterov"] is not True
+        or group["ns_coefficients"] != (3.4445, -4.775, 2.0315)
+        or group["eps"] != 1e-7
+        or group["ns_steps"] != 5
+        or group["adjust_lr_fn"] != "match_rms_adamw"
+        or type(gradient) is not torch.Tensor
+        or gradient.dtype != torch.float32
+        or gradient.shape != head.shape
+        or gradient.is_sparse
+        or not torch.isfinite(gradient).all()
+    ):
+        raise ValueError("ProxyMuon FP32 trace state differs")
+    state = optimizer.state.get(head, {})
+    if tuple(state) not in ((), ("momentum_buffer",)):
+        raise ValueError("ProxyMuon FP32 trace optimizer state differs")
+    prior_momentum = state.get("momentum_buffer")
+    if prior_momentum is None:
+        prior_momentum = torch.zeros_like(
+            gradient, memory_format=torch.preserve_format
+        )
+    elif (
+        type(prior_momentum) is not torch.Tensor
+        or prior_momentum.dtype != torch.float32
+        or prior_momentum.shape != head.shape
+        or not torch.isfinite(prior_momentum).all()
+    ):
+        raise ValueError("ProxyMuon FP32 trace momentum differs")
+    next_momentum = prior_momentum.clone().lerp_(gradient, 0.05)
+    effective_update = gradient.clone().lerp(next_momentum, 0.95)
+    orthogonal_update = _newton_schulz_zeropower(
+        effective_update, ns_dtype=torch.float32
+    )
+    floating = orthogonal_update.float()
+    gram = (
+        floating.T @ floating
+        if floating.shape[0] >= floating.shape[1]
+        else floating @ floating.T
+    )
+    identity = torch.eye(gram.shape[0], dtype=torch.float32, device=gram.device)
+    residual = float(torch.linalg.vector_norm(gram - identity))
+    if not math.isfinite(residual):
+        raise ValueError("ProxyMuon FP32 trace residual differs")
+    return MuonTrace(
+        orthogonal_update_sha256=hashlib.sha256(
+            orthogonal_update.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes()
+        ).hexdigest(),
         update_dtype=str(orthogonal_update.dtype),
         polar_factor_residual=residual,
     )

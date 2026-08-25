@@ -5,14 +5,21 @@ from __future__ import annotations
 import math
 import re
 from collections import defaultdict
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, replace
 
 import numpy as np
 import torch
 from torch.nn import functional as F
 
 from sfora.unicom_inshop import InshopRecord
+from sfora.unicom_proxy_muon import (
+    MuonTrace,
+    PrecisionMuon,
+    build_head_optimizer,
+    trace_builtin_muon_step,
+    trace_precision_muon_step,
+)
 from sfora.unicom_training import (
     experiment_stream_seed,
     padded_epoch_indices,
@@ -316,19 +323,91 @@ def _diagnostic_loss(
     return float(loss)
 
 
-def _fit_spherical_probe(
+def diagnostic_panel_losses(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    head: torch.Tensor,
+    *,
+    fit_seed: int,
+    batch_size: int = PROBE_BATCH_SIZE,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+) -> tuple[float, ...]:
+    """Return the registered 4-batch by 4-mask diagnostic panel."""
+
+    _validate_probe_tensors(features, labels, head)
+    if (
+        type(fit_seed) is not int
+        or fit_seed < 0
+        or type(batch_size) is not int
+        or batch_size <= 0
+        or batch_size % PROBE_SHARDS != 0
+        or type(diagnostic_seed) is not int
+        or diagnostic_seed < 0
+    ):
+        raise ValueError("probe diagnostic panel schedule differs")
+    seed = experiment_stream_seed(fit_seed, diagnostic_seed)
+    epoch_indices = padded_epoch_indices(
+        size=features.shape[0],
+        global_batch=batch_size,
+        epoch=0,
+        seed=seed,
+        shards=PROBE_SHARDS,
+    )
+    if len(epoch_indices) < 4 * batch_size:
+        raise ValueError("probe diagnostic panel inventory differs")
+    batches = tuple(
+        torch.tensor(
+            epoch_indices[start : start + batch_size],
+            dtype=torch.int64,
+            device=features.device,
+        )
+        for start in range(0, 4 * batch_size, batch_size)
+    )
+    generator = torch.Generator(device=features.device).manual_seed(seed)
+    mask_sets = tuple(
+        sample_shard_masks(
+            dimension=features.shape[1],
+            selected=PROBE_SELECTED_FEATURES,
+            shards=PROBE_SHARDS,
+            generator=generator,
+            device=features.device,
+        )
+        for _ in range(4)
+    )
+    with torch.no_grad():
+        losses = tuple(
+            float(
+                sharded_mask_arcface_loss(
+                    features.index_select(0, batch),
+                    head,
+                    labels.index_select(0, batch),
+                    masks,
+                )
+            )
+            for batch in batches
+            for masks in mask_sets
+        )
+    if len(losses) != 16 or any(not math.isfinite(loss) for loss in losses):
+        raise ValueError("probe diagnostic panel differs")
+    return losses
+
+
+def _fit_probe_trajectory_with_optimizer(
     features: torch.Tensor,
     labels: torch.Tensor,
     initial: torch.Tensor,
     *,
     snapshot_steps: tuple[int, ...],
+    optimizer_factory: Callable[[torch.nn.Parameter], torch.optim.Optimizer],
+    trace_factory: Callable[[torch.nn.Parameter, torch.optim.Optimizer], object]
+    | None,
     steps: int = PROBE_STEPS,
     batch_size: int = PROBE_BATCH_SIZE,
     batch_seed: int = PROBE_BATCH_SEED,
     mask_seed: int = PROBE_MASK_SEED,
     diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
     fit_seed: int = 0,
-) -> tuple[ProbeFit, dict[int, torch.Tensor]]:
+) -> tuple[ProbeFit, dict[int, torch.Tensor], dict[int, object | None]]:
     target_norm = _validate_probe_tensors(features, labels, initial)
     if (
         type(steps) is not int
@@ -343,8 +422,10 @@ def _fit_spherical_probe(
     ):
         raise ValueError("spherical probe schedule differs")
     snapshots: dict[int, torch.Tensor] = {}
+    traces: dict[int, object | None] = {}
     if 0 in snapshot_steps:
         snapshots[0] = initial.detach().clone().contiguous()
+        traces[0] = None
     initial_loss = _diagnostic_loss(
         features,
         labels,
@@ -354,13 +435,18 @@ def _fit_spherical_probe(
         mask_seed=experiment_stream_seed(fit_seed, diagnostic_seed),
     )
     head = torch.nn.Parameter(initial.detach().clone())
-    optimizer = torch.optim.AdamW(
-        [head],
-        lr=PROBE_LEARNING_RATE,
-        betas=(0.9, 0.999),
-        eps=1e-8,
-        weight_decay=0.0,
-    )
+    if not callable(optimizer_factory) or (
+        trace_factory is not None and not callable(trace_factory)
+    ):
+        raise ValueError("spherical probe optimizer callback differs")
+    optimizer = optimizer_factory(head)
+    if (
+        not isinstance(optimizer, torch.optim.Optimizer)
+        or len(optimizer.param_groups) != 1
+        or len(optimizer.param_groups[0]["params"]) != 1
+        or optimizer.param_groups[0]["params"][0] is not head
+    ):
+        raise ValueError("spherical probe optimizer differs")
     mask_generator = torch.Generator(device=features.device).manual_seed(
         experiment_stream_seed(fit_seed, mask_seed)
     )
@@ -397,6 +483,12 @@ def _fit_spherical_probe(
             if not torch.isfinite(loss):
                 raise ValueError("spherical probe loss is nonfinite")
             loss.backward()
+            producing_step = completed + 1
+            trace = (
+                trace_factory(head, optimizer)
+                if trace_factory is not None and producing_step in snapshot_steps
+                else None
+            )
             optimizer.step()
             with torch.no_grad():
                 norms = torch.linalg.vector_norm(head, dim=1)
@@ -406,6 +498,7 @@ def _fit_spherical_probe(
             completed += 1
             if completed in snapshot_steps and completed != steps:
                 snapshots[completed] = head.detach().clone().contiguous()
+                traces[completed] = trace
             if completed == steps:
                 break
         epoch += 1
@@ -413,6 +506,7 @@ def _fit_spherical_probe(
     result = head.detach().contiguous()
     if steps in snapshot_steps:
         snapshots[steps] = result
+        traces[steps] = trace
     final_loss = _diagnostic_loss(
         features,
         labels,
@@ -431,6 +525,45 @@ def _fit_spherical_probe(
         row_cosine_p05=float(torch.quantile(cosine, 0.05)),
         row_cosine_median=float(torch.quantile(cosine, 0.5)),
         row_cosine_mean=float(cosine.mean()),
+    )
+    return fit, snapshots, traces
+
+
+def _fit_spherical_probe(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    initial: torch.Tensor,
+    *,
+    snapshot_steps: tuple[int, ...],
+    steps: int = PROBE_STEPS,
+    batch_size: int = PROBE_BATCH_SIZE,
+    batch_seed: int = PROBE_BATCH_SEED,
+    mask_seed: int = PROBE_MASK_SEED,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    fit_seed: int = 0,
+) -> tuple[ProbeFit, dict[int, torch.Tensor]]:
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        return torch.optim.AdamW(
+            [head],
+            lr=PROBE_LEARNING_RATE,
+            betas=(0.9, 0.999),
+            eps=1e-8,
+            weight_decay=0.0,
+        )
+
+    fit, snapshots, _traces = _fit_probe_trajectory_with_optimizer(
+        features,
+        labels,
+        initial,
+        snapshot_steps=snapshot_steps,
+        optimizer_factory=optimizer_factory,
+        trace_factory=None,
+        steps=steps,
+        batch_size=batch_size,
+        batch_seed=batch_seed,
+        mask_seed=mask_seed,
+        diagnostic_seed=diagnostic_seed,
+        fit_seed=fit_seed,
     )
     return fit, snapshots
 
@@ -491,6 +624,67 @@ def fit_spherical_probe_trajectory(
         diagnostic_seed=diagnostic_seed,
         fit_seed=fit_seed,
     )
+
+
+def fit_proxy_muon_trajectory(
+    features: torch.Tensor,
+    labels: torch.Tensor,
+    initial: torch.Tensor,
+    *,
+    learning_rate: float,
+    ns_dtype: torch.dtype = torch.bfloat16,
+    snapshot_steps: tuple[int, ...],
+    steps: int = PROBE_STEPS,
+    batch_size: int = PROBE_BATCH_SIZE,
+    batch_seed: int = PROBE_BATCH_SEED,
+    mask_seed: int = PROBE_MASK_SEED,
+    diagnostic_seed: int = PROBE_DIAGNOSTIC_SEED,
+    fit_seed: int = 0,
+) -> tuple[ProbeFit, dict[int, torch.Tensor], dict[int, MuonTrace | None]]:
+    """Fit one built-in ProxyMuon trajectory with producing-step traces."""
+
+    def optimizer_factory(head: torch.nn.Parameter) -> torch.optim.Optimizer:
+        if ns_dtype == torch.bfloat16:
+            return build_head_optimizer(head, "proxy_muon", learning_rate)
+        if ns_dtype == torch.float32:
+            return PrecisionMuon(head, lr=learning_rate, ns_dtype=ns_dtype)
+        raise ValueError("ProxyMuon trajectory precision differs")
+
+    trace_factory = (
+        trace_builtin_muon_step
+        if ns_dtype == torch.bfloat16
+        else trace_precision_muon_step
+    )
+
+    fit, snapshots, raw_traces = _fit_probe_trajectory_with_optimizer(
+        features,
+        labels,
+        initial,
+        snapshot_steps=snapshot_steps,
+        optimizer_factory=optimizer_factory,
+        trace_factory=trace_factory,
+        steps=steps,
+        batch_size=batch_size,
+        batch_seed=batch_seed,
+        mask_seed=mask_seed,
+        diagnostic_seed=diagnostic_seed,
+        fit_seed=fit_seed,
+    )
+    traces: dict[int, MuonTrace | None] = {}
+    for step, trace in raw_traces.items():
+        if trace is not None and type(trace) is not MuonTrace:
+            raise ValueError("ProxyMuon trajectory trace differs")
+        traces[step] = trace
+    cpu_snapshots = {
+        step: snapshot.detach().cpu().contiguous()
+        for step, snapshot in snapshots.items()
+    }
+    cpu_head = (
+        cpu_snapshots[steps]
+        if steps in cpu_snapshots
+        else fit.head.detach().cpu().contiguous()
+    )
+    return replace(fit, head=cpu_head), cpu_snapshots, traces
 
 
 def _evaluate_probe_head_mapping(
