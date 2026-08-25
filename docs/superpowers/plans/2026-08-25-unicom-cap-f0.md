@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13.9, PyTorch 2.12.1+cu130, NumPy 2.5.0, scikit-learn 1.9.0, pytest, Ruff, Git, CUDA 13.0.
 
-**Spec:** `docs/superpowers/specs/2026-08-25-unicom-cap-f0-design.md` at commit `87d26fc433362b31d255bfc9931319b8f12e2eba`, SHA-256 `4daafda9ed31218a77cbe3fe2017f48a90f8717555261774270771933ec40583`.
+**Spec:** `docs/superpowers/specs/2026-08-25-unicom-cap-f0-design.md` at commit `cfd2ebf18b4d3a2c80c3b96957d777e23224a4cc`, SHA-256 `cf6994c9bda0677a714cd0a12dcca459af0fe610d28a9869091992724a4e880a`.
 
 ## Global Constraints
 
@@ -203,15 +203,45 @@ git commit -m "implement UniCOM covariance-adjusted prototypes"
 
 Freeze exact CLI flags `--config`, `--unicom-checkout`, `--checkpoint`, `--dataset-root`, `--parent-result`, `--output`, and optional literal `--parent-replay-only`. Construct a temporary linear Git fixture and require the config bytes to equal the Git blob at detached `HEAD`, `HEAD` to change only the config path relative to `HEAD^`, `config["source"]["commit"] == HEAD^`, every ordered source worktree digest to equal both the configured literal and its `HEAD^` Git blob, and every path flag to resolve exactly to its config-derived path. Also require parent artifact bytes/SHA, source commit ancestry, UniCOM revision, checkpoint, partition, clean detached checkout, real non-symlink inputs, real output parent, and absent destination/PID-temp before importing Torch. Wrong config ancestry, drifted source digest, or flag/config disagreement exits `2` with no output.
 
+The fixture must place the spec authority, parent-source authority, and reviewed
+source at three distinct commits in one linear history. Add independent
+mutations for an attached `HEAD`, a noisy handoff edge, an intervening commit,
+config worktree bytes differing from the `HEAD` blob, and source worktree bytes
+differing from the configured digest or `HEAD^` blob. The tracked parent result
+must retain its real forced-tracked status even though `reports/generated/` is
+ignored. Freeze every authority, environment, and protocol literal rather than
+accepting arbitrary well-typed replacements; explicitly reject `bool` in both
+integer lists.
+
 For `--parent-replay-only`, require candidate-import sentinels to remain untouched, reconstruct only class mean and all three fitted targets, emit exactly one canonical stdout JSON line with keys `class_mean_sha256`, `target_sha256_by_seed` (ordered `0,1,2`), `candidate_values_computed=false`, publish no file, and exit zero only on all four registered hashes. Run two fresh subprocesses in the test and require byte-identical stdout. A mismatch exits `2` and cannot be retried by the CLI itself.
 
 - [ ] **Step 2: Write exact recursive schema RED tests**
 
-Build one valid synthetic result in the exact eleven-key top-level order. Parameterize mutations for every nested key order, concrete type, aggregate, covariance sample/feature counts, trace, minimum/maximum Cholesky diagonal, digest, condition number, effective rank, mismatch summary, construction-mask order, the stored-once class-mean head and metric replay, seed-invariant CAP metric duplication/drift, comparator order, seed order, 64-mask and 3188-image lengths, both paired lower bounds, 3200-row cosine vectors, 11-step trajectory, step equivalence, predicate, nullable selected variant, decision status, `candidate_values_computed`, NaN/infinity, duplicate key, and unknown key.
+Build one valid synthetic result from independent hand-written literals in the
+exact eleven-key top-level order. Freeze an exact key tuple for every nested
+object. Parameterize mutations for every nested key order, concrete type,
+aggregate, covariance sample/feature counts, decoded little-endian FP64 matrix
+shape/bytes/symmetry/Cholesky, trace, minimum/maximum Cholesky diagonal, digest,
+condition number, effective rank, all `8 x class_count` mismatch row cosines
+and their summaries, construction-mask order, all class-mean row norms and
+their extrema, the stored-once class-mean metric replay, seed-invariant CAP
+metric duplication/drift, comparator order, seed order, 64-mask and 3188-image
+lengths, both paired lower bounds, 3200-row cosine vectors, 11-step trajectory,
+step equivalence including `bool`/foreign strings, predicate, nullable selected
+variant, decision status, `candidate_values_computed`, NaN/infinity, duplicate
+key, and unknown key. Test fixture expectations must not call production
+aggregation or decision helpers.
 
 - [ ] **Step 3: Write atomic publication RED tests**
 
 Require mode 0600 temporary bytes, completed partial writes, file and directory `fsync`, strict reload, byte comparison, exact hard-link publication, no-clobber behavior, owned rollback after post-link failure, and preservation of a foreign race winner.
+
+Pass a required keyword-only bound validator into `write_result_atomic`; do not
+hard-code an inventory-free validator call. Require the validator to run once
+before I/O and once on strict-reloaded bytes. Inject first-call and second-call
+validation failures and altered temporary bytes, and require no publication or
+temp residue. Serialize with `allow_nan=False` so nonfinite JSON fails before
+the first write.
 
 - [ ] **Step 4: Write future handoff-schema RED tests**
 
@@ -229,9 +259,20 @@ Expected: collection failure for the absent script.
 
 Keep module-scope imports limited to the standard library and NumPy. Implement `validate_run_config` in this production script, not only in its test. Before importing `sfora.unicom_cap`, `sfora.unicom_probe`, Torch, or scikit-learn, authenticate the config-only `HEAD` edge, bind `config["source"]["commit"]` to `HEAD^`, authenticate every literal source digest against both the `HEAD^` Git blob and worktree bytes, and require all CLI path arguments to match the config. Implement type/order-aware result validation that recomputes all derived fields from primitive persisted rows rather than comparing a payload to itself.
 
+Decode the exact covariance matrix bytes and recompute the covariance digest,
+symmetry, Cholesky, trace, condition number, effective rank, diagonal extrema,
+mismatch summaries, and row-norm summaries. Treat only the frozen
+Ledoit--Wolf shrinkage and tensor hashes as attested primitives here; Task 7
+independently recomputes them from authenticated inputs.
+
 - [ ] **Step 7: Implement publication and structural CLI behavior**
 
 Return exit `2` with no output on every ordinary exception. Refuse an existing output before authority checks. Publish only a fully validated result, strict-reload it, compare canonical bytes, and never retry.
+
+Branch on `--parent-replay-only` before candidate `run` or publication. Call
+only `run_parent_replay_preflight`, print one canonical stdout object with
+`candidate_values_computed=false`, and publish nothing. Test two fresh
+subprocesses for byte-identical stdout and untouched CAP import sentinels.
 
 - [ ] **Step 8: Run runner GREEN**
 
@@ -282,6 +323,11 @@ Expected: failures because `execute_screen` is not implemented.
 - [ ] **Step 4: Implement exact one-pass execution**
 
 Load and encode the exact fitting/validation rows once, build class mean and CAP once, verify the class-mean SHA against the authenticated inventory, evaluate class mean once, persist its exact head and primitive validation evidence once, and evaluate `cap_centered` and `cap_uncentered` once. Then for seeds `0,1,2` run exactly one 512-step target trajectory. Require each final trajectory SHA to equal its authenticated-inventory target hash and use that same live tensor as `fitted_target`. Evaluate each `fitted_target` and each of the eleven snapshots. Compute/persist one clamped FP64 CAP-to-target row cosine per authenticated-inventory optimization identity (3200 in production) per variant/seed. Store CAP validation metrics and predicates 2--6 once at top level; store only target/trajectory/cosine evidence and predicates 1/7 in seed rows. Reduce/detach each metric immediately, release snapshot tensors after each seed, build the exact primitive JSON, call `validate_result` with that authenticated inventory, and return it.
+
+Persist the covariance as contiguous little-endian FP64 C-order base64 bytes,
+all mismatch row cosines in registered variant order, and every class-mean row
+norm so the strict reload can recompute the frozen covariance and norm
+summaries without a self-oracle.
 
 - [ ] **Step 5: Restore all RNG states and bind runtime**
 
