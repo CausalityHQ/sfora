@@ -179,22 +179,15 @@ The script must reconstruct and compare the four parent tensor hashes before
 constructing any F0 cell. Query and gallery records must be rejected if passed
 to an F0 loader and must never be opened.
 
-## Initializers
+## Initializer
 
-F0 evaluates two initial proxy matrices:
+Every cell starts from the authenticated imprinted class-mean tensor above.
+The earlier random diagnostic arm is removed before execution: once Phase 2
+became imprinted-only, its 30 Phase-1 cells contributed to no registered
+predicate and therefore could not justify their compute or interpretation.
 
-1. `imprinted`: the authenticated class-mean tensor above;
-2. `random`: `torch.empty(3200, 768, dtype=torch.float32)` followed by
-   `torch.nn.init.normal_(std=0.01, generator=generator)` from a dedicated CPU
-   generator seeded by `experiment_stream_seed(fit_seed, 24000)`, followed by
-   per-row normalization and scaling to the exact class-mean row norm.
-
-The random arm is mechanism discrimination, not the primary gate. If Muon
-helps random initialization but fails the imprinted gate, it is redundant with
-the already promoted initializer and the candidate closes.
-
-Each `(initializer, optimizer, learning_rate, fit_seed)` cell starts from a
-fresh byte-identical initializer and fresh registered batch/mask streams. No
+Each `(optimizer, learning_rate, fit_seed)` cell starts from fresh
+byte-identical initializer bytes and fresh registered batch/mask streams. No
 optimizer state or mutated head may cross a cell boundary.
 
 ## Optimizers and common projection
@@ -244,13 +237,17 @@ on the same effective momentum update and records:
 
 ```text
 update_dtype = "torch.bfloat16"
-orthogonalization_residual = ||U.float().T @ U.float() - I_768||_F
+polar_factor_residual = ||U.float().T @ U.float() - I_768||_F
 ```
 
 The trace for retained step zero is `null`; every later retained head records
-the update from the optimizer step that produced that head. The trace must not
-mutate optimizer state or parameters, and tests must prove the traced and
-untraced built-in Muon steps are byte-identical.
+the update from the optimizer step that produced that head. The Nesterov
+effective update is reconstructed out-of-place from cloned gradient and prior
+momentum bytes. The trace must not mutate optimizer state or parameters. Tests
+must prove the traced tensor equals the pinned helper output and that traced and
+untraced built-in Muon steps are byte-identical. The residual is a descriptive
+polar-factor convergence measure, not a BF16-error estimate: the registered
+quintic deliberately produces singular values around, rather than exactly, one.
 
 F0 also runs a diagnostic `proxy_muon_fp32` sensitivity in Phase 2. It uses the
 same selected ProxyMuon LR, momentum, Nesterov rule, coefficients, five
@@ -258,6 +255,15 @@ iterations, scaling, and row projection, but performs only the Newton--Schulz
 calculation in FP32. It is not eligible to authorize training. It can only
 prevent a BF16-attributable result from permanently closing the broader
 orthogonalization mechanism and route a new preregistration.
+
+The precision adapter is a source-locked reimplementation of the pinned
+single-parameter Muon step with one explicit Newton--Schulz dtype switch. In
+`bfloat16` compatibility mode it must produce byte-identical FP32 parameter and
+momentum-buffer bytes to `torch.optim.Muon` after every step of registered
+eight-step tall `(32, 16)` and wide `(16, 32)` fixtures, using exact seeded FP32
+gradient sequences and the production momentum, Nesterov, scaling, and
+weight-decay settings. Only after that test passes may the same adapter use FP32
+inside Newton--Schulz for the sensitivity arm.
 
 After every optimizer step, both arms apply the parent's exact common row-norm
 projection. Nonfinite loss, gradient, momentum, update, parameter, or zero row
@@ -276,7 +282,6 @@ The screen uses the following fixed nested-loop order, with `fit_seed` as the
 innermost dimension:
 
 ```text
-initializer: imprinted, random
 optimizer:   adamw, proxy_muon
 lr:          ascending registered grid
 fit_seed:    0, 1, 2
@@ -284,7 +289,7 @@ fit_seed:    0, 1, 2
 
 ### Phase 1: 64-step selection
 
-Run all `2 x 2 x 5 x 3 = 60` cells for exactly 64 optimizer steps using only
+Run all `2 x 5 x 3 = 30` cells for exactly 64 optimizer steps using only
 selection seeds `(0, 1, 2)`. For each cell, compute the fixed diagnostic-panel
 fitting loss at steps `(0, 64)`. The panel is the arithmetic mean of the exact
 Cartesian product of:
@@ -296,15 +301,14 @@ Cartesian product of:
 
 Thus every panel contains 16 deterministic batch/mask losses, its first cell is
 the parent's original diagnostic, and no optimization-stream state is consumed.
-For each `(initializer, optimizer)`, select the LR with the smallest arithmetic
+For each optimizer, select the LR with the smallest arithmetic
 mean step-64 diagnostic fitting loss over seeds `(0, 1, 2)`. Ties are resolved
 by the smaller numeric LR. Validation metrics are not computed or inspected in
 Phase 1.
 
-Persist `selected_lr_interior` for every `(initializer, optimizer)`; it is true
-exactly when the selected LR is neither `0.000025` nor `0.0004`. The random-arm
-values are descriptive because no random row enters Phase 2 or any primary
-decision. Both imprinted-arm interior predicates are decision-bearing.
+Persist `selected_lr_interior` for AdamW and ProxyMuon; it is true exactly when
+the selected LR is neither `0.000025` nor `0.0004`. Both predicates are
+decision-bearing.
 
 ### Phase 2: independent 512-step imprinted reruns
 
@@ -352,16 +356,21 @@ failure is never allowed to fall through to a scientific route.
 
 Any nonfinite or malformed tensor/state/metric, runtime mismatch, failed input
 or parent-tensor check, elapsed time above `0.75` GPU-hour, peak allocation above
-8 GiB, publication failure, or incomplete registered row set. The reduced
+8 GiB, prepublication validation/serialization failure, or incomplete
+registered row set. The reduced
 failure receipt records the completed-cell count and no scientific status is
 inferred from partial rows.
 
+If create-exclusive write, flush, `fsync`, rename, directory `fsync`, or strict
+reload itself fails, the process exits `2` and may leave no receipt; publication
+I/O cannot truthfully certify its own failed atomic publication.
+
 ### `UNRESOLVED_LR_BOUNDARY`
 
-No structural predicate failed, but either decision-bearing imprinted
+No structural predicate failed, but either decision-bearing
 `selected_lr_interior` value is false. This authorizes only a new, reviewed
 scale-expansion preregistration; it is neither a ProxyMuon pass nor a permanent
-close. A random-arm boundary is reported but cannot trigger this status.
+close.
 
 ### `PROCEED_TRAINING`
 
@@ -409,7 +418,6 @@ Any other structurally valid, interior-LR result. This includes:
 
 - any imprinted seed with `reach_step=">512"`;
 - any validation-accuracy loss greater than `0.002`;
-- improvement only under random initialization;
 - same-budget selected AdamW matching or beating the candidate under the
   registered reach/noninferiority rule.
 
@@ -431,7 +439,7 @@ status
 authority
 runtime
 protocol
-initializers
+initializer
 phase1
 selected_learning_rates
 phase2
@@ -449,12 +457,13 @@ Required properties include:
   receipt, checkpoint, partition, and four parent tensors;
 - observed Python, PyTorch, NumPy, CUDA, GPU, deterministic flags, and
   `torch.optim.Muon` constructor defaults, plus the observed BF16 update dtype;
-- all 60 Phase-1 rows in registered order;
-- the four selected LRs, all four interior predicates, and complete tie-break
+- all 30 Phase-1 rows in registered order;
+- the two selected LRs, both interior predicates, and complete tie-break
   evidence;
-- all 9--12 Phase-2 rows in registered order, with head hashes, 16 component
-  diagnostic losses, their recomputed mean, update dtype, and
-  orthogonalization residual for every retained step;
+- exactly 9 Phase-2 rows when the AdamW anchor deduplicates or exactly 12 when
+  it does not, with rows in registered order, head hashes, 16 component
+  diagnostic losses, their recomputed mean, update dtype, and polar-factor
+  residual for every retained step;
 - comparisons, predicates, and status recomputed from rows by the validator;
 - elapsed seconds and peak allocated/reserved GPU bytes;
 - no NaN, infinity, candidate omission, or arbitrary extra key.
@@ -464,7 +473,8 @@ The reduced failure receipt has schema version
 authority/runtime/protocol fields available before the failure, completed-cell
 count and hashes only (never decision metrics from an incomplete row set), the
 first error class/message, process evidence, and no complete-result-only keys.
-The validator rejects either schema if it contains keys from the other branch.
+The validator rejects either schema if it contains keys exclusive to the other
+branch.
 
 Validation must recursively recompute the diagnostic-panel membership and
 means, LR selection, AdamW anchor choice, reach steps, noninferiority,
@@ -504,9 +514,10 @@ preregistration.
 
 ## Expected cost and impact
 
-Phase 1 is `60 x 64 = 3,840` optimizer steps. Phase 2 is at most
-`12 x 512 = 6,144` steps. The total remains at most 9,984 cached-head steps,
-equivalent to 19.5 parent 512-step fits, plus registered panel evaluations. The parent
+Phase 1 is `30 x 64 = 1,920` optimizer steps. Phase 2 is at most
+`12 x 512 = 6,144` steps. The total is at most 8,064 cached-head steps,
+equivalent to 15.75 parent 512-step fits, plus registered panel evaluations. The
+parent
 three-fit screen completed in 239.53 seconds; the budget is therefore capped
 at **0.75 GPU-hour** and 8 GiB peak allocated memory. Exceeding either cap is a
 structural close, not permission to optimize kernels.
@@ -564,7 +575,8 @@ invalidates their specific prior kill conditions.
   Critical or Important findings.
 - The AdamW default path reproduces the four registered parent tensor hashes.
 - Unit tests cover the pinned Muon call, state isolation, row projection,
-  BF16 trace noninterference, FP32 sensitivity isolation, diagnostic-panel
+  BF16 trace input identity and noninterference, FP32 adapter eight-step
+  tall/wide BF16 compatibility, FP32 sensitivity isolation, diagnostic-panel
   construction, Phase-1 selection, AdamW anchor selection, tie breaks, reach
   logic, all decision statuses, strict
   recursive schema, mutation matrix, atomic no-clobber, and query/gallery
