@@ -1,5 +1,5 @@
 {
-  "schema_version": "unicom-cap-f0-run-v1",
+  "schema_version": "unicom-cap-f0-run-v2",
   "spec": {
     "path": "docs/superpowers/specs/2026-08-25-unicom-cap-f0-design.md",
     "sha256": "cf6994c9bda0677a714cd0a12dcca459af0fe610d28a9869091992724a4e880a",
@@ -63,7 +63,7 @@
     "step_equivalence_minimum": 64
   },
   "source": {
-    "commit": "77a092f2bc23cc7022fd3946b8cc8feb2f9f7087",
+    "commit": "515e8cdfde3a6b8c0449554878ed391e6a1edf3d",
     "files": [
       {
         "path": "pyproject.toml",
@@ -71,7 +71,7 @@
       },
       {
         "path": "scripts/screen_unicom_cap_f0.py",
-        "sha256": "bba257a6ea4f30a4e7e322e68707a826080cbfc9504addc9c9c2224b062966f7"
+        "sha256": "e2f108f0e1417c3e974988f763d37b84c08849d69020a5ffe7f7b59b007c7634"
       },
       {
         "path": "src/sfora/unicom_cap.py",
@@ -91,7 +91,7 @@
       },
       {
         "path": "tests/test_screen_unicom_cap_f0.py",
-        "sha256": "e8faca2bded419b86b23d731abcf4cf83dcd593849ab90b3f2b0c6c5dec2e2af"
+        "sha256": "d079cdc00a5f88523ad0dbbfa859e69e73719b1f6e0dfd46ee68c74618d3603f"
       },
       {
         "path": "tests/test_unicom_cap.py",
@@ -103,17 +103,36 @@
       },
       {
         "path": "tests/test_unicom_cap_f0_run_config.py",
-        "sha256": "d39f4242e8120eee08a9724f48d563d78f2e5ee05687d6b8cec5a406357462a6"
+        "sha256": "21c315e6daf38c76dcc23095b8cc1a8a9dfab1fb1a31b6d94e63088c02c50318"
       }
     ]
   },
   "handoff": {
-    "parent_commit": "77a092f2bc23cc7022fd3946b8cc8feb2f9f7087",
+    "parent_commit": "515e8cdfde3a6b8c0449554878ed391e6a1edf3d",
     "sole_path": "docs/unicom_cap_f0_run_config.json",
     "detached_clean": true
   },
+  "recovery": {
+    "attempt": 2,
+    "prior_attempt": {
+      "handoff_commit": "bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4",
+      "exit_status": 2,
+      "result_published": false
+    },
+    "amendment": {
+      "path": "docs/unicom_cap_f0_structural_recovery_2026-08-25.md",
+      "sha256": "a1f1b0ab9143421b7b1a701a3dd538f49ed773c178424ad47299ed7297293b14",
+      "commit": "89812cd82062e7098b5a9d142a158858a8ca6d79"
+    },
+    "plan": {
+      "path": "docs/superpowers/plans/2026-08-25-unicom-cap-f0-structural-recovery.md",
+      "sha256": "43f62e57cc5109c40341a51fa62dd4b1bf08d4dc5929f6418021f863e2c36333",
+      "commit": "02a6bcdef8f55ee1a1abab083351fae660ce6102"
+    },
+    "failure_relative_path": "reports/generated/unicom-cap-f0-515e8cd-attempt2-failure.json"
+  },
   "result": {
-    "relative_path": "reports/generated/unicom-cap-f0-77a092f.json",
+    "relative_path": "reports/generated/unicom-cap-f0-515e8cd.json",
     "schema_version": "unicom-cap-f0-v1"
   }
 }
