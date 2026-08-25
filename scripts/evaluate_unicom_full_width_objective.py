@@ -604,6 +604,7 @@ def selection_decision(
     peak_reserved_ratio: float,
     control_checkpoint_bytes: int,
     candidate_checkpoint_bytes: int,
+    checkpoint_bytes_equal: bool | None = None,
 ) -> dict[str, object]:
     """Separate the seed-0 quality prediction from its operational gate."""
 
@@ -623,6 +624,8 @@ def selection_decision(
         or candidate_checkpoint_bytes <= 0
     ):
         raise ValueError("checkpoint byte counts differ")
+    if checkpoint_bytes_equal is not None and type(checkpoint_bytes_equal) is not bool:
+        raise TypeError("checkpoint byte equality must be a builtin boolean")
     reached = first_epoch_reaching(candidate_primary_by_epoch, target)
     prediction = (
         ("primary_map_delta_at_least_0_003", delta >= 0.003),
@@ -657,7 +660,11 @@ def selection_decision(
         ),
         (
             "checkpoint_bytes_exactly_equal",
-            candidate_checkpoint_bytes == control_checkpoint_bytes,
+            (
+                candidate_checkpoint_bytes == control_checkpoint_bytes
+                if checkpoint_bytes_equal is None
+                else checkpoint_bytes_equal
+            ),
         ),
     )
     prediction_matched = all(value for _name, value in prediction)

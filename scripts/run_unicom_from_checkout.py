@@ -10,6 +10,7 @@ from pathlib import Path
 REGISTERED_SCRIPTS = (
     "build_unicom_full_width_pair_config.py",
     "compare_unicom_full_width_profiles.py",
+    "decide_unicom_full_width_objective.py",
     "evaluate_unicom_full_width_objective.py",
     "profile_unicom_training_step.py",
     "train_unicom_inshop.py",

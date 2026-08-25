@@ -593,18 +593,26 @@ def registered_classifier_shape(labels: Mapping[str, int]) -> list[int]:
 
 
 def classifier_shape_for_run(
-    labels: Mapping[str, int], *, record_initialization: bool
+    labels: Mapping[str, int],
+    *,
+    record_initialization: bool,
+    selected_features: int | None = None,
+    evaluation_features: int = 768,
 ) -> list[int]:
     """Derive a general training shape, applying the frozen count only to receipt runs."""
     if (
         type(record_initialization) is not bool
+        or (selected_features is not None and type(selected_features) is not int)
+        or (selected_features is not None and selected_features <= 0)
+        or type(evaluation_features) is not int
+        or evaluation_features <= 0
         or type(labels) is not dict
         or not labels
         or tuple(labels.values()) != tuple(range(len(labels)))
     ):
         raise ValueError("classifier shape differs")
     if record_initialization:
-        return registered_classifier_shape(labels)
+        registered_classifier_shape(labels)
     return [len(labels), 768]
 
 
@@ -1410,7 +1418,6 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     )
     _seed_process(args.seed)
     device = torch.device("cuda")
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     records = parse_inshop_partition(args.dataset_root)
     train_records = tuple(row for row in records if row.split == "train")
     optimization, query, gallery, labels = identity_holdout(
@@ -1418,9 +1425,18 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         fraction=args.holdout_fraction,
         seed=args.holdout_seed,
     )
+    if args.run_receipt is not None and len(labels) != 3_200:
+        raise ValueError("registered full-width class count differs")
     record_initialization = args.seed in range(2, 7)
     classifier_shape = classifier_shape_for_run(
-        labels, record_initialization=record_initialization
+        labels,
+        record_initialization=record_initialization,
+        selected_features=args.selected_features,
+        evaluation_features=evaluation_features,
+    )
+    args.output_dir.mkdir(
+        parents=True,
+        exist_ok=args.run_receipt is None,
     )
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
@@ -1653,6 +1669,10 @@ def _validate_run_receipt_request(args: argparse.Namespace) -> None:
         raise FileExistsError(args.run_receipt)
     if not args.run_receipt.parent.is_dir() or args.run_receipt.parent.is_symlink():
         raise ValueError("run receipt parent must be a real directory")
+    if args.output_dir.exists() or args.output_dir.is_symlink():
+        raise FileExistsError(args.output_dir)
+    if not args.output_dir.parent.is_dir() or args.output_dir.parent.is_symlink():
+        raise ValueError("training output parent must be a real directory")
     expected = FULL_WIDTH_ARM_PROTOCOLS[args.run_arm]
     observed = (args.objective, args.selected_features, args.evaluation_features)
     if observed != expected or any(

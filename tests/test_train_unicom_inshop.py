@@ -294,6 +294,174 @@ def test_main_failure_never_publishes_training_run_receipt(
     assert not receipt.exists()
 
 
+def test_registered_run_rejects_a_partial_output_directory_before_training(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    output = tmp_path / "run"
+    output.mkdir()
+    (output / "epoch-0004.pt").write_bytes(b"partial-first-attempt")
+    config = tmp_path / "config.json"
+    config.write_bytes(b"{}\n")
+    receipt = tmp_path / "receipt.json"
+    called = False
+
+    def fake_run(_args):
+        nonlocal called
+        called = True
+        raise AssertionError("training must not start")
+
+    monkeypatch.setattr(module, "run", fake_run)
+
+    assert module.main(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(output),
+            "--epochs",
+            "16",
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            str(config),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(receipt),
+        ]
+    ) == 2
+    assert called is False
+    assert (output / "epoch-0004.pt").read_bytes() == b"partial-first-attempt"
+    assert not receipt.exists()
+
+
+def test_full_width_protocol_change_preserves_checkpoint_byte_count(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    raw_model = torch.nn.Linear(2, 2, bias=False)
+    labels = {f"item_{index:04d}": index for index in range(3_200)}
+    sampled_shape = module.classifier_shape_for_run(
+        labels,
+        record_initialization=False,
+        selected_features=512,
+        evaluation_features=768,
+    )
+    full_shape = module.classifier_shape_for_run(
+        labels,
+        record_initialization=False,
+        selected_features=768,
+        evaluation_features=768,
+    )
+    assert sampled_shape == full_shape == [3_200, 768]
+    classifier = torch.nn.Parameter(torch.randn(*sampled_shape))
+    optimizer = module.build_optimizer(
+        raw_model,
+        classifier,
+        learning_rate=1e-3,
+        classifier_learning_rate=2e-3,
+        fused=False,
+    )
+    common = {
+        "epoch": 4,
+        "raw_model": raw_model,
+        "classifier": classifier,
+        "optimizer": optimizer,
+        "scheduler": None,
+        "scaler": None,
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "history": [],
+    }
+    sampled = tmp_path / "sampled.pt"
+    full = tmp_path / "full.pt"
+    sampled_generator = torch.Generator().manual_seed(7)
+    full_generator = torch.Generator().manual_seed(7)
+
+    module.save_training_checkpoint(
+        sampled,
+        mask_generator=sampled_generator,
+        training_protocol={
+            "objective": "official-eight-mask",
+            "selected_features": 512,
+            "evaluation_features": 768,
+        },
+        **common,
+    )
+    module.save_training_checkpoint(
+        full,
+        mask_generator=full_generator,
+        training_protocol={
+            "objective": "official-eight-mask",
+            "selected_features": 768,
+            "evaluation_features": 768,
+        },
+        **common,
+    )
+
+    assert sampled.stat().st_size == full.stat().st_size
+
+
+def test_registered_identity_count_fails_before_output_directory_is_created(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    output = tmp_path / "seed-0" / "sampled_512"
+    output.parent.mkdir()
+    records: tuple[object, ...] = ()
+    wrong_labels = {f"item_{index:04d}": index for index in range(3_199)}
+    monkeypatch.setattr(module, "_git_revision", lambda _path: module.UNICOM_REVISION)
+    monkeypatch.setattr(
+        module,
+        "_sha256_file",
+        lambda _path: module.UNICOM_L14_336_SHA256,
+    )
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(module, "_seed_process", lambda _seed: None)
+    monkeypatch.setattr(
+        sys.modules["sfora.unicom_inshop"],
+        "parse_inshop_partition",
+        lambda _root: records,
+    )
+    monkeypatch.setattr(
+        module,
+        "identity_holdout",
+        lambda *_args, **_kwargs: ((), (), (), wrong_labels),
+    )
+    args = module.parse_args(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "FP16-ViT-L-14-336px.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(output),
+            "--evaluation-features",
+            "768",
+            "--run-config",
+            str(tmp_path / "config.json"),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(tmp_path / "receipt.json"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="registered full-width class count"):
+        module.run(args)
+    assert not output.exists()
+
+
 def test_initialization_receipt_binds_exact_classifier_bytes_and_preserves_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -559,7 +727,10 @@ def test_classifier_shape_only_enforces_replication_contract_for_receipt_runs() 
     full_train_labels = {f"item_{index:04d}": index for index in range(3997)}
 
     assert module.classifier_shape_for_run(
-        full_train_labels, record_initialization=False
+        full_train_labels,
+        record_initialization=False,
+        selected_features=512,
+        evaluation_features=512,
     ) == [3997, 768]
     with pytest.raises(ValueError, match="registered classifier shape"):
         module.classifier_shape_for_run(full_train_labels, record_initialization=True)
