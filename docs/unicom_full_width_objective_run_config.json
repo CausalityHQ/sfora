@@ -1,0 +1,639 @@
+{
+  "schema_version": "unicom-full-width-objective-run-v1",
+  "source": {
+    "commit": "8824527e8fb1d90f627feb8c479a538d009f0785",
+    "files": [
+      {
+        "path": "scripts/train_unicom_inshop.py",
+        "sha256": "532aade432daf72ef590ba49b0ecacce493870c6e0fc7023a73623f2258d04e7"
+      },
+      {
+        "path": "scripts/evaluate_unicom_full_width_objective.py",
+        "sha256": "601425c3ac95540e67d295756794820b0aa8a0caf9f6cb548b34b5008af39f76"
+      },
+      {
+        "path": "scripts/profile_unicom_training_step.py",
+        "sha256": "55d1aa7365e3f806b51dd5ad6b6b5aa3f547cda41d4d107844b433ea9f3abb4f"
+      },
+      {
+        "path": "scripts/compare_unicom_full_width_profiles.py",
+        "sha256": "5ea429494971de1567f4f9ccb58fd0ff8b5f2e98a9a69f5eee33464d4245aa9f"
+      },
+      {
+        "path": "scripts/build_unicom_full_width_pair_config.py",
+        "sha256": "93e7c81eec8cc0edb1b3ab8d4d2f078f8506f0a1929550759d67760d6388f65e"
+      },
+      {
+        "path": "scripts/run_unicom_from_checkout.py",
+        "sha256": "0e9ed76ac59bd6e380aa982a60df14292d8c03de44266169ea6f7d3777d0516c"
+      },
+      {
+        "path": "src/sfora/unicom_inshop.py",
+        "sha256": "526fd06c9c26a30144a6777a877436d8fa7584d8144de88cb9be2b744e71c503"
+      },
+      {
+        "path": "src/sfora/unicom_retrieval_audit.py",
+        "sha256": "b32dfdbde9340fd4bb35b1533bb52afcd3e4050a675b67971c9ff9c8863c4e96"
+      },
+      {
+        "path": "src/sfora/unicom_training.py",
+        "sha256": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272"
+      },
+      {
+        "path": "tests/test_train_unicom_inshop.py",
+        "sha256": "1d8434bcf6a4118e123e693596dbbaba6f1ed1ce651a6133a118596046f69bc6"
+      },
+      {
+        "path": "tests/test_evaluate_unicom_full_width_objective.py",
+        "sha256": "25381bdcb8a12fa2c21228bb2e854d7dc1747c9b747f763eefe0c654f21525c7"
+      },
+      {
+        "path": "tests/test_compare_unicom_full_width_profiles.py",
+        "sha256": "39af2860c6e7a660b8038103b95ebde65232ea197aab33dc37faf36593b1a7f4"
+      },
+      {
+        "path": "tests/test_profile_unicom_training_step.py",
+        "sha256": "706aeb5c9215f3c2458a05c0bea106acc246adccd11eb1657dd023e7fe6adabe"
+      },
+      {
+        "path": "tests/test_build_unicom_full_width_pair_config.py",
+        "sha256": "7fb4da1853fa972058110d14f1dd4e7cd6f8480305e89852e3661729b2c9dc7c"
+      },
+      {
+        "path": "tests/test_run_unicom_from_checkout.py",
+        "sha256": "15303629bb3e2b47899f4cd8c478a769ce99b5d2ce9fe36f2efaf2dc5a796040"
+      }
+    ]
+  },
+  "handoff": {
+    "config_parent": "8824527e8fb1d90f627feb8c479a538d009f0785",
+    "config_commit_paths": [
+      "docs/unicom_full_width_objective_run_config.json"
+    ],
+    "validator_child_path": "tests/test_unicom_full_width_objective_run_config.py",
+    "execution_checkout": "config_commit_detached_clean"
+  },
+  "environment": {
+    "python": "3.13.9",
+    "torch": "2.12.1+cu130",
+    "numpy": "2.5.0",
+    "cuda": "13.0",
+    "device": "NVIDIA GB10",
+    "model_dtype": "float32"
+  },
+  "inputs": {
+    "dataset": {
+      "root": "/home/riomus/datasets/inshop_official_standard",
+      "partition": "Eval/list_eval_partition.txt",
+      "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+    },
+    "initial_checkpoint": {
+      "path": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+      "sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+    },
+    "unicom_checkout": {
+      "path": "/home/riomus/unicom-d71992e",
+      "revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
+    }
+  },
+  "protocol": {
+    "arms": {
+      "sampled_512": {
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "evaluation_features": 768
+      },
+      "full_768": {
+        "objective": "official-eight-mask",
+        "selected_features": 768,
+        "evaluation_features": 768
+      }
+    },
+    "seeds": [
+      0,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "arm_order_by_seed": [
+      {
+        "seed": 0,
+        "arm_order": [
+          "sampled_512",
+          "full_768"
+        ]
+      },
+      {
+        "seed": 2,
+        "arm_order": [
+          "sampled_512",
+          "full_768"
+        ]
+      },
+      {
+        "seed": 3,
+        "arm_order": [
+          "full_768",
+          "sampled_512"
+        ]
+      },
+      {
+        "seed": 4,
+        "arm_order": [
+          "sampled_512",
+          "full_768"
+        ]
+      },
+      {
+        "seed": 5,
+        "arm_order": [
+          "full_768",
+          "sampled_512"
+        ]
+      },
+      {
+        "seed": 6,
+        "arm_order": [
+          "sampled_512",
+          "full_768"
+        ]
+      }
+    ],
+    "epochs": [
+      4,
+      8,
+      12,
+      16
+    ],
+    "batch_size": 128,
+    "workers": 4,
+    "learning_rate": 0.00001,
+    "classifier_learning_rate": 0.0001,
+    "margin": 0.25,
+    "scale": 32.0,
+    "holdout_seed": 0,
+    "holdout_fraction": 0.2,
+    "eval_every": 4,
+    "checkpoint_every": 4,
+    "classifier_init": "imprinted",
+    "bf16": false,
+    "compile": false,
+    "fused": false,
+    "profile_order": [
+      "sampled_512",
+      "full_768",
+      "full_768",
+      "sampled_512"
+    ],
+    "profile_counts": {
+      "warmup_steps": 20,
+      "measure_steps": 50,
+      "profiler_steps": 10,
+      "bootstrap_seed": 20016
+    },
+    "bootstrap": {
+      "seed": 768,
+      "replicates": 10000
+    }
+  },
+  "paths": {
+    "repo_checkout": "/home/riomus/sfora-unicom-full-width-run",
+    "python": "/home/riomus/group-learning/.venv/bin/python",
+    "run_config": "/home/riomus/sfora-unicom-full-width-run/docs/unicom_full_width_objective_run_config.json",
+    "output_root": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25"
+  },
+  "command_templates": {
+    "trainer": [
+      "/home/riomus/group-learning/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/run_unicom_from_checkout.py",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/train_unicom_inshop.py",
+      "--unicom-checkout",
+      "/home/riomus/unicom-d71992e",
+      "--checkpoint",
+      "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+      "--dataset-root",
+      "/home/riomus/datasets/inshop_official_standard",
+      "--output-dir",
+      "{output_dir}",
+      "--epochs",
+      "16",
+      "--batch-size",
+      "128",
+      "--learning-rate",
+      "0.00001",
+      "--classifier-learning-rate",
+      "0.0001",
+      "--margin",
+      "0.25",
+      "--scale",
+      "32.0",
+      "--objective",
+      "official-eight-mask",
+      "--selected-features",
+      "{selected_features}",
+      "--evaluation-features",
+      "768",
+      "--workers",
+      "4",
+      "--seed",
+      "{seed}",
+      "--holdout-seed",
+      "0",
+      "--holdout-fraction",
+      "0.2",
+      "--eval-every",
+      "4",
+      "--checkpoint-every",
+      "4",
+      "--classifier-init",
+      "imprinted",
+      "--run-config",
+      "/home/riomus/sfora-unicom-full-width-run/docs/unicom_full_width_objective_run_config.json",
+      "--run-arm",
+      "{arm}",
+      "--run-receipt",
+      "{receipt}"
+    ],
+    "profiler": [
+      "/home/riomus/group-learning/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/run_unicom_from_checkout.py",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/profile_unicom_training_step.py",
+      "--run-checkpoint",
+      "{checkpoint}",
+      "--unicom-checkout",
+      "/home/riomus/unicom-d71992e",
+      "--initial-checkpoint",
+      "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+      "--dataset-root",
+      "/home/riomus/datasets/inshop_official_standard",
+      "--output",
+      "{output}",
+      "--warmup-steps",
+      "20",
+      "--measure-steps",
+      "50",
+      "--profiler-steps",
+      "10",
+      "--bootstrap-seed",
+      "20016"
+    ],
+    "comparator": [
+      "/home/riomus/group-learning/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/run_unicom_from_checkout.py",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/compare_unicom_full_width_profiles.py",
+      "--profiles",
+      "{profile_a}",
+      "{profile_b}",
+      "{profile_b_repeat}",
+      "{profile_a_repeat}",
+      "--receipts",
+      "{control_receipt}",
+      "{candidate_receipt}",
+      "{candidate_receipt}",
+      "{control_receipt}",
+      "--output",
+      "{output}"
+    ],
+    "pair_evaluator": [
+      "/home/riomus/group-learning/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/run_unicom_from_checkout.py",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/evaluate_unicom_full_width_objective.py",
+      "--config",
+      "{pair_inventory}",
+      "--unicom-checkout",
+      "/home/riomus/unicom-d71992e",
+      "--initial-checkpoint",
+      "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+      "--dataset-root",
+      "/home/riomus/datasets/inshop_official_standard",
+      "--output",
+      "{output}",
+      "--batch-size",
+      "128",
+      "--workers",
+      "4"
+    ],
+    "pair_inventory_builder": [
+      "/home/riomus/group-learning/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/run_unicom_from_checkout.py",
+      "/home/riomus/sfora-unicom-full-width-run/scripts/build_unicom_full_width_pair_config.py",
+      "--seed",
+      "{seed}",
+      "--output",
+      "{output}",
+      "--checkpoint",
+      "sampled_512",
+      "4",
+      "{sampled_512_epoch_4}",
+      "--checkpoint",
+      "full_768",
+      "4",
+      "{full_768_epoch_4}",
+      "--checkpoint",
+      "sampled_512",
+      "8",
+      "{sampled_512_epoch_8}",
+      "--checkpoint",
+      "full_768",
+      "8",
+      "{full_768_epoch_8}",
+      "--checkpoint",
+      "sampled_512",
+      "12",
+      "{sampled_512_epoch_12}",
+      "--checkpoint",
+      "full_768",
+      "12",
+      "{full_768_epoch_12}",
+      "--checkpoint",
+      "sampled_512",
+      "16",
+      "{sampled_512_epoch_16}",
+      "--checkpoint",
+      "full_768",
+      "16",
+      "{full_768_epoch_16}"
+    ]
+  },
+  "run_schedule": [
+    {
+      "seed": 0,
+      "arm_order": [
+        "sampled_512",
+        "full_768"
+      ],
+      "runs": [
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512-run-receipt.json"
+        },
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768-run-receipt.json"
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "arm_order": [
+        "sampled_512",
+        "full_768"
+      ],
+      "runs": [
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-2/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-2/sampled_512-run-receipt.json"
+        },
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-2/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-2/full_768-run-receipt.json"
+        }
+      ]
+    },
+    {
+      "seed": 3,
+      "arm_order": [
+        "full_768",
+        "sampled_512"
+      ],
+      "runs": [
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-3/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-3/full_768-run-receipt.json"
+        },
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-3/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-3/sampled_512-run-receipt.json"
+        }
+      ]
+    },
+    {
+      "seed": 4,
+      "arm_order": [
+        "sampled_512",
+        "full_768"
+      ],
+      "runs": [
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-4/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-4/sampled_512-run-receipt.json"
+        },
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-4/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-4/full_768-run-receipt.json"
+        }
+      ]
+    },
+    {
+      "seed": 5,
+      "arm_order": [
+        "full_768",
+        "sampled_512"
+      ],
+      "runs": [
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-5/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-5/full_768-run-receipt.json"
+        },
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-5/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-5/sampled_512-run-receipt.json"
+        }
+      ]
+    },
+    {
+      "seed": 6,
+      "arm_order": [
+        "sampled_512",
+        "full_768"
+      ],
+      "runs": [
+        {
+          "arm": "sampled_512",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-6/sampled_512",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-6/sampled_512-run-receipt.json"
+        },
+        {
+          "arm": "full_768",
+          "output_dir": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-6/full_768",
+          "receipt": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-6/full_768-run-receipt.json"
+        }
+      ]
+    }
+  ],
+  "seed0_downstream": {
+    "pair_inventory": {
+      "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/pair-inventory.json",
+      "schema_version": "unicom-full-width-pair-config-v1",
+      "seed": 0,
+      "inventory": [
+        {
+          "arm": "sampled_512",
+          "epoch": 4,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0004.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "full_768",
+          "epoch": 4,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0004.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "sampled_512",
+          "epoch": 8,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0008.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "full_768",
+          "epoch": 8,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0008.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "sampled_512",
+          "epoch": 12,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0012.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "full_768",
+          "epoch": 12,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0012.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "sampled_512",
+          "epoch": 16,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0016.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        },
+        {
+          "arm": "full_768",
+          "epoch": 16,
+          "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0016.pt",
+          "sha256": "derive_from_validated_checkpoint",
+          "bytes": "derive_from_validated_checkpoint"
+        }
+      ],
+      "publication": "strict-json-mode-0600-no-clobber-after-both-receipts-validate"
+    },
+    "profiles": [
+      {
+        "position": 1,
+        "arm": "sampled_512",
+        "checkpoint": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0016.pt",
+        "output": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/profile-1-sampled_512.json"
+      },
+      {
+        "position": 2,
+        "arm": "full_768",
+        "checkpoint": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0016.pt",
+        "output": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/profile-2-full_768.json"
+      },
+      {
+        "position": 3,
+        "arm": "full_768",
+        "checkpoint": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/full_768/epoch-0016.pt",
+        "output": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/profile-3-full_768.json"
+      },
+      {
+        "position": 4,
+        "arm": "sampled_512",
+        "checkpoint": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/sampled_512/epoch-0016.pt",
+        "output": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/profile-4-sampled_512.json"
+      }
+    ],
+    "profile_comparison": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/profile-comparison.json",
+    "pair_result": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-0/paired-result.json"
+  },
+  "thresholds": {
+    "selection": {
+      "primary_map_delta": 0.003,
+      "top1_query_loss": 1,
+      "reach_epoch": 12
+    },
+    "operational": {
+      "step_time_ratio": 1.02,
+      "peak_allocated_ratio": 1.02,
+      "peak_reserved_ratio": 1.02,
+      "checkpoint_bytes_equal": true
+    },
+    "confirmation": {
+      "mean_primary_map_delta": 0.003,
+      "paired_t_critical": 2.7764451052,
+      "paired_t_lower_above": 0.0,
+      "positive_seed_count": 4,
+      "aggregate_top1_loss": 5,
+      "per_seed_top1_loss": 2,
+      "reach_epoch": 12,
+      "reach_seed_count": 4,
+      "mean_cost_ratio": 1.02
+    },
+    "kernel": {
+      "fusible_fraction_lower_95": 0.1,
+      "exact_output_prototype_required": true
+    }
+  },
+  "attempts": {
+    "training_per_seed_arm": 1,
+    "profile_per_position": 1,
+    "pair_evaluator_per_seed": 1,
+    "rerun_after_finite_gate": false
+  },
+  "registered_outputs": {
+    "parent_directory": "/home/riomus/group-learning/reports/generated",
+    "seed_directory_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}",
+    "directory_creation_policy": "verify-parent-real; create-output-root-if-absent; verify-authorized-seed-absent; create-authorized-seed-only; directory-creation-does-not-consume-an-attempt",
+    "training_output_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/{arm}",
+    "receipt_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/{arm}-run-receipt.json",
+    "profile_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/profile-{position}-{arm}.json",
+    "profile_comparison_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/profile-comparison.json",
+    "pair_inventory_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/pair-inventory.json",
+    "pair_result_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/paired-result.json",
+    "confirmation_result": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result.json",
+    "temporary_template": ".{basename}.{random}.tmp",
+    "must_be_absent_before_launch": true
+  },
+  "forbidden_evidence": {
+    "official_query_gallery": true,
+    "candidate_outcome_fields": [
+      "candidate_metrics",
+      "candidate_result",
+      "decision",
+      "outcome",
+      "verdict"
+    ],
+    "retrospective_seed1_gate": true
+  }
+}
