@@ -73,6 +73,17 @@ numbers, paths, or hashes. `exception_type` is the concrete built-in exception
 class name. Authority or path failures before the config and output paths are
 authenticated publish nothing.
 
+The v2 config has exact top-level order `schema_version`, `spec`, `parent`,
+`environment`, `inputs`, `protocol`, `source`, `handoff`, `recovery`, `result`.
+Its ordered `recovery` object is `attempt`, `prior_attempt`, `amendment`,
+`plan`, `failure_relative_path`. `amendment` and `plan` each have exact ordered
+keys `path`, `sha256`, `commit` and bind the final reviewed bytes and Git commit
+for this recovery authority and its implementation plan. Both commits must be
+ancestors of the reviewed replacement source, and their worktree bytes must
+equal their Git blobs and configured hashes. The historical v1 config may still
+be parsed for audit, but the replacement executable must reject it before
+scientific inputs are opened.
+
 After authority succeeds, an ordinary structural exception publishes the
 failure receipt atomically with mode `0600`, strict reload, hard-link
 no-replace publication, directory `fsync`, and inode-owned rollback. A valid
