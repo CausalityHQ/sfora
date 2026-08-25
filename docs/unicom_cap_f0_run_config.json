@@ -1,0 +1,118 @@
+{
+  "schema_version": "unicom-cap-f0-run-v1",
+  "spec": {
+    "path": "docs/superpowers/specs/2026-08-25-unicom-cap-f0-design.md",
+    "sha256": "cf6994c9bda0677a714cd0a12dcca459af0fe610d28a9869091992724a4e880a",
+    "commit": "cfd2ebf18b4d3a2c80c3b96957d777e23224a4cc"
+  },
+  "parent": {
+    "path": "reports/generated/unicom-spherical-probe-ed2e789.json",
+    "sha256": "d1a52703849acb96f359c2c7f209942fcbf6fa770eeaa0ed41d947780d714ddf",
+    "source_commit": "ed2e7893b05d3b5105ff992691efccc5b13ad5a0"
+  },
+  "environment": {
+    "python": "3.13.9",
+    "torch": "2.12.1+cu130",
+    "numpy": "2.5.0",
+    "sklearn": "1.9.0",
+    "cuda": "13.0",
+    "device": "NVIDIA GB10",
+    "model_dtype": "float32",
+    "reduction_dtype": "float64"
+  },
+  "inputs": {
+    "unicom_checkout": "/home/riomus/UniCOM",
+    "unicom_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+    "checkpoint": "/home/riomus/checkpoints/FP16-ViT-L-14-336px.pt",
+    "checkpoint_sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+    "dataset_root": "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark",
+    "partition": "/home/riomus/datasets/In-shop Clothes Retrieval Benchmark/Eval/list_eval_partition.txt",
+    "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+  },
+  "protocol": {
+    "holdout_fraction": 0.2,
+    "holdout_seed": 0,
+    "split_seed": 23000,
+    "fit_seeds": [0, 1, 2],
+    "fit_steps": 512,
+    "snapshot_steps": [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512],
+    "batch_size": 128,
+    "batch_seed": 23001,
+    "mask_seed": 23002,
+    "evaluation_mask_seed": 23003,
+    "diagnostic_seed": 23004,
+    "gradient_seed": 23005,
+    "covariance_mask_seed": 23006,
+    "evaluation_mask_sets": 64,
+    "covariance_mask_sets": 8,
+    "shards": 8,
+    "selected_features": 512,
+    "feature_count": 768,
+    "margin": 0.25,
+    "accuracy_margin": 0.0,
+    "scale": 32.0,
+    "optimizer": "AdamW(lr=0.0001,betas=(0.9,0.999),eps=1e-8,weight_decay=0)",
+    "row_norm": 0.27712812921102037,
+    "paired_t_critical_df63": 1.998340542520741,
+    "paired_t_critical_df3187": 1.9607086212236648,
+    "loss_delta_minimum": 0.0501203852609845,
+    "accuracy_delta_minimum": 0.006380126646800488,
+    "non_worse_mask_minimum": 60,
+    "head_cosine_mean_minimum": 0.95,
+    "step_equivalence_minimum": 64
+  },
+  "source": {
+    "commit": "bfa5f1d090a0b25569976321333740b40dc58910",
+    "files": [
+      {
+        "path": "pyproject.toml",
+        "sha256": "24b9949612cbe17893736c73b9dd954efed5a0de283fb1bc2ac8616033c3b777"
+      },
+      {
+        "path": "scripts/screen_unicom_cap_f0.py",
+        "sha256": "47ed9365774641338bf7f7fde83c31c705c438a6eed1e3730526570bbcd821ed"
+      },
+      {
+        "path": "src/sfora/unicom_cap.py",
+        "sha256": "90d4358eb4013e7b71818d2fefcfe1478e883feeccc0258bc17439c0f588a8fc"
+      },
+      {
+        "path": "src/sfora/unicom_probe.py",
+        "sha256": "26de55d0b267e9da87063eaf11af379e68a52d1643304f6f37e98479dcbc45c8"
+      },
+      {
+        "path": "src/sfora/unicom_training.py",
+        "sha256": "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272"
+      },
+      {
+        "path": "src/sfora/unicom_inshop.py",
+        "sha256": "526fd06c9c26a30144a6777a877436d8fa7584d8144de88cb9be2b744e71c503"
+      },
+      {
+        "path": "tests/test_screen_unicom_cap_f0.py",
+        "sha256": "3dff21a4bf1fc94cee10b71bb6baf9c40758d3ad3bbca3009d77a9f459fa632e"
+      },
+      {
+        "path": "tests/test_unicom_cap.py",
+        "sha256": "b025b5321fdad50e3c358230367c13027be9e9048dead3f851284d8d03fe90c0"
+      },
+      {
+        "path": "tests/test_unicom_probe.py",
+        "sha256": "d7b1bcb269a572adc6d231748e95bf937386fed97d1cde3931073c023855793f"
+      },
+      {
+        "path": "tests/test_unicom_cap_f0_run_config.py",
+        "sha256": "22a3126ade8bed5ab124d8815cb974d12296aaaa133bd2997558dc35949bab66"
+      }
+    ]
+  },
+  "handoff": {
+    "parent_commit": "bfa5f1d090a0b25569976321333740b40dc58910",
+    "sole_path": "docs/unicom_cap_f0_run_config.json",
+    "detached_clean": true
+  },
+  "result": {
+    "relative_path": "reports/generated/unicom-cap-f0-bfa5f1d.json",
+    "schema_version": "unicom-cap-f0-v1"
+  }
+}
