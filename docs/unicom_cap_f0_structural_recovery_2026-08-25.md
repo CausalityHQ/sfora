@@ -90,11 +90,27 @@ only `attempt = 2`, the immutable attempt-1 history above, and the separate
 failure-receipt path.
 
 From a fresh detached clean checkout, rerun both candidate-free parent replays.
-If either hash changes, stop without scientific execution. If both pass, launch
-exactly one replacement scientific process, observe that original PID, and do
-not restart it. A valid result is strict-validated and adjudicated normally. A
-failure receipt or any structural exit closes CAP F0 permanently; no third
-attempt is authorized.
+The repaired replay must additionally evaluate only the registered parent
+class-mean and three fitted-target heads, validate their complete metric
+payloads with the repaired validator, and reproduce these canonical SHA-256
+values:
+
+- class mean: `5de610b1d6038a18b51221fd88280c00cbd5d11701ac31830877f9b3284e8be0`;
+- seed 0: `9505bf5ba965b04d6bad39896e8c4a442a46791b9b53c6ab426bd83e83532a9b`;
+- seed 1: `889bb182ae2f2ceb14f6e35122079f141df1af87354ac8fbf7c5d6927ecb1e4f`;
+- seed 2: `196f82dea9e9699df8e5efd08ab3ab0fa3923bd36ea793d46bd2cc66c5740025`.
+
+These are parent quantities already present in the frozen parent artifact, not
+CAP candidate values; `candidate_values_computed` remains `false`. The replay
+schema adds ordered `class_mean_metric_sha256` and
+`target_metric_sha256_by_seed` fields and validates their exact keys and
+values. This closes the actual-data validation gap before the replacement.
+
+If either replay changes any tensor or metric hash, stop without scientific
+execution. If both pass, launch exactly one replacement scientific process,
+observe that original PID, and do not restart it. A valid result is
+strict-validated and adjudicated normally. A failure receipt or any structural
+exit closes CAP F0 permanently; no third attempt is authorized.
 
 This recovery does not authorize training, query/gallery access, threshold
 changes, selection based on a CAP value, or a claim that CAP succeeded.
