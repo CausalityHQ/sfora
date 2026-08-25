@@ -689,9 +689,23 @@ def test_main_binds_run_inventory_to_both_publication_validations(
 ) -> None:
     output = tmp_path / "cap.json"
     value, inventory = _valid_result()
+    execution_inventory = MODULE.CapExecutionInventory(
+        result=inventory,
+        fitting=(),
+        validation=(),
+        validation_group_represented=(),
+        labels={},
+        class_mean_sha256="a" * 64,
+        target_sha256_by_seed={0: "b" * 64, 1: "c" * 64, 2: "d" * 64},
+        fit_steps=512,
+        batch_size=128,
+        peak_gpu_mib=17,
+    )
     calls: list[tuple[object, object]] = []
 
-    monkeypatch.setattr(MODULE, "run", lambda _args: (value, inventory))
+    monkeypatch.setattr(
+        MODULE, "run", lambda _args: (value, execution_inventory)
+    )
 
     def inventory_bound_validator(candidate: object, *, inventory: object) -> None:
         calls.append((candidate, inventory))

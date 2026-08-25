@@ -1792,7 +1792,7 @@ def main(argv: list[str] | None = None) -> int:
         value, inventory = run(args)
 
         def bound_validator(candidate: object) -> None:
-            validate_result(candidate, inventory=inventory)
+            validate_result(candidate, inventory=inventory.result)
 
         write_result_atomic(value, args.output, validator=bound_validator)
     except Exception:
