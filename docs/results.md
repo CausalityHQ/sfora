@@ -13,11 +13,11 @@
 > This validates the replacement corpus but does not rehabilitate any historical
 > run; all methods require new training. See audits 297--299.
 
-All numbers are **CUB-200-2011**, ResNet-50 backbone, 512-dim embedding, the
-standard zero-shot retrieval split (100 train / 100 disjoint test classes),
-cosine **Recall@1**, reported as **best-over-training** (the protocol used by the
-papers below — evaluate the held-out test classes every few epochs and take the
-peak).
+Unless a section explicitly names another dataset or estimand, numbers are
+**CUB-200-2011**, ResNet-50 backbone, 512-dim embedding, the standard zero-shot
+retrieval split (100 train / 100 disjoint test classes), cosine **Recall@1**,
+reported as **best-over-training** (the protocol used by the papers below —
+evaluate the held-out test classes every few epochs and take the peak).
 
 > **Single-model rank diagnostic (2026-08-01, CPU-only).** A preregistered
 > train-fit/test-apply PCA sweep on CUB HERD seed 0 found unprojected R@1 0.6940,
@@ -276,8 +276,10 @@ of the observed gain. Adding distillation on top of averaging buys only another
 
 This resolves the mechanism qualitatively, not the effect size statistically:
 `pa_distill_fast` and `pa_distill_avg` are each at **n=1**, while
-`pa_ema_avg_fast` is at n=2. Queue v24 is completing all three cells to three seeds;
-until then the 2×2 is a matched-seed mechanistic result, not a publishable estimate.
+`pa_ema_avg_fast` is at n=2. Queue v24 was stopped on 2026-07-30 before the
+remaining cells completed, when the protocol redirected the GPU to the
+BN-correct In-Shop screen. The 2×2 therefore remains a matched-seed mechanistic
+observation, not a publishable effect-size estimate.
 
 **The additivity prediction failed.** If the two roles were separable and complementary,
 their matched-momentum seed-0 effects (+0.30 and +0.46) predict about +0.76 together.
@@ -288,6 +290,41 @@ mostly overlapping signal, not complementary signal.
 implausible 0.1 seeds for 80% power. An sd from two runs has *one* degree of freedom and
 is nearly worthless: `pa_distill`'s own 3-seed sd was 0.153 and became **0.367** at six
 seeds. Do not plan on it.
+
+### Cars196 confirmation under current digest-pinned recipes
+
+The preregistered six-pair Cars196 confirmation completed on 2026-08-25. It
+compared exact current-digest Proxy Anchor (`d55241a64a5a...`) with the same
+recipe plus EMA self-distillation (`080a45b8c144...`), used seeds 0--5 in
+seed-major baseline/candidate order, and fixed final epoch as the confirmatory
+estimand before any artifact existed.
+
+| quantity | Proxy Anchor | PA + distillation | paired effect |
+| --- | ---: | ---: | ---: |
+| final-epoch mean R@1 | 86.3321% | **87.6768%** | **+1.3446 pt** |
+| per-seed final delta | — | — | `+1.2176 +1.6849 +0.9101 +1.7587 +1.2791 +1.2176` |
+| paired sample sd | — | — | 0.3202 pt |
+| positive pairs | — | — | **6/6** |
+| exact sign test, two-sided | — | — | **0.03125** |
+| registered bootstrap 95% CI | — | — | **[+1.1253, +1.5763] pt** |
+| paired t test | — | — | t=10.2862, p=0.0001493 |
+| mean training time | 4062.2 s | 4977.0 s | **+22.5%** |
+
+All three frozen confirmation gates passed. Best-over-training, retained only
+as a historical sensitivity analysis, gave +0.8384 points. The larger
+final-epoch contrast partly measures late-training retention: mean
+peak-to-final decay was -1.0700 points for the baseline and -0.5637 for the
+candidate. Because the method evaluates the student and changes neither the
+inference graph nor the 512-dimensional descriptor, inference and
+descriptor-storage cost are unchanged.
+
+This is the first current-recipe second-dataset confirmation of the paired PA
+self-distillation effect. It replaces the legacy Cars observation as evidence
+for cross-dataset transfer. It does **not** establish SOTA: absolute R@1 remains
+below stronger published Cars systems, and PyTorch disclosed residual
+`adaptive_max_pool2d_backward_cuda` nondeterminism despite deterministic mode.
+The complete preregistration, artifact hashes, result, and caveat are in
+[cars_pa_distillation_confirmation_2026-08-24.md](cars_pa_distillation_confirmation_2026-08-24.md).
 
 ### RETRACTED: the claimed selection correction does not identify winner's-curse bias
 
@@ -742,6 +779,12 @@ corrected paired comparison does not demonstrate a HERD improvement.
 > **variance-reducing regularizer** looks like — helpful when data is scarce,
 > pure capacity cost when it is not. Testing that hypothesis is the point of the
 > sweeps in [research_reset_plan.md](research_reset_plan.md) §5.
+>
+> **Cars absolute-value supersession (2026-08-25).** The current digest-pinned
+> confirmation above measures Proxy Anchor 87.40% and PA plus distillation
+> 88.24% best-over-training. The legacy 88.8/89.6 values and associated absolute
+> claims below are retained only as historical observations; they are not
+> current-recipe method evidence.
 
 In our harness the distill term is applied ungated on top of whatever objective is
 training, so it can augment Proxy Anchor just as it augments HIST. We measured it
@@ -968,6 +1011,13 @@ R@1** (0.7470/0.7534) but **86.7% of the *gain* over a single model**
 read.
 
 ## Cars196 — a second dataset
+
+> **Superseded (2026-08-25).** These are legacy-recipe Cars numbers. The
+> digest-pinned confirmation in “Cars196 confirmation under current
+> digest-pinned recipes” above measures Proxy Anchor 87.40% and PA plus
+> distillation 88.24% best-over-training. The 89.6 single-model and 91.7
+> ensemble rows, and the “beats PA on Cars” claim below, are withdrawn as
+> method evidence.
 
 The same protocol on Cars196 (ResNet-50/512, zero-shot split, best-over-training).
 On Cars the HIST base is weaker than Proxy Anchor, so the **HIST-based HERD does not
