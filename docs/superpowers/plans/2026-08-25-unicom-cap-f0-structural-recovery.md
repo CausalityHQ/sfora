@@ -6,11 +6,11 @@
 ## Authority
 
 - Amendment commit:
-  `98c451846d881dfdc5870a032061f48d7e4da201`
+  `579b27cf3b3b2fec51c85e6816ee2e4647cf8fdb`
 - Amendment path:
   `docs/unicom_cap_f0_structural_recovery_2026-08-25.md`
 - Amendment SHA-256:
-  `ebcfd81cc5ee72a0cf18498f76048e581950062a5e5b34b3a844dfdde98286eb`
+  `e719372bf19ca61e325179ad314c44b4bbfd6e9636fb413543b58d7f3c7d1f9d`
 - Failed source/config:
   `77a092f2bc23cc7022fd3946b8cc8feb2f9f7087` /
   `bd954fbce3bb675c8f0840c1d8a75b8c170ae0e4`
@@ -60,6 +60,13 @@ inputs are opened.
 Add config REDs for `attempt`, `prior_attempt`, and
 `failure_relative_path`, including wrong type/order/path/commit/status and
 result/failure alias mutations.
+
+Also add replay REDs for the amended five-key replay schema. The replay must
+evaluate the parent class-mean and each parent fitted-target head over the
+registered masks, validate those parent metrics, and bind the four exact metric
+hashes from the amendment while `candidate_values_computed` remains false.
+Reject missing/reordered/drifted metric hashes and prove no CAP constructor,
+covariance diagnostic, cosine, or decision function is reachable.
 
 ## Task 4: Implement stage tracking and atomic failure publication
 
@@ -127,7 +134,7 @@ On the DGX host, create a fresh detached clean checkout at `H2`; authenticate
 the bundle, amendment, plan, source/config ancestry, runtime, UniCOM checkout,
 checkpoint, partition, parent artifact, and absent result/failure/temp paths.
 Run the two candidate-free parent replays sequentially and compare their exact
-four hashes to attempt 1.
+four tensor hashes and four parent-metric hashes to the amendment.
 
 Only if both pass, launch exactly one attempt-2 scientific process. Retain and
 observe its original PID at intervals no longer than 55 seconds, including GPU
