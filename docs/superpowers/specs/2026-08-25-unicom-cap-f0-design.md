@@ -207,8 +207,7 @@ smallest fitted-target improvement already frozen in the parent artifact:
 from CAP values.
 
 CAP construction and its 64-mask evaluator are independent of fit seed. The
-two CAP metric objects must therefore be bit-identical wherever referenced by
-seeds `0`, `1`, and `2`; the runner asserts equality and exits `2` otherwise.
+class-mean and two CAP metric objects are therefore stored exactly once.
 Loss, accuracy, mask, stratum, and lower-bound evidence are single
 seed-invariant determinations, never three-seed replication. Only
 CAP-to-target cosine and step equivalence vary by fit seed.
@@ -281,15 +280,21 @@ The scientific JSON must contain, in exact order:
    Cholesky diagonal, covariance SHA-256 over FP64 C-order bytes, condition
    number, Shannon effective rank, ordered construction-mask hashes, and exact
    per-variant mismatch-cosine summaries);
-7. `cap_metrics` (ordered `cap_centered`, `cap_uncentered`; each exact
+7. `class_mean` (reconstructed head SHA-256, row-norm minimum and maximum, and
+   the seed-invariant replayed validation metric: mean loss, accuracy, correct
+   and observation counts, all 64 per-mask, per-mask represented, and per-mask
+   unrepresented mean losses, all 3188 per-image mean losses, and the
+   represented and unrepresented mean losses; each value is stored once and
+   exactly equals the parent artifact);
+8. `cap_metrics` (ordered `cap_centered`, `cap_uncentered`; each exact
    seed-invariant validation metric, paired statistics, and predicates 2--6,
    stored once rather than copied into seed rows);
-8. `seeds` (ordered `0,1,2`, with the fitted-target comparator and trajectory
+9. `seeds` (ordered `0,1,2`, with the fitted-target comparator and trajectory
    metrics, all per-row CAP-to-target cosines, step-equivalence, and predicates
    1 and 7);
-9. `decision` (per-variant summaries, selected variant or exact JSON `null`,
+10. `decision` (per-variant summaries, selected variant or exact JSON `null`,
    and status);
-10. `candidate_values_computed` = `true`.
+11. `candidate_values_computed` = `true`.
 
 Strict recursive validation must recompute every aggregate, covariance
 diagnostic, cosine, loss delta, accuracy delta, paired lower bound, mask count,
@@ -304,9 +309,9 @@ publication failure exits `2`, publishes no result, and does not retry.
 
 Before the authorized attempt, run exactly two fresh candidate-free preflight
 processes on the same checkout and runtime. Each reconstructs only the
-class-mean head and seed-0 parent trajectory and must reproduce both registered
-SHA-256 values. Neither imports or computes CAP. If either preflight differs,
-stop structurally with no scientific attempt; no retry is authorized.
+class-mean head and all three parent trajectories and must reproduce all four
+registered SHA-256 values. Neither imports or computes CAP. If either preflight
+differs, stop structurally with no scientific attempt; no retry is authorized.
 Deterministic-algorithm flags must remain at the parent settings because
 enabling different kernels would invalidate rather than reproduce the parent.
 
