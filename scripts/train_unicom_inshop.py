@@ -1374,6 +1374,69 @@ def _git_revision(checkout: Path) -> str:
     ).stdout.strip()
 
 
+def _git_text(checkout: Path, *arguments: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(checkout), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def registered_source_commit(run_config: Path, checkout: Path) -> str:
+    """Authenticate a detached config-only handoff and return its source parent."""
+
+    if not isinstance(run_config, Path) or not isinstance(checkout, Path):
+        raise TypeError("config-only handoff paths must be pathlib.Path values")
+    if not run_config.is_file() or run_config.is_symlink():
+        raise ValueError("config-only handoff differs")
+    checkout = checkout.resolve()
+    try:
+        relative = run_config.resolve().relative_to(checkout)
+    except ValueError as error:
+        raise ValueError("config-only handoff differs") from error
+    relative_text = relative.as_posix()
+    config = strict_json_object(run_config.read_bytes())
+    source = config.get("source")
+    handoff = config.get("handoff")
+    if type(source) is not dict or type(handoff) is not dict:
+        raise ValueError("config-only handoff differs")
+    source_commit = source.get("commit")
+    if (
+        type(source_commit) is not str
+        or len(source_commit) != 40
+        or any(character not in "0123456789abcdef" for character in source_commit)
+        or handoff.get("config_parent") != source_commit
+        or handoff.get("config_commit_paths") != [relative_text]
+        or handoff.get("execution_checkout") != "config_commit_detached_clean"
+    ):
+        raise ValueError("config-only handoff differs")
+    head = _git_revision(checkout)
+    changed_paths = _git_text(
+        checkout, "diff-tree", "--no-commit-id", "--name-only", "-r", head
+    ).splitlines()
+    committed_config = subprocess.run(
+        ["git", "-C", str(checkout), "show", f"{head}:{relative_text}"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    branch = subprocess.run(
+        ["git", "-C", str(checkout), "symbolic-ref", "-q", "HEAD"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if (
+        _git_text(checkout, "rev-parse", f"{head}^") != source_commit
+        or changed_paths != [relative_text]
+        or committed_config != run_config.read_bytes()
+        or _git_text(checkout, "status", "--porcelain=v1")
+        or branch.returncode == 0
+    ):
+        raise ValueError("config-only handoff differs")
+    return source_commit
+
+
 def _load_official_model(checkout: Path, checkpoint: Path):
     package_root = (checkout / "unicom").resolve()
     sys.path.insert(0, str(package_root))
@@ -1694,6 +1757,11 @@ def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
         _validate_run_receipt_request(args)
+        source_commit = None
+        if args.run_receipt is not None:
+            source_commit = registered_source_commit(
+                args.run_config, Path(__file__).resolve().parents[1]
+            )
         history = run(args)
     except Exception as error:
         print(f"training failed: {error}", file=sys.stderr)
@@ -1709,7 +1777,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
                 else [sys.executable, str(Path(__file__).resolve()), *arguments]
             )
             receipt = training_run_receipt(
-                source_commit=_git_revision(Path(__file__).resolve().parents[1]),
+                source_commit=source_commit,
                 config_path=str(args.run_config),
                 config_sha256=_sha256_file(args.run_config),
                 seed=args.seed,

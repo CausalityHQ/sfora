@@ -6,6 +6,7 @@ import json
 import pickle
 import random
 import stat
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -46,6 +47,60 @@ def _load_script():
 
 def _state_digest(domain: bytes, value: object) -> str:
     return hashlib.sha256(domain + b"\0" + pickle.dumps(value, protocol=5)).hexdigest()
+
+
+def test_registered_source_commit_comes_from_config_only_parent(tmp_path: Path) -> None:
+    module = _load_script()
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    subprocess.run(["git", "init", "-q", checkout], check=True)
+    subprocess.run(["git", "-C", checkout, "config", "user.name", "Fixture"], check=True)
+    subprocess.run(
+        ["git", "-C", checkout, "config", "user.email", "fixture@example.invalid"],
+        check=True,
+    )
+    (checkout / "source.txt").write_text("reviewed source\n", encoding="utf-8")
+    subprocess.run(["git", "-C", checkout, "add", "source.txt"], check=True)
+    subprocess.run(["git", "-C", checkout, "commit", "-qm", "source"], check=True)
+    source_commit = subprocess.run(
+        ["git", "-C", checkout, "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    config_path = checkout / "docs" / "unicom_full_width_objective_run_config.json"
+    config_path.parent.mkdir()
+    config_path.write_text(
+        json.dumps(
+            {
+                "source": {"commit": source_commit},
+                "handoff": {
+                    "config_parent": source_commit,
+                    "config_commit_paths": [
+                        "docs/unicom_full_width_objective_run_config.json"
+                    ],
+                    "execution_checkout": "config_commit_detached_clean",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", checkout, "add", str(config_path)], check=True)
+    subprocess.run(["git", "-C", checkout, "commit", "-qm", "config"], check=True)
+    config_commit = subprocess.run(
+        ["git", "-C", checkout, "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    subprocess.run(["git", "-C", checkout, "checkout", "-q", "--detach", config_commit], check=True)
+
+    assert module.registered_source_commit(config_path, checkout) == source_commit
+
+    config_path.write_text(config_path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(ValueError, match="config-only handoff differs"):
+        module.registered_source_commit(config_path, checkout)
 
 
 def test_training_run_receipt_binds_widths_costs_and_checkpoint_bytes(tmp_path: Path) -> None:
@@ -147,7 +202,15 @@ def test_main_publishes_one_training_run_receipt_after_history_and_checkpoints(
     config.write_bytes(b'{"schema":"fixture"}\n')
     receipt = tmp_path / "sampled-512-receipt.json"
 
+    call_order: list[str] = []
+
+    def fake_registered_source_commit(_config: Path, _checkout: Path) -> str:
+        call_order.append("source")
+        return "a" * 40
+
     def fake_run(args) -> list[dict[str, object]]:
+        assert call_order == ["source"]
+        call_order.append("run")
         module.torch.cuda.reset_peak_memory_stats()
         args.output_dir.mkdir()
         for epoch in (4, 8, 12, 16):
@@ -164,7 +227,16 @@ def test_main_publishes_one_training_run_receipt_after_history_and_checkpoints(
         return [{"epoch": 16, "train": {"steps": 1, "mean_loss": 1.0}}]
 
     monkeypatch.setattr(module, "run", fake_run)
-    monkeypatch.setattr(module, "_git_revision", lambda _path: "a" * 40)
+    monkeypatch.setattr(
+        module, "registered_source_commit", fake_registered_source_commit
+    )
+    monkeypatch.setattr(
+        module,
+        "_git_revision",
+        lambda _path: (_ for _ in ()).throw(
+            AssertionError("main must bind the reviewed source parent")
+        ),
+    )
     reset_calls: list[None] = []
     monkeypatch.setattr(
         module.torch.cuda,
@@ -206,6 +278,7 @@ def test_main_publishes_one_training_run_receipt_after_history_and_checkpoints(
     )
 
     assert exit_code == 0
+    assert call_order == ["source", "run"]
     assert reset_calls == [None]
     persisted = module.strict_json_object(receipt.read_bytes())
     module.validate_training_run_receipt(persisted)
@@ -252,6 +325,56 @@ def test_main_publishes_one_training_run_receipt_after_history_and_checkpoints(
         ]
     ) == 2
     assert receipt.read_bytes() == before
+
+
+def test_main_authenticates_registered_source_before_training(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    receipt = tmp_path / "receipt.json"
+    config = tmp_path / "config.json"
+    config.write_bytes(b"{}\n")
+    run_called = False
+
+    def fail_authentication(_config: Path, _checkout: Path) -> str:
+        raise ValueError("config-only handoff differs")
+
+    def forbidden_run(_args) -> list[dict[str, object]]:
+        nonlocal run_called
+        run_called = True
+        raise AssertionError("training must not start before source authentication")
+
+    monkeypatch.setattr(module, "registered_source_commit", fail_authentication)
+    monkeypatch.setattr(module, "run", forbidden_run)
+
+    assert module.main(
+        [
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--checkpoint",
+            str(tmp_path / "checkpoint.pt"),
+            "--dataset-root",
+            str(tmp_path / "inshop"),
+            "--output-dir",
+            str(tmp_path / "run"),
+            "--epochs",
+            "16",
+            "--selected-features",
+            "512",
+            "--evaluation-features",
+            "768",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            str(config),
+            "--run-arm",
+            "sampled_512",
+            "--run-receipt",
+            str(receipt),
+        ]
+    ) == 2
+    assert not run_called
+    assert not receipt.exists()
 
 
 def test_main_failure_never_publishes_training_run_receipt(
