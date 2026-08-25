@@ -63,7 +63,7 @@
     "step_equivalence_minimum": 64
   },
   "source": {
-    "commit": "773fec6e020a2e55d50860f6431ec01425e1f8ef",
+    "commit": "77a092f2bc23cc7022fd3946b8cc8feb2f9f7087",
     "files": [
       {
         "path": "pyproject.toml",
@@ -71,7 +71,7 @@
       },
       {
         "path": "scripts/screen_unicom_cap_f0.py",
-        "sha256": "e084f2f6a5cbc9841e6d47522a538c816873959884e206346326f792e3b4ae6f"
+        "sha256": "bba257a6ea4f30a4e7e322e68707a826080cbfc9504addc9c9c2224b062966f7"
       },
       {
         "path": "src/sfora/unicom_cap.py",
@@ -103,17 +103,17 @@
       },
       {
         "path": "tests/test_unicom_cap_f0_run_config.py",
-        "sha256": "01ccb2e975b27e4ce695a7791f366986bae5d1073ec0b86f7e86454e4b8eee54"
+        "sha256": "d39f4242e8120eee08a9724f48d563d78f2e5ee05687d6b8cec5a406357462a6"
       }
     ]
   },
   "handoff": {
-    "parent_commit": "773fec6e020a2e55d50860f6431ec01425e1f8ef",
+    "parent_commit": "77a092f2bc23cc7022fd3946b8cc8feb2f9f7087",
     "sole_path": "docs/unicom_cap_f0_run_config.json",
     "detached_clean": true
   },
   "result": {
-    "relative_path": "reports/generated/unicom-cap-f0-773fec6.json",
+    "relative_path": "reports/generated/unicom-cap-f0-77a092f.json",
     "schema_version": "unicom-cap-f0-v1"
   }
 }
