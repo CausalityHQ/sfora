@@ -687,6 +687,12 @@ def validate_result(value: object, *, inventory: object) -> None:
     from sfora.unicom_cap import CapCosineSummary, cap_decision
 
     result = _object(value, _RESULT_TOP_KEYS, "result")
+    expected_peak_gpu_mib: int | None = None
+    if type(inventory) is CapExecutionInventory:
+        expected_peak_gpu_mib = _nonnegative_int(
+            inventory.peak_gpu_mib, "inventory peak GPU MiB"
+        )
+        inventory = inventory.result
     trusted = _object(
         inventory, ("authority", "runtime", "dataset", "protocol"), "inventory"
     )
@@ -706,7 +712,9 @@ def validate_result(value: object, *, inventory: object) -> None:
         raise ValueError("runtime authority differs")
     if _finite_float(runtime["elapsed_seconds"], "elapsed seconds") <= 0.0:
         raise ValueError("runtime observation differs")
-    _nonnegative_int(runtime["peak_gpu_mib"], "peak GPU MiB")
+    peak_gpu_mib = _nonnegative_int(runtime["peak_gpu_mib"], "peak GPU MiB")
+    if expected_peak_gpu_mib is not None and peak_gpu_mib != expected_peak_gpu_mib:
+        raise ValueError("peak GPU MiB differs")
 
     dataset = trusted["dataset"]
     protocol = trusted["protocol"]
@@ -1792,7 +1800,7 @@ def main(argv: list[str] | None = None) -> int:
         value, inventory = run(args)
 
         def bound_validator(candidate: object) -> None:
-            validate_result(candidate, inventory=inventory.result)
+            validate_result(candidate, inventory=inventory)
 
         write_result_atomic(value, args.output, validator=bound_validator)
     except Exception:

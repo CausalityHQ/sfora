@@ -730,7 +730,10 @@ def test_main_binds_run_inventory_to_both_publication_validations(
     )
 
     assert exit_code == 0
-    assert calls == [(value, inventory), (value, inventory)]
+    assert calls == [
+        (value, execution_inventory),
+        (value, execution_inventory),
+    ]
     assert MODULE.strict_json_object(output.read_bytes()) == value
 
 
@@ -1551,4 +1554,7 @@ def test_execute_with_runtime_observation_records_synchronized_peak_gpu(
     assert calls == ["reset", "execute", "synchronize"]
     assert actual["runtime"]["peak_gpu_mib"] == 17
     assert observed_inventory.peak_gpu_mib == 17
-    MODULE.validate_result(actual, inventory=result_inventory)
+    MODULE.validate_result(actual, inventory=observed_inventory)
+    actual["runtime"]["peak_gpu_mib"] = 16
+    with pytest.raises(ValueError, match="peak GPU MiB differs"):
+        MODULE.validate_result(actual, inventory=observed_inventory)
