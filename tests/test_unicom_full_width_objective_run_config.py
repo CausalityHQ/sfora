@@ -1,0 +1,945 @@
+from __future__ import annotations
+
+import copy
+import hashlib
+import importlib.util
+import json
+import math
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
+SOURCE_COMMIT = "8824527e8fb1d90f627feb8c479a538d009f0785"
+SOURCE_FILES = (
+    (
+        "scripts/train_unicom_inshop.py",
+        "532aade432daf72ef590ba49b0ecacce493870c6e0fc7023a73623f2258d04e7",
+    ),
+    (
+        "scripts/evaluate_unicom_full_width_objective.py",
+        "601425c3ac95540e67d295756794820b0aa8a0caf9f6cb548b34b5008af39f76",
+    ),
+    (
+        "scripts/profile_unicom_training_step.py",
+        "55d1aa7365e3f806b51dd5ad6b6b5aa3f547cda41d4d107844b433ea9f3abb4f",
+    ),
+    (
+        "scripts/compare_unicom_full_width_profiles.py",
+        "5ea429494971de1567f4f9ccb58fd0ff8b5f2e98a9a69f5eee33464d4245aa9f",
+    ),
+    (
+        "scripts/build_unicom_full_width_pair_config.py",
+        "93e7c81eec8cc0edb1b3ab8d4d2f078f8506f0a1929550759d67760d6388f65e",
+    ),
+    (
+        "scripts/run_unicom_from_checkout.py",
+        "0e9ed76ac59bd6e380aa982a60df14292d8c03de44266169ea6f7d3777d0516c",
+    ),
+    (
+        "src/sfora/unicom_inshop.py",
+        "526fd06c9c26a30144a6777a877436d8fa7584d8144de88cb9be2b744e71c503",
+    ),
+    (
+        "src/sfora/unicom_retrieval_audit.py",
+        "b32dfdbde9340fd4bb35b1533bb52afcd3e4050a675b67971c9ff9c8863c4e96",
+    ),
+    (
+        "src/sfora/unicom_training.py",
+        "a40b0dac4173511787dd9a4da82e506ce44eb3ccb63710595800bc9ebcd4d272",
+    ),
+    (
+        "tests/test_train_unicom_inshop.py",
+        "1d8434bcf6a4118e123e693596dbbaba6f1ed1ce651a6133a118596046f69bc6",
+    ),
+    (
+        "tests/test_evaluate_unicom_full_width_objective.py",
+        "25381bdcb8a12fa2c21228bb2e854d7dc1747c9b747f763eefe0c654f21525c7",
+    ),
+    (
+        "tests/test_compare_unicom_full_width_profiles.py",
+        "39af2860c6e7a660b8038103b95ebde65232ea197aab33dc37faf36593b1a7f4",
+    ),
+    (
+        "tests/test_profile_unicom_training_step.py",
+        "706aeb5c9215f3c2458a05c0bea106acc246adccd11eb1657dd023e7fe6adabe",
+    ),
+    (
+        "tests/test_build_unicom_full_width_pair_config.py",
+        "7fb4da1853fa972058110d14f1dd4e7cd6f8480305e89852e3661729b2c9dc7c",
+    ),
+    (
+        "tests/test_run_unicom_from_checkout.py",
+        "15303629bb3e2b47899f4cd8c478a769ce99b5d2ce9fe36f2efaf2dc5a796040",
+    ),
+)
+SEEDS = (0, 2, 3, 4, 5, 6)
+ARM_ORDERS = {
+    0: ("sampled_512", "full_768"),
+    2: ("sampled_512", "full_768"),
+    3: ("full_768", "sampled_512"),
+    4: ("sampled_512", "full_768"),
+    5: ("full_768", "sampled_512"),
+    6: ("sampled_512", "full_768"),
+}
+ARM_PROTOCOLS = {
+    "sampled_512": ("official-eight-mask", 512, 768),
+    "full_768": ("official-eight-mask", 768, 768),
+}
+TOP_KEYS = (
+    "schema_version",
+    "source",
+    "handoff",
+    "environment",
+    "inputs",
+    "protocol",
+    "paths",
+    "command_templates",
+    "run_schedule",
+    "seed0_downstream",
+    "thresholds",
+    "attempts",
+    "registered_outputs",
+    "forbidden_evidence",
+)
+def _reject_constant(value: str) -> None:
+    raise ValueError(f"nonfinite JSON constant: {value}")
+
+
+def _pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def strict_json(path: Path) -> dict[str, object]:
+    value = json.loads(
+        path.read_text(encoding="utf-8"),
+        object_pairs_hook=_pairs,
+        parse_constant=_reject_constant,
+    )
+    if type(value) is not dict:
+        raise TypeError("run config must be a JSON object")
+    return value
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _git_blob(path: str) -> bytes:
+    return subprocess.run(
+        ["git", "-C", str(ROOT), "show", f"{SOURCE_COMMIT}:{path}"],
+        check=True,
+        capture_output=True,
+    ).stdout
+
+
+def _assert_exact_mapping(value: object, keys: tuple[str, ...], name: str) -> dict[str, object]:
+    if type(value) is not dict or tuple(value) != keys:
+        raise ValueError(f"{name} schema differs")
+    return value
+
+
+def _assert_finite_builtin(value: object, name: str, *, positive: bool = False) -> float:
+    if type(value) is not float or not math.isfinite(value):
+        raise TypeError(f"{name} must be a finite builtin float")
+    if positive and value <= 0.0:
+        raise ValueError(f"{name} must be positive")
+    return value
+
+
+def _mapping_keys(value: object):
+    if type(value) is dict:
+        yield from value
+        for child in value.values():
+            yield from _mapping_keys(child)
+    elif type(value) is list:
+        for child in value:
+            yield from _mapping_keys(child)
+
+
+def _expected_templates(config: dict[str, object]) -> dict[str, list[str]]:
+    paths = config["paths"]
+    assert type(paths) is dict
+    python = paths["python"]
+    repo = paths["repo_checkout"]
+    dataset = config["inputs"]["dataset"]["root"]
+    checkpoint = config["inputs"]["initial_checkpoint"]["path"]
+    unicom = config["inputs"]["unicom_checkout"]["path"]
+    config_path = paths["run_config"]
+    launcher = f"{repo}/scripts/run_unicom_from_checkout.py"
+    return {
+        "trainer": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/train_unicom_inshop.py",
+            "--unicom-checkout",
+            unicom,
+            "--checkpoint",
+            checkpoint,
+            "--dataset-root",
+            dataset,
+            "--output-dir",
+            "{output_dir}",
+            "--epochs",
+            "16",
+            "--batch-size",
+            "128",
+            "--learning-rate",
+            "0.00001",
+            "--classifier-learning-rate",
+            "0.0001",
+            "--margin",
+            "0.25",
+            "--scale",
+            "32.0",
+            "--objective",
+            "official-eight-mask",
+            "--selected-features",
+            "{selected_features}",
+            "--evaluation-features",
+            "768",
+            "--workers",
+            "4",
+            "--seed",
+            "{seed}",
+            "--holdout-seed",
+            "0",
+            "--holdout-fraction",
+            "0.2",
+            "--eval-every",
+            "4",
+            "--checkpoint-every",
+            "4",
+            "--classifier-init",
+            "imprinted",
+            "--run-config",
+            config_path,
+            "--run-arm",
+            "{arm}",
+            "--run-receipt",
+            "{receipt}",
+        ],
+        "profiler": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/profile_unicom_training_step.py",
+            "--run-checkpoint",
+            "{checkpoint}",
+            "--unicom-checkout",
+            unicom,
+            "--initial-checkpoint",
+            checkpoint,
+            "--dataset-root",
+            dataset,
+            "--output",
+            "{output}",
+            "--warmup-steps",
+            "20",
+            "--measure-steps",
+            "50",
+            "--profiler-steps",
+            "10",
+            "--bootstrap-seed",
+            "20016",
+        ],
+        "comparator": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/compare_unicom_full_width_profiles.py",
+            "--profiles",
+            "{profile_a}",
+            "{profile_b}",
+            "{profile_b_repeat}",
+            "{profile_a_repeat}",
+            "--receipts",
+            "{control_receipt}",
+            "{candidate_receipt}",
+            "{candidate_receipt}",
+            "{control_receipt}",
+            "--output",
+            "{output}",
+        ],
+        "pair_evaluator": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/evaluate_unicom_full_width_objective.py",
+            "--config",
+            "{pair_inventory}",
+            "--unicom-checkout",
+            unicom,
+            "--initial-checkpoint",
+            checkpoint,
+            "--dataset-root",
+            dataset,
+            "--output",
+            "{output}",
+            "--batch-size",
+            "128",
+            "--workers",
+            "4",
+        ],
+        "pair_inventory_builder": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/build_unicom_full_width_pair_config.py",
+            "--seed",
+            "{seed}",
+            "--output",
+            "{output}",
+            *[
+                token
+                for epoch in (4, 8, 12, 16)
+                for arm in ("sampled_512", "full_768")
+                for token in (
+                    "--checkpoint",
+                    arm,
+                    str(epoch),
+                    f"{{{arm}_epoch_{epoch}}}",
+                )
+            ],
+        ],
+    }
+
+
+def validate_config(config: object) -> None:
+    config = _assert_exact_mapping(config, TOP_KEYS, "run config")
+    if config["schema_version"] != "unicom-full-width-objective-run-v1":
+        raise ValueError("run config version differs")
+
+    source = _assert_exact_mapping(config["source"], ("commit", "files"), "source")
+    if source["commit"] != SOURCE_COMMIT or type(source["files"]) is not list:
+        raise ValueError("source binding differs")
+    observed_sources = []
+    for row in source["files"]:
+        row = _assert_exact_mapping(row, ("path", "sha256"), "source row")
+        observed_sources.append((row["path"], row["sha256"]))
+    if tuple(observed_sources) != SOURCE_FILES:
+        raise ValueError("source file order or digest differs")
+    for path, digest in SOURCE_FILES:
+        blob = _git_blob(path)
+        if _sha256_bytes(blob) != digest or (ROOT / path).read_bytes() != blob:
+            raise ValueError(f"source bytes differ: {path}")
+
+    handoff = _assert_exact_mapping(
+        config["handoff"],
+        ("config_parent", "config_commit_paths", "validator_child_path", "execution_checkout"),
+        "handoff",
+    )
+    if handoff != {
+        "config_parent": SOURCE_COMMIT,
+        "config_commit_paths": ["docs/unicom_full_width_objective_run_config.json"],
+        "validator_child_path": "tests/test_unicom_full_width_objective_run_config.py",
+        "execution_checkout": "config_commit_detached_clean",
+    }:
+        raise ValueError("handoff differs")
+
+    environment = _assert_exact_mapping(
+        config["environment"],
+        ("python", "torch", "numpy", "cuda", "device", "model_dtype"),
+        "environment",
+    )
+    if environment != {
+        "python": "3.13.9",
+        "torch": "2.12.1+cu130",
+        "numpy": "2.5.0",
+        "cuda": "13.0",
+        "device": "NVIDIA GB10",
+        "model_dtype": "float32",
+    }:
+        raise ValueError("environment differs")
+
+    inputs = _assert_exact_mapping(
+        config["inputs"],
+        ("dataset", "initial_checkpoint", "unicom_checkout"),
+        "inputs",
+    )
+    dataset = _assert_exact_mapping(
+        inputs["dataset"], ("root", "partition", "partition_sha256"), "dataset"
+    )
+    initial = _assert_exact_mapping(inputs["initial_checkpoint"], ("path", "sha256"), "checkpoint")
+    unicom = _assert_exact_mapping(
+        inputs["unicom_checkout"], ("path", "revision"), "UniCOM checkout"
+    )
+    if (
+        dataset
+        != {
+            "root": "/home/riomus/datasets/inshop_official_standard",
+            "partition": "Eval/list_eval_partition.txt",
+            "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+        }
+        or initial
+        != {
+            "path": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
+            "sha256": "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea",
+        }
+        or unicom
+        != {
+            "path": "/home/riomus/unicom-d71992e",
+            "revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        }
+    ):
+        raise ValueError("input authority differs")
+
+    protocol = _assert_exact_mapping(
+        config["protocol"],
+        (
+            "arms",
+            "seeds",
+            "arm_order_by_seed",
+            "epochs",
+            "batch_size",
+            "workers",
+            "learning_rate",
+            "classifier_learning_rate",
+            "margin",
+            "scale",
+            "holdout_seed",
+            "holdout_fraction",
+            "eval_every",
+            "checkpoint_every",
+            "classifier_init",
+            "bf16",
+            "compile",
+            "fused",
+            "profile_order",
+            "profile_counts",
+            "bootstrap",
+        ),
+        "protocol",
+    )
+    if tuple(protocol["arms"]) != tuple(ARM_PROTOCOLS):
+        raise ValueError("arm order differs")
+    for arm, expected in ARM_PROTOCOLS.items():
+        arm_value = _assert_exact_mapping(
+            protocol["arms"][arm],
+            ("objective", "selected_features", "evaluation_features"),
+            "arm protocol",
+        )
+        if tuple(arm_value.values()) != expected or any(
+            type(value) is not type(reference)
+            for value, reference in zip(arm_value.values(), expected, strict=True)
+        ):
+            raise ValueError("arm protocol differs")
+    if protocol["seeds"] != list(SEEDS) or protocol["epochs"] != [4, 8, 12, 16]:
+        raise ValueError("seed or epoch order differs")
+    observed_orders = {
+        row["seed"]: tuple(row["arm_order"]) for row in protocol["arm_order_by_seed"]
+    }
+    if observed_orders != ARM_ORDERS or list(observed_orders) != list(SEEDS):
+        raise ValueError("seed arm order differs")
+    expected_scalars = {
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 0.00001,
+        "classifier_learning_rate": 0.0001,
+        "margin": 0.25,
+        "scale": 32.0,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "classifier_init": "imprinted",
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "profile_order": ["sampled_512", "full_768", "full_768", "sampled_512"],
+        "profile_counts": {
+            "warmup_steps": 20,
+            "measure_steps": 50,
+            "profiler_steps": 10,
+            "bootstrap_seed": 20_016,
+        },
+        "bootstrap": {"seed": 768, "replicates": 10000},
+    }
+    for key, expected in expected_scalars.items():
+        if protocol[key] != expected or type(protocol[key]) is not type(expected):
+            raise ValueError(f"protocol field differs: {key}")
+
+    paths = _assert_exact_mapping(
+        config["paths"],
+        ("repo_checkout", "python", "run_config", "output_root"),
+        "paths",
+    )
+    expected_config_path = (
+        "/home/riomus/sfora-unicom-full-width-run/docs/unicom_full_width_objective_run_config.json"
+    )
+    expected_output_root = (
+        "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25"
+    )
+    if paths != {
+        "repo_checkout": "/home/riomus/sfora-unicom-full-width-run",
+        "python": "/home/riomus/group-learning/.venv/bin/python",
+        "run_config": expected_config_path,
+        "output_root": expected_output_root,
+    }:
+        raise ValueError("registered paths differ")
+    templates = _assert_exact_mapping(
+        config["command_templates"],
+        ("trainer", "profiler", "comparator", "pair_evaluator", "pair_inventory_builder"),
+        "command templates",
+    )
+    if templates != _expected_templates(config):
+        raise ValueError("command token order differs")
+
+    schedule = config["run_schedule"]
+    if type(schedule) is not list or len(schedule) != len(SEEDS):
+        raise ValueError("run schedule differs")
+    output_root = paths["output_root"]
+    for row, seed in zip(schedule, SEEDS, strict=True):
+        row = _assert_exact_mapping(row, ("seed", "arm_order", "runs"), "run schedule row")
+        if row["seed"] != seed or tuple(row["arm_order"]) != ARM_ORDERS[seed]:
+            raise ValueError("run schedule order differs")
+        if type(row["runs"]) is not list or len(row["runs"]) != 2:
+            raise ValueError("run schedule arms differ")
+        for run, arm in zip(row["runs"], ARM_ORDERS[seed], strict=True):
+            run = _assert_exact_mapping(run, ("arm", "output_dir", "receipt"), "training run")
+            expected_dir = f"{output_root}/seed-{seed}/{arm}"
+            if run != {
+                "arm": arm,
+                "output_dir": expected_dir,
+                "receipt": f"{output_root}/seed-{seed}/{arm}-run-receipt.json",
+            }:
+                raise ValueError("training run path differs")
+
+    downstream = _assert_exact_mapping(
+        config["seed0_downstream"],
+        ("pair_inventory", "profiles", "profile_comparison", "pair_result"),
+        "seed-0 downstream",
+    )
+    pair_inventory = _assert_exact_mapping(
+        downstream["pair_inventory"],
+        ("path", "schema_version", "seed", "inventory", "publication"),
+        "pair inventory plan",
+    )
+    if type(pair_inventory["inventory"]) is not list:
+        raise ValueError("pair inventory plan differs")
+    for row in pair_inventory["inventory"]:
+        _assert_exact_mapping(
+            row, ("arm", "epoch", "path", "sha256", "bytes"), "pair inventory row"
+        )
+    if type(downstream["profiles"]) is not list:
+        raise ValueError("profile plan differs")
+    for row in downstream["profiles"]:
+        _assert_exact_mapping(row, ("position", "arm", "checkpoint", "output"), "profile row")
+    pair_rows = [
+        {
+            "arm": arm,
+            "epoch": epoch,
+            "path": f"{output_root}/seed-0/{arm}/epoch-{epoch:04d}.pt",
+            "sha256": "derive_from_validated_checkpoint",
+            "bytes": "derive_from_validated_checkpoint",
+        }
+        for epoch in (4, 8, 12, 16)
+        for arm in ("sampled_512", "full_768")
+    ]
+    expected_profile_rows = [
+        {
+            "position": index,
+            "arm": arm,
+            "checkpoint": f"{output_root}/seed-0/{arm}/epoch-0016.pt",
+            "output": f"{output_root}/seed-0/profile-{index}-{arm}.json",
+        }
+        for index, arm in enumerate(("sampled_512", "full_768", "full_768", "sampled_512"), start=1)
+    ]
+    if downstream != {
+        "pair_inventory": {
+            "path": f"{output_root}/seed-0/pair-inventory.json",
+            "schema_version": "unicom-full-width-pair-config-v1",
+            "seed": 0,
+            "inventory": pair_rows,
+            "publication": "strict-json-mode-0600-no-clobber-after-both-receipts-validate",
+        },
+        "profiles": expected_profile_rows,
+        "profile_comparison": f"{output_root}/seed-0/profile-comparison.json",
+        "pair_result": f"{output_root}/seed-0/paired-result.json",
+    }:
+        raise ValueError("seed-0 downstream paths differ")
+
+    thresholds = _assert_exact_mapping(
+        config["thresholds"],
+        ("selection", "operational", "confirmation", "kernel"),
+        "thresholds",
+    )
+    if thresholds != {
+        "selection": {"primary_map_delta": 0.003, "top1_query_loss": 1, "reach_epoch": 12},
+        "operational": {
+            "step_time_ratio": 1.02,
+            "peak_allocated_ratio": 1.02,
+            "peak_reserved_ratio": 1.02,
+            "checkpoint_bytes_equal": True,
+        },
+        "confirmation": {
+            "mean_primary_map_delta": 0.003,
+            "paired_t_critical": 2.7764451052,
+            "paired_t_lower_above": 0.0,
+            "positive_seed_count": 4,
+            "aggregate_top1_loss": 5,
+            "per_seed_top1_loss": 2,
+            "reach_epoch": 12,
+            "reach_seed_count": 4,
+            "mean_cost_ratio": 1.02,
+        },
+        "kernel": {"fusible_fraction_lower_95": 0.10, "exact_output_prototype_required": True},
+    }:
+        raise ValueError("thresholds differ")
+    for value in (0.003, 1.02, 2.7764451052, 0.0, 0.10):
+        _assert_finite_builtin(value, "threshold")
+
+    attempts = _assert_exact_mapping(
+        config["attempts"],
+        (
+            "training_per_seed_arm",
+            "profile_per_position",
+            "pair_evaluator_per_seed",
+            "rerun_after_finite_gate",
+        ),
+        "attempts",
+    )
+    if attempts != {
+        "training_per_seed_arm": 1,
+        "profile_per_position": 1,
+        "pair_evaluator_per_seed": 1,
+        "rerun_after_finite_gate": False,
+    }:
+        raise ValueError("attempt policy differs")
+
+    outputs = _assert_exact_mapping(
+        config["registered_outputs"],
+        (
+            "parent_directory",
+            "seed_directory_template",
+            "directory_creation_policy",
+            "training_output_template",
+            "receipt_template",
+            "profile_template",
+            "profile_comparison_template",
+            "pair_inventory_template",
+            "pair_result_template",
+            "confirmation_result",
+            "temporary_template",
+            "must_be_absent_before_launch",
+        ),
+        "registered outputs",
+    )
+    if outputs != {
+        "parent_directory": "/home/riomus/group-learning/reports/generated",
+        "seed_directory_template": f"{output_root}/seed-{{seed}}",
+        "directory_creation_policy": (
+            "verify-parent-real; create-output-root-if-absent; "
+            "verify-authorized-seed-absent; create-authorized-seed-only; "
+            "directory-creation-does-not-consume-an-attempt"
+        ),
+        "training_output_template": f"{output_root}/seed-{{seed}}/{{arm}}",
+        "receipt_template": f"{output_root}/seed-{{seed}}/{{arm}}-run-receipt.json",
+        "profile_template": f"{output_root}/seed-{{seed}}/profile-{{position}}-{{arm}}.json",
+        "profile_comparison_template": f"{output_root}/seed-{{seed}}/profile-comparison.json",
+        "pair_inventory_template": f"{output_root}/seed-{{seed}}/pair-inventory.json",
+        "pair_result_template": f"{output_root}/seed-{{seed}}/paired-result.json",
+        "confirmation_result": f"{output_root}/confirmation-result.json",
+        "temporary_template": ".{basename}.{random}.tmp",
+        "must_be_absent_before_launch": True,
+    }:
+        raise ValueError("registered output contract differs")
+
+    forbidden = _assert_exact_mapping(
+        config["forbidden_evidence"],
+        ("official_query_gallery", "candidate_outcome_fields", "retrospective_seed1_gate"),
+        "forbidden evidence",
+    )
+    if forbidden != {
+        "official_query_gallery": True,
+        "candidate_outcome_fields": [
+            "candidate_metrics",
+            "candidate_result",
+            "decision",
+            "outcome",
+            "verdict",
+        ],
+        "retrospective_seed1_gate": True,
+    }:
+        raise ValueError("forbidden evidence contract differs")
+    lowered = json.dumps(config, sort_keys=True).lower()
+    if "/query/" in lowered or "/gallery/" in lowered:
+        raise ValueError("official query/gallery path is forbidden")
+    observed_keys = set(_mapping_keys(config))
+    for key in forbidden["candidate_outcome_fields"]:
+        if key in observed_keys:
+            raise ValueError("candidate outcome field is forbidden")
+
+
+def _load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _substitute(tokens: list[str], values: dict[str, object]) -> list[str]:
+    return [token.format_map(values) for token in tokens]
+
+
+def test_run_config_authenticates_source_commands_and_candidate_isolation() -> None:
+    validate_config(strict_json(CONFIG_PATH))
+
+
+def test_run_config_validator_rejects_registered_mutations() -> None:
+    config = strict_json(CONFIG_PATH)
+    mutations = (
+        ("source commit", lambda value: value["source"].__setitem__("commit", "0" * 40)),
+        (
+            "source digest",
+            lambda value: value["source"]["files"][0].__setitem__("sha256", "0" * 64),
+        ),
+        (
+            "handoff parent",
+            lambda value: value["handoff"].__setitem__("config_parent", "0" * 40),
+        ),
+        ("runtime", lambda value: value["environment"].__setitem__("python", "3.12.3")),
+        (
+            "partition",
+            lambda value: value["inputs"]["dataset"].__setitem__("partition_sha256", "0" * 64),
+        ),
+        ("arm order", lambda value: value["run_schedule"][2]["arm_order"].reverse()),
+        (
+            "training width",
+            lambda value: value["protocol"]["arms"]["full_768"].__setitem__(
+                "selected_features", 512
+            ),
+        ),
+        (
+            "evaluation width",
+            lambda value: value["protocol"]["arms"]["sampled_512"].__setitem__(
+                "evaluation_features", 512
+            ),
+        ),
+        ("command order", lambda value: value["command_templates"]["trainer"].reverse()),
+        (
+            "launcher bypass",
+            lambda value: value["command_templates"]["trainer"].pop(3),
+        ),
+        (
+            "profiler bootstrap seed",
+            lambda value: value["command_templates"]["profiler"].__setitem__(-1, "768"),
+        ),
+        (
+            "pair inventory order",
+            lambda value: value["seed0_downstream"]["pair_inventory"]["inventory"].reverse(),
+        ),
+        (
+            "profile checkpoint",
+            lambda value: value["seed0_downstream"]["profiles"][0].__setitem__(
+                "checkpoint", value["seed0_downstream"]["profiles"][1]["checkpoint"]
+            ),
+        ),
+        (
+            "directory policy",
+            lambda value: value["registered_outputs"].__setitem__(
+                "directory_creation_policy", "create-anything"
+            ),
+        ),
+        ("attempt count", lambda value: value["attempts"].__setitem__("training_per_seed_arm", 2)),
+        (
+            "threshold",
+            lambda value: value["thresholds"]["confirmation"].__setitem__(
+                "mean_primary_map_delta", 0.0
+            ),
+        ),
+        (
+            "official path",
+            lambda value: value["paths"].__setitem__("output_root", "/dataset/query/result"),
+        ),
+    )
+    for _name, mutate in mutations:
+        candidate = copy.deepcopy(config)
+        mutate(candidate)
+        with pytest.raises((TypeError, ValueError), match="differ|forbidden"):
+            validate_config(candidate)
+
+
+def test_historical_protocol_validators_reject_full_width_protocol() -> None:
+    replication = _load_module(
+        ROOT / "scripts" / "evaluate_unicom_ema_imprint_replication.py",
+        "_historical_replication_for_full_width_test",
+    )
+    factorial = _load_module(
+        ROOT / "scripts" / "evaluate_unicom_ema_imprint_factorial.py",
+        "_historical_factorial_for_full_width_test",
+    )
+    protocol = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": SOURCE_FILES[0][1],
+        "unicom_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        "initial_checkpoint_sha256": (
+            "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+        ),
+        "partition_sha256": "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c",
+        "seed": 2,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 0.00001,
+        "classifier_learning_rate": 0.0001,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 768,
+        "evaluation_features": 768,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "classifier_init": "imprinted",
+        "ema_decay": 0.999,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+    }
+    with pytest.raises(ValueError, match="schema differs"):
+        replication.validate_training_protocol(protocol, seed=2, classifier_init="imprinted")
+    with pytest.raises(ValueError, match="schema differs"):
+        factorial.validate_training_protocol(protocol, classifier_init="imprinted")
+
+
+def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
+    config = strict_json(CONFIG_PATH)
+    templates = config["command_templates"]
+    schedule = config["run_schedule"]
+    assert type(templates) is dict and type(schedule) is list
+    trainer = _load_module(
+        ROOT / "scripts" / "train_unicom_inshop.py", "_full_width_config_trainer"
+    )
+    profiler = _load_module(
+        ROOT / "scripts" / "profile_unicom_training_step.py",
+        "_full_width_config_profiler",
+    )
+    comparator = _load_module(
+        ROOT / "scripts" / "compare_unicom_full_width_profiles.py",
+        "_full_width_config_comparator",
+    )
+    evaluator = _load_module(
+        ROOT / "scripts" / "evaluate_unicom_full_width_objective.py",
+        "_full_width_config_evaluator",
+    )
+    builder = _load_module(
+        ROOT / "scripts" / "build_unicom_full_width_pair_config.py",
+        "_full_width_pair_inventory_builder",
+    )
+    for seed_row in schedule:
+        for run in seed_row["runs"]:
+            arm = run["arm"]
+            selected = ARM_PROTOCOLS[arm][1]
+            command = _substitute(
+                templates["trainer"],
+                {
+                    "output_dir": run["output_dir"],
+                    "selected_features": selected,
+                    "seed": seed_row["seed"],
+                    "arm": arm,
+                    "receipt": run["receipt"],
+                },
+            )
+            parsed = trainer.parse_args(command[5:])
+            assert (
+                parsed.seed,
+                parsed.objective,
+                parsed.selected_features,
+                parsed.evaluation_features,
+                parsed.run_arm,
+            ) == (
+                seed_row["seed"],
+                "official-eight-mask",
+                selected,
+                768,
+                arm,
+            )
+
+    seed0 = config["seed0_downstream"]
+    profiles = seed0["profiles"]
+    profile_command = _substitute(
+        templates["profiler"],
+        {
+            "checkpoint": profiles[0]["checkpoint"],
+            "output": profiles[0]["output"],
+        },
+    )
+    profile_args = profiler.parse_args(profile_command[5:])
+    assert profile_args.measure_steps == 50
+    assert profile_args.bootstrap_seed == profiler.BOOTSTRAP_SEED == 20_016
+    comparison_command = _substitute(
+        templates["comparator"],
+        {
+            "profile_a": profiles[0]["output"],
+            "profile_b": profiles[1]["output"],
+            "profile_b_repeat": profiles[2]["output"],
+            "profile_a_repeat": profiles[3]["output"],
+            "control_receipt": schedule[0]["runs"][0]["receipt"],
+            "candidate_receipt": schedule[0]["runs"][1]["receipt"],
+            "output": seed0["profile_comparison"],
+        },
+    )
+    assert tuple(comparator.parse_args(comparison_command[5:]).profiles) == tuple(
+        Path(row["output"]) for row in profiles
+    )
+    pair_inventory = seed0["pair_inventory"]
+    evaluator_command = _substitute(
+        templates["pair_evaluator"],
+        {"pair_inventory": pair_inventory["path"], "output": seed0["pair_result"]},
+    )
+    assert evaluator.parse_args(evaluator_command[5:]).batch_size == 128
+
+    pair_values = {
+        "seed": 0,
+        "output": pair_inventory["path"],
+        **{
+            f"{row['arm']}_epoch_{row['epoch']}": row["path"]
+            for row in pair_inventory["inventory"]
+        },
+    }
+    builder_command = _substitute(templates["pair_inventory_builder"], pair_values)
+    builder_args = builder._parser().parse_args(builder_command[5:])
+    assert builder_args.seed == 0
+    assert builder_args.output == Path(pair_inventory["path"])
+    assert builder_args.checkpoint == [
+        [row["arm"], str(row["epoch"]), row["path"]]
+        for row in pair_inventory["inventory"]
+    ]
+
+
+def test_run_config_validates_in_a_fresh_isolated_process() -> None:
+    completed = subprocess.run(
+        [sys.executable, "-I", "-B", str(Path(__file__).resolve()), "--check-config"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout == "VALID\n"
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] != ["--check-config"]:
+        raise SystemExit(2)
+    validate_config(strict_json(CONFIG_PATH))
+    print("VALID")
