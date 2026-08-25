@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 import json
 import math
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -80,6 +82,10 @@ def _runtime() -> dict[str, object]:
         "sklearn_version": "1.7.2",
         "cuda_version": "12.8",
         "gpu_name": "NVIDIA A100-SXM4-80GB",
+        "cuda_available": True,
+        "cuda_device_count": 1,
+        "cuda_memory_allocated_bytes": 0,
+        "cuda_memory_reserved_bytes": 0,
         "deterministic_algorithms": True,
         "cudnn_benchmark": False,
         "cudnn_deterministic": True,
@@ -722,3 +728,124 @@ def test_canonical_json_bytes_are_utf8_sorted_only_by_insertion_order() -> None:
     payload = {"z": "λ", "a": 1}
     assert module.canonical_json_bytes(payload) == '{"z":"λ","a":1}\n'.encode()
     assert json.loads(module.canonical_json_bytes(payload)) == payload
+
+
+def test_cli_accepts_only_exact_config_argument(tmp_path: Path) -> None:
+    config = tmp_path / "run.json"
+    assert module.parse_args(["--config", str(config)]).config == config
+    with pytest.raises(SystemExit):
+        module.parse_args([])
+    with pytest.raises(SystemExit):
+        module.parse_args(["--config", str(config), "--output", "x"])
+
+
+def test_authenticated_parent_feature_module_loads_by_exact_git_bytes() -> None:
+    repo_root = SCRIPT.parents[1]
+    revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+    ).strip()
+    parent = repo_root / "scripts" / "screen_unicom_spherical_probe.py"
+    expected_sha256 = __import__("hashlib").sha256(parent.read_bytes()).hexdigest()
+
+    loaded = module.load_spherical_feature_module(
+        repo_root, revision, expected_sha256
+    )
+    try:
+        assert Path(loaded.__file__).resolve() == parent.resolve()
+        assert loaded._load_official_model.__module__ == module.PARENT_MODULE_NAME
+        assert loaded._encode_feature_sets.__module__ == module.PARENT_MODULE_NAME
+    finally:
+        sys.modules.pop(module.PARENT_MODULE_NAME, None)
+
+
+def test_parent_feature_loader_rejects_wrong_hash_symlink_and_preimport(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo_root = SCRIPT.parents[1]
+    revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+    ).strip()
+    parent = repo_root / "scripts" / "screen_unicom_spherical_probe.py"
+    expected_sha256 = __import__("hashlib").sha256(parent.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="SHA-256"):
+        module.load_spherical_feature_module(repo_root, revision, "0" * 64)
+    monkeypatch.setitem(sys.modules, module.PARENT_MODULE_NAME, object())
+    with pytest.raises(ValueError, match="before source authentication"):
+        module.load_spherical_feature_module(repo_root, revision, expected_sha256)
+    monkeypatch.delitem(sys.modules, module.PARENT_MODULE_NAME)
+    fake_root = tmp_path / "repo"
+    (fake_root / "scripts").mkdir(parents=True)
+    (fake_root / "scripts" / "screen_unicom_spherical_probe.py").symlink_to(parent)
+    with pytest.raises((FileNotFoundError, ValueError)):
+        module.load_spherical_feature_module(fake_root, revision, expected_sha256)
+
+
+def test_parent_feature_loader_works_under_isolated_python() -> None:
+    repo_root = SCRIPT.parents[1]
+    revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+    ).strip()
+    parent = repo_root / "scripts" / "screen_unicom_spherical_probe.py"
+    expected_sha256 = __import__("hashlib").sha256(parent.read_bytes()).hexdigest()
+    code = """
+import importlib.util, json, pathlib, sys
+runner_path, repo_root, revision, digest = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("isolated_proxy_runner", runner_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+loaded = module.load_spherical_feature_module(pathlib.Path(repo_root), revision, digest)
+print(json.dumps({
+    "file": str(pathlib.Path(loaded.__file__).resolve()),
+    "loader_module": loaded._load_official_model.__module__,
+    "encoder_module": loaded._encode_feature_sets.__module__,
+}))
+sys.modules.pop(module.PARENT_MODULE_NAME, None)
+"""
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            "-c",
+            code,
+            str(SCRIPT),
+            str(repo_root),
+            revision,
+            expected_sha256,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    evidence = json.loads(completed.stdout)
+    assert evidence == {
+        "file": str(parent.resolve()),
+        "loader_module": module.PARENT_MODULE_NAME,
+        "encoder_module": module.PARENT_MODULE_NAME,
+    }
+
+
+def test_training_only_partition_loader_never_opens_query_or_gallery(
+    tmp_path: Path,
+) -> None:
+    dataset = tmp_path / "dataset"
+    partition = dataset / "Eval" / "list_eval_partition.txt"
+    partition.parent.mkdir(parents=True)
+    train_image = dataset / "Img" / "img" / "train" / "a.jpg"
+    train_image.parent.mkdir(parents=True)
+    train_image.write_bytes(b"not-opened-image-bytes")
+    partition.write_text(
+        "3\n"
+        "image_name item_id evaluation_status\n"
+        "img/train/a.jpg id_1 train\n"
+        "img/query/poison.jpg id_2 query\n"
+        "img/gallery/poison.jpg id_3 gallery\n",
+        encoding="utf-8",
+    )
+
+    records = module.load_training_only_records(partition, dataset)
+
+    assert len(records) == 1
+    assert records[0].split == "train"
+    assert records[0].label == "id_1"
+    assert records[0].image_path == train_image

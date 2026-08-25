@@ -3,16 +3,22 @@
 
 from __future__ import annotations
 
+import argparse
 import ctypes
 import errno
+import hashlib
+import importlib.util
 import json
 import math
 import os
+import subprocess
+import sys
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import suppress
 from pathlib import Path
 from typing import NoReturn
 
+from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_proxy_muon import (
     LR_GRID,
     OPTIMIZERS,
@@ -29,6 +35,8 @@ from sfora.unicom_proxy_muon import (
 
 SCIENTIFIC_SCHEMA_VERSION = "unicom-proxy-muon-f0-v1"
 FAILURE_SCHEMA_VERSION = "unicom-proxy-muon-f0-failure-v1"
+RUN_CONFIG_SCHEMA_VERSION = "unicom-proxy-muon-f0-run-v1"
+PARENT_MODULE_NAME = "_sfora_proxy_muon_parent_features"
 PHASE2_VARIANTS = (
     "adamw_selected",
     "adamw_anchor",
@@ -89,6 +97,10 @@ RUNTIME_KEYS = (
     "sklearn_version",
     "cuda_version",
     "gpu_name",
+    "cuda_available",
+    "cuda_device_count",
+    "cuda_memory_allocated_bytes",
+    "cuda_memory_reserved_bytes",
     "deterministic_algorithms",
     "cudnn_benchmark",
     "cudnn_deterministic",
@@ -169,6 +181,52 @@ PROCESS_KEYS = (
     "completed_cells",
 )
 ERROR_KEYS = ("class", "message")
+CONFIG_TOP_KEYS = (
+    "schema_version",
+    "source",
+    "handoff",
+    "environment",
+    "inputs",
+    "parent",
+    "protocol",
+    "result",
+)
+CONFIG_SOURCE_KEYS = ("commit", "files")
+CONFIG_SOURCE_PATHS = (
+    "scripts/screen_unicom_proxy_muon_f0.py",
+    "src/sfora/unicom_proxy_muon.py",
+    "src/sfora/unicom_probe.py",
+    "src/sfora/unicom_training.py",
+    "src/sfora/unicom_inshop.py",
+    "scripts/screen_unicom_spherical_probe.py",
+)
+CONFIG_SOURCE_NAMES = SOURCE_HASH_KEYS
+CONFIG_FILE_KEYS = ("path", "sha256")
+CONFIG_HANDOFF_KEYS = ("parent_commit", "sole_path", "detached_clean")
+CONFIG_INPUT_KEYS = (
+    "unicom_checkout",
+    "unicom_revision",
+    "checkpoint",
+    "checkpoint_sha256",
+    "dataset_root",
+    "partition",
+    "partition_sha256",
+)
+CONFIG_PARENT_KEYS = (
+    "final_report",
+    "spherical_parent_result",
+    "cap_closure_receipt",
+    "parent_tensors",
+)
+CONFIG_PARENT_TENSOR_KEYS = (
+    "fitting_features",
+    "fitting_labels",
+    "validation_features",
+    "validation_labels",
+    "imprinted_head",
+)
+CONFIG_RESULT_KEYS = ("relative_path", "failure_relative_path")
+FILE_REFERENCE_KEYS = ("path", "sha256")
 
 
 def _reject_constant(value: str) -> NoReturn:
@@ -207,6 +265,421 @@ def canonical_json_bytes(payload: object) -> bytes:
         ).encode("utf-8")
         + b"\n"
     )
+
+
+def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", required=True, type=Path)
+    return parser.parse_args(arguments)
+
+
+def load_run_config(path: Path) -> dict[str, object]:
+    if not isinstance(path, Path) or not path.is_file() or path.is_symlink():
+        raise FileNotFoundError("ProxyMuon run config differs")
+    config = strict_json_object(path.read_bytes())
+    _validate_run_config(config)
+    return config
+
+
+def _relative_path(value: object, name: str) -> str:
+    text = _string(value, name)
+    path = Path(text)
+    if path.is_absolute() or ".." in path.parts or path == Path("."):
+        raise ValueError(f"{name} must be a safe relative path")
+    return text
+
+
+def _file_reference(value: object, name: str) -> dict[str, object]:
+    reference = _object(value, FILE_REFERENCE_KEYS, name)
+    _string(reference["path"], f"{name}.path")
+    _sha256(reference["sha256"], f"{name}.sha256")
+    return reference
+
+
+def _validate_run_config(value: object) -> dict[str, object]:
+    config = _object(value, CONFIG_TOP_KEYS, "run config")
+    if (
+        type(config["schema_version"]) is not str
+        or config["schema_version"] != RUN_CONFIG_SCHEMA_VERSION
+    ):
+        raise ValueError("ProxyMuon run config version differs")
+    source = _object(config["source"], CONFIG_SOURCE_KEYS, "run config source")
+    _commit(source["commit"], "run config source commit")
+    files = _list(source["files"], "run config source files")
+    if len(files) != len(CONFIG_SOURCE_PATHS):
+        raise ValueError("run config source file count differs")
+    for raw, expected_path in zip(files, CONFIG_SOURCE_PATHS, strict=True):
+        reference = _object(raw, CONFIG_FILE_KEYS, "run config source file")
+        if type(reference["path"]) is not str or reference["path"] != expected_path:
+            raise ValueError("run config source file order differs")
+        _sha256(reference["sha256"], "run config source file SHA-256")
+    handoff = _object(config["handoff"], CONFIG_HANDOFF_KEYS, "run config handoff")
+    if (
+        _commit(handoff["parent_commit"], "run config parent commit")
+        != source["commit"]
+        or _relative_path(handoff["sole_path"], "run config sole path")
+        != "docs/unicom_proxy_muon_f0_run_config.json"
+        or handoff["detached_clean"] is not True
+    ):
+        raise ValueError("run config handoff differs")
+    _validate_runtime(config["environment"])
+    inputs = _object(config["inputs"], CONFIG_INPUT_KEYS, "run config inputs")
+    for key in ("unicom_checkout", "checkpoint", "dataset_root", "partition"):
+        _string(inputs[key], f"run config inputs.{key}")
+    _commit(inputs["unicom_revision"], "run config UniCOM revision")
+    _sha256(inputs["checkpoint_sha256"], "run config checkpoint SHA-256")
+    _sha256(inputs["partition_sha256"], "run config partition SHA-256")
+    parent = _object(config["parent"], CONFIG_PARENT_KEYS, "run config parent")
+    for key in CONFIG_PARENT_KEYS[:3]:
+        _file_reference(parent[key], f"run config parent.{key}")
+    tensors = _object(
+        parent["parent_tensors"],
+        CONFIG_PARENT_TENSOR_KEYS,
+        "run config parent tensors",
+    )
+    for key in CONFIG_PARENT_TENSOR_KEYS:
+        _file_reference(tensors[key], f"run config parent tensor.{key}")
+    _validate_protocol(config["protocol"])
+    result = _object(config["result"], CONFIG_RESULT_KEYS, "run config result")
+    output = _relative_path(result["relative_path"], "run config result path")
+    failure = _relative_path(
+        result["failure_relative_path"], "run config failure path"
+    )
+    if output == failure:
+        raise ValueError("run config result paths differ")
+    return config
+
+
+def _git_bytes(repo_root: Path, revision: str, relative_path: str) -> bytes:
+    try:
+        return subprocess.check_output(
+            ["git", "show", f"{revision}:{relative_path}"],
+            cwd=repo_root,
+            stderr=subprocess.DEVNULL,
+        )
+    except subprocess.CalledProcessError as error:
+        raise ValueError(f"Git source differs: {relative_path}") from error
+
+
+def load_spherical_feature_module(
+    repo_root: Path, expected_git_revision: str, expected_sha256: str
+) -> object:
+    if not isinstance(repo_root, Path) or not repo_root.is_dir() or repo_root.is_symlink():
+        raise FileNotFoundError("repository root differs")
+    _commit(expected_git_revision, "parent feature Git revision")
+    _sha256(expected_sha256, "parent feature SHA-256")
+    source = repo_root / "scripts" / "screen_unicom_spherical_probe.py"
+    if (
+        not source.is_file()
+        or source.is_symlink()
+        or source.resolve().parent != (repo_root / "scripts").resolve()
+    ):
+        raise FileNotFoundError("parent feature source differs")
+    if PARENT_MODULE_NAME in sys.modules:
+        raise ValueError("parent feature module imported before source authentication")
+    worktree_digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    git_digest = hashlib.sha256(
+        _git_bytes(
+            repo_root,
+            expected_git_revision,
+            "scripts/screen_unicom_spherical_probe.py",
+        )
+    ).hexdigest()
+    if worktree_digest != expected_sha256 or git_digest != expected_sha256:
+        raise ValueError("parent feature SHA-256 differs")
+    spec = importlib.util.spec_from_file_location(PARENT_MODULE_NAME, source)
+    if spec is None or spec.loader is None:
+        raise ImportError("parent feature loader differs")
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[PARENT_MODULE_NAME] = loaded
+    try:
+        spec.loader.exec_module(loaded)
+        if (
+            Path(loaded.__file__).resolve() != source.resolve()
+            or loaded._load_official_model.__module__ != PARENT_MODULE_NAME
+            or loaded._encode_feature_sets.__module__ != PARENT_MODULE_NAME
+        ):
+            raise ValueError("parent feature callable differs")
+        return loaded
+    except BaseException:
+        sys.modules.pop(PARENT_MODULE_NAME, None)
+        raise
+
+
+def load_training_only_records(
+    partition: Path, dataset_root: Path
+) -> tuple[InshopRecord, ...]:
+    if (
+        not isinstance(partition, Path)
+        or not isinstance(dataset_root, Path)
+        or not partition.is_file()
+        or partition.is_symlink()
+        or not dataset_root.is_dir()
+        or dataset_root.is_symlink()
+        or partition.resolve()
+        != (dataset_root / "Eval" / "list_eval_partition.txt").resolve()
+    ):
+        raise FileNotFoundError("In-Shop training partition differs")
+    lines = partition.read_text(encoding="utf-8").splitlines()
+    if len(lines) < 3:
+        raise ValueError("In-Shop partition is truncated")
+    try:
+        declared = int(lines[0].strip())
+    except ValueError as error:
+        raise ValueError("In-Shop partition count is invalid") from error
+    if lines[1].split() != ["image_name", "item_id", "evaluation_status"]:
+        raise ValueError("In-Shop partition header differs")
+    records: list[InshopRecord] = []
+    for line_number, line in enumerate(lines[2:], start=3):
+        fields = line.split()
+        if len(fields) != 3 or fields[2] not in ("train", "query", "gallery"):
+            raise ValueError(f"In-Shop partition row {line_number} differs")
+        image_name, label, split = fields
+        if not image_name or not label:
+            raise ValueError(f"In-Shop partition row {line_number} differs")
+        if split != "train":
+            continue
+        image_path = dataset_root / "Img" / image_name
+        if not image_path.is_file() or image_path.is_symlink():
+            raise ValueError(f"In-Shop train image differs: {image_path}")
+        records.append(InshopRecord(split="train", image_path=image_path, label=label))
+    if len(lines) - 2 != declared:
+        raise ValueError("In-Shop partition declared count differs")
+    if not records:
+        raise ValueError("In-Shop training inventory is empty")
+    return tuple(records)
+
+
+def authenticate_source_and_inputs(
+    config: Mapping[str, object], repo_root: Path
+) -> dict[str, object]:
+    if type(config) is not dict or not isinstance(repo_root, Path):
+        raise TypeError("ProxyMuon authority arguments differ")
+    validated = _validate_run_config(config)
+    if (
+        not repo_root.is_dir()
+        or repo_root.is_symlink()
+        or Path(
+            subprocess.check_output(
+                ["git", "rev-parse", "--show-toplevel"], cwd=repo_root, text=True
+            ).strip()
+        ).resolve()
+        != repo_root.resolve()
+    ):
+        raise ValueError("ProxyMuon repository root differs")
+    head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo_root, text=True
+    ).strip()
+    source_commit = validated["source"]["commit"]
+    parent = subprocess.check_output(
+        ["git", "rev-parse", "HEAD^"], cwd=repo_root, text=True
+    ).strip()
+    symbolic = subprocess.run(
+        ["git", "symbolic-ref", "-q", "HEAD"],
+        cwd=repo_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if head == source_commit or parent != source_commit or symbolic.returncode == 0:
+        raise ValueError("ProxyMuon detached handoff differs")
+    sole_path = validated["handoff"]["sole_path"]
+    changed = subprocess.check_output(
+        ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"],
+        cwd=repo_root,
+        text=True,
+    ).splitlines()
+    if changed != [sole_path]:
+        raise ValueError("ProxyMuon handoff scope differs")
+    if subprocess.check_output(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        cwd=repo_root,
+        text=True,
+    ):
+        raise ValueError("ProxyMuon checkout is dirty")
+    config_path = repo_root / sole_path
+    if (
+        not config_path.is_file()
+        or config_path.is_symlink()
+        or not _same_concrete(strict_json_object(config_path.read_bytes()), validated)
+    ):
+        raise ValueError("ProxyMuon committed config differs")
+
+    source_hashes: dict[str, str] = {}
+    source_identities: set[tuple[int, int]] = set()
+    for name, expected_path, raw in zip(
+        CONFIG_SOURCE_NAMES,
+        CONFIG_SOURCE_PATHS,
+        validated["source"]["files"],
+        strict=True,
+    ):
+        expected_digest = raw["sha256"]
+        worktree_path = repo_root / expected_path
+        if not worktree_path.is_file() or worktree_path.is_symlink():
+            raise FileNotFoundError(f"ProxyMuon source differs: {expected_path}")
+        identity = (worktree_path.stat().st_dev, worktree_path.stat().st_ino)
+        if identity in source_identities:
+            raise ValueError(f"ProxyMuon source alias differs: {expected_path}")
+        source_identities.add(identity)
+        if (
+            hashlib.sha256(worktree_path.read_bytes()).hexdigest() != expected_digest
+            or hashlib.sha256(
+                _git_bytes(repo_root, source_commit, expected_path)
+            ).hexdigest()
+            != expected_digest
+        ):
+            raise ValueError(f"ProxyMuon source SHA-256 differs: {expected_path}")
+        source_hashes[name] = expected_digest
+
+    inputs = validated["inputs"]
+    unicom_checkout = Path(inputs["unicom_checkout"])
+    dataset_root = Path(inputs["dataset_root"])
+    checkpoint = Path(inputs["checkpoint"])
+    partition = Path(inputs["partition"])
+    for directory, name in (
+        (unicom_checkout, "UniCOM checkout"),
+        (dataset_root, "dataset root"),
+    ):
+        if not directory.is_dir() or directory.is_symlink():
+            raise FileNotFoundError(f"{name} differs")
+    unicom_revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=unicom_checkout, text=True
+    ).strip()
+    if (
+        unicom_revision != inputs["unicom_revision"]
+        or subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=unicom_checkout,
+            text=True,
+        )
+    ):
+        raise ValueError("UniCOM revision differs")
+    if partition.resolve() != (
+        dataset_root / "Eval" / "list_eval_partition.txt"
+    ).resolve():
+        raise ValueError("In-Shop partition path differs")
+    external_identities: set[tuple[int, int]] = set()
+    for path, digest, name in (
+        (checkpoint, inputs["checkpoint_sha256"], "checkpoint"),
+        (partition, inputs["partition_sha256"], "partition"),
+    ):
+        if (
+            not path.is_file()
+            or path.is_symlink()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != digest
+        ):
+            raise ValueError(f"ProxyMuon {name} differs")
+        identity = (path.stat().st_dev, path.stat().st_ino)
+        if identity in external_identities:
+            raise ValueError(f"ProxyMuon {name} alias differs")
+        external_identities.add(identity)
+
+    input_hashes = {
+        "run_config": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+        "final_report": "",
+        "spherical_parent_result": "",
+        "cap_closure_receipt": "",
+        "checkpoint": inputs["checkpoint_sha256"],
+        "partition": inputs["partition_sha256"],
+        "fitting_features": "",
+        "fitting_labels": "",
+        "validation_features": "",
+        "validation_labels": "",
+        "imprinted_head": "",
+    }
+    parent_config = validated["parent"]
+    for config_name, authority_name in (
+        ("final_report", "final_report"),
+        ("spherical_parent_result", "spherical_parent_result"),
+        ("cap_closure_receipt", "cap_closure_receipt"),
+    ):
+        reference = parent_config[config_name]
+        path = Path(reference["path"])
+        if (
+            not path.is_file()
+            or path.is_symlink()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != reference["sha256"]
+        ):
+            raise ValueError(f"ProxyMuon parent {config_name} differs")
+        identity = (path.stat().st_dev, path.stat().st_ino)
+        if identity in external_identities:
+            raise ValueError(f"ProxyMuon parent {config_name} alias differs")
+        external_identities.add(identity)
+        input_hashes[authority_name] = reference["sha256"]
+    for name, reference in parent_config["parent_tensors"].items():
+        path = Path(reference["path"])
+        if (
+            not path.is_file()
+            or path.is_symlink()
+            or hashlib.sha256(path.read_bytes()).hexdigest() != reference["sha256"]
+        ):
+            raise ValueError(f"ProxyMuon parent tensor {name} differs")
+        identity = (path.stat().st_dev, path.stat().st_ino)
+        if identity in external_identities:
+            raise ValueError(f"ProxyMuon parent tensor {name} alias differs")
+        external_identities.add(identity)
+        input_hashes[name] = reference["sha256"]
+    for key in INPUT_HASH_KEYS:
+        _sha256(input_hashes[key], f"authenticated input.{key}")
+    for relative in validated["result"].values():
+        path = repo_root / relative
+        temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}")
+        if path.exists() or path.is_symlink() or temporary.exists() or temporary.is_symlink():
+            raise FileExistsError(path)
+    authority = {
+        "source_commit": source_commit,
+        "handoff_commit": head,
+        "sources": source_hashes,
+        "inputs": input_hashes,
+    }
+    _validate_authority(authority)
+    return authority
+
+
+def observe_runtime() -> dict[str, object]:
+    import numpy as np
+    import sklearn
+    import torch
+
+    cuda_available = torch.cuda.is_available()
+    return {
+        "python_version": ".".join(map(str, sys.version_info[:3])),
+        "torch_version": str(torch.__version__),
+        "numpy_version": str(np.__version__),
+        "sklearn_version": str(sklearn.__version__),
+        "cuda_version": str(torch.version.cuda),
+        "gpu_name": torch.cuda.get_device_name(0) if cuda_available else "unavailable",
+        "cuda_available": cuda_available,
+        "cuda_device_count": torch.cuda.device_count(),
+        "cuda_memory_allocated_bytes": (
+            torch.cuda.memory_allocated(0) if cuda_available else 0
+        ),
+        "cuda_memory_reserved_bytes": (
+            torch.cuda.memory_reserved(0) if cuda_available else 0
+        ),
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+        "cudnn_benchmark": torch.backends.cudnn.benchmark,
+        "cudnn_deterministic": torch.backends.cudnn.deterministic,
+        "muon_signature": str(__import__("inspect").signature(torch.optim.Muon)),
+        "observed_update_dtype": "torch.bfloat16",
+    }
+
+
+def validate_observed_runtime(
+    expected: object, observed: object
+) -> dict[str, object]:
+    _validate_runtime(expected)
+    runtime = _validate_runtime(observed)
+    if not _same_concrete(runtime, expected):
+        raise ValueError("observed runtime differs")
+    if (
+        runtime["cuda_available"] is not True
+        or runtime["cuda_device_count"] != 1
+        or runtime["cuda_memory_allocated_bytes"] != 0
+        or runtime["cuda_memory_reserved_bytes"] != 0
+    ):
+        raise ValueError("observed CUDA device is not exclusively idle")
+    return runtime
 
 
 def _object(value: object, keys: tuple[str, ...], name: str) -> dict[str, object]:
@@ -286,16 +759,32 @@ def _validate_authority(value: object) -> None:
     _validate_named_hashes(authority["inputs"], INPUT_HASH_KEYS, "authority.inputs")
 
 
-def _validate_runtime(value: object) -> None:
+def _validate_runtime(value: object) -> dict[str, object]:
     runtime = _object(value, RUNTIME_KEYS, "runtime")
     for key in RUNTIME_KEYS[:6]:
         _string(runtime[key], f"runtime.{key}")
-    for key in RUNTIME_KEYS[6:9]:
+    if type(runtime["cuda_available"]) is not bool:
+        raise TypeError("runtime.cuda_available must be a bool")
+    _integer(runtime["cuda_device_count"], "runtime.cuda_device_count")
+    _integer(
+        runtime["cuda_memory_allocated_bytes"],
+        "runtime.cuda_memory_allocated_bytes",
+    )
+    _integer(
+        runtime["cuda_memory_reserved_bytes"],
+        "runtime.cuda_memory_reserved_bytes",
+    )
+    for key in (
+        "deterministic_algorithms",
+        "cudnn_benchmark",
+        "cudnn_deterministic",
+    ):
         if type(runtime[key]) is not bool:
             raise TypeError(f"runtime.{key} must be a bool")
     _string(runtime["muon_signature"], "runtime.muon_signature")
     if runtime["observed_update_dtype"] != "torch.bfloat16":
         raise ValueError("runtime observed update dtype differs")
+    return runtime
 
 
 def _validate_protocol(value: object) -> None:
