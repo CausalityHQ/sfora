@@ -98,9 +98,15 @@ print(json.dumps({'src':str(src),'origin':str(Path(loaded.__file__).resolve())})
     assert Path(observed["origin"]) == (ROOT / "src" / "sfora" / "unicom_training.py").resolve()
 
 
-def test_launcher_preserves_target_exception_and_traceback(tmp_path: Path) -> None:
+def test_launcher_preserves_target_exception_and_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     module = _load_module()
     target = ROOT / "scripts" / "profile_unicom_training_step.py"
+
+    for name in tuple(sys.modules):
+        if name == "sfora" or name.startswith("sfora."):
+            monkeypatch.delitem(sys.modules, name)
 
     def explode(_path: str, *, run_name: str) -> None:
         assert run_name == "__main__"
