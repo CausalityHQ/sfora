@@ -13,9 +13,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "bf17e15dd004a19b23b8cbc80cac3ec09822189c"
-CONFIG_COMMIT = "2d8b33484541db330fe5a6a973c97cd3b6fa94e6"
-CONFIG_SHA256 = "e6ab3c4b2c90148d2f6fd6e4a5345a28b6ce869848d713a95785c4e68cafccb3"
+SOURCE_COMMIT = "f76cd832e84c06b64c63a4ac728017123928b96c"
+CONFIG_COMMIT = "c20464366d25827c42c9bec3120c6dc1d49ae0a9"
+CONFIG_SHA256 = "edc8565e7e2560a214f62e651e5b681e43434c3af76e25f9aeebb69155b795aa"
 TRAINING_SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
 TRAINING_CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
 TRAINING_CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
@@ -42,7 +42,7 @@ SOURCE_FILES = (
     ),
     (
         "scripts/decide_unicom_full_width_objective.py",
-        "c551ce328cb52115b9ecfdbf23dd5b6bef9c1f9cf5c36104b9367b132106cb4c",
+        "3d35af353253a03d5cd6cde6b4085c3c16d7f9c80024f2af291f77eb3408c977",
     ),
     (
         "scripts/run_unicom_from_checkout.py",
@@ -82,7 +82,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_decide_unicom_full_width_objective.py",
-        "b02ab10ea54f63aee43aef2badfd0ee0ea4f2b4bcab79181ad89ecfaee542a0c",
+        "8c1bda811eda51a71bf34a8d925f5d3acba9a213ea099d41fb80e9ee44a21bbb",
     ),
     (
         "tests/test_run_unicom_from_checkout.py",
@@ -94,7 +94,7 @@ SOURCE_FILES = (
     ),
     (
         "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
-        "8011d6aaf7bba8f86355579b0516122c6f199917b882cca5398003975b67652e",
+        "248c4877a7e3ce1600c74c71f7ea049ff88b33a374b4fc912db7e66b5757c51b",
     ),
 )
 SEEDS = (0, 2, 3, 4, 5, 6)
@@ -127,6 +127,19 @@ TOP_KEYS = (
     "registered_outputs",
     "forbidden_evidence",
 )
+HISTORICALLY_FROZEN_KEYS = (
+    "schema_version",
+    "environment",
+    "inputs",
+    "protocol",
+    "paths",
+    "command_templates",
+    "run_schedule",
+    "seed0_downstream",
+    "thresholds",
+    "registered_outputs",
+    "forbidden_evidence",
+)
 def _reject_constant(value: str) -> None:
     raise ValueError(f"nonfinite JSON constant: {value}")
 
@@ -149,6 +162,47 @@ def strict_json(path: Path) -> dict[str, object]:
     if type(value) is not dict:
         raise TypeError("run config must be a JSON object")
     return value
+
+
+def _validate_historical_scientific_delta(
+    current: object, historical: object
+) -> None:
+    if type(current) is not dict or type(historical) is not dict:
+        raise TypeError("historical scientific fields differ")
+    if any(current.get(key) != historical.get(key) for key in HISTORICALLY_FROZEN_KEYS):
+        raise ValueError("historical scientific fields differ")
+
+
+def test_historical_training_config_preserves_all_scientific_fields() -> None:
+    assert set(TOP_KEYS) - set(HISTORICALLY_FROZEN_KEYS) == {
+        "source",
+        "training_receipt_authority",
+        "handoff",
+        "attempts",
+    }
+    current = strict_json(CONFIG_PATH)
+    historical = json.loads(
+        _git_blob(
+            "docs/unicom_full_width_objective_run_config.json",
+            commit=TRAINING_CONFIG_COMMIT,
+        ),
+        object_pairs_hook=_pairs,
+        parse_constant=_reject_constant,
+    )
+
+    _validate_historical_scientific_delta(current, historical)
+    drifted = copy.deepcopy(historical)
+    drifted["thresholds"]["selection"]["seed0_map_delta"] = 0.0
+    with pytest.raises(ValueError, match="historical scientific fields differ"):
+        _validate_historical_scientific_delta(current, drifted)
+
+
+def test_section_validators_run_before_historical_delta_guard() -> None:
+    candidate = strict_json(CONFIG_PATH)
+    candidate["environment"]["python"] = "3.12.3"
+
+    with pytest.raises(ValueError, match="environment differs"):
+        validate_config(candidate)
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -433,6 +487,11 @@ def validate_config(config: object) -> None:
         or _sha256_bytes(historical_config) != TRAINING_CONFIG_SHA256
     ):
         raise ValueError("historical training config differs")
+    historical_value = json.loads(
+        historical_config,
+        object_pairs_hook=_pairs,
+        parse_constant=_reject_constant,
+    )
 
     handoff = _assert_exact_mapping(
         config["handoff"],
@@ -804,6 +863,7 @@ def validate_config(config: object) -> None:
     for key in forbidden["candidate_outcome_fields"]:
         if key in observed_keys:
             raise ValueError("candidate outcome field is forbidden")
+    _validate_historical_scientific_delta(config, historical_value)
 
 
 def _load_module(path: Path, name: str):
