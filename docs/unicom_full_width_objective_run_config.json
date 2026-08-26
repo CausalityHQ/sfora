@@ -1,7 +1,7 @@
 {
   "schema_version": "unicom-full-width-objective-run-v2",
   "source": {
-    "commit": "491e90233bf79069b203ca1e99158d2522ad2646",
+    "commit": "bf17e15dd004a19b23b8cbc80cac3ec09822189c",
     "files": [
       {
         "path": "scripts/train_unicom_inshop.py",
@@ -25,7 +25,7 @@
       },
       {
         "path": "scripts/decide_unicom_full_width_objective.py",
-        "sha256": "886fc29da335956d178b85005badafea2b107dc6d17cb34a673ab71a7b383254"
+        "sha256": "c551ce328cb52115b9ecfdbf23dd5b6bef9c1f9cf5c36104b9367b132106cb4c"
       },
       {
         "path": "scripts/run_unicom_from_checkout.py",
@@ -65,7 +65,7 @@
       },
       {
         "path": "tests/test_decide_unicom_full_width_objective.py",
-        "sha256": "f74002a271b09631274b22e129540fe514e07f9c12a31f35e632853302b97a4f"
+        "sha256": "b02ab10ea54f63aee43aef2badfd0ee0ea4f2b4bcab79181ad89ecfaee542a0c"
       },
       {
         "path": "tests/test_run_unicom_from_checkout.py",
@@ -77,12 +77,17 @@
       },
       {
         "path": "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
-        "sha256": "53da706cd3460dbd0f7961e96b37e7b5ff5955bb1949ed54902ec654f666ed53"
+        "sha256": "8011d6aaf7bba8f86355579b0516122c6f199917b882cca5398003975b67652e"
       }
     ]
   },
+  "training_receipt_authority": {
+    "source_commit": "b5d80446cdac5814bf868bbf18673ce076ccf68f",
+    "config_commit": "427a71a7854f019dba0971b3edfe8633e3d43b23",
+    "config_sha256": "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
+  },
   "handoff": {
-    "config_parent": "491e90233bf79069b203ca1e99158d2522ad2646",
+    "config_parent": "bf17e15dd004a19b23b8cbc80cac3ec09822189c",
     "config_commit_paths": [
       "docs/unicom_full_width_objective_run_config.json"
     ],
@@ -650,6 +655,7 @@
     "profile_repair_exception": "one-observed-position-1-prepublication-scheduler-exhaustion-failure-is-nonconsuming-only-when-no-timing-sample-output-or-temp-exists; restart-entire-abba-on-refrozen-handoff",
     "pair_evaluator_per_seed": 1,
     "decision_per_seed": 1,
+    "decision_repair_exception": "one-observed-seed-0-prepublication-training-authority-mismatch-is-nonconsuming-only-when-no-decision-output-or-temp-exists; reuse-only-the-validated-pair-and-abba-artifacts-on-refrozen-handoff",
     "rerun_after_finite_gate": false
   },
   "registered_outputs": {
