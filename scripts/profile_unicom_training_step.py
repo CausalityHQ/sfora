@@ -583,13 +583,29 @@ def _event_timing_row(wall: float, boundaries: Sequence[object]) -> dict[str, fl
     return _timing_row(wall, component_spans, cuda_step)
 
 
+def _step_replay_scheduler(scheduler: object) -> None:
+    if scheduler.last_epoch == scheduler.total_steps:
+        return
+    scheduler.step()
+
+
+def _optimizer_step(state: dict[str, Any]) -> None:
+    optimizer = state["optimizer"]
+    scaler = state["scaler"]
+    if scaler is None:
+        optimizer.step()
+    else:
+        scaler.step(optimizer)
+        scaler.update()
+    _step_replay_scheduler(state["scheduler"])
+
+
 def _training_step(state: dict[str, Any], batch, *, measured: bool) -> dict[str, float] | None:
     import torch
 
     protocol = state["protocol"]
     train_model = state["train_model"]
     optimizer = state["optimizer"]
-    scheduler = state["scheduler"]
     scaler = state["scaler"]
     device = state["device"]
     boundaries = [_cuda_event(torch) for _ in range(len(COMPONENT_KEYS) + 1)]
@@ -632,12 +648,7 @@ def _training_step(state: dict[str, Any], batch, *, measured: bool) -> dict[str,
     if not head_boundary_recorded:
         raise RuntimeError("embedding-gradient boundary was not observed")
     boundaries[6].record()
-    if scaler is None:
-        optimizer.step()
-    else:
-        scaler.step(optimizer)
-        scaler.update()
-    scheduler.step()
+    _optimizer_step(state)
     boundaries[7].record()
     float(loss.detach())
     boundaries[8].record()

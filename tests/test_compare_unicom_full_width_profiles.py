@@ -283,7 +283,14 @@ def test_compare_abba_binds_order_provenance_samples_and_position_adjusted_ratio
 
 @pytest.mark.parametrize(
     "mutation",
-    ("checkpoint_binding", "duplicate_profile", "runtime", "sample_count"),
+    (
+        "checkpoint_binding",
+        "duplicate_profile",
+        "runtime",
+        "sample_count",
+        "profiler_source",
+        "objective_source",
+    ),
 )
 def test_compare_abba_rejects_order_provenance_and_sample_drift(
     tmp_path: Path, mutation: str
@@ -299,9 +306,13 @@ def test_compare_abba_rejects_order_provenance_and_sample_drift(
         value = json.loads(receipt_paths[2].read_text())
         value["runtime"]["torch"] = "different"
         _write(receipt_paths[2], value)
-    else:
+    elif mutation == "sample_count":
         value = json.loads(profile_paths[2].read_text())
         value["timing_samples"].pop()
+        _write(profile_paths[2], value)
+    else:
+        value = json.loads(profile_paths[2].read_text())
+        value[f"{mutation.removesuffix('_source')}_sha256"] = "9" * 64
         _write(profile_paths[2], value)
 
     with pytest.raises((TypeError, ValueError)):

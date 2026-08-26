@@ -295,6 +295,90 @@ def test_cli_defaults_freeze_replay_counts_and_require_one_checkpoint(tmp_path: 
         MODULE._validate_counts(args)
 
 
+def test_replay_scheduler_step_keeps_exhausted_onecycle_at_terminal_state() -> None:
+    import torch
+
+    parameters = (torch.nn.Parameter(torch.tensor(1.0)), torch.nn.Parameter(torch.tensor(2.0)))
+    optimizer = torch.optim.SGD(
+        ({"params": (parameters[0],), "lr": 1e-5}, {"params": (parameters[1],), "lr": 1e-4})
+    )
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=[1e-5, 1e-4],
+        total_steps=2_576,
+        pct_start=0.1,
+    )
+    for _ in range(2_576):
+        optimizer.step()
+        scheduler.step()
+    optimizer_state = optimizer.state_dict()
+    scheduler_state = scheduler.state_dict()
+
+    restored_parameters = (
+        torch.nn.Parameter(torch.tensor(1.0)),
+        torch.nn.Parameter(torch.tensor(2.0)),
+    )
+    restored_optimizer = torch.optim.SGD(
+        (
+            {"params": (restored_parameters[0],), "lr": 1e-5},
+            {"params": (restored_parameters[1],), "lr": 1e-4},
+        )
+    )
+    restored_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        restored_optimizer,
+        max_lr=[1e-5, 1e-4],
+        total_steps=2_576,
+        pct_start=0.1,
+    )
+    restored_optimizer.load_state_dict(optimizer_state)
+    restored_scheduler.load_state_dict(scheduler_state)
+    terminal_epoch = restored_scheduler.last_epoch
+    terminal_lrs = tuple(restored_scheduler.get_last_lr())
+
+    for _ in range(70):
+        MODULE._step_replay_scheduler(restored_scheduler)
+
+    assert terminal_epoch == restored_scheduler.total_steps == restored_scheduler.last_epoch
+    assert tuple(restored_scheduler.get_last_lr()) == terminal_lrs
+
+
+def test_replay_scheduler_step_advances_nonterminal_onecycle() -> None:
+    import torch
+
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    optimizer = torch.optim.SGD((parameter,), lr=0.1)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=0.1,
+        total_steps=3,
+    )
+
+    optimizer.step()
+    MODULE._step_replay_scheduler(scheduler)
+
+    assert scheduler.last_epoch == 1
+
+
+def test_optimizer_step_updates_parameters_with_exhausted_replay_scheduler() -> None:
+    import torch
+
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    optimizer = torch.optim.SGD((parameter,), lr=0.1)
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer,
+        max_lr=0.1,
+        total_steps=1,
+    )
+    optimizer.step()
+    scheduler.step()
+    parameter.grad = torch.tensor(1.0)
+
+    MODULE._optimizer_step({"optimizer": optimizer, "scheduler": scheduler, "scaler": None})
+
+    assert parameter.item() < 1.0
+    assert scheduler.last_epoch == scheduler.total_steps == 1
+
+
 def test_atomic_writer_roundtrips_and_never_clobbers(tmp_path: Path) -> None:
     destination = tmp_path / "nested" / "profile.json"
     payload = {"schema_version": "test", "value": 1.25}

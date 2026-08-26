@@ -247,12 +247,16 @@ def compare_abba(
     source_commits = {receipt["source_commit"] for receipt in receipts}
     config_hashes = {receipt["config_sha256"] for receipt in receipts}
     trainer_hashes = {receipt["trainer_sha256"] for receipt in receipts}
+    profiler_hashes = {profile["profiler_sha256"] for profile in profiles}
+    objective_hashes = {profile["objective_sha256"] for profile in profiles}
     receipt_runtimes = {json.dumps(receipt["runtime"], sort_keys=True) for receipt in receipts}
     profile_runtimes = {json.dumps(profile["runtime"], sort_keys=True) for profile in profiles}
     if (
         len(source_commits) != 1
         or len(config_hashes) != 1
         or len(trainer_hashes) != 1
+        or len(profiler_hashes) != 1
+        or len(objective_hashes) != 1
         or len(receipt_runtimes) != 1
         or len(profile_runtimes) != 1
         or any(profile["trainer_sha256"] not in trainer_hashes for profile in profiles)
