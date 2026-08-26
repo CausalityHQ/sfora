@@ -43,11 +43,17 @@ claim the source and config under which training actually ran. The repaired
 decision contract therefore carries a separate `training_receipt_authority`
 binding: the original detached config commit, its source parent, and its exact
 config SHA-256. The decision cross-binds both training receipts and the profile
-comparison to that historical training authority, while `source` and the
-config-only handoff continue to authenticate the newer profiler/decision
-implementation. No receipt, profile, quality value, timing value, or threshold
-is changed, and the failed decision launch published no output or temporary
-sibling.
+comparison to that historical training authority. At decision launch, the
+producer independently authenticates the historical config commit's sole edge,
+source parent, exact config bytes, and embedded source binding. It also
+authenticates the executing checkout as the exact detached, clean, config-only
+handoff for the newer profiler/decision implementation. This replaces the
+incorrect requirement that historical training receipts carry the current
+run-config digest; the current config digest is instead recorded in the
+decision input binding. All scientific fields shared with the training config
+remain exactly equal. No receipt, profile, quality value, timing value, or
+threshold is changed, and the failed decision launch published no output or
+temporary sibling.
 
 ## Retry and interpretation
 

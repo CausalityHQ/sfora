@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -23,6 +24,79 @@ def _load_script():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def _git(repo: Path, *arguments: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def test_decision_handoff_authenticates_current_and_historical_configs(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _git(repo, "config", "user.email", "tests@example.invalid")
+    _git(repo, "config", "user.name", "Tests")
+    (repo / "source.txt").write_text("training source\n", encoding="utf-8")
+    _git(repo, "add", "source.txt")
+    _git(repo, "commit", "-qm", "training source")
+    training_source = _git(repo, "rev-parse", "HEAD")
+    config_path = repo / "docs" / "run.json"
+    config_path.parent.mkdir()
+    historical = {
+        "source": {"commit": training_source},
+        "handoff": {
+            "config_parent": training_source,
+            "config_commit_paths": ["docs/run.json"],
+            "execution_checkout": "config_commit_detached_clean",
+        },
+    }
+    config_path.write_text(json.dumps(historical) + "\n", encoding="utf-8")
+    _git(repo, "add", "docs/run.json")
+    _git(repo, "commit", "-qm", "training config")
+    training_config = _git(repo, "rev-parse", "HEAD")
+    training_config_sha = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    (repo / "decision.txt").write_text("decision source\n", encoding="utf-8")
+    _git(repo, "add", "decision.txt")
+    _git(repo, "commit", "-qm", "decision source")
+    decision_source = _git(repo, "rev-parse", "HEAD")
+    current = {
+        "source": {"commit": decision_source},
+        "training_receipt_authority": {
+            "source_commit": training_source,
+            "config_commit": training_config,
+            "config_sha256": training_config_sha,
+        },
+        "handoff": {
+            "config_parent": decision_source,
+            "config_commit_paths": ["docs/run.json"],
+            "execution_checkout": "config_commit_detached_clean",
+        },
+    }
+    config_path.write_text(json.dumps(current) + "\n", encoding="utf-8")
+    _git(repo, "add", "docs/run.json")
+    _git(repo, "commit", "-qm", "decision config")
+    _git(repo, "checkout", "-q", "--detach", "HEAD")
+
+    assert module.authenticate_decision_handoff(config_path, repo) == (
+        training_source,
+        training_config_sha,
+    )
+    wrong_historical_commit = copy.deepcopy(current)
+    wrong_historical_commit["training_receipt_authority"]["config_commit"] = (
+        decision_source
+    )
+    with pytest.raises((subprocess.CalledProcessError, ValueError)):
+        module._authenticate_historical_training_authority(
+            wrong_historical_commit, "docs/run.json", repo
+        )
 
 
 def test_step_wall_is_the_only_registered_seed0_timing_authority() -> None:
@@ -299,6 +373,11 @@ def test_main_publishes_once_after_invoking_all_input_validators(
         "_cross_bind_inputs",
         lambda **_kwargs: calls.append("cross"),
     )
+    monkeypatch.setattr(
+        module,
+        "authenticate_decision_handoff",
+        lambda _config, _checkout: calls.append("handoff"),
+    )
     arguments = [
         "--run-config",
         str(config_path),
@@ -317,7 +396,7 @@ def test_main_publishes_once_after_invoking_all_input_validators(
     ]
 
     assert module.main(arguments) == 0
-    assert calls == ["pair", "comparison", "receipt", "receipt", "cross"]
+    assert calls == ["handoff", "pair", "comparison", "receipt", "receipt", "cross"]
     before = output.read_bytes()
     persisted = module.EVALUATOR.strict_json_object(output)
     module.validate_seed0_decision(persisted)
@@ -327,7 +406,6 @@ def test_main_publishes_once_after_invoking_all_input_validators(
 
 def test_cross_binding_uses_frozen_training_authority_after_profile_repair() -> None:
     module = _load_script()
-    run_config_sha = "a" * 64
     training_config_sha = "c" * 64
     training_source_commit = "b" * 40
     repaired_source_commit = "d" * 40
@@ -386,11 +464,38 @@ def test_cross_binding_uses_frozen_training_authority_after_profile_repair() -> 
         "profile_comparison": profile,
         "control_receipt": control,
         "candidate_receipt": candidate,
-        "run_config_sha256": run_config_sha,
     }
+
+    def replace_training_identity(
+        values: dict[str, object], source: str, config_commit: str, config_sha: str
+    ) -> None:
+        values["config"]["training_receipt_authority"] = {
+            "source_commit": source,
+            "config_commit": config_commit,
+            "config_sha256": config_sha,
+        }
+        for key in ("control_receipt", "candidate_receipt"):
+            values[key]["source_commit"] = source
+            values[key]["config_sha256"] = config_sha
+        values["profile_comparison"]["source_commit"] = source
+        values["profile_comparison"]["config_sha256"] = config_sha
 
     module._cross_bind_inputs(**arguments)
     for mutate in (
+        lambda values: values["config"].pop("training_receipt_authority"),
+        lambda values: values["config"]["training_receipt_authority"].__setitem__(
+            "extra", "forbidden"
+        ),
+        lambda values: values["config"].__setitem__(
+            "training_receipt_authority",
+            dict(reversed(values["config"]["training_receipt_authority"].items())),
+        ),
+        lambda values: replace_training_identity(
+            values, training_source_commit.upper(), "E" * 40, training_config_sha.upper()
+        ),
+        lambda values: replace_training_identity(
+            values, "b" * 39, "e" * 39, "c" * 63
+        ),
         lambda values: values["candidate_receipt"]["runtime"].__setitem__(
             "torch", "other"
         ),
@@ -399,6 +504,9 @@ def test_cross_binding_uses_frozen_training_authority_after_profile_repair() -> 
         ),
         lambda values: values["profile_comparison"].__setitem__(
             "config_sha256", "f" * 64
+        ),
+        lambda values: values["profile_comparison"].__setitem__(
+            "source_commit", "f" * 40
         ),
         lambda values: values["config"]["training_receipt_authority"].__setitem__(
             "source_commit", "e" * 40

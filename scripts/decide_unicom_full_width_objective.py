@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
@@ -98,6 +99,84 @@ def _file_binding(path: Path) -> dict[str, object]:
         "sha256": hashlib.sha256(payload).hexdigest(),
         "bytes": len(payload),
     }
+
+
+def _training_receipt_authority(
+    config: object,
+) -> tuple[str, str, str]:
+    if type(config) is not dict:
+        raise ValueError("run configuration differs")
+    authority = config.get("training_receipt_authority")
+    if (
+        type(authority) is not dict
+        or tuple(authority) != ("source_commit", "config_commit", "config_sha256")
+    ):
+        raise ValueError("training receipt authority differs")
+    source_commit = authority["source_commit"]
+    config_commit = authority["config_commit"]
+    config_sha256 = authority["config_sha256"]
+    for value, length in ((source_commit, 40), (config_commit, 40), (config_sha256, 64)):
+        if (
+            type(value) is not str
+            or len(value) != length
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise ValueError("training receipt authority differs")
+    return source_commit, config_commit, config_sha256
+
+
+def _authenticate_historical_training_authority(
+    config: object, relative: str, checkout: Path
+) -> tuple[str, str]:
+    source_commit, config_commit, config_sha256 = _training_receipt_authority(config)
+    parent = subprocess.run(
+        ["git", "-C", str(checkout), "rev-parse", f"{config_commit}^"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    changed_paths = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(checkout),
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            config_commit,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    historical_bytes = subprocess.run(
+        ["git", "-C", str(checkout), "show", f"{config_commit}:{relative}"],
+        check=True,
+        capture_output=True,
+    ).stdout
+    historical = TRAINER.strict_json_object(historical_bytes)
+    historical_source = historical.get("source")
+    if (
+        parent != source_commit
+        or changed_paths != [relative]
+        or hashlib.sha256(historical_bytes).hexdigest() != config_sha256
+        or type(historical_source) is not dict
+        or historical_source.get("commit") != source_commit
+    ):
+        raise ValueError("historical training authority differs")
+    return source_commit, config_sha256
+
+
+def authenticate_decision_handoff(
+    run_config: Path, checkout: Path
+) -> tuple[str, str]:
+    """Authenticate current decision code and its historical training authority."""
+
+    current = EVALUATOR.strict_json_object(run_config)
+    TRAINER.registered_source_commit(run_config, checkout)
+    relative = run_config.resolve().relative_to(checkout.resolve()).as_posix()
+    return _authenticate_historical_training_authority(current, relative, checkout)
 
 
 def _placeholder_inputs() -> dict[str, object]:
@@ -416,36 +495,11 @@ def _cross_bind_inputs(
     profile_comparison: dict[str, object],
     control_receipt: dict[str, object],
     candidate_receipt: dict[str, object],
-    run_config_sha256: str,
 ) -> None:
     receipts = {ARMS[0]: control_receipt, ARMS[1]: candidate_receipt}
-    training_authority = config.get("training_receipt_authority")
-    if (
-        type(training_authority) is not dict
-        or tuple(training_authority)
-        != ("source_commit", "config_commit", "config_sha256")
-        or type(training_authority["source_commit"]) is not str
-        or len(training_authority["source_commit"]) != 40
-        or any(
-            character not in "0123456789abcdef"
-            for character in training_authority["source_commit"]
-        )
-        or type(training_authority["config_commit"]) is not str
-        or len(training_authority["config_commit"]) != 40
-        or any(
-            character not in "0123456789abcdef"
-            for character in training_authority["config_commit"]
-        )
-        or type(training_authority["config_sha256"]) is not str
-        or len(training_authority["config_sha256"]) != 64
-        or any(
-            character not in "0123456789abcdef"
-            for character in training_authority["config_sha256"]
-        )
-    ):
-        raise ValueError("training receipt authority differs")
-    source_commit = training_authority["source_commit"]
-    training_config_sha256 = training_authority["config_sha256"]
+    source_commit, _config_commit, training_config_sha256 = (
+        _training_receipt_authority(config)
+    )
     expected_runtime = config["environment"]
     if type(expected_runtime) is not dict:
         raise ValueError("run configuration environment differs")
@@ -529,6 +583,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
         }
         loaded = {key: EVALUATOR.strict_json_object(path) for key, path in paths.items()}
         observed_command = list(sys.orig_argv) if arguments is None else None
+        authenticate_decision_handoff(
+            args.run_config, Path(__file__).resolve().parents[1]
+        )
         _validate_run_config(
             loaded["run_config"], args, observed_command=observed_command
         )
@@ -536,7 +593,6 @@ def main(arguments: Sequence[str] | None = None) -> int:
         COMPARATOR.validate_comparison_result(loaded["profile_comparison"])
         TRAINER.validate_training_run_receipt(loaded["control_receipt"])
         TRAINER.validate_training_run_receipt(loaded["candidate_receipt"])
-        run_config_sha256 = hashlib.sha256(args.run_config.read_bytes()).hexdigest()
         _cross_bind_inputs(
             config=loaded["run_config"],
             pair_inventory=loaded["pair_inventory"],
@@ -544,7 +600,6 @@ def main(arguments: Sequence[str] | None = None) -> int:
             profile_comparison=loaded["profile_comparison"],
             control_receipt=loaded["control_receipt"],
             candidate_receipt=loaded["candidate_receipt"],
-            run_config_sha256=run_config_sha256,
         )
         control_sha = hashlib.sha256(args.control_receipt.read_bytes()).hexdigest()
         candidate_sha = hashlib.sha256(args.candidate_receipt.read_bytes()).hexdigest()
