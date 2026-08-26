@@ -13,9 +13,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
-CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
-CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
+SOURCE_COMMIT = "491e90233bf79069b203ca1e99158d2522ad2646"
+CONFIG_COMMIT = "8a112382e57d9a426bd25bfb7e459a3fc757c481"
+CONFIG_SHA256 = "37b90cc8393f56c4b91e09448dbcc660845d2346cc047f41510ff1a27367ecef"
 SOURCE_FILES = (
     (
         "scripts/train_unicom_inshop.py",
@@ -27,11 +27,11 @@ SOURCE_FILES = (
     ),
     (
         "scripts/profile_unicom_training_step.py",
-        "55d1aa7365e3f806b51dd5ad6b6b5aa3f547cda41d4d107844b433ea9f3abb4f",
+        "1f36fed434c676b1025e9b8d928ec7c4d62215e97b7047f7e61bed6f4e14ab77",
     ),
     (
         "scripts/compare_unicom_full_width_profiles.py",
-        "5ea429494971de1567f4f9ccb58fd0ff8b5f2e98a9a69f5eee33464d4245aa9f",
+        "f3b7ea8eecb3e6144d64ca93a96d0c70f7c1f97050dc1535819a5801ad95e243",
     ),
     (
         "scripts/build_unicom_full_width_pair_config.py",
@@ -67,11 +67,11 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_compare_unicom_full_width_profiles.py",
-        "39af2860c6e7a660b8038103b95ebde65232ea197aab33dc37faf36593b1a7f4",
+        "8f6bad942cad9958e2918e75e07b3a1c957c8af1c4c3d13a759519a725d59451",
     ),
     (
         "tests/test_profile_unicom_training_step.py",
-        "706aeb5c9215f3c2458a05c0bea106acc246adccd11eb1657dd023e7fe6adabe",
+        "fdf9c781352eb6f34d7d07f2c44cfe06a0776f5931561c9c53be80678a1f5271",
     ),
     (
         "tests/test_build_unicom_full_width_pair_config.py",
@@ -88,6 +88,10 @@ SOURCE_FILES = (
     (
         "docs/unicom_full_width_prelaunch_repair_2026-08-25.md",
         "e6b9f14d9f423d61f550cbb4fffbfa3c93832259fb1e890a01f333e77f66d9bc",
+    ),
+    (
+        "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
+        "53da706cd3460dbd0f7961e96b37e7b5ff5955bb1949ed54902ec654f666ed53",
     ),
 )
 SEEDS = (0, 2, 3, 4, 5, 6)
@@ -683,6 +687,7 @@ def validate_config(config: object) -> None:
         (
             "training_per_seed_arm",
             "profile_per_position",
+            "profile_repair_exception",
             "pair_evaluator_per_seed",
             "decision_per_seed",
             "rerun_after_finite_gate",
@@ -692,6 +697,11 @@ def validate_config(config: object) -> None:
     if attempts != {
         "training_per_seed_arm": 1,
         "profile_per_position": 1,
+        "profile_repair_exception": (
+            "one-observed-position-1-prepublication-scheduler-exhaustion-failure-is-"
+            "nonconsuming-only-when-no-timing-sample-output-or-temp-exists; "
+            "restart-entire-abba-on-refrozen-handoff"
+        ),
         "pair_evaluator_per_seed": 1,
         "decision_per_seed": 1,
         "rerun_after_finite_gate": False,
