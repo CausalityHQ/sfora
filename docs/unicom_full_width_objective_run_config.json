@@ -1,7 +1,7 @@
 {
   "schema_version": "unicom-full-width-objective-run-v2",
   "source": {
-    "commit": "bf17e15dd004a19b23b8cbc80cac3ec09822189c",
+    "commit": "f76cd832e84c06b64c63a4ac728017123928b96c",
     "files": [
       {
         "path": "scripts/train_unicom_inshop.py",
@@ -25,7 +25,7 @@
       },
       {
         "path": "scripts/decide_unicom_full_width_objective.py",
-        "sha256": "c551ce328cb52115b9ecfdbf23dd5b6bef9c1f9cf5c36104b9367b132106cb4c"
+        "sha256": "3d35af353253a03d5cd6cde6b4085c3c16d7f9c80024f2af291f77eb3408c977"
       },
       {
         "path": "scripts/run_unicom_from_checkout.py",
@@ -65,7 +65,7 @@
       },
       {
         "path": "tests/test_decide_unicom_full_width_objective.py",
-        "sha256": "b02ab10ea54f63aee43aef2badfd0ee0ea4f2b4bcab79181ad89ecfaee542a0c"
+        "sha256": "8c1bda811eda51a71bf34a8d925f5d3acba9a213ea099d41fb80e9ee44a21bbb"
       },
       {
         "path": "tests/test_run_unicom_from_checkout.py",
@@ -77,7 +77,7 @@
       },
       {
         "path": "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
-        "sha256": "8011d6aaf7bba8f86355579b0516122c6f199917b882cca5398003975b67652e"
+        "sha256": "248c4877a7e3ce1600c74c71f7ea049ff88b33a374b4fc912db7e66b5757c51b"
       }
     ]
   },
@@ -87,7 +87,7 @@
     "config_sha256": "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
   },
   "handoff": {
-    "config_parent": "bf17e15dd004a19b23b8cbc80cac3ec09822189c",
+    "config_parent": "f76cd832e84c06b64c63a4ac728017123928b96c",
     "config_commit_paths": [
       "docs/unicom_full_width_objective_run_config.json"
     ],
