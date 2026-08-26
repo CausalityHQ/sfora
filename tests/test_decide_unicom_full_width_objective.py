@@ -325,13 +325,20 @@ def test_main_publishes_once_after_invoking_all_input_validators(
     assert output.read_bytes() == before
 
 
-def test_cross_binding_rejects_any_checkpoint_or_runtime_drift() -> None:
+def test_cross_binding_uses_frozen_training_authority_after_profile_repair() -> None:
     module = _load_script()
     run_config_sha = "a" * 64
-    source_commit = "b" * 40
+    training_config_sha = "c" * 64
+    training_source_commit = "b" * 40
+    repaired_source_commit = "d" * 40
     runtime = {"python": "3.13.9", "torch": "2.12.1+cu130", "cuda": "13.0"}
     config = {
-        "source": {"commit": source_commit},
+        "source": {"commit": repaired_source_commit},
+        "training_receipt_authority": {
+            "source_commit": training_source_commit,
+            "config_commit": "e" * 40,
+            "config_sha256": training_config_sha,
+        },
         "environment": {**runtime, "numpy": "2.5.0"},
     }
 
@@ -339,8 +346,8 @@ def test_cross_binding_rejects_any_checkpoint_or_runtime_drift() -> None:
         return {
             "seed": 0,
             "arm": arm,
-            "source_commit": source_commit,
-            "config_sha256": run_config_sha,
+            "source_commit": training_source_commit,
+            "config_sha256": training_config_sha,
             "runtime": runtime,
             "checkpoints": [
                 {
@@ -368,7 +375,10 @@ def test_cross_binding_rejects_any_checkpoint_or_runtime_drift() -> None:
                 "checkpoint_bytes": checkpoint["bytes"],
             }
         rows.append({"epoch": epoch, "arms": arms})
-    profile = {"config_sha256": run_config_sha, "source_commit": source_commit}
+    profile = {
+        "config_sha256": training_config_sha,
+        "source_commit": training_source_commit,
+    }
     arguments = {
         "config": config,
         "pair_inventory": {"seed": 0, "inventory": inventory},
@@ -390,8 +400,11 @@ def test_cross_binding_rejects_any_checkpoint_or_runtime_drift() -> None:
         lambda values: values["profile_comparison"].__setitem__(
             "config_sha256", "f" * 64
         ),
-        lambda values: values["config"]["source"].__setitem__(
-            "commit", "e" * 40
+        lambda values: values["config"]["training_receipt_authority"].__setitem__(
+            "source_commit", "e" * 40
+        ),
+        lambda values: values["config"]["training_receipt_authority"].__setitem__(
+            "config_sha256", "f" * 64
         ),
         lambda values: values["pair_inventory"].__setitem__("seed", 2),
     ):

@@ -419,10 +419,33 @@ def _cross_bind_inputs(
     run_config_sha256: str,
 ) -> None:
     receipts = {ARMS[0]: control_receipt, ARMS[1]: candidate_receipt}
-    source = config.get("source")
-    if type(source) is not dict or type(source.get("commit")) is not str:
-        raise ValueError("run configuration source differs")
-    source_commit = source["commit"]
+    training_authority = config.get("training_receipt_authority")
+    if (
+        type(training_authority) is not dict
+        or tuple(training_authority)
+        != ("source_commit", "config_commit", "config_sha256")
+        or type(training_authority["source_commit"]) is not str
+        or len(training_authority["source_commit"]) != 40
+        or any(
+            character not in "0123456789abcdef"
+            for character in training_authority["source_commit"]
+        )
+        or type(training_authority["config_commit"]) is not str
+        or len(training_authority["config_commit"]) != 40
+        or any(
+            character not in "0123456789abcdef"
+            for character in training_authority["config_commit"]
+        )
+        or type(training_authority["config_sha256"]) is not str
+        or len(training_authority["config_sha256"]) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in training_authority["config_sha256"]
+        )
+    ):
+        raise ValueError("training receipt authority differs")
+    source_commit = training_authority["source_commit"]
+    training_config_sha256 = training_authority["config_sha256"]
     expected_runtime = config["environment"]
     if type(expected_runtime) is not dict:
         raise ValueError("run configuration environment differs")
@@ -436,12 +459,12 @@ def _cross_bind_inputs(
             receipt.get("seed") != 0
             or receipt.get("arm") != arm
             or receipt.get("source_commit") != source_commit
-            or receipt.get("config_sha256") != run_config_sha256
+            or receipt.get("config_sha256") != training_config_sha256
             or receipt.get("runtime") != runtime
         ):
             raise ValueError("training receipt run binding differs")
     if (
-        profile_comparison.get("config_sha256") != run_config_sha256
+        profile_comparison.get("config_sha256") != training_config_sha256
         or profile_comparison.get("source_commit")
         != control_receipt.get("source_commit")
         or candidate_receipt.get("source_commit")

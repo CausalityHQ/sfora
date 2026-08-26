@@ -35,6 +35,20 @@ one identical profiler digest and one identical objective-module digest. A
 mixture of pre-repair and post-repair profile code is therefore structurally
 invalid even if every profile is individually well formed.
 
+After the repaired A-B-B-A sequence completed, the first seed-0 decision
+launch stopped before publication because the decision producer incorrectly
+required the already-completed training receipts to claim the newer profiling
+source commit and refrozen config digest. Those immutable receipts correctly
+claim the source and config under which training actually ran. The repaired
+decision contract therefore carries a separate `training_receipt_authority`
+binding: the original detached config commit, its source parent, and its exact
+config SHA-256. The decision cross-binds both training receipts and the profile
+comparison to that historical training authority, while `source` and the
+config-only handoff continue to authenticate the newer profiler/decision
+implementation. No receipt, profile, quality value, timing value, or threshold
+is changed, and the failed decision launch published no output or temporary
+sibling.
+
 ## Retry and interpretation
 
 The failed position-1 launch is recorded but does not consume the registered
@@ -48,3 +62,9 @@ a new config-only handoff. The four profiles then run once from the beginning
 in the original
 `sampled_512/full_768/full_768/sampled_512` order. No result from the failed
 process enters the comparison, and no quality or resource gate changes.
+
+The prepublication seed-0 decision failure is likewise non-consuming only for
+this observed historical-authority mismatch. The next config-only handoff must
+bind the original training config commit/source/digest literally, and the
+decision runs once from the already validated paired-quality and A-B-B-A
+artifacts. This does not create a general decision retry allowance.
