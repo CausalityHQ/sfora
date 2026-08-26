@@ -1,7 +1,7 @@
 {
   "schema_version": "unicom-full-width-objective-run-v2",
   "source": {
-    "commit": "b5d80446cdac5814bf868bbf18673ce076ccf68f",
+    "commit": "491e90233bf79069b203ca1e99158d2522ad2646",
     "files": [
       {
         "path": "scripts/train_unicom_inshop.py",
@@ -13,11 +13,11 @@
       },
       {
         "path": "scripts/profile_unicom_training_step.py",
-        "sha256": "55d1aa7365e3f806b51dd5ad6b6b5aa3f547cda41d4d107844b433ea9f3abb4f"
+        "sha256": "1f36fed434c676b1025e9b8d928ec7c4d62215e97b7047f7e61bed6f4e14ab77"
       },
       {
         "path": "scripts/compare_unicom_full_width_profiles.py",
-        "sha256": "5ea429494971de1567f4f9ccb58fd0ff8b5f2e98a9a69f5eee33464d4245aa9f"
+        "sha256": "f3b7ea8eecb3e6144d64ca93a96d0c70f7c1f97050dc1535819a5801ad95e243"
       },
       {
         "path": "scripts/build_unicom_full_width_pair_config.py",
@@ -53,11 +53,11 @@
       },
       {
         "path": "tests/test_compare_unicom_full_width_profiles.py",
-        "sha256": "39af2860c6e7a660b8038103b95ebde65232ea197aab33dc37faf36593b1a7f4"
+        "sha256": "8f6bad942cad9958e2918e75e07b3a1c957c8af1c4c3d13a759519a725d59451"
       },
       {
         "path": "tests/test_profile_unicom_training_step.py",
-        "sha256": "706aeb5c9215f3c2458a05c0bea106acc246adccd11eb1657dd023e7fe6adabe"
+        "sha256": "fdf9c781352eb6f34d7d07f2c44cfe06a0776f5931561c9c53be80678a1f5271"
       },
       {
         "path": "tests/test_build_unicom_full_width_pair_config.py",
@@ -74,11 +74,15 @@
       {
         "path": "docs/unicom_full_width_prelaunch_repair_2026-08-25.md",
         "sha256": "e6b9f14d9f423d61f550cbb4fffbfa3c93832259fb1e890a01f333e77f66d9bc"
+      },
+      {
+        "path": "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
+        "sha256": "53da706cd3460dbd0f7961e96b37e7b5ff5955bb1949ed54902ec654f666ed53"
       }
     ]
   },
   "handoff": {
-    "config_parent": "b5d80446cdac5814bf868bbf18673ce076ccf68f",
+    "config_parent": "491e90233bf79069b203ca1e99158d2522ad2646",
     "config_commit_paths": [
       "docs/unicom_full_width_objective_run_config.json"
     ],
@@ -643,6 +647,7 @@
   "attempts": {
     "training_per_seed_arm": 1,
     "profile_per_position": 1,
+    "profile_repair_exception": "one-observed-position-1-prepublication-scheduler-exhaustion-failure-is-nonconsuming-only-when-no-timing-sample-output-or-temp-exists; restart-entire-abba-on-refrozen-handoff",
     "pair_evaluator_per_seed": 1,
     "decision_per_seed": 1,
     "rerun_after_finite_gate": false
