@@ -13,9 +13,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "491e90233bf79069b203ca1e99158d2522ad2646"
-CONFIG_COMMIT = "8a112382e57d9a426bd25bfb7e459a3fc757c481"
-CONFIG_SHA256 = "37b90cc8393f56c4b91e09448dbcc660845d2346cc047f41510ff1a27367ecef"
+SOURCE_COMMIT = "bf17e15dd004a19b23b8cbc80cac3ec09822189c"
+CONFIG_COMMIT = "2d8b33484541db330fe5a6a973c97cd3b6fa94e6"
+CONFIG_SHA256 = "e6ab3c4b2c90148d2f6fd6e4a5345a28b6ce869848d713a95785c4e68cafccb3"
+TRAINING_SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
+TRAINING_CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
+TRAINING_CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
 SOURCE_FILES = (
     (
         "scripts/train_unicom_inshop.py",
@@ -39,7 +42,7 @@ SOURCE_FILES = (
     ),
     (
         "scripts/decide_unicom_full_width_objective.py",
-        "886fc29da335956d178b85005badafea2b107dc6d17cb34a673ab71a7b383254",
+        "c551ce328cb52115b9ecfdbf23dd5b6bef9c1f9cf5c36104b9367b132106cb4c",
     ),
     (
         "scripts/run_unicom_from_checkout.py",
@@ -79,7 +82,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_decide_unicom_full_width_objective.py",
-        "f74002a271b09631274b22e129540fe514e07f9c12a31f35e632853302b97a4f",
+        "b02ab10ea54f63aee43aef2badfd0ee0ea4f2b4bcab79181ad89ecfaee542a0c",
     ),
     (
         "tests/test_run_unicom_from_checkout.py",
@@ -91,7 +94,7 @@ SOURCE_FILES = (
     ),
     (
         "docs/unicom_full_width_profile_replay_repair_2026-08-26.md",
-        "53da706cd3460dbd0f7961e96b37e7b5ff5955bb1949ed54902ec654f666ed53",
+        "8011d6aaf7bba8f86355579b0516122c6f199917b882cca5398003975b67652e",
     ),
 )
 SEEDS = (0, 2, 3, 4, 5, 6)
@@ -110,6 +113,7 @@ ARM_PROTOCOLS = {
 TOP_KEYS = (
     "schema_version",
     "source",
+    "training_receipt_authority",
     "handoff",
     "environment",
     "inputs",
@@ -408,6 +412,28 @@ def validate_config(config: object) -> None:
         if _sha256_bytes(blob) != digest or _git_blob(path, commit=CONFIG_COMMIT) != blob:
             raise ValueError(f"source bytes differ: {path}")
 
+    training_authority = _assert_exact_mapping(
+        config["training_receipt_authority"],
+        ("source_commit", "config_commit", "config_sha256"),
+        "training receipt authority",
+    )
+    if training_authority != {
+        "source_commit": TRAINING_SOURCE_COMMIT,
+        "config_commit": TRAINING_CONFIG_COMMIT,
+        "config_sha256": TRAINING_CONFIG_SHA256,
+    }:
+        raise ValueError("training receipt authority differs")
+    historical_config = _git_blob(
+        "docs/unicom_full_width_objective_run_config.json",
+        commit=TRAINING_CONFIG_COMMIT,
+    )
+    if (
+        _git_text("rev-parse", f"{TRAINING_CONFIG_COMMIT}^")
+        != TRAINING_SOURCE_COMMIT
+        or _sha256_bytes(historical_config) != TRAINING_CONFIG_SHA256
+    ):
+        raise ValueError("historical training config differs")
+
     handoff = _assert_exact_mapping(
         config["handoff"],
         ("config_parent", "config_commit_paths", "validator_child_path", "execution_checkout"),
@@ -690,6 +716,7 @@ def validate_config(config: object) -> None:
             "profile_repair_exception",
             "pair_evaluator_per_seed",
             "decision_per_seed",
+            "decision_repair_exception",
             "rerun_after_finite_gate",
         ),
         "attempts",
@@ -704,6 +731,11 @@ def validate_config(config: object) -> None:
         ),
         "pair_evaluator_per_seed": 1,
         "decision_per_seed": 1,
+        "decision_repair_exception": (
+            "one-observed-seed-0-prepublication-training-authority-mismatch-is-"
+            "nonconsuming-only-when-no-decision-output-or-temp-exists; reuse-only-"
+            "the-validated-pair-and-abba-artifacts-on-refrozen-handoff"
+        ),
         "rerun_after_finite_gate": False,
     }:
         raise ValueError("attempt policy differs")
@@ -852,6 +884,18 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             lambda value: value["source"]["files"][0].__setitem__("sha256", "0" * 64),
         ),
         (
+            "training config commit",
+            lambda value: value["training_receipt_authority"].__setitem__(
+                "config_commit", "0" * 40
+            ),
+        ),
+        (
+            "training config digest",
+            lambda value: value["training_receipt_authority"].__setitem__(
+                "config_sha256", "0" * 64
+            ),
+        ),
+        (
             "handoff parent",
             lambda value: value["handoff"].__setitem__("config_parent", "0" * 40),
         ),
@@ -914,6 +958,12 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
         (
             "decision attempt count",
             lambda value: value["attempts"].__setitem__("decision_per_seed", 2),
+        ),
+        (
+            "decision repair exception",
+            lambda value: value["attempts"].__setitem__(
+                "decision_repair_exception", "general retry"
+            ),
         ),
         (
             "step timing authority",
