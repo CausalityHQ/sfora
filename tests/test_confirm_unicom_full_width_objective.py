@@ -207,6 +207,11 @@ def test_seed_bundle_authentication_rejects_inventory_digest_drift() -> None:
     runtime = {"python": "3.12.3", "torch": "2.12.1", "cuda": "13.0"}
     config = {
         "training_receipt_authority": {
+            "source_commit": "d" * 40,
+            "config_commit": "e" * 40,
+            "config_sha256": "f" * 64,
+        },
+        "confirmation_receipt_authority": {
             "source_commit": source_commit,
             "config_commit": "c" * 40,
             "config_sha256": config_sha256,
@@ -629,6 +634,11 @@ def test_build_from_evidence_recomputes_all_five_bound_seed_bundles(
         "registered_outputs": {"confirmation_result_v2": str(output)},
         "command_templates": {"confirmation_command": ["python"]},
         "training_receipt_authority": {
+            "source_commit": "d" * 40,
+            "config_commit": "e" * 40,
+            "config_sha256": "f" * 64,
+        },
+        "confirmation_receipt_authority": {
             "source_commit": source_commit,
             "config_commit": "c" * 40,
             "config_sha256": training_config_sha,

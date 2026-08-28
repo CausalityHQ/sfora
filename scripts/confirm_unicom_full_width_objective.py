@@ -363,12 +363,12 @@ def cross_bind_seed_bundle(
 
     if type(config) is not dict:
         raise ValueError("run configuration differs")
-    authority = config.get("training_receipt_authority")
+    authority = config.get("confirmation_receipt_authority")
     if (
         type(authority) is not dict
         or tuple(authority) != ("source_commit", "config_commit", "config_sha256")
     ):
-        raise ValueError("training receipt authority differs")
+        raise ValueError("confirmation receipt authority differs")
     source_commit = authority["source_commit"]
     config_sha256 = authority["config_sha256"]
     if (
@@ -379,7 +379,7 @@ def cross_bind_seed_bundle(
         or len(config_sha256) != 64
         or any(character not in "0123456789abcdef" for character in config_sha256)
     ):
-        raise ValueError("training receipt authority differs")
+        raise ValueError("confirmation receipt authority differs")
     environment = config.get("environment")
     if type(environment) is not dict:
         raise ValueError("run environment differs")
@@ -401,7 +401,7 @@ def cross_bind_seed_bundle(
             or receipt.get("config_sha256") != config_sha256
             or receipt.get("runtime") != runtime
         ):
-            raise ValueError("training receipt run binding differs")
+                raise ValueError("confirmation receipt run binding differs")
     inventory = pair_inventory.get("inventory")
     rows = pair_result.get("rows")
     if (
