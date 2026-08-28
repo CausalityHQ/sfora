@@ -114,7 +114,9 @@ class-mean tensors.
 Fail closed before every normalization if an embedding or class mean is
 nonfinite or has zero norm; no epsilon substitution is permitted. Require every
 class count positive and every final class-mean row finite with the exact target
-norm within the registered FP32 tolerance.
+norm under `torch.allclose(row_norms, full_like(row_norms, target_norm),
+rtol=2e-6, atol=2e-7)`. The same literal comparison gates prepared random-head
+rows and every post-update projected head.
 
 Fit only the classifier for exactly 512 steps:
 
@@ -192,8 +194,8 @@ the following literal protocol before execution:
 - the deterministic evaluation transform returned by the authenticated official
   model loader; exact query/gallery partition order;
 - raw-backbone evaluation: encode FP32, L2-normalize all 768 coordinates, then
-  take coordinates `0..511` with no second normalization before dot-product
-  retrieval (`normalize_before=true`), and compute the repository's exact
+  take coordinates `0..511` with no second normalization, rank by ascending
+  squared Euclidean distance (`normalize_before=true`), and compute the repository's exact
   Recall@K and per-query AP@R/mAP@R definitions. Classifier and EMA tensors are
   never used for retrieval.
 
@@ -212,8 +214,9 @@ For inference equality, compare the raw backbone state-dict parameter and buffer
 inventory in sorted key order: exact names, shapes, dtypes, and
 `sum(numel * element_size)` bytes. Classifier, optimizer, scheduler, scaler, and
 EMA are excluded because none is exported. The bound inference forward function,
-512-coordinate slice, normalization, and retrieval operation inventory must be
-identical between arms; no serializer-dependent file-size predicate is used.
+full-vector normalization, 512-coordinate slice, squared-Euclidean ranking, and
+retrieval operation inventory must be identical between arms; no
+serializer-dependent file-size predicate is used.
 
 ## Runtime substrate smoke
 
