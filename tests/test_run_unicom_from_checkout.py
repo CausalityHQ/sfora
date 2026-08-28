@@ -60,6 +60,15 @@ def test_launcher_places_checkout_src_first_and_rejects_unregistered_target(
         module.authenticate_paths(linked_target)
 
 
+def test_launcher_accepts_the_registered_confirmation_producer() -> None:
+    module = _load_module()
+    target = ROOT / "scripts" / "confirm_unicom_full_width_objective.py"
+
+    _src, authenticated = module.authenticate_paths(target)
+
+    assert authenticated == target.resolve()
+
+
 def test_launcher_checkout_source_beats_a_decoy_package(tmp_path: Path) -> None:
     decoy = tmp_path / "decoy"
     (decoy / "sfora").mkdir(parents=True)
