@@ -728,6 +728,36 @@ def _validate_quality_authority_chain(receipt: dict[str, object]) -> None:
         raise ValueError("quality profile registered schema differs")
 
 
+def validate_runtime_profile(
+    receipt: object,
+    *,
+    expected_mode: str,
+    checkpoint: Path,
+    run_receipt: Path,
+    config: Path,
+    expected_environment: object,
+) -> None:
+    """Validate one runtime receipt against caller-owned external authorities."""
+
+    _validate_profile_v2(receipt, expected_kind="runtime")
+    if (
+        type(receipt) is not dict
+        or expected_mode not in RUNTIME_PROTOCOLS
+        or receipt["runtime_mode"] != expected_mode
+        or receipt["checkpoint"] != _file_authority(checkpoint)
+        or receipt["run_receipt"] != _file_authority(run_receipt)
+        or receipt["config"] != _file_authority(config)
+        or type(expected_environment) is not dict
+        or receipt["environment"] != expected_environment
+        or any(
+            type(receipt["environment"].get(key)) is not type(value)
+            or receipt["environment"].get(key) != value
+            for key, value in expected_environment.items()
+        )
+    ):
+        raise ValueError("runtime profile external authority differs")
+
+
 def _process_median_wall(receipt: dict[str, object]) -> float:
     return float(
         np.median(

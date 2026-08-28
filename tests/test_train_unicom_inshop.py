@@ -2038,6 +2038,9 @@ def test_initialization_v2_all_modes_share_one_draw_and_registered_evidence(
         checkpoint_every=4,
         max_steps=None,
         bf16=False,
+        compile=False,
+        fused=False,
+        no_ema=False,
     )
     results = {}
     backbone_hashes = []
@@ -2417,6 +2420,24 @@ def test_ema_checkpoint_roundtrip_restores_shadow_and_update_count(tmp_path: Pat
         torch.equal(restored["backbone"][name], value)
         for name, value in expected_ema["backbone"].items()
     )
+
+
+def test_review2_registered_ema_protocol_defaults_on_and_composed_is_off() -> None:
+    module = _load_script()
+    base = [
+        "--unicom-checkout", "/tmp/unicom", "--checkpoint", "/tmp/model.pt",
+        "--dataset-root", "/tmp/data", "--output-dir", "/tmp/out",
+        "--classifier-init", "fepf_mean", "--stop-after-epoch", "4",
+    ]
+    current = module.parse_args(base)
+    assert module.resolve_registered_ema_protocol(current) == (
+        module.EMA_DECAY, "optimizer-step-post-hook-trainable-parameters-only"
+    )
+    composed = module.parse_args([*base, "--compile", "--fused", "--no-ema"])
+    assert module.resolve_registered_ema_protocol(composed) == (None, None)
+    invalid = module.parse_args([*base, "--no-ema"])
+    with pytest.raises(ValueError, match="EMA"):
+        module.resolve_registered_ema_protocol(invalid)
 
 
 def test_fit_always_checkpoints_final_and_evaluated_epochs(tmp_path: Path) -> None:

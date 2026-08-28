@@ -735,12 +735,18 @@ def validate_fepf_training_protocol(
 
     if type(protocol) is not dict or tuple(protocol) != FEPF_TRAINING_PROTOCOL_KEYS:
         raise ValueError("FEPF checkpoint protocol differs")
+    runtime = (protocol.get("compile"), protocol.get("fused"))
+    if runtime == (False, False):
+        expected_ema = (EMA_DECAY, "optimizer-step-post-hook-trainable-parameters-only")
+    elif runtime == (True, True):
+        expected_ema = (None, None)
+    else:
+        raise ValueError("FEPF checkpoint runtime protocol differs")
     expected = (
         "unicom-inshop-official-single-device-v1", UNICOM_REVISION,
         UNICOM_L14_336_SHA256, receipt["training_seed"], 16, 128, 4, 1e-5, 1e-4,
         0.25, 32.0, "official-eight-mask", 512, 512, receipt["holdout_seed"],
-        receipt["holdout_fraction"], 4, 4, None, False, receipt["mode"], EMA_DECAY,
-        "optimizer-step-post-hook-trainable-parameters-only",
+        receipt["holdout_fraction"], 4, 4, None, False, receipt["mode"], *expected_ema,
         receipt["initialization_receipt_sha256"],
     )
     observed = (
@@ -2011,6 +2017,9 @@ def _fepf_schedule_sha256(args: argparse.Namespace) -> str:
         args.checkpoint_every,
         args.max_steps,
         args.bf16,
+        args.compile,
+        args.fused,
+        args.no_ema,
     )
     return hashlib.sha256(
         json.dumps(payload, allow_nan=False, separators=(",", ":")).encode()
@@ -2829,7 +2838,12 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             initialization_seconds = float(time.perf_counter() - initialization_started)
         initialization_receipt_sha256 = None
     classifier = torch.nn.Parameter(classifier_values.to(device))
-    step_ema = StepEMA(raw_model, classifier)
+    ema_decay, ema_update = (
+        resolve_registered_ema_protocol(args)
+        if fepf_request
+        else (EMA_DECAY, "optimizer-step-post-hook-trainable-parameters-only")
+    )
+    step_ema = StepEMA(raw_model, classifier) if ema_decay is not None else None
     sampler = PaddedEpochSampler(size=len(optimization), batch_size=args.batch_size, seed=args.seed)
     data_generator = torch.Generator().manual_seed(experiment_stream_seed(args.seed, 2_000))
     loader = torch.utils.data.DataLoader(
@@ -2904,8 +2918,8 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "compile": args.compile,
         "fused": args.fused,
         "classifier_init": args.classifier_init,
-        "ema_decay": EMA_DECAY,
-        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+        "ema_decay": ema_decay,
+        "ema_update": ema_update,
     }
     if fepf_request:
         training_protocol["initialization_receipt_sha256"] = (
@@ -3061,6 +3075,7 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--bf16", action="store_true")
     parser.add_argument("--compile", action="store_true")
     parser.add_argument("--fused", action="store_true")
+    parser.add_argument("--no-ema", action="store_true")
     parser.add_argument(
         "--classifier-init",
         choices=("random", "imprinted", "fepf_mean", "fepf_random"),
@@ -3075,6 +3090,17 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(arguments)
 
 
+def resolve_registered_ema_protocol(args: argparse.Namespace) -> tuple[float | None, str | None]:
+    """Bind EMA presence to the registered current/composed runtime substrate."""
+
+    runtime = (args.compile, args.fused, args.no_ema)
+    if runtime == (False, False, False):
+        return EMA_DECAY, "optimizer-step-post-hook-trainable-parameters-only"
+    if runtime == (True, True, True):
+        return None, None
+    raise ValueError("registered FEPF EMA/runtime authority differs")
+
+
 def validate_fepf_recipe(args: argparse.Namespace) -> None:
     """Fail closed unless a registered FEPF run uses the frozen recipe."""
 
@@ -3082,6 +3108,7 @@ def validate_fepf_recipe(args: argparse.Namespace) -> None:
         raise ValueError("FEPF stop boundary differs")
     if args.classifier_init not in {"imprinted", "fepf_mean", "fepf_random"}:
         raise ValueError("FEPF mode differs")
+    resolve_registered_ema_protocol(args)
     if args.classifier_init == "fepf_random" and args.seed != 0:
         raise ValueError("FEPF random seed differs")
     if args.resume is not None and args.stop_after_epoch != 16:

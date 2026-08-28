@@ -1401,6 +1401,38 @@ def test_runtime_smoke_decision_passes_exact_abbaabba_evidence() -> None:
     assert MODULE.compare_runtime_smoke(receipts) == "PASS_COMPOSED"
 
 
+def test_review2_public_runtime_validator_reloads_external_authorities(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint.pt"
+    run_receipt = tmp_path / "run-receipt.json"
+    config = tmp_path / "config.json"
+    checkpoint.write_bytes(b"checkpoint")
+    run_receipt.write_bytes(b"run receipt")
+    config.write_bytes(b"config")
+    receipt = _runtime_smoke_receipt("current", started_unix_ns=1_000, wall=1.2)
+    import hashlib
+
+    for key, path in (
+        ("checkpoint", checkpoint), ("run_receipt", run_receipt), ("config", config)
+    ):
+        receipt[key] = {
+            "path": str(path.resolve()),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "bytes": path.stat().st_size,
+        }
+    MODULE.validate_runtime_profile(
+        receipt, expected_mode="current", checkpoint=checkpoint,
+        run_receipt=run_receipt, config=config,
+        expected_environment=receipt["environment"],
+    )
+    checkpoint.write_bytes(b"substituted")
+    with pytest.raises(ValueError, match="authority"):
+        MODULE.validate_runtime_profile(
+            receipt, expected_mode="current", checkpoint=checkpoint,
+            run_receipt=run_receipt, config=config,
+            expected_environment=receipt["environment"],
+        )
+
+
 @pytest.mark.parametrize(
     "mutation,expected",
     [
