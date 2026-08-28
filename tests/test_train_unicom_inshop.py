@@ -535,7 +535,7 @@ def test_fepf_main_path_publishes_v2_evidence(
     protocol = _fepf_protocol(module, initialization_sha256)
     signature = module.build_inference_signature(
         torch.nn.Linear(3, 4, bias=False),
-        descriptor=torch.zeros((1, 512), dtype=torch.float32),
+        descriptor=_fepf_evaluation_descriptor(module),
     )
 
     def fake_run(args):
@@ -546,6 +546,7 @@ def test_fepf_main_path_publishes_v2_evidence(
             _fepf_checkpoint_payload(protocol, 4),
             args.output_dir / "epoch-0004.pt",
         )
+        _write_fepf_evaluations(module, args.output_dir, (4,))
         args._fepf_run_evidence = {
             "initialization_receipt": initialization_object,
             "initialization_receipt_path": initialization,
@@ -597,6 +598,7 @@ def test_fepf_continuation_main_path_publishes_authenticated_chain(
                 _fepf_checkpoint_payload(protocol, epoch),
                 args.output_dir / f"epoch-{epoch:04d}.pt",
             )
+        _write_fepf_evaluations(module, args.output_dir, (8, 12, 16))
         args._fepf_run_evidence = {
             "initialization_receipt_path": initialization,
             "raw_backbone_pre_initialization_sha256": "a" * 64,
@@ -1292,6 +1294,7 @@ def test_cli_defaults_match_official_336_recipe() -> None:
 
 
 def _required_cli(tmp_path: Path) -> list[str]:
+    (tmp_path / "inshop" / "Img").mkdir(parents=True, exist_ok=True)
     return [
         "--unicom-checkout",
         str(tmp_path / "unicom"),
@@ -1426,6 +1429,43 @@ def test_fepf_recipe_requires_explicit_stop_and_resume_requires_16(tmp_path: Pat
         module.validate_fepf_recipe(module.parse_args(resumed))
 
 
+def test_fepf_request_rejects_symlink_dataset_root_before_training(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    dataset_root = tmp_path / "real-dataset"
+    (dataset_root / "Img").mkdir(parents=True)
+    dataset_alias = tmp_path / "dataset-alias"
+    dataset_alias.symlink_to(dataset_root, target_is_directory=True)
+    config = tmp_path / "config.json"
+    config.write_text("{}\n", encoding="utf-8")
+    output = tmp_path / "output"
+    args = module.parse_args(
+        _required_cli(tmp_path)
+        + [
+            "--dataset-root",
+            str(dataset_alias),
+            "--output-dir",
+            str(output),
+            "--classifier-init",
+            "fepf_mean",
+            "--epochs",
+            "16",
+            "--evaluation-features",
+            "512",
+            "--stop-after-epoch",
+            "4",
+            "--run-config",
+            str(config),
+            "--run-receipt",
+            str(output / "run-receipt.json"),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="dataset root differs"):
+        module._validate_run_receipt_request(args)
+
+
 @pytest.mark.parametrize(
     ("mode", "seed", "resume"),
     (("random", 0, False), ("fepf_random", 7, False), ("fepf_random", 7, True)),
@@ -1520,6 +1560,81 @@ def test_holdout_evaluation_uses_evaluation_width_not_training_width(
     assert result["map_at_r"] == 1.0
     assert len(seen) == 1
     assert np.array_equal(seen[0], np.arange(6))
+
+
+def test_evaluate_holdout_persists_recomputable_per_query_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    dataset_root = tmp_path / "dataset"
+    image_root = dataset_root / "Img"
+    image_root.mkdir(parents=True)
+    query_path = image_root / "query.jpg"
+    query_path.write_bytes(b"query")
+    query_records = (
+        InshopRecord(split="query", image_path=query_path, label="item_a"),
+    )
+    gallery_records = []
+    for index in range(31):
+        path = image_root / f"gallery-{index:02d}.jpg"
+        path.write_bytes(str(index).encode())
+        gallery_records.append(
+            InshopRecord(
+                split="gallery",
+                image_path=path,
+                label="item_a" if index in {0, 2} else f"other-{index}",
+            )
+        )
+    query_values = np.zeros((1, 768), dtype=np.float32)
+    query_values[0, 0] = 1.0
+    gallery_values = np.zeros((31, 768), dtype=np.float32)
+    angles = np.linspace(0.0, 1.5, 31, dtype=np.float32)
+    gallery_values[:, 0] = np.cos(angles)
+    gallery_values[:, 1] = np.sin(angles)
+    encoded = iter(
+        (
+            (query_values, np.asarray(["item_a"])),
+            (
+                gallery_values,
+                np.asarray([record.label for record in gallery_records]),
+            ),
+        )
+    )
+    monkeypatch.setattr(module, "_encode_records", lambda *_args, **_kwargs: next(encoded))
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    descriptors = []
+
+    metrics = module.evaluate_holdout(
+        torch.nn.Identity(),
+        query_records,
+        tuple(gallery_records),
+        lambda image: image,
+        device=torch.device("cpu"),
+        batch_size=8,
+        workers=0,
+        evaluation_features=512,
+        descriptor_sink=descriptors.append,
+        dataset_root=dataset_root,
+        evidence_root=evidence_root,
+        epoch=4,
+    )
+
+    receipt = module.strict_json_object(
+        (evidence_root / "evaluation-epoch-0004.json").read_bytes()
+    )
+    module.validate_evaluation_evidence(receipt, evidence_root)
+    assert metrics == receipt["metrics"]
+    assert descriptors[0].shape == (32, 512)
+    expected = torch.from_numpy(
+        np.concatenate(
+            (module.l2_normalize(query_values), module.l2_normalize(gallery_values))
+        )
+    )
+    assert torch.equal(
+        descriptors[0],
+        expected[:, :512].contiguous(),
+    )
 
 
 def test_worker_seed_preserves_the_epoch_varying_dataloader_seed(monkeypatch) -> None:
@@ -2420,6 +2535,7 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
     initialization.write_text(json.dumps(initialization_object) + "\n", encoding="utf-8")
     parent_history = parent / "history.json"
     parent_history.write_text(json.dumps(history) + "\n", encoding="utf-8")
+    parent_evaluations = _write_fepf_evaluations(module, parent, (4,))
     parent_receipt = module.training_run_receipt_v2(
         output_dir=parent,
         mode="fepf_mean",
@@ -2431,10 +2547,11 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
         initialization_receipt_path=initialization,
         history_path=parent_history,
         checkpoint_paths={4: parent / "epoch-0004.pt"},
+        evaluation_receipt_paths=parent_evaluations,
         raw_backbone_pre_initialization_sha256="a" * 64,
         raw_backbone_pre_training_sha256="a" * 64,
         inference_signature=module.build_inference_signature(
-            raw_model, descriptor=torch.zeros((1, 512), dtype=torch.float32)
+            raw_model, descriptor=_fepf_evaluation_descriptor(module)
         ),
     )
     parent_run = parent / "run-receipt.json"
@@ -2512,6 +2629,10 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
     ] == protocol
     continuation_history = continuation / "history.json"
     continuation_history.write_text(json.dumps(final_history) + "\n", encoding="utf-8")
+    continuation_evaluations = {
+        4: parent_evaluations[4],
+        **_write_fepf_evaluations(module, continuation, (8, 12, 16)),
+    }
     continuation_receipt = module.training_run_receipt_v2(
         output_dir=continuation,
         mode="fepf_mean",
@@ -2528,10 +2649,11 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
             12: continuation / "epoch-0012.pt",
             16: continuation / "epoch-0016.pt",
         },
+        evaluation_receipt_paths=continuation_evaluations,
         raw_backbone_pre_initialization_sha256="a" * 64,
         raw_backbone_pre_training_sha256="a" * 64,
         inference_signature=module.build_inference_signature(
-            restored_model, descriptor=torch.zeros((1, 512), dtype=torch.float32)
+            restored_model, descriptor=_fepf_evaluation_descriptor(module)
         ),
         parent_run_receipt_path=parent_run,
         parent_checkpoint_path=parent / "epoch-0004.pt",
@@ -2552,6 +2674,7 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
         for completed in (8, 12, 16):
             source = continuation / f"epoch-{completed:04d}.pt"
             (args.output_dir / source.name).write_bytes(source.read_bytes())
+        _write_fepf_evaluations(module, args.output_dir, (8, 12, 16))
         args._fepf_run_evidence = {
             "initialization_receipt_path": initialization,
             "raw_backbone_pre_initialization_sha256": "a" * 64,
@@ -2746,6 +2869,65 @@ def _fepf_checkpoint_payload(
     }
 
 
+def _write_fepf_evaluations(module, root: Path, epochs: tuple[int, ...]) -> dict[int, Path]:
+    dataset_root = root / "dataset"
+    image_root = dataset_root / "Img"
+    image_root.mkdir(parents=True)
+    query_path = image_root / "query.jpg"
+    query_path.write_bytes(b"query")
+    query_records = (
+        InshopRecord(split="query", image_path=query_path, label="item_a"),
+    )
+    gallery_records = []
+    for index in range(31):
+        path = image_root / f"gallery-{index:02d}.jpg"
+        path.write_bytes(str(index).encode())
+        gallery_records.append(
+            InshopRecord(
+                split="gallery",
+                image_path=path,
+                label="item_a" if index in {0, 2} else f"other-{index}",
+            )
+        )
+    query_values = np.zeros((1, 768), dtype=np.float32)
+    query_values[0, 0] = 1.0
+    gallery_values = np.zeros((31, 768), dtype=np.float32)
+    angles = np.linspace(0.0, 1.5, 31, dtype=np.float32)
+    gallery_values[:, 0] = np.cos(angles)
+    gallery_values[:, 1] = np.sin(angles)
+    paths = {}
+    for epoch in epochs:
+        module.write_evaluation_evidence(
+            query_values=query_values,
+            gallery_values=gallery_values,
+            query_records=query_records,
+            gallery_records=tuple(gallery_records),
+            dataset_root=dataset_root,
+            coordinates=np.arange(512, dtype=np.int64),
+            normalize_before=True,
+            epoch=epoch,
+            evidence_root=root,
+        )
+        paths[epoch] = root / f"evaluation-epoch-{epoch:04d}.json"
+    return paths
+
+
+def _fepf_evaluation_descriptor(module) -> torch.Tensor:
+    query_values = np.zeros((1, 768), dtype=np.float32)
+    query_values[0, 0] = 1.0
+    gallery_values = np.zeros((31, 768), dtype=np.float32)
+    angles = np.linspace(0.0, 1.5, 31, dtype=np.float32)
+    gallery_values[:, 0] = np.cos(angles)
+    gallery_values[:, 1] = np.sin(angles)
+    return torch.from_numpy(
+        np.ascontiguousarray(
+            np.concatenate(
+                (module.l2_normalize(query_values), module.l2_normalize(gallery_values))
+            )[:, :512]
+        )
+    )
+
+
 def _fepf_run_receipt_fixture(module, tmp_path: Path):
     parent = tmp_path / "parent"
     continuation = tmp_path / "continuation"
@@ -2761,11 +2943,27 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
     parent_history.write_text("[]\n", encoding="utf-8")
     model = torch.nn.Linear(3, 4, bias=False)
     signature = module.build_inference_signature(
-        model, descriptor=torch.arange(512, dtype=torch.float32)[None]
+        model, descriptor=_fepf_evaluation_descriptor(module)
     )
     protocol = _fepf_protocol(module, initialization_sha256)
     epoch4 = parent / "epoch-0004.pt"
     torch.save(_fepf_checkpoint_payload(protocol, 4), epoch4)
+    parent_evaluations = _write_fepf_evaluations(module, parent, (4,))
+    parent_history.write_text(
+        json.dumps(
+            [
+                {
+                    "epoch": 4,
+                    "train": {},
+                    "metrics": module.strict_json_object(
+                        parent_evaluations[4].read_bytes()
+                    )["metrics"],
+                }
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     parent_receipt = module.training_run_receipt_v2(
         output_dir=parent,
         mode="fepf_mean",
@@ -2777,6 +2975,7 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
         initialization_receipt_path=initialization,
         history_path=parent_history,
         checkpoint_paths={4: epoch4},
+        evaluation_receipt_paths=parent_evaluations,
         raw_backbone_pre_initialization_sha256="a" * 64,
         raw_backbone_pre_training_sha256="a" * 64,
         inference_signature=signature,
@@ -2790,6 +2989,26 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
         path = continuation / f"epoch-{epoch:04d}.pt"
         torch.save(_fepf_checkpoint_payload(protocol, epoch), path)
         checkpoints[epoch] = path
+    continuation_evaluations = {
+        4: parent_evaluations[4],
+        **_write_fepf_evaluations(module, continuation, (8, 12, 16)),
+    }
+    continuation_history.write_text(
+        json.dumps(
+            [
+                {
+                    "epoch": epoch,
+                    "train": {},
+                    "metrics": module.strict_json_object(
+                        continuation_evaluations[epoch].read_bytes()
+                    )["metrics"],
+                }
+                for epoch in (4, 8, 12, 16)
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     receipt = module.training_run_receipt_v2(
         output_dir=continuation,
         mode="fepf_mean",
@@ -2801,6 +3020,7 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
         initialization_receipt_path=initialization,
         history_path=continuation_history,
         checkpoint_paths=checkpoints,
+        evaluation_receipt_paths=continuation_evaluations,
         raw_backbone_pre_initialization_sha256="a" * 64,
         raw_backbone_pre_training_sha256="a" * 64,
         inference_signature=signature,
@@ -2829,6 +3049,49 @@ def test_run_receipt_v2_authenticates_parent_root_and_original_initialization(
         "current",
         "current",
     ]
+    assert [row["root"] for row in receipt["evaluations"]] == [
+        "parent",
+        "current",
+        "current",
+        "current",
+    ]
+
+
+def test_per_query_fepf_result_reloads_parent_epoch4_and_current_evaluations(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    receipt, continuation, _digest, _epoch4 = _fepf_run_receipt_fixture(
+        module, tmp_path
+    )
+    (continuation / "run-receipt.json").write_text(
+        json.dumps(receipt) + "\n", encoding="utf-8"
+    )
+    result = json.loads((continuation / "history.json").read_text())
+
+    module.validate_fepf_result(result, continuation)
+    with pytest.raises(ValueError, match="result history"):
+        module.validate_fepf_result(receipt, continuation)
+
+    parent_gallery = tmp_path / "parent" / "evaluation-epoch-0004-gallery.npy"
+    original = parent_gallery.read_bytes()
+    payload = bytearray(original)
+    payload[-1] ^= 1
+    parent_gallery.write_bytes(payload)
+    with pytest.raises(ValueError, match="descriptor|bytes"):
+        module.validate_fepf_result(result, continuation)
+    parent_gallery.write_bytes(original)
+
+    result[0]["metrics"]["map_at_r"] = 0.125
+    history_path = continuation / "history.json"
+    history_path.write_text(json.dumps(result) + "\n", encoding="utf-8")
+    receipt["history"]["sha256"] = hashlib.sha256(history_path.read_bytes()).hexdigest()
+    receipt["history"]["bytes"] = history_path.stat().st_size
+    (continuation / "run-receipt.json").write_text(
+        json.dumps(receipt) + "\n", encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="evaluation metrics"):
+        module.validate_fepf_result(result, continuation)
 
 
 def test_fepf_atomic_publication_rejects_noncanonical_receipt_name(
@@ -2995,6 +3258,7 @@ def test_run_receipt_v2_rejects_parent_link_mutations(
     (
         "parent_run_receipt", "parent_checkpoint", "initialization_receipt", "history",
         "checkpoint_4", "checkpoint_8", "checkpoint_12", "checkpoint_16",
+        "evaluation_4", "evaluation_8", "evaluation_12", "evaluation_16",
     ),
 )
 @pytest.mark.parametrize("mutation", ("path_escape", "wrong_root", "substitution"))
@@ -3010,6 +3274,9 @@ def test_run_receipt_v2_rejects_coherent_every_link_mutations(
     if link.startswith("checkpoint_"):
         index = (4, 8, 12, 16).index(int(link.removeprefix("checkpoint_")))
         binding = changed["checkpoints"][index]
+    elif link.startswith("evaluation_"):
+        index = (4, 8, 12, 16).index(int(link.removeprefix("evaluation_")))
+        binding = changed["evaluations"][index]
     else:
         binding = changed[link]
     source_root = parent if binding["root"] == "parent" else continuation

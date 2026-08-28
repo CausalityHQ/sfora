@@ -1,19 +1,435 @@
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
+from pathlib import Path
+
 import numpy as np
 import pytest
 
 import sfora.unicom_retrieval_audit as retrieval_audit
+from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_retrieval_audit import (
     _stable_top_indices,
     audit_deployment_geometry,
+    canonical_logical_record,
     geometry_decision,
     l2_normalize,
     paired_r1_interval,
+    query_evidence,
     random_masks,
+    recompute_query_metrics,
     retrieval_metrics_from_score_chunks,
     retrieval_view,
+    validate_evaluation_evidence,
+    write_evaluation_evidence,
 )
+
+
+def _evidence_records(
+    dataset_root: Path, *, gallery_count: int = 31
+) -> tuple[tuple[InshopRecord, ...], tuple[InshopRecord, ...]]:
+    image_root = dataset_root / "Img"
+    image_root.mkdir(parents=True)
+    query_path = image_root / "WOMEN" / "query.jpg"
+    query_path.parent.mkdir()
+    query_path.write_bytes(b"query")
+    query = (InshopRecord(split="query", image_path=query_path, label="item_a"),)
+    gallery = []
+    for index in range(gallery_count):
+        path = image_root / "MEN" / f"gallery-{index:02d}.jpg"
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(f"gallery-{index}".encode())
+        label = "item_a" if index in {0, 2} else f"other-{index}"
+        gallery.append(InshopRecord(split="gallery", image_path=path, label=label))
+    return query, tuple(gallery)
+
+
+def _full_width_evidence_values(gallery_count: int = 31) -> tuple[np.ndarray, np.ndarray]:
+    query = np.zeros((1, 768), dtype=np.float32)
+    query[0, 0] = 1.0
+    angles = np.linspace(0.0, 1.5, gallery_count, dtype=np.float32)
+    gallery = np.zeros((gallery_count, 768), dtype=np.float32)
+    gallery[:, 0] = np.cos(angles)
+    gallery[:, 1] = np.sin(angles)
+    return query, gallery
+
+
+def test_query_evidence_recomputes_all_metrics_and_ranked_prefix(tmp_path: Path) -> None:
+    query_records, gallery_records = _evidence_records(tmp_path / "dataset")
+    query, gallery = _full_width_evidence_values()
+
+    rows = query_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=tmp_path / "dataset",
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    expected = retrieval_view(
+        query,
+        gallery,
+        np.asarray([record.label for record in query_records]),
+        np.asarray([record.label for record in gallery_records]),
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+
+    assert type(rows) is tuple
+    assert len(rows[0]["ranked_prefix"]) == max(
+        30, rows[0]["relevant_gallery_count"]
+    )
+    assert rows[0]["query_path"] == "WOMEN/query.jpg"
+    assert rows[0]["ranked_prefix"][0] == {
+        "gallery_index": 0,
+        "gallery_path": "MEN/gallery-00.jpg",
+        "gallery_label": "item_a",
+        "score": 0.0,
+        "correct": True,
+    }
+    metrics = recompute_query_metrics(rows)
+    assert metrics == {
+        "recall_at_1": expected.recall[1],
+        "recall_at_10": expected.recall[10],
+        "recall_at_20": expected.recall[20],
+        "recall_at_30": expected.recall[30],
+        "map_at_r": expected.map_at_r,
+    }
+
+
+def test_query_evidence_recomputes_metrics_for_gallery_smaller_than_recall_k(
+    tmp_path: Path,
+) -> None:
+    query_records, gallery_records = _evidence_records(
+        tmp_path / "dataset", gallery_count=5
+    )
+    query, gallery = _full_width_evidence_values(gallery_count=5)
+    rows = query_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=tmp_path / "dataset",
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    expected = retrieval_view(
+        query,
+        gallery,
+        np.asarray(["item_a"]),
+        np.asarray([record.label for record in gallery_records]),
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+
+    assert len(rows[0]["ranked_prefix"]) == 5
+    assert recompute_query_metrics(rows)["map_at_r"] == expected.map_at_r
+
+
+def test_logical_records_and_query_hashes_are_relocation_stable(tmp_path: Path) -> None:
+    query, gallery = _full_width_evidence_values()
+    payloads = []
+    receipts = []
+    for root_name in ("first/absolute/location", "second"):
+        root = tmp_path / root_name
+        query_records, gallery_records = _evidence_records(root)
+        logical = (
+            [canonical_logical_record(record, root).__dict__ for record in query_records],
+            [canonical_logical_record(record, root).__dict__ for record in gallery_records],
+        )
+        rows = query_evidence(
+            query_values=query,
+            gallery_values=gallery,
+            query_records=query_records,
+            gallery_records=gallery_records,
+            dataset_root=root,
+            coordinates=np.arange(512, dtype=np.int64),
+            normalize_before=True,
+        )
+        payloads.append(
+            json.dumps({"inventory": logical, "rows": rows}, sort_keys=True).encode()
+        )
+        evidence_root = tmp_path / f"evidence-{len(receipts)}"
+        evidence_root.mkdir()
+        write_evaluation_evidence(
+            query_values=query,
+            gallery_values=gallery,
+            query_records=query_records,
+            gallery_records=gallery_records,
+            dataset_root=root,
+            coordinates=np.arange(512, dtype=np.int64),
+            normalize_before=True,
+            epoch=4,
+            evidence_root=evidence_root,
+        )
+        receipts.append((evidence_root / "evaluation-epoch-0004.json").read_bytes())
+
+    assert payloads[0] == payloads[1]
+    assert receipts[0] == receipts[1]
+
+
+def test_canonical_logical_record_rejects_escape_and_symlink(tmp_path: Path) -> None:
+    root = tmp_path / "dataset"
+    (root / "Img").mkdir(parents=True)
+    outside = tmp_path / "outside.jpg"
+    outside.write_bytes(b"outside")
+    escaped = InshopRecord(split="query", image_path=outside, label="item_a")
+    with pytest.raises(ValueError, match="image path"):
+        canonical_logical_record(escaped, root)
+
+    link = root / "Img" / "linked.jpg"
+    link.symlink_to(outside)
+    linked = InshopRecord(split="query", image_path=link, label="item_a")
+    with pytest.raises(ValueError, match="image path"):
+        canonical_logical_record(linked, root)
+
+
+def test_query_evidence_uses_full_normalize_then_prefix_geometry(tmp_path: Path) -> None:
+    query_records, gallery_records = _evidence_records(tmp_path / "dataset")
+    query = np.zeros((1, 768), dtype=np.float32)
+    gallery = np.zeros((31, 768), dtype=np.float32)
+    query[0, [0, 1, 512]] = (3.0, 4.0, 12.0)
+    gallery[0, [0, 1, 512]] = (3.0, 4.0, 0.0)
+    gallery[1, [0, 1, 512]] = (0.0, 5.0, 12.0)
+    gallery[2:, 0] = -1.0
+
+    official = query_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=tmp_path / "dataset",
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    prefix_then_normalize = retrieval_view(
+        query,
+        gallery,
+        np.asarray(["item_a"]),
+        np.asarray([record.label for record in gallery_records]),
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=False,
+    )
+
+    assert official[0]["ranked_prefix"][0]["gallery_index"] != int(
+        prefix_then_normalize.top1_indices[0]
+    )
+
+
+def test_query_evidence_ranks_squared_distance_not_dot_product(tmp_path: Path) -> None:
+    query_records, gallery_records = _evidence_records(tmp_path / "dataset")
+    query = np.zeros((1, 768), dtype=np.float32)
+    gallery = np.zeros((31, 768), dtype=np.float32)
+    query[0, 0] = 1.0
+    gallery[0, [0, 1, 512]] = (0.8, 0.0, 0.6)
+    gallery[1, [0, 1, 512]] = (0.9, np.sqrt(0.19), 0.0)
+    gallery[2:, 0] = -1.0
+
+    rows = query_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=tmp_path / "dataset",
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    selected_query = l2_normalize(query)[:, :512]
+    selected_gallery = l2_normalize(gallery)[:, :512]
+    dot_order = np.lexsort(
+        (np.arange(gallery.shape[0]), -(selected_query @ selected_gallery.T)[0])
+    )
+
+    assert rows[0]["ranked_prefix"][0]["gallery_index"] == 0
+    assert int(dot_order[0]) == 1
+
+
+def _persisted_evaluation_fixture(tmp_path: Path) -> tuple[dict[str, object], Path]:
+    dataset_root = tmp_path / "dataset-retry"
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    query_records, gallery_records = _evidence_records(dataset_root)
+    query, gallery = _full_width_evidence_values()
+    receipt = write_evaluation_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=dataset_root,
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+        epoch=4,
+        evidence_root=evidence_root,
+    )
+    return receipt, evidence_root
+
+
+def test_per_query_evaluation_receipt_strictly_reloads_descriptor_preimages(
+    tmp_path: Path,
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+
+    validate_evaluation_evidence(receipt, evidence_root)
+    persisted = json.loads((evidence_root / "evaluation-epoch-0004.json").read_text())
+    validate_evaluation_evidence(persisted, evidence_root)
+    query = np.load(evidence_root / persisted["query_descriptors"]["path"])
+    gallery = np.load(evidence_root / persisted["gallery_descriptors"]["path"])
+    assert query.dtype == gallery.dtype == np.float32
+    assert query.shape == (1, 768)
+    assert gallery.shape == (31, 768)
+    assert query.flags.c_contiguous and gallery.flags.c_contiguous
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "top_label",
+        "relevant_count",
+        "ap_at_r",
+        "gallery_index",
+        "score",
+        "record_order",
+        "record_path",
+        "duplicate_path",
+        "aggregate",
+        "descriptor_hash",
+        "evaluation_descriptor_hash",
+        "operation",
+    ),
+)
+def test_per_query_evaluation_receipt_rejects_derived_mutation(
+    tmp_path: Path, mutation: str
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    changed = copy.deepcopy(receipt)
+    if mutation == "top_label":
+        changed["query_evidence"][0]["ranked_prefix"][0]["gallery_label"] = "wrong"
+    elif mutation == "relevant_count":
+        changed["query_evidence"][0]["relevant_gallery_count"] = 3
+    elif mutation == "ap_at_r":
+        changed["query_evidence"][0]["ap_at_r"] = 0.25
+    elif mutation == "gallery_index":
+        changed["query_evidence"][0]["ranked_prefix"][0]["gallery_index"] = 1
+    elif mutation == "score":
+        changed["query_evidence"][0]["ranked_prefix"][0]["score"] = 1.0
+    elif mutation == "record_order":
+        changed["gallery_records"][0], changed["gallery_records"][1] = (
+            changed["gallery_records"][1],
+            changed["gallery_records"][0],
+        )
+    elif mutation == "record_path":
+        changed["gallery_records"][0]["image_name"] = "MEN/rebased.jpg"
+    elif mutation == "duplicate_path":
+        changed["gallery_records"][1]["image_name"] = changed["gallery_records"][0][
+            "image_name"
+        ]
+    elif mutation == "aggregate":
+        changed["metrics"]["recall_at_1"] = 0.0
+    elif mutation == "descriptor_hash":
+        changed["query_descriptors"]["sha256"] = "0" * 64
+    elif mutation == "evaluation_descriptor_hash":
+        changed["evaluation_signature"]["descriptor_sha256"] = "0" * 64
+    else:
+        changed["evaluation_signature"]["operations"][-1] = "dot_product"
+
+    with pytest.raises(ValueError):
+        validate_evaluation_evidence(changed, evidence_root)
+
+
+def test_per_query_evaluation_receipt_rejects_descriptor_byte_mutation(
+    tmp_path: Path,
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    descriptor = evidence_root / receipt["gallery_descriptors"]["path"]
+    payload = bytearray(descriptor.read_bytes())
+    payload[-1] ^= 1
+    descriptor.write_bytes(payload)
+
+    with pytest.raises(ValueError, match="descriptor"):
+        validate_evaluation_evidence(receipt, evidence_root)
+
+
+def test_per_query_evaluation_receipt_rejects_fortran_order_descriptor(
+    tmp_path: Path,
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    descriptor = evidence_root / receipt["gallery_descriptors"]["path"]
+    values = np.asfortranarray(np.load(descriptor, allow_pickle=False))
+    with descriptor.open("wb") as handle:
+        np.save(handle, values, allow_pickle=False)
+    receipt["gallery_descriptors"]["sha256"] = hashlib.sha256(
+        descriptor.read_bytes()
+    ).hexdigest()
+    receipt["gallery_descriptors"]["bytes"] = descriptor.stat().st_size
+
+    with pytest.raises(ValueError, match="descriptor bytes"):
+        validate_evaluation_evidence(receipt, evidence_root)
+
+
+def test_per_query_evaluation_receipt_rejects_escaping_and_symlink_paths(
+    tmp_path: Path,
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    absolute = copy.deepcopy(receipt)
+    absolute["query_descriptors"]["path"] = str(
+        evidence_root / receipt["query_descriptors"]["path"]
+    )
+    with pytest.raises(ValueError, match="descriptor path"):
+        validate_evaluation_evidence(absolute, evidence_root)
+
+    target = evidence_root / receipt["query_descriptors"]["path"]
+    target.rename(evidence_root / "moved.npy")
+    target.symlink_to(evidence_root / "moved.npy")
+    with pytest.raises(ValueError, match="descriptor path"):
+        validate_evaluation_evidence(receipt, evidence_root)
+
+
+def test_per_query_evaluation_receipt_cross_binds_descriptor_paths_to_epoch(
+    tmp_path: Path,
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    source = evidence_root / receipt["query_descriptors"]["path"]
+    substitute = evidence_root / "arbitrary-query.npy"
+    substitute.write_bytes(source.read_bytes())
+    receipt["query_descriptors"]["path"] = substitute.name
+
+    with pytest.raises(ValueError, match="descriptor path"):
+        validate_evaluation_evidence(receipt, evidence_root)
+
+
+def test_per_query_evaluation_artifacts_are_immutable(tmp_path: Path) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    before = {
+        path.name: path.read_bytes()
+        for path in evidence_root.iterdir()
+        if path.is_file()
+    }
+    dataset_root = tmp_path / "dataset"
+    query_records, gallery_records = _evidence_records(dataset_root)
+    query, gallery = _full_width_evidence_values()
+
+    with pytest.raises(FileExistsError):
+        write_evaluation_evidence(
+            query_values=query,
+            gallery_values=gallery,
+            query_records=query_records,
+            gallery_records=gallery_records,
+            dataset_root=dataset_root,
+            coordinates=np.arange(512, dtype=np.int64),
+            normalize_before=True,
+            epoch=4,
+            evidence_root=evidence_root,
+        )
+
+    assert receipt["epoch"] == 4
+    assert {
+        path.name: path.read_bytes()
+        for path in evidence_root.iterdir()
+        if path.is_file()
+    } == before
 
 
 def test_official_and_prefix_unit_use_different_normalization_order() -> None:

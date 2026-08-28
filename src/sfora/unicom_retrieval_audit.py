@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import math
+import os
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
+
+from sfora.unicom_inshop import InshopRecord
 
 RECALL_AT_K = (1, 10, 20, 30)
 
@@ -18,6 +25,14 @@ class RetrievalView:
     top1_indices: np.ndarray
     top1_correct: np.ndarray
     average_precision: np.ndarray | None = None
+
+
+@dataclass(frozen=True)
+class LogicalInshopRecord:
+    """Relocation-stable In-Shop record stored in evaluation evidence."""
+
+    image_name: str
+    label: str
 
 
 @dataclass(frozen=True)
@@ -213,6 +228,682 @@ def _stable_top_score_indices(scores: np.ndarray, count: int) -> np.ndarray:
         tied = np.flatnonzero(scores == boundary)[: count - higher.size]
         candidates = np.concatenate((higher, tied))
     return candidates[np.lexsort((candidates, -scores[candidates]))]
+
+
+def canonical_logical_record(
+    record: InshopRecord, dataset_root: Path
+) -> LogicalInshopRecord:
+    """Convert one existing image into its real Img-relative logical identity."""
+
+    if type(record) is not InshopRecord or not isinstance(dataset_root, Path):
+        raise TypeError("In-Shop logical record input differs")
+    if type(record.label) is not str or not record.label:
+        raise ValueError("In-Shop logical record label differs")
+    absolute_root = dataset_root.absolute()
+    resolved_root = dataset_root.resolve()
+    image_root = resolved_root / "Img"
+    if (
+        absolute_root != resolved_root
+        or not resolved_root.is_dir()
+        or resolved_root.is_symlink()
+        or not image_root.is_dir()
+        or image_root.is_symlink()
+    ):
+        raise ValueError("In-Shop dataset root differs")
+    image_path = record.image_path
+    if not isinstance(image_path, Path):
+        raise TypeError("In-Shop image path differs")
+    absolute_path = image_path.absolute()
+    resolved_path = image_path.resolve()
+    try:
+        relative = resolved_path.relative_to(image_root)
+    except ValueError as error:
+        raise ValueError("In-Shop image path is not a real Img descendant") from error
+    unresolved = image_root
+    for part in relative.parts:
+        if part in {"", ".", ".."}:
+            raise ValueError("In-Shop image path differs")
+        unresolved /= part
+        if unresolved.is_symlink():
+            raise ValueError("In-Shop image path contains a symlink")
+    if (
+        absolute_path != resolved_path
+        or not relative.parts
+        or not resolved_path.is_file()
+        or resolved_path.is_symlink()
+    ):
+        raise ValueError("In-Shop image path is not a real Img descendant")
+    return LogicalInshopRecord(image_name=relative.as_posix(), label=record.label)
+
+
+def _canonical_logical_records(
+    records: Sequence[InshopRecord], dataset_root: Path, *, name: str
+) -> tuple[LogicalInshopRecord, ...]:
+    if type(records) is not tuple or not records:
+        raise ValueError(f"{name} must be a nonempty ordered tuple")
+    logical = tuple(canonical_logical_record(record, dataset_root) for record in records)
+    paths = tuple(record.image_name for record in logical)
+    if len(paths) != len(set(paths)):
+        raise ValueError(f"{name} contains duplicate image paths")
+    return logical
+
+
+def tensor_sha256(values: np.ndarray) -> str:
+    """Hash exact canonical NumPy tensor bytes."""
+
+    if type(values) is not np.ndarray or not values.flags.c_contiguous:
+        raise ValueError("tensor hash input differs")
+    return hashlib.sha256(values.tobytes(order="C")).hexdigest()
+
+
+def ranking_sha256(scores: np.ndarray, indices: np.ndarray) -> str:
+    """Hash a complete ascending FP64-distance/int64-index ranking."""
+
+    if (
+        type(scores) is not np.ndarray
+        or scores.dtype != np.float64
+        or scores.ndim != 1
+        or not scores.flags.c_contiguous
+        or not np.isfinite(scores).all()
+        or type(indices) is not np.ndarray
+        or indices.dtype != np.int64
+        or indices.shape != scores.shape
+        or not indices.flags.c_contiguous
+    ):
+        raise ValueError("ranking hash input differs")
+    digest = hashlib.sha256(b"unicom-squared-euclidean-ranking-v1\0")
+    digest.update(scores.tobytes(order="C"))
+    digest.update(indices.tobytes(order="C"))
+    return digest.hexdigest()
+
+
+def query_evidence(
+    *,
+    query_values: np.ndarray,
+    gallery_values: np.ndarray,
+    query_records: tuple[InshopRecord, ...],
+    gallery_records: tuple[InshopRecord, ...],
+    dataset_root: Path,
+    coordinates: np.ndarray,
+    normalize_before: bool,
+) -> tuple[dict[str, object], ...]:
+    """Build exact per-query evidence under the registered retrieval geometry."""
+
+    _require_fp32_matrix(query_values, name="query_values")
+    _require_fp32_matrix(gallery_values, name="gallery_values")
+    if query_values.shape[1] != gallery_values.shape[1]:
+        raise ValueError("query and gallery descriptor dimensions differ")
+    coordinates = _validate_coordinates(coordinates, query_values.shape[1])
+    if type(normalize_before) is not bool:
+        raise TypeError("normalize_before must be a builtin bool")
+    query_logical = _canonical_logical_records(
+        query_records, dataset_root, name="query_records"
+    )
+    gallery_logical = _canonical_logical_records(
+        gallery_records, dataset_root, name="gallery_records"
+    )
+    if len(query_logical) != query_values.shape[0]:
+        raise ValueError("query tensor/record row count differs")
+    if len(gallery_logical) != gallery_values.shape[0]:
+        raise ValueError("gallery tensor/record row count differs")
+    all_paths = tuple(record.image_name for record in query_logical + gallery_logical)
+    if len(all_paths) != len(set(all_paths)):
+        raise ValueError("query/gallery image paths overlap")
+    return _query_evidence_from_logical(
+        query_values=query_values,
+        gallery_values=gallery_values,
+        query_records=query_logical,
+        gallery_records=gallery_logical,
+        coordinates=coordinates,
+        normalize_before=normalize_before,
+    )
+
+
+def _query_evidence_from_logical(
+    *,
+    query_values: np.ndarray,
+    gallery_values: np.ndarray,
+    query_records: tuple[LogicalInshopRecord, ...],
+    gallery_records: tuple[LogicalInshopRecord, ...],
+    coordinates: np.ndarray,
+    normalize_before: bool,
+) -> tuple[dict[str, object], ...]:
+    gallery_label_counts = Counter(record.label for record in gallery_records)
+    if any(record.label not in gallery_label_counts for record in query_records):
+        raise ValueError("query label is absent from gallery label map")
+
+    normalized_query = l2_normalize(query_values)
+    normalized_gallery = l2_normalize(gallery_values)
+    if normalize_before:
+        selected_query = np.ascontiguousarray(normalized_query[:, coordinates])
+        selected_gallery = np.ascontiguousarray(normalized_gallery[:, coordinates])
+    else:
+        selected_query = l2_normalize(np.ascontiguousarray(query_values[:, coordinates]))
+        selected_gallery = l2_normalize(
+            np.ascontiguousarray(gallery_values[:, coordinates])
+        )
+        normalized_query = selected_query
+    gallery64 = selected_gallery.astype(np.float64)
+    gallery_norms = np.sum(gallery64 * gallery64, axis=1, dtype=np.float64)
+    gallery_indices = np.arange(gallery_values.shape[0], dtype=np.int64)
+    rows: list[dict[str, object]] = []
+    for query_index, (query_record, selected_row) in enumerate(
+        zip(query_records, selected_query, strict=True)
+    ):
+        query64 = selected_row.astype(np.float64)
+        distances = np.ascontiguousarray(
+            np.sum(query64 * query64, dtype=np.float64)
+            + gallery_norms
+            - 2.0 * (gallery64 @ query64)
+        )
+        order = np.ascontiguousarray(
+            np.lexsort((gallery_indices, distances)).astype(np.int64, copy=False)
+        )
+        ordered_scores = np.ascontiguousarray(distances[order])
+        relevant = gallery_label_counts[query_record.label]
+        prefix_length = min(max(max(RECALL_AT_K), relevant), len(gallery_records))
+        ranked_prefix = tuple(
+            {
+                "gallery_index": int(gallery_index),
+                "gallery_path": gallery_records[gallery_index].image_name,
+                "gallery_label": gallery_records[gallery_index].label,
+                "score": float(distances[gallery_index]),
+                "correct": gallery_records[gallery_index].label == query_record.label,
+            }
+            for gallery_index in order[:prefix_length]
+        )
+        matches = np.asarray(
+            [row["correct"] for row in ranked_prefix[:relevant]], dtype=np.bool_
+        )
+        precision = np.cumsum(matches, dtype=np.int64) / np.arange(1, relevant + 1)
+        average_precision = float(np.sum(precision * matches) / relevant)
+        rows.append(
+            {
+                "query_path": query_record.image_name,
+                "query_label": query_record.label,
+                "relevant_gallery_count": relevant,
+                "ranked_prefix": ranked_prefix,
+                "ap_at_r": average_precision,
+                "query_sha256": tensor_sha256(
+                    np.ascontiguousarray(normalized_query[query_index])
+                ),
+                "complete_ranking_sha256": ranking_sha256(ordered_scores, order),
+            }
+        )
+    return tuple(rows)
+
+
+def recompute_query_metrics(
+    rows: tuple[dict[str, object], ...],
+) -> dict[str, float]:
+    """Strictly recompute aggregate metrics from ranked per-query prefixes."""
+
+    if type(rows) is not tuple or not rows:
+        raise ValueError("query evidence must be a nonempty ordered tuple")
+    recalls = {key: [] for key in RECALL_AT_K}
+    average_precisions: list[float] = []
+    query_paths: set[str] = set()
+    expected_row_keys = (
+        "query_path",
+        "query_label",
+        "relevant_gallery_count",
+        "ranked_prefix",
+        "ap_at_r",
+        "query_sha256",
+        "complete_ranking_sha256",
+    )
+    expected_rank_keys = (
+        "gallery_index",
+        "gallery_path",
+        "gallery_label",
+        "score",
+        "correct",
+    )
+    for row in rows:
+        if type(row) is not dict or tuple(row) != expected_row_keys:
+            raise ValueError("query evidence row differs")
+        if (
+            type(row["query_path"]) is not str
+            or not row["query_path"]
+            or Path(row["query_path"]).is_absolute()
+            or any(part in {"", ".", ".."} for part in Path(row["query_path"]).parts)
+            or row["query_path"] in query_paths
+            or type(row["query_label"]) is not str
+            or not row["query_label"]
+            or type(row["relevant_gallery_count"]) is not int
+            or row["relevant_gallery_count"] <= 0
+            or type(row["ranked_prefix"]) is not tuple
+            or len(row["ranked_prefix"]) < row["relevant_gallery_count"]
+            or type(row["ap_at_r"]) is not float
+            or not np.isfinite(row["ap_at_r"])
+            or not 0.0 <= row["ap_at_r"] <= 1.0
+            or type(row["query_sha256"]) is not str
+            or len(row["query_sha256"]) != 64
+            or any(character not in "0123456789abcdef" for character in row["query_sha256"])
+            or type(row["complete_ranking_sha256"]) is not str
+            or len(row["complete_ranking_sha256"]) != 64
+            or any(
+                character not in "0123456789abcdef"
+                for character in row["complete_ranking_sha256"]
+            )
+        ):
+            raise ValueError("query evidence row differs")
+        query_paths.add(row["query_path"])
+        indices: set[int] = set()
+        gallery_paths: set[str] = set()
+        previous: tuple[float, int] | None = None
+        matches = []
+        for ranked in row["ranked_prefix"]:
+            if type(ranked) is not dict or tuple(ranked) != expected_rank_keys:
+                raise ValueError("ranked query evidence differs")
+            if (
+                type(ranked["gallery_index"]) is not int
+                or ranked["gallery_index"] < 0
+                or ranked["gallery_index"] in indices
+                or type(ranked["gallery_path"]) is not str
+                or not ranked["gallery_path"]
+                or Path(ranked["gallery_path"]).is_absolute()
+                or any(
+                    part in {"", ".", ".."}
+                    for part in Path(ranked["gallery_path"]).parts
+                )
+                or ranked["gallery_path"] in gallery_paths
+                or type(ranked["gallery_label"]) is not str
+                or not ranked["gallery_label"]
+                or type(ranked["score"]) is not float
+                or not np.isfinite(ranked["score"])
+                or type(ranked["correct"]) is not bool
+                or ranked["correct"] != (
+                    ranked["gallery_label"] == row["query_label"]
+                )
+            ):
+                raise ValueError("ranked query evidence differs")
+            key = (ranked["score"], ranked["gallery_index"])
+            if previous is not None and key < previous:
+                raise ValueError("ranked query evidence differs")
+            previous = key
+            indices.add(ranked["gallery_index"])
+            gallery_paths.add(ranked["gallery_path"])
+            matches.append(ranked["correct"])
+        relevant = row["relevant_gallery_count"]
+        truncated = np.asarray(matches[:relevant], dtype=np.bool_)
+        precision = np.cumsum(truncated, dtype=np.int64) / np.arange(1, relevant + 1)
+        ap_at_r = float(np.sum(precision * truncated) / relevant)
+        if row["ap_at_r"] != ap_at_r:
+            raise ValueError("query AP@R differs")
+        for key in recalls:
+            recalls[key].append(bool(np.any(matches[:key])))
+        average_precisions.append(ap_at_r)
+    return {
+        "recall_at_1": float(np.mean(recalls[1])),
+        "recall_at_10": float(np.mean(recalls[10])),
+        "recall_at_20": float(np.mean(recalls[20])),
+        "recall_at_30": float(np.mean(recalls[30])),
+        "map_at_r": float(np.mean(average_precisions)),
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _descriptor_binding(path: Path, *, evidence_root: Path) -> dict[str, object]:
+    values = np.load(path, allow_pickle=False)
+    _require_fp32_matrix(values, name="persisted descriptors")
+    relative = path.resolve().relative_to(evidence_root.resolve())
+    return {
+        "path": relative.as_posix(),
+        "sha256": _sha256_file(path),
+        "bytes": path.stat().st_size,
+        "shape": list(values.shape),
+        "dtype": "float32",
+        "c_order": True,
+    }
+
+
+def _json_query_rows(rows: tuple[dict[str, object], ...]) -> list[dict[str, object]]:
+    return [
+        {
+            **{key: value for key, value in row.items() if key != "ranked_prefix"},
+            "ranked_prefix": [dict(ranked) for ranked in row["ranked_prefix"]],
+        }
+        for row in rows
+    ]
+
+
+def _write_npy_exclusive(path: Path, values: np.ndarray) -> None:
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    with path.open("xb") as handle:
+        np.save(handle, values, allow_pickle=False)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _write_json_exclusive(path: Path, value: dict[str, object]) -> None:
+    payload = (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
+    if path.exists() or path.is_symlink():
+        raise FileExistsError(path)
+    with path.open("xb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def write_evaluation_evidence(
+    *,
+    query_values: np.ndarray,
+    gallery_values: np.ndarray,
+    query_records: tuple[InshopRecord, ...],
+    gallery_records: tuple[InshopRecord, ...],
+    dataset_root: Path,
+    coordinates: np.ndarray,
+    normalize_before: bool,
+    epoch: int,
+    evidence_root: Path,
+) -> dict[str, object]:
+    """Persist immutable descriptor preimages and their recomputable receipt."""
+
+    if type(epoch) is not int or epoch not in (4, 8, 12, 16):
+        raise ValueError("evaluation epoch differs")
+    if not isinstance(evidence_root, Path):
+        raise TypeError("evaluation evidence root must be a Path")
+    absolute_root = evidence_root.absolute()
+    resolved_root = evidence_root.resolve()
+    if (
+        absolute_root != resolved_root
+        or not resolved_root.is_dir()
+        or resolved_root.is_symlink()
+    ):
+        raise ValueError("evaluation evidence root differs")
+    _require_fp32_matrix(query_values, name="query_values")
+    _require_fp32_matrix(gallery_values, name="gallery_values")
+    if query_values.shape[1] != 768 or gallery_values.shape[1] != 768:
+        raise ValueError("evaluation descriptor width differs")
+    expected_coordinates = np.arange(512, dtype=np.int64)
+    if not np.array_equal(coordinates, expected_coordinates) or normalize_before is not True:
+        raise ValueError("evaluation geometry differs")
+    logical_query = _canonical_logical_records(
+        query_records, dataset_root, name="query_records"
+    )
+    logical_gallery = _canonical_logical_records(
+        gallery_records, dataset_root, name="gallery_records"
+    )
+    rows = query_evidence(
+        query_values=query_values,
+        gallery_values=gallery_values,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=dataset_root,
+        coordinates=coordinates,
+        normalize_before=normalize_before,
+    )
+    metrics = recompute_query_metrics(rows)
+    stem = f"evaluation-epoch-{epoch:04d}"
+    query_path = resolved_root / f"{stem}-query.npy"
+    gallery_path = resolved_root / f"{stem}-gallery.npy"
+    receipt_path = resolved_root / f"{stem}.json"
+    created: list[Path] = []
+    try:
+        _write_npy_exclusive(query_path, np.ascontiguousarray(query_values))
+        created.append(query_path)
+        _write_npy_exclusive(gallery_path, np.ascontiguousarray(gallery_values))
+        created.append(gallery_path)
+        receipt: dict[str, object] = {
+            "schema": "unicom-evaluation-evidence-v1",
+            "epoch": epoch,
+            "geometry": {
+                "input_dimension": 768,
+                "coordinates": list(range(512)),
+                "normalize_before": True,
+                "ranking": "ascending_squared_euclidean",
+            },
+            "query_descriptors": _descriptor_binding(
+                query_path, evidence_root=resolved_root
+            ),
+            "gallery_descriptors": _descriptor_binding(
+                gallery_path, evidence_root=resolved_root
+            ),
+            "query_records": [record.__dict__ for record in logical_query],
+            "gallery_records": [record.__dict__ for record in logical_gallery],
+            "query_evidence": _json_query_rows(rows),
+            "metrics": metrics,
+            "evaluation_signature": {
+                "descriptor_dtype": "float32",
+                "descriptor_dimension": 512,
+                "descriptor_sha256": tensor_sha256(
+                    np.ascontiguousarray(
+                        np.concatenate(
+                            (l2_normalize(query_values), l2_normalize(gallery_values))
+                        )[:, :512]
+                    )
+                ),
+                "operations": [
+                    "official_forward",
+                    "full768_l2",
+                    "prefix512",
+                    "squared_euclidean",
+                ],
+            },
+        }
+        validate_evaluation_evidence(receipt, resolved_root)
+        _write_json_exclusive(receipt_path, receipt)
+        created.append(receipt_path)
+        persisted = json.loads(receipt_path.read_bytes())
+        validate_evaluation_evidence(persisted, resolved_root)
+        return receipt
+    except Exception:
+        for path in reversed(created):
+            path.unlink(missing_ok=True)
+        raise
+
+
+def _logical_inventory(value: object, *, name: str) -> tuple[LogicalInshopRecord, ...]:
+    if type(value) is not list or not value:
+        raise ValueError(f"{name} inventory differs")
+    records = []
+    paths: set[str] = set()
+    for row in value:
+        if type(row) is not dict or tuple(row) != ("image_name", "label"):
+            raise ValueError(f"{name} inventory differs")
+        relative = Path(row["image_name"])
+        if (
+            type(row["image_name"]) is not str
+            or not row["image_name"]
+            or relative.is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.parts)
+            or row["image_name"] in paths
+            or type(row["label"]) is not str
+            or not row["label"]
+        ):
+            raise ValueError(f"{name} inventory differs")
+        paths.add(row["image_name"])
+        records.append(LogicalInshopRecord(row["image_name"], row["label"]))
+    return tuple(records)
+
+
+def _load_bound_descriptors(
+    binding: object, *, evidence_root: Path, name: str
+) -> np.ndarray:
+    keys = ("path", "sha256", "bytes", "shape", "dtype", "c_order")
+    if type(binding) is not dict or tuple(binding) != keys:
+        raise ValueError(f"{name} descriptor binding differs")
+    relative = Path(binding["path"])
+    if (
+        type(binding["path"]) is not str
+        or not binding["path"]
+        or relative.is_absolute()
+        or any(part in {"", ".", ".."} for part in relative.parts)
+    ):
+        raise ValueError(f"{name} descriptor path differs")
+    unresolved = evidence_root
+    for part in relative.parts:
+        unresolved /= part
+        if unresolved.is_symlink():
+            raise ValueError(f"{name} descriptor path differs")
+    resolved = unresolved.resolve()
+    try:
+        resolved.relative_to(evidence_root)
+    except ValueError as error:
+        raise ValueError(f"{name} descriptor path differs") from error
+    try:
+        with resolved.open("rb") as handle:
+            version = np.lib.format.read_magic(handle)
+            if version != (1, 0):
+                raise ValueError(f"{name} descriptor NumPy format differs")
+            header_shape, fortran_order, header_dtype = (
+                np.lib.format.read_array_header_1_0(handle)
+            )
+            data_offset = handle.tell()
+    except Exception as error:
+        raise ValueError(f"{name} descriptor NumPy format differs") from error
+    if (
+        not resolved.is_file()
+        or resolved.is_symlink()
+        or type(binding["sha256"]) is not str
+        or len(binding["sha256"]) != 64
+        or type(binding["bytes"]) is not int
+        or binding["bytes"] <= 0
+        or resolved.stat().st_size != binding["bytes"]
+        or _sha256_file(resolved) != binding["sha256"]
+        or type(binding["shape"]) is not list
+        or len(binding["shape"]) != 2
+        or any(type(dimension) is not int or dimension <= 0 for dimension in binding["shape"])
+        or binding["dtype"] != "float32"
+        or binding["c_order"] is not True
+        or list(header_shape) != binding["shape"]
+        or fortran_order is not False
+        or header_dtype != np.dtype(np.float32)
+        or resolved.stat().st_size
+        != data_offset + math.prod(header_shape) * header_dtype.itemsize
+    ):
+        raise ValueError(f"{name} descriptor bytes differ")
+    try:
+        values = np.load(resolved, allow_pickle=False)
+    except Exception as error:
+        raise ValueError(f"{name} descriptor payload differs") from error
+    _require_fp32_matrix(values, name=f"{name} descriptors")
+    if list(values.shape) != binding["shape"]:
+        raise ValueError(f"{name} descriptor shape differs")
+    return values
+
+
+def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
+    """Strict-load descriptor preimages and rebuild every recorded metric."""
+
+    keys = (
+        "schema",
+        "epoch",
+        "geometry",
+        "query_descriptors",
+        "gallery_descriptors",
+        "query_records",
+        "gallery_records",
+        "query_evidence",
+        "metrics",
+        "evaluation_signature",
+    )
+    if (
+        type(receipt) is not dict
+        or tuple(receipt) != keys
+        or receipt["schema"] != "unicom-evaluation-evidence-v1"
+        or type(receipt["epoch"]) is not int
+        or receipt["epoch"] not in (4, 8, 12, 16)
+    ):
+        raise ValueError("evaluation evidence receipt differs")
+    if not isinstance(evidence_root, Path):
+        raise TypeError("evaluation evidence root must be a Path")
+    absolute_root = evidence_root.absolute()
+    resolved_root = evidence_root.resolve()
+    if (
+        absolute_root != resolved_root
+        or not resolved_root.is_dir()
+        or resolved_root.is_symlink()
+    ):
+        raise ValueError("evaluation evidence root differs")
+    geometry = receipt["geometry"]
+    if (
+        type(geometry) is not dict
+        or tuple(geometry)
+        != ("input_dimension", "coordinates", "normalize_before", "ranking")
+        or geometry["input_dimension"] != 768
+        or geometry["coordinates"] != list(range(512))
+        or geometry["normalize_before"] is not True
+        or geometry["ranking"] != "ascending_squared_euclidean"
+    ):
+        raise ValueError("evaluation geometry differs")
+    signature = receipt["evaluation_signature"]
+    if (
+        type(signature) is not dict
+        or tuple(signature)
+        != (
+            "descriptor_dtype",
+            "descriptor_dimension",
+            "descriptor_sha256",
+            "operations",
+        )
+        or signature["descriptor_dtype"] != "float32"
+        or signature["descriptor_dimension"] != 512
+        or type(signature["descriptor_sha256"]) is not str
+        or len(signature["descriptor_sha256"]) != 64
+        or signature["operations"]
+        != [
+            "official_forward",
+            "full768_l2",
+            "prefix512",
+            "squared_euclidean",
+        ]
+    ):
+        raise ValueError("evaluation signature differs")
+    query_records = _logical_inventory(receipt["query_records"], name="query")
+    gallery_records = _logical_inventory(receipt["gallery_records"], name="gallery")
+    all_paths = tuple(record.image_name for record in query_records + gallery_records)
+    if len(all_paths) != len(set(all_paths)):
+        raise ValueError("evaluation record paths overlap")
+    stem = f"evaluation-epoch-{receipt['epoch']:04d}"
+    if (
+        type(receipt["query_descriptors"]) is not dict
+        or receipt["query_descriptors"].get("path") != f"{stem}-query.npy"
+    ):
+        raise ValueError("query descriptor path differs")
+    if (
+        type(receipt["gallery_descriptors"]) is not dict
+        or receipt["gallery_descriptors"].get("path") != f"{stem}-gallery.npy"
+    ):
+        raise ValueError("gallery descriptor path differs")
+    query_values = _load_bound_descriptors(
+        receipt["query_descriptors"], evidence_root=resolved_root, name="query"
+    )
+    gallery_values = _load_bound_descriptors(
+        receipt["gallery_descriptors"], evidence_root=resolved_root, name="gallery"
+    )
+    if (
+        query_values.shape != (len(query_records), 768)
+        or gallery_values.shape != (len(gallery_records), 768)
+    ):
+        raise ValueError("evaluation descriptor inventory differs")
+    deployed_descriptors = np.ascontiguousarray(
+        np.concatenate((l2_normalize(query_values), l2_normalize(gallery_values)))[:, :512]
+    )
+    if signature["descriptor_sha256"] != tensor_sha256(deployed_descriptors):
+        raise ValueError("evaluation signature descriptor differs")
+    rebuilt = _query_evidence_from_logical(
+        query_values=query_values,
+        gallery_values=gallery_values,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    if receipt["query_evidence"] != _json_query_rows(rebuilt):
+        raise ValueError("per-query evaluation evidence differs")
+    metrics = recompute_query_metrics(rebuilt)
+    if receipt["metrics"] != metrics:
+        raise ValueError("evaluation aggregate metrics differ")
 
 
 def retrieval_metrics_from_score_chunks(

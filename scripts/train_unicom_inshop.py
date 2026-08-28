@@ -34,7 +34,12 @@ from sfora.unicom_fepf import (
     validate_initialization_receipt_v2,
 )
 from sfora.unicom_inshop import InshopRecord
-from sfora.unicom_retrieval_audit import retrieval_view
+from sfora.unicom_retrieval_audit import (
+    l2_normalize,
+    retrieval_view,
+    validate_evaluation_evidence,
+    write_evaluation_evidence,
+)
 from sfora.unicom_training import (
     experiment_stream_seed,
     identity_holdout,
@@ -487,6 +492,7 @@ def training_run_receipt_v2(
     initialization_receipt_path: Path,
     history_path: Path,
     checkpoint_paths: Mapping[int, Path],
+    evaluation_receipt_paths: Mapping[int, Path],
     raw_backbone_pre_initialization_sha256: str,
     raw_backbone_pre_training_sha256: str,
     inference_signature: dict[str, object],
@@ -543,11 +549,26 @@ def training_run_receipt_v2(
         or (continuation and checkpoint_paths[4].resolve() != parent_checkpoint_path.resolve())
     ):
         raise ValueError("FEPF checkpoint inventory differs")
+    if (
+        type(evaluation_receipt_paths) is not dict
+        or tuple(evaluation_receipt_paths) != expected_epochs
+    ):
+        raise ValueError("FEPF evaluation inventory differs")
     checkpoints = []
     for epoch, path in checkpoint_paths.items():
         root_name = "parent" if continuation and epoch == 4 else "current"
         root = parent_root if root_name == "parent" else current_root
         checkpoints.append(
+            {
+                "epoch": epoch,
+                **_rooted_file_binding(path, root_name=root_name, root=root),
+            }
+        )
+    evaluations = []
+    for epoch, path in evaluation_receipt_paths.items():
+        root_name = "parent" if continuation and epoch == 4 else "current"
+        root = parent_root if root_name == "parent" else current_root
+        evaluations.append(
             {
                 "epoch": epoch,
                 **_rooted_file_binding(path, root_name=root_name, root=root),
@@ -576,6 +597,7 @@ def training_run_receipt_v2(
             history_path, root_name="current", root=current_root
         ),
         "checkpoints": checkpoints,
+        "evaluations": evaluations,
         "inference_signature": inference_signature,
     }
     validate_training_run_receipt_v2(receipt, evidence_root=output_dir)
@@ -681,6 +703,30 @@ def _validate_inference_signature_object(signature: object) -> None:
         raise ValueError("FEPF inference byte count differs")
 
 
+def _validate_evaluation_signature_against_inference(
+    evaluation_receipt: Mapping[str, object],
+    inference_signature: object,
+    *,
+    require_descriptor: bool,
+) -> None:
+    _validate_inference_signature_object(inference_signature)
+    evaluation_signature = evaluation_receipt.get("evaluation_signature")
+    if (
+        type(evaluation_signature) is not dict
+        or evaluation_signature.get("descriptor_dtype") != "float32"
+        or evaluation_signature.get("descriptor_dimension")
+        != inference_signature["descriptor_dimension"]
+        or evaluation_signature.get("operations") != inference_signature["operations"]
+        or inference_signature["descriptor_dtype"] != "torch.float32"
+        or (
+            require_descriptor
+            and evaluation_signature.get("descriptor_sha256")
+            != inference_signature["descriptor_sha256"]
+        )
+    ):
+        raise ValueError("FEPF evaluation inference signature differs")
+
+
 def validate_fepf_training_protocol(
     protocol: object, *, receipt: Mapping[str, object]
 ) -> None:
@@ -760,6 +806,7 @@ def validate_training_run_receipt_v2(
         "initialization_receipt",
         "history",
         "checkpoints",
+        "evaluations",
         "inference_signature",
     )
     if (
@@ -841,6 +888,18 @@ def validate_training_run_receipt_v2(
             "bytes": terminal["bytes"],
         }
         child_first = receipt["checkpoints"][0] if type(receipt["checkpoints"]) is list else None
+        terminal_evaluation = parent_receipt["evaluations"][-1]
+        expected_evaluation = {
+            "root": "parent",
+            "path": terminal_evaluation["path"],
+            "sha256": terminal_evaluation["sha256"],
+            "bytes": terminal_evaluation["bytes"],
+        }
+        child_first_evaluation = (
+            receipt["evaluations"][0]
+            if type(receipt["evaluations"]) is list and receipt["evaluations"]
+            else None
+        )
         if (
             parent_receipt["mode"] != receipt["mode"]
             or parent_receipt["training_seed"] != receipt["training_seed"]
@@ -854,6 +913,12 @@ def validate_training_run_receipt_v2(
             or type(child_first) is not dict
             or {key: child_first[key] for key in tuple(child_first)[1:]}
             != expected_checkpoint
+            or type(child_first_evaluation) is not dict
+            or {
+                key: child_first_evaluation[key]
+                for key in tuple(child_first_evaluation)[1:]
+            }
+            != expected_evaluation
         ):
             raise ValueError("FEPF parent run substitution differs")
     initialization_path = _resolve_receipt_binding(
@@ -907,6 +972,44 @@ def validate_training_run_receipt_v2(
             != protocol
         ):
             raise ValueError("FEPF checkpoint protocol differs")
+    evaluations = receipt["evaluations"]
+    if (
+        type(evaluations) is not list
+        or tuple(row.get("epoch") for row in evaluations) != expected_epochs
+    ):
+        raise ValueError("FEPF evaluation inventory differs")
+    for index, row in enumerate(evaluations):
+        if type(row) is not dict or tuple(row) != (
+            "epoch",
+            "root",
+            "path",
+            "sha256",
+            "bytes",
+        ):
+            raise ValueError("FEPF evaluation binding differs")
+        expected_root = "parent" if continuation and index == 0 else "current"
+        if (
+            row["root"] != expected_root
+            or row["path"] != f"evaluation-epoch-{row['epoch']:04d}.json"
+        ):
+            raise ValueError("FEPF evaluation root differs")
+        evaluation_path = _resolve_receipt_binding(
+            {key: row[key] for key in tuple(row)[1:]},
+            current_root=current_root,
+            parent_root=parent_root,
+        )
+        evaluation_receipt = strict_json_object(evaluation_path.read_bytes())
+        validate_evaluation_evidence(
+            evaluation_receipt,
+            parent_root if expected_root == "parent" else current_root,
+        )
+        if evaluation_receipt["epoch"] != row["epoch"]:
+            raise ValueError("FEPF evaluation epoch differs")
+        _validate_evaluation_signature_against_inference(
+            evaluation_receipt,
+            receipt["inference_signature"],
+            require_descriptor=row["epoch"] == receipt["stop_after_epoch"],
+        )
     if continuation:
         if (
             type(receipt["parent_checkpoint"]) is not dict
@@ -941,6 +1044,64 @@ def validate_training_run_receipt_v2(
         ):
             raise ValueError("FEPF parent run substitution differs")
     _validate_inference_signature_object(receipt["inference_signature"])
+
+
+def validate_fepf_result(result: object, evidence_root: Path) -> None:
+    """Validate a result only from the committed run/evaluation evidence roots."""
+
+    if not isinstance(evidence_root, Path):
+        raise ValueError("FEPF evidence root differs")
+    absolute_root = evidence_root.absolute()
+    current_root = evidence_root.resolve()
+    run_receipt_path = current_root / "run-receipt.json"
+    if (
+        absolute_root != current_root
+        or not current_root.is_dir()
+        or current_root.is_symlink()
+        or not run_receipt_path.is_file()
+        or run_receipt_path.is_symlink()
+    ):
+        raise ValueError("FEPF result evidence root differs")
+    receipt = strict_json_object(run_receipt_path.read_bytes())
+    validate_training_run_receipt_v2(receipt, evidence_root=current_root)
+    history_path = _resolve_receipt_binding(
+        receipt["history"], current_root=current_root, parent_root=None
+    )
+    try:
+        history = json.loads(history_path.read_bytes())
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ValueError("FEPF result history differs") from error
+    if type(history) is not list or type(result) is not list or result != history:
+        raise ValueError("FEPF result history differs")
+    parent_root = None
+    if receipt["parent_evidence_root"] is not None:
+        parent_root = (
+            current_root / Path(receipt["parent_evidence_root"]["path"])
+        ).resolve()
+    expected_metrics: dict[int, object] = {}
+    for binding in receipt["evaluations"]:
+        evaluation_path = _resolve_receipt_binding(
+            {key: binding[key] for key in tuple(binding)[1:]},
+            current_root=current_root,
+            parent_root=parent_root,
+        )
+        evaluation = strict_json_object(evaluation_path.read_bytes())
+        expected_metrics[binding["epoch"]] = evaluation["metrics"]
+    observed_metrics: dict[int, object] = {}
+    for row in history:
+        if (
+            type(row) is not dict
+            or type(row.get("epoch")) is not int
+            or "metrics" not in row
+        ):
+            raise ValueError("FEPF result history differs")
+        if row["metrics"] is None:
+            continue
+        if row["epoch"] in observed_metrics:
+            raise ValueError("FEPF result evaluation metrics differ")
+        observed_metrics[row["epoch"]] = row["metrics"]
+    if observed_metrics != expected_metrics:
+        raise ValueError("FEPF result evaluation metrics differ")
 
 
 def write_training_run_receipt_atomic(
@@ -2169,6 +2330,9 @@ def evaluate_holdout(
     workers: int,
     evaluation_features: int,
     descriptor_sink: Callable[[torch.Tensor], None] | None = None,
+    dataset_root: Path | None = None,
+    evidence_root: Path | None = None,
+    epoch: int | None = None,
 ) -> dict[str, float]:
     """Evaluate the identity-disjoint holdout with official deployment geometry."""
 
@@ -2181,26 +2345,35 @@ def evaluate_holdout(
         model, gallery, transform, device=device, batch_size=batch_size, workers=workers
     )
     if descriptor_sink is not None:
-        query_tensor = torch.from_numpy(query_values).float()
-        gallery_tensor = torch.from_numpy(gallery_values).float()
-        query_norms = torch.linalg.vector_norm(query_tensor, dim=1)
-        gallery_norms = torch.linalg.vector_norm(gallery_tensor, dim=1)
         if (
             evaluation_features != 512
-            or torch.any(query_norms == 0)
-            or torch.any(gallery_norms == 0)
-            or not torch.isfinite(query_norms).all()
-            or not torch.isfinite(gallery_norms).all()
         ):
             raise ValueError("FEPF inference descriptor differs")
         descriptor_sink(
-            torch.cat(
-                (
-                    query_tensor / query_norms[:, None],
-                    gallery_tensor / gallery_norms[:, None],
+            torch.from_numpy(
+                np.ascontiguousarray(
+                    np.concatenate(
+                        (l2_normalize(query_values), l2_normalize(gallery_values))
+                    )[:, :512]
                 )
-            )[:, :512].contiguous()
+            )
         )
+    evidence_values = (dataset_root, evidence_root, epoch)
+    if any(value is not None for value in evidence_values):
+        if any(value is None for value in evidence_values):
+            raise ValueError("evaluation evidence arguments differ")
+        receipt = write_evaluation_evidence(
+            query_values=query_values,
+            gallery_values=gallery_values,
+            query_records=query,
+            gallery_records=gallery,
+            dataset_root=dataset_root,
+            coordinates=np.arange(evaluation_features, dtype=np.int64),
+            normalize_before=True,
+            epoch=epoch,
+            evidence_root=evidence_root,
+        )
+        return dict(receipt["metrics"])
     result = retrieval_view(
         query_values,
         gallery_values,
@@ -2809,6 +2982,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             workers=args.workers,
             evaluation_features=evaluation_features,
             descriptor_sink=capture_descriptor if fepf_request else None,
+            dataset_root=args.dataset_root if fepf_request else None,
+            evidence_root=args.output_dir if fepf_request else None,
+            epoch=_epoch if fepf_request else None,
         ),
         history=history,
         selection_holdout=selection_holdout,
@@ -2955,9 +3131,26 @@ def validate_fepf_recipe(args: argparse.Namespace) -> None:
         raise ValueError("FEPF continuation output differs")
 
 
+def _validate_evaluation_dataset_root(dataset_root: Path) -> None:
+    if not isinstance(dataset_root, Path):
+        raise ValueError("FEPF dataset root differs")
+    absolute_root = dataset_root.absolute()
+    resolved_root = dataset_root.resolve()
+    image_root = resolved_root / "Img"
+    if (
+        absolute_root != resolved_root
+        or not resolved_root.is_dir()
+        or resolved_root.is_symlink()
+        or not image_root.is_dir()
+        or image_root.is_symlink()
+    ):
+        raise ValueError("FEPF dataset root differs")
+
+
 def _validate_run_receipt_request(args: argparse.Namespace) -> None:
     if _is_fepf_request(args):
         validate_fepf_recipe(args)
+        _validate_evaluation_dataset_root(args.dataset_root)
         if (
             args.run_config is None
             or args.run_receipt is None
@@ -3038,11 +3231,26 @@ def main(arguments: Sequence[str] | None = None) -> int:
                         for epoch in (4, 8, 12, 16)
                         if epoch <= stop_after_epoch
                     }
+                    evaluation_receipt_paths = {
+                        epoch: args.output_dir / f"evaluation-epoch-{epoch:04d}.json"
+                        for epoch in (4, 8, 12, 16)
+                        if epoch <= stop_after_epoch
+                    }
                 else:
                     checkpoint_paths = {
                         4: args.resume,
                         **{
                             epoch: args.output_dir / f"epoch-{epoch:04d}.pt"
+                            for epoch in (8, 12, 16)
+                            if epoch <= stop_after_epoch
+                        },
+                    }
+                    evaluation_receipt_paths = {
+                        4: args.parent_run_receipt.parent
+                        / "evaluation-epoch-0004.json",
+                        **{
+                            epoch: args.output_dir
+                            / f"evaluation-epoch-{epoch:04d}.json"
                             for epoch in (8, 12, 16)
                             if epoch <= stop_after_epoch
                         },
@@ -3060,6 +3268,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
                     ],
                     history_path=summary,
                     checkpoint_paths=checkpoint_paths,
+                    evaluation_receipt_paths=evaluation_receipt_paths,
                     raw_backbone_pre_initialization_sha256=evidence[
                         "raw_backbone_pre_initialization_sha256"
                     ],
