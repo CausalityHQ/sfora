@@ -417,6 +417,55 @@ def test_main_failure_never_publishes_training_run_receipt(
     assert not receipt.exists()
 
 
+def test_fepf_main_path_publishes_v2_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    output = tmp_path / "fepf"
+    config = tmp_path / "config.json"
+    config.write_text("{}\n", encoding="utf-8")
+    receipt_path = output / "run-receipt.json"
+    initialization_object = {"schema": "initialization-receipt-v2", "fixture": True}
+    initialization_sha256 = module.canonical_initialization_receipt_v2_sha256(
+        initialization_object
+    )
+    protocol = _fepf_protocol(module, initialization_sha256)
+    signature = module.build_inference_signature(
+        torch.nn.Linear(3, 4, bias=False),
+        descriptor=torch.zeros((1, 512), dtype=torch.float32),
+    )
+
+    def fake_run(args):
+        args.output_dir.mkdir()
+        initialization = args.output_dir / "initialization-receipt.json"
+        initialization.write_text(json.dumps(initialization_object) + "\n", encoding="utf-8")
+        torch.save({"training_protocol": protocol}, args.output_dir / "epoch-0004.pt")
+        args._fepf_run_evidence = {
+            "initialization_receipt": initialization_object,
+            "initialization_receipt_path": initialization,
+            "raw_backbone_pre_initialization_sha256": "c" * 64,
+            "raw_backbone_pre_training_sha256": "c" * 64,
+            "inference_signature": signature,
+            "training_protocol": protocol,
+        }
+        return [{"epoch": 4, "train": {"steps": 1, "mean_loss": 1.0}, "metrics": {}}]
+
+    monkeypatch.setattr(module, "run", fake_run)
+    result = module.main(
+        _required_cli(tmp_path)
+        + [
+            "--output-dir", str(output), "--classifier-init", "fepf_mean",
+            "--epochs", "16", "--evaluation-features", "512",
+            "--stop-after-epoch", "4", "--seed", "7", "--holdout-seed", "20260828",
+            "--run-config", str(config), "--run-receipt", str(receipt_path),
+        ]
+    )
+    assert result == 0
+    persisted = module.strict_json_object(receipt_path.read_bytes())
+    module.validate_training_run_receipt_v2(persisted, evidence_root=output)
+    assert persisted["initialization_receipt_sha256"] == initialization_sha256
+
+
 def test_registered_run_rejects_a_partial_output_directory_before_training(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -583,6 +632,44 @@ def test_registered_identity_count_fails_before_output_directory_is_created(
     with pytest.raises(ValueError, match="registered full-width class count"):
         module.run(args)
     assert not output.exists()
+
+
+@pytest.mark.parametrize("mode", ("random", "imprinted"))
+def test_legacy_classifier_path_never_hashes_raw_backbone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    module = _load_script()
+
+    class FakeModel(torch.nn.Module):
+        def to(self, _device):
+            return self
+
+    monkeypatch.setattr(module, "_git_revision", lambda _path: module.UNICOM_REVISION)
+    monkeypatch.setattr(module, "_sha256_file", lambda _path: module.UNICOM_L14_336_SHA256)
+    monkeypatch.setattr(module.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(module, "_seed_process", lambda _seed: None)
+    monkeypatch.setattr(
+        sys.modules["sfora.unicom_inshop"], "parse_inshop_partition", lambda _root: ()
+    )
+    monkeypatch.setattr(
+        module, "identity_holdout", lambda *_args, **_kwargs: ((), (), (), {"a": 0})
+    )
+    monkeypatch.setattr(module, "_load_official_model", lambda *_args: (FakeModel(), object()))
+    monkeypatch.setattr(
+        module,
+        "raw_backbone_state_sha256",
+        lambda _model: pytest.fail("legacy path must not hash the raw backbone"),
+    )
+    monkeypatch.setattr(
+        module,
+        "initialize_classifier_values",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("legacy initializer reached")),
+    )
+    args = module.parse_args(
+        _required_cli(tmp_path) + ["--classifier-init", mode, "--eval-every", "0"]
+    )
+    with pytest.raises(RuntimeError, match="legacy initializer reached"):
+        module.run(args)
 
 
 def test_initialization_receipt_binds_exact_classifier_bytes_and_preserves_state(
@@ -1080,6 +1167,8 @@ def test_fepf_recipe_rejects_protocol_drift(
             "16",
             "--evaluation-features",
             "512",
+            "--stop-after-epoch",
+            "16",
         ]
         + list(override)
     )
@@ -1100,6 +1189,8 @@ def test_fepf_resume_requires_authenticated_parent_receipts_and_fresh_output(
         "16",
         "--evaluation-features",
         "512",
+        "--stop-after-epoch",
+        "16",
         "--resume",
         str(checkpoint),
     ]
@@ -1121,6 +1212,23 @@ def test_fepf_resume_requires_authenticated_parent_receipts_and_fresh_output(
     ]
     with pytest.raises(ValueError, match="continuation output differs"):
         module.validate_fepf_recipe(module.parse_args(same_output))
+
+
+def test_fepf_recipe_requires_explicit_stop_and_resume_requires_16(tmp_path: Path) -> None:
+    module = _load_script()
+    base = _required_cli(tmp_path) + [
+        "--classifier-init", "fepf_mean", "--epochs", "16",
+        "--evaluation-features", "512",
+    ]
+    with pytest.raises(ValueError, match="stop boundary differs"):
+        module.validate_fepf_recipe(module.parse_args(base))
+    resumed = base + [
+        "--stop-after-epoch", "4", "--resume", str(tmp_path / "parent/epoch-0004.pt"),
+        "--parent-initialization-receipt", str(tmp_path / "parent/initialization.json"),
+        "--parent-run-receipt", str(tmp_path / "parent/run.json"),
+    ]
+    with pytest.raises(ValueError, match="continuation stop differs"):
+        module.validate_fepf_recipe(module.parse_args(resumed))
 
 
 def test_evaluation_width_is_independent_and_legacy_default_is_preserved() -> None:
@@ -1600,6 +1708,7 @@ def test_initialization_v2_all_modes_share_one_draw_and_registered_evidence(
         bf16=False,
     )
     results = {}
+    backbone_hashes = []
     for mode in ("imprinted", "fepf_mean", "fepf_random"):
         torch.manual_seed(991)
         args.classifier_init = mode
@@ -1612,6 +1721,7 @@ def test_initialization_v2_all_modes_share_one_draw_and_registered_evidence(
             device=torch.device("cpu"),
         )
         results[mode] = (values, result, torch.get_rng_state().clone())
+        backbone_hashes.append(module.raw_backbone_state_sha256(raw_model))
 
     assert len([call for call in calls if call[0] == "cache"]) == 3
     assert [call[1] for call in calls if call[0] == "prepare"] == [
@@ -1631,6 +1741,7 @@ def test_initialization_v2_all_modes_share_one_draw_and_registered_evidence(
         torch.equal(results["imprinted"][2], results[mode][2])
         for mode in ("fepf_mean", "fepf_random")
     )
+    assert len(set(backbone_hashes)) == 1
 
 
 def test_initialization_v2_rng_restored_to_post_draw_on_failure(
@@ -2039,6 +2150,9 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
         classifier_learning_rate=2e-3,
         fused=False,
     )
+    scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        optimizer, max_lr=[1e-3, 2e-3], steps_per_epoch=1, epochs=16, pct_start=0.1
+    )
     loader = DataLoader(
         TensorDataset(torch.randn(4, 3), torch.arange(4, dtype=torch.int64)),
         batch_size=4,
@@ -2057,7 +2171,7 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
         classifier=classifier,
         loader=loader,
         optimizer=optimizer,
-        scheduler=None,
+        scheduler=scheduler,
         sampler=None,
         mask_generator=torch.Generator().manual_seed(17),
         device=torch.device("cpu"),
@@ -2093,12 +2207,19 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
         classifier_learning_rate=2e-3,
         fused=False,
     )
+    restored_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        restored_optimizer,
+        max_lr=[1e-3, 2e-3],
+        steps_per_epoch=1,
+        epochs=16,
+        pct_start=0.1,
+    )
     epoch, restored_history = module.restore_training_checkpoint(
         parent / "epoch-0004.pt",
         raw_model=restored_model,
         classifier=restored_classifier,
         optimizer=restored_optimizer,
-        scheduler=None,
+        scheduler=restored_scheduler,
         scaler=None,
         mask_generator=torch.Generator().manual_seed(99),
         device=torch.device("cpu"),
@@ -2107,6 +2228,43 @@ def test_stop_after_epoch_preserves_checkpoint_protocol_and_real_restore(
     )
     assert epoch == 4
     assert restored_history == history
+
+    continuation = tmp_path / "continuation"
+    final_history = module.fit_model(
+        raw_model=restored_model,
+        train_model=restored_model,
+        classifier=restored_classifier,
+        loader=loader,
+        optimizer=restored_optimizer,
+        scheduler=restored_scheduler,
+        sampler=None,
+        mask_generator=torch.Generator().manual_seed(17),
+        device=torch.device("cpu"),
+        epochs=16,
+        stop_after_epoch=16,
+        start_epoch=epoch,
+        objective="official-eight-mask",
+        selected_features=4,
+        margin=0.25,
+        scale=32.0,
+        max_steps=1,
+        bf16=False,
+        scaler=None,
+        eval_every=4,
+        checkpoint_every=4,
+        output_dir=continuation,
+        evaluate=lambda completed: {"recall_at_1": completed / 16},
+        selection_holdout={"seed": 0, "fraction": 0.2},
+        training_protocol=dict(protocol),
+        history=restored_history,
+    )
+    assert [row["epoch"] for row in final_history] == list(range(1, 17))
+    assert sorted(path.name for path in continuation.glob("epoch-*.pt")) == [
+        "epoch-0008.pt", "epoch-0012.pt", "epoch-0016.pt"
+    ]
+    assert torch.load(continuation / "epoch-0016.pt", weights_only=False)[
+        "training_protocol"
+    ] == protocol
 
 
 def test_inference_signature_authenticity_and_cross_arm_structure() -> None:
@@ -2148,7 +2306,10 @@ def test_inference_signature_authenticity_and_cross_arm_structure() -> None:
 
 @pytest.mark.parametrize(
     "mutation",
-    ("reorder", "missing_buffer", "classifier", "operation_order", "tensor_bytes"),
+    (
+        "reorder", "missing_buffer", "classifier", "operation_order", "tensor_bytes",
+        "duplicate_name", "nonstr_dtype", "wrong_numel",
+    ),
 )
 def test_inference_signature_rejects_inventory_mutations(mutation: str) -> None:
     module = _load_script()
@@ -2178,9 +2339,58 @@ def test_inference_signature_rejects_inventory_mutations(mutation: str) -> None:
         changed["operations"].reverse()
     else:
         changed["tensors"][-1]["sha256"] = "f" * 64
+    if mutation == "duplicate_name":
+        changed["tensors"][1]["name"] = changed["tensors"][0]["name"]
+    elif mutation == "nonstr_dtype":
+        changed["tensors"][0]["dtype"] = 7
+    elif mutation == "wrong_numel":
+        changed["tensors"][0]["numel"] += 1
 
     with pytest.raises(ValueError):
         module.validate_inference_signature(changed, raw_model=model, descriptor=descriptor)
+
+
+def test_cross_arm_inference_rejects_equally_malformed_signatures() -> None:
+    module = _load_script()
+    model = torch.nn.Linear(3, 4, bias=False)
+    descriptor = torch.zeros((1, 512), dtype=torch.float32)
+    signature = module.build_inference_signature(model, descriptor=descriptor)
+    signature["tensors"][0]["dtype"] = 7
+    with pytest.raises(ValueError, match="inference"):
+        module.require_cross_arm_inference_equality(signature, signature)
+
+
+def _fepf_protocol(module, initialization_sha256: str) -> dict[str, object]:
+    return {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": "a" * 64,
+        "unicom_revision": module.UNICOM_REVISION,
+        "initial_checkpoint_sha256": module.UNICOM_L14_336_SHA256,
+        "partition_sha256": "b" * 64,
+        "seed": 7,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "evaluation_features": 512,
+        "holdout_seed": 20_260_828,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "classifier_init": "fepf_mean",
+        "ema_decay": 0.999,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+        "initialization_receipt_sha256": initialization_sha256,
+    }
 
 
 def _fepf_run_receipt_fixture(module, tmp_path: Path):
@@ -2196,18 +2406,13 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
     )
     parent_history = parent / "history.json"
     parent_history.write_text("[]\n", encoding="utf-8")
-    epoch4 = parent / "epoch-0004.pt"
-    epoch4.write_bytes(b"epoch-four")
     model = torch.nn.Linear(3, 4, bias=False)
     signature = module.build_inference_signature(
         model, descriptor=torch.arange(512, dtype=torch.float32)[None]
     )
-    protocol = {
-        "seed": 7,
-        "epochs": 16,
-        "objective": "official-eight-mask",
-        "initialization_receipt_sha256": initialization_sha256,
-    }
+    protocol = _fepf_protocol(module, initialization_sha256)
+    epoch4 = parent / "epoch-0004.pt"
+    torch.save({"training_protocol": protocol}, epoch4)
     parent_receipt = module.training_run_receipt_v2(
         output_dir=parent,
         mode="fepf_mean",
@@ -2230,7 +2435,7 @@ def _fepf_run_receipt_fixture(module, tmp_path: Path):
     checkpoints = {4: epoch4}
     for epoch in (8, 12, 16):
         path = continuation / f"epoch-{epoch:04d}.pt"
-        path.write_bytes(f"epoch-{epoch}".encode())
+        torch.save({"training_protocol": protocol}, path)
         checkpoints[epoch] = path
     receipt = module.training_run_receipt_v2(
         output_dir=continuation,
@@ -2281,6 +2486,17 @@ def test_run_receipt_v2_authenticates_parent_root_and_original_initialization(
         "path_escape",
         "wrong_root",
         "wrong_initialization_digest",
+        "protocol_drift",
+        "checkpoint_protocol_drift",
+        "parent_root_alias",
+        "parent_run_path",
+        "parent_checkpoint_path",
+        "initialization_wrong_root",
+        "history_wrong_root",
+        "epoch8_path_escape",
+        "epoch8_wrong_root",
+        "epoch12_substitution",
+        "epoch16_wrong_root",
     ),
 )
 def test_run_receipt_v2_rejects_parent_link_mutations(
@@ -2299,8 +2515,37 @@ def test_run_receipt_v2_rejects_parent_link_mutations(
         changed["initialization_receipt"]["path"] = "../initialization-receipt.json"
     elif mutation == "wrong_root":
         changed["checkpoints"][0]["root"] = "current"
-    else:
+    elif mutation == "wrong_initialization_digest":
         changed["initialization_receipt_sha256"] = "f" * 64
+    if mutation == "protocol_drift":
+        changed["training_protocol"]["batch_size"] = 64
+    elif mutation == "checkpoint_protocol_drift":
+        checkpoint = continuation / "epoch-0016.pt"
+        payload = torch.load(checkpoint, weights_only=False)
+        payload["training_protocol"]["batch_size"] = 64
+        torch.save(payload, checkpoint)
+        changed["checkpoints"][-1]["sha256"] = hashlib.sha256(
+            checkpoint.read_bytes()
+        ).hexdigest()
+        changed["checkpoints"][-1]["bytes"] = checkpoint.stat().st_size
+    elif mutation == "parent_root_alias":
+        changed["parent_evidence_root"]["path"] = "../parent/../parent"
+    elif mutation == "parent_run_path":
+        changed["parent_run_receipt"]["path"] = "other-run.json"
+    elif mutation == "parent_checkpoint_path":
+        changed["parent_checkpoint"]["path"] = "other-checkpoint.pt"
+    elif mutation == "initialization_wrong_root":
+        changed["initialization_receipt"]["root"] = "current"
+    elif mutation == "history_wrong_root":
+        changed["history"]["root"] = "parent"
+    elif mutation == "epoch8_path_escape":
+        changed["checkpoints"][1]["path"] = "../epoch-0008.pt"
+    elif mutation == "epoch8_wrong_root":
+        changed["checkpoints"][1]["root"] = "parent"
+    elif mutation == "epoch12_substitution":
+        changed["checkpoints"][2]["sha256"] = "f" * 64
+    elif mutation == "epoch16_wrong_root":
+        changed["checkpoints"][3]["root"] = "parent"
 
     with pytest.raises(ValueError):
         module.validate_training_run_receipt_v2(changed, evidence_root=continuation)
@@ -2341,6 +2586,22 @@ def test_parent_initialization_validation_uses_trusted_run_digest(
     assert trusted != module.canonical_initialization_receipt_v2_sha256(
         {"receipt": "untrusted-bytes"}
     )
+
+
+def test_run_receipt_v2_rejects_root_and_ancestor_symlink_aliases(tmp_path: Path) -> None:
+    module = _load_script()
+    receipt, continuation, _digest, _epoch4 = _fepf_run_receipt_fixture(module, tmp_path)
+    root_alias = tmp_path / "continuation-alias"
+    root_alias.symlink_to(continuation, target_is_directory=True)
+    with pytest.raises(ValueError, match="root differs"):
+        module.validate_training_run_receipt_v2(receipt, evidence_root=root_alias)
+
+    artifact_alias = continuation / "alias"
+    artifact_alias.symlink_to(continuation, target_is_directory=True)
+    changed = json.loads(json.dumps(receipt))
+    changed["history"]["path"] = "alias/history.json"
+    with pytest.raises(ValueError, match="path differs"):
+        module.validate_training_run_receipt_v2(changed, evidence_root=continuation)
 
 
 def test_fit_registers_ema_for_training_and_releases_hook_afterward(tmp_path: Path) -> None:

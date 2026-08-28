@@ -91,6 +91,14 @@ INFERENCE_OPERATIONS = (
     "prefix512",
     "squared_euclidean",
 )
+FEPF_TRAINING_PROTOCOL_KEYS = (
+    "protocol", "trainer_sha256", "unicom_revision", "initial_checkpoint_sha256",
+    "partition_sha256", "seed", "epochs", "batch_size", "workers", "learning_rate",
+    "classifier_learning_rate", "margin", "scale", "objective", "selected_features",
+    "evaluation_features", "holdout_seed", "holdout_fraction", "eval_every",
+    "checkpoint_every", "max_steps", "bf16", "compile", "fused", "classifier_init",
+    "ema_decay", "ema_update", "initialization_receipt_sha256",
+)
 
 
 def _lower_hex(value: object, length: int) -> bool:
@@ -211,6 +219,9 @@ def _build_inference_signature_unchecked(
 
 def require_cross_arm_inference_equality(left: object, right: object) -> None:
     """Compare deployment structure while intentionally ignoring trained values."""
+
+    _validate_inference_signature_object(left)
+    _validate_inference_signature_object(right)
 
     def structure(signature: object) -> tuple[object, ...]:
         if type(signature) is not dict or tuple(signature) != (
@@ -461,6 +472,8 @@ def training_run_receipt_v2(
     if continuation != (parent_run_receipt_path is not None and parent_checkpoint_path is not None):
         raise ValueError("FEPF parent evidence differs")
     if continuation:
+        if stop_after_epoch != 16:
+            raise ValueError("FEPF continuation stop differs")
         parent_root = parent_run_receipt_path.parent.resolve()
         if (
             parent_checkpoint_path.parent.resolve() != parent_root
@@ -564,9 +577,11 @@ def _resolve_receipt_binding(
         or any(part in {"", ".", ".."} for part in relative.parts)
     ):
         raise ValueError("FEPF artifact path differs")
-    unresolved = root / relative
-    if unresolved.is_symlink():
-        raise ValueError("FEPF artifact path differs")
+    unresolved = root
+    for part in relative.parts:
+        unresolved = unresolved / part
+        if unresolved.is_symlink():
+            raise ValueError("FEPF artifact path differs")
     resolved = unresolved.resolve()
     try:
         resolved.relative_to(root)
@@ -585,7 +600,11 @@ def _resolve_receipt_binding(
 
 
 def _validate_inference_signature_object(signature: object) -> None:
-    require_cross_arm_inference_equality(signature, signature)
+    if type(signature) is not dict or tuple(signature) != (
+        "schema", "tensors", "total_bytes", "aggregate_sha256",
+        "descriptor_dtype", "descriptor_dimension", "descriptor_sha256", "operations",
+    ):
+        raise ValueError("FEPF inference signature differs")
     if (
         signature["schema"] != "unicom-inference-signature-v1"
         or not _lower_sha256(signature["aggregate_sha256"])
@@ -596,7 +615,16 @@ def _validate_inference_signature_object(signature: object) -> None:
     ):
         raise ValueError("FEPF inference signature differs")
     tensors = signature["tensors"]
-    if [row["name"] for row in tensors] != sorted(row["name"] for row in tensors):
+    if type(tensors) is not list or any(
+        type(row) is not dict
+        or tuple(row) != (
+            "name", "kind", "shape", "dtype", "numel", "element_size", "bytes", "sha256"
+        )
+        for row in tensors
+    ):
+        raise ValueError("FEPF inference inventory differs")
+    names = [row["name"] for row in tensors]
+    if names != sorted(names) or len(names) != len(set(names)):
         raise ValueError("FEPF inference inventory differs")
     total = 0
     for row in tensors:
@@ -604,12 +632,15 @@ def _validate_inference_signature_object(signature: object) -> None:
             type(row["name"]) is not str
             or not row["name"]
             or row["kind"] not in {"parameter", "buffer"}
+            or type(row["dtype"]) is not str
+            or not row["dtype"]
             or type(row["shape"]) is not list
             or any(type(value) is not int or value < 0 for value in row["shape"])
             or type(row["numel"]) is not int
             or type(row["element_size"]) is not int
             or type(row["bytes"]) is not int
             or row["numel"] < 0
+            or math.prod(row["shape"]) != row["numel"]
             or row["element_size"] <= 0
             or row["bytes"] != row["numel"] * row["element_size"]
             or not _lower_sha256(row["sha256"])
@@ -618,6 +649,57 @@ def _validate_inference_signature_object(signature: object) -> None:
         total += row["bytes"]
     if signature["total_bytes"] != total:
         raise ValueError("FEPF inference byte count differs")
+
+
+def validate_fepf_training_protocol(
+    protocol: object, *, receipt: Mapping[str, object]
+) -> None:
+    """Validate the complete checkpoint-bound registered training matrix."""
+
+    if type(protocol) is not dict or tuple(protocol) != FEPF_TRAINING_PROTOCOL_KEYS:
+        raise ValueError("FEPF checkpoint protocol differs")
+    expected = (
+        "unicom-inshop-official-single-device-v1", UNICOM_REVISION,
+        UNICOM_L14_336_SHA256, receipt["training_seed"], 16, 128, 4, 1e-5, 1e-4,
+        0.25, 32.0, "official-eight-mask", 512, 512, receipt["holdout_seed"],
+        receipt["holdout_fraction"], 4, 4, None, False, receipt["mode"], EMA_DECAY,
+        "optimizer-step-post-hook-trainable-parameters-only",
+        receipt["initialization_receipt_sha256"],
+    )
+    observed = (
+        protocol["protocol"], protocol["unicom_revision"],
+        protocol["initial_checkpoint_sha256"], protocol["seed"], protocol["epochs"],
+        protocol["batch_size"], protocol["workers"], protocol["learning_rate"],
+        protocol["classifier_learning_rate"], protocol["margin"], protocol["scale"],
+        protocol["objective"], protocol["selected_features"],
+        protocol["evaluation_features"], protocol["holdout_seed"],
+        protocol["holdout_fraction"], protocol["eval_every"],
+        protocol["checkpoint_every"], protocol["max_steps"], protocol["bf16"],
+        protocol["classifier_init"], protocol["ema_decay"], protocol["ema_update"],
+        protocol["initialization_receipt_sha256"],
+    )
+    if observed != expected or any(
+        type(value) is not type(reference)
+        for value, reference in zip(observed, expected, strict=True)
+    ):
+        raise ValueError("FEPF checkpoint protocol differs")
+    if (
+        not _lower_sha256(protocol["trainer_sha256"])
+        or not _lower_sha256(protocol["partition_sha256"])
+        or type(protocol["compile"]) is not bool
+        or type(protocol["fused"]) is not bool
+    ):
+        raise ValueError("FEPF checkpoint protocol differs")
+
+
+def _load_checkpoint_training_protocol(path: Path) -> dict[str, object]:
+    try:
+        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    except Exception as error:
+        raise ValueError("FEPF checkpoint payload differs") from error
+    if type(checkpoint) is not dict or type(checkpoint.get("training_protocol")) is not dict:
+        raise ValueError("FEPF checkpoint protocol differs")
+    return checkpoint["training_protocol"]
 
 
 def validate_training_run_receipt_v2(
@@ -662,8 +744,11 @@ def validate_training_run_receipt_v2(
         != receipt["raw_backbone_pre_training_sha256"]
     ):
         raise ValueError("FEPF run receipt differs")
+    if not isinstance(evidence_root, Path):
+        raise ValueError("FEPF evidence root differs")
+    absolute_root = evidence_root.absolute()
     current_root = evidence_root.resolve()
-    if not current_root.is_dir() or current_root.is_symlink():
+    if absolute_root != current_root or not current_root.is_dir() or current_root.is_symlink():
         raise ValueError("FEPF evidence root differs")
     parent_spec = receipt["parent_evidence_root"]
     continuation = parent_spec is not None
@@ -678,12 +763,14 @@ def validate_training_run_receipt_v2(
         relative_parent = Path(parent_spec["path"])
         if relative_parent.is_absolute() or relative_parent == Path("."):
             raise ValueError("FEPF parent evidence root differs")
-        parent_root = (current_root / relative_parent).resolve()
+        unresolved_parent = current_root / relative_parent
+        parent_root = unresolved_parent.resolve()
         if (
             not parent_root.is_dir()
             or parent_root.is_symlink()
             or parent_root.parent != current_root.parent
             or parent_root == current_root
+            or relative_parent != Path("..") / parent_root.name
         ):
             raise ValueError("FEPF parent evidence root differs")
     else:
@@ -691,15 +778,46 @@ def validate_training_run_receipt_v2(
         if receipt["parent_run_receipt"] is not None or receipt["parent_checkpoint"] is not None:
             raise ValueError("FEPF parent evidence differs")
     protocol = receipt["training_protocol"]
-    if (
-        type(protocol) is not dict
-        or protocol.get("seed") != receipt["training_seed"]
-        or protocol.get("epochs") != 16
-        or protocol.get("initialization_receipt_sha256")
-        != receipt["initialization_receipt_sha256"]
-        or "stop_after_epoch" in protocol
-    ):
-        raise ValueError("FEPF checkpoint protocol differs")
+    validate_fepf_training_protocol(protocol, receipt=receipt)
+    parent_receipt: dict[str, object] | None = None
+    if continuation:
+        if (
+            type(receipt["parent_run_receipt"]) is not dict
+            or receipt["parent_run_receipt"].get("root") != "parent"
+        ):
+            raise ValueError("FEPF parent artifact root differs")
+        parent_run_path = _resolve_receipt_binding(
+            receipt["parent_run_receipt"],
+            current_root=current_root,
+            parent_root=parent_root,
+        )
+        parent_receipt = strict_json_object(parent_run_path.read_bytes())
+        validate_training_run_receipt_v2(parent_receipt, evidence_root=parent_root)
+        expected_initialization = dict(parent_receipt["initialization_receipt"])
+        expected_initialization["root"] = "parent"
+        terminal = parent_receipt["checkpoints"][-1]
+        expected_checkpoint = {
+            "root": "parent",
+            "path": terminal["path"],
+            "sha256": terminal["sha256"],
+            "bytes": terminal["bytes"],
+        }
+        child_first = receipt["checkpoints"][0] if type(receipt["checkpoints"]) is list else None
+        if (
+            parent_receipt["mode"] != receipt["mode"]
+            or parent_receipt["training_seed"] != receipt["training_seed"]
+            or parent_receipt["holdout_fraction"] != receipt["holdout_fraction"]
+            or parent_receipt["holdout_seed"] != receipt["holdout_seed"]
+            or parent_receipt["training_protocol"] != protocol
+            or parent_receipt["stop_after_epoch"] != 4
+            or receipt["stop_after_epoch"] != 16
+            or receipt["initialization_receipt"] != expected_initialization
+            or receipt["parent_checkpoint"] != expected_checkpoint
+            or type(child_first) is not dict
+            or {key: child_first[key] for key in tuple(child_first)[1:]}
+            != expected_checkpoint
+        ):
+            raise ValueError("FEPF parent run substitution differs")
     initialization_path = _resolve_receipt_binding(
         receipt["initialization_receipt"],
         current_root=current_root,
@@ -719,7 +837,9 @@ def validate_training_run_receipt_v2(
         raise ValueError("FEPF history root differs")
     _resolve_receipt_binding(receipt["history"], current_root=current_root, parent_root=parent_root)
     checkpoints = receipt["checkpoints"]
-    expected_epochs = (4,) if receipt["stop_after_epoch"] == 4 else (4, 8, 12, 16)
+    expected_epochs = (4, 8, 12, 16) if continuation else (
+        (4,) if receipt["stop_after_epoch"] == 4 else (4, 8, 12, 16)
+    )
     if (
         type(checkpoints) is not list
         or tuple(row.get("epoch") for row in checkpoints) != expected_epochs
@@ -739,17 +859,14 @@ def validate_training_run_receipt_v2(
                 parent_root=parent_root,
             )
         )
+        if _load_checkpoint_training_protocol(checkpoint_paths[-1]) != protocol:
+            raise ValueError("FEPF checkpoint protocol differs")
     if continuation:
         if (
-            receipt["parent_run_receipt"].get("root") != "parent"
+            type(receipt["parent_checkpoint"]) is not dict
             or receipt["parent_checkpoint"].get("root") != "parent"
         ):
             raise ValueError("FEPF parent artifact root differs")
-        parent_run_path = _resolve_receipt_binding(
-            receipt["parent_run_receipt"],
-            current_root=current_root,
-            parent_root=parent_root,
-        )
         parent_checkpoint_path = _resolve_receipt_binding(
             receipt["parent_checkpoint"],
             current_root=current_root,
@@ -757,8 +874,6 @@ def validate_training_run_receipt_v2(
         )
         if checkpoint_paths[0] != parent_checkpoint_path:
             raise ValueError("FEPF parent checkpoint differs")
-        parent_receipt = strict_json_object(parent_run_path.read_bytes())
-        validate_training_run_receipt_v2(parent_receipt, evidence_root=parent_root)
         require_cross_arm_inference_equality(
             parent_receipt["inference_signature"], receipt["inference_signature"]
         )
@@ -2441,7 +2556,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
     )
     raw_model, eval_transform = _load_official_model(args.unicom_checkout, args.checkpoint)
     raw_model = raw_model.to(device)
-    raw_backbone_pre_initialization_sha256 = raw_backbone_state_sha256(raw_model)
+    raw_backbone_pre_initialization_sha256 = (
+        raw_backbone_state_sha256(raw_model) if fepf_request else None
+    )
     train_model = torch.compile(raw_model, mode="reduce-overhead") if args.compile else raw_model
     parent_run: dict[str, object] | None = None
     initialization_receipt: dict[str, object] | None = None
@@ -2611,7 +2728,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
             "raw_backbone_pre_training_sha256"
         ]
     else:
-        raw_backbone_pre_training_sha256 = raw_backbone_state_sha256(raw_model)
+        raw_backbone_pre_training_sha256 = None
     if args.run_receipt is not None:
         torch.cuda.synchronize()
         torch.cuda.reset_peak_memory_stats()
@@ -2744,8 +2861,10 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
 def validate_fepf_recipe(args: argparse.Namespace) -> None:
     """Fail closed unless a registered FEPF run uses the frozen recipe."""
 
-    if args.stop_after_epoch not in (None, 4, 16):
+    if args.stop_after_epoch not in (4, 16):
         raise ValueError("FEPF stop boundary differs")
+    if args.resume is not None and args.stop_after_epoch != 16:
+        raise ValueError("FEPF continuation stop differs")
     expected = (
         16,
         128,
