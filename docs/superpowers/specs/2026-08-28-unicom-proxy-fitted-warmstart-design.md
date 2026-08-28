@@ -122,8 +122,12 @@ Fit only the classifier for exactly 512 steps:
 - existing eight-shard masked ArcFace loss;
 - batch size 128, selected width 512, margin 0.25, scale 32;
 - AdamW LR `1e-4`, betas `(0.9, 0.999)`, epsilon `1e-8`, zero weight decay;
-- batch root `experiment_stream_seed(training_seed, 23_001)`, with pseudo-epoch
-  `e` passed to `padded_epoch_indices(..., epoch=e, seed=batch_root, shards=8)`;
+- batch root `experiment_stream_seed(training_seed, 23_001)`; start pseudo-epoch
+  `e=0`, call `padded_epoch_indices(size=N, global_batch=128, epoch=e,
+  seed=batch_root, shards=8)`, consume that complete returned tuple in consecutive
+  nonoverlapping 128-index slices, then increment `e` by one and repeat; stop
+  immediately after step 512, truncating the final pseudo-epoch after its
+  producing batch;
 - one continuous CUDA mask generator seeded with
   `experiment_stream_seed(training_seed, 23_002)` and advanced once per step;
 - after every update, project every row to `0.01 * sqrt(768)`;
@@ -301,7 +305,7 @@ to fresh-split confirmation requires all of:
 - among queries whose top-1 correctness differs, `losses <= floor(gains/5)`;
 - candidate first reaches the control's epoch-16 mAP@R at an evaluated epoch no
   later than the control;
-- profiled compute to that first attainment is no greater than control;
+- profiled compute to that first attainment is at most `1.02` times control;
 - every structural/RNG/tensor/runtime predicate passes.
 
 First attainment is the earliest of epochs `(4, 8, 12, 16)` at or above the
@@ -344,7 +348,8 @@ not separately estimate arbitrary-dataset generalization. Confirmation needs:
   `mean(delta) - 2.131846786326649 * sample_std(delta, ddof=1) / sqrt(5) > 0`;
 - median delta `>= +0.008`;
 - every leave-one-pair-out mean `>= +0.008`;
-- candidate profiled compute to the paired control endpoint no worse in 5/5;
+- candidate profiled compute to the paired control endpoint is at most `1.02`
+  times control in 5/5;
 - mean log step-time, peak-allocated, and peak-reserved candidate/control ratios
   each have one-sided 95% upper bounds no greater than `log(1.02)`, using
   `mean(log_ratio) + 2.131846786326649 * sample_std(log_ratio, ddof=1) / sqrt(5)`;
@@ -396,6 +401,9 @@ preregistration never authorizes a class-mean-residual mechanism claim.
 - Runtime smoke fails: retain current runtime and continue.
 - Exploratory epoch-4 delta below `+0.003`: close FEPF immediately.
 - Exploratory endpoint delta below `+0.010`: record marginal/negative and stop.
+- Exploratory endpoint delta at least `+0.010` but any Recall@1, query
+  gain/loss, first-attainment, `1.02` compute, or structural predicate fails:
+  close as `CLOSE_NONPARETO` and report the exact quality-only result.
 - Fresh-split confirmation fails any primary predicate: close the broad claim
   and report the exact surviving narrower result.
 - Confirmation passes: freeze and independently approve the separate Cars196
