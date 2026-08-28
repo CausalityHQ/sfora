@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import math
@@ -16,6 +17,293 @@ SPEC = importlib.util.spec_from_file_location("profile_unicom_training_step", MO
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+def test_runtime_override_protocols_are_exact_and_cli_requires_explicit_mode(
+    tmp_path: Path,
+) -> None:
+    assert {
+        "current": MODULE.RuntimeProtocol(compile=False, fused=False, ema=True),
+        "composed": MODULE.RuntimeProtocol(compile=True, fused=True, ema=False),
+    } == MODULE.RUNTIME_PROTOCOLS
+    args = MODULE.parse_args(
+        [
+            "--run-checkpoint",
+            str(tmp_path / "epoch-0016.pt"),
+            "--run-receipt",
+            str(tmp_path / "run-receipt.json"),
+            "--config",
+            str(tmp_path / "config.json"),
+            "--unicom-checkout",
+            str(tmp_path / "unicom"),
+            "--initial-checkpoint",
+            str(tmp_path / "initial.pt"),
+            "--dataset-root",
+            str(tmp_path / "dataset"),
+            "--runtime-mode",
+            "composed",
+            "--profile-kind",
+            "quality",
+            "--parent-trainer-source",
+            MODULE.PARENT_TRAINER_SOURCE,
+            "--output",
+            str(tmp_path / "profile.json"),
+        ]
+    )
+
+    assert args.runtime_mode == "composed"
+    assert args.profile_kind == "quality"
+    assert args.parent_trainer_source == MODULE.PARENT_TRAINER_SOURCE
+
+
+def test_runtime_override_builds_only_registered_training_substrate(monkeypatch) -> None:
+    import torch
+
+    raw_model = torch.nn.Linear(3, 2)
+    classifier = torch.nn.Parameter(torch.ones(4, 2))
+    compiled = object()
+    compile_calls: list[tuple[object, str]] = []
+
+    def compile_model(model, *, mode):
+        compile_calls.append((model, mode))
+        return compiled
+
+    monkeypatch.setattr(torch, "compile", compile_model)
+
+    class _Trainer:
+        class StepEMA:
+            def __init__(self, model, head):
+                self.inputs = (model, head)
+
+        @staticmethod
+        def build_optimizer(model, head, *, learning_rate, classifier_learning_rate, fused):
+            return {
+                "inputs": (model, head),
+                "learning_rate": learning_rate,
+                "classifier_learning_rate": classifier_learning_rate,
+                "fused": fused,
+            }
+
+    protocol = {"learning_rate": 1e-5, "classifier_learning_rate": 1e-4}
+    current = MODULE._construct_runtime(
+        raw_model,
+        classifier,
+        protocol=protocol,
+        trainer=_Trainer,
+        runtime_mode="current",
+    )
+    composed = MODULE._construct_runtime(
+        raw_model,
+        classifier,
+        protocol=protocol,
+        trainer=_Trainer,
+        runtime_mode="composed",
+    )
+
+    assert current[0] is raw_model
+    assert current[1]["fused"] is False
+    assert isinstance(current[2], _Trainer.StepEMA)
+    assert composed[0] is compiled
+    assert composed[1]["fused"] is True
+    assert composed[2] is None
+    assert compile_calls == [(raw_model, "reduce-overhead")]
+
+
+def test_runtime_override_parent_trainer_loads_registered_git_blob_then_unlinks() -> None:
+    trainer = MODULE._load_authenticated_parent_trainer(
+        MODULE_PATH.parents[1], MODULE.PARENT_TRAINER_SOURCE
+    )
+
+    assert trainer.__profile_source_sha256__ == MODULE.PARENT_TRAINER_SHA256
+    assert trainer.__profile_source_spec__ == MODULE.PARENT_TRAINER_SOURCE
+    assert not Path(trainer.__file__).exists()
+
+
+@pytest.mark.parametrize(
+    "source,blob",
+    [
+        ("70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:README.md", None),
+        (
+            "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:"
+            "scripts/train_unicom_inshop.py",
+            b"substituted trainer\n",
+        ),
+    ],
+)
+def test_runtime_override_parent_trainer_rejects_wrong_path_or_blob(
+    source: str,
+    blob: bytes | None,
+    monkeypatch,
+) -> None:
+    if blob is not None:
+        monkeypatch.setattr(MODULE, "_git_blob_bytes", lambda _repo, _source: blob)
+    with pytest.raises(ValueError, match="parent trainer"):
+        MODULE._load_authenticated_parent_trainer(MODULE_PATH.parents[1], source)
+
+
+def test_runtime_override_checkpoint_uses_frozen_parent_hash_not_live_trainer() -> None:
+    checkpoint = {"training_protocol": {"trainer_sha256": MODULE.PARENT_TRAINER_SHA256}}
+    MODULE._validate_parent_checkpoint_authority(checkpoint)
+
+    checkpoint["training_protocol"]["trainer_sha256"] = MODULE._sha256_file(
+        MODULE_PATH.with_name("train_unicom_inshop.py")
+    )
+    with pytest.raises(ValueError, match="parent trainer"):
+        MODULE._validate_parent_checkpoint_authority(checkpoint)
+
+
+def test_runtime_override_registered_seed2_checkpoint_schema_loads(tmp_path: Path) -> None:
+    import torch
+
+    checkpoint_path = tmp_path / "seed-2" / "epoch-0016.pt"
+    checkpoint_path.parent.mkdir()
+    payload = {
+        "epoch": 16,
+        "model": {},
+        "classifier": torch.zeros((4, 2), dtype=torch.float32),
+        "ema": {},
+        "optimizer": {},
+        "scheduler": {},
+        "scaler": None,
+        "mask_generator": torch.Generator().get_state(),
+        "torch_rng_state": torch.get_rng_state(),
+        "cuda_rng_states": [torch.Generator().get_state()],
+        "selection_holdout": {"seed": 0, "fraction": 0.2},
+        "training_protocol": {
+            "seed": 2,
+            "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        },
+        "history": [],
+    }
+    torch.save(payload, checkpoint_path)
+
+    loaded = MODULE._load_checkpoint(checkpoint_path)
+    MODULE._validate_parent_checkpoint_authority(loaded)
+
+    assert loaded["epoch"] == 16
+    assert loaded["training_protocol"]["seed"] == 2
+
+
+def test_scaler_unscales_before_gradient_evidence_and_step(monkeypatch) -> None:
+    import torch
+
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    parameter.grad = torch.tensor(4.0)
+    optimizer = torch.optim.SGD((parameter,), lr=0.1)
+    calls: list[str] = []
+
+    class _Scaler:
+        def get_scale(self):
+            return 8.0
+
+        def unscale_(self, observed_optimizer):
+            assert observed_optimizer is optimizer
+            calls.append("unscale")
+            parameter.grad.div_(8.0)
+
+        def step(self, observed_optimizer):
+            assert calls == ["unscale", "gradient"]
+            calls.append("step")
+            observed_optimizer.step()
+
+        def update(self):
+            calls.append("update")
+
+    def inspect(parameters):
+        assert tuple(parameters) == (parameter,)
+        calls.append("gradient")
+        return True
+
+    monkeypatch.setattr(MODULE, "_gradients_are_finite", inspect)
+    decision = MODULE._optimizer_step(
+        {
+            "optimizer": optimizer,
+            "scheduler": types.SimpleNamespace(last_epoch=1, total_steps=1),
+            "scaler": _Scaler(),
+            "trainable_parameters": (parameter,),
+        }
+    )
+
+    assert calls == ["unscale", "gradient", "step", "update"]
+    assert decision == {
+        "enabled": True,
+        "scale_before": 8.0,
+        "scale_after": 8.0,
+        "skipped": False,
+    }
+
+
+def test_gradient_failure_is_closed_before_scaler_or_optimizer_step() -> None:
+    import torch
+
+    parameter = torch.nn.Parameter(torch.tensor(1.0))
+    parameter.grad = torch.tensor(float("nan"))
+    optimizer = torch.optim.SGD((parameter,), lr=0.1)
+
+    class _Scaler:
+        def get_scale(self):
+            return 8.0
+
+        def unscale_(self, _optimizer):
+            return None
+
+        def step(self, _optimizer):
+            raise AssertionError("nonfinite gradients reached scaler.step")
+
+        def update(self):
+            raise AssertionError("nonfinite gradients reached scaler.update")
+
+    with pytest.raises(ValueError, match="gradient is nonfinite"):
+        MODULE._optimizer_step(
+            {
+                "optimizer": optimizer,
+                "scheduler": types.SimpleNamespace(last_epoch=1, total_steps=1),
+                "scaler": _Scaler(),
+                "trainable_parameters": (parameter,),
+            }
+        )
+
+
+def test_quality_profile_runs_exact_optimizer_phases_without_objective_only_calls(
+    monkeypatch,
+) -> None:
+    calls: list[tuple[str, bool]] = []
+
+    def step(_state, _batch, *, measured):
+        calls.append(("step", measured))
+        if not measured:
+            return None
+        return {
+            "timing": _sample(1.0, 0.04, 0.03),
+            "loss": 2.0,
+            "gradients_finite": True,
+            "scaler": {
+                "enabled": False,
+                "scale_before": None,
+                "scale_after": None,
+                "skipped": False,
+            },
+        }
+
+    monkeypatch.setattr(MODULE, "_training_step", step)
+    monkeypatch.setattr(MODULE, "_reset_cuda_peaks", lambda: calls.append(("reset", False)))
+    monkeypatch.setattr(
+        MODULE,
+        "_objective_profile_step",
+        lambda _state, _batch: calls.append(("objective", False)),
+    )
+    state = {"loader": (object(),)}
+
+    evidence = MODULE._execute_profile_phases(state, profile_kind="quality")
+
+    assert calls.count(("step", False)) == 20
+    assert calls.count(("step", True)) == 50
+    assert calls.count(("reset", False)) == 1
+    assert ("objective", False) not in calls
+    assert evidence["optimizer_step_count"] == 70
+    assert evidence["objective_call_count"] == 0
+    assert evidence["losses"] == [2.0] * 50
+    assert evidence["unscaled_gradients_finite"] == [True] * 50
 
 
 def _sample(step: float, objective_forward: float, head_backward: float) -> dict[str, float]:
@@ -274,12 +562,22 @@ def test_cli_defaults_freeze_replay_counts_and_require_one_checkpoint(tmp_path: 
         [
             "--run-checkpoint",
             str(tmp_path / "epoch-0004.pt"),
+            "--run-receipt",
+            str(tmp_path / "run-receipt.json"),
+            "--config",
+            str(tmp_path / "config.json"),
             "--unicom-checkout",
             str(tmp_path / "unicom"),
             "--initial-checkpoint",
             str(tmp_path / "initial.pt"),
             "--dataset-root",
             str(tmp_path / "dataset"),
+            "--runtime-mode",
+            "current",
+            "--profile-kind",
+            "runtime",
+            "--parent-trainer-source",
+            MODULE.PARENT_TRAINER_SOURCE,
             "--output",
             str(tmp_path / "profile.json"),
         ]
@@ -396,127 +694,95 @@ def test_atomic_writer_roundtrips_and_never_clobbers(tmp_path: Path) -> None:
 
 def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch, capsys) -> None:
     output = tmp_path / "profile.json"
-    expected = {"summary": {"kernel_gate_passed": False}}
+    expected = {"profile_kind": "quality", "runtime_mode": "current"}
     monkeypatch.setattr(MODULE, "replay_profile", lambda _args: expected)
     arguments = [
         "--run-checkpoint",
         str(tmp_path / "epoch-0004.pt"),
+        "--run-receipt",
+        str(tmp_path / "run-receipt.json"),
+        "--config",
+        str(tmp_path / "config.json"),
         "--unicom-checkout",
         str(tmp_path / "unicom"),
         "--initial-checkpoint",
         str(tmp_path / "initial.pt"),
         "--dataset-root",
         str(tmp_path / "dataset"),
+        "--runtime-mode",
+        "current",
+        "--profile-kind",
+        "quality",
+        "--parent-trainer-source",
+        MODULE.PARENT_TRAINER_SOURCE,
         "--output",
         str(output),
     ]
 
     assert MODULE.main(arguments) == 0
     assert json.loads(output.read_text(encoding="utf-8")) == expected
-    assert json.loads(capsys.readouterr().out)["kernel_gate_passed"] is False
+    assert json.loads(capsys.readouterr().out) == {
+        "output": str(output),
+        "profile_kind": "quality",
+        "runtime_mode": "current",
+    }
     assert MODULE.main(arguments) == 2
     assert json.loads(output.read_text(encoding="utf-8")) == expected
 
 
-def test_replay_profile_validates_its_exact_produced_schema(tmp_path: Path, monkeypatch) -> None:
-    import torch
-
-    import sfora
-
-    checkpoint = tmp_path / "epoch-0004.pt"
-    checkpoint.write_bytes(b"checkpoint")
-    objective_source = tmp_path / "objective.py"
-    objective_source.write_text("# objective\n", encoding="utf-8")
-    objective_module = types.ModuleType("sfora.unicom_training")
-    objective_module.__file__ = str(objective_source)
-    monkeypatch.setitem(sys.modules, "sfora.unicom_training", objective_module)
-    monkeypatch.setattr(sfora, "unicom_training", objective_module, raising=False)
-    monkeypatch.setattr(torch.cuda, "get_device_name", lambda _device: "test-gpu")
-    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
-    monkeypatch.setattr(MODULE, "_load_trainer", lambda _path: object())
-
-    class _EMA:
-        def release_step_hook(self):
-            return None
-
-    monkeypatch.setattr(
-        MODULE,
-        "_build_replay_state",
-        lambda _args, _trainer: {
-            "loader": (),
-            "step_ema": _EMA(),
-            "checkpoint_epoch": 4,
-            "protocol": {"classifier_init": "random"},
-            "device": "cuda:0",
-        },
+def test_quality_profile_validator_requires_v2_evidence_and_no_objective_phase() -> None:
+    receipt = _runtime_smoke_receipt(
+        "current", started_unix_ns=1_000, wall=1.2
     )
-    monkeypatch.setattr(MODULE, "summarize_profile", lambda _timing, _fusible: {"ok": True})
-    observed: dict[str, object] = {}
-    monkeypatch.setattr(
-        MODULE,
-        "_profile_samples",
-        lambda payload, expected_init: observed.update(
-            {"payload": payload, "expected_init": expected_init}
-        ),
-    )
-    args = types.SimpleNamespace(
-        run_checkpoint=checkpoint,
-        warmup_steps=0,
-        measure_steps=0,
-        profiler_steps=0,
-    )
+    receipt["profile_kind"] = "quality"
+    receipt["objective_steps"] = 0
+    receipt["objective_call_count"] = 0
+    receipt["objective_samples"] = []
 
-    payload = MODULE.replay_profile(args)
+    MODULE.validate_quality_profile(receipt)
 
-    assert observed == {"payload": payload, "expected_init": "random"}
-    assert tuple(payload) == MODULE.PROFILE_KEYS
+    changed = copy.deepcopy(receipt)
+    changed["objective_call_count"] = 10
+    with pytest.raises(ValueError, match="step evidence"):
+        MODULE.validate_quality_profile(changed)
+
+    changed = copy.deepcopy(receipt)
+    changed["inference_signature"]["operations"][2] = "normalize_prefix512"
+    with pytest.raises(ValueError, match="inference signature"):
+        MODULE.validate_quality_profile(changed)
 
 
 def test_replay_profile_rejects_first_invalid_measured_row_before_next_step(
     monkeypatch,
 ) -> None:
-    class _EMA:
-        released = False
-
-        def release_step_hook(self):
-            self.released = True
-
-    ema = _EMA()
-    monkeypatch.setattr(MODULE, "_validate_counts", lambda _args: None)
-    monkeypatch.setattr(MODULE, "_load_trainer", lambda _path: object())
-    monkeypatch.setattr(
-        MODULE,
-        "_build_replay_state",
-        lambda _args, _trainer: {
-            "loader": (object(), object()),
-            "step_ema": ema,
-            "checkpoint_epoch": 4,
-            "protocol": {"classifier_init": "random"},
-            "device": "cuda:0",
-        },
-    )
     calls = 0
 
     def invalid_step(_state, _batch, *, measured):
         nonlocal calls
         calls += 1
-        assert measured is True
+        if not measured:
+            return None
         sample = _sample(1.0, 0.04, 0.03)
         sample["step_wall_seconds"] = sample["cuda_step_seconds"] / 1.05
-        return sample
+        return {
+            "timing": sample,
+            "loss": 2.0,
+            "gradients_finite": True,
+            "scaler": {
+                "enabled": False,
+                "scale_before": None,
+                "scale_after": None,
+                "skipped": False,
+            },
+        }
 
     monkeypatch.setattr(MODULE, "_training_step", invalid_step)
-    args = types.SimpleNamespace(
-        warmup_steps=0,
-        measure_steps=2,
-        profiler_steps=0,
-    )
+    monkeypatch.setattr(MODULE, "_reset_cuda_peaks", lambda: None)
 
     with pytest.raises(ValueError, match="timing sample 0 CUDA step exceeds wall step"):
-        MODULE.replay_profile(args)
+        MODULE._execute_profile_phases({"loader": (object(),)}, profile_kind="quality")
 
-    assert calls == 1
-    assert ema.released is True
+    assert calls == 21
 
 
 def _profile_payload(
@@ -610,3 +876,197 @@ def test_abba_aggregation_rejects_forged_summary() -> None:
     profiles[2]["profiler_sha256"] = "5" * 64
     with pytest.raises(ValueError, match="provenance"):
         MODULE.aggregate_abba_profiles(tuple(profiles))
+
+
+def _runtime_smoke_receipt(
+    runtime_mode: str,
+    *,
+    started_unix_ns: int,
+    wall: float,
+) -> dict[str, object]:
+    composed = runtime_mode == "composed"
+    inference_signature = {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": [
+            {
+                "name": "norm.running_mean",
+                "kind": "buffer",
+                "shape": [2],
+                "dtype": "torch.float32",
+                "numel": 2,
+                "element_size": 4,
+                "bytes": 8,
+                "sha256": "9" * 64,
+            }
+        ],
+        "total_bytes": 8,
+        "aggregate_sha256": "8" * 64,
+        "descriptor_dtype": "torch.float32",
+        "descriptor_dimension": 512,
+        "descriptor_sha256": "7" * 64,
+        "operations": [
+            "official_forward",
+            "full768_l2",
+            "prefix512",
+            "squared_euclidean",
+        ],
+    }
+    scaler = {
+        "enabled": True,
+        "scale_before": 65536.0,
+        "scale_after": 65536.0,
+        "skipped": False,
+    }
+    loss = 10.0001 if composed else 10.0
+    return {
+        "schema": "unicom-training-step-profile-v2",
+        "profile_kind": "runtime",
+        "runtime_mode": runtime_mode,
+        "parent_trainer_source": (
+            "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b:"
+            "scripts/train_unicom_inshop.py"
+        ),
+        "parent_trainer_sha256": (
+            "6eea2dab88ff9e4c5a547f9fe326ebf56879882784c5a80c8e136f6d02b52170"
+        ),
+        "live_trainer_sha256": "6" * 64,
+        "profiler_sha256": "5" * 64,
+        "checkpoint": {
+            "path": "/registered/seed-2/epoch-0016.pt",
+            "sha256": "4" * 64,
+            "bytes": 1_000,
+        },
+        "run_receipt": {
+            "path": "/registered/seed-2/run-receipt.json",
+            "sha256": "3" * 64,
+            "bytes": 2_000,
+        },
+        "config": {
+            "path": "/registered/config.json",
+            "sha256": "2" * 64,
+            "bytes": 3_000,
+        },
+        "checkpoint_epoch": 16,
+        "checkpoint_protocol": {"trainer_sha256": MODULE.PARENT_TRAINER_SHA256},
+        "inference_signature": inference_signature,
+        "runtime_overrides": {
+            "compile": composed,
+            "fused": composed,
+            "ema": not composed,
+        },
+        "warmup_steps": 20,
+        "measure_steps": 50,
+        "objective_steps": 10,
+        "optimizer_step_count": 70,
+        "objective_call_count": 10,
+        "timing_synchronized": True,
+        "peak_reset": {
+            "after_warmup": True,
+            "before_measurement": True,
+            "empty_cache": False,
+        },
+        "started_unix_ns": started_unix_ns,
+        "finished_unix_ns": started_unix_ns + 99,
+        "losses": [loss] * 50,
+        "unscaled_gradients_finite": [True] * 50,
+        "scaler_decisions": [dict(scaler) for _ in range(50)],
+        "timing_samples": [_sample(wall, 0.04, 0.03) for _ in range(50)],
+        "objective_samples": [0.001] * 10,
+        "peak_allocated_bytes": 1_005 if composed else 1_000,
+        "peak_reserved_bytes": 2_010 if composed else 2_000,
+        "parameter_schema": [
+            {
+                "name": "raw_model.weight",
+                "shape": [2, 2],
+                "dtype": "torch.float32",
+            },
+            {"name": "classifier", "shape": [4, 2], "dtype": "torch.float32"},
+        ],
+        "optimizer_schema": {
+            "param_groups": [["amsgrad", "betas", "eps", "lr", "weight_decay"]],
+            "state": [["exp_avg", "exp_avg_sq", "step"]],
+        },
+        "environment": {
+            "python_version": "3.12.3",
+            "torch_version": "2.6.0",
+            "numpy_version": "2.1.3",
+            "cuda_version": "12.4",
+            "device_name": "NVIDIA H100 80GB HBM3",
+        },
+    }
+
+
+def _passing_runtime_smoke_receipts() -> tuple[dict[str, object], ...]:
+    modes = ("current", "composed", "composed", "current") * 2
+    return tuple(
+        _runtime_smoke_receipt(
+            mode,
+            started_unix_ns=1_000 + index * 100,
+            wall=1.0 if mode == "composed" else 1.2,
+        )
+        for index, mode in enumerate(modes)
+    )
+
+
+def test_runtime_smoke_decision_passes_exact_abbaabba_evidence() -> None:
+    receipts = _passing_runtime_smoke_receipts()
+
+    assert MODULE.compare_runtime_smoke(receipts) == "PASS_COMPOSED"
+
+
+@pytest.mark.parametrize(
+    "mutation,expected",
+    [
+        ("order", "INVALID"),
+        ("checkpoint", "INVALID"),
+        ("environment", "INVALID"),
+        ("overlap", "INVALID"),
+        ("loss", "PASS_CURRENT"),
+        ("gradient", "INVALID"),
+        ("scaler", "INVALID"),
+        ("parameter_schema", "INVALID"),
+        ("optimizer_schema", "INVALID"),
+        ("paired_time", "PASS_CURRENT"),
+        ("pooled_time", "PASS_CURRENT"),
+        ("allocated", "PASS_CURRENT"),
+        ("reserved", "PASS_CURRENT"),
+    ],
+)
+def test_runtime_smoke_decision_mutations_fail_closed(
+    mutation: str,
+    expected: str,
+) -> None:
+    receipts = list(copy.deepcopy(_passing_runtime_smoke_receipts()))
+    if mutation == "order":
+        receipts[0], receipts[1] = receipts[1], receipts[0]
+    elif mutation == "checkpoint":
+        receipts[2]["checkpoint"]["sha256"] = "1" * 64
+    elif mutation == "environment":
+        receipts[6]["environment"]["device_name"] = "substituted"
+    elif mutation == "overlap":
+        receipts[1]["started_unix_ns"] = receipts[0]["finished_unix_ns"] - 1
+    elif mutation == "loss":
+        receipts[1]["losses"][17] = 10.01
+    elif mutation == "gradient":
+        receipts[5]["unscaled_gradients_finite"][4] = False
+    elif mutation == "scaler":
+        receipts[2]["scaler_decisions"][9]["skipped"] = True
+    elif mutation == "parameter_schema":
+        receipts[6]["parameter_schema"][0]["shape"] = [4, 1]
+    elif mutation == "optimizer_schema":
+        receipts[1]["optimizer_schema"]["state"][0].append("substituted")
+    elif mutation == "paired_time":
+        receipts[1]["timing_samples"] = [_sample(1.09, 0.04, 0.03) for _ in range(50)]
+    elif mutation == "pooled_time":
+        for index in (1, 2, 5, 6):
+            receipts[index]["timing_samples"] = [
+                _sample(1.08, 0.04, 0.03) for _ in range(50)
+            ]
+    elif mutation == "allocated":
+        receipts[2]["peak_allocated_bytes"] = 1_021
+    elif mutation == "reserved":
+        receipts[5]["peak_reserved_bytes"] = 2_041
+    else:
+        raise AssertionError(mutation)
+
+    assert MODULE.compare_runtime_smoke(tuple(receipts)) == expected
