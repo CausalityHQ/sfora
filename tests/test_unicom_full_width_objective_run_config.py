@@ -13,9 +13,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "f76cd832e84c06b64c63a4ac728017123928b96c"
-CONFIG_COMMIT = "c20464366d25827c42c9bec3120c6dc1d49ae0a9"
-CONFIG_SHA256 = "edc8565e7e2560a214f62e651e5b681e43434c3af76e25f9aeebb69155b795aa"
+SOURCE_COMMIT = "5a4e3cd9ee3e4cac4a85d8520d9c3e8c9bf1645c"
+CONFIG_COMMIT = "83f0f838015bc3224132432294973b36150b0c98"
+CONFIG_SHA256 = "8d1791f1bff0a9bae958b92d359f03b05fdfcd55b18d1c2db7868d6bb33451f6"
 TRAINING_SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
 TRAINING_CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
 TRAINING_CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
@@ -45,8 +45,12 @@ SOURCE_FILES = (
         "3d35af353253a03d5cd6cde6b4085c3c16d7f9c80024f2af291f77eb3408c977",
     ),
     (
+        "scripts/confirm_unicom_full_width_objective.py",
+        "c5d4bab2c83d09cf1e111d34080f344051fa3061d8d08d85fd78f1a6da649899",
+    ),
+    (
         "scripts/run_unicom_from_checkout.py",
-        "255ad97049d2c3f17085b26704c1d5aae5f1313348e184b0a27f81a59f690ebc",
+        "8d0ca7b9e7492a276ce7d78f744f1f4a70e3f97cd61bd08a766963b4d40618ed",
     ),
     (
         "src/sfora/unicom_inshop.py",
@@ -85,8 +89,12 @@ SOURCE_FILES = (
         "8c1bda811eda51a71bf34a8d925f5d3acba9a213ea099d41fb80e9ee44a21bbb",
     ),
     (
+        "tests/test_confirm_unicom_full_width_objective.py",
+        "1989bd017e87775552ccbe6ece0e62227f662513acb126e59d437474755a660d",
+    ),
+    (
         "tests/test_run_unicom_from_checkout.py",
-        "17b97ae48e6631408684e24de8b5c6dc9d66afe332e6527caca3ed0af88293f0",
+        "3e54781bcb1af93cd9dbb9e5d5869045bd35cccc0ff97a06cf8447797a270cdd",
     ),
     (
         "docs/unicom_full_width_prelaunch_repair_2026-08-25.md",
@@ -110,6 +118,63 @@ ARM_PROTOCOLS = {
     "sampled_512": ("official-eight-mask", 512, 768),
     "full_768": ("official-eight-mask", 768, 768),
 }
+CONFIRMATION_AUDIT_ROWS = (
+    (
+        2,
+        "18503c56db759871bff06a8377c6693464d080a13cd95dbef5088eb31d024005",
+        2097,
+        "21b0b770f8d76e975ad3c675ef1bad608682df3339f5a35679d3f313e18ae2ab",
+        158785,
+        "f82304d106f30cd59e6a3de82d1b6135f986f8473bce39744fda590a829bf93e",
+        3709,
+        "35a8702fd494bef0bdf068ae7fd7dad1cf5a9d046c25cbc27bacad8df6849fc3",
+        3682,
+    ),
+    (
+        3,
+        "a91b9d439d7a454887b22393f37d6d3a192f7895b1358d720d37a254955b9c25",
+        2097,
+        "addb3fef0f4895a1acdcea00b4a5a26630fd3ede204cfa46de247e3764bf7323",
+        159204,
+        "075e558f95e149f7c98107bc4434e3ea43c838e7cb0f6ec260bf72ae13aeeb83",
+        3709,
+        "81cb6a07c9c3f692c8a68ec7391f64a1e5e509f4964aaf351d94e3d687d72b4b",
+        3682,
+    ),
+    (
+        4,
+        "ebca88798cdfec724a66320c02cb4769036164160f4cd8673076edc377bced06",
+        2097,
+        "78e3287987cc9d59337c118f6ff516cfd5832a0034fa4437be71c2c8d2987a4e",
+        158380,
+        "0bda4b05df942aae8819bb2fb5665e2c4119f7794b32764460199e645bcf4f8f",
+        3709,
+        "fd66b3cf23dae679177c5f533aa8e82e04eebd8fc15c497f532c80370d5ad13c",
+        3682,
+    ),
+    (
+        5,
+        "e670b72127d7bf4e2ea9d9bfc9ad103e3658b25db50f15c55aaa8cbc800e04af",
+        2097,
+        "77a59a36e256698050f0182f8168e0033682dd7045494406e3ad424e22059b18",
+        158549,
+        "55c132c4d543a49de6106a0f6693ecda030c918d5d69a88f065aea34888a85b3",
+        3708,
+        "3381159e7fd57b8edd98bcb2e624be70d1d509e2e1ca8c3a8182c48ea3922c65",
+        3682,
+    ),
+    (
+        6,
+        "164b2ac9e1b4108fadee8a90d75def8d25955390fadb6cc612f196346f41827a",
+        2097,
+        "79c2d4c53379801b07fb3076e80232dd33c87bfba73cc667e2f5ad86647bb980",
+        157989,
+        "63d4ec27ba4addd8bfe320763743699cec777b48a8a269ef0edc5f0b9f36615e",
+        3709,
+        "2def576d03afe98849c1bcc2fce612256f021db1c86716df73c5c58800b5840f",
+        3682,
+    ),
+)
 TOP_KEYS = (
     "schema_version",
     "source",
@@ -122,6 +187,7 @@ TOP_KEYS = (
     "command_templates",
     "run_schedule",
     "seed0_downstream",
+    "confirmation_audit_inputs",
     "thresholds",
     "attempts",
     "registered_outputs",
@@ -133,13 +199,13 @@ HISTORICALLY_FROZEN_KEYS = (
     "inputs",
     "protocol",
     "paths",
-    "command_templates",
     "run_schedule",
     "seed0_downstream",
     "thresholds",
-    "registered_outputs",
     "forbidden_evidence",
 )
+
+
 def _reject_constant(value: str) -> None:
     raise ValueError(f"nonfinite JSON constant: {value}")
 
@@ -164,13 +230,28 @@ def strict_json(path: Path) -> dict[str, object]:
     return value
 
 
-def _validate_historical_scientific_delta(
-    current: object, historical: object
-) -> None:
+def _validate_historical_scientific_delta(current: object, historical: object) -> None:
     if type(current) is not dict or type(historical) is not dict:
         raise TypeError("historical scientific fields differ")
     if any(current.get(key) != historical.get(key) for key in HISTORICALLY_FROZEN_KEYS):
         raise ValueError("historical scientific fields differ")
+    current_templates = copy.deepcopy(current.get("command_templates"))
+    historical_templates = historical.get("command_templates")
+    if type(current_templates) is not dict or type(historical_templates) is not dict:
+        raise ValueError("historical command templates differ")
+    current_templates.pop("confirmation_command", None)
+    if current_templates != historical_templates:
+        raise ValueError("historical command templates differ")
+    current_outputs = copy.deepcopy(current.get("registered_outputs"))
+    historical_outputs = historical.get("registered_outputs")
+    if type(current_outputs) is not dict or type(historical_outputs) is not dict:
+        raise ValueError("historical registered outputs differ")
+    current_outputs["confirmation_result"] = current_outputs.pop(
+        "confirmation_result_legacy_unregistered", None
+    )
+    current_outputs.pop("confirmation_result_v2", None)
+    if current_outputs != historical_outputs:
+        raise ValueError("historical registered outputs differ")
 
 
 def test_historical_training_config_preserves_all_scientific_fields() -> None:
@@ -178,7 +259,10 @@ def test_historical_training_config_preserves_all_scientific_fields() -> None:
         "source",
         "training_receipt_authority",
         "handoff",
+        "command_templates",
+        "confirmation_audit_inputs",
         "attempts",
+        "registered_outputs",
     }
     current = strict_json(CONFIG_PATH)
     historical = json.loads(
@@ -230,9 +314,7 @@ def _validate_config_commit_bytes(path: Path) -> None:
     if not isinstance(path, Path) or not path.is_file() or path.is_symlink():
         raise ValueError("config bytes differ")
     payload = path.read_bytes()
-    committed = _git_blob(
-        "docs/unicom_full_width_objective_run_config.json", commit=CONFIG_COMMIT
-    )
+    committed = _git_blob("docs/unicom_full_width_objective_run_config.json", commit=CONFIG_COMMIT)
     if (
         _sha256_bytes(committed) != CONFIG_SHA256
         or payload != committed
@@ -437,6 +519,19 @@ def _expected_templates(config: dict[str, object]) -> dict[str, list[str]]:
             "--output",
             f"{paths['output_root']}/seed-0/decision.json",
         ],
+        "confirmation_command": [
+            python,
+            "-I",
+            "-B",
+            launcher,
+            f"{repo}/scripts/confirm_unicom_full_width_objective.py",
+            "--run-config",
+            config_path,
+            "--evidence-root",
+            paths["output_root"],
+            "--output",
+            f"{paths['output_root']}/confirmation-result-v2.json",
+        ],
     }
 
 
@@ -457,9 +552,10 @@ def validate_config(config: object) -> None:
         raise ValueError("source file order or digest differs")
     if _git_text("rev-parse", f"{CONFIG_COMMIT}^") != SOURCE_COMMIT:
         raise ValueError("config commit parent differs")
-    if _git_text(
-        "diff-tree", "--no-commit-id", "--name-only", "-r", CONFIG_COMMIT
-    ) != "docs/unicom_full_width_objective_run_config.json":
+    if (
+        _git_text("diff-tree", "--no-commit-id", "--name-only", "-r", CONFIG_COMMIT)
+        != "docs/unicom_full_width_objective_run_config.json"
+    ):
         raise ValueError("config commit scope differs")
     for path, digest in SOURCE_FILES:
         blob = _git_blob(path)
@@ -482,8 +578,7 @@ def validate_config(config: object) -> None:
         commit=TRAINING_CONFIG_COMMIT,
     )
     if (
-        _git_text("rev-parse", f"{TRAINING_CONFIG_COMMIT}^")
-        != TRAINING_SOURCE_COMMIT
+        _git_text("rev-parse", f"{TRAINING_CONFIG_COMMIT}^") != TRAINING_SOURCE_COMMIT
         or _sha256_bytes(historical_config) != TRAINING_CONFIG_SHA256
     ):
         raise ValueError("historical training config differs")
@@ -655,6 +750,7 @@ def validate_config(config: object) -> None:
             "pair_evaluator",
             "pair_inventory_builder",
             "decision_command",
+            "confirmation_command",
         ),
         "command templates",
     )
@@ -736,6 +832,63 @@ def validate_config(config: object) -> None:
     }:
         raise ValueError("seed-0 downstream paths differ")
 
+    def binding(path: str, sha256: str, size: int) -> dict[str, object]:
+        return {"path": path, "sha256": sha256, "bytes": size}
+
+    audit_rows = []
+    for (
+        seed,
+        inventory_sha,
+        inventory_bytes,
+        result_sha,
+        result_bytes,
+        control_sha,
+        control_bytes,
+        candidate_sha,
+        candidate_bytes,
+    ) in CONFIRMATION_AUDIT_ROWS:
+        seed_root = f"{output_root}/seed-{seed}"
+        audit_rows.append(
+            {
+                "seed": seed,
+                "pair_inventory": binding(
+                    f"{seed_root}/pair-inventory.json",
+                    inventory_sha,
+                    inventory_bytes,
+                ),
+                "pair_result": binding(f"{seed_root}/paired-result.json", result_sha, result_bytes),
+                "control_receipt": binding(
+                    f"{seed_root}/sampled_512-run-receipt.json",
+                    control_sha,
+                    control_bytes,
+                ),
+                "candidate_receipt": binding(
+                    f"{seed_root}/full_768-run-receipt.json",
+                    candidate_sha,
+                    candidate_bytes,
+                ),
+            }
+        )
+    audit = _assert_exact_mapping(
+        config["confirmation_audit_inputs"],
+        ("seed0_decision", "seed0_profile_comparison", "confirmation_seeds"),
+        "confirmation audit inputs",
+    )
+    if audit != {
+        "seed0_decision": binding(
+            f"{output_root}/seed-0/decision.json",
+            "2e9ee126281b2bf990c7dbc05f337b8d7fd424e2cfd4f0353afa171121e6257a",
+            2748,
+        ),
+        "seed0_profile_comparison": binding(
+            f"{output_root}/seed-0/profile-comparison.json",
+            "c84cf7dc711c3e5969ea858e80fe976193da148fc7026815a81c9bdd552e7fdd",
+            1668,
+        ),
+        "confirmation_seeds": audit_rows,
+    }:
+        raise ValueError("confirmation audit evidence differs")
+
     thresholds = _assert_exact_mapping(
         config["thresholds"],
         ("selection", "operational", "confirmation", "kernel"),
@@ -776,6 +929,7 @@ def validate_config(config: object) -> None:
             "pair_evaluator_per_seed",
             "decision_per_seed",
             "decision_repair_exception",
+            "confirmation_audit_publication",
             "rerun_after_finite_gate",
         ),
         "attempts",
@@ -795,6 +949,7 @@ def validate_config(config: object) -> None:
             "nonconsuming-only-when-no-decision-output-or-temp-exists; reuse-only-"
             "the-validated-pair-and-abba-artifacts-on-refrozen-handoff"
         ),
+        "confirmation_audit_publication": 1,
         "rerun_after_finite_gate": False,
     }:
         raise ValueError("attempt policy differs")
@@ -812,7 +967,8 @@ def validate_config(config: object) -> None:
             "pair_inventory_template",
             "pair_result_template",
             "decision_template",
-            "confirmation_result",
+            "confirmation_result_legacy_unregistered",
+            "confirmation_result_v2",
             "temporary_template",
             "must_be_absent_before_launch",
         ),
@@ -833,7 +989,8 @@ def validate_config(config: object) -> None:
         "pair_inventory_template": f"{output_root}/seed-{{seed}}/pair-inventory.json",
         "pair_result_template": f"{output_root}/seed-{{seed}}/paired-result.json",
         "decision_template": f"{output_root}/seed-{{seed}}/decision.json",
-        "confirmation_result": f"{output_root}/confirmation-result.json",
+        "confirmation_result_legacy_unregistered": (f"{output_root}/confirmation-result.json"),
+        "confirmation_result_v2": f"{output_root}/confirmation-result-v2.json",
         "temporary_template": ".{basename}.{random}.tmp",
         "must_be_absent_before_launch": True,
     }:
@@ -922,11 +1079,14 @@ def test_real_detached_config_commit_authenticates_reviewed_source_parent(
         text=True,
     )
     assert completed.stdout.strip() == SOURCE_COMMIT
-    assert subprocess.run(
-        ["git", "-C", str(checkout), "symbolic-ref", "-q", "HEAD"],
-        check=False,
-        capture_output=True,
-    ).returncode != 0
+    assert (
+        subprocess.run(
+            ["git", "-C", str(checkout), "symbolic-ref", "-q", "HEAD"],
+            check=False,
+            capture_output=True,
+        ).returncode
+        != 0
+    )
     assert not subprocess.run(
         ["git", "-C", str(checkout), "status", "--porcelain=v1"],
         check=True,
@@ -993,6 +1153,12 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             ),
         ),
         (
+            "confirmation command path",
+            lambda value: value["command_templates"]["confirmation_command"].__setitem__(
+                -1, "/tmp/confirmation.json"
+            ),
+        ),
+        (
             "pair inventory order",
             lambda value: value["seed0_downstream"]["pair_inventory"]["inventory"].reverse(),
         ),
@@ -1009,6 +1175,18 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             ),
         ),
         (
+            "confirmation evidence digest",
+            lambda value: value["confirmation_audit_inputs"]["confirmation_seeds"][0][
+                "pair_result"
+            ].__setitem__("sha256", "0" * 64),
+        ),
+        (
+            "confirmation evidence size",
+            lambda value: value["confirmation_audit_inputs"]["confirmation_seeds"][4][
+                "candidate_receipt"
+            ].__setitem__("bytes", 1),
+        ),
+        (
             "directory policy",
             lambda value: value["registered_outputs"].__setitem__(
                 "directory_creation_policy", "create-anything"
@@ -1018,6 +1196,10 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
         (
             "decision attempt count",
             lambda value: value["attempts"].__setitem__("decision_per_seed", 2),
+        ),
+        (
+            "confirmation audit attempt count",
+            lambda value: value["attempts"].__setitem__("confirmation_audit_publication", 2),
         ),
         (
             "decision repair exception",
@@ -1123,6 +1305,10 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
         ROOT / "scripts" / "decide_unicom_full_width_objective.py",
         "_full_width_seed0_decider",
     )
+    confirmer = _load_module(
+        ROOT / "scripts" / "confirm_unicom_full_width_objective.py",
+        "_full_width_confirmation",
+    )
     for seed_row in schedule:
         for run in seed_row["runs"]:
             arm = run["arm"]
@@ -1190,8 +1376,7 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
         "seed": 0,
         "output": pair_inventory["path"],
         **{
-            f"{row['arm']}_epoch_{row['epoch']}": row["path"]
-            for row in pair_inventory["inventory"]
+            f"{row['arm']}_epoch_{row['epoch']}": row["path"] for row in pair_inventory["inventory"]
         },
     }
     builder_command = _substitute(templates["pair_inventory_builder"], pair_values)
@@ -1199,8 +1384,7 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
     assert builder_args.seed == 0
     assert builder_args.output == Path(pair_inventory["path"])
     assert builder_args.checkpoint == [
-        [row["arm"], str(row["epoch"]), row["path"]]
-        for row in pair_inventory["inventory"]
+        [row["arm"], str(row["epoch"]), row["path"]] for row in pair_inventory["inventory"]
     ]
 
     decision_command = templates["decision_command"]
@@ -1212,6 +1396,11 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
     assert decision_args.control_receipt == Path(schedule[0]["runs"][0]["receipt"])
     assert decision_args.candidate_receipt == Path(schedule[0]["runs"][1]["receipt"])
     assert decision_args.output == Path(seed0["decision_path"])
+    confirmation_command = templates["confirmation_command"]
+    confirmation_args = confirmer.parse_args(confirmation_command[5:])
+    assert confirmation_args.run_config == Path(config["paths"]["run_config"])
+    assert confirmation_args.evidence_root == Path(config["paths"]["output_root"])
+    assert confirmation_args.output == Path(config["registered_outputs"]["confirmation_result_v2"])
 
 
 def test_run_config_validates_in_a_fresh_isolated_process() -> None:
