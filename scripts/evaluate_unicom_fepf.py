@@ -45,6 +45,7 @@ RESULT_KEYS = (
     "evidence_manifest",
     "evidence_sha256",
     "config",
+    "sources_authority",
     "sources",
     "decision",
 )
@@ -66,7 +67,7 @@ def _canonical_tensor_bytes(value: torch.Tensor) -> bytes:
 def checkpoint_inference_signature(
     checkpoint: object,
     *,
-    parameter_schema: object,
+    structural_inventory: object,
     descriptor_sha256: object,
 ) -> dict[str, object]:
     """Rebuild raw-backbone value evidence directly from a terminal checkpoint."""
@@ -75,27 +76,46 @@ def checkpoint_inference_signature(
         type(checkpoint) is not dict
         or type(checkpoint.get("model")) is not dict
         or not checkpoint["model"]
-        or type(parameter_schema) is not list
-        or not parameter_schema
         or not _lower_sha256(descriptor_sha256)
     ):
         raise ValueError("checkpoint inference evidence differs")
-    parameter_names: set[str] = set()
-    for row in parameter_schema:
-        if type(row) is not dict or type(row.get("name")) is not str:
-            raise ValueError("checkpoint inference parameter schema differs")
-        name = row["name"]
-        if name == "classifier":
-            continue
-        if not name.startswith("raw_model.") or name == "raw_model.":
-            raise ValueError("checkpoint inference parameter schema differs")
-        raw_name = name.removeprefix("raw_model.")
-        if raw_name in parameter_names:
-            raise ValueError("checkpoint inference parameter schema differs")
-        parameter_names.add(raw_name)
+    if (
+        type(structural_inventory) is not dict
+        or tuple(structural_inventory)
+        != ("schema", "tensors", "classifier", "operations")
+        or structural_inventory["schema"] != "unicom-fepf-structure-v1"
+        or structural_inventory["operations"] != list(INFERENCE_OPERATIONS)
+        or type(structural_inventory["tensors"]) is not list
+        or not structural_inventory["tensors"]
+    ):
+        raise ValueError("checkpoint inference structural inventory differs")
     state = checkpoint["model"]
-    if not parameter_names or not parameter_names.issubset(state):
+    structural_rows = structural_inventory["tensors"]
+    row_keys = (
+        "name",
+        "kind",
+        "shape",
+        "dtype",
+        "numel",
+        "element_size",
+        "bytes",
+    )
+    if any(type(row) is not dict or tuple(row) != row_keys for row in structural_rows):
+        raise ValueError("checkpoint inference structural inventory differs")
+    names = [row["name"] for row in structural_rows]
+    if (
+        names != sorted(names)
+        or len(names) != len(set(names))
+        or set(state) != set(names)
+    ):
         raise ValueError("checkpoint inference state inventory differs")
+    parameter_names = {
+        row["name"] for row in structural_rows if row["kind"] == "parameter"
+    }
+    if not parameter_names or any(
+        row["kind"] not in {"parameter", "buffer"} for row in structural_rows
+    ):
+        raise ValueError("checkpoint inference parameter inventory differs")
     ema = checkpoint.get("ema")
     if ema is not None:
         if type(ema) is not dict or type(ema.get("backbone")) is not dict:
@@ -103,45 +123,42 @@ def checkpoint_inference_signature(
         intrinsic_parameter_names = set(ema["backbone"])
         if intrinsic_parameter_names != parameter_names:
             raise ValueError("checkpoint inference parameter inventory differs")
-    schema_by_name = {
-        row["name"].removeprefix("raw_model."): row
-        for row in parameter_schema
-        if row["name"] != "classifier"
-    }
-    for name in parameter_names:
-        value = state[name]
-        row = schema_by_name[name]
+    for row in structural_rows:
+        value = state[row["name"]]
         if (
             not isinstance(value, torch.Tensor)
-            or row.get("shape") != list(value.shape)
-            or row.get("dtype") != str(value.dtype)
+            or row["shape"] != list(value.shape)
+            or row["dtype"] != str(value.dtype)
+            or row["numel"] != value.numel()
+            or row["element_size"] != value.element_size()
+            or row["bytes"] != value.numel() * value.element_size()
         ):
-            raise ValueError("checkpoint inference parameter schema differs")
-    classifier_rows = [row for row in parameter_schema if row["name"] == "classifier"]
+            raise ValueError("checkpoint inference structural inventory differs")
+    classifier_row = structural_inventory["classifier"]
     classifier = checkpoint.get("classifier")
     if (
-        len(classifier_rows) != 1
-        or (
-            classifier is not None
-            and (
-                not isinstance(classifier, torch.Tensor)
-                or classifier_rows[0].get("shape") != list(classifier.shape)
-                or classifier_rows[0].get("dtype") != str(classifier.dtype)
-            )
-        )
+        type(classifier_row) is not dict
+        or tuple(classifier_row)
+        != ("shape", "dtype", "numel", "element_size", "bytes")
+        or not isinstance(classifier, torch.Tensor)
+        or classifier_row["shape"] != list(classifier.shape)
+        or classifier_row["dtype"] != str(classifier.dtype)
+        or classifier_row["numel"] != classifier.numel()
+        or classifier_row["element_size"] != classifier.element_size()
+        or classifier_row["bytes"]
+        != classifier.numel() * classifier.element_size()
     ):
         raise ValueError("checkpoint inference classifier schema differs")
     aggregate = hashlib.sha256()
     tensors = []
     total_bytes = 0
-    for name in sorted(state):
-        if type(name) is not str:
-            raise ValueError("checkpoint inference state inventory differs")
+    for structural_row in structural_rows:
+        name = structural_row["name"]
         value = state[name]
         payload = _canonical_tensor_bytes(value)
         row = {
             "name": name,
-            "kind": "parameter" if name in parameter_names else "buffer",
+            "kind": structural_row["kind"],
             "shape": list(value.shape),
             "dtype": str(value.dtype),
             "numel": value.numel(),
@@ -166,7 +183,7 @@ def checkpoint_inference_signature(
         "descriptor_dtype": "torch.float32",
         "descriptor_dimension": 512,
         "descriptor_sha256": descriptor_sha256,
-        "operations": list(INFERENCE_OPERATIONS),
+        "operations": list(structural_inventory["operations"]),
     }
 
 
@@ -174,12 +191,12 @@ def require_same_arm_checkpoint_signature(
     checkpoint: object,
     *,
     recorded: object,
-    parameter_schema: object,
+    structural_inventory: object,
     descriptor_sha256: object,
 ) -> None:
     expected = checkpoint_inference_signature(
         checkpoint,
-        parameter_schema=parameter_schema,
+        structural_inventory=structural_inventory,
         descriptor_sha256=descriptor_sha256,
     )
     if not _strict_typed_equal(recorded, expected):
@@ -1404,6 +1421,8 @@ def _load_arm_observation(
     training_seed: int,
     holdout_seed: int,
     stop_after_epoch: int,
+    config_authority: Mapping[str, object],
+    structural_inventory: Mapping[str, object],
     trainer,
 ) -> dict[str, object]:
     run_path = run_root / "run-receipt.json"
@@ -1437,12 +1456,6 @@ def _load_arm_observation(
         name="initialization receipt",
     )
     initialization = _strict_json_file(initialization_path)
-    if profiles:
-        config_authority = profiles[0]["config"]
-    else:
-        config_authority = {
-            "sha256": initialization.get("config_sha256"),
-        }
     initialization_seconds = _initialization_duration(
         initialization,
         run_receipt=run_receipt,
@@ -1466,45 +1479,39 @@ def _load_arm_observation(
     )
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if profiles:
-        parameter_schema = profiles[0]["parameter_schema"]
-        if any(
-            not _strict_typed_equal(profile["parameter_schema"], parameter_schema)
-            for profile in profiles[1:]
-        ):
-            raise ValueError("checkpoint inference parameter schema differs")
-    else:
-        signature_rows = run_receipt["inference_signature"]["tensors"]
         parameter_schema = [
             {
                 "name": f"raw_model.{row['name']}",
                 "shape": row["shape"],
                 "dtype": row["dtype"],
             }
-            for row in signature_rows
+            for row in structural_inventory["tensors"]
             if row["kind"] == "parameter"
         ]
-        classifier = checkpoint.get("classifier") if type(checkpoint) is dict else None
-        if not isinstance(classifier, torch.Tensor):
-            raise ValueError("checkpoint inference classifier differs")
         parameter_schema.append(
             {
                 "name": "classifier",
-                "shape": list(classifier.shape),
-                "dtype": str(classifier.dtype),
+                "shape": structural_inventory["classifier"]["shape"],
+                "dtype": structural_inventory["classifier"]["dtype"],
             }
         )
+        if any(
+            not _strict_typed_equal(profile["parameter_schema"], parameter_schema)
+            for profile in profiles
+        ):
+            raise ValueError("checkpoint inference parameter schema differs")
     descriptor_sha256 = evaluation["evaluation_signature"]["descriptor_sha256"]
     require_same_arm_checkpoint_signature(
         checkpoint,
         recorded=run_receipt["inference_signature"],
-        parameter_schema=parameter_schema,
+        structural_inventory=structural_inventory,
         descriptor_sha256=descriptor_sha256,
     )
     for profile in profiles:
         require_same_arm_checkpoint_signature(
             checkpoint,
             recorded=profile["inference_signature"],
-            parameter_schema=profile["parameter_schema"],
+            structural_inventory=structural_inventory,
             descriptor_sha256=descriptor_sha256,
         )
     result = {
@@ -1654,6 +1661,36 @@ def _record_run_transitive_evidence(
                 )
 
 
+def _absolute_file_authority(value: object, *, name: str) -> Path:
+    if (
+        type(value) is not dict
+        or tuple(value) != ("path", "sha256", "bytes")
+        or type(value["path"]) is not str
+        or not _lower_sha256(value["sha256"])
+        or type(value["bytes"]) is not int
+        or value["bytes"] <= 0
+    ):
+        raise ValueError(f"{name} authority differs")
+    path = Path(value["path"])
+    if (
+        path != path.resolve()
+        or path.is_symlink()
+        or not path.is_file()
+        or path.stat().st_size != value["bytes"]
+        or _sha256_file(path) != value["sha256"]
+    ):
+        raise ValueError(f"{name} authority differs")
+    return path
+
+
+def _config_structural_inventory(config_authority: object) -> dict[str, object]:
+    path = _absolute_file_authority(config_authority, name="FEPF config")
+    config = _strict_json_file(path)
+    if type(config) is not dict or type(config.get("fepf_inference_structure")) is not dict:
+        raise ValueError("FEPF config structural inventory differs")
+    return config["fepf_inference_structure"]
+
+
 def _reload_registered_pairs(
     *,
     observed_sources: list[dict[str, object]],
@@ -1697,16 +1734,13 @@ def _reload_registered_pairs(
             config_authority = source.get("config")
             if type(config_authority) is not dict:
                 raise ValueError("FEPF epoch4 config authority differs")
-            config_path = Path(config_authority["path"])
-            if (
-                config_path != config_path.resolve()
-                or config_path.is_symlink()
-                or not config_path.is_file()
-                or config_path.stat().st_size != config_authority["bytes"]
-                or _sha256_file(config_path) != config_authority["sha256"]
-            ):
+            config_path = _absolute_file_authority(
+                config_authority, name="FEPF epoch4 config"
+            )
+            if common_config is None:
+                common_config = dict(config_authority)
+            elif not _strict_typed_equal(config_authority, common_config):
                 raise ValueError("FEPF epoch4 config authority differs")
-            common_config = dict(config_authority)
             _record_evidence(
                 evidence_entries,
                 seen_evidence,
@@ -1748,6 +1782,8 @@ def _reload_registered_pairs(
             validate_profile_process_order(tuple(profile_receipts))
             control_profiles = (profile_receipts[0], profile_receipts[3])
             candidate_profiles = (profile_receipts[1], profile_receipts[2])
+            config_authority = common_config
+        structural_inventory = _config_structural_inventory(config_authority)
         training_seed = source["training_seed"]
         holdout_seed = source["holdout_seed"]
         control = _load_arm_observation(
@@ -1757,6 +1793,8 @@ def _reload_registered_pairs(
             training_seed=training_seed,
             holdout_seed=holdout_seed,
             stop_after_epoch=4 if phase == "epoch4" else 16,
+            config_authority=config_authority,
+            structural_inventory=structural_inventory,
             trainer=trainer,
         )
         candidate = _load_arm_observation(
@@ -1766,6 +1804,8 @@ def _reload_registered_pairs(
             training_seed=training_seed,
             holdout_seed=holdout_seed,
             stop_after_epoch=4 if phase == "epoch4" else 16,
+            config_authority=config_authority,
+            structural_inventory=structural_inventory,
             trainer=trainer,
         )
         _record_run_transitive_evidence(
@@ -1819,12 +1859,22 @@ def _reload_registered_pairs(
 
 
 def _recomputed_result(
-    *, phase: str, sources: object, evidence_root: Path
+    *,
+    phase: str,
+    sources: object | None,
+    sources_authority: object,
+    evidence_root: Path,
 ) -> dict[str, object]:
     if phase not in {"epoch4", "exploratory", "confirmation"}:
         raise ValueError("FEPF result phase differs")
     root = _validate_evidence_root(evidence_root)
-    normalized_sources = _validate_source_inventory(phase, sources)
+    sources_path = _absolute_file_authority(
+        sources_authority, name="FEPF sources"
+    )
+    external_sources = _strict_json_file(sources_path)
+    if sources is not None and not _strict_typed_equal(sources, external_sources):
+        raise ValueError("FEPF sources authority differs")
+    normalized_sources = _validate_source_inventory(phase, external_sources)
     pairs, config, evidence_manifest = _reload_registered_pairs(
         observed_sources=normalized_sources,
         evidence_root=root,
@@ -1839,13 +1889,6 @@ def _recomputed_result(
         or config["bytes"] <= 0
     ):
         raise ValueError("FEPF result config authority differs")
-    if type(evidence_manifest) is str:
-        # Test doubles predating the manifest interface still bind their exact bytes.
-        evidence_manifest = {
-            "schema": "unicom-fepf-evidence-manifest-v1",
-            "entries": [],
-            "sha256": evidence_manifest,
-        }
     if (
         type(evidence_manifest) is not dict
         or evidence_manifest.get("schema") != "unicom-fepf-evidence-manifest-v1"
@@ -1853,6 +1896,22 @@ def _recomputed_result(
         or not _lower_sha256(evidence_manifest.get("sha256"))
     ):
         raise ValueError("FEPF evidence manifest differs")
+    manifest_inputs = [
+        {
+            "role": "source_selectors",
+            "identity": str(sources_path),
+            "path": sources_path,
+        },
+        *[
+            {
+                "role": row["role"],
+                "identity": row["identity"],
+                "path": Path(row["path"]),
+            }
+            for row in evidence_manifest["entries"]
+        ],
+    ]
+    evidence_manifest = build_evidence_manifest(manifest_inputs)
     if phase == "epoch4":
         pair = pairs[0]
         decision = evaluate_epoch4(
@@ -1881,20 +1940,32 @@ def _recomputed_result(
         "evidence_manifest": evidence_manifest,
         "evidence_sha256": evidence_manifest["sha256"],
         "config": dict(config),
+        "sources_authority": dict(sources_authority),
         "sources": normalized_sources,
         "decision": decision,
     }
 
 
 def build_fepf_result(
-    *, phase: str, sources: object, evidence_root: Path
+    *,
+    phase: str,
+    sources: object,
+    sources_authority: object,
+    evidence_root: Path,
 ) -> dict[str, object]:
     """Build a result only after reloading all registered external evidence."""
 
-    return _recomputed_result(phase=phase, sources=sources, evidence_root=evidence_root)
+    return _recomputed_result(
+        phase=phase,
+        sources=sources,
+        sources_authority=sources_authority,
+        evidence_root=evidence_root,
+    )
 
 
-def validate_fepf_result(result: object, evidence_root: Path) -> None:
+def validate_fepf_result(
+    result: object, evidence_root: Path, *, sources_authority: object
+) -> None:
     """Strictly reload every external input and recompute the complete result."""
 
     if (
@@ -1906,7 +1977,8 @@ def validate_fepf_result(result: object, evidence_root: Path) -> None:
         raise ValueError("FEPF result schema differs")
     expected = _recomputed_result(
         phase=result["phase"],
-        sources=result["sources"],
+        sources=None,
+        sources_authority=sources_authority,
         evidence_root=evidence_root,
     )
     if not _strict_typed_equal(result, expected):
@@ -1942,6 +2014,8 @@ def write_fepf_result_atomic(
     output: Path,
     temporary: Path,
     evidence_root: Path,
+    *,
+    sources_authority: object,
 ) -> dict[str, object]:
     """Publish canonical JSON through an exclusive temp and no-replace link."""
 
@@ -1956,7 +2030,7 @@ def write_fepf_result_atomic(
         or temporary.parent.resolve() != root
     ):
         raise ValueError("FEPF result publication path differs")
-    validate_fepf_result(result, root)
+    validate_fepf_result(result, root, sources_authority=sources_authority)
     if _path_lexists(output):
         raise FileExistsError(output)
     if _path_lexists(temporary):
@@ -1983,7 +2057,9 @@ def write_fepf_result_atomic(
             raise RuntimeError("temporary FEPF result ownership differs")
         if not _strict_typed_equal(persisted, result):
             raise RuntimeError("persisted FEPF result bytes differ")
-        validate_fepf_result(persisted, root)
+        validate_fepf_result(
+            persisted, root, sources_authority=sources_authority
+        )
         if _inode_identity(temporary) != owned:
             raise RuntimeError("temporary FEPF result ownership differs")
         os.link(temporary, output)
@@ -1997,7 +2073,9 @@ def write_fepf_result_atomic(
             or output.read_bytes() != payload
         ):
             raise RuntimeError("published FEPF result bytes differ")
-        validate_fepf_result(published, root)
+        validate_fepf_result(
+            published, root, sources_authority=sources_authority
+        )
         completed = True
         return published
     finally:
@@ -2022,6 +2100,8 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
         "--phase", choices=("epoch4", "exploratory", "confirmation"), required=True
     )
     parser.add_argument("--sources", type=Path, required=True)
+    parser.add_argument("--sources-sha256", required=True)
+    parser.add_argument("--sources-bytes", type=int, required=True)
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--temporary", type=Path, required=True)
@@ -2032,9 +2112,15 @@ def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
     try:
         sources = _strict_json_file(args.sources)
+        sources_authority = {
+            "path": str(args.sources.resolve()),
+            "sha256": args.sources_sha256,
+            "bytes": args.sources_bytes,
+        }
         result = build_fepf_result(
             phase=args.phase,
             sources=sources,
+            sources_authority=sources_authority,
             evidence_root=args.evidence_root,
         )
         write_fepf_result_atomic(
@@ -2042,6 +2128,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             args.output,
             args.temporary,
             args.evidence_root,
+            sources_authority=sources_authority,
         )
     except Exception as error:
         print(f"FEPF evaluation failed: {error}", file=sys.stderr)

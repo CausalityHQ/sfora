@@ -6,6 +6,7 @@ import importlib.util
 import json
 import math
 import os
+import shutil
 from pathlib import Path
 
 import numpy as np
@@ -440,9 +441,25 @@ def _write_canonical_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
+def _sources_authority(
+    tmp_path: Path, sources: list[dict[str, object]]
+) -> dict[str, object]:
+    path = tmp_path / "sources.json"
+    payload = (json.dumps(sources, indent=2, allow_nan=False) + "\n").encode()
+    if path.exists() and path.read_bytes() != payload:
+        raise ValueError("test sources authority already has different bytes")
+    if not path.exists():
+        path.write_bytes(payload)
+    return {
+        "path": str(path.resolve()),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "bytes": len(payload),
+    }
+
+
 def _strict_reload_fixture(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> tuple[list[dict[str, object]], dict[str, object]]:
+) -> tuple[list[dict[str, object]], dict[str, object], dict[str, object]]:
     sources = []
     for index, pair in enumerate(_passing_confirmation_pairs()):
         relative = f"pair-{index}.json"
@@ -471,31 +488,40 @@ def _strict_reload_fixture(
         assert phase == "confirmation"
         assert evidence_root == tmp_path
         pairs = []
-        digest = hashlib.sha256(b"unicom-fepf-test-evidence-v1\0")
+        entries = []
         for source in observed_sources:
-            payload = (evidence_root / source["control_root"]).read_bytes()
-            digest.update(len(payload).to_bytes(8, "big"))
-            digest.update(payload)
+            path = evidence_root / source["control_root"]
+            payload = path.read_bytes()
             pairs.append(json.loads(payload))
-        return tuple(pairs), config, digest.hexdigest()
+            entries.append(
+                {
+                    "role": "test.pair",
+                    "identity": source["control_root"],
+                    "path": path,
+                }
+            )
+        return tuple(pairs), config, MODULE.build_evidence_manifest(entries)
 
     monkeypatch.setattr(MODULE, "_reload_registered_pairs", reload_pairs, raising=False)
-    return sources, config
+    return sources, config, _sources_authority(tmp_path, sources)
 
 
 def test_strict_reload_recomputes_from_external_bytes_not_in_memory_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     persisted = json.loads((tmp_path / "pair-0.json").read_bytes())
     persisted["candidate"]["initialization_seconds"] += 1.0
     _write_canonical_json(tmp_path / "pair-0.json", persisted)
 
     with pytest.raises(ValueError, match="recomputation"):
-        MODULE.validate_fepf_result(result, tmp_path)
+        MODULE.validate_fepf_result(
+            result, tmp_path, sources_authority=sources_authority
+        )
 
 
 def test_strict_reload_rejects_exploratory_query_prefix_gain_loss_mutation(
@@ -528,22 +554,33 @@ def test_strict_reload_rejects_exploratory_query_prefix_gain_loss_mutation(
 
     def reload_pairs(*, observed_sources, evidence_root, phase):
         assert phase == "exploratory"
-        payload = (evidence_root / observed_sources[0]["control_root"]).read_bytes()
-        digest = hashlib.sha256(b"unicom-fepf-test-evidence-v1\0")
-        digest.update(len(payload).to_bytes(8, "big"))
-        digest.update(payload)
-        return (json.loads(payload),), config, digest.hexdigest()
+        path = evidence_root / observed_sources[0]["control_root"]
+        payload = path.read_bytes()
+        manifest = MODULE.build_evidence_manifest(
+            [
+                {
+                    "role": "test.exploratory_pair",
+                    "identity": observed_sources[0]["control_root"],
+                    "path": path,
+                }
+            ]
+        )
+        return (json.loads(payload),), config, manifest
 
     monkeypatch.setattr(MODULE, "_reload_registered_pairs", reload_pairs)
+    sources_authority = _sources_authority(tmp_path, sources)
     result = MODULE.build_fepf_result(
-        phase="exploratory", sources=sources, evidence_root=tmp_path
+        phase="exploratory", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     changed = json.loads(pair_path.read_bytes())
     changed["candidate"]["query_evidence"][4]["top1_correct"] = False
     _write_canonical_json(pair_path, changed)
 
     with pytest.raises(ValueError, match="recomputation"):
-        MODULE.validate_fepf_result(result, tmp_path)
+        MODULE.validate_fepf_result(
+            result, tmp_path, sources_authority=sources_authority
+        )
 
 
 @pytest.mark.parametrize(
@@ -563,9 +600,10 @@ def test_strict_reload_rejects_exploratory_query_prefix_gain_loss_mutation(
 def test_strict_reload_rejects_recursive_result_mutation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     changed = copy.deepcopy(result)
     if mutation == "status":
@@ -595,7 +633,9 @@ def test_strict_reload_rejects_recursive_result_mutation(
         changed["config"]["sha256"] = "d" * 64
 
     with pytest.raises(ValueError):
-        MODULE.validate_fepf_result(changed, tmp_path)
+        MODULE.validate_fepf_result(
+            changed, tmp_path, sources_authority=sources_authority
+        )
 
 
 @pytest.mark.parametrize(
@@ -604,9 +644,10 @@ def test_strict_reload_rejects_recursive_result_mutation(
 def test_strict_reload_rejects_mutated_external_scientific_or_structural_input(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     pair = json.loads((tmp_path / "pair-0.json").read_bytes())
     if mutation == "query_prefix":
@@ -622,28 +663,35 @@ def test_strict_reload_rejects_mutated_external_scientific_or_structural_input(
     _write_canonical_json(tmp_path / "pair-0.json", pair)
 
     with pytest.raises(ValueError, match="recomputation"):
-        MODULE.validate_fepf_result(result, tmp_path)
+        MODULE.validate_fepf_result(
+            result, tmp_path, sources_authority=sources_authority
+        )
 
 
 def test_atomic_publication_rejects_preexisting_output_or_temp_without_modification(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
     output.write_bytes(b"owner\n")
     with pytest.raises(FileExistsError):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
     assert output.read_bytes() == b"owner\n"
     assert not temporary.exists()
 
     output.unlink()
     temporary.write_bytes(b"temp-owner\n")
     with pytest.raises(FileExistsError):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
     assert temporary.read_bytes() == b"temp-owner\n"
     assert not output.exists()
 
@@ -651,9 +699,10 @@ def test_atomic_publication_rejects_preexisting_output_or_temp_without_modificat
 def test_atomic_publication_uses_link_no_replace_against_racing_writer(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
@@ -665,7 +714,9 @@ def test_atomic_publication_uses_link_no_replace_against_racing_writer(
 
     monkeypatch.setattr(MODULE.os, "link", racing_link)
     with pytest.raises(FileExistsError):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
 
     assert output.read_bytes() == b"racing-owner\n"
     assert not temporary.exists()
@@ -674,9 +725,10 @@ def test_atomic_publication_uses_link_no_replace_against_racing_writer(
 def test_atomic_publication_fsyncs_both_directory_transitions_and_distinct_reload(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
@@ -690,12 +742,18 @@ def test_atomic_publication_fsyncs_both_directory_transitions_and_distinct_reloa
         real_fsync(descriptor)
 
     monkeypatch.setattr(MODULE.os, "fsync", observed_fsync)
-    published = MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+    published = MODULE.write_fepf_result_atomic(
+        result, output, temporary, tmp_path, sources_authority=sources_authority
+    )
 
     assert published == result
     assert directory_fsyncs == 2
     assert not temporary.exists()
-    MODULE.validate_fepf_result(json.loads(output.read_bytes()), tmp_path)
+    MODULE.validate_fepf_result(
+        json.loads(output.read_bytes()),
+        tmp_path,
+        sources_authority=sources_authority,
+    )
 
 
 def _independent_checkpoint_signature(
@@ -747,13 +805,41 @@ def test_checkpoint_signature_rebuilds_parameter_and_buffer_values_not_receipt_h
     expected = _independent_checkpoint_signature(
         state, {"layer.weight"}, descriptor_sha256
     )
+    structure = {
+        "schema": "unicom-fepf-structure-v1",
+        "tensors": [
+            {
+                key: row[key]
+                for key in (
+                    "name",
+                    "kind",
+                    "shape",
+                    "dtype",
+                    "numel",
+                    "element_size",
+                    "bytes",
+                )
+            }
+            for row in expected["tensors"]
+        ],
+        "classifier": {
+            "shape": [2, 2],
+            "dtype": "torch.float32",
+            "numel": 4,
+            "element_size": 4,
+            "bytes": 16,
+        },
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
+    checkpoint = {
+        "model": state,
+        "classifier": torch.zeros((2, 2), dtype=torch.float32),
+        "ema": None,
+    }
 
     rebuilt = MODULE.checkpoint_inference_signature(
-        {"model": state},
-        parameter_schema=[
-            {"name": "raw_model.layer.weight", "shape": [1, 2], "dtype": "torch.float32"},
-            {"name": "classifier", "shape": [2, 2], "dtype": "torch.float32"},
-        ],
+        checkpoint,
+        structural_inventory=structure,
         descriptor_sha256=descriptor_sha256,
     )
 
@@ -763,16 +849,9 @@ def test_checkpoint_signature_rebuilds_parameter_and_buffer_values_not_receipt_h
     forged["aggregate_sha256"] = "f" * 64
     with pytest.raises(ValueError, match="checkpoint inference"):
         MODULE.require_same_arm_checkpoint_signature(
-            {"model": state},
+            checkpoint,
             recorded=forged,
-            parameter_schema=[
-                {
-                    "name": "raw_model.layer.weight",
-                    "shape": [1, 2],
-                    "dtype": "torch.float32",
-                },
-                {"name": "classifier", "shape": [2, 2], "dtype": "torch.float32"},
-            ],
+            structural_inventory=structure,
             descriptor_sha256=descriptor_sha256,
         )
 
@@ -923,7 +1002,7 @@ def test_quality_profiles_are_four_fresh_nonoverlapping_processes_in_order() -> 
 def test_fully_observed_structural_failure_builds_schema_valid_invalid_result(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     original = MODULE._reload_registered_pairs
 
     def structural_reload(**kwargs):
@@ -934,21 +1013,25 @@ def test_fully_observed_structural_failure_builds_schema_valid_invalid_result(
 
     monkeypatch.setattr(MODULE, "_reload_registered_pairs", structural_reload)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
 
     assert result["status"] == "INVALID"
     assert result["clause"] == "INVALID_STRUCTURAL_PANEL"
     assert result["config"] == config
-    MODULE.validate_fepf_result(result, tmp_path)
+    MODULE.validate_fepf_result(
+        result, tmp_path, sources_authority=sources_authority
+    )
 
 
 def test_atomic_cleanup_preserves_substituted_temp_after_link_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
@@ -960,7 +1043,9 @@ def test_atomic_cleanup_preserves_substituted_temp_after_link_failure(
 
     monkeypatch.setattr(MODULE.os, "link", substitute_then_fail)
     with pytest.raises(OSError, match="injected link failure"):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
 
     assert temporary.read_bytes() == b"racer-temp\n"
     assert not output.exists()
@@ -969,9 +1054,10 @@ def test_atomic_cleanup_preserves_substituted_temp_after_link_failure(
 def test_atomic_cleanup_preserves_substituted_temp_before_persisted_validation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
@@ -985,7 +1071,9 @@ def test_atomic_cleanup_preserves_substituted_temp_before_persisted_validation(
 
     monkeypatch.setattr(MODULE, "_strict_json_file", substitute_before_read)
     with pytest.raises(ValueError, match="strict JSON"):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
 
     assert temporary.read_bytes() == b"racer-before-validation\n"
     assert not output.exists()
@@ -994,9 +1082,10 @@ def test_atomic_cleanup_preserves_substituted_temp_before_persisted_validation(
 def test_atomic_cleanup_removes_owned_output_when_link_succeeds_then_raises(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sources, _config = _strict_reload_fixture(tmp_path, monkeypatch)
+    sources, _config, sources_authority = _strict_reload_fixture(tmp_path, monkeypatch)
     result = MODULE.build_fepf_result(
-        phase="confirmation", sources=sources, evidence_root=tmp_path
+        phase="confirmation", sources=sources, sources_authority=sources_authority,
+        evidence_root=tmp_path
     )
     output = tmp_path / "result.json"
     temporary = tmp_path / ".result.json.tmp"
@@ -1008,14 +1097,19 @@ def test_atomic_cleanup_removes_owned_output_when_link_succeeds_then_raises(
 
     monkeypatch.setattr(MODULE.os, "link", link_then_fail)
     with pytest.raises(OSError, match="post-link failure"):
-        MODULE.write_fepf_result_atomic(result, output, temporary, tmp_path)
+        MODULE.write_fepf_result_atomic(
+            result, output, temporary, tmp_path, sources_authority=sources_authority
+        )
 
     assert not temporary.exists()
     assert not output.exists()
 
 
-def test_real_reload_chain_rehashes_checkpoint_and_manifests_transitive_preimages(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "mutation", ("buffer_value", "ema_kind_rebind", "config_substitution", "selector")
+)
+def test_real_reload_chain_rejects_recursive_authority_rebinding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
 ) -> None:
     class TrainerAuthority:
         @staticmethod
@@ -1042,18 +1136,48 @@ def test_real_reload_chain_rehashes_checkpoint_and_manifests_transitive_preimage
     monkeypatch.setattr(
         MODULE, "_authority_modules", lambda: (TrainerAuthority, object())
     )
+    descriptor_sha256 = "d" * 64
+    structural_inventory = {
+        "schema": "unicom-fepf-structure-v1",
+        "tensors": [
+            {
+                "name": "running",
+                "kind": "buffer",
+                "shape": [1],
+                "dtype": "torch.int64",
+                "numel": 1,
+                "element_size": 8,
+                "bytes": 8,
+            },
+            {
+                "name": "weight",
+                "kind": "parameter",
+                "shape": [1, 2],
+                "dtype": "torch.float32",
+                "numel": 2,
+                "element_size": 4,
+                "bytes": 8,
+            },
+        ],
+        "classifier": {
+            "shape": [2, 2],
+            "dtype": "torch.float32",
+            "numel": 4,
+            "element_size": 4,
+            "bytes": 16,
+        },
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
     config_path = tmp_path / "config.json"
-    _write_canonical_json(config_path, {"registered": True})
+    _write_canonical_json(
+        config_path,
+        {"registered": True, "fepf_inference_structure": structural_inventory},
+    )
     config = {
         "path": str(config_path.resolve()),
         "sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
         "bytes": config_path.stat().st_size,
     }
-    descriptor_sha256 = "d" * 64
-    parameter_schema = [
-        {"name": "raw_model.weight", "shape": [1, 2], "dtype": "torch.float32"},
-        {"name": "classifier", "shape": [2, 2], "dtype": "torch.float32"},
-    ]
 
     def binding(path: Path) -> dict[str, object]:
         return {
@@ -1123,7 +1247,7 @@ def test_real_reload_chain_rehashes_checkpoint_and_manifests_transitive_preimage
         torch.save(checkpoint, checkpoint_path)
         signature = MODULE.checkpoint_inference_signature(
             checkpoint,
-            parameter_schema=parameter_schema,
+            structural_inventory=structural_inventory,
             descriptor_sha256=descriptor_sha256,
         )
         history_path = root / "history.json"
@@ -1204,9 +1328,19 @@ def test_real_reload_chain_rehashes_checkpoint_and_manifests_transitive_preimage
             "config": config,
         }
     ]
+    sources_path = tmp_path / "sources.json"
+    _write_canonical_json(sources_path, sources)
+    sources_authority = {
+        "path": str(sources_path.resolve()),
+        "sha256": hashlib.sha256(sources_path.read_bytes()).hexdigest(),
+        "bytes": sources_path.stat().st_size,
+    }
 
     result = MODULE.build_fepf_result(
-        phase="epoch4", sources=sources, evidence_root=tmp_path
+        phase="epoch4",
+        sources=sources,
+        sources_authority=sources_authority,
+        evidence_root=tmp_path,
     )
 
     roles = [entry["role"] for entry in result["evidence_manifest"]["entries"]]
@@ -1215,16 +1349,72 @@ def test_real_reload_chain_rehashes_checkpoint_and_manifests_transitive_preimage
     assert any("query_descriptors.epoch4" in role for role in roles)
     assert any(role.endswith(".config") for role in roles)
 
-    checkpoint_path = candidate_root / "epoch-0004.pt"
-    changed = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    changed["model"]["running"] += 1
-    torch.save(changed, checkpoint_path)
-    run_path = candidate_root / "run-receipt.json"
-    run_receipt = json.loads(run_path.read_bytes())
-    run_receipt["checkpoints"][0].update(binding(checkpoint_path))
-    _write_canonical_json(run_path, run_receipt)
+    if mutation in {"buffer_value", "ema_kind_rebind"}:
+        checkpoint_path = candidate_root / "epoch-0004.pt"
+        changed = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+        run_path = candidate_root / "run-receipt.json"
+        run_receipt = json.loads(run_path.read_bytes())
+        if mutation == "buffer_value":
+            changed["model"]["running"] += 1
+        else:
+            changed["ema"] = None
+            rebound_structure = copy.deepcopy(structural_inventory)
+            rebound_structure["tensors"][0]["kind"] = "parameter"
+            run_receipt["inference_signature"] = MODULE.checkpoint_inference_signature(
+                changed,
+                structural_inventory=rebound_structure,
+                descriptor_sha256=descriptor_sha256,
+            )
+        torch.save(changed, checkpoint_path)
+        run_receipt["checkpoints"][0].update(binding(checkpoint_path))
+        _write_canonical_json(run_path, run_receipt)
+        expected_match = "checkpoint inference"
+        observed_authority = sources_authority
+    elif mutation == "config_substitution":
+        _write_canonical_json(
+            config_path,
+            {"registered": False, "fepf_inference_structure": structural_inventory},
+        )
+        sources[0]["config"] = {
+            "path": str(config_path.resolve()),
+            "sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
+            "bytes": config_path.stat().st_size,
+        }
+        _write_canonical_json(sources_path, sources)
+        observed_authority = {
+            "path": str(sources_path.resolve()),
+            "sha256": hashlib.sha256(sources_path.read_bytes()).hexdigest(),
+            "bytes": sources_path.stat().st_size,
+        }
+        expected_match = "initialization provenance"
+    else:
+        alternate_candidate = tmp_path / "candidate-stop4-alternate"
+        shutil.copytree(candidate_root, alternate_candidate)
+        sources[0]["candidate_root"] = alternate_candidate.name
+        _write_canonical_json(sources_path, sources)
+        rebound_authority = {
+            "path": str(sources_path.resolve()),
+            "sha256": hashlib.sha256(sources_path.read_bytes()).hexdigest(),
+            "bytes": sources_path.stat().st_size,
+        }
+        rebound = MODULE.build_fepf_result(
+            phase="epoch4",
+            sources=sources,
+            sources_authority=rebound_authority,
+            evidence_root=tmp_path,
+        )
+        with pytest.raises(ValueError, match="sources authority"):
+            MODULE.validate_fepf_result(
+                rebound,
+                tmp_path,
+                sources_authority=sources_authority,
+            )
+        return
 
-    with pytest.raises(ValueError, match="checkpoint inference"):
+    with pytest.raises(ValueError, match=expected_match):
         MODULE.build_fepf_result(
-            phase="epoch4", sources=sources, evidence_root=tmp_path
+            phase="epoch4",
+            sources=sources,
+            sources_authority=observed_authority,
+            evidence_root=tmp_path,
         )
