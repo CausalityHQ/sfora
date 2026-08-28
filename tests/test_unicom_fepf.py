@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from dataclasses import replace
 
@@ -99,9 +100,11 @@ def test_registered_evidence_factory_seals_cloned_canonical_inputs() -> None:
                 cache_label_sha256=cache.label_sha256,
                 cache_inventory_sha256=cache.inventory_sha256,
                 cache_label_map_sha256=cache.label_map_sha256,
+                official_random_head=means,
                 canonical_head=means,
                 prepared_start_head=means,
                 initial_diagnostic=diagnostic,
+                official_random_head_sha256=module._head_sha256(means),
                 canonical_head_sha256=module._head_sha256(means),
                 prepared_start_head_sha256=module._head_sha256(means),
             )
@@ -116,8 +119,16 @@ def test_registered_evidence_factory_seals_cloned_canonical_inputs() -> None:
         allow_test_device=True,
     )
     prepared = evidence.prepared_start_head.clone()
+    sealed_random_head = evidence.official_random_head.clone()
+    sealed_random_hash = evidence.official_random_head_sha256
     random_head.zero_()
     assert torch.equal(evidence.prepared_start_head, prepared)
+    assert torch.equal(evidence.official_random_head, sealed_random_head)
+    assert evidence.official_random_head_sha256 == sealed_random_hash
+    evidence.official_random_head[0].mul_(2.0)
+    with pytest.raises(ValueError):
+        module._validate_registered_evidence(evidence)
+    evidence.official_random_head[0].copy_(sealed_random_head[0])
     evidence.canonical_head[0].copy_(torch.roll(evidence.canonical_head[0], shifts=1))
     with pytest.raises(ValueError):
         module._validate_registered_evidence(evidence)
@@ -293,6 +304,7 @@ def test_registered_cuda_fit_matches_the_only_accepted_schedule() -> None:
             checkpoint_sha256="2" * 64,
             config_sha256="3" * 64,
             schedule_sha256="4" * 64,
+            receipt_sha256=_independent_receipt_sha256(receipt),
         ),
         device=device,
     )
@@ -346,7 +358,21 @@ def _provenance() -> dict[str, object]:
     }
 
 
-def _expected(mode: str = "imprinted", training_seed: int = 5) -> module.FepfExpectedProvenance:
+def _independent_receipt_sha256(receipt: dict[str, object]) -> str:
+    encoded = json.dumps(
+        receipt,
+        allow_nan=False,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _expected(
+    receipt: dict[str, object],
+    mode: str = "imprinted",
+    training_seed: int = 5,
+) -> module.FepfExpectedProvenance:
     values = _provenance()
     return module.FepfExpectedProvenance(
         mode=mode,
@@ -357,6 +383,7 @@ def _expected(mode: str = "imprinted", training_seed: int = 5) -> module.FepfExp
         checkpoint_sha256=values["checkpoint_sha256"],  # type: ignore[arg-type]
         config_sha256=values["config_sha256"],  # type: ignore[arg-type]
         schedule_sha256=values["schedule_sha256"],  # type: ignore[arg-type]
+        receipt_sha256=_independent_receipt_sha256(receipt),
     )
 
 
@@ -413,6 +440,83 @@ def _receipt_core(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, objec
     return module._initialization_receipt_v2_core(**_receipt_inputs(mode, monkeypatch))
 
 
+def _type_valid_receipt_mutation(
+    receipt: dict[str, object], field: str
+) -> dict[str, object]:
+    changed = dict(receipt)
+    value = receipt[field]
+    if field == "schema":
+        changed[field] = "initialization-receipt-v3"
+    elif field == "mode":
+        changed[field] = "fepf_random" if value != "fepf_random" else "fepf_mean"
+    elif field in {"training_seed", "holdout_seed", "class_count"}:
+        assert type(value) is int
+        changed[field] = value + 1
+    elif field == "classifier_shape":
+        assert type(value) is list
+        changed[field] = [value[0], value[1] + 1]
+    elif field == "diagnostic_indices":
+        assert type(value) is list
+        changed[field] = [value[0] + 1, *value[1:]]
+    elif field.startswith("torch_cuda_rng_"):
+        assert type(value) is list and len(value) == 2
+        changed[field] = list(reversed(value))
+    elif field.endswith("_sha256"):
+        assert type(value) is str
+        changed[field] = ("f" if value[0] != "f" else "e") + value[1:]
+    else:
+        assert type(value) is float
+        changed[field] = value + 0.5
+    assert type(changed[field]) is type(value)
+    assert changed[field] != value
+    assert [key for key in receipt if changed[key] != receipt[key]] == [field]
+    return changed
+
+
+@pytest.mark.parametrize("mode", ("imprinted", "fepf_mean", "fepf_random"))
+def test_trusted_canonical_digest_rejects_every_type_valid_one_field_mutation(
+    mode: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if any receipt field can change without breaking trusted provenance."""
+    monkeypatch.setattr(module.torch.cuda, "device_count", lambda: 2)
+    receipt = _receipt_core(mode, monkeypatch)
+    trusted = _expected(receipt, mode)
+
+    assert module.canonical_initialization_receipt_v2_sha256(receipt) == (
+        _independent_receipt_sha256(receipt)
+    )
+    for field in module._RECEIPT_KEYS:
+        changed = _type_valid_receipt_mutation(receipt, field)
+        with pytest.raises(ValueError, match="canonical digest differs"):
+            module._validate_initialization_receipt_v2_core(
+                changed,
+                expected=trusted,
+                device=torch.device("cpu"),
+                allow_test_device=True,
+            )
+
+
+@pytest.mark.parametrize("mode", ("imprinted", "fepf_mean", "fepf_random"))
+def test_receipt_builder_rejects_replaced_or_rescaled_official_draw(
+    mode: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if a later tensor can replace or positively rescale the sealed draw."""
+    inputs = _receipt_inputs(mode, monkeypatch)
+    official = inputs["official_random_head"]
+    assert isinstance(official, torch.Tensor)
+    scales = torch.linspace(1.0, 2.0, official.shape[0], dtype=torch.float32)[:, None]
+    replacements = (
+        torch.flip(official, dims=(1,)).contiguous(),
+        official.mul(scales).contiguous(),
+    )
+
+    for replacement in replacements:
+        with pytest.raises(ValueError):
+            module._initialization_receipt_v2_core(
+                **{**inputs, "official_random_head": replacement}
+            )
+
+
 @pytest.mark.parametrize("mode", ("imprinted", "fepf_mean", "fepf_random"))
 def test_initialization_receipt_recomputes_canonical_mode_relations(
     mode: str, monkeypatch: pytest.MonkeyPatch
@@ -422,7 +526,7 @@ def test_initialization_receipt_recomputes_canonical_mode_relations(
 
     module._validate_initialization_receipt_v2_core(
         receipt,
-        expected=_expected(mode),
+        expected=_expected(receipt, mode),
         device=torch.device("cpu"),
         allow_test_device=True,
     )
@@ -431,7 +535,7 @@ def test_initialization_receipt_recomputes_canonical_mode_relations(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected=_expected(mode),
+            expected=_expected(changed, mode),
             device=torch.device("cpu"),
             allow_test_device=True,
         )
@@ -450,7 +554,7 @@ def test_fitted_receipt_rejects_one_missing_or_extra_mask_draw(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected=_expected("fepf_mean"),
+            expected=_expected(changed, "fepf_mean"),
             device=torch.device("cpu"),
             allow_test_device=True,
         )
@@ -482,7 +586,7 @@ def test_resume_validation_requires_requested_provenance_context(
             receipt,
             device=torch.device("cpu"),
             allow_test_device=True,
-            expected=_expected(training_seed=6),
+            expected=_expected(receipt, training_seed=6),
         )
 
 
@@ -598,7 +702,7 @@ def test_receipt_rejects_each_unaffected_rng_phase_without_snapshot_shortcut(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected=_expected(),
+            expected=_expected(changed),
             device=torch.device("cpu"),
             allow_test_device=True,
         )

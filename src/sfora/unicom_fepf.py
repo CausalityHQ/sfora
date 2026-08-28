@@ -90,9 +90,11 @@ class FepfInitializationEvidence:
     cache_label_sha256: str
     cache_inventory_sha256: str
     cache_label_map_sha256: str
+    official_random_head: torch.Tensor
     canonical_head: torch.Tensor
     prepared_start_head: torch.Tensor
     initial_diagnostic: FepfDiagnostic
+    official_random_head_sha256: str
     canonical_head_sha256: str
     prepared_start_head_sha256: str
 
@@ -107,6 +109,7 @@ class FepfExpectedProvenance:
     checkpoint_sha256: str
     config_sha256: str
     schedule_sha256: str
+    receipt_sha256: str
 
 
 _REGISTERED_EVIDENCE: dict[
@@ -368,6 +371,7 @@ def _evidence_record(evidence: FepfInitializationEvidence) -> tuple[object, ...]
         evidence.cache_label_sha256,
         evidence.cache_inventory_sha256,
         evidence.cache_label_map_sha256,
+        evidence.official_random_head_sha256,
         evidence.canonical_head_sha256,
         evidence.prepared_start_head_sha256,
         evidence.initial_diagnostic,
@@ -387,6 +391,8 @@ def _validate_registered_evidence(evidence: FepfInitializationEvidence) -> None:
         registered is None
         or registered[0]() is not evidence
         or registered[1] != _evidence_record(evidence)
+        or _head_sha256(evidence.official_random_head)
+        != evidence.official_random_head_sha256
         or _head_sha256(evidence.canonical_head) != evidence.canonical_head_sha256
         or _head_sha256(evidence.prepared_start_head) != evidence.prepared_start_head_sha256
     ):
@@ -417,11 +423,12 @@ def _prepare_registered_fepf_evidence_core(
         or not torch.isfinite(official_random_head).all()
     ):
         raise ValueError("FEPF registered evidence differs")
+    sealed_official_random_head = official_random_head.detach().clone().contiguous()
     canonical = canonical_class_means(cache)
     prepared = (
         canonical.detach().clone().contiguous()
         if mode in {"imprinted", "fepf_mean"}
-        else prepare_fepf_start_head(official_random_head, canonical, mode=mode)
+        else prepare_fepf_start_head(sealed_official_random_head, canonical, mode=mode)
     )
     initial = registered_diagnostic(
         cache.features.to(device),
@@ -438,9 +445,11 @@ def _prepare_registered_fepf_evidence_core(
         cache_label_sha256=cache.label_sha256,
         cache_inventory_sha256=cache.inventory_sha256,
         cache_label_map_sha256=cache.label_map_sha256,
+        official_random_head=sealed_official_random_head,
         canonical_head=canonical,
         prepared_start_head=prepared,
         initial_diagnostic=initial,
+        official_random_head_sha256=_head_sha256(sealed_official_random_head),
         canonical_head_sha256=_head_sha256(canonical),
         prepared_start_head_sha256=_head_sha256(prepared),
     )
@@ -716,6 +725,22 @@ def _is_sha256(value: object) -> bool:
     )
 
 
+def canonical_initialization_receipt_v2_sha256(receipt: Mapping[str, object]) -> str:
+    """Hash the complete canonical JSON bytes of one initialization receipt."""
+    if type(receipt) is not dict:
+        raise ValueError("FEPF initialization receipt canonical bytes differ")
+    try:
+        encoded = json.dumps(
+            receipt,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise ValueError("FEPF initialization receipt canonical bytes differ") from error
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def _mask_state_sha256(*, training_seed: int, device: torch.device, draws: int) -> str:
     generator = torch.Generator(device=device).manual_seed(
         experiment_stream_seed(training_seed, 23_002)
@@ -896,8 +921,10 @@ def _initialization_receipt_v2_core(
             cache.inventory_sha256,
             cache.label_map_sha256,
         )
+        or _head_sha256(official_random_head) != evidence.official_random_head_sha256
     ):
         raise ValueError("FEPF initialization evidence differs")
+    sealed_official_random_head = evidence.official_random_head
     canonical_head = evidence.canonical_head
     prepared_start_head = evidence.prepared_start_head
     if any(
@@ -914,7 +941,9 @@ def _initialization_receipt_v2_core(
     if mode in {"imprinted", "fepf_mean"}:
         expected_start = canonical_head
     else:
-        expected_start = prepare_fepf_start_head(official_random_head, canonical_head, mode=mode)
+        expected_start = prepare_fepf_start_head(
+            sealed_official_random_head, canonical_head, mode=mode
+        )
     if not torch.equal(prepared_start_head, expected_start):
         raise ValueError("FEPF prepared head differs")
     prepared_hash = _head_sha256(prepared_start_head)
@@ -990,7 +1019,7 @@ def _initialization_receipt_v2_core(
         "torch_cuda_rng_entry_sha256": list(rng_audit.torch_cuda_rng_entry_sha256),
         "torch_cuda_rng_post_draw_sha256": list(rng_audit.torch_cuda_rng_post_draw_sha256),
         "torch_cuda_rng_restored_sha256": list(rng_audit.torch_cuda_rng_restored_sha256),
-        "official_random_head_sha256": _head_sha256(official_random_head),
+        "official_random_head_sha256": evidence.official_random_head_sha256,
         "prepared_start_head_sha256": prepared_hash,
         "final_head_sha256": final_head_hash,
         "initialization_seconds": initialization_seconds,
@@ -1071,14 +1100,19 @@ def _validate_initialization_receipt_v2_core(
     allow_test_device: bool,
 ) -> None:
     """Validate a receipt against the caller's authenticated run context."""
-    if type(receipt) is not dict or tuple(receipt) != _RECEIPT_KEYS:
-        raise ValueError("FEPF initialization receipt schema differs")
     if (
         not isinstance(expected, FepfExpectedProvenance)
         or not isinstance(device, torch.device)
         or (not allow_test_device and device.type != "cuda")
     ):
         raise ValueError("FEPF initialization receipt device differs")
+    if (
+        not _is_sha256(expected.receipt_sha256)
+        or canonical_initialization_receipt_v2_sha256(receipt) != expected.receipt_sha256
+    ):
+        raise ValueError("FEPF initialization receipt canonical digest differs")
+    if type(receipt) is not dict or tuple(receipt) != _RECEIPT_KEYS:
+        raise ValueError("FEPF initialization receipt schema differs")
     if receipt["schema"] != "initialization-receipt-v2":
         raise ValueError("FEPF initialization receipt schema differs")
     mode = receipt["mode"]
