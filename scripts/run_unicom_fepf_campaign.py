@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import importlib.util
 import json
 import os
 import signal
@@ -22,8 +24,242 @@ CONFIRMATION_PAIRS = (
 QUALITY_PROFILE_ORDER = ("control", "candidate", "candidate", "control")
 
 
+def _load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate_registered_command_vectors(config: object, *, checkout_root: Path) -> None:
+    value = _required_config(config)
+    commands = value["commands"]
+    trainer = _load_module(checkout_root / "scripts/train_unicom_inshop.py", "fepf_trainer_cli")
+    profiler = _load_module(
+        checkout_root / "scripts/profile_unicom_training_step.py", "fepf_profiler_cli"
+    )
+    evaluator = _load_module(
+        checkout_root / "scripts/evaluate_unicom_fepf.py", "fepf_evaluator_cli"
+    )
+    runtime = ["/tmp/out.json" if item == "{output}" else item for item in commands["runtime"][0]]
+    profiler.parse_args(runtime[4:])
+    trainer.parse_args(
+        _train_command(list(commands["train"]), mode="imprinted", training_seed=0,
+                       holdout_seed=0, stop=4, output=Path("/tmp/run"))[4:]
+    )
+    evaluator.parse_args([
+        "--phase", "epoch4", "--sources", "/tmp/sources.json",
+        "--sources-sha256", "a" * 64, "--sources-bytes", "1",
+        "--evidence-root", "/tmp/evidence", "--output", "/tmp/result.json",
+        "--temporary", "/tmp/result.tmp",
+    ])
+    quality = [
+        *commands["profile_quality"], "--runtime-mode", "current",
+        "--run-checkpoint", "/tmp/checkpoint.pt", "--run-receipt",
+        "/tmp/run-receipt.json", "--output", "/tmp/profile.json",
+        "--config", "/tmp/config.json",
+    ]
+    profiler.parse_args(quality[4:])
+    for phase in ("epoch4", "exploratory", "confirmation"):
+        parsed = evaluator.parse_args([
+            "--phase", phase, "--sources", "/tmp/sources.json",
+            "--sources-sha256", "a" * 64, "--sources-bytes", "1",
+            "--evidence-root", "/tmp/evidence", "--output", "/tmp/result.json",
+            "--temporary", "/tmp/result.tmp",
+        ])
+        if parsed.phase != phase:
+            raise ValueError("registered evaluator phase differs")
+
+
+def select_runtime_from_receipts(receipts: object, *, checkout_root: Path) -> str:
+    profiler = _load_module(
+        checkout_root / "scripts/profile_unicom_training_step.py", "fepf_profiler_decision"
+    )
+    decision = profiler.compare_runtime_smoke(tuple(receipts))
+    if decision not in {"PASS_CURRENT", "PASS_COMPOSED"}:
+        raise ValueError("runtime smoke is structurally invalid")
+    return decision
+
+
+def apply_runtime_selection(command: list[str], decision: str, *, profile: bool) -> list[str]:
+    if decision not in {"PASS_CURRENT", "PASS_COMPOSED"}:
+        raise ValueError("runtime selection differs")
+    result = list(command)
+    if profile:
+        index = result.index("--runtime-mode") + 1
+        result[index] = "composed" if decision == "PASS_COMPOSED" else "current"
+    elif decision == "PASS_COMPOSED":
+        result.extend(("--compile", "--fused"))
+    return result
+
+
+class RegisteredTerminalValidator:
+    def __init__(self, *, checkout_root: Path, config: dict[str, object]) -> None:
+        self.checkout_root = checkout_root
+        self.config = config
+        self.trainer = _load_module(checkout_root / "scripts/train_unicom_inshop.py", "fepf_tv")
+        self.profiler = _load_module(
+            checkout_root / "scripts/profile_unicom_training_step.py", "fepf_pv"
+        )
+        self.evaluator = _load_module(
+            checkout_root / "scripts/evaluate_unicom_fepf.py", "fepf_ev"
+        )
+        self.canary = _load_module(
+            checkout_root / "scripts/run_unicom_fepf_cuda_canary.py", "fepf_cv"
+        )
+
+    def __call__(self, stage: dict[str, object], terminal: object) -> None:
+        name = str(stage["name"])
+        if name == "cuda-canary":
+            authority = self.config["cuda_canary_authority"]
+            self.canary.validate_cuda_canary_receipt(
+                terminal,
+                self.config,
+                expected_device_uuid=authority["device_uuid"],
+                expected_environment_sha256=authority["environment_sha256"],
+            )
+        elif "profile" in name or name.startswith("runtime-"):
+            if "profile" in name:
+                self.profiler.validate_quality_profile(terminal)
+            elif type(terminal) is not dict:
+                raise ValueError("runtime profile differs")
+        elif "decision" in name:
+            self.evaluator.validate_fepf_result(
+                terminal,
+                Path(stage["evidence_root"]),
+                sources_authority=stage["sources_authority"],
+            )
+        else:
+            self.trainer.validate_training_run_receipt_v2(
+                terminal, evidence_root=Path(stage["destination"])
+            )
+
+
+def prepare_campaign_storage(config: dict[str, object]) -> Path:
+    builder = _load_module(
+        Path(__file__).with_name("build_unicom_fepf_run_config.py"), "fepf_builder_storage"
+    )
+    root = Path(config["artifact_root"])
+    if not os.path.lexists(root):
+        builder.prepare_artifact_root(
+            root, required_bytes=config["artifact_budget_bytes"],
+            required_inodes=config["artifact_budget_inodes"],
+        )
+    else:
+        builder.require_remaining_capacity(
+            root, total_budget_bytes=config["artifact_budget_bytes"],
+            total_budget_inodes=config["artifact_budget_inodes"],
+            consumed_bytes=0, consumed_inodes=0,
+        )
+    preflight = root / "preflight"
+    if not os.path.lexists(preflight):
+        preflight.mkdir(mode=0o700)
+    return root
+
+
+def require_campaign_remaining_capacity(config: dict[str, object], root: Path) -> None:
+    builder = _load_module(
+        Path(__file__).with_name("build_unicom_fepf_run_config.py"), "fepf_builder_capacity"
+    )
+    consumed_bytes = 0
+    consumed_inodes = 1
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("campaign artifact symlink differs")
+        consumed_inodes += 1
+        if path.is_file():
+            consumed_bytes += path.stat().st_size
+    builder.require_remaining_capacity(
+        root, total_budget_bytes=config["artifact_budget_bytes"],
+        total_budget_inodes=config["artifact_budget_inodes"],
+        consumed_bytes=consumed_bytes, consumed_inodes=consumed_inodes,
+    )
+
+
+def load_campaign_resume(config: dict[str, object]) -> dict[str, object]:
+    root = Path(config["artifact_root"])
+    if not root.exists():
+        return {}
+    builder = _load_module(
+        Path(__file__).with_name("build_unicom_fepf_run_config.py"),
+        "fepf_builder_resume_validation",
+    )
+    builder.validate_campaign_resume(
+        config, root, terminal_validator=lambda path: json.loads(path.read_bytes())
+    )
+    builder = _load_module(
+        Path(__file__).with_name("build_unicom_fepf_run_config.py"), "fepf_builder_resume"
+    )
+    inventory = set(builder.registered_stage_inventory(config))
+    result: dict[str, object] = {}
+    canary = root / config["cuda_canary_receipt"]
+    if os.path.lexists(canary):
+        if canary.is_symlink() or not canary.is_file():
+            raise ValueError("campaign resume canary differs")
+        result["cuda-canary"] = json.loads(canary.read_bytes())
+    for child in root.iterdir():
+        if child.name in {"preflight", "controller-status.json"}:
+            continue
+        if child.name.endswith("-sources.json") or child.name.endswith("-result.json"):
+            continue
+        if child.name not in inventory or child.is_symlink() or not child.is_dir():
+            raise ValueError("campaign resume stage differs")
+        candidates = tuple(
+            path for path in (
+                child / "terminal.json", child / "run-receipt.json"
+            ) if path.is_file() and not path.is_symlink()
+        )
+        if len(candidates) != 1:
+            raise ValueError("campaign resume terminal differs")
+        result[child.name] = json.loads(candidates[0].read_bytes())
+    for name in inventory:
+        result_path = root / f"{name}-result.json"
+        if result_path.is_file() and not result_path.is_symlink():
+            result[name] = json.loads(result_path.read_bytes())
+    return result
+
+
 def _canonical_json(value: object) -> bytes:
     return (json.dumps(value, separators=(",", ":"), allow_nan=False) + "\n").encode()
+
+
+def _sha256(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def publish_evaluation_sources(root: Path, name: str, sources: object) -> dict[str, object]:
+    path = root / f"{name}-sources.json"
+    payload = _canonical_json(sources)
+    if os.path.lexists(path):
+        if path.is_symlink() or not path.is_file() or path.read_bytes() != payload:
+            raise FileExistsError(path)
+    else:
+        with path.open("xb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+    return {"path": str(path.resolve()), "sha256": _sha256(payload), "bytes": len(payload)}
+
+
+def _evaluation_stage(
+    *, name: str, phase: str, base: list[str], root: Path, sources: object,
+    source_publisher: Callable[[Path, str, object], dict[str, object]],
+) -> dict[str, object]:
+    authority = source_publisher(root, name, sources)
+    output = root / f"{name}-result.json"
+    temporary = root / f".{name}-result.json.tmp"
+    command = [
+        *base, "--phase", phase, "--sources", authority["path"],
+        "--sources-sha256", authority["sha256"], "--sources-bytes",
+        str(authority["bytes"]), "--evidence-root", str(root),
+        "--output", str(output), "--temporary", str(temporary),
+    ]
+    stage = _stage(name, command, root, terminal_path=output)
+    stage["sources_authority"] = authority
+    stage["evidence_root"] = root
+    return stage
 
 
 def write_status_marker_atomic(path: Path, value: Mapping[str, object]) -> None:
@@ -86,21 +322,28 @@ class SubprocessStageExecutor:
         process = self.popen(
             command, cwd=self.checkout_root, start_new_session=True
         )
-        while True:
-            status = process.poll()
-            elapsed = self.monotonic() - started
-            self.marker_writer({
-                "state": "running", "stage": stage["name"], "pid": process.pid,
-                "elapsed_seconds": elapsed,
-                "last_child_progress": stage.get("progress_path"),
-            })
-            if status is not None:
-                break
-            if self.cancelled():
+        status: int | None = None
+        try:
+            while True:
+                status = process.poll()
+                elapsed = self.monotonic() - started
+                self.marker_writer({
+                    "state": "running", "stage": stage["name"], "pid": process.pid,
+                    "elapsed_seconds": elapsed,
+                    "last_child_progress": stage.get("progress_path"),
+                })
+                if status is not None:
+                    break
+                if self.cancelled():
+                    self.killpg(process.pid, signal.SIGTERM)
+                    status = process.wait()
+                    break
+                self.sleep(self.poll_seconds)
+        except BaseException:
+            if status is None:
                 self.killpg(process.pid, signal.SIGTERM)
-                status = process.wait()
-                break
-            self.sleep(self.poll_seconds)
+                process.wait()
+            raise
         terminal: object = None
         terminal_path = stage.get("terminal_path")
         if status == 0 and isinstance(terminal_path, Path):
@@ -109,13 +352,15 @@ class SubprocessStageExecutor:
         return {"exit_code": status, "terminal": terminal}
 
 
-def _stage(name: str, command: list[str], root: Path) -> dict[str, object]:
+def _stage(
+    name: str, command: list[str], root: Path, *, terminal_path: Path | None = None
+) -> dict[str, object]:
     destination = root / name
     return {
         "name": name,
         "command": command,
         "destination": destination,
-        "terminal_path": destination / "terminal.json",
+        "terminal_path": terminal_path or destination / "terminal.json",
         "progress_path": str(destination / "progress.json"),
     }
 
@@ -125,7 +370,7 @@ def _train_command(
     stop: int, output: Path, resume: Path | None = None,
 ) -> list[str]:
     command = [
-        *base, "--classifier-init", mode, "--training-seed", str(training_seed),
+        *base, "--classifier-init", mode, "--seed", str(training_seed),
         "--holdout-seed", str(holdout_seed), "--holdout-fraction", "0.2",
         "--epochs", "16", "--stop-after-epoch", str(stop),
         "--output-dir", str(output), "--run-receipt", str(output / "run-receipt.json"),
@@ -141,16 +386,18 @@ def _train_command(
 
 def _profile_stages(
     *, prefix: str, root: Path, base: list[str], control: Path, candidate: Path,
+    config_path: Path, runtime_decision: str,
 ) -> list[dict[str, object]]:
     stages: list[dict[str, object]] = []
     for index, arm in enumerate(QUALITY_PROFILE_ORDER):
         arm_root = control if arm == "control" else candidate
         name = f"{prefix}-profile-{arm}-{0 if index < 2 else 1}"
-        command = [
-            *base, "--runtime-mode", "selected", "--checkpoint",
+        command = apply_runtime_selection([
+            *base, "--runtime-mode", "current", "--run-checkpoint",
             str(arm_root / "epoch-0016.pt"), "--run-receipt",
             str(arm_root / "run-receipt.json"), "--output", str(root / name / "terminal.json"),
-        ]
+            "--config", str(config_path),
+        ], runtime_decision, profile=True)
         stages.append(_stage(name, command, root))
     return stages
 
@@ -200,6 +447,10 @@ def run_campaign(
     through_stage: str = "confirmation",
     marker_writer: Callable[[dict[str, object]], None] = lambda _value: None,
     prior_terminals: Mapping[str, object] | None = None,
+    runtime_selector: Callable[[object], str] | None = None,
+    source_publisher: Callable[[Path, str, object], dict[str, object]] | None = None,
+    config_path: Path | None = None,
+    capacity_guard: Callable[[], None] = lambda: None,
 ) -> int:
     value = _required_config(config)
     if through_stage not in {"runtime", "exploratory", "confirmation"}:
@@ -207,31 +458,42 @@ def run_campaign(
     prior = prior_terminals or {}
     root = Path(value["artifact_root"])
     commands = value["commands"]
+    source_publisher = source_publisher or publish_evaluation_sources
+    config_path = config_path or Path("docs/unicom_fepf_run_config.json").resolve()
 
     def run(stage: dict[str, object]) -> tuple[int, object]:
+        capacity_guard()
         return _execute(
             stage, executor=executor, terminal_validator=terminal_validator,
             prior_terminals=prior, marker_writer=marker_writer,
         )
 
-    canary_command = list(commands.get("cuda_canary", ["python", "canary.py"]))
-    code, _ = run(_stage("cuda-canary", canary_command, root))
+    canary_command = list(value.get("cuda_canary_command", commands.get("cuda_canary", [])))
+    code, _ = run(_stage(
+        "cuda-canary", canary_command, root,
+        terminal_path=root / value.get("cuda_canary_receipt", "preflight/cuda_canary_v1.json"),
+    ))
     if code:
         return code
     runtime_terminals = []
     for index, command in enumerate(commands["runtime"]):
-        code, terminal = run(_stage(f"runtime-{index:02d}", list(command), root))
+        name = f"runtime-{index:02d}"
+        output = root / name / "terminal.json"
+        resolved = [str(output) if item == "{output}" else item for item in command]
+        code, terminal = run(_stage(name, resolved, root))
         if code:
             return code
         runtime_terminals.append(terminal)
-    code, _runtime = run(_stage(
-        "runtime-decision", [*commands["evaluate"], "--phase", "runtime"], root
-    ))
-    if code or through_stage == "runtime":
+    decision = (
+        runtime_selector(tuple(runtime_terminals))
+        if runtime_selector is not None
+        else select_runtime_from_receipts(tuple(runtime_terminals), checkout_root=Path.cwd())
+    )
+    if through_stage == "runtime":
         marker_writer({"state": "complete", "through_stage": "runtime"})
-        return code
+        return 0
 
-    train = list(commands["train"])
+    train = apply_runtime_selection(list(commands["train"]), decision, profile=False)
     control4 = root / "exploratory-control-stage4"
     candidate4 = root / "exploratory-candidate-stage4"
     for name, mode, destination in (
@@ -242,12 +504,24 @@ def run_campaign(
             train, mode=mode, training_seed=0, holdout_seed=0, stop=4,
             output=destination,
         )
-        code, _ = run(_stage(name, command, root))
+        code, _ = run(_stage(name, command, root, terminal_path=destination / "run-receipt.json"))
         if code:
             return code
-    code, epoch4 = run(_stage(
-        "exploratory-epoch4-decision",
-        [*commands["evaluate"], "--phase", "epoch4"], root,
+    config_payload = config_path.read_bytes() if config_path.is_file() else _canonical_json(value)
+    config_authority = {
+        "path": str(config_path.resolve()), "sha256": _sha256(config_payload),
+        "bytes": len(config_payload),
+    }
+    epoch4_sources = [{
+        "training_seed": 0, "holdout_seed": 0,
+        "control_root": control4.relative_to(root).as_posix(),
+        "candidate_root": candidate4.relative_to(root).as_posix(),
+        "quality_profiles": [], "config": config_authority,
+    }]
+    code, epoch4 = run(_evaluation_stage(
+        name="exploratory-epoch4-decision", phase="epoch4",
+        base=list(commands["evaluate"]), root=root, sources=epoch4_sources,
+        source_publisher=source_publisher,
     ))
     if code:
         return code
@@ -265,18 +539,31 @@ def run_campaign(
         code, _ = run(_stage(name, _train_command(
             train, mode=mode, training_seed=0, holdout_seed=0, stop=16,
             output=destination, resume=parent,
-        ), root))
+        ), root, terminal_path=destination / "run-receipt.json"))
         if code:
             return code
     for stage in _profile_stages(
         prefix="exploratory", root=root, base=list(commands["profile_quality"]),
-        control=control16, candidate=candidate16,
+        control=control16, candidate=candidate16, config_path=config_path,
+        runtime_decision=decision,
     ):
         code, _ = run(stage)
         if code:
             return code
-    code, exploratory_result = run(_stage(
-        "exploratory-decision", [*commands["evaluate"], "--phase", "exploratory"], root
+    exploratory_profiles = [
+        f"exploratory-profile-{arm}-{0 if index < 2 else 1}/terminal.json"
+        for index, arm in enumerate(QUALITY_PROFILE_ORDER)
+    ]
+    exploratory_sources = [{
+        "training_seed": 0, "holdout_seed": 0,
+        "control_root": control16.relative_to(root).as_posix(),
+        "candidate_root": candidate16.relative_to(root).as_posix(),
+        "quality_profiles": exploratory_profiles,
+    }]
+    code, exploratory_result = run(_evaluation_stage(
+        name="exploratory-decision", phase="exploratory",
+        base=list(commands["evaluate"]), root=root, sources=exploratory_sources,
+        source_publisher=source_publisher,
     ))
     if code:
         return code
@@ -287,7 +574,7 @@ def run_campaign(
     code, _ = run(_stage("exploratory-random-stage16", _train_command(
         train, mode="fepf_random", training_seed=0, holdout_seed=0, stop=16,
         output=random_root,
-    ), root))
+    ), root, terminal_path=random_root / "run-receipt.json"))
     if code or through_stage == "exploratory":
         marker_writer({"state": "complete", "through_stage": "exploratory"})
         return code
@@ -303,18 +590,32 @@ def run_campaign(
             code, _ = run(_stage(name, _train_command(
                 train, mode=mode, training_seed=training_seed,
                 holdout_seed=holdout_seed, stop=16, output=destination,
-            ), root))
+            ), root, terminal_path=destination / "run-receipt.json"))
             if code:
                 return code
         for stage in _profile_stages(
             prefix=prefix, root=root, base=list(commands["profile_quality"]),
-            control=control, candidate=candidate,
+            control=control, candidate=candidate, config_path=config_path,
+            runtime_decision=decision,
         ):
             code, _ = run(stage)
             if code:
                 return code
-    code, _ = run(_stage(
-        "confirmation-decision", [*commands["evaluate"], "--phase", "confirmation"], root
+    confirmation_sources = []
+    for pair_index, (training_seed, holdout_seed) in enumerate(CONFIRMATION_PAIRS):
+        prefix = f"confirmation-{pair_index}"
+        confirmation_sources.append({
+            "training_seed": training_seed, "holdout_seed": holdout_seed,
+            "control_root": f"{prefix}-control", "candidate_root": f"{prefix}-candidate",
+            "quality_profiles": [
+                f"{prefix}-profile-{arm}-{0 if index < 2 else 1}/terminal.json"
+                for index, arm in enumerate(QUALITY_PROFILE_ORDER)
+            ],
+        })
+    code, _ = run(_evaluation_stage(
+        name="confirmation-decision", phase="confirmation",
+        base=list(commands["evaluate"]), root=root, sources=confirmation_sources,
+        source_publisher=source_publisher,
     ))
     marker_writer({"state": "complete", "through_stage": "confirmation"})
     return code
@@ -330,25 +631,56 @@ def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(arguments: Sequence[str] | None = None) -> int:
     args = parse_args(arguments)
+    cancelled = False
+
+    def request_cancel(_signum: int, _frame: object) -> None:
+        nonlocal cancelled
+        cancelled = True
+
+    previous_handlers = {
+        signum: signal.signal(signum, request_cancel)
+        for signum in (signal.SIGINT, signal.SIGTERM)
+    }
     try:
         config = json.loads(args.config.read_bytes())
-        root = Path(config["artifact_root"])
+        builder = _load_module(
+            Path(__file__).with_name("build_unicom_fepf_run_config.py"),
+            "fepf_builder_handoff",
+        )
+        builder.validate_config_handoff(args.config, Path.cwd())
+        validate_registered_command_vectors(config, checkout_root=Path.cwd())
+        root = prepare_campaign_storage(config)
         marker_path = root / "controller-status.json"
         def marker(value: dict[str, object]) -> None:
             write_status_marker_atomic(marker_path, value)
-        executor = SubprocessStageExecutor(checkout_root=Path.cwd(), marker_writer=marker)
+        executor = SubprocessStageExecutor(
+            checkout_root=Path.cwd(), marker_writer=marker,
+            cancelled=lambda: cancelled,
+        )
 
-        def validate(stage: dict[str, object], terminal: object) -> None:
-            if type(terminal) is not dict:
-                raise ValueError(f"terminal receipt missing for {stage['name']}")
+        validate = RegisteredTerminalValidator(checkout_root=Path.cwd(), config=config)
+        prior = load_campaign_resume(config)
 
         return run_campaign(
             config, executor=executor, terminal_validator=validate,
             through_stage=args.through_stage, marker_writer=marker,
+            prior_terminals=prior,
+            runtime_selector=lambda receipts: select_runtime_from_receipts(
+                receipts, checkout_root=Path.cwd()
+            ),
+            config_path=args.config.resolve(),
+            capacity_guard=lambda: require_campaign_remaining_capacity(config, root),
+            source_publisher=lambda source_root, name, sources: (
+                require_campaign_remaining_capacity(config, root),
+                publish_evaluation_sources(source_root, name, sources),
+            )[1],
         )
     except Exception as error:
         print(f"FEPF campaign failed: {error}", file=sys.stderr)
         return 2
+    finally:
+        for signum, handler in previous_handlers.items():
+            signal.signal(signum, handler)
 
 
 if __name__ == "__main__":

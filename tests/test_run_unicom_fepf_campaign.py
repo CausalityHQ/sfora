@@ -14,6 +14,13 @@ assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+FAKE_CONTROLLER_AUTHORITIES = {
+    "runtime_selector": lambda _receipts: "PASS_CURRENT",
+    "source_publisher": lambda _root, name, _sources: {
+        "path": f"/artifacts/{name}-sources.json", "sha256": "a" * 64, "bytes": 1
+    },
+}
+
 
 class FakeExecutor:
     def __init__(self, decisions: dict[str, str] | None = None, failure: str | None = None):
@@ -76,12 +83,12 @@ def test_controller_stops_before_epoch16_when_epoch4_fails() -> None:
     rc = MODULE.run_campaign(
         _config(), executor=executor, terminal_validator=_validate,
         through_stage="confirmation",
+        **FAKE_CONTROLLER_AUTHORITIES,
     )
     assert rc == 0
     assert [stage["name"] for stage in executor.stages] == [
         "cuda-canary",
         *[f"runtime-{index:02d}" for index in range(8)],
-        "runtime-decision",
         "exploratory-control-stage4",
         "exploratory-candidate-stage4",
         "exploratory-epoch4-decision",
@@ -97,9 +104,10 @@ def test_controller_orders_profiles_and_runs_all_five_confirmation_pairs() -> No
     assert MODULE.run_campaign(
         _config(), executor=executor, terminal_validator=_validate,
         through_stage="confirmation", marker_writer=markers.append,
+        **FAKE_CONTROLLER_AUTHORITIES,
     ) == 0
     names = [stage["name"] for stage in executor.stages]
-    assert names.index("runtime-decision") < names.index("exploratory-control-stage4")
+    assert names.index("runtime-07") < names.index("exploratory-control-stage4")
     assert names.index("exploratory-random-stage16") > names.index("exploratory-decision")
     for pair_index in range(5):
         prefix = f"confirmation-{pair_index}"
@@ -121,6 +129,7 @@ def test_structural_or_process_failure_stops_and_preserves_exact_exit() -> None:
     assert MODULE.run_campaign(
         _config(), executor=executor, terminal_validator=_validate,
         through_stage="confirmation",
+        **FAKE_CONTROLLER_AUTHORITIES,
     ) == 19
     assert [stage["name"] for stage in executor.stages][-1] == "runtime-02"
 
@@ -132,6 +141,7 @@ def test_resume_skips_only_strictly_valid_terminal_stages() -> None:
     assert MODULE.run_campaign(
         _config(), executor=executor, terminal_validator=_validate,
         through_stage="confirmation", prior_terminals=prior,
+        **FAKE_CONTROLLER_AUTHORITIES,
     ) == 0
     assert executor.stages[0]["name"] == "runtime-00"
     broken = {"cuda-canary": {"stage": "wrong"}}
@@ -139,6 +149,7 @@ def test_resume_skips_only_strictly_valid_terminal_stages() -> None:
         MODULE.run_campaign(
             _config(), executor=FakeExecutor(), terminal_validator=_validate,
             prior_terminals=broken,
+            **FAKE_CONTROLLER_AUTHORITIES,
         )
 
 
@@ -195,3 +206,90 @@ def test_subprocess_runner_cancels_original_process_group(tmp_path: Path) -> Non
     assert process.waited is True
     assert result["exit_code"] == 7
 
+
+def test_registered_commands_parse_through_real_task2_task4_task5_clis(tmp_path: Path) -> None:
+    builder_spec = importlib.util.spec_from_file_location(
+        "fepf_builder_for_cli_test", ROOT / "scripts/build_unicom_fepf_run_config.py"
+    )
+    assert builder_spec is not None and builder_spec.loader is not None
+    builder = importlib.util.module_from_spec(builder_spec)
+    builder_spec.loader.exec_module(builder)
+    config = builder.build_run_config(
+        repo=ROOT,
+        checkout_root_template=str(tmp_path / "checkout-{config_commit}"),
+        artifact_root=tmp_path / "artifacts",
+        inference_structure={
+            "schema": "unicom-fepf-structure-v1",
+            "tensors": [{
+                "name": "weight", "kind": "parameter", "shape": [1],
+                "dtype": "torch.float32", "numel": 1, "element_size": 4, "bytes": 4,
+            }],
+            "classifier": {
+                "shape": [1, 1], "dtype": "torch.float32", "numel": 1,
+                "element_size": 4, "bytes": 4,
+            },
+            "operations": [
+                "official_forward", "full768_l2", "prefix512", "squared_euclidean"
+            ],
+        },
+        partition_inventory={
+            "query_rows": 14_218, "gallery_rows": 12_612,
+            "maximum_relevant_count": 64, "maximum_path_bytes": 120,
+        },
+        cuda_canary_authority={
+            "device_uuid": "GPU-registered", "environment_sha256": "d" * 64,
+        },
+    )
+    MODULE.validate_registered_command_vectors(config, checkout_root=ROOT)
+
+
+def test_default_terminal_dispatch_uses_public_validators_and_runtime_comparator() -> None:
+    assert hasattr(MODULE, "RegisteredTerminalValidator")
+    assert hasattr(MODULE, "select_runtime_from_receipts")
+
+
+def test_production_resume_and_storage_preflight_are_controller_owned(tmp_path: Path) -> None:
+    assert hasattr(MODULE, "load_campaign_resume")
+    assert hasattr(MODULE, "prepare_campaign_storage")
+
+
+def test_selected_runtime_is_applied_to_training_and_quality_commands() -> None:
+    executor = FakeExecutor({
+        "exploratory-epoch4-decision": "PASS_TO_RESUME",
+        "exploratory-decision": "PROMOTE",
+    })
+    authorities = dict(FAKE_CONTROLLER_AUTHORITIES)
+    authorities["runtime_selector"] = lambda _receipts: "PASS_COMPOSED"
+    assert MODULE.run_campaign(
+        _config(), executor=executor, terminal_validator=_validate,
+        **authorities,
+    ) == 0
+    train_commands = [
+        stage["command"] for stage in executor.stages
+        if "--classifier-init" in stage["command"]
+    ]
+    assert train_commands and all("--compile" in command and "--fused" in command
+                                  for command in train_commands)
+    profile_commands = [
+        stage["command"] for stage in executor.stages if "-profile-" in stage["name"]
+    ]
+    assert profile_commands
+    assert all(command[command.index("--runtime-mode") + 1] == "composed"
+               for command in profile_commands)
+
+
+def test_executor_terminates_child_when_polling_or_marker_raises(tmp_path: Path) -> None:
+    process = FakeProcess()
+    process.polls = [None]
+    signals: list[tuple[int, int]] = []
+    runner = MODULE.SubprocessStageExecutor(
+        checkout_root=tmp_path,
+        marker_writer=lambda _row: (_ for _ in ()).throw(RuntimeError("marker")),
+        popen=lambda *_args, **_kwargs: process,
+        killpg=lambda pid, sig: signals.append((pid, sig)),
+        sleep=lambda _seconds: None,
+    )
+    with pytest.raises(RuntimeError, match="marker"):
+        runner({"name": "stage", "command": ["python"]})
+    assert signals == [(process.pid, signal.SIGTERM)]
+    assert process.waited

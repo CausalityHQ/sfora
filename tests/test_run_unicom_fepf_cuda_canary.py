@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -16,14 +18,25 @@ SPEC.loader.exec_module(MODULE)
 
 
 def _config(tmp_path: Path) -> dict[str, object]:
+    checkpoint = tmp_path / "checkpoint.bin"
+    partition = tmp_path / "partition.txt"
+    checkpoint.write_bytes(b"checkpoint\n")
+    partition.write_bytes(b"partition\n")
     return {
         "schema": "unicom-fepf-run-config-v1",
         "source_commit": "a" * 40,
         "model": {
-            "checkpoint_sha256": "b" * 64,
-            "partition_sha256": "c" * 64,
+            "checkpoint_sha256": hashlib.sha256(checkpoint.read_bytes()).hexdigest(),
+            "partition_sha256": hashlib.sha256(partition.read_bytes()).hexdigest(),
         },
         "artifact_root": str(tmp_path / "artifacts"),
+        "inputs": {
+            "checkpoint": str(checkpoint),
+            "partition": str(partition),
+        },
+        "cuda_canary_authority": {
+            "device_uuid": "GPU-registered", "environment_sha256": "d" * 64,
+        },
         "cuda_canary_receipt": "preflight/cuda_canary_v1.json",
     }
 
@@ -136,3 +149,54 @@ def test_canary_backend_must_report_real_cuda_and_never_skips(tmp_path: Path) ->
     config = _config(tmp_path)
     with pytest.raises(RuntimeError, match="CUDA"):
         MODULE.run_cuda_canary(config, backend=lambda _config: {"cuda": False})
+
+
+def test_canary_racing_destination_is_never_unlinked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = _config(tmp_path)
+    root = Path(config["artifact_root"])
+    (root / "preflight").mkdir(parents=True)
+    output = root / "preflight" / "cuda_canary_v1.json"
+    receipt = MODULE.build_cuda_canary_receipt(
+        config, _observation(), expected_device_uuid="GPU-registered",
+        expected_environment_sha256="d" * 64,
+    )
+    original_link = os.link
+
+    def racing_link(source: Path, destination: Path) -> None:
+        destination.write_bytes(b"racer")
+        raise FileExistsError(destination)
+
+    monkeypatch.setattr(os, "link", racing_link)
+    with pytest.raises(FileExistsError):
+        MODULE.publish_cuda_canary_receipt(
+            receipt, config, expected_device_uuid="GPU-registered",
+            expected_environment_sha256="d" * 64,
+        )
+    monkeypatch.setattr(os, "link", original_link)
+    assert output.read_bytes() == b"racer"
+
+
+def test_canary_requires_external_input_device_environment_and_task1_flow(tmp_path: Path) -> None:
+    assert hasattr(MODULE, "authenticate_canary_inputs")
+    assert hasattr(MODULE, "run_registered_fepf_canary")
+    config = _config(tmp_path)
+    root = Path(config["artifact_root"])
+    (root / "preflight").mkdir(parents=True)
+    called = False
+
+    def backend(_config: dict[str, object]) -> dict[str, object]:
+        nonlocal called
+        called = True
+        return {"cuda": True, **_observation()}
+
+    assert MODULE.run_cuda_canary(config, backend=backend).is_file()
+    assert called
+    output = root / "preflight" / "cuda_canary_v1.json"
+    output.unlink()
+    Path(config["inputs"]["checkpoint"]).write_bytes(b"substituted\n")
+    called = False
+    with pytest.raises(ValueError, match="checkpoint authority"):
+        MODULE.run_cuda_canary(config, backend=backend)
+    assert called is False

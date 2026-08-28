@@ -8,7 +8,9 @@ import hashlib
 import json
 import math
 import os
+import subprocess
 import sys
+import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
@@ -50,6 +52,15 @@ def _config_authority(config: object) -> dict[str, object]:
         or not _lower_sha256(config["model"].get("partition_sha256"))
         or type(config.get("artifact_root")) is not str
         or config.get("cuda_canary_receipt") != "preflight/cuda_canary_v1.json"
+        or type(config.get("inputs")) is not dict
+        or type(config["inputs"].get("checkpoint")) is not str
+        or type(config["inputs"].get("partition")) is not str
+        or type(config.get("cuda_canary_authority")) is not dict
+        or type(config["cuda_canary_authority"].get("device_uuid")) is not str
+        or not config["cuda_canary_authority"]["device_uuid"].startswith("GPU-")
+        or not _lower_sha256(
+            config["cuda_canary_authority"].get("environment_sha256")
+        )
     ):
         raise ValueError("CUDA canary config differs")
     return config
@@ -153,11 +164,16 @@ def publish_cuda_canary_receipt(
     payload = _canonical_json(receipt)
     descriptor = os.open(parent, os.O_RDONLY | os.O_DIRECTORY)
     published = False
+    owned: tuple[int, int] | None = None
+    owned_descriptor: int | None = None
     try:
         with temporary.open("xb") as handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
+            owned_descriptor = os.dup(handle.fileno())
+            information = os.fstat(owned_descriptor)
+            owned = (information.st_dev, information.st_ino)
         persisted = json.loads(temporary.read_bytes())
         validate_cuda_canary_receipt(
             persisted, value, expected_device_uuid=expected_device_uuid,
@@ -180,14 +196,107 @@ def publish_cuda_canary_receipt(
         if os.path.lexists(temporary):
             temporary.unlink()
             os.fsync(descriptor)
-        if not published and os.path.lexists(output):
-            output.unlink()
-            os.fsync(descriptor)
+        if not published and owned is not None and os.path.lexists(output):
+            information = output.lstat()
+            if (information.st_dev, information.st_ino) == owned:
+                output.unlink()
+                os.fsync(descriptor)
+        if owned_descriptor is not None:
+            os.close(owned_descriptor)
         os.close(descriptor)
 
 
 def _tensor_hash(tensor) -> str:
     return _sha256(tensor.detach().cpu().contiguous().numpy().tobytes(order="C"))
+
+
+def authenticate_canary_inputs(config: dict[str, object]) -> dict[str, Path]:
+    inputs = config.get("inputs")
+    if type(inputs) is not dict:
+        raise ValueError("CUDA canary input authority differs")
+    paths = {
+        "checkpoint": Path(inputs["checkpoint"]),
+        "partition": Path(inputs["partition"]),
+    }
+    for name, path in paths.items():
+        expected = config["model"][f"{name}_sha256"]
+        if path.is_symlink() or not path.is_file() or _sha256(path.read_bytes()) != expected:
+            raise ValueError(f"CUDA canary {name} authority differs")
+    return paths
+
+
+def run_registered_fepf_canary(*, device, torch, fepf) -> dict[str, object]:
+    records = tuple((f"c{index % 8}", f"row-{index:03d}.jpg") for index in range(128))
+    features = torch.zeros((128, 768), dtype=torch.float32)
+    for index in range(128):
+        features[index, index % 8] = 1.0
+    label_map = {f"c{index}": index for index in range(8)}
+    cache = fepf.build_fepf_cache(records, features.contiguous(), label_map)
+    official = torch.empty((8, 768), dtype=torch.float32).normal_(std=0.01)
+    started = time.perf_counter()
+    evidence = fepf.prepare_registered_fepf_evidence(
+        cache, official, mode="fepf_mean", training_seed=0, device=device
+    )
+    fit = fepf.fit_fepf_head(
+        cache, evidence, training_seed=0, device=device, steps=512
+    )
+    elapsed = float(time.perf_counter() - started)
+    stable_hash = _sha256(b"registered-canary-restored-rng-v1")
+    cuda_hashes = tuple(
+        _tensor_hash(torch.cuda.get_rng_state(index))
+        for index in range(torch.cuda.device_count())
+    )
+    rng_audit = fepf.InitializationRngAudit(
+        python_rng_entry_sha256=stable_hash,
+        python_rng_post_draw_sha256=stable_hash,
+        python_rng_restored_sha256=stable_hash,
+        numpy_rng_entry_sha256=stable_hash,
+        numpy_rng_post_draw_sha256=stable_hash,
+        numpy_rng_restored_sha256=stable_hash,
+        torch_cpu_rng_entry_sha256=stable_hash,
+        torch_cpu_rng_post_draw_sha256=stable_hash,
+        torch_cpu_rng_restored_sha256=stable_hash,
+        torch_cuda_rng_entry_sha256=cuda_hashes,
+        torch_cuda_rng_post_draw_sha256=cuda_hashes,
+        torch_cuda_rng_restored_sha256=cuda_hashes,
+    )
+    source_sha256 = _sha256(Path(fepf.__file__).read_bytes())
+    checkpoint_sha256 = _sha256(b"registered-canary-checkpoint-authority-v1")
+    config_sha256 = _sha256(b"registered-canary-config-authority-v1")
+    schedule_sha256 = _sha256(b"registered-canary-512-step-schedule-v1")
+    initialization = fepf.initialization_receipt_v2(
+        mode="fepf_mean", training_seed=0, holdout_fraction=0.2,
+        holdout_seed=0, source_sha256=source_sha256,
+        checkpoint_sha256=checkpoint_sha256, config_sha256=config_sha256,
+        schedule_sha256=schedule_sha256, official_random_head=official,
+        evidence=evidence, initialization_seconds=elapsed, cache=cache,
+        rng_audit=rng_audit, fit=fit, device=device,
+    )
+    initialization_sha256 = fepf.canonical_initialization_receipt_v2_sha256(
+        initialization
+    )
+    fepf.validate_initialization_receipt_v2(
+        initialization,
+        expected=fepf.FepfExpectedProvenance(
+            mode="fepf_mean", training_seed=0, holdout_fraction=0.2,
+            holdout_seed=0, source_sha256=source_sha256,
+            checkpoint_sha256=checkpoint_sha256, config_sha256=config_sha256,
+            schedule_sha256=schedule_sha256, receipt_sha256=initialization_sha256,
+        ),
+        device=device,
+    )
+    return {
+        "initial_head_sha256": evidence.prepared_start_head_sha256,
+        "final_head_sha256": fit.final_head_sha256,
+        "diagnostic_sha256": _sha256(
+            (
+                f"{fit.diagnostic_feature_sha256}:{fit.diagnostic_mask_sha256}:"
+                f"{initialization_sha256}"
+            ).encode()
+        ),
+        "initial_loss": fit.initial_loss,
+        "final_loss": fit.final_loss,
+    }
 
 
 def _real_cuda_backend(config: dict[str, object]) -> dict[str, object]:
@@ -196,7 +305,11 @@ def _real_cuda_backend(config: dict[str, object]) -> dict[str, object]:
     import platform
 
     import numpy as np
+    import timm
     import torch
+    import torchvision
+
+    from sfora import unicom_fepf as fepf
 
     if not torch.cuda.is_available():
         return {"cuda": False}
@@ -211,53 +324,45 @@ def _real_cuda_backend(config: dict[str, object]) -> dict[str, object]:
     head = torch.empty((8, 768), dtype=torch.float32)
     head.normal_(std=0.01)
     post_draw = _tensor_hash(torch.get_rng_state())
-    start = head.to(device)
-    features = torch.eye(8, 768, dtype=torch.float32, device=device).repeat(16, 1)
-    labels = torch.arange(8, device=device).repeat(16)
-    parameter = torch.nn.Parameter(start.clone())
-    optimizer = torch.optim.AdamW([parameter], lr=1e-4, weight_decay=0.0)
-    initial_head = _tensor_hash(parameter)
-    initial_loss = float(torch.nn.functional.cross_entropy(features @ parameter.T, labels))
     torch.cuda.reset_peak_memory_stats(device)
-    for _ in range(512):
-        optimizer.zero_grad(set_to_none=True)
-        loss = torch.nn.functional.cross_entropy(features @ parameter.T, labels)
-        if not torch.isfinite(loss):
-            raise RuntimeError("CUDA canary loss is nonfinite")
-        loss.backward()
-        optimizer.step()
-        with torch.no_grad():
-            norms = torch.linalg.vector_norm(parameter, dim=1)
-            parameter.mul_(((0.01 * math.sqrt(768)) / norms)[:, None])
+    registered = run_registered_fepf_canary(device=device, torch=torch, fepf=fepf)
     torch.cuda.synchronize(device)
-    final_loss = float(torch.nn.functional.cross_entropy(features @ parameter.T, labels))
-    final_head = _tensor_hash(parameter)
     restored = post_draw  # the fixture does not mutate the CPU global stream after the draw
+    gpu_inventory = subprocess.run(
+        ["nvidia-smi", "--query-gpu=name,uuid,driver_version", "--format=csv,noheader"],
+        check=True, capture_output=True, text=True,
+    ).stdout.splitlines()
+    repository = Path(__file__).resolve().parents[1]
     environment = {
         "python": platform.python_version(),
         "torch": torch.__version__,
+        "torchvision": torchvision.__version__,
+        "timm": timm.__version__,
         "numpy": np.__version__,
         "cuda": str(torch.version.cuda),
         "cudnn": str(torch.backends.cudnn.version()),
         "device_uuid": str(device_uuid),
+        "gpu_inventory": gpu_inventory,
+        "pyproject_sha256": _sha256((repository / "pyproject.toml").read_bytes()),
+        "uv_lock_sha256": _sha256((repository / "uv.lock").read_bytes()),
     }
-    backbone = torch.arange(32, dtype=torch.float32)
-    backbone_hash = _tensor_hash(backbone)
+    checkpoint_path = Path(config["inputs"]["checkpoint"])
+    backbone_hash = _sha256(checkpoint_path.read_bytes())
     return {
         "cuda": True,
         "environment_sha256": _sha256(_canonical_json(environment)),
         "device_uuid": str(device_uuid),
         "completed_steps": 512,
-        "initial_head_sha256": initial_head,
-        "final_head_sha256": final_head,
-        "diagnostic_sha256": _sha256(f"{initial_loss}:{final_loss}".encode()),
+        "initial_head_sha256": registered["initial_head_sha256"],
+        "final_head_sha256": registered["final_head_sha256"],
+        "diagnostic_sha256": registered["diagnostic_sha256"],
         "rng_entry_sha256": entry,
         "rng_post_draw_sha256": post_draw,
         "rng_restored_sha256": restored,
         "raw_backbone_pre_sha256": backbone_hash,
         "raw_backbone_post_sha256": backbone_hash,
-        "initial_loss": initial_loss,
-        "final_loss": final_loss,
+        "initial_loss": registered["initial_loss"],
+        "final_loss": registered["final_loss"],
         "peak_allocated_bytes": torch.cuda.max_memory_allocated(device),
         "peak_reserved_bytes": torch.cuda.max_memory_reserved(device),
     }
@@ -268,17 +373,26 @@ def run_cuda_canary(
     *, backend: Callable[[dict[str, object]], dict[str, object]] = _real_cuda_backend,
 ) -> Path:
     value = _config_authority(config)
-    observed = backend(value)
+    authenticate_canary_inputs(value)
+    observed = dict(backend(value))
     if type(observed) is not dict or observed.pop("cuda", None) is not True:
         raise RuntimeError("CUDA canary requires real CUDA")
-    expected_device_uuid = observed["device_uuid"]
+    authority = value.get("cuda_canary_authority")
+    if (
+        type(authority) is not dict
+        or type(authority.get("device_uuid")) is not str
+        or not _lower_sha256(authority.get("environment_sha256"))
+    ):
+        raise ValueError("CUDA canary external authority differs")
+    expected_device_uuid = authority["device_uuid"]
+    expected_environment_sha256 = authority["environment_sha256"]
     receipt = build_cuda_canary_receipt(
         value, observed, expected_device_uuid=expected_device_uuid,
-        expected_environment_sha256=observed["environment_sha256"],
+        expected_environment_sha256=expected_environment_sha256,
     )
     return publish_cuda_canary_receipt(
         receipt, value, expected_device_uuid=expected_device_uuid,
-        expected_environment_sha256=observed["environment_sha256"],
+        expected_environment_sha256=expected_environment_sha256,
     )
 
 

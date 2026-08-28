@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import math
 import os
 import subprocess
 from pathlib import Path
@@ -15,6 +16,34 @@ SPEC = importlib.util.spec_from_file_location(
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+def _inference_structure() -> dict[str, object]:
+    return {
+        "schema": "unicom-fepf-structure-v1",
+        "tensors": [{
+            "name": "weight", "kind": "parameter", "shape": [1, 2],
+            "dtype": "torch.float32", "numel": 2, "element_size": 4, "bytes": 8,
+        }],
+        "classifier": {
+            "shape": [2, 2], "dtype": "torch.float32", "numel": 4,
+            "element_size": 4, "bytes": 16,
+        },
+        "operations": [
+            "official_forward", "full768_l2", "prefix512", "squared_euclidean"
+        ],
+    }
+
+
+def _partition_inventory() -> dict[str, int]:
+    return {
+        "query_rows": 14_218, "gallery_rows": 12_612,
+        "maximum_relevant_count": 64, "maximum_path_bytes": 120,
+    }
+
+
+def _canary_authority() -> dict[str, str]:
+    return {"device_uuid": "GPU-registered", "environment_sha256": "d" * 64}
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -45,6 +74,9 @@ def _build(source_repo: Path, tmp_path: Path) -> dict[str, object]:
         repo=source_repo,
         checkout_root_template=str(tmp_path / "checkout-{config_commit}"),
         artifact_root=tmp_path / "artifacts",
+        inference_structure=_inference_structure(),
+        partition_inventory=_partition_inventory(),
+        cuda_canary_authority=_canary_authority(),
     )
 
 
@@ -126,12 +158,18 @@ def test_builder_requires_distinct_non_nested_absolute_roots(
             repo=source_repo,
             checkout_root_template=str(artifact / "checkout-{config_commit}"),
             artifact_root=artifact,
+            inference_structure=_inference_structure(),
+            partition_inventory=_partition_inventory(),
+            cuda_canary_authority=_canary_authority(),
         )
     with pytest.raises(ValueError, match="template"):
         MODULE.build_run_config(
             repo=source_repo,
             checkout_root_template=str(tmp_path / "checkout-{other}"),
             artifact_root=artifact,
+            inference_structure=_inference_structure(),
+            partition_inventory=_partition_inventory(),
+            cuda_canary_authority=_canary_authority(),
         )
 
 
@@ -157,6 +195,9 @@ def test_canonical_builder_writes_once_and_reloads_distinct_bytes(
         checkout_root_template=str(tmp_path / "checkout-{config_commit}"),
         artifact_root=tmp_path / "artifacts",
         output=output,
+        inference_structure=_inference_structure(),
+        partition_inventory=_partition_inventory(),
+        cuda_canary_authority=_canary_authority(),
     )
     assert output.read_bytes() == MODULE.canonical_json_bytes(config)
     with pytest.raises(FileExistsError):
@@ -165,6 +206,7 @@ def test_canonical_builder_writes_once_and_reloads_distinct_bytes(
             checkout_root_template=str(tmp_path / "other-{config_commit}"),
             artifact_root=tmp_path / "other-artifacts",
             output=output,
+            cuda_canary_authority=_canary_authority(),
         )
 
 
@@ -248,4 +290,45 @@ def test_remaining_capacity_uses_reserved_prior_bytes_and_inodes(tmp_path: Path)
         MODULE.require_remaining_capacity(
             root, total_budget_bytes=10**30, total_budget_inodes=2,
             consumed_bytes=0, consumed_inodes=0,
+        )
+
+
+def test_config_contains_task2_task4_task5_authority_schemas(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    assert config["source"] == {"commit": config["source_commit"]}
+    assert config["handoff"] == {
+        "config_parent": config["source_commit"],
+        "config_commit_paths": ["docs/unicom_fepf_run_config.json"],
+        "execution_checkout": "config_commit_detached_clean",
+    }
+    assert config["parent_trainer_commit"] == MODULE.PARENT_TRAINER_COMMIT
+    assert config["parent_trainer_path"] == MODULE.PARENT_TRAINER_PATH
+    assert config["parent_trainer_sha256"] == MODULE.PARENT_TRAINER_SHA256
+    assert config["fepf_inference_structure"] == _inference_structure()
+    assert {
+        key: config["artifact_budget_inputs"][key] for key in _partition_inventory()
+    } == _partition_inventory()
+    assert config["artifact_budget_inodes"] == math.ceil(
+        1.25 * config["artifact_budget_inputs"]["planned_file_inodes"]
+    )
+
+
+def test_resume_rejects_unknown_and_incomplete_stage_paths(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    root = Path(config["artifact_root"])
+    root.mkdir()
+    (root / "unknown-stage").mkdir()
+    with pytest.raises(ValueError, match="registered"):
+        MODULE.validate_campaign_resume(
+            config, root, terminal_validator=lambda _path: None
+        )
+    (root / "unknown-stage").rmdir()
+    (root / "runtime-00").mkdir()
+    with pytest.raises(ValueError, match="terminal"):
+        MODULE.validate_campaign_resume(
+            config, root, terminal_validator=lambda _path: None
         )
