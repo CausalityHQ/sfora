@@ -8,9 +8,12 @@ DeepFashion In-Shop query/gallery split.
 
 Decide whether the verified advantage of full-width ArcFace fine-tuning transfers
 from the fixed training-identity holdout to the untouched official In-Shop test
-identities. The experiment compares the existing five paired epoch-16 checkpoints:
+identities. The experiment compares five paired epoch-16 checkpoint bundles:
 official sampled-512 feature training versus full-768 feature training, with the same
-768-dimensional deployed descriptor in both arms.
+768-dimensional deployed descriptor in both arms. The seed-2 pair is retained from
+the historical campaign. The seed-3--6 checkpoint files were missing at the
+2026-08-28 preflight and must be prospectively reproduced under the historical
+training recipe before this gate can run.
 
 This is an official **evaluation-split transfer gate**, not yet an official training
 reproduction. Both arms were trained on the same fixed identity-disjoint 80% of the
@@ -40,7 +43,7 @@ order, optimizer, OneCycle schedule, ArcFace margin/scale, 16 epochs, and full-7
 holdout readout. They differ only in whether each classifier shard uses a random
 512-of-768 coordinate subset or all 768 coordinates.
 
-The controlled holdout mAP@R deltas are
+The historical controlled holdout mAP@R deltas are
 `(+0.0012584412, +0.0045961954, +0.0022570035, +0.0041930814,
 +0.0032592434)`. Their mean is `+0.0031127930`, paired Student-t 95% interval is
 `[+0.0014057929, +0.0048197931]`, all five are positive, no seed loses a top-1
@@ -48,6 +51,14 @@ query, and four of five candidates reach the matched control endpoint by epoch 1
 Seed-0 A-B-B-A step wall-time ratio is `0.9946993577`, with 95% interval
 `[0.9913006311, 0.9979290843]`; this is evidence of no measurable slowdown, not a
 speedup claim. Checkpoint file sizes and deployed inference graphs are identical.
+
+Those historical rows remain immutable evidence but are not automatically the rows
+used by this endpoint. For every seed-3--6 checkpoint pair whose reproduced file hash
+differs, the recovery run prospectively recomputes the same frozen holdout evaluation
+and v4 substitutes that generation-matched row before applying the unchanged
+confirmation decision. Any reported endpoint or paper must disclose that its panel
+contains two retained historical artifacts and eight prospectively reproduced
+artifacts unless an exact archived-byte restoration is actually observed.
 
 Full-width also wins under the registered 512-coordinate diagnostic readout, so
 train/deploy-width alignment is already falsified. The surviving explanation is that
@@ -63,11 +74,13 @@ normalize-before-prefix diagnostic. The prior official and holdout timings imply
 5.5 minutes of encoding plus 50--75 seconds per official retrieval view, so ten
 epoch-16 checkpoints cost about 3.5--5 hours rather than 72 minutes. All 40 checkpoints
 with the primary and registered diagnostic only cost about 4.8--5.3 hours, while ten
-fresh paired 16-epoch training runs cost about 40 hours. The five missing A-B-B-A quartets
-cost about 2.3 GPU-hours at the measured 5.3 seconds per step. Operational completion
-plus endpoint evaluation is therefore a roughly 6--7.5-hour block with no training and
-is the smallest experiment that can finish the current Pareto decision and falsify
-official transfer.
+fresh paired 16-epoch training runs cost about 40 hours. Because eight seed-3--6
+checkpoint files are missing, the prerequisite recovery is eight fresh 16-epoch runs,
+about 32 GPU-hours. The five missing A-B-B-A quartets cost about 2.3 GPU-hours at the
+measured 5.3 seconds per step. Recovery, operational completion, and endpoint evaluation
+are therefore a roughly 38--40-hour block. This remains the smallest evidence-based
+path to finish the current Pareto decision: it restores a completed five-seed training
+comparison and then tests official transfer without adding a tuned candidate.
 
 Before any official query/gallery embedding is computed, run one A-B-B-A profile
 quartet for each seed in `(2, 3, 4, 5, 6)` and the empirical deployment comparison
@@ -108,15 +121,25 @@ a passing endpoint authorizes the official trajectory readout.
 - Seeds: `(2, 3, 4, 5, 6)` in that order.
 - Within each seed: `sampled_512`, then `full_768`.
 - Checkpoint: epoch 16 raw `checkpoint["model"]` only.
-- Exactly ten distinct checkpoint byte hashes, taken from the existing immutable
-  training receipts and pair inventories.
+- Exactly ten distinct checkpoint byte hashes. Seed 2 must match its existing
+  immutable training receipts and pair inventory. Seeds 3--6 use the historical
+  hashes only if archived bytes are restored exactly; otherwise they use the
+  prospective recovery inventory published under the recovery configuration.
 - Before either stage launches, every checkpoint must be a regular non-symlink file
   whose size and SHA-256 match that inventory. A missing checkpoint blocks execution;
   it does not change the scientific decision. Recovery may restore archived bytes or
-  deterministically reproduce the exact historical checkpoint under source
-  `f76cd832e84c06b64c63a4ac728017123928b96c` and the registered configuration. A
+  prospectively rerun a config-only handoff whose source commit contains trainer and
+  pair-evaluator Git blobs byte-identical to historical source
+  `f76cd832e84c06b64c63a4ac728017123928b96c`, under the registered recipe. The
+  historical trainer does not enforce
+  deterministic CUDA algorithms, so a rerun is treated as a prospective reproduction;
+  exact restoration is recognized only if the complete bytes happen to match. A
   reproduction whose SHA-256 differs cannot silently replace the paired checkpoint;
   it requires a prospective re-evaluation of its holdout pair before official use.
+  The reproduced checkpoint bytes, new receipt, and new paired holdout row form one
+  indivisible seed bundle. A v4 decision must substitute that new row for the
+  historical row, and `SUPPORTED_HOLDOUT` remains a hard prerequisite: any other
+  recomputed holdout decision publishes CLOSE and forbids opening the official split.
 - One process, one launch, one result, and no in-place retry. A structural failure is
   not a scientific outcome, but a replacement launch requires a reviewed corrective
   Git commit and a newly committed run configuration before any metric-bearing result
@@ -214,12 +237,15 @@ value is structural failure.
 
 Operational completion adds exactly two focused producers while preserving the v3
 confirmation result immutably: a deployment comparator for the structural measurements
-above, and a v4 confirmation producer that validates the five existing A-B-B-A
-comparison artifacts and calls the already-tested
-`evaluate_unicom_full_width_objective.confirmation_decision` with the five frozen
-quality rows, the arithmetic means of the five A-B-B-A comparisons, and the deployment
-predicates. The v4 producer owns the completed operational schema, recomputation,
-decision, and exclusive publication; it does not rewrite v3.
+above, and a v4 confirmation producer that supervises and validates the five newly
+generated A-B-B-A comparison artifacts and calls the already-tested
+`evaluate_unicom_full_width_objective.confirmation_decision` with five
+generation-matched quality rows (historical only for an exact retained/restored pair,
+otherwise the prospective recovery row), the arithmetic means of the five A-B-B-A
+comparisons, and the deployment predicates. The v4 producer owns the completed
+operational schema, recomputation, decision, and exclusive publication; it does not
+rewrite v3. A v4 result other than `SUPPORTED_HOLDOUT` closes before official data is
+loaded.
 
 The official endpoint adds one focused evaluator that reuses the existing official
 evaluator's tested partition parsing, model loading, embedding extraction, retrieval
@@ -247,8 +273,11 @@ and output/temp state. No replacement process starts while the original is alive
 
 ## Automatic continuation
 
-- `PRACTICAL_OFFICIAL_TRANSFER`: run the remaining 30 checkpoints to measure official
-  time-to-quality, then run three-seed In-Shop mechanism/fairness controls in this
+- `PRACTICAL_OFFICIAL_TRANSFER`: use the preserved seed-3--6 epoch-4/8/12 recovery
+  checkpoints and prospectively rerun seed 2 under a separately committed trajectory
+  configuration to replace its missing epoch-4/8/12 files, then measure official
+  time-to-quality on the resulting generation-matched 40-checkpoint panel. Afterward
+  run three-seed In-Shop mechanism/fairness controls in this
   order: sampled-512 for 24 epochs, `official-one-mask` for 16 epochs, `prefix-512` for
   16 epochs, and a one-seed three-point sampled-classifier-learning-rate probe only if
   it improves its own frozen baseline by at least `0.003`. The 24-epoch arm matches
