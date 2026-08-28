@@ -14,6 +14,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import numpy as np
+import torch
 
 EVALUATION_EPOCHS = (4, 8, 12, 16)
 EPOCH4_MAP_DELTA_MIN = 0.003
@@ -29,17 +30,160 @@ CONFIRMATION_PAIRS = (
 T_CRITICAL_ONE_SIDED_95_DF4 = 2.131846786326649
 QUERY_BOOTSTRAP_SEED = 20_260_829
 QUERY_BOOTSTRAP_REPLICATES = 10_000
+INFERENCE_OPERATIONS = (
+    "official_forward",
+    "full768_l2",
+    "prefix512",
+    "squared_euclidean",
+)
 RESULT_KEYS = (
     "schema",
     "phase",
     "status",
     "clause",
     "evaluator_sha256",
+    "evidence_manifest",
     "evidence_sha256",
     "config",
     "sources",
     "decision",
 )
+
+
+def _canonical_tensor_bytes(value: torch.Tensor) -> bytes:
+    if not isinstance(value, torch.Tensor):
+        raise ValueError("checkpoint inference tensor differs")
+    return (
+        value.detach()
+        .cpu()
+        .contiguous()
+        .view(torch.uint8)
+        .numpy()
+        .tobytes(order="C")
+    )
+
+
+def checkpoint_inference_signature(
+    checkpoint: object,
+    *,
+    parameter_schema: object,
+    descriptor_sha256: object,
+) -> dict[str, object]:
+    """Rebuild raw-backbone value evidence directly from a terminal checkpoint."""
+
+    if (
+        type(checkpoint) is not dict
+        or type(checkpoint.get("model")) is not dict
+        or not checkpoint["model"]
+        or type(parameter_schema) is not list
+        or not parameter_schema
+        or not _lower_sha256(descriptor_sha256)
+    ):
+        raise ValueError("checkpoint inference evidence differs")
+    parameter_names: set[str] = set()
+    for row in parameter_schema:
+        if type(row) is not dict or type(row.get("name")) is not str:
+            raise ValueError("checkpoint inference parameter schema differs")
+        name = row["name"]
+        if name == "classifier":
+            continue
+        if not name.startswith("raw_model.") or name == "raw_model.":
+            raise ValueError("checkpoint inference parameter schema differs")
+        raw_name = name.removeprefix("raw_model.")
+        if raw_name in parameter_names:
+            raise ValueError("checkpoint inference parameter schema differs")
+        parameter_names.add(raw_name)
+    state = checkpoint["model"]
+    if not parameter_names or not parameter_names.issubset(state):
+        raise ValueError("checkpoint inference state inventory differs")
+    ema = checkpoint.get("ema")
+    if ema is not None:
+        if type(ema) is not dict or type(ema.get("backbone")) is not dict:
+            raise ValueError("checkpoint inference parameter inventory differs")
+        intrinsic_parameter_names = set(ema["backbone"])
+        if intrinsic_parameter_names != parameter_names:
+            raise ValueError("checkpoint inference parameter inventory differs")
+    schema_by_name = {
+        row["name"].removeprefix("raw_model."): row
+        for row in parameter_schema
+        if row["name"] != "classifier"
+    }
+    for name in parameter_names:
+        value = state[name]
+        row = schema_by_name[name]
+        if (
+            not isinstance(value, torch.Tensor)
+            or row.get("shape") != list(value.shape)
+            or row.get("dtype") != str(value.dtype)
+        ):
+            raise ValueError("checkpoint inference parameter schema differs")
+    classifier_rows = [row for row in parameter_schema if row["name"] == "classifier"]
+    classifier = checkpoint.get("classifier")
+    if (
+        len(classifier_rows) != 1
+        or (
+            classifier is not None
+            and (
+                not isinstance(classifier, torch.Tensor)
+                or classifier_rows[0].get("shape") != list(classifier.shape)
+                or classifier_rows[0].get("dtype") != str(classifier.dtype)
+            )
+        )
+    ):
+        raise ValueError("checkpoint inference classifier schema differs")
+    aggregate = hashlib.sha256()
+    tensors = []
+    total_bytes = 0
+    for name in sorted(state):
+        if type(name) is not str:
+            raise ValueError("checkpoint inference state inventory differs")
+        value = state[name]
+        payload = _canonical_tensor_bytes(value)
+        row = {
+            "name": name,
+            "kind": "parameter" if name in parameter_names else "buffer",
+            "shape": list(value.shape),
+            "dtype": str(value.dtype),
+            "numel": value.numel(),
+            "element_size": value.element_size(),
+            "bytes": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+        metadata = json.dumps(
+            {key: row[key] for key in tuple(row)[:-1]}, separators=(",", ":")
+        ).encode()
+        aggregate.update(len(metadata).to_bytes(8, "big"))
+        aggregate.update(metadata)
+        aggregate.update(len(payload).to_bytes(8, "big"))
+        aggregate.update(payload)
+        total_bytes += len(payload)
+        tensors.append(row)
+    return {
+        "schema": "unicom-inference-signature-v1",
+        "tensors": tensors,
+        "total_bytes": total_bytes,
+        "aggregate_sha256": aggregate.hexdigest(),
+        "descriptor_dtype": "torch.float32",
+        "descriptor_dimension": 512,
+        "descriptor_sha256": descriptor_sha256,
+        "operations": list(INFERENCE_OPERATIONS),
+    }
+
+
+def require_same_arm_checkpoint_signature(
+    checkpoint: object,
+    *,
+    recorded: object,
+    parameter_schema: object,
+    descriptor_sha256: object,
+) -> None:
+    expected = checkpoint_inference_signature(
+        checkpoint,
+        parameter_schema=parameter_schema,
+        descriptor_sha256=descriptor_sha256,
+    )
+    if not _strict_typed_equal(recorded, expected):
+        raise ValueError("checkpoint inference authenticity differs")
 
 
 def _finite_float(value: object, name: str) -> float:
@@ -110,19 +254,28 @@ def _exploratory_observation(
         if ap_at_r < 0.0 or ap_at_r > 1.0:
             raise ValueError("exploratory query evidence differs")
         paths.append(row["query_path"])
-        normalized_queries.append(
-            {
-                "query_path": row["query_path"],
-                "top1_correct": row["top1_correct"],
-                "ap_at_r": ap_at_r,
-            }
-        )
+        normalized = {
+            "query_path": row["query_path"],
+            "top1_correct": row["top1_correct"],
+            "ap_at_r": ap_at_r,
+        }
+        if "query_label" in row or "relevant_gallery_count" in row:
+            if (
+                type(row.get("query_label")) is not str
+                or not row["query_label"]
+                or type(row.get("relevant_gallery_count")) is not int
+                or row["relevant_gallery_count"] <= 0
+            ):
+                raise ValueError("exploratory query evidence differs")
+            normalized["query_label"] = row["query_label"]
+            normalized["relevant_gallery_count"] = row["relevant_gallery_count"]
+        normalized_queries.append(normalized)
     if len(paths) != len(set(paths)):
         raise ValueError("exploratory query order differs")
     steps = value.get("optimizer_steps_per_epoch")
     if type(steps) is not int or steps <= 0:
         raise ValueError("exploratory optimizer step count differs")
-    return {
+    result = {
         "history": normalized_history,
         "query_evidence": normalized_queries,
         "initialization_seconds": _positive_float(
@@ -133,6 +286,17 @@ def _exploratory_observation(
             value.get("profiled_step_wall"), "exploratory profiled step wall"
         ),
     }
+    paired_keys = (
+        "query_inventory",
+        "gallery_inventory",
+        "gallery_inventory_sha256",
+        "geometry",
+    )
+    if any(key in value for key in paired_keys):
+        if not all(key in value for key in paired_keys):
+            raise ValueError("paired query unit differs")
+        result.update({key: value[key] for key in paired_keys})
+    return result
 
 
 def _first_attainment(history: list[dict[str, object]], target: float) -> int | None:
@@ -153,6 +317,45 @@ def _profiled_compute(observation: Mapping[str, object], epoch: int) -> float:
     )
 
 
+def evaluate_epoch4(
+    control: object, candidate: object, *, structural_all: bool
+) -> dict[str, object]:
+    """Apply only the controller-visible stop-4 gate before any continuation."""
+
+    if type(structural_all) is not bool:
+        raise ValueError("epoch4 structural predicate differs")
+
+    def arm(value: object, mode: str) -> float:
+        if (
+            type(value) is not dict
+            or value.get("mode") != mode
+            or value.get("training_seed") != 0
+            or value.get("holdout_seed") != 0
+            or type(value.get("history")) is not list
+            or len(value["history"]) != 1
+        ):
+            raise ValueError("epoch4 history differs")
+        row = value["history"][0]
+        if (
+            type(row) is not dict
+            or row.get("epoch") != 4
+            or type(row.get("metrics")) is not dict
+        ):
+            raise ValueError("epoch4 history differs")
+        return _finite_float(row["metrics"].get("map_at_r"), "epoch4 mAP")
+
+    delta = math.fsum((arm(candidate, "fepf_mean"), -arm(control, "imprinted")))
+    passes = structural_all and delta >= EPOCH4_MAP_DELTA_MIN
+    decision = "PASS_TO_RESUME" if passes else "CLOSE_EPOCH4"
+    return {
+        "decision": decision,
+        "clause": decision,
+        "epoch4_delta_map": delta,
+        "epoch4_pass": passes,
+        "structural_all": structural_all,
+    }
+
+
 def evaluate_exploratory(
     control: object, candidate: object, *, structural_all: bool
 ) -> dict[str, object]:
@@ -166,6 +369,13 @@ def evaluate_exploratory(
     )
     control_queries = control_values["query_evidence"]
     candidate_queries = candidate_values["query_evidence"]
+    if any(key in control_values or key in candidate_values for key in (
+        "query_inventory",
+        "gallery_inventory",
+        "gallery_inventory_sha256",
+        "geometry",
+    )):
+        paired_query_deltas(control_values, candidate_values)
     control_paths = tuple(row["query_path"] for row in control_queries)
     candidate_paths = tuple(row["query_path"] for row in candidate_queries)
     if control_paths != candidate_paths:
@@ -322,6 +532,50 @@ def query_bootstrap(pair_query_deltas: object) -> dict[str, object]:
     }
 
 
+def paired_query_deltas(
+    control: Mapping[str, object], candidate: Mapping[str, object]
+) -> tuple[float, ...]:
+    """Require one exact paired query/gallery/geometry unit before subtraction."""
+
+    comparison_keys = (
+        "query_inventory",
+        "gallery_inventory",
+        "gallery_inventory_sha256",
+        "geometry",
+    )
+    if any(
+        key not in control
+        or key not in candidate
+        or not _strict_typed_equal(control[key], candidate[key])
+        for key in comparison_keys
+    ):
+        raise ValueError("paired query unit differs")
+    control_rows = control.get("query_evidence")
+    candidate_rows = candidate.get("query_evidence")
+    if type(control_rows) is not list or type(candidate_rows) is not list:
+        raise ValueError("paired query unit differs")
+    control_units = [
+        [row.get("query_path"), row.get("query_label"), row.get("relevant_gallery_count")]
+        for row in control_rows
+        if type(row) is dict
+    ]
+    candidate_units = [
+        [row.get("query_path"), row.get("query_label"), row.get("relevant_gallery_count")]
+        for row in candidate_rows
+        if type(row) is dict
+    ]
+    if (
+        control_units != control["query_inventory"]
+        or candidate_units != candidate["query_inventory"]
+        or not _strict_typed_equal(control_units, candidate_units)
+    ):
+        raise ValueError("paired query unit differs")
+    return tuple(
+        float(np.float64(right["ap_at_r"]) - np.float64(left["ap_at_r"]))
+        for left, right in zip(control_rows, candidate_rows, strict=True)
+    )
+
+
 def _confirmation_observation(
     value: object,
     *,
@@ -382,13 +636,22 @@ def _confirmation_observation(
         if not 0.0 <= ap_at_r <= 1.0:
             raise ValueError("confirmation query evidence differs")
         paths.append(row["query_path"])
-        normalized_queries.append(
-            {
-                "query_path": row["query_path"],
-                "top1_correct": row["top1_correct"],
-                "ap_at_r": ap_at_r,
-            }
-        )
+        normalized = {
+            "query_path": row["query_path"],
+            "top1_correct": row["top1_correct"],
+            "ap_at_r": ap_at_r,
+        }
+        if "query_label" in row or "relevant_gallery_count" in row:
+            if (
+                type(row.get("query_label")) is not str
+                or not row["query_label"]
+                or type(row.get("relevant_gallery_count")) is not int
+                or row["relevant_gallery_count"] <= 0
+            ):
+                raise ValueError("confirmation query evidence differs")
+            normalized["query_label"] = row["query_label"]
+            normalized["relevant_gallery_count"] = row["relevant_gallery_count"]
+        normalized_queries.append(normalized)
     if len(paths) != len(set(paths)):
         raise ValueError("confirmation query order differs")
     steps = value.get("optimizer_steps_per_epoch")
@@ -404,7 +667,7 @@ def _confirmation_observation(
         or reserved < allocated
     ):
         raise ValueError("confirmation memory profile differs")
-    return {
+    result = {
         "history": normalized_history,
         "query_evidence": normalized_queries,
         "initialization_seconds": _positive_float(
@@ -417,6 +680,17 @@ def _confirmation_observation(
         "peak_allocated_bytes": allocated,
         "peak_reserved_bytes": reserved,
     }
+    paired_keys = (
+        "query_inventory",
+        "gallery_inventory",
+        "gallery_inventory_sha256",
+        "geometry",
+    )
+    if any(key in value for key in paired_keys):
+        if not all(key in value for key in paired_keys):
+            raise ValueError("paired query unit differs")
+        result.update({key: value[key] for key in paired_keys})
+    return result
 
 
 def evaluate_confirmation(pairs: object) -> dict[str, object]:
@@ -464,12 +738,18 @@ def evaluate_confirmation(pairs: object) -> dict[str, object]:
             row["query_path"] for row in candidate_queries
         ):
             raise ValueError("confirmation query order differs")
-        query_deltas = tuple(
-            float(np.float64(candidate_row["ap_at_r"]) - np.float64(control_row["ap_at_r"]))
-            for control_row, candidate_row in zip(
-                control_queries, candidate_queries, strict=True
+        if all(key in control for key in ("query_inventory", "gallery_inventory", "geometry")):
+            query_deltas = paired_query_deltas(control, candidate)
+        else:
+            query_deltas = tuple(
+                float(
+                    np.float64(candidate_row["ap_at_r"])
+                    - np.float64(control_row["ap_at_r"])
+                )
+                for control_row, candidate_row in zip(
+                    control_queries, candidate_queries, strict=True
+                )
             )
-        )
         pair_query_deltas.append(query_deltas)
         map_delta = float(
             np.float64(candidate["history"][-1]["metrics"]["map_at_r"])
@@ -659,6 +939,90 @@ def _strict_json_file(path: Path, *, canonical: bool = True) -> object:
     return _strict_json_bytes(path.read_bytes(), canonical=canonical)
 
 
+def build_evidence_manifest(entries: object) -> dict[str, object]:
+    """Hash an exact ordered inventory of transitive external authorities."""
+
+    if type(entries) is not list or not entries:
+        raise ValueError("evidence manifest differs")
+    normalized = []
+    paths: set[Path] = set()
+    identities: set[tuple[str, str]] = set()
+    digest = hashlib.sha256(b"unicom-fepf-evidence-manifest-v1\0")
+    for entry in entries:
+        if (
+            type(entry) is not dict
+            or tuple(entry) != ("role", "identity", "path")
+            or type(entry["role"]) is not str
+            or not entry["role"]
+            or type(entry["identity"]) is not str
+            or not entry["identity"]
+            or not isinstance(entry["path"], Path)
+        ):
+            raise ValueError("evidence manifest entry differs")
+        path = entry["path"]
+        if (
+            path.absolute() != path.resolve()
+            or path.is_symlink()
+            or not path.is_file()
+        ):
+            raise ValueError("evidence manifest path differs")
+        identity = (entry["role"], entry["identity"])
+        if path in paths or identity in identities:
+            raise ValueError("duplicate evidence authority")
+        paths.add(path)
+        identities.add(identity)
+        row = {
+            "role": entry["role"],
+            "identity": entry["identity"],
+            "path": str(path),
+            "bytes": path.stat().st_size,
+            "sha256": _sha256_file(path),
+        }
+        encoded = json.dumps(row, separators=(",", ":"), ensure_ascii=False).encode()
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+        normalized.append(row)
+    return {
+        "schema": "unicom-fepf-evidence-manifest-v1",
+        "entries": normalized,
+        "sha256": digest.hexdigest(),
+    }
+
+
+def validate_profile_process_order(receipts: object) -> None:
+    """Require four fresh nonoverlapping C-FEPF-FEPF-C profile processes."""
+
+    if type(receipts) is not tuple or len(receipts) != 4:
+        raise ValueError("fresh profile inventory differs")
+    process_evidence: set[tuple[object, ...]] = set()
+    previous_finished: int | None = None
+    for receipt in receipts:
+        if type(receipt) is not dict:
+            raise ValueError("fresh profile evidence differs")
+        started = receipt.get("started_unix_ns")
+        finished = receipt.get("finished_unix_ns")
+        checkpoint = receipt.get("checkpoint")
+        run = receipt.get("run_receipt")
+        if (
+            type(started) is not int
+            or type(finished) is not int
+            or started < 0
+            or finished <= started
+            or type(checkpoint) is not dict
+            or not _lower_sha256(checkpoint.get("sha256"))
+            or type(run) is not dict
+            or not _lower_sha256(run.get("sha256"))
+        ):
+            raise ValueError("fresh profile evidence differs")
+        token = (started, finished, checkpoint["sha256"], run["sha256"])
+        if token in process_evidence:
+            raise ValueError("fresh profile evidence differs")
+        if previous_finished is not None and started <= previous_finished:
+            raise ValueError("quality profile chronology differs")
+        process_evidence.add(token)
+        previous_finished = finished
+
+
 def _validate_evidence_root(evidence_root: Path) -> Path:
     if not isinstance(evidence_root, Path):
         raise TypeError("FEPF evidence root must be a Path")
@@ -706,33 +1070,50 @@ def _resolve_descendant(
 def _validate_source_inventory(
     phase: str, sources: object
 ) -> list[dict[str, object]]:
-    expected_pairs = ((0, 0),) if phase == "exploratory" else CONFIRMATION_PAIRS
+    if phase not in {"epoch4", "exploratory", "confirmation"}:
+        raise ValueError("FEPF result phase differs")
+    expected_pairs = (
+        ((0, 0),) if phase in {"epoch4", "exploratory"} else CONFIRMATION_PAIRS
+    )
     if type(sources) is not list or len(sources) != len(expected_pairs):
         raise ValueError("FEPF result source inventory differs")
     normalized = []
     for source, expected_pair in zip(sources, expected_pairs, strict=True):
+        expected_keys = (
+            "training_seed",
+            "holdout_seed",
+            "control_root",
+            "candidate_root",
+            "quality_profiles",
+        )
+        if phase == "epoch4" and type(source) is dict:
+            config = source.get("config")
+            if (
+                type(config) is not dict
+                or tuple(config) != ("path", "sha256", "bytes")
+                or type(config["path"]) is not str
+                or Path(config["path"]) != Path(config["path"]).resolve()
+                or not _lower_sha256(config["sha256"])
+                or type(config["bytes"]) is not int
+                or config["bytes"] <= 0
+            ):
+                raise ValueError("FEPF epoch4 config authority differs")
         if (
             type(source) is not dict
             or tuple(source)
-            != (
-                "training_seed",
-                "holdout_seed",
-                "control_root",
-                "candidate_root",
-                "quality_profiles",
-            )
+            != (expected_keys + ("config",) if phase == "epoch4" else expected_keys)
             or type(source["training_seed"]) is not int
             or type(source["holdout_seed"]) is not int
             or (source["training_seed"], source["holdout_seed"]) != expected_pair
             or type(source["quality_profiles"]) is not list
-            or len(source["quality_profiles"]) != 4
+            or len(source["quality_profiles"]) != (0 if phase == "epoch4" else 4)
         ):
             raise ValueError("FEPF result source pair order differs")
         _relative_parts(source["control_root"], "control root")
         _relative_parts(source["candidate_root"], "candidate root")
         for path in source["quality_profiles"]:
             _relative_parts(path, "quality profile")
-        if len(set(source["quality_profiles"])) != 4:
+        if len(set(source["quality_profiles"])) != len(source["quality_profiles"]):
             raise ValueError("FEPF result quality profile order differs")
         normalized.append(dict(source))
     return normalized
@@ -866,8 +1247,12 @@ def _initialization_duration(
     )
 
 
-def _history_observation(history: object) -> tuple[list[dict[str, object]], int]:
-    if type(history) is not list or len(history) != 16:
+def _history_observation(
+    history: object, *, stop_after_epoch: int = 16
+) -> tuple[list[dict[str, object]], int]:
+    if stop_after_epoch not in {4, 16}:
+        raise ValueError("FEPF history stop differs")
+    if type(history) is not list or len(history) != stop_after_epoch:
         raise ValueError("FEPF history differs")
     evaluation_history = []
     steps = []
@@ -905,7 +1290,17 @@ def _history_observation(history: object) -> tuple[list[dict[str, object]], int]
     return evaluation_history, steps[0]
 
 
-def _query_observation(evaluation: object, *, expected_epoch: int) -> list[dict[str, object]]:
+def _inventory_sha256(domain: bytes, inventory: object) -> str:
+    payload = json.dumps(
+        inventory, allow_nan=False, ensure_ascii=False, separators=(",", ":")
+    ).encode()
+    digest = hashlib.sha256(domain + b"\0")
+    digest.update(len(payload).to_bytes(8, "big"))
+    digest.update(payload)
+    return digest.hexdigest()
+
+
+def _query_observation(evaluation: object, *, expected_epoch: int) -> dict[str, object]:
     if (
         type(evaluation) is not dict
         or evaluation.get("epoch") != expected_epoch
@@ -919,6 +1314,10 @@ def _query_observation(evaluation: object, *, expected_epoch: int) -> list[dict[
         if (
             type(row) is not dict
             or type(row.get("query_path")) is not str
+            or type(row.get("query_label")) is not str
+            or not row["query_label"]
+            or type(row.get("relevant_gallery_count")) is not int
+            or row["relevant_gallery_count"] <= 0
             or type(row.get("ap_at_r")) is not float
             or not math.isfinite(row["ap_at_r"])
             or type(ranked) is not list
@@ -930,11 +1329,49 @@ def _query_observation(evaluation: object, *, expected_epoch: int) -> list[dict[
         result.append(
             {
                 "query_path": row["query_path"],
+                "query_label": row["query_label"],
+                "relevant_gallery_count": row["relevant_gallery_count"],
                 "top1_correct": ranked[0]["correct"],
                 "ap_at_r": row["ap_at_r"],
             }
         )
-    return result
+    query_records = evaluation.get("query_records")
+    gallery_records = evaluation.get("gallery_records")
+    geometry = evaluation.get("geometry")
+    if (
+        type(query_records) is not list
+        or type(gallery_records) is not list
+        or not gallery_records
+        or type(geometry) is not dict
+    ):
+        raise ValueError("FEPF paired query unit differs")
+    query_inventory = [
+        [row["image_name"], row["label"], evidence["relevant_gallery_count"]]
+        for row, evidence in zip(query_records, result, strict=True)
+        if type(row) is dict
+        and tuple(row) == ("image_name", "label")
+        and row["image_name"] == evidence["query_path"]
+        and row["label"] == evidence["query_label"]
+    ]
+    gallery_inventory = [
+        [row["image_name"], row["label"]]
+        for row in gallery_records
+        if type(row) is dict
+        and tuple(row) == ("image_name", "label")
+        and type(row["image_name"]) is str
+        and type(row["label"]) is str
+    ]
+    if len(query_inventory) != len(result) or len(gallery_inventory) != len(gallery_records):
+        raise ValueError("FEPF paired query unit differs")
+    return {
+        "query_evidence": result,
+        "query_inventory": query_inventory,
+        "gallery_inventory": gallery_inventory,
+        "gallery_inventory_sha256": _inventory_sha256(
+            b"unicom-fepf-gallery-inventory-v1", gallery_inventory
+        ),
+        "geometry": dict(geometry),
+    }
 
 
 def _pooled_quality_profile(
@@ -962,10 +1399,11 @@ def _pooled_quality_profile(
 def _load_arm_observation(
     *,
     run_root: Path,
-    profiles: tuple[dict[str, object], dict[str, object]],
+    profiles: tuple[dict[str, object], ...],
     expected_mode: str,
     training_seed: int,
     holdout_seed: int,
+    stop_after_epoch: int,
     trainer,
 ) -> dict[str, object]:
     run_path = run_root / "run-receipt.json"
@@ -977,7 +1415,7 @@ def _load_arm_observation(
         run_receipt.get("mode") != expected_mode
         or run_receipt.get("training_seed") != training_seed
         or run_receipt.get("holdout_seed") != holdout_seed
-        or run_receipt.get("stop_after_epoch") != 16
+        or run_receipt.get("stop_after_epoch") != stop_after_epoch
     ):
         raise ValueError("FEPF run identity differs")
     history_path = _bound_file(
@@ -988,7 +1426,9 @@ def _load_arm_observation(
     )
     history = _strict_json_file(history_path)
     trainer.validate_fepf_result(history, run_root)
-    normalized_history, steps = _history_observation(history)
+    normalized_history, steps = _history_observation(
+        history, stop_after_epoch=stop_after_epoch
+    )
     parent_root = _parent_evidence_root(run_receipt, run_root)
     initialization_path = _bound_file(
         run_receipt["initialization_receipt"],
@@ -997,7 +1437,12 @@ def _load_arm_observation(
         name="initialization receipt",
     )
     initialization = _strict_json_file(initialization_path)
-    config_authority = profiles[0]["config"]
+    if profiles:
+        config_authority = profiles[0]["config"]
+    else:
+        config_authority = {
+            "sha256": initialization.get("config_sha256"),
+        }
     initialization_seconds = _initialization_duration(
         initialization,
         run_receipt=run_receipt,
@@ -1011,20 +1456,202 @@ def _load_arm_observation(
         name="terminal evaluation",
     )
     evaluation = _strict_json_file(terminal_path)
-    query_evidence = _query_observation(evaluation, expected_epoch=16)
-    step_wall, allocated, reserved = _pooled_quality_profile(profiles)
-    return {
+    query_unit = _query_observation(evaluation, expected_epoch=stop_after_epoch)
+    checkpoint_binding = run_receipt["checkpoints"][-1]
+    checkpoint_path = _bound_file(
+        {key: checkpoint_binding[key] for key in ("root", "path", "sha256", "bytes")},
+        current_root=run_root,
+        parent_root=parent_root,
+        name="terminal checkpoint",
+    )
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+    if profiles:
+        parameter_schema = profiles[0]["parameter_schema"]
+        if any(
+            not _strict_typed_equal(profile["parameter_schema"], parameter_schema)
+            for profile in profiles[1:]
+        ):
+            raise ValueError("checkpoint inference parameter schema differs")
+    else:
+        signature_rows = run_receipt["inference_signature"]["tensors"]
+        parameter_schema = [
+            {
+                "name": f"raw_model.{row['name']}",
+                "shape": row["shape"],
+                "dtype": row["dtype"],
+            }
+            for row in signature_rows
+            if row["kind"] == "parameter"
+        ]
+        classifier = checkpoint.get("classifier") if type(checkpoint) is dict else None
+        if not isinstance(classifier, torch.Tensor):
+            raise ValueError("checkpoint inference classifier differs")
+        parameter_schema.append(
+            {
+                "name": "classifier",
+                "shape": list(classifier.shape),
+                "dtype": str(classifier.dtype),
+            }
+        )
+    descriptor_sha256 = evaluation["evaluation_signature"]["descriptor_sha256"]
+    require_same_arm_checkpoint_signature(
+        checkpoint,
+        recorded=run_receipt["inference_signature"],
+        parameter_schema=parameter_schema,
+        descriptor_sha256=descriptor_sha256,
+    )
+    for profile in profiles:
+        require_same_arm_checkpoint_signature(
+            checkpoint,
+            recorded=profile["inference_signature"],
+            parameter_schema=profile["parameter_schema"],
+            descriptor_sha256=descriptor_sha256,
+        )
+    result = {
         "mode": expected_mode,
         "training_seed": training_seed,
         "holdout_seed": holdout_seed,
         "history": normalized_history,
-        "query_evidence": query_evidence,
+        **query_unit,
         "initialization_seconds": initialization_seconds,
         "optimizer_steps_per_epoch": steps,
-        "profiled_step_wall": step_wall,
-        "peak_allocated_bytes": allocated,
-        "peak_reserved_bytes": reserved,
     }
+    if profiles:
+        step_wall, allocated, reserved = _pooled_quality_profile(
+            (profiles[0], profiles[1])
+        )
+        result.update(
+            {
+                "profiled_step_wall": step_wall,
+                "peak_allocated_bytes": allocated,
+                "peak_reserved_bytes": reserved,
+            }
+        )
+    return result
+
+
+def _record_evidence(
+    entries: list[dict[str, object]],
+    seen: set[Path],
+    *,
+    role: str,
+    identity: str,
+    path: Path,
+) -> None:
+    resolved = path.resolve()
+    if resolved in seen:
+        return
+    seen.add(resolved)
+    entries.append({"role": role, "identity": identity, "path": resolved})
+
+
+def _record_run_transitive_evidence(
+    *,
+    run_root: Path,
+    pair_identity: str,
+    arm: str,
+    trainer,
+    entries: list[dict[str, object]],
+    seen: set[Path],
+) -> None:
+    """Enumerate every validated run, parent, artifact, and descriptor preimage."""
+
+    run_path = run_root / "run-receipt.json"
+    run_receipt = _strict_json_file(run_path)
+    if type(run_receipt) is not dict:
+        raise ValueError("FEPF run evidence differs")
+    trainer.validate_training_run_receipt_v2(run_receipt, evidence_root=run_root)
+    prefix = f"{pair_identity}.{arm}"
+    _record_evidence(
+        entries,
+        seen,
+        role=f"{prefix}.run_receipt",
+        identity=str(run_path),
+        path=run_path,
+    )
+    parent_root = _parent_evidence_root(run_receipt, run_root)
+    parent_binding = run_receipt.get("parent_run_receipt")
+    if parent_root is not None:
+        parent_path = _bound_file(
+            parent_binding,
+            current_root=run_root,
+            parent_root=parent_root,
+            name="parent run receipt",
+        )
+        if parent_path != parent_root / "run-receipt.json":
+            raise ValueError("FEPF parent run authority differs")
+        _record_run_transitive_evidence(
+            run_root=parent_root,
+            pair_identity=pair_identity,
+            arm=f"{arm}.parent",
+            trainer=trainer,
+            entries=entries,
+            seen=seen,
+        )
+    for role, binding in (
+        ("initialization_receipt", run_receipt["initialization_receipt"]),
+        ("history", run_receipt["history"]),
+    ):
+        path = _bound_file(
+            binding,
+            current_root=run_root,
+            parent_root=parent_root,
+            name=role.replace("_", " "),
+        )
+        _record_evidence(
+            entries,
+            seen,
+            role=f"{prefix}.{role}",
+            identity=f"{binding['root']}:{binding['path']}",
+            path=path,
+        )
+    for collection, singular in (("checkpoints", "checkpoint"), ("evaluations", "evaluation")):
+        for binding in run_receipt[collection]:
+            path = _bound_file(
+                {key: binding[key] for key in ("root", "path", "sha256", "bytes")},
+                current_root=run_root,
+                parent_root=parent_root,
+                name=singular,
+            )
+            epoch = binding["epoch"]
+            _record_evidence(
+                entries,
+                seen,
+                role=f"{prefix}.{singular}.epoch{epoch}",
+                identity=f"{binding['root']}:{binding['path']}",
+                path=path,
+            )
+            if singular != "evaluation":
+                continue
+            evaluation = _strict_json_file(path)
+            for descriptor_name in ("query_descriptors", "gallery_descriptors"):
+                descriptor = evaluation.get(descriptor_name)
+                if (
+                    type(descriptor) is not dict
+                    or type(descriptor.get("path")) is not str
+                    or not _lower_sha256(descriptor.get("sha256"))
+                    or type(descriptor.get("bytes")) is not int
+                    or descriptor["bytes"] <= 0
+                ):
+                    raise ValueError("FEPF descriptor authority differs")
+                descriptor_path = _resolve_descendant(
+                    path.parent,
+                    descriptor["path"],
+                    name=descriptor_name.replace("_", " "),
+                    directory=False,
+                )
+                if (
+                    descriptor_path.stat().st_size != descriptor["bytes"]
+                    or _sha256_file(descriptor_path) != descriptor["sha256"]
+                ):
+                    raise ValueError("FEPF descriptor authority differs")
+                _record_evidence(
+                    entries,
+                    seen,
+                    role=f"{prefix}.{descriptor_name}.epoch{epoch}",
+                    identity=descriptor["path"],
+                    path=descriptor_path,
+                )
 
 
 def _reload_registered_pairs(
@@ -1032,17 +1659,14 @@ def _reload_registered_pairs(
     observed_sources: list[dict[str, object]],
     evidence_root: Path,
     phase: str,
-) -> tuple[tuple[dict[str, object], ...], dict[str, object], str]:
+) -> tuple[tuple[dict[str, object], ...], dict[str, object], dict[str, object]]:
     trainer, profiler = _authority_modules()
     pairs = []
     common_config = None
-    evidence_digest = hashlib.sha256(b"unicom-fepf-source-evidence-v1\0")
+    evidence_entries: list[dict[str, object]] = []
+    seen_evidence: set[Path] = set()
     for source in observed_sources:
-        source_payload = json.dumps(
-            source, allow_nan=False, ensure_ascii=False, separators=(",", ":")
-        ).encode()
-        evidence_digest.update(len(source_payload).to_bytes(8, "big"))
-        evidence_digest.update(source_payload)
+        pair_identity = f"seed{source['training_seed']}-holdout{source['holdout_seed']}"
         control_root = _resolve_descendant(
             evidence_root, source["control_root"], name="control root", directory=True
         )
@@ -1053,45 +1677,77 @@ def _reload_registered_pairs(
             directory=True,
         )
         profile_receipts = []
-        authority_paths = [
-            control_root / "run-receipt.json",
-            candidate_root / "run-receipt.json",
-        ]
         for relative in source["quality_profiles"]:
             profile_path = _resolve_descendant(
                 evidence_root, relative, name="quality profile", directory=False
             )
-            authority_paths.append(profile_path)
             profile = _strict_json_file(profile_path)
             if type(profile) is not dict:
                 raise ValueError("FEPF quality profile differs")
             profiler.validate_quality_profile(profile)
             profile_receipts.append(profile)
-        for authority_path in authority_paths:
-            payload = authority_path.read_bytes()
-            evidence_digest.update(len(payload).to_bytes(8, "big"))
-            evidence_digest.update(payload)
-        expected_run_paths = (
-            control_root / "run-receipt.json",
-            candidate_root / "run-receipt.json",
-            candidate_root / "run-receipt.json",
-            control_root / "run-receipt.json",
-        )
-        for profile, expected_run in zip(
-            profile_receipts, expected_run_paths, strict=True
-        ):
-            authority = profile.get("run_receipt")
+            _record_evidence(
+                evidence_entries,
+                seen_evidence,
+                role=f"{pair_identity}.quality_profile.{len(profile_receipts) - 1}",
+                identity=relative,
+                path=profile_path,
+            )
+        if phase == "epoch4":
+            config_authority = source.get("config")
+            if type(config_authority) is not dict:
+                raise ValueError("FEPF epoch4 config authority differs")
+            config_path = Path(config_authority["path"])
             if (
-                type(authority) is not dict
-                or Path(authority.get("path", "")) != expected_run
+                config_path != config_path.resolve()
+                or config_path.is_symlink()
+                or not config_path.is_file()
+                or config_path.stat().st_size != config_authority["bytes"]
+                or _sha256_file(config_path) != config_authority["sha256"]
             ):
-                raise ValueError("FEPF quality profile arm order differs")
-            if common_config is None:
-                common_config = dict(profile["config"])
-            elif not _strict_typed_equal(profile["config"], common_config):
-                raise ValueError("FEPF quality profile config differs")
-        control_profiles = (profile_receipts[0], profile_receipts[3])
-        candidate_profiles = (profile_receipts[1], profile_receipts[2])
+                raise ValueError("FEPF epoch4 config authority differs")
+            common_config = dict(config_authority)
+            _record_evidence(
+                evidence_entries,
+                seen_evidence,
+                role=f"{pair_identity}.config",
+                identity=str(config_path),
+                path=config_path,
+            )
+            control_profiles = ()
+            candidate_profiles = ()
+        else:
+            expected_run_paths = (
+                control_root / "run-receipt.json",
+                candidate_root / "run-receipt.json",
+                candidate_root / "run-receipt.json",
+                control_root / "run-receipt.json",
+            )
+            for profile, expected_run in zip(
+                profile_receipts, expected_run_paths, strict=True
+            ):
+                authority = profile.get("run_receipt")
+                if (
+                    type(authority) is not dict
+                    or Path(authority.get("path", "")) != expected_run
+                ):
+                    raise ValueError("FEPF quality profile arm order differs")
+                if common_config is None:
+                    common_config = dict(profile["config"])
+                elif not _strict_typed_equal(profile["config"], common_config):
+                    raise ValueError("FEPF quality profile config differs")
+                for role in ("checkpoint", "run_receipt", "config"):
+                    authority_path = Path(profile[role]["path"])
+                    _record_evidence(
+                        evidence_entries,
+                        seen_evidence,
+                        role=f"{pair_identity}.profile.{role}",
+                        identity=str(authority_path),
+                        path=authority_path,
+                    )
+            validate_profile_process_order(tuple(profile_receipts))
+            control_profiles = (profile_receipts[0], profile_receipts[3])
+            candidate_profiles = (profile_receipts[1], profile_receipts[2])
         training_seed = source["training_seed"]
         holdout_seed = source["holdout_seed"]
         control = _load_arm_observation(
@@ -1100,6 +1756,7 @@ def _reload_registered_pairs(
             expected_mode="imprinted",
             training_seed=training_seed,
             holdout_seed=holdout_seed,
+            stop_after_epoch=4 if phase == "epoch4" else 16,
             trainer=trainer,
         )
         candidate = _load_arm_observation(
@@ -1108,13 +1765,42 @@ def _reload_registered_pairs(
             expected_mode="fepf_mean",
             training_seed=training_seed,
             holdout_seed=holdout_seed,
+            stop_after_epoch=4 if phase == "epoch4" else 16,
             trainer=trainer,
+        )
+        _record_run_transitive_evidence(
+            run_root=control_root,
+            pair_identity=pair_identity,
+            arm="control",
+            trainer=trainer,
+            entries=evidence_entries,
+            seen=seen_evidence,
+        )
+        _record_run_transitive_evidence(
+            run_root=candidate_root,
+            pair_identity=pair_identity,
+            arm="candidate",
+            trainer=trainer,
+            entries=evidence_entries,
+            seen=seen_evidence,
         )
         structural_equal = True
         try:
             trainer.require_cross_arm_inference_equality(
-                profile_receipts[0]["inference_signature"],
-                profile_receipts[1]["inference_signature"],
+                (
+                    profile_receipts[0]["inference_signature"]
+                    if profile_receipts
+                    else _strict_json_file(control_root / "run-receipt.json")[
+                        "inference_signature"
+                    ]
+                ),
+                (
+                    profile_receipts[1]["inference_signature"]
+                    if profile_receipts
+                    else _strict_json_file(candidate_root / "run-receipt.json")[
+                        "inference_signature"
+                    ]
+                ),
             )
         except ValueError:
             structural_equal = False
@@ -1129,17 +1815,17 @@ def _reload_registered_pairs(
         )
     if common_config is None:
         raise ValueError("FEPF result config authority differs")
-    return tuple(pairs), common_config, evidence_digest.hexdigest()
+    return tuple(pairs), common_config, build_evidence_manifest(evidence_entries)
 
 
 def _recomputed_result(
     *, phase: str, sources: object, evidence_root: Path
 ) -> dict[str, object]:
-    if phase not in {"exploratory", "confirmation"}:
+    if phase not in {"epoch4", "exploratory", "confirmation"}:
         raise ValueError("FEPF result phase differs")
     root = _validate_evidence_root(evidence_root)
     normalized_sources = _validate_source_inventory(phase, sources)
-    pairs, config, evidence_sha256 = _reload_registered_pairs(
+    pairs, config, evidence_manifest = _reload_registered_pairs(
         observed_sources=normalized_sources,
         evidence_root=root,
         phase=phase,
@@ -1153,7 +1839,28 @@ def _recomputed_result(
         or config["bytes"] <= 0
     ):
         raise ValueError("FEPF result config authority differs")
-    if phase == "exploratory":
+    if type(evidence_manifest) is str:
+        # Test doubles predating the manifest interface still bind their exact bytes.
+        evidence_manifest = {
+            "schema": "unicom-fepf-evidence-manifest-v1",
+            "entries": [],
+            "sha256": evidence_manifest,
+        }
+    if (
+        type(evidence_manifest) is not dict
+        or evidence_manifest.get("schema") != "unicom-fepf-evidence-manifest-v1"
+        or type(evidence_manifest.get("entries")) is not list
+        or not _lower_sha256(evidence_manifest.get("sha256"))
+    ):
+        raise ValueError("FEPF evidence manifest differs")
+    if phase == "epoch4":
+        pair = pairs[0]
+        decision = evaluate_epoch4(
+            pair["control"],
+            pair["candidate"],
+            structural_all=pair["structural_equal"],
+        )
+    elif phase == "exploratory":
         pair = pairs[0]
         decision = evaluate_exploratory(
             pair["control"],
@@ -1162,13 +1869,17 @@ def _recomputed_result(
         )
     else:
         decision = evaluate_confirmation(pairs)
+    structural_valid = all(pair["structural_equal"] for pair in pairs)
+    status = decision["decision"] if structural_valid else "INVALID"
+    clause = decision["clause"] if structural_valid else "INVALID_STRUCTURAL_PANEL"
     return {
         "schema": "unicom-fepf-result-v1",
         "phase": phase,
-        "status": decision["decision"],
-        "clause": decision["clause"],
+        "status": status,
+        "clause": clause,
         "evaluator_sha256": _sha256_file(Path(__file__).resolve()),
-        "evidence_sha256": evidence_sha256,
+        "evidence_manifest": evidence_manifest,
+        "evidence_sha256": evidence_manifest["sha256"],
         "config": dict(config),
         "sources": normalized_sources,
         "decision": decision,
@@ -1190,7 +1901,7 @@ def validate_fepf_result(result: object, evidence_root: Path) -> None:
         type(result) is not dict
         or tuple(result) != RESULT_KEYS
         or result.get("schema") != "unicom-fepf-result-v1"
-        or result.get("phase") not in {"exploratory", "confirmation"}
+        or result.get("phase") not in {"epoch4", "exploratory", "confirmation"}
     ):
         raise ValueError("FEPF result schema differs")
     expected = _recomputed_result(
@@ -1207,6 +1918,22 @@ def _path_lexists(path: Path) -> bool:
         path.lstat()
     except FileNotFoundError:
         return False
+    return True
+
+
+def _inode_identity(path: Path) -> tuple[int, int] | None:
+    try:
+        information = path.lstat()
+    except FileNotFoundError:
+        return None
+    return information.st_dev, information.st_ino
+
+
+def _unlink_owned(path: Path, owned: tuple[int, int], directory_descriptor: int) -> bool:
+    if _inode_identity(path) != owned:
+        return False
+    path.unlink()
+    os.fsync(directory_descriptor)
     return True
 
 
@@ -1236,25 +1963,33 @@ def write_fepf_result_atomic(
         raise FileExistsError(temporary)
     payload = (json.dumps(result, indent=2, allow_nan=False) + "\n").encode()
     directory_descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
-    linked = False
     owned: tuple[int, int] | None = None
+    owned_descriptor: int | None = None
     completed = False
     try:
         with temporary.open("xb") as handle:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        temporary_info = temporary.stat()
-        owned = (temporary_info.st_dev, temporary_info.st_ino)
+            owned_descriptor = os.dup(handle.fileno())
+            information = os.fstat(owned_descriptor)
+            owned = (information.st_dev, information.st_ino)
+        if owned is None or owned_descriptor is None:
+            raise RuntimeError("temporary FEPF result ownership differs")
+        if _inode_identity(temporary) != owned:
+            raise RuntimeError("temporary FEPF result ownership differs")
         persisted = _strict_json_file(temporary)
+        if _inode_identity(temporary) != owned:
+            raise RuntimeError("temporary FEPF result ownership differs")
         if not _strict_typed_equal(persisted, result):
             raise RuntimeError("persisted FEPF result bytes differ")
         validate_fepf_result(persisted, root)
+        if _inode_identity(temporary) != owned:
+            raise RuntimeError("temporary FEPF result ownership differs")
         os.link(temporary, output)
-        linked = True
         os.fsync(directory_descriptor)
-        temporary.unlink()
-        os.fsync(directory_descriptor)
+        if not _unlink_owned(temporary, owned, directory_descriptor):
+            raise RuntimeError("temporary FEPF result ownership differs")
         published = _strict_json_file(output)
         output_info = output.stat()
         if (
@@ -1266,19 +2001,26 @@ def write_fepf_result_atomic(
         completed = True
         return published
     finally:
-        if _path_lexists(temporary):
-            temporary.unlink()
-        if linked and not completed and owned is not None and _path_lexists(output):
-            info = output.stat()
-            if (info.st_dev, info.st_ino) == owned:
-                output.unlink()
-                os.fsync(directory_descriptor)
+        if owned is not None:
+            _unlink_owned(temporary, owned, directory_descriptor)
+        if (
+            not completed
+            and owned is not None
+            and _path_lexists(output)
+            and _inode_identity(output) == owned
+        ):
+            output.unlink()
+            os.fsync(directory_descriptor)
+        if owned_descriptor is not None:
+            os.close(owned_descriptor)
         os.close(directory_descriptor)
 
 
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("exploratory", "confirmation"), required=True)
+    parser.add_argument(
+        "--phase", choices=("epoch4", "exploratory", "confirmation"), required=True
+    )
     parser.add_argument("--sources", type=Path, required=True)
     parser.add_argument("--evidence-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
