@@ -5,6 +5,7 @@ import hashlib
 import importlib.util
 import json
 import stat
+import statistics
 import sys
 from pathlib import Path
 
@@ -397,6 +398,28 @@ def test_confirmation_artifact_is_exact_and_recomputed_from_bound_inputs() -> No
     }
     assert result["status"] == "INCOMPLETE_OPERATIONAL_EVIDENCE"
 
+    measured_failure = copy.deepcopy(operational)
+    measured_failure["memory_and_checkpoint_rows"][0][
+        "peak_allocated_ratio"
+    ] = 1.2
+    measured_failure["mean_peak_allocated_ratio"] = statistics.fmean(
+        row["peak_allocated_ratio"]
+        for row in measured_failure["memory_and_checkpoint_rows"]
+    )
+    measured_failure["predicates"]["mean_peak_allocated_ratio_at_most_1_02"] = False
+    measured_failure["status"] = "CLOSE_FULL_WIDTH"
+    closed = module.build_confirmation_result(
+        inputs=_artifact_inputs(),
+        quality=quality,
+        operational=measured_failure,
+    )
+    assert closed["decision"] == {
+        "quality": "SUPPORTED_HOLDOUT_QUALITY",
+        "registered_confirmation": "CLOSE_FULL_WIDTH",
+        "first_decisive_clause": "measured_confirmation_cost_predicates_failed",
+    }
+    assert closed["status"] == "CLOSE_FULL_WIDTH"
+
     for mutate in (
         lambda value: value["inputs"]["confirmation_seeds"][2]["pair_result"].__setitem__(
             "sha256", "f" * 64
@@ -414,6 +437,16 @@ def test_confirmation_artifact_is_exact_and_recomputed_from_bound_inputs() -> No
         with pytest.raises(ValueError):
             module.validate_confirmation_result(changed, expected=result)
 
+    relational_drift = copy.deepcopy(result)
+    relational_drift["quality"]["mean_primary_map_delta"] = 0.5
+    with pytest.raises(ValueError, match="quality relation"):
+        module.validate_confirmation_result(relational_drift)
+
+    bad_interval = copy.deepcopy(result)
+    bad_interval["operational"]["step_time"]["bootstrap_95"] = [1.1, 0.9]
+    with pytest.raises(ValueError, match="step-time interval"):
+        module.validate_confirmation_result(bad_interval)
+
 
 def test_main_publishes_once_strictly_and_never_clobbers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -426,13 +459,13 @@ def test_main_publishes_once_strictly_and_never_clobbers(
     config = tmp_path / "run.json"
     evidence_root = tmp_path / "evidence"
     evidence_root.mkdir()
-    output = evidence_root / "confirmation-result-v2.json"
+    output = evidence_root / "confirmation-result-v3.json"
     config.write_text(
         json.dumps(
             {
-                "schema_version": "unicom-full-width-objective-run-v2",
+                "schema_version": "unicom-full-width-objective-run-v3",
                 "paths": {"output_root": str(evidence_root)},
-                "registered_outputs": {"confirmation_result_v2": str(output)},
+                "registered_outputs": {"confirmation_result_v3": str(output)},
                 "command_templates": {"confirmation_command": ["python"]},
                 "confirmation_audit_inputs": {
                     "seed0_decision": _binding("seed0-decision", 2),
@@ -486,7 +519,7 @@ def test_main_rejects_an_unregistered_config_before_building(
     config.write_text("{}\n", encoding="utf-8")
     root = tmp_path / "evidence"
     root.mkdir()
-    output = root / "confirmation-result-v2.json"
+    output = root / "confirmation-result-v3.json"
     calls = []
     monkeypatch.setattr(
         module,
@@ -521,14 +554,14 @@ def test_run_config_binds_confirmation_command_and_audited_inputs() -> None:
         "--evidence-root",
         "/evidence",
         "--output",
-        "/evidence/confirmation-result-v2.json",
+        "/evidence/confirmation-result-v3.json",
     ]
     command = ["/python", "-I", "-B", "/launcher.py", "/confirm.py", *arguments]
     config = {
-        "schema_version": "unicom-full-width-objective-run-v2",
+        "schema_version": "unicom-full-width-objective-run-v3",
         "paths": {"output_root": "/evidence"},
         "registered_outputs": {
-            "confirmation_result_v2": "/evidence/confirmation-result-v2.json"
+            "confirmation_result_v3": "/evidence/confirmation-result-v3.json"
         },
         "command_templates": {"confirmation_command": command},
         "confirmation_audit_inputs": {
@@ -545,6 +578,72 @@ def test_run_config_binds_confirmation_command_and_audited_inputs() -> None:
     changed["command_templates"]["confirmation_command"][-1] = "/other.json"
     with pytest.raises(ValueError, match="confirmation command"):
         module._validate_run_config(changed, args, observed_command=command)
+
+
+def test_main_without_arguments_binds_the_launcher_original_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    quality, operational = _artifact_sections(module)
+    expected = module.build_confirmation_result(
+        inputs=_artifact_inputs(), quality=quality, operational=operational
+    )
+    evidence_root = tmp_path / "evidence"
+    evidence_root.mkdir()
+    config_path = tmp_path / "run.json"
+    output = evidence_root / "confirmation-result-v3.json"
+    arguments = [
+        "--run-config",
+        str(config_path),
+        "--evidence-root",
+        str(evidence_root),
+        "--output",
+        str(output),
+    ]
+    command = [
+        "/python",
+        "-I",
+        "-B",
+        "/launcher.py",
+        str(SCRIPT),
+        *arguments,
+    ]
+    config_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "unicom-full-width-objective-run-v3",
+                "paths": {"output_root": str(evidence_root)},
+                "registered_outputs": {"confirmation_result_v3": str(output)},
+                "command_templates": {"confirmation_command": command},
+                "confirmation_audit_inputs": {
+                    "seed0_decision": _binding("seed0-decision", 2),
+                    "seed0_profile_comparison": _binding("seed0-profile", 3),
+                    "confirmation_seeds": _artifact_inputs()["confirmation_seeds"],
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    calls: list[str] = []
+    monkeypatch.setattr(
+        module,
+        "authenticate_confirmation_handoff",
+        lambda _config, _checkout: calls.append("authenticate") or "a" * 40,
+    )
+    monkeypatch.setattr(
+        module,
+        "build_from_evidence",
+        lambda _config, _root, _output: calls.append("build")
+        or copy.deepcopy(expected),
+    )
+    monkeypatch.setattr(sys, "argv", [str(SCRIPT), *arguments])
+    monkeypatch.setattr(sys, "orig_argv", command)
+
+    assert module.main() == 0
+    assert calls == ["authenticate", "build"]
+    persisted = module.EVALUATOR.strict_json_object(output)
+    module.validate_confirmation_result(persisted, expected=expected)
 
 
 def _write_json(path: Path, value: object) -> dict[str, object]:
@@ -626,12 +725,12 @@ def test_build_from_evidence_recomputes_all_five_bound_seed_bundles(
                 ),
             }
         )
-    output = root / "confirmation-result-v2.json"
+    output = root / "confirmation-result-v3.json"
     config_path = tmp_path / "run.json"
     config = {
-        "schema_version": "unicom-full-width-objective-run-v2",
+        "schema_version": "unicom-full-width-objective-run-v3",
         "paths": {"output_root": str(root)},
-        "registered_outputs": {"confirmation_result_v2": str(output)},
+        "registered_outputs": {"confirmation_result_v3": str(output)},
         "command_templates": {"confirmation_command": ["python"]},
         "training_receipt_authority": {
             "source_commit": "d" * 40,
@@ -704,7 +803,7 @@ def test_independent_authenticator_recomputes_persisted_result(
     config.write_text("{}\n", encoding="utf-8")
     root = tmp_path / "evidence"
     root.mkdir()
-    output = root / "confirmation-result-v2.json"
+    output = root / "confirmation-result-v3.json"
     output.write_text(json.dumps(expected) + "\n", encoding="utf-8")
     monkeypatch.setattr(
         module,
@@ -717,5 +816,5 @@ def test_independent_authenticator_recomputes_persisted_result(
     changed = copy.deepcopy(expected)
     changed["quality"]["mean_primary_map_delta"] = 0.5
     output.write_text(json.dumps(changed) + "\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="recomputation"):
+    with pytest.raises(ValueError, match="quality relation"):
         module.authenticate_persisted_result(config, root, output)

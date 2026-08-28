@@ -31,6 +31,12 @@ TOP_KEYS = (
     "decision",
     "status",
 )
+MEASURED_OPERATIONAL_PREDICATES = (
+    "seed0_abba_step_time_ratio_at_most_1_02",
+    "mean_peak_allocated_ratio_at_most_1_02",
+    "mean_peak_reserved_ratio_at_most_1_02",
+    "checkpoint_bytes_exactly_equal",
+)
 
 
 def _load_sibling(name: str):
@@ -547,6 +553,7 @@ def build_operational_summary(
         "registered_mean_abba_available": False,
         "empirical_deployment_measurements_available": False,
     }
+    measured_pass = all(predicates[name] for name in MEASURED_OPERATIONAL_PREDICATES)
     return {
         "step_time": {
             "authority_seed": 0,
@@ -566,7 +573,11 @@ def build_operational_summary(
             "empirical_deployment_storage_comparison": True,
         },
         "predicates": predicates,
-        "status": "INCOMPLETE_OPERATIONAL_EVIDENCE",
+        "status": (
+            "INCOMPLETE_OPERATIONAL_EVIDENCE"
+            if measured_pass
+            else "CLOSE_FULL_WIDTH"
+        ),
     }
 
 
@@ -629,6 +640,164 @@ def load_bound_json(
     return value
 
 
+def _validate_interval(value: object, name: str) -> None:
+    if (
+        type(value) is not list
+        or len(value) != 2
+        or any(type(item) is not float or not math.isfinite(item) for item in value)
+        or value[0] > value[1]
+    ):
+        raise ValueError(f"{name} differs")
+
+
+def _validate_quality_relations(quality: dict[str, object]) -> None:
+    deltas = quality["primary_map_deltas"]
+    losses = quality["top1_losses"]
+    if (
+        type(deltas) is not list
+        or len(deltas) != len(CONFIRMATION_SEEDS)
+        or any(type(value) is not float or not math.isfinite(value) for value in deltas)
+        or type(losses) is not list
+        or len(losses) != len(CONFIRMATION_SEEDS)
+        or any(type(value) is not int or value < 0 for value in losses)
+        or type(quality["epoch12_reach_count"]) is not int
+        or not 0 <= quality["epoch12_reach_count"] <= len(CONFIRMATION_SEEDS)
+    ):
+        raise ValueError("confirmation quality relation differs")
+    mean_delta = float(statistics.fmean(deltas))
+    half_width = PAIRED_T_CRITICAL * statistics.stdev(deltas) / math.sqrt(len(deltas))
+    interval = [float(mean_delta - half_width), float(mean_delta + half_width)]
+    predicates = {
+        "mean_primary_map_delta_at_least_0_003": mean_delta >= 0.003,
+        "paired_t_lower_above_zero": interval[0] > 0.0,
+        "at_least_four_positive_seeds": sum(value > 0.0 for value in deltas) >= 4,
+        "aggregate_top1_loss_at_most_5": sum(losses) <= 5,
+        "per_seed_top1_loss_at_most_2": max(losses) <= 2,
+        "control_endpoint_by_epoch_12_at_least_four": (
+            quality["epoch12_reach_count"] >= 4
+        ),
+    }
+    expected_status = (
+        "SUPPORTED_HOLDOUT_QUALITY"
+        if all(predicates.values())
+        else "CLOSE_FULL_WIDTH_QUALITY"
+    )
+    if (
+        quality["mean_primary_map_delta"] != mean_delta
+        or quality["paired_t_interval"] != interval
+        or quality["positive_seed_count"] != sum(value > 0.0 for value in deltas)
+        or quality["predicates"] != predicates
+        or quality["status"] != expected_status
+    ):
+        raise ValueError("confirmation quality relation differs")
+    bootstrap = quality["query_bootstrap_95"]
+    if (
+        type(bootstrap) is not dict
+        or tuple(bootstrap) != ("seed", "replicates", "per_seed", "pooled")
+        or bootstrap["seed"] != BOOTSTRAP_SEED
+        or bootstrap["replicates"] != BOOTSTRAP_REPLICATES
+        or type(bootstrap["per_seed"]) is not list
+        or len(bootstrap["per_seed"]) != len(CONFIRMATION_SEEDS)
+    ):
+        raise ValueError("confirmation query bootstrap differs")
+    for seed, row in zip(CONFIRMATION_SEEDS, bootstrap["per_seed"], strict=True):
+        if type(row) is not dict or tuple(row) != ("seed", "interval") or row["seed"] != seed:
+            raise ValueError("confirmation query bootstrap differs")
+        _validate_interval(row["interval"], "confirmation query bootstrap interval")
+    _validate_interval(bootstrap["pooled"], "confirmation pooled bootstrap interval")
+
+
+def _validate_operational_relations(operational: dict[str, object]) -> None:
+    step_time = operational["step_time"]
+    if (
+        type(step_time) is not dict
+        or tuple(step_time)
+        != ("authority_seed", "scope", "claim", "metric", "ratio", "bootstrap_95")
+        or step_time["authority_seed"] != 0
+        or step_time["scope"] != "single_seed_terminal_checkpoint_abba_screen"
+        or step_time["claim"] != "no_measurable_slowdown_gate_only"
+        or step_time["metric"] != "step_wall"
+    ):
+        raise ValueError("confirmation step-time scope differs")
+    ratio = _finite_float(step_time["ratio"], "confirmation step-time ratio")
+    _validate_interval(step_time["bootstrap_95"], "confirmation step-time interval")
+    if not step_time["bootstrap_95"][0] <= ratio <= step_time["bootstrap_95"][1]:
+        raise ValueError("confirmation step-time relation differs")
+    rows = operational["memory_and_checkpoint_rows"]
+    if type(rows) is not list or len(rows) != len(CONFIRMATION_SEEDS):
+        raise ValueError("confirmation resource rows differ")
+    allocated: list[float] = []
+    reserved: list[float] = []
+    checkpoint_equal = True
+    for seed, row in zip(CONFIRMATION_SEEDS, rows, strict=True):
+        if type(row) is not dict or tuple(row) != (
+            "seed",
+            "peak_allocated_ratio",
+            "peak_reserved_ratio",
+            "checkpoint_bytes_equal",
+            "control_checkpoint_bytes",
+            "candidate_checkpoint_bytes",
+        ) or row["seed"] != seed:
+            raise ValueError("confirmation resource rows differ")
+        allocated.append(_finite_float(row["peak_allocated_ratio"], "allocated ratio"))
+        reserved.append(_finite_float(row["peak_reserved_ratio"], "reserved ratio"))
+        control = row["control_checkpoint_bytes"]
+        candidate = row["candidate_checkpoint_bytes"]
+        equal = row["checkpoint_bytes_equal"]
+        if (
+            type(control) is not list
+            or type(candidate) is not list
+            or len(control) != len(EPOCHS)
+            or len(candidate) != len(EPOCHS)
+            or any(type(value) is not int or value <= 0 for value in (*control, *candidate))
+            or type(equal) is not bool
+            or equal != (control == candidate)
+        ):
+            raise ValueError("confirmation checkpoint relation differs")
+        checkpoint_equal &= equal
+    mean_allocated = float(statistics.fmean(allocated))
+    mean_reserved = float(statistics.fmean(reserved))
+    predicates = {
+        "seed0_abba_step_time_ratio_at_most_1_02": ratio <= 1.02,
+        "mean_peak_allocated_ratio_at_most_1_02": mean_allocated <= 1.02,
+        "mean_peak_reserved_ratio_at_most_1_02": mean_reserved <= 1.02,
+        "checkpoint_bytes_exactly_equal": checkpoint_equal,
+        "registered_mean_abba_available": False,
+        "empirical_deployment_measurements_available": False,
+    }
+    measured_pass = all(predicates[name] for name in MEASURED_OPERATIONAL_PREDICATES)
+    expected_status = (
+        "INCOMPLETE_OPERATIONAL_EVIDENCE" if measured_pass else "CLOSE_FULL_WIDTH"
+    )
+    if (
+        operational["mean_peak_allocated_ratio"] != mean_allocated
+        or operational["mean_peak_reserved_ratio"] != mean_reserved
+        or operational["missing_evidence"]
+        != {
+            "confirmation_seed_abba_profiles": list(CONFIRMATION_SEEDS),
+            "empirical_deployment_parameter_comparison": True,
+            "empirical_inference_operation_comparison": True,
+            "empirical_deployment_storage_comparison": True,
+        }
+        or operational["predicates"] != predicates
+        or operational["status"] != expected_status
+    ):
+        raise ValueError("confirmation operational relation differs")
+
+
+def _registered_decision(
+    quality: dict[str, object], operational: dict[str, object]
+) -> tuple[str, str]:
+    if quality["status"] != "SUPPORTED_HOLDOUT_QUALITY":
+        return ("CLOSE_FULL_WIDTH_QUALITY", "quality_predicates_failed")
+    if operational["status"] == "CLOSE_FULL_WIDTH":
+        return ("CLOSE_FULL_WIDTH", "measured_confirmation_cost_predicates_failed")
+    return (
+        "INCOMPLETE_OPERATIONAL_EVIDENCE",
+        "missing_confirmation_seed_abba_and_deployment_measurements",
+    )
+
+
 def validate_confirmation_result(
     value: object, *, expected: dict[str, object] | None = None
 ) -> None:
@@ -636,7 +805,7 @@ def validate_confirmation_result(
 
     if type(value) is not dict or tuple(value) != TOP_KEYS:
         raise ValueError("confirmation result schema differs")
-    if value["schema_version"] != "unicom-full-width-confirmation-v2":
+    if value["schema_version"] != "unicom-full-width-confirmation-v3":
         raise ValueError("confirmation result version differs")
     inputs = value["inputs"]
     if type(inputs) is not dict or tuple(inputs) != (
@@ -697,6 +866,7 @@ def validate_confirmation_result(
         "CLOSE_FULL_WIDTH_QUALITY",
     ):
         raise ValueError("confirmation quality status differs")
+    _validate_quality_relations(quality)
     operational = value["operational"]
     if type(operational) is not dict or tuple(operational) != (
         "step_time",
@@ -708,30 +878,9 @@ def validate_confirmation_result(
         "status",
     ):
         raise ValueError("confirmation operational schema differs")
-    step_time = operational["step_time"]
-    if step_time != {
-        "authority_seed": 0,
-        "scope": "single_seed_terminal_checkpoint_abba_screen",
-        "claim": "no_measurable_slowdown_gate_only",
-        "metric": "step_wall",
-        "ratio": step_time.get("ratio") if type(step_time) is dict else None,
-        "bootstrap_95": step_time.get("bootstrap_95") if type(step_time) is dict else None,
-    }:
-        raise ValueError("confirmation step-time scope differs")
-    _finite_float(step_time["ratio"], "confirmation step-time ratio")
-    if operational["status"] != "INCOMPLETE_OPERATIONAL_EVIDENCE":
-        raise ValueError("confirmation operational status differs")
+    _validate_operational_relations(operational)
     quality_status = quality["status"]
-    expected_registered = (
-        "INCOMPLETE_OPERATIONAL_EVIDENCE"
-        if quality_status == "SUPPORTED_HOLDOUT_QUALITY"
-        else "CLOSE_FULL_WIDTH_QUALITY"
-    )
-    expected_clause = (
-        "missing_confirmation_seed_abba_and_deployment_measurements"
-        if quality_status == "SUPPORTED_HOLDOUT_QUALITY"
-        else "quality_predicates_failed"
-    )
+    expected_registered, expected_clause = _registered_decision(quality, operational)
     decision = value["decision"]
     if decision != {
         "quality": quality_status,
@@ -754,16 +903,14 @@ def build_confirmation_result(
     """Assemble the versioned publication artifact from authenticated sections."""
 
     quality_status = quality.get("status")
-    if quality_status == "SUPPORTED_HOLDOUT_QUALITY":
-        registered = "INCOMPLETE_OPERATIONAL_EVIDENCE"
-        clause = "missing_confirmation_seed_abba_and_deployment_measurements"
-    elif quality_status == "CLOSE_FULL_WIDTH_QUALITY":
-        registered = "CLOSE_FULL_WIDTH_QUALITY"
-        clause = "quality_predicates_failed"
-    else:
+    if quality_status not in (
+        "SUPPORTED_HOLDOUT_QUALITY",
+        "CLOSE_FULL_WIDTH_QUALITY",
+    ):
         raise ValueError("confirmation quality status differs")
+    registered, clause = _registered_decision(quality, operational)
     value = {
-        "schema_version": "unicom-full-width-confirmation-v2",
+        "schema_version": "unicom-full-width-confirmation-v3",
         "inputs": inputs,
         "metric_authority": {
             "quality": "five_confirmation_paired_results_primary_full_768",
@@ -832,7 +979,7 @@ def _validate_run_config(
 ) -> None:
     if (
         type(config) is not dict
-        or config.get("schema_version") != "unicom-full-width-objective-run-v2"
+        or config.get("schema_version") != "unicom-full-width-objective-run-v3"
     ):
         raise ValueError("run configuration version differs")
     paths = config.get("paths")
@@ -842,7 +989,7 @@ def _validate_run_config(
         type(paths) is not dict
         or paths.get("output_root") != str(args.evidence_root)
         or type(outputs) is not dict
-        or outputs.get("confirmation_result_v2") != str(args.output)
+        or outputs.get("confirmation_result_v3") != str(args.output)
     ):
         raise ValueError("confirmation output paths differ")
     _validate_audit_inputs(config.get("confirmation_audit_inputs"))
