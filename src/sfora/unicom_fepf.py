@@ -101,6 +101,7 @@ def _inventory_sha256(value: tuple[tuple[object, object], ...]) -> str:
 def _validate_cache(cache: FepfCache) -> None:
     if not isinstance(cache, FepfCache):
         raise ValueError("FEPF cache differs")
+    label_map = dict(cache.label_map_inventory)
     if (
         cache.features.device.type != "cpu"
         or cache.features.dtype != torch.float32
@@ -129,9 +130,9 @@ def _validate_cache(cache: FepfCache) -> None:
             type(label) is not str or not label or type(index) is not int
             for label, index in cache.label_map_inventory
         )
-        or any(label not in dict(cache.label_map_inventory) for label, _ in cache.record_inventory)
+        or any(label not in label_map for label, _ in cache.record_inventory)
         or tuple(cache.labels.tolist())
-        != tuple(dict(cache.label_map_inventory)[label] for label, _ in cache.record_inventory)
+        != tuple(label_map[label] for label, _ in cache.record_inventory)
         or not torch.isfinite(cache.features).all()
         or torch.any(torch.linalg.vector_norm(cache.features, dim=1) == 0)
         or torch.any(cache.labels < 0)
@@ -321,7 +322,7 @@ def registered_diagnostic(
     )
 
 
-def fit_fepf_head(
+def _fit_fepf_head_core(
     cache: FepfCache,
     start_head: torch.Tensor,
     *,
@@ -330,7 +331,7 @@ def fit_fepf_head(
     steps: int = 512,
     monotonic: Callable[[], float] = time.perf_counter,
 ) -> FepfFitResult:
-    """Fit only the proxy head with the frozen 512-step optimizer schedule."""
+    """Injected fit runner for unit tests; it is not a registered initializer."""
     _validate_cache(cache)
     if (
         not isinstance(device, torch.device)
@@ -424,6 +425,28 @@ def fit_fepf_head(
     return result
 
 
+def fit_fepf_head(
+    cache: FepfCache,
+    start_head: torch.Tensor,
+    *,
+    training_seed: int,
+    device: torch.device,
+    steps: int = 512,
+    monotonic: Callable[[], float] = time.perf_counter,
+) -> FepfFitResult:
+    """Run the sole registered CUDA, 512-step FEPF fit schedule."""
+    if not isinstance(device, torch.device) or device.type != "cuda" or steps != 512:
+        raise ValueError("FEPF registered fit schedule differs")
+    return _fit_fepf_head_core(
+        cache,
+        start_head,
+        training_seed=training_seed,
+        device=device,
+        steps=steps,
+        monotonic=monotonic,
+    )
+
+
 _RECEIPT_KEYS = (
     "schema",
     "mode",
@@ -493,7 +516,55 @@ def _mask_state_sha256(*, training_seed: int, device: torch.device, draws: int) 
     return tensor_sha256(generator.get_state().cpu().contiguous())
 
 
-def initialization_receipt_v2(
+def _validate_rng_audit(rng_audit: InitializationRngAudit) -> None:
+    if not isinstance(rng_audit, InitializationRngAudit):
+        raise ValueError("FEPF initialization RNG audit differs")
+    scalar_names = (
+        "python_rng_entry_sha256",
+        "python_rng_post_draw_sha256",
+        "python_rng_restored_sha256",
+        "numpy_rng_entry_sha256",
+        "numpy_rng_post_draw_sha256",
+        "numpy_rng_restored_sha256",
+        "torch_cpu_rng_entry_sha256",
+        "torch_cpu_rng_post_draw_sha256",
+        "torch_cpu_rng_restored_sha256",
+    )
+    if not all(_is_sha256(getattr(rng_audit, name)) for name in scalar_names):
+        raise ValueError("FEPF initialization RNG hash differs")
+    cuda_states = (
+        rng_audit.torch_cuda_rng_entry_sha256,
+        rng_audit.torch_cuda_rng_post_draw_sha256,
+        rng_audit.torch_cuda_rng_restored_sha256,
+    )
+    if any(
+        type(states) is not tuple
+        or len(states) != torch.cuda.device_count()
+        or not all(_is_sha256(value) for value in states)
+        for states in cuda_states
+    ):
+        raise ValueError("FEPF initialization CUDA RNG audit differs")
+    if (
+        rng_audit.python_rng_entry_sha256
+        != rng_audit.python_rng_post_draw_sha256
+        != rng_audit.python_rng_restored_sha256
+        or rng_audit.numpy_rng_entry_sha256
+        != rng_audit.numpy_rng_post_draw_sha256
+        != rng_audit.numpy_rng_restored_sha256
+        or rng_audit.torch_cuda_rng_entry_sha256
+        != rng_audit.torch_cuda_rng_post_draw_sha256
+        != rng_audit.torch_cuda_rng_restored_sha256
+        or rng_audit.torch_cpu_rng_post_draw_sha256
+        != rng_audit.torch_cpu_rng_restored_sha256
+    ):
+        raise ValueError("FEPF initialization RNG restoration differs")
+
+
+def _head_sha256(head: torch.Tensor) -> str:
+    return tensor_sha256(head.detach().cpu().contiguous())
+
+
+def _initialization_receipt_v2_core(
     *,
     mode: str,
     training_seed: int,
@@ -503,21 +574,17 @@ def initialization_receipt_v2(
     checkpoint_sha256: str,
     config_sha256: str,
     schedule_sha256: str,
-    official_random_head_sha256: str,
-    prepared_start_head_sha256: str,
-    final_head_sha256: str,
+    official_random_head: torch.Tensor,
+    prepared_start_head: torch.Tensor,
     initialization_seconds: float,
     cache: FepfCache,
-    classifier_shape: tuple[int, int],
-    diagnostic: FepfDiagnostic,
     rng_audit: InitializationRngAudit,
-    fit: FepfFitResult | None = None,
-    device: torch.device | None = None,
+    fit: FepfFitResult | None,
+    device: torch.device,
+    allow_test_device: bool,
 ) -> dict[str, object]:
-    """Build the canonical, JSON-serializable initialization-v2 receipt."""
+    """Derive every receipt relation; CPU use is restricted to test injection."""
     _validate_cache(cache)
-    if device is None:
-        device = torch.device("cpu")
     if (
         mode not in {"imprinted", "fepf_mean", "fepf_random"}
         or type(training_seed) is not int
@@ -528,91 +595,89 @@ def initialization_receipt_v2(
         or type(holdout_seed) is not int
         or holdout_seed < 0
         or not isinstance(device, torch.device)
-        or type(classifier_shape) is not tuple
-        or classifier_shape != (cache.class_count, cache.features.shape[1])
-        or not isinstance(diagnostic, FepfDiagnostic)
-        or not isinstance(rng_audit, InitializationRngAudit)
+        or (not allow_test_device and device.type != "cuda")
         or type(initialization_seconds) is not float
         or not math.isfinite(initialization_seconds)
         or initialization_seconds <= 0
-    ):
-        raise ValueError("FEPF initialization receipt differs")
-    hashes = (
-        source_sha256,
-        checkpoint_sha256,
-        config_sha256,
-        schedule_sha256,
-        official_random_head_sha256,
-        prepared_start_head_sha256,
-        final_head_sha256,
-        diagnostic.feature_sha256,
-        diagnostic.label_sha256,
-        diagnostic.mask_sha256,
-        *rng_audit.__dict__.values(),
-    )
-    if not all(
-        _is_sha256(value)
-        if type(value) is str
-        else type(value) is tuple and all(_is_sha256(element) for element in value)
-        for value in hashes
-    ):
-        raise ValueError("FEPF initialization receipt hash differs")
-    if any(
-        type(value) is not tuple or not all(_is_sha256(element) for element in value)
-        for value in (
-            rng_audit.torch_cuda_rng_entry_sha256,
-            rng_audit.torch_cuda_rng_post_draw_sha256,
-            rng_audit.torch_cuda_rng_restored_sha256,
+        or not all(
+            _is_sha256(value)
+            for value in (source_sha256, checkpoint_sha256, config_sha256, schedule_sha256)
         )
     ):
-        raise ValueError("FEPF initialization receipt CUDA RNG differs")
-    if len(rng_audit.torch_cuda_rng_entry_sha256) != torch.cuda.device_count():
-        raise ValueError("FEPF initialization receipt CUDA device count differs")
-    if any(
-        getattr(rng_audit, f"{prefix}_post_draw_sha256")
-        != getattr(rng_audit, f"{prefix}_restored_sha256")
-        for prefix in ("python_rng", "numpy_rng", "torch_cpu_rng", "torch_cuda_rng")
-    ):
-        raise ValueError("FEPF initialization receipt RNG restoration differs")
+        raise ValueError("FEPF initialization receipt differs")
+    _validate_rng_audit(rng_audit)
+    expected_shape = (cache.class_count, 768)
     if (
-        type(diagnostic.loss) is not float
-        or not math.isfinite(diagnostic.loss)
-        or len(diagnostic.indices) != 128
-        or any(type(index) is not int or index < 0 for index in diagnostic.indices)
+        not isinstance(official_random_head, torch.Tensor)
+        or official_random_head.device.type != "cpu"
+        or official_random_head.dtype != torch.float32
+        or official_random_head.shape != expected_shape
+        or not official_random_head.is_contiguous()
+        or not torch.isfinite(official_random_head).all()
+        or not isinstance(prepared_start_head, torch.Tensor)
+        or prepared_start_head.device.type != "cpu"
+        or prepared_start_head.dtype != torch.float32
+        or prepared_start_head.shape != expected_shape
+        or not prepared_start_head.is_contiguous()
+        or not torch.isfinite(prepared_start_head).all()
     ):
-        raise ValueError("FEPF diagnostic receipt differs")
+        raise ValueError("FEPF initialization head differs")
+    class_means = canonical_class_means(cache)
+    if mode in {"imprinted", "fepf_mean"}:
+        expected_start = class_means
+    else:
+        expected_start = prepare_fepf_start_head(official_random_head, class_means, mode=mode)
+    if not torch.equal(prepared_start_head, expected_start):
+        raise ValueError("FEPF prepared head differs")
+    prepared_hash = _head_sha256(prepared_start_head)
+    device_features = cache.features.to(device)
+    device_labels = cache.labels.to(device)
+    initial = registered_diagnostic(
+        device_features, device_labels, prepared_start_head.to(device), training_seed=training_seed
+    )
+    initial_mask_hash = _mask_state_sha256(training_seed=training_seed, device=device, draws=0)
     if mode == "imprinted":
-        if fit is not None or prepared_start_head_sha256 != final_head_sha256:
+        if fit is not None:
             raise ValueError("FEPF imprinted receipt differs")
+        final = initial
+        final_head_hash = prepared_hash
         fit_seconds = 0.0
-        initial_loss = diagnostic.loss
-        final_loss = diagnostic.loss
-        initial_mask_hash = _mask_state_sha256(training_seed=training_seed, device=device, draws=0)
         final_mask_hash = initial_mask_hash
     else:
-        if not isinstance(fit, FepfFitResult) or fit.completed_steps != 512:
-            raise ValueError("FEPF fitted receipt differs")
         if (
-            fit.start_head_sha256 != prepared_start_head_sha256
-            or fit.final_head_sha256 != final_head_sha256
-            or fit.diagnostic_indices != diagnostic.indices
-            or fit.diagnostic_feature_sha256 != diagnostic.feature_sha256
-            or fit.diagnostic_label_sha256 != diagnostic.label_sha256
-            or fit.diagnostic_mask_sha256 != diagnostic.mask_sha256
+            not isinstance(fit, FepfFitResult)
+            or fit.completed_steps != 512
+            or fit.head.device != device
+            or fit.head.dtype != torch.float32
+            or fit.head.shape != expected_shape
+            or not fit.head.is_contiguous()
+        ):
+            raise ValueError("FEPF fitted receipt differs")
+        validate_projected_head(fit.head)
+        final = registered_diagnostic(
+            device_features, device_labels, fit.head, training_seed=training_seed
+        )
+        final_head_hash = _head_sha256(fit.head)
+        final_mask_hash = _mask_state_sha256(training_seed=training_seed, device=device, draws=512)
+        if (
+            fit.batch_root_seed != experiment_stream_seed(training_seed, 23_001)
+            or fit.mask_root_seed != experiment_stream_seed(training_seed, 23_002)
+            or fit.start_head_sha256 != prepared_hash
+            or fit.final_head_sha256 != final_head_hash
+            or fit.initial_loss != initial.loss
+            or fit.final_loss != final.loss
+            or fit.diagnostic_indices != final.indices
+            or fit.diagnostic_feature_sha256 != final.feature_sha256
+            or fit.diagnostic_label_sha256 != final.label_sha256
+            or fit.diagnostic_mask_sha256 != final.mask_sha256
+            or fit.mask_generator_initial_sha256 != initial_mask_hash
+            or fit.mask_generator_final_sha256 != final_mask_hash
             or type(fit.fit_seconds) is not float
             or not math.isfinite(fit.fit_seconds)
             or fit.fit_seconds <= 0
-            or type(fit.initial_loss) is not float
-            or not math.isfinite(fit.initial_loss)
-            or type(fit.final_loss) is not float
-            or not math.isfinite(fit.final_loss)
         ):
             raise ValueError("FEPF fitted receipt differs")
         fit_seconds = fit.fit_seconds
-        initial_loss = fit.initial_loss
-        final_loss = fit.final_loss
-        initial_mask_hash = fit.mask_generator_initial_sha256
-        final_mask_hash = fit.mask_generator_final_sha256
     return {
         "schema": "initialization-receipt-v2",
         "mode": mode,
@@ -637,37 +702,61 @@ def initialization_receipt_v2(
         "torch_cuda_rng_entry_sha256": list(rng_audit.torch_cuda_rng_entry_sha256),
         "torch_cuda_rng_post_draw_sha256": list(rng_audit.torch_cuda_rng_post_draw_sha256),
         "torch_cuda_rng_restored_sha256": list(rng_audit.torch_cuda_rng_restored_sha256),
-        "official_random_head_sha256": official_random_head_sha256,
-        "prepared_start_head_sha256": prepared_start_head_sha256,
-        "final_head_sha256": final_head_sha256,
+        "official_random_head_sha256": _head_sha256(official_random_head),
+        "prepared_start_head_sha256": prepared_hash,
+        "final_head_sha256": final_head_hash,
         "initialization_seconds": initialization_seconds,
         "fit_seconds": fit_seconds,
-        "diagnostic_indices": list(diagnostic.indices),
-        "diagnostic_feature_sha256": diagnostic.feature_sha256,
-        "diagnostic_label_sha256": diagnostic.label_sha256,
-        "diagnostic_mask_sha256": diagnostic.mask_sha256,
+        "diagnostic_indices": list(final.indices),
+        "diagnostic_feature_sha256": final.feature_sha256,
+        "diagnostic_label_sha256": final.label_sha256,
+        "diagnostic_mask_sha256": final.mask_sha256,
         "feature_sha256": cache.feature_sha256,
         "label_sha256": cache.label_sha256,
         "inventory_sha256": cache.inventory_sha256,
         "label_map_sha256": cache.label_map_sha256,
         "class_count": cache.class_count,
-        "classifier_shape": list(classifier_shape),
-        "initial_loss": initial_loss,
-        "final_loss": final_loss,
+        "classifier_shape": list(expected_shape),
+        "initial_loss": initial.loss,
+        "final_loss": final.loss,
         "mask_generator_initial_sha256": initial_mask_hash,
         "mask_generator_final_sha256": final_mask_hash,
     }
 
 
-def validate_initialization_receipt_v2(
-    receipt: Mapping[str, object], *, device: torch.device | None = None
+def initialization_receipt_v2(**kwargs: object) -> dict[str, object]:
+    """Build a receipt only for the registered CUDA initialization path."""
+    return _initialization_receipt_v2_core(**kwargs, allow_test_device=False)
+
+
+_PROVENANCE_KEYS = (
+    "mode",
+    "training_seed",
+    "holdout_fraction",
+    "holdout_seed",
+    "source_sha256",
+    "checkpoint_sha256",
+    "config_sha256",
+    "schedule_sha256",
+)
+
+
+def _validate_initialization_receipt_v2_core(
+    receipt: Mapping[str, object],
+    *,
+    expected: Mapping[str, object],
+    device: torch.device,
+    allow_test_device: bool,
 ) -> None:
-    """Fail closed on every schema, typed scalar, RNG, and stream mismatch."""
+    """Validate a receipt against the caller's authenticated run context."""
     if type(receipt) is not dict or tuple(receipt) != _RECEIPT_KEYS:
         raise ValueError("FEPF initialization receipt schema differs")
-    if device is None:
-        device = torch.device("cpu")
-    if not isinstance(device, torch.device):
+    if (
+        type(expected) is not dict
+        or tuple(expected) not in (_PROVENANCE_KEYS, _RECEIPT_KEYS)
+        or not isinstance(device, torch.device)
+        or (not allow_test_device and device.type != "cuda")
+    ):
         raise ValueError("FEPF initialization receipt device differs")
     if receipt["schema"] != "initialization-receipt-v2":
         raise ValueError("FEPF initialization receipt schema differs")
@@ -688,6 +777,9 @@ def validate_initialization_receipt_v2(
         or receipt["row_norm_atol"] != FEPF_ROW_NORM_ATOL
     ):
         raise ValueError("FEPF initialization receipt scalar differs")
+    for key in expected:
+        if receipt[key] != expected[key]:
+            raise ValueError("FEPF initialization receipt provenance differs")
     hash_keys = tuple(key for key in _RECEIPT_KEYS if key.endswith("_sha256"))
     for key in hash_keys:
         value = receipt[key]
@@ -696,11 +788,22 @@ def validate_initialization_receipt_v2(
                 raise ValueError("FEPF initialization receipt CUDA RNG differs")
         elif not _is_sha256(value):
             raise ValueError("FEPF initialization receipt hash differs")
-    for prefix in ("python_rng", "numpy_rng", "torch_cpu_rng", "torch_cuda_rng"):
-        if receipt[f"{prefix}_post_draw_sha256"] != receipt[f"{prefix}_restored_sha256"]:
-            raise ValueError("FEPF initialization receipt RNG restoration differs")
-    if len(receipt["torch_cuda_rng_entry_sha256"]) != torch.cuda.device_count():
-        raise ValueError("FEPF initialization receipt CUDA device count differs")
+    cuda_states = tuple(
+        receipt[f"torch_cuda_rng_{phase}_sha256"] for phase in ("entry", "post_draw", "restored")
+    )
+    if (
+        any(len(states) != torch.cuda.device_count() for states in cuda_states)
+        or receipt["python_rng_entry_sha256"]
+        != receipt["python_rng_post_draw_sha256"]
+        != receipt["python_rng_restored_sha256"]
+        or receipt["numpy_rng_entry_sha256"]
+        != receipt["numpy_rng_post_draw_sha256"]
+        != receipt["numpy_rng_restored_sha256"]
+        or cuda_states[0] != cuda_states[1] != cuda_states[2]
+        or receipt["torch_cpu_rng_post_draw_sha256"]
+        != receipt["torch_cpu_rng_restored_sha256"]
+    ):
+        raise ValueError("FEPF initialization receipt RNG restoration differs")
     classifier_shape = receipt["classifier_shape"]
     if (
         type(receipt["class_count"]) is not int
@@ -745,3 +848,12 @@ def validate_initialization_receipt_v2(
         or receipt["mask_generator_final_sha256"] != expected_final
     ):
         raise ValueError("FEPF initialization receipt mask stream differs")
+
+
+def validate_initialization_receipt_v2(
+    receipt: Mapping[str, object], *, expected: Mapping[str, object], device: torch.device
+) -> None:
+    """Validate a registered CUDA receipt against expected run provenance."""
+    _validate_initialization_receipt_v2_core(
+        receipt, expected=expected, device=device, allow_test_device=False
+    )
