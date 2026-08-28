@@ -409,6 +409,77 @@ def test_fepf_main_authenticates_registered_source_before_training(
     assert not run_called
 
 
+def test_fepf_main_rejects_noncanonical_current_receipt_before_auth_or_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    called = {"auth": False, "run": False}
+
+    def authentication(_config: Path, _checkout: Path) -> str:
+        called["auth"] = True
+        return "a" * 40
+
+    def training(_args):
+        called["run"] = True
+        raise RuntimeError("training reached")
+
+    monkeypatch.setattr(module, "registered_source_commit", authentication)
+    monkeypatch.setattr(module, "run", training)
+    output = tmp_path / "fresh"
+    config = tmp_path / "config.json"
+    config.write_text("{}\n", encoding="utf-8")
+    assert module.main(
+        _required_cli(tmp_path)
+        + [
+            "--output-dir", str(output), "--classifier-init", "fepf_mean",
+            "--epochs", "16", "--evaluation-features", "512",
+            "--stop-after-epoch", "4", "--run-config", str(config),
+            "--run-receipt", str(output / "custom.json"),
+        ]
+    ) == 2
+    assert called == {"auth": False, "run": False}
+
+
+def test_fepf_main_rejects_noncanonical_parent_receipt_before_auth_or_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_script()
+    _receipt, continuation, _digest, epoch4 = _fepf_run_receipt_fixture(module, tmp_path)
+    parent = continuation.parent / "parent"
+    initialization = parent / "initialization-receipt.json"
+    noncanonical_parent = parent / "custom-parent.json"
+    noncanonical_parent.write_bytes((parent / "run-receipt.json").read_bytes())
+    called = {"auth": False, "run": False}
+
+    def authentication(_config: Path, _checkout: Path) -> str:
+        called["auth"] = True
+        return "a" * 40
+
+    def training(_args):
+        called["run"] = True
+        raise RuntimeError("training reached")
+
+    monkeypatch.setattr(module, "registered_source_commit", authentication)
+    monkeypatch.setattr(module, "run", training)
+    output = tmp_path / "published"
+    config = tmp_path / "config.json"
+    config.write_text("{}\n", encoding="utf-8")
+    assert module.main(
+        _required_cli(tmp_path)
+        + [
+            "--output-dir", str(output), "--classifier-init", "fepf_mean",
+            "--epochs", "16", "--evaluation-features", "512",
+            "--stop-after-epoch", "16", "--seed", "7",
+            "--holdout-seed", "20260828", "--run-config", str(config),
+            "--run-receipt", str(output / "run-receipt.json"),
+            "--resume", str(epoch4),
+            "--parent-initialization-receipt", str(initialization),
+            "--parent-run-receipt", str(noncanonical_parent),
+        ]
+    ) == 2
+    assert called == {"auth": False, "run": False}
+
+
 def test_main_failure_never_publishes_training_run_receipt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2758,6 +2829,21 @@ def test_run_receipt_v2_authenticates_parent_root_and_original_initialization(
         "current",
         "current",
     ]
+
+
+def test_fepf_atomic_publication_rejects_noncanonical_receipt_name(
+    tmp_path: Path,
+) -> None:
+    module = _load_script()
+    receipt, continuation, _digest, _epoch4 = _fepf_run_receipt_fixture(
+        module, tmp_path
+    )
+    output = continuation / "custom.json"
+    with pytest.raises(ValueError, match="receipt path differs"):
+        module.write_training_run_receipt_atomic(
+            receipt, output, evidence_root=continuation
+        )
+    assert not output.exists()
 
 
 @pytest.mark.parametrize("field", ("trainer_sha256", "partition_sha256"))

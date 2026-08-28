@@ -948,15 +948,17 @@ def write_training_run_receipt_atomic(
 ) -> None:
     """Publish one validated run receipt without replacing an existing path."""
 
+    if not isinstance(output, Path):
+        raise TypeError("training run receipt output must be a Path")
     is_fepf = receipt.get("schema") == "unicom-fepf-training-run-receipt-v2"
     if is_fepf:
         if evidence_root is None:
             raise ValueError("FEPF evidence root is required")
+        if output.name != "run-receipt.json":
+            raise ValueError("FEPF run receipt path differs")
         validate_training_run_receipt_v2(receipt, evidence_root=evidence_root)
     else:
         validate_training_run_receipt(receipt)
-    if not isinstance(output, Path):
-        raise TypeError("training run receipt output must be a Path")
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
     payload = (json.dumps(receipt, indent=2, allow_nan=False) + "\n").encode()
@@ -2962,6 +2964,11 @@ def _validate_run_receipt_request(args: argparse.Namespace) -> None:
             or args.run_arm is not None
         ):
             raise ValueError("FEPF run receipt arguments differ")
+        if args.run_receipt.name != "run-receipt.json" or (
+            args.resume is not None
+            and args.parent_run_receipt.name != "run-receipt.json"
+        ):
+            raise ValueError("FEPF run receipt path differs")
         if not args.run_config.is_file() or args.run_config.is_symlink():
             raise ValueError("FEPF run configuration differs")
         if args.run_receipt.exists() or args.run_receipt.is_symlink():
