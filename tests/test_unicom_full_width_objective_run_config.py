@@ -13,9 +13,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "2fbb89de0006cba9869bf2439f0c826409fd88fd"
-CONFIG_COMMIT = "2d472cb498c4e56903a8319dbeb474be0d6f6d36"
-CONFIG_SHA256 = "fc5552bb0e5dfc0a95a1f6cd884a5ce2e7cee9c469d0ec740cce190fda3fe377"
+SOURCE_COMMIT = "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b"
+CONFIG_COMMIT = "aa45da3f5fe373174c1096d633e5fdfd8f465e09"
+CONFIG_SHA256 = "b6b1d01240a64d0d33b572a07142f11674fc360405957489b7c5d98e5eb28970"
+PRIOR_VALIDATOR_COMMIT = "75f8e0a55cb6c54a9a6001177ec620f942106043"
 TRAINING_SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
 TRAINING_CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
 TRAINING_CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
@@ -46,7 +47,7 @@ SOURCE_FILES = (
     ),
     (
         "scripts/confirm_unicom_full_width_objective.py",
-        "5a99b46b0b304f5aa8277eabc434a09a51d38fe9adfa49240568dd07abd42e12",
+        "2a643085ae7111327abf3b26485a8e276740634a69600396dd6b7dff93a39b51",
     ),
     (
         "scripts/run_unicom_from_checkout.py",
@@ -90,7 +91,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_confirm_unicom_full_width_objective.py",
-        "a48aa7bf22f81c01c3b074e69aa429f34e56bd92024af9347f982b7f427ad5cc",
+        "f128228a94bd8592ad63b310694d95c90c6088eee78bf0468090ef2ef0e0417f",
     ),
     (
         "tests/test_run_unicom_from_checkout.py",
@@ -195,7 +196,6 @@ TOP_KEYS = (
     "forbidden_evidence",
 )
 HISTORICALLY_FROZEN_KEYS = (
-    "schema_version",
     "environment",
     "inputs",
     "protocol",
@@ -250,13 +250,15 @@ def _validate_historical_scientific_delta(current: object, historical: object) -
     current_outputs["confirmation_result"] = current_outputs.pop(
         "confirmation_result_legacy_unregistered", None
     )
-    current_outputs.pop("confirmation_result_v2", None)
+    current_outputs.pop("confirmation_result_v2_preserved", None)
+    current_outputs.pop("confirmation_result_v3", None)
     if current_outputs != historical_outputs:
         raise ValueError("historical registered outputs differ")
 
 
 def test_historical_training_config_preserves_all_scientific_fields() -> None:
     assert set(TOP_KEYS) - set(HISTORICALLY_FROZEN_KEYS) == {
+        "schema_version",
         "source",
         "training_receipt_authority",
         "confirmation_receipt_authority",
@@ -532,7 +534,7 @@ def _expected_templates(config: dict[str, object]) -> dict[str, list[str]]:
             "--evidence-root",
             paths["output_root"],
             "--output",
-            f"{paths['output_root']}/confirmation-result-v2.json",
+            f"{paths['output_root']}/confirmation-result-v3.json",
         ],
     }
 
@@ -540,7 +542,7 @@ def _expected_templates(config: dict[str, object]) -> dict[str, list[str]]:
 def validate_config(config: object) -> None:
     _validate_config_commit_bytes(CONFIG_PATH)
     config = _assert_exact_mapping(config, TOP_KEYS, "run config")
-    if config["schema_version"] != "unicom-full-width-objective-run-v2":
+    if config["schema_version"] != "unicom-full-width-objective-run-v3":
         raise ValueError("run config version differs")
 
     source = _assert_exact_mapping(config["source"], ("commit", "files"), "source")
@@ -554,6 +556,13 @@ def validate_config(config: object) -> None:
         raise ValueError("source file order or digest differs")
     if _git_text("rev-parse", f"{CONFIG_COMMIT}^") != SOURCE_COMMIT:
         raise ValueError("config commit parent differs")
+    if (
+        _git_text("rev-parse", f"{SOURCE_COMMIT}^") != PRIOR_VALIDATOR_COMMIT
+        or _git_text("diff-tree", "--no-commit-id", "--name-only", "-r", SOURCE_COMMIT)
+        != "scripts/confirm_unicom_full_width_objective.py\n"
+        "tests/test_confirm_unicom_full_width_objective.py"
+    ):
+        raise ValueError("review-fix source scope differs")
     if (
         _git_text("diff-tree", "--no-commit-id", "--name-only", "-r", CONFIG_COMMIT)
         != "docs/unicom_full_width_objective_run_config.json"
@@ -956,6 +965,8 @@ def validate_config(config: object) -> None:
             "decision_repair_exception",
             "confirmation_audit_publication",
             "confirmation_audit_repair_exception",
+            "confirmation_review_v3_publication",
+            "confirmation_review_v3_reason",
             "rerun_after_finite_gate",
         ),
         "attempts",
@@ -981,6 +992,11 @@ def validate_config(config: object) -> None:
             "nonconsuming-only-when-no-v2-output-or-temp-exists; rerun-only-after-"
             "refrozen-distinct-confirmation-receipt-authority"
         ),
+        "confirmation_review_v3_publication": 1,
+        "confirmation_review_v3_reason": (
+            "publish-review-corrected-relational-validation-and-cost-decision-to-"
+            "new-v3-path; preserve-v2-immutably"
+        ),
         "rerun_after_finite_gate": False,
     }:
         raise ValueError("attempt policy differs")
@@ -999,7 +1015,8 @@ def validate_config(config: object) -> None:
             "pair_result_template",
             "decision_template",
             "confirmation_result_legacy_unregistered",
-            "confirmation_result_v2",
+            "confirmation_result_v2_preserved",
+            "confirmation_result_v3",
             "temporary_template",
             "must_be_absent_before_launch",
         ),
@@ -1021,7 +1038,12 @@ def validate_config(config: object) -> None:
         "pair_result_template": f"{output_root}/seed-{{seed}}/paired-result.json",
         "decision_template": f"{output_root}/seed-{{seed}}/decision.json",
         "confirmation_result_legacy_unregistered": (f"{output_root}/confirmation-result.json"),
-        "confirmation_result_v2": f"{output_root}/confirmation-result-v2.json",
+        "confirmation_result_v2_preserved": {
+            "path": f"{output_root}/confirmation-result-v2.json",
+            "sha256": "82b1bc5e103a7fa5a425b7ff2e315c42f244c247779565a8ddcafcdc7dc926d3",
+            "bytes": 9462,
+        },
+        "confirmation_result_v3": f"{output_root}/confirmation-result-v3.json",
         "temporary_template": ".{basename}.{random}.tmp",
         "must_be_absent_before_launch": True,
     }:
@@ -1245,6 +1267,24 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             ),
         ),
         (
+            "confirmation v3 attempt count",
+            lambda value: value["attempts"].__setitem__(
+                "confirmation_review_v3_publication", 2
+            ),
+        ),
+        (
+            "preserved v2 digest",
+            lambda value: value["registered_outputs"][
+                "confirmation_result_v2_preserved"
+            ].__setitem__("sha256", "0" * 64),
+        ),
+        (
+            "confirmation v3 output",
+            lambda value: value["registered_outputs"].__setitem__(
+                "confirmation_result_v3", "/tmp/confirmation-result-v3.json"
+            ),
+        ),
+        (
             "decision repair exception",
             lambda value: value["attempts"].__setitem__(
                 "decision_repair_exception", "general retry"
@@ -1443,7 +1483,7 @@ def test_registered_command_tokens_are_accepted_by_real_cli_parsers() -> None:
     confirmation_args = confirmer.parse_args(confirmation_command[5:])
     assert confirmation_args.run_config == Path(config["paths"]["run_config"])
     assert confirmation_args.evidence_root == Path(config["paths"]["output_root"])
-    assert confirmation_args.output == Path(config["registered_outputs"]["confirmation_result_v2"])
+    assert confirmation_args.output == Path(config["registered_outputs"]["confirmation_result_v3"])
 
 
 def test_run_config_validates_in_a_fresh_isolated_process() -> None:
