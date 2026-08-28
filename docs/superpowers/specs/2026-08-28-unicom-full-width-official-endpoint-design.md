@@ -78,9 +78,12 @@ fresh paired 16-epoch training runs cost about 40 hours. Because eight seed-3--6
 checkpoint files are missing, the prerequisite recovery is eight fresh 16-epoch runs,
 about 32 GPU-hours. The five missing A-B-B-A quartets cost about 2.3 GPU-hours at the
 measured 5.3 seconds per step. Recovery, operational completion, and endpoint evaluation
-are therefore a roughly 38--40-hour block. This remains the smallest evidence-based
-path to finish the current Pareto decision: it restores a completed five-seed training
-comparison and then tests official transfer without adding a tuned candidate.
+are therefore roughly 38--40 hours of GPU work plus four serialized 108.56-GiB
+offload transfers. A same-route throughput probe before launch determines their
+additional wall time and blocks the run if it is too slow for safe retention. This
+remains the smallest evidence-based path to finish the current Pareto decision: it
+restores a completed five-seed training comparison and then tests official transfer
+without adding a tuned candidate.
 
 Before any official query/gallery embedding is computed, run one A-B-B-A profile
 quartet for each seed in `(2, 3, 4, 5, 6)` and the empirical deployment comparison
@@ -273,11 +276,15 @@ and output/temp state. No replacement process starts while the original is alive
 
 ## Automatic continuation
 
-- `PRACTICAL_OFFICIAL_TRANSFER`: use the preserved seed-3--6 epoch-4/8/12 recovery
-  checkpoints and prospectively rerun seed 2 under a separately committed trajectory
-  configuration to replace its missing epoch-4/8/12 files, then measure official
-  time-to-quality on the resulting generation-matched 40-checkpoint panel. Afterward
-  run three-seed In-Shop mechanism/fairness controls in this
+- `PRACTICAL_OFFICIAL_TRANSFER`: use the preserved seed-3--6 four-epoch recovery
+  bundles and prospectively rerun both seed-2 arms under a separately committed
+  trajectory configuration. Use all four epochs, including epoch 16, from that one
+  new seed-2 pair in the trajectory analysis; never splice its early epochs with the
+  endpoint's retained historical epoch 16. Disclose that the five-seed trajectory
+  uses a prospective seed-2 bundle distinct from the endpoint bundle and costs about
+  8 additional GPU-hours, then measure official time-to-quality on the resulting
+  generation-matched 40-checkpoint panel. Afterward run three-seed In-Shop
+  mechanism/fairness controls in this
   order: sampled-512 for 24 epochs, `official-one-mask` for 16 epochs, `prefix-512` for
   16 epochs, and a one-seed three-point sampled-classifier-learning-rate probe only if
   it improves its own frozen baseline by at least `0.003`. The 24-epoch arm matches
