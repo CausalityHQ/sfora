@@ -1,7 +1,7 @@
 {
-  "schema_version": "unicom-full-width-objective-run-v2",
+  "schema_version": "unicom-full-width-objective-run-v3",
   "source": {
-    "commit": "2fbb89de0006cba9869bf2439f0c826409fd88fd",
+    "commit": "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b",
     "files": [
       {
         "path": "scripts/train_unicom_inshop.py",
@@ -29,7 +29,7 @@
       },
       {
         "path": "scripts/confirm_unicom_full_width_objective.py",
-        "sha256": "5a99b46b0b304f5aa8277eabc434a09a51d38fe9adfa49240568dd07abd42e12"
+        "sha256": "2a643085ae7111327abf3b26485a8e276740634a69600396dd6b7dff93a39b51"
       },
       {
         "path": "scripts/run_unicom_from_checkout.py",
@@ -73,7 +73,7 @@
       },
       {
         "path": "tests/test_confirm_unicom_full_width_objective.py",
-        "sha256": "a48aa7bf22f81c01c3b074e69aa429f34e56bd92024af9347f982b7f427ad5cc"
+        "sha256": "f128228a94bd8592ad63b310694d95c90c6088eee78bf0468090ef2ef0e0417f"
       },
       {
         "path": "tests/test_run_unicom_from_checkout.py",
@@ -100,7 +100,7 @@
     "config_sha256": "edc8565e7e2560a214f62e651e5b681e43434c3af76e25f9aeebb69155b795aa"
   },
   "handoff": {
-    "config_parent": "2fbb89de0006cba9869bf2439f0c826409fd88fd",
+    "config_parent": "70c760e57e6c27dec1473eecd4765e0a8cd4cf6b",
     "config_commit_paths": [
       "docs/unicom_full_width_objective_run_config.json"
     ],
@@ -432,7 +432,7 @@
       "--evidence-root",
       "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25",
       "--output",
-      "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result-v2.json"
+      "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result-v3.json"
     ]
   },
   "run_schedule": [
@@ -813,6 +813,8 @@
     "decision_repair_exception": "one-observed-seed-0-prepublication-training-authority-mismatch-is-nonconsuming-only-when-no-decision-output-or-temp-exists; reuse-only-the-validated-pair-and-abba-artifacts-on-refrozen-handoff",
     "confirmation_audit_publication": 1,
     "confirmation_audit_repair_exception": "one-observed-prepublication-confirmation-receipt-authority-mismatch-is-nonconsuming-only-when-no-v2-output-or-temp-exists; rerun-only-after-refrozen-distinct-confirmation-receipt-authority",
+    "confirmation_review_v3_publication": 1,
+    "confirmation_review_v3_reason": "publish-review-corrected-relational-validation-and-cost-decision-to-new-v3-path; preserve-v2-immutably",
     "rerun_after_finite_gate": false
   },
   "registered_outputs": {
@@ -827,7 +829,12 @@
     "pair_result_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/paired-result.json",
     "decision_template": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/seed-{seed}/decision.json",
     "confirmation_result_legacy_unregistered": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result.json",
-    "confirmation_result_v2": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result-v2.json",
+    "confirmation_result_v2_preserved": {
+      "path": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result-v2.json",
+      "sha256": "82b1bc5e103a7fa5a425b7ff2e315c42f244c247779565a8ddcafcdc7dc926d3",
+      "bytes": 9462
+    },
+    "confirmation_result_v3": "/home/riomus/group-learning/reports/generated/unicom-full-width-objective-2026-08-25/confirmation-result-v3.json",
     "temporary_template": ".{basename}.{random}.tmp",
     "must_be_absent_before_launch": true
   },
