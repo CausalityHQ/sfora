@@ -19,6 +19,24 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+def _assert_nested_state_equal(left, right) -> None:
+    import torch
+
+    assert type(left) is type(right)
+    if isinstance(left, torch.Tensor):
+        assert torch.equal(left, right)
+    elif isinstance(left, dict):
+        assert tuple(left) == tuple(right)
+        for key in left:
+            _assert_nested_state_equal(left[key], right[key])
+    elif type(left) in (list, tuple):
+        assert len(left) == len(right)
+        for first, second in zip(left, right, strict=True):
+            _assert_nested_state_equal(first, second)
+    else:
+        assert left == right
+
+
 def test_runtime_override_protocols_are_exact_and_cli_requires_explicit_mode(
     tmp_path: Path,
 ) -> None:
@@ -152,36 +170,203 @@ def test_runtime_override_checkpoint_uses_frozen_parent_hash_not_live_trainer() 
         MODULE._validate_parent_checkpoint_authority(checkpoint)
 
 
-def test_runtime_override_registered_seed2_checkpoint_schema_loads(tmp_path: Path) -> None:
+def test_review_quality_authority_selects_live_trainer_without_weakening_runtime(
+    monkeypatch,
+) -> None:
+    parent = object()
+    live = object()
+    calls: list[str] = []
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_parent_trainer",
+        lambda _repo, _source: calls.append("parent") or parent,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_live_trainer",
+        lambda _repo, _config: calls.append("live") or live,
+        raising=False,
+    )
+    repository = MODULE_PATH.parents[1]
+
+    assert (
+        MODULE._load_replay_trainer(
+            types.SimpleNamespace(
+                profile_kind="runtime",
+                parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+            ),
+            repository=repository,
+            config={},
+        )
+        is parent
+    )
+    assert (
+        MODULE._load_replay_trainer(
+            types.SimpleNamespace(
+                profile_kind="quality",
+                parent_trainer_source=MODULE.PARENT_TRAINER_SOURCE,
+            ),
+            repository=repository,
+            config={"live_trainer_sha256": "a" * 64},
+        )
+        is live
+    )
+    assert calls == ["parent", "live"]
+
+
+def test_review_quality_checkpoint_accepts_only_authenticated_live_hash() -> None:
+    live_hash = "a" * 64
+    checkpoint = {"training_protocol": {"trainer_sha256": live_hash}}
+
+    MODULE._validate_checkpoint_authority_for_profile(
+        checkpoint,
+        profile_kind="quality",
+        live_trainer_sha256=live_hash,
+    )
+    with pytest.raises(ValueError, match="live trainer"):
+        MODULE._validate_checkpoint_authority_for_profile(
+            checkpoint,
+            profile_kind="quality",
+            live_trainer_sha256="b" * 64,
+        )
+    with pytest.raises(ValueError, match="parent trainer"):
+        MODULE._validate_checkpoint_authority_for_profile(
+            checkpoint,
+            profile_kind="runtime",
+            live_trainer_sha256=live_hash,
+        )
+
+
+def test_review_runtime_seed2_full_registered_shape_restores_all_mutable_state(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
     import torch
 
+    trainer = MODULE._load_authenticated_parent_trainer(
+        MODULE_PATH.parents[1], MODULE.PARENT_TRAINER_SOURCE
+    )
+    source_model = torch.nn.Linear(2, 2)
+    source_classifier = torch.nn.Parameter(torch.full((4, 2), 0.25))
+    source_ema = trainer.StepEMA(source_model, source_classifier)
+    source_optimizer = torch.optim.AdamW(
+        (
+            {"params": tuple(source_model.parameters()), "lr": 1e-5},
+            {"params": (source_classifier,), "lr": 1e-4},
+        ),
+        weight_decay=0.0,
+    )
+    source_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        source_optimizer,
+        max_lr=[1e-5, 1e-4],
+        total_steps=80,
+        pct_start=0.1,
+    )
+    source_optimizer.zero_grad(set_to_none=True)
+    (source_model(torch.ones((1, 2))).sum() + source_classifier.sum()).backward()
+    source_optimizer.step()
+    source_scheduler.step()
+    source_ema.update()
+    mask_generator = torch.Generator().manual_seed(23_002)
+    _ = torch.rand((3,), generator=mask_generator)
+    protocol = {
+        "protocol": "unicom-inshop-official-single-device-v1",
+        "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        "unicom_revision": "d71992ed969e6c271436ac0a0ee1f3ca61474ac0",
+        "initial_checkpoint_sha256": (
+            "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+        ),
+        "partition_sha256": (
+            "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
+        ),
+        "seed": 2,
+        "epochs": 16,
+        "batch_size": 128,
+        "workers": 4,
+        "learning_rate": 1e-5,
+        "classifier_learning_rate": 1e-4,
+        "margin": 0.25,
+        "scale": 32.0,
+        "objective": "official-eight-mask",
+        "selected_features": 512,
+        "evaluation_features": 512,
+        "holdout_seed": 0,
+        "holdout_fraction": 0.2,
+        "eval_every": 4,
+        "checkpoint_every": 4,
+        "max_steps": None,
+        "bf16": False,
+        "compile": False,
+        "fused": False,
+        "classifier_init": "imprinted",
+        "ema_decay": 0.999,
+        "ema_update": "optimizer-step-post-hook-trainable-parameters-only",
+    }
     checkpoint_path = tmp_path / "seed-2" / "epoch-0016.pt"
     checkpoint_path.parent.mkdir()
     payload = {
         "epoch": 16,
-        "model": {},
-        "classifier": torch.zeros((4, 2), dtype=torch.float32),
-        "ema": {},
-        "optimizer": {},
-        "scheduler": {},
+        "model": source_model.state_dict(),
+        "classifier": source_classifier.detach().clone(),
+        "ema": source_ema.state_dict(),
+        "optimizer": source_optimizer.state_dict(),
+        "scheduler": source_scheduler.state_dict(),
         "scaler": None,
-        "mask_generator": torch.Generator().get_state(),
+        "mask_generator": mask_generator.get_state(),
         "torch_rng_state": torch.get_rng_state(),
-        "cuda_rng_states": [torch.Generator().get_state()],
+        "cuda_rng_states": [torch.Generator().manual_seed(2).get_state()],
         "selection_holdout": {"seed": 0, "fraction": 0.2},
-        "training_protocol": {
-            "seed": 2,
-            "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
-        },
-        "history": [],
+        "training_protocol": protocol,
+        "history": [{"epoch": 16, "loss": 2.5}],
     }
     torch.save(payload, checkpoint_path)
 
     loaded = MODULE._load_checkpoint(checkpoint_path)
     MODULE._validate_parent_checkpoint_authority(loaded)
+    restored_model = torch.nn.Linear(2, 2)
+    restored_classifier = torch.nn.Parameter(torch.zeros((4, 2)))
+    restored_ema = trainer.StepEMA(restored_model, restored_classifier)
+    restored_optimizer = torch.optim.AdamW(
+        (
+            {"params": tuple(restored_model.parameters()), "lr": 1e-5},
+            {"params": (restored_classifier,), "lr": 1e-4},
+        ),
+        weight_decay=0.0,
+    )
+    restored_scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        restored_optimizer,
+        max_lr=[1e-5, 1e-4],
+        total_steps=80,
+        pct_start=0.1,
+    )
+    restored_mask_generator = torch.Generator().manual_seed(0)
+    monkeypatch.setattr(torch.cuda, "set_rng_state_all", lambda _states: None)
+    epoch = MODULE._restore_checkpoint_payload(
+        loaded,
+        {
+            "protocol": protocol,
+            "raw_model": restored_model,
+            "classifier": restored_classifier,
+            "step_ema": restored_ema,
+            "optimizer": restored_optimizer,
+            "scheduler": restored_scheduler,
+            "scaler": None,
+            "mask_generator": restored_mask_generator,
+            "holdout": {"seed": 0, "fraction": 0.2},
+        },
+    )
 
-    assert loaded["epoch"] == 16
-    assert loaded["training_protocol"]["seed"] == 2
+    assert epoch == 16
+    _assert_nested_state_equal(restored_model.state_dict(), source_model.state_dict())
+    assert torch.equal(restored_classifier, source_classifier)
+    _assert_nested_state_equal(restored_ema.state_dict(), source_ema.state_dict())
+    _assert_nested_state_equal(
+        restored_optimizer.state_dict(), source_optimizer.state_dict()
+    )
+    _assert_nested_state_equal(
+        restored_scheduler.state_dict(), source_scheduler.state_dict()
+    )
+    assert torch.equal(restored_mask_generator.get_state(), mask_generator.get_state())
 
 
 def test_scaler_unscales_before_gradient_evidence_and_step(monkeypatch) -> None:
@@ -730,7 +915,7 @@ def test_main_publishes_one_profile_and_reports_gate(tmp_path: Path, monkeypatch
     assert json.loads(output.read_text(encoding="utf-8")) == expected
 
 
-def test_quality_profile_validator_requires_v2_evidence_and_no_objective_phase() -> None:
+def test_review_quality_profile_rejects_nonexistent_or_nonterminal_authority() -> None:
     receipt = _runtime_smoke_receipt(
         "current", started_unix_ns=1_000, wall=1.2
     )
@@ -738,8 +923,17 @@ def test_quality_profile_validator_requires_v2_evidence_and_no_objective_phase()
     receipt["objective_steps"] = 0
     receipt["objective_call_count"] = 0
     receipt["objective_samples"] = []
+    receipt["checkpoint_protocol"]["trainer_sha256"] = receipt[
+        "live_trainer_sha256"
+    ]
 
-    MODULE.validate_quality_profile(receipt)
+    with pytest.raises(ValueError, match="authority"):
+        MODULE.validate_quality_profile(receipt)
+
+    changed = copy.deepcopy(receipt)
+    changed["checkpoint_epoch"] = 12
+    with pytest.raises(ValueError, match="epoch 16"):
+        MODULE.validate_quality_profile(changed)
 
     changed = copy.deepcopy(receipt)
     changed["objective_call_count"] = 10
@@ -749,6 +943,166 @@ def test_quality_profile_validator_requires_v2_evidence_and_no_objective_phase()
     changed = copy.deepcopy(receipt)
     changed["inference_signature"]["operations"][2] = "normalize_prefix512"
     with pytest.raises(ValueError, match="inference signature"):
+        MODULE.validate_quality_profile(changed)
+
+    changed = copy.deepcopy(receipt)
+    changed["parameter_schema"][0]["name"] = 7
+    with pytest.raises(ValueError, match="parameter schema"):
+        MODULE.validate_quality_profile(changed)
+
+    changed = copy.deepcopy(receipt)
+    changed["optimizer_schema"] = {"param_groups": "forged", "state": []}
+    with pytest.raises(ValueError, match="optimizer schema"):
+        MODULE.validate_quality_profile(changed)
+
+
+def test_review_quality_profile_reloads_canonical_live_chain_and_rejects_mutations(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    import torch
+
+    receipt = _runtime_smoke_receipt(
+        "current", started_unix_ns=1_000, wall=1.2
+    )
+    receipt["profile_kind"] = "quality"
+    receipt["objective_steps"] = 0
+    receipt["objective_call_count"] = 0
+    receipt["objective_samples"] = []
+    live_hash = receipt["live_trainer_sha256"]
+    protocol = {"trainer_sha256": live_hash}
+    receipt["checkpoint_protocol"] = protocol
+    signature = receipt["inference_signature"]
+    signature["tensors"] = [
+        {
+            "name": "weight",
+            "kind": "parameter",
+            "shape": [2, 2],
+            "dtype": "torch.float32",
+            "numel": 4,
+            "element_size": 4,
+            "bytes": 16,
+            "sha256": "9" * 64,
+        }
+    ]
+    signature["total_bytes"] = 16
+    evidence_root = tmp_path / "quality"
+    evidence_root.mkdir()
+    checkpoint_path = evidence_root / "epoch-0016.pt"
+    optimizer_state = {
+        "state": {
+            0: {
+                "exp_avg": torch.zeros((2, 2)),
+                "exp_avg_sq": torch.zeros((2, 2)),
+                "step": torch.tensor(1.0),
+            }
+        },
+        "param_groups": [
+            {
+                "params": [0, 1],
+                "betas": (0.9, 0.999),
+                "eps": 1e-8,
+                "lr": 1e-4,
+            }
+        ],
+    }
+    torch.save(
+        {
+            "epoch": 16,
+            "model": {"weight": torch.zeros((2, 2))},
+            "classifier": torch.zeros((4, 2)),
+            "ema": {},
+            "optimizer": optimizer_state,
+            "scheduler": {},
+            "scaler": None,
+            "mask_generator": torch.Generator().get_state(),
+            "torch_rng_state": torch.get_rng_state(),
+            "cuda_rng_states": [torch.Generator().get_state()],
+            "selection_holdout": {"seed": 0, "fraction": 0.2},
+            "training_protocol": protocol,
+            "history": [],
+        },
+        checkpoint_path,
+    )
+    checkpoint_authority = MODULE._file_authority(checkpoint_path)
+    run_receipt_path = evidence_root / "run-receipt.json"
+    run_receipt = {
+        "schema": "unicom-fepf-training-run-receipt-v2",
+        "training_protocol": protocol,
+        "checkpoints": [
+            {
+                "epoch": 16,
+                "root": "current",
+                "path": "epoch-0016.pt",
+                "sha256": checkpoint_authority["sha256"],
+                "bytes": checkpoint_authority["bytes"],
+            }
+        ],
+        "inference_signature": signature,
+    }
+    run_receipt_path.write_text(
+        json.dumps(run_receipt, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    profiler_hash = MODULE._sha256_file(MODULE_PATH)
+    receipt["profiler_sha256"] = profiler_hash
+    config_path = tmp_path / "config.json"
+    config = {
+        "source_commit": "1" * 40,
+        "parent_trainer_commit": MODULE.PARENT_TRAINER_COMMIT,
+        "parent_trainer_path": MODULE.PARENT_TRAINER_PATH,
+        "parent_trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        "live_trainer_sha256": live_hash,
+        "profiler_sha256": profiler_hash,
+    }
+    config_path.write_text(
+        json.dumps(config, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )
+    receipt["checkpoint"] = checkpoint_authority
+    receipt["run_receipt"] = MODULE._file_authority(run_receipt_path)
+    receipt["config"] = MODULE._file_authority(config_path)
+
+    observed: list[tuple[dict, Path]] = []
+
+    class _LiveTrainer:
+        @staticmethod
+        def validate_training_run_receipt_v2(value, *, evidence_root):
+            observed.append((value, evidence_root))
+
+    monkeypatch.setattr(
+        MODULE,
+        "_load_authenticated_live_trainer",
+        lambda _repository, _config: _LiveTrainer,
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_git_blob_bytes",
+        lambda _repository, source: (
+            MODULE_PATH.read_bytes()
+            if source.endswith(":scripts/profile_unicom_training_step.py")
+            else b"unused"
+        ),
+    )
+
+    MODULE.validate_quality_profile(receipt)
+
+    assert observed == [(run_receipt, evidence_root)]
+
+    changed = copy.deepcopy(receipt)
+    symlink = tmp_path / "config-link.json"
+    symlink.symlink_to(config_path)
+    changed["config"] = {
+        **changed["config"],
+        "path": str(symlink),
+    }
+    with pytest.raises(ValueError, match="config authority"):
+        MODULE.validate_quality_profile(changed)
+
+    changed = copy.deepcopy(receipt)
+    run_receipt_path.write_text(json.dumps(run_receipt) + "\n", encoding="utf-8")
+    changed["run_receipt"] = MODULE._file_authority(run_receipt_path)
+    with pytest.raises(ValueError, match="noncanonical"):
         MODULE.validate_quality_profile(changed)
 
 
@@ -983,8 +1337,41 @@ def _runtime_smoke_receipt(
             {"name": "classifier", "shape": [4, 2], "dtype": "torch.float32"},
         ],
         "optimizer_schema": {
-            "param_groups": [["amsgrad", "betas", "eps", "lr", "weight_decay"]],
-            "state": [["exp_avg", "exp_avg_sq", "step"]],
+            "param_groups": [
+                {
+                    "parameter_count": 2,
+                    "fields": {
+                        "betas": {
+                            "kind": "tuple",
+                            "items": [{"kind": "float"}, {"kind": "float"}],
+                        },
+                        "eps": {"kind": "float"},
+                        "lr": {"kind": "float"},
+                    },
+                }
+            ],
+            "state": [
+                {
+                    "parameter": 0,
+                    "fields": {
+                        "exp_avg": {
+                            "kind": "tensor",
+                            "shape": [2, 2],
+                            "dtype": "torch.float32",
+                        },
+                        "exp_avg_sq": {
+                            "kind": "tensor",
+                            "shape": [2, 2],
+                            "dtype": "torch.float32",
+                        },
+                        "step": {
+                            "kind": "tensor",
+                            "shape": [],
+                            "dtype": "torch.float32",
+                        },
+                    },
+                }
+            ],
         },
         "environment": {
             "python_version": "3.12.3",
@@ -1054,7 +1441,9 @@ def test_runtime_smoke_decision_mutations_fail_closed(
     elif mutation == "parameter_schema":
         receipts[6]["parameter_schema"][0]["shape"] = [4, 1]
     elif mutation == "optimizer_schema":
-        receipts[1]["optimizer_schema"]["state"][0].append("substituted")
+        receipts[1]["optimizer_schema"]["state"][0]["fields"]["substituted"] = {
+            "kind": "float"
+        }
     elif mutation == "paired_time":
         receipts[1]["timing_samples"] = [_sample(1.09, 0.04, 0.03) for _ in range(50)]
     elif mutation == "pooled_time":

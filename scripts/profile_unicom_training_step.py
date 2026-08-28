@@ -397,6 +397,98 @@ def _validate_scaler_decision(value: object) -> None:
         raise ValueError("profile scaler decision differs")
 
 
+def _validate_optimizer_value_schema(value: object) -> None:
+    if type(value) is not dict or "kind" not in value:
+        raise ValueError("profile optimizer schema differs")
+    kind = value["kind"]
+    if kind == "tensor":
+        if (
+            tuple(value) != ("kind", "shape", "dtype")
+            or type(value["shape"]) is not list
+            or any(type(size) is not int or size < 0 for size in value["shape"])
+            or type(value["dtype"]) is not str
+            or not value["dtype"].startswith("torch.")
+        ):
+            raise ValueError("profile optimizer schema differs")
+    elif kind in {"bool", "int", "float", "str", "none"}:
+        if tuple(value) != ("kind",):
+            raise ValueError("profile optimizer schema differs")
+    elif kind in {"tuple", "list"}:
+        if tuple(value) != ("kind", "items") or type(value["items"]) is not list:
+            raise ValueError("profile optimizer schema differs")
+        for item in value["items"]:
+            _validate_optimizer_value_schema(item)
+    else:
+        raise ValueError("profile optimizer schema differs")
+
+
+def _validate_parameter_schema_object(value: object) -> None:
+    if type(value) is not list or not value:
+        raise ValueError("profile parameter schema differs")
+    names = []
+    for row in value:
+        if (
+            type(row) is not dict
+            or tuple(row) != ("name", "shape", "dtype")
+            or type(row["name"]) is not str
+            or not row["name"]
+            or type(row["shape"]) is not list
+            or any(type(size) is not int or size < 0 for size in row["shape"])
+            or type(row["dtype"]) is not str
+            or not row["dtype"].startswith("torch.")
+        ):
+            raise ValueError("profile parameter schema differs")
+        names.append(row["name"])
+    raw_names = names[:-1]
+    if (
+        names[-1] != "classifier"
+        or raw_names != sorted(raw_names)
+        or any(not name.startswith("raw_model.") for name in raw_names)
+        or len(names) != len(set(names))
+    ):
+        raise ValueError("profile parameter schema differs")
+
+
+def _validate_optimizer_schema_object(value: object) -> None:
+    if (
+        type(value) is not dict
+        or tuple(value) != ("param_groups", "state")
+        or type(value["param_groups"]) is not list
+        or not value["param_groups"]
+        or type(value["state"]) is not list
+    ):
+        raise ValueError("profile optimizer schema differs")
+    for group in value["param_groups"]:
+        if (
+            type(group) is not dict
+            or tuple(group) != ("parameter_count", "fields")
+            or type(group["parameter_count"]) is not int
+            or group["parameter_count"] <= 0
+            or type(group["fields"]) is not dict
+            or not group["fields"]
+            or tuple(group["fields"]) != tuple(sorted(group["fields"]))
+        ):
+            raise ValueError("profile optimizer schema differs")
+        for descriptor in group["fields"].values():
+            _validate_optimizer_value_schema(descriptor)
+    parameters = []
+    for row in value["state"]:
+        if (
+            type(row) is not dict
+            or tuple(row) != ("parameter", "fields")
+            or type(row["parameter"]) is not int
+            or row["parameter"] < 0
+            or type(row["fields"]) is not dict
+            or tuple(row["fields"]) != tuple(sorted(row["fields"]))
+        ):
+            raise ValueError("profile optimizer schema differs")
+        parameters.append(row["parameter"])
+        for descriptor in row["fields"].values():
+            _validate_optimizer_value_schema(descriptor)
+    if parameters != sorted(parameters) or len(parameters) != len(set(parameters)):
+        raise ValueError("profile optimizer schema differs")
+
+
 def _validate_profile_v2(receipt: object, *, expected_kind: str | None = None) -> None:
     if (
         type(receipt) is not dict
@@ -427,8 +519,10 @@ def _validate_profile_v2(receipt: object, *, expected_kind: str | None = None) -
         or type(receipt["checkpoint_protocol"]) is not dict
     ):
         raise ValueError("profile checkpoint authority differs")
-    _validate_parent_checkpoint_authority(
-        {"training_protocol": receipt["checkpoint_protocol"]}
+    _validate_checkpoint_authority_for_profile(
+        {"training_protocol": receipt["checkpoint_protocol"]},
+        profile_kind=receipt["profile_kind"],
+        live_trainer_sha256=receipt["live_trainer_sha256"],
     )
     _validate_inference_signature(receipt["inference_signature"])
     runtime = RUNTIME_PROTOCOLS[receipt["runtime_mode"]]
@@ -506,6 +600,132 @@ def validate_quality_profile(receipt: object) -> None:
     """Strictly validate one resource-only quality-arm profile receipt."""
 
     _validate_profile_v2(receipt, expected_kind="quality")
+    if receipt["checkpoint_epoch"] != 16:
+        raise ValueError("quality profile checkpoint must be epoch 16")
+    _validate_parameter_schema_object(receipt["parameter_schema"])
+    _validate_optimizer_schema_object(receipt["optimizer_schema"])
+    _validate_quality_authority_chain(receipt)
+
+
+def _require_persisted_authority(value: dict[str, object], name: str) -> Path:
+    _validate_file_authority(value, name)
+    path = Path(value["path"])
+    if path != path.resolve() or path.is_symlink() or not path.is_file():
+        raise ValueError(f"quality profile {name} authority differs")
+    if _file_authority(path) != value:
+        raise ValueError(f"quality profile {name} authority is stale")
+    return path
+
+
+def _checkpoint_parameter_schema(
+    checkpoint: dict[str, object], inference_signature: dict[str, object]
+) -> list[dict[str, object]]:
+    model = checkpoint["model"]
+    classifier = checkpoint["classifier"]
+    if type(model) is not dict:
+        raise ValueError("quality profile checkpoint parameter schema differs")
+    rows = []
+    for inference_row in inference_signature["tensors"]:
+        if inference_row["kind"] != "parameter":
+            continue
+        name = inference_row["name"]
+        value = model.get(name)
+        if (
+            value is None
+            or list(value.shape) != inference_row["shape"]
+            or str(value.dtype) != inference_row["dtype"]
+        ):
+            raise ValueError("quality profile checkpoint parameter schema differs")
+        rows.append(
+            {
+                "name": f"raw_model.{name}",
+                "shape": list(value.shape),
+                "dtype": str(value.dtype),
+            }
+        )
+    rows.sort(key=lambda row: row["name"])
+    rows.append(
+        {
+            "name": "classifier",
+            "shape": list(classifier.shape),
+            "dtype": str(classifier.dtype),
+        }
+    )
+    _validate_parameter_schema_object(rows)
+    return rows
+
+
+def _validate_quality_authority_chain(receipt: dict[str, object]) -> None:
+    checkpoint_path = _require_persisted_authority(receipt["checkpoint"], "checkpoint")
+    run_receipt_path = _require_persisted_authority(receipt["run_receipt"], "run_receipt")
+    config_path = _require_persisted_authority(receipt["config"], "config")
+    if run_receipt_path.name != "run-receipt.json":
+        raise ValueError("quality profile run receipt authority differs")
+    config = _strict_json_object(config_path)
+    run_receipt = _strict_json_object(run_receipt_path)
+    required_config = {
+        "parent_trainer_commit": PARENT_TRAINER_COMMIT,
+        "parent_trainer_path": PARENT_TRAINER_PATH,
+        "parent_trainer_sha256": PARENT_TRAINER_SHA256,
+        "live_trainer_sha256": receipt["live_trainer_sha256"],
+        "profiler_sha256": receipt["profiler_sha256"],
+    }
+    if any(config.get(key) != value for key, value in required_config.items()):
+        raise ValueError("quality profile config authority differs")
+    repository = Path(__file__).resolve().parents[1]
+    trainer = _load_authenticated_live_trainer(repository, config)
+    profiler_source = Path(__file__).resolve()
+    source_commit = config.get("source_commit")
+    if (
+        _sha256_file(profiler_source) != receipt["profiler_sha256"]
+        or hashlib.sha256(
+            _git_blob_bytes(
+                repository,
+                f"{source_commit}:scripts/profile_unicom_training_step.py",
+            )
+        ).hexdigest()
+        != receipt["profiler_sha256"]
+    ):
+        raise ValueError("quality profile profiler source authority differs")
+    validator = getattr(trainer, "validate_training_run_receipt_v2", None)
+    if not callable(validator):
+        raise ValueError("quality profile live run receipt validator differs")
+    validator(run_receipt, evidence_root=run_receipt_path.parent)
+    checkpoints = run_receipt.get("checkpoints")
+    if type(checkpoints) is not list or not checkpoints:
+        raise ValueError("quality profile run checkpoint chain differs")
+    terminal = checkpoints[-1]
+    if (
+        type(terminal) is not dict
+        or terminal.get("epoch") != 16
+        or terminal.get("path") != "epoch-0016.pt"
+        or terminal.get("sha256") != receipt["checkpoint"]["sha256"]
+        or terminal.get("bytes") != receipt["checkpoint"]["bytes"]
+        or checkpoint_path != run_receipt_path.parent / terminal["path"]
+    ):
+        raise ValueError("quality profile terminal checkpoint authority differs")
+    checkpoint = _load_checkpoint(checkpoint_path)
+    _validate_checkpoint_authority_for_profile(
+        checkpoint,
+        profile_kind="quality",
+        live_trainer_sha256=receipt["live_trainer_sha256"],
+    )
+    if (
+        checkpoint["epoch"] != 16
+        or checkpoint["training_protocol"] != receipt["checkpoint_protocol"]
+        or run_receipt.get("training_protocol") != receipt["checkpoint_protocol"]
+        or run_receipt.get("inference_signature") != receipt["inference_signature"]
+    ):
+        raise ValueError("quality profile checkpoint protocol chain differs")
+    expected_parameters = _checkpoint_parameter_schema(
+        checkpoint, receipt["inference_signature"]
+    )
+    expected_optimizer = _optimizer_state_dict_schema(checkpoint["optimizer"])
+    if (
+        receipt["parameter_schema"] != expected_parameters
+        or receipt["optimizer_schema"] != expected_optimizer
+    ):
+        raise ValueError("quality profile registered schema differs")
 
 
 def _process_median_wall(receipt: dict[str, object]) -> float:
@@ -790,6 +1010,63 @@ def _validate_parent_checkpoint_authority(checkpoint: object) -> None:
         raise ValueError("checkpoint parent trainer source differs")
 
 
+def _validate_checkpoint_authority_for_profile(
+    checkpoint: object,
+    *,
+    profile_kind: str,
+    live_trainer_sha256: str,
+) -> None:
+    if profile_kind == "runtime":
+        _validate_parent_checkpoint_authority(checkpoint)
+        return
+    if (
+        profile_kind != "quality"
+        or not _lower_sha256(live_trainer_sha256)
+        or type(checkpoint) is not dict
+        or type(checkpoint.get("training_protocol")) is not dict
+        or checkpoint["training_protocol"].get("trainer_sha256")
+        != live_trainer_sha256
+    ):
+        raise ValueError("checkpoint live trainer source differs")
+
+
+def _load_authenticated_live_trainer(repository: Path, config: dict[str, object]):
+    source_commit = config.get("source_commit")
+    expected_sha256 = config.get("live_trainer_sha256")
+    if (
+        type(source_commit) is not str
+        or len(source_commit) != 40
+        or any(character not in "0123456789abcdef" for character in source_commit)
+        or not _lower_sha256(expected_sha256)
+    ):
+        raise ValueError("live trainer config authority differs")
+    source = repository.resolve() / PARENT_TRAINER_PATH
+    if source.is_symlink() or not source.is_file() or _sha256_file(source) != expected_sha256:
+        raise ValueError("live trainer file authority differs")
+    blob = _git_blob_bytes(repository, f"{source_commit}:{PARENT_TRAINER_PATH}")
+    if hashlib.sha256(blob).hexdigest() != expected_sha256:
+        raise ValueError("live trainer Git authority differs")
+    trainer = _load_trainer(source)
+    trainer.__profile_source_sha256__ = expected_sha256
+    trainer.__profile_source_spec__ = f"{source_commit}:{PARENT_TRAINER_PATH}"
+    return trainer
+
+
+def _load_replay_trainer(
+    args: argparse.Namespace,
+    *,
+    repository: Path,
+    config: dict[str, object],
+):
+    if args.profile_kind == "runtime":
+        return _load_authenticated_parent_trainer(
+            repository, args.parent_trainer_source
+        )
+    if args.profile_kind == "quality":
+        return _load_authenticated_live_trainer(repository, config)
+    raise ValueError("profile kind differs")
+
+
 def _construct_runtime(
     raw_model,
     classifier,
@@ -904,7 +1181,12 @@ def _restore_checkpoint_payload(payload: dict[str, Any], state: dict[str, Any]) 
     return epoch
 
 
-def _build_replay_state(args: argparse.Namespace, trainer):
+def _build_replay_state(
+    args: argparse.Namespace,
+    trainer,
+    *,
+    live_trainer_sha256: str,
+):
     import torch
 
     from sfora.unicom_inshop import parse_inshop_partition
@@ -913,7 +1195,11 @@ def _build_replay_state(args: argparse.Namespace, trainer):
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for UniCOM step replay")
     checkpoint = _load_checkpoint(args.run_checkpoint)
-    _validate_parent_checkpoint_authority(checkpoint)
+    _validate_checkpoint_authority_for_profile(
+        checkpoint,
+        profile_kind=args.profile_kind,
+        live_trainer_sha256=live_trainer_sha256,
+    )
     protocol = dict(checkpoint["training_protocol"])
     holdout = dict(checkpoint["selection_holdout"])
     if protocol.get("initial_checkpoint_sha256") != _sha256_file(args.initial_checkpoint):
@@ -1331,12 +1617,31 @@ def _file_authority(path: Path) -> dict[str, object]:
 def _strict_json_object(path: Path) -> dict[str, object]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("profile JSON authority differs")
+
+    def pairs(values):
+        result = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError("profile JSON authority has duplicate keys")
+            result[key] = value
+        return result
+
     try:
-        value = json.loads(path.read_bytes())
+        payload = path.read_bytes()
+        value = json.loads(
+            payload,
+            object_pairs_hook=pairs,
+            parse_constant=lambda _value: (_ for _ in ()).throw(
+                ValueError("profile JSON authority has nonfinite value")
+            ),
+        )
     except Exception as error:
         raise ValueError("profile JSON authority differs") from error
     if type(value) is not dict:
         raise ValueError("profile JSON authority differs")
+    canonical = (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
+    if payload != canonical:
+        raise ValueError("profile JSON authority is noncanonical")
     return value
 
 
@@ -1370,6 +1675,57 @@ def _load_profile_authorities(args: argparse.Namespace) -> tuple[dict, dict, dic
     ):
         raise ValueError("profile run receipt checkpoint authority differs")
     return run_receipt, config, inference_signature
+
+
+def _validate_quality_replay_inputs(
+    args: argparse.Namespace,
+    *,
+    trainer,
+    run_receipt: dict[str, object],
+    config: dict[str, object],
+    inference_signature: dict[str, object],
+) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    profiler_sha256 = _sha256_file(Path(__file__).resolve())
+    source_commit = config.get("source_commit")
+    if (
+        config.get("profiler_sha256") != profiler_sha256
+        or hashlib.sha256(
+            _git_blob_bytes(
+                repository,
+                f"{source_commit}:scripts/profile_unicom_training_step.py",
+            )
+        ).hexdigest()
+        != profiler_sha256
+    ):
+        raise ValueError("quality profile profiler source authority differs")
+    validator = getattr(trainer, "validate_training_run_receipt_v2", None)
+    if not callable(validator):
+        raise ValueError("quality profile live run receipt validator differs")
+    validator(run_receipt, evidence_root=args.run_receipt.resolve().parent)
+    checkpoint = _load_checkpoint(args.run_checkpoint)
+    live_sha256 = config.get("live_trainer_sha256")
+    _validate_checkpoint_authority_for_profile(
+        checkpoint,
+        profile_kind="quality",
+        live_trainer_sha256=live_sha256,
+    )
+    checkpoints = run_receipt.get("checkpoints")
+    terminal = checkpoints[-1] if type(checkpoints) is list and checkpoints else None
+    checkpoint_authority = _file_authority(args.run_checkpoint)
+    if (
+        type(terminal) is not dict
+        or terminal.get("epoch") != 16
+        or terminal.get("path") != "epoch-0016.pt"
+        or terminal.get("sha256") != checkpoint_authority["sha256"]
+        or terminal.get("bytes") != checkpoint_authority["bytes"]
+        or args.run_checkpoint.resolve()
+        != args.run_receipt.resolve().parent / "epoch-0016.pt"
+        or checkpoint["epoch"] != 16
+        or checkpoint["training_protocol"] != run_receipt.get("training_protocol")
+        or run_receipt.get("inference_signature") != inference_signature
+    ):
+        raise ValueError("quality profile live checkpoint chain differs")
 
 
 def _parameter_schema(raw_model: object, classifier: object) -> list[dict[str, object]]:
@@ -1409,7 +1765,10 @@ def _optimizer_value_schema(value: object) -> dict[str, object]:
 
 
 def _optimizer_schema(optimizer: object) -> dict[str, object]:
-    state = optimizer.state_dict()
+    return _optimizer_state_dict_schema(optimizer.state_dict())
+
+
+def _optimizer_state_dict_schema(state: object) -> dict[str, object]:
     if type(state) is not dict or tuple(state) != ("state", "param_groups"):
         raise ValueError("profile optimizer schema differs")
     groups = []
@@ -1459,9 +1818,29 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
     if args.parent_trainer_source != PARENT_TRAINER_SOURCE:
         raise ValueError("parent trainer source differs")
     repository = Path(__file__).resolve().parents[1]
-    trainer = _load_authenticated_parent_trainer(repository, args.parent_trainer_source)
-    _run_receipt, _config, inference_signature = _load_profile_authorities(args)
-    state = _build_replay_state(args, trainer)
+    run_receipt, config, inference_signature = _load_profile_authorities(args)
+    trainer = _load_replay_trainer(
+        args,
+        repository=repository,
+        config=config,
+    )
+    live_trainer_source = Path(__file__).with_name("train_unicom_inshop.py")
+    live_trainer_sha256 = _sha256_file(live_trainer_source)
+    if args.profile_kind == "quality":
+        _validate_quality_replay_inputs(
+            args,
+            trainer=trainer,
+            run_receipt=run_receipt,
+            config=config,
+            inference_signature=inference_signature,
+        )
+        if live_trainer_sha256 != config.get("live_trainer_sha256"):
+            raise ValueError("quality profile live trainer hash differs")
+    state = _build_replay_state(
+        args,
+        trainer,
+        live_trainer_sha256=live_trainer_sha256,
+    )
     state["trainer"] = trainer
     try:
         phase = _execute_profile_phases(state, profile_kind=args.profile_kind)
@@ -1473,14 +1852,13 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
             state["step_ema"].release_step_hook()
     finished_unix_ns = time.time_ns()
     runtime = RUNTIME_PROTOCOLS[args.runtime_mode]
-    live_trainer_source = Path(__file__).with_name("train_unicom_inshop.py")
     payload = {
         "schema": "unicom-training-step-profile-v2",
         "profile_kind": args.profile_kind,
         "runtime_mode": args.runtime_mode,
         "parent_trainer_source": PARENT_TRAINER_SOURCE,
         "parent_trainer_sha256": PARENT_TRAINER_SHA256,
-        "live_trainer_sha256": _sha256_file(live_trainer_source),
+        "live_trainer_sha256": live_trainer_sha256,
         "profiler_sha256": _sha256_file(Path(__file__)),
         "checkpoint": _file_authority(args.run_checkpoint),
         "run_receipt": _file_authority(args.run_receipt),
@@ -1517,7 +1895,10 @@ def replay_profile(args: argparse.Namespace) -> dict[str, object]:
         "optimizer_schema": _optimizer_schema(state["optimizer"]),
         "environment": _runtime_environment(torch, state["device"]),
     }
-    _validate_profile_v2(payload, expected_kind=args.profile_kind)
+    if args.profile_kind == "quality":
+        validate_quality_profile(payload)
+    else:
+        _validate_profile_v2(payload, expected_kind="runtime")
     return payload
 
 
