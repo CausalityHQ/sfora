@@ -13,9 +13,9 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "docs" / "unicom_full_width_objective_run_config.json"
-SOURCE_COMMIT = "5a4e3cd9ee3e4cac4a85d8520d9c3e8c9bf1645c"
-CONFIG_COMMIT = "83f0f838015bc3224132432294973b36150b0c98"
-CONFIG_SHA256 = "8d1791f1bff0a9bae958b92d359f03b05fdfcd55b18d1c2db7868d6bb33451f6"
+SOURCE_COMMIT = "2fbb89de0006cba9869bf2439f0c826409fd88fd"
+CONFIG_COMMIT = "2d472cb498c4e56903a8319dbeb474be0d6f6d36"
+CONFIG_SHA256 = "fc5552bb0e5dfc0a95a1f6cd884a5ce2e7cee9c469d0ec740cce190fda3fe377"
 TRAINING_SOURCE_COMMIT = "b5d80446cdac5814bf868bbf18673ce076ccf68f"
 TRAINING_CONFIG_COMMIT = "427a71a7854f019dba0971b3edfe8633e3d43b23"
 TRAINING_CONFIG_SHA256 = "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
@@ -46,7 +46,7 @@ SOURCE_FILES = (
     ),
     (
         "scripts/confirm_unicom_full_width_objective.py",
-        "c5d4bab2c83d09cf1e111d34080f344051fa3061d8d08d85fd78f1a6da649899",
+        "5a99b46b0b304f5aa8277eabc434a09a51d38fe9adfa49240568dd07abd42e12",
     ),
     (
         "scripts/run_unicom_from_checkout.py",
@@ -90,7 +90,7 @@ SOURCE_FILES = (
     ),
     (
         "tests/test_confirm_unicom_full_width_objective.py",
-        "1989bd017e87775552ccbe6ece0e62227f662513acb126e59d437474755a660d",
+        "a48aa7bf22f81c01c3b074e69aa429f34e56bd92024af9347f982b7f427ad5cc",
     ),
     (
         "tests/test_run_unicom_from_checkout.py",
@@ -179,6 +179,7 @@ TOP_KEYS = (
     "schema_version",
     "source",
     "training_receipt_authority",
+    "confirmation_receipt_authority",
     "handoff",
     "environment",
     "inputs",
@@ -258,6 +259,7 @@ def test_historical_training_config_preserves_all_scientific_fields() -> None:
     assert set(TOP_KEYS) - set(HISTORICALLY_FROZEN_KEYS) == {
         "source",
         "training_receipt_authority",
+        "confirmation_receipt_authority",
         "handoff",
         "command_templates",
         "confirmation_audit_inputs",
@@ -582,6 +584,29 @@ def validate_config(config: object) -> None:
         or _sha256_bytes(historical_config) != TRAINING_CONFIG_SHA256
     ):
         raise ValueError("historical training config differs")
+    confirmation_authority = _assert_exact_mapping(
+        config["confirmation_receipt_authority"],
+        ("source_commit", "config_commit", "config_sha256"),
+        "confirmation receipt authority",
+    )
+    if confirmation_authority != {
+        "source_commit": "f76cd832e84c06b64c63a4ac728017123928b96c",
+        "config_commit": "c20464366d25827c42c9bec3120c6dc1d49ae0a9",
+        "config_sha256": "edc8565e7e2560a214f62e651e5b681e43434c3af76e25f9aeebb69155b795aa",
+    }:
+        raise ValueError("confirmation receipt authority differs")
+    if (
+        _git_text("rev-parse", f"{confirmation_authority['config_commit']}^")
+        != confirmation_authority["source_commit"]
+        or _sha256_bytes(
+            _git_blob(
+                "docs/unicom_full_width_objective_run_config.json",
+                commit=confirmation_authority["config_commit"],
+            )
+        )
+        != confirmation_authority["config_sha256"]
+    ):
+        raise ValueError("confirmation receipt handoff differs")
     historical_value = json.loads(
         historical_config,
         object_pairs_hook=_pairs,
@@ -930,6 +955,7 @@ def validate_config(config: object) -> None:
             "decision_per_seed",
             "decision_repair_exception",
             "confirmation_audit_publication",
+            "confirmation_audit_repair_exception",
             "rerun_after_finite_gate",
         ),
         "attempts",
@@ -950,6 +976,11 @@ def validate_config(config: object) -> None:
             "the-validated-pair-and-abba-artifacts-on-refrozen-handoff"
         ),
         "confirmation_audit_publication": 1,
+        "confirmation_audit_repair_exception": (
+            "one-observed-prepublication-confirmation-receipt-authority-mismatch-is-"
+            "nonconsuming-only-when-no-v2-output-or-temp-exists; rerun-only-after-"
+            "refrozen-distinct-confirmation-receipt-authority"
+        ),
         "rerun_after_finite_gate": False,
     }:
         raise ValueError("attempt policy differs")
@@ -1116,6 +1147,12 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
             ),
         ),
         (
+            "confirmation receipt source",
+            lambda value: value["confirmation_receipt_authority"].__setitem__(
+                "source_commit", "0" * 40
+            ),
+        ),
+        (
             "handoff parent",
             lambda value: value["handoff"].__setitem__("config_parent", "0" * 40),
         ),
@@ -1200,6 +1237,12 @@ def test_run_config_validator_rejects_registered_mutations() -> None:
         (
             "confirmation audit attempt count",
             lambda value: value["attempts"].__setitem__("confirmation_audit_publication", 2),
+        ),
+        (
+            "confirmation audit repair exception",
+            lambda value: value["attempts"].__setitem__(
+                "confirmation_audit_repair_exception", "general retry"
+            ),
         ),
         (
             "decision repair exception",
