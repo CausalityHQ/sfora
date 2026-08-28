@@ -1,7 +1,7 @@
 {
   "schema_version": "unicom-full-width-objective-run-v2",
   "source": {
-    "commit": "5a4e3cd9ee3e4cac4a85d8520d9c3e8c9bf1645c",
+    "commit": "2fbb89de0006cba9869bf2439f0c826409fd88fd",
     "files": [
       {
         "path": "scripts/train_unicom_inshop.py",
@@ -29,7 +29,7 @@
       },
       {
         "path": "scripts/confirm_unicom_full_width_objective.py",
-        "sha256": "c5d4bab2c83d09cf1e111d34080f344051fa3061d8d08d85fd78f1a6da649899"
+        "sha256": "5a99b46b0b304f5aa8277eabc434a09a51d38fe9adfa49240568dd07abd42e12"
       },
       {
         "path": "scripts/run_unicom_from_checkout.py",
@@ -73,7 +73,7 @@
       },
       {
         "path": "tests/test_confirm_unicom_full_width_objective.py",
-        "sha256": "1989bd017e87775552ccbe6ece0e62227f662513acb126e59d437474755a660d"
+        "sha256": "a48aa7bf22f81c01c3b074e69aa429f34e56bd92024af9347f982b7f427ad5cc"
       },
       {
         "path": "tests/test_run_unicom_from_checkout.py",
@@ -94,8 +94,13 @@
     "config_commit": "427a71a7854f019dba0971b3edfe8633e3d43b23",
     "config_sha256": "bdb76d20091abf1cbce87ecf7117df2e6c928ead6a7cc70294e63d7a7e39ae76"
   },
+  "confirmation_receipt_authority": {
+    "source_commit": "f76cd832e84c06b64c63a4ac728017123928b96c",
+    "config_commit": "c20464366d25827c42c9bec3120c6dc1d49ae0a9",
+    "config_sha256": "edc8565e7e2560a214f62e651e5b681e43434c3af76e25f9aeebb69155b795aa"
+  },
   "handoff": {
-    "config_parent": "5a4e3cd9ee3e4cac4a85d8520d9c3e8c9bf1645c",
+    "config_parent": "2fbb89de0006cba9869bf2439f0c826409fd88fd",
     "config_commit_paths": [
       "docs/unicom_full_width_objective_run_config.json"
     ],
@@ -807,6 +812,7 @@
     "decision_per_seed": 1,
     "decision_repair_exception": "one-observed-seed-0-prepublication-training-authority-mismatch-is-nonconsuming-only-when-no-decision-output-or-temp-exists; reuse-only-the-validated-pair-and-abba-artifacts-on-refrozen-handoff",
     "confirmation_audit_publication": 1,
+    "confirmation_audit_repair_exception": "one-observed-prepublication-confirmation-receipt-authority-mismatch-is-nonconsuming-only-when-no-v2-output-or-temp-exists; rerun-only-after-refrozen-distinct-confirmation-receipt-authority",
     "rerun_after_finite_gate": false
   },
   "registered_outputs": {
