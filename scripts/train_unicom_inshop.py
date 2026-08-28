@@ -45,6 +45,7 @@ from sfora.unicom_training import (
 
 UNICOM_REVISION = "d71992ed969e6c271436ac0a0ee1f3ca61474ac0"
 UNICOM_L14_336_SHA256 = "3916ab5aed3b522fc90345be8b4457fe5dad60801ad2af5a6871c0c096e8d7ea"
+INSHOP_PARTITION_SHA256 = "cfada103c44df866db5e2ee9ecc2301ca691a4d0cdb3c875fe4051b62570894c"
 UNICOM_MEAN = (0.48145466, 0.4578275, 0.40821073)
 UNICOM_STD = (0.26862954, 0.26130258, 0.27577711)
 EMA_DECAY = 0.999
@@ -99,6 +100,35 @@ FEPF_TRAINING_PROTOCOL_KEYS = (
     "checkpoint_every", "max_steps", "bf16", "compile", "fused", "classifier_init",
     "ema_decay", "ema_update", "initialization_receipt_sha256",
 )
+TRAINING_CHECKPOINT_KEYS = (
+    "epoch",
+    "model",
+    "classifier",
+    "ema",
+    "optimizer",
+    "scheduler",
+    "scaler",
+    "mask_generator",
+    "torch_rng_state",
+    "cuda_rng_states",
+    "selection_holdout",
+    "training_protocol",
+    "history",
+)
+TORCH_DTYPE_ELEMENT_SIZES = {
+    "torch.bool": 1,
+    "torch.uint8": 1,
+    "torch.int8": 1,
+    "torch.int16": 2,
+    "torch.float16": 2,
+    "torch.bfloat16": 2,
+    "torch.int32": 4,
+    "torch.float32": 4,
+    "torch.int64": 8,
+    "torch.float64": 8,
+    "torch.complex64": 8,
+    "torch.complex128": 16,
+}
 
 
 def _lower_hex(value: object, length: int) -> bool:
@@ -633,7 +663,7 @@ def _validate_inference_signature_object(signature: object) -> None:
             or not row["name"]
             or row["kind"] not in {"parameter", "buffer"}
             or type(row["dtype"]) is not str
-            or not row["dtype"]
+            or TORCH_DTYPE_ELEMENT_SIZES.get(row["dtype"]) != row["element_size"]
             or type(row["shape"]) is not list
             or any(type(value) is not int or value < 0 for value in row["shape"])
             or type(row["numel"]) is not int
@@ -684,20 +714,26 @@ def validate_fepf_training_protocol(
     ):
         raise ValueError("FEPF checkpoint protocol differs")
     if (
-        not _lower_sha256(protocol["trainer_sha256"])
-        or not _lower_sha256(protocol["partition_sha256"])
+        protocol["trainer_sha256"] != _sha256_file(Path(__file__))
+        or protocol["partition_sha256"] != INSHOP_PARTITION_SHA256
         or type(protocol["compile"]) is not bool
         or type(protocol["fused"]) is not bool
     ):
         raise ValueError("FEPF checkpoint protocol differs")
 
 
-def _load_checkpoint_training_protocol(path: Path) -> dict[str, object]:
+def _load_checkpoint_training_protocol(
+    path: Path, *, expected_epoch: int
+) -> dict[str, object]:
     try:
-        checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+        checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     except Exception as error:
         raise ValueError("FEPF checkpoint payload differs") from error
-    if type(checkpoint) is not dict or type(checkpoint.get("training_protocol")) is not dict:
+    if type(checkpoint) is not dict or tuple(checkpoint) != TRAINING_CHECKPOINT_KEYS:
+        raise ValueError("FEPF checkpoint schema differs")
+    if type(checkpoint["epoch"]) is not int or checkpoint["epoch"] != expected_epoch:
+        raise ValueError("FEPF checkpoint epoch differs")
+    if type(checkpoint["training_protocol"]) is not dict:
         raise ValueError("FEPF checkpoint protocol differs")
     return checkpoint["training_protocol"]
 
@@ -733,6 +769,7 @@ def validate_training_run_receipt_v2(
         or receipt["mode"] not in {"imprinted", "fepf_mean", "fepf_random"}
         or type(receipt["training_seed"]) is not int
         or receipt["training_seed"] < 0
+        or (receipt["mode"] == "fepf_random" and receipt["training_seed"] != 0)
         or type(receipt["holdout_fraction"]) is not float
         or not math.isfinite(receipt["holdout_fraction"])
         or type(receipt["holdout_seed"]) is not int
@@ -784,6 +821,7 @@ def validate_training_run_receipt_v2(
         if (
             type(receipt["parent_run_receipt"]) is not dict
             or receipt["parent_run_receipt"].get("root") != "parent"
+            or receipt["parent_run_receipt"].get("path") != "run-receipt.json"
         ):
             raise ValueError("FEPF parent artifact root differs")
         parent_run_path = _resolve_receipt_binding(
@@ -825,7 +863,7 @@ def validate_training_run_receipt_v2(
     )
     if receipt["initialization_receipt"]["root"] != (
         "parent" if continuation else "current"
-    ):
+    ) or receipt["initialization_receipt"].get("path") != "initialization-receipt.json":
         raise ValueError("FEPF initialization root differs")
     initialization_object = strict_json_object(initialization_path.read_bytes())
     if (
@@ -833,7 +871,10 @@ def validate_training_run_receipt_v2(
         != receipt["initialization_receipt_sha256"]
     ):
         raise ValueError("FEPF initialization digest differs")
-    if receipt["history"].get("root") != "current":
+    if (
+        receipt["history"].get("root") != "current"
+        or receipt["history"].get("path") != "history.json"
+    ):
         raise ValueError("FEPF history root differs")
     _resolve_receipt_binding(receipt["history"], current_root=current_root, parent_root=parent_root)
     checkpoints = receipt["checkpoints"]
@@ -850,7 +891,7 @@ def validate_training_run_receipt_v2(
         if type(row) is not dict or tuple(row) != ("epoch", "root", "path", "sha256", "bytes"):
             raise ValueError("FEPF checkpoint binding differs")
         expected_root = "parent" if continuation and index == 0 else "current"
-        if row["root"] != expected_root:
+        if row["root"] != expected_root or row["path"] != f"epoch-{row['epoch']:04d}.pt":
             raise ValueError("FEPF checkpoint root differs")
         checkpoint_paths.append(
             _resolve_receipt_binding(
@@ -859,7 +900,12 @@ def validate_training_run_receipt_v2(
                 parent_root=parent_root,
             )
         )
-        if _load_checkpoint_training_protocol(checkpoint_paths[-1]) != protocol:
+        if (
+            _load_checkpoint_training_protocol(
+                checkpoint_paths[-1], expected_epoch=row["epoch"]
+            )
+            != protocol
+        ):
             raise ValueError("FEPF checkpoint protocol differs")
     if continuation:
         if (
@@ -2339,22 +2385,7 @@ def restore_training_checkpoint(
     """Restore an epoch-boundary checkpoint and return its epoch and history."""
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    expected = (
-        "epoch",
-        "model",
-        "classifier",
-        "ema",
-        "optimizer",
-        "scheduler",
-        "scaler",
-        "mask_generator",
-        "torch_rng_state",
-        "cuda_rng_states",
-        "selection_holdout",
-        "training_protocol",
-        "history",
-    )
-    if type(checkpoint) is not dict or tuple(checkpoint) != expected:
+    if type(checkpoint) is not dict or tuple(checkpoint) != TRAINING_CHECKPOINT_KEYS:
         raise ValueError("training checkpoint schema differs")
     if checkpoint["selection_holdout"] != selection_holdout:
         raise ValueError("training checkpoint selection holdout differs")
@@ -2520,6 +2551,9 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         raise ValueError("UNICOM checkpoint filename differs")
     if _sha256_file(args.checkpoint) != UNICOM_L14_336_SHA256:
         raise ValueError("UNICOM checkpoint SHA-256 differs")
+    partition_path = args.dataset_root / "Eval" / "list_eval_partition.txt"
+    if fepf_request and _sha256_file(partition_path) != INSHOP_PARTITION_SHA256:
+        raise ValueError("In-Shop partition SHA-256 differs")
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is required for UNICOM training")
     if args.epochs <= 0 or args.batch_size <= 0 or args.workers < 0:
@@ -2669,7 +2703,7 @@ def run(args: argparse.Namespace) -> list[dict[str, object]]:
         "trainer_sha256": _sha256_file(Path(__file__)),
         "unicom_revision": UNICOM_REVISION,
         "initial_checkpoint_sha256": UNICOM_L14_336_SHA256,
-        "partition_sha256": _sha256_file(args.dataset_root / "Eval" / "list_eval_partition.txt"),
+        "partition_sha256": _sha256_file(partition_path),
         "seed": args.seed,
         "epochs": args.epochs,
         "batch_size": args.batch_size,
@@ -2863,6 +2897,10 @@ def validate_fepf_recipe(args: argparse.Namespace) -> None:
 
     if args.stop_after_epoch not in (4, 16):
         raise ValueError("FEPF stop boundary differs")
+    if args.classifier_init not in {"imprinted", "fepf_mean", "fepf_random"}:
+        raise ValueError("FEPF mode differs")
+    if args.classifier_init == "fepf_random" and args.seed != 0:
+        raise ValueError("FEPF random seed differs")
     if args.resume is not None and args.stop_after_epoch != 16:
         raise ValueError("FEPF continuation stop differs")
     expected = (
@@ -2972,7 +3010,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
     try:
         _validate_run_receipt_request(args)
         source_commit = None
-        if args.run_receipt is not None and not _is_fepf_request(args):
+        if args.run_receipt is not None:
             source_commit = registered_source_commit(
                 args.run_config, Path(__file__).resolve().parents[1]
             )
