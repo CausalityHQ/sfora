@@ -37,6 +37,7 @@ from sfora.unicom_inshop import InshopRecord
 from sfora.unicom_retrieval_audit import (
     l2_normalize,
     retrieval_view,
+    strict_typed_equal,
     validate_evaluation_evidence,
     write_evaluation_evidence,
 )
@@ -1071,7 +1072,11 @@ def validate_fepf_result(result: object, evidence_root: Path) -> None:
         history = json.loads(history_path.read_bytes())
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
         raise ValueError("FEPF result history differs") from error
-    if type(history) is not list or type(result) is not list or result != history:
+    if (
+        type(history) is not list
+        or type(result) is not list
+        or not strict_typed_equal(result, history)
+    ):
         raise ValueError("FEPF result history differs")
     parent_root = None
     if receipt["parent_evidence_root"] is not None:
@@ -1100,7 +1105,7 @@ def validate_fepf_result(result: object, evidence_root: Path) -> None:
         if row["epoch"] in observed_metrics:
             raise ValueError("FEPF result evaluation metrics differ")
         observed_metrics[row["epoch"]] = row["metrics"]
-    if observed_metrics != expected_metrics:
+    if not strict_typed_equal(observed_metrics, expected_metrics):
         raise ValueError("FEPF result evaluation metrics differ")
 
 

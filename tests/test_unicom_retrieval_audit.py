@@ -339,6 +339,93 @@ def test_per_query_evaluation_receipt_rejects_derived_mutation(
         validate_evaluation_evidence(changed, evidence_root)
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    (
+        "geometry_dimension_float",
+        "coordinate_bool",
+        "signature_dimension_float",
+        "score_bool",
+        "index_bool",
+        "correct_int",
+        "relevant_count_float",
+        "aggregate_bool",
+    ),
+)
+def test_per_query_evaluation_receipt_rejects_type_only_mutation(
+    tmp_path: Path, mutation: str
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    changed = copy.deepcopy(receipt)
+    if mutation == "geometry_dimension_float":
+        changed["geometry"]["input_dimension"] = 768.0
+    elif mutation == "coordinate_bool":
+        changed["geometry"]["coordinates"][0] = False
+    elif mutation == "signature_dimension_float":
+        changed["evaluation_signature"]["descriptor_dimension"] = 512.0
+    elif mutation == "score_bool":
+        changed["query_evidence"][0]["ranked_prefix"][0]["score"] = False
+    elif mutation == "index_bool":
+        changed["query_evidence"][0]["ranked_prefix"][0]["gallery_index"] = False
+    elif mutation == "correct_int":
+        changed["query_evidence"][0]["ranked_prefix"][0]["correct"] = 1
+    elif mutation == "relevant_count_float":
+        changed["query_evidence"][0]["relevant_gallery_count"] = 2.0
+    else:
+        changed["metrics"]["recall_at_1"] = True
+
+    with pytest.raises(ValueError):
+        validate_evaluation_evidence(changed, evidence_root)
+
+
+@pytest.mark.parametrize(
+    "alias",
+    (
+        "MEN/./gallery-00.jpg",
+        "MEN//gallery-00.jpg",
+        "MEN/gallery-00.jpg/",
+        "MEN\\gallery-00.jpg",
+        "C:/MEN/gallery-00.jpg",
+    ),
+)
+def test_per_query_evaluation_receipt_rejects_noncanonical_logical_path_alias(
+    tmp_path: Path, alias: str
+) -> None:
+    receipt, evidence_root = _persisted_evaluation_fixture(tmp_path)
+    receipt["gallery_records"][1]["image_name"] = alias
+    for ranked in receipt["query_evidence"][0]["ranked_prefix"]:
+        if ranked["gallery_index"] == 1:
+            ranked["gallery_path"] = alias
+
+    with pytest.raises(ValueError, match="inventory|path"):
+        validate_evaluation_evidence(receipt, evidence_root)
+
+
+@pytest.mark.parametrize("field", ("query", "ranked"))
+def test_recompute_query_metrics_rejects_noncanonical_path_alias(
+    tmp_path: Path, field: str
+) -> None:
+    query_records, gallery_records = _evidence_records(tmp_path / "dataset")
+    query, gallery = _full_width_evidence_values()
+    rows = query_evidence(
+        query_values=query,
+        gallery_values=gallery,
+        query_records=query_records,
+        gallery_records=gallery_records,
+        dataset_root=tmp_path / "dataset",
+        coordinates=np.arange(512, dtype=np.int64),
+        normalize_before=True,
+    )
+    changed = copy.deepcopy(rows)
+    if field == "query":
+        changed[0]["query_path"] = "WOMEN//query.jpg"
+    else:
+        changed[0]["ranked_prefix"][0]["gallery_path"] = "MEN/./gallery-00.jpg"
+
+    with pytest.raises(ValueError, match="evidence"):
+        recompute_query_metrics(changed)
+
+
 def test_per_query_evaluation_receipt_rejects_descriptor_byte_mutation(
     tmp_path: Path,
 ) -> None:

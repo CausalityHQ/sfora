@@ -9,13 +9,53 @@ import os
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import numpy as np
 
 from sfora.unicom_inshop import InshopRecord
 
 RECALL_AT_K = (1, 10, 20, 30)
+
+
+def strict_typed_equal(left: object, right: object) -> bool:
+    """Compare canonical JSON-like values without Python numeric coercion."""
+
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        left_items = tuple(left.items())
+        right_items = tuple(right.items())
+        return len(left_items) == len(right_items) and all(
+            strict_typed_equal(left_key, right_key)
+            and strict_typed_equal(left_value, right_value)
+            for (left_key, left_value), (right_key, right_value) in zip(
+                left_items, right_items, strict=True
+            )
+        )
+    if type(left) in (list, tuple):
+        return len(left) == len(right) and all(
+            strict_typed_equal(left_value, right_value)
+            for left_value, right_value in zip(left, right, strict=True)
+        )
+    return bool(left == right)
+
+
+def _canonical_posix_relative_path(value: object, *, name: str) -> str:
+    if type(value) is not str or not value or "\\" in value:
+        raise ValueError(f"{name} differs")
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    canonical = posix.as_posix()
+    if (
+        posix.is_absolute()
+        or windows.is_absolute()
+        or bool(windows.drive)
+        or canonical != value
+        or any(part in {"", ".", ".."} for part in posix.parts)
+    ):
+        raise ValueError(f"{name} differs")
+    return canonical
 
 
 @dataclass(frozen=True)
@@ -462,12 +502,11 @@ def recompute_query_metrics(
     for row in rows:
         if type(row) is not dict or tuple(row) != expected_row_keys:
             raise ValueError("query evidence row differs")
+        query_path = _canonical_posix_relative_path(
+            row["query_path"], name="query evidence row"
+        )
         if (
-            type(row["query_path"]) is not str
-            or not row["query_path"]
-            or Path(row["query_path"]).is_absolute()
-            or any(part in {"", ".", ".."} for part in Path(row["query_path"]).parts)
-            or row["query_path"] in query_paths
+            query_path in query_paths
             or type(row["query_label"]) is not str
             or not row["query_label"]
             or type(row["relevant_gallery_count"]) is not int
@@ -488,7 +527,7 @@ def recompute_query_metrics(
             )
         ):
             raise ValueError("query evidence row differs")
-        query_paths.add(row["query_path"])
+        query_paths.add(query_path)
         indices: set[int] = set()
         gallery_paths: set[str] = set()
         previous: tuple[float, int] | None = None
@@ -496,18 +535,14 @@ def recompute_query_metrics(
         for ranked in row["ranked_prefix"]:
             if type(ranked) is not dict or tuple(ranked) != expected_rank_keys:
                 raise ValueError("ranked query evidence differs")
+            gallery_path = _canonical_posix_relative_path(
+                ranked["gallery_path"], name="ranked query evidence"
+            )
             if (
                 type(ranked["gallery_index"]) is not int
                 or ranked["gallery_index"] < 0
                 or ranked["gallery_index"] in indices
-                or type(ranked["gallery_path"]) is not str
-                or not ranked["gallery_path"]
-                or Path(ranked["gallery_path"]).is_absolute()
-                or any(
-                    part in {"", ".", ".."}
-                    for part in Path(ranked["gallery_path"]).parts
-                )
-                or ranked["gallery_path"] in gallery_paths
+                or gallery_path in gallery_paths
                 or type(ranked["gallery_label"]) is not str
                 or not ranked["gallery_label"]
                 or type(ranked["score"]) is not float
@@ -523,7 +558,7 @@ def recompute_query_metrics(
                 raise ValueError("ranked query evidence differs")
             previous = key
             indices.add(ranked["gallery_index"])
-            gallery_paths.add(ranked["gallery_path"])
+            gallery_paths.add(gallery_path)
             matches.append(ranked["correct"])
         relevant = row["relevant_gallery_count"]
         truncated = np.asarray(matches[:relevant], dtype=np.bool_)
@@ -573,6 +608,73 @@ def _json_query_rows(rows: tuple[dict[str, object], ...]) -> list[dict[str, obje
         }
         for row in rows
     ]
+
+
+def _query_rows_from_json(value: object) -> tuple[dict[str, object], ...]:
+    json_row_keys = (
+        "query_path",
+        "query_label",
+        "relevant_gallery_count",
+        "ap_at_r",
+        "query_sha256",
+        "complete_ranking_sha256",
+        "ranked_prefix",
+    )
+    ranked_keys = (
+        "gallery_index",
+        "gallery_path",
+        "gallery_label",
+        "score",
+        "correct",
+    )
+    if type(value) is not list or not value:
+        raise ValueError("per-query evaluation evidence differs")
+    rows = []
+    for row in value:
+        if (
+            type(row) is not dict
+            or tuple(row) != json_row_keys
+            or type(row["ranked_prefix"]) is not list
+        ):
+            raise ValueError("per-query evaluation evidence differs")
+        ranked_prefix = []
+        for ranked in row["ranked_prefix"]:
+            if type(ranked) is not dict or tuple(ranked) != ranked_keys:
+                raise ValueError("per-query evaluation evidence differs")
+            ranked_prefix.append(dict(ranked))
+        rows.append(
+            {
+                "query_path": row["query_path"],
+                "query_label": row["query_label"],
+                "relevant_gallery_count": row["relevant_gallery_count"],
+                "ranked_prefix": tuple(ranked_prefix),
+                "ap_at_r": row["ap_at_r"],
+                "query_sha256": row["query_sha256"],
+                "complete_ranking_sha256": row["complete_ranking_sha256"],
+            }
+        )
+    return tuple(rows)
+
+
+def _validate_evaluation_metrics(value: object) -> None:
+    keys = (
+        "recall_at_1",
+        "recall_at_10",
+        "recall_at_20",
+        "recall_at_30",
+        "map_at_r",
+    )
+    if (
+        type(value) is not dict
+        or tuple(value) != keys
+        or any(
+            type(value[key]) is not float
+            or not math.isfinite(value[key])
+            or not 0.0 <= value[key] <= 1.0
+            for key in keys
+        )
+    ):
+        raise ValueError("evaluation aggregate metrics differ")
 
 
 def _write_npy_exclusive(path: Path, values: np.ndarray) -> None:
@@ -710,19 +812,17 @@ def _logical_inventory(value: object, *, name: str) -> tuple[LogicalInshopRecord
     for row in value:
         if type(row) is not dict or tuple(row) != ("image_name", "label"):
             raise ValueError(f"{name} inventory differs")
-        relative = Path(row["image_name"])
+        relative = _canonical_posix_relative_path(
+            row["image_name"], name=f"{name} inventory"
+        )
         if (
-            type(row["image_name"]) is not str
-            or not row["image_name"]
-            or relative.is_absolute()
-            or any(part in {"", ".", ".."} for part in relative.parts)
-            or row["image_name"] in paths
+            relative in paths
             or type(row["label"]) is not str
             or not row["label"]
         ):
             raise ValueError(f"{name} inventory differs")
-        paths.add(row["image_name"])
-        records.append(LogicalInshopRecord(row["image_name"], row["label"]))
+        paths.add(relative)
+        records.append(LogicalInshopRecord(relative, row["label"]))
     return tuple(records)
 
 
@@ -830,9 +930,15 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
         type(geometry) is not dict
         or tuple(geometry)
         != ("input_dimension", "coordinates", "normalize_before", "ranking")
+        or type(geometry["input_dimension"]) is not int
         or geometry["input_dimension"] != 768
-        or geometry["coordinates"] != list(range(512))
-        or geometry["normalize_before"] is not True
+        or type(geometry["coordinates"]) is not list
+        or len(geometry["coordinates"]) != 512
+        or any(type(coordinate) is not int for coordinate in geometry["coordinates"])
+        or not strict_typed_equal(geometry["coordinates"], list(range(512)))
+        or type(geometry["normalize_before"]) is not bool
+        or not geometry["normalize_before"]
+        or type(geometry["ranking"]) is not str
         or geometry["ranking"] != "ascending_squared_euclidean"
     ):
         raise ValueError("evaluation geometry differs")
@@ -846,17 +952,27 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
             "descriptor_sha256",
             "operations",
         )
+        or type(signature["descriptor_dtype"]) is not str
         or signature["descriptor_dtype"] != "float32"
+        or type(signature["descriptor_dimension"]) is not int
         or signature["descriptor_dimension"] != 512
         or type(signature["descriptor_sha256"]) is not str
         or len(signature["descriptor_sha256"]) != 64
-        or signature["operations"]
-        != [
-            "official_forward",
-            "full768_l2",
-            "prefix512",
-            "squared_euclidean",
-        ]
+        or any(
+            character not in "0123456789abcdef"
+            for character in signature["descriptor_sha256"]
+        )
+        or type(signature["operations"]) is not list
+        or any(type(operation) is not str for operation in signature["operations"])
+        or not strict_typed_equal(
+            signature["operations"],
+            [
+                "official_forward",
+                "full768_l2",
+                "prefix512",
+                "squared_euclidean",
+            ],
+        )
     ):
         raise ValueError("evaluation signature differs")
     query_records = _logical_inventory(receipt["query_records"], name="query")
@@ -899,10 +1015,15 @@ def validate_evaluation_evidence(receipt: object, evidence_root: Path) -> None:
         coordinates=np.arange(512, dtype=np.int64),
         normalize_before=True,
     )
-    if receipt["query_evidence"] != _json_query_rows(rebuilt):
+    supplied_rows = _query_rows_from_json(receipt["query_evidence"])
+    supplied_metrics = recompute_query_metrics(supplied_rows)
+    _validate_evaluation_metrics(receipt["metrics"])
+    if not strict_typed_equal(supplied_metrics, receipt["metrics"]):
+        raise ValueError("evaluation aggregate metrics differ")
+    if not strict_typed_equal(receipt["query_evidence"], _json_query_rows(rebuilt)):
         raise ValueError("per-query evaluation evidence differs")
     metrics = recompute_query_metrics(rebuilt)
-    if receipt["metrics"] != metrics:
+    if not strict_typed_equal(receipt["metrics"], metrics):
         raise ValueError("evaluation aggregate metrics differ")
 
 

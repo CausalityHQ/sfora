@@ -3082,7 +3082,7 @@ def test_per_query_fepf_result_reloads_parent_epoch4_and_current_evaluations(
         module.validate_fepf_result(result, continuation)
     parent_gallery.write_bytes(original)
 
-    result[0]["metrics"]["map_at_r"] = 0.125
+    result[0]["metrics"]["recall_at_1"] = True
     history_path = continuation / "history.json"
     history_path.write_text(json.dumps(result) + "\n", encoding="utf-8")
     receipt["history"]["sha256"] = hashlib.sha256(history_path.read_bytes()).hexdigest()
