@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import time
+import weakref
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
@@ -83,10 +84,37 @@ class FepfDiagnostic:
 
 @dataclass(frozen=True)
 class FepfInitializationEvidence:
+    mode: str
+    training_seed: int
+    cache_feature_sha256: str
+    cache_label_sha256: str
+    cache_inventory_sha256: str
+    cache_label_map_sha256: str
     canonical_head: torch.Tensor
     prepared_start_head: torch.Tensor
     initial_diagnostic: FepfDiagnostic
-    final_diagnostic: FepfDiagnostic
+    canonical_head_sha256: str
+    prepared_start_head_sha256: str
+
+
+@dataclass(frozen=True)
+class FepfExpectedProvenance:
+    mode: str
+    training_seed: int
+    holdout_fraction: float
+    holdout_seed: int
+    source_sha256: str
+    checkpoint_sha256: str
+    config_sha256: str
+    schedule_sha256: str
+
+
+_REGISTERED_EVIDENCE: dict[
+    int, tuple[weakref.ReferenceType[FepfInitializationEvidence], tuple[object, ...]]
+] = {}
+_REGISTERED_FITS: dict[
+    int, tuple[weakref.ReferenceType[FepfFitResult], int, tuple[object, ...]]
+] = {}
 
 
 def tensor_sha256(tensor: torch.Tensor) -> str:
@@ -332,6 +360,112 @@ def registered_diagnostic(
     )
 
 
+def _evidence_record(evidence: FepfInitializationEvidence) -> tuple[object, ...]:
+    return (
+        evidence.mode,
+        evidence.training_seed,
+        evidence.cache_feature_sha256,
+        evidence.cache_label_sha256,
+        evidence.cache_inventory_sha256,
+        evidence.cache_label_map_sha256,
+        evidence.canonical_head_sha256,
+        evidence.prepared_start_head_sha256,
+        evidence.initial_diagnostic,
+    )
+
+
+def _seal_registered_evidence(evidence: FepfInitializationEvidence) -> FepfInitializationEvidence:
+    _REGISTERED_EVIDENCE[id(evidence)] = (weakref.ref(evidence), _evidence_record(evidence))
+    return evidence
+
+
+def _validate_registered_evidence(evidence: FepfInitializationEvidence) -> None:
+    if not isinstance(evidence, FepfInitializationEvidence):
+        raise ValueError("FEPF registered evidence differs")
+    registered = _REGISTERED_EVIDENCE.get(id(evidence))
+    if (
+        registered is None
+        or registered[0]() is not evidence
+        or registered[1] != _evidence_record(evidence)
+        or _head_sha256(evidence.canonical_head) != evidence.canonical_head_sha256
+        or _head_sha256(evidence.prepared_start_head) != evidence.prepared_start_head_sha256
+    ):
+        raise ValueError("FEPF registered evidence differs")
+
+
+def _prepare_registered_fepf_evidence_core(
+    cache: FepfCache,
+    official_random_head: torch.Tensor,
+    *,
+    mode: str,
+    training_seed: int,
+    device: torch.device,
+    allow_test_device: bool,
+) -> FepfInitializationEvidence:
+    _validate_cache(cache)
+    if (
+        mode not in {"imprinted", "fepf_mean", "fepf_random"}
+        or type(training_seed) is not int
+        or training_seed < 0
+        or not isinstance(device, torch.device)
+        or (not allow_test_device and device.type != "cuda")
+        or not isinstance(official_random_head, torch.Tensor)
+        or official_random_head.device.type != "cpu"
+        or official_random_head.dtype != torch.float32
+        or official_random_head.shape != (cache.class_count, 768)
+        or not official_random_head.is_contiguous()
+        or not torch.isfinite(official_random_head).all()
+    ):
+        raise ValueError("FEPF registered evidence differs")
+    canonical = canonical_class_means(cache)
+    prepared = (
+        canonical.detach().clone().contiguous()
+        if mode in {"imprinted", "fepf_mean"}
+        else prepare_fepf_start_head(official_random_head, canonical, mode=mode)
+    )
+    initial = registered_diagnostic(
+        cache.features.to(device),
+        cache.labels.to(device),
+        prepared.to(device),
+        training_seed=training_seed,
+    )
+    canonical = canonical.detach().clone().contiguous()
+    prepared = prepared.detach().clone().contiguous()
+    evidence = FepfInitializationEvidence(
+        mode=mode,
+        training_seed=training_seed,
+        cache_feature_sha256=cache.feature_sha256,
+        cache_label_sha256=cache.label_sha256,
+        cache_inventory_sha256=cache.inventory_sha256,
+        cache_label_map_sha256=cache.label_map_sha256,
+        canonical_head=canonical,
+        prepared_start_head=prepared,
+        initial_diagnostic=initial,
+        canonical_head_sha256=_head_sha256(canonical),
+        prepared_start_head_sha256=_head_sha256(prepared),
+    )
+    return _seal_registered_evidence(evidence)
+
+
+def prepare_registered_fepf_evidence(
+    cache: FepfCache,
+    official_random_head: torch.Tensor,
+    *,
+    mode: str,
+    training_seed: int,
+    device: torch.device,
+) -> FepfInitializationEvidence:
+    """Create sealed, receipt-ready canonical head and initial diagnostic evidence."""
+    return _prepare_registered_fepf_evidence_core(
+        cache,
+        official_random_head,
+        mode=mode,
+        training_seed=training_seed,
+        device=_resolved_cuda_device(device),
+        allow_test_device=False,
+    )
+
+
 def _fit_fepf_head_core(
     cache: FepfCache,
     start_head: torch.Tensor,
@@ -340,6 +474,7 @@ def _fit_fepf_head_core(
     device: torch.device,
     steps: int = 512,
     monotonic: Callable[[], float] = time.perf_counter,
+    initial_diagnostic: FepfDiagnostic | None = None,
 ) -> FepfFitResult:
     """Injected fit runner for unit tests; it is not a registered initializer."""
     _validate_cache(cache)
@@ -365,7 +500,9 @@ def _fit_fepf_head_core(
     head = torch.nn.Parameter(start_head.detach().to(device=device).clone().contiguous())
     validate_projected_head(head)
     start_head_sha256 = tensor_sha256(head.detach().cpu().contiguous())
-    initial = registered_diagnostic(features, labels, head, training_seed=training_seed)
+    initial = initial_diagnostic or registered_diagnostic(
+        features, labels, head, training_seed=training_seed
+    )
     optimizer = torch.optim.AdamW(
         [head], lr=1e-4, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0
     )
@@ -437,6 +574,43 @@ def _fit_fepf_head_core(
     return result
 
 
+def _seal_registered_fit(
+    result: FepfFitResult, evidence: FepfInitializationEvidence
+) -> FepfFitResult:
+    record = (
+        result.start_head_sha256,
+        result.final_head_sha256,
+        result.initial_diagnostic,
+        result.final_diagnostic,
+        result.initial_loss,
+        result.final_loss,
+    )
+    _REGISTERED_FITS[id(result)] = (weakref.ref(result), id(evidence), record)
+    return result
+
+
+def _validate_registered_fit(result: FepfFitResult, evidence: FepfInitializationEvidence) -> None:
+    if not isinstance(result, FepfFitResult):
+        raise ValueError("FEPF registered fit differs")
+    registered = _REGISTERED_FITS.get(id(result))
+    current = (
+        result.start_head_sha256,
+        result.final_head_sha256,
+        result.initial_diagnostic,
+        result.final_diagnostic,
+        result.initial_loss,
+        result.final_loss,
+    )
+    if (
+        registered is None
+        or registered[0]() is not result
+        or registered[1] != id(evidence)
+        or registered[2] != current
+        or _head_sha256(result.head) != result.final_head_sha256
+    ):
+        raise ValueError("FEPF registered fit differs")
+
+
 def _resolved_cuda_device(device: torch.device) -> torch.device:
     if not isinstance(device, torch.device) or device.type != "cuda":
         raise ValueError("FEPF registered CUDA device differs")
@@ -447,7 +621,7 @@ def _resolved_cuda_device(device: torch.device) -> torch.device:
 
 def fit_fepf_head(
     cache: FepfCache,
-    start_head: torch.Tensor,
+    evidence: FepfInitializationEvidence,
     *,
     training_seed: int,
     device: torch.device,
@@ -458,14 +632,34 @@ def fit_fepf_head(
     if steps != 512:
         raise ValueError("FEPF registered fit schedule differs")
     device = _resolved_cuda_device(device)
-    return _fit_fepf_head_core(
+    _validate_registered_evidence(evidence)
+    if (
+        evidence.mode not in {"fepf_mean", "fepf_random"}
+        or evidence.training_seed != training_seed
+        or (
+            evidence.cache_feature_sha256,
+            evidence.cache_label_sha256,
+            evidence.cache_inventory_sha256,
+            evidence.cache_label_map_sha256,
+        )
+        != (
+            cache.feature_sha256,
+            cache.label_sha256,
+            cache.inventory_sha256,
+            cache.label_map_sha256,
+        )
+    ):
+        raise ValueError("FEPF registered fit evidence differs")
+    result = _fit_fepf_head_core(
         cache,
-        start_head,
+        evidence.prepared_start_head,
         training_seed=training_seed,
         device=device,
         steps=steps,
         monotonic=monotonic,
+        initial_diagnostic=evidence.initial_diagnostic,
     )
+    return _seal_registered_fit(result, evidence)
 
 
 _RECEIPT_KEYS = (
@@ -686,6 +880,24 @@ def _initialization_receipt_v2_core(
         or not isinstance(evidence, FepfInitializationEvidence)
     ):
         raise ValueError("FEPF initialization head differs")
+    _validate_registered_evidence(evidence)
+    if (
+        evidence.mode != mode
+        or evidence.training_seed != training_seed
+        or (
+            evidence.cache_feature_sha256,
+            evidence.cache_label_sha256,
+            evidence.cache_inventory_sha256,
+            evidence.cache_label_map_sha256,
+        )
+        != (
+            cache.feature_sha256,
+            cache.label_sha256,
+            cache.inventory_sha256,
+            cache.label_map_sha256,
+        )
+    ):
+        raise ValueError("FEPF initialization evidence differs")
     canonical_head = evidence.canonical_head
     prepared_start_head = evidence.prepared_start_head
     if any(
@@ -708,15 +920,12 @@ def _initialization_receipt_v2_core(
     prepared_hash = _head_sha256(prepared_start_head)
     metadata = _registered_diagnostic_metadata(cache, training_seed=training_seed, device=device)
     initial = evidence.initial_diagnostic
-    final = evidence.final_diagnostic
     _validate_diagnostic_evidence(initial, metadata=metadata)
-    _validate_diagnostic_evidence(final, metadata=metadata)
     initial_mask_hash = _mask_state_sha256(training_seed=training_seed, device=device, draws=0)
     if mode == "imprinted":
         if fit is not None:
             raise ValueError("FEPF imprinted receipt differs")
-        if final != initial:
-            raise ValueError("FEPF imprinted diagnostic differs")
+        final = initial
         final_head_hash = prepared_hash
         fit_seconds = 0.0
         final_mask_hash = initial_mask_hash
@@ -730,7 +939,10 @@ def _initialization_receipt_v2_core(
             or not fit.head.is_contiguous()
         ):
             raise ValueError("FEPF fitted receipt differs")
+        _validate_registered_fit(fit, evidence)
         validate_projected_head(fit.head)
+        final = fit.final_diagnostic
+        _validate_diagnostic_evidence(final, metadata=metadata)
         final_head_hash = _head_sha256(fit.head)
         final_mask_hash = _mask_state_sha256(training_seed=training_seed, device=device, draws=512)
         if (
@@ -800,13 +1012,42 @@ def _initialization_receipt_v2_core(
     }
 
 
-def initialization_receipt_v2(**kwargs: object) -> dict[str, object]:
-    """Build a receipt only for the registered CUDA initialization path."""
-    device = kwargs.get("device")
-    if not isinstance(device, torch.device):
-        raise ValueError("FEPF registered receipt device differs")
+def initialization_receipt_v2(
+    *,
+    mode: str,
+    training_seed: int,
+    holdout_fraction: float,
+    holdout_seed: int,
+    source_sha256: str,
+    checkpoint_sha256: str,
+    config_sha256: str,
+    schedule_sha256: str,
+    official_random_head: torch.Tensor,
+    evidence: FepfInitializationEvidence,
+    initialization_seconds: float,
+    cache: FepfCache,
+    rng_audit: InitializationRngAudit,
+    fit: FepfFitResult | None,
+    device: torch.device,
+) -> dict[str, object]:
+    """Build a registered CUDA initialization receipt from sealed evidence."""
     return _initialization_receipt_v2_core(
-        **{**kwargs, "device": _resolved_cuda_device(device)}, allow_test_device=False
+        mode=mode,
+        training_seed=training_seed,
+        holdout_fraction=holdout_fraction,
+        holdout_seed=holdout_seed,
+        source_sha256=source_sha256,
+        checkpoint_sha256=checkpoint_sha256,
+        config_sha256=config_sha256,
+        schedule_sha256=schedule_sha256,
+        official_random_head=official_random_head,
+        evidence=evidence,
+        initialization_seconds=initialization_seconds,
+        cache=cache,
+        rng_audit=rng_audit,
+        fit=fit,
+        device=_resolved_cuda_device(device),
+        allow_test_device=False,
     )
 
 
@@ -825,7 +1066,7 @@ _PROVENANCE_KEYS = (
 def _validate_initialization_receipt_v2_core(
     receipt: Mapping[str, object],
     *,
-    expected: Mapping[str, object],
+    expected: FepfExpectedProvenance,
     device: torch.device,
     allow_test_device: bool,
 ) -> None:
@@ -833,8 +1074,7 @@ def _validate_initialization_receipt_v2_core(
     if type(receipt) is not dict or tuple(receipt) != _RECEIPT_KEYS:
         raise ValueError("FEPF initialization receipt schema differs")
     if (
-        type(expected) is not dict
-        or tuple(expected) not in (_PROVENANCE_KEYS, _RECEIPT_KEYS)
+        not isinstance(expected, FepfExpectedProvenance)
         or not isinstance(device, torch.device)
         or (not allow_test_device and device.type != "cuda")
     ):
@@ -858,8 +1098,8 @@ def _validate_initialization_receipt_v2_core(
         or receipt["row_norm_atol"] != FEPF_ROW_NORM_ATOL
     ):
         raise ValueError("FEPF initialization receipt scalar differs")
-    for key in expected:
-        if receipt[key] != expected[key]:
+    for key in _PROVENANCE_KEYS:
+        if receipt[key] != getattr(expected, key):
             raise ValueError("FEPF initialization receipt provenance differs")
     hash_keys = tuple(key for key in _RECEIPT_KEYS if key.endswith("_sha256"))
     for key in hash_keys:
@@ -936,7 +1176,7 @@ def _validate_initialization_receipt_v2_core(
 
 
 def validate_initialization_receipt_v2(
-    receipt: Mapping[str, object], *, expected: Mapping[str, object], device: torch.device
+    receipt: Mapping[str, object], *, expected: FepfExpectedProvenance, device: torch.device
 ) -> None:
     """Validate a registered CUDA receipt against expected run provenance."""
     _validate_initialization_receipt_v2_core(

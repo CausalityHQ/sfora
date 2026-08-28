@@ -85,6 +85,44 @@ def test_prepare_fepf_start_head_projects_random_rows_and_copies_means() -> None
         module.prepare_fepf_start_head(torch.zeros_like(random_head), means, mode="fepf_random")
 
 
+def test_registered_evidence_factory_seals_cloned_canonical_inputs() -> None:
+    """Fails if receipt evidence can be caller-constructed or mutated after preparation."""
+    cache = _fit_cache()
+    means = module.canonical_class_means(cache)
+    diagnostic = module.FepfDiagnostic(0.0, (), "a" * 64, "a" * 64, "a" * 64)
+    with pytest.raises(ValueError):
+        module._validate_registered_evidence(
+            module.FepfInitializationEvidence(
+                mode="fepf_random",
+                training_seed=5,
+                cache_feature_sha256=cache.feature_sha256,
+                cache_label_sha256=cache.label_sha256,
+                cache_inventory_sha256=cache.inventory_sha256,
+                cache_label_map_sha256=cache.label_map_sha256,
+                canonical_head=means,
+                prepared_start_head=means,
+                initial_diagnostic=diagnostic,
+                canonical_head_sha256=module._head_sha256(means),
+                prepared_start_head_sha256=module._head_sha256(means),
+            )
+        )
+    random_head = torch.arange(1, means.numel() + 1, dtype=torch.float32).reshape_as(means)
+    evidence = module._prepare_registered_fepf_evidence_core(
+        cache,
+        random_head,
+        mode="fepf_random",
+        training_seed=5,
+        device=torch.device("cpu"),
+        allow_test_device=True,
+    )
+    prepared = evidence.prepared_start_head.clone()
+    random_head.zero_()
+    assert torch.equal(evidence.prepared_start_head, prepared)
+    evidence.canonical_head[0].copy_(torch.roll(evidence.canonical_head[0], shifts=1))
+    with pytest.raises(ValueError):
+        module._validate_registered_evidence(evidence)
+
+
 def test_projected_head_accepts_only_the_registered_norm_tolerance() -> None:
     """Fails if the frozen norm tolerance is widened or a post-scale check is skipped."""
     target = 0.01 * 768**0.5
@@ -208,30 +246,67 @@ def test_registered_fit_rejects_cpu_and_noncanonical_step_count() -> None:
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
 def test_registered_cuda_fit_matches_the_only_accepted_schedule() -> None:
-    """Fails if the public CUDA path diverges from the frozen 512-step contract."""
+    """Fails if unindexed-CUDA evidence, fitting, and receipt validation diverge."""
     cache = _fit_cache()
-    start = module.canonical_class_means(cache)
+    random_head = torch.arange(1, 8 * 768 + 1, dtype=torch.float32).reshape(8, 768)
+    device = torch.device("cuda")
+    evidence = module.prepare_registered_fepf_evidence(
+        cache,
+        random_head,
+        mode="fepf_mean",
+        training_seed=3,
+        device=device,
+    )
 
     result = module.fit_fepf_head(
-        cache, start, training_seed=3, device=torch.device("cuda"), steps=512
+        cache, evidence, training_seed=3, device=device, steps=512
     )
 
     assert result.completed_steps == 512
     assert result.head.device.type == "cuda"
     module.validate_projected_head(result.head)
+    receipt = module.initialization_receipt_v2(
+        mode="fepf_mean",
+        training_seed=3,
+        holdout_fraction=0.2,
+        holdout_seed=11,
+        source_sha256="1" * 64,
+        checkpoint_sha256="2" * 64,
+        config_sha256="3" * 64,
+        schedule_sha256="4" * 64,
+        official_random_head=random_head,
+        evidence=evidence,
+        initialization_seconds=1.0,
+        cache=cache,
+        rng_audit=_rng_audit(),
+        fit=result,
+        device=device,
+    )
+    module.validate_initialization_receipt_v2(
+        receipt,
+        expected=module.FepfExpectedProvenance(
+            mode="fepf_mean",
+            training_seed=3,
+            holdout_fraction=0.2,
+            holdout_seed=11,
+            source_sha256="1" * 64,
+            checkpoint_sha256="2" * 64,
+            config_sha256="3" * 64,
+            schedule_sha256="4" * 64,
+        ),
+        device=device,
+    )
 
 
 def test_registered_receipt_rejects_the_private_cpu_test_path() -> None:
     """Fails if a CPU/short-step test artifact can become an official receipt."""
     cache = _fit_cache()
     means = module.canonical_class_means(cache)
-    diagnostic = module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5)
-    evidence = module.FepfInitializationEvidence(means, means, diagnostic, diagnostic)
     with pytest.raises(ValueError):
         module.initialization_receipt_v2(
             **_provenance(),
             official_random_head=torch.ones_like(means),
-            evidence=evidence,
+            evidence=object(),  # type: ignore[arg-type]
             initialization_seconds=1.0,
             cache=cache,
             rng_audit=_rng_audit(),
@@ -271,14 +346,24 @@ def _provenance() -> dict[str, object]:
     }
 
 
+def _expected(mode: str = "imprinted", training_seed: int = 5) -> module.FepfExpectedProvenance:
+    values = _provenance()
+    return module.FepfExpectedProvenance(
+        mode=mode,
+        training_seed=training_seed,
+        holdout_fraction=values["holdout_fraction"],  # type: ignore[arg-type]
+        holdout_seed=values["holdout_seed"],  # type: ignore[arg-type]
+        source_sha256=values["source_sha256"],  # type: ignore[arg-type]
+        checkpoint_sha256=values["checkpoint_sha256"],  # type: ignore[arg-type]
+        config_sha256=values["config_sha256"],  # type: ignore[arg-type]
+        schedule_sha256=values["schedule_sha256"],  # type: ignore[arg-type]
+    )
+
+
 def _receipt_inputs(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
     """Build private initializer evidence; the public path is CUDA-only."""
     cache = _fit_cache()
-    means = module.canonical_class_means(cache)
-    random_head = torch.arange(1, means.numel() + 1, dtype=torch.float32).reshape_as(means)
-    prepared = means if mode != "fepf_random" else module.prepare_fepf_start_head(
-        random_head, means, mode=mode
-    )
+    random_head = torch.arange(1, 8 * 768 + 1, dtype=torch.float32).reshape(8, 768)
 
     def constant_loss(
         _features: torch.Tensor,
@@ -290,20 +375,25 @@ def _receipt_inputs(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, obj
         return head.sum() * 0.0
 
     monkeypatch.setattr(module, "sharded_mask_arcface_loss", constant_loss)
-    fit = (
-        None
-        if mode == "imprinted"
-        else module._fit_fepf_head_core(
-            cache, prepared, training_seed=5, device=torch.device("cpu"), steps=512
+    evidence = module._prepare_registered_fepf_evidence_core(
+        cache,
+        random_head,
+        mode=mode,
+        training_seed=5,
+        device=torch.device("cpu"),
+        allow_test_device=True,
+    )
+    fit = None
+    if mode != "imprinted":
+        fit = module._fit_fepf_head_core(
+            cache,
+            evidence.prepared_start_head,
+            training_seed=5,
+            device=torch.device("cpu"),
+            steps=512,
+            initial_diagnostic=evidence.initial_diagnostic,
         )
-    )
-    initial = diagnostic = module.registered_diagnostic(
-        cache.features, cache.labels, prepared, training_seed=5
-    )
-    if fit is not None:
-        initial = fit.initial_diagnostic
-        diagnostic = fit.final_diagnostic
-    evidence = module.FepfInitializationEvidence(means, prepared, initial, diagnostic)
+        module._seal_registered_fit(fit, evidence)
     provenance = _provenance()
     provenance["mode"] = mode
     return {
@@ -332,7 +422,7 @@ def test_initialization_receipt_recomputes_canonical_mode_relations(
 
     module._validate_initialization_receipt_v2_core(
         receipt,
-        expected={**_provenance(), "mode": mode},
+        expected=_expected(mode),
         device=torch.device("cpu"),
         allow_test_device=True,
     )
@@ -341,7 +431,7 @@ def test_initialization_receipt_recomputes_canonical_mode_relations(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected={**_provenance(), "mode": mode},
+            expected=_expected(mode),
             device=torch.device("cpu"),
             allow_test_device=True,
         )
@@ -360,7 +450,7 @@ def test_fitted_receipt_rejects_one_missing_or_extra_mask_draw(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected={**_provenance(), "mode": "fepf_mean"},
+            expected=_expected("fepf_mean"),
             device=torch.device("cpu"),
             allow_test_device=True,
         )
@@ -392,36 +482,45 @@ def test_resume_validation_requires_requested_provenance_context(
             receipt,
             device=torch.device("cpu"),
             allow_test_device=True,
-            expected={**_provenance(), "training_seed": 6},
+            expected=_expected(training_seed=6),
         )
 
 
-def test_receipt_builder_rejects_noncanonical_imprinted_and_mean_starts() -> None:
-    """Fails if canonical cache means are replaced by arbitrary projected rows."""
-    cache = _fit_cache()
-    means = module.canonical_class_means(cache)
-    altered = means.clone()
-    altered[0] = torch.roll(altered[0], shifts=1)
-    random_head = torch.ones_like(means)
-    common = {
-        **_provenance(),
-        "official_random_head": random_head,
-        "evidence": module.FepfInitializationEvidence(
-            means,
-            altered,
-            module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5),
-            module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5),
-        ),
-        "initialization_seconds": 1.0,
-        "cache": cache,
-        "rng_audit": _rng_audit(),
-        "fit": None,
-        "device": torch.device("cpu"),
-        "allow_test_device": True,
-    }
-    for mode in ("imprinted", "fepf_mean"):
+@pytest.mark.parametrize("mode", ("imprinted", "fepf_mean", "fepf_random"))
+def test_receipt_builder_rejects_joint_evidence_and_diagnostic_loss_mutation(
+    mode: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if all-mode evidence can be coherently replaced after it is sealed."""
+    inputs = _receipt_inputs(mode, monkeypatch)
+    evidence = inputs["evidence"]
+    assert isinstance(evidence, module.FepfInitializationEvidence)
+    evidence.canonical_head.copy_(torch.roll(evidence.canonical_head, shifts=1, dims=1))
+    evidence.prepared_start_head.copy_(torch.roll(evidence.prepared_start_head, shifts=1, dims=1))
+    with pytest.raises(ValueError):
+        module._initialization_receipt_v2_core(**inputs)
+
+    inputs = _receipt_inputs(mode, monkeypatch)
+    evidence = inputs["evidence"]
+    assert isinstance(evidence, module.FepfInitializationEvidence)
+    object.__setattr__(
+        evidence,
+        "initial_diagnostic",
+        replace(evidence.initial_diagnostic, loss=evidence.initial_diagnostic.loss + 1.0),
+    )
+    with pytest.raises(ValueError):
+        module._initialization_receipt_v2_core(**inputs)
+    if mode != "imprinted":
+        inputs = _receipt_inputs(mode, monkeypatch)
+        fit = inputs["fit"]
+        assert isinstance(fit, module.FepfFitResult)
+        object.__setattr__(fit, "final_loss", fit.final_loss + 1.0)
+        object.__setattr__(
+            fit,
+            "final_diagnostic",
+            replace(fit.final_diagnostic, loss=fit.final_diagnostic.loss + 1.0),
+        )
         with pytest.raises(ValueError):
-            module._initialization_receipt_v2_core(**{**common, "mode": mode})
+            module._initialization_receipt_v2_core(**inputs)
 
 
 def test_rng_audit_requires_entry_draw_restore_relations() -> None:
@@ -499,7 +598,7 @@ def test_receipt_rejects_each_unaffected_rng_phase_without_snapshot_shortcut(
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
             changed,
-            expected={**_provenance(), "mode": "imprinted"},
+            expected=_expected(),
             device=torch.device("cpu"),
             allow_test_device=True,
         )
