@@ -225,11 +225,13 @@ def test_registered_receipt_rejects_the_private_cpu_test_path() -> None:
     """Fails if a CPU/short-step test artifact can become an official receipt."""
     cache = _fit_cache()
     means = module.canonical_class_means(cache)
+    diagnostic = module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5)
+    evidence = module.FepfInitializationEvidence(means, means, diagnostic, diagnostic)
     with pytest.raises(ValueError):
         module.initialization_receipt_v2(
             **_provenance(),
             official_random_head=torch.ones_like(means),
-            prepared_start_head=means,
+            evidence=evidence,
             initialization_seconds=1.0,
             cache=cache,
             rng_audit=_rng_audit(),
@@ -239,6 +241,7 @@ def test_registered_receipt_rejects_the_private_cpu_test_path() -> None:
 
 
 def _rng_audit() -> module.InitializationRngAudit:
+    cuda_states = tuple(f"{index:x}" * 64 for index in range(torch.cuda.device_count()))
     return module.InitializationRngAudit(
         "a" * 64,
         "a" * 64,
@@ -249,9 +252,9 @@ def _rng_audit() -> module.InitializationRngAudit:
         "c" * 64,
         "d" * 64,
         "d" * 64,
-        (),
-        (),
-        (),
+        cuda_states,
+        cuda_states,
+        cuda_states,
     )
 
 
@@ -268,8 +271,8 @@ def _provenance() -> dict[str, object]:
     }
 
 
-def _receipt_core(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
-    """Build a cheap private fixture; the public path is CUDA-only."""
+def _receipt_inputs(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    """Build private initializer evidence; the public path is CUDA-only."""
     cache = _fit_cache()
     means = module.canonical_class_means(cache)
     random_head = torch.arange(1, means.numel() + 1, dtype=torch.float32).reshape_as(means)
@@ -294,19 +297,30 @@ def _receipt_core(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, objec
             cache, prepared, training_seed=5, device=torch.device("cpu"), steps=512
         )
     )
+    initial = diagnostic = module.registered_diagnostic(
+        cache.features, cache.labels, prepared, training_seed=5
+    )
+    if fit is not None:
+        initial = fit.initial_diagnostic
+        diagnostic = fit.final_diagnostic
+    evidence = module.FepfInitializationEvidence(means, prepared, initial, diagnostic)
     provenance = _provenance()
     provenance["mode"] = mode
-    return module._initialization_receipt_v2_core(
+    return {
         **provenance,
-        official_random_head=random_head,
-        prepared_start_head=prepared,
-        initialization_seconds=1.0,
-        cache=cache,
-        rng_audit=_rng_audit(),
-        fit=fit,
-        device=torch.device("cpu"),
-        allow_test_device=True,
-    )
+        "official_random_head": random_head,
+        "evidence": evidence,
+        "initialization_seconds": 1.0,
+        "cache": cache,
+        "rng_audit": _rng_audit(),
+        "fit": fit,
+        "device": torch.device("cpu"),
+        "allow_test_device": True,
+    }
+
+
+def _receipt_core(mode: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, object]:
+    return module._initialization_receipt_v2_core(**_receipt_inputs(mode, monkeypatch))
 
 
 @pytest.mark.parametrize("mode", ("imprinted", "fepf_mean", "fepf_random"))
@@ -317,40 +331,55 @@ def test_initialization_receipt_recomputes_canonical_mode_relations(
     receipt = _receipt_core(mode, monkeypatch)
 
     module._validate_initialization_receipt_v2_core(
-        receipt, expected=dict(receipt), device=torch.device("cpu"), allow_test_device=True
+        receipt,
+        expected={**_provenance(), "mode": mode},
+        device=torch.device("cpu"),
+        allow_test_device=True,
     )
     changed = dict(receipt)
-    changed["final_head_sha256"] = "f" * 64
+    changed["fit_seconds"] = 1.0 if mode == "imprinted" else 0.0
     with pytest.raises(ValueError):
         module._validate_initialization_receipt_v2_core(
-            changed, expected=dict(receipt), device=torch.device("cpu"), allow_test_device=True
+            changed,
+            expected={**_provenance(), "mode": mode},
+            device=torch.device("cpu"),
+            allow_test_device=True,
         )
 
 
-def test_receipt_rejects_each_one_field_mutation(
+@pytest.mark.parametrize("draws", (511, 513))
+def test_fitted_receipt_rejects_one_missing_or_extra_mask_draw(
+    draws: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if the terminal dedicated generator state is not exactly draw 512."""
+    receipt = _receipt_core("fepf_mean", monkeypatch)
+    changed = dict(receipt)
+    changed["mask_generator_final_sha256"] = module._mask_state_sha256(
+        training_seed=5, device=torch.device("cpu"), draws=draws
+    )
+    with pytest.raises(ValueError):
+        module._validate_initialization_receipt_v2_core(
+            changed,
+            expected={**_provenance(), "mode": "fepf_mean"},
+            device=torch.device("cpu"),
+            allow_test_device=True,
+        )
+
+
+def test_receipt_builder_reuses_original_head_and_diagnostic_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Fails if any ordered receipt field can drift on resume without detection."""
-    receipt = _receipt_core("imprinted", monkeypatch)
-    for key, value in receipt.items():
-        changed = dict(receipt)
-        if type(value) is str:
-            changed[key] = "f" * 64 if key.endswith("_sha256") else "other"
-        elif type(value) is int:
-            changed[key] = value + 1
-        elif type(value) is float:
-            changed[key] = value + 1.0
-        elif type(value) is list:
-            changed[key] = list(reversed(value)) if value else ["f" * 64]
-        else:
-            raise AssertionError(f"unhandled receipt field {key}")
-        with pytest.raises(ValueError):
-            module._validate_initialization_receipt_v2_core(
-                changed,
-                expected=dict(receipt),
-                device=torch.device("cpu"),
-                allow_test_device=True,
-            )
+    """Fails if receipt construction repeats class means or the ArcFace diagnostic objective."""
+    inputs = _receipt_inputs("fepf_mean", monkeypatch)
+
+    def unexpected(*_args: object, **_kwargs: object) -> object:
+        raise AssertionError("initializer evidence was recomputed")
+
+    monkeypatch.setattr(module, "canonical_class_means", unexpected)
+    monkeypatch.setattr(module, "registered_diagnostic", unexpected)
+    receipt = module._initialization_receipt_v2_core(**inputs)
+
+    assert receipt["initial_loss"] == inputs["fit"].initial_loss  # type: ignore[union-attr]
 
 
 def test_resume_validation_requires_requested_provenance_context(
@@ -377,6 +406,12 @@ def test_receipt_builder_rejects_noncanonical_imprinted_and_mean_starts() -> Non
     common = {
         **_provenance(),
         "official_random_head": random_head,
+        "evidence": module.FepfInitializationEvidence(
+            means,
+            altered,
+            module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5),
+            module.registered_diagnostic(cache.features, cache.labels, means, training_seed=5),
+        ),
         "initialization_seconds": 1.0,
         "cache": cache,
         "rng_audit": _rng_audit(),
@@ -386,9 +421,7 @@ def test_receipt_builder_rejects_noncanonical_imprinted_and_mean_starts() -> Non
     }
     for mode in ("imprinted", "fepf_mean"):
         with pytest.raises(ValueError):
-            module._initialization_receipt_v2_core(
-                **{**common, "mode": mode, "prepared_start_head": altered}
-            )
+            module._initialization_receipt_v2_core(**{**common, "mode": mode})
 
 
 def test_rng_audit_requires_entry_draw_restore_relations() -> None:
@@ -397,6 +430,79 @@ def test_rng_audit_requires_entry_draw_restore_relations() -> None:
     module._validate_rng_audit(audit)
     with pytest.raises(ValueError):
         module._validate_rng_audit(replace(audit, numpy_rng_post_draw_sha256="e" * 64))
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "python_rng_entry_sha256",
+        "python_rng_restored_sha256",
+        "numpy_rng_entry_sha256",
+        "numpy_rng_restored_sha256",
+    ),
+)
+def test_rng_audit_rejects_each_unaffected_stream_phase(field: str) -> None:
+    """Fails if entry-only or restored-only global RNG drift is accepted."""
+    with pytest.raises(ValueError):
+        module._validate_rng_audit(replace(_rng_audit(), **{field: "e" * 64}))
+
+
+@pytest.mark.parametrize(
+    "phase",
+    (
+        "torch_cuda_rng_entry_sha256",
+        "torch_cuda_rng_post_draw_sha256",
+        "torch_cuda_rng_restored_sha256",
+    ),
+)
+def test_rng_audit_rejects_each_cuda_phase_and_order(
+    phase: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if any ordered CUDA global-generator audit phase differs."""
+    monkeypatch.setattr(module.torch.cuda, "device_count", lambda: 2)
+    audit = _rng_audit()
+    with pytest.raises(ValueError):
+        module._validate_rng_audit(replace(audit, **{phase: ("f" * 64, "e" * 64)}))
+
+
+def test_torch_cpu_audit_allows_only_the_official_draw_advance() -> None:
+    """Fails if Torch CPU restoration differs, but permits its official draw advance."""
+    advanced = replace(_rng_audit(), torch_cpu_rng_entry_sha256="e" * 64)
+    module._validate_rng_audit(advanced)
+    with pytest.raises(ValueError):
+        module._validate_rng_audit(replace(advanced, torch_cpu_rng_restored_sha256="f" * 64))
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "python_rng_entry_sha256",
+        "python_rng_post_draw_sha256",
+        "python_rng_restored_sha256",
+        "numpy_rng_entry_sha256",
+        "numpy_rng_post_draw_sha256",
+        "numpy_rng_restored_sha256",
+        "torch_cuda_rng_entry_sha256",
+        "torch_cuda_rng_post_draw_sha256",
+        "torch_cuda_rng_restored_sha256",
+    ),
+)
+def test_receipt_rejects_each_unaffected_rng_phase_without_snapshot_shortcut(
+    field: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fails if serialized receipt validation accepts any global RNG phase drift."""
+    monkeypatch.setattr(module.torch.cuda, "device_count", lambda: 2)
+    receipt = _receipt_core("imprinted", monkeypatch)
+    changed = dict(receipt)
+    value = changed[field]
+    changed[field] = "f" * 64 if type(value) is str else ["e" * 64, "f" * 64]
+    with pytest.raises(ValueError):
+        module._validate_initialization_receipt_v2_core(
+            changed,
+            expected={**_provenance(), "mode": "imprinted"},
+            device=torch.device("cpu"),
+            allow_test_device=True,
+        )
 
 
 def test_private_fit_preserves_python_numpy_and_torch_rng_on_failure(
