@@ -293,3 +293,93 @@ def test_executor_terminates_child_when_polling_or_marker_raises(tmp_path: Path)
         runner({"name": "stage", "command": ["python"]})
     assert signals == [(process.pid, signal.SIGTERM)]
     assert process.waited
+
+
+def test_review2_sources_cross_task5_canonical_loader(tmp_path: Path) -> None:
+    authority = MODULE.publish_evaluation_sources(
+        tmp_path, "epoch4", [{"registered": True}]
+    )
+    evaluator = MODULE._load_module(
+        ROOT / "scripts/evaluate_unicom_fepf.py", "review2_evaluator_loader"
+    )
+    assert evaluator._strict_json_file(Path(authority["path"])) == [{"registered": True}]
+
+
+def test_review2_resume_prevalidates_every_terminal_before_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Builder:
+        @staticmethod
+        def registered_stage_inventory(_config: object) -> tuple[str, ...]:
+            return ("cuda-canary", "runtime-00", "runtime-01")
+
+    monkeypatch.setattr(MODULE, "_load_module", lambda *_args: Builder)
+    validated: list[str] = []
+    with pytest.raises(ValueError, match="incomplete"):
+        MODULE.prevalidate_campaign_resume(
+            _config(),
+            {"cuda-canary": {"status": "PASS"}, "runtime-01": {"status": "PASS"}},
+            terminal_validator=lambda stage, _terminal: validated.append(stage["name"]),
+            checkout_root=ROOT,
+        )
+    assert validated == []
+
+
+def test_review2_runtime_terminal_rehashes_external_authorities(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "checkpoint.pt"
+    receipt = tmp_path / "run-receipt.json"
+    config = tmp_path / "config.json"
+    for path in (checkpoint, receipt, config):
+        path.write_bytes(path.name.encode())
+    expected_environment = {"device_name": "registered"}
+    calls: list[dict[str, object]] = []
+
+    class Profiler:
+        @staticmethod
+        def validate_runtime_profile(terminal: object, **authorities: object) -> None:
+            assert terminal == {"schema": "runtime"}
+            calls.append(authorities)
+
+    MODULE.validate_runtime_terminal(
+        {
+            "command": [
+                "python", "profile.py", "--runtime-mode", "composed",
+                "--run-checkpoint", str(checkpoint), "--run-receipt", str(receipt),
+                "--config", str(config),
+            ]
+        },
+        {"schema": "runtime"},
+        profiler=Profiler,
+        expected_environment=expected_environment,
+    )
+    assert calls == [{
+        "expected_mode": "composed",
+        "checkpoint": checkpoint,
+        "run_receipt": receipt,
+        "config": config,
+        "expected_environment": expected_environment,
+    }]
+
+
+def test_review2_composed_runtime_disables_ema_and_joins_environment() -> None:
+    command = MODULE.apply_runtime_selection(
+        ["python", "trainer.py"], "PASS_COMPOSED", profile=False
+    )
+    assert command[-3:] == ["--compile", "--fused", "--no-ema"]
+    environment = {"device_name": "registered"}
+    MODULE.validate_profile_environment({"environment": environment}, environment)
+    with pytest.raises(ValueError, match="environment"):
+        MODULE.validate_profile_environment(
+            {"environment": {"device_name": "substituted"}}, environment
+        )
+
+
+def test_review2_fresh_process_crosses_real_json_loaders(tmp_path: Path) -> None:
+    artifact_root = tmp_path / "artifacts"
+    (artifact_root / "preflight").mkdir(parents=True)
+    config = tmp_path / "config.json"
+    config.write_bytes(MODULE._canonical_json({"registered": True}))
+    MODULE.run_fresh_process_contract_preflight(
+        checkout_root=ROOT, config_path=config, artifact_root=artifact_root
+    )
+    assert not (artifact_root / "preflight" / ".task6-loader-probe.json").exists()

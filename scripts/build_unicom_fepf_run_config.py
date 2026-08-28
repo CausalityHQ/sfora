@@ -53,6 +53,8 @@ CONFIG_KEYS = (
     "parent_trainer_commit",
     "parent_trainer_path",
     "parent_trainer_sha256",
+    "live_trainer_sha256",
+    "profiler_sha256",
     "fepf_inference_structure",
     "checkout_root_template",
     "artifact_root",
@@ -60,6 +62,7 @@ CONFIG_KEYS = (
     "exploratory",
     "confirmation_pairs",
     "thresholds",
+    "artifact_inventory",
     "artifact_budget_inputs",
     "artifact_budget_bytes",
     "artifact_budget_inodes",
@@ -80,10 +83,7 @@ ATOMIC_COPY_FACTOR = 2
 
 
 def canonical_json_bytes(value: object) -> bytes:
-    return (
-        json.dumps(value, separators=(",", ":"), allow_nan=False)
-        + "\n"
-    ).encode("utf-8")
+    return (json.dumps(value, indent=2, allow_nan=False) + "\n").encode("utf-8")
 
 
 def _git(repo: Path, *arguments: str, binary: bool = False) -> str | bytes:
@@ -148,25 +148,17 @@ def _partition_inventory(path: Path) -> dict[str, int]:
     }
 
 
-def _budget(partition: dict[str, int]) -> tuple[dict[str, int], int, int]:
+def _budget(
+    partition: dict[str, int]
+) -> tuple[dict[str, int], int, int, list[dict[str, object]]]:
     required = ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     if tuple(partition) != required or any(type(partition[key]) is not int or partition[key] <= 0
                                             for key in required):
         raise ValueError("artifact partition inventory differs")
     checkpoint_bound = 8 * (RAW_BACKBONE_STATE_BYTES + CLASSIFIER_STATE_BYTES) + 64 * 1024**2
-    checkpoint_bytes = QUALITY_CHECKPOINTS * checkpoint_bound
-    descriptor_bytes = 13 * 4 * (
-        partition["query_rows"] + partition["gallery_rows"]
-    ) * 768 * 4
-    ranked_prefix_bytes = (
-        13 * 4 * partition["query_rows"] * partition["maximum_relevant_count"]
-        * (2 * partition["maximum_path_bytes"] + 128)
-    )
-    receipt_profile_bytes = (13 * 4 * 256 * 1024) + (8 + 24) * 2 * 1024**2
-    subtotal = ATOMIC_COPY_FACTOR * (
-        checkpoint_bytes + descriptor_bytes + ranked_prefix_bytes + receipt_profile_bytes
-    )
-    planned_files = 52 + 104 + 52 + 13 + 32 + 4 + 3 + 1
+    inventory = _artifact_inventory_rows(partition, checkpoint_bound)
+    subtotal = sum(row["count"] * row["bytes_each"] for row in inventory)
+    planned_files = sum(row["inodes"] for row in inventory)
     inputs = {
         "quality_checkpoints": QUALITY_CHECKPOINTS,
         "raw_backbone_state_bytes": RAW_BACKBONE_STATE_BYTES,
@@ -176,7 +168,45 @@ def _budget(partition: dict[str, int]) -> tuple[dict[str, int], int, int]:
         "atomic_copy_factor": ATOMIC_COPY_FACTOR,
         "planned_file_inodes": planned_files,
     }
-    return inputs, math.ceil(1.25 * subtotal), math.ceil(1.25 * planned_files)
+    return (
+        inputs,
+        math.ceil(1.25 * subtotal),
+        math.ceil(1.25 * planned_files),
+        inventory,
+    )
+
+
+def _artifact_inventory_rows(
+    partition: dict[str, int], checkpoint_bound: int
+) -> list[dict[str, object]]:
+    query_descriptor = partition["query_rows"] * 768 * 4
+    gallery_descriptor = partition["gallery_rows"] * 768 * 4
+    ranked_evidence = (
+        partition["query_rows"] * partition["maximum_relevant_count"]
+        * (2 * partition["maximum_path_bytes"] + 128)
+    )
+    rows = (
+        ("quality_checkpoint", 104, checkpoint_bound, 104),
+        ("query_descriptor", 104, query_descriptor, 104),
+        ("gallery_descriptor", 104, gallery_descriptor, 104),
+        ("ranked_prefix_evidence", 104, ranked_evidence, 104),
+        ("training_terminal_chain", 104, 256 * 1024, 104),
+        ("runtime_profile", 16, 2 * 1024**2, 16),
+        ("quality_profile", 48, 2 * 1024**2, 48),
+        ("evaluation_sources_and_result", 12, 2 * 1024**2, 12),
+        ("canary_and_controller", 4, 2 * 1024**2, 4),
+        ("stage_directories", 48, 0, 48),
+    )
+    return [
+        {"role": role, "count": count, "bytes_each": bytes_each, "inodes": inodes}
+        for role, count, bytes_each, inodes in rows
+    ]
+
+
+def registered_artifact_inventory(config: object) -> tuple[dict[str, object], ...]:
+    value = _strict_shape(config)
+    _validate_config_values(value)
+    return tuple(dict(row) for row in value["artifact_inventory"])
 
 
 def _inputs() -> dict[str, str]:
@@ -284,11 +314,15 @@ def build_run_config(
     source_commit = str(_git(repo, "rev-parse", "HEAD")).strip()
     if _LOWER_COMMIT(source_commit) is None:
         raise ValueError("source commit differs")
-    budget_inputs, budget_bytes, budget_inodes = _budget(partition_inventory)
+    budget_inputs, budget_bytes, budget_inodes, artifact_inventory = _budget(
+        partition_inventory
+    )
+    source_files = _source_inventory(repo, source_commit)
+    source_hashes = {row["path"]: row["sha256"] for row in source_files}
     return {
         "schema": "unicom-fepf-run-config-v1",
         "source_commit": source_commit,
-        "source_files": _source_inventory(repo, source_commit),
+        "source_files": source_files,
         "source": {"commit": source_commit},
         "handoff": {
             "config_parent": source_commit,
@@ -304,6 +338,8 @@ def build_run_config(
         "parent_trainer_commit": PARENT_TRAINER_COMMIT,
         "parent_trainer_path": PARENT_TRAINER_PATH,
         "parent_trainer_sha256": PARENT_TRAINER_SHA256,
+        "live_trainer_sha256": source_hashes["scripts/train_unicom_inshop.py"],
+        "profiler_sha256": source_hashes["scripts/profile_unicom_training_step.py"],
         "fepf_inference_structure": inference_structure,
         "checkout_root_template": checkout_root_template,
         "artifact_root": str(artifact_root),
@@ -325,6 +361,7 @@ def build_run_config(
             "row_norm_rtol": 2e-6,
             "row_norm_atol": 2e-7,
         },
+        "artifact_inventory": artifact_inventory,
         "artifact_budget_inputs": budget_inputs,
         "artifact_budget_bytes": budget_bytes,
         "artifact_budget_inodes": budget_inodes,
@@ -375,6 +412,14 @@ def _validate_config_values(config: dict[str, object]) -> None:
         or config["parent_trainer_commit"] != PARENT_TRAINER_COMMIT
         or config["parent_trainer_path"] != PARENT_TRAINER_PATH
         or config["parent_trainer_sha256"] != PARENT_TRAINER_SHA256
+        or config["live_trainer_sha256"]
+        != {row["path"]: row["sha256"] for row in config["source_files"]}.get(
+            "scripts/train_unicom_inshop.py"
+        )
+        or config["profiler_sha256"]
+        != {row["path"]: row["sha256"] for row in config["source_files"]}.get(
+            "scripts/profile_unicom_training_step.py"
+        )
         or not structure_valid
         or config["runtime_order"] != list(RUNTIME_ORDER)
         or config["confirmation_pairs"] != [list(pair) for pair in CONFIRMATION_PAIRS]
@@ -405,9 +450,10 @@ def _validate_config_values(config: dict[str, object]) -> None:
         key: config["artifact_budget_inputs"][key]
         for key in ("query_rows", "gallery_rows", "maximum_relevant_count", "maximum_path_bytes")
     }
-    inputs, budget_bytes, budget_inodes = _budget(partition)
+    inputs, budget_bytes, budget_inodes, artifact_inventory = _budget(partition)
     if (
-        config["artifact_budget_inputs"] != inputs
+        config["artifact_inventory"] != artifact_inventory
+        or config["artifact_budget_inputs"] != inputs
         or config["artifact_budget_bytes"] != budget_bytes
         or config["artifact_budget_inodes"] != budget_inodes
         or config["cuda_canary_command"]
@@ -598,6 +644,19 @@ def validate_campaign_resume(
     _plain_directory(root, "campaign root")
     inventory = set(registered_stage_inventory(value))
     allowed_root_files = {"controller-status.json"}
+    root_file_names = {
+        child.name for child in root.iterdir()
+        if child.is_file() and not child.is_symlink()
+    }
+    for name in tuple(root_file_names):
+        if name.endswith("-sources.json"):
+            result = f"{name[:-len('-sources.json')]}-result.json"
+            if result not in root_file_names:
+                raise ValueError("campaign resume publication is incomplete")
+        elif name.endswith("-result.json"):
+            sources = f"{name[:-len('-result.json')]}-sources.json"
+            if sources not in root_file_names:
+                raise ValueError("campaign resume publication is incomplete")
     for child in root.iterdir():
         if child.is_symlink():
             raise ValueError("campaign resume symlink differs")

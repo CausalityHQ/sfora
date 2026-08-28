@@ -91,8 +91,44 @@ def apply_runtime_selection(command: list[str], decision: str, *, profile: bool)
         index = result.index("--runtime-mode") + 1
         result[index] = "composed" if decision == "PASS_COMPOSED" else "current"
     elif decision == "PASS_COMPOSED":
-        result.extend(("--compile", "--fused"))
+        result.extend(("--compile", "--fused", "--no-ema"))
     return result
+
+
+def validate_profile_environment(terminal: object, expected: object) -> None:
+    if (
+        type(terminal) is not dict
+        or type(expected) is not dict
+        or terminal.get("environment") != expected
+    ):
+        raise ValueError("profile environment differs from CUDA canary authority")
+
+
+def _command_argument(command: object, option: str) -> str:
+    if type(command) is not list or option not in command:
+        raise ValueError("runtime command authority differs")
+    index = command.index(option)
+    if index + 1 >= len(command) or type(command[index + 1]) is not str:
+        raise ValueError("runtime command authority differs")
+    return command[index + 1]
+
+
+def validate_runtime_terminal(
+    stage: dict[str, object], terminal: object, *, profiler: object,
+    expected_environment: object,
+) -> None:
+    command = stage["command"]
+    validator = getattr(profiler, "validate_runtime_profile", None)
+    if not callable(validator):
+        raise ValueError("public runtime validator differs")
+    validator(
+        terminal,
+        expected_mode=_command_argument(command, "--runtime-mode"),
+        checkpoint=Path(_command_argument(command, "--run-checkpoint")),
+        run_receipt=Path(_command_argument(command, "--run-receipt")),
+        config=Path(_command_argument(command, "--config")),
+        expected_environment=expected_environment,
+    )
 
 
 class RegisteredTerminalValidator:
@@ -109,6 +145,7 @@ class RegisteredTerminalValidator:
         self.canary = _load_module(
             checkout_root / "scripts/run_unicom_fepf_cuda_canary.py", "fepf_cv"
         )
+        self.profile_environment: dict[str, object] | None = None
 
     def __call__(self, stage: dict[str, object], terminal: object) -> None:
         name = str(stage["name"])
@@ -120,11 +157,22 @@ class RegisteredTerminalValidator:
                 expected_device_uuid=authority["device_uuid"],
                 expected_environment_sha256=authority["environment_sha256"],
             )
+            environment = terminal.get("environment") if type(terminal) is dict else None
+            profile = environment.get("profile") if type(environment) is dict else None
+            if type(profile) is not dict:
+                raise ValueError("canary profile environment authority differs")
+            self.profile_environment = profile
         elif "profile" in name or name.startswith("runtime-"):
+            if self.profile_environment is None:
+                raise ValueError("canary environment must precede profiling")
             if "profile" in name:
                 self.profiler.validate_quality_profile(terminal)
-            elif type(terminal) is not dict:
-                raise ValueError("runtime profile differs")
+                validate_profile_environment(terminal, self.profile_environment)
+            else:
+                validate_runtime_terminal(
+                    stage, terminal, profiler=self.profiler,
+                    expected_environment=self.profile_environment,
+                )
         elif "decision" in name:
             self.evaluator.validate_fepf_result(
                 terminal,
@@ -221,8 +269,70 @@ def load_campaign_resume(config: dict[str, object]) -> dict[str, object]:
     return result
 
 
+def _resume_stage(config: dict[str, object], name: str) -> dict[str, object]:
+    root = Path(config["artifact_root"])
+    if name == "cuda-canary":
+        return _stage(
+            name, list(config["cuda_canary_command"]), root,
+            terminal_path=root / config["cuda_canary_receipt"],
+        )
+    if name.startswith("runtime-"):
+        index = int(name.rsplit("-", 1)[1])
+        output = root / name / "terminal.json"
+        command = [
+            str(output) if item == "{output}" else item
+            for item in config["commands"]["runtime"][index]
+        ]
+        return _stage(name, command, root)
+    if name.endswith("-decision"):
+        sources = root / f"{name}-sources.json"
+        payload = sources.read_bytes()
+        stage = _stage(
+            name, [], root, terminal_path=root / f"{name}-result.json"
+        )
+        stage["sources_authority"] = {
+            "path": str(sources.resolve()), "sha256": _sha256(payload),
+            "bytes": len(payload),
+        }
+        stage["evidence_root"] = root
+        return stage
+    terminal = (
+        root / name / "terminal.json"
+        if "profile" in name
+        else root / name / "run-receipt.json"
+    )
+    return _stage(name, [], root, terminal_path=terminal)
+
+
+def prevalidate_campaign_resume(
+    config: dict[str, object], prior: Mapping[str, object],
+    *, terminal_validator: Callable[[dict[str, object], object], None],
+    checkout_root: Path,
+) -> None:
+    builder = _load_module(
+        Path(__file__).with_name("build_unicom_fepf_run_config.py"),
+        "fepf_builder_resume_order",
+    )
+    order = tuple(builder.registered_stage_inventory(config))
+    unknown = set(prior) - set(order)
+    if unknown:
+        raise ValueError("campaign resume stage differs")
+    indices = [index for index, name in enumerate(order) if name in prior]
+    if indices and set(indices) != set(range(max(indices) + 1)):
+        raise ValueError("campaign resume chain is incomplete")
+    for name in order:
+        if name in prior:
+            terminal_validator(_resume_stage(config, name), prior[name])
+    runtime_names = tuple(f"runtime-{index:02d}" for index in range(8))
+    resumed_runtime = tuple(prior[name] for name in runtime_names if name in prior)
+    if resumed_runtime and len(resumed_runtime) != 8:
+        raise ValueError("runtime resume chain is incomplete")
+    if resumed_runtime:
+        select_runtime_from_receipts(resumed_runtime, checkout_root=checkout_root)
+
+
 def _canonical_json(value: object) -> bytes:
-    return (json.dumps(value, separators=(",", ":"), allow_nan=False) + "\n").encode()
+    return (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
 
 
 def _sha256(payload: bytes) -> str:
@@ -241,6 +351,43 @@ def publish_evaluation_sources(root: Path, name: str, sources: object) -> dict[s
             handle.flush()
             os.fsync(handle.fileno())
     return {"path": str(path.resolve()), "sha256": _sha256(payload), "bytes": len(payload)}
+
+
+def run_fresh_process_contract_preflight(
+    *, checkout_root: Path, config_path: Path, artifact_root: Path
+) -> None:
+    probe = artifact_root / "preflight" / ".task6-loader-probe.json"
+    payload = _canonical_json([{"registered": True}])
+    with probe.open("xb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    program = """
+import importlib.util
+import sys
+from pathlib import Path
+root, config, probe = map(Path, sys.argv[1:])
+def load(path, name):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+profile = load(root / 'scripts/profile_unicom_training_step.py', 'task6_profile_probe')
+evaluate = load(root / 'scripts/evaluate_unicom_fepf.py', 'task6_evaluate_probe')
+profile._strict_json_object(config)
+evaluate._strict_json_file(probe)
+"""
+    try:
+        subprocess.run(
+            [
+                sys.executable, "-I", "-B", "-c", program,
+                str(checkout_root), str(config_path), str(probe),
+            ],
+            cwd=checkout_root, check=True,
+        )
+    finally:
+        if probe.is_file() and not probe.is_symlink():
+            probe.unlink()
 
 
 def _evaluation_stage(
@@ -650,6 +797,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
         builder.validate_config_handoff(args.config, Path.cwd())
         validate_registered_command_vectors(config, checkout_root=Path.cwd())
         root = prepare_campaign_storage(config)
+        run_fresh_process_contract_preflight(
+            checkout_root=Path.cwd(), config_path=args.config.resolve(), artifact_root=root,
+        )
         marker_path = root / "controller-status.json"
         def marker(value: dict[str, object]) -> None:
             write_status_marker_atomic(marker_path, value)
@@ -660,6 +810,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
 
         validate = RegisteredTerminalValidator(checkout_root=Path.cwd(), config=config)
         prior = load_campaign_resume(config)
+        prevalidate_campaign_resume(
+            config, prior, terminal_validator=validate, checkout_root=Path.cwd()
+        )
 
         return run_campaign(
             config, executor=executor, terminal_validator=validate,

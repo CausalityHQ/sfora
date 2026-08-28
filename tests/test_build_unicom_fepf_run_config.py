@@ -315,6 +315,44 @@ def test_config_contains_task2_task4_task5_authority_schemas(
     )
 
 
+def test_review2_config_is_task4_canonical_and_binds_live_profile_sources(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    assert MODULE.canonical_json_bytes(config) == (
+        json.dumps(config, indent=2, allow_nan=False) + "\n"
+    ).encode()
+    source_hashes = {row["path"]: row["sha256"] for row in config["source_files"]}
+    assert config["live_trainer_sha256"] == source_hashes["scripts/train_unicom_inshop.py"]
+    assert config["profiler_sha256"] == source_hashes["scripts/profile_unicom_training_step.py"]
+
+
+def test_review2_budget_has_typed_exact_publication_inventory(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    inventory = MODULE.registered_artifact_inventory(config)
+    assert inventory
+    assert list(inventory) == config["artifact_inventory"]
+    assert sum(row["inodes"] for row in inventory) == config["artifact_budget_inputs"][
+        "planned_file_inodes"
+    ]
+    assert all(tuple(row) == ("role", "count", "bytes_each", "inodes") for row in inventory)
+
+
+def test_review2_resume_requires_paired_source_and_result_publication(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    root = Path(config["artifact_root"])
+    root.mkdir()
+    (root / "exploratory-decision-sources.json").write_text("{}\n")
+    with pytest.raises(ValueError, match="incomplete"):
+        MODULE.validate_campaign_resume(
+            config, root, terminal_validator=lambda _path: None
+        )
+
+
 def test_resume_rejects_unknown_and_incomplete_stage_paths(
     source_repo: Path, tmp_path: Path
 ) -> None:
