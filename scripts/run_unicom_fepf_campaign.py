@@ -630,6 +630,7 @@ def run_non_authentic_partial_cpu_preflight(
         "scripts/profile_unicom_training_step.py",
         "scripts/evaluate_unicom_fepf.py",
         "src/sfora/unicom_retrieval_audit.py",
+        "src/sfora/unicom_inshop.py",
         "src/sfora/unicom_fepf.py",
         "src/sfora/atomic_publication.py",
         "pyproject.toml",
@@ -854,7 +855,7 @@ def run_non_authentic_partial_cpu_preflight(
         check=True,
     )
     execution_output = execution_checkout / output.relative_to(checkout)
-    builder.validate_non_authentic_synthesized_handoff(
+    builder.validate_non_authentic_synthesized_membership(
         execution_output, execution_checkout
     )
     environment_was_absent_before_canary = not os.path.lexists(environment_path)
@@ -1423,7 +1424,9 @@ def main(arguments: Sequence[str] | None = None) -> int:
         if args.non_authentic_synthesized_authorities:
             if not args.authority_preflight_only:
                 raise ValueError("non-authentic authority seam is preflight-only")
-            builder.validate_non_authentic_synthesized_handoff(args.config, Path.cwd())
+            builder.validate_non_authentic_synthesized_membership(
+                args.config, Path.cwd()
+            )
         else:
             builder.validate_config_membership(args.config, Path.cwd())
         validate_registered_command_vectors(config, checkout_root=Path.cwd())

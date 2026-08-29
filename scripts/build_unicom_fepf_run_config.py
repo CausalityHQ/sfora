@@ -35,6 +35,7 @@ CONFIRMATION_PAIRS = (
 REGISTERED_SOURCE_PATHS = (
     "pyproject.toml",
     "uv.lock",
+    "src/sfora/unicom_inshop.py",
     "src/sfora/unicom_fepf.py",
     "src/sfora/unicom_retrieval_audit.py",
     "src/sfora/atomic_publication.py",
@@ -186,9 +187,15 @@ def _inputs() -> dict[str, str]:
         "checkpoint": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
         "dataset_root": "/home/riomus/datasets/inshop_official_standard",
         "partition": "/home/riomus/datasets/inshop_official_standard/Eval/list_eval_partition.txt",
-        "runtime_checkpoint": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0016.pt",
+        "runtime_checkpoint": (
+            "/home/riomus/group-learning/reports/generated/"
+            "unicom-full-width-objective-2026-08-25/seed-2/"
+            "sampled_512/epoch-0016.pt"
+        ),
         "runtime_run_receipt": (
-            "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/run-receipt.json"
+            "/home/riomus/group-learning/reports/generated/"
+            "unicom-full-width-objective-2026-08-25/seed-2/"
+            "sampled_512-run-receipt.json"
         ),
     }
 
@@ -337,19 +344,54 @@ def _file_binding(path: Path) -> dict[str, object]:
 def _registered_legacy_runtime_authority() -> dict[str, object]:
     """Bind the historical seed-2 receipt and every externally retained preimage."""
 
-    receipt_path = Path(_inputs()["runtime_run_receipt"])
-    root = receipt_path.parent
+    inputs = _inputs()
+    receipt_path = Path(inputs["runtime_run_receipt"])
     receipt = json.loads(receipt_path.read_bytes())
+    if (
+        receipt.get("schema_version") != "unicom-full-width-training-run-v1"
+        or receipt.get("trainer_sha256") != PARENT_TRAINER_SHA256
+        or receipt.get("seed") != 2
+        or receipt.get("arm") != "sampled_512"
+        or receipt.get("exit_status") != 0
+    ):
+        raise ValueError("legacy runtime receipt identity differs")
     config_path = Path(receipt["config_path"])
-    history_path = root / receipt["history"]["path"]
+    config = _file_binding(config_path)
+    if config["sha256"] != receipt.get("config_sha256"):
+        raise ValueError("legacy runtime config authority differs")
+    checkpoint_rows = receipt.get("checkpoints")
+    if (
+        type(checkpoint_rows) is not list
+        or any(type(row) is not dict for row in checkpoint_rows)
+        or [row.get("epoch") for row in checkpoint_rows] != [4, 8, 12, 16]
+        or any(type(row.get("path")) is not str for row in checkpoint_rows)
+        or checkpoint_rows[-1]["path"] != inputs["runtime_checkpoint"]
+    ):
+        raise ValueError("legacy runtime checkpoint authority differs")
+
+    def receipt_bound_file(row: object) -> dict[str, object]:
+        if (
+            type(row) is not dict
+            or type(row.get("path")) is not str
+            or not Path(row["path"]).is_absolute()
+            or type(row.get("sha256")) is not str
+            or type(row.get("bytes")) is not int
+        ):
+            raise ValueError("legacy runtime file authority differs")
+        actual = _file_binding(Path(row["path"]))
+        if actual["sha256"] != row["sha256"] or actual["bytes"] != row["bytes"]:
+            raise ValueError("legacy runtime file authority differs")
+        return actual
+
+    history = receipt_bound_file(receipt.get("history"))
     checkpoints = [
-        {"epoch": epoch, **_file_binding(root / f"epoch-{epoch:04d}.pt")}
-        for epoch in (4, 8, 12, 16)
+        {"epoch": row["epoch"], **receipt_bound_file(row)}
+        for row in checkpoint_rows
     ]
     return {
         "run_receipt": _file_binding(receipt_path),
-        "config": _file_binding(config_path),
-        "history": _file_binding(history_path),
+        "config": config,
+        "history": history,
         "checkpoints": checkpoints,
     }
 
@@ -516,6 +558,13 @@ def _validate_config_values(config: dict[str, object]) -> None:
             and tuple(row) == ("epoch", "path", "sha256", "bytes")
             and file_authority({key: row[key] for key in ("path", "sha256", "bytes")})
             for row in legacy["checkpoints"]
+        )
+        and type(config.get("inputs")) is dict
+        and type(config["inputs"].get("runtime_checkpoint")) is str
+        and (
+            "non-authentic" in Path(legacy["checkpoints"][-1]["path"]).parts
+            or legacy["checkpoints"][-1]["path"]
+            == config["inputs"]["runtime_checkpoint"]
         )
     )
     environment = config.get("cuda_canary_environment")
@@ -1050,13 +1099,23 @@ def build_and_write_with_authorities(
 
 
 def _validate_config_handoff(
-    config_path: Path, repo: Path, *, external_budget: bool
+    config_path: Path, repo: Path, *, external_budget: bool,
+    require_checkout_absent: bool,
 ) -> dict[str, str]:
     raw = config_path.read_bytes()
     config = _strict_shape(json.loads(raw))
     if canonical_json_bytes(config) != raw:
         raise ValueError("FEPF config is not canonical")
     _validate_config_values(config)
+    if external_budget:
+        legacy = config["legacy_runtime_authority"]
+        bindings = [legacy[name] for name in ("run_receipt", "config", "history")]
+        bindings.extend(legacy["checkpoints"])
+        if any(
+            "non-authentic" in Path(binding["path"]).parts
+            for binding in bindings
+        ):
+            raise ValueError("authentic legacy runtime authority differs")
     repo = repo.resolve()
     _require_clean(repo)
     head = str(_git(repo, "rev-parse", "HEAD")).strip()
@@ -1087,18 +1146,18 @@ def _validate_config_handoff(
     checkout = config["checkout_root_template"].replace("{config_commit}", head)
     if "{" in checkout or "}" in checkout:
         raise ValueError("resolved checkout root differs")
+    if require_checkout_absent and os.path.lexists(checkout):
+        raise FileExistsError("resolved execution checkout already exists")
     return {"config_commit": head, "checkout_root": checkout}
 
 
 def validate_config_handoff(config_path: Path, repo: Path) -> dict[str, str]:
-    return _validate_config_handoff(config_path, repo, external_budget=True)
+    return _validate_config_handoff(
+        config_path, repo, external_budget=True, require_checkout_absent=True
+    )
 
 
-def validate_non_authentic_synthesized_handoff(
-    config_path: Path, repo: Path
-) -> dict[str, str]:
-    """Validate the CPU-only synthetic fixture without claiming target authority."""
-
+def _require_non_authentic_synthesized_authority(config_path: Path) -> None:
     config = _strict_shape(json.loads(config_path.read_bytes()))
     legacy = config["legacy_runtime_authority"]
     bindings = [legacy[name] for name in ("run_receipt", "config", "history")]
@@ -1108,13 +1167,36 @@ def validate_non_authentic_synthesized_handoff(
         for binding in bindings
     ):
         raise ValueError("non-authentic synthesized authority marker differs")
-    return _validate_config_handoff(config_path, repo, external_budget=False)
+
+
+def validate_non_authentic_synthesized_handoff(
+    config_path: Path, repo: Path
+) -> dict[str, str]:
+    """Validate the CPU-only synthetic handoff without claiming target authority."""
+
+    _require_non_authentic_synthesized_authority(config_path)
+    return _validate_config_handoff(
+        config_path, repo, external_budget=False, require_checkout_absent=True
+    )
+
+
+def validate_non_authentic_synthesized_membership(
+    config_path: Path, repo: Path
+) -> dict[str, str]:
+    """Validate the CPU-only synthetic execution checkout membership."""
+
+    _require_non_authentic_synthesized_authority(config_path)
+    return _validate_config_handoff(
+        config_path, repo, external_budget=False, require_checkout_absent=False
+    )
 
 
 def validate_config_membership(config_path: Path, repo: Path) -> dict[str, str]:
     """Authenticate committed config bytes and checkout context only."""
 
-    return validate_config_handoff(config_path, repo)
+    return _validate_config_handoff(
+        config_path, repo, external_budget=True, require_checkout_absent=False
+    )
 
 
 def validate_config_document(config: object) -> dict[str, object]:

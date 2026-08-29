@@ -1010,7 +1010,7 @@ def test_review11_authentic_main_requires_external_budget_validator(
             calls.append("membership")
 
         @staticmethod
-        def validate_non_authentic_synthesized_handoff(
+        def validate_non_authentic_synthesized_membership(
             _path: Path, _repo: Path
         ) -> None:
             calls.append("non-auth")

@@ -1573,7 +1573,7 @@ def main(
                 repository / "scripts/build_unicom_fepf_run_config.py",
                 "canary_non_authentic_handoff_builder",
             )
-            builder.validate_non_authentic_synthesized_handoff(
+            builder.validate_non_authentic_synthesized_membership(
                 args.config, repository
             )
         else:

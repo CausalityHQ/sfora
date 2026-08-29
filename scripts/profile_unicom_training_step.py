@@ -1431,14 +1431,18 @@ def aggregate_abba_profiles(profiles: object) -> dict[str, dict[str, object]]:
 def parse_args(arguments: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-checkpoint", required=True, type=Path)
-    parser.add_argument("--run-receipt", required=True, type=Path)
-    parser.add_argument("--config", required=True, type=Path)
+    parser.add_argument("--run-receipt", type=Path)
+    parser.add_argument("--config", type=Path)
     parser.add_argument("--unicom-checkout", required=True, type=Path)
     parser.add_argument("--initial-checkpoint", required=True, type=Path)
     parser.add_argument("--dataset-root", required=True, type=Path)
-    parser.add_argument("--runtime-mode", required=True, choices=tuple(RUNTIME_PROTOCOLS))
-    parser.add_argument("--profile-kind", required=True, choices=("runtime", "quality"))
-    parser.add_argument("--parent-trainer-source", required=True)
+    parser.add_argument(
+        "--runtime-mode", default="current", choices=tuple(RUNTIME_PROTOCOLS)
+    )
+    parser.add_argument(
+        "--profile-kind", default="runtime", choices=("runtime", "quality")
+    )
+    parser.add_argument("--parent-trainer-source", default=PARENT_TRAINER_SOURCE)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--environment-authority", type=Path)
     parser.add_argument("--environment-sha256")

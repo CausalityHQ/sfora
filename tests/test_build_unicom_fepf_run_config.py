@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -395,9 +396,15 @@ def test_build_config_freezes_registered_protocol_and_commands(
         "checkpoint": "/home/riomus/.cache/unicom/FP16-ViT-L-14-336px.pt",
         "dataset_root": "/home/riomus/datasets/inshop_official_standard",
         "partition": "/home/riomus/datasets/inshop_official_standard/Eval/list_eval_partition.txt",
-        "runtime_checkpoint": "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/epoch-0016.pt",
+        "runtime_checkpoint": (
+            "/home/riomus/group-learning/reports/generated/"
+            "unicom-full-width-objective-2026-08-25/seed-2/"
+            "sampled_512/epoch-0016.pt"
+        ),
         "runtime_run_receipt": (
-            "/home/riomus/unicom-ema-imprinted-387d697-seed2-e16/run-receipt.json"
+            "/home/riomus/group-learning/reports/generated/"
+            "unicom-full-width-objective-2026-08-25/seed-2/"
+            "sampled_512-run-receipt.json"
         ),
     }
     assert config["runtime_order"] == [
@@ -425,6 +432,156 @@ def test_build_config_freezes_registered_protocol_and_commands(
     ]
     assert config["artifact_budget_bytes"] > 52 * 64 * 1024 * 1024
     assert config["artifact_budget_inodes"] > 52
+
+
+def test_review16_legacy_authority_uses_receipt_declared_checkpoint_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = tmp_path / "historical-config.json"
+    history_path = tmp_path / "sampled_512/history.json"
+    config_path.write_text("{}\n")
+    history_path.parent.mkdir()
+    history_path.write_text("[]\n")
+    config_payload = config_path.read_bytes()
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = history_path.parent / f"epoch-{epoch:04d}.pt"
+        payload = f"checkpoint-{epoch}\n".encode()
+        path.write_bytes(payload)
+        checkpoints.append(
+            {
+                "epoch": epoch,
+                "path": str(path),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": len(payload),
+            }
+        )
+    history_payload = history_path.read_bytes()
+    receipt_path = tmp_path / "sampled_512-run-receipt.json"
+    receipt_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "unicom-full-width-training-run-v1",
+                "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+                "seed": 2,
+                "arm": "sampled_512",
+                "exit_status": 0,
+                "config_path": str(config_path),
+                "config_sha256": hashlib.sha256(config_payload).hexdigest(),
+                "history": {
+                    "path": str(history_path),
+                    "sha256": hashlib.sha256(history_payload).hexdigest(),
+                    "bytes": len(history_payload),
+                },
+                "checkpoints": checkpoints,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_inputs",
+        lambda: {
+            "runtime_run_receipt": str(receipt_path),
+            "runtime_checkpoint": checkpoints[-1]["path"],
+        },
+    )
+
+    authority = MODULE._registered_legacy_runtime_authority()
+
+    assert [row["path"] for row in authority["checkpoints"]] == [
+        str((history_path.parent / f"epoch-{epoch:04d}.pt").resolve())
+        for epoch in (4, 8, 12, 16)
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda receipt, paths: receipt.__setitem__("schema_version", "other"),
+        lambda receipt, paths: receipt.__setitem__("arm", "full_768"),
+        lambda receipt, paths: receipt.__setitem__("seed", 3),
+        lambda receipt, paths: receipt.__setitem__("exit_status", 1),
+        lambda receipt, paths: receipt.__setitem__("trainer_sha256", "0" * 64),
+        lambda receipt, paths: receipt.__setitem__("config_sha256", "0" * 64),
+        lambda receipt, paths: receipt["history"].__setitem__("sha256", "0" * 64),
+        lambda receipt, paths: receipt["history"].__setitem__("bytes", 0),
+        lambda receipt, paths: receipt["checkpoints"][-1].__setitem__(
+            "sha256", "0" * 64
+        ),
+        lambda receipt, paths: receipt["checkpoints"][-1].__setitem__("bytes", 0),
+        lambda receipt, paths: paths.__setitem__(
+            "runtime_checkpoint", str(paths["alternate_checkpoint"])
+        ),
+    ],
+)
+def test_review17_legacy_authority_rejects_receipt_identity_and_binding_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation
+) -> None:
+    config_path = tmp_path / "historical-config.json"
+    history_path = tmp_path / "sampled_512/history.json"
+    config_path.write_text("{}\n")
+    config_payload = config_path.read_bytes()
+    history_path.parent.mkdir()
+    history_path.write_text("[]\n")
+    history_payload = history_path.read_bytes()
+    checkpoints = []
+    for epoch in (4, 8, 12, 16):
+        path = history_path.parent / f"epoch-{epoch:04d}.pt"
+        payload = f"checkpoint-{epoch}\n".encode()
+        path.write_bytes(payload)
+        checkpoints.append(
+            {
+                "epoch": epoch,
+                "path": str(path),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+                "bytes": len(payload),
+            }
+        )
+    receipt = {
+        "schema_version": "unicom-full-width-training-run-v1",
+        "trainer_sha256": MODULE.PARENT_TRAINER_SHA256,
+        "seed": 2,
+        "arm": "sampled_512",
+        "exit_status": 0,
+        "config_path": str(config_path),
+        "config_sha256": hashlib.sha256(config_payload).hexdigest(),
+        "history": {
+            "path": str(history_path),
+            "sha256": hashlib.sha256(history_payload).hexdigest(),
+            "bytes": len(history_payload),
+        },
+        "checkpoints": checkpoints,
+    }
+    receipt_path = tmp_path / "sampled_512-run-receipt.json"
+    alternate_checkpoint = tmp_path / "alternate-epoch-0016.pt"
+    alternate_checkpoint.write_bytes(checkpoints[-1]["path"].encode())
+    paths = {
+        "runtime_run_receipt": str(receipt_path),
+        "runtime_checkpoint": checkpoints[-1]["path"],
+        "alternate_checkpoint": alternate_checkpoint,
+    }
+    mutation(receipt, paths)
+    receipt_path.write_text(json.dumps(receipt))
+    monkeypatch.setattr(MODULE, "_inputs", lambda: paths)
+
+    with pytest.raises(ValueError, match="legacy runtime"):
+        MODULE._registered_legacy_runtime_authority()
+
+
+def test_review17_config_document_rejects_runtime_checkpoint_authority_split(
+    source_repo: Path, tmp_path: Path
+) -> None:
+    config = _build(source_repo, tmp_path)
+    config["legacy_runtime_authority"]["checkpoints"][-1]["path"] = config[
+        "inputs"
+    ]["runtime_checkpoint"]
+    MODULE.validate_config_document(config)
+    config["legacy_runtime_authority"]["checkpoints"][-1]["path"] = (
+        "/home/riomus/different-runtime-checkpoint.pt"
+    )
+
+    with pytest.raises(ValueError):
+        MODULE.validate_config_document(config)
 
 
 @pytest.mark.parametrize(
@@ -515,7 +672,7 @@ def test_canonical_builder_writes_once_and_reloads_distinct_bytes(
 
 
 def test_handoff_requires_sole_config_child_clean_detached_checkout(
-    source_repo: Path, tmp_path: Path
+    source_repo: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     config_path = source_repo / "docs" / "unicom_fepf_run_config.json"
     config_path.parent.mkdir()
@@ -540,6 +697,20 @@ def test_handoff_requires_sole_config_child_clean_detached_checkout(
     )
     assert resolved["config_commit"] == commit
     assert resolved["checkout_root"] == str(tmp_path / f"checkout-{commit}")
+
+    monkeypatch.setattr(
+        MODULE, "validate_external_exact_publication_budget", lambda *_args: None
+    )
+    with pytest.raises(ValueError, match="non-authentic|authentic"):
+        MODULE.validate_config_handoff(config_path, source_repo)
+
+    Path(resolved["checkout_root"]).mkdir()
+    with pytest.raises(FileExistsError, match="checkout"):
+        MODULE.validate_non_authentic_synthesized_handoff(config_path, source_repo)
+
+
+def test_review16_source_inventory_binds_partition_parser() -> None:
+    assert "src/sfora/unicom_inshop.py" in MODULE.REGISTERED_SOURCE_PATHS
 
 
 def test_prepare_artifact_root_checks_capacity_then_atomically_creates(
