@@ -1292,7 +1292,8 @@ def test_review12_public_family_rejects_coherent_dynamic_observation_rewrite(
     monkeypatch.setattr(
         torch.cuda, "get_device_properties",
         lambda _device: types.SimpleNamespace(
-            uuid="GPU-registered", name="H100", major=9, minor=0,
+            uuid="00000000-0000-0000-0000-000000000001",
+            name="H100", major=9, minor=0,
             total_memory=80 * 1024**3, multi_processor_count=120,
         ),
     )
@@ -1304,7 +1305,7 @@ def test_review12_public_family_rejects_coherent_dynamic_observation_rewrite(
             stdout=(
                 python_vv
                 if "-VV" in command
-                else "H100, GPU-registered, 550.54\n"
+                else "H100, GPU-00000000-0000-0000-0000-000000000001, 550.54\n"
             )
         ),
     )
@@ -1317,8 +1318,10 @@ def test_review12_public_family_rejects_coherent_dynamic_observation_rewrite(
             "available": str(hasattr(torch, "compile")),
             "inductor": str(getattr(torch.version, "git_version", "unknown")),
         },
-        "device_uuid": "GPU-registered",
-        "gpu_inventory": ["H100, GPU-registered, 550.54"],
+        "device_uuid": "GPU-00000000-0000-0000-0000-000000000001",
+        "gpu_inventory": [
+            "H100, GPU-00000000-0000-0000-0000-000000000001, 550.54"
+        ],
         "pyproject_sha256": MODULE._sha256((ROOT / "pyproject.toml").read_bytes()),
         "uv_lock_sha256": MODULE._sha256((ROOT / "uv.lock").read_bytes()),
         "deterministic_execution": _environment()["deterministic_execution"],
@@ -1330,6 +1333,9 @@ def test_review12_public_family_rejects_coherent_dynamic_observation_rewrite(
         MODULE._canonical_json(environment)
     )
     observation["canary_objects"]["environment"] = environment
+    observation["device_uuid"] = environment["device_uuid"]
+    terminal["device_uuid"] = environment["device_uuid"]
+    config["cuda_canary_authority"]["device_uuid"] = environment["device_uuid"]
     config["cuda_canary_authority"]["environment_sha256"] = observation[
         "environment_sha256"
     ]
@@ -1583,6 +1589,15 @@ def test_cpu_fake_canary_builds_and_strictly_validates_terminal_receipt(tmp_path
     assert receipt["completed_steps"] == 512
     assert receipt["rng_post_draw_sha256"] == receipt["rng_restored_sha256"]
     assert receipt["raw_backbone_pre_sha256"] == receipt["raw_backbone_post_sha256"]
+
+
+def test_cuda_canary_normalizes_bare_torch_uuid_to_nvidia_authority() -> None:
+    bare = "20253fc3-16c0-a26a-579e-ee0adf958974"
+
+    assert MODULE.canonical_cuda_device_uuid(bare) == f"GPU-{bare}"
+    assert MODULE.canonical_cuda_device_uuid(f"GPU-{bare}") == f"GPU-{bare}"
+    with pytest.raises(ValueError, match="UUID differs"):
+        MODULE.canonical_cuda_device_uuid("NVIDIA GB10")
 
 
 @pytest.mark.parametrize(

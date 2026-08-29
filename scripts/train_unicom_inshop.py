@@ -38,6 +38,7 @@ from sfora.atomic_publication import (
     publish_bytes_noreplace,
     publish_writer_noreplace,
 )
+from sfora.cuda_authority import canonical_cuda_device_uuid
 from sfora.unicom_fepf import (
     FepfExpectedProvenance,
     InitializationRngAudit,
@@ -1540,7 +1541,9 @@ def registered_runtime_environment(
             "available": str(hasattr(torch_module, "compile")),
             "inductor": str(getattr(torch_module.version, "git_version", "unknown")),
         },
-        "device_uuid": str(torch_module.cuda.get_device_properties(device).uuid),
+        "device_uuid": canonical_cuda_device_uuid(
+            torch_module.cuda.get_device_properties(device).uuid
+        ),
         "gpu_inventory": subprocess.run(
             [
                 "nvidia-smi", "--query-gpu=name,uuid,driver_version",

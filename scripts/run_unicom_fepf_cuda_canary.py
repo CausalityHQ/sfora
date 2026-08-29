@@ -19,6 +19,7 @@ from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from pathlib import Path
 
 from sfora.atomic_publication import BudgetedPublisher, publish_bytes_noreplace
+from sfora.cuda_authority import canonical_cuda_device_uuid
 
 RECEIPT_KEYS = (
     "schema", "status", "config_sha256", "source_commit",
@@ -420,7 +421,7 @@ def validate_registered_canary_family(
     import torchvision
 
     properties = torch.cuda.get_device_properties(device)
-    device_uuid = getattr(properties, "uuid", None)
+    device_uuid = canonical_cuda_device_uuid(getattr(properties, "uuid", None))
     live_environment = {
         "python_vv": subprocess.run(
             [sys.executable, "-VV"], check=True, capture_output=True, text=True
@@ -1366,10 +1367,7 @@ def _real_cuda_backend(config: dict[str, object]) -> dict[str, object]:
     )
     device = torch.device("cuda", torch.cuda.current_device())
     properties = torch.cuda.get_device_properties(device)
-    device_uuid = getattr(properties, "uuid", None)
-    if device_uuid is None:
-        # UUID is mandatory claim evidence; never substitute a device name.
-        raise RuntimeError("CUDA device UUID is unavailable")
+    device_uuid = canonical_cuda_device_uuid(getattr(properties, "uuid", None))
     repository = Path(__file__).resolve().parents[1]
     trainer = _load_script(
         repository / "scripts/train_unicom_inshop.py", "task6_canary_trainer"

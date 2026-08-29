@@ -2403,7 +2403,7 @@ def test_review12_profile_reestablishes_complete_deterministic_environment(
         ),
         cuda=types.SimpleNamespace(
             get_device_properties=lambda _device: types.SimpleNamespace(
-                uuid="GPU-registered"
+                uuid="20253fc3-16c0-a26a-579e-ee0adf958974"
             )
         ),
     )
@@ -2413,6 +2413,9 @@ def test_review12_profile_reestablishes_complete_deterministic_environment(
     assert environment["deterministic_execution"] == _registered_environment()[
         "deterministic_execution"
     ]
+    assert environment["device_uuid"] == (
+        "GPU-20253fc3-16c0-a26a-579e-ee0adf958974"
+    )
     assert enabled == [True]
 
 

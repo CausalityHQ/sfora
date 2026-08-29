@@ -633,6 +633,7 @@ def run_non_authentic_partial_cpu_preflight(
         "src/sfora/unicom_inshop.py",
         "src/sfora/unicom_fepf.py",
         "src/sfora/atomic_publication.py",
+        "src/sfora/cuda_authority.py",
         "pyproject.toml",
         "uv.lock",
     )

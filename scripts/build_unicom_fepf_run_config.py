@@ -39,6 +39,7 @@ REGISTERED_SOURCE_PATHS = (
     "src/sfora/unicom_fepf.py",
     "src/sfora/unicom_retrieval_audit.py",
     "src/sfora/atomic_publication.py",
+    "src/sfora/cuda_authority.py",
     "scripts/train_unicom_inshop.py",
     "scripts/profile_unicom_training_step.py",
     "scripts/evaluate_unicom_fepf.py",

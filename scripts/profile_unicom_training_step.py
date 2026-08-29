@@ -20,6 +20,7 @@ from typing import Any, NamedTuple
 import numpy as np
 
 from sfora.atomic_publication import BudgetedPublisher, publish_bytes_noreplace
+from sfora.cuda_authority import canonical_cuda_device_uuid
 
 WARMUP_STEPS = 20
 MEASURE_STEPS = 50
@@ -2408,7 +2409,9 @@ def _runtime_environment(torch, device: object) -> dict[str, object]:
             "available": str(hasattr(torch, "compile")),
             "inductor": str(getattr(torch.version, "git_version", "unknown")),
         },
-        "device_uuid": str(torch.cuda.get_device_properties(device).uuid),
+        "device_uuid": canonical_cuda_device_uuid(
+            torch.cuda.get_device_properties(device).uuid
+        ),
         "gpu_inventory": subprocess.run(
             [
                 "nvidia-smi", "--query-gpu=name,uuid,driver_version",
