@@ -179,7 +179,15 @@ def _file_binding(path: Path) -> dict[str, object]:
 def _canonical_tensor_bytes(value: torch.Tensor) -> bytes:
     if not isinstance(value, torch.Tensor):
         raise ValueError("inference tensor differs")
-    return value.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes(order="C")
+    return (
+        value.detach()
+        .cpu()
+        .contiguous()
+        .reshape(-1)
+        .view(torch.uint8)
+        .numpy()
+        .tobytes(order="C")
+    )
 
 
 def build_inference_signature(

@@ -702,7 +702,7 @@ def _checkpoint_parameter_schema(
 ) -> list[dict[str, object]]:
     model = checkpoint["model"]
     classifier = checkpoint["classifier"]
-    if type(model) is not dict:
+    if not isinstance(model, dict):
         raise ValueError("quality profile checkpoint parameter schema differs")
     rows = []
     for inference_row in inference_signature["tensors"]:
@@ -744,7 +744,7 @@ def _rebuild_checkpoint_inference_signature(
 
     _validate_inference_signature(external_signature)
     model = checkpoint.get("model")
-    if type(model) is not dict:
+    if not isinstance(model, dict):
         raise ValueError("profile checkpoint inference signature differs")
     external_rows = external_signature["tensors"]
     kinds = {row["name"]: row["kind"] for row in external_rows}
@@ -760,6 +760,7 @@ def _rebuild_checkpoint_inference_signature(
                 value.detach()
                 .cpu()
                 .contiguous()
+                .reshape(-1)
                 .view(torch.uint8)
                 .numpy()
                 .tobytes(order="C")
@@ -1143,7 +1144,7 @@ def validate_live_runtime_inference_authority(
 ) -> None:
     import torch
 
-    if type(checkpoint.get("model")) is not dict:
+    if not isinstance(checkpoint.get("model"), dict):
         raise ValueError("live inference checkpoint differs")
     parameters = dict(model.named_parameters())
     buffers = dict(model.named_buffers())
@@ -1161,7 +1162,13 @@ def validate_live_runtime_inference_authority(
         if not torch.equal(value.detach().cpu(), checkpoint_value.detach().cpu()):
             raise ValueError("live inference checkpoint tensor differs")
         payload = (
-            value.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes(order="C")
+            value.detach()
+            .cpu()
+            .contiguous()
+            .reshape(-1)
+            .view(torch.uint8)
+            .numpy()
+            .tobytes(order="C")
         )
         row = {
             "name": name,
@@ -1191,7 +1198,13 @@ def validate_live_runtime_inference_authority(
     ):
         raise ValueError("live inference descriptor differs")
     descriptor_payload = (
-        descriptor.detach().cpu().contiguous().view(torch.uint8).numpy().tobytes(order="C")
+        descriptor.detach()
+        .cpu()
+        .contiguous()
+        .reshape(-1)
+        .view(torch.uint8)
+        .numpy()
+        .tobytes(order="C")
     )
     expected = {
         "schema": "unicom-inference-signature-v1",

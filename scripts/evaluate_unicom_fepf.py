@@ -60,6 +60,7 @@ def _canonical_tensor_bytes(value: torch.Tensor) -> bytes:
         value.detach()
         .cpu()
         .contiguous()
+        .reshape(-1)
         .view(torch.uint8)
         .numpy()
         .tobytes(order="C")
@@ -76,7 +77,7 @@ def checkpoint_inference_signature(
 
     if (
         type(checkpoint) is not dict
-        or type(checkpoint.get("model")) is not dict
+        or not isinstance(checkpoint.get("model"), dict)
         or not checkpoint["model"]
         or not _lower_sha256(descriptor_sha256)
     ):

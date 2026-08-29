@@ -260,7 +260,7 @@ def _checkpoint_inference_structure(path: Path) -> dict[str, object]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("registered runtime checkpoint differs")
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    if type(checkpoint) is not dict or type(checkpoint.get("model")) is not dict:
+    if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
         raise ValueError("registered runtime checkpoint differs")
     state = checkpoint["model"]
     ema = checkpoint.get("ema")
@@ -306,7 +306,7 @@ def _checkpoint_runtime_inference_signature(path: Path) -> dict[str, object]:
     from sfora.unicom_inshop import parse_inshop_partition
 
     checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-    if type(checkpoint) is not dict or type(checkpoint.get("model")) is not dict:
+    if type(checkpoint) is not dict or not isinstance(checkpoint.get("model"), dict):
         raise ValueError("registered runtime inference signature is absent")
     trainer_path = Path(__file__).with_name("train_unicom_inshop.py")
     spec = importlib.util.spec_from_file_location("fepf_signature_trainer", trainer_path)

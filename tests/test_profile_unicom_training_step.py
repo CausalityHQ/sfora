@@ -2345,6 +2345,36 @@ def test_review13_quality_authority_uses_own_v2_signature_not_historical_seed2(
         assert observed != historical
 
 
+def test_profile_signature_accepts_ordered_state_with_scalar_buffer() -> None:
+    import torch
+
+    trainer_path = MODULE_PATH.with_name("train_unicom_inshop.py")
+    spec = importlib.util.spec_from_file_location("scalar_signature_trainer", trainer_path)
+    assert spec is not None and spec.loader is not None
+    trainer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(trainer)
+
+    class Backbone(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.projection = torch.nn.Linear(3, 4, bias=False)
+            self.register_buffer(
+                "num_batches_tracked", torch.tensor(560_388, dtype=torch.int64)
+            )
+
+    model = Backbone()
+    descriptor = torch.zeros((1, 512), dtype=torch.float32)
+    checkpoint = {"model": model.state_dict()}
+    external = trainer.build_inference_signature(model, descriptor=descriptor)
+
+    rebuilt = MODULE._rebuild_checkpoint_inference_signature(checkpoint, external)
+
+    assert rebuilt == external
+    MODULE.validate_live_runtime_inference_authority(
+        checkpoint, model=model, descriptor=descriptor, external=external
+    )
+
+
 def test_review12_profile_reestablishes_complete_deterministic_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

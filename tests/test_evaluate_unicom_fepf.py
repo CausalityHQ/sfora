@@ -8,6 +8,7 @@ import json
 import math
 import os
 import shutil
+from collections import OrderedDict
 from pathlib import Path
 
 import numpy as np
@@ -936,6 +937,55 @@ def test_checkpoint_signature_rebuilds_parameter_and_buffer_values_not_receipt_h
             structural_inventory=structure,
             descriptor_sha256=descriptor_sha256,
         )
+
+
+def test_checkpoint_signature_accepts_ordered_state_with_scalar_buffer() -> None:
+    state = OrderedDict(
+        (
+            ("layer.num_batches_tracked", torch.tensor(560_388, dtype=torch.int64)),
+            ("layer.weight", torch.tensor([[1.0, 2.0]], dtype=torch.float32)),
+        )
+    )
+    structure = {
+        "schema": "unicom-fepf-structure-v1",
+        "tensors": [
+            {
+                "name": name,
+                "kind": "parameter" if name == "layer.weight" else "buffer",
+                "shape": list(value.shape),
+                "dtype": str(value.dtype),
+                "numel": value.numel(),
+                "element_size": value.element_size(),
+                "bytes": value.numel() * value.element_size(),
+            }
+            for name, value in state.items()
+        ],
+        "classifier": {
+            "shape": [2, 2],
+            "dtype": "torch.float32",
+            "numel": 4,
+            "element_size": 4,
+            "bytes": 16,
+        },
+        "operations": list(MODULE.INFERENCE_OPERATIONS),
+    }
+    checkpoint = {
+        "model": state,
+        "classifier": torch.zeros((2, 2), dtype=torch.float32),
+        "ema": None,
+    }
+
+    signature = MODULE.checkpoint_inference_signature(
+        checkpoint,
+        structural_inventory=structure,
+        descriptor_sha256="d" * 64,
+    )
+
+    scalar = signature["tensors"][0]
+    expected = torch.tensor(560_388, dtype=torch.int64).numpy().tobytes(order="C")
+    assert scalar["shape"] == []
+    assert scalar["bytes"] == len(expected) == 8
+    assert scalar["sha256"] == hashlib.sha256(expected).hexdigest()
 
 
 def _complete_query_observation(

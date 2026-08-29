@@ -3594,6 +3594,31 @@ def test_inference_signature_authenticity_and_cross_arm_structure() -> None:
         module.validate_inference_signature(signature_a, raw_model=second, descriptor=descriptor_b)
 
 
+def test_inference_signature_binds_zero_dimensional_buffer_bytes() -> None:
+    module = _load_script()
+
+    class Backbone(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.projection = torch.nn.Linear(3, 4, bias=False)
+            self.register_buffer(
+                "num_batches_tracked", torch.tensor(560_388, dtype=torch.int64)
+            )
+
+    model = Backbone()
+    descriptor = torch.zeros((1, 512), dtype=torch.float32)
+
+    signature = module.build_inference_signature(model, descriptor=descriptor)
+
+    scalar = next(
+        row for row in signature["tensors"] if row["name"] == "num_batches_tracked"
+    )
+    expected = torch.tensor(560_388, dtype=torch.int64).numpy().tobytes(order="C")
+    assert scalar["shape"] == []
+    assert scalar["bytes"] == len(expected) == 8
+    assert scalar["sha256"] == hashlib.sha256(expected).hexdigest()
+
+
 @pytest.mark.parametrize(
     "mutation",
     (
